@@ -28,7 +28,7 @@ import {
   OperandType,
   PolicyEditSection,
 } from "shared/src/components/policy/PolicyEditSection";
-import { OdrlInfo, OdrlOffer, OdrlPermission } from "shared/src/data/orval/model";
+import { OdrlConstraint, OdrlInfo, OdrlOffer, OdrlPermission } from "shared/src/data/orval/model";
 
 // =============================================================================
 // TYPES
@@ -141,7 +141,7 @@ export const PolicyWrapperEdit = ({ policy, onChange }: PolicyWrapperEditProps) 
       };
       updatePolicyAndNotify((prev) => ({
         ...prev,
-        [componentType]: [...prev[componentType], newComponent],
+        [componentType]: [...(prev[componentType] || []), newComponent],
       }));
     },
     [updatePolicyAndNotify],
@@ -152,7 +152,7 @@ export const PolicyWrapperEdit = ({ policy, onChange }: PolicyWrapperEditProps) 
     (componentType: ComponentType, index: number) => {
       updatePolicyAndNotify((prev) => ({
         ...prev,
-        [componentType]: prev[componentType].filter((_, i) => i !== index),
+        [componentType]: (prev[componentType] || []).filter((_, i) => i !== index),
       }));
     },
     [updatePolicyAndNotify],
@@ -162,11 +162,11 @@ export const PolicyWrapperEdit = ({ policy, onChange }: PolicyWrapperEditProps) 
   const handleAddConstraint = useCallback(
     (componentType: ComponentType, componentIndex: number) => {
       updatePolicyAndNotify((prev) => {
-        const updated = [...prev[componentType]];
+        const updated = [...(prev[componentType] || [])];
         updated[componentIndex] = {
           ...updated[componentIndex],
           constraint: [
-            ...updated[componentIndex].constraint,
+            ...(updated[componentIndex].constraint || []),
             { leftOperand: "", operator: "", rightOperand: "" },
           ],
         };
@@ -180,10 +180,10 @@ export const PolicyWrapperEdit = ({ policy, onChange }: PolicyWrapperEditProps) 
   const handleRemoveConstraint = useCallback(
     (componentType: ComponentType, componentIndex: number, constraintIndex: number) => {
       updatePolicyAndNotify((prev) => {
-        const updated = [...prev[componentType]];
+        const updated = [...(prev[componentType] || [])];
         updated[componentIndex] = {
           ...updated[componentIndex],
-          constraint: updated[componentIndex].constraint.filter((_, i) => i !== constraintIndex),
+          constraint: (updated[componentIndex].constraint || []).filter((_: OdrlConstraint, i: number) => i !== constraintIndex),
         };
         return { ...prev, [componentType]: updated };
       });
@@ -195,7 +195,7 @@ export const PolicyWrapperEdit = ({ policy, onChange }: PolicyWrapperEditProps) 
   const handleActionChange = useCallback(
     (componentType: ComponentType, componentIndex: number, value: string) => {
       updatePolicyAndNotify((prev) => {
-        const updated = [...prev[componentType]];
+        const updated = [...(prev[componentType] || [])];
         updated[componentIndex] = { ...updated[componentIndex], action: value };
         return { ...prev, [componentType]: updated };
       });
@@ -213,8 +213,8 @@ export const PolicyWrapperEdit = ({ policy, onChange }: PolicyWrapperEditProps) 
       value: string,
     ) => {
       updatePolicyAndNotify((prev) => {
-        const updated = [...prev[componentType]];
-        const constraints = [...updated[componentIndex].constraint];
+        const updated = [...(prev[componentType] || [])];
+        const constraints = [...(updated[componentIndex].constraint || [])];
         constraints[constraintIndex] = {
           ...constraints[constraintIndex],
           [operand]: value,
@@ -241,7 +241,7 @@ export const PolicyWrapperEdit = ({ policy, onChange }: PolicyWrapperEditProps) 
           <Heading level="h5" className="flex gap-3">
             <div>Policy with ID</div>
             <Badge variant="info" className="h-6">
-              {policy["@id"].slice(9, 29) + "[...]"}
+              {(policy["@id"] || "").slice(9, 29) + "[...]"}
             </Badge>
           </Heading>
         </div>
@@ -263,7 +263,7 @@ export const PolicyWrapperEdit = ({ policy, onChange }: PolicyWrapperEditProps) 
             {/* Permission Section */}
             <PolicyEditSection
               type="permission"
-              items={editedPolicy.permission}
+              items={editedPolicy.permission || []}
               onAdd={handleAddComponent}
               onRemove={handleRemoveComponent}
               onActionChange={handleActionChange}
@@ -275,7 +275,7 @@ export const PolicyWrapperEdit = ({ policy, onChange }: PolicyWrapperEditProps) 
             {/* Obligation Section */}
             <PolicyEditSection
               type="obligation"
-              items={editedPolicy.obligation}
+              items={editedPolicy.obligation || []}
               onAdd={handleAddComponent}
               onRemove={handleRemoveComponent}
               onActionChange={handleActionChange}
@@ -287,7 +287,7 @@ export const PolicyWrapperEdit = ({ policy, onChange }: PolicyWrapperEditProps) 
             {/* Prohibition Section */}
             <PolicyEditSection
               type="prohibition"
-              items={editedPolicy.prohibition}
+              items={editedPolicy.prohibition || []}
               onAdd={handleAddComponent}
               onRemove={handleRemoveComponent}
               onActionChange={handleActionChange}

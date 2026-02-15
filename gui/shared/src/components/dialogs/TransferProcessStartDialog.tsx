@@ -43,11 +43,16 @@ export const TransferProcessStartDialog = ({ process, onClose }: {
     } : undefined
 
 
+    if (!process.identifiers?.consumerPid || !process.identifiers?.providerPid) {
+      console.error("Missing process identifiers");
+      return;
+    }
+
     await startAsync({
       data: {
         consumerPid: process.identifiers.consumerPid,
         providerPid: process.identifiers.providerPid,
-        dataAddress
+        dataAddress: dataAddress as any
       }
     })
 

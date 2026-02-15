@@ -31,6 +31,10 @@ export const ContractNegotiationVerificationDialog = ({
    * Sends verification message to the provider.
    */
   const handleSubmit = async () => {
+    if (!process.identifiers?.consumerPid || !process.identifiers?.providerPid) {
+      console.error("Missing process identifiers");
+      return;
+    }
     await verifyAsync({
       data: {
         providerPid: process.identifiers.providerPid,
@@ -62,9 +66,9 @@ export const ContractNegotiationVerificationDialog = ({
       afterInfoContent={
         <div className="pt-4">
           <PolicyWrapperShow
-            policy={process.agreement!.agreementContent}
-            datasetId={process.identifiers.datasetId}
-            catalogId={process.identifiers.catalogId}
+            policy={process.agreement?.agreementContent || { permission: [], prohibition: [], obligation: [] }}
+            datasetId={process.identifiers?.datasetId}
+            catalogId={process.identifiers?.catalogId}
           />
         </div>
       }

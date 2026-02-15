@@ -11,9 +11,10 @@ import {
   RoleHeader,
   RoleType,
 } from "./ui/message";
+import { NegotiationMessageDto } from "../data/orval/model";
 
 type MessageComponentProps = {
-  message: NegotiationMessage;
+  message: NegotiationMessageDto;
 };
 let addSpacesFormat = (text: string) => {
   if (!text) return "";

@@ -115,9 +115,9 @@ export const ContractNegotiationNewOfferDialog = ({
 
     const res = await setupOffer({
       data: {
-        associatedAgentPeer: selectedParticipant?.participant_id,
+        associatedAgentPeer: selectedParticipant?.participant_id || "",
         providerAddress: resolvedPath || "", // Use resolved path
-        callbackAddress: myDspPath,
+        callbackAddress: myDspPath || "",
         offer: {
           "@id": policy.id
         }

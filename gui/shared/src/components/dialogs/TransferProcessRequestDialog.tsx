@@ -107,8 +107,8 @@ export const TransferProcessRequestDialog = ({ process, onClose }: TransferProce
     const res = await mutateAsync({
       data: {
         associatedAgentPeer: process.providerParticipantId,
-        providerAddress: providerDspPath,
-        callbackAddress: myDspPath,
+        providerAddress: providerDspPath || "",
+        callbackAddress: myDspPath || "",
         agreementId: process.id,
         // @ts-ignore - formats is present in the data but not in the model
         format: distribution.formats || "",
@@ -156,7 +156,7 @@ export const TransferProcessRequestDialog = ({ process, onClose }: TransferProce
             </label>
             <FormControl >
               <Select
-                value={field.value}
+                value={field.value || ""}
                 onValueChange={field.onChange}
                 onOpenChange={(open) => {
                   if (open) fetchDistributions();

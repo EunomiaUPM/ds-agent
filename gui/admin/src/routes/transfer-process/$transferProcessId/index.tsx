@@ -124,7 +124,7 @@ function RouteComponent() {
           </PageSection>
         </TabsContent>
       </Tabs>
-      <TransferProcessActions process={transferProcess} tiny={false} />
+      <TransferProcessActions process={transferProcess.data} tiny={false} />
     </PageLayout>
   );
 }

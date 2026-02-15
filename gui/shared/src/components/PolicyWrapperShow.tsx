@@ -99,6 +99,7 @@ export const PolicyWrapperShow = ({
     routerState.location.pathname.includes("datahub-catalog") &&
     routerState.location.pathname.includes("dataset");
 
+  // @ts-ignore
   const policyId = "id" in policy ? policy.id : policy["@id"];
   const odrlOffer = "odrlOffer" in policy ? policy.odrlOffer : (policy as OdrlOffer);
   const entityType = "entityType" in policy ? policy.entityType : (policy as any).entityType; // Fallback for flexibility

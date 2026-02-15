@@ -29,15 +29,15 @@ import { NegotiationProcessDto } from "shared/src/data/orval/model/negotiationPr
  */
 export function mapCNProcessToInfoItemsForProvider(process: NegotiationProcessDto): InfoItemProps[] {
   const items: (InfoItemProps | undefined)[] = [
-    { label: "Provider ID", value: { type: "urn" as const, value: process.identifiers?.providerPid } },
-    { label: "Consumer ID", value: { type: "urn" as const, value: process.identifiers?.consumerPid } },
+    { label: "Provider ID", value: { type: "urn" as const, value: process.identifiers?.providerPid || "" } },
+    { label: "Consumer ID", value: { type: "urn" as const, value: process.identifiers?.consumerPid || "" } },
     {
       label: "Associated Consumer",
-      value: { type: "urn" as const, value: process.associatedAgentPeer },
+      value: { type: "urn" as const, value: process.associatedAgentPeer || "" },
     },
-    { label: "Current State", value: { type: "status" as const, value: process.state } },
+    { label: "Current State", value: { type: "status" as const, value: process.state || "" } },
     // { label: "Initiated By", value: { type: "role" as const, value: process.initiated_by ?? "" } }, // Not available in DTO directly?
-    { label: "Created At", value: { type: "date" as const, value: process.createdAt } },
+    { label: "Created At", value: { type: "date" as const, value: process.createdAt || "" } },
     process.updatedAt
       ? { label: "Updated At", value: { type: "date" as const, value: process.updatedAt } }
       : undefined,
@@ -51,15 +51,15 @@ export function mapCNProcessToInfoItemsForProvider(process: NegotiationProcessDt
  */
 export function mapCNProcessToInfoItemsForConsumer(process: NegotiationProcessDto): InfoItemProps[] {
   const items: (InfoItemProps | undefined)[] = [
-    { label: "Provider ID", value: { type: "urn" as const, value: process.identifiers?.providerPid } },
-    { label: "Consumer ID", value: { type: "urn" as const, value: process.identifiers?.consumerPid } },
+    { label: "Provider ID", value: { type: "urn" as const, value: process.identifiers?.providerPid || "" } },
+    { label: "Consumer ID", value: { type: "urn" as const, value: process.identifiers?.consumerPid || "" } },
     {
       label: "Associated Provider",
-      value: { type: "urn" as const, value: process.associatedAgentPeer },
+      value: { type: "urn" as const, value: process.associatedAgentPeer || "" },
     },
-    { label: "Current State", value: { type: "status" as const, value: process.state } },
+    { label: "Current State", value: { type: "status" as const, value: process.state || "" } },
     // { label: "Initiated By", value: { type: "role" as const, value: process.initiated_by ?? "" } },
-    { label: "Created At", value: { type: "date" as const, value: process.createdAt } },
+    { label: "Created At", value: { type: "date" as const, value: process.createdAt || "" } },
     process.updatedAt
       ? { label: "Updated At", value: { type: "date" as const, value: process.updatedAt } }
       : undefined,
@@ -75,15 +75,15 @@ export function mapCNProcessToFullInfoItems(process: NegotiationProcessDto): Inf
   const items: (InfoItemProps | undefined)[] = [
     {
       label: "Provider ID",
-      value: { type: "urn" as const, value: process.identifiers?.providerPid },
+      value: { type: "urn" as const, value: process.identifiers?.providerPid || "" },
     },
     {
       label: "Consumer ID",
-      value: { type: "urn" as const, value: process.identifiers?.consumerPid },
+      value: { type: "urn" as const, value: process.identifiers?.consumerPid || "" },
     },
     {
       label: "Associated Peer",
-      value: { type: "urn" as const, value: process.associatedAgentPeer },
+      value: { type: "urn" as const, value: process.associatedAgentPeer || "" },
     },
     { label: "Current State", value: { type: "status" as const, value: process.state } },
     { label: "Created At", value: { type: "date" as const, value: process.createdAt } },
@@ -125,20 +125,20 @@ export function mapTransferProcessToInfoItemsForProvider(
   process: TransferProcessDto,
 ): InfoItemProps[] {
   const items: (InfoItemProps | undefined)[] = [
-    { label: "Provider PID", value: { type: "urn" as const, value: process.identifiers?.providerPid } },
-    { label: "Consumer PID", value: { type: "urn" as const, value: process.identifiers?.consumerPid } },
+    { label: "Provider PID", value: { type: "urn" as const, value: process.identifiers?.providerPid || "" } },
+    { label: "Consumer PID", value: { type: "urn" as const, value: process.identifiers?.consumerPid || "" } },
     {
       label: "Associated Consumer",
-      value: { type: "urn" as const, value: process.associatedAgentPeer },
+      value: { type: "urn" as const, value: process.associatedAgentPeer || "" },
     },
-    { label: "Current State", value: { type: "status" as const, value: process.state } },
+    { label: "Current State", value: { type: "status" as const, value: process.state || "" } },
     process.stateAttribute
       ? {
           label: "State Attribute",
           value: { type: "status" as const, value: process.stateAttribute },
         }
       : undefined,
-    { label: "Created At", value: { type: "date" as const, value: process.createdAt } },
+    { label: "Created At", value: { type: "date" as const, value: process.createdAt || "" } },
     process.updatedAt
       ? { label: "Updated At", value: { type: "date" as const, value: process.updatedAt } }
       : undefined,
@@ -153,20 +153,20 @@ export function mapTransferProcessToInfoItemsForConsumer(
   process: TransferProcessDto,
 ): InfoItemProps[] {
   const items: (InfoItemProps | undefined)[] = [
-    { label: "Provider PID", value: { type: "urn" as const, value: process.identifiers?.providerPid } },
-    { label: "Consumer ID", value: { type: "urn" as const, value: process.identifiers?.consumerPid } },
+    { label: "Provider PID", value: { type: "urn" as const, value: process.identifiers?.providerPid || "" } },
+    { label: "Consumer ID", value: { type: "urn" as const, value: process.identifiers?.consumerPid || "" } },
     {
       label: "Associated Provider",
-      value: { type: "urn" as const, value: process.associatedAgentPeer },
+      value: { type: "urn" as const, value: process.associatedAgentPeer || "" },
     },
-    { label: "Current State", value: { type: "status" as const, value: process.state } },
+    { label: "Current State", value: { type: "status" as const, value: process.state || "" } },
     process.stateAttribute
       ? {
           label: "State Attribute",
           value: { type: "status" as const, value: process.stateAttribute },
         }
       : undefined,
-    { label: "Created At", value: { type: "date" as const, value: process.createdAt } },
+    { label: "Created At", value: { type: "date" as const, value: process.createdAt || "" } },
     process.updatedAt
       ? { label: "Updated At", value: { type: "date" as const, value: process.updatedAt } }
       : undefined,

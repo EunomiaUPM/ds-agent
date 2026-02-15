@@ -60,7 +60,7 @@ export const ContractNegotiationRequestDialog = ({
   const [currentPolicy, setCurrentPolicy] = useState<OdrlInfo | null>(null);
   const { mutateAsync: dataRequestAsync } = useRpcSetupRequest();
   const lastOffer = useMemo(() => {
-    return process.offers.at(-1);
+    return process.offers?.at(-1);
   }, [process]);
 
   // ---------------------------------------------------------------------------
@@ -74,14 +74,19 @@ export const ContractNegotiationRequestDialog = ({
   // ---------------------------------------------------------------------------
 
   const handleSubmit = async () => {
+    if (!process.identifiers?.consumerPid || !process.identifiers?.providerPid || !lastOffer || !currentPolicy) {
+      console.error("Missing required data for request");
+      return;
+    }
+
     await dataRequestAsync({
       data: {
         consumerPid: process.identifiers.consumerPid,
         providerPid: process.identifiers.providerPid,
         offer: {
-          "@id": lastOffer.offerContent["@id"],
-          "@type": lastOffer.offerContent["@type"],
-          target: lastOffer.offerContent.target,
+          "@id": (lastOffer.offerContent["@id"] as string) ?? "urn:uuid:placeholder",
+          "@type": (lastOffer.offerContent["@type"] as any),
+          target: (lastOffer.offerContent.target as string) ?? "",
           ...currentPolicy
         },
       },
@@ -98,7 +103,7 @@ export const ContractNegotiationRequestDialog = ({
   // After Info Content (Policy Editor)
   // ---------------------------------------------------------------------------
 
-  const policyEditorContent = lastOffer ? (
+  const policyEditorContent = lastOffer && lastOffer.offerContent ? (
     <div className="pt-4 flex gap-2">
       <div className="w-1/2">
         <Heading level="h6" className="mb-2">
@@ -126,6 +131,7 @@ export const ContractNegotiationRequestDialog = ({
       infoItems={infoItems}
       afterInfoContent={policyEditorContent}
       submitLabel="Request"
+      disabledSubmit={!process.identifiers?.consumerPid || !process.identifiers?.providerPid || !lastOffer || !currentPolicy}
       submitVariant="outline"
       onSubmit={handleSubmit}
       scrollable

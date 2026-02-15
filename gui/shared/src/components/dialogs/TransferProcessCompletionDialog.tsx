@@ -26,6 +26,10 @@ export const TransferProcessCompletionDialog = ({ process, onClose }: {
    * Payload structure differs based on the user's role.
    */
   const handleSubmit = async () => {
+    if (!process.identifiers?.consumerPid || !process.identifiers?.providerPid) {
+      console.error("Missing process identifiers");
+      return;
+    }
     await completeAsync({
       data: {
         consumerPid: process.identifiers.consumerPid,

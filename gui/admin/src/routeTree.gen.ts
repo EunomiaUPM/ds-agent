@@ -14,7 +14,6 @@ import { Route as rootRoute } from './routes/__root'
 import { Route as TransferProcessRouteImport } from './routes/transfer-process/route'
 import { Route as SubscriptionsRouteImport } from './routes/subscriptions/route'
 import { Route as ParticipantsRouteImport } from './routes/participants/route'
-import { Route as DatahubCatalogRouteImport } from './routes/datahub-catalog/route'
 import { Route as ContractNegotiationRouteImport } from './routes/contract-negotiation/route'
 import { Route as CatalogRouteImport } from './routes/catalog/route'
 import { Route as AgreementsRouteImport } from './routes/agreements/route'
@@ -23,26 +22,21 @@ import { Route as TransferProcessIndexImport } from './routes/transfer-process/i
 import { Route as SubscriptionsIndexImport } from './routes/subscriptions/index'
 import { Route as ParticipantsIndexImport } from './routes/participants/index'
 import { Route as LoginIndexImport } from './routes/login/index'
-import { Route as DatahubCatalogIndexImport } from './routes/datahub-catalog/index'
 import { Route as ContractNegotiationIndexImport } from './routes/contract-negotiation/index'
 import { Route as CatalogIndexImport } from './routes/catalog/index'
 import { Route as AgreementsIndexImport } from './routes/agreements/index'
 import { Route as AgreementsAgreementIdImport } from './routes/agreements/$agreementId'
 import { Route as TransferProcessTransferProcessIdRouteImport } from './routes/transfer-process/$transferProcessId/route'
 import { Route as ParticipantsParticipantIdRouteImport } from './routes/participants/$participantId/route'
-import { Route as DatahubCatalogCatalogIdRouteImport } from './routes/datahub-catalog/$catalogId/route'
 import { Route as ContractNegotiationCnProcessRouteImport } from './routes/contract-negotiation/$cnProcess/route'
 import { Route as CatalogParticipantRouteImport } from './routes/catalog/participant/route'
 import { Route as CatalogCatalogIdRouteImport } from './routes/catalog/$catalogId/route'
 import { Route as TransferProcessTransferProcessIdIndexImport } from './routes/transfer-process/$transferProcessId/index'
 import { Route as ParticipantsParticipantIdIndexImport } from './routes/participants/$participantId/index'
-import { Route as DatahubCatalogCatalogIdIndexImport } from './routes/datahub-catalog/$catalogId/index'
 import { Route as ContractNegotiationCnProcessIndexImport } from './routes/contract-negotiation/$cnProcess/index'
 import { Route as CatalogCatalogIdIndexImport } from './routes/catalog/$catalogId/index'
 import { Route as CatalogParticipantParticipantIdIndexImport } from './routes/catalog/participant/$participantId/index'
 import { Route as TransferProcessTransferProcessIdTransferMessageTransferMessageIdImport } from './routes/transfer-process/$transferProcessId/transfer-message.$transferMessageId'
-import { Route as DatahubCatalogCatalogIdDatasetDatasetIdImport } from './routes/datahub-catalog/$catalogId/dataset.$datasetId'
-import { Route as ContractNegotiationCnProcessMessageMessageIdImport } from './routes/contract-negotiation/$cnProcess/message.$messageId'
 import { Route as CatalogCatalogIdDistributionConnectorDistributionIdImport } from './routes/catalog/$catalogId/distribution-connector.$distributionId'
 import { Route as CatalogCatalogIdDatasetDatasetIdImport } from './routes/catalog/$catalogId/dataset.$datasetId'
 import { Route as CatalogCatalogIdDataServiceDataServiceIdImport } from './routes/catalog/$catalogId/data-service.$dataServiceId'
@@ -65,12 +59,6 @@ const SubscriptionsRouteRoute = SubscriptionsRouteImport.update({
 const ParticipantsRouteRoute = ParticipantsRouteImport.update({
   id: '/participants',
   path: '/participants',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const DatahubCatalogRouteRoute = DatahubCatalogRouteImport.update({
-  id: '/datahub-catalog',
-  path: '/datahub-catalog',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -122,12 +110,6 @@ const LoginIndexRoute = LoginIndexImport.update({
   getParentRoute: () => rootRoute,
 } as any)
 
-const DatahubCatalogIndexRoute = DatahubCatalogIndexImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => DatahubCatalogRouteRoute,
-} as any)
-
 const ContractNegotiationIndexRoute = ContractNegotiationIndexImport.update({
   id: '/',
   path: '/',
@@ -166,13 +148,6 @@ const ParticipantsParticipantIdRouteRoute =
     getParentRoute: () => ParticipantsRouteRoute,
   } as any)
 
-const DatahubCatalogCatalogIdRouteRoute =
-  DatahubCatalogCatalogIdRouteImport.update({
-    id: '/$catalogId',
-    path: '/$catalogId',
-    getParentRoute: () => DatahubCatalogRouteRoute,
-  } as any)
-
 const ContractNegotiationCnProcessRouteRoute =
   ContractNegotiationCnProcessRouteImport.update({
     id: '/$cnProcess',
@@ -206,13 +181,6 @@ const ParticipantsParticipantIdIndexRoute =
     getParentRoute: () => ParticipantsParticipantIdRouteRoute,
   } as any)
 
-const DatahubCatalogCatalogIdIndexRoute =
-  DatahubCatalogCatalogIdIndexImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => DatahubCatalogCatalogIdRouteRoute,
-  } as any)
-
 const ContractNegotiationCnProcessIndexRoute =
   ContractNegotiationCnProcessIndexImport.update({
     id: '/',
@@ -241,20 +209,6 @@ const TransferProcessTransferProcessIdTransferMessageTransferMessageIdRoute =
       getParentRoute: () => TransferProcessTransferProcessIdRouteRoute,
     } as any,
   )
-
-const DatahubCatalogCatalogIdDatasetDatasetIdRoute =
-  DatahubCatalogCatalogIdDatasetDatasetIdImport.update({
-    id: '/dataset/$datasetId',
-    path: '/dataset/$datasetId',
-    getParentRoute: () => DatahubCatalogCatalogIdRouteRoute,
-  } as any)
-
-const ContractNegotiationCnProcessMessageMessageIdRoute =
-  ContractNegotiationCnProcessMessageMessageIdImport.update({
-    id: '/message/$messageId',
-    path: '/message/$messageId',
-    getParentRoute: () => ContractNegotiationCnProcessRouteRoute,
-  } as any)
 
 const CatalogCatalogIdDistributionConnectorDistributionIdRoute =
   CatalogCatalogIdDistributionConnectorDistributionIdImport.update({
@@ -316,13 +270,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContractNegotiationRouteImport
       parentRoute: typeof rootRoute
     }
-    '/datahub-catalog': {
-      id: '/datahub-catalog'
-      path: '/datahub-catalog'
-      fullPath: '/datahub-catalog'
-      preLoaderRoute: typeof DatahubCatalogRouteImport
-      parentRoute: typeof rootRoute
-    }
     '/participants': {
       id: '/participants'
       path: '/participants'
@@ -364,13 +311,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/contract-negotiation/$cnProcess'
       preLoaderRoute: typeof ContractNegotiationCnProcessRouteImport
       parentRoute: typeof ContractNegotiationRouteImport
-    }
-    '/datahub-catalog/$catalogId': {
-      id: '/datahub-catalog/$catalogId'
-      path: '/$catalogId'
-      fullPath: '/datahub-catalog/$catalogId'
-      preLoaderRoute: typeof DatahubCatalogCatalogIdRouteImport
-      parentRoute: typeof DatahubCatalogRouteImport
     }
     '/participants/$participantId': {
       id: '/participants/$participantId'
@@ -414,13 +354,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContractNegotiationIndexImport
       parentRoute: typeof ContractNegotiationRouteImport
     }
-    '/datahub-catalog/': {
-      id: '/datahub-catalog/'
-      path: '/'
-      fullPath: '/datahub-catalog/'
-      preLoaderRoute: typeof DatahubCatalogIndexImport
-      parentRoute: typeof DatahubCatalogRouteImport
-    }
     '/login/': {
       id: '/login/'
       path: '/login'
@@ -463,13 +396,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContractNegotiationCnProcessIndexImport
       parentRoute: typeof ContractNegotiationCnProcessRouteImport
     }
-    '/datahub-catalog/$catalogId/': {
-      id: '/datahub-catalog/$catalogId/'
-      path: '/'
-      fullPath: '/datahub-catalog/$catalogId/'
-      preLoaderRoute: typeof DatahubCatalogCatalogIdIndexImport
-      parentRoute: typeof DatahubCatalogCatalogIdRouteImport
-    }
     '/participants/$participantId/': {
       id: '/participants/$participantId/'
       path: '/'
@@ -504,20 +430,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/catalog/$catalogId/distribution-connector/$distributionId'
       preLoaderRoute: typeof CatalogCatalogIdDistributionConnectorDistributionIdImport
       parentRoute: typeof CatalogCatalogIdRouteImport
-    }
-    '/contract-negotiation/$cnProcess/message/$messageId': {
-      id: '/contract-negotiation/$cnProcess/message/$messageId'
-      path: '/message/$messageId'
-      fullPath: '/contract-negotiation/$cnProcess/message/$messageId'
-      preLoaderRoute: typeof ContractNegotiationCnProcessMessageMessageIdImport
-      parentRoute: typeof ContractNegotiationCnProcessRouteImport
-    }
-    '/datahub-catalog/$catalogId/dataset/$datasetId': {
-      id: '/datahub-catalog/$catalogId/dataset/$datasetId'
-      path: '/dataset/$datasetId'
-      fullPath: '/datahub-catalog/$catalogId/dataset/$datasetId'
-      preLoaderRoute: typeof DatahubCatalogCatalogIdDatasetDatasetIdImport
-      parentRoute: typeof DatahubCatalogCatalogIdRouteImport
     }
     '/transfer-process/$transferProcessId/transfer-message/$transferMessageId': {
       id: '/transfer-process/$transferProcessId/transfer-message/$transferMessageId'
@@ -616,15 +528,12 @@ const CatalogRouteRouteWithChildren = CatalogRouteRoute._addFileChildren(
 
 interface ContractNegotiationCnProcessRouteRouteChildren {
   ContractNegotiationCnProcessIndexRoute: typeof ContractNegotiationCnProcessIndexRoute
-  ContractNegotiationCnProcessMessageMessageIdRoute: typeof ContractNegotiationCnProcessMessageMessageIdRoute
 }
 
 const ContractNegotiationCnProcessRouteRouteChildren: ContractNegotiationCnProcessRouteRouteChildren =
   {
     ContractNegotiationCnProcessIndexRoute:
       ContractNegotiationCnProcessIndexRoute,
-    ContractNegotiationCnProcessMessageMessageIdRoute:
-      ContractNegotiationCnProcessMessageMessageIdRoute,
   }
 
 const ContractNegotiationCnProcessRouteRouteWithChildren =
@@ -648,37 +557,6 @@ const ContractNegotiationRouteRouteWithChildren =
   ContractNegotiationRouteRoute._addFileChildren(
     ContractNegotiationRouteRouteChildren,
   )
-
-interface DatahubCatalogCatalogIdRouteRouteChildren {
-  DatahubCatalogCatalogIdIndexRoute: typeof DatahubCatalogCatalogIdIndexRoute
-  DatahubCatalogCatalogIdDatasetDatasetIdRoute: typeof DatahubCatalogCatalogIdDatasetDatasetIdRoute
-}
-
-const DatahubCatalogCatalogIdRouteRouteChildren: DatahubCatalogCatalogIdRouteRouteChildren =
-  {
-    DatahubCatalogCatalogIdIndexRoute: DatahubCatalogCatalogIdIndexRoute,
-    DatahubCatalogCatalogIdDatasetDatasetIdRoute:
-      DatahubCatalogCatalogIdDatasetDatasetIdRoute,
-  }
-
-const DatahubCatalogCatalogIdRouteRouteWithChildren =
-  DatahubCatalogCatalogIdRouteRoute._addFileChildren(
-    DatahubCatalogCatalogIdRouteRouteChildren,
-  )
-
-interface DatahubCatalogRouteRouteChildren {
-  DatahubCatalogCatalogIdRouteRoute: typeof DatahubCatalogCatalogIdRouteRouteWithChildren
-  DatahubCatalogIndexRoute: typeof DatahubCatalogIndexRoute
-}
-
-const DatahubCatalogRouteRouteChildren: DatahubCatalogRouteRouteChildren = {
-  DatahubCatalogCatalogIdRouteRoute:
-    DatahubCatalogCatalogIdRouteRouteWithChildren,
-  DatahubCatalogIndexRoute: DatahubCatalogIndexRoute,
-}
-
-const DatahubCatalogRouteRouteWithChildren =
-  DatahubCatalogRouteRoute._addFileChildren(DatahubCatalogRouteRouteChildren)
 
 interface ParticipantsParticipantIdRouteRouteChildren {
   ParticipantsParticipantIdIndexRoute: typeof ParticipantsParticipantIdIndexRoute
@@ -756,35 +634,29 @@ export interface FileRoutesByFullPath {
   '/agreements': typeof AgreementsRouteRouteWithChildren
   '/catalog': typeof CatalogRouteRouteWithChildren
   '/contract-negotiation': typeof ContractNegotiationRouteRouteWithChildren
-  '/datahub-catalog': typeof DatahubCatalogRouteRouteWithChildren
   '/participants': typeof ParticipantsRouteRouteWithChildren
   '/subscriptions': typeof SubscriptionsRouteRouteWithChildren
   '/transfer-process': typeof TransferProcessRouteRouteWithChildren
   '/catalog/$catalogId': typeof CatalogCatalogIdRouteRouteWithChildren
   '/catalog/participant': typeof CatalogParticipantRouteRouteWithChildren
   '/contract-negotiation/$cnProcess': typeof ContractNegotiationCnProcessRouteRouteWithChildren
-  '/datahub-catalog/$catalogId': typeof DatahubCatalogCatalogIdRouteRouteWithChildren
   '/participants/$participantId': typeof ParticipantsParticipantIdRouteRouteWithChildren
   '/transfer-process/$transferProcessId': typeof TransferProcessTransferProcessIdRouteRouteWithChildren
   '/agreements/$agreementId': typeof AgreementsAgreementIdRoute
   '/agreements/': typeof AgreementsIndexRoute
   '/catalog/': typeof CatalogIndexRoute
   '/contract-negotiation/': typeof ContractNegotiationIndexRoute
-  '/datahub-catalog/': typeof DatahubCatalogIndexRoute
   '/login': typeof LoginIndexRoute
   '/participants/': typeof ParticipantsIndexRoute
   '/subscriptions/': typeof SubscriptionsIndexRoute
   '/transfer-process/': typeof TransferProcessIndexRoute
   '/catalog/$catalogId/': typeof CatalogCatalogIdIndexRoute
   '/contract-negotiation/$cnProcess/': typeof ContractNegotiationCnProcessIndexRoute
-  '/datahub-catalog/$catalogId/': typeof DatahubCatalogCatalogIdIndexRoute
   '/participants/$participantId/': typeof ParticipantsParticipantIdIndexRoute
   '/transfer-process/$transferProcessId/': typeof TransferProcessTransferProcessIdIndexRoute
   '/catalog/$catalogId/data-service/$dataServiceId': typeof CatalogCatalogIdDataServiceDataServiceIdRoute
   '/catalog/$catalogId/dataset/$datasetId': typeof CatalogCatalogIdDatasetDatasetIdRoute
   '/catalog/$catalogId/distribution-connector/$distributionId': typeof CatalogCatalogIdDistributionConnectorDistributionIdRoute
-  '/contract-negotiation/$cnProcess/message/$messageId': typeof ContractNegotiationCnProcessMessageMessageIdRoute
-  '/datahub-catalog/$catalogId/dataset/$datasetId': typeof DatahubCatalogCatalogIdDatasetDatasetIdRoute
   '/transfer-process/$transferProcessId/transfer-message/$transferMessageId': typeof TransferProcessTransferProcessIdTransferMessageTransferMessageIdRoute
   '/catalog/participant/$participantId': typeof CatalogParticipantParticipantIdIndexRoute
   '/catalog/participant/$participantId/dataset/$datasetId': typeof CatalogParticipantParticipantIdDatasetDatasetIdRoute
@@ -797,21 +669,17 @@ export interface FileRoutesByTo {
   '/agreements': typeof AgreementsIndexRoute
   '/catalog': typeof CatalogIndexRoute
   '/contract-negotiation': typeof ContractNegotiationIndexRoute
-  '/datahub-catalog': typeof DatahubCatalogIndexRoute
   '/login': typeof LoginIndexRoute
   '/participants': typeof ParticipantsIndexRoute
   '/subscriptions': typeof SubscriptionsIndexRoute
   '/transfer-process': typeof TransferProcessIndexRoute
   '/catalog/$catalogId': typeof CatalogCatalogIdIndexRoute
   '/contract-negotiation/$cnProcess': typeof ContractNegotiationCnProcessIndexRoute
-  '/datahub-catalog/$catalogId': typeof DatahubCatalogCatalogIdIndexRoute
   '/participants/$participantId': typeof ParticipantsParticipantIdIndexRoute
   '/transfer-process/$transferProcessId': typeof TransferProcessTransferProcessIdIndexRoute
   '/catalog/$catalogId/data-service/$dataServiceId': typeof CatalogCatalogIdDataServiceDataServiceIdRoute
   '/catalog/$catalogId/dataset/$datasetId': typeof CatalogCatalogIdDatasetDatasetIdRoute
   '/catalog/$catalogId/distribution-connector/$distributionId': typeof CatalogCatalogIdDistributionConnectorDistributionIdRoute
-  '/contract-negotiation/$cnProcess/message/$messageId': typeof ContractNegotiationCnProcessMessageMessageIdRoute
-  '/datahub-catalog/$catalogId/dataset/$datasetId': typeof DatahubCatalogCatalogIdDatasetDatasetIdRoute
   '/transfer-process/$transferProcessId/transfer-message/$transferMessageId': typeof TransferProcessTransferProcessIdTransferMessageTransferMessageIdRoute
   '/catalog/participant/$participantId': typeof CatalogParticipantParticipantIdIndexRoute
   '/catalog/participant/$participantId/dataset/$datasetId': typeof CatalogParticipantParticipantIdDatasetDatasetIdRoute
@@ -823,35 +691,29 @@ export interface FileRoutesById {
   '/agreements': typeof AgreementsRouteRouteWithChildren
   '/catalog': typeof CatalogRouteRouteWithChildren
   '/contract-negotiation': typeof ContractNegotiationRouteRouteWithChildren
-  '/datahub-catalog': typeof DatahubCatalogRouteRouteWithChildren
   '/participants': typeof ParticipantsRouteRouteWithChildren
   '/subscriptions': typeof SubscriptionsRouteRouteWithChildren
   '/transfer-process': typeof TransferProcessRouteRouteWithChildren
   '/catalog/$catalogId': typeof CatalogCatalogIdRouteRouteWithChildren
   '/catalog/participant': typeof CatalogParticipantRouteRouteWithChildren
   '/contract-negotiation/$cnProcess': typeof ContractNegotiationCnProcessRouteRouteWithChildren
-  '/datahub-catalog/$catalogId': typeof DatahubCatalogCatalogIdRouteRouteWithChildren
   '/participants/$participantId': typeof ParticipantsParticipantIdRouteRouteWithChildren
   '/transfer-process/$transferProcessId': typeof TransferProcessTransferProcessIdRouteRouteWithChildren
   '/agreements/$agreementId': typeof AgreementsAgreementIdRoute
   '/agreements/': typeof AgreementsIndexRoute
   '/catalog/': typeof CatalogIndexRoute
   '/contract-negotiation/': typeof ContractNegotiationIndexRoute
-  '/datahub-catalog/': typeof DatahubCatalogIndexRoute
   '/login/': typeof LoginIndexRoute
   '/participants/': typeof ParticipantsIndexRoute
   '/subscriptions/': typeof SubscriptionsIndexRoute
   '/transfer-process/': typeof TransferProcessIndexRoute
   '/catalog/$catalogId/': typeof CatalogCatalogIdIndexRoute
   '/contract-negotiation/$cnProcess/': typeof ContractNegotiationCnProcessIndexRoute
-  '/datahub-catalog/$catalogId/': typeof DatahubCatalogCatalogIdIndexRoute
   '/participants/$participantId/': typeof ParticipantsParticipantIdIndexRoute
   '/transfer-process/$transferProcessId/': typeof TransferProcessTransferProcessIdIndexRoute
   '/catalog/$catalogId/data-service/$dataServiceId': typeof CatalogCatalogIdDataServiceDataServiceIdRoute
   '/catalog/$catalogId/dataset/$datasetId': typeof CatalogCatalogIdDatasetDatasetIdRoute
   '/catalog/$catalogId/distribution-connector/$distributionId': typeof CatalogCatalogIdDistributionConnectorDistributionIdRoute
-  '/contract-negotiation/$cnProcess/message/$messageId': typeof ContractNegotiationCnProcessMessageMessageIdRoute
-  '/datahub-catalog/$catalogId/dataset/$datasetId': typeof DatahubCatalogCatalogIdDatasetDatasetIdRoute
   '/transfer-process/$transferProcessId/transfer-message/$transferMessageId': typeof TransferProcessTransferProcessIdTransferMessageTransferMessageIdRoute
   '/catalog/participant/$participantId/': typeof CatalogParticipantParticipantIdIndexRoute
   '/catalog/participant/$participantId/dataset/$datasetId': typeof CatalogParticipantParticipantIdDatasetDatasetIdRoute
@@ -864,35 +726,29 @@ export interface FileRouteTypes {
     | '/agreements'
     | '/catalog'
     | '/contract-negotiation'
-    | '/datahub-catalog'
     | '/participants'
     | '/subscriptions'
     | '/transfer-process'
     | '/catalog/$catalogId'
     | '/catalog/participant'
     | '/contract-negotiation/$cnProcess'
-    | '/datahub-catalog/$catalogId'
     | '/participants/$participantId'
     | '/transfer-process/$transferProcessId'
     | '/agreements/$agreementId'
     | '/agreements/'
     | '/catalog/'
     | '/contract-negotiation/'
-    | '/datahub-catalog/'
     | '/login'
     | '/participants/'
     | '/subscriptions/'
     | '/transfer-process/'
     | '/catalog/$catalogId/'
     | '/contract-negotiation/$cnProcess/'
-    | '/datahub-catalog/$catalogId/'
     | '/participants/$participantId/'
     | '/transfer-process/$transferProcessId/'
     | '/catalog/$catalogId/data-service/$dataServiceId'
     | '/catalog/$catalogId/dataset/$datasetId'
     | '/catalog/$catalogId/distribution-connector/$distributionId'
-    | '/contract-negotiation/$cnProcess/message/$messageId'
-    | '/datahub-catalog/$catalogId/dataset/$datasetId'
     | '/transfer-process/$transferProcessId/transfer-message/$transferMessageId'
     | '/catalog/participant/$participantId'
     | '/catalog/participant/$participantId/dataset/$datasetId'
@@ -904,21 +760,17 @@ export interface FileRouteTypes {
     | '/agreements'
     | '/catalog'
     | '/contract-negotiation'
-    | '/datahub-catalog'
     | '/login'
     | '/participants'
     | '/subscriptions'
     | '/transfer-process'
     | '/catalog/$catalogId'
     | '/contract-negotiation/$cnProcess'
-    | '/datahub-catalog/$catalogId'
     | '/participants/$participantId'
     | '/transfer-process/$transferProcessId'
     | '/catalog/$catalogId/data-service/$dataServiceId'
     | '/catalog/$catalogId/dataset/$datasetId'
     | '/catalog/$catalogId/distribution-connector/$distributionId'
-    | '/contract-negotiation/$cnProcess/message/$messageId'
-    | '/datahub-catalog/$catalogId/dataset/$datasetId'
     | '/transfer-process/$transferProcessId/transfer-message/$transferMessageId'
     | '/catalog/participant/$participantId'
     | '/catalog/participant/$participantId/dataset/$datasetId'
@@ -928,35 +780,29 @@ export interface FileRouteTypes {
     | '/agreements'
     | '/catalog'
     | '/contract-negotiation'
-    | '/datahub-catalog'
     | '/participants'
     | '/subscriptions'
     | '/transfer-process'
     | '/catalog/$catalogId'
     | '/catalog/participant'
     | '/contract-negotiation/$cnProcess'
-    | '/datahub-catalog/$catalogId'
     | '/participants/$participantId'
     | '/transfer-process/$transferProcessId'
     | '/agreements/$agreementId'
     | '/agreements/'
     | '/catalog/'
     | '/contract-negotiation/'
-    | '/datahub-catalog/'
     | '/login/'
     | '/participants/'
     | '/subscriptions/'
     | '/transfer-process/'
     | '/catalog/$catalogId/'
     | '/contract-negotiation/$cnProcess/'
-    | '/datahub-catalog/$catalogId/'
     | '/participants/$participantId/'
     | '/transfer-process/$transferProcessId/'
     | '/catalog/$catalogId/data-service/$dataServiceId'
     | '/catalog/$catalogId/dataset/$datasetId'
     | '/catalog/$catalogId/distribution-connector/$distributionId'
-    | '/contract-negotiation/$cnProcess/message/$messageId'
-    | '/datahub-catalog/$catalogId/dataset/$datasetId'
     | '/transfer-process/$transferProcessId/transfer-message/$transferMessageId'
     | '/catalog/participant/$participantId/'
     | '/catalog/participant/$participantId/dataset/$datasetId'
@@ -968,7 +814,6 @@ export interface RootRouteChildren {
   AgreementsRouteRoute: typeof AgreementsRouteRouteWithChildren
   CatalogRouteRoute: typeof CatalogRouteRouteWithChildren
   ContractNegotiationRouteRoute: typeof ContractNegotiationRouteRouteWithChildren
-  DatahubCatalogRouteRoute: typeof DatahubCatalogRouteRouteWithChildren
   ParticipantsRouteRoute: typeof ParticipantsRouteRouteWithChildren
   SubscriptionsRouteRoute: typeof SubscriptionsRouteRouteWithChildren
   TransferProcessRouteRoute: typeof TransferProcessRouteRouteWithChildren
@@ -980,7 +825,6 @@ const rootRouteChildren: RootRouteChildren = {
   AgreementsRouteRoute: AgreementsRouteRouteWithChildren,
   CatalogRouteRoute: CatalogRouteRouteWithChildren,
   ContractNegotiationRouteRoute: ContractNegotiationRouteRouteWithChildren,
-  DatahubCatalogRouteRoute: DatahubCatalogRouteRouteWithChildren,
   ParticipantsRouteRoute: ParticipantsRouteRouteWithChildren,
   SubscriptionsRouteRoute: SubscriptionsRouteRouteWithChildren,
   TransferProcessRouteRoute: TransferProcessRouteRouteWithChildren,
@@ -1001,7 +845,6 @@ export const routeTree = rootRoute
         "/agreements",
         "/catalog",
         "/contract-negotiation",
-        "/datahub-catalog",
         "/participants",
         "/subscriptions",
         "/transfer-process",
@@ -1031,13 +874,6 @@ export const routeTree = rootRoute
       "children": [
         "/contract-negotiation/$cnProcess",
         "/contract-negotiation/"
-      ]
-    },
-    "/datahub-catalog": {
-      "filePath": "datahub-catalog/route.tsx",
-      "children": [
-        "/datahub-catalog/$catalogId",
-        "/datahub-catalog/"
       ]
     },
     "/participants": {
@@ -1082,16 +918,7 @@ export const routeTree = rootRoute
       "filePath": "contract-negotiation/$cnProcess/route.tsx",
       "parent": "/contract-negotiation",
       "children": [
-        "/contract-negotiation/$cnProcess/",
-        "/contract-negotiation/$cnProcess/message/$messageId"
-      ]
-    },
-    "/datahub-catalog/$catalogId": {
-      "filePath": "datahub-catalog/$catalogId/route.tsx",
-      "parent": "/datahub-catalog",
-      "children": [
-        "/datahub-catalog/$catalogId/",
-        "/datahub-catalog/$catalogId/dataset/$datasetId"
+        "/contract-negotiation/$cnProcess/"
       ]
     },
     "/participants/$participantId": {
@@ -1125,10 +952,6 @@ export const routeTree = rootRoute
       "filePath": "contract-negotiation/index.tsx",
       "parent": "/contract-negotiation"
     },
-    "/datahub-catalog/": {
-      "filePath": "datahub-catalog/index.tsx",
-      "parent": "/datahub-catalog"
-    },
     "/login/": {
       "filePath": "login/index.tsx"
     },
@@ -1152,10 +975,6 @@ export const routeTree = rootRoute
       "filePath": "contract-negotiation/$cnProcess/index.tsx",
       "parent": "/contract-negotiation/$cnProcess"
     },
-    "/datahub-catalog/$catalogId/": {
-      "filePath": "datahub-catalog/$catalogId/index.tsx",
-      "parent": "/datahub-catalog/$catalogId"
-    },
     "/participants/$participantId/": {
       "filePath": "participants/$participantId/index.tsx",
       "parent": "/participants/$participantId"
@@ -1175,14 +994,6 @@ export const routeTree = rootRoute
     "/catalog/$catalogId/distribution-connector/$distributionId": {
       "filePath": "catalog/$catalogId/distribution-connector.$distributionId.tsx",
       "parent": "/catalog/$catalogId"
-    },
-    "/contract-negotiation/$cnProcess/message/$messageId": {
-      "filePath": "contract-negotiation/$cnProcess/message.$messageId.tsx",
-      "parent": "/contract-negotiation/$cnProcess"
-    },
-    "/datahub-catalog/$catalogId/dataset/$datasetId": {
-      "filePath": "datahub-catalog/$catalogId/dataset.$datasetId.tsx",
-      "parent": "/datahub-catalog/$catalogId"
     },
     "/transfer-process/$transferProcessId/transfer-message/$transferMessageId": {
       "filePath": "transfer-process/$transferProcessId/transfer-message.$transferMessageId.tsx",

@@ -33,8 +33,8 @@ export const ContractNegotiationFinalizationDialog = ({
   const handleSubmit = async () => {
     await finalizeAsync({
       data: {
-        consumerPid: process.identifiers.consumerPid,
-        providerPid: process.identifiers.providerPid,
+        consumerPid: process.identifiers!.consumerPid,
+        providerPid: process.identifiers!.providerPid,
       }
     });
     await refetch();
@@ -63,8 +63,8 @@ export const ContractNegotiationFinalizationDialog = ({
         <div className="pt-4">
           <PolicyWrapperShow
             policy={process.agreement!.agreementContent}
-            datasetId={process.identifiers.datasetId}
-            catalogId={process.identifiers.catalogId}
+            datasetId={process.identifiers!.datasetId}
+            catalogId={process.identifiers!.catalogId}
           />
         </div>
       }

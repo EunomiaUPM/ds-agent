@@ -36,6 +36,7 @@ import {
   PolicyItemValue,
   PolicyVariants,
 } from "shared/src/components/ui/policy";
+import { OdrlPermission, OdrlProhibition, OdrlObligation } from "shared/src/data/orval/model";
 
 // =============================================================================
 // TYPES
@@ -49,7 +50,7 @@ export interface PolicyComponentProps {
    * Array of ODRL permission/prohibition/obligation items to display.
    * Each item contains an action and optional constraints.
    */
-  policyItem: OdrlPermission[] | null;
+  policyItem: (OdrlPermission | OdrlProhibition | OdrlObligation)[] | null | undefined;
 
   /**
    * Visual variant determining the component's color scheme.
@@ -105,7 +106,7 @@ const PolicyComponent: FC<PolicyComponentProps> = ({ policyItem, variant }) => {
                   ) : (
                     <>
                       {/* Render each constraint as a triplet */}
-                      {item.constraint.map((constr, j: number) => (
+                      {item.constraint.map((constr: any, j: number) => (
                         <PolicyConstraintsContainer key={j}>
                           <PolicyConstraint type="leftOperand">
                             {JSON.stringify(constr.leftOperand)}

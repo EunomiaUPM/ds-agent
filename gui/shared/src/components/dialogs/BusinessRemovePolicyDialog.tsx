@@ -18,6 +18,7 @@ import { GlobalInfoContext, GlobalInfoContextType } from "shared/src/context/Glo
 import { BaseProcessDialog } from "./base";
 import { urnInfoItem } from "./base/infoItemMappers";
 import { InfoItemProps } from "../ui/info-list";
+import { OdrlOffer } from "../../data/orval/model";
 
 // =============================================================================
 // TYPES
@@ -31,10 +32,10 @@ export interface BusinessRemovePolicyDialogProps {
   policy: OdrlOffer;
 
   /** ID of the parent catalog */
-  catalogId?: UUID;
+  catalogId?: string;
 
   /** ID of the parent dataset */
-  datasetId?: UUID;
+  datasetId?: string;
 }
 
 // =============================================================================

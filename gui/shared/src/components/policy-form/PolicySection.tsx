@@ -33,6 +33,7 @@ import { Button } from "shared/src/components/ui/button";
 import { Plus } from "lucide-react";
 import { PolicyItem } from "./PolicyItem";
 import { ComponentType, OperandType } from "shared/src/hooks/usePolicyForm";
+import { OdrlPermission, OdrlProhibition, OdrlObligation } from "shared/src/data/orval/model";
 
 // =============================================================================
 // TYPES
@@ -46,7 +47,7 @@ export interface PolicySectionProps {
   type: ComponentType;
 
   /** List of policy items to display */
-  items: OdrlPermission[];
+  items: (OdrlPermission | OdrlProhibition | OdrlObligation)[];
 
   /** Unique value for accordion state */
   accordionValue: string;

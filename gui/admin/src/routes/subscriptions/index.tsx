@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PubSubContext } from "shared/src/context/PubSubContext.tsx";
+// import { PubSubContext } from "shared/src/context/PubSubContext.tsx";
 import { useContext } from "react";
 import {
   Table,
@@ -18,7 +18,9 @@ import { PageHeader } from "shared/components/layout/PageHeader";
 import { Skeleton } from "shared/components/ui/skeleton";
 
 const RouteComponent = () => {
-  const { subscriptionId } = useContext(PubSubContext)!;
+  // TODO: PubSubContext was deleted. Restore subscriptionId source.
+  const subscriptionId = ""; // useContext(PubSubContext)!;
+
   const { data: subscription, isLoading: isSubscriptionLoading } = useGetSubscriptionById(subscriptionId!);
   const { data: notifications, isLoading: isNotificationsLoading } = useGetNotificationsBySubscriptionId(subscriptionId!);
 

@@ -30,6 +30,10 @@ export const ContractNegotiationTerminationDialog = ({
    * The payload differs based on whether the user is a provider or consumer.
    */
   const handleSubmit = async () => {
+    if (!process.identifiers?.consumerPid || !process.identifiers?.providerPid) {
+      console.error("Missing process identifiers");
+      return;
+    }
     await terminateAsync({
       data: {
         consumerPid: process.identifiers.consumerPid,

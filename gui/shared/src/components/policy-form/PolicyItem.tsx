@@ -32,6 +32,7 @@ import {
 import { odrlActions } from "shared/src/odrl_actions";
 import { ConstraintItem } from "./ConstraintItem";
 import { OperandType } from "shared/src/hooks/usePolicyForm";
+import { OdrlPermission, OdrlProhibition, OdrlObligation } from "shared/src/data/orval/model";
 
 // =============================================================================
 // TYPES
@@ -42,7 +43,7 @@ import { OperandType } from "shared/src/hooks/usePolicyForm";
  */
 export interface PolicyItemProps {
   /** The ODRL permission/obligation/prohibition data */
-  item: OdrlPermission;
+  item: OdrlPermission | OdrlProhibition | OdrlObligation;
 
   /** Display label for the type (e.g., "permission", "obligation") */
   typeLabel: string;
@@ -123,7 +124,7 @@ export const PolicyItem: FC<PolicyItemProps> = ({
         <p className="mb-2">Constraints:</p>
 
         {/* Constraint list */}
-        {item.constraint.map((constraint, j) => (
+        {item.constraint?.map((constraint: any, j: number) => (
           <ConstraintItem
             key={j}
             constraint={constraint}

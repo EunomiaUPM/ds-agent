@@ -28,6 +28,7 @@ import { Input } from "shared/src/components/ui/input";
 import { Button } from "shared/src/components/ui/button";
 import { leftOperands, operators } from "shared/src/odrl_actions";
 import { OperandType } from "shared/src/hooks/usePolicyForm";
+import { OdrlConstraint } from "shared/src/data/orval/model";
 
 // =============================================================================
 // TYPES
@@ -113,7 +114,7 @@ export const ConstraintItem: FC<ConstraintItemProps> = ({ constraint, onUpdate, 
           <p className="text-xs text-gray-400 mb-1">Right Operand:</p>
           <Input
             placeholder="Type value"
-            value={constraint.rightOperand}
+            value={constraint.rightOperand as string}
             onChange={(ev) => onUpdate("rightOperand", ev.currentTarget.value)}
           />
         </div>

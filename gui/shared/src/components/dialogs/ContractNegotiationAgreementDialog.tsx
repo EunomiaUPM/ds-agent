@@ -33,8 +33,8 @@ export const ContractNegotiationAgreementDialog = ({
   const handleSubmit = async () => {
     await agreeAsync({
       data: {
-        consumerPid: process.identifiers.consumerPid,
-        providerPid: process.identifiers.providerPid,
+        consumerPid: process.identifiers!.consumerPid,
+        providerPid: process.identifiers!.providerPid,
       },
     });
     await refetch();
@@ -62,9 +62,9 @@ export const ContractNegotiationAgreementDialog = ({
       afterInfoContent={
         <div className="pt-4">
           <PolicyWrapperShow
-            policy={process.offers.at(-1)!.offerContent}
-            datasetId={process.identifiers.datasetId}
-            catalogId={process.identifiers.catalogId}
+            policy={process.offers!.at(-1)!.offerContent}
+            datasetId={process.identifiers!.datasetId}
+            catalogId={process.identifiers!.catalogId}
           />
         </div>
       }

@@ -62,7 +62,7 @@ export const ContractNegotiationOfferDialog = ({
   const router = useRouter();
   const { mutateAsync: setupOffer } = useRpcSetupOffer();
   const lastOffer = useMemo(() => {
-    return process.offers.at(-1);
+    return process.offers!.at(-1);
   }, [process]);
 
   // ---------------------------------------------------------------------------
@@ -76,14 +76,18 @@ export const ContractNegotiationOfferDialog = ({
   // ---------------------------------------------------------------------------
 
   const handleSubmit = async () => {
+    if (!process.id || !lastOffer || !currentPolicy) {
+      console.error("Missing required data for offer");
+      return;
+    }
+
     await setupOffer({
       data: {
-        consumerPid: process.identifiers.consumerPid,
-        providerPid: process.identifiers.providerPid,
+        processId: process.id,
         offer: {
-          "@id": lastOffer.offerContent["@id"],
-          "@type": lastOffer.offerContent["@type"],
-          target: lastOffer.offerContent.target,
+          "@id": (lastOffer.offerContent["@id"] as string) ?? "urn:uuid:placeholder",
+          "@type": (lastOffer.offerContent["@type"] as any),
+          target: (lastOffer.offerContent.target as string) ?? "",
           ...currentPolicy
         },
       },
@@ -93,14 +97,13 @@ export const ContractNegotiationOfferDialog = ({
     if (onClose) {
       onClose();
     }
-
   };
 
   // ---------------------------------------------------------------------------
   // After Info Content (Policy Editor)
   // ---------------------------------------------------------------------------
 
-  const policyEditorContent = lastOffer ? (
+  const policyEditorContent = lastOffer && lastOffer.offerContent ? (
     <div className="pt-4 flex gap-2">
       <div className="w-1/2">
         <Heading level="h6" className="mb-2">
@@ -128,6 +131,7 @@ export const ContractNegotiationOfferDialog = ({
       infoItems={infoItems}
       afterInfoContent={policyEditorContent}
       submitLabel="Counter Offer"
+      disabledSubmit={!process.id || !lastOffer || !currentPolicy}
       submitVariant="outline"
       onSubmit={handleSubmit}
       scrollable
@@ -135,4 +139,3 @@ export const ContractNegotiationOfferDialog = ({
     />
   );
 };
-

@@ -22,6 +22,10 @@ export const TransferProcessSuspensionDialog = ({ process, onClose }: { process:
    * Handles the suspension submission.
    */
   const handleSubmit = async () => {
+    if (!process.identifiers?.consumerPid || !process.identifiers?.providerPid) {
+      console.error("Missing process identifiers");
+      return;
+    }
     await suspendAsync({
       data: {
         consumerPid: process.identifiers.consumerPid,

@@ -33,7 +33,7 @@ export const PolicyWrapperNew: FC<{
         <Accordion type="single" collapsible className="w-full">
           <PolicySection
             type="permission"
-            items={policy.permission}
+            items={policy.permission || []}
             accordionValue="item-1"
             accordionStyles="bg-success-500/10 border border-success-600/20"
             triggerStyles="bg-success-400/25"
@@ -52,7 +52,7 @@ export const PolicyWrapperNew: FC<{
         <Accordion type="single" collapsible className="w-full">
           <PolicySection
             type="obligation"
-            items={policy.obligation}
+            items={policy.obligation || []}
             accordionValue="item-1"
             accordionStyles="bg-warn-500/10 border border-warn-600/20"
             triggerStyles="bg-warn-400/25"
@@ -71,7 +71,7 @@ export const PolicyWrapperNew: FC<{
         <Accordion type="single" collapsible className="w-full">
           <PolicySection
             type="prohibition"
-            items={policy.prohibition}
+            items={policy.prohibition || []}
             accordionValue="item-1"
             accordionStyles="bg-danger-500/10 border border-danger-600/20 mb-24"
             triggerStyles="bg-danger-500/25"

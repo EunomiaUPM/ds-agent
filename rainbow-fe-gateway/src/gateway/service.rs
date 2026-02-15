@@ -7,12 +7,12 @@ use rainbow_common::config::services::GatewayConfig;
 
 use reqwest::Client;
 
+use rainbow_common::config::traits::CommonConfigTrait;
 use std::time::Duration;
 use tokio::sync::broadcast;
 use tracing::{debug, error, info, warn};
 use ymir::config::traits::SingleHostTrait;
 use ymir::config::types::HostType;
-use rainbow_common::config::traits::CommonConfigTrait;
 
 #[async_trait::async_trait]
 pub trait GatewayServiceTrait: Send + Sync {
@@ -30,11 +30,7 @@ pub trait GatewayServiceTrait: Send + Sync {
         req: Request<Body>,
     ) -> Response;
 
-    async fn proxy_well_known_rpc_request(
-        &self,
-        extra: String,
-        req: Request<Body>,
-    ) -> Response;
+    async fn proxy_well_known_rpc_request(&self, extra: String, req: Request<Body>) -> Response;
 
     fn get_notification_sender(&self) -> broadcast::Sender<String>;
     fn get_config(&self) -> GatewayConfig;
@@ -112,7 +108,9 @@ impl GatewayServiceTrait for GatewayService {
             "notifications" => "api/v1/contract-negotiation/notifications",
             "subscriptions" => "api/v1/contract-negotiation/subscriptions",
             "well-known" => ".well-known",
-            _ => return (StatusCode::NOT_FOUND, "prefix not found in microservice").into_response(),
+            _ => {
+                return (StatusCode::NOT_FOUND, "prefix not found in microservice").into_response()
+            }
         };
 
         execute_proxy(
@@ -142,7 +140,9 @@ impl GatewayServiceTrait for GatewayService {
             "catalogs" => "dsp/current/catalog",
             "negotiations" => "dsp/current/negotiations",
             "transfers" => "dsp/current/transfers",
-            _ => return (StatusCode::NOT_FOUND, "prefix not found in microservice").into_response(),
+            _ => {
+                return (StatusCode::NOT_FOUND, "prefix not found in microservice").into_response()
+            }
         };
 
         execute_proxy(
@@ -155,11 +155,7 @@ impl GatewayServiceTrait for GatewayService {
         .await
     }
 
-    async fn proxy_well_known_rpc_request(
-        &self,
-        extra: String,
-        req: Request<Body>,
-    ) -> Response {
+    async fn proxy_well_known_rpc_request(&self, extra: String, req: Request<Body>) -> Response {
         let microservice_base_url = self.config.common().hosts.http.get_host();
         let microservice_api_path = format!("rpc/.well-known/{}", extra);
 
@@ -173,7 +169,6 @@ impl GatewayServiceTrait for GatewayService {
         .await
     }
 }
-
 
 pub async fn execute_proxy(
     client: Client,

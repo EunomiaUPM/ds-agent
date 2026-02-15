@@ -46,8 +46,14 @@ impl GatewayHttpRouter {
 
         Router::new()
             .route("/api/{service_prefix}/{*extra}", any(Self::proxy_handler_with_extra))
-            .route("/api/dsp/current/{service_prefix}/{*extra}", any(Self::proxy_dsp_handler))
-            .route("/api/well-known/rpc/{*extra}", any(Self::proxy_well_known_rpc_handler))
+            .route(
+                "/api/dsp/current/{service_prefix}/{*extra}",
+                any(Self::proxy_dsp_handler),
+            )
+            .route(
+                "/api/well-known/rpc/{*extra}",
+                any(Self::proxy_well_known_rpc_handler),
+            )
             .route("/api/did-json/{url}", get(Self::fetch_did_json))
             .route("/api/{service_prefix}", any(Self::proxy_handler_without_extra))
             .route("/api/ws", get(Self::websocket_handler))

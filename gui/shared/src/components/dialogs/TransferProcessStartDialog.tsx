@@ -52,7 +52,7 @@ export const TransferProcessStartDialog = ({ process, onClose }: {
       data: {
         consumerPid: process.identifiers.consumerPid,
         providerPid: process.identifiers.providerPid,
-        dataAddress: dataAddress
+        dataAddress: dataAddress ?? ({} as DataAddressDto)
       }
     })
 

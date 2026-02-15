@@ -1,1 +1,0 @@
-import{j as s}from"./ui-CWL9cZXU.js";import{d as a}from"./PageLayout-DYLxz-_4.js";const e=({date:r,format:t="DD/MM/YYYY - HH:mm"})=>r?s.jsx("span",{children:a(r).format(t)}):s.jsx("span",{className:"text-gray-400",children:"-"});export{e as F};

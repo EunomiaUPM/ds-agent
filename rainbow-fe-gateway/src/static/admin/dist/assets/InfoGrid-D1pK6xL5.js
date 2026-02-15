@@ -1,0 +1,1 @@
+import{j as i}from"./ui-CfRciOVV.js";import{n as m}from"./index-_13EY7I1.js";function a({className:r,children:o,...s}){return i.jsx("div",{className:m("grid grid-cols-1 md:grid-cols-2 gap-3 mb-4",r),...s,children:o})}export{a as I};

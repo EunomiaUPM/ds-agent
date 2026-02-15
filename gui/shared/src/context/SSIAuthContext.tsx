@@ -203,7 +203,7 @@ export const SSIAuthContextProvider = ({ children }: { children: ReactNode }) =>
         if (requests.length === 0) return;
 
         // Sort safely by creating a copy
-        const requestsSorted = [...requests].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        const requestsSorted = [...requests].sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
         const latest = requestsSorted[0];
 
         setAuthRequestsLastPoll(new Date());
@@ -224,7 +224,7 @@ export const SSIAuthContextProvider = ({ children }: { children: ReactNode }) =>
   const requestVCtoAuthority = async () => {
     setIsRequestingVC(true);
     try {
-      if (!authDid.url || !ownDid) {
+      if (!authDid.url || !ownDid || !authDid.did) {
         throw new Error("Missing Authority URL or Own DID");
       }
       await requestVCtoAuthorityCrossUser({
@@ -266,7 +266,7 @@ export const SSIAuthContextProvider = ({ children }: { children: ReactNode }) =>
       }
       const { data } = await refetchAuthRequestsQuery();
       const requests = data?.status === 200 ? data.data : [];
-      const requestsSorted = requests.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      const requestsSorted = requests.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
       const latest = requestsSorted.at(0);
       if (!latest) {
         throw new Error("No Auth Request found");
@@ -286,7 +286,7 @@ export const SSIAuthContextProvider = ({ children }: { children: ReactNode }) =>
       if (requests.length === 0) throw new Error("No requests found");
 
       // Sort safely by creating a copy
-      const requestsSorted = [...requests].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      const requestsSorted = [...requests].sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
       const latest = requestsSorted[0];
 
       if (!latest) {

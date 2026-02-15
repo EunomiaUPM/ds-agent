@@ -48,6 +48,7 @@ impl GatewayHttpRouter {
             .route("/api/{service_prefix}/{*extra}", any(Self::proxy_handler_with_extra))
             .route("/api/dsp/current/{service_prefix}/{*extra}", any(Self::proxy_dsp_handler))
             .route("/api/well-known/rpc/{*extra}", any(Self::proxy_well_known_rpc_handler))
+            .route("/api/did-json/{url}", get(Self::fetch_did_json))
             .route("/api/{service_prefix}", any(Self::proxy_handler_without_extra))
             .route("/api/ws", get(Self::websocket_handler))
             .route("/api/incoming-notification", post(Self::incoming_notification))
@@ -185,6 +186,25 @@ impl GatewayHttpRouter {
         match service.get_notification_sender().send(value_str) {
             Ok(_) => StatusCode::ACCEPTED.into_response(),
             Err(_e) => (StatusCode::BAD_REQUEST, "Not able to deserialize").into_response(),
+        }
+    }
+
+    async fn fetch_did_json(Path(url): Path<String>) -> impl IntoResponse {
+        let target_url = format!("{}/api/v1/wallet/did.json", url.trim_end_matches('/'));
+        match reqwest::get(&target_url).await {
+            Ok(resp) => match resp.json::<Value>().await {
+                Ok(json) => (StatusCode::OK, Json(json)).into_response(),
+                Err(e) => (
+                    StatusCode::BAD_GATEWAY,
+                    format!("Failed to parse JSON from {}: {}", target_url, e),
+                )
+                    .into_response(),
+            },
+            Err(e) => (
+                StatusCode::BAD_GATEWAY,
+                format!("Failed to fetch from {}: {}", target_url, e),
+            )
+                .into_response(),
         }
     }
 }

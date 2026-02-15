@@ -17,7 +17,7 @@
  * </SidebarProvider>
  */
 
-import { Archive, ArrowLeftRight, Feather, Handshake, Users } from "lucide-react";
+import { Archive, ArrowLeftRight, Feather, Handshake, Users, Lock } from "lucide-react";
 import React, { useContext } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
@@ -105,6 +105,11 @@ export function AppSidebar() {
       title: "Participants",
       url: "/admin/participants",
       icon: Users,
+    },
+    {
+      title: "SSI Auth",
+      url: "/admin/ssi-auth",
+      icon: Lock,
     },
   ];
 

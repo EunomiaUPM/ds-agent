@@ -9,6 +9,7 @@ import {
   GlobalInfoContextProvider,
   GlobalInfoContext,
 } from "shared/src/context/GlobalInfoContext.tsx";
+import { SSIAuthContextProvider } from "shared/src/context/SSIAuthContext.tsx";
 
 /**
  * Global QueryClient instance.
@@ -35,7 +36,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   <GlobalInfoContextProvider>
     <QueryClientProvider client={queryClient}>
       <AuthContextProvider>
-        <App />
+        <SSIAuthContextProvider>
+          <App />
+        </SSIAuthContextProvider>
       </AuthContextProvider>
     </QueryClientProvider>
   </GlobalInfoContextProvider>,

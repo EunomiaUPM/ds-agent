@@ -63,15 +63,10 @@ export const customInstance = <T>(
         data_1 = {};
     } else {
         try {
-            data_1 = await response.json();
+            data_1 = await response.clone().json();
         } catch (error) {
-            // If JSON parsing fails but status was OK (e.g. text response), return text if possible or empty object
-            try {
-              const text = await response.text();
-              data_1 = text;
-            } catch {
-              data_1 = {};
-            }
+            // If JSON parsing fails (e.g. text response), return text
+            data_1 = await response.text();
         }
     }
 

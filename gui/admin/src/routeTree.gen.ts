@@ -13,6 +13,7 @@
 import { Route as rootRoute } from './routes/__root'
 import { Route as TransferProcessRouteImport } from './routes/transfer-process/route'
 import { Route as SubscriptionsRouteImport } from './routes/subscriptions/route'
+import { Route as SsiAuthRouteImport } from './routes/ssi-auth/route'
 import { Route as ParticipantsRouteImport } from './routes/participants/route'
 import { Route as ContractNegotiationRouteImport } from './routes/contract-negotiation/route'
 import { Route as CatalogRouteImport } from './routes/catalog/route'
@@ -20,6 +21,7 @@ import { Route as AgreementsRouteImport } from './routes/agreements/route'
 import { Route as IndexImport } from './routes/index'
 import { Route as TransferProcessIndexImport } from './routes/transfer-process/index'
 import { Route as SubscriptionsIndexImport } from './routes/subscriptions/index'
+import { Route as SsiAuthIndexImport } from './routes/ssi-auth/index'
 import { Route as ParticipantsIndexImport } from './routes/participants/index'
 import { Route as LoginIndexImport } from './routes/login/index'
 import { Route as ContractNegotiationIndexImport } from './routes/contract-negotiation/index'
@@ -53,6 +55,12 @@ const TransferProcessRouteRoute = TransferProcessRouteImport.update({
 const SubscriptionsRouteRoute = SubscriptionsRouteImport.update({
   id: '/subscriptions',
   path: '/subscriptions',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const SsiAuthRouteRoute = SsiAuthRouteImport.update({
+  id: '/ssi-auth',
+  path: '/ssi-auth',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -96,6 +104,12 @@ const SubscriptionsIndexRoute = SubscriptionsIndexImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => SubscriptionsRouteRoute,
+} as any)
+
+const SsiAuthIndexRoute = SsiAuthIndexImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => SsiAuthRouteRoute,
 } as any)
 
 const ParticipantsIndexRoute = ParticipantsIndexImport.update({
@@ -277,6 +291,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ParticipantsRouteImport
       parentRoute: typeof rootRoute
     }
+    '/ssi-auth': {
+      id: '/ssi-auth'
+      path: '/ssi-auth'
+      fullPath: '/ssi-auth'
+      preLoaderRoute: typeof SsiAuthRouteImport
+      parentRoute: typeof rootRoute
+    }
     '/subscriptions': {
       id: '/subscriptions'
       path: '/subscriptions'
@@ -367,6 +388,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/participants/'
       preLoaderRoute: typeof ParticipantsIndexImport
       parentRoute: typeof ParticipantsRouteImport
+    }
+    '/ssi-auth/': {
+      id: '/ssi-auth/'
+      path: '/'
+      fullPath: '/ssi-auth/'
+      preLoaderRoute: typeof SsiAuthIndexImport
+      parentRoute: typeof SsiAuthRouteImport
     }
     '/subscriptions/': {
       id: '/subscriptions/'
@@ -586,6 +614,18 @@ const ParticipantsRouteRouteChildren: ParticipantsRouteRouteChildren = {
 const ParticipantsRouteRouteWithChildren =
   ParticipantsRouteRoute._addFileChildren(ParticipantsRouteRouteChildren)
 
+interface SsiAuthRouteRouteChildren {
+  SsiAuthIndexRoute: typeof SsiAuthIndexRoute
+}
+
+const SsiAuthRouteRouteChildren: SsiAuthRouteRouteChildren = {
+  SsiAuthIndexRoute: SsiAuthIndexRoute,
+}
+
+const SsiAuthRouteRouteWithChildren = SsiAuthRouteRoute._addFileChildren(
+  SsiAuthRouteRouteChildren,
+)
+
 interface SubscriptionsRouteRouteChildren {
   SubscriptionsIndexRoute: typeof SubscriptionsIndexRoute
 }
@@ -635,6 +675,7 @@ export interface FileRoutesByFullPath {
   '/catalog': typeof CatalogRouteRouteWithChildren
   '/contract-negotiation': typeof ContractNegotiationRouteRouteWithChildren
   '/participants': typeof ParticipantsRouteRouteWithChildren
+  '/ssi-auth': typeof SsiAuthRouteRouteWithChildren
   '/subscriptions': typeof SubscriptionsRouteRouteWithChildren
   '/transfer-process': typeof TransferProcessRouteRouteWithChildren
   '/catalog/$catalogId': typeof CatalogCatalogIdRouteRouteWithChildren
@@ -648,6 +689,7 @@ export interface FileRoutesByFullPath {
   '/contract-negotiation/': typeof ContractNegotiationIndexRoute
   '/login': typeof LoginIndexRoute
   '/participants/': typeof ParticipantsIndexRoute
+  '/ssi-auth/': typeof SsiAuthIndexRoute
   '/subscriptions/': typeof SubscriptionsIndexRoute
   '/transfer-process/': typeof TransferProcessIndexRoute
   '/catalog/$catalogId/': typeof CatalogCatalogIdIndexRoute
@@ -671,6 +713,7 @@ export interface FileRoutesByTo {
   '/contract-negotiation': typeof ContractNegotiationIndexRoute
   '/login': typeof LoginIndexRoute
   '/participants': typeof ParticipantsIndexRoute
+  '/ssi-auth': typeof SsiAuthIndexRoute
   '/subscriptions': typeof SubscriptionsIndexRoute
   '/transfer-process': typeof TransferProcessIndexRoute
   '/catalog/$catalogId': typeof CatalogCatalogIdIndexRoute
@@ -692,6 +735,7 @@ export interface FileRoutesById {
   '/catalog': typeof CatalogRouteRouteWithChildren
   '/contract-negotiation': typeof ContractNegotiationRouteRouteWithChildren
   '/participants': typeof ParticipantsRouteRouteWithChildren
+  '/ssi-auth': typeof SsiAuthRouteRouteWithChildren
   '/subscriptions': typeof SubscriptionsRouteRouteWithChildren
   '/transfer-process': typeof TransferProcessRouteRouteWithChildren
   '/catalog/$catalogId': typeof CatalogCatalogIdRouteRouteWithChildren
@@ -705,6 +749,7 @@ export interface FileRoutesById {
   '/contract-negotiation/': typeof ContractNegotiationIndexRoute
   '/login/': typeof LoginIndexRoute
   '/participants/': typeof ParticipantsIndexRoute
+  '/ssi-auth/': typeof SsiAuthIndexRoute
   '/subscriptions/': typeof SubscriptionsIndexRoute
   '/transfer-process/': typeof TransferProcessIndexRoute
   '/catalog/$catalogId/': typeof CatalogCatalogIdIndexRoute
@@ -727,6 +772,7 @@ export interface FileRouteTypes {
     | '/catalog'
     | '/contract-negotiation'
     | '/participants'
+    | '/ssi-auth'
     | '/subscriptions'
     | '/transfer-process'
     | '/catalog/$catalogId'
@@ -740,6 +786,7 @@ export interface FileRouteTypes {
     | '/contract-negotiation/'
     | '/login'
     | '/participants/'
+    | '/ssi-auth/'
     | '/subscriptions/'
     | '/transfer-process/'
     | '/catalog/$catalogId/'
@@ -762,6 +809,7 @@ export interface FileRouteTypes {
     | '/contract-negotiation'
     | '/login'
     | '/participants'
+    | '/ssi-auth'
     | '/subscriptions'
     | '/transfer-process'
     | '/catalog/$catalogId'
@@ -781,6 +829,7 @@ export interface FileRouteTypes {
     | '/catalog'
     | '/contract-negotiation'
     | '/participants'
+    | '/ssi-auth'
     | '/subscriptions'
     | '/transfer-process'
     | '/catalog/$catalogId'
@@ -794,6 +843,7 @@ export interface FileRouteTypes {
     | '/contract-negotiation/'
     | '/login/'
     | '/participants/'
+    | '/ssi-auth/'
     | '/subscriptions/'
     | '/transfer-process/'
     | '/catalog/$catalogId/'
@@ -815,6 +865,7 @@ export interface RootRouteChildren {
   CatalogRouteRoute: typeof CatalogRouteRouteWithChildren
   ContractNegotiationRouteRoute: typeof ContractNegotiationRouteRouteWithChildren
   ParticipantsRouteRoute: typeof ParticipantsRouteRouteWithChildren
+  SsiAuthRouteRoute: typeof SsiAuthRouteRouteWithChildren
   SubscriptionsRouteRoute: typeof SubscriptionsRouteRouteWithChildren
   TransferProcessRouteRoute: typeof TransferProcessRouteRouteWithChildren
   LoginIndexRoute: typeof LoginIndexRoute
@@ -826,6 +877,7 @@ const rootRouteChildren: RootRouteChildren = {
   CatalogRouteRoute: CatalogRouteRouteWithChildren,
   ContractNegotiationRouteRoute: ContractNegotiationRouteRouteWithChildren,
   ParticipantsRouteRoute: ParticipantsRouteRouteWithChildren,
+  SsiAuthRouteRoute: SsiAuthRouteRouteWithChildren,
   SubscriptionsRouteRoute: SubscriptionsRouteRouteWithChildren,
   TransferProcessRouteRoute: TransferProcessRouteRouteWithChildren,
   LoginIndexRoute: LoginIndexRoute,
@@ -846,6 +898,7 @@ export const routeTree = rootRoute
         "/catalog",
         "/contract-negotiation",
         "/participants",
+        "/ssi-auth",
         "/subscriptions",
         "/transfer-process",
         "/login/"
@@ -881,6 +934,12 @@ export const routeTree = rootRoute
       "children": [
         "/participants/$participantId",
         "/participants/"
+      ]
+    },
+    "/ssi-auth": {
+      "filePath": "ssi-auth/route.tsx",
+      "children": [
+        "/ssi-auth/"
       ]
     },
     "/subscriptions": {
@@ -958,6 +1017,10 @@ export const routeTree = rootRoute
     "/participants/": {
       "filePath": "participants/index.tsx",
       "parent": "/participants"
+    },
+    "/ssi-auth/": {
+      "filePath": "ssi-auth/index.tsx",
+      "parent": "/ssi-auth"
     },
     "/subscriptions/": {
       "filePath": "subscriptions/index.tsx",

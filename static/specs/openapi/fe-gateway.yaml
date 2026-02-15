@@ -4530,6 +4530,208 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorInfo"
+  /wallet/onboard:
+    post:
+      operationId: onboardWallet
+      summary: Onboard wallet
+      tags:
+        - Wallet
+      responses:
+        "201":
+          description: OK
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+  /wallet/did.json:
+    get:
+      operationId: getWalletDid
+      summary: Get wallet DID
+      tags:
+        - Wallet
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Did"
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+  /did-json/{url}:
+    get:
+      operationId: getDidFromUrl
+      summary: Get DID JSON from URL
+      tags:
+        - DID
+      parameters:
+        - $ref: "#/components/parameters/url"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Did"
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+
+  /wallet/oidc4vci:
+    post:
+      operationId: oidc4vciRequest
+      summary: Request VC to peer cross user
+      tags:
+        - Wallet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Oidc4vciRequestDto"
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+
+  /wallet/oidc4vp:
+    post:
+      operationId: oidc4vpRequest
+      summary: Request VP to peer cross user
+      tags:
+        - Wallet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Oidc4vpRequestDto"
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+
+  /vc-request/beg/cross-user:
+    post:
+      operationId: requestVCtoAuthorityCrossUser
+      summary: Request VC to authority cross user
+      tags:
+        - VC Request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VCRequestCrossUserDto"
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+
+  /vc-request/all:
+    get:
+      operationId: getAllVCRequests
+      summary: Get all VC requests
+      tags:
+        - VC Request
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/VCRequestDto"
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+
+  /onboard/provider:
+    post:
+      operationId: onboardProvider
+      summary: Onboard provider
+      tags:
+        - Onboard
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OnboardProviderDto"
+      responses:
+        "200":
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+
 components:
   parameters:
     catalogId:
@@ -4588,6 +4790,12 @@ components:
       schema:
         type: string
         format: uuid
+    url:
+      name: url
+      in: path
+      required: true
+      schema:
+        type: string
   schemas:
     FeConfig:
       type: object
@@ -7560,3 +7768,151 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/OdrlObligation"
+    Did:
+      type: object
+      required:
+        - "@context"
+        - assertionMethod
+        - authentication
+        - capabilityDelegation
+        - capabilityInvocation
+        - id
+        - keyAgreement
+        - verificationMethod
+      title: Did
+      properties:
+        "@context":
+          type: array
+          items:
+            type: string
+        assertionMethod:
+          type: array
+          items:
+            type: string
+        authentication:
+          type: array
+          items:
+            type: string
+        capabilityDelegation:
+          type: array
+          items:
+            type: string
+        capabilityInvocation:
+          type: array
+          items:
+            type: string
+        id:
+          type: string
+        keyAgreement:
+          type: array
+          items:
+            type: string
+        verificationMethod:
+          type: array
+          items:
+            "$ref": "#/components/schemas/DidVerificationMethod"
+
+    DidVerificationMethod:
+      type: object
+      title: VerificationMethod
+      required:
+        - controller
+        - id
+        - publicKeyJwk
+        - type
+      properties:
+        controller:
+          type: string
+        id:
+          type: string
+        publicKeyJwk:
+          type: object
+        type:
+          type: string
+
+    VCRequestCrossUserDto:
+      type: object
+      title: VCRequestCrossUserDto
+      required:
+        - url
+        - id
+        - slug
+        - vc_type
+      properties:
+        url:
+          type: string
+        id:
+          type: string
+        slug:
+          type: string
+        vc_type:
+          type: string
+
+    VCRequestDto:
+      type: object
+      title: VCRequestDto
+      required:
+        - url
+        - id
+        - slug
+        - vc_type
+      properties:
+        id:
+          type: string
+        authority_id:
+          type: string
+        authority_slug:
+          type: string
+        grant_endpoint:
+          type: string
+        vc_type:
+          type: string
+        assigned_id:
+          type: string
+        vc_uri:
+          type: string
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        ended_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    Oidc4vciRequestDto:
+      type: object
+      title: Oidc4vciRequestDto
+      required:
+        - uri
+      properties:
+        uri:
+          type: string
+
+    Oidc4vpRequestDto:
+      type: object
+      title: Oidc4vpRequestDto
+      required:
+        - uri
+      properties:
+        uri:
+          type: string
+
+    OnboardProviderDto:
+      type: object
+      title: OnboardProviderDto
+      required:
+        - url
+        - id
+        - slug
+        - actions
+      properties:
+        url:
+          type: string
+        id:
+          type: string
+        slug:
+          type: string
+        actions:
+          type: string

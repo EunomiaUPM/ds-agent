@@ -3947,7 +3947,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorInfo"
-  /transfers/rpc/setup-request:
+  /dsp/current/transfers/rpc/setup-request:
     post:
       operationId: setupTransferRequest
       summary: Initiate a transfer request
@@ -3996,7 +3996,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorInfo"
-  /transfers/rpc/setup-start:
+  /dsp/current/transfers/rpc/setup-start:
     post:
       operationId: setupTransferStart
       summary: Start a transfer
@@ -4045,7 +4045,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorInfo"
-  /transfers/rpc/setup-suspension:
+  /dsp/current/transfers/rpc/setup-suspension:
     post:
       operationId: setupTransferSuspension
       summary: Suspend a transfer
@@ -4094,7 +4094,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorInfo"
-  /transfers/rpc/setup-completion:
+  /dsp/current/transfers/rpc/setup-completion:
     post:
       operationId: setupTransferCompletion
       summary: Complete a transfer
@@ -4143,7 +4143,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorInfo"
-  /transfers/rpc/setup-termination:
+  /dsp/current/transfers/rpc/setup-termination:
     post:
       operationId: setupTransferTermination
       summary: Terminate a transfer

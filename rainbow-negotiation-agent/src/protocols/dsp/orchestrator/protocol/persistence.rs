@@ -321,8 +321,8 @@ impl OrchestrationPersistenceForProtocol {
                 id: Some(id),
                 negotiation_agent_process_id: pid.clone(),
                 negotiation_agent_message_id: mid.clone(),
-                consumer_participant_id: peer.to_string(),
-                provider_participant_id: "".to_string(),
+                consumer_participant_id: agreement.assignee.clone(),
+                provider_participant_id: agreement.assigner.clone(),
                 agreement_content: serde_json::to_value(agreement).unwrap(),
                 target,
             })

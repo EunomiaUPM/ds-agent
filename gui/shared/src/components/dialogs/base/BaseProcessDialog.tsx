@@ -89,6 +89,9 @@ export interface BaseProcessDialogProps<TFormValues extends FieldValues = FieldV
 
   /** Whether to disable the submit button */
   disabledSubmit?: boolean;
+
+  /** Optional external form instance to use (for shared state with custom fields) */
+  form?: UseFormReturn<TFormValues>;
 }
 
 // =============================================================================
@@ -119,11 +122,14 @@ export function BaseProcessDialog<TFormValues extends FieldValues = FieldValues>
   cancelLabel = "Cancel",
   hideInfoList = false,
   disabledSubmit = false,
+  form: externalForm,
 }: BaseProcessDialogProps<TFormValues>) {
-  // Initialize form with optional default values
-  const form = useForm<TFormValues>({
+  // Initialize form with optional default values or use provided external form
+  const internalForm = useForm<TFormValues>({
     defaultValues: defaultValues as DefaultValues<TFormValues>,
   });
+
+  const form = externalForm || internalForm;
 
   // Handle form submission
   const handleSubmit = async (data: TFormValues) => {
@@ -196,18 +202,23 @@ export function BaseProcessDialog<TFormValues extends FieldValues = FieldValues>
 
       {beforeInfoContent}
       {!hideInfoList && filteredInfoItems.length > 0 && <InfoList items={filteredInfoItems} />}
-      {formFields}
-      {afterInfoContent}
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+          {formFields}
+          {afterInfoContent}
           <DialogFooter className="[&>*]:w-full">
             <DialogClose asChild>
               <Button variant="ghost" type="reset">
                 {cancelLabel}
               </Button>
             </DialogClose>
-            <Button type="submit" variant={submitVariant} isLoading={form.formState.isSubmitting} disabled={disabledSubmit}>
+            <Button
+              type="submit"
+              variant={submitVariant}
+              isLoading={form.formState.isSubmitting}
+              disabled={disabledSubmit}
+            >
               {submitLabel}
             </Button>
           </DialogFooter>

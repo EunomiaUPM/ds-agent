@@ -84,7 +84,7 @@ export const getSetupTransferRequestUrl = () => {
 
   
 
-  return `/transfers/rpc/setup-request`
+  return `/dsp/current/transfers/rpc/setup-request`
 }
 
 export const setupTransferRequest = async (transferRPCRequestBody: TransferRPCRequestBody, options?: RequestInit): Promise<setupTransferRequestResponse> => {
@@ -193,7 +193,7 @@ export const getSetupTransferStartUrl = () => {
 
   
 
-  return `/transfers/rpc/setup-start`
+  return `/dsp/current/transfers/rpc/setup-start`
 }
 
 export const setupTransferStart = async (transferRPCStartBody: TransferRPCStartBody, options?: RequestInit): Promise<setupTransferStartResponse> => {
@@ -302,7 +302,7 @@ export const getSetupTransferSuspensionUrl = () => {
 
   
 
-  return `/transfers/rpc/setup-suspension`
+  return `/dsp/current/transfers/rpc/setup-suspension`
 }
 
 export const setupTransferSuspension = async (transferRPCSuspensionBody: TransferRPCSuspensionBody, options?: RequestInit): Promise<setupTransferSuspensionResponse> => {
@@ -411,7 +411,7 @@ export const getSetupTransferCompletionUrl = () => {
 
   
 
-  return `/transfers/rpc/setup-completion`
+  return `/dsp/current/transfers/rpc/setup-completion`
 }
 
 export const setupTransferCompletion = async (transferRPCCompletionBody: TransferRPCCompletionBody, options?: RequestInit): Promise<setupTransferCompletionResponse> => {
@@ -520,7 +520,7 @@ export const getSetupTransferTerminationUrl = () => {
 
   
 
-  return `/transfers/rpc/setup-termination`
+  return `/dsp/current/transfers/rpc/setup-termination`
 }
 
 export const setupTransferTermination = async (transferRPCTerminationBody: TransferRPCTerminationBody, options?: RequestInit): Promise<setupTransferTerminationResponse> => {

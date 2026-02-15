@@ -8,7 +8,7 @@
 import React, { useContext } from "react";
 import { GlobalInfoContext, GlobalInfoContextType } from "../../context/GlobalInfoContext";
 import { BaseProcessDialog, mapTransferProcessToInfoItems } from "./base";
-import { TransferProcessDto } from "../../data/orval/model";
+import { DataAddressDto, TransferProcessDto } from "../../data/orval/model";
 import { useSetupTransferStart } from "../../data/orval/transfer-rp-c/transfer-rp-c";
 import { useRouter } from "@tanstack/react-router";
 import { useGetTransferProcesses } from "../../data/orval/transfers/transfers";
@@ -52,7 +52,7 @@ export const TransferProcessStartDialog = ({ process, onClose }: {
       data: {
         consumerPid: process.identifiers.consumerPid,
         providerPid: process.identifiers.providerPid,
-        dataAddress: dataAddress as any
+        dataAddress: dataAddress
       }
     })
 

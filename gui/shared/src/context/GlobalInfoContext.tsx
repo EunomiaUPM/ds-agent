@@ -29,7 +29,7 @@ export const GlobalInfoContextProvider = ({ children }: { children: ReactNode })
    * In production, fetch configuration from server endpoint.
    * In development, use local hardcoded configuration.
    */
-  const isProduction = true; // Set to false for local development
+  const isProduction = false; // Set to false for local development
   const localConfig = {
     config_role: "Agent",
     gateway_host: "http://127.0.0.1",

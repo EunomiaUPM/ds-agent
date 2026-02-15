@@ -3960,7 +3960,7 @@ paths:
             schema:
               $ref: "#/components/schemas/TransferRPCRequestBody"
       responses:
-        "200":
+        "201":
           description: OK
           content:
             application/json:

@@ -40,9 +40,9 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 /**
  * @summary Initiate a transfer request
  */
-export type setupTransferRequestResponse200 = {
+export type setupTransferRequestResponse201 = {
   data: RPCResponse
-  status: 200
+  status: 201
 }
 
 export type setupTransferRequestResponse400 = {
@@ -70,7 +70,7 @@ export type setupTransferRequestResponse500 = {
   status: 500
 }
     
-export type setupTransferRequestResponseSuccess = (setupTransferRequestResponse200) & {
+export type setupTransferRequestResponseSuccess = (setupTransferRequestResponse201) & {
   headers: Headers;
 };
 export type setupTransferRequestResponseError = (setupTransferRequestResponse400 | setupTransferRequestResponse401 | setupTransferRequestResponse403 | setupTransferRequestResponse404 | setupTransferRequestResponse500) & {

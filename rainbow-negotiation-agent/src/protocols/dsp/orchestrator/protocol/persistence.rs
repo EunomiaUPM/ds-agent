@@ -312,8 +312,8 @@ impl OrchestrationPersistenceForProtocol {
         message: &dyn NegotiationProcessMessageTrait,
         mate: &Mates,
     ) -> anyhow::Result<AgreementDto> {
-        let id = self.create_entity_urn("agreement")?;
         let agreement = self.get_dsp_agreement_safely(message)?;
+        let id = agreement.clone().id;
         let target = agreement.clone().target;
         let agr = self
             .agreement_service

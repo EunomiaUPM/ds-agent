@@ -35,6 +35,7 @@ import { useSetupTransferRequest } from "../../data/orval/transfer-rp-c/transfer
 import { useGetPeerCatalog } from "../../data/orval/catalogs/catalogs";
 import { useRpcSetupDatasetRequest } from "../../data/orval/catalog-rp-c/catalog-rp-c";
 import { useMyWellKnownDSPPath, useParticipantDSPPath } from "../../hooks/useWellKnownUrl";
+import { useNavigate } from "@tanstack/react-router";
 
 // =============================================================================
 // TYPES
@@ -69,6 +70,7 @@ export interface TransferProcessRequestDialogProps {
  * - Agreement information display
  */
 export const TransferProcessRequestDialog = ({ process, onClose }: TransferProcessRequestDialogProps) => {
+  const navigate = useNavigate();
   const { mutateAsync } = useSetupTransferRequest();
   const { mutateAsync: setupDatasetRequestAsync } = useRpcSetupDatasetRequest()
   const [selectableDistributions, setSelectableDistributions] = useState<Distribution[]>([]);
@@ -102,7 +104,7 @@ export const TransferProcessRequestDialog = ({ process, onClose }: TransferProce
     const distribution = selectableDistributions.find(d => d["@id"] === data.distributionId);
     if (!distribution) return;
 
-    await mutateAsync({
+    const res = await mutateAsync({
       data: {
         associatedAgentPeer: process.providerParticipantId,
         providerAddress: providerDspPath,
@@ -112,6 +114,12 @@ export const TransferProcessRequestDialog = ({ process, onClose }: TransferProce
         format: distribution.formats || "http+pull",
       },
     });
+
+    if (res.status === 201) {
+      navigate({
+        to: "/transfer-process",
+      });
+    }
   };
 
   const fetchDistributions = async () => {

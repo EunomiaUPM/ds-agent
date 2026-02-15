@@ -25,26 +25,29 @@ export const TransferProcessStartDialog = ({ process, onClose }: {
    * Payload structure differs based on the user's role.
    */
   const handleSubmit = async () => {
+    const dataAddress = process.stateAttribute == "OnRequest" ? {
+      endpointType: "https://w3id.org/idsa/v4.1/HTTP",
+      endpoint: "http://example.com",
+      endpointProperties: [
+        {
+          "@type": "EndpointProperty",
+          name: "authorization",
+          value: "TOKEN-ABCDEFG"
+        },
+        {
+          "@type": "EndpointProperty",
+          name: "authType",
+          value: "bearer"
+        }
+      ]
+    } : undefined
+
+
     await startAsync({
       data: {
         consumerPid: process.identifiers.consumerPid,
         providerPid: process.identifiers.providerPid,
-        dataAddress: {
-          endpointType: "https://w3id.org/idsa/v4.1/HTTP",
-          endpoint: "http://example.com",
-          endpointProperties: [
-            {
-              "@type": "EndpointProperty",
-              name: "authorization",
-              value: "TOKEN-ABCDEFG"
-            },
-            {
-              "@type": "EndpointProperty",
-              name: "authType",
-              value: "bearer"
-            }
-          ]
-        },
+        dataAddress
       }
     })
 

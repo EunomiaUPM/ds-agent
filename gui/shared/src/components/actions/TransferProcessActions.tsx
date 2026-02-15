@@ -58,7 +58,7 @@ export const TransferProcessActions: FC<{
               Component: TransferProcessTerminationDialog,
             },
           ];
-          if (process.stateAttribute && process.stateAttribute !== "BY_CONSUMER") {
+          if (process.stateAttribute && process.stateAttribute !== "ByConsumer") {
             actions.push({
               label: "Start",
               variant: "default",
@@ -105,7 +105,7 @@ export const TransferProcessActions: FC<{
               Component: TransferProcessTerminationDialog,
             },
           ];
-          if (process.stateAttribute && process.stateAttribute !== "BY_PROVIDER") {
+          if (process.stateAttribute && process.stateAttribute !== "ByProvider") {
             actions.push({
               label: "Start",
               variant: "default",

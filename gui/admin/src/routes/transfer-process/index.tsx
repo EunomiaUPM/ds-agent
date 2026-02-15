@@ -66,6 +66,10 @@ function RouteComponent() {
               ),
             },
             {
+              header: "Role",
+              cell: (tp) => <Badge variant={"info"}>{tp.role}</Badge>,
+            },
+            {
               header: "Created at",
               cell: (tp) => <FormatDate date={tp.createdAt} />,
             },

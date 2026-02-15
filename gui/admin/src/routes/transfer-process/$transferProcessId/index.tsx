@@ -18,7 +18,7 @@ import {
 import { Button } from "shared/src/components/ui/button";
 import { TransferProcessActions } from "shared/src/components/actions/TransferProcessActions";
 import TransferProcessMessageComponent from "shared/src/components/TransferProcessMessageComponent";
-import { formatUrn } from "shared/src/lib/utils.ts";
+import { formatUrn, mergeStateAndAttribute } from "shared/src/lib/utils.ts";
 import { PageLayout } from "shared/src/components/layout/PageLayout";
 import { PageSection } from "shared/src/components/layout/PageSection";
 import { InfoGrid } from "shared/src/components/layout/InfoGrid";
@@ -74,7 +74,7 @@ function RouteComponent() {
                   },
                   {
                     label: "Transfer Process State",
-                    value: { type: "status", value: transferProcess.data.state ?? "" },
+                    value: { type: "status", value: mergeStateAndAttribute(transferProcess.data.state ?? "", transferProcess.data.stateAttribute ?? "") },
                   },
                   {
                     label: "Created at",

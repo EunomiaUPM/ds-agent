@@ -180,7 +180,7 @@ export function mapTransferProcessToInfoItemsForConsumer(
 export function mapTransferProcessToInfoItems(
   process: TransferProcessDto,
 ): InfoItemProps[] {
-  const normalizedRole = process.role.toLowerCase() as "provider" | "consumer";
+  const normalizedRole = (process.role || "consumer").toLowerCase() as "provider" | "consumer";
   return normalizedRole === "provider"
     ? mapTransferProcessToInfoItemsForProvider(process)
     : mapTransferProcessToInfoItemsForConsumer(process);

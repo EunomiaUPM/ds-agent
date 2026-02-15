@@ -10,10 +10,15 @@ import { GlobalInfoContext, GlobalInfoContextType } from "../../context/GlobalIn
 import { BaseProcessDialog, mapTransferProcessToInfoItems } from "./base";
 import { TransferProcessDto } from "../../data/orval/model";
 import { useSetupTransferStart } from "../../data/orval/transfer-rp-c/transfer-rp-c";
+import { useRouter } from "@tanstack/react-router";
+import { useGetTransferProcesses } from "../../data/orval/transfers/transfers";
 
-export const TransferProcessStartDialog = ({ process }: { process: TransferProcessDto }) => {
-  const { api_gateway, dsrole } = useContext<GlobalInfoContextType | null>(GlobalInfoContext)!;
+export const TransferProcessStartDialog = ({ process, onClose }: {
+  process: TransferProcessDto; onClose?: () => void;
+}) => {
   const { mutateAsync: startAsync } = useSetupTransferStart();
+  const { refetch } = useGetTransferProcesses();
+  const router = useRouter();
 
   /**
    * Handles the start submission.
@@ -24,16 +29,37 @@ export const TransferProcessStartDialog = ({ process }: { process: TransferProce
       data: {
         consumerPid: process.identifiers.consumerPid,
         providerPid: process.identifiers.providerPid,
-        dataAddress: {}, // TODO: get callback address from agreement
+        dataAddress: {
+          endpointType: "https://w3id.org/idsa/v4.1/HTTP",
+          endpoint: "http://example.com",
+          endpointProperties: [
+            {
+              "@type": "EndpointProperty",
+              name: "authorization",
+              value: "TOKEN-ABCDEFG"
+            },
+            {
+              "@type": "EndpointProperty",
+              name: "authType",
+              value: "bearer"
+            }
+          ]
+        },
       }
     })
+
+    await refetch();
+    router.invalidate();
+    if (onClose) {
+      onClose();
+    }
   };
 
   return (
     <BaseProcessDialog
       title="Transfer Start Dialog"
       description="You are about to start the transfer process."
-      infoItems={mapTransferProcessToInfoItems(process, dsrole as "provider" | "consumer")}
+      infoItems={mapTransferProcessToInfoItems(process)}
       submitLabel="Start"
       submitVariant="default"
       onSubmit={handleSubmit}

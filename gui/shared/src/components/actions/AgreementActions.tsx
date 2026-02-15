@@ -22,7 +22,6 @@ export const AgreementActions: FC<{
     process.negotiationAgentProcessId,
   );
   const negotiationProcess = negotiationProcessResponse?.status === 200 ? negotiationProcessResponse.data : undefined;
-  console.log(negotiationProcess)
 
   // Define container class name with variants
   const containerClassName = cva("", {

@@ -5842,10 +5842,13 @@ components:
       required:
         - name
         - value
+        - "@type"
       properties:
         name:
           type: string
         value:
+          type: string
+        "@type":
           type: string
     ParticipantDto:
       type: object

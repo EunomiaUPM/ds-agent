@@ -16,8 +16,6 @@ export const TransferProcessActions: FC<{
   process: TransferProcessDto;
   tiny: boolean;
 }> = ({ process, tiny = false }) => {
-  const { dsrole } = useContext<GlobalInfoContextType | null>(GlobalInfoContext)!;
-
   // Define container class name with variants
   const containerClassName = cva("", {
     variants: {
@@ -31,7 +29,7 @@ export const TransferProcessActions: FC<{
 
   // Determine available actions based on process state and user role
   const getActions = () => {
-    if (dsrole === "provider") {
+    if (process.role === "Provider") {
       switch (process.state) {
         case "REQUESTED":
           return [
@@ -79,7 +77,7 @@ export const TransferProcessActions: FC<{
         default:
           return [];
       }
-    } else if (dsrole === "consumer") {
+    } else if (process.role === "Consumer") {
       switch (process.state) {
         case "REQUESTED":
           return [

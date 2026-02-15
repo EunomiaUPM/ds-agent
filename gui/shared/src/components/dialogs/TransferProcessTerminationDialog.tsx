@@ -10,10 +10,15 @@ import { GlobalInfoContext, GlobalInfoContextType } from "../../context/GlobalIn
 import { BaseProcessDialog, mapTransferProcessToInfoItems } from "./base";
 import { TransferProcessDto } from "../../data/orval/model";
 import { useSetupTransferTermination } from "../../data/orval/transfer-rp-c/transfer-rp-c";
+import { useRouter } from "@tanstack/react-router";
+import { useGetTransferProcesses } from "../../data/orval/transfers/transfers";
 
-export const TransferProcessTerminationDialog = ({ process }: { process: TransferProcessDto }) => {
-  const { api_gateway, dsrole } = useContext<GlobalInfoContextType | null>(GlobalInfoContext)!;
+export const TransferProcessTerminationDialog = ({ process, onClose }: {
+  process: TransferProcessDto; onClose?: () => void;
+}) => {
   const { mutateAsync: terminateAsync } = useSetupTransferTermination();
+  const { refetch } = useGetTransferProcesses();
+  const router = useRouter();
 
   /**
    * Handles the termination submission.
@@ -28,13 +33,19 @@ export const TransferProcessTerminationDialog = ({ process }: { process: Transfe
         reason: ["Terminated from GUI"],
       }
     })
+
+    await refetch();
+    router.invalidate();
+    if (onClose) {
+      onClose();
+    }
   };
 
   return (
     <BaseProcessDialog
       title="Transfer Termination Dialog"
       description="You are about to terminate the transfer process."
-      infoItems={mapTransferProcessToInfoItems(process, dsrole as "provider" | "consumer")}
+      infoItems={mapTransferProcessToInfoItems(process)}
       submitLabel="Terminate"
       submitVariant="destructive"
       onSubmit={handleSubmit}

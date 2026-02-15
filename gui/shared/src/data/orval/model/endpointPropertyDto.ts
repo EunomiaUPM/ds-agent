@@ -13,4 +13,5 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 export interface EndpointPropertyDto {
   name: string;
   value: string;
+  '@type': string;
 }

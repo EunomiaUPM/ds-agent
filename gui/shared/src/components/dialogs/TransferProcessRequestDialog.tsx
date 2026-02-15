@@ -111,7 +111,7 @@ export const TransferProcessRequestDialog = ({ process, onClose }: TransferProce
         callbackAddress: myDspPath,
         agreementId: process.id,
         // @ts-ignore - formats is present in the data but not in the model
-        format: distribution.formats || "http+pull",
+        format: distribution.formats || "",
       },
     });
 

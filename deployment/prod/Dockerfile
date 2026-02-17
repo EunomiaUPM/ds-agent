@@ -34,8 +34,13 @@ WORKDIR /app
 
 # Copiar el backend completo
 COPY . .
+RUN apk add --no-cache \
+    protobuf \
+    protobuf-dev \
+    musl-dev \
+    build-base
 
-# Copiar build del frontend al path esperado por rust_embed
+    # Copiar build del frontend al path esperado por rust_embed
 COPY --from=frontend-builder /app/gui/admin/dist ./rainbow-monolith/src/static/admin/dist
 
 # Build final del monolito
@@ -52,7 +57,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y libssl3 ca-certificates && rm -rf /var/lib/apt/lists/*
 
 # Copiar binario release
-COPY --from=backend-builder /app/rainbow-monolith/target/release/rainbow-monolith /app/rainbow-monolith
+COPY --from=backend-builder /app/target/release/rainbow_monolith /app/rainbow-monolith
 
 # Exponer puerto por defecto (ajustar si es otro)
 EXPOSE 1500

@@ -70,17 +70,16 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
         self.validator.on_transfer_request(&input).await?;
         dbg!("1.");
 
-        // resolve data service
+        // resolve connector instance: agreement → dataset → distribution → connector
         let agreement_id = input.dto.get_agreement_id().ok_or(anyhow!("no agreement id"))?;
         dbg!("2.");
-        //let dct_formats = input.dto.format.parse::<DctFormats>()?;
         let dct_formats = input.dto.format.clone();
         dbg!("3.");
-        let data_service = self
+        let connector_instance = self
             .facades
             .get_data_service_facade()
             .await
-            .resolve_data_service_by_agreement_id(&agreement_id, Option::from(&dct_formats))
+            .resolve_connector_by_agreement_id(&agreement_id, Option::from(&dct_formats))
             .await?;
         dbg!("4.");
 
@@ -117,18 +116,17 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
             .await?;
         dbg!("6.");
 
-        // // data plane hook
-        // let id = Urn::from_str(transfer_process.inner.id.as_str())?;
-        // self.facades
-        //     .get_data_plane_facade()
-        //     .await
-        //     .on_transfer_request_post(
-        //         &id,
-        //         &dct_formats,
-        //         &Some(data_service),
-        //         &input.dto.data_address,
-        //     )
-        //     .await?;
+        // data plane hook: register the dataplane process for the provider
+        let id = Urn::from_str(transfer_process.inner.id.as_str())?;
+        self.facades
+            .get_data_plane_facade()
+            .await
+            .on_transfer_request_post(
+                &id,
+                &connector_instance,
+                &input.dto.data_address,
+            )
+            .await?;
 
         dbg!("7.");
 

@@ -146,15 +146,16 @@ impl ProtocolPluginTrait for TransferDSP {
             dataplane.get_data_plane_manager(
                 self.config.clone(),
                 self.vault.clone(),
-                connector_entity,
+                connector_entity.clone(),
             ).await,
         );
         let dataplane_facade = Arc::new(DataPlaneFacade::new(dataplane_manager.clone()));
 
-        // data service resolver
+        // data service resolver (resolves agreement → dataset → distribution → connector)
         let data_service_resolver = Arc::new(DataServiceFacadeServiceForDSProtocol::new(
             self.config.clone(),
             http_client.clone(),
+            connector_entity,
         ));
 
         // facades

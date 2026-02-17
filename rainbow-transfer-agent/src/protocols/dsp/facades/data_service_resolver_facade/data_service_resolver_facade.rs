@@ -18,40 +18,41 @@
  */
 
 use crate::protocols::dsp::facades::data_service_resolver_facade::DataServiceFacadeTrait;
-use anyhow::bail;
-use rainbow_catalog_agent::{DataServiceDto, DatasetDto, DistributionDto};
+use anyhow::{anyhow, bail};
+use rainbow_catalog_agent::{DatasetDto, DistributionDto};
 use rainbow_common::config::services::TransferConfig;
-use rainbow_common::dcat_formats::DctFormats;
-use rainbow_common::errors::helpers::BadFormat;
-use rainbow_common::errors::{CommonErrors, ErrorLog};
 use rainbow_common::http_client::HttpClient;
 use rainbow_common::utils::get_urn_from_string;
+use rainbow_connector::{ConnectorInstanceDto, ConnectorInstanceTrait};
 use rainbow_negotiation_agent::AgreementDto;
-use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use std::sync::Arc;
-use tracing::error;
 use urn::Urn;
 use ymir::config::types::HostType;
 
 pub struct DataServiceFacadeServiceForDSProtocol {
     config: Arc<TransferConfig>,
     client: Arc<HttpClient>,
+    connector_entity: Arc<dyn ConnectorInstanceTrait>,
 }
 
 impl DataServiceFacadeServiceForDSProtocol {
-    pub fn new(config: Arc<TransferConfig>, client: Arc<HttpClient>) -> Self {
-        Self { config, client }
+    pub fn new(
+        config: Arc<TransferConfig>,
+        client: Arc<HttpClient>,
+        connector_entity: Arc<dyn ConnectorInstanceTrait>,
+    ) -> Self {
+        Self { config, client, connector_entity }
     }
 }
 
 #[async_trait::async_trait]
 impl DataServiceFacadeTrait for DataServiceFacadeServiceForDSProtocol {
-    async fn resolve_data_service_by_agreement_id(
+    async fn resolve_connector_by_agreement_id(
         &self,
         agreement_id: &Urn,
         formats: Option<&String>,
-    ) -> anyhow::Result<DataServiceDto> {
+    ) -> anyhow::Result<ConnectorInstanceDto> {
         let contracts_url = self.config.contracts().get_host(HostType::Http);
         let catalog_url = self.config.catalog().get_host(HostType::Http);
         let agreement_url = format!(
@@ -59,12 +60,12 @@ impl DataServiceFacadeTrait for DataServiceFacadeServiceForDSProtocol {
             contracts_url, agreement_id
         );
 
-        // resolve agreement
+        // 1. resolve agreement → get target (dataset id)
         let agreement = self.client.get_json::<AgreementDto>(agreement_url.as_str()).await?;
         dbg!("3.1");
         let agreement_target = get_urn_from_string(&agreement.inner.target)?;
 
-        // resolve dataset entity
+        // 2. resolve dataset entity
         let datasets_url = format!(
             "{}/api/v1/catalog-agent/datasets/{}",
             catalog_url,
@@ -74,27 +75,31 @@ impl DataServiceFacadeTrait for DataServiceFacadeServiceForDSProtocol {
         dbg!("3.2");
         let dataset_id = get_urn_from_string(&dataset.inner.id)?;
 
-        // resolve distribution entity
+        // 3. resolve distribution by dataset + format
         let distribution_url = format!(
             "{}/api/v1/catalog-agent/distributions/dataset/{}/format/{}",
             catalog_url,
             dataset_id.clone(),
-            formats.unwrap().to_string()
+            formats.ok_or_else(|| anyhow!("dct_formats is required"))?.to_string()
         );
         let distribution =
             self.client.get_json::<DistributionDto>(distribution_url.as_str()).await?;
         dbg!("3.3");
-        let access_service_id = Urn::from_str(distribution.inner.dcat_access_service.as_str())?;
+        let distribution_id = Urn::from_str(distribution.inner.id.as_str())?;
 
-        // resolve Data service entity
-        let data_service_url = format!(
-            "{}/api/v1/catalog-agent/data-services/{}",
-            catalog_url, access_service_id
-        );
-        let data_service =
-            self.client.get_json::<DataServiceDto>(data_service_url.as_str()).await?;
+        // 4. resolve connector instance by distribution
+        let connector_instance = self
+            .connector_entity
+            .get_instance_by_distribution(&distribution_id)
+            .await?
+            .ok_or_else(|| {
+                anyhow!(
+                    "No connector instance found for distribution {}",
+                    distribution_id
+                )
+            })?;
         dbg!("3.4");
 
-        Ok(data_service)
+        Ok(connector_instance)
     }
 }

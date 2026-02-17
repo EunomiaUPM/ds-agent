@@ -88,7 +88,6 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
             .on_transfer_request_pre(
                 &transfer_process_id,
                 &None,
-                &None
             ).await?;
 
         // get from input

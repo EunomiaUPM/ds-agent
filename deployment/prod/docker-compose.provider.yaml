@@ -1,16 +1,16 @@
-name: "rainbow-consumer"
+name: "rainbow-provider"
 
 services:
-  consumer-vault:
+  provider-vault:
     image: hashicorp/vault:1.21
-    container_name: consumer-vault
+    container_name: provider-vault
     ports:
-      - "8201:8200"
+      - "8202:8200"
     cap_add:
       - IPC_LOCK
     volumes:
-      - ./../../vault/consumer/config:/vault/config
-      - ./../../vault/consumer/data:/vault/file
+      - ./../../vault/provider/config:/vault/config
+      - ./../../vault/provider/data:/vault/file
     environment:
       VAULT_CACERT: /vault/config/root-ca.pem
       VAULT_LOCAL_CONFIG: >
@@ -31,42 +31,42 @@ services:
         }
     command: server
 
-  consumer-db:
-    container_name: "consumer-db"
+  provider-db:
+    container_name: "provider-db"
     image: "postgres"
     restart: always
     env_file:
-      - ./../../static/environment/envs/consumer.db.env
+      - ./../../static/environment/envs/provider.db.env
     ports:
-      - "1300:5432"
+      - "1400:5432"
 
-  consumer-redis:
+  provider-redis:
     image: redis:alpine
     restart: always
-    container_name: consumer-redis
+    container_name: provider-redis
     ports:
-      - "6380:6379"
+      - "6379:6379"
     command: >
       redis-server 
-      --requirepass ds_core_consumer_redis
-      --user admin on >ds_core_consumer_redis ~* +@all
+      --requirepass ds_core_provider_redis
+      --user admin on >ds_core_provider_redis ~* +@all
 
-  consumer:
-    container_name: consumer
+  provider:
+    container_name: provider
     image: rmenendez8/rainbow:latest
     # build:
     #   context: ../..
     #   dockerfile: deployment/prod/Dockerfile
     ports:
-      - "1100:1100"
+      - "1200:1200"
     volumes:
       - ./../../static:/app/static
-      - ./../../vault/consumer:/app/vault
+      - ./../../vault/provider:/app/vault
     depends_on:
-      - consumer-db
-      - consumer-vault
-      - consumer-redis
+      - provider-db
+      - provider-vault
+      - provider-redis
     env_file:
-      - ./../../static/environment/envs/consumer.env
+      - ./../../static/environment/envs/provider.env
     environment:
-      CONFIG_PATH: /app/static/environment/config/prod/core.consumer.yaml
+      CONFIG_PATH: /app/static/environment/config/prod/core.provider.yaml

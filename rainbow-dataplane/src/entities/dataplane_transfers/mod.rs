@@ -35,7 +35,7 @@ pub struct NewDataplaneTransferDto {
     pub egress_config: Value,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 pub struct EditDataplaneTransferDto {
@@ -62,6 +62,7 @@ impl From<NewDataplaneTransferDto> for NewDataplaneTransfer {
     }
 }
 
+#[cfg_attr(test, mockall::automock)]
 #[async_trait::async_trait]
 pub trait DataplaneTransfersEntitiesTrait: Send + Sync + 'static {
     async fn get_all_dataplane_transfers(&self) -> anyhow::Result<Vec<DataplaneTransferDto>>;

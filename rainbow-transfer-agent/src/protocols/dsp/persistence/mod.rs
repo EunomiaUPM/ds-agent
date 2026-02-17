@@ -20,11 +20,14 @@
 pub(crate) mod persistence_protocol;
 pub(crate) mod persistence_rpc;
 
-use crate::entities::transfer_messages::TransferAgentMessagesTrait;
-use crate::entities::transfer_process::{TransferAgentProcessesTrait, TransferProcessDto};
-use crate::protocols::dsp::protocol_types::TransferProcessMessageTrait;
+use std::collections::HashMap;
+use std::format;
+use crate::entities::transfer_messages::{NewTransferMessageDto, TransferAgentMessagesTrait};
+use crate::entities::transfer_process::{NewTransferProcessDto, TransferAgentProcessesTrait, TransferProcessDto};
+use crate::protocols::dsp::protocol_types::{TransferProcessMessageTrait, TransferStateAttribute};
 use std::sync::Arc;
 use urn::Urn;
+use crate::protocols::dsp::transfer_types::TransferState;
 
 #[async_trait::async_trait]
 #[allow(unused)]
@@ -38,6 +41,17 @@ pub trait TransferPersistenceTrait: Send + Sync {
     async fn fetch_process(&self, id: &str) -> anyhow::Result<TransferProcessDto>;
     async fn create_process(
         &self,
+        protocol: &str,
+        direction: &str,
+        associated_agent_peer: &str,
+        provider_pid: Option<Urn>,
+        provider_address: Option<String>,
+        payload_dto: Arc<dyn TransferProcessMessageTrait>,
+        payload_value: serde_json::Value,
+    ) -> anyhow::Result<TransferProcessDto>;
+    async fn create_process_with_id(
+        &self,
+        id: Urn,
         protocol: &str,
         direction: &str,
         associated_agent_peer: &str,

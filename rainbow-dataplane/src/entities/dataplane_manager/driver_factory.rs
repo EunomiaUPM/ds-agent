@@ -5,6 +5,9 @@ use std::sync::Arc;
 pub struct DataplaneDriverFactory {}
 
 impl DataplaneDriverFactory {
+    pub fn new() -> Self {
+        Self {}
+    }
     pub fn create_driver(
         &self,
         process: &DataplaneTransferDto,
@@ -30,7 +33,7 @@ pub struct DataplaneDriver {
 }
 
 #[async_trait::async_trait]
-pub trait AuthActionTrait {
+pub trait AuthActionTrait: Send + Sync {
     async fn perform_auth(&self, connector: &ConnectorInstanceDto) -> anyhow::Result<()>;
 }
 
@@ -49,7 +52,7 @@ impl AuthActionTrait for NoOpAuth {
 }
 
 #[async_trait::async_trait]
-pub trait LifeCycleActionTrait {
+pub trait LifeCycleActionTrait: Send + Sync {
     async fn perform_subscribe(&self, connector: &ConnectorInstanceDto) -> anyhow::Result<()>;
     async fn perform_unsubscribe(&self, connector: &ConnectorInstanceDto) -> anyhow::Result<()>;
 }

@@ -1,6 +1,8 @@
 use crate::cache::cache_redis::dataplane_transfer_cache::DataplaneTransferCacheForRedis;
 use crate::data::factory_sql::DataplaneRepoForSql;
 use crate::data::factory_trait::DataplaneRepoTrait;
+use crate::entities::dataplane_manager::dataplane_manager::DataplaneManager;
+use crate::entities::dataplane_manager::driver_factory::DataplaneDriverFactory;
 use crate::entities::dataplane_transfer_logs::dataplane_transfer_logs_entity::DataplaneTransferLogsEntityService;
 use crate::entities::dataplane_transfers::dataplane_transfers_entity::DataplaneTransfersEntityService;
 use crate::entities::transfer_events::transfer_event_entity::TransferEventEntityService;
@@ -11,6 +13,7 @@ use crate::testing_proxy::http::http::TestingHTTPProxy;
 use axum::Router;
 use rainbow_common::config::services::TransferConfig;
 use rainbow_common::config::traits::{CacheConfigTrait, CommonConfigTrait};
+use rainbow_connector::ConnectorInstanceTrait;
 use sea_orm::Database;
 use std::ops::Deref;
 use std::sync::Arc;
@@ -37,12 +40,12 @@ impl DataplaneSetup {
         dataplane_repo
     }
 
-    // edit for to create the manager and so on...
-    pub async fn get_data_plane_controller(
+    pub async fn get_data_plane_manager(
         &self,
         config: Arc<TransferConfig>,
         vault: Arc<VaultService>,
-    ) -> () {
+        connector_entity: Arc<dyn ConnectorInstanceTrait>,
+    ) -> DataplaneManager {
         let db_connection = vault.get_db_connection(config.deref().common()).await;
         let redis_client = self.get_redis_client(&config).await;
         let redis_conn = redis_client
@@ -59,7 +62,14 @@ impl DataplaneSetup {
         let dataplane_process_entity =
             Arc::new(DataplaneTransfersEntityService::new(dataplane_repo.clone(), cache));
 
+        // driver factory
+        let driver_factory = Arc::new(DataplaneDriverFactory::new());
 
+        DataplaneManager::new(
+            dataplane_process_entity,
+            connector_entity,
+            driver_factory,
+        )
     }
 
     pub async fn build_control_router(

@@ -28,3 +28,6 @@ pub mod setup;
 pub mod testing_proxy;
 
 pub use data::migrations::get_dataplane_migrations;
+pub use entities::dataplane_manager::*;
+pub use entities::dataplane_manager::dataplane_manager::*;
+pub use entities::dataplane_transfers::DataplaneTransfersEntitiesTrait;

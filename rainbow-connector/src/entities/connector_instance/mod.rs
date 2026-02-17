@@ -1,4 +1,4 @@
-pub(crate) mod connector_instance;
+pub mod connector_instance;
 pub(crate) mod parameter_validator;
 pub(crate) mod resolver;
 
@@ -40,6 +40,7 @@ pub struct ConnectorInstanceDto {
     pub distribution_id: Urn,
 }
 
+#[cfg_attr(test, mockall::automock)]
 #[async_trait::async_trait]
 pub trait ConnectorInstanceTrait: Send + Sync {
     async fn get_instance_by_id(&self, id: &Urn) -> anyhow::Result<Option<ConnectorInstanceDto>>;

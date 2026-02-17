@@ -24,7 +24,11 @@ urn = { workspace = true }
 sea-orm = { workspace = true }
 sea-orm-migration = { workspace = true }
 hyper = { version = "1.5.0", features = ["full"] }
+tokio = { workspace = true }
 async-trait = {workspace = true}
 uuid = "1.18.1"
 ymir = {workspace = true}
 redis = {version = "1.0.2", features = ["default", "aio", "tokio-comp", "json"]}
+
+[dev-dependencies]
+mockall = { workspace = true }

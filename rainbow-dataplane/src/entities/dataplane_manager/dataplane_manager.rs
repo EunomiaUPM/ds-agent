@@ -3,8 +3,8 @@ use crate::entities::dataplane_manager::{
     DataplaneCommand, DataplaneManagerInput, DataplaneResponse,
 };
 use crate::entities::dataplane_transfers::{
-    DataplaneTransferDto, DataplaneTransfersEntitiesTrait, InteractionMode,
-    NewDataplaneTransferDto, TransferRole, TransferState,
+    DataplaneTransferDto, DataplaneTransfersEntitiesTrait, EditDataplaneTransferDto,
+    InteractionMode, NewDataplaneTransferDto, TransferRole, TransferState,
 };
 use anyhow::anyhow;
 use rainbow_connector::{ConnectorInstanceTrait, InteractionConfig};
@@ -52,16 +52,16 @@ impl DataplaneManager {
                     ))
                 }
             },
-            Some(dataplane_process) => match &dataplane_process.inner.connector_instance_id {
+            Some(dataplane_process) => Option::from(match &dataplane_process.inner.connector_instance_id {
                 Some(id_str) => id_str.parse::<Urn>()?,
                 None => return Err(anyhow!("Dataplane process has no connector instance ID")),
-            },
+            }),
         };
 
         // 3. fetch connector instance
         let connector_instance = self
             .connector_entity
-            .get_instance_by_id(&connector_urn)
+            .get_instance_by_id(&connector_urn.unwrap())
             .await?
             .ok_or_else(|| anyhow!("Connector instance not found"))?;
 
@@ -87,7 +87,7 @@ impl DataplaneManager {
                         role: TransferRole::try_from(role.clone())?,
                         interaction_mode,
                         state: TransferState::Init,
-                        connector_instance_id: Some(connector_urn.clone()),
+                        connector_instance_id: connector_urn.clone(),
                         ingress_config: serde_json::Value::Null,
                         egress_config: serde_json::Value::Null,
                     })
@@ -125,9 +125,20 @@ impl DataplaneManager {
         process: &DataplaneTransferDto,
         _driver: &DataplaneDriver,
     ) -> anyhow::Result<DataplaneResponse> {
-        let mut builder = DataplaneConfigBuilder::from_process(process);
         match cmd {
-            DataplaneCommand::SetInit { .. } => {}
+            DataplaneCommand::SetInit { .. } => {
+                if process.inner.state == TransferState::Init {
+                    self.dataplane_entity
+                        .put_dataplane_transfer_by_id(
+                            &process.inner.id.parse::<Urn>()?,
+                            &EditDataplaneTransferDto {
+                                state: Some(TransferState::Configuring),
+                                ..Default::default()
+                            },
+                        )
+                        .await?;
+                }
+            }
             DataplaneCommand::SetConfiguring => {}
             DataplaneCommand::SetAuth => {}
             DataplaneCommand::SetReady => {}

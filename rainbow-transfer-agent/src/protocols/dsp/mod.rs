@@ -44,6 +44,7 @@ use crate::protocols::dsp::validator::validators::rpc::validate_state_transition
 use crate::protocols::dsp::validator::validators::validate_payload::ValidatePayloadService;
 use crate::protocols::dsp::validator::validators::validation_helpers::ValidationHelperService;
 
+use crate::protocols::dsp::facades::dataplane_facade::dataplane_facade::DataPlaneFacade;
 use crate::protocols::protocol::ProtocolPluginTrait;
 use axum::Router;
 use rainbow_common::config::services::TransferConfig;
@@ -55,6 +56,8 @@ use std::sync::Arc;
 use validator::validators::protocol::validate_state_transition::ValidatedStateTransitionServiceForDsp;
 use validator::validators::rpc::validation_rpc_steps::ValidationRpcStepsService;
 use ymir::services::vault::vault_rs::VaultService;
+
+use rainbow_connector::ConnectorSetup;
 
 pub struct TransferDSP {
     transfer_agent_process_entities: Arc<dyn TransferAgentProcessesTrait>,
@@ -129,16 +132,24 @@ impl ProtocolPluginTrait for TransferDSP {
             self.transfer_agent_process_entities.clone(),
         ));
 
+        // connector
+        let connector_setup = ConnectorSetup::new();
+        let connector_entity = connector_setup.get_connector_instance_entity(
+            self.config.as_ref(),
+            self.vault.clone(),
+            http_client.clone(),
+        ).await;
+
         // dataplane
         let dataplane = DataplaneSetup::new();
-        let dataplane_controller =
-            dataplane.get_data_plane_controller(self.config.clone(), self.vault.clone()).await;
-        // let dataplane_strategy_factory =
-        //     Arc::new(DataPlaneStrategyFactory::new(dataplane_controller.clone()));
-        // let dataplane_facade = Arc::new(DataPlaneProviderFacadeForDSProtocol::new(
-        //     dataplane_strategy_factory.clone(),
-        //     self.transfer_agent_process_entities.clone(),
-        // ));
+        let dataplane_manager = Arc::new(
+            dataplane.get_data_plane_manager(
+                self.config.clone(),
+                self.vault.clone(),
+                connector_entity,
+            ).await,
+        );
+        let dataplane_facade = Arc::new(DataPlaneFacade::new(dataplane_manager.clone()));
 
         // data service resolver
         let data_service_resolver = Arc::new(DataServiceFacadeServiceForDSProtocol::new(
@@ -149,7 +160,7 @@ impl ProtocolPluginTrait for TransferDSP {
         // facades
         let facades = Arc::new(FacadeService::new(
             data_service_resolver.clone(),
-            //dataplane_facade.clone(),
+            dataplane_facade.clone(),
         ));
 
         // orchestrators

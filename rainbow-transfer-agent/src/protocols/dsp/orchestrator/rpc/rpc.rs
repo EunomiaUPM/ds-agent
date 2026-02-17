@@ -36,6 +36,7 @@ use rainbow_common::dcat_formats::DctFormats;
 use rainbow_common::dsp_common::context_field::ContextField;
 use rainbow_common::facades::ssi_auth_facade::MatesFacadeTrait;
 use rainbow_common::http_client::HttpClient;
+use rainbow_connector::InteractionConfig;
 use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
@@ -73,7 +74,23 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         &self,
         input: &RpcTransferRequestMessageDto,
     ) -> anyhow::Result<RpcTransferMessageDto<RpcTransferRequestMessageDto>> {
+        // validate
         self.validator.transfer_request_rpc(input).await?;
+        // create candidate id
+        let transfer_process_id =
+            Urn::from_str(&format!("urn:transfer-process:{}", uuid::Uuid::new_v4()))?;
+        // push or pull (if DataAddress present is push)
+
+
+        // dataplane hook
+        self.facades
+            .get_data_plane_facade().await
+            .on_transfer_request_pre(
+                &transfer_process_id,
+                &None,
+                &None
+            ).await?;
+
         // get from input
         let request_body: TransferProcessMessageWrapper<TransferRequestMessageDto> =
             input.clone().into();
@@ -92,7 +109,8 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         // persist
         let transfer_process = self
             .persistence_service
-            .create_process(
+            .create_process_with_id(
+                transfer_process_id,
                 "DSP",
                 "OUTBOUND",
                 &associated_peer,

@@ -34,14 +34,14 @@ impl Into<DataplaneAddress> for DataAddress {
 pub enum DataplaneCommand {
     SetInit {
         role: RoleConfig,
-        connector_instance: Urn, // Connector instance URN,
+        connector_instance: Option<Urn>,
         data_address: Option<DataplaneAddress>,
     },
     SetConfiguring,
     SetAuth,
     SetReady,
-    SetSubscribing,
     SetStarted,
+    SetSubscribing,
     SetUnsubscribing,
     SetStopped,
     SetTerminated,
@@ -57,4 +57,3 @@ pub struct DataplaneManagerInput {
     pub transfer_process_id: Urn,
     pub command: DataplaneCommand,
 }
-

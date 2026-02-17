@@ -17,6 +17,7 @@ rainbow_events = { version = "0.3.8", path = "../rainbow-events", default-featur
 rainbow_dataplane = { version = "0.3.8", path = "../rainbow-dataplane", default-features = false }
 rainbow_negotiation_agent = { version = "0.3.8", path = "../rainbow-negotiation-agent", default-features = false }
 rainbow_catalog_agent =  { version = "0.3.8", path = "../rainbow-catalog-agent", default-features = false }
+rainbow_connector =  { version = "0.3.8", path = "../rainbow-connector", default-features = false }
 
 serde = { workspace = true }
 serde_json = { workspace = true }

@@ -33,6 +33,7 @@ use rainbow_common::errors::CommonErrors;
 use rainbow_common::facades::ssi_auth_facade::mates_facade::MatesFacadeService;
 use rainbow_common::http_client::HttpClient;
 use rainbow_common::well_known::WellKnownRoot;
+use std::ops::Deref;
 use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio::task::JoinHandle;
@@ -131,6 +132,11 @@ pub async fn create_root_http_router(
     let entities_router =
         TransferAgentProcessesRouter::new(entities_controller_service.clone(), config.clone());
 
+    // dataplane
+    let dataplane_setup = rainbow_dataplane::setup::DataplaneSetup::new();
+    let dataplane_router =
+        dataplane_setup.build_control_router(config.deref(), vault.clone()).await;
+
     // dsp
     let dsp_router = TransferDSP::new(
         messages_controller_service.clone(),
@@ -151,6 +157,10 @@ pub async fn create_root_http_router(
         .nest(
             format!("{}/transfer-processes", router_str.as_str()).as_str(),
             entities_router.router(),
+        )
+        .nest(
+            format!("{}/dataplane", router_str.as_str()).as_str(),
+            dataplane_router,
         )
         .nest("/dsp/current/transfers", dsp_router);
     Ok(router)

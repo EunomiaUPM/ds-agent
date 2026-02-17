@@ -17,10 +17,11 @@
  *
  */
 
-use crate::data::migrations::m20251128_0000001_data_plane_process::DataPlaneProcess;
+use crate::data::migrations::m20251128_0000001_dataplane_transfers::DataplaneTransfers;
 use sea_orm_migration::prelude::*;
 
 pub struct Migration;
+
 impl MigrationName for Migration {
     fn name(&self) -> &str {
         "m20251128_0000003_transfer_events"
@@ -34,28 +35,30 @@ impl MigrationTrait for Migration {
             .create_table(
                 Table::create()
                     .table(TransferEvents::Table)
-                    .col(ColumnDef::new(TransferEvents::Id).string().not_null().primary_key())
-                    .col(ColumnDef::new(TransferEvents::DataplaneProcessId).string().not_null())
-                    .col(ColumnDef::new(TransferEvents::From).string().not_null())
-                    .col(ColumnDef::new(TransferEvents::To).string().not_null())
+                    .if_not_exists()
+                    .col(ColumnDef::new(TransferEvents::Id).uuid().not_null().primary_key())
+                    .col(ColumnDef::new(TransferEvents::TransferId).uuid().not_null())
+                    .col(ColumnDef::new(TransferEvents::Level).string().not_null())
+                    .col(ColumnDef::new(TransferEvents::Component).string().not_null())
+                    .col(ColumnDef::new(TransferEvents::Message).text().not_null())
+                    .col(ColumnDef::new(TransferEvents::Data).json_binary().null())
                     .col(
-                        ColumnDef::new(TransferEvents::Payload)
-                            .json_binary()
-                            .not_null()
-                            .default("{}"),
+                        ColumnDef::new(TransferEvents::CreatedAt)
+                            .timestamp_with_time_zone()
+                            .not_null(),
                     )
-                    .col(ColumnDef::new(TransferEvents::CreatedAt).date_time().not_null())
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk_transfer_events_dataplane_process")
-                            .from(TransferEvents::Table, TransferEvents::DataplaneProcessId)
-                            .to(DataPlaneProcess::Table, DataPlaneProcess::Id)
+                            .name("fk_transfer_events_dataplane_transfer")
+                            .from(TransferEvents::Table, TransferEvents::TransferId)
+                            .to(DataplaneTransfers::Table, DataplaneTransfers::Id)
                             .on_delete(ForeignKeyAction::Cascade),
                     )
                     .to_owned(),
             )
             .await
     }
+
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager.drop_table(Table::drop().table(TransferEvents::Table).to_owned()).await
     }
@@ -65,9 +68,10 @@ impl MigrationTrait for Migration {
 pub enum TransferEvents {
     Table,
     Id,
-    DataplaneProcessId,
-    From,
-    To,
-    Payload,
+    TransferId,
+    Level,
+    Component,
+    Message,
+    Data,
     CreatedAt,
 }

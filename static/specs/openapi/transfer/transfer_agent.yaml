@@ -12,6 +12,12 @@ tags:
     description: Endpoints for managing transfer processes
   - name: Transfer Messages
     description: Endpoints for managing transfer messages
+  - name: Dataplane Transfers
+    description: Endpoints for managing dataplane transfers
+  - name: Dataplane Logs
+    description: Endpoints for viewing dataplane transfer logs
+  - name: Transfer Events
+    description: Endpoints for viewing transfer events
 
 paths:
   # --- Transfer Processes ---
@@ -264,6 +270,107 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
+  # --- Dataplane Transfers ---
+  /dataplane/dataplane-process/{transfer_id}:
+    get:
+      tags:
+        - Dataplane Transfers
+      summary: Get dataplane transfer by ID
+      operationId: getDataplaneTransferById
+      parameters:
+        - name: transfer_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Dataplane transfer returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataplaneTransferDto"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /dataplane/dataplane-process/{transfer_id}/logs:
+    get:
+      tags:
+        - Dataplane Logs
+      summary: Get dataplane transfer logs
+      operationId: getDataplaneTransferLogs
+      parameters:
+        - name: transfer_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: List of dataplane transfer logs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DataplaneTransferLogDto"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /dataplane/dataplane-process/{transfer_id}/events:
+    get:
+      tags:
+        - Transfer Events
+      summary: Get transfer events by transfer ID
+      operationId: getTransferEventsByTransferId
+      parameters:
+        - name: transfer_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: urn
+      responses:
+        "200":
+          description: List of transfer events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TransferEventDto"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /dataplane/transfer-events/{event_id}:
+    get:
+      tags:
+        - Transfer Events
+      summary: Get transfer event by ID
+      operationId: getTransferEventById
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: urn
+      responses:
+        "200":
+          description: Transfer event returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransferEventDto"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
 components:
   parameters:
     LimitParam:
@@ -471,3 +578,195 @@ components:
         payload:
           type: object
           nullable: true
+
+    # --- Dataplane DTOs ---
+
+    DataplaneTransferDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        transferProcessId:
+          type: string
+        role:
+          $ref: "#/components/schemas/TransferRole"
+        interactionMode:
+          $ref: "#/components/schemas/InteractionMode"
+        state:
+          $ref: "#/components/schemas/TransferState"
+        connectorInstanceId:
+          type: string
+          format: uuid
+          nullable: true
+        ingressConfig:
+          type: object
+        egressConfig:
+          type: object
+        flowControl:
+          type: object
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        fields:
+          type: array
+          items:
+            $ref: "#/components/schemas/DataplaneFieldDto"
+        logs:
+          type: array
+          items:
+            $ref: "#/components/schemas/DataplaneTransferLogDto"
+
+    NewDataplaneTransferDto:
+      type: object
+      required:
+        - id
+        - transferProcessId
+        - role
+        - interactionMode
+        - state
+        - ingressConfig
+        - egressConfig
+      properties:
+        id:
+          type: string
+          format: uuid
+        transferProcessId:
+          type: string
+        role:
+          $ref: "#/components/schemas/TransferRole"
+        interactionMode:
+          $ref: "#/components/schemas/InteractionMode"
+        state:
+          $ref: "#/components/schemas/TransferState"
+        connectorInstanceId:
+          type: string
+          format: uuid
+          nullable: true
+        ingressConfig:
+          type: object
+        egressConfig:
+          type: object
+
+    EditDataplaneTransferDto:
+      type: object
+      properties:
+        state:
+          $ref: "#/components/schemas/TransferState"
+          nullable: true
+        flowControl:
+          type: object
+          nullable: true
+
+    DataplaneFieldDto:
+      type: object
+      properties:
+        id:
+          type: string
+        key:
+          type: string
+        value:
+          type: string
+          nullable: true
+        dataPlaneProcessId:
+          type: string
+
+    DataplaneTransferLogDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        transferId:
+          type: string
+          format: uuid
+        previousState:
+          $ref: "#/components/schemas/TransferState"
+          nullable: true
+        newState:
+          $ref: "#/components/schemas/TransferState"
+        trigger:
+          type: string
+        reason:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    TransferEventDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        transferId:
+          type: string
+          format: uuid
+        level:
+          $ref: "#/components/schemas/LogLevel"
+        component:
+          type: string
+        message:
+          type: string
+        data:
+          type: object
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    NewTransferEventDto:
+      type: object
+      required:
+        - transferId
+        - level
+        - component
+        - message
+      properties:
+        transferId:
+          type: string
+          format: uuid
+        level:
+          $ref: "#/components/schemas/LogLevel"
+        component:
+          type: string
+        message:
+          type: string
+        data:
+          type: object
+          nullable: true
+
+    # --- Enums ---
+
+    TransferRole:
+      type: string
+      enum: [PROVIDER, CONSUMER]
+
+    InteractionMode:
+      type: string
+      enum: [PULL, PUSH]
+
+    TransferState:
+      type: string
+      enum:
+        [
+          INIT,
+          CONFIGURING,
+          AUTH,
+          READY,
+          SUBSCRIBING,
+          STARTED,
+          UNSUBSCRIBING,
+          STOPPED,
+          TERMINATED,
+          ERROR,
+        ]
+
+    LogLevel:
+      type: string
+      enum: [DEBUG, INFO, WARN, ERROR]

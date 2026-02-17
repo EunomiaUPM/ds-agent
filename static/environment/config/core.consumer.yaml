@@ -100,6 +100,7 @@ contracts:
 # ==========================
 transfer:
   common: *common_config
+  cache: *cache_config
   contracts: *min_known_config
   catalog: *min_known_config
   ssi_auth: *min_known_config

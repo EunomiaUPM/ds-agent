@@ -1,5 +1,5 @@
 use crate::data::entities::transfer_event;
-use crate::data::entities::transfer_event::NewTransferEventModel;
+use crate::data::entities::transfer_event::NewTransferEvent;
 use anyhow::Error;
 use thiserror::Error;
 use urn::Urn;
@@ -26,7 +26,7 @@ pub trait TransferEventRepo: Send + Sync + 'static {
     async fn create_transfer_event(
         &self,
         data_plane_process: &Urn,
-        new_transfer_event: &NewTransferEventModel,
+        new_transfer_event: &NewTransferEvent,
     ) -> anyhow::Result<transfer_event::Model, TransferEventRepoErrors>;
 }
 

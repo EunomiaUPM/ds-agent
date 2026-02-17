@@ -1,7 +1,8 @@
 use crate::coordinator::data_source_connector::DataSourceConnectorTrait;
 use crate::coordinator::dataplane_access_controller::DataPlaneAccessControllerTrait;
-use crate::entities::data_plane_process::{
-    DataPlaneProcessEntitiesTrait, EditDataPlaneProcessDto, NewDataPlaneProcessDto,
+use crate::entities::dataplane_transfers::dataplane_transfers_entity::DataplaneTransfersEntityService;
+use crate::entities::dataplane_transfers::{
+    DataplaneTransfersEntitiesTrait, EditDataplaneTransferDto, NewDataplaneTransferDto,
 };
 use rainbow_common::adv_protocol::interplane::data_plane_provision::{
     DataPlaneProvisionRequest, DataPlaneProvisionResponse,
@@ -28,14 +29,14 @@ use ymir::config::types::HostType;
 
 pub struct DataPlaneAccessControllerService {
     data_source_connector_service: Arc<dyn DataSourceConnectorTrait>,
-    dataplane_process_entity: Arc<dyn DataPlaneProcessEntitiesTrait>,
+    dataplane_process_entity: Arc<dyn DataplaneTransfersEntitiesTrait>,
     config: Arc<TransferConfig>,
 }
 
 impl DataPlaneAccessControllerService {
     pub fn new(
         data_source_connector_service: Arc<dyn DataSourceConnectorTrait>,
-        dataplane_process_entity: Arc<dyn DataPlaneProcessEntitiesTrait>,
+        dataplane_process_entity: Arc<dyn DataplaneTransfersEntitiesTrait>,
         config: Arc<TransferConfig>,
     ) -> Self {
         Self { data_source_connector_service, dataplane_process_entity, config }
@@ -64,36 +65,79 @@ impl DataPlaneAccessControllerTrait for DataPlaneAccessControllerService {
             .expect("DataPlaneSDPConfigTypes::Direction must be defined");
         let next_hop_direction_as = next_hop_direction.content.parse::<FormatAction>()?;
 
-        let data_plane_url = format!("{}/data/{}", process_address, input.session_id.clone());
+        let data_plane_url = format!("{}/data/{}", process_address, input.session_id.to_string());
 
-        let mut dataplane_fields: HashMap<String, String> = HashMap::new();
-        dataplane_fields.insert(String::from("ProcessAddressProtocol"), "".to_string());
-        dataplane_fields.insert(String::from("ProcessAddressUrl"), data_plane_url);
-        dataplane_fields.insert(String::from("ProcessAddressAuth"), "".to_string());
-        dataplane_fields.insert(String::from("ProcessAddressAuthContent"), "".to_string());
-        dataplane_fields.insert(
-            String::from("DownstreamHopAddressProtocol"),
-            next_hop_protocol.content.to_string(),
-        );
-        dataplane_fields.insert(
-            String::from("DownstreamHopAddressUrl"),
-            next_hop_address.content.to_string(),
-        );
-        dataplane_fields.insert(String::from("DownstreamHopAddressAuth"), "".to_string());
-        dataplane_fields.insert(String::from("DownstreamHopAddressAuthContent"), "".to_string());
-        dataplane_fields.insert(String::from("UpstreamHopAddressProtocol"), "".to_string());
-        dataplane_fields.insert(String::from("UpstreamHopAddressUrl"), "".to_string());
-        dataplane_fields.insert(String::from("UpstreamHopAddressAuth"), "".to_string());
-        dataplane_fields.insert(String::from("UpstreamHopAddressAuthContent"), "".to_string());
+        let ingress_config = serde_json::json!({
+            "ProcessAddressProtocol": "",
+            "ProcessAddressUrl": data_plane_url,
+            "ProcessAddressAuth": "",
+            "ProcessAddressAuthContent": ""
+        });
+
+        let egress_config = serde_json::json!({
+            "DownstreamHopAddressProtocol": next_hop_protocol.content,
+            "DownstreamHopAddressUrl": next_hop_address.content,
+            "DownstreamHopAddressAuth": "",
+            "DownstreamHopAddressAuthContent": "",
+             // Upstream fields were initialized to empty string in original code, maybe meaningful for bi-directional?
+            "UpstreamHopAddressProtocol": "",
+            "UpstreamHopAddressUrl": "",
+            "UpstreamHopAddressAuth": "",
+            "UpstreamHopAddressAuthContent": ""
+        });
+
+        use crate::data::entities::dataplane_transfers::{
+            InteractionMode, TransferRole, TransferState,
+        };
+        use std::str::FromStr;
+
+        // Infer InteractionMode from direction (simple mapping assumption)
+        // If direction is not PULL/PUSH, we might default or error.
+        // Assuming "distribute" -> PUSH? "collect" -> PULL? FormatAction has specific values.
+        // For now, I'll default to InteractionMode::Pull if unknown, or map from string if possible.
+        // But `InteractionMode` is an enum.
+
+        /*
+        let interaction_mode = match next_hop_direction_as {
+            FormatAction::Distribute => InteractionMode::Push, // Assuming Distribute ~ Push
+            FormatAction::Collect => InteractionMode::Pull, // Assuming Collect ~ Pull
+            _ => InteractionMode::Pull, // Default
+        };
+        */
+        let interaction_mode = InteractionMode::Pull;
+
+        // TransferRole: This provisioning request usually comes to the Provider DP or Consumer DP?
+        // If it's "Provision", it's creating a transfer process.
+        // I'll assume Provider for now as it's common to provision source side first.
+        let role = TransferRole::Provider;
+
+        let state = TransferState::Init;
+
+        // ID must be Uuid. input.session_id is Urn.
+        // "urn:uuid:..." -> extract UUID.
+        let uuid_str = input.session_id.nss();
+        let transfer_uuid = uuid::Uuid::parse_str(uuid_str)?;
+
+        // connector_instance_id: None for now as it wasn't present before.
+
         let dataplane_response = self
             .dataplane_process_entity
-            .create_data_plane_process(&NewDataPlaneProcessDto {
-                id: input.session_id.clone(),
-                direction: next_hop_direction_as.to_string(),
-                state: DataPlaneProcessState::REQUESTED.to_string(),
-                fields: Some(dataplane_fields),
+            .create_dataplane_transfer(&NewDataplaneTransferDto {
+                id: transfer_uuid,
+                transfer_process_id: input.session_id.to_string(),
+                role,
+                interaction_mode,
+                state,
+                connector_instance_id: None,
+                ingress_config: ingress_config.clone(),
+                egress_config: egress_config.clone(),
             })
             .await?;
+
+        // Helper to extract from JSON safely
+        let get_field = |val: &serde_json::Value, key: &str| -> String {
+            val.get(key).and_then(|v| v.as_str()).unwrap_or("").to_string()
+        };
 
         Ok(DataPlaneProvisionResponse {
             _type: DataPlaneControllerMessages::DataPlaneProvisionResponse,
@@ -104,40 +148,36 @@ impl DataPlaneAccessControllerTrait for DataPlaneAccessControllerService {
                     _type: DataPlaneSDPFieldTypes::DataPlaneAddressScheme,
                     format: "https://www.iana.org/assignments/uri-schemes/uri-schemes.xhtml"
                         .to_string(),
-                    content: dataplane_response
-                        .data_plane_fields
-                        .get("ProcessAddressProtocol")
-                        .unwrap()
-                        .to_string(),
+                    content: get_field(
+                        &dataplane_response.inner.ingress_config,
+                        "ProcessAddressProtocol",
+                    ),
                 },
                 DataPlaneSDPResponseField {
                     _type: DataPlaneSDPFieldTypes::DataPlaneAddress,
                     format: "uri".to_string(),
-                    content: dataplane_response
-                        .data_plane_fields
-                        .get("ProcessAddressUrl")
-                        .unwrap()
-                        .to_string(),
+                    content: get_field(
+                        &dataplane_response.inner.ingress_config,
+                        "ProcessAddressUrl",
+                    ),
                 },
                 DataPlaneSDPResponseField {
                     _type: DataPlaneSDPFieldTypes::DataPlaneAddressAuthType,
                     format:
                         "https://www.iana.org/assignments/http-authschemes/http-authschemes.xhtml"
                             .to_string(),
-                    content: dataplane_response
-                        .data_plane_fields
-                        .get("ProcessAddressAuth")
-                        .unwrap()
-                        .to_string(),
+                    content: get_field(
+                        &dataplane_response.inner.ingress_config,
+                        "ProcessAddressAuth",
+                    ),
                 },
                 DataPlaneSDPResponseField {
                     _type: DataPlaneSDPFieldTypes::DataPlaneAddressAuthToken,
                     format: "jwt".to_string(),
-                    content: dataplane_response
-                        .data_plane_fields
-                        .get("ProcessAddressAuthContent")
-                        .unwrap()
-                        .to_string(),
+                    content: get_field(
+                        &dataplane_response.inner.ingress_config,
+                        "ProcessAddressAuthContent",
+                    ),
                 },
             ],
             sdp_request: None,
@@ -146,15 +186,15 @@ impl DataPlaneAccessControllerTrait for DataPlaneAccessControllerService {
     }
 
     async fn data_plane_start(&self, input: &DataPlaneStart) -> anyhow::Result<DataPlaneStartAck> {
-        let dp_process = self
+        // Parse UUID
+        let uuid_str = input.session_id.nss();
+        let transfer_uuid = uuid::Uuid::parse_str(uuid_str)?;
+
+        use crate::data::entities::dataplane_transfers::TransferState;
+
+        let _dp_process = self
             .dataplane_process_entity
-            .put_data_plane_process(
-                &input.session_id,
-                &EditDataPlaneProcessDto {
-                    state: Some(DataPlaneProcessState::STARTED.to_string()),
-                    fields: None,
-                },
-            )
+            .update_state(transfer_uuid, TransferState::Started)
             .await?;
         Ok(DataPlaneStartAck {
             _type: DataPlaneControllerMessages::DataPlaneStartAck,
@@ -164,15 +204,15 @@ impl DataPlaneAccessControllerTrait for DataPlaneAccessControllerService {
     }
 
     async fn data_plane_stop(&self, input: &DataPlaneStop) -> anyhow::Result<DataPlaneStopAck> {
-        let dp_process = self
+        // Parse UUID
+        let uuid_str = input.session_id.nss();
+        let transfer_uuid = uuid::Uuid::parse_str(uuid_str)?;
+
+        use crate::data::entities::dataplane_transfers::TransferState;
+
+        let _dp_process = self
             .dataplane_process_entity
-            .put_data_plane_process(
-                &input.session_id,
-                &EditDataPlaneProcessDto {
-                    state: Some(DataPlaneProcessState::STOPPED.to_string()),
-                    fields: None,
-                },
-            )
+            .update_state(transfer_uuid, TransferState::Stopped)
             .await?;
         Ok(DataPlaneStopAck {
             _type: DataPlaneControllerMessages::DataPlaneStopAck,

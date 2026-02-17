@@ -17,6 +17,7 @@
  *
  */
 
-pub mod data_plane_field;
-pub mod data_plane_process;
+pub mod dataplane_field;
+pub mod dataplane_transfer_logs;
+pub mod dataplane_transfers;
 pub mod transfer_event;

@@ -17,13 +17,13 @@
  *
  */
 
-use crate::data::migrations::m20251128_0000001_data_plane_process::DataPlaneProcess;
+use crate::data::migrations::m20251128_0000001_dataplane_transfers::DataplaneTransfers;
 use sea_orm_migration::prelude::*;
 
 pub struct Migration;
 impl MigrationName for Migration {
     fn name(&self) -> &str {
-        "m20251128_0000002_data_plane_fields"
+        "m20251128_0000002_dataplane_fields"
     }
 }
 
@@ -33,16 +33,17 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(DataPlaneFields::Table)
-                    .col(ColumnDef::new(DataPlaneFields::Id).string().not_null().primary_key())
-                    .col(ColumnDef::new(DataPlaneFields::Key).string().not_null())
-                    .col(ColumnDef::new(DataPlaneFields::Value).string())
-                    .col(ColumnDef::new(DataPlaneFields::DataPlaneProcessId).string().not_null())
+                    .table(DataplaneFields::Table)
+                    .if_not_exists()
+                    .col(ColumnDef::new(DataplaneFields::Id).string().not_null().primary_key())
+                    .col(ColumnDef::new(DataplaneFields::Key).string().not_null())
+                    .col(ColumnDef::new(DataplaneFields::Value).string())
+                    .col(ColumnDef::new(DataplaneFields::DataplaneProcessId).string().not_null())
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_dataplane_fields_dataplane_process")
-                            .from(DataPlaneFields::Table, DataPlaneFields::DataPlaneProcessId)
-                            .to(DataPlaneProcess::Table, DataPlaneProcess::Id)
+                            .from(DataplaneFields::Table, DataplaneFields::DataplaneProcessId)
+                            .to(DataplaneTransfers::Table, DataplaneTransfers::TransferProcessId)
                             .on_delete(ForeignKeyAction::Cascade),
                     )
                     .to_owned(),
@@ -50,15 +51,15 @@ impl MigrationTrait for Migration {
             .await
     }
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager.drop_table(Table::drop().table(DataPlaneFields::Table).to_owned()).await
+        manager.drop_table(Table::drop().table(DataplaneFields::Table).to_owned()).await
     }
 }
 
 #[derive(Iden)]
-pub enum DataPlaneFields {
+pub enum DataplaneFields {
     Table,
     Id,
     Key,
     Value,
-    DataPlaneProcessId,
+    DataplaneProcessId,
 }

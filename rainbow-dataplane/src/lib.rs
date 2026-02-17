@@ -18,6 +18,7 @@
  *
  */
 
+pub(crate) mod cache;
 pub mod coordinator;
 pub(crate) mod data;
 pub(crate) mod entities;

@@ -49,6 +49,12 @@ tags:
     description: "Transfer RPC commands (\u2192 transfer-agent)"
   - name: Subscriptions
     description: "Pub/sub subscription operations (\u2192 transfer-agent)"
+  - name: Dataplane Transfers
+    description: "Dataplane transfer operations (\u2192 transfer-agent)"
+  - name: Dataplane Logs
+    description: "Dataplane log operations (\u2192 transfer-agent)"
+  - name: Transfer Events
+    description: "Transfer event operations (\u2192 transfer-agent)"
   - name: Participants
     description: "Participant (mates) operations (\u2192 auth-agent)"
   - name: WellKnown
@@ -3585,6 +3591,108 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorInfo"
+
+  # --- Dataplane Transfers ---
+  /transfers/dataplane/dataplane-process/{transferId}:
+    get:
+      tags:
+        - Dataplane Transfers
+      summary: Get dataplane transfer by ID
+      operationId: getDataplaneTransferById
+      parameters:
+        - name: transferId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataplaneTransferDto"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /transfers/dataplane/dataplane-process/{transferId}/logs:
+    get:
+      tags:
+        - Dataplane Logs
+      summary: Get dataplane transfer logs
+      operationId: getDataplaneTransferLogs
+      parameters:
+        - name: transferId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DataplaneTransferLogDto"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /transfers/dataplane/transfer-events/{transferId}/events:
+    get:
+      tags:
+        - Transfer Events
+      summary: Get transfer events by transfer ID
+      operationId: getTransferEventsByTransferId
+      parameters:
+        - name: transferId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: urn
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TransferEventDto"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /transfers/dataplane/transfer-events/{eventId}:
+    get:
+      tags:
+        - Transfer Events
+      summary: Get transfer event by ID
+      operationId: getTransferEventById
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: urn
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransferEventDto"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   /transfers/transfer-processes:
     get:
       operationId: getTransferProcesses
@@ -6030,6 +6138,143 @@ components:
           type:
             - object
             - "null"
+
+    # --- Dataplane DTOs ---
+
+    DataplaneTransferDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        transferProcessId:
+          type: string
+        role:
+          $ref: "#/components/schemas/TransferRole"
+        interactionMode:
+          $ref: "#/components/schemas/InteractionMode"
+        state:
+          $ref: "#/components/schemas/TransferState"
+        connectorInstanceId:
+          type:
+            - string
+            - "null"
+          format: uuid
+        ingressConfig:
+          type: object
+        egressConfig:
+          type: object
+        flowControl:
+          type:
+            - object
+            - "null"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        fields:
+          type: array
+          items:
+            $ref: "#/components/schemas/DataplaneFieldDto"
+        logs:
+          type: array
+          items:
+            $ref: "#/components/schemas/DataplaneTransferLogDto"
+
+    DataplaneFieldDto:
+      type: object
+      properties:
+        id:
+          type: string
+        key:
+          type: string
+        value:
+          type:
+            - string
+            - "null"
+        dataPlaneProcessId:
+          type: string
+
+    DataplaneTransferLogDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        transferId:
+          type: string
+          format: uuid
+        previousState:
+          oneOf:
+            - $ref: "#/components/schemas/TransferState"
+            - type: "null"
+        newState:
+          $ref: "#/components/schemas/TransferState"
+        trigger:
+          type: string
+        reason:
+          type:
+            - string
+            - "null"
+        createdAt:
+          type: string
+          format: date-time
+
+    TransferEventDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        transferId:
+          type: string
+          format: uuid
+        level:
+          $ref: "#/components/schemas/LogLevel"
+        component:
+          type: string
+        message:
+          type: string
+        data:
+          type:
+            - object
+            - "null"
+        createdAt:
+          type: string
+          format: date-time
+
+    # --- Enums ---
+
+    TransferRole:
+      type: string
+      enum: [PROVIDER, CONSUMER]
+
+    InteractionMode:
+      type: string
+      enum: [PULL, PUSH]
+
+    TransferState:
+      type: string
+      enum:
+        [
+          INIT,
+          CONFIGURING,
+          AUTH,
+          READY,
+          SUBSCRIBING,
+          STARTED,
+          UNSUBSCRIBING,
+          STOPPED,
+          TERMINATED,
+          ERROR,
+        ]
+
+    LogLevel:
+      type: string
+      enum: [DEBUG, INFO, WARN, ERROR]
+
     DataAddressDto:
       type: object
       properties:

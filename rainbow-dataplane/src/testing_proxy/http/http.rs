@@ -13,12 +13,11 @@
  *  * GNU General Public License for more details.
  *  *
  *  * You should have received a copy of the GNU General Public License
- *  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-
-#![allow(unused)]
-use crate::entities::data_plane_process::{DataPlaneProcessDto, DataPlaneProcessEntitiesTrait};
+use crate::entities::dataplane_transfers::DataplaneTransfersEntitiesTrait;
+use crate::entities::dataplane_transfers::{InteractionMode, TransferState};
 use axum::body::{to_bytes, Body};
 use axum::extract::{FromRef, Path, Request, State};
 use axum::response::{IntoResponse, Response};
@@ -35,7 +34,7 @@ use tracing::info;
 #[derive(Clone)]
 pub struct TestingHTTPProxy {
     client: Client,
-    dataplane_service: Arc<dyn DataPlaneProcessEntitiesTrait>,
+    dataplane_service: Arc<dyn DataplaneTransfersEntitiesTrait>,
 }
 
 impl FromRef<TestingHTTPProxy> for Client {
@@ -44,14 +43,14 @@ impl FromRef<TestingHTTPProxy> for Client {
     }
 }
 
-impl FromRef<TestingHTTPProxy> for Arc<dyn DataPlaneProcessEntitiesTrait> {
+impl FromRef<TestingHTTPProxy> for Arc<dyn DataplaneTransfersEntitiesTrait> {
     fn from_ref(input: &TestingHTTPProxy) -> Self {
         input.dataplane_service.clone()
     }
 }
 
 impl TestingHTTPProxy {
-    pub fn new(dataplane_service: Arc<dyn DataPlaneProcessEntitiesTrait>) -> Self {
+    pub fn new(dataplane_service: Arc<dyn DataplaneTransfersEntitiesTrait>) -> Self {
         let client = reqwest::Client::new();
         Self { client, dataplane_service }
     }
@@ -74,7 +73,7 @@ impl TestingHTTPProxy {
         // PDP
         let dataplane = match state
             .dataplane_service
-            .get_data_plane_process_by_id(&data_plane_id)
+            .get_dataplane_transfer_by_process_id(&data_plane_id.to_string())
             .await
         {
             Ok(dataplane) => match dataplane {
@@ -83,29 +82,42 @@ impl TestingHTTPProxy {
             },
             Err(_) => return (StatusCode::BAD_REQUEST, "dataplane id not found").into_response(),
         };
-        match dataplane.inner.direction.parse::<DataPlaneProcessDirection>().unwrap() {
-            DataPlaneProcessDirection::PULL => {}
+
+        match dataplane.inner.interaction_mode {
+            InteractionMode::Pull => {}
             _ => return (StatusCode::BAD_REQUEST, "wrong direction").into_response(),
         }
-        match dataplane.inner.state.parse::<DataPlaneProcessState>().unwrap() {
-            DataPlaneProcessState::STARTED => {}
-            DataPlaneProcessState::REQUESTED => {
-                return (StatusCode::FORBIDDEN, "state requested").into_response()
+
+        match dataplane.inner.state {
+            TransferState::Started => {}
+            TransferState::Init
+            | TransferState::Configuring
+            | TransferState::Auth
+            | TransferState::Ready
+            | TransferState::Subscribing => {
+                return (StatusCode::FORBIDDEN, "state preparing").into_response()
             }
-            DataPlaneProcessState::STOPPED => {
+            TransferState::Stopped | TransferState::Unsubscribing => {
                 return (StatusCode::FORBIDDEN, "state stopped").into_response()
             }
-            DataPlaneProcessState::TERMINATED => {
+            TransferState::Terminated | TransferState::Error => {
                 return (StatusCode::FORBIDDEN, "state terminated").into_response()
             }
         }
 
-        // ODRL Evaluation here!!!!!
-        // if you are Provider
-        // ODRL Evaluator facade
+        let downstream_hop =
+            match dataplane.inner.egress_config.get("DownstreamHopUrl").and_then(|v| v.as_str()) {
+                Some(url) => url,
+                None => {
+                    return (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        "Missing DownstreamHopUrl in egress_config",
+                    )
+                        .into_response()
+                }
+            };
 
-        // forward request downstream
-        let next_hop = dataplane.data_plane_fields.get("DownstreamHopUrl").unwrap().clone();
+        let next_hop = downstream_hop.to_string();
         let body = std::mem::take(req.body_mut());
         let body_bytes = match to_bytes(body, 2024) // MAX_BUFFER
             .await

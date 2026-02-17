@@ -1,0 +1,133 @@
+use sea_orm::entity::prelude::*;
+use sea_orm::ActiveValue;
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
+#[sea_orm(rs_type = "String", db_type = "Text")]
+pub enum TransferRole {
+    #[sea_orm(string_value = "PROVIDER")]
+    Provider,
+    #[sea_orm(string_value = "CONSUMER")]
+    Consumer,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
+#[sea_orm(rs_type = "String", db_type = "Text")]
+pub enum InteractionMode {
+    #[sea_orm(string_value = "PULL")]
+    Pull,
+    #[sea_orm(string_value = "PUSH")]
+    Push,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
+#[sea_orm(rs_type = "String", db_type = "Text")]
+pub enum TransferState {
+    #[sea_orm(string_value = "INIT")]
+    Init,
+    #[sea_orm(string_value = "CONFIGURING")]
+    Configuring,
+    #[sea_orm(string_value = "AUTH")]
+    Auth,
+    #[sea_orm(string_value = "READY")]
+    Ready,
+    #[sea_orm(string_value = "SUBSCRIBING")]
+    Subscribing,
+    #[sea_orm(string_value = "STARTED")]
+    Started,
+    #[sea_orm(string_value = "UNSUBSCRIBING")]
+    Unsubscribing,
+    #[sea_orm(string_value = "STOPPED")]
+    Stopped,
+    #[sea_orm(string_value = "TERMINATED")]
+    Terminated,
+    #[sea_orm(string_value = "ERROR")]
+    Error,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "dataplane_transfers")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub id: Uuid,
+    #[sea_orm(unique)]
+    pub transfer_process_id: String,
+    pub role: TransferRole,
+    pub interaction_mode: InteractionMode,
+    pub state: TransferState,
+    pub connector_instance_id: Option<Uuid>,
+    pub ingress_config: Json,
+    pub egress_config: Json,
+    pub flow_control: Option<Json>,
+    pub created_at: DateTimeWithTimeZone,
+    pub updated_at: DateTimeWithTimeZone,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {
+    #[sea_orm(has_many = "super::dataplane_transfer_logs::Entity")]
+    TransferLogs,
+}
+
+impl Related<super::dataplane_transfer_logs::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::TransferLogs.def()
+    }
+}
+
+impl ActiveModelBehavior for ActiveModel {}
+
+#[derive(Clone)]
+pub struct NewDataplaneTransfer {
+    pub id: Uuid,
+    pub transfer_process_id: String,
+    pub role: TransferRole,
+    pub interaction_mode: InteractionMode,
+    pub state: TransferState,
+    pub connector_instance_id: Option<Uuid>,
+    pub ingress_config: serde_json::Value,
+    pub egress_config: serde_json::Value,
+}
+
+impl From<NewDataplaneTransfer> for ActiveModel {
+    fn from(value: NewDataplaneTransfer) -> Self {
+        Self {
+            id: ActiveValue::Set(value.id),
+            transfer_process_id: ActiveValue::Set(value.transfer_process_id),
+            role: ActiveValue::Set(value.role),
+            interaction_mode: ActiveValue::Set(value.interaction_mode),
+            state: ActiveValue::Set(value.state),
+            connector_instance_id: ActiveValue::Set(value.connector_instance_id),
+            ingress_config: ActiveValue::Set(value.ingress_config),
+            egress_config: ActiveValue::Set(value.egress_config),
+            flow_control: ActiveValue::Set(Some(serde_json::json!({}))),
+            created_at: ActiveValue::Set(chrono::Utc::now().into()),
+            updated_at: ActiveValue::Set(chrono::Utc::now().into()),
+        }
+    }
+}
+
+pub type NewDataplaneTransferModel = NewDataplaneTransfer;
+
+#[derive(Clone, Debug)]
+pub struct EditDataplaneTransferModel {
+    pub state: Option<TransferState>,
+    pub flow_control: Option<serde_json::Value>,
+}
+
+impl From<EditDataplaneTransferModel> for ActiveModel {
+    fn from(value: EditDataplaneTransferModel) -> Self {
+        let mut active_model =
+            Self { updated_at: ActiveValue::Set(chrono::Utc::now().into()), ..Default::default() };
+
+        if let Some(state) = value.state {
+            active_model.state = ActiveValue::Set(state);
+        }
+
+        if let Some(flow_control) = value.flow_control {
+            active_model.flow_control = ActiveValue::Set(Some(flow_control));
+        }
+
+        active_model
+    }
+}

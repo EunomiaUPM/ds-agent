@@ -1,6 +1,6 @@
 use crate::entities::dataplane_manager::driver_factory::{DataplaneDriver, DataplaneDriverFactory};
 use crate::entities::dataplane_manager::{
-    DataplaneCommand, DataplaneManagerInput, DataplaneResponse,
+    DataplaneAddress, DataplaneCommand, DataplaneManagerInput, DataplaneResponse,
 };
 use crate::entities::dataplane_transfers::{
     DataplaneTransferDto, DataplaneTransfersEntitiesTrait, EditDataplaneTransferDto,
@@ -10,7 +10,7 @@ use anyhow::anyhow;
 use rainbow_connector::{ConnectorInstanceDto, ConnectorInstanceTrait, InteractionConfig};
 use std::sync::Arc;
 use urn::Urn;
-use crate::entities::dataplane_manager::config_builder::DataplaneConfigBuilder;
+use crate::entities::dataplane_manager::config_builder::{DataplaneConfigBuilder, EgressConfig};
 
 // ─── Context passed to each command handler ───
 
@@ -168,16 +168,23 @@ impl DataplaneManager {
                 None => InteractionMode::Pull,
             };
 
+            let transfer_role = TransferRole::try_from(role.clone())?;
+            let config = DataplaneConfigBuilder::from_connector(
+                &transfer_role,
+                connector_instance.as_ref(),
+                &input.transfer_process_id.to_string(),
+            );
+
             self.dataplane_entity
                 .create_dataplane_transfer(&NewDataplaneTransferDto {
                     id: None,
                     transfer_process_id: input.transfer_process_id.to_string(),
-                    role: TransferRole::try_from(role.clone())?,
+                    role: transfer_role,
                     interaction_mode,
                     state: TransferState::Init,
                     connector_instance_id: connector_urn.clone(),
-                    ingress_config: serde_json::Value::Null,
-                    egress_config: serde_json::Value::Null,
+                    ingress_config: config.ingress,
+                    egress_config: config.egress,
                 })
                 .await?;
 
@@ -205,18 +212,20 @@ impl DataplaneManager {
             DataplaneCommand::SetUnsubscribing  => self.cmd_unsubscribing(ctx).await,
             DataplaneCommand::SetStopped        => self.cmd_stopped(ctx).await,
             DataplaneCommand::SetTerminated     => self.cmd_terminated(ctx).await,
+            DataplaneCommand::SetEgress { data_address } => self.cmd_set_egress(data_address, ctx).await,
         }
     }
 
     // ─── Individual command handlers ───
 
-    /// INIT → CONFIGURING: freeze initial ingress/egress config
+    /// INIT → CONFIGURING: freeze initial ingress/egress config from connector
     async fn cmd_init(
         &self,
         process: &DataplaneTransferDto,
         ctx: &CommandContext<'_>,
     ) -> anyhow::Result<DataplaneResponse> {
         if ctx.is_state(TransferState::Init) {
+            // Config was already computed in handle_creation, just persist and transition
             let builder = DataplaneConfigBuilder::from_process(process);
             self.update_state_and_config(
                 &ctx.process_id,
@@ -399,5 +408,26 @@ impl DataplaneManager {
                 },
             )
             .await
+    }
+
+    /// SetEgress: update egress config from a DataplaneAddress.
+    async fn cmd_set_egress(
+        &self,
+        data_address: &DataplaneAddress,
+        ctx: &CommandContext<'_>,
+    ) -> anyhow::Result<DataplaneResponse> {
+        let egress = EgressConfig::HttpProxy {
+            url: data_address.endpoint.clone(),
+        };
+        self.dataplane_entity
+            .put_dataplane_transfer_by_id(
+                &ctx.process_id,
+                &EditDataplaneTransferDto {
+                    egress_config: Some(serde_json::to_value(egress).unwrap_or_default()),
+                    ..Default::default()
+                },
+            )
+            .await?;
+        Ok(DataplaneResponse::Ok)
     }
 }

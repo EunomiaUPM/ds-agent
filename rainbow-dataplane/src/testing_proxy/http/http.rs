@@ -105,19 +105,31 @@ impl TestingHTTPProxy {
             }
         }
 
-        let downstream_hop =
-            match dataplane.inner.egress_config.get("DownstreamHopUrl").and_then(|v| v.as_str()) {
-                Some(url) => url,
-                None => {
+        // Read egress config from the dataplane process
+        use crate::entities::dataplane_manager::config_builder::EgressConfig;
+        let egress: EgressConfig =
+            match serde_json::from_value(dataplane.inner.egress_config.clone()) {
+                Ok(e) => e,
+                Err(_) => {
                     return (
                         StatusCode::INTERNAL_SERVER_ERROR,
-                        "Missing DownstreamHopUrl in egress_config",
+                        "Invalid or missing egress_config",
                     )
                         .into_response()
                 }
             };
 
-        let next_hop = downstream_hop.to_string();
+        let next_hop = match &egress {
+            EgressConfig::HttpProxy { url } => url.clone(),
+            EgressConfig::DataAddress { endpoint, .. } => endpoint.clone(),
+            EgressConfig::Connector { .. } => {
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Connector egress not handled by HTTP proxy",
+                )
+                    .into_response()
+            }
+        };
         let body = std::mem::take(req.body_mut());
         let body_bytes = match to_bytes(body, 2024) // MAX_BUFFER
             .await

@@ -2,6 +2,7 @@ pub(crate) mod dataplane_facade;
 
 use crate::protocols::dsp::protocol_types::DataAddressDto;
 use rainbow_connector::ConnectorInstanceDto;
+use rainbow_dataplane::DataplaneAddress;
 use urn::Urn;
 
 #[mockall::automock]
@@ -54,4 +55,13 @@ pub trait DataPlaneFacadeTrait: Send + Sync {
 
     async fn on_transfer_termination_pre(&self, transfer_id: &Urn) -> anyhow::Result<()>;
     async fn on_transfer_termination_post(&self, transfer_id: &Urn) -> anyhow::Result<()>;
+
+    // ─── Config updates ───
+
+    /// Update the egress config for a transfer (e.g. after receiving peer's DataAddress)
+    async fn set_egress(
+        &self,
+        transfer_id: &Urn,
+        data_address: DataplaneAddress,
+    ) -> anyhow::Result<()>;
 }

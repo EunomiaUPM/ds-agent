@@ -109,16 +109,34 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         let transfer_process = self
             .persistence_service
             .create_process_with_id(
-                transfer_process_id,
+                transfer_process_id.clone(),
                 "DSP",
                 "OUTBOUND",
                 &associated_peer,
                 Some(response.dto.provider_pid.clone()),
-                Some(provider_address),
+                Some(provider_address.clone()),
                 Arc::new(request_body.clone().dto),
                 serde_json::to_value(request_body.clone()).unwrap(),
             )
             .await?;
+
+        // Set consumer's egress → provider's proxy URL (through command pipeline)
+        let provider_proxy_url = format!(
+            "{}/{}",
+            provider_address,
+            response.dto.provider_pid
+        );
+        self.facades
+            .get_data_plane_facade().await
+            .set_egress(
+                &transfer_process_id,
+                rainbow_dataplane::DataplaneAddress {
+                    endpoint_type: "HttpProxy".to_string(),
+                    endpoint: provider_proxy_url,
+                    authorization_type: None,
+                    authorization: None,
+                },
+            ).await?;
 
         let response = RpcTransferMessageDto {
             request: input.clone(),

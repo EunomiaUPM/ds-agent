@@ -2,7 +2,7 @@ use std::sync::Arc;
 use urn::Urn;
 use rainbow_common::config::types::roles::RoleConfig;
 use rainbow_connector::ConnectorInstanceDto;
-use rainbow_dataplane::{DataplaneCommand, DataplaneManager, DataplaneManagerInput};
+use rainbow_dataplane::{DataplaneAddress, DataplaneCommand, DataplaneManager, DataplaneManagerInput};
 use crate::protocols::dsp::facades::dataplane_facade::DataPlaneFacadeTrait;
 use crate::protocols::dsp::protocol_types::DataAddressDto;
 
@@ -119,5 +119,19 @@ impl DataPlaneFacadeTrait for DataPlaneFacade {
 
     async fn on_transfer_termination_post(&self, transfer_id: &Urn) -> anyhow::Result<()> {
         self.fire_command(transfer_id, DataplaneCommand::SetTerminated).await
+    }
+
+    // ─── Config updates ───
+
+    async fn set_egress(
+        &self,
+        transfer_id: &Urn,
+        data_address: DataplaneAddress,
+    ) -> anyhow::Result<()> {
+        self.fire_command(
+            transfer_id,
+            DataplaneCommand::SetEgress { data_address },
+        )
+        .await
     }
 }

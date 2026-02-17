@@ -1,6 +1,7 @@
 pub(crate) mod dataplane_manager;
 pub(crate) mod driver_factory;
-pub(crate) mod config_builder;
+pub mod config_builder;
+pub use config_builder::{IngressConfig, EgressConfig};
 pub(crate) mod tests;
 
 use anyhow::{anyhow, Error};
@@ -45,6 +46,9 @@ pub enum DataplaneCommand {
     SetUnsubscribing,
     SetStopped,
     SetTerminated,
+    SetEgress {
+        data_address: DataplaneAddress,
+    },
 }
 
 pub enum DataplaneResponse {

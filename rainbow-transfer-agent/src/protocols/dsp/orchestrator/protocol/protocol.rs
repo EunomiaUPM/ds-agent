@@ -83,6 +83,14 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
             .await?;
         dbg!("4.");
 
+        // validation: PUSH connector requires a DataAddress from the consumer
+        if matches!(connector_instance.interaction, rainbow_connector::InteractionConfig::Push(_))
+            && input.dto.data_address.is_none()
+        {
+            return Err(anyhow!(
+                "PUSH transfer requires a DataAddress from the consumer"
+            ));
+        }
         // check idempotency
         let consumer_pid = input.dto.get_consumer_pid().ok_or(anyhow!("no consumer id"))?;
         let process_result = self

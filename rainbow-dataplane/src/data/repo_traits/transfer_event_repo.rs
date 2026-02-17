@@ -25,14 +25,13 @@ pub trait TransferEventRepo: Send + Sync + 'static {
     ) -> anyhow::Result<Option<transfer_event::Model>, TransferEventRepoErrors>;
     async fn create_transfer_event(
         &self,
-        data_plane_process: &Urn,
         new_transfer_event: &NewTransferEvent,
     ) -> anyhow::Result<transfer_event::Model, TransferEventRepoErrors>;
 }
 
 #[derive(Debug, Error)]
 pub enum TransferEventRepoErrors {
-    #[error("Dataplane process not found")]
+    #[error("Transfer event not found")]
     TransferEventNotFound,
     #[error("Error fetching transfer event. {0}")]
     ErrorFetchingTransferEvent(Error),

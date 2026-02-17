@@ -3,6 +3,7 @@ use crate::data::factory_trait::DataplaneRepoTrait;
 use rainbow_common::errors::{CommonErrors, ErrorLog};
 use std::sync::Arc;
 use tracing::error;
+use urn::Urn;
 use uuid::Uuid;
 
 pub struct DataplaneTransferLogsEntityService {
@@ -17,14 +18,14 @@ impl DataplaneTransferLogsEntityService {
 
 #[async_trait::async_trait]
 impl DataplaneTransferLogsEntitiesTrait for DataplaneTransferLogsEntityService {
-    async fn get_transfer_logs_by_transfer_id(
+    async fn get_transfer_logs_by_dataplane_process_id(
         &self,
-        transfer_id: Uuid,
+        dataplane_process_id: &Urn,
     ) -> anyhow::Result<Vec<DataplaneTransferLogDto>> {
         let logs = self
             .data_plane_repo
             .get_dataplane_transfer_logs_repo()
-            .get_transfer_logs_by_transfer_id(&transfer_id)
+            .get_transfer_logs_by_dataplane_process_id(&dataplane_process_id)
             .await
             .map_err(|e| {
                 let err = CommonErrors::database_new(&e.to_string());

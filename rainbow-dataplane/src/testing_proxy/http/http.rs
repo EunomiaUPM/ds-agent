@@ -73,7 +73,7 @@ impl TestingHTTPProxy {
         // PDP
         let dataplane = match state
             .dataplane_service
-            .get_dataplane_transfer_by_process_id(&data_plane_id.to_string())
+            .get_dataplane_transfer_by_process_id(&data_plane_id)
             .await
         {
             Ok(dataplane) => match dataplane {

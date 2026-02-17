@@ -19,6 +19,7 @@
 use sea_orm::entity::prelude::*;
 use sea_orm::ActiveValue;
 use serde::{Deserialize, Serialize};
+use urn::UrnBuilder;
 
 #[derive(Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[sea_orm(rs_type = "String", db_type = "Text")]
@@ -37,8 +38,8 @@ pub enum LogLevel {
 #[sea_orm(table_name = "transfer_events")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
-    pub id: Uuid,
-    pub transfer_id: Uuid,
+    pub id: String,
+    pub transfer_id: String,
     pub level: LogLevel,
     pub component: String,
     #[sea_orm(column_type = "Text")]
@@ -69,7 +70,7 @@ impl ActiveModelBehavior for ActiveModel {}
 
 #[derive(Clone)]
 pub struct NewTransferEvent {
-    pub transfer_id: Uuid,
+    pub transfer_id: String,
     pub level: LogLevel,
     pub component: String,
     pub message: String,
@@ -78,8 +79,11 @@ pub struct NewTransferEvent {
 
 impl From<NewTransferEvent> for ActiveModel {
     fn from(value: NewTransferEvent) -> Self {
+        let new_urn = UrnBuilder::new("transfer-event", uuid::Uuid::new_v4().to_string().as_str())
+            .build()
+            .expect("UrnBuilder failed");
         Self {
-            id: ActiveValue::Set(Uuid::new_v4()),
+            id: ActiveValue::Set(new_urn.to_string()),
             transfer_id: ActiveValue::Set(value.transfer_id),
             level: ActiveValue::Set(value.level),
             component: ActiveValue::Set(value.component),

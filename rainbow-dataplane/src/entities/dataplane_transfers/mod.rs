@@ -7,6 +7,9 @@ pub use crate::data::entities::dataplane_transfers::{
 use crate::data::entities::{dataplane_field, dataplane_transfer_logs, transfer_event};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::collections::HashMap;
+use std::sync::Arc;
+use urn::Urn;
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -14,7 +17,7 @@ use uuid::Uuid;
 pub struct DataplaneTransferDto {
     #[serde(flatten)]
     pub inner: dataplane_transfers::Model,
-    pub fields: Vec<dataplane_field::Model>,
+    pub fields: HashMap<String, String>,
     pub logs: Vec<dataplane_transfer_logs::Model>,
 }
 
@@ -22,12 +25,12 @@ pub struct DataplaneTransferDto {
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 pub struct NewDataplaneTransferDto {
-    pub id: Uuid,
+    pub id: Option<Urn>,
     pub transfer_process_id: String,
     pub role: TransferRole,
     pub interaction_mode: InteractionMode,
     pub state: TransferState,
-    pub connector_instance_id: Option<Uuid>,
+    pub connector_instance_id: Option<Urn>,
     pub ingress_config: Value,
     pub egress_config: Value,
 }
@@ -37,7 +40,11 @@ pub struct NewDataplaneTransferDto {
 #[serde(deny_unknown_fields)]
 pub struct EditDataplaneTransferDto {
     pub state: Option<TransferState>,
+    pub connector_instance_id: Option<Urn>,
+    pub ingress_config: Option<Value>,
+    pub egress_config: Option<Value>,
     pub flow_control: Option<Value>,
+    pub fields: Option<HashMap<String, String>>,
 }
 
 impl From<NewDataplaneTransferDto> for NewDataplaneTransfer {
@@ -61,30 +68,29 @@ pub trait DataplaneTransfersEntitiesTrait: Send + Sync + 'static {
 
     async fn get_dataplane_transfer_by_id(
         &self,
-        id: Uuid,
+        id: &Urn,
     ) -> anyhow::Result<Option<DataplaneTransferDto>>;
 
     async fn get_dataplane_transfer_by_process_id(
         &self,
-        process_id: &str,
+        process_id: &Urn,
     ) -> anyhow::Result<Option<DataplaneTransferDto>>;
+
+    async fn get_batch_dataplane_transfers(
+        &self,
+        transfer_ids: &Vec<Urn>,
+    ) -> anyhow::Result<Vec<DataplaneTransferDto>>;
 
     async fn create_dataplane_transfer(
         &self,
         new_data_plane_process: &NewDataplaneTransferDto,
     ) -> anyhow::Result<DataplaneTransferDto>;
 
-    async fn update_state(
+    async fn put_dataplane_transfer_by_id(
         &self,
-        id: Uuid,
-        state: TransferState,
+        id: &Urn,
+        edit_dataplane_transfer: &EditDataplaneTransferDto,
     ) -> anyhow::Result<DataplaneTransferDto>;
 
-    async fn update_flow_control(
-        &self,
-        id: Uuid,
-        flow_control: Value,
-    ) -> anyhow::Result<DataplaneTransferDto>;
-
-    async fn delete_dataplane_transfer(&self, id: Uuid) -> anyhow::Result<()>;
+    async fn delete_dataplane_transfer(&self, id: &Urn) -> anyhow::Result<()>;
 }

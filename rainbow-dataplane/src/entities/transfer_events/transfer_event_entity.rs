@@ -96,18 +96,11 @@ impl TransferEventEntitiesTrait for TransferEventEntityService {
         new_transfer_event: &NewTransferEventDto,
     ) -> anyhow::Result<TransferEventDto> {
         let new_model: NewTransferEvent = new_transfer_event.clone().into();
-        // Since transfer_id is in the DTO, we pass a dummy/default URN for the first arg of repo method if it still requires it,
-        // OR better, we use the transfer_id from DTO to construct the URN expected by repo.
-        // Wait, repo `create_transfer_event` takes `data_plane_process: &Urn`. Use a dummy URN as container for UUID.
-        let urn_str = format!("urn:uuid:{}", new_transfer_event.transfer_id);
-        let urn = urn::UrnBuilder::new("dummy", "id")
-            .build()
-            .unwrap_or_else(|_| "urn:dummy:id".parse::<urn::Urn>().unwrap());
 
         let created_event = self
             .data_plane_repo
             .get_transfer_events_repo()
-            .create_transfer_event(&urn, &new_model)
+            .create_transfer_event(&new_model)
             .await
             .map_err(|e| {
                 let err = CommonErrors::database_new(&e.to_string());

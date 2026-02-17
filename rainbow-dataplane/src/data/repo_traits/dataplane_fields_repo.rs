@@ -37,6 +37,10 @@ pub trait DataplaneFieldRepoTrait: Send + Sync + 'static {
         &self,
         field_id: &Urn,
     ) -> anyhow::Result<(), DataplaneFieldRepoErrors>;
+    async fn delete_all_dataplane_fields_by_process_id(
+        &self,
+        process_id: &Urn,
+    ) -> anyhow::Result<(), DataplaneFieldRepoErrors>;
 }
 
 #[derive(Debug, Error)]

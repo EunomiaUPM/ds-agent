@@ -23,7 +23,7 @@ pub trait DataplaneTransfersRepo: Send + Sync + 'static {
     ) -> anyhow::Result<Option<dataplane_transfers::Model>, DataplaneTransfersRepoErrors>;
     async fn get_by_transfer_process_id(
         &self,
-        transfer_process_id: &str,
+        transfer_process_id: &Urn,
     ) -> anyhow::Result<Option<dataplane_transfers::Model>, DataplaneTransfersRepoErrors>;
     async fn create_dataplane_transfers(
         &self,

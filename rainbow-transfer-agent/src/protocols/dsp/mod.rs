@@ -28,8 +28,8 @@ pub(crate) mod validator;
 
 use crate::entities::transfer_messages::TransferAgentMessagesTrait;
 use crate::entities::transfer_process::TransferAgentProcessesTrait;
-use crate::protocols::dsp::facades::data_plane_facade::data_plane_facade::DataPlaneProviderFacadeForDSProtocol;
-use crate::protocols::dsp::facades::data_plane_facade::dataplane_strategy_factory::DataPlaneStrategyFactory;
+// use crate::protocols::dsp::facades::data_plane_facade::data_plane_facade::DataPlaneProviderFacadeForDSProtocol;
+// use crate::protocols::dsp::facades::data_plane_facade::dataplane_strategy_factory::DataPlaneStrategyFactory;
 use crate::protocols::dsp::facades::data_service_resolver_facade::data_service_resolver_facade::DataServiceFacadeServiceForDSProtocol;
 use crate::protocols::dsp::facades::FacadeService;
 use crate::protocols::dsp::http::protocol::DspRouter;
@@ -133,12 +133,12 @@ impl ProtocolPluginTrait for TransferDSP {
         let dataplane = DataplaneSetup::new();
         let dataplane_controller =
             dataplane.get_data_plane_controller(self.config.clone(), self.vault.clone()).await;
-        let dataplane_strategy_factory =
-            Arc::new(DataPlaneStrategyFactory::new(dataplane_controller.clone()));
-        let dataplane_facade = Arc::new(DataPlaneProviderFacadeForDSProtocol::new(
-            dataplane_strategy_factory.clone(),
-            self.transfer_agent_process_entities.clone(),
-        ));
+        // let dataplane_strategy_factory =
+        //     Arc::new(DataPlaneStrategyFactory::new(dataplane_controller.clone()));
+        // let dataplane_facade = Arc::new(DataPlaneProviderFacadeForDSProtocol::new(
+        //     dataplane_strategy_factory.clone(),
+        //     self.transfer_agent_process_entities.clone(),
+        // ));
 
         // data service resolver
         let data_service_resolver = Arc::new(DataServiceFacadeServiceForDSProtocol::new(
@@ -149,7 +149,7 @@ impl ProtocolPluginTrait for TransferDSP {
         // facades
         let facades = Arc::new(FacadeService::new(
             data_service_resolver.clone(),
-            dataplane_facade.clone(),
+            //dataplane_facade.clone(),
         ));
 
         // orchestrators

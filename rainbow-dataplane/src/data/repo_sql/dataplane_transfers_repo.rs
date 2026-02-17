@@ -27,74 +27,57 @@ impl DataplaneTransfersRepo for DataplaneTransfersRepoForSql {
         limit: Option<u64>,
         page: Option<u64>,
     ) -> anyhow::Result<Vec<dataplane_transfers::Model>, DataplaneTransfersRepoErrors> {
-        let mut query = dataplane_transfers::Entity::find();
-
-        if let Some(limit) = limit {
-            query = query.limit(limit);
+      let transfers = dataplane_transfers::Entity::find()
+            .limit(limit.unwrap_or(100))
+            .offset(page.map(|p| p * limit.unwrap_or(100)).unwrap_or(0))
+            .all(&self.db)
+            .await;
+        match transfers {
+            Ok(transfers) => Ok(transfers),
+            Err(e) => Err(DataplaneTransfersRepoErrors::ErrorFetchingDataplaneTransfer(e.into())),
         }
-
-        if let Some(page) = page {
-            query = query.offset((page - 1) * limit.unwrap_or(10));
-        }
-
-        query.all(&self.db).await.map_err(|e| {
-            DataplaneTransfersRepoErrors::ErrorFetchingDataplaneTransfer(anyhow::anyhow!(e))
-        })
     }
 
     async fn get_batch_dataplane_transfers(
         &self,
         ids: &Vec<Urn>,
     ) -> anyhow::Result<Vec<dataplane_transfers::Model>, DataplaneTransfersRepoErrors> {
-        let uuids: Vec<Uuid> = ids
-            .iter()
-            .filter_map(|urn| {
-                // Assuming URN format urn:uuid:<uuid> or similar that allows extracting UUID.
-                // Or if Urn is just a wrapper around string, we might need a way to get UUID.
-                // For now, let's assume we can parse UUID from URN string or if it's already UUID URN.
-                // If Urn doesn't support direct UUID extraction, we might need to rely on string parsing.
-                // This is a placeholder logic.
-                let parts: Vec<&str> = urn.nid().split(':').collect();
-                if let Some(uuid_str) = parts.last() {
-                    Uuid::parse_str(uuid_str).ok()
-                } else {
-                    None
-                }
-            })
-            .collect();
-
-        dataplane_transfers::Entity::find()
-            .filter(dataplane_transfers::Column::Id.is_in(uuids))
+        let ids: Vec<String> = ids.iter().map(|urn| urn.to_string()).collect();
+        let transfers = dataplane_transfers::Entity::find()
+            .filter(dataplane_transfers::Column::Id.is_in(ids))
             .all(&self.db)
-            .await
-            .map_err(|e| {
-                DataplaneTransfersRepoErrors::ErrorFetchingDataplaneTransfer(anyhow::anyhow!(e))
-            })
+            .await;
+        match transfers {
+            Ok(transfers) => Ok(transfers),
+            Err(e) => Err(DataplaneTransfersRepoErrors::ErrorFetchingDataplaneTransfer(e.into())),
+        }
     }
 
     async fn get_dataplane_transfers_by_id(
         &self,
         process_id: &Urn,
     ) -> anyhow::Result<Option<dataplane_transfers::Model>, DataplaneTransfersRepoErrors> {
-        let uuid = Uuid::parse_str(process_id.nid())
-            .map_err(|_| DataplaneTransfersRepoErrors::DataplaneTransferNotFound)?;
-
-        dataplane_transfers::Entity::find_by_id(uuid).one(&self.db).await.map_err(|e| {
-            DataplaneTransfersRepoErrors::ErrorFetchingDataplaneTransfer(anyhow::anyhow!(e))
-        })
+        let process_id = process_id.to_string();
+        let transfer = dataplane_transfers::Entity::find_by_id(process_id).one(&self.db).await;
+        match transfer {
+            Ok(transfer) => Ok(transfer),
+            Err(e) => Err(DataplaneTransfersRepoErrors::ErrorFetchingDataplaneTransfer(e.into())),
+        }
     }
 
     async fn get_by_transfer_process_id(
         &self,
-        transfer_process_id: &str,
+        transfer_process_id: &Urn,
     ) -> anyhow::Result<Option<dataplane_transfers::Model>, DataplaneTransfersRepoErrors> {
-        dataplane_transfers::Entity::find()
+        let transfer_process_id = transfer_process_id.to_string();
+        let transfer = dataplane_transfers::Entity::find()
             .filter(dataplane_transfers::Column::TransferProcessId.eq(transfer_process_id))
             .one(&self.db)
-            .await
-            .map_err(|e| {
-                DataplaneTransfersRepoErrors::ErrorFetchingDataplaneTransfer(anyhow::anyhow!(e))
-            })
+            .await;
+        match transfer {
+            Ok(transfer) => Ok(transfer),
+            Err(e) => Err(DataplaneTransfersRepoErrors::ErrorFetchingDataplaneTransfer(e.into())),
+        }
     }
 
     async fn create_dataplane_transfers(
@@ -102,9 +85,11 @@ impl DataplaneTransfersRepo for DataplaneTransfersRepoForSql {
         new_dataplane_transfer: &NewDataplaneTransferModel,
     ) -> anyhow::Result<dataplane_transfers::Model, DataplaneTransfersRepoErrors> {
         let active_model: dataplane_transfers::ActiveModel = new_dataplane_transfer.clone().into();
-        active_model.insert(&self.db).await.map_err(|e| {
-            DataplaneTransfersRepoErrors::ErrorCreatingDataplaneTransfer(anyhow::anyhow!(e))
-        })
+        let transfer = active_model.insert(&self.db).await;
+        match transfer {
+            Ok(transfer) => Ok(transfer),
+            Err(e) => Err(DataplaneTransfersRepoErrors::ErrorCreatingDataplaneTransfer(e.into())),
+        }
     }
 
     async fn put_dataplane_transfers(
@@ -112,28 +97,27 @@ impl DataplaneTransfersRepo for DataplaneTransfersRepoForSql {
         process_id: &Urn,
         new_dataplane_transfer: &EditDataplaneTransferModel,
     ) -> anyhow::Result<dataplane_transfers::Model, DataplaneTransfersRepoErrors> {
-        let uuid = Uuid::parse_str(process_id.nid())
-            .map_err(|_| DataplaneTransfersRepoErrors::DataplaneTransferNotFound)?;
-
+        let process_id = process_id.to_string();
         let mut active_model: dataplane_transfers::ActiveModel =
             new_dataplane_transfer.clone().into();
-        active_model.id = Set(uuid);
+        active_model.id = Set(process_id);
 
-        active_model.update(&self.db).await.map_err(|e| {
-            DataplaneTransfersRepoErrors::ErrorUpdatingDataplaneTransfer(anyhow::anyhow!(e))
-        })
+        let transfer = active_model.update(&self.db).await;
+        match transfer {
+            Ok(transfer) => Ok(transfer),
+            Err(e) => Err(DataplaneTransfersRepoErrors::ErrorUpdatingDataplaneTransfer(e.into())),
+        }
     }
 
     async fn delete_dataplane_transfers(
         &self,
         process_id: &Urn,
     ) -> anyhow::Result<(), DataplaneTransfersRepoErrors> {
-        let uuid = Uuid::parse_str(process_id.nid())
-            .map_err(|_| DataplaneTransfersRepoErrors::DataplaneTransferNotFound)?;
-
-        dataplane_transfers::Entity::delete_by_id(uuid).exec(&self.db).await.map_err(|e| {
-            DataplaneTransfersRepoErrors::ErrorDeletingDataplaneTransfer(anyhow::anyhow!(e))
-        })?;
-        Ok(())
+        let process_id = process_id.to_string();
+        let transfer = dataplane_transfers::Entity::delete_by_id(process_id).exec(&self.db).await;
+        match transfer {
+            Ok(_) => Ok(()),
+            Err(e) => Err(DataplaneTransfersRepoErrors::ErrorDeletingDataplaneTransfer(e.into())),
+        }
     }
 }

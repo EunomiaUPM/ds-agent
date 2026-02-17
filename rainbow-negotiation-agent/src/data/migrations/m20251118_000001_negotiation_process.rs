@@ -85,7 +85,7 @@ impl MigrationTrait for Migration {
         manager
             .drop_index(
                 Index::drop()
-                    .name("idx-negotiation_agent_process-properties-gin")
+                    .name("idx-negotiation_agent_process-properties_gin")
                     .table(NegotiationAgentProcess::Table)
                     .to_owned(),
             )

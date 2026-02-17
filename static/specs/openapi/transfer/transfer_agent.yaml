@@ -271,19 +271,155 @@ paths:
           $ref: "#/components/responses/InternalServerError"
 
   # --- Dataplane Transfers ---
-  /dataplane/dataplane-process/{transfer_id}:
+  /dataplane/dataplane-processes:
+    get:
+      tags:
+        - Dataplane Transfers
+      summary: List all dataplane transfers
+      operationId: getDataplaneTransfers
+      responses:
+        "200":
+          description: List of dataplane transfers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DataplaneTransferDto"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      tags:
+        - Dataplane Transfers
+      summary: Create a dataplane transfer
+      operationId: createDataplaneTransfer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewDataplaneTransferDto"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataplaneTransferDto"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /dataplane/dataplane-processes/batch:
+    post:
+      tags:
+        - Dataplane Transfers
+      summary: Batch get dataplane transfers
+      operationId: getBatchDataplaneTransfers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BatchRequests"
+      responses:
+        "200":
+          description: List of dataplane transfers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DataplaneTransferDto"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /dataplane/dataplane-processes/{dataplane_process_id}:
     get:
       tags:
         - Dataplane Transfers
       summary: Get dataplane transfer by ID
       operationId: getDataplaneTransferById
       parameters:
-        - name: transfer_id
+        - name: dataplane_process_id
           in: path
           required: true
           schema:
             type: string
-            format: uuid
+            format: urn
+      responses:
+        "200":
+          description: Dataplane transfer returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataplaneTransferDto"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    put:
+      tags:
+        - Dataplane Transfers
+      summary: Update dataplane transfer
+      operationId: updateDataplaneTransfer
+      parameters:
+        - name: dataplane_process_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: urn
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EditDataplaneTransferDto"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataplaneTransferDto"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      tags:
+        - Dataplane Transfers
+      summary: Delete dataplane transfer
+      operationId: deleteDataplaneTransfer
+      parameters:
+        - name: dataplane_process_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: urn
+      responses:
+        "204":
+          description: Deleted
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /dataplane/dataplane-processes/transfer-process/{transfer_process_id}:
+    get:
+      tags:
+        - Dataplane Transfers
+      summary: Get dataplane transfer by Transfer Process ID
+      operationId: getDataplaneTransferByProcessId
+      parameters:
+        - name: transfer_process_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: urn
       responses:
         "200":
           description: Dataplane transfer returned
@@ -296,19 +432,19 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
-  /dataplane/dataplane-process/{transfer_id}/logs:
+  /dataplane/dataplane-processes/{dataplane_process_id}/logs:
     get:
       tags:
         - Dataplane Logs
       summary: Get dataplane transfer logs
       operationId: getDataplaneTransferLogs
       parameters:
-        - name: transfer_id
+        - name: dataplane_process_id
           in: path
           required: true
           schema:
             type: string
-            format: uuid
+            format: urn
       responses:
         "200":
           description: List of dataplane transfer logs
@@ -321,14 +457,14 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
-  /dataplane/dataplane-process/{transfer_id}/events:
+  /dataplane/dataplane-processes/{dataplane_process_id}/events:
     get:
       tags:
         - Transfer Events
-      summary: Get transfer events by transfer ID
-      operationId: getTransferEventsByTransferId
+      summary: Get transfer events by dataplane process ID
+      operationId: getTransferEventsByDataplaneProcessId
       parameters:
-        - name: transfer_id
+        - name: dataplane_process_id
           in: path
           required: true
           schema:
@@ -586,9 +722,10 @@ components:
       properties:
         id:
           type: string
-          format: uuid
+          format: urn
         transferProcessId:
           type: string
+          format: urn
         role:
           $ref: "#/components/schemas/TransferRole"
         interactionMode:
@@ -597,7 +734,7 @@ components:
           $ref: "#/components/schemas/TransferState"
         connectorInstanceId:
           type: string
-          format: uuid
+          format: urn
           nullable: true
         ingressConfig:
           type: object
@@ -613,9 +750,9 @@ components:
           type: string
           format: date-time
         fields:
-          type: array
-          items:
-            $ref: "#/components/schemas/DataplaneFieldDto"
+          type: object
+          additionalProperties:
+            type: string
         logs:
           type: array
           items:
@@ -624,7 +761,6 @@ components:
     NewDataplaneTransferDto:
       type: object
       required:
-        - id
         - transferProcessId
         - role
         - interactionMode
@@ -634,9 +770,11 @@ components:
       properties:
         id:
           type: string
-          format: uuid
+          format: urn
+          nullable: true
         transferProcessId:
           type: string
+          format: urn
         role:
           $ref: "#/components/schemas/TransferRole"
         interactionMode:
@@ -645,7 +783,7 @@ components:
           $ref: "#/components/schemas/TransferState"
         connectorInstanceId:
           type: string
-          format: uuid
+          format: urn
           nullable: true
         ingressConfig:
           type: object
@@ -658,32 +796,34 @@ components:
         state:
           $ref: "#/components/schemas/TransferState"
           nullable: true
+        connectorInstanceId:
+          type: string
+          format: urn
+          nullable: true
+        ingressConfig:
+          type: object
+          nullable: true
+        egressConfig:
+          type: object
+          nullable: true
         flowControl:
           type: object
           nullable: true
-
-    DataplaneFieldDto:
-      type: object
-      properties:
-        id:
-          type: string
-        key:
-          type: string
-        value:
-          type: string
+        fields:
+          type: object
+          additionalProperties:
+            type: string
           nullable: true
-        dataPlaneProcessId:
-          type: string
 
     DataplaneTransferLogDto:
       type: object
       properties:
         id:
           type: string
-          format: uuid
-        transferId:
+          format: urn
+        dataplaneProcessId:
           type: string
-          format: uuid
+          format: urn
         previousState:
           $ref: "#/components/schemas/TransferState"
           nullable: true
@@ -703,10 +843,10 @@ components:
       properties:
         id:
           type: string
-          format: uuid
-        transferId:
+          format: urn
+        dataplaneProcessId:
           type: string
-          format: uuid
+          format: urn
         level:
           $ref: "#/components/schemas/LogLevel"
         component:
@@ -723,14 +863,14 @@ components:
     NewTransferEventDto:
       type: object
       required:
-        - transferId
+        - dataplaneProcessId
         - level
         - component
         - message
       properties:
-        transferId:
+        dataplaneProcessId:
           type: string
-          format: uuid
+          format: urn
         level:
           $ref: "#/components/schemas/LogLevel"
         component:

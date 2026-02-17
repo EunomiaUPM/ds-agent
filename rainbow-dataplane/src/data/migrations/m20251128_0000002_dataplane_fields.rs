@@ -43,7 +43,7 @@ impl MigrationTrait for Migration {
                         ForeignKey::create()
                             .name("fk_dataplane_fields_dataplane_process")
                             .from(DataplaneFields::Table, DataplaneFields::DataplaneProcessId)
-                            .to(DataplaneTransfers::Table, DataplaneTransfers::TransferProcessId)
+                            .to(DataplaneTransfers::Table, DataplaneTransfers::Id)
                             .on_delete(ForeignKeyAction::Cascade),
                     )
                     .to_owned(),

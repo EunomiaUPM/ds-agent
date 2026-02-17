@@ -24,8 +24,8 @@ impl TransferEventRepo for TransferEventRepoForSql {
         page: Option<u64>,
     ) -> anyhow::Result<Vec<transfer_event::Model>, TransferEventRepoErrors> {
         let events = transfer_event::Entity::find()
-            .limit(limit.unwrap_or(20))
-            .offset(page.map(|p| p * limit.unwrap_or(20)).unwrap_or(0))
+            .limit(limit.unwrap_or(100))
+            .offset(page.map(|p| p * limit.unwrap_or(100)).unwrap_or(0))
             .all(&self.db_connection)
             .await;
         match events {
@@ -38,11 +38,10 @@ impl TransferEventRepo for TransferEventRepoForSql {
         &self,
         ids: &Vec<Urn>,
     ) -> anyhow::Result<Vec<transfer_event::Model>, TransferEventRepoErrors> {
-        let uuids: Vec<Uuid> =
-            ids.iter().map(|urn| Uuid::parse_str(urn.nss())).filter_map(Result::ok).collect();
+        let ids: Vec<String> = ids.iter().map(|urn| urn.to_string()).collect();
 
         let events = transfer_event::Entity::find()
-            .filter(transfer_event::Column::Id.is_in(uuids))
+            .filter(transfer_event::Column::Id.is_in(ids))
             .all(&self.db_connection)
             .await;
 
@@ -56,12 +55,9 @@ impl TransferEventRepo for TransferEventRepoForSql {
         &self,
         process_id: &Urn,
     ) -> anyhow::Result<Vec<transfer_event::Model>, TransferEventRepoErrors> {
-        let uuid_str = process_id.nss();
-        let uuid_val = Uuid::parse_str(uuid_str)
-            .map_err(|e| TransferEventRepoErrors::ErrorFetchingTransferEvent(e.into()))?;
-
+        let process_id = process_id.to_string();
         let events = transfer_event::Entity::find()
-            .filter(transfer_event::Column::TransferId.eq(uuid_val))
+            .filter(transfer_event::Column::TransferId.eq(process_id))
             .all(&self.db_connection)
             .await;
 
@@ -75,10 +71,8 @@ impl TransferEventRepo for TransferEventRepoForSql {
         &self,
         transfer_event_urn: &Urn,
     ) -> anyhow::Result<Option<transfer_event::Model>, TransferEventRepoErrors> {
-        let uuid = Uuid::parse_str(transfer_event_urn.nss())
-            .map_err(|e| TransferEventRepoErrors::ErrorFetchingTransferEvent(e.into()))?;
-
-        let event = transfer_event::Entity::find_by_id(uuid).one(&self.db_connection).await;
+        let transfer_event_urn = transfer_event_urn.to_string();
+        let event = transfer_event::Entity::find_by_id(transfer_event_urn).one(&self.db_connection).await;
 
         match event {
             Ok(event) => Ok(event),
@@ -88,15 +82,10 @@ impl TransferEventRepo for TransferEventRepoForSql {
 
     async fn create_transfer_event(
         &self,
-        data_plane_process: &Urn, // This is transfer_id
         new_transfer_event: &NewTransferEvent,
     ) -> anyhow::Result<transfer_event::Model, TransferEventRepoErrors> {
-        let uuid_str = data_plane_process.nss();
-        let transfer_id = Uuid::parse_str(uuid_str)
-            .map_err(|e| TransferEventRepoErrors::ErrorCreatingTransferEvent(e.into()))?;
-
         let model = transfer_event::ActiveModel {
-            transfer_id: ActiveValue::Set(transfer_id),
+            transfer_id: ActiveValue::Set(new_transfer_event.transfer_id.to_string()),
             level: ActiveValue::Set(new_transfer_event.level.clone()),
             component: ActiveValue::Set(new_transfer_event.component.clone()),
             message: ActiveValue::Set(new_transfer_event.message.clone()),

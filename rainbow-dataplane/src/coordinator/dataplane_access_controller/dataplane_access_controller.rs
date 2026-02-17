@@ -2,7 +2,8 @@ use crate::coordinator::data_source_connector::DataSourceConnectorTrait;
 use crate::coordinator::dataplane_access_controller::DataPlaneAccessControllerTrait;
 use crate::entities::dataplane_transfers::dataplane_transfers_entity::DataplaneTransfersEntityService;
 use crate::entities::dataplane_transfers::{
-    DataplaneTransfersEntitiesTrait, EditDataplaneTransferDto, NewDataplaneTransferDto,
+    DataplaneTransfersEntitiesTrait, EditDataplaneTransferDto, InteractionMode,
+    NewDataplaneTransferDto, TransferRole, TransferState,
 };
 use rainbow_common::adv_protocol::interplane::data_plane_provision::{
     DataPlaneProvisionRequest, DataPlaneProvisionResponse,
@@ -86,9 +87,6 @@ impl DataPlaneAccessControllerTrait for DataPlaneAccessControllerService {
             "UpstreamHopAddressAuthContent": ""
         });
 
-        use crate::data::entities::dataplane_transfers::{
-            InteractionMode, TransferRole, TransferState,
-        };
         use std::str::FromStr;
 
         // Infer InteractionMode from direction (simple mapping assumption)
@@ -113,17 +111,12 @@ impl DataPlaneAccessControllerTrait for DataPlaneAccessControllerService {
 
         let state = TransferState::Init;
 
-        // ID must be Uuid. input.session_id is Urn.
-        // "urn:uuid:..." -> extract UUID.
-        let uuid_str = input.session_id.nss();
-        let transfer_uuid = uuid::Uuid::parse_str(uuid_str)?;
-
         // connector_instance_id: None for now as it wasn't present before.
 
         let dataplane_response = self
             .dataplane_process_entity
             .create_dataplane_transfer(&NewDataplaneTransferDto {
-                id: transfer_uuid,
+                id: Option::from(input.session_id),
                 transfer_process_id: input.session_id.to_string(),
                 role,
                 interaction_mode,
@@ -186,16 +179,20 @@ impl DataPlaneAccessControllerTrait for DataPlaneAccessControllerService {
     }
 
     async fn data_plane_start(&self, input: &DataPlaneStart) -> anyhow::Result<DataPlaneStartAck> {
-        // Parse UUID
-        let uuid_str = input.session_id.nss();
-        let transfer_uuid = uuid::Uuid::parse_str(uuid_str)?;
-
-        use crate::data::entities::dataplane_transfers::TransferState;
-
-        let _dp_process = self
-            .dataplane_process_entity
-            .update_state(transfer_uuid, TransferState::Started)
+        self.dataplane_process_entity
+            .put_dataplane_transfer_by_id(
+                &input.session_id,
+                &EditDataplaneTransferDto {
+                    state: Some(TransferState::Started),
+                    connector_instance_id: None,
+                    ingress_config: None,
+                    egress_config: None,
+                    flow_control: None,
+                    fields: None,
+                },
+            )
             .await?;
+
         Ok(DataPlaneStartAck {
             _type: DataPlaneControllerMessages::DataPlaneStartAck,
             version: DataPlaneControllerVersion::Version10,
@@ -204,16 +201,20 @@ impl DataPlaneAccessControllerTrait for DataPlaneAccessControllerService {
     }
 
     async fn data_plane_stop(&self, input: &DataPlaneStop) -> anyhow::Result<DataPlaneStopAck> {
-        // Parse UUID
-        let uuid_str = input.session_id.nss();
-        let transfer_uuid = uuid::Uuid::parse_str(uuid_str)?;
-
-        use crate::data::entities::dataplane_transfers::TransferState;
-
-        let _dp_process = self
-            .dataplane_process_entity
-            .update_state(transfer_uuid, TransferState::Stopped)
+        self.dataplane_process_entity
+            .put_dataplane_transfer_by_id(
+                &input.session_id,
+                &EditDataplaneTransferDto {
+                    state: Some(TransferState::Stopped),
+                    connector_instance_id: None,
+                    ingress_config: None,
+                    egress_config: None,
+                    flow_control: None,
+                    fields: None,
+                },
+            )
             .await?;
+
         Ok(DataPlaneStopAck {
             _type: DataPlaneControllerMessages::DataPlaneStopAck,
             version: DataPlaneControllerVersion::Version10,

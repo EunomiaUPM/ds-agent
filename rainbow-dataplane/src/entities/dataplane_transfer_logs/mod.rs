@@ -1,5 +1,6 @@
 use crate::data::entities::dataplane_transfer_logs;
 use serde::{Deserialize, Serialize};
+use urn::Urn;
 use uuid::Uuid;
 
 pub mod dataplane_transfer_logs_entity;
@@ -13,8 +14,8 @@ pub struct DataplaneTransferLogDto {
 
 #[async_trait::async_trait]
 pub trait DataplaneTransferLogsEntitiesTrait: Send + Sync + 'static {
-    async fn get_transfer_logs_by_transfer_id(
+    async fn get_transfer_logs_by_dataplane_process_id(
         &self,
-        transfer_id: Uuid,
+        dataplane_process_id: &Urn,
     ) -> anyhow::Result<Vec<DataplaneTransferLogDto>>;
 }

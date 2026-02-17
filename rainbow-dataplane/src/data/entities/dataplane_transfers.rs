@@ -1,22 +1,23 @@
 use sea_orm::entity::prelude::*;
 use sea_orm::ActiveValue;
 use serde::{Deserialize, Serialize};
+use urn::{Urn, UrnBuilder};
 
 #[derive(Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[sea_orm(rs_type = "String", db_type = "Text")]
 pub enum TransferRole {
-    #[sea_orm(string_value = "PROVIDER")]
+    #[sea_orm(string_value = "Provider")]
     Provider,
-    #[sea_orm(string_value = "CONSUMER")]
+    #[sea_orm(string_value = "Consumer")]
     Consumer,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[sea_orm(rs_type = "String", db_type = "Text")]
 pub enum InteractionMode {
-    #[sea_orm(string_value = "PULL")]
+    #[sea_orm(string_value = "Pull")]
     Pull,
-    #[sea_orm(string_value = "PUSH")]
+    #[sea_orm(string_value = "Push")]
     Push,
 }
 
@@ -47,20 +48,21 @@ pub enum TransferState {
 
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "dataplane_transfers")]
+#[serde(rename_all = "camelCase")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
-    pub id: Uuid,
+    pub id: String,
     #[sea_orm(unique)]
     pub transfer_process_id: String,
     pub role: TransferRole,
     pub interaction_mode: InteractionMode,
     pub state: TransferState,
-    pub connector_instance_id: Option<Uuid>,
+    pub connector_instance_id: Option<String>,
     pub ingress_config: Json,
     pub egress_config: Json,
     pub flow_control: Option<Json>,
     pub created_at: DateTimeWithTimeZone,
-    pub updated_at: DateTimeWithTimeZone,
+    pub updated_at: Option<DateTimeWithTimeZone>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -79,30 +81,33 @@ impl ActiveModelBehavior for ActiveModel {}
 
 #[derive(Clone)]
 pub struct NewDataplaneTransfer {
-    pub id: Uuid,
+    pub id: Option<Urn>,
     pub transfer_process_id: String,
     pub role: TransferRole,
     pub interaction_mode: InteractionMode,
     pub state: TransferState,
-    pub connector_instance_id: Option<Uuid>,
+    pub connector_instance_id: Option<Urn>,
     pub ingress_config: serde_json::Value,
     pub egress_config: serde_json::Value,
 }
 
 impl From<NewDataplaneTransfer> for ActiveModel {
     fn from(value: NewDataplaneTransfer) -> Self {
+            let new_urn = UrnBuilder::new("dataplane-process", uuid::Uuid::new_v4().to_string().as_str())
+            .build()
+            .expect("UrnBuilder failed");
         Self {
-            id: ActiveValue::Set(value.id),
+            id: ActiveValue::Set(value.id.unwrap_or(new_urn.clone()).to_string()),
             transfer_process_id: ActiveValue::Set(value.transfer_process_id),
             role: ActiveValue::Set(value.role),
             interaction_mode: ActiveValue::Set(value.interaction_mode),
             state: ActiveValue::Set(value.state),
-            connector_instance_id: ActiveValue::Set(value.connector_instance_id),
+            connector_instance_id: ActiveValue::Set(value.connector_instance_id.map(|urn| urn.to_string())),
             ingress_config: ActiveValue::Set(value.ingress_config),
             egress_config: ActiveValue::Set(value.egress_config),
             flow_control: ActiveValue::Set(Some(serde_json::json!({}))),
             created_at: ActiveValue::Set(chrono::Utc::now().into()),
-            updated_at: ActiveValue::Set(chrono::Utc::now().into()),
+            updated_at: ActiveValue::Set(None),
         }
     }
 }
@@ -112,16 +117,31 @@ pub type NewDataplaneTransferModel = NewDataplaneTransfer;
 #[derive(Clone, Debug)]
 pub struct EditDataplaneTransferModel {
     pub state: Option<TransferState>,
+    pub connector_instance_id: Option<Urn>,
+    pub ingress_config: Option<serde_json::Value>,
+    pub egress_config: Option<serde_json::Value>,
     pub flow_control: Option<serde_json::Value>,
 }
 
 impl From<EditDataplaneTransferModel> for ActiveModel {
     fn from(value: EditDataplaneTransferModel) -> Self {
         let mut active_model =
-            Self { updated_at: ActiveValue::Set(chrono::Utc::now().into()), ..Default::default() };
+            Self { updated_at: ActiveValue::Set(Some(chrono::Utc::now().into())), ..Default::default() };
 
         if let Some(state) = value.state {
             active_model.state = ActiveValue::Set(state);
+        }
+
+        if let Some(connector_instance_id) = value.connector_instance_id {
+            active_model.connector_instance_id = ActiveValue::Set(Some(connector_instance_id.to_string()));
+        }
+
+        if let Some(ingress_config) = value.ingress_config {
+            active_model.ingress_config = ActiveValue::Set(ingress_config);
+        }
+
+        if let Some(egress_config) = value.egress_config {
+            active_model.egress_config = ActiveValue::Set(egress_config);
         }
 
         if let Some(flow_control) = value.flow_control {

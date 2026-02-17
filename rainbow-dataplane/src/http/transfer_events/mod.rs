@@ -25,9 +25,9 @@ impl TransferEventsRouter {
         Self { transfer_event_entity }
     }
 
-    pub fn transfers_sub_router(self) -> Router {
+    pub fn dataplane_processes_sub_router(self) -> Router {
         Router::new()
-            .route("/{transfer_id}/events", get(Self::handle_get_events_by_transfer_id))
+            .route("/{dataplane_process_id}/events", get(Self::handle_get_events_by_transfer_id))
             .with_state(self)
     }
 
@@ -37,14 +37,14 @@ impl TransferEventsRouter {
 
     async fn handle_get_events_by_transfer_id(
         State(state): State<TransferEventsRouter>,
-        Path(transfer_id): Path<String>,
+        Path(dataplane_process_id): Path<String>,
     ) -> impl IntoResponse {
-        let transfer_id = match parse_urn(&transfer_id) {
+        let dataplane_process_id = match parse_urn(&dataplane_process_id) {
             Ok(urn) => urn,
             Err(resp) => return resp,
         };
 
-        match state.transfer_event_entity.get_transfer_events_by_process_id(&transfer_id).await {
+        match state.transfer_event_entity.get_transfer_events_by_process_id(&dataplane_process_id).await {
             Ok(events) => (StatusCode::OK, Json(events)).into_response(),
             Err(e) => e.to_response(),
         }

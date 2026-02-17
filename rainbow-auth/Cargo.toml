@@ -22,12 +22,11 @@ anyhow = { workspace = true }
 base64 = { workspace = true }
 tracing = { workspace = true }
 axum = { workspace = true }
-thiserror = { workspace = true }
 reqwest = { workspace = true }
 chrono = { workspace = true }
 uuid = { workspace = true }
-sea-orm = { workspace = true }
 rand = { workspace = true }
+sea-orm = { workspace = true }
 urlencoding = { workspace = true }
 jsonwebtoken = { workspace = true }
 sha2 = { workspace = true }
@@ -37,23 +36,16 @@ clap = { workspace = true }
 sea-orm-migration = { workspace = true }
 tracing-subscriber = { workspace = true }
 tower-http = { workspace = true }
-once_cell = { workspace = true }
 mockall = "0.13.1"
 wiremock = "0.6"
 mockito = "1.7.0"
 httpmock = "0.8.2"
-axum-test = { version = "18.0.0-rc3" }
 actix-web = "4"
-utoipa = "5.4.0"
 utoipa-swagger-ui = { version = "9", features = ["actix-web"] }
-hyper = { version = "0.14", features = ["full"] }
 tower = { version = "0.5.2", features = ["full"] }
 urn = { workspace = true }
 futures = "0.3"
 assert_cmd = "2.0"
-derive_builder = { workspace = true }
-cargo-binutils = "0.3"
-tokio-util = "0.7.17"
 async-trait = {workspace = true}
 rustls = {workspace = true}
 axum-server = {workspace = true}

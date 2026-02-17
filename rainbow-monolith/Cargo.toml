@@ -38,3 +38,5 @@ tokio-util = "0.7.17"
 async-trait = {workspace = true}
 urn = { workspace = true }
 ymir = { workspace = true }
+rustls = {workspace = true}
+axum-server = {workspace = true}

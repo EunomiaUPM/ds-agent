@@ -16,18 +16,23 @@
  *  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
-
 use crate::http::router::create_core_provider_router;
 use axum::serve;
+use axum_server::tls_rustls::RustlsConfig;
 use rainbow_common::config::traits::CommonConfigTrait;
 use rainbow_common::config::ApplicationConfig;
+use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
+use tracing::{error, info, warn};
 use ymir::config::traits::HostsConfigTrait;
 use ymir::config::types::HostType;
 use ymir::services::vault::vault_rs::VaultService;
+use ymir::services::vault::VaultTrait;
+use ymir::types::secrets::StringHelper;
+use ymir::utils::expect_from_env;
 
 pub struct CoreHttpWorker;
 
@@ -36,13 +41,64 @@ impl CoreHttpWorker {
         config: &ApplicationConfig,
         vault: Arc<VaultService>,
         token: &CancellationToken,
-    ) -> anyhow::Result<JoinHandle<()>> {
+    ) -> anyhow::Result<()> {
+        // ) -> anyhow::Result<JoinHandle<()>> {
         // message
         let server_message = format!(
             "Starting Dataspace http server in {}",
             config.monolith().common().get_host(HostType::Http)
         );
-        tracing::info!("{}", server_message);
+        info!("{}", server_message);
+        // TODO MIGRAR YMIR Y ADAPTAR TLS AQUI
+        match Self::run_tls(config, vault.clone()).await {
+            Ok(_) => Ok(()),
+            Err(err) => {
+                warn!("TLS failed: {:?}, falling back to basic server", err);
+                Self::run(config, vault, token).await
+            }
+        }
+
+    }
+
+    pub async fn run_tls(
+        config: &ApplicationConfig,
+        vault: Arc<VaultService>,
+    ) -> anyhow::Result<()> {
+        let cert = expect_from_env("VAULT_APP_ROOT_CLIENT_KEY");
+        let pkey = expect_from_env("VAULT_APP_CLIENT_KEY");
+        let cert: StringHelper = vault.read(None, &cert).await?;
+        let pkey: StringHelper = vault.read(None, &pkey).await?;
+
+        rustls::crypto::ring::default_provider()
+            .install_default()
+            .expect("Unable to install crypto utils");
+
+        let tls_config = RustlsConfig::from_pem(
+            cert.data().as_bytes().to_vec(),
+            pkey.data().as_bytes().to_vec(),
+        )
+        .await?;
+
+        let router = create_core_provider_router(config, vault.clone()).await;
+
+        let port = config.monolith().common().hosts().get_tls_port(HostType::Http);
+        let addr_str = if config.monolith().common().is_local() {
+            format!("127.0.0.1:{}", port)
+        } else {
+            format!("0.0.0.0:{}", port)
+        };
+        let addr: SocketAddr = addr_str.parse()?;
+        info!("Starting Authority server with TLS in {}", addr);
+
+        axum_server::bind_rustls(addr, tls_config).serve(router.into_make_service()).await?;
+        Ok(())
+    }
+    pub async fn run(
+        config: &ApplicationConfig,
+        vault: Arc<VaultService>,
+        _token: &CancellationToken,
+    ) -> anyhow::Result<()> {
+        // ) -> anyhow::Result<JoinHandle<()>> {
         // router
         let router = create_core_provider_router(config, vault.clone()).await;
         // config
@@ -52,18 +108,20 @@ impl CoreHttpWorker {
         // listener
         let listener = TcpListener::bind(&addr).await?;
         // gracefully cancelation token
-        let token = token.clone();
-        let handle = tokio::spawn(async move {
-            let server = serve(listener, router).with_graceful_shutdown(async move {
-                token.cancelled().await;
-                tracing::info!("HTTP Service received shutdown signal, draining connections...");
-            });
-            match server.await {
-                Ok(_) => tracing::info!("HTTP Service stopped successfully"),
-                Err(e) => tracing::error!("HTTP Service crashed: {}", e),
-            }
-        });
+        // let token = token.clone();
+        // let handle = tokio::spawn(async move {
+        //     let server = serve(listener, router).with_graceful_shutdown(async move {
+        //         token.cancelled().await;
+        //         info!("HTTP Service received shutdown signal, draining connections...");
+        //     });
+        //     match server.await {
+        //         Ok(_) => info!("HTTP Service stopped successfully"),
+        //         Err(e) => error!("HTTP Service crashed: {}", e),
+        //     }
+        // });
+        // Ok(handle)
 
-        Ok(handle)
+        serve(listener, router).await?;
+        Ok(())
     }
 }

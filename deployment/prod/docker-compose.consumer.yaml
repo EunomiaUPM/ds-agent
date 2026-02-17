@@ -1,0 +1,71 @@
+name: "rainbow-consumer"
+
+services:
+  consumer-vault:
+    image: hashicorp/vault:1.21
+    container_name: consumer-vault
+    ports:
+      - "8201:8200"
+    cap_add:
+      - IPC_LOCK
+    volumes:
+      - ./../../vault/consumer/config:/vault/config
+      - ./../../vault/consumer/data:/vault/file
+    environment:
+      VAULT_CACERT: /vault/config/root-ca.pem
+      VAULT_LOCAL_CONFIG: >
+        {
+          "storage": { "file": { "path": "/vault/file" } },
+          "listener": [{
+            "tcp": {
+              "address": "0.0.0.0:8200",
+              "tls_cert_file": "/vault/config/vault-cert.pem",
+              "tls_key_file": "/vault/config/vault-key.pem",
+              "tls_client_ca_file": "/vault/config/vault-ca.pem"
+            }
+          }],
+          "ui": true,
+          "api_addr": "https://127.0.0.1:8200",
+          "default_lease_ttl": "168h",
+          "max_lease_ttl": "720h"
+        }
+    command: server
+
+  consumer-db:
+    container_name: "consumer-db"
+    image: "postgres"
+    restart: always
+    env_file:
+      - ./../../static/environment/envs/consumer.db.env
+    ports:
+      - "1300:5432"
+
+  consumer:
+    container_name: consumer
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "1100:1500"
+    volumes:
+      - ./../../static/environment/config:/app/static/environment/config
+      - ./../../vault/consumer:/app/vault
+    depends_on:
+      - consumer-db
+      - consumer-vault
+    env_file:
+      - ./static/environment/envs/consumer.env
+    environment:
+      CONFIG_PATH: /app/static/environment/config/prod/dataspace_authority.yaml
+
+  ds_core_consumer_redis:
+    image: redis:alpine
+    restart: always
+    container_name: consumer_redis
+    ports:
+      - "6380:6379"
+    command: >
+      redis-server 
+      --requirepass ds_core_consumer_redis
+      --user admin on >ds_core_consumer_redis ~* +@all
+

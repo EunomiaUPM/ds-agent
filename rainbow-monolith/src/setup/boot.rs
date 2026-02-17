@@ -29,7 +29,7 @@ use tokio::fs;
 use tokio::sync::broadcast;
 use tokio::sync::broadcast::Sender;
 use tokio_util::sync::CancellationToken;
-use tracing::{error, warn};
+use tracing::{error, warn, info};
 use urn::Urn;
 use ymir::config::traits::{ApiConfigTrait, HostsConfigTrait};
 use ymir::config::types::HostType;
@@ -46,7 +46,7 @@ impl BootstrapServiceTrait for CoreBoot {
         let table = json_to_table::json_to_table(&serde_json::to_value(&config.monolith())?)
             .collapse()
             .to_string();
-        tracing::info!("Current Monolith Dataspace Agent Config:\n{}", table);
+        info!("Current Monolith Dataspace Agent Config:\n{}", table);
         Ok(config)
     }
 
@@ -183,7 +183,7 @@ impl BootstrapServiceTrait for CoreBoot {
         let cancel_token = CancellationToken::new();
 
         // workers
-        tracing::info!("Spawning HTTP subsystem...");
+        info!("Spawning HTTP subsystem...");
         let http_handle = CoreHttpWorker::spawn(config, vault.clone(), &cancel_token).await?;
 
         // todo set grpc
@@ -194,16 +194,16 @@ impl BootstrapServiceTrait for CoreBoot {
             tokio::select! {
                 // ctrl+c
                 _ = shutdown_rx.recv() => {
-                    tracing::info!("Shutdown command received from Main Pipeline.");
+                    info!("Shutdown command received from Main Pipeline.");
                 }
-                _ = async { http_handle.await } => {
-                    tracing::error!("HTTP subsystem failed or stopped unexpectedly!");
-                }
+                // _ = async { http_handle } => {
+                //     error!("HTTP subsystem failed or stopped unexpectedly!");
+                // }
             }
 
-            tracing::info!("Initiating internal graceful shutdown sequence...");
+            info!("Initiating internal graceful shutdown sequence...");
             token_clone.cancel();
-            tracing::info!("Background services stopped.");
+            info!("Background services stopped.");
         });
 
         Ok(shutdown_tx)

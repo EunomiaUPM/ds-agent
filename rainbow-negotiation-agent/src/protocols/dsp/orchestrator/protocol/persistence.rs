@@ -57,7 +57,8 @@ impl OrchestrationPersistenceForProtocol {
     ) -> anyhow::Result<NegotiationProcessDto> {
         let mut process = self.create_process(payload, mate).await?;
         let process_id = self.convert_string_to_urn(&process.inner.id)?;
-        let message = self.create_message_with_old_state(&process_id, payload, &process, "-").await?;
+        let message =
+            self.create_message_with_old_state(&process_id, payload, &process, "-").await?;
         let message_id = self.convert_string_to_urn(&message.inner.id)?;
         let offer = self.create_offer(&process_id, &message_id, payload).await?;
         process.messages.push(message.inner);

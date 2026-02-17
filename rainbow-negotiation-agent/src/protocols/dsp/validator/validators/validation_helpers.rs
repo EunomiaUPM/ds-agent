@@ -104,7 +104,10 @@ impl ValidationHelpers for ValidationHelperService {
         Ok(dto)
     }
 
-    async fn get_current_dto_from_payload_by_provider(&self, payload: &dyn NegotiationProcessMessageTrait) -> anyhow::Result<NegotiationProcessDto> {
+    async fn get_current_dto_from_payload_by_provider(
+        &self,
+        payload: &dyn NegotiationProcessMessageTrait,
+    ) -> anyhow::Result<NegotiationProcessDto> {
         let consumer_pid = payload.get_provider_pid().ok_or_else(|| {
             let err =
                 CommonErrors::parse_new("Not a valid DSP payload, provider_pid is mandatory.");

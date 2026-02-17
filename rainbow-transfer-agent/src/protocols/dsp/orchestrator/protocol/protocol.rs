@@ -150,23 +150,18 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
             .get_transfer_process_by_key_value(&dpid)
             .await?;
         let transfer_process_id = Urn::from_str(transfer_process.inner.id.as_str())?;
-        // self.facades
-        //     .get_data_plane_facade()
-        //     .await
-        //     .on_transfer_start_pre(&transfer_process_id)
-        //     .await?;
         // persist and send
         let transfer_process = self
             .persistence_service
             .update_process(id, Arc::new(input.dto.clone()), serde_json::to_value(input).unwrap())
             .await?;
 
-        // data plane hook
-        // self.facades
-        //     .get_data_plane_facade()
-        //     .await
-        //     .on_transfer_start_post(&transfer_process_id)
-        //     .await?;
+        // data plane hook: start local dataplane
+        self.facades
+            .get_data_plane_facade()
+            .await
+            .on_transfer_start_post(&transfer_process_id)
+            .await?;
         // notify
 
         let transfer_process_dto = TransferProcessMessageWrapper::try_from(transfer_process)?;
@@ -187,24 +182,18 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
             .get_transfer_process_by_key_value(&dpid)
             .await?;
         let transfer_process_id = Urn::from_str(transfer_process.inner.id.as_str())?;
-        // self.facades
-        //     .get_data_plane_facade()
-        //     .await
-        //     .on_transfer_suspension_pre(&transfer_process_id)
-        //     .await?;
-
         // persist and send
         let transfer_process = self
             .persistence_service
             .update_process(id, Arc::new(input.dto.clone()), serde_json::to_value(input).unwrap())
             .await?;
 
-        // data plane hook
-        // self.facades
-        //     .get_data_plane_facade()
-        //     .await
-        //     .on_transfer_suspension_post(&transfer_process_id)
-        //     .await?;
+        // data plane hook: stop local dataplane
+        self.facades
+            .get_data_plane_facade()
+            .await
+            .on_transfer_suspension_post(&transfer_process_id)
+            .await?;
 
         // notify
 
@@ -226,24 +215,18 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
             .get_transfer_process_by_key_value(&dpid)
             .await?;
         let transfer_process_id = Urn::from_str(transfer_process.inner.id.as_str())?;
-        // self.facades
-        //     .get_data_plane_facade()
-        //     .await
-        //     .on_transfer_completion_pre(&transfer_process_id)
-        //     .await?;
-
         // persist and send
         let transfer_process = self
             .persistence_service
             .update_process(id, Arc::new(input.dto.clone()), serde_json::to_value(input).unwrap())
             .await?;
 
-        // data plane hook
-        // self.facades
-        //     .get_data_plane_facade()
-        //     .await
-        //     .on_transfer_completion_post(&transfer_process_id)
-        //     .await?;
+        // data plane hook: stop local dataplane
+        self.facades
+            .get_data_plane_facade()
+            .await
+            .on_transfer_completion_post(&transfer_process_id)
+            .await?;
 
         // notify
 
@@ -265,24 +248,18 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
             .get_transfer_process_by_key_value(&dpid)
             .await?;
         let transfer_process_id = Urn::from_str(transfer_process.inner.id.as_str())?;
-        // self.facades
-        //     .get_data_plane_facade()
-        //     .await
-        //     .on_transfer_termination_pre(&transfer_process_id)
-        //     .await?;
-
         // persist and send
         let transfer_process = self
             .persistence_service
             .update_process(id, Arc::new(input.dto.clone()), serde_json::to_value(input).unwrap())
             .await?;
 
-        // data plane hook
-        // self.facades
-        //     .get_data_plane_facade()
-        //     .await
-        //     .on_transfer_termination_post(&transfer_process_id)
-        //     .await?;
+        // data plane hook: terminate local dataplane
+        self.facades
+            .get_data_plane_facade()
+            .await
+            .on_transfer_termination_post(&transfer_process_id)
+            .await?;
 
         // notify
 

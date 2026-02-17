@@ -87,9 +87,11 @@ impl DataplaneManager {
 
         // 4. CREATION GUARD: If no process exists, only SetInit is allowed → create it
         if dataplane_process_opt.is_none() {
-            return self
-                .handle_creation(&input, &connector_urn, &connector_instance)
-                .await;
+            self.handle_creation(&input, &connector_urn, &connector_instance)
+                .await?;
+            // Re-execute: now the process exists, so cmd_init runs (Init → Configuring)
+            // and trigger_autonomous_transition chains (Configuring → Auth → Ready)
+            return Box::pin(self.execute_command(input)).await;
         }
 
         // 5. Process is guaranteed to exist from here
@@ -252,14 +254,32 @@ impl DataplaneManager {
         Ok(DataplaneResponse::Ok)
     }
 
-    /// READY (PULL) or SUBSCRIBING (PUSH) → STARTED: open data relay
+    /// READY or STOPPED → STARTED (PULL: direct) or via SUBSCRIBING (PUSH: autonomous)
     async fn cmd_started(&self, ctx: &CommandContext<'_>) -> anyhow::Result<DataplaneResponse> {
-        let valid = match ctx.mode {
-            InteractionMode::Pull => ctx.is_state(TransferState::Ready),
-            InteractionMode::Push => ctx.is_state(TransferState::Subscribing),
-        };
-        if valid {
-            self.update_state(&ctx.process_id, TransferState::Started).await?;
+        match (ctx.mode, ctx.state) {
+            // PULL: Ready → Started directly
+            (InteractionMode::Pull, &TransferState::Ready) => {
+                self.update_state(&ctx.process_id, TransferState::Started).await?;
+            }
+            // PULL: Stopped → Started (resume after suspension)
+            (InteractionMode::Pull, &TransferState::Stopped) => {
+                self.update_state(&ctx.process_id, TransferState::Started).await?;
+            }
+            // PUSH: Ready → subscribe → Subscribing (autonomous will chain to Started)
+            (InteractionMode::Push, &TransferState::Ready) => {
+                ctx.driver.lifecycle_driver.perform_subscribe(ctx.connector).await?;
+                self.update_state(&ctx.process_id, TransferState::Subscribing).await?;
+            }
+            // PUSH: Stopped → re-subscribe → Subscribing (resume after suspension)
+            (InteractionMode::Push, &TransferState::Stopped) => {
+                ctx.driver.lifecycle_driver.perform_subscribe(ctx.connector).await?;
+                self.update_state(&ctx.process_id, TransferState::Subscribing).await?;
+            }
+            // PUSH: Subscribing → Started (autonomous transition target)
+            (InteractionMode::Push, &TransferState::Subscribing) => {
+                self.update_state(&ctx.process_id, TransferState::Started).await?;
+            }
+            _ => {}
         }
         Ok(DataplaneResponse::Ok)
     }
@@ -273,14 +293,23 @@ impl DataplaneManager {
         Ok(DataplaneResponse::Ok)
     }
 
-    /// STARTED (PULL) or UNSUBSCRIBING (PUSH) → STOPPED: pause data relay
+    /// STARTED → STOPPED (PULL: direct) or STARTED → UNSUBSCRIBING → STOPPED (PUSH: via autonomous)
     async fn cmd_stopped(&self, ctx: &CommandContext<'_>) -> anyhow::Result<DataplaneResponse> {
-        let valid = match ctx.mode {
-            InteractionMode::Pull => ctx.is_state(TransferState::Started),
-            InteractionMode::Push => ctx.is_state(TransferState::Unsubscribing),
-        };
-        if valid {
-            self.update_state(&ctx.process_id, TransferState::Stopped).await?;
+        match (ctx.mode, ctx.state) {
+            // PULL: Started → Stopped directly
+            (InteractionMode::Pull, &TransferState::Started) => {
+                self.update_state(&ctx.process_id, TransferState::Stopped).await?;
+            }
+            // PUSH: Started → unsubscribe → Unsubscribing (autonomous will chain to Stopped)
+            (InteractionMode::Push, &TransferState::Started) => {
+                ctx.driver.lifecycle_driver.perform_unsubscribe(ctx.connector).await?;
+                self.update_state(&ctx.process_id, TransferState::Unsubscribing).await?;
+            }
+            // PUSH: Unsubscribing → Stopped (autonomous transition target)
+            (InteractionMode::Push, &TransferState::Unsubscribing) => {
+                self.update_state(&ctx.process_id, TransferState::Stopped).await?;
+            }
+            _ => {}
         }
         Ok(DataplaneResponse::Ok)
     }

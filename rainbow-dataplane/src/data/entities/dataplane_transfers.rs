@@ -2,6 +2,7 @@ use sea_orm::entity::prelude::*;
 use sea_orm::ActiveValue;
 use serde::{Deserialize, Serialize};
 use urn::{Urn, UrnBuilder};
+use rainbow_common::config::types::roles::RoleConfig;
 
 #[derive(Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[sea_orm(rs_type = "String", db_type = "Text")]
@@ -10,6 +11,34 @@ pub enum TransferRole {
     Provider,
     #[sea_orm(string_value = "Consumer")]
     Consumer,
+}
+
+impl TryFrom<RoleConfig> for TransferRole {
+    type Error = anyhow::Error;
+
+    fn try_from(value: RoleConfig) -> Result<Self, Self::Error> {
+        match value {
+            RoleConfig::Consumer => Ok(Self::Consumer),
+            RoleConfig::Provider => Ok(Self::Provider),
+            RoleConfig::NotDefined => Err(anyhow::anyhow!(
+                "Not allowed here this role. Dataplane must have Provider or Consumer Role"
+            )),
+        }
+    }
+}
+
+impl TryFrom<&RoleConfig> for TransferRole {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &RoleConfig) -> Result<Self, Self::Error> {
+        match value {
+            RoleConfig::Consumer => Ok(Self::Consumer),
+            RoleConfig::Provider => Ok(Self::Provider),
+            RoleConfig::NotDefined => Err(anyhow::anyhow!(
+                "Not allowed here this role. Dataplane must have Provider or Consumer Role"
+            )),
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]

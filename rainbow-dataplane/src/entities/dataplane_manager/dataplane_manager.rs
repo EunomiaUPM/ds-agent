@@ -12,6 +12,42 @@ use std::sync::Arc;
 use urn::Urn;
 use crate::entities::dataplane_manager::config_builder::DataplaneConfigBuilder;
 
+// ─── Context passed to each command handler ───
+
+struct CommandContext<'a> {
+    process_id: Urn,
+    state: &'a TransferState,
+    mode: &'a InteractionMode,
+    driver: &'a DataplaneDriver,
+    connector: Option<&'a ConnectorInstanceDto>,
+}
+
+impl<'a> CommandContext<'a> {
+    fn from(
+        process: &'a DataplaneTransferDto,
+        driver: &'a DataplaneDriver,
+        connector: Option<&'a ConnectorInstanceDto>,
+    ) -> anyhow::Result<Self> {
+        Ok(Self {
+            process_id: process.inner.id.parse()?,
+            state: &process.inner.state,
+            mode: &process.inner.interaction_mode,
+            driver,
+            connector,
+        })
+    }
+
+    fn is_state(&self, expected: TransferState) -> bool {
+        *self.state == expected
+    }
+
+    fn is_push(&self) -> bool {
+        *self.mode == InteractionMode::Push
+    }
+}
+
+// ─── DataplaneManager ───
+
 pub struct DataplaneManager {
     dataplane_entity: Arc<dyn DataplaneTransfersEntitiesTrait>,
     connector_entity: Arc<dyn ConnectorInstanceTrait>,
@@ -44,67 +80,16 @@ impl DataplaneManager {
             .map_err(anyhow::Error::from)?;
 
         // 2. Resolve connector URN → Option<Urn>
-        let connector_urn: Option<Urn> = match &dataplane_process_opt {
-            None => match &input.command {
-                DataplaneCommand::SetInit { connector_instance, .. } => connector_instance.clone(),
-                _ => {
-                    return Err(anyhow!(
-                        "Cannot execute {:?} without an existing dataplane process",
-                        "command"
-                    ))
-                }
-            },
-            Some(process) => match &process.inner.connector_instance_id {
-                Some(id_str) => Some(id_str.parse::<Urn>()?),
-                None => None,
-            },
-        };
+        let connector_urn = self.resolve_connector_urn(&dataplane_process_opt, &input.command)?;
 
         // 3. Fetch connector instance (only if URN is present)
-        let connector_instance: Option<ConnectorInstanceDto> = match &connector_urn {
-            Some(urn) => {
-                let instance = self
-                    .connector_entity
-                    .get_instance_by_id(urn)
-                    .await?
-                    .ok_or_else(|| anyhow!("Connector instance not found for URN: {}", urn))?;
-                Some(instance)
-            }
-            None => None,
-        };
+        let connector_instance = self.fetch_connector(&connector_urn).await?;
 
         // 4. CREATION GUARD: If no process exists, only SetInit is allowed → create it
         if dataplane_process_opt.is_none() {
-            if let DataplaneCommand::SetInit {
-                role,
-                connector_instance: _,
-                data_address: _,
-            } = &input.command
-            {
-                let interaction_mode = match &connector_instance {
-                    Some(ci) => match &ci.interaction {
-                        InteractionConfig::Pull(_) => InteractionMode::Pull,
-                        InteractionConfig::Push(_) => InteractionMode::Push,
-                    },
-                    None => InteractionMode::Pull,
-                };
-
-                let _new = self
-                    .dataplane_entity
-                    .create_dataplane_transfer(&NewDataplaneTransferDto {
-                        id: None,
-                        transfer_process_id: input.transfer_process_id.to_string(),
-                        role: TransferRole::try_from(role.clone())?,
-                        interaction_mode,
-                        state: TransferState::Init,
-                        connector_instance_id: connector_urn.clone(),
-                        ingress_config: serde_json::Value::Null,
-                        egress_config: serde_json::Value::Null,
-                    })
-                    .await?;
-
-                return Ok(DataplaneResponse::Ok);
-            }
+            return self
+                .handle_creation(&input, &connector_urn, &connector_instance)
+                .await;
         }
 
         // 5. Process is guaranteed to exist from here
@@ -116,135 +101,210 @@ impl DataplaneManager {
             .driver_factory
             .create_driver(&process, connector_instance.as_ref())?;
 
+        let ctx = CommandContext::from(&process, &driver, connector_instance.as_ref())?;
+
         // 7. Execute the command (state transition + side effects)
-        let response = self
-            .handle_command(&input.command, &process, &driver, connector_instance.as_ref())
-            .await?;
+        let response = self.handle_command(&input.command, &process, &ctx).await?;
 
         // 8. Fire autonomous transitions (recursive chain)
-        self.trigger_autonomous_transition(&process, &input.transfer_process_id)
+        self.trigger_autonomous_transition(&input.transfer_process_id)
             .await?;
 
         Ok(response)
     }
 
-    // ─── handle_command: one command → one state transition + action ───
+    // ─── Resolver helpers ───
+
+    fn resolve_connector_urn(
+        &self,
+        process_opt: &Option<DataplaneTransferDto>,
+        command: &DataplaneCommand,
+    ) -> anyhow::Result<Option<Urn>> {
+        match process_opt {
+            None => match command {
+                DataplaneCommand::SetInit { connector_instance, .. } => Ok(connector_instance.clone()),
+                _ => Err(anyhow!("Cannot execute command without an existing dataplane process")),
+            },
+            Some(process) => match &process.inner.connector_instance_id {
+                Some(id_str) => Ok(Some(id_str.parse::<Urn>()?)),
+                None => Ok(None),
+            },
+        }
+    }
+
+    async fn fetch_connector(
+        &self,
+        connector_urn: &Option<Urn>,
+    ) -> anyhow::Result<Option<ConnectorInstanceDto>> {
+        match connector_urn {
+            Some(urn) => {
+                let instance = self
+                    .connector_entity
+                    .get_instance_by_id(urn)
+                    .await?
+                    .ok_or_else(|| anyhow!("Connector instance not found for URN: {}", urn))?;
+                Ok(Some(instance))
+            }
+            None => Ok(None),
+        }
+    }
+
+    // ─── Creation guard ───
+
+    async fn handle_creation(
+        &self,
+        input: &DataplaneManagerInput,
+        connector_urn: &Option<Urn>,
+        connector_instance: &Option<ConnectorInstanceDto>,
+    ) -> anyhow::Result<DataplaneResponse> {
+        if let DataplaneCommand::SetInit { role, .. } = &input.command {
+            let interaction_mode = match connector_instance {
+                Some(ci) => match &ci.interaction {
+                    InteractionConfig::Pull(_) => InteractionMode::Pull,
+                    InteractionConfig::Push(_) => InteractionMode::Push,
+                },
+                None => InteractionMode::Pull,
+            };
+
+            self.dataplane_entity
+                .create_dataplane_transfer(&NewDataplaneTransferDto {
+                    id: None,
+                    transfer_process_id: input.transfer_process_id.to_string(),
+                    role: TransferRole::try_from(role.clone())?,
+                    interaction_mode,
+                    state: TransferState::Init,
+                    connector_instance_id: connector_urn.clone(),
+                    ingress_config: serde_json::Value::Null,
+                    egress_config: serde_json::Value::Null,
+                })
+                .await?;
+
+            Ok(DataplaneResponse::Ok)
+        } else {
+            Err(anyhow!("Cannot execute command without an existing process (only SetInit creates)"))
+        }
+    }
+
+    // ─── Command dispatch ───
 
     async fn handle_command(
         &self,
         cmd: &DataplaneCommand,
         process: &DataplaneTransferDto,
-        driver: &DataplaneDriver,
-        connector: Option<&ConnectorInstanceDto>,
+        ctx: &CommandContext<'_>,
     ) -> anyhow::Result<DataplaneResponse> {
-        let state = &process.inner.state;
-        let mode = &process.inner.interaction_mode;
-        let process_id: Urn = process.inner.id.parse()?;
-
         match cmd {
-            // ── SetInit on existing process: INIT → CONFIGURING ──
-            DataplaneCommand::SetInit { .. } => {
-                if *state == TransferState::Init {
-                    let builder = DataplaneConfigBuilder::from_process(process);
-                    self.update_state_and_config(
-                        &process_id,
-                        TransferState::Configuring,
-                        Some(builder.ingress),
-                        Some(builder.egress),
-                    ).await?;
-                }
-                Ok(DataplaneResponse::Ok)
-            }
-
-            // ── SetConfiguring: explicit (reserved for future use) ──
-            DataplaneCommand::SetConfiguring => {
-                Ok(DataplaneResponse::Ok)
-            }
-
-            // ── SetAuth: CONFIGURING → AUTH (driver authenticates) ──
-            DataplaneCommand::SetAuth => {
-                if *state == TransferState::Configuring {
-                    driver.auth_driver.perform_auth(connector).await?;
-                    self.update_state(&process_id, TransferState::Auth).await?;
-                }
-                Ok(DataplaneResponse::Ok)
-            }
-
-            // ── SetReady: AUTH → READY ──
-            DataplaneCommand::SetReady => {
-                if *state == TransferState::Auth {
-                    self.update_state(&process_id, TransferState::Ready).await?;
-                }
-                Ok(DataplaneResponse::Ok)
-            }
-
-            // ── SetSubscribing: READY → SUBSCRIBING (PUSH only, driver subscribes) ──
-            DataplaneCommand::SetSubscribing => {
-                if *state == TransferState::Ready && *mode == InteractionMode::Push {
-                    driver.lifecycle_driver.perform_subscribe(connector).await?;
-                    self.update_state(&process_id, TransferState::Subscribing).await?;
-                }
-                Ok(DataplaneResponse::Ok)
-            }
-
-            // ── SetStarted: opens data relay ──
-            DataplaneCommand::SetStarted => {
-                let valid = match mode {
-                    InteractionMode::Pull => *state == TransferState::Ready,
-                    InteractionMode::Push => *state == TransferState::Subscribing,
-                };
-                if valid {
-                    self.update_state(&process_id, TransferState::Started).await?;
-                }
-                Ok(DataplaneResponse::Ok)
-            }
-
-            // ── SetUnsubscribing: STARTED → UNSUBSCRIBING (PUSH only, driver unsubscribes) ──
-            DataplaneCommand::SetUnsubscribing => {
-                if *state == TransferState::Started && *mode == InteractionMode::Push {
-                    driver.lifecycle_driver.perform_unsubscribe(connector).await?;
-                    self.update_state(&process_id, TransferState::Unsubscribing).await?;
-                }
-                Ok(DataplaneResponse::Ok)
-            }
-
-            // ── SetStopped: pauses data relay ──
-            DataplaneCommand::SetStopped => {
-                let valid = match mode {
-                    InteractionMode::Pull => *state == TransferState::Started,
-                    InteractionMode::Push => *state == TransferState::Unsubscribing,
-                };
-                if valid {
-                    self.update_state(&process_id, TransferState::Stopped).await?;
-                }
-                Ok(DataplaneResponse::Ok)
-            }
-
-            // ── SetTerminated: cleanup and final state ──
-            DataplaneCommand::SetTerminated => {
-                // If PUSH and in an active state, unsubscribe first
-                if *mode == InteractionMode::Push {
-                    match state {
-                        TransferState::Started | TransferState::Subscribing => {
-                            let _ = driver.lifecycle_driver.perform_unsubscribe(connector).await;
-                        }
-                        _ => {}
-                    }
-                }
-                self.update_state(&process_id, TransferState::Terminated).await?;
-                Ok(DataplaneResponse::Ok)
-            }
+            DataplaneCommand::SetInit { .. } => self.cmd_init(process, ctx).await,
+            DataplaneCommand::SetConfiguring    => Ok(DataplaneResponse::Ok),
+            DataplaneCommand::SetAuth           => self.cmd_auth(ctx).await,
+            DataplaneCommand::SetReady          => self.cmd_ready(ctx).await,
+            DataplaneCommand::SetSubscribing    => self.cmd_subscribing(ctx).await,
+            DataplaneCommand::SetStarted        => self.cmd_started(ctx).await,
+            DataplaneCommand::SetUnsubscribing  => self.cmd_unsubscribing(ctx).await,
+            DataplaneCommand::SetStopped        => self.cmd_stopped(ctx).await,
+            DataplaneCommand::SetTerminated     => self.cmd_terminated(ctx).await,
         }
     }
 
-    // ─── trigger_autonomous_transition: chains automatic steps ───
+    // ─── Individual command handlers ───
+
+    /// INIT → CONFIGURING: freeze initial ingress/egress config
+    async fn cmd_init(
+        &self,
+        process: &DataplaneTransferDto,
+        ctx: &CommandContext<'_>,
+    ) -> anyhow::Result<DataplaneResponse> {
+        if ctx.is_state(TransferState::Init) {
+            let builder = DataplaneConfigBuilder::from_process(process);
+            self.update_state_and_config(
+                &ctx.process_id,
+                TransferState::Configuring,
+                Some(builder.ingress),
+                Some(builder.egress),
+            ).await?;
+        }
+        Ok(DataplaneResponse::Ok)
+    }
+
+    /// CONFIGURING → AUTH: driver authenticates
+    async fn cmd_auth(&self, ctx: &CommandContext<'_>) -> anyhow::Result<DataplaneResponse> {
+        if ctx.is_state(TransferState::Configuring) {
+            ctx.driver.auth_driver.perform_auth(ctx.connector).await?;
+            self.update_state(&ctx.process_id, TransferState::Auth).await?;
+        }
+        Ok(DataplaneResponse::Ok)
+    }
+
+    /// AUTH → READY
+    async fn cmd_ready(&self, ctx: &CommandContext<'_>) -> anyhow::Result<DataplaneResponse> {
+        if ctx.is_state(TransferState::Auth) {
+            self.update_state(&ctx.process_id, TransferState::Ready).await?;
+        }
+        Ok(DataplaneResponse::Ok)
+    }
+
+    /// READY → SUBSCRIBING (PUSH only): driver subscribes to upstream
+    async fn cmd_subscribing(&self, ctx: &CommandContext<'_>) -> anyhow::Result<DataplaneResponse> {
+        if ctx.is_state(TransferState::Ready) && ctx.is_push() {
+            ctx.driver.lifecycle_driver.perform_subscribe(ctx.connector).await?;
+            self.update_state(&ctx.process_id, TransferState::Subscribing).await?;
+        }
+        Ok(DataplaneResponse::Ok)
+    }
+
+    /// READY (PULL) or SUBSCRIBING (PUSH) → STARTED: open data relay
+    async fn cmd_started(&self, ctx: &CommandContext<'_>) -> anyhow::Result<DataplaneResponse> {
+        let valid = match ctx.mode {
+            InteractionMode::Pull => ctx.is_state(TransferState::Ready),
+            InteractionMode::Push => ctx.is_state(TransferState::Subscribing),
+        };
+        if valid {
+            self.update_state(&ctx.process_id, TransferState::Started).await?;
+        }
+        Ok(DataplaneResponse::Ok)
+    }
+
+    /// STARTED → UNSUBSCRIBING (PUSH only): driver unsubscribes
+    async fn cmd_unsubscribing(&self, ctx: &CommandContext<'_>) -> anyhow::Result<DataplaneResponse> {
+        if ctx.is_state(TransferState::Started) && ctx.is_push() {
+            ctx.driver.lifecycle_driver.perform_unsubscribe(ctx.connector).await?;
+            self.update_state(&ctx.process_id, TransferState::Unsubscribing).await?;
+        }
+        Ok(DataplaneResponse::Ok)
+    }
+
+    /// STARTED (PULL) or UNSUBSCRIBING (PUSH) → STOPPED: pause data relay
+    async fn cmd_stopped(&self, ctx: &CommandContext<'_>) -> anyhow::Result<DataplaneResponse> {
+        let valid = match ctx.mode {
+            InteractionMode::Pull => ctx.is_state(TransferState::Started),
+            InteractionMode::Push => ctx.is_state(TransferState::Unsubscribing),
+        };
+        if valid {
+            self.update_state(&ctx.process_id, TransferState::Stopped).await?;
+        }
+        Ok(DataplaneResponse::Ok)
+    }
+
+    /// ANY → TERMINATED: cleanup (emergency unsubscribe if PUSH active)
+    async fn cmd_terminated(&self, ctx: &CommandContext<'_>) -> anyhow::Result<DataplaneResponse> {
+        if ctx.is_push() {
+            match ctx.state {
+                TransferState::Started | TransferState::Subscribing => {
+                    let _ = ctx.driver.lifecycle_driver.perform_unsubscribe(ctx.connector).await;
+                }
+                _ => {}
+            }
+        }
+        self.update_state(&ctx.process_id, TransferState::Terminated).await?;
+        Ok(DataplaneResponse::Ok)
+    }
+
+    // ─── Autonomous transitions (recursive chain) ───
 
     async fn trigger_autonomous_transition(
         &self,
-        old_process: &DataplaneTransferDto,
         transfer_process_id: &Urn,
     ) -> anyhow::Result<()> {
-        // Reload the process from DB to see the NEW state after handle_command
         let current = self
             .dataplane_entity
             .get_dataplane_transfer_by_process_id(transfer_process_id)
@@ -252,19 +312,14 @@ impl DataplaneManager {
 
         let process = match current {
             Some(p) => p,
-            None => return Ok(()), // Process was deleted or not found
+            None => return Ok(()),
         };
 
         let next_command = match process.inner.state {
-            // CONFIGURING → AUTH (autonomous)
-            TransferState::Configuring => Some(DataplaneCommand::SetAuth),
-            // AUTH → READY (autonomous)
-            TransferState::Auth => Some(DataplaneCommand::SetReady),
-            // SUBSCRIBING → STARTED (autonomous, PUSH only)
-            TransferState::Subscribing => Some(DataplaneCommand::SetStarted),
-            // UNSUBSCRIBING → STOPPED (autonomous, PUSH only)
+            TransferState::Configuring   => Some(DataplaneCommand::SetAuth),
+            TransferState::Auth          => Some(DataplaneCommand::SetReady),
+            TransferState::Subscribing   => Some(DataplaneCommand::SetStarted),
             TransferState::Unsubscribing => Some(DataplaneCommand::SetStopped),
-            // All other states: wait for manual command from control plane
             _ => None,
         };
 
@@ -273,14 +328,13 @@ impl DataplaneManager {
                 transfer_process_id: transfer_process_id.clone(),
                 command,
             };
-            // Recursive call via Box::pin to avoid infinite type size
             Box::pin(self.execute_command(&next_input)).await?;
         }
 
         Ok(())
     }
 
-    // ─── helpers ───
+    // ─── Persistence helpers ───
 
     async fn update_state(
         &self,

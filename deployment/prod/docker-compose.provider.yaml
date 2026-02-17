@@ -53,7 +53,7 @@ services:
 
   provider:
     container_name: provider
-    image: rmenendez8/rainbow:latest
+    image: rmenendez8/rainbow:v1.0.0
     # build:
     #   context: ../..
     #   dockerfile: deployment/prod/Dockerfile

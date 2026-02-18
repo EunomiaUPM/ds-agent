@@ -13,6 +13,8 @@ use crate::testing_proxy::http::http::TestingHTTPProxy;
 use axum::Router;
 use rainbow_common::config::services::TransferConfig;
 use rainbow_common::config::traits::{CacheConfigTrait, CommonConfigTrait};
+use rainbow_common::http_client::HttpClient;
+use ymir::config::traits::HostsConfigTrait;
 use rainbow_connector::ConnectorInstanceTrait;
 use sea_orm::Database;
 use std::ops::Deref;
@@ -45,6 +47,7 @@ impl DataplaneSetup {
         config: Arc<TransferConfig>,
         vault: Arc<VaultService>,
         connector_entity: Arc<dyn ConnectorInstanceTrait>,
+        http_client: Arc<HttpClient>,
     ) -> DataplaneManager {
         let db_connection = vault.get_db_connection(config.deref().common()).await;
         let redis_client = self.get_redis_client(&config).await;
@@ -52,7 +55,7 @@ impl DataplaneSetup {
         .get_multiplexed_async_connection()
         .await
         .expect("Failed to get redis connection");
-    
+
         // cache
         let cache = Arc::new(DataplaneTransferCacheForRedis::new(redis_conn));
         // repo
@@ -62,8 +65,15 @@ impl DataplaneSetup {
         let dataplane_process_entity =
             Arc::new(DataplaneTransfersEntityService::new(dataplane_repo.clone(), cache));
 
+        // proxy base URL (used by driver to build callback URLs)
+        let http_cfg = config.common().http();
+        let proxy_base_url = match &http_cfg.port {
+            Some(port) => format!("{}://{}:{}", http_cfg.protocol, http_cfg.url, port),
+            None => format!("{}://{}", http_cfg.protocol, http_cfg.url),
+        };
+
         // driver factory
-        let driver_factory = Arc::new(DataplaneDriverFactory::new());
+        let driver_factory = Arc::new(DataplaneDriverFactory::new(proxy_base_url, http_client));
 
         DataplaneManager::new(
             dataplane_process_entity,

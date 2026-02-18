@@ -266,7 +266,7 @@ impl DataplaneManager {
     /// READY → SUBSCRIBING (PUSH only): driver subscribes to upstream
     async fn cmd_subscribing(&self, ctx: &CommandContext<'_>) -> anyhow::Result<DataplaneResponse> {
         if ctx.is_state(TransferState::Ready) && ctx.is_push() {
-            ctx.driver.lifecycle_driver.perform_subscribe(ctx.connector).await?;
+            self.subscribe_or_terminate(ctx).await?;
             self.update_state(&ctx.process_id, TransferState::Subscribing).await?;
         }
         Ok(DataplaneResponse::Ok)
@@ -285,12 +285,12 @@ impl DataplaneManager {
             }
             // PUSH: Ready → subscribe → Subscribing (autonomous will chain to Started)
             (InteractionMode::Push, &TransferState::Ready) => {
-                ctx.driver.lifecycle_driver.perform_subscribe(ctx.connector).await?;
+                self.subscribe_or_terminate(ctx).await?;
                 self.update_state(&ctx.process_id, TransferState::Subscribing).await?;
             }
             // PUSH: Stopped → re-subscribe → Subscribing (resume after suspension)
             (InteractionMode::Push, &TransferState::Stopped) => {
-                ctx.driver.lifecycle_driver.perform_subscribe(ctx.connector).await?;
+                self.subscribe_or_terminate(ctx).await?;
                 self.update_state(&ctx.process_id, TransferState::Subscribing).await?;
             }
             // PUSH: Subscribing → Started (autonomous transition target)
@@ -305,7 +305,7 @@ impl DataplaneManager {
     /// STARTED → UNSUBSCRIBING (PUSH only): driver unsubscribes
     async fn cmd_unsubscribing(&self, ctx: &CommandContext<'_>) -> anyhow::Result<DataplaneResponse> {
         if ctx.is_state(TransferState::Started) && ctx.is_push() {
-            ctx.driver.lifecycle_driver.perform_unsubscribe(ctx.connector).await?;
+            self.unsubscribe_or_terminate(ctx).await?;
             self.update_state(&ctx.process_id, TransferState::Unsubscribing).await?;
         }
         Ok(DataplaneResponse::Ok)
@@ -320,7 +320,7 @@ impl DataplaneManager {
             }
             // PUSH: Started → unsubscribe → Unsubscribing (autonomous will chain to Stopped)
             (InteractionMode::Push, &TransferState::Started) => {
-                ctx.driver.lifecycle_driver.perform_unsubscribe(ctx.connector).await?;
+                self.unsubscribe_or_terminate(ctx).await?;
                 self.update_state(&ctx.process_id, TransferState::Unsubscribing).await?;
             }
             // PUSH: Unsubscribing → Stopped (autonomous transition target)
@@ -330,6 +330,39 @@ impl DataplaneManager {
             _ => {}
         }
         Ok(DataplaneResponse::Ok)
+    }
+
+    /// Calls `perform_subscribe`; stores response in flow_control, or persists TERMINATED on failure.
+    async fn subscribe_or_terminate(&self, ctx: &CommandContext<'_>) -> anyhow::Result<()> {
+        match ctx.driver.lifecycle_driver.perform_subscribe(ctx.connector).await {
+            Ok(response) => {
+                if !response.is_null() {
+                    self.dataplane_entity
+                        .put_dataplane_transfer_by_id(
+                            &ctx.process_id,
+                            &EditDataplaneTransferDto {
+                                flow_control: Some(response),
+                                ..Default::default()
+                            },
+                        )
+                        .await?;
+                }
+                Ok(())
+            }
+            Err(e) => {
+                self.update_state(&ctx.process_id, TransferState::Terminated).await?;
+                Err(e)
+            }
+        }
+    }
+
+    /// Calls `perform_unsubscribe`; on failure persists TERMINATED state before returning the error.
+    async fn unsubscribe_or_terminate(&self, ctx: &CommandContext<'_>) -> anyhow::Result<()> {
+        if let Err(e) = ctx.driver.lifecycle_driver.perform_unsubscribe(ctx.connector).await {
+            self.update_state(&ctx.process_id, TransferState::Terminated).await?;
+            return Err(e);
+        }
+        Ok(())
     }
 
     /// ANY → TERMINATED: cleanup (emergency unsubscribe if PUSH active)

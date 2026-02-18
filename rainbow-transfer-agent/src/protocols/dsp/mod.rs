@@ -149,6 +149,7 @@ impl ProtocolPluginTrait for TransferDSP {
                 self.config.clone(),
                 self.vault.clone(),
                 connector_entity.clone(),
+                http_client.clone(),
             ).await,
         );
         let http = self.config.common().http();

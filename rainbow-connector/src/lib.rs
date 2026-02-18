@@ -14,6 +14,8 @@ pub use entities::resource::{ProtocolSpec, HttpSpec};
 pub use entities::common::parameters::TemplateVecString;
 pub use entities::connector_instance::{ConnectorInstanceDto, ConnectorInstanceTrait, ConnectorInstantiationDto};
 pub use entities::connector_instance;
+pub use entities::connector_instance::resolver::TemplateResolver;
+pub use entities::common::parameters::TemplateMutable;
 
 #[cfg(test)]
 pub use entities::connector_instance::MockConnectorInstanceTrait;

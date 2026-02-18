@@ -7,7 +7,9 @@ mod tests {
     use crate::entities::dataplane_transfers::{InteractionMode, TransferRole, TransferState, DataplaneTransferDto, NewDataplaneTransferDto, EditDataplaneTransferDto};
     use rainbow_connector::{ConnectorInstanceDto, InteractionConfig, PullLifecycle, PushLifecycle, AuthenticationConfig, ConnectorMetadata, ProtocolSpec, HttpSpec, TemplateVecString, ConnectorInstanceTrait};
     use rainbow_common::config::types::roles::RoleConfig;
+    use rainbow_common::http_client::HttpClient;
     use std::sync::Arc;
+    use std::sync::atomic::{AtomicUsize, Ordering};
     use std::str::FromStr;
     use urn::Urn;
     use crate::data::entities::dataplane_transfers;
@@ -43,7 +45,7 @@ mod tests {
                 interaction_mode: mode,
                 state,
                 connector_instance_id: connector_instance_id.map(|u| u.to_string()),
-                ingress_config: serde_json::Value::Null,
+                ingress_config: serde_json::json!({"type": "HTTP_LISTENER", "path": "/test/dummy"}),
                 egress_config: serde_json::Value::Null,
                 flow_control: None,
                 created_at: chrono::Utc::now().into(),
@@ -89,29 +91,97 @@ mod tests {
         }
     }
 
+    fn create_dummy_dto_with_flow_control(
+        id: &str,
+        tp_id: &str,
+        role: TransferRole,
+        mode: InteractionMode,
+        state: TransferState,
+        connector_instance_id: Option<Urn>,
+        flow_control: Option<serde_json::Value>,
+    ) -> DataplaneTransferDto {
+        let mut dto = create_dummy_dto(id, tp_id, role, mode, state, connector_instance_id);
+        dto.inner.flow_control = flow_control;
+        dto
+    }
+
+    fn create_push_connector_with_unsubscribe(urn: &Urn) -> ConnectorInstanceDto {
+        ConnectorInstanceDto {
+            id: urn.clone(),
+            metadata: create_dummy_metadata(),
+            authentication_config: AuthenticationConfig::NoAuth,
+            interaction: InteractionConfig::Push(PushLifecycle {
+                subscribe: ProtocolSpec::Http(HttpSpec {
+                    url_template: "http://127.0.0.1:9999/subscribe".to_string(),
+                    method: TemplateVecString::Value(vec!["POST".to_string()]),
+                    headers: None,
+                    body_template: None,
+                }),
+                unsubscribe: Some(ProtocolSpec::Http(HttpSpec {
+                    url_template: "http://127.0.0.1:9999/unsubscribe".to_string(),
+                    method: TemplateVecString::Value(vec!["POST".to_string()]),
+                    headers: None,
+                    body_template: None,
+                })),
+            }),
+            distribution_id: Urn::from_str("urn:distribution:3").unwrap(),
+        }
+    }
+
+    /// Connector whose unsubscribe URL embeds {{__SYS_SUB_ID__}}
+    fn create_push_connector_with_sub_id_unsubscribe(urn: &Urn) -> ConnectorInstanceDto {
+        ConnectorInstanceDto {
+            id: urn.clone(),
+            metadata: create_dummy_metadata(),
+            authentication_config: AuthenticationConfig::NoAuth,
+            interaction: InteractionConfig::Push(PushLifecycle {
+                subscribe: ProtocolSpec::Http(HttpSpec {
+                    url_template: "http://127.0.0.1:9999/subscribe".to_string(),
+                    method: TemplateVecString::Value(vec!["POST".to_string()]),
+                    headers: None,
+                    body_template: None,
+                }),
+                unsubscribe: Some(ProtocolSpec::Http(HttpSpec {
+                    // RUNTIME_SUB_RESPONSE_{.id} is resolved from flow_control at unsubscribe time
+                    url_template: "http://127.0.0.1:9999/unsubscribe/{{__RUNTIME_SUB_RESPONSE_{.id}__}}".to_string(),
+                    method: TemplateVecString::Value(vec!["POST".to_string()]),
+                    headers: None,
+                    body_template: None,
+                })),
+            }),
+            distribution_id: Urn::from_str("urn:distribution:4").unwrap(),
+        }
+    }
+
     // ─── Test: New PULL Consumer process (SetInit creates process in INIT) ───
 
     #[tokio::test]
     async fn test_provision_new_process_consumer_pull() {
         let mut mock_dataplane_entity = MockDataplaneTransfersEntitiesTrait::new();
         let mut mock_connector_entity = MockConnectorInstance::new();
-        let driver_factory = Arc::new(DataplaneDriverFactory::new());
+        let driver_factory = Arc::new(DataplaneDriverFactory::new("http://127.0.0.1:9999".to_string(), Arc::new(HttpClient::new(10, 10))));
 
         let transfer_process_id = Urn::from_str("urn:transfer-process:1").unwrap();
         let connector_urn = Urn::from_str("urn:connector-instance:1").unwrap();
 
-        // First call: no process exists
+        // First call: no process exists. Subsequent calls (recursive execute after creation): Init.
+        let call_count = Arc::new(AtomicUsize::new(0));
+        let tp_str = transfer_process_id.to_string();
+        let cu = connector_urn.clone();
         mock_dataplane_entity
             .expect_get_dataplane_transfer_by_process_id()
-            .with(mockall::predicate::eq(transfer_process_id.clone()))
-            .times(1)
-            .returning(|_| Ok(None));
+            .returning(move |_| {
+                let n = call_count.fetch_add(1, Ordering::SeqCst);
+                if n == 0 {
+                    Ok(None)
+                } else {
+                    Ok(Some(create_dummy_dto("urn:dataplane:1", &tp_str, TransferRole::Consumer, InteractionMode::Pull, TransferState::Init, Some(cu.clone()))))
+                }
+            });
 
         let connector_instance = create_pull_connector(&connector_urn);
         mock_connector_entity
             .expect_get_instance_by_id()
-            .with(mockall::predicate::eq(connector_urn.clone()))
-            .times(1)
             .returning(move |_| Ok(Some(connector_instance.clone())));
 
         mock_dataplane_entity
@@ -124,6 +194,12 @@ mod tests {
             .times(1)
             .returning(move |dto| {
                 Ok(create_dummy_dto("urn:dataplane:1", &dto.transfer_process_id, dto.role.clone(), dto.interaction_mode.clone(), dto.state.clone(), dto.connector_instance_id.clone()))
+            });
+
+        mock_dataplane_entity
+            .expect_put_dataplane_transfer_by_id()
+            .returning(|id, dto| {
+                Ok(create_dummy_dto(&id.to_string(), "urn:transfer-process:1", TransferRole::Consumer, InteractionMode::Pull, dto.state.clone().unwrap_or(TransferState::Init), None))
             });
 
         let manager = DataplaneManager::new(
@@ -151,22 +227,29 @@ mod tests {
     async fn test_provision_new_process_provider_push() {
         let mut mock_dataplane_entity = MockDataplaneTransfersEntitiesTrait::new();
         let mut mock_connector_entity = MockConnectorInstance::new();
-        let driver_factory = Arc::new(DataplaneDriverFactory::new());
+        let driver_factory = Arc::new(DataplaneDriverFactory::new("http://127.0.0.1:9999".to_string(), Arc::new(HttpClient::new(10, 10))));
 
         let transfer_process_id = Urn::from_str("urn:transfer-process:2").unwrap();
         let connector_urn = Urn::from_str("urn:connector-instance:2").unwrap();
 
+        // First call: no process exists. Subsequent calls: Init.
+        let call_count = Arc::new(AtomicUsize::new(0));
+        let tp_str = transfer_process_id.to_string();
+        let cu = connector_urn.clone();
         mock_dataplane_entity
             .expect_get_dataplane_transfer_by_process_id()
-            .with(mockall::predicate::eq(transfer_process_id.clone()))
-            .times(1)
-            .returning(|_| Ok(None));
+            .returning(move |_| {
+                let n = call_count.fetch_add(1, Ordering::SeqCst);
+                if n == 0 {
+                    Ok(None)
+                } else {
+                    Ok(Some(create_dummy_dto("urn:dataplane:2", &tp_str, TransferRole::Provider, InteractionMode::Push, TransferState::Init, Some(cu.clone()))))
+                }
+            });
 
         let connector_instance = create_push_connector(&connector_urn);
         mock_connector_entity
             .expect_get_instance_by_id()
-            .with(mockall::predicate::eq(connector_urn.clone()))
-            .times(1)
             .returning(move |_| Ok(Some(connector_instance.clone())));
 
         mock_dataplane_entity
@@ -179,6 +262,12 @@ mod tests {
             .times(1)
             .returning(move |dto| {
                 Ok(create_dummy_dto("urn:dataplane:2", &dto.transfer_process_id, dto.role.clone(), dto.interaction_mode.clone(), dto.state.clone(), dto.connector_instance_id.clone()))
+            });
+
+        mock_dataplane_entity
+            .expect_put_dataplane_transfer_by_id()
+            .returning(|id, dto| {
+                Ok(create_dummy_dto(&id.to_string(), "urn:transfer-process:2", TransferRole::Provider, InteractionMode::Push, dto.state.clone().unwrap_or(TransferState::Init), None))
             });
 
         let manager = DataplaneManager::new(
@@ -206,7 +295,7 @@ mod tests {
     async fn test_pull_consumer_init_to_ready_autonomous_chain() {
         let mut mock_dataplane_entity = MockDataplaneTransfersEntitiesTrait::new();
         let mut mock_connector_entity = MockConnectorInstance::new();
-        let driver_factory = Arc::new(DataplaneDriverFactory::new());
+        let driver_factory = Arc::new(DataplaneDriverFactory::new("http://127.0.0.1:9999".to_string(), Arc::new(HttpClient::new(10, 10))));
 
         let transfer_process_id = Urn::from_str("urn:transfer-process:3").unwrap();
         let connector_urn = Urn::from_str("urn:connector-instance:1").unwrap();
@@ -298,7 +387,7 @@ mod tests {
     async fn test_pull_consumer_ready_to_started() {
         let mut mock_dataplane_entity = MockDataplaneTransfersEntitiesTrait::new();
         let mut mock_connector_entity = MockConnectorInstance::new();
-        let driver_factory = Arc::new(DataplaneDriverFactory::new());
+        let driver_factory = Arc::new(DataplaneDriverFactory::new("http://127.0.0.1:9999".to_string(), Arc::new(HttpClient::new(10, 10))));
 
         let transfer_process_id = Urn::from_str("urn:transfer-process:4").unwrap();
         let connector_urn = Urn::from_str("urn:connector-instance:1").unwrap();
@@ -344,7 +433,7 @@ mod tests {
     async fn test_pull_consumer_started_to_stopped() {
         let mut mock_dataplane_entity = MockDataplaneTransfersEntitiesTrait::new();
         let mut mock_connector_entity = MockConnectorInstance::new();
-        let driver_factory = Arc::new(DataplaneDriverFactory::new());
+        let driver_factory = Arc::new(DataplaneDriverFactory::new("http://127.0.0.1:9999".to_string(), Arc::new(HttpClient::new(10, 10))));
 
         let transfer_process_id = Urn::from_str("urn:transfer-process:5").unwrap();
         let connector_urn = Urn::from_str("urn:connector-instance:1").unwrap();
@@ -389,7 +478,7 @@ mod tests {
     async fn test_transition_any_to_terminated() {
         let mut mock_dataplane_entity = MockDataplaneTransfersEntitiesTrait::new();
         let mut mock_connector_entity = MockConnectorInstance::new();
-        let driver_factory = Arc::new(DataplaneDriverFactory::new());
+        let driver_factory = Arc::new(DataplaneDriverFactory::new("http://127.0.0.1:9999".to_string(), Arc::new(HttpClient::new(10, 10))));
 
         let transfer_process_id = Urn::from_str("urn:transfer-process:6").unwrap();
         let connector_urn = Urn::from_str("urn:connector-instance:1").unwrap();
@@ -434,7 +523,7 @@ mod tests {
     async fn test_push_provider_ready_to_started_via_subscribing() {
         let mut mock_dataplane_entity = MockDataplaneTransfersEntitiesTrait::new();
         let mut mock_connector_entity = MockConnectorInstance::new();
-        let driver_factory = Arc::new(DataplaneDriverFactory::new());
+        let driver_factory = Arc::new(DataplaneDriverFactory::new("http://127.0.0.1:9999".to_string(), Arc::new(HttpClient::new(10, 10))));
 
         let transfer_process_id = Urn::from_str("urn:transfer-process:7").unwrap();
         let connector_urn = Urn::from_str("urn:connector-instance:2").unwrap();
@@ -471,8 +560,10 @@ mod tests {
             command: DataplaneCommand::SetStarted,
         };
 
+        // No HTTP server is running at 127.0.0.1:9999, so perform_subscribe fails.
+        // subscribe_or_terminate must persist TERMINATED before returning the error.
         let result = manager.execute_command(&input).await;
-        assert!(result.is_ok());
+        assert!(result.is_err(), "subscribe failure should propagate as Err");
     }
 
     // ─── Test: PUSH Provider STARTED → SetStopped → UNSUBSCRIBING → [auto] STOPPED ───
@@ -481,7 +572,7 @@ mod tests {
     async fn test_push_provider_started_to_stopped_via_unsubscribing() {
         let mut mock_dataplane_entity = MockDataplaneTransfersEntitiesTrait::new();
         let mut mock_connector_entity = MockConnectorInstance::new();
-        let driver_factory = Arc::new(DataplaneDriverFactory::new());
+        let driver_factory = Arc::new(DataplaneDriverFactory::new("http://127.0.0.1:9999".to_string(), Arc::new(HttpClient::new(10, 10))));
 
         let transfer_process_id = Urn::from_str("urn:transfer-process:8").unwrap();
         let connector_urn = Urn::from_str("urn:connector-instance:2").unwrap();
@@ -526,14 +617,23 @@ mod tests {
     async fn test_consumer_without_connector() {
         let mut mock_dataplane_entity = MockDataplaneTransfersEntitiesTrait::new();
         let mock_connector_entity = MockConnectorInstance::new();
-        let driver_factory = Arc::new(DataplaneDriverFactory::new());
+        let driver_factory = Arc::new(DataplaneDriverFactory::new("http://127.0.0.1:9999".to_string(), Arc::new(HttpClient::new(10, 10))));
 
         let transfer_process_id = Urn::from_str("urn:transfer-process:9").unwrap();
 
+        // First call: no process exists. Subsequent calls: Init.
+        let call_count = Arc::new(AtomicUsize::new(0));
+        let tp_str = transfer_process_id.to_string();
         mock_dataplane_entity
             .expect_get_dataplane_transfer_by_process_id()
-            .times(1)
-            .returning(|_| Ok(None));
+            .returning(move |_| {
+                let n = call_count.fetch_add(1, Ordering::SeqCst);
+                if n == 0 {
+                    Ok(None)
+                } else {
+                    Ok(Some(create_dummy_dto("urn:dataplane:9", &tp_str, TransferRole::Consumer, InteractionMode::Pull, TransferState::Init, None)))
+                }
+            });
 
         mock_dataplane_entity
             .expect_create_dataplane_transfer()
@@ -545,6 +645,12 @@ mod tests {
             .times(1)
             .returning(move |dto| {
                 Ok(create_dummy_dto("urn:dataplane:9", &dto.transfer_process_id, dto.role.clone(), dto.interaction_mode.clone(), dto.state.clone(), None))
+            });
+
+        mock_dataplane_entity
+            .expect_put_dataplane_transfer_by_id()
+            .returning(|id, dto| {
+                Ok(create_dummy_dto(&id.to_string(), "urn:transfer-process:9", TransferRole::Consumer, InteractionMode::Pull, dto.state.clone().unwrap_or(TransferState::Init), None))
             });
 
         let manager = DataplaneManager::new(
@@ -564,5 +670,126 @@ mod tests {
 
         let result = manager.execute_command(&input).await;
         assert!(result.is_ok());
+    }
+
+    // ─── Test: PUSH Provider STARTED → SetStopped → HTTP unsubscribe fires (fails → Err) ───
+
+    #[tokio::test]
+    async fn test_push_provider_started_to_stopped_http_unsubscribe_fires() {
+        let mut mock_dataplane_entity = MockDataplaneTransfersEntitiesTrait::new();
+        let mut mock_connector_entity = MockConnectorInstance::new();
+        let driver_factory = Arc::new(DataplaneDriverFactory::new("http://127.0.0.1:9999".to_string(), Arc::new(HttpClient::new(10, 10))));
+
+        let transfer_process_id = Urn::from_str("urn:transfer-process:10").unwrap();
+        let connector_urn = Urn::from_str("urn:connector-instance:3").unwrap();
+
+        let connector_instance = create_push_connector_with_unsubscribe(&connector_urn);
+        mock_connector_entity
+            .expect_get_instance_by_id()
+            .returning(move |_| Ok(Some(connector_instance.clone())));
+
+        let tp_str = transfer_process_id.to_string();
+        let cu = connector_urn.clone();
+        mock_dataplane_entity
+            .expect_get_dataplane_transfer_by_process_id()
+            .returning(move |_| {
+                Ok(Some(create_dummy_dto("urn:dataplane:10", &tp_str, TransferRole::Provider, InteractionMode::Push, TransferState::Started, Some(cu.clone()))))
+            });
+
+        mock_dataplane_entity
+            .expect_put_dataplane_transfer_by_id()
+            .returning(|id, dto| {
+                Ok(create_dummy_dto(&id.to_string(), "urn:transfer-process:10", TransferRole::Provider, InteractionMode::Push, dto.state.clone().unwrap_or(TransferState::Started), Some(Urn::from_str("urn:connector-instance:3").unwrap())))
+            });
+
+        let manager = DataplaneManager::new(
+            Arc::new(mock_dataplane_entity),
+            Arc::new(mock_connector_entity),
+            driver_factory,
+        );
+
+        let input = DataplaneManagerInput {
+            transfer_process_id,
+            command: DataplaneCommand::SetStopped,
+        };
+
+        // No HTTP server running at 127.0.0.1:9999 → perform_unsubscribe fails → Err propagated
+        let result = manager.execute_command(&input).await;
+        assert!(result.is_err(), "HTTP unsubscribe failure should propagate as Err");
+    }
+
+    // ─── Test: PUSH Provider STARTED → SetStopped with subscription ID in flow_control ───
+    //
+    // flow_control = {"id": "sub-abc123"}  →  SYS_SUB_ID = "sub-abc123"
+    // unsubscribe urlTemplate = ".../unsubscribe/{{__SYS_SUB_ID__}}"
+    //                         →  ".../unsubscribe/sub-abc123"
+    // (no server running → Err, but the template resolution must not panic)
+
+    #[tokio::test]
+    async fn test_push_provider_unsubscribe_resolves_sub_id_from_flow_control() {
+        let mut mock_dataplane_entity = MockDataplaneTransfersEntitiesTrait::new();
+        let mut mock_connector_entity = MockConnectorInstance::new();
+        let driver_factory = Arc::new(DataplaneDriverFactory::new(
+            "http://127.0.0.1:9999".to_string(),
+            Arc::new(HttpClient::new(10, 10)),
+        ));
+
+        let transfer_process_id = Urn::from_str("urn:transfer-process:11").unwrap();
+        let connector_urn = Urn::from_str("urn:connector-instance:4").unwrap();
+
+        let connector_instance = create_push_connector_with_sub_id_unsubscribe(&connector_urn);
+        mock_connector_entity
+            .expect_get_instance_by_id()
+            .returning(move |_| Ok(Some(connector_instance.clone())));
+
+        let tp_str = transfer_process_id.to_string();
+        let cu = connector_urn.clone();
+        mock_dataplane_entity
+            .expect_get_dataplane_transfer_by_process_id()
+            .returning(move |_| {
+                Ok(Some(create_dummy_dto_with_flow_control(
+                    "urn:dataplane:11",
+                    &tp_str,
+                    TransferRole::Provider,
+                    InteractionMode::Push,
+                    TransferState::Started,
+                    Some(cu.clone()),
+                    Some(serde_json::json!({"id": "sub-abc123"})),
+                )))
+            });
+
+        mock_dataplane_entity
+            .expect_put_dataplane_transfer_by_id()
+            .returning(|id, dto| {
+                Ok(create_dummy_dto(
+                    &id.to_string(),
+                    "urn:transfer-process:11",
+                    TransferRole::Provider,
+                    InteractionMode::Push,
+                    dto.state.clone().unwrap_or(TransferState::Started),
+                    Some(Urn::from_str("urn:connector-instance:4").unwrap()),
+                ))
+            });
+
+        let manager = DataplaneManager::new(
+            Arc::new(mock_dataplane_entity),
+            Arc::new(mock_connector_entity),
+            driver_factory,
+        );
+
+        let input = DataplaneManagerInput {
+            transfer_process_id,
+            command: DataplaneCommand::SetStopped,
+        };
+
+        // No server → unsubscribe POST fails. The error message must mention the resolved URL
+        // (containing "sub-abc123"), proving {{__SYS_SUB_ID__}} was substituted correctly.
+        let result = manager.execute_command(&input).await;
+        let err = result.err().expect("unsubscribe should fail (no server)");
+        let err_msg = err.to_string();
+        assert!(
+            err_msg.contains("sub-abc123"),
+            "error should mention the resolved subscription ID URL, got: {err_msg}"
+        );
     }
 }

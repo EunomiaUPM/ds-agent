@@ -68,8 +68,8 @@ impl<'a> ParameterVisitor for TemplateValidator<'a> {
         for cap in re.captures_iter(value) {
             let param_name = &cap[1]; // capture param NAME
 
-            // TODO what about sys parameters
-            if param_name.starts_with("SYS_") {
+            // RUNTIME_* parameters are resolved at runtime (not declared in the parameters object)
+            if param_name.starts_with("RUNTIME_") || param_name.starts_with("SYS_") {
                 continue;
             }
             match self.param_definitions.get(param_name) {

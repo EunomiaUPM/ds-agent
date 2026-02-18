@@ -1,6 +1,6 @@
 pub mod connector_instance;
 pub(crate) mod parameter_validator;
-pub(crate) mod resolver;
+pub mod resolver;
 
 use crate::entities::auth_config::AuthenticationConfig;
 use crate::entities::connector_template::ConnectorMetadata;

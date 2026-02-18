@@ -17,7 +17,7 @@
  * />
  */
 
-import React, { FC } from "react";
+import React, { FC, useState } from "react";
 import { Button, ButtonSizes } from "shared/src/components/ui/button";
 import { Dialog, DialogTrigger } from "shared/src/components/ui/dialog";
 
@@ -51,7 +51,7 @@ export interface ProcessActionDialogProps {
   tiny?: boolean;
 
   /** Dialog component to render (receives process as prop) */
-  DialogComponent: FC<{ process: any }>;
+  DialogComponent: FC<{ process: any; onClose?: () => void }>;
 
   /** Process data to pass to the dialog */
   process: any;
@@ -79,8 +79,10 @@ export const ProcessActionDialog: FC<ProcessActionDialogProps> = ({
   DialogComponent,
   process,
 }) => {
+  const [open, setOpen] = useState(false);
+
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       {/* Trigger button */}
       <DialogTrigger asChild>
         <Button variant={variant} size={(tiny ? "sm" : "") as ButtonSizes}>
@@ -89,7 +91,7 @@ export const ProcessActionDialog: FC<ProcessActionDialogProps> = ({
       </DialogTrigger>
 
       {/* Dialog content - receives process data */}
-      <DialogComponent process={process} />
+      <DialogComponent process={process} onClose={() => setOpen(false)} />
     </Dialog>
   );
 };

@@ -22,6 +22,8 @@ pub trait RpcCatalogMessageTrait: Debug + Sync + Send {
 pub struct RpcCatalogRequestMessageDto {
     associated_agent_peer: String,
     filter: serde_json::Value,
+    #[serde(default)]
+    pub no_cache: bool,
 }
 
 impl Into<CatalogMessageWrapper<CatalogRequestMessageDto>> for RpcCatalogRequestMessageDto {
@@ -54,6 +56,8 @@ impl RpcCatalogMessageTrait for RpcCatalogRequestMessageDto {
 pub struct RpcDatasetRequestMessageDto {
     associated_agent_peer: String,
     dataset: String,
+    #[serde(default)]
+    no_cache: Option<bool>,
 }
 
 impl Into<CatalogMessageWrapper<DatasetRequestMessage>> for RpcDatasetRequestMessageDto {

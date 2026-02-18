@@ -26,7 +26,7 @@ import React from "react";
  * Props for the InfoGrid component.
  * Extends standard HTML div attributes.
  */
-export interface InfoGridProps extends React.HTMLAttributes<HTMLDivElement> { }
+export interface InfoGridProps extends React.HTMLAttributes<HTMLDivElement> {}
 
 // =============================================================================
 // COMPONENT
@@ -44,10 +44,7 @@ export interface InfoGridProps extends React.HTMLAttributes<HTMLDivElement> { }
  */
 export function InfoGrid({ className, children, ...props }: InfoGridProps) {
   return (
-    <div
-      className={cn("grid grid-cols-1 md:grid-cols-2 gap-3 mb-4", className)}
-      {...props}
-    >
+    <div className={cn("grid grid-cols-1 md:grid-cols-2 gap-3 mb-4", className)} {...props}>
       {children}
     </div>
   );

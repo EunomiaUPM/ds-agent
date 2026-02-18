@@ -7,30 +7,29 @@ import NoFurtherActions from "../ui/noFurtherActions";
 import { TransferProcessSuspensionDialog } from "shared/src/components/dialogs/TransferProcessSuspensionDialog";
 import { TransferProcessCompletionDialog } from "shared/src/components/dialogs/TransferProcessCompletionDialog";
 import { ProcessActionDialog } from "./ProcessActionDialog";
+import { TransferProcessDto } from "../../data/orval/model";
 
 /**
  * Actions available for a transfer process.
  */
 export const TransferProcessActions: FC<{
-  process: TransferProcess;
+  process: TransferProcessDto;
   tiny: boolean;
 }> = ({ process, tiny = false }) => {
-  const { dsrole } = useContext<GlobalInfoContextType | null>(GlobalInfoContext)!;
-
   // Define container class name with variants
   const containerClassName = cva("", {
     variants: {
       tiny: {
         true: "inline-flex items-center ",
         false:
-          "bg-background  w-full p-6 pt-4 fixed bottom-0 left-0 md:left-[223px] bg-primary-950/10 border border-t-stroke [&>*>button]:min-w-20",
+          "w-[calc(100%+2px-var(--sidebar-width))] p-6 fixed bottom-0 -right-px bg-background/80 backdrop-blur-sm border border-t-stroke z-50 [&>*>button]:min-w-20",
       },
     },
   });
 
   // Determine available actions based on process state and user role
   const getActions = () => {
-    if (dsrole === "provider") {
+    if (process.role === "Provider") {
       switch (process.state) {
         case "REQUESTED":
           return [
@@ -59,7 +58,7 @@ export const TransferProcessActions: FC<{
               Component: TransferProcessTerminationDialog,
             },
           ];
-          if (process.stateAttribute && process.stateAttribute !== "BY_CONSUMER") {
+          if (process.stateAttribute && process.stateAttribute !== "ByConsumer") {
             actions.push({
               label: "Start",
               variant: "default",
@@ -78,7 +77,7 @@ export const TransferProcessActions: FC<{
         default:
           return [];
       }
-    } else if (dsrole === "consumer") {
+    } else if (process.role === "Consumer") {
       switch (process.state) {
         case "REQUESTED":
           return [
@@ -106,7 +105,7 @@ export const TransferProcessActions: FC<{
               Component: TransferProcessTerminationDialog,
             },
           ];
-          if (process.stateAttribute && process.stateAttribute !== "BY_PROVIDER") {
+          if (process.stateAttribute && process.stateAttribute !== "ByProvider") {
             actions.push({
               label: "Start",
               variant: "default",

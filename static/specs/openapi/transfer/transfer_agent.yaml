@@ -1,0 +1,948 @@
+openapi: 3.0.3
+info:
+  title: Rainbow Transfer Agent API
+  description: OpenAPI specification for the Rainbow Transfer Agent Entities API.
+  version: 1.0.0
+servers:
+  - url: /v1/transfer-agent
+    description: Base path for the Transfer Agent API
+
+tags:
+  - name: Transfer Protocol
+    description: Endpoints for managing transfer processes
+  - name: Transfer Messages
+    description: Endpoints for managing transfer messages
+  - name: Dataplane Transfers
+    description: Endpoints for managing dataplane transfers
+  - name: Dataplane Logs
+    description: Endpoints for viewing dataplane transfer logs
+  - name: Transfer Events
+    description: Endpoints for viewing transfer events
+
+paths:
+  # --- Transfer Processes ---
+  /transfer-processes:
+    get:
+      tags:
+        - Transfer Protocol
+      summary: List transfer processes
+      operationId: getTransferProcesses
+      parameters:
+        - $ref: "#/components/parameters/LimitParam"
+        - $ref: "#/components/parameters/PageParam"
+      responses:
+        "200":
+          description: List of transfer processes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TransferProcessDto"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      tags:
+        - Transfer Protocol
+      summary: Create transfer process
+      operationId: createTransferProcess
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewTransferProcessDto"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransferProcessDto"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /transfer-processes/batch:
+    post:
+      tags:
+        - Transfer Protocol
+      summary: Batch get transfer processes
+      operationId: getBatchTransferProcesses
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BatchRequests"
+      responses:
+        "200":
+          description: List of transfer processes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TransferProcessDto"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /transfer-processes/{id}:
+    get:
+      tags:
+        - Transfer Protocol
+      summary: Get transfer process by ID
+      operationId: getTransferProcessById
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      responses:
+        "200":
+          description: Transfer process returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransferProcessDto"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    put:
+      tags:
+        - Transfer Protocol
+      summary: Update transfer process
+      operationId: updateTransferProcess
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EditTransferProcessDto"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransferProcessDto"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      tags:
+        - Transfer Protocol
+      summary: Delete transfer process
+      operationId: deleteTransferProcess
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      responses:
+        "204":
+          description: Deleted
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /transfer-processes/{id}/key/{key_id}:
+    get:
+      tags:
+        - Transfer Protocol
+      summary: Get transfer process by Key ID
+      operationId: getTransferProcessByKeyId
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+        - name: key_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Transfer process returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransferProcessDto"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # --- Transfer Messages ---
+  /transfer-messages:
+    get:
+      tags:
+        - Transfer Messages
+      summary: List transfer messages
+      operationId: getTransferMessages
+      parameters:
+        - $ref: "#/components/parameters/LimitParam"
+        - $ref: "#/components/parameters/PageParam"
+      responses:
+        "200":
+          description: List of transfer messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TransferMessageDto"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      tags:
+        - Transfer Messages
+      summary: Create transfer message
+      operationId: createTransferMessage
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewTransferMessageDto"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransferMessageDto"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /transfer-messages/{id}:
+    get:
+      tags:
+        - Transfer Messages
+      summary: Get transfer message by ID
+      operationId: getTransferMessageById
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      responses:
+        "200":
+          description: Transfer message returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransferMessageDto"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      tags:
+        - Transfer Messages
+      summary: Delete transfer message
+      operationId: deleteTransferMessage
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      responses:
+        "204":
+          description: Deleted
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /transfer-messages/process/{process_id}:
+    get:
+      tags:
+        - Transfer Messages
+      summary: Get transfer messages by Process ID
+      operationId: getTransferMessagesByProcessId
+      parameters:
+        - name: process_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: urn
+      responses:
+        "200":
+          description: List of transfer messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TransferMessageDto"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # --- Dataplane Transfers ---
+  /dataplane/dataplane-processes:
+    get:
+      tags:
+        - Dataplane Transfers
+      summary: List all dataplane transfers
+      operationId: getDataplaneTransfers
+      responses:
+        "200":
+          description: List of dataplane transfers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DataplaneTransferDto"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      tags:
+        - Dataplane Transfers
+      summary: Create a dataplane transfer
+      operationId: createDataplaneTransfer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewDataplaneTransferDto"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataplaneTransferDto"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /dataplane/dataplane-processes/batch:
+    post:
+      tags:
+        - Dataplane Transfers
+      summary: Batch get dataplane transfers
+      operationId: getBatchDataplaneTransfers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BatchRequests"
+      responses:
+        "200":
+          description: List of dataplane transfers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DataplaneTransferDto"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /dataplane/dataplane-processes/{dataplane_process_id}:
+    get:
+      tags:
+        - Dataplane Transfers
+      summary: Get dataplane transfer by ID
+      operationId: getDataplaneTransferById
+      parameters:
+        - name: dataplane_process_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: urn
+      responses:
+        "200":
+          description: Dataplane transfer returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataplaneTransferDto"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    put:
+      tags:
+        - Dataplane Transfers
+      summary: Update dataplane transfer
+      operationId: updateDataplaneTransfer
+      parameters:
+        - name: dataplane_process_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: urn
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EditDataplaneTransferDto"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataplaneTransferDto"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      tags:
+        - Dataplane Transfers
+      summary: Delete dataplane transfer
+      operationId: deleteDataplaneTransfer
+      parameters:
+        - name: dataplane_process_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: urn
+      responses:
+        "204":
+          description: Deleted
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /dataplane/dataplane-processes/{dataplane_process_id}/info:
+    get:
+      tags:
+        - Dataplane Transfers
+      summary: Get dataplane transfer info
+      operationId: getDataplaneTransferInfo
+      parameters:
+        - name: dataplane_process_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: urn
+      responses:
+        "200":
+          description: Dataplane transfer info returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataplaneInfoResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /dataplane/dataplane-processes/transfer-process/{transfer_process_id}:
+    get:
+      tags:
+        - Dataplane Transfers
+      summary: Get dataplane transfer by Transfer Process ID
+      operationId: getDataplaneTransferByProcessId
+      parameters:
+        - name: transfer_process_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: urn
+      responses:
+        "200":
+          description: Dataplane transfer returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataplaneTransferDto"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /dataplane/dataplane-processes/{dataplane_process_id}/logs:
+    get:
+      tags:
+        - Dataplane Logs
+      summary: Get dataplane transfer logs
+      operationId: getDataplaneTransferLogs
+      parameters:
+        - name: dataplane_process_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: urn
+      responses:
+        "200":
+          description: List of dataplane transfer logs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DataplaneTransferLogDto"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /dataplane/dataplane-processes/{dataplane_process_id}/events:
+    get:
+      tags:
+        - Transfer Events
+      summary: Get transfer events by dataplane process ID
+      operationId: getTransferEventsByDataplaneProcessId
+      parameters:
+        - name: dataplane_process_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: urn
+      responses:
+        "200":
+          description: List of transfer events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TransferEventDto"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /dataplane/transfer-events/{event_id}:
+    get:
+      tags:
+        - Transfer Events
+      summary: Get transfer event by ID
+      operationId: getTransferEventById
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: urn
+      responses:
+        "200":
+          description: Transfer event returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransferEventDto"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+components:
+  parameters:
+    LimitParam:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        default: 10
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        default: 0
+    IdPath:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: urn
+
+  responses:
+    BadRequest:
+      description: Bad request
+    NotFound:
+      description: Resource not found
+    InternalServerError:
+      description: Internal server error
+
+  schemas:
+    BatchRequests:
+      type: object
+      properties:
+        ids:
+          type: array
+          items:
+            type: string
+            format: urn
+
+    # --- DTOs ---
+
+    TransferProcessDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: urn
+        state:
+          type: string
+        stateAttribute:
+          type: string
+          nullable: true
+        associatedAgentPeer:
+          type: string
+        protocol:
+          type: string
+        transferDirection:
+          type: string
+        agreementId:
+          type: string
+          format: urn
+        callbackAddress:
+          type: string
+          nullable: true
+        role:
+          type: string
+        properties:
+          type: object
+        errorDetails:
+          type: object
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+        identifiers:
+          type: object
+          additionalProperties:
+            type: string
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/TransferMessageDto"
+
+    NewTransferProcessDto:
+      type: object
+      required:
+        - state
+        - associatedAgentPeer
+        - protocol
+        - transferDirection
+        - agreementId
+        - role
+      properties:
+        id:
+          type: string
+          format: urn
+          nullable: true
+        state:
+          type: string
+        stateAttribute:
+          type: string
+          nullable: true
+        associatedAgentPeer:
+          type: string
+        protocol:
+          type: string
+        transferDirection:
+          type: string
+        agreementId:
+          type: string
+          format: urn
+        callbackAddress:
+          type: string
+          nullable: true
+        role:
+          type: string
+        properties:
+          type: object
+          nullable: true
+        identifiers:
+          type: object
+          additionalProperties:
+            type: string
+          nullable: true
+
+    EditTransferProcessDto:
+      type: object
+      properties:
+        state:
+          type: string
+          nullable: true
+        stateAttribute:
+          type: string
+          nullable: true
+        properties:
+          type: object
+          nullable: true
+        errorDetails:
+          type: object
+          nullable: true
+        identifiers:
+          type: object
+          additionalProperties:
+            type: string
+          nullable: true
+
+    TransferMessageDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: urn
+        transferAgentProcessId:
+          type: string
+          format: urn
+        createdAt:
+          type: string
+          format: date-time
+        direction:
+          type: string
+        protocol:
+          type: string
+        messageType:
+          type: string
+        stateTransitionFrom:
+          type: string
+        stateTransitionTo:
+          type: string
+        payload:
+          type: object
+          nullable: true
+
+    NewTransferMessageDto:
+      type: object
+      required:
+        - transferAgentProcessId
+        - direction
+        - protocol
+        - messageType
+        - stateTransitionFrom
+        - stateTransitionTo
+      properties:
+        id:
+          type: string
+          format: urn
+          nullable: true
+        transferAgentProcessId:
+          type: string
+          format: urn
+        direction:
+          type: string
+        protocol:
+          type: string
+        messageType:
+          type: string
+        stateTransitionFrom:
+          type: string
+        stateTransitionTo:
+          type: string
+        payload:
+          type: object
+          nullable: true
+
+    # --- Dataplane DTOs ---
+
+    DataplaneTransferDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: urn
+        transferProcessId:
+          type: string
+          format: urn
+        role:
+          $ref: "#/components/schemas/TransferRole"
+        interactionMode:
+          $ref: "#/components/schemas/InteractionMode"
+        state:
+          $ref: "#/components/schemas/TransferState"
+        connectorInstanceId:
+          type: string
+          format: urn
+          nullable: true
+        ingressConfig:
+          type: object
+        egressConfig:
+          type: object
+        flowControl:
+          type: object
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        fields:
+          type: object
+          additionalProperties:
+            type: string
+        logs:
+          type: array
+          items:
+            $ref: "#/components/schemas/DataplaneTransferLogDto"
+
+    NewDataplaneTransferDto:
+      type: object
+      required:
+        - transferProcessId
+        - role
+        - interactionMode
+        - state
+        - ingressConfig
+        - egressConfig
+      properties:
+        id:
+          type: string
+          format: urn
+          nullable: true
+        transferProcessId:
+          type: string
+          format: urn
+        role:
+          $ref: "#/components/schemas/TransferRole"
+        interactionMode:
+          $ref: "#/components/schemas/InteractionMode"
+        state:
+          $ref: "#/components/schemas/TransferState"
+        connectorInstanceId:
+          type: string
+          format: urn
+          nullable: true
+        ingressConfig:
+          type: object
+        egressConfig:
+          type: object
+
+    DataplaneInfoResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: urn
+        interactionMode:
+          type: string
+        ingressUrl:
+          type: string
+          nullable: true
+
+    EditDataplaneTransferDto:
+      type: object
+      properties:
+        state:
+          $ref: "#/components/schemas/TransferState"
+          nullable: true
+        connectorInstanceId:
+          type: string
+          format: urn
+          nullable: true
+        ingressConfig:
+          type: object
+          nullable: true
+        egressConfig:
+          type: object
+          nullable: true
+        flowControl:
+          type: object
+          nullable: true
+        fields:
+          type: object
+          additionalProperties:
+            type: string
+          nullable: true
+
+    DataplaneTransferLogDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: urn
+        dataplaneProcessId:
+          type: string
+          format: urn
+        previousState:
+          $ref: "#/components/schemas/TransferState"
+          nullable: true
+        newState:
+          $ref: "#/components/schemas/TransferState"
+        trigger:
+          type: string
+        reason:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    TransferEventDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: urn
+        dataplaneProcessId:
+          type: string
+          format: urn
+        level:
+          $ref: "#/components/schemas/LogLevel"
+        component:
+          type: string
+        message:
+          type: string
+        data:
+          type: object
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    NewTransferEventDto:
+      type: object
+      required:
+        - dataplaneProcessId
+        - level
+        - component
+        - message
+      properties:
+        dataplaneProcessId:
+          type: string
+          format: urn
+        level:
+          $ref: "#/components/schemas/LogLevel"
+        component:
+          type: string
+        message:
+          type: string
+        data:
+          type: object
+          nullable: true
+
+    # --- Enums ---
+
+    TransferRole:
+      type: string
+      enum: [PROVIDER, CONSUMER]
+
+    InteractionMode:
+      type: string
+      enum: [PULL, PUSH]
+
+    TransferState:
+      type: string
+      enum:
+        [
+          INIT,
+          CONFIGURING,
+          AUTH,
+          READY,
+          SUBSCRIBING,
+          STARTED,
+          UNSUBSCRIBING,
+          STOPPED,
+          TERMINATED,
+          ERROR,
+        ]
+
+    LogLevel:
+      type: string
+      enum: [DEBUG, INFO, WARN, ERROR]

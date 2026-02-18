@@ -26,6 +26,7 @@ use crate::protocols::dsp::protocol_types::{
     NegotiationRequestInitMessageDto, NegotiationRequestMessageDto,
     NegotiationTerminationMessageDto, NegotiationVerificationMessageDto,
 };
+use rainbow_common::mates::mates::Mates;
 
 #[async_trait::async_trait]
 pub trait ProtocolOrchestratorTrait: Send + Sync + 'static {
@@ -37,46 +38,54 @@ pub trait ProtocolOrchestratorTrait: Send + Sync + 'static {
     async fn on_initial_contract_request(
         &self,
         input: &NegotiationProcessMessageWrapper<NegotiationRequestInitMessageDto>,
+        mate: &Mates,
     ) -> anyhow::Result<(NegotiationProcessMessageWrapper<NegotiationAckMessageDto>, bool)>;
 
     async fn on_consumer_request(
         &self,
         id: &String,
         input: &NegotiationProcessMessageWrapper<NegotiationRequestMessageDto>,
+        mate: &Mates,
     ) -> anyhow::Result<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>>;
 
     async fn on_agreement_verification(
         &self,
         id: &String,
         input: &NegotiationProcessMessageWrapper<NegotiationVerificationMessageDto>,
+        mate: &Mates,
     ) -> anyhow::Result<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>>;
 
     async fn on_initial_provider_offer(
         &self,
         input: &NegotiationProcessMessageWrapper<NegotiationOfferInitMessageDto>,
+        mate: &Mates,
     ) -> anyhow::Result<(NegotiationProcessMessageWrapper<NegotiationAckMessageDto>, bool)>;
 
     async fn on_provider_offer(
         &self,
         id: &String,
         input: &NegotiationProcessMessageWrapper<NegotiationOfferMessageDto>,
+        mate: &Mates,
     ) -> anyhow::Result<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>>;
 
     async fn on_agreement_reception(
         &self,
         id: &String,
         input: &NegotiationProcessMessageWrapper<NegotiationAgreementMessageDto>,
+        mate: &Mates,
     ) -> anyhow::Result<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>>;
 
     async fn on_negotiation_event(
         &self,
         id: &String,
         input: &NegotiationProcessMessageWrapper<NegotiationEventMessageDto>,
+        mate: &Mates,
     ) -> anyhow::Result<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>>;
 
     async fn on_negotiation_termination(
         &self,
         id: &String,
         input: &NegotiationProcessMessageWrapper<NegotiationTerminationMessageDto>,
+        mate: &Mates,
     ) -> anyhow::Result<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>>;
 }

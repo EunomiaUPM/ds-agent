@@ -48,7 +48,7 @@ pub trait CoreOnboarderTrait: Send + Sync + 'static {
     async fn continue_req(
         &self,
         id: &str,
-        payload: ApprovedCallbackBody
+        payload: ApprovedCallbackBody,
     ) -> anyhow::Result<mates::Model> {
         let mut int_model = self.repo().interaction_req().get_by_id(id).await?;
         let result = self.callback().check_callback(&mut int_model, &payload);

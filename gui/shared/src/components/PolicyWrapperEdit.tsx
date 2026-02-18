@@ -28,6 +28,7 @@ import {
   OperandType,
   PolicyEditSection,
 } from "shared/src/components/policy/PolicyEditSection";
+import { OdrlConstraint, OdrlInfo, OdrlOffer, OdrlPermission } from "shared/src/data/orval/model";
 
 // =============================================================================
 // TYPES
@@ -63,10 +64,7 @@ export interface PolicyWrapperEditProps {
  * @param props - PolicyWrapperEdit properties
  * @returns A complete policy editing interface
  */
-export const PolicyWrapperEdit = ({
-  policy,
-  onChange,
-}: PolicyWrapperEditProps) => {
+export const PolicyWrapperEdit = ({ policy, onChange }: PolicyWrapperEditProps) => {
   // ---------------------------------------------------------------------------
   // State
   // ---------------------------------------------------------------------------
@@ -89,8 +87,20 @@ export const PolicyWrapperEdit = ({
       prohibition: policy.prohibition || [],
     };
     setEditedPolicy(initialPolicy);
+
+    const policyToEmit = { ...initialPolicy };
+    if (policyToEmit.permission && policyToEmit.permission.length === 0) {
+      policyToEmit.permission = undefined;
+    }
+    if (policyToEmit.obligation && policyToEmit.obligation.length === 0) {
+      policyToEmit.obligation = undefined;
+    }
+    if (policyToEmit.prohibition && policyToEmit.prohibition.length === 0) {
+      policyToEmit.prohibition = undefined;
+    }
+
     // Also notify parent of initial state
-    onChange?.(initialPolicy);
+    onChange?.(policyToEmit);
   }, [policy]);
 
   /** Notify parent when policy changes */
@@ -98,11 +108,24 @@ export const PolicyWrapperEdit = ({
     (updater: (prev: OdrlInfo) => OdrlInfo) => {
       setEditedPolicy((prev) => {
         const newPolicy = updater(prev);
-        onChange?.(newPolicy);
+        const policyToEmit = { ...newPolicy };
+
+        // Filter out empty arrays for onChange
+        if (policyToEmit.permission && policyToEmit.permission.length === 0) {
+          policyToEmit.permission = undefined;
+        }
+        if (policyToEmit.obligation && policyToEmit.obligation.length === 0) {
+          policyToEmit.obligation = undefined;
+        }
+        if (policyToEmit.prohibition && policyToEmit.prohibition.length === 0) {
+          policyToEmit.prohibition = undefined;
+        }
+
+        onChange?.(policyToEmit);
         return newPolicy;
       });
     },
-    [onChange]
+    [onChange],
   );
 
   // ---------------------------------------------------------------------------
@@ -118,10 +141,10 @@ export const PolicyWrapperEdit = ({
       };
       updatePolicyAndNotify((prev) => ({
         ...prev,
-        [componentType]: [...prev[componentType], newComponent],
+        [componentType]: [...(prev[componentType] || []), newComponent],
       }));
     },
-    [updatePolicyAndNotify]
+    [updatePolicyAndNotify],
   );
 
   /** Remove a policy component by index */
@@ -129,61 +152,55 @@ export const PolicyWrapperEdit = ({
     (componentType: ComponentType, index: number) => {
       updatePolicyAndNotify((prev) => ({
         ...prev,
-        [componentType]: prev[componentType].filter((_, i) => i !== index),
+        [componentType]: (prev[componentType] || []).filter((_, i) => i !== index),
       }));
     },
-    [updatePolicyAndNotify]
+    [updatePolicyAndNotify],
   );
 
   /** Add a constraint to a policy component */
   const handleAddConstraint = useCallback(
     (componentType: ComponentType, componentIndex: number) => {
       updatePolicyAndNotify((prev) => {
-        const updated = [...prev[componentType]];
+        const updated = [...(prev[componentType] || [])];
         updated[componentIndex] = {
           ...updated[componentIndex],
           constraint: [
-            ...updated[componentIndex].constraint,
+            ...(updated[componentIndex].constraint || []),
             { leftOperand: "", operator: "", rightOperand: "" },
           ],
         };
         return { ...prev, [componentType]: updated };
       });
     },
-    [updatePolicyAndNotify]
+    [updatePolicyAndNotify],
   );
 
   /** Remove a constraint from a policy component */
   const handleRemoveConstraint = useCallback(
-    (
-      componentType: ComponentType,
-      componentIndex: number,
-      constraintIndex: number
-    ) => {
+    (componentType: ComponentType, componentIndex: number, constraintIndex: number) => {
       updatePolicyAndNotify((prev) => {
-        const updated = [...prev[componentType]];
+        const updated = [...(prev[componentType] || [])];
         updated[componentIndex] = {
           ...updated[componentIndex],
-          constraint: updated[componentIndex].constraint.filter(
-            (_, i) => i !== constraintIndex
-          ),
+          constraint: (updated[componentIndex].constraint || []).filter((_: OdrlConstraint, i: number) => i !== constraintIndex),
         };
         return { ...prev, [componentType]: updated };
       });
     },
-    [updatePolicyAndNotify]
+    [updatePolicyAndNotify],
   );
 
   /** Update a policy component's action */
   const handleActionChange = useCallback(
     (componentType: ComponentType, componentIndex: number, value: string) => {
       updatePolicyAndNotify((prev) => {
-        const updated = [...prev[componentType]];
+        const updated = [...(prev[componentType] || [])];
         updated[componentIndex] = { ...updated[componentIndex], action: value };
         return { ...prev, [componentType]: updated };
       });
     },
-    [updatePolicyAndNotify]
+    [updatePolicyAndNotify],
   );
 
   /** Update a constraint's operand value */
@@ -193,11 +210,11 @@ export const PolicyWrapperEdit = ({
       componentIndex: number,
       constraintIndex: number,
       operand: OperandType,
-      value: string
+      value: string,
     ) => {
       updatePolicyAndNotify((prev) => {
-        const updated = [...prev[componentType]];
-        const constraints = [...updated[componentIndex].constraint];
+        const updated = [...(prev[componentType] || [])];
+        const constraints = [...(updated[componentIndex].constraint || [])];
         constraints[constraintIndex] = {
           ...constraints[constraintIndex],
           [operand]: value,
@@ -209,7 +226,7 @@ export const PolicyWrapperEdit = ({
         return { ...prev, [componentType]: updated };
       });
     },
-    [updatePolicyAndNotify]
+    [updatePolicyAndNotify],
   );
 
   // ---------------------------------------------------------------------------
@@ -224,7 +241,7 @@ export const PolicyWrapperEdit = ({
           <Heading level="h5" className="flex gap-3">
             <div>Policy with ID</div>
             <Badge variant="info" className="h-6">
-              {policy["@id"].slice(9, 29) + "[...]"}
+              {(policy["@id"] || "").slice(9, 29) + "[...]"}
             </Badge>
           </Heading>
         </div>
@@ -233,7 +250,6 @@ export const PolicyWrapperEdit = ({
         <InfoList
           items={[
             { label: "Policy Target", value: policy["@type"] },
-            { label: "Profile", value: JSON.stringify(policy.profile) },
             { label: "Target", value: policy.target?.slice(9) },
           ]}
         />
@@ -247,7 +263,7 @@ export const PolicyWrapperEdit = ({
             {/* Permission Section */}
             <PolicyEditSection
               type="permission"
-              items={editedPolicy.permission}
+              items={editedPolicy.permission || []}
               onAdd={handleAddComponent}
               onRemove={handleRemoveComponent}
               onActionChange={handleActionChange}
@@ -259,7 +275,7 @@ export const PolicyWrapperEdit = ({
             {/* Obligation Section */}
             <PolicyEditSection
               type="obligation"
-              items={editedPolicy.obligation}
+              items={editedPolicy.obligation || []}
               onAdd={handleAddComponent}
               onRemove={handleRemoveComponent}
               onActionChange={handleActionChange}
@@ -271,7 +287,7 @@ export const PolicyWrapperEdit = ({
             {/* Prohibition Section */}
             <PolicyEditSection
               type="prohibition"
-              items={editedPolicy.prohibition}
+              items={editedPolicy.prohibition || []}
               onAdd={handleAddComponent}
               onRemove={handleRemoveComponent}
               onActionChange={handleActionChange}

@@ -34,12 +34,12 @@ if (-not (Test-Path $ConfigFile)) {
 
 if (-not (Test-Path $EnvFile)) {
     Write-Error "[ERROR] Secrets file not found: $EnvFile"
-    Write-Host "        Ensure Docker container is running and Vault is initialized." -ForegroundColor Yellow
+    Write-Host "        Ensure Docker container is running and Vault is initialized."
     exit 1
 }
 
 # Execution
-Write-Host "Running [$Cmd] for [$Role]..." -ForegroundColor Cyan
+Write-Host "Running [$Cmd] for [$Role]..."
 
 # Load Environment Variables from vault.env
 # Format is VAR=VALUE. We need to handle comments and export them to process scope.
@@ -62,5 +62,5 @@ Get-Content $EnvFile | ForEach-Object {
 # Run Cargo
 # We use cmd /c or direct execution. Direct execution is better in PS.
 # Arguments: cargo run <cmd> -e <config_file>
-Write-Host "Executing: cargo run -- $Cmd -e $ConfigFile" -ForegroundColor DarkGray
+Write-Host "Executing: cargo run -- $Cmd -e $ConfigFile"
 cargo run -- $Cmd -e $ConfigFile

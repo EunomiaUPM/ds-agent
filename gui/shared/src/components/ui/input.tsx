@@ -3,13 +3,11 @@ import { useRouterState } from "@tanstack/react-router";
 import { Search } from "lucide-react";
 import { cn } from "shared/src/lib/utils";
 
-
 /**
  * Input component with specialized behavior for search placeholders based on route.
  */
 const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
   ({ className, type, ...props }, ref) => {
-
     const routerState = useRouterState();
     let pathsArray = routerState.location.pathname.split("/");
 

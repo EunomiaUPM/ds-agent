@@ -1,385 +1,321 @@
 declare global {
-  export type UUID = string;
+  // export type UUID = string;
+  // export type Urn = string;
+  // export type DateTime = string; // ISO 8601 string
 
-  export interface CNProcess {
-    cn_process_id: UUID;
-    provider_id: UUID;
-    consumer_id: UUID;
-    provider_pid?: UUID;
-    consumer_pid?: UUID;
-    state: string;
-    created_at: Date;
-    updated_at: Date;
-    associated_provider?: UUID;
-    associated_consumer?: UUID;
-    is_business: boolean;
-    initiated_by?: string;
-  }
+  // // --- CATALOG AGENT ---
 
-  export interface CNMessage {
-    cn_message_id: UUID;
-    cn_process_id: UUID;
-    _type: string;
-    from: string;
-    to: string;
-    created_at: Date;
-    content: Content;
-  }
+  // export interface CatalogDto {
+  //   id: Urn;
+  //   foafHomePage?: string | null;
+  //   dctConformsTo?: string | null;
+  //   dctCreator?: string | null;
+  //   dctIdentifier?: string | null;
+  //   dctIssued: DateTime;
+  //   dctModified?: DateTime | null;
+  //   dctTitle?: string | null;
+  //   dspaceParticipantId?: string | null;
+  //   dspaceMainCatalog: boolean;
+  // }
 
-  export interface CNOffer {
-    offer_id: UUID;
-    cn_message_id: UUID;
-    offer_content: OdrlOffer;
-    created_at: Date;
-  }
+  // export interface DataServiceDto {
+  //   id: Urn;
+  //   dcatEndpointDescription?: string | null;
+  //   dcatEndpointUrl: string;
+  //   dctConformsTo?: string | null;
+  //   dctCreator?: string | null;
+  //   dctIdentifier?: string | null;
+  //   dctIssued: DateTime;
+  //   dctModified?: DateTime | null;
+  //   dctTitle?: string | null;
+  //   dctDescription?: string | null;
+  //   catalogId: string;
+  //   dspaceMainDataService: boolean;
+  // }
 
-  export interface OdrlOffer {
-    "@id": string;
-    "@type"?: string;
-    createdAt: Date;
-    entity: string;
-    entityType: string;
-    id: string;
-    instantiationParameters: JSON;
-    odrlOffer: OdrlInfo;
-    sourceTemplateId: JSON;
-    sourceTemplateVersion: JSON;
-    target?: string;
-    permission?: OdrlPermission[];
-    prohibition?: OdrlPermission[];
-    obligation?: OdrlPermission[];
-    profile?: string;
-  }
+  // export interface DatasetDto {
+  //   id: Urn;
+  //   dctConformsTo?: string | null;
+  //   dctCreator?: string | null;
+  //   dctIdentifier?: string | null;
+  //   dctIssued: DateTime;
+  //   dctModified?: DateTime | null;
+  //   dctTitle?: string | null;
+  //   dctDescription?: string | null;
+  //   catalogId: string;
+  // }
 
-  export interface OdrlInfo {
-    obligation: OdrlPermission[];
-    permission: OdrlPermission[];
-    prohibition: OdrlPermission[];
-  }
+  // export interface DistributionDto {
+  //   id: Urn;
+  //   dctIssued: DateTime;
+  //   dctModified?: DateTime | null;
+  //   dctTitle?: string | null;
+  //   dctDescription?: string | null;
+  //   dcatAccessService: string;
+  //   datasetId: string;
+  //   dctFormat?: string | null;
+  // }
 
-  export interface OdrlPermission {
-    action: string;
-    constraint: OdrlConstraint[];
-  }
+  // export interface OdrlPolicyDto {
+  //   id: Urn;
+  //   odrlOffer: any;
+  //   entity: string;
+  //   entityType: string;
+  //   createdAt: DateTime;
+  //   sourceTemplateId?: string | null;
+  //   sourceTemplateVersion?: string | null;
+  //   instantiationParameters?: any | null;
+  // }
 
-  export interface OdrlConstraint {
-    leftOperand: string;
-    operator: string;
-    rightOperand: string;
-  }
+  // export interface PolicyTemplateDto {
+  //   id: string;
+  //   version: string;
+  //   date: DateTime;
+  //   title?: LocalizedText | null;
+  //   description?: LocalizedText | null;
+  //   author: string;
+  //   content: any; // OdrlPolicyInfo
+  //   parameters: Record<string, ParameterDefinition>;
+  // }
 
-  export interface Content {}
+  // export type LocalizedText = Record<string, string> | string; // Simplified
 
-  export interface CNError {
-    error: {
-      code: string;
-      message: string;
-      title: string;
-    };
-  }
+  // export interface ParameterDefinition {
+  //   type: string;
+  //   label?: LocalizedText | null;
+  //   description?: LocalizedText | null;
+  //   default?: any;
+  //   // Add other fields as necessary from policy_template.rs
+  // }
 
-  export interface Catalog {
-    "@id": string;
-    title?: string;
-    dctConformsTo: string;
-    dctCreator: string;
-    dctIdentifier: string;
-    dctIssued: Date;
-    dctModified: string;
-    dctTitle: string;
-    dspaceMainCatalog: boolean;
-    dspaceParticipantId: string;
-    foafHomePage: string;
-    id: string;
-  }
+  // // --- NEGOTIATION AGENT ---
 
-  export interface Dataset {
-    "@id": string;
-    title?: string;
-    catalogId: string;
-    dctConformsTo: string;
-    dctCreator: string;
-    dctDescription: string;
-    dctIdentifier: string;
-    dctIssued: Date;
-    dctModified: string;
-    dctTitle: string;
-    id: string;
-  }
+  // export interface NegotiationProcessDto {
+  //   id: Urn;
+  //   state: string; // NegotiationProcessState
+  //   stateAttribute?: string | null;
+  //   associatedAgentPeer: string;
+  //   protocol: string;
+  //   callbackAddress?: string | null;
+  //   role: string;
+  //   properties: any;
+  //   errorDetails?: any | null;
+  //   createdAt: DateTime;
+  //   updatedAt?: DateTime | null;
 
-  export interface DataService {
-    catalogId: string;
-    dcatEndpointDescription: string;
-    dcatEndpointUrl: string;
-    dctConformsTo: string;
-    dctCreator: string;
-    dctDescription: string;
-    dctIdentifier: string;
-    dctIssued: Date;
-    dctModified: string;
-    dctTitle: string;
-    dspaceMainDataService: boolean;
-    id: string;
-  }
+  //   // Virtual fields / Relations
+  //   identifiers: Record<string, string>;
+  //   messages: NegotiationMessageDto[];
+  //   offers: NegotiationOfferDto[];
+  //   agreement?: NegotiationAgreementDto | null;
+  // }
 
-  export interface Distribution {
-    datasetId: string;
-    dcatAccessService: string;
-    dctDescription: string;
-    dctFormat: string;
-    dctIssued: Date;
-    dctModified: string;
-    dctTitle: string;
-    id: string;
-  }
+  // export interface NegotiationMessageDto {
+  //   id: Urn;
+  //   negotiationAgentProcessId: string;
+  //   createdAt: DateTime;
+  //   direction: string;
+  //   protocol: string;
+  //   messageType: string;
+  //   stateTransitionFrom: string;
+  //   stateTransitionTo: string;
+  //   payload: any;
+  // }
 
-  export interface Agreement {
-    agreement_id: UUID;
-    consumer_participant_id: UUID;
-    provider_participant_id: UUID;
-    cn_message_id: UUID;
-    agreement_content: OdrlAgreement;
-    created_at: Date;
-    active: boolean;
-  }
+  // export interface NegotiationOfferDto {
+  //   id: Urn;
+  //   negotiationAgentProcessId: string;
+  //   negotiationAgentMessageId: string;
+  //   offerId: string;
+  //   offerContent: any;
+  //   createdAt: DateTime;
+  // }
 
-  export interface OdrlAgreement {
-    "@id": UUID;
-    "@type": string;
-    obligation: any[];
-    permission: OdrlPermission[];
-    prohibition: any[];
-    target: UUID;
-    assignee: UUID;
-    assigner: UUID;
-    timestamp: Date;
-  }
+  // export interface NegotiationAgreementDto {
+  //   id: Urn;
+  //   negotiationAgentProcessId: string;
+  //   negotiationAgentMessageId: string;
+  //   consumerParticipantId: string;
+  //   providerParticipantId: string;
+  //   agreementContent: any;
+  //   target: string;
+  //   state: string;
+  //   createdAt: DateTime;
+  //   updatedAt?: DateTime | null;
+  // }
 
-  export enum Type {
-    Catalog = "Catalog",
-    DataService = "DataService",
-    Dataset = "Dataset",
-    Distribution = "Distribution",
-  }
+  // // --- TRANSFER AGENT ---
 
-  export interface TransferProcess {
-    id: UUID;
-    provider_pid: UUID;
-    consumer_pid?: UUID;
-    state: string;
-    stateAttribute: string;
-    associatedAgentPeer: string;
-    protocol: string;
-    transferDirection: string;
-    agreementId: string;
-    callbackAddress: string;
-    role: string;
-    properties: JSON;
-    errorDetails: JSON;
-    createdAt: Date;
-    updatedAt: Date;
-    identifiers: JSON;
-    messages: TransferMessage[];
-    associated_provider?: UUID;
-    associated_consumer?: UUID;
-  }
+  // export interface TransferProcessDto {
+  //   id: Urn;
+  //   state: string; // TransferProcessState
+  //   stateAttribute?: string | null;
+  //   associatedAgentPeer: string;
+  //   protocol: string;
+  //   transferDirection: string;
+  //   agreementId: string;
+  //   callbackAddress?: string | null;
+  //   role: string;
+  //   properties: any;
+  //   errorDetails?: any | null;
+  //   createdAt: DateTime;
+  //   updatedAt?: DateTime | null;
 
-  export interface TransferMessage {
-    id: UUID;
-    transferAgentProcessId: UUID;
-    createdAt: Date;
-    direction: string;
-    protocol: string;
-    messageType: string;
-    stateTransitionFrom: string;
-    stateTransitionTo: string;
-    payload?: JSON;
-  }
+  //   // Virtual fields / Relations
+  //   identifiers: Record<string, string>;
+  //   messages: TransferMessageDto[];
+  // }
 
-  export interface Participant {
-    participant_id: string;
-    participant_slug: string;
-    participant_type: string;
-    base_url: string;
-    token: any;
-    token_actions: any;
-    saved_at: string;
-    last_interaction: string;
-    is_me: boolean;
-  }
+  // export interface TransferMessageDto {
+  //   id: Urn;
+  //   transferAgentProcessId: string;
+  //   createdAt: DateTime;
+  //   direction: string;
+  //   protocol: string;
+  //   messageType: string;
+  //   stateTransitionFrom: string;
+  //   stateTransitionTo: string;
+  //   payload?: any | null;
+  // }
 
-  export interface Subscription {
-    subscriptionId: UUID;
-    callbackAddress: string;
-    timestamp: Date;
-    expirationTime: Date;
-    subscriptionEntity: string;
-    active: boolean;
-  }
+  // // --- PROTOCOL TYPES (DSP) ---
 
-  export interface NotificationSub {
-    notificationId: string;
-    timestamp: string;
-    category: string;
-    subcategory: string;
-    messageType: string;
-    messageOperation: string;
-    messageContent: any;
-    subscriptionId: string;
-  }
+  // // Negotiation Protocol Types
+  // export type NegotiationProcessState =
+  //   | "REQUESTED"
+  //   | "OFFERED"
+  //   | "ACCEPTED"
+  //   | "AGREED"
+  //   | "VERIFIED"
+  //   | "FINALIZED"
+  //   | "TERMINATED";
 
-  export interface DataplaneSession {
-    id: string;
-    process_direction: string;
-    upstream_hop: DataplaneSessionAddress;
-    downstream_hop: DataplaneSessionAddress;
-    process_address: DataplaneSessionAddress;
-    created_at: Date;
-    updated_at: Date;
-    state: string;
-  }
+  // export type NegotiationProcessMessageType =
+  //   | "ContractRequestMessage"
+  //   | "ContractOfferMessage"
+  //   | "ContractNegotiationEventMessage"
+  //   | "ContractAgreementMessage"
+  //   | "ContractAgreementVerificationMessage"
+  //   | "ContractNegotiationTerminationMessage"
+  //   | "ContractNegotiation"
+  //   | "ContractNegotiationError";
 
-  export interface DataplaneSessionAddress {
-    protocol: string;
-    url: string;
-    auth_type: string;
-    auth_content: string;
-  }
+  // export interface ContractRequestMessage {
+  //   consumerPid: Urn;
+  //   providerPid: Urn;
+  //   offer: any; // ContractRequestMessageOfferTypes
+  //   callbackAddress?: string;
+  // }
 
-  export interface DatahubDomain {
-    urn: string;
-    properties: {
-      name: string;
-      description: string;
-    };
-  }
+  // export interface ContractOfferMessage {
+  //   consumerPid: Urn;
+  //   providerPid: Urn;
+  //   offer: any;
+  //   callbackAddress?: string;
+  // }
 
-  export interface DatahubDataset {
-    urn: string;
-    name: string;
-    platform: {
-      name: string;
-    };
-    description: string;
-    tag_names: string[];
-    custom_properties: Array<string[]>;
-    domain: DatahubDomain;
-    glossary_terms: Array<{
-      urn: string;
-      glossaryTermInfo: {
-        name: string;
-        description: string;
-      };
-    }>;
-  }
+  // export interface ContractAgreementMessage {
+  //   consumerPid: Urn;
+  //   providerPid: Urn;
+  //   agreement: any; // OdrlAgreement
+  // }
 
-  export interface PolicyTemplateLabel {
-    "@language": string;
-    "@value": string;
-  }
+  // export interface ContractAgreementVerificationMessage {
+  //   consumerPid: Urn;
+  //   providerPid: Urn;
+  // }
 
-  export interface PolicyTemplate {
-    id: string;
-    title: string;
-    description: string;
-    content: OdrlOffer;
-    created_at: Date;
-    operand_options: {
-      [key: string]: {
-        dataType: string;
-        defaultValue: string;
-        formType: string;
-        label: PolicyTemplateLabel[];
-        options: Array<{
-          label: PolicyTemplateLabel[];
-          value: string;
-        }>;
-      };
-    };
-  }
+  // export interface ContractNegotiationEventMessage {
+  //   consumerPid: Urn;
+  //   providerPid: Urn;
+  //   eventType: "ACCEPTED" | "FINALIZED";
+  // }
 
-  /**
-   * Tipos generados para Rainbow Catalog Agent API
-   * Basado en la especificación OpenAPI
-   */
+  // export interface ContractNegotiationTerminationMessage {
+  //   consumerPid: Urn;
+  //   providerPid: Urn;
+  //   code?: string;
+  //   reason?: string[];
+  // }
 
-// --- Metadata Base ---
+  // // Transfer Protocol Types
+  // export type TransferProcessState =
+  //   | "REQUESTED"
+  //   | "STARTED"
+  //   | "COMPLETED"
+  //   | "SUSPENDED"
+  //   | "TERMINATED";
 
-  export interface ConnectorMetadata {
-    name?: string;
-    author?: string;
-    description?: string;
-    version?: string;
-    createdAt?: Date;
-  }
+  // export type TransferProcessMessageType =
+  //   | "TransferRequestMessage"
+  //   | "TransferStartMessage"
+  //   | "TransferCompletionMessage"
+  //   | "TransferSuspensionMessage"
+  //   | "TransferTerminationMessage"
+  //   | "TransferProcess"
+  //   | "TransferError";
 
-// --- Authentication Configurations ---
+  // export interface TransferRequestMessage {
+  //   agreementId: Urn;
+  //   format: string;
+  //   dataAddress?: any; // DataAddressDto
+  //   callbackAddress: string;
+  //   consumerPid: Urn;
+  // }
 
-  export type AuthenticationConfig =
-      | NoAuth
-      | BasicAuthConfig
-      | BearerToken
-      | ApiKey
-      | OAuth2;
+  // export interface TransferStartMessage {
+  //   providerPid: Urn;
+  //   consumerPid: Urn;
+  //   dataAddress?: any;
+  // }
 
-  export interface NoAuth {
-    type: 'NO_AUTH';
-  }
+  // export interface TransferCompletionMessage {
+  //   providerPid: Urn;
+  //   consumerPid: Urn;
+  // }
 
-  export interface BasicAuthConfig {
-    type: 'BASIC_AUTH';
-    username?: string;
-    password?: string;
-  }
+  // export interface TransferTerminationMessage {
+  //   providerPid: Urn;
+  //   consumerPid: Urn;
+  //   code?: string;
+  //   reason?: string[];
+  // }
 
-  export interface BearerToken {
-    type: 'BEARER_TOKEN';
-    token?: string;
-  }
+  // export interface TransferSuspensionMessage {
+  //   providerPid: Urn;
+  //   consumerPid: Urn;
+  //   code?: string;
+  //   reason?: string[];
+  // }
 
-  export interface ApiKey {
-    type: 'API_KEY';
-    key?: string;
-    value?: string;
-    location?: 'HEADER' | 'QUERY';
-  }
+  // // --- MISC ---
 
-  export interface OAuth2 {
-    type: 'OAUTH_2';
-    grantType?: 'ClientCredentials' | 'AuthorizationCode';
-    tokenUrl?: string;
-    clientId?: string;
-    clientSecret?: string;
-    scopes?: string[] | string;
-  }
+  // export interface ConnectorMetadata {
+  //   name?: string;
+  //   author?: string;
+  //   description?: string;
+  //   version?: string;
+  //   createdAt?: DateTime;
+  // }
 
-  export type InteractionConfig =
-      | PullLifecycle
-      | PushLifecycle;
+  // export interface ConnectorInstanceDto extends ConnectorMetadata {
+  //   id: string;
+  //   authenticationConfig: any; // Simplified
+  //   interaction: any; // Simplified
+  //   distributionId: string;
+  // }
 
-  export interface ProtocolSpec {
-    protocol?: string;
-    accessUrl?: string;
-    [key: string]: unknown; // Permite propiedades extra si el placeholder cambia
-  }
-
-  export interface PullLifecycle {
-    mode: 'PULL';
-    dataAccess?: ProtocolSpec;
-  }
-
-  export interface PushLifecycle {
-    mode: 'PUSH';
-    subscribe?: Record<string, unknown>;
-    unsubscribe?: Record<string, unknown>;
-  }
-
-  export interface ConnectorInstanceDto extends ConnectorMetadata {
-    id: string;
-    authenticationConfig: AuthenticationConfig;
-    interaction: InteractionConfig;
-    distributionId: string;
-  }
+  // export interface ParticipantDto {
+  //   participantId: string;
+  //   participantSlug: string;
+  //   participantType: string;
+  //   baseUrl: string;
+  //   token: any;
+  //   tokenActions: any;
+  //   savedAt: DateTime;
+  //   lastInteraction: DateTime;
+  //   isMe: boolean;
+  // }
 }
 
 declare module "@tanstack/react-router" {

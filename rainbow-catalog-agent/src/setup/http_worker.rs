@@ -142,7 +142,7 @@ pub async fn create_root_http_router(
     let catalog_agent_repo = Arc::new(CatalogAgentRepoForSql::create_repo(db_connection.clone()));
 
     // facades
-    let ssi_auth_config = Arc::new(config.ssi_auth());
+    let ssi_auth_config = Arc::new(config.ssi_auth().clone());
     let mates_facade =
         Arc::new(MatesFacadeService::new(ssi_auth_config.clone(), http_client.clone()));
 

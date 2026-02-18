@@ -1,7 +1,7 @@
-import {createFileRoute} from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { formatUrn } from "shared/src/lib/utils";
-import {useGetBusinessRequests} from "shared/src/data/business-queries.ts";
-import {Input} from "shared/src/components/ui/input.tsx";
+import { useGetBusinessRequests } from "shared/src/data/business-queries.ts";
+import { Input } from "shared/src/components/ui/input.tsx";
 import {
   Table,
   TableBody,
@@ -10,18 +10,18 @@ import {
   TableHeader,
   TableRow,
 } from "shared/src/components/ui/table.tsx";
-import {Badge, BadgeState} from "shared/src/components/ui/badge.tsx";
+import { Badge, BadgeState } from "shared/src/components/ui/badge.tsx";
 import dayjs from "dayjs";
-import {useMemo} from "react";
-import {BusinessActions} from "shared/src/components/actions/BusinessActions.tsx";
-import {renameCNTagsForBusiness} from "@/utils";
+import { useMemo } from "react";
+import { BusinessActions } from "shared/src/components/actions/BusinessActions.tsx";
+import { renameCNTagsForBusiness } from "@/utils";
 
 export const Route = createFileRoute("/business-requests/")({
   component: RouteComponent,
 });
 
 function RouteComponent() {
-  const {data: requests} = useGetBusinessRequests();
+  const { data: requests } = useGetBusinessRequests();
   const cnProcessesSorted = useMemo(() => {
     if (!requests) return [];
     return [...requests].sort((a, b) => {
@@ -56,9 +56,7 @@ function RouteComponent() {
                 <Badge variant={"info"}>{formatUrn(cnProcess.consumer_id)}</Badge>
               </TableCell>
               <TableCell>
-                <Badge variant={"info"}>
-                  {formatUrn(cnProcess.associated_consumer)}
-                </Badge>
+                <Badge variant={"info"}>{formatUrn(cnProcess.associated_consumer)}</Badge>
               </TableCell>
               <TableCell>
                 <Badge variant={"status"} state={cnProcess.state as BadgeState}>
@@ -67,7 +65,7 @@ function RouteComponent() {
               </TableCell>
               <TableCell>{dayjs(cnProcess.created_at).format("DD/MM/YY - HH:mm")}</TableCell>
               <TableCell>
-                <BusinessActions process={cnProcess}/>
+                <BusinessActions process={cnProcess} />
               </TableCell>
             </TableRow>
           ))}

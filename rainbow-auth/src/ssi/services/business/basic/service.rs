@@ -30,17 +30,19 @@ use super::config::{BusinessConfig, BusinessConfigTrait};
 use crate::ssi::types::business::BusinessResponse;
 
 pub struct BasicBusinessService {
-    config: BusinessConfig
+    config: BusinessConfig,
 }
 
 impl BasicBusinessService {
-    pub fn new(config: BusinessConfig) -> BasicBusinessService { BasicBusinessService { config } }
+    pub fn new(config: BusinessConfig) -> BasicBusinessService {
+        BasicBusinessService { config }
+    }
 }
 
 impl BusinessTrait for BasicBusinessService {
     fn start(
         &self,
-        payload: &RainbowBusinessLoginRequest
+        payload: &RainbowBusinessLoginRequest,
     ) -> (recv_request::NewModel, recv_verification::Model) {
         let id = Uuid::new_v4().to_string();
         let nonce: String =
@@ -52,7 +54,7 @@ impl BusinessTrait for BasicBusinessService {
         );
         let provider_url = match self.config.is_local() {
             true => provider_url.replace("127.0.0.1", "host.docker.internal"),
-            false => provider_url
+            false => provider_url,
         };
 
         let client_id = format!("{}/verify", &provider_url);
@@ -68,7 +70,7 @@ impl BusinessTrait for BasicBusinessService {
             success: None,
             status: "Pending".to_string(),
             created_at: Utc::now().naive_utc(),
-            ended_at: None
+            ended_at: None,
         };
 
         let req_model = recv_request::NewModel { id, consumer_slug: "----".to_string() };
@@ -78,14 +80,14 @@ impl BusinessTrait for BasicBusinessService {
     fn get_token(
         &self,
         mate: &mates::Model,
-        bus_model: &business_mates::Model
+        bus_model: &business_mates::Model,
     ) -> anyhow::Result<BusinessResponse> {
         let token = get_from_opt(&bus_model.token, "token")?;
         Ok(BusinessResponse { token, mate: mate.clone() })
     }
     fn end(
         &self,
-        ver_model: &recv_verification::Model
+        ver_model: &recv_verification::Model,
     ) -> anyhow::Result<business_mates::NewModel> {
         let holder = get_from_opt(&ver_model.holder, "holder")?;
         let token = create_opaque_token();
@@ -93,7 +95,7 @@ impl BusinessTrait for BasicBusinessService {
         Ok(business_mates::NewModel {
             id: ver_model.state.clone(),
             participant_id: holder,
-            token: Some(token)
+            token: Some(token),
         })
     }
 }

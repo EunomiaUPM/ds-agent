@@ -20,6 +20,7 @@ use crate::protocols::dsp::validator::validators::validation_helpers::Validation
 use crate::protocols::protocol::ProtocolPluginTrait;
 use axum::Router;
 use rainbow_common::config::services::CatalogConfig;
+use rainbow_common::facades::ssi_auth_facade::ssi_auth_facade::SSIAuthFacadeService;
 use rainbow_common::facades::ssi_auth_facade::MatesFacadeTrait;
 use rainbow_common::http_client::HttpClient;
 use std::sync::Arc;
@@ -127,6 +128,7 @@ impl ProtocolPluginTrait for CatalogDSP {
             http_client.clone(),
             facades.clone(),
             rpc_persistence.clone(),
+            self.mates_facade.clone(),
         ));
         let orchestrator_service = Arc::new(OrchestratorService::new(
             dsp_orchestator.clone(),
@@ -134,7 +136,12 @@ impl ProtocolPluginTrait for CatalogDSP {
         ));
 
         // router
-        let dsp_router = DspRouter::new(orchestrator_service.clone());
+        let ssi_auth = Arc::new(SSIAuthFacadeService::new(
+            Arc::new(self.config.ssi_auth().clone()),
+            http_client.clone(),
+        ));
+        let dsp_router =
+            DspRouter::new(orchestrator_service.clone(), self.config.clone(), ssi_auth);
         let rpc_router = RpcRouter::new(orchestrator_service.clone());
 
         Ok(Router::new().merge(dsp_router.router()).merge(rpc_router.router()))

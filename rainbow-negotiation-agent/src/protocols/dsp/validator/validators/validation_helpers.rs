@@ -104,6 +104,34 @@ impl ValidationHelpers for ValidationHelperService {
         Ok(dto)
     }
 
+    async fn get_current_dto_from_payload_by_provider(
+        &self,
+        payload: &dyn NegotiationProcessMessageTrait,
+    ) -> anyhow::Result<NegotiationProcessDto> {
+        let consumer_pid = payload.get_provider_pid().ok_or_else(|| {
+            let err =
+                CommonErrors::parse_new("Not a valid DSP payload, provider_pid is mandatory.");
+            error!("{}", err.log());
+            anyhow!(err)
+        })?;
+        let dto = self
+            .negotiation_process_service
+            .get_negotiation_process_by_key_value(&consumer_pid)
+            .await
+            .map_err(|e| {
+                let err =
+                    CommonErrors::database_new(format!("Db error, {}", e.to_string()).as_str());
+                error!("{}", err.log());
+                anyhow!(err)
+            })?
+            .ok_or_else(|| {
+                let err = CommonErrors::parse_new("A dto should be available at this point");
+                error!("{}", err.log());
+                anyhow!(err)
+            })?;
+        Ok(dto)
+    }
+
     async fn get_pid_by_role(
         &self,
         dto: &NegotiationProcessDto,

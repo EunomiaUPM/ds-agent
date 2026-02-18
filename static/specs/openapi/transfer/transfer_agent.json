@@ -1,0 +1,706 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+        "title": "Rainbow Transfer Agent API",
+        "description": "OpenAPI specification for the Rainbow Transfer Agent Entities API.",
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "/v1/transfer-agent",
+            "description": "Base path for the Transfer Agent API"
+        }
+    ],
+    "tags": [
+        {
+            "name": "Transfer Protocol",
+            "description": "Endpoints for managing transfer processes"
+        },
+        {
+            "name": "Transfer Messages",
+            "description": "Endpoints for managing transfer messages"
+        }
+    ],
+    "paths": {
+        "/transfer-processes": {
+            "get": {
+                "tags": [
+                    "Transfer Protocol"
+                ],
+                "summary": "List transfer processes",
+                "operationId": "getTransferProcesses",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/LimitParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/PageParam"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of transfer processes",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/TransferProcessDto"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/InternalServerError"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Transfer Protocol"
+                ],
+                "summary": "Create transfer process",
+                "operationId": "createTransferProcess",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/NewTransferProcessDto"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TransferProcessDto"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/InternalServerError"
+                    }
+                }
+            }
+        },
+        "/transfer-processes/batch": {
+            "post": {
+                "tags": [
+                    "Transfer Protocol"
+                ],
+                "summary": "Batch get transfer processes",
+                "operationId": "getBatchTransferProcesses",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/BatchRequests"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "List of transfer processes",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/TransferProcessDto"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/InternalServerError"
+                    }
+                }
+            }
+        },
+        "/transfer-processes/{id}": {
+            "get": {
+                "tags": [
+                    "Transfer Protocol"
+                ],
+                "summary": "Get transfer process by ID",
+                "operationId": "getTransferProcessById",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/IdPath"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Transfer process returned",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TransferProcessDto"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/InternalServerError"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Transfer Protocol"
+                ],
+                "summary": "Update transfer process",
+                "operationId": "updateTransferProcess",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/IdPath"
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/EditTransferProcessDto"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TransferProcessDto"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/InternalServerError"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Transfer Protocol"
+                ],
+                "summary": "Delete transfer process",
+                "operationId": "deleteTransferProcess",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/IdPath"
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Deleted"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/InternalServerError"
+                    }
+                }
+            }
+        },
+        "/transfer-processes/{id}/key/{key_id}": {
+            "get": {
+                "tags": [
+                    "Transfer Protocol"
+                ],
+                "summary": "Get transfer process by Key ID",
+                "operationId": "getTransferProcessByKeyId",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/IdPath"
+                    },
+                    {
+                        "name": "key_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Transfer process returned",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TransferProcessDto"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/InternalServerError"
+                    }
+                }
+            }
+        },
+        "/transfer-messages": {
+            "get": {
+                "tags": [
+                    "Transfer Messages"
+                ],
+                "summary": "List transfer messages",
+                "operationId": "getTransferMessages",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/LimitParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/PageParam"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of transfer messages",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/TransferMessageDto"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/InternalServerError"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Transfer Messages"
+                ],
+                "summary": "Create transfer message",
+                "operationId": "createTransferMessage",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/NewTransferMessageDto"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TransferMessageDto"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/InternalServerError"
+                    }
+                }
+            }
+        },
+        "/transfer-messages/{id}": {
+            "get": {
+                "tags": [
+                    "Transfer Messages"
+                ],
+                "summary": "Get transfer message by ID",
+                "operationId": "getTransferMessageById",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/IdPath"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Transfer message returned",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TransferMessageDto"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/InternalServerError"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Transfer Messages"
+                ],
+                "summary": "Delete transfer message",
+                "operationId": "deleteTransferMessage",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/IdPath"
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Deleted"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/InternalServerError"
+                    }
+                }
+            }
+        },
+        "/transfer-messages/process/{process_id}": {
+            "get": {
+                "tags": [
+                    "Transfer Messages"
+                ],
+                "summary": "Get transfer messages by Process ID",
+                "operationId": "getTransferMessagesByProcessId",
+                "parameters": [
+                    {
+                        "name": "process_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "urn"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of transfer messages",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/TransferMessageDto"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/InternalServerError"
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "parameters": {
+            "LimitParam": {
+                "name": "limit",
+                "in": "query",
+                "schema": {
+                    "type": "integer",
+                    "default": 10
+                }
+            },
+            "PageParam": {
+                "name": "page",
+                "in": "query",
+                "schema": {
+                    "type": "integer",
+                    "default": 0
+                }
+            },
+            "IdPath": {
+                "name": "id",
+                "in": "path",
+                "required": true,
+                "schema": {
+                    "type": "string",
+                    "format": "urn"
+                }
+            }
+        },
+        "responses": {
+            "BadRequest": {
+                "description": "Bad request"
+            },
+            "NotFound": {
+                "description": "Resource not found"
+            },
+            "InternalServerError": {
+                "description": "Internal server error"
+            }
+        },
+        "schemas": {
+            "BatchRequests": {
+                "type": "object",
+                "properties": {
+                    "ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "urn"
+                        }
+                    }
+                }
+            },
+            "TransferProcessDto": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "urn"
+                    },
+                    "state": {
+                        "type": "string"
+                    },
+                    "stateAttribute": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "associatedAgentPeer": {
+                        "type": "string"
+                    },
+                    "protocol": {
+                        "type": "string"
+                    },
+                    "transferDirection": {
+                        "type": "string"
+                    },
+                    "agreementId": {
+                        "type": "string",
+                        "format": "urn"
+                    },
+                    "callbackAddress": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "role": {
+                        "type": "string"
+                    },
+                    "properties": {
+                        "type": "object"
+                    },
+                    "errorDetails": {
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "identifiers": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string"
+                        }
+                    },
+                    "messages": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TransferMessageDto"
+                        }
+                    }
+                }
+            },
+            "NewTransferProcessDto": {
+                "type": "object",
+                "required": [
+                    "state",
+                    "associatedAgentPeer",
+                    "protocol",
+                    "transferDirection",
+                    "agreementId",
+                    "role"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "urn",
+                        "nullable": true
+                    },
+                    "state": {
+                        "type": "string"
+                    },
+                    "stateAttribute": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "associatedAgentPeer": {
+                        "type": "string"
+                    },
+                    "protocol": {
+                        "type": "string"
+                    },
+                    "transferDirection": {
+                        "type": "string"
+                    },
+                    "agreementId": {
+                        "type": "string",
+                        "format": "urn"
+                    },
+                    "callbackAddress": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "role": {
+                        "type": "string"
+                    },
+                    "properties": {
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "identifiers": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string"
+                        },
+                        "nullable": true
+                    }
+                }
+            },
+            "EditTransferProcessDto": {
+                "type": "object",
+                "properties": {
+                    "state": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "stateAttribute": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "properties": {
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "errorDetails": {
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "identifiers": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string"
+                        },
+                        "nullable": true
+                    }
+                }
+            },
+            "TransferMessageDto": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "urn"
+                    },
+                    "transferAgentProcessId": {
+                        "type": "string",
+                        "format": "urn"
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "direction": {
+                        "type": "string"
+                    },
+                    "protocol": {
+                        "type": "string"
+                    },
+                    "messageType": {
+                        "type": "string"
+                    },
+                    "stateTransitionFrom": {
+                        "type": "string"
+                    },
+                    "stateTransitionTo": {
+                        "type": "string"
+                    },
+                    "payload": {
+                        "type": "object",
+                        "nullable": true
+                    }
+                }
+            },
+            "NewTransferMessageDto": {
+                "type": "object",
+                "required": [
+                    "transferAgentProcessId",
+                    "direction",
+                    "protocol",
+                    "messageType",
+                    "stateTransitionFrom",
+                    "stateTransitionTo"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "urn",
+                        "nullable": true
+                    },
+                    "transferAgentProcessId": {
+                        "type": "string",
+                        "format": "urn"
+                    },
+                    "direction": {
+                        "type": "string"
+                    },
+                    "protocol": {
+                        "type": "string"
+                    },
+                    "messageType": {
+                        "type": "string"
+                    },
+                    "stateTransitionFrom": {
+                        "type": "string"
+                    },
+                    "stateTransitionTo": {
+                        "type": "string"
+                    },
+                    "payload": {
+                        "type": "object",
+                        "nullable": true
+                    }
+                }
+            }
+        }
+    }
+}

@@ -26,6 +26,7 @@ use rainbow_common::well_known::WellKnownRoot;
 use rainbow_transfer_agent::setup::create_root_http_router;
 
 use rainbow_fe_gateway::create_gateway_http_router;
+use rainbow_negotiation_agent::create_negotiations_http_router;
 use std::sync::Arc;
 use tower_http::trace::{DefaultOnResponse, TraceLayer};
 use uuid::Uuid;
@@ -38,7 +39,8 @@ pub async fn create_core_router(
     let well_known_root_dspace =
         WellKnownRoot::get_well_known_router(&config.into()).expect("Failed to well known router");
     let auth_router = AuthApplication::create_router(&config.ssi_auth(), vault.clone()).await;
-    //let cn_router = create_contract_negotiation_provider_router(&app_config.clone().into()).await;
+    let negotiation_agent_router =
+        create_negotiations_http_router(&config.contracts(), vault.clone()).await;
     let transfer_agent_router = create_root_http_router(&config.transfer(), vault.clone())
         .await
         .expect("Failed to create transfer agent router");
@@ -48,10 +50,10 @@ pub async fn create_core_router(
     let gateway_router = create_gateway_http_router(&config.gateway()).await;
 
     Router::new()
-        //.merge(cn_router)
         .merge(well_known_root_dspace)
         .merge(catalog_agent_router)
         .merge(auth_router)
+        .merge(negotiation_agent_router)
         .merge(transfer_agent_router)
         .merge(gateway_router)
         .layer(

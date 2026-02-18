@@ -18,12 +18,14 @@
  */
 
 use crate::config::services::{CommonConfig, MinKnownConfig};
-use crate::config::traits::{CommonConfigTrait, ConfigLoader};
+use crate::config::traits::{CacheConfigTrait, CommonConfigTrait, ConfigLoader};
+use crate::config::types::cache::CacheConfig;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct TransferConfig {
     common: CommonConfig,
+    cache: CacheConfig,
     contracts: MinKnownConfig,
     catalog: MinKnownConfig,
     is_catalog_datahub: bool,
@@ -43,6 +45,9 @@ impl TransferConfig {
     pub fn is_catalog_datahub(&self) -> bool {
         self.is_catalog_datahub
     }
+    pub fn cache(&self) -> &CacheConfig {
+        &self.cache
+    }
 }
 impl ConfigLoader for TransferConfig {
     fn load(env_file: String) -> Self {
@@ -56,5 +61,11 @@ impl ConfigLoader for TransferConfig {
 impl CommonConfigTrait for TransferConfig {
     fn common(&self) -> &CommonConfig {
         &self.common
+    }
+}
+
+impl CacheConfigTrait for TransferConfig {
+    fn cache_config(&self) -> &CacheConfig {
+        &self.cache
     }
 }

@@ -17,7 +17,9 @@
  *
  */
 
-use crate::config::services::{CatalogConfig, ContractsConfig, GatewayConfig, SsiAuthConfig, TransferConfig};
+use crate::config::services::{
+    CatalogConfig, ContractsConfig, GatewayConfig, SsiAuthConfig, TransferConfig,
+};
 use crate::config::traits::CommonConfigTrait;
 use crate::config::ApplicationConfig;
 use serde::{Deserialize, Serialize};

@@ -42,13 +42,7 @@ import { useForm, UseFormReturn, FieldValues, DefaultValues } from "react-hook-f
 // TYPES
 // =============================================================================
 
-export type ButtonVariant =
-  | "default"
-  | "destructive"
-  | "outline"
-  | "secondary"
-  | "ghost"
-  | "link";
+export type ButtonVariant = "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
 
 export interface BaseProcessDialogProps<TFormValues extends FieldValues = FieldValues> {
   /** Dialog title displayed in the header */
@@ -92,6 +86,12 @@ export interface BaseProcessDialogProps<TFormValues extends FieldValues = FieldV
 
   /** Whether to hide the info list entirely */
   hideInfoList?: boolean;
+
+  /** Whether to disable the submit button */
+  disabledSubmit?: boolean;
+
+  /** Optional external form instance to use (for shared state with custom fields) */
+  form?: UseFormReturn<TFormValues>;
 }
 
 // =============================================================================
@@ -121,11 +121,15 @@ export function BaseProcessDialog<TFormValues extends FieldValues = FieldValues>
   scrollable = false,
   cancelLabel = "Cancel",
   hideInfoList = false,
+  disabledSubmit = false,
+  form: externalForm,
 }: BaseProcessDialogProps<TFormValues>) {
-  // Initialize form with optional default values
-  const form = useForm<TFormValues>({
+  // Initialize form with optional default values or use provided external form
+  const internalForm = useForm<TFormValues>({
     defaultValues: defaultValues as DefaultValues<TFormValues>,
   });
+
+  const form = externalForm || internalForm;
 
   // Handle form submission
   const handleSubmit = async (data: TFormValues) => {
@@ -135,24 +139,20 @@ export function BaseProcessDialog<TFormValues extends FieldValues = FieldValues>
   // Render description as string or ReactNode
   const renderDescription = () => {
     if (typeof description === "string") {
-      return (
-        <span className="max-w-full flex flex-wrap">
-          {description}
-        </span>
-      );
+      return <span className="max-w-full flex flex-wrap">{description}</span>;
     }
     return description;
   };
 
   // Filter out undefined info items
   const filteredInfoItems = infoItems.filter(
-    (item): item is InfoItemProps => item !== undefined && item.value !== undefined
+    (item): item is InfoItemProps => item !== undefined && item.value !== undefined,
   );
 
   // Scrollable layout for dialogs with lots of content
   if (scrollable) {
     return (
-      <DialogContent className="p-0">
+      <DialogContent className={`p-0 ${contentClassName}`}>
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(handleSubmit)}
@@ -180,7 +180,7 @@ export function BaseProcessDialog<TFormValues extends FieldValues = FieldValues>
                   {cancelLabel}
                 </Button>
               </DialogClose>
-              <Button type="submit" variant={submitVariant}>
+              <Button type="submit" variant={submitVariant} isLoading={form.formState.isSubmitting} disabled={disabledSubmit}>
                 {submitLabel}
               </Button>
             </DialogFooter>
@@ -201,21 +201,24 @@ export function BaseProcessDialog<TFormValues extends FieldValues = FieldValues>
       </DialogHeader>
 
       {beforeInfoContent}
-      {!hideInfoList && filteredInfoItems.length > 0 && (
-        <InfoList items={filteredInfoItems} />
-      )}
-      {formFields}
-      {afterInfoContent}
+      {!hideInfoList && filteredInfoItems.length > 0 && <InfoList items={filteredInfoItems} />}
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+          {formFields}
+          {afterInfoContent}
           <DialogFooter className="[&>*]:w-full">
             <DialogClose asChild>
               <Button variant="ghost" type="reset">
                 {cancelLabel}
               </Button>
             </DialogClose>
-            <Button type="submit" variant={submitVariant}>
+            <Button
+              type="submit"
+              variant={submitVariant}
+              isLoading={form.formState.isSubmitting}
+              disabled={disabledSubmit}
+            >
               {submitLabel}
             </Button>
           </DialogFooter>

@@ -134,7 +134,7 @@ impl DistributionEntityTrait for DistributionEntities {
     async fn get_distribution_by_dataset_id_and_dct_format(
         &self,
         dataset_id: &Urn,
-        dct_formats: &DctFormats,
+        dct_formats: &String,
     ) -> anyhow::Result<DistributionDto> {
         let distribution = self
             .repo

@@ -12,7 +12,6 @@
 
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { formatUrn } from "shared/src/lib/utils";
-import { useGetParticipants } from "shared/src/data/participant-queries.ts";
 import { DataTable } from "shared/src/components/DataTable";
 import { useContext, useMemo } from "react";
 import { Button } from "shared/src/components/ui/button.tsx";
@@ -22,11 +21,13 @@ import { InfoList } from "shared/src/components/ui/info-list";
 
 // Icons
 import { ArrowRight } from "lucide-react";
-import { useWalletOnboard } from "../../../../shared/src/data/wallet-mutations.ts";
 import { GlobalInfoContext, GlobalInfoContextType } from "shared/src/context/GlobalInfoContext.tsx";
 import { PageLayout } from "shared/src/components/layout/PageLayout";
 import { PageHeader } from "shared/src/components/layout/PageHeader";
 import { PageSection } from "shared/src/components/layout/PageSection";
+import { useGetAllParticipants } from "shared/data/orval/participants/participants";
+import { GeneralErrorComponent } from "@/components/GeneralErrorComponent";
+import { ParticipantDto } from "shared/data/orval/model/participantDto";
 
 // =============================================================================
 // ROUTE
@@ -43,28 +44,44 @@ export const Route = createFileRoute("/participants/")({
 // COMPONENT
 // =============================================================================
 
+import { Skeleton } from "shared/src/components/ui/skeleton";
+
 function RouteComponent() {
-  const { data: participants } = useGetParticipants();
-  const { mutateAsync: onboardAsync } = useWalletOnboard();
+  const { data: participants, isLoading, isError, error } = useGetAllParticipants();
   const { api_gateway } = useContext<GlobalInfoContextType | null>(GlobalInfoContext)!;
+
+  if (isLoading) {
+    return (
+      <PageLayout>
+        <PageHeader title="Participants" />
+        <div className="space-y-6">
+          Loading...
+        </div>
+      </PageLayout>
+    );
+  }
+
+  if (isError || !participants || participants.status !== 200) {
+    const finalError = error instanceof Error ? error : new Error("Participants not found");
+    return <GeneralErrorComponent error={finalError} reset={() => { }} />;
+  }
 
   // ---------------------------------------------------------------------------
   // Computed: Categorize participants
   // ---------------------------------------------------------------------------
-
   /** My agent (Agent + isMe=true) */
   const myAgent = useMemo(() => {
-    return participants?.find((p) => p.participant_type === "Agent" && p.is_me === true);
+    return participants.data.find((p) => p.participant_type === "Agent" && p.is_me === true);
   }, [participants]);
 
   /** Other agents (Agent + isMe=false) */
   const otherAgents = useMemo(() => {
-    return participants?.filter((p) => p.participant_type === "Agent" && p.is_me !== true) ?? [];
+    return participants.data.filter((p) => p.participant_type === "Agent" && p.is_me !== true);
   }, [participants]);
 
   /** Authorities */
   const authorities = useMemo(() => {
-    return participants?.filter((p) => p.participant_type === "Authority") ?? [];
+    return participants.data.filter((p) => p.participant_type === "Authority");
   }, [participants]);
 
   // ---------------------------------------------------------------------------
@@ -72,14 +89,14 @@ function RouteComponent() {
   // ---------------------------------------------------------------------------
 
   const handleOnboard = async () => {
-    await onboardAsync({ api_gateway });
+    // await onboardAsync({ api_gateway });
   };
 
   // ---------------------------------------------------------------------------
   // Render: InfoList for a single participant
   // ---------------------------------------------------------------------------
 
-  const renderParticipantInfoList = (participant: Participant, title: string) => (
+  const renderParticipantInfoList = (participant: ParticipantDto, title: string) => (
     <PageSection title={title}>
       <div className="max-w-screen-md">
         <InfoList
@@ -88,7 +105,7 @@ function RouteComponent() {
             { label: "Identity Token", value: { type: "urn", value: participant.token } },
             {
               label: "Participant Type",
-              value: { type: "role", value: participant.participant_type },
+              value: { type: "role", value: participant.participant_type! },
             },
             { label: "Base URL", value: { type: "urn", value: participant.base_url } },
           ]}
@@ -101,12 +118,12 @@ function RouteComponent() {
   // Render: Table for agents
   // ---------------------------------------------------------------------------
 
-  const renderAgentsTable = (agents: Participant[]) => (
+  const renderAgentsTable = (agents: ParticipantDto[]) => (
     <PageSection title="Other Agents">
       <DataTable
         className="text-sm"
         data={agents}
-        keyExtractor={(p) => p.participant_id}
+        keyExtractor={(p) => p.participant_id!}
         columns={[
           {
             header: "Participant ID",
@@ -131,10 +148,7 @@ function RouteComponent() {
           {
             header: "Link",
             cell: (p) => (
-              <Link
-                to="/participants/$participantId"
-                params={{ participantId: p.participant_id }}
-              >
+              <Link to="/participants/$participantId" params={{ participantId: p.participant_id }}>
                 <Button variant="link">
                   See details
                   <ArrowRight />

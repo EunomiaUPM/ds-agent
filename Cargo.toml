@@ -7,7 +7,7 @@ members = [
     "rainbow-auth",
     "rainbow-events",
     "rainbow-fe-gateway",
-    "rainbow-business-gateway",
+    # "rainbow-business-gateway",
     "rainbow-catalog-agent",
     "rainbow-negotiation-agent",
     "rainbow-transfer-agent", "rainbow-connector",

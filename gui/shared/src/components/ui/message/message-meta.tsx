@@ -2,7 +2,6 @@ import * as React from "react";
 import { cn } from "shared/src/lib/utils";
 import { Badge } from "../badge";
 
-
 export const MessageMetaContainer = React.forwardRef<
   HTMLUListElement,
   React.HTMLAttributes<HTMLUListElement>

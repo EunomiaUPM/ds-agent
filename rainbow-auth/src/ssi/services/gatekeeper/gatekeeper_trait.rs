@@ -16,7 +16,7 @@
  */
 
 use ymir::data::entities::{
-    mates, recv_interaction, recv_request, recv_verification, token_requirements
+    mates, recv_interaction, recv_request, recv_verification, token_requirements,
 };
 use ymir::types::gnap::grant_request::GrantRequest;
 use ymir::types::gnap::grant_response::GrantResponse;
@@ -25,23 +25,23 @@ use ymir::types::gnap::{AccessToken, RefBody};
 pub trait GateKeeperTrait: Send + Sync + 'static {
     fn start(
         &self,
-        payload: &GrantRequest
+        payload: &GrantRequest,
     ) -> anyhow::Result<(
         recv_request::NewModel,
         recv_interaction::NewModel,
-        token_requirements::Model
+        token_requirements::Model,
     )>;
     fn respond_req(&self, int_model: &recv_interaction::Model, uri: &str) -> GrantResponse;
     fn validate_cont_req(
         &self,
         model: &recv_interaction::Model,
         payload: &RefBody,
-        token: &str
+        token: &str,
     ) -> anyhow::Result<()>;
     fn continue_req(
         &self,
         req_model: &mut recv_request::Model,
         int_model: &recv_interaction::Model,
-        ver_model: &recv_verification::Model
+        ver_model: &recv_verification::Model,
     ) -> (mates::NewModel, AccessToken);
 }

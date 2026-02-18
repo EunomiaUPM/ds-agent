@@ -1,0 +1,1546 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+        "title": "Rainbow Negotiation Agent API - DSP Protocol",
+        "description": "OpenAPI specification for the Rainbow Negotiation Agent DSP Protocol and RPC endpoints.",
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "/dsp/current",
+            "description": "Base path for the DSP protocol"
+        }
+    ],
+    "tags": [
+        {
+            "name": "DSP Protocol",
+            "description": "Standard Dataspace Protocol negotiation endpoints"
+        },
+        {
+            "name": "DSP RPC",
+            "description": "Remote Procedure Call endpoints for orchestrator interaction"
+        }
+    ],
+    "paths": {
+        "/negotiations/{id}": {
+            "get": {
+                "tags": [
+                    "DSP Protocol"
+                ],
+                "summary": "Get negotiation",
+                "operationId": "getNegotiation",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/IdPath"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Negotiation returned",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAckMessageDto"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/InternalServerError"
+                    }
+                }
+            }
+        },
+        "/negotiations/request": {
+            "post": {
+                "tags": [
+                    "DSP Protocol"
+                ],
+                "summary": "Initial contract request (Consumer initiates)",
+                "operationId": "initialContractRequest",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationRequestInitMessageDto"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Negotiation already exists",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAckMessageDto"
+                                }
+                            }
+                        }
+                    },
+                    "201": {
+                        "description": "Negotiation created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAckMessageDto"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/InternalServerError"
+                    }
+                }
+            }
+        },
+        "/negotiations/{id}/request": {
+            "post": {
+                "tags": [
+                    "DSP Protocol"
+                ],
+                "summary": "Consumer request (Counter-offer)",
+                "operationId": "consumerRequest",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/IdPath"
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationRequestMessageDto"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Request processed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAckMessageDto"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/InternalServerError"
+                    }
+                }
+            }
+        },
+        "/negotiations/{id}/agreement/verification": {
+            "post": {
+                "tags": [
+                    "DSP Protocol"
+                ],
+                "summary": "Agreement verification",
+                "operationId": "agreementVerification",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/IdPath"
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationVerificationMessageDto"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Verification processed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAckMessageDto"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/InternalServerError"
+                    }
+                }
+            }
+        },
+        "/negotiations/offers": {
+            "post": {
+                "tags": [
+                    "DSP Protocol"
+                ],
+                "summary": "Initial offer (Provider initiates)",
+                "operationId": "initialOffer",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationOfferInitMessageDto"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Negotiation already exists",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAckMessageDto"
+                                }
+                            }
+                        }
+                    },
+                    "201": {
+                        "description": "Negotiation created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAckMessageDto"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/InternalServerError"
+                    }
+                }
+            }
+        },
+        "/negotiations/{id}/offers": {
+            "post": {
+                "tags": [
+                    "DSP Protocol"
+                ],
+                "summary": "Provider offer (Counter-offer)",
+                "operationId": "providerOffer",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/IdPath"
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationOfferMessageDto"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Offer processed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAckMessageDto"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/InternalServerError"
+                    }
+                }
+            }
+        },
+        "/negotiations/{id}/agreement": {
+            "post": {
+                "tags": [
+                    "DSP Protocol"
+                ],
+                "summary": "Agreement reception",
+                "operationId": "agreementReception",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/IdPath"
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAgreementMessageDto"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Agreement processed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAckMessageDto"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/InternalServerError"
+                    }
+                }
+            }
+        },
+        "/negotiations/{id}/events": {
+            "post": {
+                "tags": [
+                    "DSP Protocol"
+                ],
+                "summary": "Negotiation events",
+                "operationId": "negotiationEvents",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/IdPath"
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationEventMessageDto"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Event processed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAckMessageDto"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/InternalServerError"
+                    }
+                }
+            }
+        },
+        "/negotiations/{id}/termination": {
+            "post": {
+                "tags": [
+                    "DSP Protocol"
+                ],
+                "summary": "Negotiation termination",
+                "operationId": "negotiationTermination",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/IdPath"
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationTerminationMessageDto"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Termination processed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAckMessageDto"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/InternalServerError"
+                    }
+                }
+            }
+        },
+        "/negotiations/rpc/setup-request-init": {
+            "post": {
+                "tags": [
+                    "DSP RPC"
+                ],
+                "summary": "Setup negotiation request init (RPC)",
+                "operationId": "rpcSetupRequestInit",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RpcNegotiationRequestInitMessageDto"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RpcNegotiationMessageDto_RpcNegotiationRequestInitMessageDto"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/InternalServerError"
+                    }
+                }
+            }
+        },
+        "/negotiations/rpc/setup-request": {
+            "post": {
+                "tags": [
+                    "DSP RPC"
+                ],
+                "summary": "Setup negotiation request (RPC)",
+                "operationId": "rpcSetupRequest",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RpcNegotiationRequestMessageDto"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RpcNegotiationMessageDto_RpcNegotiationRequestMessageDto"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/InternalServerError"
+                    }
+                }
+            }
+        },
+        "/negotiations/rpc/setup-offer-init": {
+            "post": {
+                "tags": [
+                    "DSP RPC"
+                ],
+                "summary": "Setup negotiation offer init (RPC)",
+                "operationId": "rpcSetupOfferInit",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RpcNegotiationOfferInitMessageDto"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RpcNegotiationMessageDto_RpcNegotiationOfferInitMessageDto"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/InternalServerError"
+                    }
+                }
+            }
+        },
+        "/negotiations/rpc/setup-offer": {
+            "post": {
+                "tags": [
+                    "DSP RPC"
+                ],
+                "summary": "Setup negotiation offer (RPC)",
+                "operationId": "rpcSetupOffer",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RpcNegotiationOfferMessageDto"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RpcNegotiationMessageDto_RpcNegotiationOfferMessageDto"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/InternalServerError"
+                    }
+                }
+            }
+        },
+        "/negotiations/rpc/setup-acceptance": {
+            "post": {
+                "tags": [
+                    "DSP RPC"
+                ],
+                "summary": "Setup negotiation acceptance (RPC)",
+                "operationId": "rpcSetupAcceptance",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RpcNegotiationEventAcceptedMessageDto"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RpcNegotiationMessageDto_RpcNegotiationEventAcceptedMessageDto"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/InternalServerError"
+                    }
+                }
+            }
+        },
+        "/negotiations/rpc/setup-agreement": {
+            "post": {
+                "tags": [
+                    "DSP RPC"
+                ],
+                "summary": "Setup negotiation agreement (RPC)",
+                "operationId": "rpcSetupAgreement",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RpcNegotiationAgreementMessageDto"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RpcNegotiationMessageDto_RpcNegotiationAgreementMessageDto"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/InternalServerError"
+                    }
+                }
+            }
+        },
+        "/negotiations/rpc/setup-verification": {
+            "post": {
+                "tags": [
+                    "DSP RPC"
+                ],
+                "summary": "Setup negotiation verification (RPC)",
+                "operationId": "rpcSetupVerification",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RpcNegotiationVerificationMessageDto"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RpcNegotiationMessageDto_RpcNegotiationVerificationMessageDto"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/InternalServerError"
+                    }
+                }
+            }
+        },
+        "/negotiations/rpc/setup-finalization": {
+            "post": {
+                "tags": [
+                    "DSP RPC"
+                ],
+                "summary": "Setup negotiation finalization (RPC)",
+                "operationId": "rpcSetupFinalization",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RpcNegotiationEventFinalizedMessageDto"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RpcNegotiationMessageDto_RpcNegotiationEventFinalizedMessageDto"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/InternalServerError"
+                    }
+                }
+            }
+        },
+        "/negotiations/rpc/setup-termination": {
+            "post": {
+                "tags": [
+                    "DSP RPC"
+                ],
+                "summary": "Setup negotiation termination (RPC)",
+                "operationId": "rpcSetupTermination",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RpcNegotiationTerminationMessageDto"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RpcNegotiationMessageDto_RpcNegotiationTerminationMessageDto"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/InternalServerError"
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "parameters": {
+            "IdPath": {
+                "name": "id",
+                "in": "path",
+                "required": true,
+                "schema": {
+                    "type": "string",
+                    "format": "urn"
+                }
+            }
+        },
+        "responses": {
+            "BadRequest": {
+                "description": "Bad request",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationErrorMessageDto"
+                        }
+                    }
+                }
+            },
+            "NotFound": {
+                "description": "Resource not found"
+            },
+            "InternalServerError": {
+                "description": "Internal server error",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationErrorMessageDto"
+                        }
+                    }
+                }
+            }
+        },
+        "schemas": {
+            "ContextField": {
+                "oneOf": [
+                    {
+                        "type": "string"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                ]
+            },
+            "NegotiationProcessMessageWrapper_NegotiationRequestInitMessageDto": {
+                "type": "object",
+                "required": [
+                    "@type",
+                    "negotiationAgentProcessId",
+                    "offer"
+                ],
+                "properties": {
+                    "@context": {
+                        "$ref": "#/components/schemas/ContextField"
+                    },
+                    "@type": {
+                        "type": "string",
+                        "enum": [
+                            "ContractRequestMessage"
+                        ]
+                    },
+                    "consumerPid": {
+                        "type": "string",
+                        "format": "urn"
+                    },
+                    "offer": {
+                        "$ref": "#/components/schemas/OdrlOffer"
+                    },
+                    "callbackAddress": {
+                        "type": "string"
+                    }
+                }
+            },
+            "NegotiationProcessMessageWrapper_NegotiationRequestMessageDto": {
+                "type": "object",
+                "required": [
+                    "@type",
+                    "consumerPid",
+                    "providerPid",
+                    "offer"
+                ],
+                "properties": {
+                    "@context": {
+                        "$ref": "#/components/schemas/ContextField"
+                    },
+                    "@type": {
+                        "type": "string",
+                        "enum": [
+                            "ContractRequestMessage"
+                        ]
+                    },
+                    "consumerPid": {
+                        "type": "string",
+                        "format": "urn"
+                    },
+                    "providerPid": {
+                        "type": "string",
+                        "format": "urn"
+                    },
+                    "offer": {
+                        "$ref": "#/components/schemas/OdrlOffer"
+                    }
+                }
+            },
+            "NegotiationProcessMessageWrapper_NegotiationOfferInitMessageDto": {
+                "type": "object",
+                "required": [
+                    "@type",
+                    "providerPid",
+                    "offer"
+                ],
+                "properties": {
+                    "@context": {
+                        "$ref": "#/components/schemas/ContextField"
+                    },
+                    "@type": {
+                        "type": "string",
+                        "enum": [
+                            "ContractOfferMessage"
+                        ]
+                    },
+                    "providerPid": {
+                        "type": "string",
+                        "format": "urn"
+                    },
+                    "offer": {
+                        "$ref": "#/components/schemas/OdrlOffer"
+                    },
+                    "callbackAddress": {
+                        "type": "string"
+                    }
+                }
+            },
+            "NegotiationProcessMessageWrapper_NegotiationOfferMessageDto": {
+                "type": "object",
+                "required": [
+                    "@type",
+                    "consumerPid",
+                    "providerPid",
+                    "offer"
+                ],
+                "properties": {
+                    "@context": {
+                        "$ref": "#/components/schemas/ContextField"
+                    },
+                    "@type": {
+                        "type": "string",
+                        "enum": [
+                            "ContractOfferMessage"
+                        ]
+                    },
+                    "consumerPid": {
+                        "type": "string",
+                        "format": "urn"
+                    },
+                    "providerPid": {
+                        "type": "string",
+                        "format": "urn"
+                    },
+                    "offer": {
+                        "$ref": "#/components/schemas/OdrlOffer"
+                    },
+                    "callbackAddress": {
+                        "type": "string"
+                    }
+                }
+            },
+            "NegotiationProcessMessageWrapper_NegotiationAgreementMessageDto": {
+                "type": "object",
+                "required": [
+                    "@type",
+                    "consumerPid",
+                    "providerPid",
+                    "agreement"
+                ],
+                "properties": {
+                    "@context": {
+                        "$ref": "#/components/schemas/ContextField"
+                    },
+                    "@type": {
+                        "type": "string",
+                        "enum": [
+                            "ContractAgreementMessage"
+                        ]
+                    },
+                    "consumerPid": {
+                        "type": "string",
+                        "format": "urn"
+                    },
+                    "providerPid": {
+                        "type": "string",
+                        "format": "urn"
+                    },
+                    "agreement": {
+                        "$ref": "#/components/schemas/OdrlAgreement"
+                    }
+                }
+            },
+            "NegotiationProcessMessageWrapper_NegotiationVerificationMessageDto": {
+                "type": "object",
+                "required": [
+                    "@type",
+                    "consumerPid",
+                    "providerPid"
+                ],
+                "properties": {
+                    "@context": {
+                        "$ref": "#/components/schemas/ContextField"
+                    },
+                    "@type": {
+                        "type": "string",
+                        "enum": [
+                            "ContractAgreementVerificationMessage"
+                        ]
+                    },
+                    "consumerPid": {
+                        "type": "string",
+                        "format": "urn"
+                    },
+                    "providerPid": {
+                        "type": "string",
+                        "format": "urn"
+                    }
+                }
+            },
+            "NegotiationProcessMessageWrapper_NegotiationEventMessageDto": {
+                "type": "object",
+                "required": [
+                    "@type",
+                    "consumerPid",
+                    "providerPid",
+                    "eventType"
+                ],
+                "properties": {
+                    "@context": {
+                        "$ref": "#/components/schemas/ContextField"
+                    },
+                    "@type": {
+                        "type": "string",
+                        "enum": [
+                            "ContractNegotiationEventMessage"
+                        ]
+                    },
+                    "consumerPid": {
+                        "type": "string",
+                        "format": "urn"
+                    },
+                    "providerPid": {
+                        "type": "string",
+                        "format": "urn"
+                    },
+                    "eventType": {
+                        "type": "string",
+                        "enum": [
+                            "ACCEPTED",
+                            "FINALIZED"
+                        ]
+                    }
+                }
+            },
+            "NegotiationProcessMessageWrapper_NegotiationTerminationMessageDto": {
+                "type": "object",
+                "required": [
+                    "@type",
+                    "consumerPid",
+                    "providerPid"
+                ],
+                "properties": {
+                    "@context": {
+                        "$ref": "#/components/schemas/ContextField"
+                    },
+                    "@type": {
+                        "type": "string",
+                        "enum": [
+                            "ContractNegotiationTerminationMessage"
+                        ]
+                    },
+                    "consumerPid": {
+                        "type": "string",
+                        "format": "urn"
+                    },
+                    "providerPid": {
+                        "type": "string",
+                        "format": "urn"
+                    },
+                    "code": {
+                        "type": "string"
+                    },
+                    "reason": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "NegotiationProcessMessageWrapper_NegotiationAckMessageDto": {
+                "type": "object",
+                "required": [
+                    "@type",
+                    "consumerPid",
+                    "providerPid",
+                    "state"
+                ],
+                "properties": {
+                    "@context": {
+                        "$ref": "#/components/schemas/ContextField"
+                    },
+                    "@type": {
+                        "type": "string",
+                        "enum": [
+                            "ContractNegotiation"
+                        ]
+                    },
+                    "consumerPid": {
+                        "type": "string",
+                        "format": "urn"
+                    },
+                    "providerPid": {
+                        "type": "string",
+                        "format": "urn"
+                    },
+                    "state": {
+                        "type": "string",
+                        "enum": [
+                            "REQUESTED",
+                            "OFFERED",
+                            "ACCEPTED",
+                            "AGREED",
+                            "VERIFIED",
+                            "FINALIZED",
+                            "TERMINATED"
+                        ]
+                    }
+                }
+            },
+            "NegotiationProcessMessageWrapper_NegotiationErrorMessageDto": {
+                "type": "object",
+                "required": [
+                    "@type"
+                ],
+                "properties": {
+                    "@context": {
+                        "$ref": "#/components/schemas/ContextField"
+                    },
+                    "@type": {
+                        "type": "string",
+                        "enum": [
+                            "ContractNegotiationError"
+                        ]
+                    },
+                    "consumerPid": {
+                        "type": "string",
+                        "format": "urn"
+                    },
+                    "providerPid": {
+                        "type": "string",
+                        "format": "urn"
+                    },
+                    "code": {
+                        "type": "string"
+                    },
+                    "reason": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "RpcNegotiationRequestInitMessageDto": {
+                "type": "object",
+                "required": [
+                    "associatedAgentPeer",
+                    "providerAddress",
+                    "callbackAddress",
+                    "offer"
+                ],
+                "properties": {
+                    "associatedAgentPeer": {
+                        "type": "string"
+                    },
+                    "providerAddress": {
+                        "type": "string"
+                    },
+                    "callbackAddress": {
+                        "type": "string"
+                    },
+                    "offer": {
+                        "$ref": "#/components/schemas/OdrlOffer"
+                    }
+                }
+            },
+            "RpcNegotiationRequestMessageDto": {
+                "type": "object",
+                "required": [
+                    "offer",
+                    "providerPid",
+                    "consumerPid"
+                ],
+                "properties": {
+                    "offer": {
+                        "$ref": "#/components/schemas/OdrlOffer"
+                    },
+                    "providerPid": {
+                        "type": "string",
+                        "format": "urn"
+                    },
+                    "consumerPid": {
+                        "type": "string",
+                        "format": "urn"
+                    }
+                }
+            },
+            "RpcNegotiationOfferInitMessageDto": {
+                "type": "object",
+                "required": [
+                    "associatedAgentPeer",
+                    "providerAddress",
+                    "callbackAddress",
+                    "offer"
+                ],
+                "properties": {
+                    "associatedAgentPeer": {
+                        "type": "string"
+                    },
+                    "providerAddress": {
+                        "type": "string"
+                    },
+                    "callbackAddress": {
+                        "type": "string"
+                    },
+                    "offer": {
+                        "$ref": "#/components/schemas/OdrlOffer"
+                    }
+                }
+            },
+            "RpcNegotiationOfferMessageDto": {
+                "type": "object",
+                "required": [
+                    "offer",
+                    "providerPid",
+                    "consumerPid"
+                ],
+                "properties": {
+                    "offer": {
+                        "$ref": "#/components/schemas/OdrlOffer"
+                    },
+                    "providerPid": {
+                        "type": "string",
+                        "format": "urn"
+                    },
+                    "consumerPid": {
+                        "type": "string",
+                        "format": "urn"
+                    }
+                }
+            },
+            "RpcNegotiationAgreementMessageDto": {
+                "type": "object",
+                "required": [
+                    "providerPid",
+                    "consumerPid"
+                ],
+                "properties": {
+                    "providerPid": {
+                        "type": "string",
+                        "format": "urn"
+                    },
+                    "consumerPid": {
+                        "type": "string",
+                        "format": "urn"
+                    }
+                }
+            },
+            "RpcNegotiationVerificationMessageDto": {
+                "type": "object",
+                "required": [
+                    "providerPid",
+                    "consumerPid"
+                ],
+                "properties": {
+                    "providerPid": {
+                        "type": "string",
+                        "format": "urn"
+                    },
+                    "consumerPid": {
+                        "type": "string",
+                        "format": "urn"
+                    }
+                }
+            },
+            "RpcNegotiationEventAcceptedMessageDto": {
+                "type": "object",
+                "required": [
+                    "providerPid",
+                    "consumerPid"
+                ],
+                "properties": {
+                    "providerPid": {
+                        "type": "string",
+                        "format": "urn"
+                    },
+                    "consumerPid": {
+                        "type": "string",
+                        "format": "urn"
+                    }
+                }
+            },
+            "RpcNegotiationEventFinalizedMessageDto": {
+                "type": "object",
+                "required": [
+                    "providerPid",
+                    "consumerPid"
+                ],
+                "properties": {
+                    "providerPid": {
+                        "type": "string",
+                        "format": "urn"
+                    },
+                    "consumerPid": {
+                        "type": "string",
+                        "format": "urn"
+                    }
+                }
+            },
+            "RpcNegotiationTerminationMessageDto": {
+                "type": "object",
+                "required": [
+                    "consumerPid",
+                    "providerPid"
+                ],
+                "properties": {
+                    "consumerPid": {
+                        "type": "string",
+                        "format": "urn"
+                    },
+                    "providerPid": {
+                        "type": "string",
+                        "format": "urn"
+                    },
+                    "code": {
+                        "type": "string"
+                    },
+                    "reason": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "RpcNegotiationMessageDto_RpcNegotiationRequestInitMessageDto": {
+                "type": "object",
+                "properties": {
+                    "request": {
+                        "$ref": "#/components/schemas/RpcNegotiationRequestInitMessageDto"
+                    },
+                    "response": {
+                        "$ref": "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAckMessageDto"
+                    },
+                    "negotiationAgentModel": {
+                        "type": "object"
+                    }
+                }
+            },
+            "RpcNegotiationMessageDto_RpcNegotiationRequestMessageDto": {
+                "type": "object",
+                "properties": {
+                    "request": {
+                        "$ref": "#/components/schemas/RpcNegotiationRequestMessageDto"
+                    },
+                    "response": {
+                        "$ref": "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAckMessageDto"
+                    },
+                    "negotiationAgentModel": {
+                        "type": "object"
+                    }
+                }
+            },
+            "RpcNegotiationMessageDto_RpcNegotiationOfferInitMessageDto": {
+                "type": "object",
+                "properties": {
+                    "request": {
+                        "$ref": "#/components/schemas/RpcNegotiationOfferInitMessageDto"
+                    },
+                    "response": {
+                        "$ref": "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAckMessageDto"
+                    },
+                    "negotiationAgentModel": {
+                        "type": "object"
+                    }
+                }
+            },
+            "RpcNegotiationMessageDto_RpcNegotiationOfferMessageDto": {
+                "type": "object",
+                "properties": {
+                    "request": {
+                        "$ref": "#/components/schemas/RpcNegotiationOfferMessageDto"
+                    },
+                    "response": {
+                        "$ref": "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAckMessageDto"
+                    },
+                    "negotiationAgentModel": {
+                        "type": "object"
+                    }
+                }
+            },
+            "RpcNegotiationMessageDto_RpcNegotiationEventAcceptedMessageDto": {
+                "type": "object",
+                "properties": {
+                    "request": {
+                        "$ref": "#/components/schemas/RpcNegotiationEventAcceptedMessageDto"
+                    },
+                    "response": {
+                        "$ref": "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAckMessageDto"
+                    },
+                    "negotiationAgentModel": {
+                        "type": "object"
+                    }
+                }
+            },
+            "RpcNegotiationMessageDto_RpcNegotiationAgreementMessageDto": {
+                "type": "object",
+                "properties": {
+                    "request": {
+                        "$ref": "#/components/schemas/RpcNegotiationAgreementMessageDto"
+                    },
+                    "response": {
+                        "$ref": "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAckMessageDto"
+                    },
+                    "negotiationAgentModel": {
+                        "type": "object"
+                    }
+                }
+            },
+            "RpcNegotiationMessageDto_RpcNegotiationVerificationMessageDto": {
+                "type": "object",
+                "properties": {
+                    "request": {
+                        "$ref": "#/components/schemas/RpcNegotiationVerificationMessageDto"
+                    },
+                    "response": {
+                        "$ref": "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAckMessageDto"
+                    },
+                    "negotiationAgentModel": {
+                        "type": "object"
+                    }
+                }
+            },
+            "RpcNegotiationMessageDto_RpcNegotiationEventFinalizedMessageDto": {
+                "type": "object",
+                "properties": {
+                    "request": {
+                        "$ref": "#/components/schemas/RpcNegotiationEventFinalizedMessageDto"
+                    },
+                    "response": {
+                        "$ref": "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAckMessageDto"
+                    },
+                    "negotiationAgentModel": {
+                        "type": "object"
+                    }
+                }
+            },
+            "RpcNegotiationMessageDto_RpcNegotiationTerminationMessageDto": {
+                "type": "object",
+                "properties": {
+                    "request": {
+                        "$ref": "#/components/schemas/RpcNegotiationTerminationMessageDto"
+                    },
+                    "response": {
+                        "$ref": "#/components/schemas/NegotiationProcessMessageWrapper_NegotiationAckMessageDto"
+                    },
+                    "negotiationAgentModel": {
+                        "type": "object"
+                    }
+                }
+            },
+            "OdrlOffer": {
+                "type": "object",
+                "properties": {
+                    "@type": {
+                        "type": "string",
+                        "enum": [
+                            "Offer",
+                            "Agreement"
+                        ]
+                    },
+                    "@id": {
+                        "type": "string",
+                        "format": "urn"
+                    },
+                    "target": {
+                        "type": "string",
+                        "format": "urn"
+                    },
+                    "permission": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/OdrlPermission"
+                        }
+                    },
+                    "prohibition": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/OdrlProhibition"
+                        }
+                    },
+                    "obligation": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/OdrlObligation"
+                        }
+                    }
+                }
+            },
+            "OdrlAgreement": {
+                "$ref": "#/components/schemas/OdrlOffer"
+            },
+            "OdrlPermission": {
+                "type": "object",
+                "required": [
+                    "action"
+                ],
+                "properties": {
+                    "action": {
+                        "type": "string"
+                    },
+                    "constraint": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/OdrlConstraint"
+                        }
+                    },
+                    "duty": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/OdrlDuty"
+                        }
+                    }
+                }
+            },
+            "OdrlProhibition": {
+                "type": "object",
+                "required": [
+                    "action"
+                ],
+                "properties": {
+                    "action": {
+                        "type": "string"
+                    },
+                    "constraint": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/OdrlConstraint"
+                        }
+                    }
+                }
+            },
+            "OdrlObligation": {
+                "type": "object",
+                "required": [
+                    "action"
+                ],
+                "properties": {
+                    "action": {
+                        "type": "string"
+                    },
+                    "constraint": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/OdrlConstraint"
+                        }
+                    }
+                }
+            },
+            "OdrlDuty": {
+                "type": "object",
+                "required": [
+                    "action"
+                ],
+                "properties": {
+                    "action": {
+                        "type": "string"
+                    },
+                    "constraint": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/OdrlConstraint"
+                        }
+                    }
+                }
+            },
+            "OdrlConstraint": {
+                "type": "object",
+                "properties": {
+                    "leftOperand": {
+                        "type": "string"
+                    },
+                    "operator": {
+                        "type": "string"
+                    },
+                    "rightOperand": {
+                        "oneOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "object"
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    }
+}

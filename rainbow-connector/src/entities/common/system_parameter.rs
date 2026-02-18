@@ -34,6 +34,10 @@ impl SystemParameterInjector {
                 ParameterAutoFilledType::SysToken => json!(uuid::Uuid::new_v4().to_string()),
                 ParameterAutoFilledType::SysTimestamp => json!(Utc::now().timestamp()),
                 ParameterAutoFilledType::SysIso8601 => json!(Utc::now().to_rfc3339()),
+                // SysOwnUrl is a runtime-only param resolved at perform_subscribe time;
+                // skip injection here so the {{__SYS_OWN_URL__}} template stays
+                // unresolved in the stored interaction spec.
+                ParameterAutoFilledType::SysOwnUrl { .. } => continue,
             };
 
             // Inject value in parameter definition

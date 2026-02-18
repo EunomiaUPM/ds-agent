@@ -108,7 +108,8 @@ impl ConnectorInstanceTrait for ConnectorInstanceEntitiesService {
     ) -> anyhow::Result<Option<ConnectorInstanceDto>> {
         let dist_id_str = distribution_id.to_string();
 
-        let instance = self.repo
+        let instance = self
+            .repo
             .get_distro_relation_repo()
             .get_relation_by_distribution(&dist_id_str)
             .await

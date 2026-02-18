@@ -24,7 +24,7 @@ export const Route = createRootRouteWithContext<{
           <AppSidebar />
           <SidebarInset>
             <Header />
-            <div className="flex flex-1 flex-col gap-4 p-8 overflow-hidden items-start justify-start w-full h-full">
+            <div className="flex flex-1 flex-col gap-4 p-8 items-start justify-start w-full h-full min-w-0">
               <Outlet />
             </div>
           </SidebarInset>

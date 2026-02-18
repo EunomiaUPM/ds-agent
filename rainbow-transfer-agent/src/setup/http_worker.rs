@@ -30,7 +30,10 @@ use axum::{serve, Router};
 use rainbow_common::config::services::TransferConfig;
 use rainbow_common::config::traits::CommonConfigTrait;
 use rainbow_common::errors::CommonErrors;
+use rainbow_common::facades::ssi_auth_facade::mates_facade::MatesFacadeService;
+use rainbow_common::http_client::HttpClient;
 use rainbow_common::well_known::WellKnownRoot;
+use std::ops::Deref;
 use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio::task::JoinHandle;
@@ -113,6 +116,12 @@ pub async fn create_root_http_router(
     let config = Arc::new(config.clone());
     let transfer_repo = Arc::new(TransferAgentRepoForSql::create_repo(db_connection.clone()));
 
+    // facades
+    let ssi_auth_config = Arc::new(config.ssi_auth().clone());
+    let http_client = Arc::new(HttpClient::new(10, 10));
+    let mates_facade =
+        Arc::new(MatesFacadeService::new(ssi_auth_config.clone(), http_client.clone()));
+
     // entities
     let messages_controller_service =
         Arc::new(TransferAgentMessagesService::new(transfer_repo.clone()));
@@ -123,12 +132,18 @@ pub async fn create_root_http_router(
     let entities_router =
         TransferAgentProcessesRouter::new(entities_controller_service.clone(), config.clone());
 
+    // dataplane
+    let dataplane_setup = rainbow_dataplane::setup::DataplaneSetup::new();
+    let dataplane_router =
+        dataplane_setup.build_control_router(config.deref(), vault.clone()).await;
+
     // dsp
     let dsp_router = TransferDSP::new(
         messages_controller_service.clone(),
         entities_controller_service.clone(),
         config.clone(),
         vault.clone(),
+        mates_facade.clone(),
     )
     .build_router()
     .await?;
@@ -143,6 +158,16 @@ pub async fn create_root_http_router(
             format!("{}/transfer-processes", router_str.as_str()).as_str(),
             entities_router.router(),
         )
-        .nest("/dsp/current/transfers", dsp_router);
+        .nest(
+            format!("{}/dataplane", router_str.as_str()).as_str(),
+            dataplane_router,
+        )
+        .nest("/dsp/current/transfers", dsp_router)
+        .nest(
+            "/dataplane/proxy",
+            dataplane_setup
+                .build_testing_proxy(config.deref(), vault.clone())
+                .await,
+        );
     Ok(router)
 }

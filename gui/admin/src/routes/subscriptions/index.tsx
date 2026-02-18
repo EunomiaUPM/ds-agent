@@ -1,9 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import {
-  useGetNotificationsBySubscriptionId,
-  useGetSubscriptionById,
-} from "shared/src/data/pubsub-queries.ts";
-import { PubSubContext } from "shared/src/context/PubSubContext.tsx";
+// import { PubSubContext } from "shared/src/context/PubSubContext.tsx";
 import { useContext } from "react";
 import {
   Table,
@@ -14,15 +10,47 @@ import {
   TableRow,
 } from "shared/src/components/ui/table";
 import dayjs from "dayjs";
+import { useGetSubscriptions, useGetSubscriptionById, useGetNotificationsBySubscriptionId } from "shared/src/data/orval/subscriptions/subscriptions";
+import { GeneralErrorComponent } from "@/components/GeneralErrorComponent";
+import { formatUrn } from "shared/lib/utils";
+import { PageLayout } from "shared/components/layout/PageLayout";
+import { PageHeader } from "shared/components/layout/PageHeader";
+import { Skeleton } from "shared/components/ui/skeleton";
 
 const RouteComponent = () => {
-  const { subscriptionId } = useContext(PubSubContext)!;
-  const { data: subscription } = useGetSubscriptionById(subscriptionId!);
-  const { data: notifications } = useGetNotificationsBySubscriptionId(subscriptionId!);
+  // TODO: PubSubContext was deleted. Restore subscriptionId source.
+  const subscriptionId = ""; // useContext(PubSubContext)!;
+
+  const { data: subscription, isLoading: isSubscriptionLoading } = useGetSubscriptionById(subscriptionId!);
+  const { data: notifications, isLoading: isNotificationsLoading } = useGetNotificationsBySubscriptionId(subscriptionId!);
+
+
+  if (isSubscriptionLoading || isNotificationsLoading) {
+    return (
+      <PageLayout>
+        <PageHeader
+          title="Subscription"
+          badge={<Skeleton className="h-8 w-48" />}
+        />
+        <div>Loading...</div>
+      </PageLayout>
+    );
+  }
+
+
+  // handle error
+  if (!subscription || subscription.status !== 200) {
+    return <GeneralErrorComponent error={new Error("Subscription not found")} reset={() => { }} />;
+  }
+
+  if (!notifications || notifications.status !== 200) {
+    return <GeneralErrorComponent error={new Error("Notifications not found")} reset={() => { }} />;
+  }
+
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-bold">Subscription</h1>
-      <div>Subscription with id : {subscription.subscriptionId}</div>
+      <div>Subscription with id : {subscription.data.id}</div>
       <div>
         <h2>Main Catalog info: </h2>
         <Table className="text-sm">
@@ -35,25 +63,11 @@ const RouteComponent = () => {
           <TableBody>
             <TableRow>
               <TableCell>Subscription callback address</TableCell>
-              <TableCell>{subscription.callbackAddress}</TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>Subscription state</TableCell>
-              <TableCell>{subscription.active ? "ACTIVE" : "INACTIVE"}</TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>Subscription entity</TableCell>
-              <TableCell>{subscription.subscriptionEntity}</TableCell>
+              <TableCell>{subscription.data.callbackAddress}</TableCell>
             </TableRow>
             <TableRow>
               <TableCell>Subscription creation date</TableCell>
-              <TableCell>{dayjs(subscription.timestamp).format("DD/MM/YYYY - HH:mm")}</TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>Subscription expiration date</TableCell>
-              <TableCell>
-                {dayjs(subscription.expirationTime).format("DD/MM/YYYY - HH:mm")}
-              </TableCell>
+              <TableCell>{dayjs(subscription.data.createdAt).format("DD/MM/YYYY - HH:mm")}</TableCell>
             </TableRow>
           </TableBody>
         </Table>
@@ -74,15 +88,14 @@ const RouteComponent = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {notifications.map((notification) => (
-              <TableRow key={notification.notificationId.slice(0, 20)}>
-                <TableCell>{notification.notificationId.slice(0, 20) + "..."}</TableCell>
-                <TableCell>{notification.category}</TableCell>
-                <TableCell>{notification.subcategory}</TableCell>
-                <TableCell>{notification.messageType}</TableCell>
-                <TableCell>{notification.messageOperation}</TableCell>
-                <TableCell>{JSON.stringify(notification.messageContent)}</TableCell>
-                <TableCell>{dayjs(notification.timestamp).format("DD/MM/YYYY - HH:mm")}</TableCell>
+            {notifications?.data.map((notification) => (
+              <TableRow key={formatUrn(notification.id)}>
+                <TableCell>{formatUrn(notification.id)}</TableCell>
+                <TableCell>{notification.event ? (notification.event.category as string) : ""}</TableCell>
+                <TableCell>{notification.event ? (notification.event.subcategory as string) : ""}</TableCell>
+                <TableCell>{notification.event ? (notification.event.messageType as string) : ""}</TableCell>
+                <TableCell>{notification.event ? (notification.event.messageOperation as string) : ""}</TableCell>
+                <TableCell>{dayjs(notification.createdAt).format("DD/MM/YYYY - HH:mm")}</TableCell>
               </TableRow>
             ))}
           </TableBody>

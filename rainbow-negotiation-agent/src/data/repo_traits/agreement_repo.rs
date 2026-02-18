@@ -42,6 +42,16 @@ pub trait AgreementRepoTrait: Send + Sync {
         &self,
         id: &Urn,
     ) -> anyhow::Result<Option<agreement::Model>, AgreementRepoErrors>;
+    async fn get_agreements_by_assignee(
+        &self,
+        id: &String,
+    ) -> anyhow::Result<Vec<agreement::Model>, AgreementRepoErrors>;
+
+    async fn get_agreements_by_assigner(
+        &self,
+        id: &String,
+    ) -> anyhow::Result<Vec<agreement::Model>, AgreementRepoErrors>;
+
     async fn get_agreement_by_negotiation_message(
         &self,
         id: &Urn,

@@ -24,14 +24,7 @@
  */
 
 import React from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "./ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 
 // =============================================================================
 // TYPES
@@ -109,9 +102,9 @@ export function DataTable<T>({
   className,
 }: DataTableProps<T>) {
   return (
-    <Table className={className}>
+    <Table className={className} containerClassName="overflow-visible">
       {/* Table header */}
-      <TableHeader>
+      <TableHeader className="sticky top-[4.8rem] z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 rounded-t-2xl overflow-hidden">
         <TableRow>
           {columns.map((col, index) => (
             <TableHead key={index} className={col.className}>

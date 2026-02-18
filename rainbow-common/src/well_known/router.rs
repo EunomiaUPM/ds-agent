@@ -4,7 +4,7 @@ use crate::well_known::dspace_version::dspace_version::WellKnownDSpaceVersionSer
 use crate::well_known::dspace_version::WellKnownDSpaceVersionTrait;
 use crate::well_known::rpc::{WellKnownRPCRequest, WellKnownRPCTrait};
 use axum::extract::rejection::JsonRejection;
-use axum::extract::{FromRef, State};
+use axum::extract::{FromRef, Path, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::routing::{get, post};
@@ -43,6 +43,10 @@ impl WellKnownRouter {
                 get(Self::handle_get_well_known_version),
             )
             .route(
+                "/.well-known/dspace-version/{version}",
+                get(Self::handle_get_well_known_version_version),
+            )
+            .route(
                 "/rpc/.well-known/dspace-version",
                 post(Self::handle_post_well_known_version_from_participant),
             )
@@ -57,6 +61,13 @@ impl WellKnownRouter {
         State(state): State<WellKnownRouter>,
     ) -> impl IntoResponse {
         let response = state.dspace_version_service.get_dspace_version().unwrap();
+        (StatusCode::OK, Json(response)).into_response()
+    }
+    async fn handle_get_well_known_version_version(
+        State(state): State<WellKnownRouter>,
+        Path(version): Path<String>,
+    ) -> impl IntoResponse {
+        let response = state.dspace_version_service.get_dspace_version_str(&version).unwrap();
         (StatusCode::OK, Json(response)).into_response()
     }
     async fn handle_post_well_known_version_from_participant(

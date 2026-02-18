@@ -1,0 +1,77 @@
+    Checking rainbow_dataplane v0.3.8 (/Users/apabook/Desktop/ds-protocol/rainbow-dataplane)
+error: expected `;`, found keyword `let`
+   --> rainbow-dataplane/src/setup/mod.rs:102:81
+    |
+102 |         let logs_router = DataplaneTransferLogsRouter::new(logs_entity).router()
+    |                                                                                 ^ help: add `;` here
+103 |         let transfers_router =
+    |         --- unexpected token
+
+error[E0425]: cannot find value `transfer_event_entity` in this scope
+  --> rainbow-dataplane/src/setup/mod.rs:94:68
+   |
+94 |             DataPlaneRouter::new(dataplane_process_entity.clone(), transfer_event_entity.clone())
+   |                                                                    ^^^^^^^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0308]: mismatched types
+  --> rainbow-dataplane/src/entities/dataplane_transfers/dataplane_transfers_entity.rs:58:47
+   |
+58 |             .get_transfer_logs_by_transfer_id(&process.id)
+   |              -------------------------------- ^^^^^^^^^^^ expected `&Uuid`, found `&String`
+   |              |
+   |              arguments to this method are incorrect
+   |
+   = note: expected reference `&uuid::Uuid`
+              found reference `&std::string::String`
+note: method defined here
+  --> rainbow-dataplane/src/data/repo_traits/dataplane_transfer_logs_repo.rs:17:14
+   |
+17 |     async fn get_transfer_logs_by_transfer_id(
+   |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+18 |         &self,
+19 |         transfer_id: &uuid::Uuid,
+   |         -----------
+
+error[E0308]: mismatched types
+   --> rainbow-dataplane/src/data/repo_sql/dataplane_transfers_repo.rs:120:31
+    |
+120 |         active_model.id = Set(uuid);
+    |                           --- ^^^^- help: try using a conversion method: `.to_string()`
+    |                           |   |
+    |                           |   expected `String`, found `Uuid`
+    |                           arguments to this enum variant are incorrect
+    |
+help: the type constructed contains `uuid::Uuid` due to the type of the argument passed
+   --> rainbow-dataplane/src/data/repo_sql/dataplane_transfers_repo.rs:120:27
+    |
+120 |         active_model.id = Set(uuid);
+    |                           ^^^^----^
+    |                               |
+    |                               this argument influences the type of `Set`
+note: tuple variant defined here
+   --> /Users/apabook/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sea-orm-1.1.17/src/entity/active_model.rs:45:5
+    |
+45  |     Set(V),
+    |     ^^^
+
+error[E0308]: mismatched types
+  --> rainbow-dataplane/src/entities/dataplane_transfers/mod.rs:46:17
+   |
+46 |             id: value.id,
+   |                 ^^^^^^^^ expected `Option<Urn>`, found `Uuid`
+   |
+   = note: expected enum `std::option::Option<urn::Urn>`
+            found struct `uuid::Uuid`
+
+error[E0308]: mismatched types
+  --> rainbow-dataplane/src/entities/dataplane_transfers/mod.rs:51:36
+   |
+51 |             connector_instance_id: value.connector_instance_id,
+   |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Option<Urn>`, found `Option<Uuid>`
+   |
+   = note: expected enum `std::option::Option<urn::Urn>`
+              found enum `std::option::Option<uuid::Uuid>`
+
+Some errors have detailed explanations: E0308, E0425.
+For more information about an error, try `rustc --explain E0308`.
+error: could not compile `rainbow_dataplane` (lib) due to 6 previous errors

@@ -28,7 +28,7 @@ use crate::ssi::utils::get_pretty_client_config_helper;
 pub struct VCRequesterConfig {
     hosts: CommonHostsConfig,
     client: ClientConfig,
-    api_path: String
+    api_path: String,
 }
 
 impl From<SsiAuthConfig> for VCRequesterConfig {
@@ -36,7 +36,7 @@ impl From<SsiAuthConfig> for VCRequesterConfig {
         VCRequesterConfig {
             hosts: value.common().hosts.clone(),
             client: value.client_config(),
-            api_path: value.common().get_api_version()
+            api_path: value.common().get_api_version(),
         }
     }
 }
@@ -45,6 +45,10 @@ impl VCRequesterConfigTrait for VCRequesterConfig {
     fn get_pretty_client_config(&self, cert: &str) -> anyhow::Result<Client4GR> {
         get_pretty_client_config_helper(&self.client, &cert)
     }
-    fn hosts(&self) -> &CommonHostsConfig { &self.hosts }
-    fn get_api_path(&self) -> String { self.api_path.clone() }
+    fn hosts(&self) -> &CommonHostsConfig {
+        &self.hosts
+    }
+    fn get_api_path(&self) -> String {
+        self.api_path.clone()
+    }
 }

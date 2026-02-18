@@ -36,7 +36,9 @@ pub trait CoreMateTrait: Send + Sync + 'static {
         self.repo().mates().get_by_id(&id).await
     }
 
-    async fn get_me(&self) -> anyhow::Result<Model> { self.repo().mates().get_me().await }
+    async fn get_me(&self) -> anyhow::Result<Model> {
+        self.repo().mates().get_me().await
+    }
 
     async fn get_mate_batch(&self, payload: BatchRequests) -> anyhow::Result<Vec<Model>> {
         self.repo().mates().get_batch(&payload.ids).await

@@ -73,12 +73,12 @@ impl NegotiationAgentProcessesRouter {
             )
             .route("/batch", post(Self::handle_get_batch_processes))
             .route(
-                "/:id",
+                "/{id}",
                 get(Self::handle_get_process_by_id)
                     .put(Self::handle_put_process)
                     .delete(Self::handle_delete_process),
             )
-            .route("/:id/key/:key_id", get(Self::handle_get_process_by_key_id))
+            .route("/{id}/key/{key_id}", get(Self::handle_get_process_by_key_id))
             .with_state(self)
     }
 

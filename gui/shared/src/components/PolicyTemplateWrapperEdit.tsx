@@ -134,10 +134,7 @@ export const PolicyTemplateWrapperEdit = ({
   return (
     <div>
       <FormProvider {...form}>
-        <form
-          onSubmit={form.handleSubmit(handleSubmit)}
-          className="space-y-4"
-        >
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
           {/* Template Card */}
           <div className="border border-white/30 bg-white/10 px-4 py-2 pb-4 rounded-md justify-start max-h-[80vh] overflow-y-auto">
             {/* Template Header */}
@@ -149,9 +146,7 @@ export const PolicyTemplateWrapperEdit = ({
             </div>
 
             {/* Template Description */}
-            <InfoList
-              items={[{ label: "Description", value: policyTemplate.description }]}
-            />
+            <InfoList items={[{ label: "Description", value: policyTemplate.description }]} />
 
             {/* ODRL Content Sections */}
             <div className="min-h-5" />

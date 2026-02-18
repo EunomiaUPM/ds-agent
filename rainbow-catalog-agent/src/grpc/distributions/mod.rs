@@ -101,16 +101,9 @@ impl DistributionEntityService for DistributionEntityGrpc {
         let dataset_urn = Urn::from_str(&req.dataset_id)
             .map_err(|_| Status::invalid_argument("Invalid Dataset URN"))?;
 
-        let json_val = serde_json::to_value(req.dct_formats)
-            .map_err(|e| Status::invalid_argument(format!("Invalid JSON in dct_formats: {}", e)))?;
-
-        let dct_formats: DctFormats = serde_json::from_value(json_val).map_err(|e| {
-            Status::invalid_argument(format!("Invalid DctFormats structure: {}", e))
-        })?;
-
         let distribution_dto = self
             .service
-            .get_distribution_by_dataset_id_and_dct_format(&dataset_urn, &dct_formats)
+            .get_distribution_by_dataset_id_and_dct_format(&dataset_urn, &req.dct_formats)
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 

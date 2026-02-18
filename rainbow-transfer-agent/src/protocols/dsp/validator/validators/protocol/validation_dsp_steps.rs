@@ -51,7 +51,7 @@ impl ValidationDspSteps for ValidationDspStepsService {
         self.payload_validator.validate_with_json_schema(&input.dto).await?;
         self.payload_validator.validate_identifiers_as_urn(&input.dto).await?;
         self.payload_validator.validate_auth(&input.dto).await?;
-        self.payload_validator.validate_format_data_address(&input.dto).await?;
+        //self.payload_validator.validate_format_data_address(&input.dto).await?;
         Ok(())
     }
 

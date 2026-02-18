@@ -109,7 +109,7 @@ export const PolicyTemplateSection: React.FC<PolicyTemplateSectionProps> = ({
    */
   const renderOperandInput = (
     field: ControllerRenderProps,
-    operand: string
+    operand: string,
   ): React.ReactElement => {
     const options = operandOptions[operand];
     if (!options) return <></>;
@@ -129,11 +129,7 @@ export const PolicyTemplateSection: React.FC<PolicyTemplateSectionProps> = ({
             </SelectTrigger>
             <SelectContent>
               {selectOptions?.map((opt: any) => (
-                <SelectItem
-                  className="text-white/70 min-w-fit"
-                  key={opt.value}
-                  value={opt.value}
-                >
+                <SelectItem className="text-white/70 min-w-fit" key={opt.value} value={opt.value}>
                   {/* Display localized label if available, fallback to value */}
                   {opt.label?.find((l: any) => l["@language"] === "en")?.["@value"]}
                   {opt.value}
@@ -183,10 +179,7 @@ export const PolicyTemplateSection: React.FC<PolicyTemplateSectionProps> = ({
 
           {/* Policy items from template */}
           {(items || []).map((item, i) => (
-            <div
-              key={i}
-              className="border-b border-white/20 last:border-0 first:mt-0 mt-3"
-            >
+            <div key={i} className="border-b border-white/20 last:border-0 first:mt-0 mt-3">
               <div className="policy-item-template">
                 {/* Action display (read-only) */}
                 <div className="flex gap-3">

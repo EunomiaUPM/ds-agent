@@ -3,7 +3,6 @@ import { formatUrn } from "shared/src/lib/utils";
 import dayjs from "dayjs";
 import { Badge } from "shared/src/components/ui/badge";
 import Heading from "shared/src/components/ui/heading";
-import { RouteComponent as OfferForm } from "@/routes/contract-negotiation/offer";
 import { PageLayout } from "shared/src/components/layout/PageLayout";
 import { PageHeader } from "shared/src/components/layout/PageHeader";
 import { PageSection } from "shared/src/components/layout/PageSection";
@@ -13,11 +12,16 @@ import { DataTable } from "shared/src/components/DataTable";
 import { FormatDate } from "shared/src/components/ui/format-date";
 
 import { ArrowRight, Plus } from "lucide-react";
+
 import {
-  useGetCatalogsById,
-  useGetDataServicesByCatalogId,
+  useGetCatalogById,
+} from "shared/src/data/orval/catalogs/catalogs";
+import {
   useGetDatasetsByCatalogId,
-} from "shared/src/data/catalog-queries.ts";
+} from "shared/src/data/orval/datasets/datasets";
+import {
+  useGetDataServicesByCatalogId,
+} from "shared/src/data/orval/data-services/data-services";
 import { Button } from "shared/src/components/ui/button";
 // Icons
 import { InfoList } from "shared/src/components/ui/info-list";
@@ -34,15 +38,25 @@ import {
 
 const RouteComponent = () => {
   const { catalogId } = Route.useParams();
-  const { data: catalog } = useGetCatalogsById(catalogId);
-  const { data: datasets } = useGetDatasetsByCatalogId(catalogId);
-  const { data: dataservices } = useGetDataServicesByCatalogId(catalogId);
+  const { data: catalogData } = useGetCatalogById(catalogId);
+  const { data: datasetsData } = useGetDatasetsByCatalogId(catalogId);
+  const { data: dataservicesData } = useGetDataServicesByCatalogId(catalogId);
+
+  const catalog = catalogData?.status === 200 ? catalogData.data : undefined;
+  const datasets = datasetsData?.status === 200 ? datasetsData.data : [];
+  const dataservices = dataservicesData?.status === 200 ? dataservicesData.data : [];
+
+  if (!catalog) return null;
 
   return (
     <PageLayout>
       <PageHeader
         title="Catalog info"
-        badge={<Badge variant="info" size="lg">{formatUrn(catalogId)}</Badge>}
+        badge={
+          <Badge variant="info" size="lg">
+            {formatUrn(catalogId)}
+          </Badge>
+        }
       />
       <InfoGrid>
         <PageSection title="Catalog details:">
@@ -67,11 +81,11 @@ const RouteComponent = () => {
         <DataTable
           className="text-sm"
           data={datasets ?? []}
-          keyExtractor={(d) => d.id}
+          keyExtractor={(d) => d.id!}
           columns={[
             {
               header: "Dataset ID",
-              cell: (d) => <Badge variant="info">{formatUrn(d.id)}</Badge>,
+              cell: (d) => <Badge variant="info">{formatUrn(d.id!)}</Badge>,
             },
             {
               header: "Title",
@@ -79,11 +93,11 @@ const RouteComponent = () => {
             },
             {
               header: "Provider ID",
-              cell: (d) => <Badge variant="info">{formatUrn(catalog.dspaceParticipantId)}</Badge>,
+              cell: (d) => <Badge variant="info">{formatUrn(catalog.dspaceParticipantId!)}</Badge>,
             },
             {
               header: "Created at",
-              cell: (d) => <FormatDate date={d.dctIssued} />,
+              cell: (d) => <FormatDate date={d.dctIssued!} />,
             },
             {
               header: "Actions",
@@ -104,7 +118,7 @@ const RouteComponent = () => {
                       </DrawerTitle>
                     </DrawerHeader>
                     <DrawerBody>
-                      <OfferForm catalog={catalog} dataset={d} />
+                      offer drawer...
                     </DrawerBody>
                     <DrawerFooter>
                       <DrawerClose className="flex justify-start gap-4">
@@ -123,8 +137,8 @@ const RouteComponent = () => {
                 <Link
                   to="/catalog/$catalogId/dataset/$datasetId"
                   params={{
-                    catalogId: catalog.id,
-                    datasetId: d.id,
+                    catalogId: catalog.id!,
+                    datasetId: d.id!,
                   }}
                 >
                   <Button variant="link">
@@ -141,15 +155,15 @@ const RouteComponent = () => {
         <DataTable
           className="text-sm"
           data={dataservices ?? []}
-          keyExtractor={(ds) => ds.id}
+          keyExtractor={(ds) => ds.id!}
           columns={[
             {
               header: "Dataservice Id",
-              cell: (ds) => <Badge variant="info">{formatUrn(ds.id)}</Badge>,
+              cell: (ds) => <Badge variant="info">{formatUrn(ds.id!)}</Badge>,
             },
             {
               header: "Created at",
-              cell: (ds) => <FormatDate date={ds.dctIssued} />,
+              cell: (ds) => <FormatDate date={ds.dctIssued!} />,
             },
             {
               header: "Link",
@@ -157,8 +171,8 @@ const RouteComponent = () => {
                 <Link
                   to="/catalog/$catalogId/data-service/$dataserviceId"
                   params={{
-                    catalogId: catalog.id,
-                    dataserviceId: ds.id,
+                    catalogId: catalog.id!,
+                    dataserviceId: ds.id!,
                   }}
                 >
                   <Button variant="link">

@@ -17,26 +17,24 @@
  *
  */
 
-use crate::config::services::SsiAuthConfig;
-use crate::config::traits::CommonConfigTrait;
+use crate::config::services::MinKnownConfig;
 use crate::facades::ssi_auth_facade::SSIAuthFacadeTrait;
 use crate::http_client::HttpClient;
 use crate::mates::mates::VerifyTokenRequest;
 use crate::mates::Mates;
 use async_trait::async_trait;
 use std::sync::Arc;
-use ymir::config::traits::HostsConfigTrait;
 use ymir::config::types::HostType;
 
 const SSI_AUTH_FACADE_VERIFICATION_URL: &str = "/api/v1/mates/token";
 
 pub struct SSIAuthFacadeService {
-    config: SsiAuthConfig,
+    config: Arc<MinKnownConfig>,
     client: Arc<HttpClient>,
 }
 
 impl SSIAuthFacadeService {
-    pub fn new(config: SsiAuthConfig, client: Arc<HttpClient>) -> Self {
+    pub fn new(config: Arc<MinKnownConfig>, client: Arc<HttpClient>) -> Self {
         Self { config, client }
     }
 }
@@ -44,11 +42,11 @@ impl SSIAuthFacadeService {
 #[async_trait]
 impl SSIAuthFacadeTrait for SSIAuthFacadeService {
     async fn verify_token(&self, token: String) -> anyhow::Result<Mates> {
-        let base_url = self.config.common().hosts.get_host(HostType::Http);
+        let base_url = self.config.get_host(HostType::Http);
         let url = format!("{}{}", base_url, SSI_AUTH_FACADE_VERIFICATION_URL);
         let mate = self
             .client
-            .post_json::<VerifyTokenRequest, Mates>(&url, &VerifyTokenRequest { token })
+            .post_json::<VerifyTokenRequest, Mates>(url.as_str(), &VerifyTokenRequest { token })
             .await?;
         Ok(mate)
     }

@@ -1,20 +1,21 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   useGetDatasetById,
+  getGetDatasetByIdQueryOptions,
+  useAddPolicyToDataset,
+} from "shared/src/data/orval/datasets/datasets";
+import {
   useGetDistributionsByDatasetId,
-  getDatasetByIdOptions,
-  getDistributionsByDatasetIdOptions,
-} from "shared/src/data/catalog-queries.ts";
+  getGetDistributionsByDatasetIdQueryOptions,
+} from "shared/src/data/orval/distributions/distributions";
 import { DataTable } from "shared/src/components/DataTable";
 import { FormatDate } from "shared/src/components/ui/format-date";
 import { ArrowRight, Plus } from "lucide-react";
-import { useGetPoliciesByDatasetId } from "shared/src/data/policy-queries.ts";
+import { useCreateOdrlPolicy, useGetPoliciesByEntityId } from "shared/src/data/orval/odrl-policies/odrl-policies";
+import { OdrlPolicyInfo } from "shared/src/data/orval/model/odrlPolicyInfo";
 import { SubmitHandler } from "react-hook-form";
-import { useEffect } from "react";
 import { Button } from "shared/src/components/ui/button.tsx";
-import { usePostNewPolicyInDataset } from "shared/src/data/catalog-mutations.ts";
 import { formatUrn } from "shared/src/lib/utils";
-import Heading from "shared/src/components/ui/heading";
 import { PageLayout } from "shared/src/components/layout/PageLayout";
 import { PageHeader } from "shared/src/components/layout/PageHeader";
 import { InfoGrid } from "shared/src/components/layout/InfoGrid";
@@ -33,37 +34,42 @@ import { PolicyWrapperShow } from "shared/src/components/PolicyWrapperShow.tsx";
 import { useContext, useState } from "react";
 import { GlobalInfoContext, GlobalInfoContextType } from "shared/src/context/GlobalInfoContext.tsx";
 
-type Inputs = {
-  odrl: string;
-};
-
 function RouteComponent() {
   const { catalogId, datasetId } = Route.useParams();
-  const { data: dataset } = useGetDatasetById(datasetId);
-  const { data: distributions } = useGetDistributionsByDatasetId(datasetId);
-  const { data: policies } = useGetPoliciesByDatasetId(dataset.id);
+  const { data: datasetData } = useGetDatasetById(datasetId);
+  const { data: distributionsData } = useGetDistributionsByDatasetId(datasetId);
+  const { data: policiesData, refetch: refetchPolicies } = useGetPoliciesByEntityId(datasetId);
   const [open, setOpen] = useState(false);
-  const { mutateAsync: createPolicyAsync } = usePostNewPolicyInDataset();
-  const { api_gateway } = useContext<GlobalInfoContextType | null>(GlobalInfoContext)!;
-  const participant = {
-    participant_type: "Provider",
-  };
-  const onSubmit: SubmitHandler<Inputs> = async (data) => {
+  const { mutateAsync: createPolicyAsync } = useCreateOdrlPolicy();
+  // const { api_gateway } = useContext<GlobalInfoContextType | null>(GlobalInfoContext)!; // No longer needed
+
+  const dataset = datasetData?.status === 200 ? datasetData.data : undefined;
+  const distributions = distributionsData?.status === 200 ? distributionsData.data : [];
+  const policies = policiesData?.status === 200 ? policiesData.data : [];
+
+  const onSubmit: SubmitHandler<OdrlPolicyInfo> = async (data) => {
     await createPolicyAsync({
-      api_gateway,
-      datasetId,
-      content: {
-        offer: JSON.stringify(data),
-      },
+      data: {
+        entityId: datasetId,
+        entityType: "Dataset",
+        odrlOffer: data,
+      }
     });
     setOpen(false);
+    refetchPolicies();
   };
+
+  if (!dataset) return null;
 
   return (
     <PageLayout>
       <PageHeader
         title="Dataset with id"
-        badge={<Badge variant="info" size="lg">{formatUrn(dataset.id)}</Badge>}
+        badge={
+          <Badge variant="info" size="lg">
+            {formatUrn(dataset.id!)}
+          </Badge>
+        }
       />
       <InfoGrid>
         <PageSection>
@@ -72,7 +78,7 @@ function RouteComponent() {
               { label: "Dataset title", value: dataset.dctTitle },
               {
                 label: "Catalog creation date",
-                value: { type: "custom", content: <FormatDate date={dataset.dctIssued} /> },
+                value: { type: "custom", content: <FormatDate date={dataset.dctIssued!} /> },
               },
             ]}
           />
@@ -82,12 +88,12 @@ function RouteComponent() {
       <PageSection title="Distributions">
         <DataTable
           className="text-sm"
-          data={distributions}
-          keyExtractor={(d) => d.id}
+          data={distributions ?? []}
+          keyExtractor={(d) => d.id!}
           columns={[
             {
               header: "Distribution Id",
-              cell: (d) => <Badge variant="info">{formatUrn(d.id)}</Badge>,
+              cell: (d) => <Badge variant="info">{formatUrn(d.id!)}</Badge>,
             },
             {
               header: "Distribution Title",
@@ -96,7 +102,7 @@ function RouteComponent() {
             },
             {
               header: "Created at",
-              cell: (d) => <FormatDate date={d.dctIssued} />,
+              cell: (d) => <FormatDate date={d.dctIssued!} />,
             },
             {
               header: "Associated Data service",
@@ -106,7 +112,7 @@ function RouteComponent() {
                     to="/catalog/$catalogId/distribution-connector/$distributionId"
                     params={{
                       catalogId: catalogId,
-                      distributionId: d.id,
+                      distributionId: d.id!,
                     }}
                   >
                     <Button variant="link" size="sm" className="h-auto p-0 text-xs">
@@ -118,10 +124,14 @@ function RouteComponent() {
                     to="/catalog/$catalogId/data-service/$dataserviceId"
                     params={{
                       catalogId: catalogId,
-                      dataserviceId: d.dcatAccessService,
+                      dataserviceId: d.dcatAccessService!,
                     }}
                   >
-                    <Button variant="link" size="sm" className="h-auto p-0 text-xs text-muted-foreground hover:text-foreground">
+                    <Button
+                      variant="link"
+                      size="sm"
+                      className="h-auto p-0 text-xs text-muted-foreground hover:text-foreground"
+                    >
                       See dataservice
                       <ArrowRight className="ml-1 h-3 w-3" />
                     </Button>
@@ -133,14 +143,17 @@ function RouteComponent() {
         />
       </PageSection>
 
-
       <PageSection
         title="ODRL Policies"
         className="mt-10"
         action={
           <Drawer direction={"right"} open={open} onOpenChange={(open) => setOpen(open)}>
             <DrawerTrigger asChild>
-              <Button variant="outline" size="sm" className="h-6 text-[10px] uppercase tracking-wide px-2 gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-6 text-[10px] uppercase tracking-wide px-2 gap-1"
+              >
                 <Plus className="h-3 w-3" />
                 Add Policy
               </Button>
@@ -152,7 +165,7 @@ function RouteComponent() {
                   <div className="flex items-center text-sm font-normal text-muted-foreground">
                     for Dataset
                     <Badge variant="info" size="sm" className="ml-2 font-mono">
-                      {formatUrn(dataset.id)}
+                      {formatUrn(dataset.id!)}
                     </Badge>
                   </div>
                 </DrawerTitle>
@@ -168,10 +181,10 @@ function RouteComponent() {
               <PolicyWrapperShow
                 key={policy.id}
                 policy={policy}
-                participant={participant}
-                datasetId={dataset.id}
+                datasetId={dataset.id!}
                 catalogId={undefined}
                 datasetName={dataset.dctTitle}
+                showOfferAccess
               />
             ))}
         </div>
@@ -186,9 +199,8 @@ function RouteComponent() {
 export const Route = createFileRoute("/catalog/$catalogId/dataset/$datasetId")({
   component: RouteComponent,
   pendingComponent: () => <div>Loading...</div>,
-  loader: async ({ context: { queryClient, api_gateway }, params: { datasetId } }) => {
-    if (!api_gateway) return;
-    await queryClient.ensureQueryData(getDatasetByIdOptions(api_gateway, datasetId));
-    return queryClient.ensureQueryData(getDistributionsByDatasetIdOptions(api_gateway, datasetId));
+  loader: async ({ context: { queryClient }, params: { datasetId } }) => {
+    await queryClient.ensureQueryData(getGetDatasetByIdQueryOptions(datasetId));
+    return queryClient.ensureQueryData(getGetDistributionsByDatasetIdQueryOptions(datasetId));
   },
 });

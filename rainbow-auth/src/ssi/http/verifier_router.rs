@@ -29,11 +29,13 @@ use ymir::types::verifying::VerifyPayload;
 use crate::ssi::core::traits::CoreVerifierTrait;
 
 pub struct VerifierRouter {
-    verifier: Arc<dyn CoreVerifierTrait>
+    verifier: Arc<dyn CoreVerifierTrait>,
 }
 
 impl VerifierRouter {
-    pub fn new(verifier: Arc<dyn CoreVerifierTrait>) -> Self { Self { verifier } }
+    pub fn new(verifier: Arc<dyn CoreVerifierTrait>) -> Self {
+        Self { verifier }
+    }
 
     pub fn router(self) -> Router {
         Router::new()
@@ -44,28 +46,28 @@ impl VerifierRouter {
 
     async fn vp_definition(
         State(verifier): State<Arc<dyn CoreVerifierTrait>>,
-        Path(state): Path<String>
+        Path(state): Path<String>,
     ) -> impl IntoResponse {
         match verifier.get_vpd(state).await {
             Ok(data) => (StatusCode::OK, Json(data)).into_response(),
-            Err(e) => e.to_response()
+            Err(e) => e.to_response(),
         }
     }
 
     async fn verify(
         State(verifier): State<Arc<dyn CoreVerifierTrait>>,
         Path(state): Path<String>,
-        payload: Result<Form<VerifyPayload>, FormRejection>
+        payload: Result<Form<VerifyPayload>, FormRejection>,
     ) -> impl IntoResponse {
         let payload = match payload {
             Ok(Form(data)) => data,
-            Err(e) => return e.into_response()
+            Err(e) => return e.into_response(),
         };
 
         match verifier.verify(state, payload).await {
             Ok(Some(uri)) => (StatusCode::OK, uri).into_response(),
             Ok(None) => StatusCode::OK.into_response(),
-            Err(e) => e.to_response()
+            Err(e) => e.to_response(),
         }
     }
 }

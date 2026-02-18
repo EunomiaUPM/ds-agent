@@ -1,20 +1,21 @@
-use crate::data::entities::transfer_event::NewTransferEventModel;
-use crate::data::factory_trait::DataPlaneRepoTrait;
+use crate::data::entities::transfer_event::NewTransferEvent;
+use crate::data::factory_trait::DataplaneRepoTrait;
 use crate::entities::transfer_events::{
     NewTransferEventDto, TransferEventDto, TransferEventEntitiesTrait,
 };
 use rainbow_common::errors::{CommonErrors, ErrorLog};
+use std::str::FromStr;
 use std::sync::Arc;
 use tracing::error;
 use urn::Urn;
 
 pub struct TransferEventEntityService {
-    pub data_plane_repo: Arc<dyn DataPlaneRepoTrait>,
+    pub data_plane_repo: Arc<dyn DataplaneRepoTrait>,
 }
 
 impl TransferEventEntityService {
-    pub fn new(data_plane_repo: Arc<dyn DataPlaneRepoTrait>) -> Self {
-        Self { data_plane_repo }
+    pub fn new(data_plane_repo: &std::sync::Arc<dyn DataplaneRepoTrait>) -> Self {
+        Self { data_plane_repo: data_plane_repo.clone() }
     }
 }
 
@@ -94,12 +95,12 @@ impl TransferEventEntitiesTrait for TransferEventEntityService {
         &self,
         new_transfer_event: &NewTransferEventDto,
     ) -> anyhow::Result<TransferEventDto> {
-        let new_model: NewTransferEventModel = new_transfer_event.clone().into();
+        let new_model: NewTransferEvent = new_transfer_event.clone().into();
 
         let created_event = self
             .data_plane_repo
             .get_transfer_events_repo()
-            .create_transfer_event(&new_transfer_event.id, &new_model)
+            .create_transfer_event(&new_model)
             .await
             .map_err(|e| {
                 let err = CommonErrors::database_new(&e.to_string());

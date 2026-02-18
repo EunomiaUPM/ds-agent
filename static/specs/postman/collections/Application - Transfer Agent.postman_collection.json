@@ -1,8 +1,9 @@
 {
   "info": {
-    "_postman_id": "3c11e84d-0444-4b45-908d-f48686249726",
+    "_postman_id": "ea121a3b-eeec-4ecf-8cc5-cdf6d6716244",
     "name": "Application - Transfer Agent",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "13165791"
   },
   "item": [
     {
@@ -10,7 +11,6 @@
       "item": [
         {
           "name": "Get all entities",
-          "id": "16d7d36e-4620-48d2-b504-a5524f56c0b6",
           "request": {
             "method": "GET",
             "header": [
@@ -47,7 +47,6 @@
         },
         {
           "name": "Get entities batch",
-          "id": "fee830d3-1073-4a16-bbe6-023062c18509",
           "request": {
             "method": "POST",
             "header": [
@@ -84,7 +83,6 @@
         },
         {
           "name": "Get entity",
-          "id": "ac19fcc6-67db-45e8-bdfc-85d65760457e",
           "request": {
             "method": "GET",
             "header": [
@@ -112,7 +110,6 @@
         },
         {
           "name": "Get entity with key",
-          "id": "f1466e49-afb4-45f7-97b8-150efea1160c",
           "request": {
             "method": "GET",
             "header": [
@@ -142,7 +139,6 @@
         },
         {
           "name": "Create entity",
-          "id": "0287813d-09e1-46c5-8b5c-c31091a5f7a7",
           "request": {
             "method": "POST",
             "header": [
@@ -178,7 +174,6 @@
         },
         {
           "name": "Update entity",
-          "id": "1a8e5ec1-8f09-4d38-a180-bf53ac418d31",
           "request": {
             "method": "PUT",
             "header": [
@@ -215,7 +210,6 @@
         },
         {
           "name": "Delete entity",
-          "id": "d11a0d7a-06d8-4f7b-8780-8997c5b63cb7",
           "request": {
             "method": "DELETE",
             "header": [
@@ -252,7 +246,6 @@
         },
         {
           "name": "Get all messages",
-          "id": "fec10e4d-dc6e-40f6-85c7-b5da8e05758b",
           "request": {
             "method": "GET",
             "header": [
@@ -279,7 +272,6 @@
         },
         {
           "name": "Get all messages by process",
-          "id": "fbdd22f4-6dde-4492-8895-65dd6ccf0409",
           "request": {
             "method": "GET",
             "header": [
@@ -308,7 +300,6 @@
         },
         {
           "name": "Create message",
-          "id": "a9c8c820-5cab-4782-9bcc-fa833e3c2c6e",
           "request": {
             "method": "POST",
             "header": [
@@ -344,7 +335,6 @@
         },
         {
           "name": "Get message",
-          "id": "fb120cfd-c37e-44ff-b068-77c4727d5c5d",
           "request": {
             "method": "GET",
             "header": [
@@ -372,7 +362,6 @@
         },
         {
           "name": "Delete message",
-          "id": "49043fb2-be2e-45d8-8d0c-7d88f29dae3a",
           "request": {
             "method": "DELETE",
             "header": [
@@ -407,15 +396,13 @@
           },
           "response": []
         }
-      ],
-      "id": "0bdd270a-b009-4528-891f-ae6592497d66"
+      ]
     },
     {
       "name": "DSP",
       "item": [
         {
           "name": "Get transfer",
-          "id": "9fa2f8dd-c817-4fcf-b35c-0679f4391773",
           "request": {
             "method": "GET",
             "header": [
@@ -446,7 +433,6 @@
             {
               "listen": "test",
               "script": {
-                "id": "a76181ab-f504-48c4-9ff0-914cec659690",
                 "exec": [
                   "pm.collectionVariables.set(\"consumerPid\", pm.response.json().consumerPid);",
                   "pm.collectionVariables.set(\"providerPid\", pm.response.json().providerPid);"
@@ -457,7 +443,6 @@
               }
             }
           ],
-          "id": "0ab21c1d-82b4-4150-82b8-557b14845c75",
           "request": {
             "method": "POST",
             "header": [
@@ -488,7 +473,6 @@
         },
         {
           "name": "Start",
-          "id": "ee83ba96-a0e2-4687-82af-0530097391e4",
           "request": {
             "method": "POST",
             "header": [
@@ -523,7 +507,6 @@
         },
         {
           "name": "Suspend",
-          "id": "cd4f4690-57cf-4631-8d9f-8e50dc95f240",
           "request": {
             "method": "POST",
             "header": [
@@ -558,7 +541,6 @@
         },
         {
           "name": "Completion",
-          "id": "f6da46a1-3e78-4c71-834c-c22928abefde",
           "request": {
             "method": "POST",
             "header": [
@@ -593,7 +575,6 @@
         },
         {
           "name": "Terminate",
-          "id": "6ef32ad6-aa3f-4208-a246-961ac629d8a8",
           "request": {
             "method": "POST",
             "header": [
@@ -626,8 +607,7 @@
           },
           "response": []
         }
-      ],
-      "id": "e0b86e86-aa30-4e11-945d-33c2e153e79b"
+      ]
     },
     {
       "name": "DSP Rpc",
@@ -638,7 +618,6 @@
             {
               "listen": "test",
               "script": {
-                "id": "a76181ab-f504-48c4-9ff0-914cec659690",
                 "exec": [
                   ""
                 ],
@@ -648,7 +627,6 @@
               }
             }
           ],
-          "id": "2d460608-770d-41c2-9d8b-a2bfad3dc854",
           "request": {
             "method": "POST",
             "header": [
@@ -683,7 +661,6 @@
         },
         {
           "name": "Start",
-          "id": "b7cfc1d3-25f3-46ae-9c36-2e88adc94e7a",
           "request": {
             "method": "POST",
             "header": [
@@ -718,7 +695,6 @@
         },
         {
           "name": "Suspend",
-          "id": "79adc585-df7f-4e07-856b-01cbd21acade",
           "request": {
             "method": "POST",
             "header": [
@@ -753,7 +729,6 @@
         },
         {
           "name": "Completion",
-          "id": "f4de5a2e-9d1e-4037-8cbb-30bcfe1c75c4",
           "request": {
             "method": "POST",
             "header": [
@@ -788,7 +763,6 @@
         },
         {
           "name": "Terminate",
-          "id": "2b34e338-2c77-4051-a5bf-e5b916d489a5",
           "request": {
             "method": "POST",
             "header": [
@@ -821,21 +795,268 @@
           },
           "response": []
         }
-      ],
-      "id": "40e4bf15-927a-4232-904c-e19343076ec0"
+      ]
+    },
+    {
+      "name": "Dataplane",
+      "item": [
+        {
+          "name": "Dataplane Processes",
+          "item": [
+            {
+              "name": "Get all",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{ProviderUrl}}/api/v1/transfer-agent/dataplane/dataplane-processes",
+                  "host": [
+                    "{{ProviderUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "transfer-agent",
+                    "dataplane",
+                    "dataplane-processes"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get logs by id",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{ProviderUrl}}/api/v1/transfer-agent/dataplane/dataplane-processes/urn:dataplane-process:123",
+                  "host": [
+                    "{{ProviderUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "transfer-agent",
+                    "dataplane",
+                    "dataplane-processes",
+                    "urn:dataplane-process:123"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get by id",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{ProviderUrl}}/api/v1/transfer-agent/dataplane/dataplane-processes/urn:dataplane-process:123",
+                  "host": [
+                    "{{ProviderUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "transfer-agent",
+                    "dataplane",
+                    "dataplane-processes",
+                    "urn:dataplane-process:123"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get by id transfer process id",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{ProviderUrl}}/api/v1/transfer-agent/dataplane/dataplane-processes/transfer-process/urn:transfer-process:123",
+                  "host": [
+                    "{{ProviderUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "transfer-agent",
+                    "dataplane",
+                    "dataplane-processes",
+                    "transfer-process",
+                    "urn:transfer-process:123"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Batch",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"ids\": [\n        \"urn:uuid:as\"\n    ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{ProviderUrl}}/api/v1/transfer-agent/dataplane/dataplane-processes/batch",
+                  "host": [
+                    "{{ProviderUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "transfer-agent",
+                    "dataplane",
+                    "dataplane-processes",
+                    "batch"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"transferProcessId\": \"urn:transfer-process:113\", \n    \"role\": \"Provider\", \n    \"interactionMode\": \"Push\",\n    \"state\": \"Configuring\", \n    \"ingressConfig\": {},\n    \"egressConfig\": {}\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{ProviderUrl}}/api/v1/transfer-agent/dataplane/dataplane-processes",
+                  "host": [
+                    "{{ProviderUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "transfer-agent",
+                    "dataplane",
+                    "dataplane-processes"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Edit",
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"state\": \"Auth\", \n    \"ingressConfig\": {\n        \"morsas\": false\n    }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{ProviderUrl}}/api/v1/transfer-agent/dataplane/dataplane-processes/urn:dataplane-process:e703f671-e046-497b-b1d5-fd0742758f0f",
+                  "host": [
+                    "{{ProviderUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "transfer-agent",
+                    "dataplane",
+                    "dataplane-processes",
+                    "urn:dataplane-process:e703f671-e046-497b-b1d5-fd0742758f0f"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{ProviderUrl}}/api/v1/transfer-agent/dataplane/dataplane-processes/urn:dataplane-process:c1e3e1db-1153-45c6-951b-278e80d7d612",
+                  "host": [
+                    "{{ProviderUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "transfer-agent",
+                    "dataplane",
+                    "dataplane-processes",
+                    "urn:dataplane-process:c1e3e1db-1153-45c6-951b-278e80d7d612"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Transfer Events",
+          "item": [
+            {
+              "name": "Get all events by dataplane process",
+              "request": {
+                "method": "GET",
+                "header": []
+              },
+              "response": []
+            },
+            {
+              "name": "Get single event",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{ProviderUrl}}/api/v1/transfer-agent/dataplane/transfer-events/urn:transfer-event:a",
+                  "host": [
+                    "{{ProviderUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "transfer-agent",
+                    "dataplane",
+                    "transfer-events",
+                    "urn:transfer-event:a"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "well-known",
-      "id": "577eb72f-2758-44b1-a931-34e867cfa86f",
       "request": {
         "method": "GET",
-        "header": []
+        "header": [],
+        "url": {
+          "raw": ""
+        }
       },
       "response": []
     },
     {
       "name": "health",
-      "id": "8ad6bff5-5282-4029-a628-7ca55d3bb78b",
       "request": {
         "method": "GET",
         "header": [],
@@ -854,12 +1075,10 @@
   ],
   "variable": [
     {
-      "id": "c8336301-b571-4e35-bddf-1c0a16a4e93d",
       "key": "consumerPid",
       "value": ""
     },
     {
-      "id": "db245d7f-fbbc-4a91-8e43-e4c38dd41a55",
       "key": "providerPid",
       "value": ""
     }

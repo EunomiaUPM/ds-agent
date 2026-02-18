@@ -1,15 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { formatUrn } from "shared/src/lib/utils";
-import dayjs from "dayjs";
-import {
-  useGetContractNegotiationMessagesByCNID,
-  useGetContractNegotiationProcessesByCNID,
-} from "shared/src/data/contract-queries.ts";
 import { ContractNegotiationActions } from "shared/src/components/actions/ContractNegotiationActions";
 import { InfoList } from "shared/src/components/ui/info-list";
 import { FormatDate } from "shared/src/components/ui/format-date";
 import Heading from "../../../../../shared/src/components/ui/heading.tsx";
-import { Badge, BadgeState } from "shared/src/components/ui/badge.tsx";
 import {
   Drawer,
   DrawerBody,
@@ -21,44 +14,55 @@ import {
   DrawerTrigger,
 } from "@./../../shared/src/components/ui/drawer.tsx";
 import { Button } from "shared/src/components/ui/button.tsx";
-import { useEffect } from "react";
-import CnProcessMessageComponent
-  from "@./../../shared/src/components/CnProcessMessageComponent.tsx";
+import CnProcessMessageComponent from "@./../../shared/src/components/CnProcessMessageComponent.tsx";
 import { PageLayout } from "shared/src/components/layout/PageLayout";
 import { PageSection } from "shared/src/components/layout/PageSection";
 import { InfoGrid } from "shared/src/components/layout/InfoGrid";
+import { useGetNegotiationProcessById } from "shared/data/orval/negotiations/negotiations.ts";
+import { PageHeader } from "shared/components/layout/PageHeader.tsx";
+import { Skeleton } from "shared/components/ui/skeleton.tsx";
+import { GeneralErrorComponent } from "@/components/GeneralErrorComponent.tsx";
 
 const RouteComponent = () => {
-
   const { cnProcess } = Route.useParams();
-  const { data } = useGetContractNegotiationProcessesByCNID(cnProcess);
-  const process = data as CNProcess;
-  const { data: cnMessages } = useGetContractNegotiationMessagesByCNID(cnProcess);
+  const { data: process, isLoading: isNegotiationProcessLoading } = useGetNegotiationProcessById(cnProcess);
+
+
+  if (isNegotiationProcessLoading) {
+    return (
+      <PageLayout>
+        <PageHeader
+          title="Contract Negotiation Process"
+          badge={<Skeleton className="h-8 w-48" />}
+        />
+        <div>Loading...</div>
+      </PageLayout>
+    );
+  }
+
+  // handle error
+  if (!process || process.status !== 200) {
+    return <GeneralErrorComponent error={new Error("Contract negotiation process not found")} reset={() => { }} />;
+  }
+
 
   return (
     <PageLayout>
-      <PageSection title="Contract negotiation info">
-        <InfoGrid className="mb-4">
+      <InfoGrid className="mb-4">
+        <PageSection title="Contract negotiation info">
           <InfoList
             items={[
-              { label: "ProviderPid", value: { type: "urn", value: process.provider_id } },
-              { label: "ConsumerPid", value: { type: "urn", value: process.consumer_id } },
-              { label: "State", value: { type: "status", value: process.state } },
-              {
-                label: "Client type",
-                value: { type: "custom", content: <Badge>{process.is_business ? "Business" : "Standard"}</Badge> },
-              },
+              { label: "ProviderPid", value: { type: "urn", value: process.data.id } },
+              { label: "State", value: { type: "status", value: process.data.state } },
               {
                 label: "Created at",
-                value: { type: "custom", content: <FormatDate date={process.created_at} /> },
+                value: { type: "custom", content: <FormatDate date={process.data.createdAt} /> },
               },
             ]}
           />
-        </InfoGrid>
-      </PageSection>
+        </PageSection>
+      </InfoGrid>
       <PageSection>
-        {/*  */}
-
         {/* DRAWER */}
         <Drawer direction={"right"}>
           <DrawerTrigger>
@@ -74,7 +78,7 @@ const RouteComponent = () => {
             </DrawerHeader>
             <DrawerBody>
               {/* New message subcomponent */}
-              {cnMessages.map((message) => (
+              {process.data.messages?.map((message) => (
                 <CnProcessMessageComponent message={message} />
               ))}
               {/* / New message subcomponent */}
@@ -89,7 +93,7 @@ const RouteComponent = () => {
       </PageSection>
 
       {/* ACTIONS */}
-      <ContractNegotiationActions process={process} tiny={false} />
+      <ContractNegotiationActions process={process.data} tiny={false} />
     </PageLayout>
   );
 };

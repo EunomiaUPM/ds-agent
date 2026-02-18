@@ -94,7 +94,7 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
     async fn get_distribution_by_dataset_id_and_dct_format(
         &self,
         dataset_id: &Urn,
-        dct_formats: &DctFormats,
+        dct_formats: &String,
     ) -> anyhow::Result<distribution::Model, CatalogAgentRepoErrors> {
         let dataset_id = dataset_id.to_string();
         let _ = dataset::Entity::find_by_id(dataset_id.clone())

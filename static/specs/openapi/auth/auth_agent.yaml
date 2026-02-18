@@ -1,0 +1,789 @@
+openapi: 3.0.3
+info:
+  title: Rainbow Auth Agent API
+  description: OpenAPI specification for the Rainbow Auth Agent, managing SSI interactions, detailed verifiable credential logic, and authorization flow.
+  version: 1.0.0
+servers:
+  - url: /v1/auth
+    description: Base path for the Auth Agent API
+
+tags:
+  - name: Business
+    description: Business logic authentication endpoints
+  - name: Gaia Self-Issuer
+    description: Gaia-X Self-Description issuance and management
+  - name: GateKeeper
+    description: GNAP-based access control and grant management
+  - name: Mates
+    description: Management of trusted peers (Mates) in the dataspace
+  - name: Onboarder
+    description: Onboarding process for new consumers/providers
+  - name: VC Requester
+    description: Verifiable Credential acquisition flows
+  - name: Verifier
+    description: Verifiable Presentation verification endpoints
+
+paths:
+  # --- Business Router ---
+  /business/login:
+    post:
+      tags:
+        - Business
+      summary: Business Login
+      operationId: businessLogin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RainbowBusinessLoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /business/token:
+    post:
+      tags:
+        - Business
+      summary: Get Business Token
+      operationId: businessToken
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RainbowBusinessLoginRequest"
+      responses:
+        "200":
+          description: Token retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # --- Gaia Self-Issuer Router ---
+  /gaia/issue:
+    post:
+      tags:
+        - Gaia Self-Issuer
+      summary: Issue Gaia-X Credentials manually
+      operationId: issueGaiaCredentials
+      responses:
+        "200":
+          description: Credentials issued successfully
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /gaia/credentialOffer:
+    get:
+      tags:
+        - Gaia Self-Issuer
+      summary: Get Credential Offer data
+      operationId: getCredentialOffer
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: string
+          description: The hash ID for the offer
+      responses:
+        "200":
+          description: Credential Offer data
+          content:
+            application/json:
+              schema:
+                type: object
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /gaia/.well-known/openid-credential-issuer:
+    get:
+      tags:
+        - Gaia Self-Issuer
+      summary: Get OpenID Credential Issuer configuration
+      operationId: getOpenidCredentialIssuer
+      responses:
+        "200":
+          description: Issuer configuration
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /gaia/.well-known/oauth-authorization-server:
+    get:
+      tags:
+        - Gaia Self-Issuer
+      summary: Get OAuth Authorization Server configuration
+      operationId: getOauthAuthorizationServer
+      responses:
+        "200":
+          description: Server configuration
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /gaia/token:
+    post:
+      tags:
+        - Gaia Self-Issuer
+      summary: Get Token (OID4VCI)
+      operationId: getGaiaToken
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/TokenRequest"
+      responses:
+        "200":
+          description: Token response
+          content:
+            application/json:
+              schema:
+                type: object
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /gaia/credential/generate:
+    post:
+      tags:
+        - Gaia Self-Issuer
+      summary: Generate a specific credential
+      operationId: generateCredential
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CredentialRequest"
+      responses:
+        "200":
+          description: Credential generated
+          content:
+            application/json:
+              schema:
+                type: object
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /gaia/credential/request:
+    post:
+      tags:
+        - Gaia Self-Issuer
+      summary: Request default Gaia-X VC
+      operationId: requestGaiaVc
+      responses:
+        "200":
+          description: VC requested
+          content:
+            application/json:
+              schema:
+                type: object
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # --- GateKeeper Router ---
+  /gate/access:
+    post:
+      tags:
+        - GateKeeper
+      summary: GNAP Access Request
+      operationId: gnapAccessRequest
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GrantRequest"
+      responses:
+        "200":
+          description: Access Grant response
+          content:
+            application/json:
+              schema:
+                type: object
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /gate/continue/{id}:
+    post:
+      tags:
+        - GateKeeper
+      summary: Continue GNAP Request
+      operationId: gnapContinueRequest
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefBody"
+      responses:
+        "200":
+          description: Continuation response
+          content:
+            application/json:
+              schema:
+                type: object
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # --- Mate Router ---
+  /mates/all:
+    get:
+      tags:
+        - Mates
+      summary: Get all mates
+      operationId: getAllMates
+      responses:
+        "200":
+          description: List of mates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                   type: object
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /mates/myself:
+    get:
+      tags:
+        - Mates
+      summary: Get own identity (Myself)
+      operationId: getMyself
+      responses:
+        "200":
+          description: Own identity details
+          content:
+            application/json:
+              schema:
+                type: object
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /mates/batch:
+    post:
+      tags:
+        - Mates
+      summary: Get batch of mates
+      operationId: getBatchMates
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BatchRequests"
+      responses:
+        "200":
+          description: Batch of mates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /mates/token:
+    post:
+      tags:
+        - Mates
+      summary: Verify/Get Mate by Token
+      operationId: getMateByToken
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyTokenRequest"
+      responses:
+        "200":
+          description: Mate details
+          content:
+            application/json:
+              schema:
+                type: object
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /mates/{id}:
+    get:
+      tags:
+        - Mates
+      summary: Get mate by ID
+      operationId: getMateById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Mate details
+          content:
+            application/json:
+              schema:
+                type: object
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # --- Onboarder Router ---
+  /onboard/provider:
+    post:
+      tags:
+        - Onboarder
+      summary: Onboard a new provider
+      operationId: onboardProvider
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReachProvider"
+      responses:
+        "200":
+          description: Onboarding initiation response (e.g. URI)
+          content:
+            text/plain:
+              schema:
+                type: string
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /onboard/callback/{id}:
+    get:
+      tags:
+        - Onboarder
+      summary: Onboarding callback (GET)
+      operationId: onboardCallbackGet
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: hash
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: interact_ref
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Callback processed
+          content:
+            application/json:
+              schema:
+                type: object
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      tags:
+        - Onboarder
+      summary: Onboarding callback (POST)
+      operationId: onboardCallbackPost
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApprovedCallbackBody"
+      responses:
+        "200":
+          description: Callback processed
+          content:
+            application/json:
+              schema:
+                type: object
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # --- VC Requester Router ---
+  /vc-request/beg/cross-user:
+    post:
+      tags:
+        - VC Requester
+      summary: Beg for VC (Cross-User flow)
+      operationId: begVcCrossUser
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReachAuthority"
+      responses:
+        "200":
+          description: Request initiated successfully
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /vc-request/beg/oidc:
+    post:
+      tags:
+        - VC Requester
+      summary: Beg for VC (OIDC flow)
+      operationId: begVcOidc
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReachAuthority"
+      responses:
+        "200":
+          description: Request initiated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /vc-request/all:
+    get:
+      tags:
+        - VC Requester
+      summary: Get all VC requests
+      operationId: getAllVcRequests
+      responses:
+        "200":
+          description: List of requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /vc-request/{id}:
+    get:
+      tags:
+        - VC Requester
+      summary: Get VC request by ID
+      operationId: getVcRequestById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: VC request details
+          content:
+            application/json:
+              schema:
+                type: object
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /vc-request/callback/{id}:
+    get:
+      tags:
+        - VC Requester
+      summary: VC Request Callback (GET)
+      operationId: vcRequestCallbackGet
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: hash
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: interact_ref
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Callback processed
+          content:
+            application/json:
+              schema:
+                type: object
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      tags:
+        - VC Requester
+      summary: VC Request Callback (POST)
+      operationId: vcRequestCallbackPost
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CallbackBody"
+      responses:
+        "200":
+          description: Callback processed
+          content:
+            application/json:
+              schema:
+                type: object
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # --- Verifier Router ---
+  /verifier/pd/{state}:
+    get:
+      tags:
+        - Verifier
+      summary: Get Presentation Definition
+      operationId: getPresentationDefinition
+      parameters:
+        - name: state
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Presentation Definition
+          content:
+            application/json:
+              schema:
+                type: object
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /verifier/verify/{state}:
+    post:
+      tags:
+        - Verifier
+      summary: Verify Presentation
+      operationId: verifyPresentation
+      parameters:
+        - name: state
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/VerifyPayload"
+      responses:
+        "200":
+          description: Verification result or redirect URI
+          content:
+            text/plain:
+              schema:
+                type: string
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    RainbowBusinessLoginRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+      required:
+        - username
+        - password
+
+    TokenRequest:
+      type: object
+      additionalProperties: true
+      description: "Standard OAuth/OIDC Token Request parameters"
+
+    CredentialRequest:
+      type: object
+      additionalProperties: true
+      description: "Parameters for requesting a credential"
+
+    GrantRequest:
+      type: object
+      properties:
+        access_token:
+           type: string
+        interact:
+           type: object
+      additionalProperties: true
+      description: "GNAP Grant Request"
+
+    RefBody:
+      type: object
+      properties:
+        interact_ref:
+          type: string
+      description: "Reference body for continuing a request"
+
+    BatchRequests:
+      type: object
+      properties:
+        ids:
+          type: array
+          items:
+            type: string
+      description: "Request for batch retrieval"
+
+    VerifyTokenRequest:
+      type: object
+      properties:
+        token:
+          type: string
+      description: "Request to verify a token"
+
+    ReachProvider:
+      type: object
+      additionalProperties: true
+      description: "Payload to reach/onboard a provider"
+
+    ApprovedCallbackBody:
+      type: object
+      properties:
+        hash:
+          type: string
+        interact_ref:
+          type: string
+      description: "Callback body for approved interactions"
+
+    ReachAuthority:
+      type: object
+      additionalProperties: true
+      description: "Payload to reach an authority for VCS"
+
+    CallbackBody:
+      type: object
+      description: "Generic callback body (Approved usually)"
+      additionalProperties: true
+
+    VerifyPayload:
+      type: object
+      properties:
+         vp_token:
+           type: string
+         presentation_submission:
+           type: string
+      additionalProperties: true
+
+  responses:
+    BadRequest:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+                example: 400
+              message:
+                type: string
+              details:
+                type: string
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+                example: 401
+              message:
+                type: string
+    
+    NotFound:
+      description: Resource Not Found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+                example: 404
+              message:
+                type: string
+
+    InternalServerError:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+                example: 500
+              message:
+                type: string

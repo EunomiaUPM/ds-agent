@@ -27,7 +27,7 @@ import React from "react";
  * Props for the PageLayout component.
  * Extends standard HTML div attributes.
  */
-export interface PageLayoutProps extends React.HTMLAttributes<HTMLDivElement> { }
+export interface PageLayoutProps extends React.HTMLAttributes<HTMLDivElement> {}
 
 // =============================================================================
 // COMPONENT

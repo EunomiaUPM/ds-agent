@@ -1,4 +1,3 @@
-use crate::entities::data_plane_process::DataPlaneProcessEntitiesTrait;
 use crate::entities::transfer_events::TransferEventEntitiesTrait;
 use crate::errors::error_adapter::CustomToResponse;
 use crate::http::common::parse_urn;
@@ -12,14 +11,7 @@ use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct TransferEventsRouter {
-    data_plane_process_entity: Arc<dyn DataPlaneProcessEntitiesTrait>,
     transfer_event_entity: Arc<dyn TransferEventEntitiesTrait>,
-}
-
-impl FromRef<TransferEventsRouter> for Arc<dyn DataPlaneProcessEntitiesTrait> {
-    fn from_ref(state: &TransferEventsRouter) -> Self {
-        state.data_plane_process_entity.clone()
-    }
 }
 
 impl FromRef<TransferEventsRouter> for Arc<dyn TransferEventEntitiesTrait> {
@@ -29,46 +21,49 @@ impl FromRef<TransferEventsRouter> for Arc<dyn TransferEventEntitiesTrait> {
 }
 
 impl TransferEventsRouter {
-    pub fn new(
-        data_plane_process_entity: Arc<dyn DataPlaneProcessEntitiesTrait>,
-        transfer_event_entity: Arc<dyn TransferEventEntitiesTrait>,
-    ) -> Self {
-        Self { data_plane_process_entity, transfer_event_entity }
+    pub fn new(transfer_event_entity: Arc<dyn TransferEventEntitiesTrait>) -> Self {
+        Self { transfer_event_entity }
     }
-    pub fn router(self) -> Router {
+
+    pub fn dataplane_processes_sub_router(self) -> Router {
         Router::new()
-            .route("/data-plane/:data_plane_id", get(Self::handle_get_data_plane_by_id))
-            .route("/:transfer_id", get(Self::handle_get_by_id))
+            .route("/{dataplane_process_id}/events", get(Self::handle_get_events_by_transfer_id))
             .with_state(self)
     }
-    async fn handle_get_data_plane_by_id(
+
+    pub fn events_sub_router(self) -> Router {
+        Router::new().route("/{event_id}", get(Self::handle_get_event_by_id)).with_state(self)
+    }
+
+    async fn handle_get_events_by_transfer_id(
         State(state): State<TransferEventsRouter>,
-        Path(data_plane_id): Path<String>,
+        Path(dataplane_process_id): Path<String>,
     ) -> impl IntoResponse {
-        let data_plane_id = match parse_urn(&data_plane_id) {
+        let dataplane_process_id = match parse_urn(&dataplane_process_id) {
             Ok(urn) => urn,
             Err(resp) => return resp,
         };
-        match state.transfer_event_entity.get_transfer_events_by_process_id(&data_plane_id).await {
-            Ok(dataplane_session) => (StatusCode::OK, Json(dataplane_session)).into_response(),
+
+        match state.transfer_event_entity.get_transfer_events_by_process_id(&dataplane_process_id).await {
+            Ok(events) => (StatusCode::OK, Json(events)).into_response(),
             Err(e) => e.to_response(),
         }
     }
 
-    async fn handle_get_by_id(
+    async fn handle_get_event_by_id(
         State(state): State<TransferEventsRouter>,
-        Path(transfer_id): Path<String>,
+        Path(event_id): Path<String>,
     ) -> impl IntoResponse {
-        let transfer_id = match parse_urn(&transfer_id) {
+        let event_id = match parse_urn(&event_id) {
             Ok(urn) => urn,
             Err(resp) => return resp,
         };
-        match state.transfer_event_entity.get_transfer_event_by_id(&transfer_id).await {
+        match state.transfer_event_entity.get_transfer_event_by_id(&event_id).await {
             Ok(transfer_event) => match transfer_event {
                 Some(transfer_event) => (StatusCode::OK, Json(transfer_event)).into_response(),
                 None => {
                     let err = CommonErrors::missing_resource_new(
-                        transfer_id.to_string().as_str(),
+                        event_id.to_string().as_str(),
                         "Transfer event not found",
                     );
                     tracing::error!("{}", err.log());

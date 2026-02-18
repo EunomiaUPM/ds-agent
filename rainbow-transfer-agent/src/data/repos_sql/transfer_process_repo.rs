@@ -49,8 +49,8 @@ impl TransferProcessRepoTrait for TransferProcessRepoForSql {
         page: Option<u64>,
     ) -> anyhow::Result<Vec<transfer_process::Model>, TransferProcessRepoErrors> {
         let processes = transfer_process::Entity::find()
-            .limit(limit.unwrap_or(20))
-            .offset(page.map(|p| p * limit.unwrap_or(20)).unwrap_or(0))
+            .limit(limit.unwrap_or(100))
+            .offset(page.map(|p| p * limit.unwrap_or(100)).unwrap_or(0))
             .all(&self.db_connection)
             .await;
         match processes {

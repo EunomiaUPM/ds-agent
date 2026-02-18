@@ -20,7 +20,7 @@ use tracing::{error, info};
 use ymir::config::traits::HostsConfigTrait;
 use ymir::config::types::HostType;
 use ymir::data::entities::{
-    mates, recv_interaction, recv_request, recv_verification, token_requirements
+    mates, recv_interaction, recv_request, recv_verification, token_requirements,
 };
 use ymir::errors::{ErrorLogTrait, Errors};
 use ymir::types::errors::BadFormat;
@@ -34,7 +34,7 @@ use super::super::GateKeeperTrait;
 use super::config::{GnapGateKeeperConfig, GnapGateKeeperConfigTrait};
 
 pub struct GnapGateKeeperService {
-    config: GnapGateKeeperConfig
+    config: GnapGateKeeperConfig,
 }
 
 impl GnapGateKeeperService {
@@ -46,11 +46,11 @@ impl GnapGateKeeperService {
 impl GateKeeperTrait for GnapGateKeeperService {
     fn start(
         &self,
-        payload: &GrantRequest
+        payload: &GrantRequest,
     ) -> anyhow::Result<(
         recv_request::NewModel,
         recv_interaction::NewModel,
-        token_requirements::Model
+        token_requirements::Model,
     )> {
         info!("Managing Grant Request");
 
@@ -59,7 +59,7 @@ impl GateKeeperTrait for GnapGateKeeperService {
         if !&interact.start.contains(&"oidc4vp".to_string()) {
             let error = Errors::not_impl_new(
                 "Interact method not supported yet",
-                "Interact method not supported yet"
+                "Interact method not supported yet",
             );
             error!("{}", error.log());
             bail!(error);
@@ -97,7 +97,7 @@ impl GateKeeperTrait for GnapGateKeeperService {
             hints: interact.hints,
             grant_endpoint,
             continue_endpoint,
-            continue_token
+            continue_token,
         };
 
         let token_model = token_requirements::Model {
@@ -114,7 +114,7 @@ impl GateKeeperTrait for GnapGateKeeperService {
             identifier: None,
             privileges: None,
             label: None,
-            flags: None
+            flags: None,
         };
 
         Ok((req_model, int_model, token_model))
@@ -129,7 +129,7 @@ impl GateKeeperTrait for GnapGateKeeperService {
         &self,
         model: &recv_interaction::Model,
         payload: &RefBody,
-        token: &str
+        token: &str,
     ) -> anyhow::Result<()> {
         info!("Validating continuing request");
 
@@ -157,7 +157,7 @@ impl GateKeeperTrait for GnapGateKeeperService {
         &self,
         req_model: &mut recv_request::Model,
         int_model: &recv_interaction::Model,
-        ver_model: &recv_verification::Model
+        ver_model: &recv_verification::Model,
     ) -> (mates::NewModel, AccessToken) {
         info!("Continuing Request");
 
@@ -172,7 +172,7 @@ impl GateKeeperTrait for GnapGateKeeperService {
             participant_type: "Consumer".to_string(),
             base_url,
             token: Some(token.clone()),
-            is_me: false
+            is_me: false,
         };
 
         let token = AccessToken::default(token);

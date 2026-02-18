@@ -38,9 +38,21 @@ use crate::protocols::dsp::protocol_types::{
 use rainbow_common::dsp_common::context_field::ContextField;
 use rainbow_common::errors::CommonErrors;
 
+use axum::{
+    extract::Request,
+    http::HeaderMap,
+    middleware::{self, Next},
+    Extension,
+};
+use rainbow_common::config::services::TransferConfig;
+use rainbow_common::facades::ssi_auth_facade::SSIAuthFacadeTrait;
+use rainbow_common::mates::mates::Mates;
+
 #[derive(Clone)]
 pub struct DspRouter {
     orchestrator: Arc<dyn OrchestratorTrait>,
+    config: Arc<TransferConfig>,
+    ssi_auth: Arc<dyn SSIAuthFacadeTrait>,
 }
 
 impl FromRef<DspRouter> for Arc<dyn OrchestratorTrait> {
@@ -50,8 +62,33 @@ impl FromRef<DspRouter> for Arc<dyn OrchestratorTrait> {
 }
 
 impl DspRouter {
-    pub fn new(service: Arc<dyn OrchestratorTrait>) -> Self {
-        Self { orchestrator: service }
+    pub fn new(
+        service: Arc<dyn OrchestratorTrait>,
+        config: Arc<TransferConfig>,
+        ssi_auth: Arc<dyn SSIAuthFacadeTrait>,
+    ) -> Self {
+        Self { orchestrator: service, config, ssi_auth }
+    }
+
+    async fn auth_middleware(
+        State(state): State<DspRouter>,
+        mut request: Request,
+        next: Next,
+    ) -> Result<impl IntoResponse, StatusCode> {
+        let headers = request.headers();
+        let auth_header = headers.get("Authorization");
+        let token = match auth_header {
+            Some(header) => header.to_str().unwrap_or("").to_string(),
+            None => return Err(StatusCode::UNAUTHORIZED),
+        };
+        let token = token.replace("Bearer ", "");
+        match state.ssi_auth.verify_token(token).await {
+            Ok(mate) => {
+                request.extensions_mut().insert(mate);
+                Ok(next.run(request).await)
+            }
+            Err(_) => Err(StatusCode::UNAUTHORIZED),
+        }
     }
 
     pub fn router(self) -> Router {
@@ -62,6 +99,7 @@ impl DspRouter {
             .route("/{id}/completion", post(Self::handle_transfer_completion))
             .route("/{id}/termination", post(Self::handle_transfer_termination))
             .route("/{id}/suspension", post(Self::handle_transfer_suspension))
+            .layer(middleware::from_fn_with_state(self.clone(), Self::auth_middleware))
             .with_state(self)
     }
 
@@ -135,6 +173,7 @@ impl DspRouter {
 
     async fn handle_transfer_request(
         State(state): State<DspRouter>,
+        Extension(mate): Extension<Mates>,
         input: Result<
             Json<TransferProcessMessageWrapper<TransferRequestMessageDto>>,
             JsonRejection,
@@ -148,11 +187,14 @@ impl DspRouter {
             }
         };
 
-        let result = state.orchestrator.get_protocol_service().on_transfer_request(&payload).await;
+        let result = state
+            .orchestrator
+            .get_protocol_service()
+            .on_transfer_request(&payload, &mate.participant_id)
+            .await;
 
         match result {
             Ok((data, already_exists)) => {
-                // Si already_exists es true -> 200 OK, si es false -> 201 CREATED
                 let status = if already_exists { StatusCode::OK } else { StatusCode::CREATED };
                 (status, Json(data)).into_response()
             }
@@ -163,6 +205,7 @@ impl DspRouter {
     async fn handle_transfer_start(
         State(state): State<DspRouter>,
         Path(id): Path<String>,
+        Extension(mate): Extension<Mates>,
         input: Result<Json<TransferProcessMessageWrapper<TransferStartMessageDto>>, JsonRejection>,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::OK, |data| async move {
@@ -174,6 +217,7 @@ impl DspRouter {
     async fn handle_transfer_completion(
         State(state): State<DspRouter>,
         Path(id): Path<String>,
+        Extension(mate): Extension<Mates>,
         input: Result<
             Json<TransferProcessMessageWrapper<TransferCompletionMessageDto>>,
             JsonRejection,
@@ -188,6 +232,7 @@ impl DspRouter {
     async fn handle_transfer_termination(
         State(state): State<DspRouter>,
         Path(id): Path<String>,
+        Extension(mate): Extension<Mates>,
         input: Result<
             Json<TransferProcessMessageWrapper<TransferTerminationMessageDto>>,
             JsonRejection,
@@ -202,6 +247,7 @@ impl DspRouter {
     async fn handle_transfer_suspension(
         State(state): State<DspRouter>,
         Path(id): Path<String>,
+        Extension(mate): Extension<Mates>,
         input: Result<
             Json<TransferProcessMessageWrapper<TransferSuspensionMessageDto>>,
             JsonRejection,

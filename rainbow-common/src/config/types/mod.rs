@@ -19,8 +19,8 @@
 
 pub mod cache;
 mod client;
-pub mod roles;
 mod gaia_config;
+pub mod roles;
 
 pub use client::*;
 

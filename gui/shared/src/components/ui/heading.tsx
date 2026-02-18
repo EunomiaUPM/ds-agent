@@ -122,19 +122,12 @@ const sizeClasses: Record<HeadingLevel, string> = {
  * @param props - Heading properties
  * @returns A styled heading element
  */
-const Heading: FC<HeadingProps> = ({
-  level = "h1",
-  children,
-  ref,
-  className = "",
-}) => {
+const Heading: FC<HeadingProps> = ({ level = "h1", children, ref, className = "" }) => {
   const Component = levelToElement[level] || "h1";
   const baseClasses = "text-foreground-100 text-balance";
 
   return (
-    <Component className={cn(baseClasses, sizeClasses[level], className)}>
-      {children}
-    </Component>
+    <Component className={cn(baseClasses, sizeClasses[level], className)}>{children}</Component>
   );
 };
 

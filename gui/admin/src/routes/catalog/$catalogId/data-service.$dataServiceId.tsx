@@ -1,5 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useGetDataServiceById, getDataServiceByIdOptions } from "shared/src/data/catalog-queries.ts";
+import {
+  useGetDataServiceById,
+  getGetDataServiceByIdQueryOptions,
+} from "shared/src/data/orval/data-services/data-services";
 import { FormatDate } from "shared/src/components/ui/format-date";
 import Heading from "shared/src/components/ui/heading";
 import { Badge } from "shared/src/components/ui/badge";
@@ -12,12 +15,19 @@ import { PageSection } from "shared/src/components/layout/PageSection";
 
 function RouteComponent() {
   const { dataServiceId } = Route.useParams();
-  const { data: dataService } = useGetDataServiceById(dataServiceId);
+  const { data: dataServiceData } = useGetDataServiceById(dataServiceId);
+  const dataService = dataServiceData?.status === 200 ? dataServiceData.data : undefined;
+
+  if (!dataService) return null;
   return (
     <PageLayout>
       <PageHeader
         title="Data service info with id"
-        badge={<Badge variant="info" size="lg">{formatUrn(dataService.id)}</Badge>}
+        badge={
+          <Badge variant="info" size="lg">
+            {formatUrn(dataService.id!)}
+          </Badge>
+        }
       />
       <InfoGrid>
         <PageSection>
@@ -26,7 +36,7 @@ function RouteComponent() {
               { label: "Data service title", value: dataService.dctTitle },
               {
                 label: "Data service creation date",
-                value: { type: "custom", content: <FormatDate date={dataService.dctIssued} /> },
+                value: { type: "custom", content: <FormatDate date={dataService.dctIssued!} /> },
               },
               { label: "Data service endpoint URL", value: dataService.dcatEndpointUrl },
               {
@@ -47,8 +57,7 @@ function RouteComponent() {
 export const Route = createFileRoute("/catalog/$catalogId/data-service/$dataServiceId")({
   component: RouteComponent,
   pendingComponent: () => <div>Loading...</div>,
-  loader: ({ context: { queryClient, api_gateway }, params: { dataServiceId } }) => {
-    if (!api_gateway) return;
-    return queryClient.ensureQueryData(getDataServiceByIdOptions(api_gateway, dataServiceId));
+  loader: ({ context: { queryClient }, params: { dataServiceId } }) => {
+    return queryClient.ensureQueryData(getGetDataServiceByIdQueryOptions(dataServiceId));
   },
 });

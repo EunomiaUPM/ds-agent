@@ -20,7 +20,7 @@
 use crate::utils::get_urn;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Mates {
     pub participant_id: String,
     pub participant_slug: String,

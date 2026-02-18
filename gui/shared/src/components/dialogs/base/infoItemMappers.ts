@@ -21,16 +21,25 @@ import { InfoItemProps } from "../../ui/info-list";
  * Maps a Contract Negotiation process to InfoList items for provider-facing dialogs.
  * Use this when the current user role is "provider".
  */
-export function mapCNProcessToInfoItemsForProvider(process: CNProcess): InfoItemProps[] {
+import { NegotiationProcessDto } from "shared/src/data/orval/model/negotiationProcessDto";
+
+/**
+ * Maps a Contract Negotiation process to InfoList items for provider-facing dialogs.
+ * Use this when the current user role is "provider".
+ */
+export function mapCNProcessToInfoItemsForProvider(process: NegotiationProcessDto): InfoItemProps[] {
   const items: (InfoItemProps | undefined)[] = [
-    { label: "Provider ID", value: { type: "urn" as const, value: process.provider_id } },
-    { label: "Consumer ID", value: { type: "urn" as const, value: process.consumer_id } },
-    { label: "Associated Consumer", value: { type: "urn" as const, value: process.associated_consumer } },
-    { label: "Current State", value: { type: "status" as const, value: process.state } },
-    { label: "Initiated By", value: { type: "role" as const, value: process.initiated_by ?? "" } },
-    { label: "Created At", value: { type: "date" as const, value: process.created_at } },
-    process.updated_at
-      ? { label: "Updated At", value: { type: "date" as const, value: process.updated_at } }
+    { label: "Provider ID", value: { type: "urn" as const, value: process.identifiers?.providerPid || "" } },
+    { label: "Consumer ID", value: { type: "urn" as const, value: process.identifiers?.consumerPid || "" } },
+    {
+      label: "Associated Consumer",
+      value: { type: "urn" as const, value: process.associatedAgentPeer || "" },
+    },
+    { label: "Current State", value: { type: "status" as const, value: process.state || "" } },
+    // { label: "Initiated By", value: { type: "role" as const, value: process.initiated_by ?? "" } }, // Not available in DTO directly?
+    { label: "Created At", value: { type: "date" as const, value: process.createdAt || "" } },
+    process.updatedAt
+      ? { label: "Updated At", value: { type: "date" as const, value: process.updatedAt } }
       : undefined,
   ];
   return items.filter((item): item is InfoItemProps => item !== undefined);
@@ -40,16 +49,19 @@ export function mapCNProcessToInfoItemsForProvider(process: CNProcess): InfoItem
  * Maps a Contract Negotiation process to InfoList items for consumer-facing dialogs.
  * Use this when the current user role is "consumer".
  */
-export function mapCNProcessToInfoItemsForConsumer(process: CNProcess): InfoItemProps[] {
+export function mapCNProcessToInfoItemsForConsumer(process: NegotiationProcessDto): InfoItemProps[] {
   const items: (InfoItemProps | undefined)[] = [
-    { label: "Provider ID", value: { type: "urn" as const, value: process.provider_id } },
-    { label: "Consumer ID", value: { type: "urn" as const, value: process.consumer_id } },
-    { label: "Associated Provider", value: { type: "urn" as const, value: process.associated_provider } },
-    { label: "Current State", value: { type: "status" as const, value: process.state } },
-    { label: "Initiated By", value: { type: "role" as const, value: process.initiated_by ?? "" } },
-    { label: "Created At", value: { type: "date" as const, value: process.created_at } },
-    process.updated_at
-      ? { label: "Updated At", value: { type: "date" as const, value: process.updated_at } }
+    { label: "Provider ID", value: { type: "urn" as const, value: process.identifiers?.providerPid || "" } },
+    { label: "Consumer ID", value: { type: "urn" as const, value: process.identifiers?.consumerPid || "" } },
+    {
+      label: "Associated Provider",
+      value: { type: "urn" as const, value: process.associatedAgentPeer || "" },
+    },
+    { label: "Current State", value: { type: "status" as const, value: process.state || "" } },
+    // { label: "Initiated By", value: { type: "role" as const, value: process.initiated_by ?? "" } },
+    { label: "Created At", value: { type: "date" as const, value: process.createdAt || "" } },
+    process.updatedAt
+      ? { label: "Updated At", value: { type: "date" as const, value: process.updatedAt } }
       : undefined,
   ];
   return items.filter((item): item is InfoItemProps => item !== undefined);
@@ -59,17 +71,24 @@ export function mapCNProcessToInfoItemsForConsumer(process: CNProcess): InfoItem
  * Maps a Contract Negotiation process to InfoList items showing full details.
  * Includes both associated consumer and provider fields.
  */
-export function mapCNProcessToFullInfoItems(process: CNProcess): InfoItemProps[] {
+export function mapCNProcessToFullInfoItems(process: NegotiationProcessDto): InfoItemProps[] {
   const items: (InfoItemProps | undefined)[] = [
-    { label: "Provider ID", value: { type: "urn" as const, value: process.provider_id } },
-    { label: "Consumer ID", value: { type: "urn" as const, value: process.consumer_id } },
-    { label: "Associated Consumer", value: { type: "urn" as const, value: process.associated_consumer } },
-    { label: "Associated Provider", value: { type: "urn" as const, value: process.associated_provider } },
+    {
+      label: "Provider ID",
+      value: { type: "urn" as const, value: process.identifiers?.providerPid || "" },
+    },
+    {
+      label: "Consumer ID",
+      value: { type: "urn" as const, value: process.identifiers?.consumerPid || "" },
+    },
+    {
+      label: "Associated Peer",
+      value: { type: "urn" as const, value: process.associatedAgentPeer || "" },
+    },
     { label: "Current State", value: { type: "status" as const, value: process.state } },
-    { label: "Initiated By", value: { type: "role" as const, value: process.initiated_by ?? "" } },
-    { label: "Created At", value: { type: "date" as const, value: process.created_at } },
-    process.updated_at
-      ? { label: "Updated At", value: { type: "date" as const, value: process.updated_at } }
+    { label: "Created At", value: { type: "date" as const, value: process.createdAt } },
+    process.updatedAt
+      ? { label: "Updated At", value: { type: "date" as const, value: process.updatedAt } }
       : undefined,
   ];
   return items.filter((item): item is InfoItemProps => item !== undefined);
@@ -79,13 +98,21 @@ export function mapCNProcessToFullInfoItems(process: CNProcess): InfoItemProps[]
  * Dynamic mapper that selects the appropriate CN process info items based on role.
  */
 export function mapCNProcessToInfoItems(
-  process: CNProcess,
-  role: "provider" | "consumer",
+  process: NegotiationProcessDto,
+  role: "provider" | "consumer" | "Provider" | "Consumer",
 ): InfoItemProps[] {
-  return role === "provider"
+  const normalizedRole = role.toLowerCase() as "provider" | "consumer";
+  return normalizedRole === "provider"
     ? mapCNProcessToInfoItemsForProvider(process)
     : mapCNProcessToInfoItemsForConsumer(process);
 }
+
+// =============================================================================
+// TRANSFER PROCESS MAPPERS
+// =============================================================================
+
+import { TransferProcessDto } from "shared/src/data/orval/model/transferProcessDto";
+import { AgreementDto } from "shared/src/data/orval/model/agreementDto";
 
 // =============================================================================
 // TRANSFER PROCESS MAPPERS
@@ -95,17 +122,23 @@ export function mapCNProcessToInfoItems(
  * Maps a Transfer Process to InfoList items for provider-facing dialogs.
  */
 export function mapTransferProcessToInfoItemsForProvider(
-  process: TransferProcess,
+  process: TransferProcessDto,
 ): InfoItemProps[] {
   const items: (InfoItemProps | undefined)[] = [
-    { label: "Provider PID", value: { type: "urn" as const, value: process.provider_pid } },
-    { label: "Consumer PID", value: { type: "urn" as const, value: process.consumer_pid } },
-    { label: "Associated Consumer", value: { type: "urn" as const, value: process.associated_consumer } },
-    { label: "Current State", value: { type: "status" as const, value: process.state } },
+    { label: "Provider PID", value: { type: "urn" as const, value: process.identifiers?.providerPid || "" } },
+    { label: "Consumer PID", value: { type: "urn" as const, value: process.identifiers?.consumerPid || "" } },
+    {
+      label: "Associated Consumer",
+      value: { type: "urn" as const, value: process.associatedAgentPeer || "" },
+    },
+    { label: "Current State", value: { type: "status" as const, value: process.state || "" } },
     process.stateAttribute
-      ? { label: "State Attribute", value: { type: "status" as const, value: process.stateAttribute } }
+      ? {
+          label: "State Attribute",
+          value: { type: "status" as const, value: process.stateAttribute },
+        }
       : undefined,
-    { label: "Created At", value: { type: "date" as const, value: process.createdAt } },
+    { label: "Created At", value: { type: "date" as const, value: process.createdAt || "" } },
     process.updatedAt
       ? { label: "Updated At", value: { type: "date" as const, value: process.updatedAt } }
       : undefined,
@@ -117,17 +150,23 @@ export function mapTransferProcessToInfoItemsForProvider(
  * Maps a Transfer Process to InfoList items for consumer-facing dialogs.
  */
 export function mapTransferProcessToInfoItemsForConsumer(
-  process: TransferProcess,
+  process: TransferProcessDto,
 ): InfoItemProps[] {
   const items: (InfoItemProps | undefined)[] = [
-    { label: "Provider PID", value: { type: "urn" as const, value: process.provider_pid } },
-    { label: "Consumer PID", value: { type: "urn" as const, value: process.consumer_pid } },
-    { label: "Associated Provider", value: { type: "urn" as const, value: process.associated_provider } },
-    { label: "Current State", value: { type: "status" as const, value: process.state } },
+    { label: "Provider PID", value: { type: "urn" as const, value: process.identifiers?.providerPid || "" } },
+    { label: "Consumer ID", value: { type: "urn" as const, value: process.identifiers?.consumerPid || "" } },
+    {
+      label: "Associated Provider",
+      value: { type: "urn" as const, value: process.associatedAgentPeer || "" },
+    },
+    { label: "Current State", value: { type: "status" as const, value: process.state || "" } },
     process.stateAttribute
-      ? { label: "State Attribute", value: { type: "status" as const, value: process.stateAttribute } }
+      ? {
+          label: "State Attribute",
+          value: { type: "status" as const, value: process.stateAttribute },
+        }
       : undefined,
-    { label: "Created At", value: { type: "date" as const, value: process.createdAt } },
+    { label: "Created At", value: { type: "date" as const, value: process.createdAt || "" } },
     process.updatedAt
       ? { label: "Updated At", value: { type: "date" as const, value: process.updatedAt } }
       : undefined,
@@ -139,10 +178,10 @@ export function mapTransferProcessToInfoItemsForConsumer(
  * Dynamic mapper that selects the appropriate Transfer process info items based on role.
  */
 export function mapTransferProcessToInfoItems(
-  process: TransferProcess,
-  role: "provider" | "consumer",
+  process: TransferProcessDto,
 ): InfoItemProps[] {
-  return role === "provider"
+  const normalizedRole = (process.role || "consumer").toLowerCase() as "provider" | "consumer";
+  return normalizedRole === "provider"
     ? mapTransferProcessToInfoItemsForProvider(process)
     : mapTransferProcessToInfoItemsForConsumer(process);
 }
@@ -154,16 +193,16 @@ export function mapTransferProcessToInfoItems(
 /**
  * Maps an Agreement to InfoList items.
  */
-export function mapAgreementToInfoItems(agreement: Agreement): InfoItemProps[] {
+export function mapAgreementToInfoItems(agreement: AgreementDto): InfoItemProps[] {
   const items: InfoItemProps[] = [
-    { label: "Agreement ID", value: { type: "urn" as const, value: agreement.agreement_id } },
+    { label: "Agreement ID", value: { type: "urn" as const, value: agreement.id } },
     {
       label: "Provider Participant",
-      value: { type: "urn" as const, value: agreement.provider_participant_id },
+      value: { type: "urn" as const, value: agreement.providerParticipantId },
     },
     {
       label: "Consumer Participant",
-      value: { type: "urn" as const, value: agreement.consumer_participant_id },
+      value: { type: "urn" as const, value: agreement.consumerParticipantId },
     },
   ];
   return items;

@@ -7,12 +7,24 @@
 
 import React, { useContext } from "react";
 import { GlobalInfoContext, GlobalInfoContextType } from "../../context/GlobalInfoContext";
-import { usePostContractNegotiationRPCAcceptance } from "../../data/contract-mutations";
 import { BaseProcessDialog, mapCNProcessToInfoItemsForConsumer } from "./base";
+import { NegotiationProcessDto } from "../../data/orval/model";
+import { useRpcSetupAcceptance } from "../../data/orval/negotiation-rp-c/negotiation-rp-c";
+import { useGetNegotiationProcesses } from "../../data/orval/negotiations/negotiations";
+import { useRouter } from "@tanstack/react-router";
+import { PolicyWrapperShow } from "../PolicyWrapperShow";
 
-export const ContractNegotiationAcceptanceDialog = ({ process }: { process: CNProcess }) => {
+export const ContractNegotiationAcceptanceDialog = ({
+  process,
+  onClose,
+}: {
+  process: NegotiationProcessDto;
+  onClose?: () => void;
+}) => {
   const { api_gateway } = useContext<GlobalInfoContextType | null>(GlobalInfoContext)!;
-  const { mutateAsync: acceptAsync } = usePostContractNegotiationRPCAcceptance();
+  const { mutateAsync: acceptAsync } = useRpcSetupAcceptance();
+  const { refetch } = useGetNegotiationProcesses();
+  const router = useRouter();
 
   /**
    * Handles the acceptance submission.
@@ -20,13 +32,16 @@ export const ContractNegotiationAcceptanceDialog = ({ process }: { process: CNPr
    */
   const handleSubmit = async () => {
     await acceptAsync({
-      api_gateway,
-      content: {
-        providerParticipantId: process.associated_provider!,
-        consumerPid: process.consumer_id,
-        providerPid: process.provider_id,
+      data: {
+        consumerPid: process.identifiers!.consumerPid,
+        providerPid: process.identifiers!.providerPid,
       },
     });
+    await refetch();
+    router.invalidate();
+    if (onClose) {
+      onClose();
+    }
   };
 
   return (
@@ -43,6 +58,16 @@ export const ContractNegotiationAcceptanceDialog = ({ process }: { process: CNPr
       submitLabel="Accept"
       submitVariant="default"
       onSubmit={handleSubmit}
+      scrollable={true}
+      afterInfoContent={
+        <div className="pt-4">
+          <PolicyWrapperShow
+            policy={process.offers!.at(-1)!.offerContent}
+            datasetId={process.identifiers!.datasetId}
+            catalogId={process.identifiers!.catalogId}
+          />
+        </div>
+      }
     />
   );
 };

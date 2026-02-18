@@ -30,11 +30,13 @@ use ymir::errors::CustomToResponse;
 use crate::ssi::core::traits::CoreMateTrait;
 
 pub struct MateRouter {
-    mater: Arc<dyn CoreMateTrait>
+    mater: Arc<dyn CoreMateTrait>,
 }
 
 impl MateRouter {
-    pub fn new(mater: Arc<dyn CoreMateTrait>) -> MateRouter { MateRouter { mater } }
+    pub fn new(mater: Arc<dyn CoreMateTrait>) -> MateRouter {
+        MateRouter { mater }
+    }
 
     pub fn router(self) -> Router {
         Router::new()
@@ -49,53 +51,53 @@ impl MateRouter {
     async fn get_all(State(mater): State<Arc<dyn CoreMateTrait>>) -> impl IntoResponse {
         match mater.get_all().await {
             Ok(data) => (StatusCode::OK, Json(data)).into_response(),
-            Err(e) => e.to_response()
+            Err(e) => e.to_response(),
         }
     }
     async fn get_by_id(
         State(mater): State<Arc<dyn CoreMateTrait>>,
-        Path(id): Path<String>
+        Path(id): Path<String>,
     ) -> impl IntoResponse {
         match mater.get_by_id(id).await {
             Ok(data) => (StatusCode::OK, Json(data)).into_response(),
-            Err(e) => e.to_response()
+            Err(e) => e.to_response(),
         }
     }
 
     async fn get_me(State(mater): State<Arc<dyn CoreMateTrait>>) -> impl IntoResponse {
         match mater.get_me().await {
             Ok(data) => (StatusCode::OK, Json(data)).into_response(),
-            Err(e) => e.to_response()
+            Err(e) => e.to_response(),
         }
     }
 
     async fn get_batch(
         State(mater): State<Arc<dyn CoreMateTrait>>,
-        payload: Result<Json<BatchRequests>, JsonRejection>
+        payload: Result<Json<BatchRequests>, JsonRejection>,
     ) -> impl IntoResponse {
         let payload = match payload {
             Ok(Json(data)) => data,
-            Err(e) => return e.to_response()
+            Err(e) => return e.to_response(),
         };
 
         match mater.get_mate_batch(payload).await {
             Ok(data) => (StatusCode::OK, Json(data)).into_response(),
-            Err(e) => e.to_response()
+            Err(e) => e.to_response(),
         }
     }
 
     async fn get_by_token(
         State(mater): State<Arc<dyn CoreMateTrait>>,
-        payload: Result<Json<VerifyTokenRequest>, JsonRejection>
+        payload: Result<Json<VerifyTokenRequest>, JsonRejection>,
     ) -> impl IntoResponse {
         let payload = match payload {
             Ok(Json(data)) => data,
-            Err(e) => return e.to_response()
+            Err(e) => return e.to_response(),
         };
 
         match mater.get_by_token(payload).await {
             Ok(data) => (StatusCode::OK, Json(data)).into_response(),
-            Err(e) => e.to_response()
+            Err(e) => e.to_response(),
         }
     }
 }

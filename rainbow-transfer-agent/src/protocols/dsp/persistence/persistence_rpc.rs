@@ -86,6 +86,33 @@ impl TransferPersistenceTrait for TransferPersistenceForRpcService {
         &self,
         protocol: &str,
         direction: &str,
+        associated_agent_peer: &str,
+        provider_pid: Option<Urn>,
+        provider_address: Option<String>,
+        payload_dto: Arc<dyn TransferProcessMessageTrait>,
+        payload_value: serde_json::Value,
+    ) -> anyhow::Result<TransferProcessDto> {
+        let transfer_process_id =
+            Urn::from_str(format!("urn:transfer-process:{}", uuid::Uuid::new_v4()).as_str())?;
+        let transfer_process = self.create_process_with_id(
+            transfer_process_id,
+            protocol,
+            direction,
+            associated_agent_peer,
+            provider_pid,
+            provider_address,
+            payload_dto,
+            payload_value,
+        ).await?;
+        Ok(transfer_process)
+    }
+
+    async fn create_process_with_id(
+        &self,
+        id: Urn,
+        protocol: &str,
+        direction: &str,
+        associated_agent_peer: &str,
         provider_pid: Option<Urn>,
         provider_address: Option<String>,
         payload_dto: Arc<dyn TransferProcessMessageTrait>,
@@ -109,16 +136,13 @@ impl TransferPersistenceTrait for TransferPersistenceForRpcService {
         // create callback address
         let callback_address =
             provider_address.unwrap_or(payload_dto.get_callback_address().unwrap());
-        // create id
-        let transfer_process_id =
-            Urn::from_str(format!("urn:transfer-process:{}", uuid::Uuid::new_v4()).as_str())?;
         // create entities
         let mut transfer_process = self
             .transfer_process_service
             .create_transfer_process(&NewTransferProcessDto {
-                id: Some(transfer_process_id.clone()),
+                id: Some(id.clone()),
                 state: TransferState::REQUESTED.to_string(),
-                associated_agent_peer: "".to_string(),
+                associated_agent_peer: associated_agent_peer.to_string(),
                 protocol: protocol.to_string(),
                 transfer_direction: format,
                 agreement_id,
@@ -133,7 +157,7 @@ impl TransferPersistenceTrait for TransferPersistenceForRpcService {
             .transfer_message_service
             .create_transfer_message(&NewTransferMessageDto {
                 id: None,
-                transfer_agent_process_id: transfer_process_id.clone(),
+                transfer_agent_process_id: id.clone(),
                 direction: direction.to_string(),
                 protocol: protocol.to_string(),
                 message_type: message_type.to_string(),

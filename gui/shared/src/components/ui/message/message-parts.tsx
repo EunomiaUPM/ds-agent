@@ -5,7 +5,6 @@ import dayjs from "dayjs";
 import Heading from "../heading";
 import { RoleType, mapRoleToVariant } from "./message-log";
 
-
 export const roleVariants = cva("", {
   variants: {
     variant: {
@@ -68,18 +67,19 @@ export const MessageBody = React.forwardRef<
 });
 MessageBody.displayName = "MessageBody";
 
-export const MessageTitle = React.forwardRef<HTMLHeadingElement, React.HTMLAttributes<HTMLHeadingElement>>(
-  ({ className, children, ...props }, ref) => (
-    <Heading
-      level="h4"
-      ref={ref}
-      className={cn("mb-0 !text-[20px] !text-foreground-400", className)}
-      {...props}
-    >
-      {children}
-    </Heading>
-  ),
-);
+export const MessageTitle = React.forwardRef<
+  HTMLHeadingElement,
+  React.HTMLAttributes<HTMLHeadingElement>
+>(({ className, children, ...props }, ref) => (
+  <Heading
+    level="h4"
+    ref={ref}
+    className={cn("mb-0 !text-[20px] !text-foreground-400", className)}
+    {...props}
+  >
+    {children}
+  </Heading>
+));
 MessageTitle.displayName = "MessageTitle";
 
 export const MessageTimestamp = React.forwardRef<

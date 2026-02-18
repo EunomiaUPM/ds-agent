@@ -28,8 +28,8 @@ pub(crate) mod validator;
 
 use crate::entities::transfer_messages::TransferAgentMessagesTrait;
 use crate::entities::transfer_process::TransferAgentProcessesTrait;
-use crate::protocols::dsp::facades::data_plane_facade::data_plane_facade::DataPlaneProviderFacadeForDSProtocol;
-use crate::protocols::dsp::facades::data_plane_facade::dataplane_strategy_factory::DataPlaneStrategyFactory;
+// use crate::protocols::dsp::facades::data_plane_facade::data_plane_facade::DataPlaneProviderFacadeForDSProtocol;
+// use crate::protocols::dsp::facades::data_plane_facade::dataplane_strategy_factory::DataPlaneStrategyFactory;
 use crate::protocols::dsp::facades::data_service_resolver_facade::data_service_resolver_facade::DataServiceFacadeServiceForDSProtocol;
 use crate::protocols::dsp::facades::FacadeService;
 use crate::protocols::dsp::http::protocol::DspRouter;
@@ -43,9 +43,15 @@ use crate::protocols::dsp::validator::validators::protocol::validation_dsp_steps
 use crate::protocols::dsp::validator::validators::rpc::validate_state_transition::ValidatedStateTransitionServiceForRcp;
 use crate::protocols::dsp::validator::validators::validate_payload::ValidatePayloadService;
 use crate::protocols::dsp::validator::validators::validation_helpers::ValidationHelperService;
+
+use crate::protocols::dsp::facades::dataplane_facade::dataplane_facade::DataPlaneFacade;
 use crate::protocols::protocol::ProtocolPluginTrait;
 use axum::Router;
 use rainbow_common::config::services::TransferConfig;
+use rainbow_common::config::traits::CommonConfigTrait;
+use ymir::config::traits::HostsConfigTrait;
+use rainbow_common::facades::ssi_auth_facade::ssi_auth_facade::SSIAuthFacadeService;
+use rainbow_common::facades::ssi_auth_facade::MatesFacadeTrait;
 use rainbow_common::http_client::HttpClient;
 use rainbow_dataplane::setup::DataplaneSetup;
 use std::sync::Arc;
@@ -53,11 +59,14 @@ use validator::validators::protocol::validate_state_transition::ValidatedStateTr
 use validator::validators::rpc::validation_rpc_steps::ValidationRpcStepsService;
 use ymir::services::vault::vault_rs::VaultService;
 
+use rainbow_connector::ConnectorSetup;
+
 pub struct TransferDSP {
     transfer_agent_process_entities: Arc<dyn TransferAgentProcessesTrait>,
     transfer_agent_message_service: Arc<dyn TransferAgentMessagesTrait>,
     config: Arc<TransferConfig>,
     vault: Arc<VaultService>,
+    mates_facade: Arc<dyn MatesFacadeTrait>,
 }
 
 impl TransferDSP {
@@ -66,8 +75,15 @@ impl TransferDSP {
         transfer_agent_process_entities: Arc<dyn TransferAgentProcessesTrait>,
         config: Arc<TransferConfig>,
         vault: Arc<VaultService>,
+        mates_facade: Arc<dyn MatesFacadeTrait>,
     ) -> Self {
-        Self { transfer_agent_message_service, transfer_agent_process_entities, config, vault }
+        Self {
+            transfer_agent_message_service,
+            transfer_agent_process_entities,
+            config,
+            vault,
+            mates_facade,
+        }
     }
 }
 
@@ -118,21 +134,36 @@ impl ProtocolPluginTrait for TransferDSP {
             self.transfer_agent_process_entities.clone(),
         ));
 
+        // connector
+        let connector_setup = ConnectorSetup::new();
+        let connector_entity = connector_setup.get_connector_instance_entity(
+            self.config.as_ref(),
+            self.vault.clone(),
+            http_client.clone(),
+        ).await;
+
         // dataplane
         let dataplane = DataplaneSetup::new();
-        let dataplane_controller =
-            dataplane.get_data_plane_controller(self.config.clone(), self.vault.clone()).await;
-        let dataplane_strategy_factory =
-            Arc::new(DataPlaneStrategyFactory::new(dataplane_controller.clone()));
-        let dataplane_facade = Arc::new(DataPlaneProviderFacadeForDSProtocol::new(
-            dataplane_strategy_factory.clone(),
-            self.transfer_agent_process_entities.clone(),
-        ));
+        let dataplane_manager = Arc::new(
+            dataplane.get_data_plane_manager(
+                self.config.clone(),
+                self.vault.clone(),
+                connector_entity.clone(),
+                http_client.clone(),
+            ).await,
+        );
+        let http = self.config.common().http();
+        let proxy_base_url = match &http.port {
+            Some(port) => format!("{}://{}:{}", http.protocol, http.url, port),
+            None => format!("{}://{}", http.protocol, http.url),
+        };
+        let dataplane_facade = Arc::new(DataPlaneFacade::new(dataplane_manager.clone(), proxy_base_url));
 
-        // data service resolver
+        // data service resolver (resolves agreement → dataset → distribution → connector)
         let data_service_resolver = Arc::new(DataServiceFacadeServiceForDSProtocol::new(
             self.config.clone(),
             http_client.clone(),
+            connector_entity,
         ));
 
         // facades
@@ -152,6 +183,7 @@ impl ProtocolPluginTrait for TransferDSP {
             persistence_rpc_service,
             http_client.clone(),
             facades.clone(),
+            self.mates_facade.clone(),
         ));
         let orchestrator_service = Arc::new(OrchestratorService::new(
             http_orchestator.clone(),
@@ -159,7 +191,13 @@ impl ProtocolPluginTrait for TransferDSP {
         ));
 
         // router
-        let dsp_router = DspRouter::new(orchestrator_service.clone());
+        // ssi auth
+        let ssi_auth = Arc::new(SSIAuthFacadeService::new(
+            Arc::new(self.config.ssi_auth().clone()),
+            http_client,
+        ));
+        let dsp_router =
+            DspRouter::new(orchestrator_service.clone(), self.config.clone(), ssi_auth);
         let rcp_router = RpcRouter::new(orchestrator_service.clone());
 
         Ok(Router::new().merge(dsp_router.router()).merge(rcp_router.router()))

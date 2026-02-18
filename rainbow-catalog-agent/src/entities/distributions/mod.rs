@@ -20,7 +20,7 @@ pub struct NewDistributionDto {
     pub id: Option<Urn>,
     pub dct_title: Option<String>,
     pub dct_description: Option<String>,
-    pub dct_formats: Option<DctFormats>,
+    pub dct_formats: Option<String>,
     pub dcat_access_service: String,
     pub dataset_id: Urn,
 }
@@ -81,7 +81,7 @@ pub trait DistributionEntityTrait: Send + Sync {
     async fn get_distribution_by_dataset_id_and_dct_format(
         &self,
         dataset_id: &Urn,
-        dct_formats: &DctFormats,
+        dct_formats: &String,
     ) -> anyhow::Result<DistributionDto>;
     async fn get_distribution_by_id(
         &self,

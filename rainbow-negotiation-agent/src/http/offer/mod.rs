@@ -69,18 +69,18 @@ impl NegotiationAgentOffersRouter {
             .route("/", get(Self::handle_get_all_offers).post(Self::handle_create_offer))
             .route("/batch", post(Self::handle_get_batch_offers))
             .route(
-                "/:id",
+                "/{id}",
                 get(Self::handle_get_offer_by_id).delete(Self::handle_delete_offer),
             )
             .route(
-                "/process/:process_id",
+                "/process/{process_id}",
                 get(Self::handle_get_offers_by_negotiation_process),
             )
             .route(
-                "/message/:message_id",
+                "/message/{message_id}",
                 get(Self::handle_get_offer_by_negotiation_message),
             )
-            .route("/offer-id/:offer_id", get(Self::handle_get_offer_by_offer_id))
+            .route("/offer-id/{offer_id}", get(Self::handle_get_offer_by_offer_id))
             .with_state(self)
     }
 

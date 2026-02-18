@@ -72,11 +72,7 @@ export interface PolicyEditSectionProps {
   onAddConstraint: (type: ComponentType, index: number) => void;
 
   /** Callback when a constraint is removed from a policy item */
-  onRemoveConstraint: (
-    type: ComponentType,
-    index: number,
-    constraintIndex: number
-  ) => void;
+  onRemoveConstraint: (type: ComponentType, index: number, constraintIndex: number) => void;
 
   /** Callback when a constraint's operand value changes */
   onOperandChange: (
@@ -84,7 +80,7 @@ export interface PolicyEditSectionProps {
     index: number,
     constraintIndex: number,
     operand: OperandType,
-    value: string
+    value: string,
   ) => void;
 }
 
@@ -156,6 +152,7 @@ export const PolicyEditSection: React.FC<PolicyEditSectionProps> = ({
         <AccordionContent className="relative">
           {/* Add new item button */}
           <Button
+            type="button"
             className="border-b border-white/15"
             variant="outline"
             size="xs"
@@ -173,6 +170,7 @@ export const PolicyEditSection: React.FC<PolicyEditSectionProps> = ({
                 <div className="flex justify-between">
                   <p className="mb-2">Action:</p>
                   <Button
+                    type="button"
                     variant="icon_destructive"
                     size="xs"
                     className="ml-4 border"
@@ -267,6 +265,7 @@ export const PolicyEditSection: React.FC<PolicyEditSectionProps> = ({
                       {/* Remove constraint button */}
                       <div>
                         <Button
+                          type="button"
                           variant="icon_destructive"
                           size="icon"
                           onClick={() => onRemoveConstraint(type, i, j)}
@@ -280,6 +279,7 @@ export const PolicyEditSection: React.FC<PolicyEditSectionProps> = ({
 
                 {/* Add constraint button */}
                 <Button
+                  type="button"
                   size="xs"
                   variant="outline"
                   className="mt-3"

@@ -72,10 +72,10 @@ impl NegotiationAgentMessagesRouter {
                 get(Self::handle_get_all_messages).post(Self::handle_create_message),
             )
             .route(
-                "/:id",
+                "/{id}",
                 get(Self::handle_get_message_by_id).delete(Self::handle_delete_message),
             )
-            .route("/process/:process_id", get(Self::handle_get_messages_by_process_id))
+            .route("/process/{process_id}", get(Self::handle_get_messages_by_process_id))
             .with_state(self)
     }
 

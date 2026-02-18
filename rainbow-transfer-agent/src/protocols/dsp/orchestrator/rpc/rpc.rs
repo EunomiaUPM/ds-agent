@@ -20,8 +20,9 @@
 use crate::entities::transfer_process::TransferProcessDto;
 use crate::protocols::dsp::facades::FacadeTrait;
 use crate::protocols::dsp::orchestrator::rpc::types::{
-    RpcTransferCompletionMessageDto, RpcTransferMessageDto, RpcTransferRequestMessageDto,
-    RpcTransferStartMessageDto, RpcTransferSuspensionMessageDto, RpcTransferTerminationMessageDto,
+    RpcTransferCompletionMessageDto, RpcTransferMessageDto, RpcTransferProcessMessageTrait,
+    RpcTransferRequestMessageDto, RpcTransferStartMessageDto, RpcTransferSuspensionMessageDto,
+    RpcTransferTerminationMessageDto,
 };
 use crate::protocols::dsp::orchestrator::rpc::RPCOrchestratorTrait;
 use crate::protocols::dsp::persistence::TransferPersistenceTrait;
@@ -33,7 +34,9 @@ use crate::protocols::dsp::protocol_types::{
 use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRpcSteps;
 use rainbow_common::dcat_formats::DctFormats;
 use rainbow_common::dsp_common::context_field::ContextField;
+use rainbow_common::facades::ssi_auth_facade::MatesFacadeTrait;
 use rainbow_common::http_client::HttpClient;
+use rainbow_connector::InteractionConfig;
 use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
@@ -44,6 +47,7 @@ pub struct RPCOrchestratorService {
     persistence_service: Arc<dyn TransferPersistenceTrait>,
     http_client: Arc<HttpClient>,
     facades: Arc<dyn FacadeTrait>,
+    mates_facade: Arc<dyn MatesFacadeTrait>,
 }
 
 impl RPCOrchestratorService {
@@ -52,8 +56,15 @@ impl RPCOrchestratorService {
         persistence_service: Arc<dyn TransferPersistenceTrait>,
         http_client: Arc<HttpClient>,
         facades: Arc<dyn FacadeTrait>,
+        mates_facade: Arc<dyn MatesFacadeTrait>,
     ) -> RPCOrchestratorService {
-        RPCOrchestratorService { validator, persistence_service, http_client, facades }
+        RPCOrchestratorService {
+            validator,
+            persistence_service,
+            http_client,
+            facades,
+            mates_facade,
+        }
     }
 }
 
@@ -63,38 +74,53 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         &self,
         input: &RpcTransferRequestMessageDto,
     ) -> anyhow::Result<RpcTransferMessageDto<RpcTransferRequestMessageDto>> {
+        // validate
         self.validator.transfer_request_rpc(input).await?;
+        // create candidate id
+        let transfer_process_id =
+            Urn::from_str(&format!("urn:transfer-process:{}", uuid::Uuid::new_v4()))?;
+        // push or pull (if DataAddress present is push)
+
+
+        // dataplane hook: init consumer DP; for PUSH returns the consumer ingest URL
+        let consumer_data_address = self.facades
+            .get_data_plane_facade().await
+            .on_transfer_request_pre(
+                &transfer_process_id,
+                &input.data_address,
+            ).await?;
+
         // get from input
-        let request_body: TransferProcessMessageWrapper<TransferRequestMessageDto> =
+        let mut request_body: TransferProcessMessageWrapper<TransferRequestMessageDto> =
             input.clone().into();
+        // PUSH: override data_address with auto-generated consumer ingest URL
+        if let Some(ingest_addr) = consumer_data_address {
+            request_body.dto.data_address = Some(ingest_addr);
+        }
         let provider_address = input.provider_address.clone();
         // create url
         let peer_url = format!("{}/transfers/request", provider_address);
         // request
+        let associated_peer = input.get_associated_agent_peer().unwrap_or("".to_string());
+        if let Ok(mate) = self.mates_facade.get_mate_by_id(associated_peer.clone()).await {
+            if let Some(token) = mate.token {
+                self.http_client.set_auth_token(token).await;
+            }
+        }
         let response: TransferProcessMessageWrapper<TransferProcessAckDto> =
             self.http_client.post_json(peer_url.as_str(), &request_body).await?;
         // persist
         let transfer_process = self
             .persistence_service
-            .create_process(
+            .create_process_with_id(
+                transfer_process_id.clone(),
                 "DSP",
                 "OUTBOUND",
+                &associated_peer,
                 Some(response.dto.provider_pid.clone()),
-                Some(provider_address),
+                Some(provider_address.clone()),
                 Arc::new(request_body.clone().dto),
                 serde_json::to_value(request_body.clone()).unwrap(),
-            )
-            .await?;
-
-        // data plane post hook
-        self.facades
-            .get_data_plane_facade()
-            .await
-            .on_transfer_request_post(
-                &Urn::from_str(transfer_process.inner.id.as_str())?,
-                &request_body.dto.format.parse::<DctFormats>()?,
-                &None,
-                &request_body.dto.data_address,
             )
             .await?;
 
@@ -119,12 +145,6 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
             self.persistence_service.fetch_process(input_transfer_id.to_string().as_str()).await?;
         let provider_pid = transfer_process.identifiers.get("providerPid").unwrap();
         let consumer_pid = transfer_process.identifiers.get("consumerPid").unwrap();
-        // create message
-        let transfer_process_into_trait = TransferStartMessageDto {
-            provider_pid: Urn::from_str(provider_pid.as_str())?,
-            consumer_pid: Urn::from_str(consumer_pid.as_str())?,
-            data_address: input_data_address,
-        };
         // get uri
         let identifier_key = match transfer_process.inner.role.as_str() {
             "Provider" => "consumerPid",
@@ -132,12 +152,18 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
             _ => "providerPid",
         };
         let peer_url_id = transfer_process.identifiers.get(identifier_key).unwrap();
-        // data plane hook
-        self.facades
+        // data plane hook: start local DP, returns proxy DataAddress for PULL Provider
+        let hook_data_address = self.facades
             .get_data_plane_facade()
             .await
             .on_transfer_start_pre(&Urn::from_str(transfer_process.inner.id.as_str())?)
             .await?;
+        // create message (hook DataAddress takes priority over manual input)
+        let transfer_process_into_trait = TransferStartMessageDto {
+            provider_pid: Urn::from_str(provider_pid.as_str())?,
+            consumer_pid: Urn::from_str(consumer_pid.as_str())?,
+            data_address: hook_data_address.or(input_data_address),
+        };
         // validate, send and persist
         let (response, transfer_process) = self
             .validate_and_send(
@@ -147,11 +173,11 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
                 "start",
             )
             .await?;
-        // data plane hook
+        // data plane post hook (outbound sender: no incoming DataAddress to apply)
         self.facades
             .get_data_plane_facade()
             .await
-            .on_transfer_start_post(&Urn::from_str(transfer_process.inner.id.as_str())?)
+            .on_transfer_start_post(&Urn::from_str(transfer_process.inner.id.as_str())?, None)
             .await?;
         // bye!
         let response = RpcTransferMessageDto {
@@ -190,7 +216,7 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
             _ => "providerPid",
         };
         let peer_url_id = transfer_process.identifiers.get(identifier_key).unwrap();
-        // data plane hook
+        // data plane hook: stop local DP before sending to peer
         self.facades
             .get_data_plane_facade()
             .await
@@ -205,7 +231,7 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
                 "suspension",
             )
             .await?;
-        // data plane hook
+        // data plane post hook
         self.facades
             .get_data_plane_facade()
             .await
@@ -244,7 +270,7 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
             _ => "providerPid",
         };
         let peer_url_id = transfer_process.identifiers.get(identifier_key).unwrap();
-        // data plane hook
+        // data plane hook: stop local DP before sending to peer
         self.facades
             .get_data_plane_facade()
             .await
@@ -259,7 +285,7 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
                 "completion",
             )
             .await?;
-        // data plane hook
+        // data plane post hook
         self.facades
             .get_data_plane_facade()
             .await
@@ -302,7 +328,7 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
             _ => "providerPid",
         };
         let peer_url_id = transfer_process.identifiers.get(identifier_key).unwrap();
-        // data plane hook
+        // data plane hook: terminate local DP before sending to peer
         self.facades
             .get_data_plane_facade()
             .await
@@ -317,7 +343,7 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
                 "termination",
             )
             .await?;
-        // data plane hook
+        // data plane post hook
         self.facades
             .get_data_plane_facade()
             .await
@@ -347,8 +373,6 @@ impl RPCOrchestratorService {
     where
         T: TransferProcessMessageTrait + Clone + serde::Serialize + 'static,
     {
-        // self.state_machine_service.validate_transition(None, payload.clone()).await?;
-        // self.validator_service.validate(None, payload.clone()).await?;
         // where to send
         let callback_url =
             transfer_process.inner.callback_address.clone().unwrap_or("".to_string());
@@ -360,6 +384,12 @@ impl RPCOrchestratorService {
             dto: payload.as_ref().clone(),
         };
         // send message to peer url
+        let associated_peer = transfer_process.inner.associated_agent_peer.clone();
+        if let Ok(mate) = self.mates_facade.get_mate_by_id(associated_peer).await {
+            if let Some(token) = mate.token {
+                self.http_client.set_auth_token(token).await;
+            }
+        }
         let response: TransferProcessMessageWrapper<TransferProcessAckDto> =
             self.http_client.post_json(peer_url.as_str(), &message).await?;
         // persist

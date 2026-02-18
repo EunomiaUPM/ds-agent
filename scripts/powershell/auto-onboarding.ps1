@@ -10,7 +10,7 @@ function Invoke-CurlJson {
         [string]$Method = "GET",
         [string]$Url,
         [object]$Body = $null,
-        [bool]$ParseJson = $true  # parsea a JSON solo si se espera JSON
+        [bool]$ParseJson = $true  # parse to JSON only if JSON is expected
     )
 
     try {
@@ -26,9 +26,9 @@ function Invoke-CurlJson {
         $Response = Invoke-WebRequest @Params
 
         if ($Response.StatusCode -ge 200 -and $Response.StatusCode -lt 300) {
-            Write-Host "SUCCESS: $Method $Url returned $($Response.StatusCode)" -ForegroundColor Green
+            Write-Host "SUCCESS: $Method $Url returned $($Response.StatusCode)"
         } else {
-            Write-Host "ERROR: $Method $Url returned $($Response.StatusCode)" -ForegroundColor Red
+            Write-Host "ERROR: $Method $Url returned $($Response.StatusCode)"
             exit 1
         }
 
@@ -39,9 +39,9 @@ function Invoke-CurlJson {
         }
 
     } catch {
-        Write-Host "ERROR: Request to $Url failed" -ForegroundColor Red
-        Write-Host $_.Exception.Message -ForegroundColor Red
-        Write-Host "The script wont continue executing" -ForegroundColor Red
+        Write-Host "ERROR: Request to $Url failed"
+        Write-Host $_.Exception.Message
+        Write-Host "The script wont continue executing"
         Write-Host ""
         exit 1
     }
@@ -50,7 +50,7 @@ function Invoke-CurlJson {
 Write-Host "Starting auto-onboarding script..."
 
 # ----------------------------
-# Onboarding Authority / Consumer / Provider (no se parsea JSON)
+# Onboarding Authority / Consumer / Provider (no JSON parsing)
 # ----------------------------
 Invoke-CurlJson -Method "POST" -Url "$AuthorityUrl/api/v1/wallet/link" -ParseJson:$false
 Invoke-CurlJson -Method "POST" -Url "$ConsumerUrl/api/v1/wallet/link" -ParseJson:$false
@@ -122,7 +122,7 @@ Write-Host "OIDC4VP_URI: $OIDC4VP_URI"
 # ----------------------------
 Write-Host "Consumer processes OIDC4VP..."
 Invoke-CurlJson -Method "POST" -Url "$ConsumerUrl/api/v1/wallet/oidc4vp" -Body @{ uri = $OIDC4VP_URI } -ReturnJson:$false
-Write-Host "OIDC4VP processed." -ForegroundColor Green
+Write-Host "OIDC4VP processed."
 
-Write-Host "Onboarding script finished successfully!" -ForegroundColor Green
+Write-Host "Onboarding script finished successfully!"
 Write-Host ""

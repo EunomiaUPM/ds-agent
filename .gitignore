@@ -25,6 +25,7 @@ rainbow-pslm
 .run
 test_command_stub.sh
 venv
+.ipynb_checkpoints
 
 
 # VAULT

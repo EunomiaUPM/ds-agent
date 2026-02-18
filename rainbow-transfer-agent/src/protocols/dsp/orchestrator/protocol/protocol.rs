@@ -63,21 +63,34 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
     async fn on_transfer_request(
         &self,
         input: &TransferProcessMessageWrapper<TransferRequestMessageDto>,
+        associated_agent_peer: &str,
     ) -> anyhow::Result<(TransferProcessMessageWrapper<TransferProcessAckDto>, bool)> {
         // transform and validate
         let input = Arc::new(input.clone());
         self.validator.on_transfer_request(&input).await?;
+        dbg!("1.");
 
-        // resolve data service
+        // resolve connector instance: agreement → dataset → distribution → connector
         let agreement_id = input.dto.get_agreement_id().ok_or(anyhow!("no agreement id"))?;
-        let dct_formats = input.dto.format.parse::<DctFormats>()?;
-        let data_service = self
+        dbg!("2.");
+        let dct_formats = input.dto.format.clone();
+        dbg!("3.");
+        let connector_instance = self
             .facades
             .get_data_service_facade()
             .await
-            .resolve_data_service_by_agreement_id(&agreement_id, Option::from(&dct_formats))
+            .resolve_connector_by_agreement_id(&agreement_id, Option::from(&dct_formats))
             .await?;
+        dbg!("4.");
 
+        // validation: PUSH connector requires a DataAddress from the consumer
+        if matches!(connector_instance.interaction, rainbow_connector::InteractionConfig::Push(_))
+            && input.dto.data_address.is_none()
+        {
+            return Err(anyhow!(
+                "PUSH transfer requires a DataAddress from the consumer"
+            ));
+        }
         // check idempotency
         let consumer_pid = input.dto.get_consumer_pid().ok_or(anyhow!("no consumer id"))?;
         let process_result = self
@@ -94,6 +107,7 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
             }
             _ => {}
         }
+        dbg!("5.");
 
         // persist and send
         let transfer_process = self
@@ -101,25 +115,28 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
             .create_process(
                 "DSP",
                 "INBOUND",
+                associated_agent_peer,
                 None,
                 None,
                 Arc::new(input.dto.clone()),
                 serde_json::to_value(&input).unwrap(),
             )
             .await?;
+        dbg!("6.");
 
-        // data plane hook
+        // data plane hook: register the dataplane process for the provider
         let id = Urn::from_str(transfer_process.inner.id.as_str())?;
         self.facades
             .get_data_plane_facade()
             .await
             .on_transfer_request_post(
                 &id,
-                &dct_formats,
-                &Some(data_service),
+                &connector_instance,
                 &input.dto.data_address,
             )
             .await?;
+
+        dbg!("7.");
 
         // notify
 
@@ -141,26 +158,23 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
             .get_transfer_process_by_key_value(&dpid)
             .await?;
         let transfer_process_id = Urn::from_str(transfer_process.inner.id.as_str())?;
-        self.facades
-            .get_data_plane_facade()
-            .await
-            .on_transfer_start_pre(&transfer_process_id)
-            .await?;
         // persist and send
         let transfer_process = self
             .persistence_service
             .update_process(id, Arc::new(input.dto.clone()), serde_json::to_value(input).unwrap())
             .await?;
 
-        // data plane hook
-        self.facades
+        // data plane hook: start local dataplane, applying incoming DataAddress as egress
+        // Returns the consumer's own ingress URL to include in the ACK.
+        let consumer_ingress = self.facades
             .get_data_plane_facade()
             .await
-            .on_transfer_start_post(&transfer_process_id)
+            .on_transfer_start_post(&transfer_process_id, input.dto.data_address.clone())
             .await?;
         // notify
 
-        let transfer_process_dto = TransferProcessMessageWrapper::try_from(transfer_process)?;
+        let mut transfer_process_dto = TransferProcessMessageWrapper::try_from(transfer_process)?;
+        transfer_process_dto.dto.data_address = consumer_ingress;
         Ok(transfer_process_dto)
     }
 
@@ -178,19 +192,13 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
             .get_transfer_process_by_key_value(&dpid)
             .await?;
         let transfer_process_id = Urn::from_str(transfer_process.inner.id.as_str())?;
-        self.facades
-            .get_data_plane_facade()
-            .await
-            .on_transfer_suspension_pre(&transfer_process_id)
-            .await?;
-
         // persist and send
         let transfer_process = self
             .persistence_service
             .update_process(id, Arc::new(input.dto.clone()), serde_json::to_value(input).unwrap())
             .await?;
 
-        // data plane hook
+        // data plane hook: stop local dataplane
         self.facades
             .get_data_plane_facade()
             .await
@@ -217,19 +225,13 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
             .get_transfer_process_by_key_value(&dpid)
             .await?;
         let transfer_process_id = Urn::from_str(transfer_process.inner.id.as_str())?;
-        self.facades
-            .get_data_plane_facade()
-            .await
-            .on_transfer_completion_pre(&transfer_process_id)
-            .await?;
-
         // persist and send
         let transfer_process = self
             .persistence_service
             .update_process(id, Arc::new(input.dto.clone()), serde_json::to_value(input).unwrap())
             .await?;
 
-        // data plane hook
+        // data plane hook: stop local dataplane
         self.facades
             .get_data_plane_facade()
             .await
@@ -256,19 +258,13 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
             .get_transfer_process_by_key_value(&dpid)
             .await?;
         let transfer_process_id = Urn::from_str(transfer_process.inner.id.as_str())?;
-        self.facades
-            .get_data_plane_facade()
-            .await
-            .on_transfer_termination_pre(&transfer_process_id)
-            .await?;
-
         // persist and send
         let transfer_process = self
             .persistence_service
             .update_process(id, Arc::new(input.dto.clone()), serde_json::to_value(input).unwrap())
             .await?;
 
-        // data plane hook
+        // data plane hook: terminate local dataplane
         self.facades
             .get_data_plane_facade()
             .await

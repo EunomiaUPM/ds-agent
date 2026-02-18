@@ -1,7 +1,7 @@
-import {createFileRoute} from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { formatUrn } from "shared/src/lib/utils";
-import {useGetConsumerRequests} from "shared/src/data/business-queries.ts";
-import {Input} from "shared/src/components/ui/input.tsx";
+import { useGetConsumerRequests } from "shared/src/data/business-queries.ts";
+import { Input } from "shared/src/components/ui/input.tsx";
 import {
   Table,
   TableBody,
@@ -10,20 +10,20 @@ import {
   TableHeader,
   TableRow,
 } from "shared/src/components/ui/table.tsx";
-import {Badge, BadgeState} from "shared/src/components/ui/badge.tsx";
+import { Badge, BadgeState } from "shared/src/components/ui/badge.tsx";
 import dayjs from "dayjs";
-import {useContext, useMemo} from "react";
-import {AuthContext, AuthContextType} from "shared/src/context/AuthContext.tsx";
-import {BusinessActions} from "shared/src/components/actions/BusinessActions.tsx";
-import {renameCNTagsForBusiness} from "@/utils";
+import { useContext, useMemo } from "react";
+import { AuthContext, AuthContextType } from "shared/src/context/AuthContext.tsx";
+import { BusinessActions } from "shared/src/components/actions/BusinessActions.tsx";
+import { renameCNTagsForBusiness } from "@/utils";
 
 export const Route = createFileRoute("/customer-requests/")({
   component: RouteComponent,
 });
 
 function RouteComponent() {
-  const {participant} = useContext<AuthContextType | null>(AuthContext)!;
-  const {data: requests} = useGetConsumerRequests(participant?.participant_id!);
+  const { participant } = useContext<AuthContextType | null>(AuthContext)!;
+  const { data: requests } = useGetConsumerRequests(participant?.participant_id!);
   const cnProcessesSorted = useMemo(() => {
     if (!requests) return [];
     return [...requests].sort((a, b) => {
@@ -63,7 +63,7 @@ function RouteComponent() {
               </TableCell>
               <TableCell>{dayjs(cnProcess.created_at).format("DD/MM/YY - HH:mm")}</TableCell>
               <TableCell>
-                <BusinessActions process={cnProcess}/>
+                <BusinessActions process={cnProcess} />
               </TableCell>
             </TableRow>
           ))}

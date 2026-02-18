@@ -8,14 +8,19 @@
  * <ContractNegotiationOfferDialog process={cnProcess} />
  */
 
-import React, { useContext, useState } from "react";
+import React, { useContext, useMemo, useState } from "react";
 import { GlobalInfoContext, GlobalInfoContextType } from "shared/src/context/GlobalInfoContext";
-import { usePostContractNegotiationRPCOffer } from "shared/src/data/contract-mutations";
-import { useGetLastContractNegotiationOfferByCNMessageId } from "shared/src/data/contract-queries";
+import { useRpcSetupOffer } from "shared/src/data/orval/negotiation-rp-c/negotiation-rp-c";
+import { useGetNegotiationProcesses, useGetOffersByProcessId } from "shared/src/data/orval/negotiations/negotiations";
+import { NegotiationProcessDto } from "shared/src/data/orval/model/negotiationProcessDto";
+import { OdrlOffer } from "shared/src/data/orval/model/odrlOffer";
+import { OdrlInfo } from "shared/src/data/orval/model/odrlInfo";
 import { PolicyWrapperEdit } from "../PolicyWrapperEdit";
 import { BaseProcessDialog } from "./base";
 import { mapCNProcessToInfoItemsForProvider } from "./base/infoItemMappers";
 import Heading from "../ui/heading";
+import { useRouter } from "@tanstack/react-router";
+import { PolicyWrapperShow } from "../PolicyWrapperShow";
 
 // =============================================================================
 // TYPES
@@ -26,7 +31,9 @@ import Heading from "../ui/heading";
  */
 export interface ContractNegotiationOfferDialogProps {
   /** The contract negotiation process */
-  process: CNProcess;
+  process: NegotiationProcessDto;
+  /** Callback when the dialog is closed */
+  onClose?: () => void;
 }
 
 // =============================================================================
@@ -43,17 +50,20 @@ export interface ContractNegotiationOfferDialogProps {
  */
 export const ContractNegotiationOfferDialog = ({
   process,
+  onClose,
 }: ContractNegotiationOfferDialogProps) => {
   // ---------------------------------------------------------------------------
   // State & Hooks
   // ---------------------------------------------------------------------------
 
   /** Current edited policy state (declarative pattern) */
-  const [currentPolicy, setCurrentPolicy] = useState<OdrlInfo | null>(null);
-
-  const { mutateAsync: dataOfferAsync } = usePostContractNegotiationRPCOffer();
-  const { api_gateway } = useContext<GlobalInfoContextType | null>(GlobalInfoContext)!;
-  const { data: lastOffer } = useGetLastContractNegotiationOfferByCNMessageId(process.provider_id);
+  const [currentPolicy, setCurrentPolicy] = useState<OdrlInfo | null>(null); // OdrlInfo matches OdrlOffer structure roughly
+  const { refetch } = useGetNegotiationProcesses();
+  const router = useRouter();
+  const { mutateAsync: setupOffer } = useRpcSetupOffer();
+  const lastOffer = useMemo(() => {
+    return process.offers!.at(-1);
+  }, [process]);
 
   // ---------------------------------------------------------------------------
   // Info Items
@@ -66,32 +76,26 @@ export const ContractNegotiationOfferDialog = ({
   // ---------------------------------------------------------------------------
 
   const handleSubmit = async () => {
-    if (currentPolicy && lastOffer) {
-      const outputOffer = {
-        ...lastOffer.offer_content,
-        prohibition:
-          currentPolicy.prohibition && currentPolicy.prohibition.length > 0
-            ? currentPolicy.prohibition
-            : undefined,
-        permission:
-          currentPolicy.permission && currentPolicy.permission.length > 0
-            ? currentPolicy.permission
-            : undefined,
-        obligation:
-          currentPolicy.obligation && currentPolicy.obligation.length > 0
-            ? currentPolicy.obligation
-            : undefined,
-      };
+    if (!process.id || !lastOffer || !currentPolicy) {
+      console.error("Missing required data for offer");
+      return;
+    }
 
-      await dataOfferAsync({
-        api_gateway,
-        content: {
-          consumerParticipantId: process.associated_consumer!,
-          offer: outputOffer,
-          consumerPid: process.consumer_id,
-          providerPid: process.provider_id,
+    await setupOffer({
+      data: {
+        processId: process.id,
+        offer: {
+          "@id": (lastOffer.offerContent["@id"] as string) ?? "urn:uuid:placeholder",
+          "@type": (lastOffer.offerContent["@type"] as any),
+          target: (lastOffer.offerContent.target as string) ?? "",
+          ...currentPolicy
         },
-      });
+      },
+    });
+    await refetch();
+    router.invalidate();
+    if (onClose) {
+      onClose();
     }
   };
 
@@ -99,15 +103,20 @@ export const ContractNegotiationOfferDialog = ({
   // After Info Content (Policy Editor)
   // ---------------------------------------------------------------------------
 
-  const policyEditorContent = lastOffer ? (
-    <div className="pt-4">
-      <Heading level="h6" className="mb-2">
-        Counter Offer Policy
-      </Heading>
-      <PolicyWrapperEdit
-        policy={lastOffer.offer_content}
-        onChange={setCurrentPolicy}
-      />
+  const policyEditorContent = lastOffer && lastOffer.offerContent ? (
+    <div className="pt-4 flex gap-2">
+      <div className="w-1/2">
+        <Heading level="h6" className="mb-2">
+          Current Policy
+        </Heading>
+        <PolicyWrapperShow policy={lastOffer.offerContent} />
+      </div>
+      <div className="w-1/2">
+        <Heading level="h6" className="mb-2">
+          New Policy Request
+        </Heading>
+        <PolicyWrapperEdit policy={lastOffer.offerContent} onChange={setCurrentPolicy} />
+      </div>
     </div>
   ) : null;
 
@@ -122,9 +131,11 @@ export const ContractNegotiationOfferDialog = ({
       infoItems={infoItems}
       afterInfoContent={policyEditorContent}
       submitLabel="Counter Offer"
+      disabledSubmit={!process.id || !lastOffer || !currentPolicy}
       submitVariant="outline"
       onSubmit={handleSubmit}
       scrollable
+      contentClassName="w-[75vw] max-w-[960px]"
     />
   );
 };

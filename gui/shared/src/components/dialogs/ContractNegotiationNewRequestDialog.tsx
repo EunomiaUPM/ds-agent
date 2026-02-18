@@ -13,14 +13,15 @@
  * />
  */
 
-import React, { useContext, useRef } from "react";
-import { GlobalInfoContext, GlobalInfoContextType } from "shared/src/context/GlobalInfoContext";
+import React, { useRef } from "react";
 import { PolicyWrapperShow } from "shared/src/components/PolicyWrapperShow";
-import { usePostContractNegotiationRPCRequest } from "shared/src/data/contract-mutations";
 import { BaseProcessDialog } from "./base";
 import { urnInfoItem } from "./base/infoItemMappers";
 import { InfoItemProps } from "../ui/info-list";
-import { DialogClose } from "../ui/dialog";
+import { useRpcSetupRequestInit } from "../../data/orval/negotiation-rp-c/negotiation-rp-c";
+import { useNavigate } from "@tanstack/react-router";
+import { OdrlOffer } from "../../data/orval/model";
+import { useMyWellKnownDSPPath, useParticipantDSPPath } from "../../hooks/useWellKnownUrl";
 
 // =============================================================================
 // TYPES
@@ -34,10 +35,10 @@ export interface ContractNegotiationNewRequestDialogProps {
   policy: OdrlOffer;
 
   /** ID of the parent catalog */
-  catalogId: UUID;
+  catalogId: string;
 
   /** ID of the dataset */
-  datasetId: UUID;
+  datasetId: string;
 
   /** Provider participant ID to negotiate with */
   participantId: string;
@@ -61,9 +62,10 @@ export const ContractNegotiationNewRequestDialog = ({
   datasetId,
   participantId,
 }: ContractNegotiationNewRequestDialogProps) => {
-  const closeDialogRef = useRef<HTMLButtonElement>(null);
-  const { mutateAsync: requestAsync } = usePostContractNegotiationRPCRequest();
-  const { api_gateway } = useContext<GlobalInfoContextType | null>(GlobalInfoContext)!;
+  const navigate = useNavigate();
+  const { mutateAsync: requestAsync } = useRpcSetupRequestInit();
+  const myDspPath = useMyWellKnownDSPPath();
+  const { path: providerDspPath } = useParticipantDSPPath(participantId);
 
   // ---------------------------------------------------------------------------
   // Info Items
@@ -80,17 +82,28 @@ export const ContractNegotiationNewRequestDialog = ({
   // ---------------------------------------------------------------------------
 
   const handleSubmit = async () => {
-    await requestAsync({
-      api_gateway,
-      content: {
-        providerParticipantId: participantId,
-        //@ts-ignore - policy @id format
+    if (!myDspPath || !providerDspPath) {
+      return;
+    }
+
+    const res = await requestAsync({
+      data: {
+        associatedAgentPeer: participantId,
+        providerAddress: providerDspPath,
+        callbackAddress: myDspPath,
         offer: {
-          "@id": policy["@id"],
+          ...policy,
+          target: datasetId,
         },
       },
     });
-    closeDialogRef.current?.click();
+
+    if (res.status === 201) {
+      // closeDialogRef.current?.click();
+      navigate({
+        to: "/contract-negotiation",
+      });
+    }
   };
 
   // ---------------------------------------------------------------------------
@@ -106,8 +119,6 @@ export const ContractNegotiationNewRequestDialog = ({
         participant={participantId}
         datasetName=""
       />
-      {/* Hidden close button for programmatic dialog close */}
-      <DialogClose ref={closeDialogRef} className="hidden" />
     </div>
   );
 

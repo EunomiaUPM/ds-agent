@@ -31,11 +31,7 @@ import { Button } from "shared/src/components/ui/button";
 import { LogOut, Bell, User } from "lucide-react";
 import { SidebarTrigger } from "shared/src/components/ui/sidebar";
 import { Separator } from "shared/src/components/ui/separator";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "shared/src/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "shared/src/components/ui/tooltip";
 
 // =============================================================================
 // TYPES
@@ -83,19 +79,13 @@ const ROUTE_LABELS: Record<string, string> = {
  * Segments that should be hidden from breadcrumbs.
  * These are typically route structure artifacts.
  */
-const HIDDEN_SEGMENTS = new Set([
-  "data-service",
-]);
+const HIDDEN_SEGMENTS = new Set(["data-service"]);
 
 /**
  * Segments that should be merged with the following segment.
  * For example: /catalog/$catalogId becomes "Catalog: catalogId"
  */
-const MERGE_WITH_NEXT = new Set([
-  "dataset",
-  "transfer-message",
-  "cn-message",
-]);
+const MERGE_WITH_NEXT = new Set(["dataset", "transfer-message", "cn-message"]);
 
 // =============================================================================
 // HELPERS
@@ -226,9 +216,7 @@ export const Header = () => {
           <React.Fragment key={item.key}>
             <BreadcrumbItem className="truncate max-w-[200px]">
               {isLast ? (
-                <BreadcrumbPage className="truncate font-medium">
-                  {item.label}
-                </BreadcrumbPage>
+                <BreadcrumbPage className="truncate font-medium">{item.label}</BreadcrumbPage>
               ) : (
                 <BreadcrumbLink asChild>
                   <Link
@@ -274,11 +262,7 @@ export const Header = () => {
             </TooltipTrigger>
             <TooltipContent side="bottom" className="flex flex-col gap-1">
               {middleItems.map((item) => (
-                <Link
-                  key={item.key}
-                  to={item.href}
-                  className="text-sm hover:underline"
-                >
+                <Link key={item.key} to={item.href} className="text-sm hover:underline">
                   {item.label}
                 </Link>
               ))}
@@ -306,9 +290,7 @@ export const Header = () => {
 
         {/* Last Item */}
         <BreadcrumbItem className="truncate max-w-[200px]">
-          <BreadcrumbPage className="truncate font-medium">
-            {lastItem.label}
-          </BreadcrumbPage>
+          <BreadcrumbPage className="truncate font-medium">{lastItem.label}</BreadcrumbPage>
         </BreadcrumbItem>
       </>
     );
@@ -319,15 +301,13 @@ export const Header = () => {
   // ---------------------------------------------------------------------------
 
   return (
-    <div className="bg-background w-full border-b border-white/5 py-1 z-50 h-9 px-3 flex justify-between items-center gap-4">
+    <div className="bg-background w-full border-b border-white/5 py-1 z-50 h-9 px-3 flex justify-between items-center gap-4 sticky top-0">
       {/* Left section: Sidebar trigger and breadcrumbs */}
       <div className="flex items-center gap-2 overflow-hidden min-w-0">
         <SidebarTrigger className="h-6 w-6 shrink-0" />
         <Separator orientation="vertical" className="h-4 shrink-0" />
         <Breadcrumb className="overflow-hidden">
-          <BreadcrumbList className="flex-nowrap">
-            {renderBreadcrumbs()}
-          </BreadcrumbList>
+          <BreadcrumbList className="flex-nowrap">{renderBreadcrumbs()}</BreadcrumbList>
         </Breadcrumb>
       </div>
 

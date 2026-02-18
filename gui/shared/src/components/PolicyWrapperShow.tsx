@@ -32,7 +32,9 @@ import { Button } from "./ui/button";
 import { useRouterState } from "@tanstack/react-router";
 import { BusinessRemovePolicyDialog } from "./dialogs/BusinessRemovePolicyDialog";
 import { Dialog, DialogTrigger } from "shared/src/components/ui/dialog";
-import { BusinessRequestAccessDialog } from "./dialogs/BusinessRequestAccessDialog";
+import { ContractNegotiationNewRequestDialog } from "./dialogs/ContractNegotiationNewRequestDialog";
+import { OdrlOffer, OdrlPolicyDto } from "../data/orval/model";
+import { ContractNegotiationNewOfferDialog } from "./dialogs/ContractNegotiationNewOfferDialog";
 
 // =============================================================================
 // TYPES
@@ -43,7 +45,7 @@ import { BusinessRequestAccessDialog } from "./dialogs/BusinessRequestAccessDial
  */
 export interface PolicyWrapperShowProps {
   /** The ODRL policy offer to display */
-  policy: OdrlOffer;
+  policy: OdrlOffer | OdrlPolicyDto;
 
   /** ID of the parent dataset (for actions) */
   datasetId?: string;
@@ -51,11 +53,17 @@ export interface PolicyWrapperShowProps {
   /** ID of the parent catalog (for actions) */
   catalogId?: string;
 
-  /** Current participant information (for role-based actions) */
-  participant?: { participant_type: string };
-
   /** Name of the dataset (for display in dialogs) */
   datasetName?: string;
+
+  /** Whether to show the Request Access button (default: false) */
+  showRequestAccess?: boolean;
+
+  /** Whether to show the Offer Access button (default: false) */
+  showOfferAccess?: boolean;
+
+  /** The participant ID of the provider (for negotiation request) */
+  participant?: string;
 }
 
 // =============================================================================
@@ -67,7 +75,6 @@ export interface PolicyWrapperShowProps {
  *
  * The component adapts its behavior based on:
  * - Current route (shows different actions on datahub-catalog pages)
- * - Participant type (providers see delete, consumers see request access)
  *
  * @param props - PolicyWrapperShow properties
  * @returns A styled policy display card
@@ -76,8 +83,10 @@ export const PolicyWrapperShow = ({
   policy,
   datasetId,
   catalogId,
-  participant,
   datasetName,
+  showRequestAccess = false,
+  showOfferAccess = false,
+  participant,
 }: PolicyWrapperShowProps) => {
   const routerState = useRouterState();
 
@@ -90,11 +99,11 @@ export const PolicyWrapperShow = ({
     routerState.location.pathname.includes("datahub-catalog") &&
     routerState.location.pathname.includes("dataset");
 
-  /** Whether current user is a provider */
-  const isProvider = participant?.participant_type === "Provider";
-
-  /** Whether current user is a consumer */
-  const isConsumer = participant?.participant_type === "Consumer";
+  // @ts-ignore
+  const policyId = "id" in policy ? policy.id : policy["@id"];
+  const odrlOffer = "odrlOffer" in policy ? policy.odrlOffer : (policy as OdrlOffer);
+  const entityType = "entityType" in policy ? policy.entityType : (policy as any).entityType; // Fallback for flexibility
+  const entity = "entity" in policy ? policy.entity : (policy as any).entity || (policy as any).target;
 
   // ---------------------------------------------------------------------------
   // Render
@@ -110,12 +119,12 @@ export const PolicyWrapperShow = ({
               Policy ID
             </span>
             <Badge variant="info" className="font-mono text-[10px]">
-              {formatUrn(policy.id)}
+              {formatUrn(policyId || "")}
             </Badge>
           </div>
 
           {/* Provider action: Delete policy */}
-          {isDatahubDatasetView && isProvider && (
+          {isDatahubDatasetView && (
             <Dialog>
               <DialogTrigger asChild>
                 <Button
@@ -127,7 +136,7 @@ export const PolicyWrapperShow = ({
                 </Button>
               </DialogTrigger>
               <BusinessRemovePolicyDialog
-                policy={policy}
+                policy={policy as any} // Cast as any for now, or ensure compatibility
                 catalogId={catalogId}
                 datasetId={datasetId}
               />
@@ -139,8 +148,11 @@ export const PolicyWrapperShow = ({
         <InfoList
           className="w-full mb-3"
           items={[
-            { label: "Policy Target", value: policy.entityType },
-            { label: "Target", value: policy.entity.slice(9) },
+            { label: "Policy Target", value: entityType || "Agreement" },
+            {
+              label: "Target",
+              value: entity ? entity.slice(9) : "",
+            },
           ]}
         />
 
@@ -150,14 +162,23 @@ export const PolicyWrapperShow = ({
             ODRL Content
           </Heading>
           <div className="flex flex-col gap-2 w-full">
-            <PolicyComponent policyItem={policy.odrlOffer.permission} variant="permission" />
-            <PolicyComponent policyItem={policy.odrlOffer.prohibition} variant="prohibition" />
-            <PolicyComponent policyItem={policy.odrlOffer.obligation} variant="obligation" />
+            <PolicyComponent
+              policyItem={odrlOffer?.permission || (policy as any).permission}
+              variant="permission"
+            />
+            <PolicyComponent
+              policyItem={odrlOffer?.prohibition || (policy as any).prohibition}
+              variant="prohibition"
+            />
+            <PolicyComponent
+              policyItem={odrlOffer?.obligation || (policy as any).obligation}
+              variant="obligation"
+            />
           </div>
         </div>
 
         {/* Consumer action: Request access */}
-        {isConsumer && (
+        {showRequestAccess && odrlOffer && (
           <div className="mt-4 w-full flex justify-end">
             <Dialog>
               <DialogTrigger asChild>
@@ -165,11 +186,29 @@ export const PolicyWrapperShow = ({
                   Request Access
                 </Button>
               </DialogTrigger>
-              <BusinessRequestAccessDialog
-                policy={policy}
-                catalogId={catalogId}
-                datasetId={datasetId}
-                datasetName={datasetName}
+              <ContractNegotiationNewRequestDialog
+                policy={odrlOffer}
+                catalogId={catalogId || ""}
+                datasetId={datasetId || ""}
+                participantId={participant || ""}
+              />
+            </Dialog>
+          </div>
+        )}
+
+        {/* Consumer action: Request access */}
+        {showOfferAccess && odrlOffer && (
+          <div className="mt-4 w-full flex justify-end">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="default" className="w-full sm:w-auto">
+                  Offer Access
+                </Button>
+              </DialogTrigger>
+              <ContractNegotiationNewOfferDialog
+                policy={policy as OdrlPolicyDto}
+                catalogId={catalogId || ""}
+                datasetId={datasetId || ""}
               />
             </Dialog>
           </div>

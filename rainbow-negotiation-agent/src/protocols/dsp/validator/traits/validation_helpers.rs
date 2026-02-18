@@ -34,6 +34,10 @@ pub trait ValidationHelpers: Send + Sync + 'static {
         &self,
         payload: &dyn NegotiationProcessMessageTrait,
     ) -> anyhow::Result<NegotiationProcessDto>;
+    async fn get_current_dto_from_payload_by_provider(
+        &self,
+        payload: &dyn NegotiationProcessMessageTrait,
+    ) -> anyhow::Result<NegotiationProcessDto>;
     async fn get_pid_by_role(
         &self,
         dto: &NegotiationProcessDto,

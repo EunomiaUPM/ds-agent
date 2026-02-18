@@ -4,7 +4,6 @@ import { cn } from "shared/src/lib/utils";
 
 export type RoleType = "Provider" | "Consumer" | "Business" | "Customer";
 
-
 export const mapRoleToVariant = (role: RoleType) => {
   if (role === "Provider" || role === "Business") return "Provider";
   if (role === "Consumer" || role === "Customer") return "Consumer";
@@ -25,7 +24,6 @@ export const MessageLog = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & { variant: RoleType }
 >(({ className, variant, children, ...props }, ref) => {
-
   const styleVariant = mapRoleToVariant(variant);
   const isLeft = styleVariant === "Provider";
 

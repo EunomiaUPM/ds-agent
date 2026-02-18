@@ -49,6 +49,7 @@ use crate::protocols::dsp::validator::validators::validation_helpers::Validation
 use crate::protocols::protocol::ProtocolPluginTrait;
 use axum::Router;
 use rainbow_common::config::services::ContractsConfig;
+use rainbow_common::facades::ssi_auth_facade::{MatesFacadeTrait, SSIAuthFacadeTrait};
 use rainbow_common::http_client::HttpClient;
 use std::sync::Arc;
 
@@ -58,6 +59,8 @@ pub struct NegotiationDSP {
     negotiation_offer_service: Arc<dyn NegotiationAgentOffersTrait>,
     negotiation_agreement_service: Arc<dyn NegotiationAgentAgreementsTrait>,
     config: Arc<ContractsConfig>,
+    ssi_auth_service: Arc<dyn SSIAuthFacadeTrait>,
+    mates_service: Arc<dyn MatesFacadeTrait>,
 }
 
 impl NegotiationDSP {
@@ -67,6 +70,8 @@ impl NegotiationDSP {
         negotiation_offer_service: Arc<dyn NegotiationAgentOffersTrait>,
         negotiation_agreement_service: Arc<dyn NegotiationAgentAgreementsTrait>,
         config: Arc<ContractsConfig>,
+        ssi_auth_service: Arc<dyn SSIAuthFacadeTrait>,
+        mates_service: Arc<dyn MatesFacadeTrait>,
     ) -> Self {
         Self {
             negotiation_agent_message_service,
@@ -74,6 +79,8 @@ impl NegotiationDSP {
             negotiation_offer_service,
             negotiation_agreement_service,
             config,
+            ssi_auth_service,
+            mates_service,
         }
     }
 }
@@ -144,6 +151,7 @@ impl ProtocolPluginTrait for NegotiationDSP {
             persistence_rpc_service,
             self.config.clone(),
             http_client.clone(),
+            self.mates_service.clone(),
         ));
         let orchestrator_service = Arc::new(OrchestratorService::new(
             http_orchestator.clone(),
@@ -151,7 +159,11 @@ impl ProtocolPluginTrait for NegotiationDSP {
         ));
 
         // router
-        let dsp_router = DspRouter::new(orchestrator_service.clone(), self.config.clone());
+        let dsp_router = DspRouter::new(
+            orchestrator_service.clone(),
+            self.config.clone(),
+            self.ssi_auth_service.clone(),
+        );
         let rcp_router = RpcRouter::new(orchestrator_service.clone(), self.config.clone());
 
         Ok(Router::new().merge(dsp_router.router()).merge(rcp_router.router()))

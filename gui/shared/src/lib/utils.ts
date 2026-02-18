@@ -33,9 +33,11 @@ export const mergeStateAndAttribute = (state: string, attribute: string): string
   switch (state) {
     case "SUSPENDED":
       switch (attribute) {
-        case "BY_PROVIDER":
-        case "BY_CONSUMER":
-          textOut = `${state} ${attribute.replace("_", " ")}`;
+        case "ByProvider":
+          textOut = `${state} by Provider`;
+          break;
+        case "ByConsumer":
+          textOut = `${state} by Consumer`;
           break;
         default:
           textOut = state;

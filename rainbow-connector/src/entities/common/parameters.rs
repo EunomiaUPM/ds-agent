@@ -23,6 +23,9 @@ pub enum ParameterAutoFilledType {
     SysToken,
     SysTimestamp,
     SysIso8601,
+    SysOwnUrl {
+        host_docker_internal: bool
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

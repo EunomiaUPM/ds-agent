@@ -34,6 +34,7 @@ pub trait ProtocolOrchestratorTrait: Send + Sync + 'static {
     async fn on_transfer_request(
         &self,
         input: &TransferProcessMessageWrapper<TransferRequestMessageDto>,
+        associated_agent_peer: &str,
     ) -> anyhow::Result<(TransferProcessMessageWrapper<TransferProcessAckDto>, bool)>;
     async fn on_transfer_start(
         &self,

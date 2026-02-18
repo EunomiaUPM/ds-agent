@@ -7,39 +7,41 @@
 
 import React, { useContext } from "react";
 import { GlobalInfoContext, GlobalInfoContextType } from "../../context/GlobalInfoContext";
-import { usePostTransferRPCTermination } from "../../data/transfer-mutations";
 import { BaseProcessDialog, mapTransferProcessToInfoItems } from "./base";
+import { TransferProcessDto } from "../../data/orval/model";
+import { useSetupTransferTermination } from "../../data/orval/transfer-rp-c/transfer-rp-c";
+import { useRouter } from "@tanstack/react-router";
+import { useGetTransferProcesses } from "../../data/orval/transfers/transfers";
 
-export const TransferProcessTerminationDialog = ({ process }: { process: TransferProcess }) => {
-  const { api_gateway, dsrole } = useContext<GlobalInfoContextType | null>(GlobalInfoContext)!;
-  const { mutateAsync: terminateAsync } = usePostTransferRPCTermination();
+export const TransferProcessTerminationDialog = ({ process, onClose }: {
+  process: TransferProcessDto; onClose?: () => void;
+}) => {
+  const { mutateAsync: terminateAsync } = useSetupTransferTermination();
+  const { refetch } = useGetTransferProcesses();
+  const router = useRouter();
 
   /**
    * Handles the termination submission.
    * Payload structure differs based on the user's role.
    */
   const handleSubmit = async () => {
-    const p = process as any;
+    if (!process.identifiers?.consumerPid || !process.identifiers?.providerPid) {
+      console.error("Missing process identifiers");
+      return;
+    }
+    await terminateAsync({
+      data: {
+        consumerPid: process.identifiers.consumerPid,
+        providerPid: process.identifiers.providerPid,
+        code: "TERMINATED",
+        reason: ["Terminated from GUI"],
+      }
+    })
 
-    if (dsrole === "provider") {
-      await terminateAsync({
-        api_gateway,
-        content: {
-          consumerParticipantId: p.associated_consumer,
-          consumerCallbackAddress: p.data_plane_id,
-          consumerPid: p.consumer_pid,
-          providerPid: p.provider_pid,
-        },
-      });
-    } else if (dsrole === "consumer") {
-      await terminateAsync({
-        api_gateway,
-        content: {
-          providerParticipantId: p.associated_provider,
-          consumerPid: p.consumer_pid,
-          providerPid: p.provider_pid,
-        },
-      });
+    await refetch();
+    router.invalidate();
+    if (onClose) {
+      onClose();
     }
   };
 
@@ -47,7 +49,7 @@ export const TransferProcessTerminationDialog = ({ process }: { process: Transfe
     <BaseProcessDialog
       title="Transfer Termination Dialog"
       description="You are about to terminate the transfer process."
-      infoItems={mapTransferProcessToInfoItems(process, dsrole as "provider" | "consumer")}
+      infoItems={mapTransferProcessToInfoItems(process)}
       submitLabel="Terminate"
       submitVariant="destructive"
       onSubmit={handleSubmit}

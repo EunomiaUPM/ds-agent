@@ -32,11 +32,11 @@ import React from "react";
  * Props for the PageSection component.
  */
 export interface PageSectionProps extends React.HTMLAttributes<HTMLDivElement> {
-    /** Optional section title displayed as a small uppercase heading */
-    title?: string;
+  /** Optional section title displayed as a small uppercase heading */
+  title?: string;
 
-    /** Optional action element (button, link) displayed next to the title */
-    action?: React.ReactNode;
+  /** Optional action element (button, link) displayed next to the title */
+  action?: React.ReactNode;
 }
 
 // =============================================================================
@@ -55,19 +55,22 @@ export interface PageSectionProps extends React.HTMLAttributes<HTMLDivElement> {
  * @returns A styled section container
  */
 export function PageSection({ title, action, className, children, ...props }: PageSectionProps) {
-    return (
-        <div className={cn("mb-6", className)} {...props}>
-            {/* Section header with title and optional action */}
-            <div className="flex items-center justify-start gap-4 mb-2">
-                {title && (
-                    <Heading level="h6" className="mt-2 text-white/80 uppercase tracking-wide text-xs font-semibold">
-                        {title}
-                    </Heading>
-                )}
-                {action && <div className="mt-1">{action}</div>}
-            </div>
-            {/* Section content */}
-            {children}
-        </div>
-    );
+  return (
+    <div className={cn("mb-6", className)} {...props}>
+      {/* Section header with title and optional action */}
+      <div className="flex items-center justify-start gap-4 mb-2">
+        {title && (
+          <Heading
+            level="h6"
+            className="mt-2 text-white/80 uppercase tracking-wide text-xs font-semibold"
+          >
+            {title}
+          </Heading>
+        )}
+        {action && <div className="mt-1">{action}</div>}
+      </div>
+      {/* Section content */}
+      {children}
+    </div>
+  );
 }

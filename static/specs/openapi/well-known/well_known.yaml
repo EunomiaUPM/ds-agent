@@ -1,0 +1,161 @@
+openapi: 3.0.3
+info:
+  title: Rainbow Well-Known API
+  description: OpenAPI specification for the Well-Known and RPC endpoints defined in `rainbow-common`.
+  version: 1.0.0
+servers:
+  - url: /
+    description: Base URL
+
+tags:
+  - name: Well-Known
+    description: Standard .well-known endpoints
+  - name: RPC
+    description: RPC endpoints for fetching well-known data from participants
+
+paths:
+  /.well-known/dspace-version:
+    get:
+      tags:
+        - Well-Known
+      summary: Get Dataspace Version
+      description: Returns the supported dataspace protocol versions and configurations.
+      operationId: getWellKnownDSpaceVersion
+      responses:
+        "200":
+          description: Version response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VersionResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /rpc/.well-known/dspace-version:
+    post:
+      tags:
+        - RPC
+      summary: Fetch Dataspace Version from Participant
+      description: RPC call to fetch the well-known dataspace version from a specific participant.
+      operationId: fetchDataspaceVersionFromParticipant
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WellKnownRPCRequest"
+        required: true
+      responses:
+        "200":
+          description: Version response from the participant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VersionResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /rpc/.well-known/dspace-version/path:
+    post:
+      tags:
+        - RPC
+      summary: Fetch Dataspace Current Path
+      description: RPC call to fetch the current dataspace protocol path for a specific participant.
+      operationId: fetchDataspaceCurrentPath
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WellKnownRPCRequest"
+        required: true
+      responses:
+        "200":
+          description: Path response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VersionPath"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+components:
+  schemas:
+    WellKnownRPCRequest:
+      type: object
+      properties:
+        participant_id:
+          type: string
+          description: The ID of the participant to fetch data from.
+      required:
+        - participant_id
+
+    VersionPath:
+      type: object
+      properties:
+        path:
+          type: string
+          description: The computed base URL path for the current protocol version.
+      required:
+        - path
+
+    VersionResponse:
+      type: object
+      properties:
+        protocolVersions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Version"
+      required:
+        - protocolVersions
+
+    Version:
+      type: object
+      properties:
+        binding:
+          type: string
+          enum: [HTTPS, HTTP]
+        path:
+          type: string
+        version:
+          type: string
+          enum: ["2024-1", "2025-1"]
+        auth:
+          $ref: "#/components/schemas/Auth"
+        identifierType: # Renamed from identifier_type due to camelCase in parent? No, field name in struct is identifier_type but annotated with rename_all=camelCase on struct Version
+          type: string
+          enum: ["did:web", "did:jwk", "url", "D-U-N-S"]
+        serviceId: # camelCase
+          type: string
+      required:
+        - binding
+        - path
+        - version
+
+    Auth:
+      type: object
+      properties:
+        protocol:
+          type: string
+          enum: [OAuth, Token, GNAP]
+        version:
+          type: string
+        profile:
+          type: array
+          items:
+            type: string
+      required:
+        - protocol
+        - version
+
+  responses:
+    InternalServerError:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+                example: 500
+              message:
+                type: string

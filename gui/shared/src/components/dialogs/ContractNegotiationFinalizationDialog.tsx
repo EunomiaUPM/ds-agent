@@ -7,12 +7,24 @@
 
 import React, { useContext } from "react";
 import { GlobalInfoContext, GlobalInfoContextType } from "../../context/GlobalInfoContext";
-import { usePostContractNegotiationRPCFinalization } from "../../data/contract-mutations";
 import { BaseProcessDialog, mapCNProcessToInfoItemsForProvider } from "./base";
+import { useRpcSetupFinalization } from "../../data/orval/negotiation-rp-c/negotiation-rp-c";
+import { NegotiationProcessDto } from "../../data/orval/model";
+import { useGetNegotiationProcesses } from "../../data/orval/negotiations/negotiations";
+import { useRouter } from "@tanstack/react-router";
+import { PolicyWrapperShow } from "../PolicyWrapperShow";
 
-export const ContractNegotiationFinalizationDialog = ({ process }: { process: CNProcess }) => {
+export const ContractNegotiationFinalizationDialog = ({
+  process,
+  onClose,
+}: {
+  process: NegotiationProcessDto;
+  onClose?: () => void;
+}) => {
   const { api_gateway } = useContext<GlobalInfoContextType | null>(GlobalInfoContext)!;
-  const { mutateAsync: finalizeAsync } = usePostContractNegotiationRPCFinalization();
+  const { mutateAsync: finalizeAsync } = useRpcSetupFinalization();
+  const { refetch } = useGetNegotiationProcesses();
+  const router = useRouter();
 
   /**
    * Handles the finalization submission.
@@ -20,13 +32,16 @@ export const ContractNegotiationFinalizationDialog = ({ process }: { process: CN
    */
   const handleSubmit = async () => {
     await finalizeAsync({
-      api_gateway,
-      content: {
-        consumerParticipantId: process.associated_consumer!,
-        consumerPid: process.consumer_id,
-        providerPid: process.provider_id,
-      },
+      data: {
+        consumerPid: process.identifiers!.consumerPid,
+        providerPid: process.identifiers!.providerPid,
+      }
     });
+    await refetch();
+    router.invalidate();
+    if (onClose) {
+      onClose();
+    }
   };
 
   return (
@@ -43,6 +58,16 @@ export const ContractNegotiationFinalizationDialog = ({ process }: { process: CN
       submitLabel="Finalize"
       submitVariant="default"
       onSubmit={handleSubmit}
+      scrollable={true}
+      afterInfoContent={
+        <div className="pt-4">
+          <PolicyWrapperShow
+            policy={process.agreement!.agreementContent}
+            datasetId={process.identifiers!.datasetId}
+            catalogId={process.identifiers!.catalogId}
+          />
+        </div>
+      }
     />
   );
 };

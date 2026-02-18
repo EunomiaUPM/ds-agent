@@ -20,6 +20,7 @@ rainbow_transfer_agent = { version = "0.3.8", path = "../rainbow-transfer-agent"
 rainbow_catalog_agent = { version = "0.3.8", path = "../rainbow-catalog-agent", default-features = false }
 rainbow_connector = { version = "0.3.8", path = "../rainbow-connector", default-features = false }
 rainbow_fe_gateway = { version = "0.3.8", path = "../rainbow-fe-gateway", default-features = false }
+rainbow_negotiation_agent = { version = "0.3.8", path = "../rainbow-negotiation-agent", default-features = false }
 
 
 clap = { workspace = true }

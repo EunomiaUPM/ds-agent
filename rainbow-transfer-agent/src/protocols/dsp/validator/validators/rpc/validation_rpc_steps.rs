@@ -57,7 +57,7 @@ impl ValidationRpcSteps for ValidationRpcStepsService {
     ) -> anyhow::Result<()> {
         let request_body: TransferProcessMessageWrapper<TransferRequestMessageDto> =
             input.clone().into();
-        self.payload_validator.validate_format_data_address(&request_body.dto).await?;
+        //self.payload_validator.validate_format_data_address(&request_body.dto).await?;
         Ok(())
     }
 

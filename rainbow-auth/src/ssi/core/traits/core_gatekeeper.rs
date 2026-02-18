@@ -47,7 +47,7 @@ pub trait CoreGateKeeperTrait: Send + Sync + 'static {
         &self,
         id: String,
         payload: RefBody,
-        token: String
+        token: String,
     ) -> anyhow::Result<AccessToken> {
         let int_model = self.repo().interaction_rcv().get_by_cont_id(&id).await?;
         let mut req_model = self.repo().request_rcv().get_by_id(&int_model.id).await?;

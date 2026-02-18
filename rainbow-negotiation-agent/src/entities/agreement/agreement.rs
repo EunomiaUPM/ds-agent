@@ -121,6 +121,36 @@ impl NegotiationAgentAgreementsTrait for NegotiationAgentAgreementsService {
         Ok(agreement.map(|m| AgreementDto { inner: m }))
     }
 
+    async fn get_agreements_by_assignee(&self, id: &String) -> anyhow::Result<Vec<AgreementDto>> {
+        let agreements = self
+            .negotiation_repo
+            .get_agreement_repo()
+            .get_agreements_by_assignee(id)
+            .await
+            .map_err(|e| {
+                let err = CommonErrors::database_new(&e.to_string());
+                error!("{}", err.log());
+                err
+            })?;
+
+        Ok(agreements.into_iter().map(|m| AgreementDto { inner: m }).collect())
+    }
+
+    async fn get_agreements_by_assigner(&self, id: &String) -> anyhow::Result<Vec<AgreementDto>> {
+        let agreements = self
+            .negotiation_repo
+            .get_agreement_repo()
+            .get_agreements_by_assigner(id)
+            .await
+            .map_err(|e| {
+                let err = CommonErrors::database_new(&e.to_string());
+                error!("{}", err.log());
+                err
+            })?;
+
+        Ok(agreements.into_iter().map(|m| AgreementDto { inner: m }).collect())
+    }
+
     async fn create_agreement(
         &self,
         new_model_dto: &NewAgreementDto,

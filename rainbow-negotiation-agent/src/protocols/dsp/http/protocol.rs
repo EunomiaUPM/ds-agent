@@ -19,18 +19,6 @@
 
 use crate::protocols::dsp::errors::extract_payload_error;
 use crate::protocols::dsp::orchestrator::OrchestratorTrait;
-use axum::{
-    Json, Router,
-    extract::{FromRef, Path, State, rejection::JsonRejection},
-    http::StatusCode,
-    response::IntoResponse,
-    routing::{get, post},
-};
-use rainbow_common::config::services::ContractsConfig;
-use serde::Serialize;
-use std::future::Future;
-use std::sync::Arc;
-// Importamos todos los DTOs necesarios para ambos roles
 use crate::protocols::dsp::protocol_types::{
     NegotiationAgreementMessageDto, NegotiationErrorMessageDto, NegotiationEventMessageDto,
     NegotiationOfferInitMessageDto, NegotiationOfferMessageDto, NegotiationProcessMessageType,
@@ -38,13 +26,28 @@ use crate::protocols::dsp::protocol_types::{
     NegotiationRequestMessageDto, NegotiationTerminationMessageDto,
     NegotiationVerificationMessageDto,
 };
+use axum::{
+    Extension, Json, Router,
+    extract::{FromRef, Path, Request, State, rejection::JsonRejection},
+    http::{HeaderMap, StatusCode},
+    middleware::{self, Next},
+    response::{IntoResponse, Response},
+    routing::{get, post},
+};
+use rainbow_common::config::services::ContractsConfig;
 use rainbow_common::dsp_common::context_field::ContextField;
 use rainbow_common::errors::CommonErrors;
+use rainbow_common::facades::ssi_auth_facade::SSIAuthFacadeTrait;
+use rainbow_common::mates::mates::Mates;
+use serde::Serialize;
+use std::future::Future;
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct DspRouter {
     orchestrator: Arc<dyn OrchestratorTrait>,
     config: Arc<ContractsConfig>,
+    ssi_auth: Arc<dyn SSIAuthFacadeTrait>,
 }
 
 impl FromRef<DspRouter> for Arc<dyn OrchestratorTrait> {
@@ -60,8 +63,12 @@ impl FromRef<DspRouter> for Arc<ContractsConfig> {
 }
 
 impl DspRouter {
-    pub fn new(service: Arc<dyn OrchestratorTrait>, config: Arc<ContractsConfig>) -> Self {
-        Self { orchestrator: service, config }
+    pub fn new(
+        service: Arc<dyn OrchestratorTrait>,
+        config: Arc<ContractsConfig>,
+        ssi_auth: Arc<dyn SSIAuthFacadeTrait>,
+    ) -> Self {
+        Self { orchestrator: service, config, ssi_auth }
     }
 
     pub fn router(self) -> Router {
@@ -70,14 +77,14 @@ impl DspRouter {
             //  COMMON & PROVIDER ROUTES (DSP 8.2)
             // =========================================================
             // 8.2.1 & 8.3.2: Get Negotiation (Unified)
-            .route("/:id", get(Self::handle_get_negotiation))
+            .route("/{id}", get(Self::handle_get_negotiation))
             // 8.2.2: Contract Request Endpoint (Consumer initiates) -> ROLE: PROVIDER
             .route("/request", post(Self::handle_initial_request))
             // 8.2.3: Contract Request Endpoint (Consumer counters) -> ROLE: PROVIDER
-            .route("/:id/request", post(Self::handle_consumer_request))
+            .route("/{id}/request", post(Self::handle_consumer_request))
             // 8.2.5: Agreement Verification (Consumer verifies) -> ROLE: PROVIDER
             .route(
-                "/:id/agreement/verification",
+                "/{id}/agreement/verification",
                 post(Self::handle_agreement_verification),
             )
             // =========================================================
@@ -86,18 +93,45 @@ impl DspRouter {
             // 8.3.3: Contract Offer Endpoint (Provider initiates) -> ROLE: CONSUMER
             .route("/offers", post(Self::handle_initial_offer))
             // 8.3.4: Contract Offer Endpoint (Provider counters) -> ROLE: CONSUMER
-            .route("/:id/offers", post(Self::handle_provider_offer))
+            .route("/{id}/offers", post(Self::handle_provider_offer))
             // 8.3.5: Contract Agreement Endpoint (Provider sends Agreement) -> ROLE: CONSUMER
-            .route("/:id/agreement", post(Self::handle_agreement_reception))
+            .route("/{id}/agreement", post(Self::handle_agreement_reception))
             // =========================================================
             //  SHARED / AMBIGUOUS ROUTES
             // =========================================================
             // 8.2.4 (Provider Endpoint) & 8.3.6 (Consumer Endpoint) -> Events
             // Both allow POST /events. The logic inside must discriminate based on state/role.
-            .route("/:id/events", post(Self::handle_negotiation_events))
+            .route("/{id}/events", post(Self::handle_negotiation_events))
             // 8.2.6 (Provider Endpoint) & 8.3.7 (Consumer Endpoint) -> Termination
-            .route("/:id/termination", post(Self::handle_negotiation_termination))
+            .route("/{id}/termination", post(Self::handle_negotiation_termination))
+            .layer(middleware::from_fn_with_state(self.clone(), Self::auth_middleware))
             .with_state(self)
+    }
+
+    async fn auth_middleware(
+        State(state): State<DspRouter>,
+        headers: HeaderMap,
+        mut request: Request,
+        next: Next,
+    ) -> Result<Response, StatusCode> {
+        let auth_header = headers
+            .get("Authorization")
+            .and_then(|header| header.to_str().ok())
+            .ok_or(StatusCode::UNAUTHORIZED)?;
+
+        if !auth_header.starts_with("Bearer ") {
+            return Err(StatusCode::UNAUTHORIZED);
+        }
+
+        let token = auth_header.trim_start_matches("Bearer ").to_string();
+
+        match state.ssi_auth.verify_token(token).await {
+            Ok(mate) => {
+                request.extensions_mut().insert(mate);
+                Ok(next.run(request).await)
+            }
+            Err(_) => Err(StatusCode::UNAUTHORIZED),
+        }
     }
 
     // --- Helpers ---
@@ -177,6 +211,7 @@ impl DspRouter {
 
     async fn handle_initial_request(
         State(state): State<DspRouter>,
+        Extension(mate): Extension<Mates>,
         input: Result<
             Json<NegotiationProcessMessageWrapper<NegotiationRequestInitMessageDto>>,
             JsonRejection,
@@ -191,8 +226,11 @@ impl DspRouter {
             }
         };
 
-        let result =
-            state.orchestrator.get_protocol_service().on_initial_contract_request(&payload).await;
+        let result = state
+            .orchestrator
+            .get_protocol_service()
+            .on_initial_contract_request(&payload, &mate)
+            .await;
         match result {
             Ok((data, exists)) => {
                 let status = if exists { StatusCode::OK } else { StatusCode::CREATED };
@@ -205,13 +243,14 @@ impl DspRouter {
     async fn handle_consumer_request(
         State(state): State<DspRouter>,
         Path(id): Path<String>,
+        Extension(mate): Extension<Mates>,
         input: Result<
             Json<NegotiationProcessMessageWrapper<NegotiationRequestMessageDto>>,
             JsonRejection,
         >,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::OK, |data| async move {
-            state.orchestrator.get_protocol_service().on_consumer_request(&id, &data).await
+            state.orchestrator.get_protocol_service().on_consumer_request(&id, &data, &mate).await
         })
         .await
     }
@@ -219,13 +258,18 @@ impl DspRouter {
     async fn handle_agreement_verification(
         State(state): State<DspRouter>,
         Path(id): Path<String>,
+        Extension(mate): Extension<Mates>,
         input: Result<
             Json<NegotiationProcessMessageWrapper<NegotiationVerificationMessageDto>>,
             JsonRejection,
         >,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::OK, |data| async move {
-            state.orchestrator.get_protocol_service().on_agreement_verification(&id, &data).await
+            state
+                .orchestrator
+                .get_protocol_service()
+                .on_agreement_verification(&id, &data, &mate)
+                .await
         })
         .await
     }
@@ -234,6 +278,7 @@ impl DspRouter {
 
     async fn handle_initial_offer(
         State(state): State<DspRouter>,
+        Extension(mate): Extension<Mates>,
         input: Result<
             Json<NegotiationProcessMessageWrapper<NegotiationOfferInitMessageDto>>,
             JsonRejection,
@@ -248,8 +293,11 @@ impl DspRouter {
             }
         };
 
-        let result =
-            state.orchestrator.get_protocol_service().on_initial_provider_offer(&payload).await;
+        let result = state
+            .orchestrator
+            .get_protocol_service()
+            .on_initial_provider_offer(&payload, &mate)
+            .await;
         match result {
             Ok((data, exists)) => {
                 let status = if exists { StatusCode::OK } else { StatusCode::CREATED };
@@ -262,13 +310,14 @@ impl DspRouter {
     async fn handle_provider_offer(
         State(state): State<DspRouter>,
         Path(id): Path<String>,
+        Extension(mate): Extension<Mates>,
         input: Result<
             Json<NegotiationProcessMessageWrapper<NegotiationOfferMessageDto>>,
             JsonRejection,
         >,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::OK, |data| async move {
-            state.orchestrator.get_protocol_service().on_provider_offer(&id, &data).await
+            state.orchestrator.get_protocol_service().on_provider_offer(&id, &data, &mate).await
         })
         .await
     }
@@ -276,13 +325,18 @@ impl DspRouter {
     async fn handle_agreement_reception(
         State(state): State<DspRouter>,
         Path(id): Path<String>,
+        Extension(mate): Extension<Mates>,
         input: Result<
             Json<NegotiationProcessMessageWrapper<NegotiationAgreementMessageDto>>,
             JsonRejection,
         >,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::OK, |data| async move {
-            state.orchestrator.get_protocol_service().on_agreement_reception(&id, &data).await
+            state
+                .orchestrator
+                .get_protocol_service()
+                .on_agreement_reception(&id, &data, &mate)
+                .await
         })
         .await
     }
@@ -292,13 +346,14 @@ impl DspRouter {
     async fn handle_negotiation_events(
         State(state): State<DspRouter>,
         Path(id): Path<String>,
+        Extension(mate): Extension<Mates>,
         input: Result<
             Json<NegotiationProcessMessageWrapper<NegotiationEventMessageDto>>,
             JsonRejection,
         >,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::OK, |data| async move {
-            state.orchestrator.get_protocol_service().on_negotiation_event(&id, &data).await
+            state.orchestrator.get_protocol_service().on_negotiation_event(&id, &data, &mate).await
         })
         .await
     }
@@ -306,13 +361,18 @@ impl DspRouter {
     async fn handle_negotiation_termination(
         State(state): State<DspRouter>,
         Path(id): Path<String>,
+        Extension(mate): Extension<Mates>,
         input: Result<
             Json<NegotiationProcessMessageWrapper<NegotiationTerminationMessageDto>>,
             JsonRejection,
         >,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::OK, |data| async move {
-            state.orchestrator.get_protocol_service().on_negotiation_termination(&id, &data).await
+            state
+                .orchestrator
+                .get_protocol_service()
+                .on_negotiation_termination(&id, &data, &mate)
+                .await
         })
         .await
     }

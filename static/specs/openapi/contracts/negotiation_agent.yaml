@@ -1,0 +1,951 @@
+openapi: 3.0.3
+info:
+  title: Rainbow Negotiation Agent API
+  description: OpenAPI specification for the Rainbow Negotiation Agent endpoints.
+  version: 1.0.0
+servers:
+  - url: /v1/negotiation-agent
+    description: Base path for the negotiation agent API
+
+tags:
+  - name: Agreements
+    description: Manage negotiation agreements
+  - name: Negotiation Messages
+    description: Manage negotiation messages
+  - name: Negotiation Processes
+    description: Manage negotiation processes
+  - name: Offers
+    description: Manage negotiation offers
+
+paths:
+  # --- Agreements ---
+  /agreements:
+    get:
+      tags:
+        - Agreements
+      summary: Get all agreements
+      operationId: getAllAgreements
+      parameters:
+        - $ref: "#/components/parameters/LimitParam"
+        - $ref: "#/components/parameters/PageParam"
+      responses:
+        "200":
+          description: List of agreements
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AgreementDto"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      tags:
+        - Agreements
+      summary: Create agreement
+      operationId: createAgreement
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewAgreementDto"
+      responses:
+        "201":
+          description: Agreement created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgreementDto"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /agreements/batch:
+    post:
+      tags:
+        - Agreements
+      summary: Get batch agreements
+      operationId: getBatchAgreements
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BatchRequests"
+      responses:
+        "200":
+          description: List of agreements
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AgreementDto"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /agreements/{id}:
+    parameters:
+      - $ref: "#/components/parameters/IdPath"
+    get:
+      tags:
+        - Agreements
+      summary: Get agreement by ID
+      operationId: getAgreementById
+      responses:
+        "200":
+          description: Agreement found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgreementDto"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    put:
+      tags:
+        - Agreements
+      summary: Update agreement by ID
+      operationId: updateAgreementById
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EditAgreementDto"
+      responses:
+        "200":
+          description: Agreement updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgreementDto"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      tags:
+        - Agreements
+      summary: Delete agreement by ID
+      operationId: deleteAgreementById
+      responses:
+        "204":
+          description: Agreement deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /agreements/process/{process_id}:
+    parameters:
+      - name: process_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: urn
+    get:
+      tags:
+        - Agreements
+      summary: Get agreement by negotiation process ID
+      operationId: getAgreementByNegotiationProcess
+      responses:
+        "200":
+          description: Agreement found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgreementDto"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /agreements/message/{message_id}:
+    parameters:
+      - name: message_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: urn
+    get:
+      tags:
+        - Agreements
+      summary: Get agreement by negotiation message ID
+      operationId: getAgreementByNegotiationMessage
+      responses:
+        "200":
+          description: Agreement found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgreementDto"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # --- Negotiation Messages ---
+  /negotiation-messages:
+    get:
+      tags:
+        - Negotiation Messages
+      summary: Get all negotiation messages
+      operationId: getAllNegotiationMessages
+      parameters:
+        - $ref: "#/components/parameters/LimitParam"
+        - $ref: "#/components/parameters/PageParam"
+      responses:
+        "200":
+          description: List of negotiation messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NegotiationMessageDto"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      tags:
+        - Negotiation Messages
+      summary: Create negotiation message
+      operationId: createNegotiationMessage
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewNegotiationMessageDto"
+      responses:
+        "201":
+          description: Negotiation message created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NegotiationMessageDto"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /negotiation-messages/{id}:
+    parameters:
+      - $ref: "#/components/parameters/IdPath"
+    get:
+      tags:
+        - Negotiation Messages
+      summary: Get negotiation message by ID
+      operationId: getNegotiationMessageById
+      responses:
+        "200":
+          description: Negotiation message found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NegotiationMessageDto"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      tags:
+        - Negotiation Messages
+      summary: Delete negotiation message by ID
+      operationId: deleteNegotiationMessageById
+      responses:
+        "204":
+          description: Negotiation message deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /negotiation-messages/process/{process_id}:
+    parameters:
+      - name: process_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: urn
+    get:
+      tags:
+        - Negotiation Messages
+      summary: Get negotiation messages by process ID
+      operationId: getMessagesByProcessId
+      responses:
+        "200":
+          description: List of negotiation messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NegotiationMessageDto"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # --- Negotiation Processes ---
+  /negotiation-processes:
+    get:
+      tags:
+        - Negotiation Processes
+      summary: Get all negotiation processes
+      operationId: getAllNegotiationProcesses
+      parameters:
+        - $ref: "#/components/parameters/LimitParam"
+        - $ref: "#/components/parameters/PageParam"
+      responses:
+        "200":
+          description: List of negotiation processes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NegotiationProcessDto"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      tags:
+        - Negotiation Processes
+      summary: Create negotiation process
+      operationId: createNegotiationProcess
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewNegotiationProcessDto"
+      responses:
+        "201":
+          description: Negotiation process created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NegotiationProcessDto"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /negotiation-processes/batch:
+    post:
+      tags:
+        - Negotiation Processes
+      summary: Get batch negotiation processes
+      operationId: getBatchNegotiationProcesses
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BatchRequests"
+      responses:
+        "200":
+          description: List of negotiation processes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NegotiationProcessDto"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /negotiation-processes/{id}:
+    parameters:
+      - $ref: "#/components/parameters/IdPath"
+    get:
+      tags:
+        - Negotiation Processes
+      summary: Get negotiation process by ID
+      operationId: getNegotiationProcessById
+      responses:
+        "200":
+          description: Negotiation process found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NegotiationProcessDto"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    put:
+      tags:
+        - Negotiation Processes
+      summary: Update negotiation process by ID
+      operationId: updateNegotiationProcessById
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EditNegotiationProcessDto"
+      responses:
+        "200":
+          description: Negotiation process updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NegotiationProcessDto"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      tags:
+        - Negotiation Processes
+      summary: Delete negotiation process by ID
+      operationId: deleteNegotiationProcessById
+      responses:
+        "204":
+          description: Negotiation process deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /negotiation-processes/{id}/key/{key_id}:
+    parameters:
+      - $ref: "#/components/parameters/IdPath"
+      - name: key_id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      tags:
+        - Negotiation Processes
+      summary: Get negotiation process by Key ID
+      operationId: getNegotiationProcessByKeyId
+      responses:
+        "200":
+          description: Negotiation process found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NegotiationProcessDto"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # --- Offers ---
+  /offers:
+    get:
+      tags:
+        - Offers
+      summary: Get all offers
+      operationId: getAllOffers
+      parameters:
+        - $ref: "#/components/parameters/LimitParam"
+        - $ref: "#/components/parameters/PageParam"
+      responses:
+        "200":
+          description: List of offers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OfferDto"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      tags:
+        - Offers
+      summary: Create offer
+      operationId: createOffer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewOfferDto"
+      responses:
+        "201":
+          description: Offer created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OfferDto"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /offers/batch:
+    post:
+      tags:
+        - Offers
+      summary: Get batch offers
+      operationId: getBatchOffers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BatchRequests"
+      responses:
+        "200":
+          description: List of offers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OfferDto"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /offers/{id}:
+    parameters:
+      - $ref: "#/components/parameters/IdPath"
+    get:
+      tags:
+        - Offers
+      summary: Get offer by ID
+      operationId: getOfferById
+      responses:
+        "200":
+          description: Offer found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OfferDto"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      tags:
+        - Offers
+      summary: Delete offer by ID
+      operationId: deleteOfferById
+      responses:
+        "204":
+          description: Offer deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /offers/process/{process_id}:
+    parameters:
+      - name: process_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: urn
+    get:
+      tags:
+        - Offers
+      summary: Get offers by negotiation process ID
+      operationId: getOffersByNegotiationProcess
+      responses:
+        "200":
+          description: List of offers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OfferDto"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /offers/message/{message_id}:
+    parameters:
+      - name: message_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: urn
+    get:
+      tags:
+        - Offers
+      summary: Get offer by negotiation message ID
+      operationId: getOfferByNegotiationMessage
+      responses:
+        "200":
+          description: Offer found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OfferDto"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /offers/offer-id/{offer_id}:
+    parameters:
+      - name: offer_id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      tags:
+        - Offers
+      summary: Get offer by internal offer ID
+      operationId: getOfferByOfferId
+      responses:
+        "200":
+          description: Offer found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OfferDto"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+components:
+  parameters:
+    LimitParam:
+      name: limit
+      in: query
+      description: Maximum number of items to return
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        default: 10
+    PageParam:
+      name: page
+      in: query
+      description: Page number to return
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    IdPath:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: urn
+  responses:
+    BadRequest:
+      description: Bad request
+    NotFound:
+      description: Resource not found
+    InternalServerError:
+      description: Internal server error
+
+  schemas:
+    BatchRequests:
+      type: object
+      required:
+        - ids
+      properties:
+        ids:
+          type: array
+          items:
+            type: string
+            format: urn
+
+    # --- Agreement Schemas ---
+    AgreementDto:
+      type: object
+      required:
+        - id
+        - negotiationAgentProcessId
+        - negotiationAgentMessageId
+        - consumerParticipantId
+        - providerParticipantId
+        - agreementContent
+        - target
+        - state
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: urn
+        negotiationAgentProcessId:
+          type: string
+          format: urn
+        negotiationAgentMessageId:
+          type: string
+          format: urn
+        consumerParticipantId:
+          type: string
+        providerParticipantId:
+          type: string
+        agreementContent:
+          type: object
+        target:
+          type: string
+          format: urn
+        state:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    NewAgreementDto:
+      type: object
+      required:
+        - negotiationAgentProcessId
+        - negotiationAgentMessageId
+        - consumerParticipantId
+        - providerParticipantId
+        - agreementContent
+        - target
+      properties:
+        id:
+          type: string
+          format: urn
+        negotiationAgentProcessId:
+          type: string
+          format: urn
+        negotiationAgentMessageId:
+          type: string
+          format: urn
+        consumerParticipantId:
+          type: string
+        providerParticipantId:
+          type: string
+        agreementContent:
+          type: object
+        target:
+          type: string
+          format: urn
+
+    EditAgreementDto:
+      type: object
+      properties:
+        state:
+          type: string
+
+    # --- Negotiation Message Schemas ---
+    NegotiationMessageDto:
+      type: object
+      required:
+        - id
+        - negotiationAgentProcessId
+        - createdAt
+        - direction
+        - protocol
+        - messageType
+        - stateTransitionFrom
+        - stateTransitionTo
+        - payload
+      properties:
+        id:
+          type: string
+          format: urn
+        negotiationAgentProcessId:
+          type: string
+          format: urn
+        createdAt:
+          type: string
+          format: date-time
+        direction:
+          type: string
+        protocol:
+          type: string
+        messageType:
+          type: string
+        stateTransitionFrom:
+          type: string
+        stateTransitionTo:
+          type: string
+        payload:
+          type: object
+        offer:
+          $ref: "#/components/schemas/OfferDto"
+        agreement:
+          $ref: "#/components/schemas/AgreementDto"
+
+    NewNegotiationMessageDto:
+      type: object
+      required:
+        - negotiationAgentProcessId
+        - direction
+        - protocol
+        - messageType
+        - stateTransitionFrom
+        - stateTransitionTo
+        - payload
+      properties:
+        id:
+          type: string
+          format: urn
+        negotiationAgentProcessId:
+          type: string
+          format: urn
+        direction:
+          type: string
+        protocol:
+          type: string
+        messageType:
+          type: string
+        stateTransitionFrom:
+          type: string
+        stateTransitionTo:
+          type: string
+        payload:
+          type: object
+
+    # --- Negotiation Process Schemas ---
+    NegotiationProcessDto:
+      type: object
+      required:
+        - id
+        - state
+        - associatedAgentPeer
+        - protocol
+        - role
+        - properties
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: urn
+        state:
+          type: string
+        stateAttribute:
+          type: string
+        associatedAgentPeer:
+          type: string
+        protocol:
+          type: string
+        callbackAddress:
+          type: string
+        role:
+          type: string
+        properties:
+          type: object
+        errorDetails:
+          type: object
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        identifiers:
+          type: object
+          additionalProperties:
+            type: string
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/NegotiationMessageDto"
+        offers:
+          type: array
+          items:
+            $ref: "#/components/schemas/OfferDto"
+        agreement:
+          $ref: "#/components/schemas/AgreementDto"
+
+    NewNegotiationProcessDto:
+      type: object
+      required:
+        - state
+        - associatedAgentPeer
+        - protocol
+        - role
+      properties:
+        id:
+          type: string
+          format: urn
+        state:
+          type: string
+        stateAttribute:
+          type: string
+        associatedAgentPeer:
+          type: string
+        protocol:
+          type: string
+        callbackAddress:
+          type: string
+        role:
+          type: string
+        properties:
+          type: object
+        identifiers:
+          type: object
+          additionalProperties:
+            type: string
+
+    EditNegotiationProcessDto:
+      type: object
+      properties:
+        state:
+          type: string
+        stateAttribute:
+          type: string
+        properties:
+          type: object
+        errorDetails:
+          type: object
+        identifiers:
+          type: object
+          additionalProperties:
+            type: string
+
+    # --- Offer Schemas ---
+    OfferDto:
+      type: object
+      required:
+        - id
+        - negotiationAgentProcessId
+        - negotiationAgentMessageId
+        - offerId
+        - offerContent
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: urn
+        negotiationAgentProcessId:
+          type: string
+          format: urn
+        negotiationAgentMessageId:
+          type: string
+          format: urn
+        offerId:
+          type: string
+        offerContent:
+          type: object
+        createdAt:
+          type: string
+          format: date-time
+
+    NewOfferDto:
+      type: object
+      required:
+        - negotiationAgentProcessId
+        - negotiationAgentMessageId
+        - offerId
+        - offerContent
+      properties:
+        id:
+          type: string
+          format: urn
+        negotiationAgentProcessId:
+          type: string
+          format: urn
+        negotiationAgentMessageId:
+          type: string
+          format: urn
+        offerId:
+          type: string
+        offerContent:
+          type: object

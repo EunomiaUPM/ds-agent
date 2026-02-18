@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, useRouterState } from "@tanstack/react-router";
 import Heading from "../../../../shared/src/components/ui/heading.tsx";
-import { getTransferProcessesOptions } from "shared/src/data/transfer-queries.ts";
+import { getGetTransferProcessesQueryOptions } from "shared/src/data/orval/transfers/transfers";
 
 const NotFound = () => {
   return <div>not found</div>;
@@ -30,8 +30,7 @@ const RouteComponent = () => {
 export const Route = createFileRoute("/transfer-process")({
   component: RouteComponent,
   notFoundComponent: NotFound,
-  loader: ({ context: { queryClient, api_gateway } }) => {
-    if (!api_gateway) return;
-    return queryClient.ensureQueryData(getTransferProcessesOptions(api_gateway));
+  loader: ({ context: { queryClient } }) => {
+    return queryClient.ensureQueryData(getGetTransferProcessesQueryOptions());
   },
 });

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { OdrlInfo, OdrlPermission } from "../data/orval/model";
 
 export type ComponentType = "permission" | "obligation" | "prohibition";
 export type OperandType = "leftOperand" | "rightOperand" | "operator";
@@ -25,26 +26,39 @@ export const usePolicyForm = (initialPolicy?: OdrlInfo) => {
       constraint: [],
     };
     const _newPolicy = { ...newPolicy };
-    // @ts-ignore
-    _newPolicy[componentType].push(newComponent);
+    
+    const targetArray = _newPolicy[componentType];
+    if (targetArray) {
+        (targetArray as OdrlPermission[]).push(newComponent);
+    } else {
+        _newPolicy[componentType] = [newComponent];
+    }
     setNewPolicy(_newPolicy);
   };
 
   // Remove a component by index
   const removeComponentHandler = (componentType: ComponentType, index: number) => {
     const _newPolicy = { ...newPolicy };
-    _newPolicy[componentType].splice(index, 1);
+    if (_newPolicy[componentType]) {
+        // @ts-ignore
+        _newPolicy[componentType]!.splice(index, 1);
+    }
     setNewPolicy(_newPolicy);
   };
 
   // Add a new constraint to a specific component
   const addConstraintHandler = (componentType: ComponentType, componentIndex: number) => {
     const _newPolicy = { ...newPolicy };
-    _newPolicy[componentType][componentIndex].constraint.push({
-      leftOperand: "",
-      operator: "",
-      rightOperand: "",
-    });
+    if (_newPolicy[componentType] && _newPolicy[componentType]![componentIndex]) {
+        if (!_newPolicy[componentType]![componentIndex].constraint) {
+            _newPolicy[componentType]![componentIndex].constraint = [];
+        }
+        _newPolicy[componentType]![componentIndex].constraint!.push({
+            leftOperand: "",
+            operator: "",
+            rightOperand: "",
+        });
+    }
     setNewPolicy(_newPolicy);
   };
 
@@ -55,7 +69,9 @@ export const usePolicyForm = (initialPolicy?: OdrlInfo) => {
     constraintIndex: number,
   ) => {
     const _newPolicy = { ...newPolicy };
-    _newPolicy[componentType][componentIndex].constraint.splice(constraintIndex, 1);
+    if (_newPolicy[componentType] && _newPolicy[componentType]![componentIndex] && _newPolicy[componentType]![componentIndex].constraint) {
+        _newPolicy[componentType]![componentIndex].constraint!.splice(constraintIndex, 1);
+    }
     setNewPolicy(_newPolicy);
   };
 
@@ -66,7 +82,10 @@ export const usePolicyForm = (initialPolicy?: OdrlInfo) => {
     value: string,
   ) => {
     const _newPolicy = { ...newPolicy };
-    _newPolicy[componentType][componentIndex].action = value;
+    if (_newPolicy[componentType] && _newPolicy[componentType]![componentIndex]) {
+        // @ts-ignore
+        _newPolicy[componentType]![componentIndex].action = value;
+    }
     setNewPolicy(_newPolicy);
   };
 
@@ -79,8 +98,14 @@ export const usePolicyForm = (initialPolicy?: OdrlInfo) => {
     value: string,
   ) => {
     const _newPolicy = { ...newPolicy };
-    // @ts-ignore
-    _newPolicy[componentType][componentIndex].constraint[constraintIndex][operand] = value;
+    const targetArray = _newPolicy[componentType];
+    if(targetArray && targetArray[componentIndex] && targetArray[componentIndex].constraint) {
+        const constraint = targetArray[componentIndex].constraint![constraintIndex];
+        if (constraint) {
+            // @ts-ignore - constraint type might be strict but we are editing
+            constraint[operand] = value;
+        }
+    }
     setNewPolicy(_newPolicy);
   };
 

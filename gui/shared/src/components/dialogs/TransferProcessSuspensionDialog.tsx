@@ -7,39 +7,37 @@
 
 import React, { useContext } from "react";
 import { GlobalInfoContext, GlobalInfoContextType } from "../../context/GlobalInfoContext";
-import { usePostTransferRPCSuspension } from "../../data/transfer-mutations";
 import { BaseProcessDialog, mapTransferProcessToInfoItems } from "./base";
+import { TransferProcessDto } from "../../data/orval/model";
+import { useSetupTransferSuspension } from "../../data/orval/transfer-rp-c/transfer-rp-c";
+import { useGetTransferProcesses } from "../../data/orval/transfers/transfers";
+import { useRouter } from "@tanstack/react-router";
 
-export const TransferProcessSuspensionDialog = ({ process }: { process: TransferProcess }) => {
+export const TransferProcessSuspensionDialog = ({ process, onClose }: { process: TransferProcessDto; onClose?: () => void }) => {
   const { api_gateway, dsrole } = useContext<GlobalInfoContextType | null>(GlobalInfoContext)!;
-  const { mutateAsync: suspendAsync } = usePostTransferRPCSuspension();
-
+  const { mutateAsync: suspendAsync } = useSetupTransferSuspension();
+  const { refetch } = useGetTransferProcesses();
+  const router = useRouter();
   /**
    * Handles the suspension submission.
-   * Payload structure differs based on the user's role.
    */
   const handleSubmit = async () => {
-    const p = process as any;
-
-    if (dsrole === "provider") {
-      await suspendAsync({
-        api_gateway,
-        content: {
-          consumerParticipantId: p.associated_consumer,
-          consumerCallbackAddress: p.data_plane_id,
-          consumerPid: p.consumer_pid,
-          providerPid: p.provider_pid,
-        },
-      });
-    } else if (dsrole === "consumer") {
-      await suspendAsync({
-        api_gateway,
-        content: {
-          providerParticipantId: p.associated_provider,
-          consumerPid: p.consumer_pid,
-          providerPid: p.provider_pid,
-        },
-      });
+    if (!process.identifiers?.consumerPid || !process.identifiers?.providerPid) {
+      console.error("Missing process identifiers");
+      return;
+    }
+    await suspendAsync({
+      data: {
+        consumerPid: process.identifiers.consumerPid,
+        providerPid: process.identifiers.providerPid,
+        code: "SUSPENDED",
+        reason: ["Suspended from GUI"],
+      }
+    })
+    await refetch();
+    router.invalidate();
+    if (onClose) {
+      onClose();
     }
   };
 
@@ -47,7 +45,7 @@ export const TransferProcessSuspensionDialog = ({ process }: { process: Transfer
     <BaseProcessDialog
       title="Transfer Suspension Dialog"
       description="You are about to suspend the transfer process."
-      infoItems={mapTransferProcessToInfoItems(process, dsrole as "provider" | "consumer")}
+      infoItems={mapTransferProcessToInfoItems(process)}
       submitLabel="Suspend"
       submitVariant="outline"
       onSubmit={handleSubmit}

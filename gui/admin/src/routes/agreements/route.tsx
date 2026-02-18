@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, useRouterState } from "@tanstack/react-router";
 import Heading from "shared/src/components/ui/heading.tsx";
-import { getAgreementsOptions } from "shared/src/data/agreement-queries";
+import { getGetAgreementsQueryOptions } from "shared/src/data/orval/negotiations/negotiations";
 
 const NotFound = () => {
   return <div>not found</div>;
@@ -33,8 +33,7 @@ const RouteComponent = () => {
 export const Route = createFileRoute("/agreements")({
   component: RouteComponent,
   notFoundComponent: NotFound,
-  loader: ({ context: { queryClient, api_gateway } }) => {
-    if (!api_gateway) return;
-    return queryClient.ensureQueryData(getAgreementsOptions(api_gateway));
+  loader: ({ context: { queryClient } }) => {
+    return queryClient.ensureQueryData(getGetAgreementsQueryOptions());
   },
 });

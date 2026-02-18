@@ -23,7 +23,7 @@ pub trait DistributionRepositoryTrait: Send + Sync {
     async fn get_distribution_by_dataset_id_and_dct_format(
         &self,
         dataset_id: &Urn,
-        dct_formats: &DctFormats,
+        dct_formats: &String,
     ) -> anyhow::Result<distribution::Model, CatalogAgentRepoErrors>;
     async fn get_distribution_by_id(
         &self,

@@ -21,12 +21,12 @@ use sea_orm::DatabaseConnection;
 use ymir::services::repo::postgres::repos::{
     BusinessMatesRepo, IssuingRepo, MatesRepo, RecvInteractionRepo, RecvRequestRepo,
     RecvVerificationRepo, ReqInteractionRepo, ReqRequestRepo, ReqVcRepo, ReqVerificationRepo,
-    TokenRequirementsRepo
+    TokenRequirementsRepo,
 };
 use ymir::services::repo::subtraits::{
     BusinessMatesRepoTrait, IssuingTrait, MatesTrait, RecvInteractionTrait, RecvRequestTrait,
     RecvVerificationTrait, ReqInteractionTrait, ReqRequestTrait, ReqVcTrait, ReqVerificationTrait,
-    TokenRequirementsTrait
+    TokenRequirementsTrait,
 };
 
 use crate::ssi::services::repo::repo_trait::AuthRepoTrait;
@@ -42,7 +42,7 @@ pub struct AuthRepoForSql {
     token_repo: Arc<dyn TokenRequirementsTrait>,
     mates_repo: Arc<dyn MatesTrait>,
     business_mates: Arc<dyn BusinessMatesRepoTrait>,
-    issuing: Arc<dyn IssuingTrait>
+    issuing: Arc<dyn IssuingTrait>,
 }
 
 impl AuthRepoForSql {
@@ -58,17 +58,23 @@ impl AuthRepoForSql {
             mates_repo: Arc::new(MatesRepo::new(db_connection.clone())),
             req_vc_repo: Arc::new(ReqVcRepo::new(db_connection.clone())),
             business_mates: Arc::new(BusinessMatesRepo::new(db_connection.clone())),
-            issuing: Arc::new(IssuingRepo::new(db_connection.clone()))
+            issuing: Arc::new(IssuingRepo::new(db_connection.clone())),
         }
     }
 }
 
 impl AuthRepoTrait for AuthRepoForSql {
-    fn request_req(&self) -> Arc<dyn ReqRequestTrait> { self.req_request_repo.clone() }
+    fn request_req(&self) -> Arc<dyn ReqRequestTrait> {
+        self.req_request_repo.clone()
+    }
 
-    fn request_rcv(&self) -> Arc<dyn RecvRequestTrait> { self.recv_request_repo.clone() }
+    fn request_rcv(&self) -> Arc<dyn RecvRequestTrait> {
+        self.recv_request_repo.clone()
+    }
 
-    fn interaction_req(&self) -> Arc<dyn ReqInteractionTrait> { self.req_interaction_repo.clone() }
+    fn interaction_req(&self) -> Arc<dyn ReqInteractionTrait> {
+        self.req_interaction_repo.clone()
+    }
 
     fn interaction_rcv(&self) -> Arc<dyn RecvInteractionTrait> {
         self.recv_interaction_repo.clone()
@@ -82,13 +88,23 @@ impl AuthRepoTrait for AuthRepoForSql {
         self.recv_verification_repo.clone()
     }
 
-    fn token_requirements(&self) -> Arc<dyn TokenRequirementsTrait> { self.token_repo.clone() }
+    fn token_requirements(&self) -> Arc<dyn TokenRequirementsTrait> {
+        self.token_repo.clone()
+    }
 
-    fn mates(&self) -> Arc<dyn MatesTrait> { self.mates_repo.clone() }
+    fn mates(&self) -> Arc<dyn MatesTrait> {
+        self.mates_repo.clone()
+    }
 
-    fn business_mates(&self) -> Arc<dyn BusinessMatesRepoTrait> { self.business_mates.clone() }
+    fn business_mates(&self) -> Arc<dyn BusinessMatesRepoTrait> {
+        self.business_mates.clone()
+    }
 
-    fn vc_req(&self) -> Arc<dyn ReqVcTrait> { self.req_vc_repo.clone() }
+    fn vc_req(&self) -> Arc<dyn ReqVcTrait> {
+        self.req_vc_repo.clone()
+    }
 
-    fn issuing(&self) -> Arc<dyn IssuingTrait> { self.issuing.clone() }
+    fn issuing(&self) -> Arc<dyn IssuingTrait> {
+        self.issuing.clone()
+    }
 }

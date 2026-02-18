@@ -74,19 +74,21 @@ impl NegotiationAgentAgreementsRouter {
             )
             .route("/batch", post(Self::handle_get_batch_agreements))
             .route(
-                "/:id",
+                "/{id}",
                 get(Self::handle_get_agreement_by_id)
                     .put(Self::handle_put_agreement)
                     .delete(Self::handle_delete_agreement),
             )
             .route(
-                "/process/:process_id",
+                "/process/{process_id}",
                 get(Self::handle_get_agreement_by_negotiation_process),
             )
             .route(
-                "/message/:message_id",
+                "/message/{message_id}",
                 get(Self::handle_get_agreement_by_negotiation_message),
             )
+            .route("/assignee/{assignee}", get(Self::handle_get_agreement_by_assignee))
+            .route("/assigner/{assigner}", get(Self::handle_get_agreement_by_assigner))
             .with_state(self)
     }
 
@@ -202,6 +204,26 @@ impl NegotiationAgentAgreementsRouter {
         match state.service.get_agreement_by_negotiation_message(&message_urn).await {
             Ok(Some(agreement)) => (StatusCode::OK, Json(agreement)).into_response(),
             Ok(None) => (StatusCode::NOT_FOUND).into_response(),
+            Err(err) => err.to_response(),
+        }
+    }
+
+    async fn handle_get_agreement_by_assignee(
+        State(state): State<NegotiationAgentAgreementsRouter>,
+        Path(assignee): Path<String>,
+    ) -> impl IntoResponse {
+        match state.service.get_agreements_by_assignee(&assignee).await {
+            Ok(agreements) => (StatusCode::OK, Json(agreements)).into_response(),
+            Err(err) => err.to_response(),
+        }
+    }
+
+    async fn handle_get_agreement_by_assigner(
+        State(state): State<NegotiationAgentAgreementsRouter>,
+        Path(assigner): Path<String>,
+    ) -> impl IntoResponse {
+        match state.service.get_agreements_by_assigner(&assigner).await {
+            Ok(agreements) => (StatusCode::OK, Json(agreements)).into_response(),
             Err(err) => err.to_response(),
         }
     }

@@ -8,7 +8,7 @@
  * <TransferProcessRequestDialog agreement={agreementData} />
  */
 
-import React, { useContext } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { formatUrn } from "shared/src/lib/utils";
 import { Badge } from "shared/src/components/ui/badge";
 import {
@@ -26,11 +26,16 @@ import {
   FormMessage,
 } from "shared/src/components/ui/form";
 import { useForm } from "react-hook-form";
-import { usePostTransferRPCRequest } from "shared/src/data/transfer-mutations";
 import { GlobalInfoContext, GlobalInfoContextType } from "shared/src/context/GlobalInfoContext";
 import { BaseProcessDialog } from "./base";
 import { urnInfoItem } from "./base/infoItemMappers";
 import { InfoItemProps } from "../ui/info-list";
+import { AgreementDto, Distribution } from "../../data/orval/model";
+import { useSetupTransferRequest } from "../../data/orval/transfer-rp-c/transfer-rp-c";
+import { useGetPeerCatalog } from "../../data/orval/catalogs/catalogs";
+import { useRpcSetupDatasetRequest } from "../../data/orval/catalog-rp-c/catalog-rp-c";
+import { useMyWellKnownDSPPath, useParticipantDSPPath } from "../../hooks/useWellKnownUrl";
+import { useNavigate } from "@tanstack/react-router";
 
 // =============================================================================
 // TYPES
@@ -40,8 +45,7 @@ import { InfoItemProps } from "../ui/info-list";
  * Form input values for transfer request.
  */
 type TransferRequestInputs = {
-  method: "PULL" | "PUSH";
-  transfer_protocol: string;
+  distributionId: string;
 };
 
 /**
@@ -49,18 +53,9 @@ type TransferRequestInputs = {
  */
 export interface TransferProcessRequestDialogProps {
   /** The agreement to start a transfer for */
-  agreement: Agreement;
+  process: AgreementDto;
+  onClose?: () => void;
 }
-
-// =============================================================================
-// CONSTANTS
-// =============================================================================
-
-/** Available transfer methods */
-const TRANSFER_METHODS = ["PULL", "PUSH"] as const;
-
-/** Available transfer protocols */
-const TRANSFER_PROTOCOLS = ["http", "kafka", "ftp"] as const;
 
 // =============================================================================
 // COMPONENT
@@ -74,28 +69,31 @@ const TRANSFER_PROTOCOLS = ["http", "kafka", "ftp"] as const;
  * - Protocol selection (HTTP/Kafka/FTP)
  * - Agreement information display
  */
-export const TransferProcessRequestDialog = ({
-  agreement,
-}: TransferProcessRequestDialogProps) => {
-  const { mutateAsync: requestAsync } = usePostTransferRPCRequest();
-  const { api_gateway } = useContext<GlobalInfoContextType | null>(GlobalInfoContext)!;
+export const TransferProcessRequestDialog = ({ process, onClose }: TransferProcessRequestDialogProps) => {
+  const navigate = useNavigate();
+  const { mutateAsync } = useSetupTransferRequest();
+  const { mutateAsync: setupDatasetRequestAsync } = useRpcSetupDatasetRequest()
+  const [selectableDistributions, setSelectableDistributions] = useState<Distribution[]>([]);
+  const myDspPath = useMyWellKnownDSPPath();
+  const { path: providerDspPath } = useParticipantDSPPath(process.providerParticipantId);
 
   // Form with default values
   const form = useForm<TransferRequestInputs>({
     defaultValues: {
-      method: "PULL",
-      transfer_protocol: "http",
+      distributionId: "",
     },
   });
+
+  useEffect(() => {
+    fetchDistributions();
+  }, []);
 
   // ---------------------------------------------------------------------------
   // Info Items
   // ---------------------------------------------------------------------------
 
   const infoItems: InfoItemProps[] = [
-    urnInfoItem("Agreement ID", agreement.agreement_id),
-    urnInfoItem("Provider", agreement.provider_participant_id),
-    urnInfoItem("Consumer", agreement.consumer_participant_id),
+    urnInfoItem("Dataset", process.target),
   ].filter((item): item is InfoItemProps => item !== undefined);
 
   // ---------------------------------------------------------------------------
@@ -103,14 +101,43 @@ export const TransferProcessRequestDialog = ({
   // ---------------------------------------------------------------------------
 
   const handleSubmit = async (data: TransferRequestInputs) => {
-    await requestAsync({
-      api_gateway,
-      content: {
-        providerParticipantId: agreement.provider_participant_id,
-        agreementId: agreement.agreement_id,
-        format: `${data.transfer_protocol}+${data.method}`.toLowerCase(),
+    const distribution = selectableDistributions.find(d => d["@id"] === data.distributionId);
+    if (!distribution) return;
+
+    const res = await mutateAsync({
+      data: {
+        associatedAgentPeer: process.providerParticipantId,
+        providerAddress: providerDspPath || "",
+        callbackAddress: myDspPath || "",
+        agreementId: process.id,
+        // @ts-ignore - formats is present in the data but not in the model
+        format: distribution.formats || "",
       },
     });
+
+    if (res.status === 201) {
+      navigate({
+        to: "/transfer-process",
+      });
+    }
+  };
+
+  const fetchDistributions = async () => {
+    try {
+      const datasetResponse = await setupDatasetRequestAsync({
+        data: {
+          associatedAgentPeer: process.providerParticipantId,
+          dataset: process.target,
+        },
+      });
+      console.log("TransferProcessRequestDialog: Fetching distributions", datasetResponse);
+      const data = datasetResponse.status === 200 ? datasetResponse.data : undefined;
+      // @ts-ignore - distribution is part of the Dataset model
+      const distributions = data?.distribution || data?.response?.distribution || [];
+      setSelectableDistributions(distributions);
+    } catch (error) {
+      console.error("TransferProcessRequestDialog: Failed to fetch distributions", error);
+    }
   };
 
   // ---------------------------------------------------------------------------
@@ -118,73 +145,45 @@ export const TransferProcessRequestDialog = ({
   // ---------------------------------------------------------------------------
 
   const formFieldsContent = (
-    <div className="grid grid-cols-2 gap-4 py-4">
-      {/* Method Select */}
+    <div className="grid grid-cols-2 gap-4">
       <FormField
         control={form.control}
-        name="method"
+        name="distributionId"
         render={({ field }) => (
-          <FormItem>
-            <label htmlFor="method" className="text-sm mb-1 text-inherit">
-              Method
+          <FormItem className="flex flex-col gap-2">
+            <label htmlFor="distributionId" className="text-sm -mt-2 mb-1 text-inherit">
+              Select distribution
             </label>
-            <FormControl>
+            <FormControl >
               <Select
-                value={field.value}
-                defaultValue={TRANSFER_METHODS[0]}
+                value={field.value || ""}
                 onValueChange={field.onChange}
+                onOpenChange={(open) => {
+                  if (open) fetchDistributions();
+                }}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select method" />
+                  <SelectValue placeholder="Select distribution" />
                 </SelectTrigger>
                 <SelectContent>
-                  {TRANSFER_METHODS.map((method) => (
-                    <SelectItem value={method} key={method}>
-                      {method}
+                  {selectableDistributions.map((distribution) => (
+                    <SelectItem value={distribution["@id"] || ""} key={distribution["@id"]}>
+                      {/* @ts-ignore - formats is present in the data but not in the model */}
+                      {distribution.formats} - {distribution["@id"]}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </FormControl>
-            <FormDescription>Transfer direction</FormDescription>
+            <FormDescription>
+              By selecting distribution method you are choosing how the data will be transferred. The direction, protocol and other parameters will be set automatically by the agent.
+            </FormDescription>
             <FormMessage />
           </FormItem>
-        )}
+        )
+        }
       />
-
-      {/* Protocol Select */}
-      <FormField
-        control={form.control}
-        name="transfer_protocol"
-        render={({ field }) => (
-          <FormItem>
-            <label htmlFor="transfer_protocol" className="text-sm mb-1">
-              Protocol
-            </label>
-            <FormControl>
-              <Select
-                value={field.value}
-                defaultValue={TRANSFER_PROTOCOLS[0]}
-                onValueChange={field.onChange}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select protocol" />
-                </SelectTrigger>
-                <SelectContent>
-                  {TRANSFER_PROTOCOLS.map((protocol) => (
-                    <SelectItem value={protocol} key={protocol}>
-                      {protocol.toUpperCase()}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </FormControl>
-            <FormDescription>Transfer protocol</FormDescription>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-    </div>
+    </div >
   );
 
   // ---------------------------------------------------------------------------
@@ -197,7 +196,7 @@ export const TransferProcessRequestDialog = ({
       description={
         <span className="max-w-full flex flex-wrap gap-1">
           Start transfer process for Agreement{" "}
-          <Badge variant="info">{formatUrn(agreement.agreement_id)}</Badge>
+          <Badge variant="info">{formatUrn(process.id)}</Badge>
         </span>
       }
       infoItems={infoItems}
@@ -205,10 +204,7 @@ export const TransferProcessRequestDialog = ({
       submitLabel="Request Transfer"
       submitVariant="default"
       onSubmit={handleSubmit}
-      defaultValues={{
-        method: "PULL",
-        transfer_protocol: "http",
-      }}
+      form={form}
     />
   );
 };

@@ -14,10 +14,11 @@
 
 import React, { useContext } from "react";
 import { GlobalInfoContext, GlobalInfoContextType } from "shared/src/context/GlobalInfoContext";
-import { useDeleteBusinessNewPolicyInDataset } from "shared/src/data/business-mutations";
+//import { useDeleteBusinessNewPolicyInDataset } from "shared/src/data/business-mutations";
 import { BaseProcessDialog } from "./base";
 import { urnInfoItem } from "./base/infoItemMappers";
 import { InfoItemProps } from "../ui/info-list";
+import { OdrlOffer } from "../../data/orval/model";
 
 // =============================================================================
 // TYPES
@@ -31,10 +32,10 @@ export interface BusinessRemovePolicyDialogProps {
   policy: OdrlOffer;
 
   /** ID of the parent catalog */
-  catalogId?: UUID;
+  catalogId?: string;
 
   /** ID of the parent dataset */
-  datasetId?: UUID;
+  datasetId?: string;
 }
 
 // =============================================================================
@@ -54,7 +55,7 @@ export const BusinessRemovePolicyDialog = ({
   catalogId,
   datasetId,
 }: BusinessRemovePolicyDialogProps) => {
-  const { mutateAsync: deleteAsync } = useDeleteBusinessNewPolicyInDataset();
+  //const { mutateAsync: deleteAsync } = useDeleteBusinessNewPolicyInDataset();
   const { api_gateway } = useContext<GlobalInfoContextType | null>(GlobalInfoContext)!;
 
   // ---------------------------------------------------------------------------
@@ -72,12 +73,12 @@ export const BusinessRemovePolicyDialog = ({
   // ---------------------------------------------------------------------------
 
   const handleSubmit = async () => {
-    await deleteAsync({
-      api_gateway,
-      catalogId: catalogId!,
-      datasetId: datasetId!,
-      policyId: policy["@id"],
-    });
+    // await deleteAsync({
+    //   api_gateway,
+    //   catalogId: catalogId!,
+    //   datasetId: datasetId!,
+    //   policyId: policy["@id"],
+    // });
   };
 
   // ---------------------------------------------------------------------------

@@ -31,7 +31,7 @@ pub trait GaiaOwnIssuerTrait: Send + Sync + 'static {
     async fn build_vp(
         &self,
         vcs: Vec<WalletCredentials>,
-        did: Option<String>
+        did: Option<String>,
     ) -> anyhow::Result<String>;
     async fn send_req(&self, body: String) -> anyhow::Result<String>;
     fn get_vc_types(&self) -> Vec<VcType>;

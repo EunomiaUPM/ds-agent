@@ -84,7 +84,7 @@ const HeadingColor = ({ variant }: { variant: PolicyVariants }) => {
  */
 export interface PolicyProps
   extends React.HTMLAttributes<HTMLDivElement>,
-  VariantProps<typeof policyVariants> {
+    VariantProps<typeof policyVariants> {
   children: React.ReactNode;
 }
 
@@ -117,13 +117,11 @@ const Policy = React.forwardRef<HTMLDivElement, PolicyProps>(
   ({ className, variant, children, ...props }, ref) => {
     return (
       <div className={cn(policyVariants({ variant, className }))} {...props}>
-        <p className={`uppercase mb-0 font-bold ${HeadingColor({ variant })}`}>
-          {variant}
-        </p>
+        <p className={`uppercase mb-0 font-bold ${HeadingColor({ variant })}`}>{variant}</p>
         {children}
       </div>
     );
-  }
+  },
 );
 Policy.displayName = "Policy";
 
@@ -135,7 +133,7 @@ const PolicyItemContainer: FC<PolicyChildProps> = ({ children, ...props }) => {
   return (
     <div
       className={cn(
-        "flex flex-col gap-1 py-3 border-b border-white/20 last:border-0 first:pt-1 last:pb-1"
+        "flex flex-col gap-1 py-3 border-b border-white/20 last:border-0 first:pt-1 last:pb-1",
       )}
       {...props}
     >
@@ -203,12 +201,7 @@ const PolicyConstraintsContainer: FC<PolicyChildProps> = ({ children, ...props }
  * Individual constraint operand or operator display.
  * Shows the value and its type label below.
  */
-const PolicyConstraint: FC<PolicyConstraintProps> = ({
-  type,
-  className,
-  children,
-  ...props
-}) => {
+const PolicyConstraint: FC<PolicyConstraintProps> = ({ type, className, children, ...props }) => {
   /**
    * Formats constraint text by removing JSON syntax characters.
    */

@@ -17,7 +17,7 @@
  * </SidebarProvider>
  */
 
-import { Archive, ArrowLeftRight, Feather, Handshake, Users } from "lucide-react";
+import { Archive, ArrowLeftRight, Feather, Handshake, Users, Lock } from "lucide-react";
 import React, { useContext } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
@@ -106,6 +106,11 @@ export function AppSidebar() {
       url: "/admin/participants",
       icon: Users,
     },
+    {
+      title: "SSI Auth",
+      url: "/admin/ssi-auth",
+      icon: Lock,
+    },
   ];
 
   /**
@@ -132,11 +137,13 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarGroup>
           {/* Logo */}
-          <img
-            src={logoImg}
-            className="h-11 mt-2 mb-4 mr-auto ml-1 flex justify-start object-contain"
-            alt="Eunomia Logo"
-          />
+          <Link to="/admin/">
+            <img
+              src={logoImg}
+              className="h-11 mt-2 mb-4 mr-auto ml-1 flex justify-start object-contain"
+              alt="Eunomia Logo"
+            />
+          </Link>
 
           {/* Navigation Menu */}
           <SidebarGroupContent>
@@ -147,9 +154,7 @@ export function AppSidebar() {
                     <Link
                       to={item.url}
                       className={
-                        routerState.location.pathname === item.url
-                          ? "bg-white/10 text-white"
-                          : ""
+                        routerState.location.pathname === item.url ? "bg-white/10 text-white" : ""
                       }
                     >
                       <item.icon />

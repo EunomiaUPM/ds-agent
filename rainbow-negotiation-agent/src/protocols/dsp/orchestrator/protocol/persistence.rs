@@ -20,6 +20,7 @@ use async_trait::async_trait;
 use rainbow_common::config::types::roles::RoleConfig;
 use rainbow_common::dsp_common::odrl::ContractRequestMessageOfferTypes;
 use rainbow_common::errors::{CommonErrors, ErrorLog};
+use rainbow_common::mates::mates::Mates;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -52,10 +53,12 @@ impl OrchestrationPersistenceForProtocol {
     pub async fn create_new(
         &self,
         payload: &dyn NegotiationProcessMessageTrait,
+        mate: &Mates,
     ) -> anyhow::Result<NegotiationProcessDto> {
-        let mut process = self.create_process(payload).await?;
+        let mut process = self.create_process(payload, mate).await?;
         let process_id = self.convert_string_to_urn(&process.inner.id)?;
-        let message = self.create_message(&process_id, payload, &process).await?;
+        let message =
+            self.create_message_with_old_state(&process_id, payload, &process, "-").await?;
         let message_id = self.convert_string_to_urn(&message.inner.id)?;
         let offer = self.create_offer(&process_id, &message_id, payload).await?;
         process.messages.push(message.inner);
@@ -67,10 +70,11 @@ impl OrchestrationPersistenceForProtocol {
         &self,
         identifier: &str,
         payload: &dyn NegotiationProcessMessageTrait,
+        mate: &Mates,
     ) -> anyhow::Result<NegotiationProcessDto> {
         let process = self.fetch_process(identifier).await?;
         let process_id = self.convert_string_to_urn(&process.inner.id)?;
-        let mut new_process = self.update_process(&process_id, payload).await?;
+        let mut new_process = self.update_process(&process_id, payload, mate).await?;
         let message = self.create_message(&process_id, payload, &process).await?;
         new_process.messages.push(message.inner);
         Ok(new_process)
@@ -80,10 +84,11 @@ impl OrchestrationPersistenceForProtocol {
         &self,
         identifier: &str,
         payload: &dyn NegotiationProcessMessageTrait,
+        mate: &Mates,
     ) -> anyhow::Result<NegotiationProcessDto> {
         let process = self.fetch_process(identifier).await?;
         let process_id = self.convert_string_to_urn(&process.inner.id)?;
-        let mut new_process = self.update_process(&process_id, payload).await?;
+        let mut new_process = self.update_process(&process_id, payload, mate).await?;
         let message = self.create_message(&process_id, payload, &process).await?;
         let message_id = self.convert_string_to_urn(&message.inner.id)?;
         let offer = self.create_offer(&process_id, &message_id, payload).await?;
@@ -96,15 +101,16 @@ impl OrchestrationPersistenceForProtocol {
         &self,
         identifier: &str,
         payload: &dyn NegotiationProcessMessageTrait,
+        mate: &Mates,
     ) -> anyhow::Result<NegotiationProcessDto> {
         let process = self.fetch_process(identifier).await?;
         let associated_agent_peer = process.inner.associated_agent_peer.clone();
         let process_id = self.convert_string_to_urn(&process.inner.id)?;
-        let mut new_process = self.update_process(&process_id, payload).await?;
+        let mut new_process = self.update_process(&process_id, payload, mate).await?;
         let message = self.create_message(&process_id, payload, &process).await?;
         let message_id = self.convert_string_to_urn(&message.inner.id)?;
         let agreement = self
-            .create_agreement(&process_id, &message_id, &associated_agent_peer, payload)
+            .create_agreement(&process_id, &message_id, &associated_agent_peer, payload, mate)
             .await?;
         new_process.messages.push(message.inner);
         new_process.agreement = Some(agreement.inner);
@@ -115,13 +121,14 @@ impl OrchestrationPersistenceForProtocol {
         &self,
         identifier: &str,
         payload: &dyn NegotiationProcessMessageTrait,
+        mate: &Mates,
     ) -> anyhow::Result<NegotiationProcessDto> {
         let process = self.fetch_process(identifier).await?;
         let process_id = self.convert_string_to_urn(&process.inner.id)?;
-        let mut new_process = self.update_process(&process_id, payload).await?;
+        let mut new_process = self.update_process(&process_id, payload, mate).await?;
         let message = self.create_message(&process_id, payload, &process).await?;
         let message_id = self.convert_string_to_urn(&message.inner.id)?;
-        let agreement = self.update_agreement(&process_id, &message_id, payload).await?;
+        let agreement = self.update_agreement(&process_id, &message_id, payload, mate).await?;
         new_process.messages.push(message.inner);
         new_process.agreement = Some(agreement.inner);
         Ok(new_process)
@@ -162,6 +169,7 @@ impl OrchestrationPersistenceForProtocol {
     async fn create_process(
         &self,
         message: &dyn NegotiationProcessMessageTrait,
+        mate: &Mates,
     ) -> anyhow::Result<NegotiationProcessDto> {
         let id = self.create_entity_urn("negotiation-process")?;
         let message_type = self.get_dsp_message_safely(message)?;
@@ -207,7 +215,7 @@ impl OrchestrationPersistenceForProtocol {
                 id: Some(id),
                 state: state.to_string(),
                 state_attribute: None, // O el valor por defecto que corresponda
-                associated_agent_peer: "".to_string(), // O extraer del mensaje si existe
+                associated_agent_peer: mate.participant_id.clone(),
                 protocol: "DSP".to_string(),
                 callback_address: Some(callback),
                 role: role.to_string(),
@@ -225,11 +233,33 @@ impl OrchestrationPersistenceForProtocol {
         message: &dyn NegotiationProcessMessageTrait,
         process: &NegotiationProcessDto,
     ) -> anyhow::Result<NegotiationMessageDto> {
+        let old_state = process.inner.state.clone();
+        self.create_message_with_old_state(process_id, message, process, &old_state).await
+    }
+
+    async fn create_message_with_old_state(
+        &self,
+        process_id: &Urn,
+        message: &dyn NegotiationProcessMessageTrait,
+        _process: &NegotiationProcessDto,
+        old_state: &str,
+    ) -> anyhow::Result<NegotiationMessageDto> {
         let id = self.create_entity_urn("negotiation-message")?;
         let message_type = self.get_dsp_message_safely(message)?;
-        let old_state = process.inner.state.parse::<NegotiationProcessState>().unwrap();
         let state: NegotiationProcessState = message_type.clone().into();
-        let payload_json = message.as_json();
+        let mut payload_json = message.as_json();
+
+        // Wrap with DSP envelope (@context and @type)
+        if let serde_json::Value::Object(ref mut map) = payload_json {
+            map.insert(
+                "@context".to_string(),
+                serde_json::json!(["https://w3id.org/dspace/2025/1/context.jsonld"]),
+            );
+            map.insert(
+                "@type".to_string(),
+                serde_json::Value::String(message_type.to_string()),
+            );
+        }
 
         let new_message = self
             .negotiation_messages_service
@@ -281,9 +311,10 @@ impl OrchestrationPersistenceForProtocol {
         mid: &Urn,
         peer: &String,
         message: &dyn NegotiationProcessMessageTrait,
+        mate: &Mates,
     ) -> anyhow::Result<AgreementDto> {
-        let id = self.create_entity_urn("agreement")?;
         let agreement = self.get_dsp_agreement_safely(message)?;
+        let id = agreement.clone().id;
         let target = agreement.clone().target;
         let agr = self
             .agreement_service
@@ -291,8 +322,8 @@ impl OrchestrationPersistenceForProtocol {
                 id: Some(id),
                 negotiation_agent_process_id: pid.clone(),
                 negotiation_agent_message_id: mid.clone(),
-                consumer_participant_id: peer.to_string(),
-                provider_participant_id: "".to_string(),
+                consumer_participant_id: agreement.assignee.clone(),
+                provider_participant_id: agreement.assigner.clone(),
                 agreement_content: serde_json::to_value(agreement).unwrap(),
                 target,
             })
@@ -305,6 +336,7 @@ impl OrchestrationPersistenceForProtocol {
         pid: &Urn,
         _mid: &Urn,
         message: &dyn NegotiationProcessMessageTrait,
+        mate: &Mates,
     ) -> anyhow::Result<AgreementDto> {
         let fetching_agreement = self
             .agreement_service
@@ -328,6 +360,7 @@ impl OrchestrationPersistenceForProtocol {
         &self,
         pid: &Urn,
         message: &dyn NegotiationProcessMessageTrait,
+        _mate: &Mates,
     ) -> anyhow::Result<NegotiationProcessDto> {
         let message_type = self.get_dsp_message_safely(message)?;
         let state: NegotiationProcessState = message_type.clone().into();

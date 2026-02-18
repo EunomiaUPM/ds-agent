@@ -7,12 +7,10 @@ const tableWidthClasses =
 /**
  * Table component for displaying tabular data.
  */
-const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
-  ({ className, ...props }, ref) => (
+const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement> & { containerClassName?: string }>(
+  ({ className, containerClassName, ...props }, ref) => (
     <div
-      className={
-        "relative w-full overflow-auto bg-white/5 border border-foreground/15 rounded-md"
-      }
+      className={cn("relative w-full overflow-auto bg-white/5 border border-foreground/15 rounded-md", containerClassName)}
     >
       <table ref={ref} className={cn("w-full caption-bottom text-sm", className)} {...props} />
     </div>
@@ -32,7 +30,11 @@ const TableBody = React.forwardRef<
   HTMLTableSectionElement,
   React.HTMLAttributes<HTMLTableSectionElement>
 >(({ className, ...props }, ref) => (
-  <tbody ref={ref} className={cn("[&_tr:last-child]:border-0 divide-y divide-white/10", className)} {...props} />
+  <tbody
+    ref={ref}
+    className={cn("[&_tr:last-child]:border-0 divide-y divide-white/10", className)}
+    {...props}
+  />
 ));
 TableBody.displayName = "TableBody";
 

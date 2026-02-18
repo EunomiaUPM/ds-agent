@@ -21,5 +21,5 @@ pub(crate) mod gateway;
 pub(crate) mod setup;
 pub(crate) mod subscriptions;
 
-pub use setup::http_worker::create_gateway_http_router;
 pub use setup::cmd::GatewayCommands;
+pub use setup::http_worker::create_gateway_http_router;

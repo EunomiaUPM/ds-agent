@@ -119,11 +119,11 @@ impl DistributionEntityRouter {
             Ok(urn) => urn,
             Err(resp) => return resp,
         };
-        let dct = match DctFormats::from_str(&dct_format) {
-            Ok(urn) => urn,
-            Err(e) => return e.to_response(),
-        };
-        match state.service.get_distribution_by_dataset_id_and_dct_format(&id_urn, &dct).await {
+        match state
+            .service
+            .get_distribution_by_dataset_id_and_dct_format(&id_urn, &dct_format)
+            .await
+        {
             Ok(distribution) => (StatusCode::OK, Json(ToCamelCase(distribution))).into_response(),
             Err(err) => match err.downcast::<CommonErrors>() {
                 Ok(ce) => match ce {

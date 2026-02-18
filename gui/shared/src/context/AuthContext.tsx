@@ -1,15 +1,16 @@
 import { createContext, ReactNode, useEffect, useState } from "react";
+import { ParticipantDto } from "../data/orval/model";
 
 export interface AuthContextType {
   isAuthenticated: boolean;
-  participant: Participant | null;
+  participant: ParticipantDto | null;
   clientToken: string | null;
-  setAuthentication: (participant: Participant, clientToken: string) => void;
+  setAuthentication: (participant: ParticipantDto, clientToken: string) => void;
   unsetAuthentication: () => void;
 }
 
 interface AuthStorageData {
-  participant: Participant | null;
+  participant: ParticipantDto | null;
   clientToken: string | null;
 }
 
@@ -42,7 +43,7 @@ export const AuthContextProvider = ({ children }: { children: ReactNode }) => {
   /**
    * State
    */
-  const [participant, setParticipant] = useState<Participant | null>(initialAuthData.participant);
+  const [participant, setParticipant] = useState<ParticipantDto | null>(initialAuthData.participant);
   const [clientToken, setClientToken] = useState<string | null>(initialAuthData.clientToken);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
     !!initialAuthData.participant && !!initialAuthData.clientToken,
@@ -65,7 +66,7 @@ export const AuthContextProvider = ({ children }: { children: ReactNode }) => {
   /**
    * Outer interface
    */
-  const setAuthentication = (participant: Participant, clientToken: string) => {
+  const setAuthentication = (participant: ParticipantDto, clientToken: string) => {
     setParticipant(participant);
     setClientToken(clientToken);
   };

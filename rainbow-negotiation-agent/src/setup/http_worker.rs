@@ -87,10 +87,8 @@ impl NegotiationHttpWorker {
         config: &ContractsConfig,
         vault: Arc<VaultService>,
     ) -> anyhow::Result<Router> {
-        let router = create_root_http_router(config, vault.clone())
-            .await?
-            .fallback(Self::handler_404)
-            .layer(
+        let router =
+            create_root_http_router(config, vault.clone()).await.fallback(Self::handler_404).layer(
                 TraceLayer::new_for_http()
                     .make_span_with(
                         |_req: &Request<_>| tracing::info_span!("request", id = %Uuid::new_v4()),
@@ -112,10 +110,7 @@ impl NegotiationHttpWorker {
     }
 }
 
-pub async fn create_root_http_router(
-    config: &ContractsConfig,
-    vault: Arc<VaultService>,
-) -> anyhow::Result<Router> {
+pub async fn create_root_http_router(config: &ContractsConfig, vault: Arc<VaultService>) -> Router {
     // ROOT Dependency Injection
     let db_connection = vault.get_db_connection(config.common()).await;
     let config = Arc::new(config.clone());
@@ -139,19 +134,36 @@ pub async fn create_root_http_router(
     let agreement_router =
         NegotiationAgentAgreementsRouter::new(agreement_controller_service.clone(), config.clone());
 
+    use rainbow_common::facades::ssi_auth_facade::mates_facade::MatesFacadeService;
+    use rainbow_common::facades::ssi_auth_facade::ssi_auth_facade::SSIAuthFacadeService;
+    use rainbow_common::http_client::HttpClient;
+
     // dsp
+    let http_client = Arc::new(HttpClient::new(10, 10));
+    let ssi_auth_config = Arc::new(config.ssi_auth());
+
+    let ssi_auth_service = Arc::new(SSIAuthFacadeService::new(
+        ssi_auth_config.clone(),
+        http_client.clone(),
+    ));
+    let mates_service =
+        Arc::new(MatesFacadeService::new(ssi_auth_config.clone(), http_client.clone()));
+
     let dsp_router = NegotiationDSP::new(
         entities_controller_service.clone(),
         messages_controller_service.clone(),
         offer_controller_service.clone(),
         agreement_controller_service.clone(),
         config.clone(),
+        ssi_auth_service,
+        mates_service,
     )
     .build_router()
-    .await?;
+    .await
+    .expect("Failed to build DSP router");
 
     // router
-    let router_str = format!("/api/{}/negotiation-agent", config.common().get_api_version());
+    let router_str = format!("{}/negotiation-agent", config.common().get_api_version());
     let router = Router::new()
         .nest(
             format!("{}/negotiation-messages", router_str.as_str()).as_str(),
@@ -171,5 +183,5 @@ pub async fn create_root_http_router(
         )
         .nest("/dsp/current/negotiations", dsp_router);
 
-    Ok(router)
+    router
 }

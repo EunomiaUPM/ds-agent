@@ -47,12 +47,15 @@ use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
 
+use rainbow_common::facades::ssi_auth_facade::MatesFacadeTrait;
+
 #[allow(unused)]
 pub struct RPCOrchestratorService {
     validator: Arc<dyn ValidationRpcSteps>,
     persistence_service: Arc<OrchestrationPersistenceForRpc>,
     _config: Arc<ContractsConfig>,
     http_client: Arc<HttpClient>,
+    mates_service: Arc<dyn MatesFacadeTrait>,
 }
 
 impl RPCOrchestratorService {
@@ -61,8 +64,15 @@ impl RPCOrchestratorService {
         persistence_service: Arc<OrchestrationPersistenceForRpc>,
         _config: Arc<ContractsConfig>,
         http_client: Arc<HttpClient>,
+        mates_service: Arc<dyn MatesFacadeTrait>,
     ) -> RPCOrchestratorService {
-        RPCOrchestratorService { validator, persistence_service, _config, http_client }
+        RPCOrchestratorService {
+            validator,
+            persistence_service,
+            _config,
+            http_client,
+            mates_service,
+        }
     }
 }
 
@@ -81,7 +91,12 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         let peer_url = format!("{}/negotiations/request", provider_address);
         let request_body: NegotiationProcessMessageWrapper<NegotiationRequestInitMessageDto> =
             input.clone().into();
-        self.http_client.set_auth_token("blabla".to_string()).await;
+        let associated_peer = input.get_associated_agent_peer().unwrap_or("".to_string());
+        if let Ok(mate) = self.mates_service.get_mate_by_id(associated_peer).await {
+            if let Some(token) = mate.token {
+                self.http_client.set_auth_token(token).await;
+            }
+        }
         let response: NegotiationProcessMessageWrapper<NegotiationAckMessageDto> =
             self.http_client.post_json(peer_url.as_str(), &request_body).await?;
 
@@ -115,7 +130,12 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         let peer_url = format!("{}/negotiations/{}/request", peer_address, identifier);
         let request_body: NegotiationProcessMessageWrapper<NegotiationRequestMessageDto> =
             input.clone().into();
-        self.http_client.set_auth_token("blabla".to_string()).await;
+        let associated_peer = current_process.inner.associated_agent_peer.clone();
+        if let Ok(mate) = self.mates_service.get_mate_by_id(associated_peer).await {
+            if let Some(token) = mate.token {
+                self.http_client.set_auth_token(token).await;
+            }
+        }
         let response: NegotiationProcessMessageWrapper<NegotiationAckMessageDto> =
             self.http_client.post_json(peer_url.as_str(), &request_body).await?;
 
@@ -144,7 +164,12 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         let peer_url = format!("{}/negotiations/offers", provider_address);
         let request_body: NegotiationProcessMessageWrapper<NegotiationOfferInitMessageDto> =
             input.clone().into();
-        self.http_client.set_auth_token("blabla".to_string()).await;
+        let associated_peer = input.get_associated_agent_peer().unwrap_or("".to_string());
+        if let Ok(mate) = self.mates_service.get_mate_by_id(associated_peer).await {
+            if let Some(token) = mate.token {
+                self.http_client.set_auth_token(token).await;
+            }
+        }
         let response: NegotiationProcessMessageWrapper<NegotiationAckMessageDto> =
             self.http_client.post_json(peer_url.as_str(), &request_body).await?;
 
@@ -178,7 +203,12 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         let peer_url = format!("{}/negotiations/{}/offers", peer_address, identifier);
         let request_body: NegotiationProcessMessageWrapper<NegotiationOfferMessageDto> =
             input.clone().into();
-        self.http_client.set_auth_token("blabla".to_string()).await;
+        let associated_peer = current_process.inner.associated_agent_peer.clone();
+        if let Ok(mate) = self.mates_service.get_mate_by_id(associated_peer).await {
+            if let Some(token) = mate.token {
+                self.http_client.set_auth_token(token).await;
+            }
+        }
         let response: NegotiationProcessMessageWrapper<NegotiationAckMessageDto> =
             self.http_client.post_json(peer_url.as_str(), &request_body).await?;
 
@@ -220,6 +250,18 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         let peer_url = format!("{}/negotiations/{}/agreement", peer_address, identifier);
         let mut request_body: NegotiationProcessMessageWrapper<NegotiationAgreementMessageDto> =
             input.clone().into();
+        let associated_peer = current_process.inner.associated_agent_peer.clone();
+
+        let mut assigner = "".to_string();
+        if let Ok(myself) = self.mates_service.get_me_mate().await {
+            assigner = myself.participant_id;
+        }
+
+        let mut assignee = "".to_string();
+        if let Ok(mate) = self.mates_service.get_mate_by_id(associated_peer.clone()).await {
+            assignee = mate.participant_id;
+        }
+
         request_body.dto.agreement = OdrlAgreement {
             id: self.create_entity_urn("agreement")?,
             profile: offer.profile,
@@ -227,12 +269,17 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
             obligation: offer.obligation,
             _type: OdrlTypes::Agreement,
             target: offer.target,
-            assigner: "".to_string(),
-            assignee: "".to_string(),
+            assigner,
+            assignee,
             timestamp: Some(chrono::Utc::now().timestamp().to_string()),
             prohibition: offer.prohibition,
         };
-        self.http_client.set_auth_token("blabla".to_string()).await;
+        let associated_peer = current_process.inner.associated_agent_peer.clone();
+        if let Ok(mate) = self.mates_service.get_mate_by_id(associated_peer).await {
+            if let Some(token) = mate.token {
+                self.http_client.set_auth_token(token).await;
+            }
+        }
         let response: NegotiationProcessMessageWrapper<NegotiationAckMessageDto> =
             self.http_client.post_json(peer_url.as_str(), &request_body).await?;
 
@@ -269,7 +316,12 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
             format!("{}/negotiations/{}/agreement/verification", peer_address, identifier);
         let request_body: NegotiationProcessMessageWrapper<NegotiationVerificationMessageDto> =
             input.clone().into();
-        self.http_client.set_auth_token("blabla".to_string()).await;
+        let associated_peer = current_process.inner.associated_agent_peer.clone();
+        if let Ok(mate) = self.mates_service.get_mate_by_id(associated_peer).await {
+            if let Some(token) = mate.token {
+                self.http_client.set_auth_token(token).await;
+            }
+        }
         let response: NegotiationProcessMessageWrapper<NegotiationAckMessageDto> =
             self.http_client.post_json(peer_url.as_str(), &request_body).await?;
 
@@ -305,7 +357,12 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         let peer_url = format!("{}/negotiations/{}/events", peer_address, identifier);
         let request_body: NegotiationProcessMessageWrapper<NegotiationEventMessageDto> =
             input.clone().into();
-        self.http_client.set_auth_token("blabla".to_string()).await;
+        let associated_peer = current_process.inner.associated_agent_peer.clone();
+        if let Ok(mate) = self.mates_service.get_mate_by_id(associated_peer).await {
+            if let Some(token) = mate.token {
+                self.http_client.set_auth_token(token).await;
+            }
+        }
         let response: NegotiationProcessMessageWrapper<NegotiationAckMessageDto> =
             self.http_client.post_json(peer_url.as_str(), &request_body).await?;
 
@@ -341,7 +398,12 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         let peer_url = format!("{}/negotiations/{}/events", peer_address, identifier);
         let request_body: NegotiationProcessMessageWrapper<NegotiationEventMessageDto> =
             input.clone().into();
-        self.http_client.set_auth_token("blabla".to_string()).await;
+        let associated_peer = current_process.inner.associated_agent_peer.clone();
+        if let Ok(mate) = self.mates_service.get_mate_by_id(associated_peer).await {
+            if let Some(token) = mate.token {
+                self.http_client.set_auth_token(token).await;
+            }
+        }
         let response: NegotiationProcessMessageWrapper<NegotiationAckMessageDto> =
             self.http_client.post_json(peer_url.as_str(), &request_body).await?;
 
@@ -377,7 +439,12 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         let peer_url = format!("{}/negotiations/{}/termination", peer_address, identifier);
         let request_body: NegotiationProcessMessageWrapper<NegotiationTerminationMessageDto> =
             input.clone().into();
-        self.http_client.set_auth_token("blabla".to_string()).await;
+        let associated_peer = current_process.inner.associated_agent_peer.clone();
+        if let Ok(mate) = self.mates_service.get_mate_by_id(associated_peer).await {
+            if let Some(token) = mate.token {
+                self.http_client.set_auth_token(token).await;
+            }
+        }
         let response: NegotiationProcessMessageWrapper<NegotiationAckMessageDto> =
             self.http_client.post_json(peer_url.as_str(), &request_body).await?;
 

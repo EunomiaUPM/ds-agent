@@ -42,8 +42,13 @@ pub trait BootstrapServiceTrait: Send + Sync {
     fn enable_policy_templates() -> bool {
         true
     }
+
     async fn load_policy_templates(_config: &Self::Config) -> anyhow::Result<()> {
         anyhow::bail!("This service does not support creation of policy templates.");
+    }
+
+    async fn cleanup_cache(_config: &Self::Config) -> anyhow::Result<()> {
+        Ok(())
     }
 
     async fn start_services_background(
@@ -137,6 +142,7 @@ impl<S: BootstrapServiceTrait> BootstrapStepTrait for BootstrapConfigLoaded<S> {
         let vault = Arc::new(VaultService::new());
 
         tracing::info!("Step [3/8]: Starting Services in Background");
+        S::cleanup_cache(&config).await?;
         let shutdown_tx = S::start_services_background(&config, vault.clone()).await?;
 
         // waiting for port setup

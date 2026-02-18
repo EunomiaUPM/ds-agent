@@ -1,0 +1,577 @@
+openapi: 3.0.3
+info:
+  title: Rainbow Transfer Agent API - DSP Protocol
+  description: OpenAPI specification for the Rainbow Transfer Agent DSP Protocol and RPC endpoints.
+  version: 1.0.0
+servers:
+  - url: /dsp/current/transfers
+    description: Base path for the Transfer Agent DSP Protocol
+
+tags:
+  - name: DSP Protocol
+    description: Standard Dataspace Protocol transfer endpoints
+  - name: DSP RPC
+    description: Remote Procedure Call endpoints for orchestrator interaction
+
+paths:
+  # --- DSP Protocol ---
+  /request:
+    post:
+      tags:
+        - DSP Protocol
+      summary: Initiate transfer process
+      operationId: transferRequest
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransferRequestMessageDto"
+      responses:
+        "200":
+          description: Process already exists
+          content:
+            application/json:
+              schema:
+                type: object # Returns TransferProcessDto or similar, inferred from code
+        "201":
+          description: Process created
+          content:
+            application/json:
+              schema:
+                type: object
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /{id}:
+    get:
+      tags:
+        - DSP Protocol
+      summary: Get transfer process state
+      operationId: getTransferProcess
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      responses:
+        "200":
+          description: Transfer process returned
+          content:
+            application/json:
+              schema:
+                type: object # Returns TransferProcessDto
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /{id}/start:
+    post:
+      tags:
+        - DSP Protocol
+      summary: Start transfer process
+      operationId: transferStart
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransferStartMessageDto"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransferProcessAckDto"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /{id}/completion:
+    post:
+      tags:
+        - DSP Protocol
+      summary: Complete transfer process
+      operationId: transferCompletion
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransferCompletionMessageDto"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransferProcessAckDto"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /{id}/termination:
+    post:
+      tags:
+        - DSP Protocol
+      summary: Terminate transfer process
+      operationId: transferTermination
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransferTerminationMessageDto"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransferProcessAckDto"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /{id}/suspension:
+    post:
+      tags:
+        - DSP Protocol
+      summary: Suspend transfer process
+      operationId: transferSuspension
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransferSuspensionMessageDto"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransferProcessAckDto"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # --- RPC Endpoints ---
+  /rpc/setup-request:
+    post:
+      tags:
+        - DSP RPC
+      summary: Setup transfer request (RPC)
+      operationId: setupTransferRequest
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RpcTransferRequestMessageDto"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /rpc/setup-start:
+    post:
+      tags:
+        - DSP RPC
+      summary: Setup transfer start (RPC)
+      operationId: setupTransferStart
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RpcTransferStartMessageDto"
+      responses:
+        "202":
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                type: object
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /rpc/setup-completion:
+    post:
+      tags:
+        - DSP RPC
+      summary: Setup transfer completion (RPC)
+      operationId: setupTransferCompletion
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RpcTransferCompletionMessageDto"
+      responses:
+        "202":
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                type: object
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /rpc/setup-termination:
+    post:
+      tags:
+        - DSP RPC
+      summary: Setup transfer termination (RPC)
+      operationId: setupTransferTermination
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RpcTransferTerminationMessageDto"
+      responses:
+        "202":
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                type: object
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /rpc/setup-suspension:
+    post:
+      tags:
+        - DSP RPC
+      summary: Setup transfer suspension (RPC)
+      operationId: setupTransferSuspension
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RpcTransferSuspensionMessageDto"
+      responses:
+        "202":
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                type: object
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+components:
+  parameters:
+    IdPath:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+
+  responses:
+    BadRequest:
+      description: Bad request
+    NotFound:
+      description: Resource not found
+    InternalServerError:
+      description: Internal server error
+
+  schemas:
+    # --- Common DTOs ---
+    DataAddressDto:
+      type: object
+      properties:
+        endpointType:
+          type: string
+        endpoint:
+          type: string
+          nullable: true
+        endpointProperties:
+          type: array
+          items:
+            $ref: "#/components/schemas/EndpointPropertyDto"
+          nullable: true
+
+    EndpointPropertyDto:
+      type: object
+      required:
+        - name
+        - value
+      properties:
+        name:
+          type: string
+        value:
+          type: string
+
+    # --- Transfer Process Messages (Flattened wrappers) ---
+
+    TransferRequestMessageDto:
+      type: object
+      required:
+        - "@context"
+        - "@type"
+        - agreementId
+        - format
+        - callbackAddress
+        - consumerPid
+      properties:
+        "@context":
+          type: string
+          default: "http://w3id.org/dspace/2024/1/context.json"
+        "@type":
+          type: string
+          default: "dspace:TransferRequestMessage"
+        agreementId:
+          type: string
+          format: urn
+        format:
+          type: string
+        dataAddress:
+          $ref: "#/components/schemas/DataAddressDto"
+        callbackAddress:
+          type: string
+        consumerPid:
+          type: string
+          format: urn
+
+    TransferStartMessageDto:
+      type: object
+      required:
+        - "@context"
+        - "@type"
+        - providerPid
+        - consumerPid
+      properties:
+        "@context":
+          type: string
+          default: "http://w3id.org/dspace/2024/1/context.json"
+        "@type":
+          type: string
+          default: "dspace:TransferStartMessage"
+        providerPid:
+          type: string
+          format: urn
+        consumerPid:
+          type: string
+          format: urn
+        dataAddress:
+          $ref: "#/components/schemas/DataAddressDto"
+
+    TransferCompletionMessageDto:
+      type: object
+      required:
+        - "@context"
+        - "@type"
+        - providerPid
+        - consumerPid
+      properties:
+        "@context":
+          type: string
+          default: "http://w3id.org/dspace/2024/1/context.json"
+        "@type":
+          type: string
+          default: "dspace:TransferCompletionMessage"
+        providerPid:
+          type: string
+          format: urn
+        consumerPid:
+          type: string
+          format: urn
+
+    TransferTerminationMessageDto:
+      type: object
+      required:
+        - "@context"
+        - "@type"
+        - providerPid
+        - consumerPid
+      properties:
+        "@context":
+          type: string
+          default: "http://w3id.org/dspace/2024/1/context.json"
+        "@type":
+          type: string
+          default: "dspace:TransferTerminationMessage"
+        providerPid:
+          type: string
+          format: urn
+        consumerPid:
+          type: string
+          format: urn
+        code:
+          type: string
+          nullable: true
+        reason:
+          type: array
+          items:
+            type: string
+          nullable: true
+
+    TransferSuspensionMessageDto:
+      type: object
+      required:
+        - "@context"
+        - "@type"
+        - providerPid
+        - consumerPid
+      properties:
+        "@context":
+          type: string
+          default: "http://w3id.org/dspace/2024/1/context.json"
+        "@type":
+          type: string
+          default: "dspace:TransferSuspensionMessage"
+        providerPid:
+          type: string
+          format: urn
+        consumerPid:
+          type: string
+          format: urn
+        code:
+          type: string
+          nullable: true
+        reason:
+          type: array
+          items:
+            type: string
+          nullable: true
+
+    TransferProcessAckDto:
+      type: object
+      required:
+        - "@context"
+        - "@type"
+        - consumerPid
+        - providerPid
+        - state
+      properties:
+        "@context":
+          type: string
+          default: "http://w3id.org/dspace/2024/1/context.json"
+        "@type":
+          type: string
+          default: "dspace:TransferProcess"
+        consumerPid:
+          type: string
+          format: urn
+        providerPid:
+          type: string
+          format: urn
+        state:
+          type: string
+
+    # --- RPC Messages ---
+
+    RpcTransferRequestMessageDto:
+      type: object
+      required:
+        - associatedAgentPeer
+        - agreementId
+        - format
+        - providerAddress
+        - callbackAddress
+      properties:
+        associatedAgentPeer:
+          type: string
+        agreementId:
+          type: string
+          format: urn
+        format:
+          type: string
+        dataAddress:
+          $ref: "#/components/schemas/DataAddressDto"
+        providerAddress:
+          type: string
+        callbackAddress:
+          type: string
+
+    RpcTransferStartMessageDto:
+      type: object
+      required:
+        - consumerPid
+        - providerPid
+      properties:
+        consumerPid:
+          type: string
+          format: urn
+        providerPid:
+          type: string
+          format: urn
+        dataAddress:
+          $ref: "#/components/schemas/DataAddressDto"
+
+    RpcTransferCompletionMessageDto:
+      type: object
+      required:
+        - consumerPid
+        - providerPid
+      properties:
+        consumerPid:
+          type: string
+          format: urn
+        providerPid:
+          type: string
+          format: urn
+
+    RpcTransferTerminationMessageDto:
+      type: object
+      required:
+        - consumerPid
+        - providerPid
+      properties:
+        consumerPid:
+          type: string
+          format: urn
+        providerPid:
+          type: string
+          format: urn
+        code:
+          type: string
+          nullable: true
+        reason:
+          type: array
+          items:
+            type: string
+          nullable: true
+
+    RpcTransferSuspensionMessageDto:
+      type: object
+      required:
+        - consumerPid
+        - providerPid
+      properties:
+        consumerPid:
+          type: string
+          format: urn
+        providerPid:
+          type: string
+          format: urn
+        code:
+          type: string
+          nullable: true
+        reason:
+          type: array
+          items:
+            type: string
+          nullable: true

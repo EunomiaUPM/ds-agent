@@ -290,10 +290,7 @@ impl TryFrom<CreateDistributionRequest> for NewDistributionDto {
         let dataset_id = Urn::from_str(&req.dataset_id)
             .map_err(|_| Status::invalid_argument("Invalid URN format for Dataset ID"))?;
 
-        let dct_formats = req
-            .dct_formats
-            .parse::<DctFormats>()
-            .map_err(|_| Status::invalid_argument("Invalid URN formats"))?;
+        let dct_formats = req.dct_formats;
 
         Ok(Self {
             id,

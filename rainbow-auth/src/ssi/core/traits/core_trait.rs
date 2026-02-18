@@ -22,7 +22,7 @@ use ymir::core_traits::CoreWalletTrait;
 
 use crate::ssi::core::traits::{
     CoreBusinessTrait, CoreGaiaSelfIssuerTrait, CoreGateKeeperTrait, CoreMateTrait,
-    CoreOnboarderTrait, CoreVcRequesterTrait, CoreVerifierTrait
+    CoreOnboarderTrait, CoreVcRequesterTrait, CoreVerifierTrait,
 };
 
 pub trait AuthCoreTrait:

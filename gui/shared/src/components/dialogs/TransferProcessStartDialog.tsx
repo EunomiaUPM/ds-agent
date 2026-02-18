@@ -7,39 +7,58 @@
 
 import React, { useContext } from "react";
 import { GlobalInfoContext, GlobalInfoContextType } from "../../context/GlobalInfoContext";
-import { usePostTransferRPCStart } from "../../data/transfer-mutations";
 import { BaseProcessDialog, mapTransferProcessToInfoItems } from "./base";
+import { DataAddressDto, TransferProcessDto } from "../../data/orval/model";
+import { useSetupTransferStart } from "../../data/orval/transfer-rp-c/transfer-rp-c";
+import { useRouter } from "@tanstack/react-router";
+import { useGetTransferProcesses } from "../../data/orval/transfers/transfers";
 
-export const TransferProcessStartDialog = ({ process }: { process: TransferProcess }) => {
-  const { api_gateway, dsrole } = useContext<GlobalInfoContextType | null>(GlobalInfoContext)!;
-  const { mutateAsync: startAsync } = usePostTransferRPCStart();
+export const TransferProcessStartDialog = ({ process, onClose }: {
+  process: TransferProcessDto; onClose?: () => void;
+}) => {
+  const { mutateAsync: startAsync } = useSetupTransferStart();
+  const { refetch } = useGetTransferProcesses();
+  const router = useRouter();
 
   /**
    * Handles the start submission.
    * Payload structure differs based on the user's role.
    */
   const handleSubmit = async () => {
-    const p = process as any;
-
-    if (dsrole === "provider") {
-      await startAsync({
-        api_gateway,
-        content: {
-          consumerParticipantId: p.associated_consumer,
-          consumerCallbackAddress: p.data_plane_id,
-          consumerPid: p.consumer_pid,
-          providerPid: p.provider_pid,
-        } as any,
-      });
-    } else if (dsrole === "consumer") {
-      await startAsync({
-        api_gateway,
-        content: {
-          providerParticipantId: p.associated_provider,
-          consumerPid: p.consumer_pid,
-          providerPid: p.provider_pid,
+    const dataAddress = process.stateAttribute == "OnRequest" ? {
+      endpointType: "https://w3id.org/idsa/v4.1/HTTP",
+      endpoint: "http://example.com",
+      endpointProperties: [
+        {
+          "@type": "EndpointProperty",
+          name: "authorization",
+          value: "TOKEN-ABCDEFG"
         },
-      });
+        {
+          "@type": "EndpointProperty",
+          name: "authType",
+          value: "bearer"
+        }
+      ]
+    } : undefined
+
+
+    if (!process.identifiers?.consumerPid || !process.identifiers?.providerPid) {
+      console.error("Missing process identifiers");
+      return;
+    }
+
+    await startAsync({
+      data: {
+        consumerPid: process.identifiers.consumerPid,
+        providerPid: process.identifiers.providerPid,
+      }
+    })
+
+    await refetch();
+    router.invalidate();
+    if (onClose) {
+      onClose();
     }
   };
 
@@ -47,7 +66,7 @@ export const TransferProcessStartDialog = ({ process }: { process: TransferProce
     <BaseProcessDialog
       title="Transfer Start Dialog"
       description="You are about to start the transfer process."
-      infoItems={mapTransferProcessToInfoItems(process, dsrole as "provider" | "consumer")}
+      infoItems={mapTransferProcessToInfoItems(process)}
       submitLabel="Start"
       submitVariant="default"
       onSubmit={handleSubmit}

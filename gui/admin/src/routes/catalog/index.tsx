@@ -4,39 +4,47 @@ import dayjs from "dayjs";
 import { ArrowRight } from "lucide-react";
 import { DataTable } from "shared/src/components/DataTable";
 import { FormatDate } from "shared/src/components/ui/format-date";
-import { useGetCatalogs, useGetMainCatalogs } from "shared/src/data/catalog-queries.ts";
 import Heading from "shared/src/components/ui/heading.tsx";
 import { InfoList } from "shared/src/components/ui/info-list";
 import { Button } from "shared/src/components/ui/button.tsx";
 import { Input } from "shared/src/components/ui/input.tsx";
-import { Badge } from "shared/src/components/ui/badge";
+import { Badge, BadgeRole } from "shared/src/components/ui/badge";
 import { PageLayout } from "shared/src/components/layout/PageLayout";
 import { PageHeader } from "shared/src/components/layout/PageHeader";
 import { PageSection } from "shared/src/components/layout/PageSection";
 import { InfoGrid } from "shared/src/components/layout/InfoGrid";
+import { useGetCatalogs, useGetMainCatalogs } from "shared/data/orval/catalogs/catalogs";
+import { useGetAllParticipants } from "shared/data/orval/participants/participants";
 
 const RouteComponent = () => {
   const { data: mainCatalog } = useGetMainCatalogs();
-  const { data: catalogs } = useGetCatalogs(false);
+  const { data: catalogs } = useGetCatalogs();
+  const { data: participants } = useGetAllParticipants();
+
+  if (!mainCatalog?.data || mainCatalog.status !== 200) return null;
   return (
     <PageLayout>
       <PageHeader
         title="Main Catalog with id"
-        badge={<Badge variant="info" size="lg">{formatUrn(mainCatalog.id)}</Badge>}
+        badge={
+          <Badge variant="info" size="lg">
+            {formatUrn(mainCatalog.data.id)}
+          </Badge>
+        }
       />
       <InfoGrid>
         <PageSection title="Main Catalog info: ">
           <InfoList
             items={[
-              { label: "Catalog title", value: mainCatalog?.dctTitle },
+              { label: "Catalog title", value: mainCatalog.data?.dctTitle },
               {
                 label: "Catalog participant id",
-                value: { type: "urn", value: mainCatalog.dspaceParticipantId },
+                value: { type: "urn", value: mainCatalog.data.dspaceParticipantId },
               },
-              { label: "Catalog homepage", value: mainCatalog.foafHomePage },
+              { label: "Catalog homepage", value: mainCatalog.data.foafHomePage },
               {
                 label: "Catalog creation date",
-                value: { type: "custom", content: <FormatDate date={mainCatalog.dctIssued} /> },
+                value: { type: "custom", content: <FormatDate date={mainCatalog.data.dctIssued} /> },
               },
             ]}
           />
@@ -44,13 +52,10 @@ const RouteComponent = () => {
       </InfoGrid>
 
       <PageSection title="Catalogs">
-        <div className="pb-3 w-3/5">
-          <Input type="search"></Input>
-        </div>
         <DataTable
           className="text-sm"
-          data={catalogs ?? []}
-          keyExtractor={(c) => c.id}
+          data={Array.isArray(catalogs?.data) ? catalogs.data : []}
+          keyExtractor={(c) => c.id!}
           columns={[
             {
               header: "Title",
@@ -75,6 +80,43 @@ const RouteComponent = () => {
                 <Link to="/catalog/$catalogId" params={{ catalogId: c.id }}>
                   <Button variant={"link"}>
                     See catalog
+                    <ArrowRight />
+                  </Button>
+                </Link>
+              ),
+            },
+          ]}
+        />
+      </PageSection>
+
+      <PageSection title="Catalogs from other participants">
+        <DataTable
+          className="text-sm"
+          data={Array.isArray(participants?.data) ? participants.data.filter(p => !p.is_me && p.participant_type === "Agent") : []}
+          keyExtractor={(c) => c.participant_id!}
+          columns={[
+            {
+              header: "Participant ID",
+              cell: (p) => <Badge variant={"info"}>{formatUrn(p.participant_id)}</Badge>,
+            },
+            {
+              header: "Participant Type",
+              cell: (p) => (
+                <Badge variant={"role"} dsrole={p.participant_type as BadgeRole}>
+                  {p.participant_type}
+                </Badge>
+              ),
+            },
+            {
+              header: "Base URL",
+              cell: (p) => <Badge variant={"info"}>{p.base_url}</Badge>,
+            },
+            {
+              header: "Link",
+              cell: (p) => (
+                <Link to="/catalog/participant/$participantId" params={{ participantId: p.participant_id }}>
+                  <Button variant="link">
+                    Fetch catalog
                     <ArrowRight />
                   </Button>
                 </Link>

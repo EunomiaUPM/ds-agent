@@ -20,14 +20,16 @@
 
 use sea_orm_migration::prelude::*;
 
-pub mod m20251128_0000001_data_plane_process;
-pub mod m20251128_0000002_data_plane_fields;
+pub mod m20251128_0000001_dataplane_transfers;
+pub mod m20251128_0000002_dataplane_fields;
 pub mod m20251128_0000003_transfer_events;
+pub mod m20251128_000004_dataplane_transfer_logs;
 
 pub fn get_dataplane_migrations() -> Vec<Box<dyn MigrationTrait>> {
     vec![
-        Box::new(m20251128_0000001_data_plane_process::Migration),
-        Box::new(m20251128_0000002_data_plane_fields::Migration),
+        Box::new(m20251128_0000001_dataplane_transfers::Migration),
+        Box::new(m20251128_0000002_dataplane_fields::Migration),
         Box::new(m20251128_0000003_transfer_events::Migration),
+        Box::new(m20251128_000004_dataplane_transfer_logs::Migration),
     ]
 }

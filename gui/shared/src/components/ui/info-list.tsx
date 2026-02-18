@@ -156,13 +156,16 @@ const InfoListItem = ({ label, value, className, keyClassName }: InfoItemProps) 
   return (
     <div className={cn("flex flex-col py-2 border-b border-white/5 last:border-0", className)}>
       {/* Label */}
-      <span className={cn("text-[10px] uppercase tracking-wide text-white/50 font-medium mb-1", keyClassName)}>
+      <span
+        className={cn(
+          "text-[10px] uppercase tracking-wide text-white/50 font-medium mb-1",
+          keyClassName,
+        )}
+      >
         {label}
       </span>
       {/* Value */}
-      <div className="text-sm font-medium text-white/90">
-        {renderValue()}
-      </div>
+      <div className="text-sm font-medium text-white/90">{renderValue()}</div>
     </div>
   );
 };

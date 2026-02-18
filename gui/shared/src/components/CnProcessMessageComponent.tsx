@@ -11,9 +11,10 @@ import {
   RoleHeader,
   RoleType,
 } from "./ui/message";
+import { NegotiationMessageDto } from "../data/orval/model";
 
 type MessageComponentProps = {
-  message: CNMessage;
+  message: NegotiationMessageDto;
 };
 let addSpacesFormat = (text: string) => {
   if (!text) return "";
@@ -24,21 +25,22 @@ let addSpacesFormat = (text: string) => {
  * Component for displaying a Contract Negotiation process message.
  */
 const MessageComponent: React.FC<MessageComponentProps> = ({ message }) => {
-
-
   return (
-    <MessageLog key={message.cn_message_id} variant={message.from as RoleType}>
-      <RoleHeader from={message.from as RoleType} />
-      <MessageBody variant={message.from as RoleType}>
+    <MessageLog key={message.id} variant={message.stateTransitionFrom as RoleType}>
+      <RoleHeader from={message.stateTransitionFrom as RoleType} />
+      <MessageBody variant={message.stateTransitionFrom as RoleType}>
         <MessageTitle className="text-brand-sky mb-0 pb-0">
-          {addSpacesFormat(message._type)}
+          {addSpacesFormat(message.messageType)}
         </MessageTitle>
-        <MessageTimestamp created_at={message.created_at.toString()} />
+        <MessageTimestamp created_at={message.createdAt.toString()} />
         <MessageMetaContainer>
-          <MessageMeta label="Contract Message Id" value={formatUrn(message.cn_message_id, false)} />
-          <MessageMeta label="Contract Process Id" value={formatUrn(message.cn_process_id, false)} />
+          <MessageMeta label="Contract Message Id" value={formatUrn(message.id, false)} />
+          <MessageMeta
+            label="Contract Process Id"
+            value={formatUrn(message.negotiationAgentProcessId, false)}
+          />
         </MessageMetaContainer>
-        <MessageContent content={JSON.stringify(message.content, null, 8)} />
+        <MessageContent content={JSON.stringify(message.payload, null, 8)} />
       </MessageBody>
     </MessageLog>
   );

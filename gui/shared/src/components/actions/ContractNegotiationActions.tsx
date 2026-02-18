@@ -1,4 +1,4 @@
-import { ButtonSizes } from "../ui/button";
+import { Button, ButtonSizes } from "../ui/button";
 import React, { useContext } from "react";
 import { cva } from "class-variance-authority";
 import { ContractNegotiationOfferDialog } from "../dialogs/ContractNegotiationOfferDialog";
@@ -11,7 +11,9 @@ import { ContractNegotiationAcceptanceDialog } from "../dialogs/ContractNegotiat
 import { ContractNegotiationVerificationDialog } from "../dialogs/ContractNegotiationVerificationDialog";
 import NoFurtherActions from "../ui/noFurtherActions";
 import { ProcessActionDialog } from "./ProcessActionDialog";
-
+import { NegotiationProcessDto } from "shared/src/data/orval/model/negotiationProcessDto";
+import { Link } from "@tanstack/react-router";
+import { ArrowRight } from "lucide-react";
 /**
  * Actions available for a contract negotiation process.
  */
@@ -19,25 +21,23 @@ export const ContractNegotiationActions = ({
   process,
   tiny = false,
 }: {
-  process: CNProcess;
+  process: NegotiationProcessDto;
   tiny: boolean;
 }) => {
-  const { dsrole } = useContext<GlobalInfoContextType | null>(GlobalInfoContext)!;
-
   // Define container class name with variants
   const containerClassName = cva("", {
     variants: {
       tiny: {
         true: "inline-flex items-center ",
         false:
-          " w-full p-6 fixed bottom-0 left-0 md:left-[223px] bg-background/80 backdrop-blur-sm border border-t-stroke [&>*>button]:min-w-20",
+          "w-[calc(100%_+_2px_-_var(--sidebar-width))] p-6 fixed bottom-0 -right-px bg-background/80 backdrop-blur-sm border border-t-stroke [&>*>button]:min-w-20",
       },
     },
   });
 
   // Determine available actions based on process state and user role
   const getActions = () => {
-    if (dsrole === "provider") {
+    if (process.role === "Provider") {
       switch (process.state) {
         case "REQUESTED":
           return [
@@ -89,7 +89,7 @@ export const ContractNegotiationActions = ({
         default:
           return [];
       }
-    } else if (dsrole === "consumer") {
+    } else if (process.role === "Consumer") {
       switch (process.state) {
         case "REQUESTED":
           return [
@@ -133,12 +133,17 @@ export const ContractNegotiationActions = ({
 
   // Determine if no further actions are available
   const showNoFurtherActions = () => {
-    if (process.state === "FINALIZED" || process.state === "TERMINATED") return true;
-    if (dsrole === "consumer") {
+    if (process.state === "TERMINATED") return true;
+    if (process.role === "Consumer") {
       if (process.state === "ACCEPTED") return true;
       if (process.state === "VERIFIED") return true;
     }
     return false;
+  };
+
+  // Determine if agreement can be viewed
+  const showGoToAgreement = () => {
+    return process.state === "FINALIZED" && !!process.agreement;
   };
 
   return (
@@ -146,8 +151,8 @@ export const ContractNegotiationActions = ({
       <div
         className={
           process.state === "OFFERED" ||
-          process.state === "ACCEPTED" ||
-          process.state === "VERIFIED"
+            process.state === "ACCEPTED" ||
+            process.state === "VERIFIED"
             ? "flex justify-end flex-row-reverse gap-2"
             : process.state === "REQUESTED"
               ? "space-x-2 min-w-[260px]"
@@ -165,6 +170,11 @@ export const ContractNegotiationActions = ({
           />
         ))}
         {showNoFurtherActions() && <NoFurtherActions />}
+        {showGoToAgreement() && (
+          <Link to="/agreements/$agreementId" params={{ agreementId: process.agreement!.id }}>
+            <Button variant="link">See agreement <ArrowRight /></Button>
+          </Link>
+        )}
       </div>
     </div>
   );

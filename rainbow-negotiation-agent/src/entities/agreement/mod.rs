@@ -94,6 +94,10 @@ pub trait NegotiationAgentAgreementsTrait: Send + Sync + 'static {
         id: &Urn,
     ) -> anyhow::Result<Option<AgreementDto>>;
 
+    async fn get_agreements_by_assignee(&self, id: &String) -> anyhow::Result<Vec<AgreementDto>>;
+
+    async fn get_agreements_by_assigner(&self, id: &String) -> anyhow::Result<Vec<AgreementDto>>;
+
     async fn create_agreement(&self, new_model: &NewAgreementDto) -> anyhow::Result<AgreementDto>;
 
     async fn put_agreement(

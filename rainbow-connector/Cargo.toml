@@ -33,3 +33,5 @@ uuid = { workspace = true }
 async-trait = "0.1.89"
 regex = "1.12.2"
 ymir = {workspace = true}
+jaq-interpret = "1.5.0"
+jaq-parse = "1.0.3"

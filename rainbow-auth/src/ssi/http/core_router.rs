@@ -39,7 +39,7 @@ use crate::ssi::http::{GaiaSelfIssuerRouter, MateRouter, VcRequesterRouter};
 
 pub struct AuthRouter {
     core: Arc<AuthCore>,
-    openapi: String
+    openapi: String,
 }
 
 impl AuthRouter {
@@ -65,7 +65,7 @@ impl AuthRouter {
             .allow_methods([
                 axum::http::Method::GET,
                 axum::http::Method::POST,
-                axum::http::Method::DELETE
+                axum::http::Method::DELETE,
             ])
             .allow_headers(Any)
             .allow_credentials(false);
@@ -85,7 +85,7 @@ impl AuthRouter {
                 let gaia_router = GaiaSelfIssuerRouter::new(self.core.clone()).router();
                 router.nest(&format!("{}/gaia", api_path), gaia_router)
             }
-            false => router
+            false => router,
         };
 
         let router = match self.core.is_wallet_active() {
@@ -93,18 +93,18 @@ impl AuthRouter {
                 let wallet_router = WalletRouter::new(self.core.clone()).router();
                 router.nest(&format!("{}/wallet", api_path), wallet_router)
             }
-            false => router
+            false => router,
         };
 
         router.fallback(Self::fallback).layer(cors).layer(
             TraceLayer::new_for_http()
                 .make_span_with(
-                    |_req: &Request<_>| tracing::info_span!("P-Auth-request", id = %Uuid::new_v4())
+                    |_req: &Request<_>| tracing::info_span!("P-Auth-request", id = %Uuid::new_v4()),
                 )
                 .on_request(|req: &Request<_>, _span: &tracing::Span| {
                     info!("{} {}", req.method(), req.uri().path());
                 })
-                .on_response(DefaultOnResponse::new().level(Level::TRACE))
+                .on_response(DefaultOnResponse::new().level(Level::TRACE)),
         )
     }
 

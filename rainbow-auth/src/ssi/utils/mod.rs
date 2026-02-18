@@ -20,14 +20,14 @@ use ymir::types::gnap::grant_request::{Client4GR, Key4GR};
 
 pub fn get_pretty_client_config_helper(
     client_config: &ClientConfig,
-    cert: &str
+    cert: &str,
 ) -> anyhow::Result<Client4GR> {
     let clean_cert = cert.lines().filter(|line| !line.starts_with("-----")).collect::<String>();
 
     let client = Client4GR {
         key: Key4GR { proof: "httpsig".to_string(), jwk: None, cert: Some(clean_cert) },
         class_id: Some(client_config.class_id.clone()),
-        display: None
+        display: None,
     };
 
     Ok(client)

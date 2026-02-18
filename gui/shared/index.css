@@ -64,6 +64,7 @@
   :root {
     --background: 0 0% 100%;
     --foreground: 0 0% 3.9%;
+    --sidebar-width: 14rem;
     --card: 0 0% 100%;
     --card-foreground: 0 0% 3.9%;
     --popover: 0 0% 100%;

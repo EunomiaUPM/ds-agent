@@ -16,7 +16,6 @@ pub trait WellKnownDSpaceVersionTrait: Send + Sync + 'static {
     fn dspace_service_id(&self) -> String {
         let path = self.dspace_path();
         let deterministic_uuid = Uuid::new_v5(&Uuid::NAMESPACE_URL, path.as_bytes());
-
         UrnBuilder::new("dsp-service-id", deterministic_uuid.to_string().as_str())
             .build()
             .expect("Not able to create Service ID")
@@ -42,8 +41,26 @@ pub trait WellKnownDSpaceVersionTrait: Send + Sync + 'static {
         Ok(protocol_version)
     }
 
+    fn get_dspace_version_str(&self, str: &String) -> anyhow::Result<Version> {
+        if str != "2025-1" {
+            return Err(anyhow::anyhow!("invalid dspace version"));
+        }
+        Ok(Version {
+            binding: DSPBindings::HTTPS,
+            path: self.dspace_path(),
+            version: DSPProtocolVersions::V2025_1,
+            auth: Some(Auth {
+                protocol: AuthProtocolTypes::Gnap,
+                version: "1".to_string(),
+                profile: None,
+            }),
+            identifier_type: Some(DSPIdentifierTypes::DidJWK),
+            service_id: Option::from(self.dspace_service_id()),
+        })
+    }
+
     fn get_router(&self) -> anyhow::Result<Router> {
-        let version_response = Arc::new(self.get_dspace_version()?); // Envolvemos en Arc
+        let version_response = Arc::new(self.get_dspace_version()?);
         Ok(Router::new().route(
             "/dspace-version",
             get(move || {

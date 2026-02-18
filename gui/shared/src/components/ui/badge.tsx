@@ -132,7 +132,7 @@ export type BadgeRole = VariantProps<typeof badgeVariants>["dsrole"];
  */
 export interface BadgeProps
   extends React.ComponentProps<"span">,
-  VariantProps<typeof badgeVariants> {
+    VariantProps<typeof badgeVariants> {
   /** Render as a different element using Radix Slot */
   asChild?: boolean;
 }

@@ -100,6 +100,36 @@ impl AgreementRepoTrait for AgreementRepoForSql {
         }
     }
 
+    async fn get_agreements_by_assignee(
+        &self,
+        id: &String,
+    ) -> anyhow::Result<Vec<Model>, AgreementRepoErrors> {
+        let agreement = agreement::Entity::find()
+            .filter(agreement::Column::ConsumerParticipantId.eq(id))
+            .all(&self.db_connection)
+            .await;
+
+        match agreement {
+            Ok(agreement) => Ok(agreement),
+            Err(e) => Err(AgreementRepoErrors::ErrorFetchingAgreement(e.into())),
+        }
+    }
+
+    async fn get_agreements_by_assigner(
+        &self,
+        id: &String,
+    ) -> anyhow::Result<Vec<Model>, AgreementRepoErrors> {
+        let agreement = agreement::Entity::find()
+            .filter(agreement::Column::ProviderParticipantId.eq(id))
+            .all(&self.db_connection)
+            .await;
+
+        match agreement {
+            Ok(agreement) => Ok(agreement),
+            Err(e) => Err(AgreementRepoErrors::ErrorFetchingAgreement(e.into())),
+        }
+    }
+
     async fn get_agreement_by_negotiation_message(
         &self,
         id: &Urn,

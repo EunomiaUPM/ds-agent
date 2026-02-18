@@ -26,7 +26,7 @@ use rainbow_common::config::ApplicationConfig;
 use std::cmp::PartialEq;
 use std::sync::Arc;
 use tracing::{debug, info};
-use ymir::config::traits::HostsConfigTrait;
+use ymir::config::traits::{ConnectionConfigTrait, HostsConfigTrait};
 use ymir::config::types::HostType;
 use ymir::data::seeders::MateSeeder;
 use ymir::services::vault::vault_rs::VaultService;
@@ -77,7 +77,7 @@ impl CoreCommands {
                 let config = ApplicationConfig::load(args.env_file)?;
                 let vault = Arc::new(VaultService::new());
 
-                if config.monolith().common().is_local {
+                if config.monolith().common().is_local() {
                     vault.write_local_secrets(None).await?;
                 } else {
                     vault.write_all_secrets(None).await?;
@@ -91,7 +91,7 @@ impl CoreCommands {
                 info!("Current Core Connector Config:\n{}", table);
                 CoreProviderMigration::run(&db_connection).await?;
 
-                let did = config.ssi_auth().did().did;
+                let did = config.ssi_auth().did_config().did;
                 let url = config.monolith().common().get_host(HostType::Http);
                 MateSeeder::seed(&db_connection, did, url).await?
             }

@@ -37,7 +37,7 @@ use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 use tower_http::trace::{DefaultOnResponse, TraceLayer};
 use uuid::Uuid;
-use ymir::config::traits::{ApiConfigTrait, HostsConfigTrait};
+use ymir::config::traits::{ApiConfigTrait, ConnectionConfigTrait, HostsConfigTrait};
 use ymir::config::types::HostType;
 use ymir::services::vault::vault_rs::VaultService;
 use ymir::services::vault::VaultTrait;

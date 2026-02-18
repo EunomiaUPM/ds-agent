@@ -3,6 +3,7 @@ use crate::data::entities::dataplane_transfers::{
     TransferState,
 };
 use crate::data::entities::dataplane_field::{EditDataPlaneFieldModel, NewDataPlaneFieldModel};
+use crate::data::entities::dataplane_transfer_logs::NewTransferLog;
 use crate::data::factory_trait::DataplaneRepoTrait;
 use crate::data::repo_traits::dataplane_transfers_repo::DataplaneTransfersRepo;
 use crate::entities::dataplane_transfers::{
@@ -193,6 +194,23 @@ impl DataplaneTransfersEntitiesTrait for DataplaneTransfersEntityService {
                 err
             })?;
 
+        // LOGGING: Creation
+        let log = NewTransferLog {
+            dataplane_process_id: created_process.id.clone(),
+            previous_state: None,
+            new_state: new_data_plane_process.state.clone(),
+            trigger: "Creation".to_string(),
+            reason: None,
+        };
+        if let Err(e) = self
+            .data_plane_repo
+            .get_dataplane_transfer_logs_repo()
+            .create_log(log)
+            .await
+        {
+            error!("Failed to create dataplane transfer log: {:?}", e);
+        }
+
         let enriched = self.enrich_process(created_process).await?;
 
         // Cache update
@@ -209,6 +227,9 @@ impl DataplaneTransfersEntitiesTrait for DataplaneTransfersEntityService {
         id: &Urn,
         edit_dataplane_transfer: &EditDataplaneTransferDto,
     ) -> anyhow::Result<DataplaneTransferDto> {
+        // Fetch current state for logging (use cache/DB via self)
+        let current_dto = self.get_dataplane_transfer_by_id(id).await?;
+
         let edit_model = EditDataplaneTransferModel {
             state: edit_dataplane_transfer.state.clone(),
             connector_instance_id: edit_dataplane_transfer.connector_instance_id.clone(),
@@ -248,6 +269,36 @@ impl DataplaneTransfersEntitiesTrait for DataplaneTransfersEntityService {
                 error!("{}", err.log());
                 err
             })?;
+
+        // LOGGING: Update (if state changed)
+        if let Some(new_state) = &edit_dataplane_transfer.state {
+             let previous_state = current_dto.as_ref().map(|d| d.inner.state.clone());
+             // Only log if state actually changed AND previous state is known (or distinct from new)
+             // Handle case where previous is None (should not happen for existing process)
+             let changed = match &previous_state {
+                 Some(prev) => prev != new_state,
+                 None => true, // If we couldn't fetch previous, assume changed to be safe? Or valid transition from nothing?
+             };
+
+             if changed {
+                 let log = NewTransferLog {
+                    dataplane_process_id: updated_process.id.clone(),
+                    previous_state,
+                    new_state: new_state.clone(),
+                    trigger: "Update".to_string(),
+                    reason: None,
+                };
+                if let Err(e) = self
+                    .data_plane_repo
+                    .get_dataplane_transfer_logs_repo()
+                    .create_log(log)
+                    .await
+                {
+                    error!("Failed to create dataplane transfer log: {:?}", e);
+                }
+             }
+        }
+
         let enriched = self.enrich_process(updated_process).await?;
 
         // Update cache

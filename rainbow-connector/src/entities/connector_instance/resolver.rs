@@ -25,14 +25,18 @@ fn run_jq(expr: &str, value: Value) -> Option<Value> {
 
     let (f, errs) = jaq_parse::parse(expr, jaq_parse::main());
     if !errs.is_empty() {
-        tracing::warn!("jq parse errors for {:?}: {:?}", expr, errs);
+        tracing::warn!("run_jq: parse errors for {:?}: {:?}", expr, errs);
         return None;
     }
     let f = f?;
 
     let mut defs = ParseCtx::new(Vec::new());
-    defs.insert_defs(jaq_std::std());
     let filter = defs.compile(f);
+
+    if !defs.errs.is_empty() {
+        tracing::warn!("run_jq: {} compile error(s) for {:?}", defs.errs.len(), expr);
+        return None;
+    }
 
     let inputs = RcIter::new(core::iter::empty());
     let result = filter
@@ -40,6 +44,7 @@ fn run_jq(expr: &str, value: Value) -> Option<Value> {
         .next()
         .and_then(|r| r.ok())
         .map(Value::from);
+
     result
 }
 

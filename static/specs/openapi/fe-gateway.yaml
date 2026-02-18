@@ -3804,6 +3804,30 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
+  /transfers/dataplane/dataplane-processes/{dataplaneProcessId}/info:
+    get:
+      tags:
+        - Dataplane Transfers
+      summary: Get dataplane transfer info
+      operationId: getDataplaneTransferInfo
+      parameters:
+        - name: dataplaneProcessId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: urn
+      responses:
+        "200":
+          description: Dataplane transfer info returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataplaneInfoResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
   /transfers/dataplane/transfer-events/{eventId}:
     get:
       tags:
@@ -6432,6 +6456,18 @@ components:
             - "null"
           additionalProperties:
             type: string
+
+    DataplaneInfoResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: urn
+        interactionMode:
+          type: string
+        ingressUrl:
+          type: string
+          nullable: true
 
     NewTransferEventDto:
       type: object

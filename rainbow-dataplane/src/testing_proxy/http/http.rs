@@ -146,7 +146,7 @@ impl TestingHTTPProxy {
         };
 
         // Append path if present
-        if let Some(p) = path {
+        if let Some(p) = &path {
             // Ensure no double slashes or missing slash
             if !next_hop.ends_with('/') {
                 next_hop.push('/');
@@ -167,13 +167,37 @@ impl TestingHTTPProxy {
         };
         let res = state.client.request(method.clone(), next_hop.clone()).body(body_bytes).send().await;
 
+        // Enhance Logging
+        let role = dataplane.inner.role;
+        let mode = dataplane.inner.interaction_mode;
+        
+        let ingress_type = match serde_json::from_value::<crate::entities::dataplane_manager::config_builder::IngressConfig>(dataplane.inner.ingress_config.clone()) {
+            Ok(crate::entities::dataplane_manager::config_builder::IngressConfig::HttpListener { .. }) => "HttpListener",
+            Ok(crate::entities::dataplane_manager::config_builder::IngressConfig::Connector { .. }) => "Connector",
+            Err(_) => "Unknown",
+        };
+
+        let egress_type = match &egress {
+            EgressConfig::HttpProxy { .. } => "HttpProxy",
+            EgressConfig::DataAddress { .. } => "DataAddress",
+            EgressConfig::Connector { .. } => "Connector",
+        };
+
         // Log Transfer Event
         let event = NewTransferEvent {
             transfer_id: dataplane.inner.id.clone(),
             level: LogLevel::Info,
             component: "DataProxy".to_string(),
-            message: format!("Forwarded request to {}", next_hop),
+            message: format!(
+                "Transfer [{}|{}] from {} to {} | Ingress: {} | Egress: {}", 
+                role, mode, data_plane_id, next_hop, ingress_type, egress_type
+            ),
             data: Some(json!({
+                "role": role,
+                "mode": mode,
+                "ingress": ingress_type,
+                "egress": egress_type,
+                "origin_path": path,
                 "method": method.to_string(),
                 "target": next_hop,
                 "status": res.as_ref().map(|r| r.status().as_u16()).unwrap_or(0),

@@ -4,7 +4,9 @@ use serde::{Deserialize, Serialize};
 use urn::{Urn, UrnBuilder};
 use rainbow_common::config::types::roles::RoleConfig;
 
-#[derive(Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
+use strum::Display;
+
+#[derive(Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, Display)]
 #[sea_orm(rs_type = "String", db_type = "Text")]
 pub enum TransferRole {
     #[sea_orm(string_value = "Provider")]
@@ -41,7 +43,7 @@ impl TryFrom<&RoleConfig> for TransferRole {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, Display)]
 #[sea_orm(rs_type = "String", db_type = "Text")]
 pub enum InteractionMode {
     #[sea_orm(string_value = "Pull")]

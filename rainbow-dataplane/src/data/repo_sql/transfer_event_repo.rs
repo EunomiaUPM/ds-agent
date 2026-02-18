@@ -84,15 +84,7 @@ impl TransferEventRepo for TransferEventRepoForSql {
         &self,
         new_transfer_event: &NewTransferEvent,
     ) -> anyhow::Result<transfer_event::Model, TransferEventRepoErrors> {
-        let model = transfer_event::ActiveModel {
-            transfer_id: ActiveValue::Set(new_transfer_event.transfer_id.to_string()),
-            level: ActiveValue::Set(new_transfer_event.level.clone()),
-            component: ActiveValue::Set(new_transfer_event.component.clone()),
-            message: ActiveValue::Set(new_transfer_event.message.clone()),
-            data: ActiveValue::Set(new_transfer_event.data.clone()),
-            created_at: ActiveValue::Set(chrono::Utc::now().into()),
-            ..Default::default()
-        };
+        let model: transfer_event::ActiveModel = new_transfer_event.clone().into();
 
         let event =
             transfer_event::Entity::insert(model).exec_with_returning(&self.db_connection).await;

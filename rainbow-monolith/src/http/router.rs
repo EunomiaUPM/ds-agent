@@ -31,7 +31,7 @@ use tower_http::trace::{DefaultOnResponse, TraceLayer};
 use uuid::Uuid;
 use ymir::services::vault::vault_rs::VaultService;
 
-pub async fn create_core_provider_router(
+pub async fn create_core_router(
     config: &ApplicationConfig,
     vault: Arc<VaultService>,
 ) -> Router {

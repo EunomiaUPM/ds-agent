@@ -16,7 +16,8 @@
  *  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
-use crate::http::router::create_core_provider_router;
+
+use crate::http::router::create_core_router;
 use axum::serve;
 use axum_server::tls_rustls::RustlsConfig;
 use rainbow_common::config::traits::CommonConfigTrait;
@@ -80,7 +81,7 @@ impl CoreHttpWorker {
         )
         .await?;
 
-        let router = create_core_provider_router(config, vault.clone()).await;
+        let router = create_core_router(config, vault.clone()).await;
 
         let port = config.monolith().common().hosts().get_tls_port(HostType::Http);
         let addr_str = if config.monolith().common().is_local() {
@@ -101,7 +102,7 @@ impl CoreHttpWorker {
     ) -> anyhow::Result<()> {
         // ) -> anyhow::Result<JoinHandle<()>> {
         // router
-        let router = create_core_provider_router(config, vault.clone()).await;
+        let router = create_core_router(config, vault.clone()).await;
         // config
         let host = if config.monolith().common().is_local() { "127.0.0.1" } else { "0.0.0.0" };
         let port = config.monolith().common().get_weird_port(HostType::Http);

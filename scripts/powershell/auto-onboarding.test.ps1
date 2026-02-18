@@ -1,8 +1,8 @@
 # auto-onboarding.ps1
 param(
-    [string]$AuthorityUrl = "http://127.0.0.1:1500",
-    [string]$ConsumerUrl  = "http://127.0.0.1:1100",
-    [string]$ProviderUrl  = "http://127.0.0.1:1200"
+    [string]$AuthorityUrl = "https://dev-dataspaces.dit.upm.es:1500",
+    [string]$ConsumerUrl  = "https://dev-dataspaces.dit.upm.es:1100",
+    [string]$ProviderUrl  = "https://dev-dataspaces.dit.upm.es:1200"
 )
 
 function Invoke-CurlJson {

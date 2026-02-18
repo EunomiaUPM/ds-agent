@@ -52,9 +52,8 @@ Write-Host "Starting auto-onboarding script..."
 # ----------------------------
 # Onboarding Authority / Consumer / Provider (no se parsea JSON)
 # ----------------------------
-Invoke-CurlJson -Method "POST" -Url "$AuthorityUrl/api/v1/wallet/onboard" -ParseJson:$false
-Invoke-CurlJson -Method "POST" -Url "$ConsumerUrl/api/v1/wallet/onboard" -ParseJson:$false
-Invoke-CurlJson -Method "POST" -Url "$ProviderUrl/api/v1/wallet/onboard" -ParseJson:$false
+Invoke-CurlJson -Method "POST" -Url "$AuthorityUrl/api/v1/wallet/link" -ParseJson:$false
+Invoke-CurlJson -Method "POST" -Url "$ConsumerUrl/api/v1/wallet/link" -ParseJson:$false
 
 # ----------------------------
 # Getting DIDs
@@ -63,8 +62,6 @@ $AUTH_DID     = (Invoke-CurlJson -Url "$AuthorityUrl/api/v1/wallet/did.json").id
 Write-Host "Authority DID: $AUTH_DID"
 $CONSUMER_DID = (Invoke-CurlJson -Url "$ConsumerUrl/api/v1/wallet/did.json").id
 Write-Host "Consumer DID: $CONSUMER_DID"
-$PROVIDER_DID = (Invoke-CurlJson -Url "$ProviderUrl/api/v1/wallet/did.json").id
-Write-Host "Provider DID: $PROVIDER_DID"
 
 # ----------------------------
 # Consumer begins request for credential

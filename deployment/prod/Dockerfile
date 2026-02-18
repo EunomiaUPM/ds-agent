@@ -65,9 +65,7 @@ EXPOSE 1500
 # Variable de entorno opcional para log
 ENV RUST_LOG=info
 
-
 ENV CONFIG_PATH=/app/static/environment/config/prod/core.consumer.yaml
 
-# Ejecutar binario
-ENTRYPOINT ["/app/rainbow-monolith"]
-CMD ["start", "--env-file", "$CONFIG_PATH"]
+ENTRYPOINT ["/bin/sh", "-c"]
+CMD ["/app/rainbow-monolith setup --env-file $CONFIG_PATH && /app/rainbow-monolith start --env-file $CONFIG_PATH"]

@@ -1,0 +1,1 @@
+import{j as s}from"./ui-Be_rS8YX.js";import{O as t}from"./tanstack-qN2noNwz.js";import"./vendor-BtP0CW_r.js";const r=()=>s.jsxs("div",{className:"mb-2",children:[s.jsx("header",{className:"mb-2"}),s.jsx(t,{})]});export{r as component};

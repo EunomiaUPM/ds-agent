@@ -137,11 +137,13 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarGroup>
           {/* Logo */}
-          <img
-            src={logoImg}
-            className="h-11 mt-2 mb-4 mr-auto ml-1 flex justify-start object-contain"
-            alt="Eunomia Logo"
-          />
+          <Link to="/admin/">
+            <img
+              src={logoImg}
+              className="h-11 mt-2 mb-4 mr-auto ml-1 flex justify-start object-contain"
+              alt="Eunomia Logo"
+            />
+          </Link>
 
           {/* Navigation Menu */}
           <SidebarGroupContent>

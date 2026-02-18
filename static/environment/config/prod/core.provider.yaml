@@ -37,7 +37,9 @@ common_config: &common_config
   api:
     version: *api_version
     openapi_path: '/app/static/specs/openapi/auth/auth_consumer.json'
-  is_local: false
+  connection:
+    is_local: false
+    is_tls_enabled: true
 
 # ==========================
 # MONOLITH
@@ -75,7 +77,7 @@ ssi_auth:
     display: null
   vc_config:
     vc_model: JwtVc
-    w3c_data_model: V1
+    w3c_data_model: V2
   verify_req_config:
     is_cert_allowed: false
     vcs_requested: [DataspaceParticipant]

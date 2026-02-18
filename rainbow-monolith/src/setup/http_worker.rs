@@ -26,7 +26,7 @@ use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
-use tracing::{error, info, warn};
+use tracing::info;
 use ymir::config::traits::{ConnectionConfigTrait, HostsConfigTrait};
 use ymir::config::types::HostType;
 use ymir::services::vault::vault_rs::VaultService;
@@ -49,11 +49,13 @@ impl CoreHttpWorker {
             config.monolith().common().get_host(HostType::Http)
         );
         info!("{}", server_message);
-        // TODO MIGRAR YMIR Y ADAPTAR TLS AQUI
-        match Self::run_tls(config, vault.clone()).await {
-            Ok(_) => Ok(()),
-            Err(err) => {
-                warn!("TLS failed: {:?}, falling back to basic server", err);
+        match config.monolith().common().is_tls_enabled() {
+            true => {
+                info!("Running with TLS active");
+                Self::run_tls(config, vault).await
+            }
+            false => {
+                info!("Running without TLS");
                 Self::run(config, vault, token).await
             }
         }

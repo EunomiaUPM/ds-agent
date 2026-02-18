@@ -1,6 +1,6 @@
 use crate::entities::dataplane_transfers::{
     DataplaneTransferDto, DataplaneTransfersEntitiesTrait, EditDataplaneTransferDto,
-    NewDataplaneTransferDto, TransferState,
+    InteractionMode, NewDataplaneTransferDto, TransferState,
 };
 use crate::entities::transfer_events::TransferEventEntitiesTrait;
 use crate::errors::error_adapter::CustomToResponse;
@@ -50,6 +50,7 @@ impl DataPlaneProcessesRouter {
             .route("/{dataplane_id}", get(Self::handle_get_data_plane_by_id))
             .route("/{dataplane_id}", put(Self::handle_put_dataplane_transfer_by_id))
             .route("/{dataplane_id}", delete(Self::handle_delete_dataplane_transfer))
+            .route("/{dataplane_id}/info", get(Self::handle_get_dataplane_info))
             .route("/transfer-process/{transfer_process_id}", get(Self::handle_get_dataplane_transfer_by_process_id))
             .with_state(self)
     }
@@ -175,4 +176,48 @@ impl DataPlaneProcessesRouter {
             Err(e) => e.to_response(),
         }
     }
+
+    async fn handle_get_dataplane_info(
+        State(state): State<DataPlaneProcessesRouter>,
+        Path(dataplane_id): Path<String>,
+        headers: axum::http::HeaderMap,
+    ) -> impl IntoResponse {
+        let data_plane_id = match parse_urn(&dataplane_id) {
+            Ok(urn) => urn,
+            Err(resp) => return resp,
+        };
+        
+        match state.data_plane_process_entity.get_dataplane_transfer_by_id(&data_plane_id).await {
+            Ok(Some(transfer)) => {
+                let mut ingress_url = None;
+                if transfer.inner.interaction_mode == crate::entities::dataplane_transfers::InteractionMode::Pull {
+                    if let Some(host) = headers.get("host").and_then(|h| h.to_str().ok()) {
+                        // Assuming HTTP for now, or X-Forwarded-Proto if behind proxy
+                        ingress_url = Some(format!("http://{}/dataplane/proxy/{}", host, data_plane_id));
+                    }
+                }
+                
+                let response = DataplaneInfoResponse {
+                    id: transfer.inner.id,
+                    interaction_mode: transfer.inner.interaction_mode.to_string(),
+                    ingress_url,
+                };
+                (StatusCode::OK, Json(response)).into_response()
+            },
+             Ok(None) => {
+                 CommonErrors::missing_resource_new(
+                     data_plane_id.to_string().as_str(), 
+                     "Dataplane transfer not found"
+                 ).into_response()
+             },
+            Err(e) => e.to_response(),
+        }
+    }
+}
+
+#[derive(serde::Serialize)]
+pub struct DataplaneInfoResponse {
+    pub id: String,
+    pub interaction_mode: String,
+    pub ingress_url: Option<String>,
 }

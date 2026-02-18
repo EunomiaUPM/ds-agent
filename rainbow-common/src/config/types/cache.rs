@@ -39,6 +39,24 @@ pub enum CacheType {
     Noop,
 }
 
+impl Default for CacheType {
+    fn default() -> Self {
+        Self::Noop
+    }
+}
+
+impl Default for CacheConfig {
+    fn default() -> Self {
+        Self {
+            cache_type: CacheType::Noop,
+            url: "".to_string(),
+            port: "".to_string(),
+            user: "".to_string(),
+            password: "".to_string(),
+        }
+    }
+}
+
 impl Display for CacheType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {

@@ -20,9 +20,10 @@
 use crate::setup::CoreHttpWorker;
 use rainbow_catalog_agent::{CatalogDto, DataServiceDto, NewCatalogDto, NewDataServiceDto};
 use rainbow_common::boot::BootstrapServiceTrait;
-use rainbow_common::config::traits::CommonConfigTrait;
+use rainbow_common::config::traits::{CacheConfigTrait, CommonConfigTrait};
 use rainbow_common::config::ApplicationConfig;
 use rainbow_common::http_client::{HttpClient, HttpClientError};
+use rainbow_common::utils::flush_redis_cache;
 use std::str::FromStr;
 use std::sync::Arc;
 use tokio::fs;
@@ -170,6 +171,18 @@ impl BootstrapServiceTrait for CoreBoot {
                     }
                 };
             }
+        }
+        Ok(())
+    }
+
+
+    async fn cleanup_cache(config: &Self::Config) -> anyhow::Result<()> {
+        let url = config.monolith().get_full_cache_url();
+        tracing::info!("Flushing Redis at {}...", url);
+        if let Err(e) = flush_redis_cache(&url).await {
+             tracing::warn!("Failed to flush Redis at {}: {}", url, e);
+        } else {
+             tracing::info!("Redis cache flushed successfully.");
         }
         Ok(())
     }

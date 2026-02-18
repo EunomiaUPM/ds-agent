@@ -18,22 +18,33 @@
  */
 
 use crate::config::services::CommonConfig;
-use crate::config::traits::CommonConfigTrait;
+use crate::config::traits::{CacheConfigTrait, CommonConfigTrait};
+use crate::config::types::cache::CacheConfig;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct MonolithConfig {
     common: CommonConfig,
+    #[serde(default)]
+    pub cache: CacheConfig,
 }
 
 impl MonolithConfig {
     pub fn new(common_config: CommonConfig) -> Self {
-        Self { common: common_config }
+        Self { 
+            common: common_config,
+            cache: CacheConfig::default(), 
+        }
     }
 }
 
 impl CommonConfigTrait for MonolithConfig {
     fn common(&self) -> &CommonConfig {
         &self.common
+    }
+}
+impl CacheConfigTrait for MonolithConfig {
+    fn cache_config(&self) -> &CacheConfig {
+        &self.cache
     }
 }

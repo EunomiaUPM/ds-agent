@@ -162,6 +162,12 @@ pub async fn create_root_http_router(
             format!("{}/dataplane", router_str.as_str()).as_str(),
             dataplane_router,
         )
-        .nest("/dsp/current/transfers", dsp_router);
+        .nest("/dsp/current/transfers", dsp_router)
+        .nest(
+            "/dataplane/proxy",
+            dataplane_setup
+                .build_testing_proxy(config.deref(), vault.clone())
+                .await,
+        );
     Ok(router)
 }

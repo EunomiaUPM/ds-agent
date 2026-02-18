@@ -9,7 +9,8 @@ use crate::entities::dataplane_transfers::{
 use anyhow::anyhow;
 use rainbow_connector::{ConnectorInstanceDto, ConnectorInstanceTrait, InteractionConfig};
 use std::sync::Arc;
-use urn::Urn;
+use urn::{Urn, UrnBuilder};
+use uuid::Uuid;
 use crate::entities::dataplane_manager::config_builder::{DataplaneConfigBuilder, EgressConfig, IngressConfig};
 
 // ─── Context passed to each command handler ───
@@ -173,16 +174,19 @@ impl DataplaneManager {
                 },
             };
 
+            let new_id = UrnBuilder::new("dataplane-transfer", Uuid::new_v4().to_string().as_str())
+                .build()?;
+
             let transfer_role = TransferRole::try_from(role.clone())?;
             let config = DataplaneConfigBuilder::from_connector(
                 &transfer_role,
                 connector_instance.as_ref(),
-                &input.transfer_process_id.to_string(),
+                &new_id.to_string(),
             );
 
             self.dataplane_entity
                 .create_dataplane_transfer(&NewDataplaneTransferDto {
-                    id: None,
+                    id: Some(new_id),
                     transfer_process_id: input.transfer_process_id.to_string(),
                     role: transfer_role,
                     interaction_mode,

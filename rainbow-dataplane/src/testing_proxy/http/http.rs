@@ -16,6 +16,8 @@
  *  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+use crate::data::entities::transfer_event::{LogLevel, NewTransferEvent};
+use crate::data::factory_trait::DataplaneRepoTrait;
 use crate::entities::dataplane_transfers::DataplaneTransfersEntitiesTrait;
 use crate::entities::dataplane_transfers::{InteractionMode, TransferState};
 use axum::body::{to_bytes, Body};
@@ -28,13 +30,15 @@ use rainbow_common::adv_protocol::interplane::{DataPlaneProcessDirection, DataPl
 use rainbow_common::utils::get_urn_from_string;
 use reqwest::Response as ReqwestResponse;
 use reqwest::{Client, StatusCode};
+use serde_json::json;
 use std::sync::Arc;
-use tracing::info;
+use tracing::{error, info};
 
 #[derive(Clone)]
 pub struct TestingHTTPProxy {
     client: Client,
     dataplane_service: Arc<dyn DataplaneTransfersEntitiesTrait>,
+    repo: Arc<dyn DataplaneRepoTrait>,
 }
 
 impl FromRef<TestingHTTPProxy> for Client {
@@ -50,12 +54,21 @@ impl FromRef<TestingHTTPProxy> for Arc<dyn DataplaneTransfersEntitiesTrait> {
 }
 
 impl TestingHTTPProxy {
-    pub fn new(dataplane_service: Arc<dyn DataplaneTransfersEntitiesTrait>) -> Self {
+    pub fn new(
+        dataplane_service: Arc<dyn DataplaneTransfersEntitiesTrait>,
+        repo: Arc<dyn DataplaneRepoTrait>,
+    ) -> Self {
         let client = reqwest::Client::new();
-        Self { client, dataplane_service }
+        Self {
+            client,
+            dataplane_service,
+            repo,
+        }
     }
     pub fn router(self) -> Router {
-        Router::new().route("/:data_plane_id", any(Self::forward_request)).with_state(self)
+        Router::new()
+            .route("/{data_plane_id}", any(Self::forward_request))
+            .with_state(self)
     }
 
     async fn forward_request(
@@ -65,44 +78,27 @@ impl TestingHTTPProxy {
     ) -> impl IntoResponse {
         info!("* /data/{}", data_plane_id);
         // validations
-        let data_plane_id = match get_urn_from_string(&data_plane_id) {
-            Ok(data_plane_id) => data_plane_id,
+        let data_plane_urn = match get_urn_from_string(&data_plane_id) {
+            Ok(urn) => urn,
             Err(_) => return (StatusCode::BAD_REQUEST, "data_plane_id not urn").into_response(),
         };
 
-        // PDP
+        // PDP: Fetch by Dataplane ID (urn:dataplane-transfer:...)
         let dataplane = match state
             .dataplane_service
-            .get_dataplane_transfer_by_process_id(&data_plane_id)
+            .get_dataplane_transfer_by_id(&data_plane_urn)
             .await
         {
             Ok(dataplane) => match dataplane {
                 Some(dataplane) => dataplane,
-                None => return (StatusCode::BAD_REQUEST, "dataplane id not found").into_response(),
+                None => return (StatusCode::NOT_FOUND, "dataplane id not found").into_response(),
             },
-            Err(_) => return (StatusCode::BAD_REQUEST, "dataplane id not found").into_response(),
+            Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, "error fetching dataplane").into_response(),
         };
 
-        match dataplane.inner.interaction_mode {
-            InteractionMode::Pull => {}
-            _ => return (StatusCode::BAD_REQUEST, "wrong direction").into_response(),
-        }
-
-        match dataplane.inner.state {
-            TransferState::Started => {}
-            TransferState::Init
-            | TransferState::Configuring
-            | TransferState::Auth
-            | TransferState::Ready
-            | TransferState::Subscribing => {
-                return (StatusCode::FORBIDDEN, "state preparing").into_response()
-            }
-            TransferState::Stopped | TransferState::Unsubscribing => {
-                return (StatusCode::FORBIDDEN, "state stopped").into_response()
-            }
-            TransferState::Terminated | TransferState::Error => {
-                return (StatusCode::FORBIDDEN, "state terminated").into_response()
-            }
+        // STRICT State Check: Only STARTED is allowed
+        if dataplane.inner.state != TransferState::Started {
+             return (StatusCode::FORBIDDEN, format!("Transfer is not STARTED (current: {:?})", dataplane.inner.state)).into_response();
         }
 
         // Read egress config from the dataplane process
@@ -131,7 +127,7 @@ impl TestingHTTPProxy {
             }
         };
         let body = std::mem::take(req.body_mut());
-        let body_bytes = match to_bytes(body, 2024) // MAX_BUFFER
+        let body_bytes = match to_bytes(body, 2024 * 1024) // MAX_BUFFER 2MB?
             .await
         {
             Ok(body_bytes) => body_bytes,
@@ -141,16 +137,30 @@ impl TestingHTTPProxy {
             Ok(method) => method,
             Err(_) => return (StatusCode::BAD_REQUEST, "method not allowed").into_response(),
         };
-        let res = state.client.request(method, next_hop).body(body_bytes).send().await;
+        let res = state.client.request(method.clone(), next_hop.clone()).body(body_bytes).send().await;
 
-        // Notify && transfer event
-        // Notification
-        // Create TransferEvent
+        // Log Transfer Event
+        let event = NewTransferEvent {
+            transfer_id: dataplane.inner.id.clone(),
+            level: LogLevel::Info,
+            component: "DataProxy".to_string(),
+            message: format!("Forwarded request to {}", next_hop),
+            data: Some(json!({
+                "method": method.to_string(),
+                "target": next_hop,
+                "status": res.as_ref().map(|r| r.status().as_u16()).unwrap_or(0),
+            })),
+        };
+        
+        // Fire and forget logging (or await/warn)
+        if let Err(e) = state.repo.get_transfer_events_repo().create_transfer_event(&event).await {
+            error!("Failed to log transfer event: {:?}", e);
+        }
 
         // forward request upstream
         match res {
             Ok(res) => Self::forward_response_helper(res),
-            Err(_) => return (StatusCode::BAD_REQUEST, "peer connection problem").into_response(),
+            Err(_) => return (StatusCode::BAD_GATEWAY, "peer connection problem").into_response(),
         }
     }
 

@@ -126,6 +126,6 @@ impl DataplaneSetup {
 
         let dataplane_process_entity =
             Arc::new(DataplaneTransfersEntityService::new(dataplane_repo.clone(), cache));
-        TestingHTTPProxy::new(dataplane_process_entity.clone()).router()
+        TestingHTTPProxy::new(dataplane_process_entity.clone(), dataplane_repo).router()
     }
 }

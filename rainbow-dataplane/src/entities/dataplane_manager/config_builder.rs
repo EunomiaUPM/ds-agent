@@ -67,9 +67,9 @@ impl DataplaneConfigBuilder {
     pub fn from_connector(
         role: &TransferRole,
         connector: Option<&ConnectorInstanceDto>,
-        transfer_process_id: &str,
+        dataplane_id: &str,
     ) -> Self {
-        let auto_path = format!("/{}", transfer_process_id);
+        let auto_path = format!("/dataplane/proxy/{}", dataplane_id);
 
         match (role, connector) {
             // ─── PULL Provider ───

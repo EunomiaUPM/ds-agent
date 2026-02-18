@@ -19,6 +19,7 @@ use async_trait::async_trait;
 use serde_json::Value;
 use ymir::data::entities::issuing;
 use ymir::types::issuing::IssuingToken;
+use ymir::types::vcs::VcType;
 use ymir::types::wallet::WalletCredentials;
 
 #[async_trait]
@@ -33,4 +34,5 @@ pub trait GaiaOwnIssuerTrait: Send + Sync + 'static {
         did: Option<String>
     ) -> anyhow::Result<String>;
     async fn send_req(&self, body: String) -> anyhow::Result<String>;
+    fn get_vc_types(&self) -> Vec<VcType>;
 }

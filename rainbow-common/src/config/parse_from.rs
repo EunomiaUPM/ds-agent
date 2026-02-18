@@ -17,14 +17,18 @@
 
 use crate::config::services::SsiAuthConfig;
 use crate::config::traits::CommonConfigTrait;
-use ymir::config::traits::ApiConfigTrait;
+use ymir::config::traits::{ApiConfigTrait, ConnectionConfigTrait, HostsConfigTrait};
 use ymir::services::issuer::basic::config::{BasicIssuerConfig, BasicIssuerConfigBuilder};
 use ymir::services::verifier::basic::config::{BasicVerifierConfig, BasicVerifierConfigBuilder};
 use ymir::services::wallet::walt_id::config::{WaltIdConfig, WaltIdConfigBuilder};
 
 impl From<SsiAuthConfig> for WaltIdConfig {
     fn from(value: SsiAuthConfig) -> Self {
-        WaltIdConfigBuilder::new().ssi_wallet_config(value.wallet_config()).did_config(value.did()).build()
+        WaltIdConfigBuilder::new()
+            .hosts(value.common().hosts().clone())
+            .ssi_wallet_config(value.wallet_config())
+            .did_config(value.did_config())
+            .build()
     }
 }
 
@@ -36,6 +40,7 @@ impl From<SsiAuthConfig> for BasicVerifierConfig {
             .is_local(value.common().is_local())
             .requested_vcs(value.verify_req_config().vcs_requested)
             .api_path(api_path)
+            .vc_config(value.vc_config())
             .build()
     }
 }
@@ -47,7 +52,7 @@ impl From<SsiAuthConfig> for BasicIssuerConfig {
             .hosts(value.common().hosts().clone())
             .is_local(value.common().is_local())
             .api_path(api_path)
-            .did_config(value.did())
+            .did_config(value.did_config())
             .build()
     }
 }

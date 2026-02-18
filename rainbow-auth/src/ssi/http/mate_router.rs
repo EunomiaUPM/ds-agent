@@ -75,7 +75,7 @@ impl MateRouter {
     ) -> impl IntoResponse {
         let payload = match payload {
             Ok(Json(data)) => data,
-            Err(e) => return e.into_response()
+            Err(e) => return e.to_response()
         };
 
         match mater.get_mate_batch(payload).await {
@@ -90,7 +90,7 @@ impl MateRouter {
     ) -> impl IntoResponse {
         let payload = match payload {
             Ok(Json(data)) => data,
-            Err(e) => return e.into_response()
+            Err(e) => return e.to_response()
         };
 
         match mater.get_by_token(payload).await {

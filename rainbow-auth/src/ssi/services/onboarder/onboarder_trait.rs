@@ -46,4 +46,5 @@ pub trait OnboarderTrait: Send + Sync + 'static {
         req_model: &mut req_request::Model,
         res: Response
     ) -> anyhow::Result<mates::NewModel>;
+    async fn manage_rejection(&self, model: &mut req_request::Model) -> anyhow::Result<()>;
 }

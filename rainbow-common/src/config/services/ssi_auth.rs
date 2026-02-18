@@ -22,11 +22,8 @@ use crate::config::traits::{CommonConfigTrait, ConfigLoader};
 use crate::config::types::{ClientConfig, GaiaConfig};
 use serde::{Deserialize, Serialize};
 use tracing::error;
+use ymir::config::types::{DidConfig, VcConfig, VerifyReqConfig, WalletConfig};
 use ymir::errors::{ErrorLogTrait, Errors};
-use ymir::types::dids::did_config::DidConfig;
-use ymir::types::issuing::VcConfig;
-use ymir::types::verifying::VerifyReqConfig;
-use ymir::types::wallet::WalletConfig;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct SsiAuthConfig {
@@ -71,7 +68,7 @@ impl SsiAuthConfig {
     pub fn is_wallet_active(&self) -> bool {
         self.wallet_config.is_some()
     }
-    pub fn did(&self) -> DidConfig {
+    pub fn did_config(&self) -> DidConfig {
         self.did_config.clone()
     }
     pub fn vc_config(&self) -> VcConfig {

@@ -19,44 +19,21 @@
 
 use serde::{Deserialize, Serialize};
 use ymir::config::traits::{
-    ApiConfigTrait, DatabaseConfigTrait, HostsConfigTrait, IsLocalConfigTrait,
+    ApiConfigTrait, ConnectionConfigTrait, DatabaseConfigTrait, HostsConfigTrait,
 };
-use ymir::config::types::{ApiConfig, CommonHostsConfig, DatabaseConfig, HostConfig};
+use ymir::config::types::{ApiConfig, CommonHostsConfig, ConnectionConfig, DatabaseConfig};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CommonConfig {
     pub hosts: CommonHostsConfig,
     pub db: DatabaseConfig,
     pub api: ApiConfig,
-    pub is_local: bool,
-}
-
-impl CommonConfig {
-    pub fn hosts(&self) -> &CommonHostsConfig {
-        &self.hosts
-    }
-    pub fn db(&self) -> &DatabaseConfig {
-        &self.db
-    }
-    pub fn api(&self) -> &ApiConfig {
-        &self.api
-    }
-    pub fn is_local(&self) -> bool {
-        self.is_local
-    }
+    pub connection: ConnectionConfig,
 }
 
 impl HostsConfigTrait for CommonConfig {
-    fn http(&self) -> &HostConfig {
-        &self.hosts().http()
-    }
-
-    fn grpc(&self) -> Option<&HostConfig> {
-        self.hosts().grpc()
-    }
-
-    fn graphql(&self) -> Option<&HostConfig> {
-        self.hosts().graphql()
+    fn hosts(&self) -> &CommonHostsConfig {
+        &self.hosts
     }
 }
 
@@ -66,9 +43,9 @@ impl DatabaseConfigTrait for CommonConfig {
     }
 }
 
-impl IsLocalConfigTrait for CommonConfig {
-    fn is_local(&self) -> bool {
-        self.is_local
+impl ConnectionConfigTrait for CommonConfig {
+    fn connection(&self) -> &ConnectionConfig {
+        &self.connection
     }
 }
 

@@ -23,8 +23,8 @@ use axum_server::tls_rustls::RustlsConfig;
 use rainbow_common::config::services::SsiAuthConfig;
 use rainbow_common::config::traits::CommonConfigTrait;
 use tokio::net::TcpListener;
-use tracing::{info, warn};
-use ymir::config::traits::HostsConfigTrait;
+use tracing::info;
+use ymir::config::traits::{ConnectionConfigTrait, HostsConfigTrait};
 use ymir::config::types::HostType;
 use ymir::services::client::basic::BasicClientService;
 use ymir::services::issuer::basic::config::BasicIssuerConfig;
@@ -75,7 +75,7 @@ impl AuthApplication {
         let onboarder = Arc::new(GnapOnboarderService::new(
             client.clone(),
             vault.clone(),
-            onboarder_config
+            onboarder_config,
         ));
         let callback = Arc::new(BasicCallbackService::new(client.clone()));
         let repo = Arc::new(AuthRepoForSql::create_repo(db_connection));
@@ -90,16 +90,16 @@ impl AuthApplication {
                     let gaia_config = GaiaSelfIssuerConfig::from(config.clone());
 
                     let gaia: Option<Arc<dyn GaiaOwnIssuerTrait>> = Some(Arc::new(
-                        BasicGaiaSelfIssuer::new(vault.clone(), client.clone(), gaia_config)
+                        BasicGaiaSelfIssuer::new(vault.clone(), client.clone(), gaia_config),
                     ));
 
                     let issuer: Option<Arc<dyn IssuerTrait>> = Some(Arc::new(
-                        BasicIssuerService::new(issuer_config, client.clone(), vault.clone())
+                        BasicIssuerService::new(issuer_config, client.clone(), vault.clone()),
                     ));
 
                     (gaia, issuer)
                 }
-                false => (None, None)
+                false => (None, None),
             };
 
         let wallet: Option<Arc<dyn WalletTrait>> = match config.is_wallet_active() {
@@ -108,10 +108,10 @@ impl AuthApplication {
                 Some(Arc::new(WaltIdService::new(
                     walt_id_config,
                     client.clone(),
-                    vault.clone()
+                    vault.clone(),
                 )))
             }
-            false => None
+            false => None,
         };
 
         // CORE
@@ -126,7 +126,7 @@ impl AuthApplication {
             core_config,
             wallet,
             issuer,
-            gaia
+            gaia,
         ));
 
         AuthRouter::new(core).router()
@@ -134,7 +134,7 @@ impl AuthApplication {
 
     pub async fn run_basic(
         config: SsiAuthConfig,
-        vault_service: Arc<VaultService>
+        vault_service: Arc<VaultService>,
     ) -> anyhow::Result<()> {
         let server_message = format!(
             "Starting Auth Consumer server in {}",
@@ -178,7 +178,7 @@ impl AuthApplication {
 
         let tls_config = RustlsConfig::from_pem(
             cert.data().as_bytes().to_vec(),
-            pkey.data().as_bytes().to_vec()
+            pkey.data().as_bytes().to_vec(),
         )
         .await?;
 
@@ -197,12 +197,12 @@ impl AuthApplication {
         Ok(())
     }
     pub async fn run(config: SsiAuthConfig, vault: Arc<VaultService>) -> anyhow::Result<()> {
-        match Self::run_tls(&config, vault.clone()).await {
-            Ok(_) => Ok(()),
-            Err(err) => {
-                warn!("TLS failed: {:?}, falling back to basic server", err);
-                Self::run_basic(config, vault).await
-            }
+        if config.common().is_tls_enabled() {
+            info!("Running with tls active");
+            Self::run_tls(&config, vault).await
+        } else {
+            info!("Running with basic");
+            Self::run_basic(config, vault).await
         }
     }
 }

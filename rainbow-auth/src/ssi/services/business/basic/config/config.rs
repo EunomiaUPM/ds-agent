@@ -14,9 +14,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 use rainbow_common::config::services::SsiAuthConfig;
 use rainbow_common::config::traits::CommonConfigTrait;
-use ymir::config::traits::ApiConfigTrait;
+use ymir::config::traits::{ApiConfigTrait, ConnectionConfigTrait, HostsConfigTrait};
 use ymir::config::types::CommonHostsConfig;
 
 use super::BusinessConfigTrait;
@@ -24,7 +25,7 @@ use super::BusinessConfigTrait;
 pub struct BusinessConfig {
     hosts: CommonHostsConfig,
     is_local: bool,
-    api_path: String
+    api_path: String,
 }
 
 impl From<SsiAuthConfig> for BusinessConfig {
@@ -32,13 +33,19 @@ impl From<SsiAuthConfig> for BusinessConfig {
         Self {
             hosts: config.common().hosts().clone(),
             is_local: config.common().is_local(),
-            api_path: config.common().get_api_version()
+            api_path: config.common().get_api_version(),
         }
     }
 }
 
 impl BusinessConfigTrait for BusinessConfig {
-    fn hosts(&self) -> &CommonHostsConfig { &self.hosts }
-    fn is_local(&self) -> bool { self.is_local }
-    fn get_api_path(&self) -> String { self.api_path.clone() }
+    fn hosts(&self) -> &CommonHostsConfig {
+        &self.hosts
+    }
+    fn is_local(&self) -> bool {
+        self.is_local
+    }
+    fn get_api_path(&self) -> String {
+        self.api_path.clone()
+    }
 }

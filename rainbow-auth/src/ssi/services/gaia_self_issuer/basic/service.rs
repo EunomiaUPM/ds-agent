@@ -69,7 +69,7 @@ impl GaiaOwnIssuerTrait for BasicGaiaSelfIssuer {
         info!("Starting retrieving basic gaia vcs");
         let id = uuid::Uuid::new_v4().to_string();
         let host = format!(
-            "{}{}/issuer",
+            "{}{}/gaia",
             self.config.hosts().get_host(HostType::Http),
             self.config.get_api_path()
         );
@@ -108,8 +108,9 @@ impl GaiaOwnIssuerTrait for BasicGaiaSelfIssuer {
             W3cDataModelVersion::V1 => serde_json::to_value(VCClaimsV1 {
                 exp: None,
                 iat: None,
-                iss: None,
-                sub: None,
+                jti: Some(legal_id.clone()),
+                iss: Some(did.to_string()),
+                sub: Some(did.to_string()),
                 vc: VCFromClaimsV1 {
                     context: vec!["https://www.w3.org/ns/credentials/v1".to_string()],
                     r#type: vec![
@@ -125,9 +126,10 @@ impl GaiaOwnIssuerTrait for BasicGaiaSelfIssuer {
             })?,
             W3cDataModelVersion::V2 => serde_json::to_value(VCClaimsV2 {
                 exp: None,
+                jti: Some(legal_id.clone()),
                 iat: None,
-                iss: None,
-                sub: None,
+                iss: Some(did.to_string()),
+                sub: Some(did.to_string()),
                 context: vec!["https://www.w3.org/ns/credentials/v2".to_string()],
                 r#type: vec!["VerifiableCredential".to_string(), VcType::LegalPerson.to_string()],
                 id: legal_id,
@@ -142,8 +144,9 @@ impl GaiaOwnIssuerTrait for BasicGaiaSelfIssuer {
             W3cDataModelVersion::V1 => serde_json::to_value(VCClaimsV1 {
                 exp: None,
                 iat: None,
-                iss: None,
-                sub: None,
+                jti: Some(terms_id.clone()),
+                iss: Some(did.to_string()),
+                sub: Some(did.to_string()),
                 vc: VCFromClaimsV1 {
                     context: vec!["https://www.w3.org/ns/credentials/v1".to_string()],
                     r#type: vec![
@@ -160,8 +163,9 @@ impl GaiaOwnIssuerTrait for BasicGaiaSelfIssuer {
             W3cDataModelVersion::V2 => serde_json::to_value(VCClaimsV2 {
                 exp: None,
                 iat: None,
-                iss: None,
-                sub: None,
+                jti: Some(terms_id.clone()),
+                iss: Some(did.to_string()),
+                sub: Some(did.to_string()),
                 context: vec!["https://www.w3.org/ns/credentials/v2".to_string()],
                 r#type: vec![
                     "VerifiableCredential".to_string(),
@@ -282,5 +286,9 @@ impl GaiaOwnIssuerTrait for BasicGaiaSelfIssuer {
                 bail!(error);
             }
         }
+    }
+
+    fn get_vc_types(&self) -> Vec<VcType> {
+        vec![VcType::LegalPerson, VcType::TermsAndConditions]
     }
 }

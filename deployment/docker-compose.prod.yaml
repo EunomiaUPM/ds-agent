@@ -1,0 +1,118 @@
+name: "rainbow-prod"
+
+services:
+  consumer_vault:
+    image: hashicorp/vault:1.21
+    container_name: consumer_vault
+    ports:
+      - "8202:8200"
+    cap_add:
+      - IPC_LOCK
+    volumes:
+      - C:/Users/rodme/Uni/EUNOMIA/rainbow/vault/consumer/config:/vault/config
+      - C:/Users/rodme/Uni/EUNOMIA/rainbow/vault/consumer/data:/vault/file
+    environment:
+#      VAULT_CACERT: /vault/config/root-ca.pem
+#      VAULT_LOCAL_CONFIG: >
+#        {
+#          "storage": { "file": { "path": "/vault/file" } },
+#          "listener": [{
+#            "tcp": {
+#              "address": "0.0.0.0:8200",
+#              "tls_cert_file": "/vault/config/vault-cert.pem",
+#              "tls_key_file": "/vault/config/vault-key.pem",
+#              "tls_client_ca_file": "/vault/config/vault-ca.pem"
+#            }
+#          }],
+#          "ui": true,
+#          "api_addr": "https://127.0.0.1:8200",
+#          "default_lease_ttl": "168h",
+#          "max_lease_ttl": "720h"
+#        }
+      VAULT_ADDR: http://127.0.0.1:8200
+      VAULT_LOCAL_CONFIG: >
+        {
+          "storage": { "file": { "path": "/vault/file" } },
+          "listener": [{
+            "tcp": {
+              "address": "0.0.0.0:8200",
+              "tls_disable": 1
+
+
+            }
+          }],
+          "ui": true,
+          "api_addr": "http://127.0.0.1:8200",
+          "default_lease_ttl": "168h",
+          "max_lease_ttl": "720h"
+        }
+    command: server
+
+  consumer_db:
+    container_name: "consumer_db"
+    image: "postgres"
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: ds_consumer
+      POSTGRES_USER: ds_consumer
+      POSTGRES_DB: ds_consumer
+    ports:
+      - "1300:5432"
+
+  provider_vault:
+    image: hashicorp/vault:1.21
+    container_name: provider_vault
+    ports:
+      - "8201:8200"
+    cap_add:
+      - IPC_LOCK
+    volumes:
+      - C:/Users/rodme/Uni/EUNOMIA/rainbow/vault/provider/config:/vault/config
+      - C:/Users/rodme/Uni/EUNOMIA/rainbow/vault/provider/data:/vault/file
+    environment:
+#      VAULT_CACERT: /vault/config/root-ca.pem
+#      VAULT_LOCAL_CONFIG: >
+#        {
+#          "storage": { "file": { "path": "/vault/file" } },
+#          "listener": [{
+#            "tcp": {
+#              "address": "0.0.0.0:8200",
+#              "tls_cert_file": "/vault/config/vault-cert.pem",
+#              "tls_key_file": "/vault/config/vault-key.pem",
+#              "tls_client_ca_file": "/vault/config/vault-ca.pem"
+#            }
+#          }],
+#          "ui": true,
+#          "api_addr": "https://127.0.0.1:8200",
+#          "default_lease_ttl": "168h",
+#          "max_lease_ttl": "720h"
+#        }
+      VAULT_ADDR: http://127.0.0.1:8200
+      VAULT_LOCAL_CONFIG: >
+        {
+          "storage": { "file": { "path": "/vault/file" } },
+          "listener": [{
+            "tcp": {
+              "address": "0.0.0.0:8200",
+              "tls_disable": 1
+
+
+            }
+          }],
+          "ui": true,
+          "api_addr": "http://127.0.0.1:8200",
+          "default_lease_ttl": "168h",
+          "max_lease_ttl": "720h"
+        }
+    command: server
+
+  provider_db:
+    container_name: "provider_db"
+    image: "postgres"
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: ds_provider
+      POSTGRES_USER: ds_provider
+      POSTGRES_DB: ds_provider
+    ports:
+      - "1400:5432"

@@ -61,4 +61,11 @@ pub trait CoreOnboarderTrait: Send + Sync + 'static {
         let mate = self.repo().mates().force_create(mate).await?;
         Ok(mate)
     }
+
+    async fn manage_rejection(&self, id: String) -> anyhow::Result<()> {
+        let mut req_model = self.repo().request_req().get_by_id(&id).await?;
+        self.onboarder().manage_rejection(&mut req_model).await?;
+        self.repo().request_req().update(req_model).await?;
+        Ok(())
+    }
 }

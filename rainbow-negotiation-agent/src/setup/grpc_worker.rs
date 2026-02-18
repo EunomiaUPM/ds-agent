@@ -41,7 +41,7 @@ use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 use tonic::codegen::tokio_stream::wrappers::TcpListenerStream;
 use tonic::transport::Server;
-use ymir::config::traits::HostsConfigTrait;
+use ymir::config::traits::{ConnectionConfigTrait, HostsConfigTrait};
 use ymir::config::types::HostType;
 use ymir::services::vault::VaultTrait;
 use ymir::services::vault::vault_rs::VaultService;

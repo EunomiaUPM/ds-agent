@@ -58,8 +58,7 @@ impl VcRequesterRouter {
         let payload = match payload {
             Ok(Json(data)) => data,
             Err(e) => {
-                error!("{:#?}", e);
-                return e.into_response();
+                return e.to_response();
             }
         };
 
@@ -76,8 +75,7 @@ impl VcRequesterRouter {
         let payload = match payload {
             Ok(Json(data)) => data,
             Err(e) => {
-                error!("{:#?}", e);
-                return e.into_response();
+                return e.to_response();
             }
         };
 
@@ -147,7 +145,7 @@ impl VcRequesterRouter {
     ) -> impl IntoResponse {
         let payload = match payload {
             Ok(Json(data)) => data,
-            Err(e) => return e.into_response()
+            Err(e) => return e.to_response()
         };
 
         match payload {

@@ -67,16 +67,34 @@ impl TestingHTTPProxy {
     }
     pub fn router(self) -> Router {
         Router::new()
-            .route("/{data_plane_id}", any(Self::forward_request))
+            .route("/{data_plane_id}", any(Self::forward_request_base))
+            .route("/{data_plane_id}/{*path}", any(Self::forward_request_wildcard))
             .with_state(self)
     }
 
-    async fn forward_request(
+    async fn forward_request_base(
         State(state): State<TestingHTTPProxy>,
         Path(data_plane_id): Path<String>,
+        req: Request,
+    ) -> impl IntoResponse {
+        Self::handle_request(state, data_plane_id, None, req).await
+    }
+
+    async fn forward_request_wildcard(
+        State(state): State<TestingHTTPProxy>,
+        Path((data_plane_id, path)): Path<(String, String)>,
+        req: Request,
+    ) -> impl IntoResponse {
+        Self::handle_request(state, data_plane_id, Some(path), req).await
+    }
+
+    async fn handle_request(
+        state: TestingHTTPProxy,
+        data_plane_id: String,
+        path: Option<String>,
         mut req: Request,
     ) -> impl IntoResponse {
-        info!("* /data/{}", data_plane_id);
+        info!("* /data/{} (path: {:?})", data_plane_id, path);
         // validations
         let data_plane_urn = match get_urn_from_string(&data_plane_id) {
             Ok(urn) => urn,
@@ -115,7 +133,7 @@ impl TestingHTTPProxy {
                 }
             };
 
-        let next_hop = match &egress {
+        let mut next_hop = match &egress {
             EgressConfig::HttpProxy { url } => url.clone(),
             EgressConfig::DataAddress { endpoint, .. } => endpoint.clone(),
             EgressConfig::Connector { .. } => {
@@ -126,6 +144,16 @@ impl TestingHTTPProxy {
                     .into_response()
             }
         };
+
+        // Append path if present
+        if let Some(p) = path {
+            // Ensure no double slashes or missing slash
+            if !next_hop.ends_with('/') {
+                next_hop.push('/');
+            }
+            next_hop.push_str(&p);
+        }
+        
         let body = std::mem::take(req.body_mut());
         let body_bytes = match to_bytes(body, 2024 * 1024) // MAX_BUFFER 2MB?
             .await

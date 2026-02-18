@@ -10,7 +10,10 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  * OpenAPI spec version: 1.0.0
  */
 
-export interface TransferRPCStartBody {
-  consumerPid: string;
-  providerPid: string;
-}
+export type InteractionMode = typeof InteractionMode[keyof typeof InteractionMode];
+
+
+export const InteractionMode = {
+  PULL: 'PULL',
+  PUSH: 'PUSH',
+} as const;

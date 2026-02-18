@@ -6350,22 +6350,22 @@ components:
         id:
           type: string
           format: urn
-        dataplaneProcessId:
+        dataplane_process_id:
           type: string
           format: urn
-        previousState:
-          oneOf:
-            - $ref: "#/components/schemas/TransferState"
-            - type: "null"
-        newState:
-          $ref: "#/components/schemas/TransferState"
+        previous_state:
+          type:
+            - string
+            - "null"
+        new_state:
+          type: string
         trigger:
           type: string
         reason:
           type:
             - string
             - "null"
-        createdAt:
+        created_at:
           type: string
           format: date-time
 
@@ -6375,7 +6375,7 @@ components:
         id:
           type: string
           format: urn
-        dataplaneProcessId:
+        transfer_id:
           type: string
           format: urn
         level:
@@ -6388,7 +6388,8 @@ components:
           type:
             - object
             - "null"
-        createdAt:
+          additionalProperties: true
+        created_at:
           type: string
           format: date-time
 
@@ -6463,9 +6464,9 @@ components:
         id:
           type: string
           format: urn
-        interactionMode:
+        interaction_mode:
           type: string
-        ingressUrl:
+        ingress_url:
           type: string
           nullable: true
 
@@ -6519,7 +6520,7 @@ components:
 
     LogLevel:
       type: string
-      enum: [DEBUG, INFO, WARN, ERROR]
+      enum: [Debug, Info, Warn, Error]
 
     DataAddressDto:
       type: object
@@ -6810,14 +6811,11 @@ components:
       required:
         - consumerPid
         - providerPid
-        - dataAddress
       properties:
         consumerPid:
           type: string
         providerPid:
           type: string
-        dataAddress:
-          $ref: "#/components/schemas/DataAddressDto"
     TransferRPCSuspensionBody:
       type: object
       required:
@@ -8407,3 +8405,22 @@ components:
           type: string
         actions:
           type: string
+  responses:
+    InternalServerError:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorInfo"
+    BadRequest:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorInfo"
+    NotFound:
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorInfo"

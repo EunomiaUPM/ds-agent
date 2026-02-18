@@ -16,6 +16,9 @@ export default defineConfig(() => {
         plugins: [tailwind, autoprefixer],
       },
     },
+    optimizeDeps: {
+      exclude: ["lucide-react"],
+    },
     build: {
       rollupOptions: {
         output: {

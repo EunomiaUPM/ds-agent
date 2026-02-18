@@ -10,7 +10,8 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  * OpenAPI spec version: 1.0.0
  */
 
-export interface TransferRPCStartBody {
-  consumerPid: string;
-  providerPid: string;
+export interface DataplaneInfoResponse {
+  id?: string;
+  interaction_mode?: string;
+  ingress_url?: string | null;
 }

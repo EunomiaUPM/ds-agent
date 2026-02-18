@@ -10,7 +10,10 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  * OpenAPI spec version: 1.0.0
  */
 
-export interface TransferRPCStartBody {
-  consumerPid: string;
-  providerPid: string;
-}
+export type TransferRole = typeof TransferRole[keyof typeof TransferRole];
+
+
+export const TransferRole = {
+  PROVIDER: 'PROVIDER',
+  CONSUMER: 'CONSUMER',
+} as const;

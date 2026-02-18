@@ -9,8 +9,16 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
+import type { LogLevel } from './logLevel';
+import type { TransferEventDtoData } from './transferEventDtoData';
 
-export interface TransferRPCStartBody {
-  consumerPid: string;
-  providerPid: string;
+export interface TransferEventDto {
+  id?: string;
+  transfer_id?: string;
+  level?: LogLevel;
+  component?: string;
+  message?: string;
+  /** @nullable */
+  data?: TransferEventDtoData;
+  created_at?: string;
 }

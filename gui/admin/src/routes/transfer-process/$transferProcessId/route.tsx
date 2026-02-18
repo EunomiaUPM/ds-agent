@@ -12,7 +12,7 @@ const NotFound = () => {
 const RouteComponent = () => {
   const { transferProcessId } = Route.useParams();
   return (
-    <div className=" mb-2">
+    <div className="w-full mb-2">
       <PageHeader
         className="mb-6"
         title="Transfer Process"

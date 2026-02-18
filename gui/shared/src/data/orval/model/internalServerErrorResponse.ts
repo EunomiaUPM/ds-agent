@@ -9,8 +9,9 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
+import type { ErrorInfo } from './errorInfo';
 
-export interface TransferRPCStartBody {
-  consumerPid: string;
-  providerPid: string;
-}
+/**
+ * Internal Server Error
+ */
+export type InternalServerErrorResponse = ErrorInfo;

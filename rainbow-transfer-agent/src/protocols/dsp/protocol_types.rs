@@ -309,11 +309,12 @@ pub struct EndpointPropertyDto {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
-#[serde(deny_unknown_fields)]
 pub struct TransferProcessAckDto {
     pub consumer_pid: Urn,
     pub provider_pid: Urn,
     pub state: TransferProcessState,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub data_address: Option<DataAddressDto>,
 }
 
 impl TransferProcessMessageTrait for TransferProcessAckDto {
@@ -334,7 +335,7 @@ impl TransferProcessMessageTrait for TransferProcessAckDto {
     }
 
     fn get_data_address(&self) -> Option<DataAddressDto> {
-        None
+        self.data_address.clone()
     }
 
     fn get_callback_address(&self) -> Option<String> {
@@ -594,7 +595,7 @@ impl TryFrom<TransferProcessDto> for TransferProcessMessageWrapper<TransferProce
         Ok(Self {
             context: ContextField::default(),
             _type: TransferProcessMessageType::TransferProcess,
-            dto: TransferProcessAckDto { consumer_pid, provider_pid, state },
+            dto: TransferProcessAckDto { consumer_pid, provider_pid, state, data_address: None },
         })
     }
 }

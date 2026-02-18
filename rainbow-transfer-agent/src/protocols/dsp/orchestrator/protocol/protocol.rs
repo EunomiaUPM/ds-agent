@@ -164,15 +164,17 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
             .update_process(id, Arc::new(input.dto.clone()), serde_json::to_value(input).unwrap())
             .await?;
 
-        // data plane hook: start local dataplane
-        self.facades
+        // data plane hook: start local dataplane, applying incoming DataAddress as egress
+        // Returns the consumer's own ingress URL to include in the ACK.
+        let consumer_ingress = self.facades
             .get_data_plane_facade()
             .await
-            .on_transfer_start_post(&transfer_process_id)
+            .on_transfer_start_post(&transfer_process_id, input.dto.data_address.clone())
             .await?;
         // notify
 
-        let transfer_process_dto = TransferProcessMessageWrapper::try_from(transfer_process)?;
+        let mut transfer_process_dto = TransferProcessMessageWrapper::try_from(transfer_process)?;
+        transfer_process_dto.dto.data_address = consumer_ingress;
         Ok(transfer_process_dto)
     }
 

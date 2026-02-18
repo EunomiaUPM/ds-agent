@@ -82,17 +82,21 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         // push or pull (if DataAddress present is push)
 
 
-        // dataplane hook: init consumer DP
-        let _consumer_data_address = self.facades
+        // dataplane hook: init consumer DP; for PUSH returns the consumer ingest URL
+        let consumer_data_address = self.facades
             .get_data_plane_facade().await
             .on_transfer_request_pre(
                 &transfer_process_id,
-                &None,
+                &input.data_address,
             ).await?;
 
         // get from input
-        let request_body: TransferProcessMessageWrapper<TransferRequestMessageDto> =
+        let mut request_body: TransferProcessMessageWrapper<TransferRequestMessageDto> =
             input.clone().into();
+        // PUSH: override data_address with auto-generated consumer ingest URL
+        if let Some(ingest_addr) = consumer_data_address {
+            request_body.dto.data_address = Some(ingest_addr);
+        }
         let provider_address = input.provider_address.clone();
         // create url
         let peer_url = format!("{}/transfers/request", provider_address);
@@ -120,24 +124,6 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
             )
             .await?;
 
-        // Set consumer's egress → provider's proxy URL (through command pipeline)
-        let provider_proxy_url = format!(
-            "{}/{}",
-            provider_address,
-            response.dto.provider_pid
-        );
-        self.facades
-            .get_data_plane_facade().await
-            .set_egress(
-                &transfer_process_id,
-                rainbow_dataplane::DataplaneAddress {
-                    endpoint_type: "HttpProxy".to_string(),
-                    endpoint: provider_proxy_url,
-                    authorization_type: None,
-                    authorization: None,
-                },
-            ).await?;
-
         let response = RpcTransferMessageDto {
             request: input.clone(),
             response,
@@ -159,12 +145,6 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
             self.persistence_service.fetch_process(input_transfer_id.to_string().as_str()).await?;
         let provider_pid = transfer_process.identifiers.get("providerPid").unwrap();
         let consumer_pid = transfer_process.identifiers.get("consumerPid").unwrap();
-        // create message
-        let transfer_process_into_trait = TransferStartMessageDto {
-            provider_pid: Urn::from_str(provider_pid.as_str())?,
-            consumer_pid: Urn::from_str(consumer_pid.as_str())?,
-            data_address: input_data_address,
-        };
         // get uri
         let identifier_key = match transfer_process.inner.role.as_str() {
             "Provider" => "consumerPid",
@@ -172,12 +152,18 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
             _ => "providerPid",
         };
         let peer_url_id = transfer_process.identifiers.get(identifier_key).unwrap();
-        // data plane hook: start local DP before sending to peer
-        let data_address = self.facades
+        // data plane hook: start local DP, returns proxy DataAddress for PULL Provider
+        let hook_data_address = self.facades
             .get_data_plane_facade()
             .await
             .on_transfer_start_pre(&Urn::from_str(transfer_process.inner.id.as_str())?)
             .await?;
+        // create message (hook DataAddress takes priority over manual input)
+        let transfer_process_into_trait = TransferStartMessageDto {
+            provider_pid: Urn::from_str(provider_pid.as_str())?,
+            consumer_pid: Urn::from_str(consumer_pid.as_str())?,
+            data_address: hook_data_address.or(input_data_address),
+        };
         // validate, send and persist
         let (response, transfer_process) = self
             .validate_and_send(
@@ -187,11 +173,11 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
                 "start",
             )
             .await?;
-        // data plane post hook
+        // data plane post hook (outbound sender: no incoming DataAddress to apply)
         self.facades
             .get_data_plane_facade()
             .await
-            .on_transfer_start_post(&Urn::from_str(transfer_process.inner.id.as_str())?)
+            .on_transfer_start_post(&Urn::from_str(transfer_process.inner.id.as_str())?, None)
             .await?;
         // bye!
         let response = RpcTransferMessageDto {

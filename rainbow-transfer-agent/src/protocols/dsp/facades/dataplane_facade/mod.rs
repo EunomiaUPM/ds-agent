@@ -36,9 +36,11 @@ pub trait DataPlaneFacadeTrait: Send + Sync {
     ) -> anyhow::Result<Option<DataAddressDto>>;
 
     /// INBOUND: start local DP (SetStarted).
+    /// Accepts the peer's DataAddress (PULL consumer: provider proxy URL) to set as egress.
     async fn on_transfer_start_post(
         &self,
         transfer_id: &Urn,
+        data_address: Option<DataAddressDto>,
     ) -> anyhow::Result<Option<DataAddressDto>>;
 
     // ─── TransferSuspension ───

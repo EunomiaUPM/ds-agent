@@ -48,6 +48,8 @@ use crate::protocols::dsp::facades::dataplane_facade::dataplane_facade::DataPlan
 use crate::protocols::protocol::ProtocolPluginTrait;
 use axum::Router;
 use rainbow_common::config::services::TransferConfig;
+use rainbow_common::config::traits::CommonConfigTrait;
+use ymir::config::traits::HostsConfigTrait;
 use rainbow_common::facades::ssi_auth_facade::ssi_auth_facade::SSIAuthFacadeService;
 use rainbow_common::facades::ssi_auth_facade::MatesFacadeTrait;
 use rainbow_common::http_client::HttpClient;
@@ -149,7 +151,12 @@ impl ProtocolPluginTrait for TransferDSP {
                 connector_entity.clone(),
             ).await,
         );
-        let dataplane_facade = Arc::new(DataPlaneFacade::new(dataplane_manager.clone()));
+        let http = self.config.common().http();
+        let proxy_base_url = match &http.port {
+            Some(port) => format!("{}://{}:{}", http.protocol, http.url, port),
+            None => format!("{}://{}", http.protocol, http.url),
+        };
+        let dataplane_facade = Arc::new(DataPlaneFacade::new(dataplane_manager.clone(), proxy_base_url));
 
         // data service resolver (resolves agreement → dataset → distribution → connector)
         let data_service_resolver = Arc::new(DataServiceFacadeServiceForDSProtocol::new(

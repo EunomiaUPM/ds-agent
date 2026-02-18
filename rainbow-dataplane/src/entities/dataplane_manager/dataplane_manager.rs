@@ -10,7 +10,7 @@ use anyhow::anyhow;
 use rainbow_connector::{ConnectorInstanceDto, ConnectorInstanceTrait, InteractionConfig};
 use std::sync::Arc;
 use urn::Urn;
-use crate::entities::dataplane_manager::config_builder::{DataplaneConfigBuilder, EgressConfig};
+use crate::entities::dataplane_manager::config_builder::{DataplaneConfigBuilder, EgressConfig, IngressConfig};
 
 // ─── Context passed to each command handler ───
 
@@ -159,13 +159,18 @@ impl DataplaneManager {
         connector_urn: &Option<Urn>,
         connector_instance: &Option<ConnectorInstanceDto>,
     ) -> anyhow::Result<DataplaneResponse> {
-        if let DataplaneCommand::SetInit { role, .. } = &input.command {
+        if let DataplaneCommand::SetInit { role, data_address, .. } = &input.command {
             let interaction_mode = match connector_instance {
                 Some(ci) => match &ci.interaction {
                     InteractionConfig::Pull(_) => InteractionMode::Pull,
                     InteractionConfig::Push(_) => InteractionMode::Push,
                 },
-                None => InteractionMode::Pull,
+                // Consumer has no connector. PUSH mode is signalled by a non-None data_address
+                // in the SetInit command (the consumer's ingest address sent to the provider).
+                None => match data_address {
+                    Some(_) => InteractionMode::Push,
+                    None => InteractionMode::Pull,
+                },
             };
 
             let transfer_role = TransferRole::try_from(role.clone())?;
@@ -429,5 +434,47 @@ impl DataplaneManager {
             )
             .await?;
         Ok(DataplaneResponse::Ok)
+    }
+
+    // ─── Public query helpers ───
+
+    /// Returns the proxy listener path stored in `ingress_config` for a dataplane process.
+    /// Returns `None` if the process does not exist or the ingress is not an HttpListener
+    /// (e.g. PUSH Provider whose ingress is a connector callback).
+    pub async fn get_ingress_address(
+        &self,
+        transfer_id: &Urn,
+    ) -> anyhow::Result<Option<DataplaneAddress>> {
+        let Some(process) = self
+            .dataplane_entity
+            .get_dataplane_transfer_by_process_id(transfer_id)
+            .await?
+        else {
+            return Ok(None);
+        };
+        let ingress: IngressConfig = serde_json::from_value(process.inner.ingress_config)
+            .map_err(|e| anyhow!("Failed to parse ingress_config: {}", e))?;
+        match ingress {
+            IngressConfig::HttpListener { path } => Ok(Some(DataplaneAddress {
+                endpoint_type: "HttpProxy".to_string(),
+                endpoint: path,
+                authorization_type: None,
+                authorization: None,
+            })),
+            IngressConfig::Connector { .. } => Ok(None),
+        }
+    }
+
+    /// Check if the transfer is in PULL mode.
+    pub async fn is_pull(&self, transfer_id: &Urn) -> anyhow::Result<bool> {
+        if let Some(process) = self
+            .dataplane_entity
+            .get_dataplane_transfer_by_process_id(transfer_id)
+            .await?
+        {
+            Ok(process.inner.interaction_mode == InteractionMode::Pull)
+        } else {
+            Ok(false)
+        }
     }
 }

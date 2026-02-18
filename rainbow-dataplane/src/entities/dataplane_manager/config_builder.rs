@@ -7,7 +7,8 @@ use serde::{Deserialize, Serialize};
 // This is the "front door": the endpoint that receives requests/streams.
 //   - PULL Provider: HttpListener (auto path — becomes the DataAddress sent to consumer)
 //   - PULL Consumer: HttpListener (auto path — exposed to data client app)
-//   - PUSH Provider: Connector callback (lifecycle subscribe endpoint)
+//   - PUSH Provider: HttpListener (auto path — backend calls this callback to push data;
+//                   perform_subscribe tells the backend to use this URL as push target)
 //   - PUSH Consumer: HttpListener (auto path — ingest URL sent to provider)
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -73,28 +74,31 @@ impl DataplaneConfigBuilder {
         match (role, connector) {
             // ─── PULL Provider ───
             // Ingress: proxy listener (DataAddress sent to consumer)
-            // Egress: connector's data_access (final system)
+            // Egress: HTTP URL from connector's data_access (final system)
             (TransferRole::Provider, Some(ci)) if matches!(ci.interaction, InteractionConfig::Pull(_)) => {
-                let spec = match &ci.interaction {
-                    InteractionConfig::Pull(pull) => pull.data_access.clone(),
+                let pull = match &ci.interaction {
+                    InteractionConfig::Pull(p) => p,
                     _ => unreachable!(),
+                };
+                let egress = match &pull.data_access {
+                    ProtocolSpec::Http(http) => {
+                        to_json(EgressConfig::HttpProxy { url: http.url_template.clone() })
+                    }
+                    spec => to_json(EgressConfig::Connector { spec: spec.clone() }),
                 };
                 Self {
                     ingress: to_json(IngressConfig::HttpListener { path: auto_path }),
-                    egress: to_json(EgressConfig::Connector { spec }),
+                    egress,
                 }
             }
 
             // ─── PUSH Provider ───
-            // Ingress: connector's subscribe callback (backend calls this)
-            // Egress: null (filled later with consumer's ingest URL from DataAddress)
+            // Ingress: HttpListener (auto path — the proxy callback URL that the backend pushes to;
+            //          when perform_subscribe runs it tells the backend to push here)
+            // Egress: null (filled later from consumer's ingest URL via SetEgress)
             (TransferRole::Provider, Some(ci)) if matches!(ci.interaction, InteractionConfig::Push(_)) => {
-                let spec = match &ci.interaction {
-                    InteractionConfig::Push(push) => push.subscribe.clone(),
-                    _ => unreachable!(),
-                };
                 Self {
-                    ingress: to_json(IngressConfig::Connector { spec }),
+                    ingress: to_json(IngressConfig::HttpListener { path: auto_path }),
                     egress: serde_json::Value::Null,
                 }
             }

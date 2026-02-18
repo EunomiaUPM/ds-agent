@@ -54,11 +54,11 @@ impl GatewayRouter {
         let cors = CorsLayer::new().allow_methods(Any).allow_origin(Any).allow_headers(Any);
 
         let router = Router::new()
-            .route("/api/{service_prefix}/{*extra}", any(Self::proxy_handler_with_extra))
-            .route("/api/{service_prefix}", any(Self::proxy_handler_without_extra))
-            .route("/api/ws", get(Self::websocket_handler))
-            .route("/api/incoming-notification", post(Self::incoming_notification))
-            .route("/api/fe-config", get(Self::config_handler))
+            .route("/admin/api/{service_prefix}/{*extra}", any(Self::proxy_handler_with_extra))
+            .route("/admin/api/{service_prefix}", any(Self::proxy_handler_without_extra))
+            .route("/admin/api/ws", get(Self::websocket_handler))
+            .route("/admin/api/incoming-notification", post(Self::incoming_notification))
+            .route("/admin/api/fe-config", get(Self::config_handler))
             .nest_service(
                 "/admin",
                 ServeDir::new("./react/dist")

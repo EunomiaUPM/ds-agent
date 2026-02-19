@@ -6,6 +6,7 @@ import { FormControl, FormDescription, FormField, FormItem, FormMessage } from "
 import { useForm } from "react-hook-form";
 import { BaseProcessDialog } from "./base";
 import { urnInfoItem } from "./base/infoItemMappers";
+import { InfoItemProps } from "../ui/info-list";
 import { AgreementDto, DataAddressDto, Distribution } from "../../data/orval/model";
 import { useSetupTransferRequest } from "../../data/orval/transfer-rp-c/transfer-rp-c";
 import { useRpcSetupDatasetRequest } from "../../data/orval/catalog-rp-c/catalog-rp-c";
@@ -82,7 +83,7 @@ export const TransferProcessRequestDialog = ({ process }: TransferProcessRequest
           Start transfer process for Agreement <Badge variant="info">{formatUrn(process.id)}</Badge>
         </span>
           }
-          infoItems={[urnInfoItem("Dataset", process.target)].filter(Boolean)}
+          infoItems={[urnInfoItem("Dataset", process.target)].filter(Boolean) as InfoItemProps[]}
           formFields={
             <div className="grid grid-cols-2 gap-4">
               <FormField

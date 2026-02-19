@@ -19,7 +19,7 @@ export const TransferProcessCompletionDialog = ({ process, onClose }: {
 }) => {
   const { mutateAsync: completeAsync } = useSetupTransferCompletion();
   const { refetch } = useGetTransferProcesses();
-  const { refetch: refetchDetail } = useGetTransferProcessById(process.id);
+  const { refetch: refetchDetail } = useGetTransferProcessById(process.id!);
   const router = useRouter();
 
   /**

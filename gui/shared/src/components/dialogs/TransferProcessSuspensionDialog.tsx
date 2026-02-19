@@ -17,7 +17,7 @@ export const TransferProcessSuspensionDialog = ({ process, onClose }: { process:
   const { api_gateway, dsrole } = useContext<GlobalInfoContextType | null>(GlobalInfoContext)!;
   const { mutateAsync: suspendAsync } = useSetupTransferSuspension();
   const { refetch } = useGetTransferProcesses();
-  const { refetch: refetchDetail } = useGetTransferProcessById(process.id);
+  const { refetch: refetchDetail } = useGetTransferProcessById(process.id!);
   const router = useRouter();
   /**
    * Handles the suspension submission.

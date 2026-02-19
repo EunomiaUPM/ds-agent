@@ -18,7 +18,7 @@ export const TransferProcessStartDialog = ({ process, onClose }: {
 }) => {
   const { mutateAsync: startAsync } = useSetupTransferStart();
   const { refetch } = useGetTransferProcesses();
-  const { refetch: refetchDetail } = useGetTransferProcessById(process.id);
+  const { refetch: refetchDetail } = useGetTransferProcessById(process.id!);
   const router = useRouter();
 
   /**
@@ -26,6 +26,10 @@ export const TransferProcessStartDialog = ({ process, onClose }: {
    * Payload structure differs based on the user's role.
    */
   const handleSubmit = async () => {
+    if (!process.identifiers?.consumerPid || !process.identifiers?.providerPid) {
+      console.error("Missing process identifiers");
+      return;
+    }
     await startAsync({
       data: {
         consumerPid: process.identifiers.consumerPid,

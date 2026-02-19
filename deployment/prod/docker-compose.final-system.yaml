@@ -1,0 +1,51 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "10000:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  static-api:
+    image: quay.io/eunomia_upm/ecostars-provider
+    ports:
+      - "8081:8081"
+    env_file:
+      - .env
+    command: "serve"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - postgres
+      - static-api-setup
+
+  static-api-setup:
+    build: .
+    env_file:
+      - .env
+    command: "fake"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - postgres
+
+  dynamic-api:
+    image: quay.io/eunomia_upm/ecostars-provider
+    ports:
+      - "8082:8082"
+    env_file:
+      - .env
+    command: ["metrics"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - postgres
+
+volumes:
+  pgdata:

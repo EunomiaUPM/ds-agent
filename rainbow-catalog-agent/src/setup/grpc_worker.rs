@@ -71,7 +71,7 @@ impl CatalogGrpcWorker {
         let router = Self::create_root_grpc_router(&config, vault.clone()).await?;
         let host = if config.common().is_local() { "127.0.0.1" } else { "0.0.0.0" };
         let port = config.common().get_weird_port(HostType::Http);
-        let addr = format!("{}:{}", host, port);
+        let addr = format!("{}{}", host, port);
 
         let listener = TcpListener::bind(&addr).await?;
         let incoming = TcpListenerStream::new(listener);

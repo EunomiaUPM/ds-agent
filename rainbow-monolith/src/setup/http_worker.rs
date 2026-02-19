@@ -125,7 +125,7 @@ impl CoreHttpWorker {
 
         let port = config.monolith().common().get_weird_port(HostType::Http);
         let host = if config.monolith().common().is_local() { "127.0.0.1" } else { "0.0.0.0" };
-        let addr: SocketAddr = format!("{}:{}", host, port).parse()?;
+        let addr: SocketAddr = format!("{}{}", host, port).parse()?;
 
         let listener = TcpListener::bind(&addr).await?;
         let token_clone = token.clone();

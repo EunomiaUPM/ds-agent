@@ -76,7 +76,7 @@ impl CatalogHttpWorker {
             .merge(health_router);
         let host = if config.common().is_local() { "127.0.0.1" } else { "0.0.0.0" };
         let port = config.common().get_weird_port(HostType::Http);
-        let addr = format!("{}:{}", host, port);
+        let addr = format!("{}{}", host, port);
 
         let listener = TcpListener::bind(&addr).await?;
         tracing::info!("HTTP Catalog Service running on {}", addr);

@@ -92,7 +92,7 @@ pub async fn flush_redis_cache(url: &str) -> anyhow::Result<()> {
     tracing::info!("Connecting to Redis at {}...", url);
     let client = redis::Client::open(url)?;
     let mut con = client.get_async_connection().await?;
-    redis::cmd("FLUSHALL").query_async(&mut con).await?;
+    redis::cmd("FLUSHALL").query_async::<_, ()>(&mut con).await?;
     tracing::info!("Redis cache flushed successfully.");
     Ok(())
 }

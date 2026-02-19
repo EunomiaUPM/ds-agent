@@ -36,7 +36,7 @@ common_config: &common_config
     port: '5432'
   api:
     version: *api_version
-    openapi_path: '/app/static/specs/openapi/auth/auth_consumer.json'
+    openapi_path: '/app/static/specs/openapi/merged_openapi.json'
   connection:
     is_local: false
     is_tls_enabled: true
@@ -102,6 +102,7 @@ contracts:
 # ==========================
 transfer:
   common: *common_config
+  cache: *cache_config
   contracts: *min_known_config
   catalog: *min_known_config
   ssi_auth: *min_known_config

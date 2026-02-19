@@ -24,9 +24,8 @@ use ymir::errors::{ErrorLogTrait, Errors};
 use ymir::services::issuer::IssuerTrait;
 use ymir::services::wallet::WalletTrait;
 use ymir::types::issuing::{
-    AuthServerMetadata, AuthServerMetadata, CredentialRequest, CredentialRequest,
-    CredentialRequestsss, IssuerMetadata, IssuerMetadata, IssuingToken, IssuingToken, TokenRequest,
-    TokenRequest, VCCredOffer, VCCredOffer,
+    AuthServerMetadata, CredentialRequest, CredentialRequestsss, IssuerMetadata, IssuingToken,
+    TokenRequest, VCCredOffer,
 };
 use ymir::types::wallet::OidcUri;
 

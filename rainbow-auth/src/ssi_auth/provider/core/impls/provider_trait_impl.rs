@@ -332,7 +332,7 @@ where
         let mate = mates::NewModel {
             participant_id: ver_model.holder.unwrap(), // EXPECTED ALWAYS
             participant_slug: req_model.consumer_slug,
-            participant_type: "Consumer".to_string(),
+            participant_type: "Agent".to_string(),
             base_url,
             token: req_model.token,
             is_me: false,

@@ -98,7 +98,7 @@ impl CoreHttpWorker {
     pub async fn run(
         config: &ApplicationConfig,
         vault: Arc<VaultService>,
-        _token: &CancellationToken,
+        token: &CancellationToken,
     ) -> anyhow::Result<()> {
         // ) -> anyhow::Result<JoinHandle<()>> {
         // router
@@ -110,20 +110,19 @@ impl CoreHttpWorker {
         // listener
         let listener = TcpListener::bind(&addr).await?;
         // gracefully cancelation token
-        // let token = token.clone();
-        // let handle = tokio::spawn(async move {
-        //     let server = serve(listener, router).with_graceful_shutdown(async move {
-        //         token.cancelled().await;
-        //         info!("HTTP Service received shutdown signal, draining connections...");
-        //     });
-        //     match server.await {
-        //         Ok(_) => info!("HTTP Service stopped successfully"),
-        //         Err(e) => error!("HTTP Service crashed: {}", e),
-        //     }
-        // });
-        // Ok(handle)
+        let token = token.clone();
+        let handle = tokio::spawn(async move {
+            let server = serve(listener, router).with_graceful_shutdown(async move {
+                token.cancelled().await;
+                tracing::info!("HTTP Service received shutdown signal, draining connections...");
+            });
+            match server.await {
+                Ok(_) => tracing::info!("HTTP Service stopped successfully"),
+                Err(e) => tracing::error!("HTTP Service crashed: {}", e),
+            }
+        });
 
-        serve(listener, router).await?;
+        //serve(listener, router).await?;
         Ok(())
     }
 }

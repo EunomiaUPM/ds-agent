@@ -37,7 +37,9 @@ common_config: &common_config
   api:
     version: *api_version
     openapi_path: "../static/specs/openapi/merged_openapi.json"
-  is_local: true
+  connection:
+    is_local: true
+    is_tls_enabled: false
 
 # ==========================
 # MONOLITH

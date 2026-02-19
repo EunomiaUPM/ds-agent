@@ -66,7 +66,7 @@ mod tests {
     fn test_whatentity_debug() {
         // En lugar de usar format!("{:?}", ...) que causa recursión infinita,
         // validamos manualmente los valores esperados.
-        let provider_expected = "Provider";
+        let provider_expected = "Agent";
         let authority_expected = "Authority";
 
         match WhatEntity::Provider {

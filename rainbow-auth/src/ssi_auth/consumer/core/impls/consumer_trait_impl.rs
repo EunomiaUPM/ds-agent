@@ -372,7 +372,7 @@ where
                 let mate = mates::NewModel {
                     participant_id: upd_request_model.provider_id,
                     participant_slug: upd_request_model.provider_slug,
-                    participant_type: "Provider".to_string(),
+                    participant_type: "Agent".to_string(),
                     base_url,
                     token: upd_request_model.token,
                     is_me: false,

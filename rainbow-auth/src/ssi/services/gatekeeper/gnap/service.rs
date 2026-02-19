@@ -169,7 +169,7 @@ impl GateKeeperTrait for GnapGateKeeperService {
         let mate = mates::NewModel {
             participant_id: ver_model.holder.clone().unwrap(),
             participant_slug: req_model.consumer_slug.clone(),
-            participant_type: "Consumer".to_string(),
+            participant_type: "Agent".to_string(),
             base_url,
             token: Some(token.clone()),
             is_me: false,

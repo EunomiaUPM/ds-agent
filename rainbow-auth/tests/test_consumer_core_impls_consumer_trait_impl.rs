@@ -642,7 +642,7 @@ mod tests {
         let new_mate = mates::NewModel {
             participant_id: "provider123".to_string(),
             participant_slug: "provider-slug".to_string(),
-            participant_type: "Provider".to_string(),
+            participant_type: "Agent".to_string(),
             base_url: "https://provider.com".to_string(),
             token: Some("access_token_value".to_string()),
             is_me: false
@@ -686,7 +686,7 @@ mod tests {
             mates::Model {
                 participant_id: "provider123".to_string(),
                 participant_slug: "provider-slug".to_string(),
-                participant_type: "Provider".to_string(),
+                participant_type: "Agent".to_string(),
                 base_url: "https://provider.com".to_string(),
                 token: Some("access_token_value".to_string()),
                 is_me: false,
@@ -715,7 +715,7 @@ mod tests {
         let new_mate = mates::NewModel {
             participant_id: "provider123".to_string(),
             participant_slug: "provider-slug".to_string(),
-            participant_type: "Provider".to_string(),
+            participant_type: "Agent".to_string(),
             base_url: "https://provider.com".to_string(),
             token: Some("access_token_value".to_string()),
             is_me: false

@@ -237,7 +237,7 @@ impl OnboarderTrait for GnapOnboarderService {
         let mates = mates::NewModel {
             participant_id: req_model.provider_id.clone(),
             participant_slug: req_model.provider_slug.clone(),
-            participant_type: "Provider".to_string(),
+            participant_type: "Agent".to_string(),
             base_url,
             token: req_model.token.clone(),
             is_me: false,

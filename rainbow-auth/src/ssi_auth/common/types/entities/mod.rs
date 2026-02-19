@@ -57,7 +57,7 @@ impl fmt::Debug for WhatEntity {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         
         match self {
-            WhatEntity::Provider => write!(f, "Provider"),
+            WhatEntity::Provider => write!(f, "Agent"),
             WhatEntity::Authority => write!(f, "Authority"),
         }
 

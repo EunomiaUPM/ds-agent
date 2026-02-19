@@ -393,7 +393,7 @@ mod tests {
                 Ok(Some(MateModel {
                     participant_id: "test-holder".to_string(),
                     participant_slug: "test-consumer".to_string(),
-                    participant_type: "Consumer".to_string(),
+                    participant_type: "Agent".to_string(),
                     base_url: Some("https://example.com".to_string()),
                     token: Some("token-abc".to_string()),
                     saved_at: Utc::now().naive_utc(),
@@ -451,7 +451,7 @@ mod tests {
                 Ok(Some(MateModel {
                     participant_id: "test-holder".to_string(),
                     participant_slug: "test-consumer".to_string(),
-                    participant_type: "Consumer".to_string(),
+                    participant_type: "Agent".to_string(),
                     base_url: Some("https://example.com".to_string()),
                     token: Some(token.to_string()),
                     saved_at: Utc::now().naive_utc(),
@@ -1320,7 +1320,7 @@ mod tests {
         let new_mate = NewMateModel {
             participant_id: "test-holder".to_string(),
             participant_slug: "test-consumer".to_string(),
-            participant_type: "Consumer".to_string(),
+            participant_type: "Agent".to_string(),
             base_url: Some("https://example.com".to_string()),
             token: Some("token-abc".to_string()),
             is_me: false
@@ -1407,7 +1407,7 @@ mod tests {
         let new_mate = NewMateModel {
             participant_id: "test-holder".to_string(),
             participant_slug: "test-consumer".to_string(),
-            participant_type: "Consumer".to_string(),
+            participant_type: "Agent".to_string(),
             base_url: Some("https://example.com".to_string()),
             token: Some("token-abc".to_string()),
             is_me: false

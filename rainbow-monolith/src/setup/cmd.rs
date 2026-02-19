@@ -28,7 +28,6 @@ use std::sync::Arc;
 use tracing::{debug, info};
 use ymir::config::traits::{ConnectionConfigTrait, HostsConfigTrait};
 use ymir::config::types::HostType;
-use ymir::data::seeders::MateSeeder;
 use ymir::services::vault::vault_rs::VaultService;
 use ymir::services::vault::VaultTrait;
 
@@ -90,10 +89,6 @@ impl CoreCommands {
                         .to_string();
                 info!("Current Core Connector Config:\n{}", table);
                 CoreProviderMigration::run(&db_connection).await?;
-
-                let did = config.ssi_auth().did_config().did;
-                let url = config.monolith().common().get_host(HostType::Http);
-                MateSeeder::seed(&db_connection, did, url).await?
             }
         };
 

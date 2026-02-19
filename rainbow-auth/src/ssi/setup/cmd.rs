@@ -23,8 +23,6 @@ use rainbow_common::config::services::SsiAuthConfig;
 use rainbow_common::config::traits::{CommonConfigTrait, ConfigLoader};
 use tracing::{debug, info};
 use ymir::config::traits::{ConnectionConfigTrait, HostsConfigTrait};
-use ymir::config::types::HostType;
-use ymir::data::seeders::MateSeeder;
 use ymir::services::vault::vault_rs::VaultService;
 use ymir::services::vault::VaultTrait;
 
@@ -43,7 +41,6 @@ struct AuthCli {
 pub enum AuthCliCommands {
     Start(AuthCliArgs),
     Setup(AuthCliArgs),
-    Vault,
 }
 
 #[derive(Parser, Debug, PartialEq)]
@@ -84,12 +81,7 @@ impl AuthCommands {
 
                 let connection = vault.get_db_connection(config.common()).await;
                 AuthMigrator::run(&connection).await?;
-
-                let did = config.did_config().did;
-                let url = config.common().hosts().get_host(HostType::Http);
-                MateSeeder::seed(&connection, did, url).await?
             }
-            AuthCliCommands::Vault => {}
         }
 
         Ok(())

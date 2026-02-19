@@ -43,39 +43,33 @@ impl CoreHttpWorker {
         vault: Arc<VaultService>,
         token: &CancellationToken,
     ) -> anyhow::Result<JoinHandle<()>> {
-        // <-- Devolvemos el JoinHandle
         let server_message = format!(
             "Starting Dataspace http server in {}",
             config.monolith().common().get_host(HostType::Http)
         );
         info!("{}", server_message);
 
-        match config.monolith().common().is_tls_enabled() {
-            true => {
-                info!("Running with TLS active");
-                // Pasamos el token también a la versión TLS
-                Self::run_tls(config, vault, token).await
-            }
-            false => {
-                info!("Running without TLS");
-                Self::run(config, vault, token).await
-            }
+        if config.monolith().common().is_tls_enabled() {
+            info!("Running with TLS active");
+            Self::run_tls(config, vault, token).await
+        } else {
+            info!("Running without TLS");
+            Self::run(config, vault, token).await
         }
     }
 
     pub async fn run_tls(
         config: &ApplicationConfig,
         vault: Arc<VaultService>,
-        token: &CancellationToken, // <-- Añadido para apagado seguro
+        token: &CancellationToken,
     ) -> anyhow::Result<JoinHandle<()>> {
-        let cert = expect_from_env("VAULT_APP_ROOT_CLIENT_KEY");
-        let pkey = expect_from_env("VAULT_APP_CLIENT_KEY");
-        let cert: StringHelper = vault.read(None, &cert).await?;
-        let pkey: StringHelper = vault.read(None, &pkey).await?;
+        let cert_key = expect_from_env("VAULT_APP_ROOT_CLIENT_KEY");
+        let pkey_key = expect_from_env("VAULT_APP_CLIENT_KEY");
+        let cert: StringHelper = vault.read(None, &cert_key).await?;
+        let pkey: StringHelper = vault.read(None, &pkey_key).await?;
 
-        rustls::crypto::ring::default_provider()
-            .install_default()
-            .expect("Unable to install crypto utils");
+        // Evitar doble instalación del provider de Ring
+        let _ = rustls::crypto::ring::default_provider().install_default();
 
         let tls_config = RustlsConfig::from_pem(
             cert.data().as_bytes().to_vec(),
@@ -84,41 +78,42 @@ impl CoreHttpWorker {
         .await?;
 
         let router = create_core_router(config, vault.clone()).await;
-
         let port = config.monolith().common().hosts().get_tls_port(HostType::Http);
+
         let addr_str = if config.monolith().common().is_local() {
             format!("127.0.0.1:{}", port)
         } else {
             format!("0.0.0.0:{}", port)
         };
         let addr: SocketAddr = addr_str.parse()?;
+
         info!("Starting Authority server with TLS in {}", addr);
 
-        // Axum-server usa su propio Handle para el graceful shutdown
         let server_handle = axum_server::Handle::new();
-
-        // Tarea en segundo plano para escuchar el CancellationToken y apagar axum_server
         let shutdown_token = token.clone();
         let axum_handle_clone = server_handle.clone();
+
+        // Tarea de monitoreo de señal de apagado
         tokio::spawn(async move {
             shutdown_token.cancelled().await;
             info!("TLS HTTP Service received shutdown signal, draining connections...");
             axum_handle_clone.graceful_shutdown(Some(std::time::Duration::from_secs(10)));
         });
 
-        // Envolvemos el servidor TLS en un tokio::spawn para no bloquear el hilo principal
+        // Retornamos el JoinHandle de la tarea del servidor
         let handle = tokio::spawn(async move {
             let server = axum_server::bind_rustls(addr, tls_config)
                 .handle(server_handle)
                 .serve(router.into_make_service());
 
-            match server.await {
-                Ok(_) => info!("TLS HTTP Service stopped successfully"),
-                Err(e) => error!("TLS HTTP Service crashed: {}", e),
+            if let Err(e) = server.await {
+                error!("TLS HTTP Service crashed: {}", e);
+            } else {
+                info!("TLS HTTP Service stopped successfully");
             }
         });
 
-        Ok(handle) // <-- Devolvemos el handle
+        Ok(handle)
     }
 
     pub async fn run(
@@ -128,24 +123,25 @@ impl CoreHttpWorker {
     ) -> anyhow::Result<JoinHandle<()>> {
         let router = create_core_router(config, vault.clone()).await;
 
-        let host = if config.monolith().common().is_local() { "127.0.0.1" } else { "0.0.0.0" };
         let port = config.monolith().common().get_weird_port(HostType::Http);
-        let addr = format!("{}{}", host, port);
+        let host = if config.monolith().common().is_local() { "127.0.0.1" } else { "0.0.0.0" };
+        let addr: SocketAddr = format!("{}:{}", host, port).parse()?;
 
         let listener = TcpListener::bind(&addr).await?;
-        let token = token.clone();
+        let token_clone = token.clone();
 
         let handle = tokio::spawn(async move {
-            let server = serve(listener, router).with_graceful_shutdown(async move {
-                token.cancelled().await;
-                info!("HTTP Service received shutdown signal, draining connections...");
+            let server = axum::serve(listener, router).with_graceful_shutdown(async move {
+                token_clone.cancelled().await;
             });
-            match server.await {
-                Ok(_) => info!("HTTP Service stopped successfully"),
-                Err(e) => error!("HTTP Service crashed: {}", e),
+
+            if let Err(e) = server.await {
+                error!("HTTP Service crashed: {}", e);
+            } else {
+                info!("HTTP Service stopped successfully");
             }
         });
 
-        Ok(handle) // <-- Devolvemos el handle, ya no es Ok(()) a secas
+        Ok(handle)
     }
 }

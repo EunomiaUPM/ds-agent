@@ -191,31 +191,41 @@ impl BootstrapServiceTrait for CoreBoot {
         vault: Arc<VaultService>,
     ) -> anyhow::Result<Sender<()>> {
         // thread control
-        let (shutdown_tx, mut shutdown_rx) = broadcast::channel(1);
+        let (shutdown_tx, mut shutdown_rx) = broadcast::channel::<()>(1);
         let cancel_token = CancellationToken::new();
 
         // workers
         info!("Spawning HTTP subsystem...");
         let http_handle = CoreHttpWorker::spawn(config, vault.clone(), &cancel_token).await?;
 
-        // todo set grpc
-
-        // non-blocking thread
+        // non-blocking thread supervisor
         let token_clone = cancel_token.clone();
         tokio::spawn(async move {
             tokio::select! {
-                // ctrl+c
-                _ = shutdown_rx.recv() => {
+                // Caso 1: Recibimos la señal de apagado externa (ej. desde el Main)
+                // Usamos un match porque recv() devuelve un Result
+                msg = shutdown_rx.recv() => {
                     info!("Shutdown command received from Main Pipeline.");
                 }
-                _ = async { http_handle } => {
-                    error!("HTTP subsystem failed or stopped unexpectedly!");
+
+                // Caso 2: El servidor HTTP muere por su cuenta.
+                // IMPORTANTE: Aquí se pasa el handle directamente.
+                // El select! esperará a que el JoinHandle se resuelva (que la tarea termine).
+                res = http_handle => {
+                    match res {
+                        Ok(_) => error!("HTTP subsystem stopped unexpectedly (task finished)."),
+                        Err(e) => error!("HTTP subsystem panicked: {}", e),
+                    }
                 }
             }
 
+            // Si llegamos aquí, es que uno de los dos se ha disparado
             info!("Initiating internal graceful shutdown sequence...");
             token_clone.cancel();
-            info!("Background services stopped.");
+
+            // Damos un pequeño margen para que los workers limpien antes de loguear el final
+            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+            info!("Background services supervisor finished.");
         });
 
         Ok(shutdown_tx)

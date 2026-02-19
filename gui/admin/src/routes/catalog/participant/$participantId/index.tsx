@@ -22,7 +22,8 @@ function RouteComponent() {
     mutate({
       data: {
         associatedAgentPeer: participantId,
-        filter: []
+        filter: [],
+          noCache: true
       },
     });
   }, [participantId, mutate]);

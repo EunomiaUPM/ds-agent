@@ -44,21 +44,33 @@ const AUTH_LABELS: Record<string, string> = {
 // SUB-COMPONENTS
 // =============================================================================
 
-function MethodBadge({ method }: { method?: string }) {
-  if (!method) return <span className="text-muted-foreground text-xs">—</span>;
+function MethodBadge({ method }: { method?: string | string[] }) {
+  if (!method) return <>—</>;
+
+  const methods = Array.isArray(method) ? method : [method];
+
   return (
-    <Badge variant="info" className={METHOD_COLORS[method.toUpperCase()] ?? ""}>
-      {method.toUpperCase()}
-    </Badge>
+      <>
+        {methods.map((m) => (
+            <span key={m}>{m.toUpperCase()}</span>
+        ))}
+      </>
   );
 }
 
-function ProtocolBadge({ protocol }: { protocol?: string }) {
+function ProtocolBadge({ protocol }: { protocol?: string | string[] }) {
   if (!protocol) return null;
+
+  const protocols = Array.isArray(protocol) ? protocol : [protocol];
+
   return (
-    <Badge variant="info" className="text-primary-300 border-primary-500/40">
-      {protocol}
-    </Badge>
+      <>
+        {protocols.map((p) => (
+            <Badge key={p} variant="info" className="text-primary-300 border-primary-500/40">
+              {p}
+            </Badge>
+        ))}
+      </>
   );
 }
 

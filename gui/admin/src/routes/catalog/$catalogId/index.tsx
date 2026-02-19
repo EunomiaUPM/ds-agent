@@ -100,38 +100,6 @@ const RouteComponent = () => {
               cell: (d) => <FormatDate date={d.dctIssued!} />,
             },
             {
-              header: "Actions",
-              cell: (d) => (
-                <Drawer direction={"right"}>
-                  <DrawerTrigger>
-                    <Button variant="outline" size="sm">
-                      <Plus />
-                      Offer dataset
-                    </Button>
-                  </DrawerTrigger>
-                  <DrawerContent>
-                    <DrawerHeader>
-                      <DrawerTitle>
-                        <Heading level="h5" className="text-current">
-                          New Contract Negotiation Offer
-                        </Heading>
-                      </DrawerTitle>
-                    </DrawerHeader>
-                    <DrawerBody>
-                      offer drawer...
-                    </DrawerBody>
-                    <DrawerFooter>
-                      <DrawerClose className="flex justify-start gap-4">
-                        <Button variant="ghost" className="w-40">
-                          Cancel
-                        </Button>
-                      </DrawerClose>
-                    </DrawerFooter>
-                  </DrawerContent>
-                </Drawer>
-              ),
-            },
-            {
               header: "Link",
               cell: (d) => (
                 <Link

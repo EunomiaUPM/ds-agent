@@ -129,7 +129,6 @@ impl RpcTransferProcessMessageTrait for RpcTransferRequestMessageDto {
 pub struct RpcTransferStartMessageDto {
     pub consumer_pid: Urn,
     pub provider_pid: Urn,
-    pub data_address: Option<DataAddressDto>,
 }
 
 impl Into<TransferProcessMessageWrapper<TransferStartMessageDto>> for RpcTransferStartMessageDto {
@@ -140,7 +139,7 @@ impl Into<TransferProcessMessageWrapper<TransferStartMessageDto>> for RpcTransfe
             context: ContextField::default(),
             _type: TransferProcessMessageType::TransferStartMessage,
             dto: TransferStartMessageDto {
-                data_address: self.data_address,
+                data_address: None,
                 provider_pid,
                 consumer_pid,
             },
@@ -170,7 +169,7 @@ impl RpcTransferProcessMessageTrait for RpcTransferStartMessageDto {
     }
 
     fn get_data_address(&self) -> Option<DataAddressDto> {
-        self.data_address.clone()
+        None
     }
 
     fn get_provider_address(&self) -> Option<String> {

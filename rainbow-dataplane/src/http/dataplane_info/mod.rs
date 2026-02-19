@@ -192,8 +192,7 @@ impl DataPlaneProcessesRouter {
                 let mut ingress_url = None;
                 if transfer.inner.interaction_mode == crate::entities::dataplane_transfers::InteractionMode::Pull {
                     if let Some(host) = headers.get("host").and_then(|h| h.to_str().ok()) {
-                        // Assuming HTTP for now, or X-Forwarded-Proto if behind proxy
-                        ingress_url = Some(format!("http://{}/dataplane/proxy/{}", host, data_plane_id));
+                        ingress_url = Some(format!("{}/dataplane/proxy/{}", host, data_plane_id));
                     }
                 }
                 

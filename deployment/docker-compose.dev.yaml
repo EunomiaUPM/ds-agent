@@ -253,3 +253,5 @@ services:
       - ../static/environment/config/dataspace_authority.yaml:/app/dataspace.yaml
     ports:
       - "1500:1500"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

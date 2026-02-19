@@ -105,7 +105,7 @@ function RouteComponent() {
               cell: (d) => <FormatDate date={d.dctIssued!} />,
             },
             {
-              header: "Associated Data service",
+              header: "Associated Connector",
               cell: (d) => (
                 <div className="flex gap-2">
                   <Link
@@ -120,25 +120,32 @@ function RouteComponent() {
                       <ArrowRight className="ml-1 h-3 w-3" />
                     </Button>
                   </Link>
-                  <Link
-                    to="/catalog/$catalogId/data-service/$dataserviceId"
-                    params={{
-                      catalogId: catalogId,
-                      dataserviceId: d.dcatAccessService!,
-                    }}
-                  >
-                    <Button
-                      variant="link"
-                      size="sm"
-                      className="h-auto p-0 text-xs text-muted-foreground hover:text-foreground"
-                    >
-                      See dataservice
-                      <ArrowRight className="ml-1 h-3 w-3" />
-                    </Button>
-                  </Link>
                 </div>
               ),
             },
+              {
+                  header: "Associated Data service",
+                  cell: (d) => (
+                      <div className="flex gap-2">
+                          <Link
+                              to="/catalog/$catalogId/data-service/$dataserviceId"
+                              params={{
+                                  catalogId: catalogId,
+                                  dataserviceId: d.dcatAccessService!,
+                              }}
+                          >
+                              <Button
+                                  variant="link"
+                                  size="sm"
+                                  className="h-auto p-0 text-xs text-muted-foreground hover:text-foreground"
+                              >
+                                  See dataservice
+                                  <ArrowRight className="ml-1 h-3 w-3" />
+                              </Button>
+                          </Link>
+                      </div>
+                  ),
+              },
           ]}
         />
       </PageSection>

@@ -359,14 +359,6 @@ impl OrchestrationPersistenceForProtocol {
         dto: DistributionDto,
         service: Option<DataService>,
     ) -> anyhow::Result<Distribution> {
-        let format = if let Some(f) = dto.inner.dct_format {
-            f.parse::<DctFormats>().unwrap_or(DctFormats {
-                protocol: FormatProtocol::Http,
-                action: FormatAction::Pull,
-            })
-        } else {
-            DctFormats { protocol: FormatProtocol::Http, action: FormatAction::Pull }
-        };
 
         Ok(Distribution {
             context: ContextField::default(),
@@ -380,7 +372,7 @@ impl OrchestrationPersistenceForProtocol {
                 modified: dto.inner.dct_modified.map(|d| d.naive_utc()),
                 title: dto.inner.dct_title,
                 description: vec![],
-                formats: format,
+                formats: dto.inner.dct_format.unwrap_or("".to_string()),
             },
             odrl_offer: vec![],
             extra_fields: Default::default(),

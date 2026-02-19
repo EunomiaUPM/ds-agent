@@ -31,6 +31,7 @@ use crate::protocols::dsp::protocol_types::{
     TransferProcessMessageWrapper, TransferRequestMessageDto, TransferStartMessageDto,
     TransferSuspensionMessageDto, TransferTerminationMessageDto,
 };
+use crate::protocols::dsp::transfer_types::TransferState;
 use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRpcSteps;
 use rainbow_common::dcat_formats::DctFormats;
 use rainbow_common::dsp_common::context_field::ContextField;
@@ -81,14 +82,13 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
             Urn::from_str(&format!("urn:transfer-process:{}", uuid::Uuid::new_v4()))?;
         // push or pull (if DataAddress present is push)
 
-
         // dataplane hook: init consumer DP; for PUSH returns the consumer ingest URL
-        let consumer_data_address = self.facades
-            .get_data_plane_facade().await
-            .on_transfer_request_pre(
-                &transfer_process_id,
-                &input.data_address,
-            ).await?;
+        let consumer_data_address = self
+            .facades
+            .get_data_plane_facade()
+            .await
+            .on_transfer_request_pre(&transfer_process_id, &input.data_address)
+            .await?;
 
         // get from input
         let mut request_body: TransferProcessMessageWrapper<TransferRequestMessageDto> =
@@ -138,11 +138,12 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
     ) -> anyhow::Result<RpcTransferMessageDto<RpcTransferStartMessageDto>> {
         // self.validator.transfer_start_rpc(input).await?;
         // get from input
-        let input_data_address = input.data_address.clone();
         let input_transfer_id = input.consumer_pid.clone();
         // fetch current process
         let transfer_process =
             self.persistence_service.fetch_process(input_transfer_id.to_string().as_str()).await?;
+        let is_restart =
+            transfer_process.inner.state_attribute.clone().unwrap_or("".to_string()) != "OnRequested";
         let provider_pid = transfer_process.identifiers.get("providerPid").unwrap();
         let consumer_pid = transfer_process.identifiers.get("consumerPid").unwrap();
         // get uri
@@ -153,7 +154,8 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         };
         let peer_url_id = transfer_process.identifiers.get(identifier_key).unwrap();
         // data plane hook: start local DP, returns proxy DataAddress for PULL Provider
-        let hook_data_address = self.facades
+        let hook_data_address = self
+            .facades
             .get_data_plane_facade()
             .await
             .on_transfer_start_pre(&Urn::from_str(transfer_process.inner.id.as_str())?)
@@ -162,7 +164,10 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         let transfer_process_into_trait = TransferStartMessageDto {
             provider_pid: Urn::from_str(provider_pid.as_str())?,
             consumer_pid: Urn::from_str(consumer_pid.as_str())?,
-            data_address: hook_data_address.or(input_data_address),
+            data_address: match is_restart {
+                true => None,
+                false => hook_data_address,
+            },
         };
         // validate, send and persist
         let (response, transfer_process) = self

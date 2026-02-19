@@ -11,13 +11,14 @@ import { BaseProcessDialog, mapTransferProcessToInfoItems } from "./base";
 import { DataAddressDto, TransferProcessDto } from "../../data/orval/model";
 import { useSetupTransferStart } from "../../data/orval/transfer-rp-c/transfer-rp-c";
 import { useRouter } from "@tanstack/react-router";
-import { useGetTransferProcesses } from "../../data/orval/transfers/transfers";
+import { useGetTransferProcesses, useGetTransferProcessById } from "../../data/orval/transfers/transfers";
 
 export const TransferProcessStartDialog = ({ process, onClose }: {
   process: TransferProcessDto; onClose?: () => void;
 }) => {
   const { mutateAsync: startAsync } = useSetupTransferStart();
   const { refetch } = useGetTransferProcesses();
+  const { refetch: refetchDetail } = useGetTransferProcessById(process.id);
   const router = useRouter();
 
   /**
@@ -25,29 +26,6 @@ export const TransferProcessStartDialog = ({ process, onClose }: {
    * Payload structure differs based on the user's role.
    */
   const handleSubmit = async () => {
-    const dataAddress = process.stateAttribute == "OnRequest" ? {
-      endpointType: "https://w3id.org/idsa/v4.1/HTTP",
-      endpoint: "http://example.com",
-      endpointProperties: [
-        {
-          "@type": "EndpointProperty",
-          name: "authorization",
-          value: "TOKEN-ABCDEFG"
-        },
-        {
-          "@type": "EndpointProperty",
-          name: "authType",
-          value: "bearer"
-        }
-      ]
-    } : undefined
-
-
-    if (!process.identifiers?.consumerPid || !process.identifiers?.providerPid) {
-      console.error("Missing process identifiers");
-      return;
-    }
-
     await startAsync({
       data: {
         consumerPid: process.identifiers.consumerPid,
@@ -56,6 +34,7 @@ export const TransferProcessStartDialog = ({ process, onClose }: {
     })
 
     await refetch();
+    await refetchDetail();
     router.invalidate();
     if (onClose) {
       onClose();

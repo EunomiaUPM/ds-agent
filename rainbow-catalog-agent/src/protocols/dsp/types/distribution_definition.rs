@@ -84,5 +84,5 @@ pub struct DistributionDctDeclaration {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub description: Vec<String>,
     #[serde(rename = "formats")]
-    pub formats: DctFormats,
+    pub formats: String,
 }

@@ -44,29 +44,28 @@ impl GatewayHttpRouter {
     pub fn router(self) -> Router {
         let cors = CorsLayer::new().allow_methods(Any).allow_origin(Any).allow_headers(Any);
 
-        let api_routes = Router::new()
-            .route("/dsp/current/{service_prefix}/{*extra}", any(Self::proxy_dsp_handler))
-            .route("/well-known/rpc/{*extra}", any(Self::proxy_well_known_rpc_handler))
-            .route("/did-json/{url}", get(Self::fetch_did_json))
-            .route("/ws", get(Self::websocket_handler))
-            .route("/incoming-notification", post(Self::incoming_notification))
-            .route("/fe-config", get(Self::config_handler))
-            .route("/{service_prefix}/{*extra}", any(Self::proxy_handler_with_extra))
-            .route("/{service_prefix}", any(Self::proxy_handler_without_extra));
-
         Router::new()
-            .nest("/api", api_routes.clone())
-            .nest("/admin/api", api_routes)
-            .route("/admin", get(Self::static_path_handler))
-            .route("/admin/{*rest}", get(Self::static_path_handler))
-
+            .route("/api/{service_prefix}/{*extra}", any(Self::proxy_handler_with_extra))
+            .route(
+                "/api/dsp/current/{service_prefix}/{*extra}",
+                any(Self::proxy_dsp_handler),
+            )
+            .route(
+                "/api/well-known/rpc/{*extra}",
+                any(Self::proxy_well_known_rpc_handler),
+            )
+            .route("/api/did-json/{url}", get(Self::fetch_did_json))
+            .route("/api/{service_prefix}", any(Self::proxy_handler_without_extra))
+            .route("/api/ws", get(Self::websocket_handler))
+            .route("/api/incoming-notification", post(Self::incoming_notification))
+            .route("/api/fe-config", get(Self::config_handler))
+            .fallback(Self::static_path_handler)
             .layer(cors)
             .with_state(self)
     }
 
     async fn static_path_handler(uri: Uri) -> impl IntoResponse {
         let mut path = uri.path().trim_start_matches('/').to_string();
-        let mut path = path.strip_prefix("admin").unwrap_or(&*path).trim_start_matches('/').to_string();
         if path.is_empty() {
             path = "index.html".to_string();
         }

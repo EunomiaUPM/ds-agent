@@ -1,73 +1,72 @@
 # ----------------------------
-# Stage 1: Build Frontend
+# Stage 1: Build Frontend (React)
 # ----------------------------
 FROM node:20-slim AS frontend-builder
-
 WORKDIR /app
 
-# Copiar package.json para monorepo
+# Copiar archivos necesarios para instalar dependencias
 COPY gui/package*.json ./gui/
 COPY gui/admin/package*.json ./gui/admin/
 COPY gui/shared/package*.json ./gui/shared/
 COPY gui/business/package*.json ./gui/business/
 
-# Instalar dependencias del monorepo
 WORKDIR /app/gui
 RUN npm install --legacy-peer-deps
 
-# Copiar código fuente
+# Copiar el resto del código del frontend
 COPY gui/admin ./admin
 COPY gui/shared ./shared
-# COPY gui/business ./business
 
-# Build React + TypeScript
+# Construir la aplicación React
 WORKDIR /app/gui/admin
 RUN npm run build
 
-
 # ----------------------------
-# Stage 2: Build Rust backend
+# Stage 2: Build Rust Backend
 # ----------------------------
 FROM rust:alpine3.23 AS backend-builder
-
 WORKDIR /app
 
-# Instalar dependencias de compilación y protobuf
+# Instalar dependencias de compilación para Alpine (musl)
 RUN apk add --no-cache \
     protobuf \
     protobuf-dev \
     musl-dev \
     build-base
 
-# Copiar backend
+# 1. Copiamos todo el código fuente del backend
 COPY . .
 
-# Build release del backend
-RUN cargo build --release --manifest-path rainbow-monolith/Cargo.toml
+# 2. IMPORTANTE: Copiamos los archivos estáticos generados en el Stage 1
+# a la ruta exacta donde RustEmbed los busca según tu código:
+# #[folder = "src/static/admin/dist"]
+RUN mkdir -p rainbow-monolith/src/static/admin/dist
+COPY --from=frontend-builder /app/gui/admin/dist ./rainbow-monolith/src/static/admin/dist
 
+# 3. Compilamos el binario (ahora incluirá el frontend dentro)
+RUN cargo build --release --manifest-path rainbow-monolith/Cargo.toml
 
 # ----------------------------
 # Stage 3: Runtime minimal
 # ----------------------------
-FROM debian:bookworm-slim
+# Usamos Alpine para coherencia con el builder y menor tamaño
+FROM alpine:3.23
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y libssl3 ca-certificates && rm -rf /var/lib/apt/lists/*
+# Instalar librerías mínimas necesarias para ejecutar el binario
+RUN apk add --no-cache libgcc libstdc++ ca-certificates
 
-# Copiar binario release del backend
+# Copiar el binario único (que ya contiene el frontend)
 COPY --from=backend-builder /app/target/release/rainbow_monolith /app/rainbow-monolith
 
-# Copiar build de frontend al directorio esperado por el backend
-COPY --from=frontend-builder /app/gui/admin/dist /app/react/dist
-
-# Exponer puerto por defecto (ajustar si es otro)
+# Exponer puerto
 EXPOSE 1500
 
-# Variables de entorno opcionales
+# Variables de entorno
 ENV RUST_LOG=info
 ENV CONFIG_PATH=/app/static/environment/config/prod/core.consumer.yaml
 
-# Comando de entrada
+# Comando de entrada corregido (usando directamente el binario)
 ENTRYPOINT ["/bin/sh", "-c"]
 CMD ["/app/rainbow-monolith setup --env-file $CONFIG_PATH && /app/rainbow-monolith start --env-file $CONFIG_PATH"]

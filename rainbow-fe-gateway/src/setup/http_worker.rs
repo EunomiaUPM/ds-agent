@@ -76,5 +76,6 @@ impl GatewayHttpWorker {
 }
 
 pub async fn create_gateway_http_router(config: &GatewayConfig) -> Router {
-    GatewayHttpRouter::new(config.clone()).router()
+    let gateway_router = GatewayHttpRouter::new(config.clone()).router();
+    Router::new().nest("/admin", gateway_router)
 }

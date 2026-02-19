@@ -30,7 +30,7 @@ use tokio::fs;
 use tokio::sync::broadcast;
 use tokio::sync::broadcast::Sender;
 use tokio_util::sync::CancellationToken;
-use tracing::{error, warn, info};
+use tracing::{error, info, warn};
 use urn::Urn;
 use ymir::config::traits::{ApiConfigTrait, HostsConfigTrait};
 use ymir::config::types::HostType;
@@ -175,14 +175,13 @@ impl BootstrapServiceTrait for CoreBoot {
         Ok(())
     }
 
-
     async fn cleanup_cache(config: &Self::Config) -> anyhow::Result<()> {
         let url = config.monolith().get_full_cache_url();
         tracing::info!("Flushing Redis at {}...", url);
         if let Err(e) = flush_redis_cache(&url).await {
-             tracing::warn!("Failed to flush Redis at {}: {}", url, e);
+            tracing::warn!("Failed to flush Redis at {}: {}", url, e);
         } else {
-             tracing::info!("Redis cache flushed successfully.");
+            tracing::info!("Redis cache flushed successfully.");
         }
         Ok(())
     }
@@ -209,9 +208,9 @@ impl BootstrapServiceTrait for CoreBoot {
                 _ = shutdown_rx.recv() => {
                     info!("Shutdown command received from Main Pipeline.");
                 }
-                // _ = async { http_handle } => {
-                //     error!("HTTP subsystem failed or stopped unexpectedly!");
-                // }
+                _ = async { http_handle } => {
+                    error!("HTTP subsystem failed or stopped unexpectedly!");
+                }
             }
 
             info!("Initiating internal graceful shutdown sequence...");

@@ -27,7 +27,7 @@ use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
-use tracing::info;
+use tracing::{error, info};
 use ymir::config::traits::{ConnectionConfigTrait, HostsConfigTrait};
 use ymir::config::types::HostType;
 use ymir::services::vault::vault_rs::VaultService;
@@ -42,18 +42,19 @@ impl CoreHttpWorker {
         config: &ApplicationConfig,
         vault: Arc<VaultService>,
         token: &CancellationToken,
-    ) -> anyhow::Result<()> {
-        // ) -> anyhow::Result<JoinHandle<()>> {
-        // message
+    ) -> anyhow::Result<JoinHandle<()>> {
+        // <-- Devolvemos el JoinHandle
         let server_message = format!(
             "Starting Dataspace http server in {}",
             config.monolith().common().get_host(HostType::Http)
         );
         info!("{}", server_message);
+
         match config.monolith().common().is_tls_enabled() {
             true => {
                 info!("Running with TLS active");
-                Self::run_tls(config, vault).await
+                // Pasamos el token también a la versión TLS
+                Self::run_tls(config, vault, token).await
             }
             false => {
                 info!("Running without TLS");
@@ -65,7 +66,8 @@ impl CoreHttpWorker {
     pub async fn run_tls(
         config: &ApplicationConfig,
         vault: Arc<VaultService>,
-    ) -> anyhow::Result<()> {
+        token: &CancellationToken, // <-- Añadido para apagado seguro
+    ) -> anyhow::Result<JoinHandle<()>> {
         let cert = expect_from_env("VAULT_APP_ROOT_CLIENT_KEY");
         let pkey = expect_from_env("VAULT_APP_CLIENT_KEY");
         let cert: StringHelper = vault.read(None, &cert).await?;
@@ -92,37 +94,58 @@ impl CoreHttpWorker {
         let addr: SocketAddr = addr_str.parse()?;
         info!("Starting Authority server with TLS in {}", addr);
 
-        axum_server::bind_rustls(addr, tls_config).serve(router.into_make_service()).await?;
-        Ok(())
+        // Axum-server usa su propio Handle para el graceful shutdown
+        let server_handle = axum_server::Handle::new();
+
+        // Tarea en segundo plano para escuchar el CancellationToken y apagar axum_server
+        let shutdown_token = token.clone();
+        let axum_handle_clone = server_handle.clone();
+        tokio::spawn(async move {
+            shutdown_token.cancelled().await;
+            info!("TLS HTTP Service received shutdown signal, draining connections...");
+            axum_handle_clone.graceful_shutdown(Some(std::time::Duration::from_secs(10)));
+        });
+
+        // Envolvemos el servidor TLS en un tokio::spawn para no bloquear el hilo principal
+        let handle = tokio::spawn(async move {
+            let server = axum_server::bind_rustls(addr, tls_config)
+                .handle(server_handle)
+                .serve(router.into_make_service());
+
+            match server.await {
+                Ok(_) => info!("TLS HTTP Service stopped successfully"),
+                Err(e) => error!("TLS HTTP Service crashed: {}", e),
+            }
+        });
+
+        Ok(handle) // <-- Devolvemos el handle
     }
+
     pub async fn run(
         config: &ApplicationConfig,
         vault: Arc<VaultService>,
         token: &CancellationToken,
-    ) -> anyhow::Result<()> {
-        // ) -> anyhow::Result<JoinHandle<()>> {
-        // router
+    ) -> anyhow::Result<JoinHandle<()>> {
         let router = create_core_router(config, vault.clone()).await;
-        // config
+
         let host = if config.monolith().common().is_local() { "127.0.0.1" } else { "0.0.0.0" };
         let port = config.monolith().common().get_weird_port(HostType::Http);
         let addr = format!("{}{}", host, port);
-        // listener
+
         let listener = TcpListener::bind(&addr).await?;
-        // gracefully cancelation token
         let token = token.clone();
+
         let handle = tokio::spawn(async move {
             let server = serve(listener, router).with_graceful_shutdown(async move {
                 token.cancelled().await;
-                tracing::info!("HTTP Service received shutdown signal, draining connections...");
+                info!("HTTP Service received shutdown signal, draining connections...");
             });
             match server.await {
-                Ok(_) => tracing::info!("HTTP Service stopped successfully"),
-                Err(e) => tracing::error!("HTTP Service crashed: {}", e),
+                Ok(_) => info!("HTTP Service stopped successfully"),
+                Err(e) => error!("HTTP Service crashed: {}", e),
             }
         });
 
-        //serve(listener, router).await?;
-        Ok(())
+        Ok(handle) // <-- Devolvemos el handle, ya no es Ok(()) a secas
     }
 }

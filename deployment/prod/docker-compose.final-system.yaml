@@ -1,4 +1,3 @@
-version: "3.8"
 
 services:
   postgres:
@@ -17,7 +16,7 @@ services:
     ports:
       - "8081:8081"
     env_file:
-      - .env
+      - .env.final-system
     command: "serve"
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -28,7 +27,7 @@ services:
   static-api-setup:
     build: .
     env_file:
-      - .env
+      - .env.final-system
     command: "fake"
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -40,7 +39,7 @@ services:
     ports:
       - "8082:8082"
     env_file:
-      - .env
+      - .env.final-system
     command: ["metrics"]
     extra_hosts:
       - "host.docker.internal:host-gateway"

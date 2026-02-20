@@ -1,4 +1,5 @@
-version: "3.8"
+
+
 x-common:
   common-env: &common-env
     POSTGRES_USER: postgres
@@ -12,7 +13,7 @@ services:
     deploy:
       replicas: 1
     env_file:
-      - ./.env
+      - .env.data-client
     environment:
       NIFI_AUTHENTICATION_STRATEGY: "single-user"
       SINGLE_USER_CREDENTIALS_USERNAME: nifi

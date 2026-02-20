@@ -1,0 +1,76 @@
+version: "3.8"
+x-common:
+  common-env: &common-env
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: postgres
+    POSTGRES_DB: postgres
+
+services:
+  nifi:
+    image: apache/nifi:latest
+    container_name: nifi
+    deploy:
+      replicas: 1
+    env_file:
+      - ./.env
+    environment:
+      NIFI_AUTHENTICATION_STRATEGY: "single-user"
+      SINGLE_USER_CREDENTIALS_USERNAME: nifi
+      SINGLE_USER_CREDENTIALS_PASSWORD: nifinifinifinifi # pass must be at least 12 characters
+      <<: *common-env
+    volumes:
+      - $PWD/lib:/opt/nifi/nifi-current/javall # Custom libraries such as JDBC drivers
+      - nifi-vol:/opt/nifi/nifi-current # Persist Nifi data
+    ports:
+      - "8083:8080" # Nifi UI port
+      - "8181:8181" # Nifi Site to Site port
+      - "8443:8443" # Nifi Secure UI port
+      - "9090:9090" # Port for pushing data to NiFi - on push
+      - "9091:9091" # Port for pulling data to NiFi - on pull
+      - "10001:10000" # Port for pushing data to NiFi - on push secure
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  nifi-registry:
+    image: apache/nifi-registry:latest
+    container_name: nifi-registry
+    deploy:
+      replicas: 1
+    ports:
+      - "18080:18080" # Nifi Registry UI port
+    environment:
+      NIFI_REGISTRY_WEB_HTTP_PORT: "18080"
+    volumes:
+      - $PWD/nifi-registry-data:/opt/nifi-registry/nifi-registry-current/data # Persist Nifi Registry data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  transactional-db:
+    image: postgres:15
+    container_name: transactional-db
+    deploy:
+      replicas: 1
+    environment:
+      <<: *common-env
+    ports:
+      - "5440:5432" # Expose Postgres port just for testing
+    volumes:
+      - transactional-db-data:/var/lib/postgresql/data # Persist Postgres data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  metabase:
+    image: metabase/metabase:latest
+    container_name: metabase
+    deploy:
+      replicas: 1
+    ports:
+      - "3000:3000" # Metabase UI port
+    depends_on:
+      - transactional-db
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  transactional-db-data:
+  nifi-vol:

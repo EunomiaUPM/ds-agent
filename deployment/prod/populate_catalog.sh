@@ -4,12 +4,12 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-#DATA_SPACE_PROVIDER="${DATA_SPACE_PROVIDER:-http://127.0.0.1:1200}"
-DATA_SPACE_PROVIDER=https://dev-dataspaces.dit.upm.es:1200
-#STATIC_API="${STATIC_API:-http://127.0.0.1:8081}"
-#DYNAMIC_API="${DYNAMIC_API:-http://127.0.0.1:8082}"
-STATIC_API="${STATIC_API:-http://host.docker.internal:8081}"
-DYNAMIC_API="${DYNAMIC_API:-http://host.docker.internal:8082}"
+DATA_SPACE_PROVIDER="${DATA_SPACE_PROVIDER:-http://127.0.0.1:1200}"
+#DATA_SPACE_PROVIDER=https://dev-dataspaces.dit.upm.es:1200
+STATIC_API="${STATIC_API:-http://127.0.0.1:8081}"
+DYNAMIC_API="${DYNAMIC_API:-http://127.0.0.1:8082}"
+#STATIC_API="${STATIC_API:-http://host.docker.internal:8081}"
+#DYNAMIC_API="${DYNAMIC_API:-http://host.docker.internal:8082}"
 
 JSON_HEADER_CT="Content-Type: application/json"
 
@@ -83,40 +83,114 @@ echo "    distribution_push_id = ${DISTRIBUTION_PUSH_ID}"
 # ---------------------------------------------------------------------------
 # 6. Create policy from template (policy-1)
 # ---------------------------------------------------------------------------
-echo "==> Instantiating policy from template..."
+echo "==> Instantiating policy from template (time-limited research access)..."
 POLICY_TMPL_PAYLOAD=$(jq -n \
   --arg ds "${DATASET_ID}" \
   '{
     id: "policy-1",
     version: "1.0",
-    parameters: { "$bla": "did:web:hola.es" },
+    parameters: { "$bla": "did:web:university.upm.es" },
     entityId: $ds,
-    entityType: "Dataset"
+    entityType: "Dataset",
+    description: "Research access for UPM: grants read access to did:web:university.upm.es valid until 2025-12-31."
   }')
 
 provider_post "/api/v1/catalog-agent/policy-templates/instantiate-odrl-offer" "${POLICY_TMPL_PAYLOAD}" | jq .
 
 # ---------------------------------------------------------------------------
-# 7. Create policy directly via API
+# 7. Create policies directly via API
 # ---------------------------------------------------------------------------
-echo "==> Creating ODRL policy directly..."
-POLICY_DIRECT_PAYLOAD=$(jq -n \
+
+echo "==> Creating ODRL policy: commercial use with attribution and time window..."
+POLICY_COMMERCIAL_PAYLOAD=$(jq -n \
   --arg ds "${DATASET_ID}" \
   '{
     odrlOffer: {
       permission: [{
         action: "use",
+        constraint: [
+          {
+            leftOperand: "dateTime",
+            operator: "gteq",
+            rightOperand: "2025-01-01T00:00:00Z"
+          },
+          {
+            leftOperand: "dateTime",
+            operator: "lteq",
+            rightOperand: "2025-12-31T23:59:59Z"
+          },
+          {
+            leftOperand: "purpose",
+            operator: "isA",
+            rightOperand: "commercial"
+          }
+        ]
+      }],
+      obligation: [{
+        action: "attribut",
         constraint: [{
-          rightOperand: "user",
-          leftOperand: "did:web:hola.es",
-          operator: "eq"
+          leftOperand: "recipient",
+          operator: "isA",
+          rightOperand: "public"
         }]
       }],
-      obligation: [],
-      prohibition: []
+      prohibition: [{
+        action: "derive",
+        constraint: []
+      }]
     },
     entityId: $ds,
-    entityType: "Dataset"
+    entityType: "Dataset",
+    description: "Commercial use licence valid for 2025: permits usage for commercial purposes with mandatory attribution. Derivation of the dataset is prohibited."
+  }')
+
+provider_post "/api/v1/catalog-agent/odrl-policies" "${POLICY_COMMERCIAL_PAYLOAD}" | jq .
+
+echo "==> Creating ODRL policy: research-only access with 6-month trial window..."
+POLICY_DIRECT_PAYLOAD=$(jq -n \
+  --arg ds "${DATASET_ID}" \
+  '{
+    odrlOffer: {
+      permission: [{
+        action: "read",
+        constraint: [
+          {
+            leftOperand: "dateTime",
+            operator: "gteq",
+            rightOperand: "2025-03-01T00:00:00Z"
+          },
+          {
+            leftOperand: "dateTime",
+            operator: "lteq",
+            rightOperand: "2025-09-01T00:00:00Z"
+          },
+          {
+            leftOperand: "purpose",
+            operator: "isA",
+            rightOperand: "research"
+          },
+          {
+            leftOperand: "count",
+            operator: "lteq",
+            rightOperand: "10000"
+          }
+        ]
+      }],
+      obligation: [],
+      prohibition: [
+        {
+          action: "distribute",
+          constraint: []
+        },
+        {
+          action: "reproduce",
+          constraint: []
+        }
+      ]
+    },
+    entityId: $ds,
+    entityType: "Dataset",
+    description: "Research trial access (Mar–Sep 2025): read-only, limited to 10 000 requests, restricted to research purposes. Redistribution and reproduction are prohibited."
   }')
 
 provider_post "/api/v1/catalog-agent/odrl-policies" "${POLICY_DIRECT_PAYLOAD}" | jq .

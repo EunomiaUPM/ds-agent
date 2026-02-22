@@ -5,6 +5,7 @@ import { SSIAuthContext } from "shared/src/context/SSIAuthContext";
 import { PeerConnectorForm } from "../forms/PeerConnectorForm";
 import { GrantRequestForm } from "../forms/GrantRequestForm";
 import { VPPresentationForm } from "../forms/VPPresentationForm";
+import {PeerConnectorFormForDemo} from "@/components/ssi-auth/forms/PeerConnectorFormForDemo.tsx";
 
 export function PeerStep() {
   const ssiAuthContext = useContext(SSIAuthContext);
@@ -19,7 +20,7 @@ export function PeerStep() {
           </p>
         </div>
         <div className="w-full border rounded-lg p-4 space-y-4">
-          <PeerConnectorForm />
+          <PeerConnectorFormForDemo />
           <div>
             {ssiAuthContext.tempPeer.did ? (
               <div className="text-sm font-mono p-3 bg-muted rounded break-all border">

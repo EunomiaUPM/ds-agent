@@ -6,6 +6,7 @@ import { VCRequestForm } from "../forms/VCRequestForm";
 import { VCAcceptForm } from "../forms/VCAcceptForm";
 import { DataTable, Column } from "shared/src/components/DataTable";
 import { Loader2, Circle } from "lucide-react";
+import {AuthorityConnectorFormForDemo} from "@/components/ssi-auth/forms/AuthorityConnectorFormForDemo.tsx";
 
 export function AuthorityStep() {
   const ssiAuthContext = useContext(SSIAuthContext);
@@ -32,7 +33,7 @@ export function AuthorityStep() {
         </div>
 
         <div className="w-full border rounded-lg p-4 space-y-4">
-          <AuthorityConnectorForm />
+          <AuthorityConnectorFormForDemo />
           <div>
             {ssiAuthContext.authDid.did ? (
               <div className="text-sm font-mono p-3 bg-muted rounded break-all border">

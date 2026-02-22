@@ -1,12 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-/**
- * Route for the login page.
- */
+// Auth is handled by the root component.
+// This file only exists to register /login/ in the route tree.
 export const Route = createFileRoute("/login/")({
-  component: RouteComponent,
+  component: () => null,
 });
-
-function RouteComponent() {
-  return <div>Hello "/login/"!</div>;
-}

@@ -32,6 +32,7 @@ import { LogOut, Bell, User } from "lucide-react";
 import { SidebarTrigger } from "shared/src/components/ui/sidebar";
 import { Separator } from "shared/src/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "shared/src/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "shared/src/components/ui/popover";
 
 // =============================================================================
 // TYPES
@@ -182,9 +183,14 @@ function generateBreadcrumbs(pathname: string): BreadcrumbItemData[] {
  * Breadcrumbs are automatically generated from the current URL path
  * with smart formatting and responsive behavior.
  */
-export const Header = () => {
+export const Header = ({ onSignOut }: { onSignOut?: () => void } = {}) => {
   const routerState = useRouterState();
   const { isAuthenticated, unsetAuthentication } = useContext<AuthContextType | null>(AuthContext)!;
+
+  const handleSignOut = () => {
+    unsetAuthentication();
+    onSignOut?.();
+  };
 
   // ---------------------------------------------------------------------------
   // Breadcrumb Generation
@@ -312,21 +318,27 @@ export const Header = () => {
       </div>
 
       {/* Right section: User actions */}
-      <div className="flex flex-row gap-4 shrink-0">
+      <div className="flex flex-row gap-4 shrink-0 items-center">
         <Link to="/subscriptions">
           <Bell className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors h-5 w-5" />
         </Link>
 
-        <Link to="">
-          <User className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors h-5 w-5" />
-        </Link>
-
-        {isAuthenticated && (
-          <Button variant="ghost" size="xs" onClick={() => unsetAuthentication()}>
-            Logout
-            <LogOut className="ml-2 h-4 w-4" />
-          </Button>
-        )}
+        <Popover>
+          <PopoverTrigger asChild>
+            <button className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors">
+              <User className="h-5 w-5" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-44 p-1">
+            <button
+              onClick={handleSignOut}
+              className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign out
+            </button>
+          </PopoverContent>
+        </Popover>
       </div>
     </div>
   );

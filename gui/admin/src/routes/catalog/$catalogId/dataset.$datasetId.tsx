@@ -13,7 +13,6 @@ import {FormatDate} from "shared/src/components/ui/format-date";
 import {ArrowRight, Plus} from "lucide-react";
 import {useCreateOdrlPolicy, useGetPoliciesByEntityId} from "shared/src/data/orval/odrl-policies/odrl-policies";
 import {OdrlPolicyInfo} from "shared/src/data/orval/model/odrlPolicyInfo";
-import {SubmitHandler} from "react-hook-form";
 import {Button} from "shared/src/components/ui/button.tsx";
 import {formatUrn} from "shared/src/lib/utils";
 import {PageLayout} from "shared/src/components/layout/PageLayout";
@@ -47,12 +46,13 @@ function RouteComponent() {
     const distributions = distributionsData?.status === 200 ? distributionsData.data : [];
     const policies = policiesData?.status === 200 ? policiesData.data : [];
 
-    const onSubmit: SubmitHandler<OdrlPolicyInfo> = async (data) => {
+    const onSubmit = async (data: OdrlPolicyInfo, description?: string) => {
         await createPolicyAsync({
             data: {
                 entityId: datasetId,
                 entityType: "Dataset",
                 odrlOffer: data,
+                description,
             }
         });
         setOpen(false);

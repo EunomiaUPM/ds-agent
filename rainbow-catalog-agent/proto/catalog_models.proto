@@ -98,6 +98,7 @@ message OdrlPolicy {
   optional string source_template_id = 6;
   optional string source_template_version = 7;
   optional google.protobuf.Struct instantiation_parameters = 8;
+  optional string description = 9;
 }
 
 // ---------------------------------------------------------
@@ -316,4 +317,5 @@ message CreateOdrlPolicyRequest {
   optional string source_template_id = 5;
   optional string source_template_version = 6;
   optional google.protobuf.Struct instantiation_parameters = 7;
+  optional string description = 8;
 }

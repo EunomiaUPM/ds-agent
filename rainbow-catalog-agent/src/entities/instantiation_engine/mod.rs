@@ -18,6 +18,7 @@ pub struct NewPolicyInstantiationDto {
     parameters: HashMap<String, PolicyTemplateAllowedDefaultValues>,
     entity_id: Urn,
     entity_type: CatalogEntityTypes,
+    pub description: Option<String>,
 }
 
 #[async_trait::async_trait]

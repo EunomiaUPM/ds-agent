@@ -416,6 +416,7 @@ impl OrchestrationPersistenceForProtocol {
             _type: OdrlTypes::Offer,
             prohibition: odrl_info.prohibition,
             target: None,
+            description: dto.inner.description,
         })
     }
 }

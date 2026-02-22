@@ -1699,6 +1699,8 @@ components:
           type: string
         instantiationParameters:
           type: object
+        description:
+          type: string
       example:
         {
           "createdAt": "2026-01-10T14:40:30.978559Z",
@@ -1751,6 +1753,8 @@ components:
           type: string
         instantiationParameters:
           type: object
+        description:
+          type: string
       example:
         {
           "entity": "urn:catalog:35d10981-1d0b-4204-b32e-847b827ce635",

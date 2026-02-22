@@ -22,6 +22,7 @@ import { InfoList } from "shared/src/components/ui/info-list";
 import Heading from "shared/src/components/ui/heading";
 import { FormProvider, useForm } from "react-hook-form";
 import { Button } from "shared/src/components/ui/button";
+import { Textarea } from "shared/src/components/ui/textarea";
 import { PolicyTemplateSection } from "shared/src/components/policy/PolicyTemplateSection";
 
 // =============================================================================
@@ -29,10 +30,12 @@ import { PolicyTemplateSection } from "shared/src/components/policy/PolicyTempla
 // =============================================================================
 
 /**
- * Dynamic form values where keys are operand names from the template.
+ * Dynamic form values where keys are operand names from the template,
+ * plus an optional __description field.
  */
 type TemplateFormValues = {
-  [key: string]: string;
+  __description?: string;
+  [key: string]: string | undefined;
 };
 
 /**
@@ -44,9 +47,9 @@ export interface PolicyTemplateWrapperEditProps {
 
   /**
    * Callback when the form is submitted.
-   * Receives the complete ODRL content with placeholders replaced.
+   * Receives the complete ODRL content with placeholders replaced, and an optional description.
    */
-  onSubmit: (odrlContent: OdrlInfo) => Promise<void>;
+  onSubmit: (odrlContent: OdrlInfo, description?: string) => Promise<void>;
 }
 
 // =============================================================================
@@ -106,13 +109,15 @@ export const PolicyTemplateWrapperEdit = ({
    * Uses string replacement to substitute placeholder variables in the template content.
    */
   const handleSubmit = async (formData: TemplateFormValues) => {
+    const { __description, ...operandData } = formData;
+
     // Deep clone the template content to avoid mutation
     let odrlContent = JSON.parse(JSON.stringify(policyTemplate.content));
 
     // Replace each placeholder with its form value
-    for (const key in formData) {
-      if (formData.hasOwnProperty(key)) {
-        const value = formData[key];
+    for (const key in operandData) {
+      if (operandData.hasOwnProperty(key)) {
+        const value = operandData[key];
         let contentString = JSON.stringify(odrlContent);
 
         // Escape special regex characters in the key (like $)
@@ -123,7 +128,7 @@ export const PolicyTemplateWrapperEdit = ({
       }
     }
 
-    await onSubmit(odrlContent);
+    await onSubmit(odrlContent, __description || undefined);
     form.reset();
   };
 
@@ -147,6 +152,19 @@ export const PolicyTemplateWrapperEdit = ({
 
             {/* Template Description */}
             <InfoList items={[{ label: "Description", value: policyTemplate.description }]} />
+
+            {/* Policy instance description */}
+            <div className="flex flex-col gap-1 mt-2">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Policy description
+              </label>
+              <Textarea
+                placeholder="Optional description for this policy instance"
+                {...form.register("__description")}
+                className="resize-none"
+                rows={2}
+              />
+            </div>
 
             {/* ODRL Content Sections */}
             <div className="min-h-5" />

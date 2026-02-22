@@ -37,6 +37,8 @@ pub struct NewOdrlPolicyDto {
     pub source_template_version: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub instantiation_parameters: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
 }
 
 impl Display for CatalogEntityTypes {
@@ -62,6 +64,7 @@ impl From<NewOdrlPolicyDto> for NewOdrlOfferModel {
             source_template_id: dto.source_template_id,
             source_template_version: dto.source_template_version,
             instantiation_parameters: dto.instantiation_parameters,
+            description: dto.description,
         }
     }
 }

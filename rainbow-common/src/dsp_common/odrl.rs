@@ -70,6 +70,9 @@ pub struct OdrlMessageOffer {
     // Offer
     #[serde(rename = "target")]
     pub target: Urn, // anyof
+    #[serde(rename = "description")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
 }
 
 impl Default for OdrlMessageOffer {
@@ -82,6 +85,7 @@ impl Default for OdrlMessageOffer {
             _type: OdrlTypes::Offer,
             prohibition: None,
             target: get_urn(None),
+            description: None,
         }
     }
 }
@@ -112,6 +116,9 @@ pub struct OdrlOffer {
     #[serde(rename = "target")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub target: Option<Urn>, // anyof// anyof
+    #[serde(rename = "description")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
 }
 
 impl Default for OdrlOffer {
@@ -124,6 +131,7 @@ impl Default for OdrlOffer {
             _type: OdrlTypes::Offer,
             prohibition: None,
             target: None,
+            description: None,
         }
     }
 }
@@ -157,6 +165,9 @@ pub struct OdrlAgreement {
     #[serde(rename = "prohibition")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub prohibition: Option<Vec<OdrlObligation>>, // anyof
+    #[serde(rename = "description")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
 }
 
 impl Default for OdrlAgreement {
@@ -172,6 +183,7 @@ impl Default for OdrlAgreement {
             assignee: "".to_string(),
             timestamp: None,
             prohibition: None,
+            description: None,
         }
     }
 }
@@ -332,4 +344,7 @@ pub struct OdrlPolicyInfo {
     #[serde(rename = "prohibition")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub prohibition: Option<Vec<OdrlObligation>>, // anyof
+    #[serde(rename = "description")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
 }

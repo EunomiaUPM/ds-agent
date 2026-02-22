@@ -342,6 +342,7 @@ impl From<OdrlPolicyDto> for OdrlPolicy {
             source_template_id: model.source_template_id,
             source_template_version: model.source_template_version,
             instantiation_parameters: inst_params,
+            description: model.description,
         }
     }
 }
@@ -389,6 +390,7 @@ impl TryFrom<CreateOdrlPolicyRequest> for NewOdrlPolicyDto {
             source_template_id: None,
             source_template_version: None,
             instantiation_parameters: None,
+            description: req.description,
         })
     }
 }

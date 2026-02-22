@@ -35,6 +35,7 @@ pub struct Model {
     pub source_template_id: Option<String>,
     pub source_template_version: Option<String>,
     pub instantiation_parameters: Option<serde_json::Value>,
+    pub description: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -108,6 +109,7 @@ pub struct NewOdrlOfferModel {
     pub source_template_id: Option<String>,
     pub source_template_version: Option<String>,
     pub instantiation_parameters: Option<serde_json::Value>,
+    pub description: Option<String>,
 }
 
 impl From<NewOdrlOfferModel> for ActiveModel {
@@ -124,6 +126,7 @@ impl From<NewOdrlOfferModel> for ActiveModel {
             source_template_id: ActiveValue::Set(dto.source_template_id),
             source_template_version: ActiveValue::Set(dto.source_template_version),
             instantiation_parameters: ActiveValue::Set(dto.instantiation_parameters),
+            description: ActiveValue::Set(dto.description),
         }
     }
 }

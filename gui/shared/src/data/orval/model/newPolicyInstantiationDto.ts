@@ -18,4 +18,5 @@ export interface NewPolicyInstantiationDto {
   parameters: NewPolicyInstantiationDtoParameters;
   entityId: string;
   entityType: NewPolicyInstantiationDtoEntityType;
+  description?: string;
 }

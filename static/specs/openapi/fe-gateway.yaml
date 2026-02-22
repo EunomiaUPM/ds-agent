@@ -5380,6 +5380,8 @@ components:
           type: string
         instantiationParameters:
           type: object
+        description:
+          type: string
       examples:
         - createdAt: "2026-01-10T14:40:30.978559Z"
           entity: urn:catalog:35d10981-1d0b-4204-b32e-847b827ce635
@@ -5676,6 +5678,8 @@ components:
             - DataService
             - Catalog
             - Dataset
+        description:
+          type: string
       examples:
         - id: policy-1
           version: "1.0"
@@ -7002,6 +7006,8 @@ components:
           type: string
         instantiationParameters:
           type: object
+        description:
+          type: string
       examples:
         - entity: urn:catalog:35d10981-1d0b-4204-b32e-847b827ce635
           entityType: Catalog

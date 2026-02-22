@@ -273,6 +273,7 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
             assignee,
             timestamp: Some(chrono::Utc::now().timestamp().to_string()),
             prohibition: offer.prohibition,
+            description: offer.description,
         };
         let associated_peer = current_process.inner.associated_agent_peer.clone();
         if let Ok(mate) = self.mates_service.get_mate_by_id(associated_peer).await {

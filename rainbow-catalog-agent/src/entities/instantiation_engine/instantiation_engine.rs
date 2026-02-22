@@ -114,6 +114,7 @@ impl PolicyInstantiationTrait for PolicyInstantiationEngine {
                 instantiation_parameters: Some(serde_json::to_value(
                     &instantiation_request.parameters,
                 )?),
+                description: instantiation_request.description.clone(),
             })
             .await
             .map_err(|e| CommonErrors::database_new(&e.to_string()))?;

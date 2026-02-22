@@ -1,15 +1,16 @@
-import React, { FC } from "react";
+import React, { FC, useState } from "react";
 import { Accordion } from "shared/src/components/ui/accordion";
 import { Button } from "shared/src/components/ui/button";
 import { usePolicyForm } from "shared/src/hooks/usePolicyForm";
 import { PolicySection } from "./policy-form/PolicySection";
-import { SubmitHandler } from "react-hook-form";
+import { Textarea } from "shared/src/components/ui/textarea";
+import { OdrlPolicyInfo } from "shared/src/data/orval/model/odrlPolicyInfo";
 
 /**
  * Wrapper component for creating a new policy.
  */
 export const PolicyWrapperNew: FC<{
-  onSubmit: SubmitHandler<any>;
+  onSubmit: (odrlContent: OdrlPolicyInfo, description?: string) => void | Promise<void>;
 }> = ({ onSubmit }) => {
   const {
     policy,
@@ -22,14 +23,29 @@ export const PolicyWrapperNew: FC<{
     resetPolicy,
   } = usePolicyForm();
 
+  const [description, setDescription] = useState<string>("");
+
   const submitHandler = () => {
-    onSubmit(policy);
+    onSubmit(policy, description || undefined);
     resetPolicy();
+    setDescription("");
   };
 
   return (
     <div className="h-screen flex flex-col">
       <div className="flex flex-col gap-3 overflow-y-scroll h-[calc(100vh-180px)]  p-8 ">
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            Description
+          </label>
+          <Textarea
+            placeholder="Optional policy description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className="resize-none"
+            rows={2}
+          />
+        </div>
         <Accordion type="single" collapsible className="w-full">
           <PolicySection
             type="permission"

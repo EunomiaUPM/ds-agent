@@ -22,4 +22,5 @@ export interface OdrlPolicyDto {
   sourceTemplateId?: string;
   sourceTemplateVersion?: string;
   instantiationParameters?: OdrlPolicyDtoInstantiationParameters;
+  description?: string;
 }

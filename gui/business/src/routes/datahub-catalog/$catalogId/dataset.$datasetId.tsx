@@ -36,13 +36,14 @@ function RouteComponent() {
   const { mutateAsync: createPolicyAsync } = usePostBusinessNewPolicyInDataset();
   const { api_gateway } = useContext<GlobalInfoContextType | null>(GlobalInfoContext)!;
 
-  const onSubmit = async (odrlContent: OdrlInfo) => {
+  const onSubmit = async (odrlContent: OdrlInfo, description?: string) => {
     await createPolicyAsync({
       api_gateway,
       datasetId,
       catalogId,
       content: {
         offer: odrlContent,
+        description,
       },
     });
     setIsOpen(false);

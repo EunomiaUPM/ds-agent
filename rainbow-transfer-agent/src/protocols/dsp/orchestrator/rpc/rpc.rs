@@ -143,7 +143,7 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         let transfer_process =
             self.persistence_service.fetch_process(input_transfer_id.to_string().as_str()).await?;
         let is_restart =
-            transfer_process.inner.state_attribute.clone().unwrap_or("".to_string()) != "OnRequested";
+            transfer_process.inner.state_attribute.clone().unwrap_or("".to_string()) != "OnRequest";
         let provider_pid = transfer_process.identifiers.get("providerPid").unwrap();
         let consumer_pid = transfer_process.identifiers.get("consumerPid").unwrap();
         // get uri

@@ -25,7 +25,7 @@ services:
       - static-api-setup
 
   static-api-setup:
-    build: .
+    image: quay.io/eunomia_upm/ecostars-provider
     env_file:
       - .env.final-system
     command: "fake"

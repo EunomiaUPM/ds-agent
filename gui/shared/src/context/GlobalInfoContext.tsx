@@ -9,6 +9,7 @@ export interface GlobalInfoContextType {
   api_gateway_base: string;
   api_gateway: string;
   api_gateway_callback_address: string;
+  api_gateway_dsp_base: string;
 }
 
 type ConfigInfo = {
@@ -19,6 +20,7 @@ export const GlobalInfoContext = createContext<GlobalInfoContextType | null>(nul
 
 export const GlobalInfoContextProvider = ({ children }: { children: ReactNode }) => {
   const [apiGatewayBase, setApiGatewayBase] = useState<string>("/");
+  const [dspBase, setDspBase] = useState<string>("");
   const [configRole, setConfigRole] = useState<string>("");
   const [catalogType] = useState<"rainbow" | "datahub" | "both">("rainbow");
   const [isConfigLoaded, setIsConfigLoaded] = useState(false);
@@ -43,18 +45,21 @@ export const GlobalInfoContextProvider = ({ children }: { children: ReactNode })
     const initConfig = async () => {
       try {
         if (isProduction) {
-          setApiGatewayBase("/");
           const res = await fetch("/admin/api/fe-config");
           if (res.ok) {
             const data = await res.json();
-            setConfigRole(data.config_role);
-            console.log("Prod Config Loaded. Role:", data.config_role, "Base: (Relative)");
+            // api_gateway_base stays "/" so Orval uses relative URLs through the proxy
+            setApiGatewayBase("/");
+            setDspBase(data.gateway_base ?? "");
+            setConfigRole(data.config_role ?? "");
+            console.log("Prod Config Loaded. Role:", data.config_role, "DSP Base:", data.gateway_base);
           } else {
             console.error("Error cargando config en prod:", res.status);
           }
         } else {
           const localBase = `${localConfig.gateway_host}:${localConfig.gateway_port}`;
           setApiGatewayBase(localBase);
+          setDspBase(localBase);
           setConfigRole(localConfig.config_role);
           console.log("Dev Config Loaded. Base:", localBase);
         }
@@ -94,8 +99,9 @@ export const GlobalInfoContextProvider = ({ children }: { children: ReactNode })
       api_gateway_base: prefix,
       api_gateway: gateway,
       api_gateway_callback_address: `${prefix}/admin/api/incoming-notification`,
+      api_gateway_dsp_base: dspBase,
     };
-  }, [catalogType, configRole, apiGatewayBase]);
+  }, [catalogType, configRole, apiGatewayBase, dspBase]);
 
   /**
    * Render when config is loaded

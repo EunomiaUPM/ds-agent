@@ -20,7 +20,7 @@ export const useMyWellKnownDSPPath = (version = "2025-1"): string | null => {
     return null;
   }
 
-  const { api_gateway_base } = context;
+  const { api_gateway_dsp_base } = context;
 
   // Check if data is available and is of type VersionResponse (has protocolVersions)
   if (!myWellKnown?.data || !("protocolVersions" in myWellKnown.data)) {
@@ -33,7 +33,7 @@ export const useMyWellKnownDSPPath = (version = "2025-1"): string | null => {
     return null;
   }
 
-  return `${api_gateway_base}${protocolVersion.path}`;
+  return `${api_gateway_dsp_base}${protocolVersion.path}`;
 };
 
 /**

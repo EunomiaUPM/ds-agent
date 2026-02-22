@@ -7,6 +7,8 @@ use axum::routing::{any, get, post};
 use axum::{body::Body, Json, Router};
 use rainbow_common::config::services::GatewayConfig;
 use rainbow_common::config::traits::CommonConfigTrait;
+use ymir::config::traits::HostsConfigTrait;
+use ymir::config::types::HostType;
 use rust_embed::Embed;
 use serde_json::{json, Value};
 use std::sync::Arc;
@@ -95,11 +97,9 @@ impl GatewayHttpRouter {
     }
 
     async fn config_handler(State(config): State<GatewayConfig>) -> impl IntoResponse {
-        let gateway_host = config.common().hosts.http.url.clone();
-        let gateway_port = config.common().hosts.http.port.clone().unwrap_or("80".to_string());
+        let gateway_base = config.common().hosts.get_host(HostType::Http);
         let json = json!({
-            "gateway_host": gateway_host,
-            "gateway_port": gateway_port,
+            "gateway_base": gateway_base,
         });
         (StatusCode::OK, Json(json).into_response())
     }

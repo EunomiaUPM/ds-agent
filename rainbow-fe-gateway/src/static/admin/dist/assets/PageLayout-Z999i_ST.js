@@ -1,1 +1,0 @@
-import{j as r}from"./ui-DRQbTUvW.js";import{o as t}from"./index-DAxzkfvj.js";function m({className:o,children:s,...a}){return r.jsx("div",{className:t("space-y-2 pb-2 px-3 w-full",o),...a,children:s})}export{m as P};

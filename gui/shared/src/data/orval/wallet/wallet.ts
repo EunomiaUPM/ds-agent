@@ -202,7 +202,7 @@ export const getGetWalletDidUrl = () => {
 
   
 
-  return `/wallet/did.json`
+  return `/well-known/did.json`
 }
 
 export const getWalletDid = async ( options?: RequestInit): Promise<getWalletDidResponse> => {
@@ -222,13 +222,13 @@ export const getWalletDid = async ( options?: RequestInit): Promise<getWalletDid
 
 export const getGetWalletDidInfiniteQueryKey = () => {
     return [
-    'infinite', `/wallet/did.json`
+    'infinite', `/well-known/did.json`
     ] as const;
     }
 
 export const getGetWalletDidQueryKey = () => {
     return [
-    `/wallet/did.json`
+    `/well-known/did.json`
     ] as const;
     }
 

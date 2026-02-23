@@ -26,22 +26,17 @@ const peerDidSchema = z.object({
   url: z.string().url("Please enter a valid URL"),
 });
 
-function getPeerUrl(dspBase: string): string {
-  try {
-    const url = new URL(dspBase);
-    const peerPort = url.port === "1200" ? "1100" : "1200";
-    return `${url.protocol}//${url.hostname}:${peerPort}`;
-  } catch {
-    return "http://127.0.0.1:1100";
-  }
-}
+const DEV_URL = "http://127.0.0.1:1200";
+const PROD_URL = "https://dev-dataspaces.dit.upm.es:1200";
 
 export function PeerConnectorFormForDemo() {
   const ssiAuthContext = useContext(SSIAuthContext);
   const globalInfoContext = useContext(GlobalInfoContext);
 
   // api_gateway_dsp_base contains the full URL in both dev and prod
-  const peerUrl = getPeerUrl(globalInfoContext?.api_gateway_dsp_base ?? "");
+  const isProduction = globalInfoContext?.api_gateway_base === "";
+  const peerUrl = isProduction ? PROD_URL : DEV_URL;
+
 
   const form = useForm<z.infer<typeof peerDidSchema>>({
     resolver: zodResolver(peerDidSchema),

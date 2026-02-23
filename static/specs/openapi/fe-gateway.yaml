@@ -4817,7 +4817,7 @@ paths:
           description: Not Found
         "500":
           description: Internal Server Error
-  /wallet/did.json:
+  /well-known/did.json:
     get:
       operationId: getWalletDid
       summary: Get wallet DID

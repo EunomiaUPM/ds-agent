@@ -1,0 +1,1 @@
+import{j as s}from"./ui-DRQbTUvW.js";import{d as a}from"./dayjs.min-C1qovwV9.js";const e=({date:r,format:t="DD/MM/YYYY - HH:mm"})=>r?s.jsx("span",{children:a(r).format(t)}):s.jsx("span",{className:"text-gray-400",children:"-"});export{e as F};

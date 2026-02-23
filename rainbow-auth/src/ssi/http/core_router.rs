@@ -90,8 +90,10 @@ impl AuthRouter {
 
         let router = match self.core.is_wallet_active() {
             true => {
-                let wallet_router = WalletRouter::new(self.core.clone()).router();
-                router.nest(&format!("{}/wallet", api_path), wallet_router)
+                let wallet = WalletRouter::new(self.core.clone());
+                router
+                    .merge(wallet.well_known())
+                    .nest(&format!("{}/wallet", api_path), wallet.router())
             }
             false => router,
         };

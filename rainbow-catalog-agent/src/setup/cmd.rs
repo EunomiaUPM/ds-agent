@@ -21,7 +21,7 @@ use crate::setup::db_migrations::CatalogAgentMigration;
 use clap::{Parser, Subcommand};
 use rainbow_common::boot::{BootstrapInit, BootstrapStepTrait};
 use rainbow_common::config::services::CatalogConfig;
-use rainbow_common::config::traits::ConfigLoader;
+use rainbow_common::config::types::traits::ConfigLoader;
 use rainbow_common::config::types::roles::RoleConfig;
 use std::sync::Arc;
 use tracing::{debug, info};

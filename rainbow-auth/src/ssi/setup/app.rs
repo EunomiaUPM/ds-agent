@@ -21,7 +21,7 @@ use std::sync::Arc;
 use axum::{serve, Router};
 use axum_server::tls_rustls::RustlsConfig;
 use rainbow_common::config::services::SsiAuthConfig;
-use rainbow_common::config::traits::CommonConfigTrait;
+use rainbow_common::config::types::traits::CommonConfigTrait;
 use tokio::net::TcpListener;
 use tracing::info;
 use ymir::config::traits::{ConnectionConfigTrait, HostsConfigTrait};

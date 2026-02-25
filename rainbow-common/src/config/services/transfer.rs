@@ -1,25 +1,25 @@
 /*
+ * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
  *
- *  * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
- *  *
- *  * This program is free software: you can redistribute it and/or modify
- *  * it under the terms of the GNU General Public License as published by
- *  * the Free Software Foundation, either version 3 of the License, or
- *  * (at your option) any later version.
- *  *
- *  * This program is distributed in the hope that it will be useful,
- *  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  * GNU General Public License for more details.
- *  *
- *  * You should have received a copy of the GNU General Public License
- *  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::config::services::{CommonConfig, MinKnownConfig};
-use crate::config::traits::{CacheConfigTrait, CommonConfigTrait, ConfigLoader};
+use crate::config::services::traits::TransferConfigTrait;
+use crate::config::services::CommonConfig;
 use crate::config::types::cache::CacheConfig;
+use crate::config::types::min_known_config::MinKnownConfig;
+use crate::config::types::traits::{CacheConfigTrait, CommonConfigTrait, ConfigLoader};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -32,29 +32,28 @@ pub struct TransferConfig {
     ssi_auth: MinKnownConfig,
 }
 
-impl TransferConfig {
-    pub fn contracts(&self) -> &MinKnownConfig {
+impl TransferConfigTrait for TransferConfig {
+    fn contracts(&self) -> &MinKnownConfig {
         &self.contracts
     }
-    pub fn catalog(&self) -> &MinKnownConfig {
+    fn catalog(&self) -> &MinKnownConfig {
         &self.catalog
     }
-    pub fn ssi_auth(&self) -> &MinKnownConfig {
+    fn ssi_auth(&self) -> &MinKnownConfig {
         &self.ssi_auth
     }
-    pub fn is_catalog_datahub(&self) -> bool {
-        self.is_catalog_datahub
-    }
-    pub fn cache(&self) -> &CacheConfig {
+    fn cache(&self) -> &CacheConfig {
         &self.cache
+    }
+    fn is_catalog_datahub(&self) -> bool {
+        self.is_catalog_datahub
     }
 }
 impl ConfigLoader for TransferConfig {
-    fn load(env_file: String) -> Self {
-        match Self::global_load(env_file.clone()) {
-            Ok(data) => data.transfer(),
-            Err(_) => Self::local_load(env_file).expect("Unable to load catalog config"),
-        }
+    fn load(env_file: &str) -> Self {
+        Self::global_load(env_file)
+            .map(|data| data.transfer().clone())
+            .unwrap_or(Self::local_load(env_file).expect("Unable to load Transfer config"))
     }
 }
 

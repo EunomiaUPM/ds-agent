@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use rainbow_common::config::types::ClientConfig;
+use rainbow_common::config::types::EntityClientConfig;
 use ymir::config::types::{CommonHostsConfig, HostConfig};
 use ymir::types::vcs::W3cDataModelVersion;
 
@@ -26,5 +26,5 @@ pub trait GaiaGaiaSelfIssuerConfigTrait {
     fn get_api_path(&self) -> String;
     fn get_data_model_version(&self) -> W3cDataModelVersion;
     fn get_did(&self) -> String;
-    fn get_client_config(&self) -> &ClientConfig;
+    fn get_client_config(&self) -> &EntityClientConfig;
 }

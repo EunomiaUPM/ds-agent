@@ -20,7 +20,7 @@
 use crate::setup::CoreHttpWorker;
 use rainbow_catalog_agent::{CatalogDto, DataServiceDto, NewCatalogDto, NewDataServiceDto};
 use rainbow_common::boot::BootstrapServiceTrait;
-use rainbow_common::config::traits::{CacheConfigTrait, CommonConfigTrait};
+use rainbow_common::config::types::traits::{CacheConfigTrait, CommonConfigTrait};
 use rainbow_common::config::ApplicationConfig;
 use rainbow_common::http_client::{HttpClient, HttpClientError};
 use rainbow_common::utils::flush_redis_cache;

@@ -20,7 +20,7 @@ use std::sync::Arc;
 
 use clap::{Parser, Subcommand};
 use rainbow_common::config::services::SsiAuthConfig;
-use rainbow_common::config::traits::{CommonConfigTrait, ConfigLoader};
+use rainbow_common::config::types::traits::{CommonConfigTrait, ConfigLoader};
 use tracing::{debug, info};
 use ymir::config::traits::{ConnectionConfigTrait, HostsConfigTrait};
 use ymir::services::vault::vault_rs::VaultService;

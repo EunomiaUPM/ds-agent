@@ -40,19 +40,19 @@ pub struct JsonResponse<T>(pub T);
 
 #[async_trait]
 pub trait ApiResponse: Sized {
-    async fn from_response(response: reqwest::Response) -> anyhow::Result<Self, HttpClientError>;
+    async fn from_response(response: reqwest::Response) -> Result<Self, HttpClientError>;
 }
 
 #[async_trait]
 impl ApiResponse for () {
-    async fn from_response(_: reqwest::Response) -> anyhow::Result<Self, HttpClientError> {
+    async fn from_response(_: reqwest::Response) -> Result<Self, HttpClientError> {
         Ok(())
     }
 }
 
 #[async_trait]
 impl ApiResponse for String {
-    async fn from_response(response: reqwest::Response) -> anyhow::Result<Self, HttpClientError> {
+    async fn from_response(response: reqwest::Response) -> Result<Self, HttpClientError> {
         response.text().await.map_err(HttpClientError::BodyReadError)
     }
 }
@@ -182,7 +182,7 @@ impl HttpClient {
         self.execute_with_retries(method, url, body, content_type).await
     }
 
-    pub async fn get_json<R>(&self, url: &str) -> anyhow::Result<R, HttpClientError>
+    pub async fn get_json<R>(&self, url: &str) -> Result<R, HttpClientError>
     where
         R: DeserializeOwned,
     {
@@ -194,7 +194,7 @@ impl HttpClient {
         &self,
         url: &str,
         payload: &T,
-    ) -> anyhow::Result<R, HttpClientError>
+    ) -> Result<R, HttpClientError>
     where
         T: Serialize,
         R: DeserializeOwned,
@@ -207,11 +207,7 @@ impl HttpClient {
         Self::deserialize_internal(response).await
     }
 
-    pub async fn post_json<T, R>(
-        &self,
-        url: &str,
-        payload: &T,
-    ) -> anyhow::Result<R, HttpClientError>
+    pub async fn post_json<T, R>(&self, url: &str, payload: &T) -> Result<R, HttpClientError>
     where
         T: Serialize,
         R: DeserializeOwned,
@@ -224,7 +220,7 @@ impl HttpClient {
         Self::deserialize_internal(response).await
     }
 
-    pub async fn post_void<R>(&self, url: &str) -> anyhow::Result<R, HttpClientError>
+    pub async fn post_void<R>(&self, url: &str) -> Result<R, HttpClientError>
     where
         R: ApiResponse,
     {
@@ -233,7 +229,7 @@ impl HttpClient {
         R::from_response(response).await
     }
 
-    pub async fn put_json<T, R>(&self, url: &str, payload: &T) -> anyhow::Result<R, HttpClientError>
+    pub async fn put_json<T, R>(&self, url: &str, payload: &T) -> Result<R, HttpClientError>
     where
         T: Serialize,
         R: DeserializeOwned,
@@ -245,7 +241,7 @@ impl HttpClient {
         Self::deserialize_internal(response).await
     }
 
-    pub async fn delete<R>(&self, url: &str) -> anyhow::Result<R, HttpClientError>
+    pub async fn delete<R>(&self, url: &str) -> Result<R, HttpClientError>
     where
         R: ApiResponse,
     {
@@ -253,11 +249,7 @@ impl HttpClient {
         R::from_response(response).await
     }
 
-    pub async fn post_form<T, R>(
-        &self,
-        url: &str,
-        payload: &T,
-    ) -> anyhow::Result<R, HttpClientError>
+    pub async fn post_form<T, R>(&self, url: &str, payload: &T) -> Result<R, HttpClientError>
     where
         T: Serialize,
         R: ApiResponse,

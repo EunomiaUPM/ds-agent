@@ -33,7 +33,7 @@ use crate::grpc::negotiation_message::NegotiationAgentMessagesGrpc;
 use crate::grpc::negotiation_process::NegotiationAgentProcessesGrpc;
 use crate::grpc::offer::NegotiationAgentOfferGrpc;
 use rainbow_common::config::services::ContractsConfig;
-use rainbow_common::config::traits::CommonConfigTrait;
+use rainbow_common::config::types::traits::CommonConfigTrait;
 use sea_orm::Database;
 use std::sync::Arc;
 use tokio::net::TcpListener;

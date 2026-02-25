@@ -1,5 +1,3 @@
-use crate::errors::error_adapter::CustomToResponse;
-use crate::utils::extract_payload;
 use crate::well_known::dspace_version::dspace_version::WellKnownDSpaceVersionService;
 use crate::well_known::dspace_version::WellKnownDSpaceVersionTrait;
 use crate::well_known::rpc::{WellKnownRPCRequest, WellKnownRPCTrait};
@@ -10,6 +8,7 @@ use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use std::sync::Arc;
+use ymir::utils::extract_payload;
 
 #[derive(Clone)]
 pub struct WellKnownRouter {
@@ -78,10 +77,12 @@ impl WellKnownRouter {
             Ok(v) => v,
             Err(e) => return e,
         };
-        match state.dspace_version_rpc.fetch_dataspace_well_known(&input).await {
-            Ok(res) => (StatusCode::OK, Json(res.0)).into_response(),
-            Err(err) => err.to_response(),
-        }
+        state
+            .dspace_version_rpc
+            .fetch_dataspace_well_known(&input)
+            .await
+            .map(|data| (StatusCode::OK, Json(data)))
+            .into_response()
     }
     async fn handle_post_well_known_version_from_participant_path(
         State(state): State<WellKnownRouter>,
@@ -91,9 +92,11 @@ impl WellKnownRouter {
             Ok(v) => v,
             Err(e) => return e,
         };
-        match state.dspace_version_rpc.fetch_dataspace_current_path(&input).await {
-            Ok(res) => (StatusCode::OK, Json(res)).into_response(),
-            Err(err) => err.to_response(),
-        }
+        state
+            .dspace_version_rpc
+            .fetch_dataspace_current_path(&input)
+            .await
+            .map(|data| (StatusCode::OK, Json(data)))
+            .into_response()
     }
 }

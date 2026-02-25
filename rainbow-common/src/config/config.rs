@@ -1,33 +1,30 @@
 /*
+ * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
  *
- *  * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
- *  *
- *  * This program is free software: you can redistribute it and/or modify
- *  * it under the terms of the GNU General Public License as published by
- *  * the Free Software Foundation, either version 3 of the License, or
- *  * (at your option) any later version.
- *  *
- *  * This program is distributed in the hope that it will be useful,
- *  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  * GNU General Public License for more details.
- *  *
- *  * You should have received a copy of the GNU General Public License
- *  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::config::services::traits::CatalogConfigTrait;
 use crate::config::services::{
     CatalogConfig, CommonConfig, ContractsConfig, GatewayConfig, MonolithConfig, SsiAuthConfig,
     TransferConfig,
 };
-use crate::config::traits::MonoConfigTrait;
-use crate::errors::{CommonErrors, ErrorLog};
-use anyhow::bail;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
-use tracing::{debug, error};
+use tracing::debug;
+use ymir::errors::{Errors, Outcome};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ApplicationConfig {
@@ -52,98 +49,39 @@ impl ApplicationConfig {
     }
 }
 
-impl MonoConfigTrait for ApplicationConfig {
+impl ApplicationConfig {
     fn is_mono_catalog_datahub(&self) -> bool {
-        match &self.catalog {
-            Some(catalog) => catalog.is_datahub(),
-            None => false,
-        }
+        self.catalog.as_ref().map(|catalog| catalog.is_datahub()).unwrap_or(false)
     }
 }
 
 impl ApplicationConfig {
-    pub fn ssi_auth(&self) -> SsiAuthConfig {
-        let module = match self.ssi_auth.as_ref() {
-            None => {
-                let error = CommonErrors::module_new("ssi_auth");
-                error!("{}", error.log());
-                None
-            }
-            Some(data) => Some(data.clone()),
-        };
-        module.expect("Trying to access core mode without it being defined")
+    pub fn ssi_auth(&self) -> &SsiAuthConfig {
+        self.ssi_auth.as_ref().expect("Missing SSI Authentication Config")
     }
-    pub fn transfer(&self) -> TransferConfig {
-        let module = match self.transfer.as_ref() {
-            None => {
-                let error = CommonErrors::module_new("transfer");
-                error!("{}", error.log());
-                None
-            }
-            Some(data) => Some(data.clone()),
-        };
-        module.expect("Trying to access core mode without it being defined")
+    pub fn transfer(&self) -> &TransferConfig {
+        self.transfer.as_ref().expect("Missing Transfer Config")
     }
-    pub fn contracts(&self) -> ContractsConfig {
-        let module = match self.contracts.as_ref() {
-            None => {
-                let error = CommonErrors::module_new("contracts");
-                error!("{}", error.log());
-                None
-            }
-            Some(data) => Some(data.clone()),
-        };
-        module.expect("Trying to access core mode without it being defined")
+    pub fn contracts(&self) -> &ContractsConfig {
+        self.contracts.as_ref().expect("Missing Contracts Config")
     }
-    pub fn catalog(&self) -> CatalogConfig {
-        let module = match self.catalog.as_ref() {
-            None => {
-                let error = CommonErrors::module_new("catalog");
-                error!("{}", error.log());
-                None
-            }
-            Some(data) => Some(data.clone()),
-        };
-        module.expect("Trying to access core mode without it being defined")
+    pub fn catalog(&self) -> &CatalogConfig {
+        self.catalog.as_ref().expect("Missing Catalog Config")
     }
-    pub fn gateway(&self) -> GatewayConfig {
-        let module = match self.gateway.as_ref() {
-            None => {
-                let error = CommonErrors::module_new("gateway");
-                error!("{}", error.log());
-                None
-            }
-            Some(data) => Some(data.clone()),
-        };
-        module.expect("Trying to access core mode without it being defined")
+    pub fn gateway(&self) -> &GatewayConfig {
+        self.gateway.as_ref().expect("Missing Gateway Config")
     }
 
-    pub fn monolith(&self) -> MonolithConfig {
-        let module = match self.monolith.as_ref() {
-            None => {
-                let error = CommonErrors::module_new("monolith");
-                error!("{}", error.log());
-                None
-            }
-            Some(data) => Some(data.clone()),
-        };
-        module.expect("Trying to access core mode without it being defined")
+    pub fn monolith(&self) -> &MonolithConfig {
+        self.monolith.as_ref().expect("Missing Monolith Config")
     }
 
-    pub fn load(env_file: String) -> anyhow::Result<Self> {
+    pub fn load(env_file: &str) -> Outcome<Self> {
         let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(env_file);
         debug!("Config file path: {}", path.display());
 
         let data = fs::read_to_string(&path).expect("Unable to read config file");
-        let config = match serde_norway::from_str(&data) {
-            Ok(config) => config,
-            Err(e) => {
-                let error = CommonErrors::parse_new(&format!("Unable to parse config file: {}", e));
-                error!("{}", error.log());
-                bail!(error)
-            }
-        };
-
-        Ok(config)
+        serde_norway::from_str(&data)
+            .map_err(|e| Errors::parse("Unable to parse config file", Some(anyhow::Error::from(e))))
     }
 }

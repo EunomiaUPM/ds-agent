@@ -19,7 +19,7 @@
 
 use crate::data::migrations::get_catalog_migrations;
 use rainbow_common::config::services::CatalogConfig;
-use rainbow_common::config::traits::CommonConfigTrait;
+use rainbow_common::config::types::traits::CommonConfigTrait;
 use rainbow_connector::get_connector_migrations;
 use sea_orm::Database;
 use sea_orm_migration::{MigrationTrait, MigratorTrait};

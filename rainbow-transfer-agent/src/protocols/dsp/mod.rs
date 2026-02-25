@@ -48,7 +48,7 @@ use crate::protocols::dsp::facades::dataplane_facade::dataplane_facade::DataPlan
 use crate::protocols::protocol::ProtocolPluginTrait;
 use axum::Router;
 use rainbow_common::config::services::TransferConfig;
-use rainbow_common::config::traits::CommonConfigTrait;
+use rainbow_common::config::types::traits::CommonConfigTrait;
 use ymir::config::traits::HostsConfigTrait;
 use rainbow_common::facades::ssi_auth_facade::ssi_auth_facade::SSIAuthFacadeService;
 use rainbow_common::facades::ssi_auth_facade::MatesFacadeTrait;

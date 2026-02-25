@@ -21,7 +21,7 @@ use crate::setup::boot::CoreBoot;
 use crate::setup::db_migrations::CoreProviderMigration;
 use clap::{Parser, Subcommand};
 use rainbow_common::boot::{BootstrapInit, BootstrapStepTrait};
-use rainbow_common::config::traits::CommonConfigTrait;
+use rainbow_common::config::types::traits::CommonConfigTrait;
 use rainbow_common::config::ApplicationConfig;
 use std::cmp::PartialEq;
 use std::sync::Arc;

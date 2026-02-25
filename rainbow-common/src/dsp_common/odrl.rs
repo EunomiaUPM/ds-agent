@@ -1,20 +1,18 @@
 /*
+ * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
  *
- *  * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
- *  *
- *  * This program is free software: you can redistribute it and/or modify
- *  * it under the terms of the GNU General Public License as published by
- *  * the Free Software Foundation, either version 3 of the License, or
- *  * (at your option) any later version.
- *  *
- *  * This program is distributed in the hope that it will be useful,
- *  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  * GNU General Public License for more details.
- *  *
- *  * You should have received a copy of the GNU General Public License
- *  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 use crate::utils::get_urn;
@@ -22,6 +20,7 @@ use anyhow::bail;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use urn::Urn;
+use ymir::errors::Outcome;
 // use sea_orm_migration::prelude::ValueType;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -256,12 +255,13 @@ pub struct OdrlLogicalConstraint {
 /// let constraint: LogicalConstraint = serde_json::from_str(json_data)?;
 /// constraint.validate()?; // if it fails, an error is returned.
 impl OdrlLogicalConstraint {
-    pub fn validate(&self) -> anyhow::Result<()> {
+    pub fn validate(&self) -> Outcome<()> {
         let count = self.and.is_some() as usize
             + self.and_sequence.is_some() as usize
             + self.or.is_some() as usize
             + self.xone.is_some() as usize;
         if count != 1 {
+            Err(todo!())
             bail!(
                 "Exactly one of 'and', 'andSequence', 'or' or 'xone' must be present, found {}",
                 count

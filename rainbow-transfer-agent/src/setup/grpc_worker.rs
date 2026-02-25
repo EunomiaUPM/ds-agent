@@ -26,7 +26,7 @@ use crate::grpc::api::FILE_DESCRIPTOR_SET;
 use crate::grpc::transfer_messages::TransferAgentMessagesGrpc;
 use crate::grpc::transfer_process::TransferAgentProcessesGrpc;
 use rainbow_common::config::services::TransferConfig;
-use rainbow_common::config::traits::CommonConfigTrait;
+use rainbow_common::config::types::traits::CommonConfigTrait;
 use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio::task::JoinHandle;

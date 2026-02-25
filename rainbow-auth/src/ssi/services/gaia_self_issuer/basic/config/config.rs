@@ -16,8 +16,8 @@
  */
 
 use rainbow_common::config::services::SsiAuthConfig;
-use rainbow_common::config::traits::CommonConfigTrait;
-use rainbow_common::config::types::ClientConfig;
+use rainbow_common::config::types::traits::CommonConfigTrait;
+use rainbow_common::config::types::EntityClientConfig;
 use ymir::config::traits::{ApiConfigTrait, ConnectionConfigTrait, VcConfigTrait};
 use ymir::config::types::{CommonHostsConfig, DidConfig, HostConfig};
 use ymir::types::vcs::W3cDataModelVersion;
@@ -30,7 +30,7 @@ pub struct GaiaSelfIssuerConfig {
     api_path: String,
     vc_data_model: W3cDataModelVersion,
     did_config: DidConfig,
-    client_config: ClientConfig,
+    client_config: EntityClientConfig,
     gaia_api: HostConfig,
 }
 
@@ -67,7 +67,7 @@ impl GaiaGaiaSelfIssuerConfigTrait for GaiaSelfIssuerConfig {
     fn get_did(&self) -> String {
         self.did_config.did.clone()
     }
-    fn get_client_config(&self) -> &ClientConfig {
+    fn get_client_config(&self) -> &EntityClientConfig {
         &self.client_config
     }
 }

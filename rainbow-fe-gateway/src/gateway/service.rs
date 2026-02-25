@@ -7,7 +7,7 @@ use rainbow_common::config::services::GatewayConfig;
 
 use reqwest::Client;
 
-use rainbow_common::config::traits::CommonConfigTrait;
+use rainbow_common::config::types::traits::CommonConfigTrait;
 use std::time::Duration;
 use tokio::sync::broadcast;
 use tracing::{debug, error, info, warn};

@@ -1,24 +1,24 @@
 /*
+ * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
  *
- *  * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
- *  *
- *  * This program is free software: you can redistribute it and/or modify
- *  * it under the terms of the GNU General Public License as published by
- *  * the Free Software Foundation, either version 3 of the License, or
- *  * (at your option) any later version.
- *  *
- *  * This program is distributed in the hope that it will be useful,
- *  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  * GNU General Public License for more details.
- *  *
- *  * You should have received a copy of the GNU General Public License
- *  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::config::services::{CommonConfig, MinKnownConfig};
-use crate::config::traits::{CommonConfigTrait, ConfigLoader};
+use crate::config::services::traits::GatewayConfigTrait;
+use crate::config::services::CommonConfig;
+use crate::config::types::min_known_config::MinKnownConfig;
+use crate::config::types::traits::{CommonConfigTrait, ConfigLoader};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -32,32 +32,31 @@ pub struct GatewayConfig {
     ssi_auth: MinKnownConfig,
 }
 
-impl GatewayConfig {
-    pub fn ssi_auth(&self) -> MinKnownConfig {
-        self.ssi_auth.clone()
+impl GatewayConfigTrait for GatewayConfig {
+    fn ssi_auth(&self) -> &MinKnownConfig {
+        &self.ssi_auth
     }
-    pub fn transfer(&self) -> MinKnownConfig {
-        self.transfer.clone()
+    fn transfer(&self) -> &MinKnownConfig {
+        &self.transfer
     }
-    pub fn contracts(&self) -> MinKnownConfig {
-        self.contracts.clone()
+    fn contracts(&self) -> &MinKnownConfig {
+        &self.contracts
     }
-    pub fn catalog(&self) -> MinKnownConfig {
-        self.catalog.clone()
+    fn catalog(&self) -> &MinKnownConfig {
+        &self.catalog
     }
-    pub fn is_production(&self) -> bool {
+    fn is_production(&self) -> bool {
         self.is_production
     }
-    pub fn is_catalog_datahub(&self) -> bool {
+    fn is_catalog_datahub(&self) -> bool {
         self.is_catalog_datahub
     }
 }
 impl ConfigLoader for GatewayConfig {
-    fn load(env_file: String) -> Self {
-        match Self::global_load(env_file.clone()) {
-            Ok(data) => data.gateway(),
-            Err(_) => Self::local_load(env_file).expect("Unable to load catalog config"),
-        }
+    fn load(env_file: &str) -> Self {
+        Self::global_load(env_file)
+            .map(|data| data.gateway().clone())
+            .unwrap_or(Self::local_load(env_file).expect("Unable to load Gateway config"))
     }
 }
 

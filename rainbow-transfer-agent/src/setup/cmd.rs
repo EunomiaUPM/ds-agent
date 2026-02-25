@@ -21,7 +21,7 @@ use crate::setup::db_migrations::TransferAgentMigration;
 use clap::{Parser, Subcommand};
 use rainbow_common::boot::{BootstrapInit, BootstrapStepTrait};
 use rainbow_common::config::services::TransferConfig;
-use rainbow_common::config::traits::ConfigLoader;
+use rainbow_common::config::types::traits::ConfigLoader;
 use std::sync::Arc;
 use tracing::{debug, info};
 use ymir::services::vault::vault_rs::VaultService;

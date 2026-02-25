@@ -22,7 +22,7 @@ use crate::{CatalogDto, DataServiceDto, NewCatalogDto, NewDataServiceDto};
 use rainbow_common::boot::shutdown::shutdown_signal;
 use rainbow_common::boot::BootstrapServiceTrait;
 use rainbow_common::config::services::{CatalogConfig, ContractsConfig, TransferConfig};
-use rainbow_common::config::traits::{CommonConfigTrait, ConfigLoader};
+use rainbow_common::config::types::traits::{CommonConfigTrait, ConfigLoader};
 use rainbow_common::config::types::roles::RoleConfig;
 use rainbow_common::http_client::{HttpClient, HttpClientError};
 use std::str::FromStr;

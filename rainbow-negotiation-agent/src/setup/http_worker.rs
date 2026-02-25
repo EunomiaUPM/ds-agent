@@ -32,7 +32,7 @@ use axum::extract::Request;
 use axum::response::IntoResponse;
 use axum::{Router, serve};
 use rainbow_common::config::services::ContractsConfig;
-use rainbow_common::config::traits::CommonConfigTrait;
+use rainbow_common::config::types::traits::CommonConfigTrait;
 use rainbow_common::errors::CommonErrors;
 use rainbow_common::well_known::WellKnownRoot;
 use std::sync::Arc;

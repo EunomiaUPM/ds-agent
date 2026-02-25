@@ -8,7 +8,7 @@ use crate::http::connector_instance::ConnectorInstanceRouter;
 use crate::http::connector_template::ConnectorTemplateRouter;
 use axum::Router;
 use rainbow_common::config::services::CatalogConfig;
-use rainbow_common::config::traits::CommonConfigTrait;
+use rainbow_common::config::types::traits::CommonConfigTrait;
 use rainbow_common::http_client::HttpClient;
 use std::sync::Arc;
 use ymir::services::vault::vault_rs::VaultService;

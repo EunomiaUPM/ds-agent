@@ -3,7 +3,7 @@ use axum::extract::Request;
 use axum::response::IntoResponse;
 use axum::{serve, Router};
 use rainbow_common::config::services::GatewayConfig;
-use rainbow_common::config::traits::CommonConfigTrait;
+use rainbow_common::config::types::traits::CommonConfigTrait;
 use rainbow_common::errors::CommonErrors;
 use rainbow_common::well_known::WellKnownRoot;
 use tokio::net::TcpListener;

@@ -25,7 +25,7 @@ use clap::{Parser, Subcommand};
 use fs_extra::dir::{copy, CopyOptions};
 use rainbow_common::boot::BootstrapServiceTrait;
 use rainbow_common::config::services::GatewayConfig;
-use rainbow_common::config::traits::ConfigLoader;
+use rainbow_common::config::types::traits::ConfigLoader;
 use std::cmp::PartialEq;
 use std::fs;
 use std::path::Path;

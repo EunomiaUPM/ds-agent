@@ -1,7 +1,7 @@
 use crate::setup::http_worker::GatewayHttpWorker;
 use rainbow_common::boot::BootstrapServiceTrait;
 use rainbow_common::config::services::GatewayConfig;
-use rainbow_common::config::traits::ConfigLoader;
+use rainbow_common::config::types::traits::ConfigLoader;
 use std::sync::Arc;
 use tokio::sync::broadcast;
 use tokio::sync::broadcast::Sender;

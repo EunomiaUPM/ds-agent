@@ -12,7 +12,7 @@ use crate::http::transfer_events::TransferEventsRouter;
 use crate::testing_proxy::http::http::TestingHTTPProxy;
 use axum::Router;
 use rainbow_common::config::services::TransferConfig;
-use rainbow_common::config::traits::{CacheConfigTrait, CommonConfigTrait};
+use rainbow_common::config::types::traits::{CacheConfigTrait, CommonConfigTrait};
 use rainbow_common::http_client::HttpClient;
 use ymir::config::traits::HostsConfigTrait;
 use rainbow_connector::ConnectorInstanceTrait;

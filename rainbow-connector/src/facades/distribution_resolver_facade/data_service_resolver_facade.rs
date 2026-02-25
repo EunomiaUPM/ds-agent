@@ -18,7 +18,7 @@
  */
 
 use crate::facades::distribution_resolver_facade::{Distribution, DistributionFacadeTrait};
-use rainbow_common::config::traits::CommonConfigTrait;
+use rainbow_common::config::types::traits::CommonConfigTrait;
 use rainbow_common::http_client::HttpClient;
 use std::sync::Arc;
 use ymir::config::traits::HostsConfigTrait;

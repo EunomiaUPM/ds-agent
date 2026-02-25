@@ -6,7 +6,7 @@ use axum::response::{IntoResponse, Response};
 use axum::routing::{any, get, post};
 use axum::{body::Body, Json, Router};
 use rainbow_common::config::services::GatewayConfig;
-use rainbow_common::config::traits::CommonConfigTrait;
+use rainbow_common::config::types::traits::CommonConfigTrait;
 use ymir::config::traits::HostsConfigTrait;
 use ymir::config::types::HostType;
 use rust_embed::Embed;

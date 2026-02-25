@@ -16,7 +16,7 @@
  */
 
 use rainbow_common::config::services::SsiAuthConfig;
-use rainbow_common::config::traits::CommonConfigTrait;
+use rainbow_common::config::types::traits::CommonConfigTrait;
 use ymir::config::traits::{ApiConfigTrait, ConnectionConfigTrait, HostsConfigTrait};
 use ymir::config::types::CommonHostsConfig;
 

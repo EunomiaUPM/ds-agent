@@ -16,8 +16,8 @@
  */
 
 use rainbow_common::config::services::SsiAuthConfig;
-use rainbow_common::config::traits::CommonConfigTrait;
-use rainbow_common::config::types::ClientConfig;
+use rainbow_common::config::types::traits::CommonConfigTrait;
+use rainbow_common::config::types::EntityClientConfig;
 use ymir::config::traits::ApiConfigTrait;
 use ymir::config::types::CommonHostsConfig;
 use ymir::types::gnap::grant_request::Client4GR;
@@ -27,7 +27,7 @@ use crate::ssi::utils::get_pretty_client_config_helper;
 
 pub struct GnapOnboarderConfig {
     host: CommonHostsConfig,
-    client: ClientConfig,
+    client: EntityClientConfig,
     api_path: String,
 }
 

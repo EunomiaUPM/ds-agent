@@ -20,7 +20,7 @@
 use crate::subscriptions::MicroserviceSubscriptionKey;
 use anyhow::bail;
 use rainbow_common::config::services::GatewayConfig;
-use rainbow_common::config::traits::CommonConfigTrait;
+use rainbow_common::config::types::traits::CommonConfigTrait;
 use reqwest::Client;
 use serde_json::json;
 use std::time::Duration;

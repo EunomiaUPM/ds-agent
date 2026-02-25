@@ -47,7 +47,7 @@ use crate::http::distributions::DistributionEntityRouter;
 use crate::http::odrl_policies::OdrlOfferEntityRouter;
 use crate::http::policy_templates::PolicyTemplateEntityRouter;
 use rainbow_common::config::services::CatalogConfig;
-use rainbow_common::config::traits::{CacheConfigTrait, CommonConfigTrait};
+use rainbow_common::config::types::traits::{CacheConfigTrait, CommonConfigTrait};
 use sea_orm::Database;
 use std::sync::Arc;
 use tokio::net::TcpListener;

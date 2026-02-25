@@ -20,7 +20,7 @@
 use crate::http::router::create_core_router;
 use axum::serve;
 use axum_server::tls_rustls::RustlsConfig;
-use rainbow_common::config::traits::CommonConfigTrait;
+use rainbow_common::config::types::traits::CommonConfigTrait;
 use rainbow_common::config::ApplicationConfig;
 use std::net::SocketAddr;
 use std::sync::Arc;

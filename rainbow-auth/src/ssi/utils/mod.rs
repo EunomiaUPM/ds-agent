@@ -15,11 +15,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use rainbow_common::config::types::ClientConfig;
+use rainbow_common::config::types::EntityClientConfig;
 use ymir::types::gnap::grant_request::{Client4GR, Key4GR};
 
 pub fn get_pretty_client_config_helper(
-    client_config: &ClientConfig,
+    client_config: &EntityClientConfig,
     cert: &str,
 ) -> anyhow::Result<Client4GR> {
     let clean_cert = cert.lines().filter(|line| !line.starts_with("-----")).collect::<String>();

@@ -18,7 +18,7 @@
  */
 use crate::data::migrations::get_negotiation_agent_migrations;
 use rainbow_common::config::services::ContractsConfig;
-use rainbow_common::config::traits::CommonConfigTrait;
+use rainbow_common::config::types::traits::CommonConfigTrait;
 use sea_orm_migration::{MigrationTrait, MigratorTrait};
 use std::sync::Arc;
 use ymir::services::vault::VaultTrait;

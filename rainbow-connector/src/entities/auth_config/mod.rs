@@ -30,8 +30,8 @@ pub enum AuthenticationConfig {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BasicAuthConfig {
-    username: TemplateString,
-    password: SecretString,
+    pub username: TemplateString,
+    pub password: SecretString,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

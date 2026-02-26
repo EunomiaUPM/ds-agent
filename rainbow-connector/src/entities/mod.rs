@@ -4,3 +4,4 @@ pub mod connector_instance;
 pub mod connector_template;
 pub mod interaction;
 pub mod resource;
+pub mod inner;

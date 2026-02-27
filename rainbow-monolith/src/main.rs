@@ -37,7 +37,7 @@ Show some love on https://github.com/EunomiaUPM/rainbow
 ";
 
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
+async fn main() -> Outcome<()> {
     let filter = EnvFilter::builder()
         .with_default_directive(LevelFilter::INFO.into())
         .parse("debug,sqlx::query=off")?;

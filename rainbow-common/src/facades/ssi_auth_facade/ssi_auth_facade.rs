@@ -15,22 +15,24 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use std::sync::Arc;
+
+use async_trait::async_trait;
+use ymir::config::types::HostType;
+use ymir::errors::Outcome;
+
 use crate::config::types::min_known_config::MinKnownConfig;
 use crate::config::types::traits::MinKnownConfigTrait;
 use crate::facades::ssi_auth_facade::SSIAuthFacadeTrait;
 use crate::http_client::HttpClient;
 use crate::mates::mates::VerifyTokenRequest;
 use crate::mates::Mates;
-use async_trait::async_trait;
-use std::sync::Arc;
-use ymir::config::types::HostType;
-use ymir::errors::Outcome;
 
 const SSI_AUTH_FACADE_VERIFICATION_URL: &str = "/api/v1/mates/token";
 
 pub struct SSIAuthFacadeService {
     config: Arc<MinKnownConfig>,
-    client: Arc<HttpClient>,
+    client: Arc<HttpClient>
 }
 
 impl SSIAuthFacadeService {

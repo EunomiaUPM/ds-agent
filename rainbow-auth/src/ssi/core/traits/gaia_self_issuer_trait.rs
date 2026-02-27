@@ -19,13 +19,12 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use serde_json::Value;
-use tracing::error;
-use ymir::errors::{ErrorLogTrait, Errors};
+use ymir::errors::{Errors, Outcome};
 use ymir::services::issuer::IssuerTrait;
 use ymir::services::wallet::WalletTrait;
 use ymir::types::issuing::{
     AuthServerMetadata, CredentialRequest, CredentialRequestsss, IssuerMetadata, IssuingToken,
-    TokenRequest, VCCredOffer,
+    TokenRequest, VCCredOffer
 };
 use ymir::types::wallet::OidcUri;
 
@@ -38,7 +37,7 @@ pub trait CoreGaiaSelfIssuerTrait: Send + Sync + 'static {
     fn gaia(&self) -> Arc<dyn GaiaOwnIssuerTrait>;
     fn wallet(&self) -> Option<Arc<dyn WalletTrait>>;
     fn repo(&self) -> Arc<dyn AuthRepoTrait>;
-    async fn generate_gaia_vcs(&self) -> anyhow::Result<Option<OidcUri>> {
+    async fn generate_gaia_vcs(&self) -> Outcome<Option<String>> {
         let model = self.gaia().start_basic_vcs();
         let model = self.repo().issuing().create(model).await?;
         let uri = self.issuer().generate_issuing_uri(&model.id, Some("gaia"));
@@ -51,10 +50,10 @@ pub trait CoreGaiaSelfIssuerTrait: Send + Sync + 'static {
                 wallet.use_offer_req(&payload, &cred_offer).await?;
                 Ok(None)
             }
-            None => Ok(Some(OidcUri { uri })),
+            None => Ok(Some(uri))
         }
     }
-    async fn get_cred_offer_data(&self, id: String) -> anyhow::Result<VCCredOffer> {
+    async fn get_cred_offer_data(&self, id: String) -> Outcome<VCCredOffer> {
         let mut model = self.repo().issuing().get_by_id(&id).await?;
 
         let data = self.issuer().get_cred_offer_data(&model, Some("gaia"))?;
@@ -66,15 +65,15 @@ pub trait CoreGaiaSelfIssuerTrait: Send + Sync + 'static {
 
         Ok(data)
     }
-    fn get_issuer_data(&self) -> IssuerMetadata {
+    fn issuer_metadata(&self) -> IssuerMetadata {
         let vcs = self.gaia().get_vc_types();
-        self.issuer().get_issuer_data(Some("gaia"), Some(vcs))
+        self.issuer().get_issuer_data(Some("gaia"), Some(&vcs))
     }
-    fn get_oauth_server_data(&self) -> AuthServerMetadata {
+    fn oauth_server_metadata(&self) -> AuthServerMetadata {
         let vcs = self.gaia().get_vc_types();
-        self.issuer().get_oauth_server_data(Some("gaia"), Some(vcs))
+        self.issuer().get_oauth_server_data(Some("gaia"), Some(&vcs))
     }
-    async fn get_token(&self, payload: TokenRequest) -> anyhow::Result<IssuingToken> {
+    async fn get_token(&self, payload: TokenRequest) -> Outcome<IssuingToken> {
         let model =
             self.repo().issuing().get_by_pre_auth_code(&payload.pre_authorized_code).await?;
 
@@ -83,16 +82,14 @@ pub trait CoreGaiaSelfIssuerTrait: Send + Sync + 'static {
         let response = self.issuer().get_token(&model);
         Ok(response)
     }
-    async fn issue_cred(&self, payload: CredentialRequest, token: String) -> anyhow::Result<Value> {
+    async fn issue_cred(&self, payload: CredentialRequest, token: String) -> Outcome<Value> {
         let did = match self.wallet() {
             Some(wallet) => wallet.get_did().await?,
-            None => self.gaia().get_did(),
+            None => self.gaia().get_did()
         };
 
         let mut iss_model = self.repo().issuing().get_by_token(&token).await?;
-        self.issuer()
-            .validate_cred_req(&mut iss_model, &payload, &token, Some(did.clone()))
-            .await?;
+        self.issuer().validate_cred_req(&mut iss_model, &payload, &token, Some(&did)).await?;
         self.repo().issuing().update(iss_model).await?;
 
         self.gaia().issue_cred(&did).await
@@ -101,11 +98,11 @@ pub trait CoreGaiaSelfIssuerTrait: Send + Sync + 'static {
     async fn issue_some_cred(
         &self,
         _payload: CredentialRequestsss,
-        _token: String,
-    ) -> anyhow::Result<Value> {
+        _token: String
+    ) -> Outcome<Value> {
         let did = match self.wallet() {
             Some(wallet) => wallet.get_did().await?,
-            None => self.gaia().get_did(),
+            None => self.gaia().get_did()
         };
 
         // let mut iss_model = self.repo().issuing().get_by_token(&token).await?;
@@ -115,21 +112,16 @@ pub trait CoreGaiaSelfIssuerTrait: Send + Sync + 'static {
         self.gaia().issue_cred(&did).await
     }
 
-    async fn request_gaia_vc(&self) -> anyhow::Result<()> {
-        let wallet = self.wallet().ok_or_else(|| {
-            let error = Errors::not_impl_new(
-                "Not implemented if wallet is not connected",
-                "Not implemented if wallet is not connected",
-            );
-            error!("{}", error.log());
-            error
-        })?;
+    async fn request_gaia_vc(&self) -> Outcome<()> {
+        let wallet = self
+            .wallet()
+            .ok_or_else(|| Errors::not_impl("Not implemented if wallet is not connected", None))?;
 
         let vcs = wallet.retrieve_wallet_credentials().await?;
 
         let did = wallet.get_did().await?;
-        let body = self.gaia().build_vp(vcs, Some(did)).await?;
-        let vc = self.gaia().send_req(body).await?;
+        let body = self.gaia().build_vp(&vcs, Some(&did)).await?;
+        let vc = self.gaia().send_req(&body).await?;
 
         Ok(())
     }

@@ -15,9 +15,9 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::config::types::cache::CacheConfig;
 use crate::config::types::min_known_config::MinKnownConfig;
 use crate::config::types::traits::{CommonConfigTrait, ConfigLoader};
-use crate::config::types::cache::CacheConfig;
 
 pub trait TransferConfigTrait: CommonConfigTrait + ConfigLoader {
     fn contracts(&self) -> &MinKnownConfig;

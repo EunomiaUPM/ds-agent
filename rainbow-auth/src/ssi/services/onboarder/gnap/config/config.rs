@@ -16,39 +16,37 @@
  */
 
 use rainbow_common::config::services::SsiAuthConfig;
-use rainbow_common::config::types::traits::CommonConfigTrait;
+use rainbow_common::config::types::traits::{CommonConfigTrait, EntityClientTrait};
 use rainbow_common::config::types::EntityClientConfig;
-use ymir::config::traits::ApiConfigTrait;
+use ymir::config::traits::{ApiConfigTrait, HostsConfigTrait};
 use ymir::config::types::CommonHostsConfig;
-use ymir::types::gnap::grant_request::Client4GR;
 
 use crate::ssi::services::onboarder::gnap::config::GnapOnboarderConfigTrait;
-use crate::ssi::utils::get_pretty_client_config_helper;
 
 pub struct GnapOnboarderConfig {
-    host: CommonHostsConfig,
+    hosts: CommonHostsConfig,
     client: EntityClientConfig,
-    api_path: String,
+    api_path: String
 }
 
 impl From<SsiAuthConfig> for GnapOnboarderConfig {
     fn from(value: SsiAuthConfig) -> Self {
         GnapOnboarderConfig {
-            host: value.common().hosts.clone(),
-            client: value.client_config(),
-            api_path: value.common().get_api_version(),
+            hosts: value.common().hosts.clone(),
+            client: value.client_config().clone(),
+            api_path: value.common().get_api_version()
         }
     }
 }
 
+impl HostsConfigTrait for GnapOnboarderConfig {
+    fn hosts(&self) -> &CommonHostsConfig { &self.hosts }
+}
+
+impl EntityClientTrait for GnapOnboarderConfig {
+    fn client_config(&self) -> &EntityClientConfig { &self.client }
+}
+
 impl GnapOnboarderConfigTrait for GnapOnboarderConfig {
-    fn get_pretty_client_config(&self, cert: &str) -> anyhow::Result<Client4GR> {
-        get_pretty_client_config_helper(&self.client, &cert)
-    }
-    fn hosts(&self) -> &CommonHostsConfig {
-        &self.host
-    }
-    fn get_api_path(&self) -> String {
-        self.api_path.clone()
-    }
+    fn get_api_path(&self) -> &str { &self.api_path }
 }

@@ -22,7 +22,7 @@ use rainbow_common::config::types::traits::CommonConfigTrait;
 use rainbow_dataplane::get_dataplane_migrations;
 use sea_orm_migration::{MigrationTrait, MigratorTrait};
 use std::sync::Arc;
-use ymir::services::vault::vault_rs::VaultService;
+use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
 
 pub struct TransferAgentMigration;

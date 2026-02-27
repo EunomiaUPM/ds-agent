@@ -20,12 +20,12 @@ use serde::{Deserialize, Serialize};
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct EntityClientConfig {
     pub class_id: String, // como se denomina una entidad a si misma
-    pub display: Option<DisplayInfo>,
+    pub display: Option<DisplayInfo>
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct DisplayInfo {
     pub name: String,
     pub uri: Option<String>,
-    pub logo_uri: Option<String>,
+    pub logo_uri: Option<String>
 }

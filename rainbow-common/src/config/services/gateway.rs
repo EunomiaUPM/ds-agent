@@ -15,11 +15,13 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use serde::{Deserialize, Serialize};
+use ymir::errors::Outcome;
+
 use crate::config::services::traits::GatewayConfigTrait;
 use crate::config::services::CommonConfig;
 use crate::config::types::min_known_config::MinKnownConfig;
 use crate::config::types::traits::{CommonConfigTrait, ConfigLoader};
-use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct GatewayConfig {
@@ -29,39 +31,25 @@ pub struct GatewayConfig {
     contracts: MinKnownConfig,
     catalog: MinKnownConfig,
     is_catalog_datahub: bool,
-    ssi_auth: MinKnownConfig,
+    ssi_auth: MinKnownConfig
 }
 
 impl GatewayConfigTrait for GatewayConfig {
-    fn ssi_auth(&self) -> &MinKnownConfig {
-        &self.ssi_auth
-    }
-    fn transfer(&self) -> &MinKnownConfig {
-        &self.transfer
-    }
-    fn contracts(&self) -> &MinKnownConfig {
-        &self.contracts
-    }
-    fn catalog(&self) -> &MinKnownConfig {
-        &self.catalog
-    }
-    fn is_production(&self) -> bool {
-        self.is_production
-    }
-    fn is_catalog_datahub(&self) -> bool {
-        self.is_catalog_datahub
-    }
+    fn ssi_auth(&self) -> &MinKnownConfig { &self.ssi_auth }
+    fn transfer(&self) -> &MinKnownConfig { &self.transfer }
+    fn contracts(&self) -> &MinKnownConfig { &self.contracts }
+    fn catalog(&self) -> &MinKnownConfig { &self.catalog }
+    fn is_production(&self) -> bool { self.is_production }
+    fn is_catalog_datahub(&self) -> bool { self.is_catalog_datahub }
 }
 impl ConfigLoader for GatewayConfig {
-    fn load(env_file: &str) -> Self {
+    fn load(env_file: &str) -> Outcome<Self> {
         Self::global_load(env_file)
             .map(|data| data.gateway().clone())
-            .unwrap_or(Self::local_load(env_file).expect("Unable to load Gateway config"))
+            .or_else(|_| Self::local_load(env_file))
     }
 }
 
 impl CommonConfigTrait for GatewayConfig {
-    fn common(&self) -> &CommonConfig {
-        &self.common
-    }
+    fn common(&self) -> &CommonConfig { &self.common }
 }

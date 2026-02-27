@@ -56,7 +56,7 @@ use uuid::Uuid;
 use ymir::config::traits::{ApiConfigTrait, ConnectionConfigTrait, HostsConfigTrait};
 use ymir::config::types::HostType;
 use ymir::http::HealthRouter;
-use ymir::services::vault::vault_rs::VaultService;
+use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
 
 pub struct CatalogHttpWorker {}

@@ -15,12 +15,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use serde::{Deserialize, Serialize};
+use ymir::errors::Outcome;
+
 use crate::config::services::traits::TransferConfigTrait;
 use crate::config::services::CommonConfig;
 use crate::config::types::cache::CacheConfig;
 use crate::config::types::min_known_config::MinKnownConfig;
 use crate::config::types::traits::{CacheConfigTrait, CommonConfigTrait, ConfigLoader};
-use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct TransferConfig {
@@ -29,42 +31,28 @@ pub struct TransferConfig {
     contracts: MinKnownConfig,
     catalog: MinKnownConfig,
     is_catalog_datahub: bool,
-    ssi_auth: MinKnownConfig,
+    ssi_auth: MinKnownConfig
 }
 
 impl TransferConfigTrait for TransferConfig {
-    fn contracts(&self) -> &MinKnownConfig {
-        &self.contracts
-    }
-    fn catalog(&self) -> &MinKnownConfig {
-        &self.catalog
-    }
-    fn ssi_auth(&self) -> &MinKnownConfig {
-        &self.ssi_auth
-    }
-    fn cache(&self) -> &CacheConfig {
-        &self.cache
-    }
-    fn is_catalog_datahub(&self) -> bool {
-        self.is_catalog_datahub
-    }
+    fn contracts(&self) -> &MinKnownConfig { &self.contracts }
+    fn catalog(&self) -> &MinKnownConfig { &self.catalog }
+    fn ssi_auth(&self) -> &MinKnownConfig { &self.ssi_auth }
+    fn cache(&self) -> &CacheConfig { &self.cache }
+    fn is_catalog_datahub(&self) -> bool { self.is_catalog_datahub }
 }
 impl ConfigLoader for TransferConfig {
-    fn load(env_file: &str) -> Self {
+    fn load(env_file: &str) -> Outcome<Self> {
         Self::global_load(env_file)
             .map(|data| data.transfer().clone())
-            .unwrap_or(Self::local_load(env_file).expect("Unable to load Transfer config"))
+            .or_else(|_| Self::local_load(env_file))
     }
 }
 
 impl CommonConfigTrait for TransferConfig {
-    fn common(&self) -> &CommonConfig {
-        &self.common
-    }
+    fn common(&self) -> &CommonConfig { &self.common }
 }
 
 impl CacheConfigTrait for TransferConfig {
-    fn cache_config(&self) -> &CacheConfig {
-        &self.cache
-    }
+    fn cache_config(&self) -> &CacheConfig { &self.cache }
 }

@@ -15,15 +15,17 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use serde::{Deserialize, Serialize};
+use ymir::errors::Outcome;
+
 use crate::config::services::traits::CatalogConfigTrait;
 use crate::config::services::CommonConfig;
 use crate::config::types::cache::CacheConfig;
 use crate::config::types::min_known_config::MinKnownConfig;
 use crate::config::types::traits::{
-    CacheConfigTrait, CommonConfigTrait, ConfigLoader, DatahubConfigTrait,
+    CacheConfigTrait, CommonConfigTrait, ConfigLoader, DatahubConfigTrait
 };
 use crate::config::types::DatahubConfig;
-use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CatalogConfig {
@@ -32,48 +34,34 @@ pub struct CatalogConfig {
     policy_templates_folder: Option<String>,
     datahub: Option<DatahubConfig>,
     ssi_auth: MinKnownConfig,
-    contracts: MinKnownConfig,
+    contracts: MinKnownConfig
 }
 
 impl DatahubConfigTrait for CatalogConfig {
-    fn datahub(&self) -> &DatahubConfig {
-        self.datahub.as_ref().expect("Datahub is not active")
-    }
+    fn datahub(&self) -> &DatahubConfig { self.datahub.as_ref().expect("Datahub is not active") }
 }
 
 impl ConfigLoader for CatalogConfig {
-    fn load(env_file: &str) -> Self {
+    fn load(env_file: &str) -> Outcome<Self> {
         Self::global_load(env_file)
             .map(|data| data.catalog().clone())
-            .unwrap_or(Self::local_load(env_file).expect("Unable to load Catalog config"))
+            .or_else(|_| Self::local_load(env_file))
     }
 }
 
 impl CommonConfigTrait for CatalogConfig {
-    fn common(&self) -> &CommonConfig {
-        &self.common
-    }
+    fn common(&self) -> &CommonConfig { &self.common }
 }
 
 impl CacheConfigTrait for CatalogConfig {
-    fn cache_config(&self) -> &CacheConfig {
-        &self.cache
-    }
+    fn cache_config(&self) -> &CacheConfig { &self.cache }
 }
 
 impl CatalogConfigTrait for CatalogConfig {
-    fn contracts(&self) -> &MinKnownConfig {
-        &self.contracts
-    }
-    fn ssi_auth(&self) -> &MinKnownConfig {
-        &self.ssi_auth
-    }
-    fn cache(&self) -> &CacheConfig {
-        &self.cache
-    }
-    fn is_datahub(&self) -> bool {
-        self.datahub.is_some()
-    }
+    fn contracts(&self) -> &MinKnownConfig { &self.contracts }
+    fn ssi_auth(&self) -> &MinKnownConfig { &self.ssi_auth }
+    fn cache(&self) -> &CacheConfig { &self.cache }
+    fn is_datahub(&self) -> bool { self.datahub.is_some() }
 
     fn get_policy_templates_folder(&self) -> &str {
         self.policy_templates_folder.as_deref().unwrap_or("/")

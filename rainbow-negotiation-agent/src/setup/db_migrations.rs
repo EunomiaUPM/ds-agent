@@ -22,7 +22,7 @@ use rainbow_common::config::types::traits::CommonConfigTrait;
 use sea_orm_migration::{MigrationTrait, MigratorTrait};
 use std::sync::Arc;
 use ymir::services::vault::VaultTrait;
-use ymir::services::vault::vault_rs::VaultService;
+use ymir::services::vault::global::VaultService;
 
 pub struct NegotiationAgentMigration;
 

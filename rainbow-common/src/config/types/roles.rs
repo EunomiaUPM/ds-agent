@@ -15,17 +15,18 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use anyhow::bail;
-use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use std::ops::Not;
 use std::str::FromStr;
+
+use anyhow::bail;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Copy)]
 pub enum RoleConfig {
     NotDefined,
     Consumer,
-    Provider,
+    Provider
 }
 
 impl Not for RoleConfig {
@@ -35,7 +36,7 @@ impl Not for RoleConfig {
         match self {
             RoleConfig::NotDefined => self,
             RoleConfig::Consumer => RoleConfig::Provider,
-            RoleConfig::Provider => RoleConfig::Consumer,
+            RoleConfig::Provider => RoleConfig::Consumer
         }
     }
 }
@@ -48,7 +49,7 @@ impl FromStr for RoleConfig {
             "Consumer" => Ok(RoleConfig::Consumer),
             "Provider" => Ok(RoleConfig::Provider),
             "" => Ok(RoleConfig::NotDefined),
-            _ => bail!("Invalid config role: {}", s),
+            _ => bail!("Invalid config role: {}", s)
         }
     }
 }
@@ -58,7 +59,7 @@ impl Display for RoleConfig {
         let str = match self {
             RoleConfig::Consumer => "Consumer".to_string(),
             RoleConfig::Provider => "Provider".to_string(),
-            RoleConfig::NotDefined => "Not defined".to_string(),
+            RoleConfig::NotDefined => "Not defined".to_string()
         };
         write!(f, "{}", str)
     }

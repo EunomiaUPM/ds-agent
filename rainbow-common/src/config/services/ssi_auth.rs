@@ -15,15 +15,19 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::config::services::traits::SsiAuthConfigTrait;
-use crate::config::services::CommonConfig;
-use crate::config::types::traits::{CommonConfigTrait, ConfigLoader, EntityClientTrait, GaiaConfigTrait};
-use crate::config::types::{EntityClientConfig, GaiaConfig};
 use serde::{Deserialize, Serialize};
 use ymir::config::traits::{
-    DidConfigTrait, VcConfigTrait, VerifyReqConfigTrait, WalletConfigTrait,
+    DidConfigTrait, VcConfigTrait, VerifyReqConfigTrait, WalletConfigTrait
 };
 use ymir::config::types::{DidConfig, VcConfig, VerifyReqConfig, WalletConfig};
+use ymir::errors::Outcome;
+
+use crate::config::services::traits::SsiAuthConfigTrait;
+use crate::config::services::CommonConfig;
+use crate::config::types::traits::{
+    CommonConfigTrait, ConfigLoader, EntityClientTrait, GaiaConfigTrait
+};
+use crate::config::types::{EntityClientConfig, GaiaConfig};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct SsiAuthConfig {
@@ -33,25 +37,19 @@ pub struct SsiAuthConfig {
     did_config: DidConfig,
     vc_config: VcConfig,
     verify_req_config: VerifyReqConfig,
-    gaia_config: Option<GaiaConfig>,
+    gaia_config: Option<GaiaConfig>
 }
 
 impl VcConfigTrait for SsiAuthConfig {
-    fn vc_config(&self) -> &VcConfig {
-        &self.vc_config
-    }
+    fn vc_config(&self) -> &VcConfig { &self.vc_config }
 }
 
 impl DidConfigTrait for SsiAuthConfig {
-    fn did_config(&self) -> &DidConfig {
-        &self.did_config
-    }
+    fn did_config(&self) -> &DidConfig { &self.did_config }
 }
 
 impl VerifyReqConfigTrait for SsiAuthConfig {
-    fn verify_req_config(&self) -> &VerifyReqConfig {
-        &self.verify_req_config
-    }
+    fn verify_req_config(&self) -> &VerifyReqConfig { &self.verify_req_config }
 }
 
 impl WalletConfigTrait for SsiAuthConfig {
@@ -61,23 +59,19 @@ impl WalletConfigTrait for SsiAuthConfig {
 }
 
 impl ConfigLoader for SsiAuthConfig {
-    fn load(env_file: &str) -> Self {
+    fn load(env_file: &str) -> Outcome<Self> {
         Self::global_load(env_file)
             .map(|data| data.ssi_auth().clone())
-            .unwrap_or(Self::local_load(env_file).expect("Unable to load SSI Auth config"))
+            .or_else(|_| Self::local_load(env_file))
     }
 }
 
 impl CommonConfigTrait for SsiAuthConfig {
-    fn common(&self) -> &CommonConfig {
-        &self.common_config
-    }
+    fn common(&self) -> &CommonConfig { &self.common_config }
 }
 
 impl EntityClientTrait for SsiAuthConfig {
-    fn client_config(&self) -> &EntityClientConfig {
-        &self.client_config
-    }
+    fn client_config(&self) -> &EntityClientConfig { &self.client_config }
 }
 
 impl GaiaConfigTrait for SsiAuthConfig {
@@ -87,10 +81,6 @@ impl GaiaConfigTrait for SsiAuthConfig {
 }
 
 impl SsiAuthConfigTrait for SsiAuthConfig {
-    fn is_gaia_active(&self) -> bool {
-        self.gaia_config.is_some()
-    }
-    fn is_wallet_active(&self) -> bool {
-        self.wallet_config.is_some()
-    }
+    fn is_gaia_active(&self) -> bool { self.gaia_config.is_some() }
+    fn is_wallet_active(&self) -> bool { self.wallet_config.is_some() }
 }

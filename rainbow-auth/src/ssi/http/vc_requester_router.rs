@@ -20,27 +20,25 @@ use std::sync::Arc;
 
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{Path, Query, State};
-use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::{Json, Router};
-use tracing::error;
-use ymir::errors::{CustomToResponse, ErrorLogTrait, Errors};
-use ymir::types::errors::BadFormat;
+use ymir::data::entities::mates;
+use ymir::data::entities::req_vc::Model;
+use ymir::errors::AppResult;
 use ymir::types::gnap::grant_request::InteractStart;
 use ymir::types::gnap::{ApprovedCallbackBody, CallbackBody};
+use ymir::utils::{extract_payload, extract_query_param};
 
 use crate::ssi::core::traits::CoreVcRequesterTrait;
 use crate::ssi::types::entities::ReachAuthority;
 
 pub struct VcRequesterRouter {
-    requester: Arc<dyn CoreVcRequesterTrait>,
+    requester: Arc<dyn CoreVcRequesterTrait>
 }
 
 impl VcRequesterRouter {
-    pub fn new(requester: Arc<dyn CoreVcRequesterTrait>) -> Self {
-        VcRequesterRouter { requester }
-    }
+    pub fn new(requester: Arc<dyn CoreVcRequesterTrait>) -> Self { VcRequesterRouter { requester } }
 
     pub fn router(self) -> Router {
         Router::new()
@@ -55,110 +53,62 @@ impl VcRequesterRouter {
 
     async fn beg_cross_user(
         State(requester): State<Arc<dyn CoreVcRequesterTrait>>,
-        payload: Result<Json<ReachAuthority>, JsonRejection>,
-    ) -> impl IntoResponse {
-        let payload = match payload {
-            Ok(Json(data)) => data,
-            Err(e) => {
-                return e.to_response();
-            }
-        };
-
-        match requester.beg_vc(payload, InteractStart::CrossUser).await {
-            Ok(_) => StatusCode::OK.into_response(),
-            Err(e) => e.to_response(),
-        }
+        payload: Result<Json<ReachAuthority>, JsonRejection>
+    ) -> AppResult {
+        let payload = extract_payload(payload)?;
+        Ok(match requester.beg_vc(payload, InteractStart::CrossUser).await {
+            Ok(Some(data)) => data.into_response(),
+            Ok(None) => ().into_response(),
+            Err(err) => err.into_response()
+        })
     }
 
     async fn beg_oidc(
         State(requester): State<Arc<dyn CoreVcRequesterTrait>>,
-        payload: Result<Json<ReachAuthority>, JsonRejection>,
-    ) -> impl IntoResponse {
-        let payload = match payload {
-            Ok(Json(data)) => data,
-            Err(e) => {
-                return e.to_response();
-            }
-        };
-
-        match requester.beg_vc(payload, InteractStart::Oidc4VP).await {
+        payload: Result<Json<ReachAuthority>, JsonRejection>
+    ) -> AppResult {
+        let payload = extract_payload(payload)?;
+        Ok(match requester.beg_vc(payload, InteractStart::Oidc4VP).await {
             Ok(Some(data)) => data.into_response(),
-            Ok(None) => StatusCode::OK.into_response(),
-            Err(e) => e.to_response(),
-        }
+            Ok(None) => ().into_response(),
+            Err(err) => err.into_response()
+        })
     }
 
-    async fn get_all(State(requester): State<Arc<dyn CoreVcRequesterTrait>>) -> impl IntoResponse {
-        match requester.get_all().await {
-            Ok(data) => (StatusCode::OK, Json(data)).into_response(),
-            Err(e) => e.to_response(),
-        }
+    async fn get_all(
+        State(requester): State<Arc<dyn CoreVcRequesterTrait>>
+    ) -> AppResult<Json<Vec<Model>>> {
+        Ok(Json(requester.get_all().await?))
     }
 
     async fn get_one(
         State(requester): State<Arc<dyn CoreVcRequesterTrait>>,
-        Path(id): Path<String>,
-    ) -> impl IntoResponse {
-        match requester.get_by_id(id).await {
-            Ok(data) => (StatusCode::OK, Json(data)).into_response(),
-            Err(e) => e.to_response(),
-        }
+        Path(id): Path<String>
+    ) -> AppResult<Json<Model>> {
+        Ok(Json(requester.get_by_id(id).await?))
     }
     async fn get_callback(
         State(requester): State<Arc<dyn CoreVcRequesterTrait>>,
         Path(id): Path<String>,
-        Query(params): Query<HashMap<String, String>>,
-    ) -> impl IntoResponse {
-        let hash = match params.get("hash") {
-            Some(hash) => hash.clone(),
-            None => {
-                let error = Errors::format_new(
-                    BadFormat::Received,
-                    "Unable to retrieve hash from callback",
-                );
-                error!("{}", error.log());
-                return error.into_response();
-            }
-        };
-
-        let interact_ref = match params.get("interact_ref") {
-            Some(interact_ref) => interact_ref.clone(),
-            None => {
-                let error = Errors::format_new(
-                    BadFormat::Received,
-                    "Unable to retrieve interact reference",
-                );
-                error!("{}", error.log());
-                return error.into_response();
-            }
-        };
-
+        Query(params): Query<HashMap<String, String>>
+    ) -> AppResult<Json<mates::Model>> {
+        let hash = extract_query_param(&params, "hash")?;
+        let interact_ref = extract_query_param(&params, "interact_ref")?;
         let payload = ApprovedCallbackBody { interact_ref, hash };
-        match requester.continue_req(id, payload).await {
-            Ok(data) => (StatusCode::OK, Json(data)).into_response(),
-            Err(e) => e.to_response(),
-        }
+        Ok(Json(requester.continue_req(id, payload).await?))
     }
 
     async fn post_callback(
         State(requester): State<Arc<dyn CoreVcRequesterTrait>>,
         Path(id): Path<String>,
-        payload: Result<Json<CallbackBody>, JsonRejection>,
-    ) -> impl IntoResponse {
-        let payload = match payload {
-            Ok(Json(data)) => data,
-            Err(e) => return e.to_response(),
-        };
-
-        match payload {
-            CallbackBody::Approved(data) => match requester.continue_req(id, data).await {
-                Ok(data) => (StatusCode::OK, Json(data)).into_response(),
-                Err(e) => e.to_response(),
-            },
-            CallbackBody::Rejected(_) => match requester.manage_rejection(id).await {
-                Ok(_) => (StatusCode::OK,).into_response(),
-                Err(e) => e.to_response(),
-            },
-        }
+        payload: Result<Json<CallbackBody>, JsonRejection>
+    ) -> AppResult {
+        let payload = extract_payload(payload)?;
+        Ok(match payload {
+            CallbackBody::Approved(data) => {
+                requester.continue_req(id, data).await.map(Json).into_response()
+            }
+            CallbackBody::Rejected(_) => requester.manage_rejection(id).await.into_response()
+        })
     }
 }

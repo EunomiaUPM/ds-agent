@@ -15,9 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::mates::Mates;
 use async_trait::async_trait;
 use ymir::errors::Outcome;
+
+use crate::mates::Mates;
 
 pub mod mates_facade;
 pub mod ssi_auth_facade;

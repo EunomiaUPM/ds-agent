@@ -31,7 +31,7 @@ pub trait CacheConfigTrait {
                     self.cache_config().port
                 )
             }
-            _ => todo!("not implemented yet"),
+            _ => todo!("not implemented yet")
         }
     }
 }

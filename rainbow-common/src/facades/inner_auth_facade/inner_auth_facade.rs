@@ -15,24 +15,19 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::facades::inner_auth_facade::InnerAuthFacadeTrait;
 use async_trait::async_trait;
 use ymir::errors::Outcome;
 
+use crate::facades::inner_auth_facade::InnerAuthFacadeTrait;
+
 pub struct InnerAuthFacadeService {}
 impl InnerAuthFacadeService {
-    pub fn new() -> Self {
-        Self {}
-    }
+    pub fn new() -> Self { Self {} }
 }
 
 #[async_trait]
 impl InnerAuthFacadeTrait for InnerAuthFacadeService {
-    async fn authenticate(&self) -> Outcome<()> {
-        Ok(())
-    }
+    async fn authenticate(&self) -> Outcome<()> { Ok(()) }
 
-    async fn authorize(&self) -> Outcome<()> {
-        Ok(())
-    }
+    async fn authorize(&self) -> Outcome<()> { Ok(()) }
 }

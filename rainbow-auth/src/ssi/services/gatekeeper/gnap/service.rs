@@ -15,15 +15,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use anyhow::bail;
-use tracing::{error, info};
+use tracing::info;
 use ymir::config::traits::HostsConfigTrait;
 use ymir::config::types::HostType;
 use ymir::data::entities::{
-    mates, recv_interaction, recv_request, recv_verification, token_requirements,
+    mates, recv_interaction, recv_request, recv_verification, token_requirements
 };
-use ymir::errors::{ErrorLogTrait, Errors};
-use ymir::types::errors::BadFormat;
+use ymir::errors::{BadFormat, Errors, Outcome};
 use ymir::types::gnap::grant_request::{GrantRequest, InteractStart};
 use ymir::types::gnap::grant_response::GrantResponse;
 use ymir::types::gnap::{AccessToken, RefBody};
@@ -34,7 +32,7 @@ use super::super::GateKeeperTrait;
 use super::config::{GnapGateKeeperConfig, GnapGateKeeperConfigTrait};
 
 pub struct GnapGateKeeperService {
-    config: GnapGateKeeperConfig,
+    config: GnapGateKeeperConfig
 }
 
 impl GnapGateKeeperService {
@@ -46,33 +44,25 @@ impl GnapGateKeeperService {
 impl GateKeeperTrait for GnapGateKeeperService {
     fn start(
         &self,
-        payload: &GrantRequest,
-    ) -> anyhow::Result<(
+        payload: &GrantRequest
+    ) -> Outcome<(
         recv_request::NewModel,
         recv_interaction::NewModel,
-        token_requirements::Model,
+        token_requirements::Model
     )> {
         info!("Managing Grant Request");
 
-        let interact = get_from_opt(&payload.interact, "interact")?;
+        let interact = get_from_opt(payload.interact.as_ref(), "interact")?;
 
         if !&interact.start.contains(&"oidc4vp".to_string()) {
-            let error = Errors::not_impl_new(
-                "Interact method not supported yet",
-                "Interact method not supported yet",
-            );
-            error!("{}", error.log());
-            bail!(error);
+            return Err(Errors::not_impl("Interact method not supported yet", None));
         }
 
         let class_id = payload.client.class_id.as_ref().ok_or_else(|| {
-            let error =
-                Errors::format_new(BadFormat::Received, "Missing field class_id in the petition");
-            error!("{}", error.log());
-            error
+            Errors::format(BadFormat::Received, "Missing field class_id in the petition", None)
         })?;
 
-        let uri = get_from_opt(&interact.finish.uri, "interact finish uri")?;
+        let uri = get_from_opt(interact.finish.uri.as_ref(), "interact finish uri")?;
         let id = uuid::Uuid::new_v4().to_string();
 
         let req_model = recv_request::NewModel { id: id.clone(), consumer_slug: class_id.clone() };
@@ -97,11 +87,11 @@ impl GateKeeperTrait for GnapGateKeeperService {
             hints: interact.hints,
             grant_endpoint,
             continue_endpoint,
-            continue_token,
+            continue_token
         };
 
         let token_model = token_requirements::Model {
-            id: id.clone(),
+            id,
             r#type: payload.access_token.access.r#type.clone(),
             actions: payload
                 .access_token
@@ -114,7 +104,7 @@ impl GateKeeperTrait for GnapGateKeeperService {
             identifier: None,
             privileges: None,
             label: None,
-            flags: None,
+            flags: None
         };
 
         Ok((req_model, int_model, token_model))
@@ -122,33 +112,32 @@ impl GateKeeperTrait for GnapGateKeeperService {
 
     fn respond_req(&self, int_model: &recv_interaction::Model, uri: &str) -> GrantResponse {
         info!("Generating Grant Response");
-        GrantResponse::new(InteractStart::Oidc4VP, int_model, Some(uri.to_string()))
+        GrantResponse::new(&InteractStart::Oidc4VP, int_model, Some(uri))
     }
 
     fn validate_cont_req(
         &self,
         model: &recv_interaction::Model,
         payload: &RefBody,
-        token: &str,
-    ) -> anyhow::Result<()> {
+        token: &str
+    ) -> Outcome<()> {
         info!("Validating continuing request");
 
         if payload.interact_ref.clone() != model.interact_ref.clone() {
-            let error = Errors::security_new(&format!(
-                "Interact reference '{}' does not match '{}'",
-                payload.interact_ref, model.interact_ref
+            return Err(Errors::security(
+                &format!(
+                    "Interact reference '{}' does not match '{}'",
+                    payload.interact_ref, model.interact_ref,
+                ),
+                None
             ));
-            error!("{}", error.log());
-            bail!(error);
         }
 
         if token != model.continue_token {
-            let error = Errors::security_new(&format!(
-                "Token '{}' does not match '{}'",
-                token, model.continue_token
+            return Err(Errors::security(
+                &format!("Token '{}' does not match '{}'", token, model.continue_token),
+                None
             ));
-            error!("{}", error.log());
-            bail!(error);
         }
         Ok(())
     }
@@ -157,7 +146,7 @@ impl GateKeeperTrait for GnapGateKeeperService {
         &self,
         req_model: &mut recv_request::Model,
         int_model: &recv_interaction::Model,
-        ver_model: &recv_verification::Model,
+        ver_model: &recv_verification::Model
     ) -> (mates::NewModel, AccessToken) {
         info!("Continuing Request");
 
@@ -172,10 +161,10 @@ impl GateKeeperTrait for GnapGateKeeperService {
             participant_type: "Agent".to_string(),
             base_url,
             token: Some(token.clone()),
-            is_me: false,
+            is_me: false
         };
 
-        let token = AccessToken::default(token);
+        let token = AccessToken::new(token);
         (mate, token)
     }
 }

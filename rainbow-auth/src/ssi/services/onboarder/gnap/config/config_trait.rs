@@ -15,11 +15,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use ymir::config::types::CommonHostsConfig;
-use ymir::types::gnap::grant_request::Client4GR;
+use rainbow_common::config::types::traits::EntityClientTrait;
+use ymir::config::traits::HostsConfigTrait;
 
-pub trait GnapOnboarderConfigTrait {
-    fn get_pretty_client_config(&self, cert: &str) -> anyhow::Result<Client4GR>;
-    fn hosts(&self) -> &CommonHostsConfig;
-    fn get_api_path(&self) -> String;
+pub trait GnapOnboarderConfigTrait: HostsConfigTrait + EntityClientTrait {
+    fn get_api_path(&self) -> &str;
 }

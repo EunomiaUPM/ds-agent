@@ -15,16 +15,18 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use std::path::PathBuf;
+
+use serde::{Deserialize, Serialize};
+use tracing::debug;
+use ymir::errors::{Errors, Outcome};
+use ymir::utils::read;
+
 use crate::config::services::traits::CatalogConfigTrait;
 use crate::config::services::{
     CatalogConfig, CommonConfig, ContractsConfig, GatewayConfig, MonolithConfig, SsiAuthConfig,
-    TransferConfig,
+    TransferConfig
 };
-use serde::{Deserialize, Serialize};
-use std::fs;
-use std::path::PathBuf;
-use tracing::debug;
-use ymir::errors::{Errors, Outcome};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ApplicationConfig {
@@ -33,7 +35,7 @@ pub struct ApplicationConfig {
     contracts: Option<ContractsConfig>,
     catalog: Option<CatalogConfig>,
     ssi_auth: Option<SsiAuthConfig>,
-    gateway: Option<GatewayConfig>,
+    gateway: Option<GatewayConfig>
 }
 
 impl ApplicationConfig {
@@ -44,13 +46,13 @@ impl ApplicationConfig {
             contracts: None,
             catalog: None,
             ssi_auth: None,
-            gateway: None,
+            gateway: None
         }
     }
 }
 
 impl ApplicationConfig {
-    fn is_mono_catalog_datahub(&self) -> bool {
+    pub fn is_mono_catalog_datahub(&self) -> bool {
         self.catalog.as_ref().map(|catalog| catalog.is_datahub()).unwrap_or(false)
     }
 }
@@ -80,8 +82,8 @@ impl ApplicationConfig {
         let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(env_file);
         debug!("Config file path: {}", path.display());
 
-        let data = fs::read_to_string(&path).expect("Unable to read config file");
+        let data = read(path)?;
         serde_norway::from_str(&data)
-            .map_err(|e| Errors::parse("Unable to parse config file", Some(anyhow::Error::from(e))))
+            .map_err(|e| Errors::parse("Unable to parse config file", Some(Box::new(e))))
     }
 }

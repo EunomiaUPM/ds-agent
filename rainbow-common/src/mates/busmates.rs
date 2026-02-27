@@ -15,8 +15,9 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::utils::get_urn;
 use serde::{Deserialize, Serialize};
+
+use crate::utils::get_urn;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct BusMates {
@@ -25,14 +26,14 @@ pub struct BusMates {
     pub token: Option<String>,
     pub token_actions: Option<String>,
     pub saved_at: chrono::NaiveDateTime,
-    pub last_interaction: chrono::NaiveDateTime,
+    pub last_interaction: chrono::NaiveDateTime
 }
 
 impl BusMates {
     pub fn default4consumer(
         id: String,
         participant_id: Option<String>,
-        token: Option<String>,
+        token: Option<String>
     ) -> Self {
         let participant_id = participant_id.unwrap_or_else(|| get_urn(None).to_string());
 
@@ -42,14 +43,14 @@ impl BusMates {
             token,
             token_actions: Some("talk".to_string()),
             saved_at: chrono::Utc::now().naive_utc(),
-            last_interaction: chrono::Utc::now().naive_utc(),
+            last_interaction: chrono::Utc::now().naive_utc()
         }
     }
 
     pub fn default4provider(
         id: String,
         participant_id: Option<String>,
-        token: Option<String>,
+        token: Option<String>
     ) -> Self {
         let participant_id = participant_id.unwrap_or_else(|| get_urn(None).to_string());
 
@@ -59,7 +60,7 @@ impl BusMates {
             token,
             token_actions: Some("talk".to_string()),
             saved_at: chrono::Utc::now().naive_utc(),
-            last_interaction: chrono::Utc::now().naive_utc(),
+            last_interaction: chrono::Utc::now().naive_utc()
         }
     }
 }

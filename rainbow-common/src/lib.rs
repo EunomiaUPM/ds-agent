@@ -22,7 +22,7 @@ pub mod boot;
 pub mod config;
 pub mod dcat_formats;
 pub mod dsp_common;
-// pub mod errors;
+pub mod errors;
 pub mod facades;
 pub mod http_client;
 pub mod mates;

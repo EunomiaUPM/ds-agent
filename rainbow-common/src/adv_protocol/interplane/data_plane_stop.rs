@@ -15,9 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::adv_protocol::interplane::{DataPlaneControllerMessages, DataPlaneControllerVersion};
 use serde::{Deserialize, Serialize};
 use urn::Urn;
+
+use crate::adv_protocol::interplane::{DataPlaneControllerMessages, DataPlaneControllerVersion};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct DataPlaneStop {
@@ -26,7 +27,7 @@ pub struct DataPlaneStop {
     #[serde(rename = "@version")]
     pub version: DataPlaneControllerVersion,
     #[serde(rename = "sessionId")]
-    pub session_id: Urn,
+    pub session_id: Urn
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -36,5 +37,5 @@ pub struct DataPlaneStopAck {
     #[serde(rename = "@version")]
     pub version: DataPlaneControllerVersion,
     #[serde(rename = "sessionId")]
-    pub session_id: Urn,
+    pub session_id: Urn
 }

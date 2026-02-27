@@ -17,19 +17,19 @@
 
 use rainbow_common::auth::business::RainbowBusinessLoginRequest;
 use ymir::data::entities::{business_mates, mates, recv_request, recv_verification};
+use ymir::errors::Outcome;
 
 use crate::ssi::types::business::BusinessResponse;
 
 pub trait BusinessTrait: Send + Sync + 'static {
     fn start(
         &self,
-        payload: &RainbowBusinessLoginRequest,
+        payload: &RainbowBusinessLoginRequest
     ) -> (recv_request::NewModel, recv_verification::Model);
     fn get_token(
         &self,
         mate: &mates::Model,
-        bus_model: &business_mates::Model,
-    ) -> anyhow::Result<BusinessResponse>;
-    fn end(&self, ver_model: &recv_verification::Model)
-        -> anyhow::Result<business_mates::NewModel>;
+        bus_model: &business_mates::Model
+    ) -> Outcome<BusinessResponse>;
+    fn end(&self, ver_model: &recv_verification::Model) -> Outcome<business_mates::NewModel>;
 }

@@ -17,25 +17,22 @@
  *
  */
 
+use std::sync::Arc;
+
 use axum::extract::Request;
 use axum::Router;
 use rainbow_auth::ssi::setup::app::AuthApplication;
 use rainbow_catalog_agent::setup::create_root_http_router as catalog_router;
 use rainbow_common::config::ApplicationConfig;
 use rainbow_common::well_known::WellKnownRoot;
-use rainbow_transfer_agent::setup::create_root_http_router;
-
 use rainbow_fe_gateway::create_gateway_http_router;
 use rainbow_negotiation_agent::create_negotiations_http_router;
-use std::sync::Arc;
+use rainbow_transfer_agent::setup::create_root_http_router;
 use tower_http::trace::{DefaultOnResponse, TraceLayer};
 use uuid::Uuid;
-use ymir::services::vault::vault_rs::VaultService;
+use ymir::services::vault::global::VaultService;
 
-pub async fn create_core_router(
-    config: &ApplicationConfig,
-    vault: Arc<VaultService>,
-) -> Router {
+pub async fn create_core_router(config: &ApplicationConfig, vault: Arc<VaultService>) -> Router {
     let well_known_root_dspace =
         WellKnownRoot::get_well_known_router(&config.into()).expect("Failed to well known router");
     let auth_router = AuthApplication::create_router(&config.ssi_auth(), vault.clone()).await;
@@ -59,11 +56,11 @@ pub async fn create_core_router(
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(
-                    |_req: &Request<_>| tracing::info_span!("request", id = %Uuid::new_v4()),
+                    |_req: &Request<_>| tracing::info_span!("request", id = %Uuid::new_v4())
                 )
                 .on_request(|request: &Request<_>, _span: &tracing::Span| {
                     tracing::info!("{} {}", request.method(), request.uri());
                 })
-                .on_response(DefaultOnResponse::new().level(tracing::Level::TRACE)),
+                .on_response(DefaultOnResponse::new().level(tracing::Level::TRACE))
         )
 }

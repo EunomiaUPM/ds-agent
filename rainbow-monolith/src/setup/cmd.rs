@@ -17,44 +17,52 @@
  *
  */
 
-use crate::setup::boot::CoreBoot;
-use crate::setup::db_migrations::CoreProviderMigration;
-use clap::{Parser, Subcommand};
-use rainbow_common::boot::{BootstrapInit, BootstrapStepTrait};
-use rainbow_common::config::types::traits::CommonConfigTrait;
-use rainbow_common::config::ApplicationConfig;
 use std::cmp::PartialEq;
 use std::sync::Arc;
+
+use clap::{Parser, Subcommand};
+use rainbow_auth::ssi::setup::cmd::AuthCliArgs;
+use rainbow_common::boot::{BootstrapInit, BootstrapStepTrait};
+use rainbow_common::config::services::SsiAuthConfig;
+use rainbow_common::config::types::traits::CommonConfigTrait;
+use rainbow_common::config::ApplicationConfig;
+use rainbow_common::utils::show_table;
 use tracing::{debug, info};
 use ymir::config::traits::{ConnectionConfigTrait, HostsConfigTrait};
 use ymir::config::types::HostType;
-use ymir::services::vault::vault_rs::VaultService;
+use ymir::errors::{Errors, Outcome};
+use ymir::services::vault::fake_vault::FakeVaultService;
+use ymir::services::vault::global::VaultService;
+use ymir::services::vault::vault_rs::RealVaultService;
 use ymir::services::vault::VaultTrait;
+
+use crate::setup::boot::CoreBoot;
+use crate::setup::db_migrations::CoreProviderMigration;
 
 #[derive(Parser, Debug)]
 #[command(name = "Rainbow Dataspace Connector Core Server")]
 #[command(version = "0.2")]
 struct CoreCli {
     #[command(subcommand)]
-    command: CoreCliCommands,
+    command: CoreCliCommands
 }
 
 #[derive(Subcommand, Debug, PartialEq)]
 pub enum CoreCliCommands {
     Start(CoreCliArgs),
-    Setup(CoreCliArgs),
+    Setup(CoreCliArgs)
 }
 
 #[derive(Parser, Debug, PartialEq)]
 pub struct CoreCliArgs {
     #[arg(short, long)]
-    env_file: String,
+    env_file: String
 }
 
 pub struct CoreCommands;
 
 impl CoreCommands {
-    pub async fn init_command_line() -> anyhow::Result<()> {
+    pub async fn init_command_line() -> Outcome<()> {
         // parse command line
         debug!("Init the command line application");
         let cli = CoreCli::parse();
@@ -73,8 +81,13 @@ impl CoreCommands {
                 let _ = step_finalized.0.next_step().await?;
             }
             CoreCliCommands::Setup(args) => {
-                let config = ApplicationConfig::load(args.env_file)?;
-                let vault = Arc::new(VaultService::new());
+                let config = ApplicationConfig::load(&args.env_file)?;
+                let vault = if config.monolith().is_vault_real() {
+                    VaultService::Real(RealVaultService::new())
+                } else {
+                    VaultService::Fake(FakeVaultService::new())
+                };
+                show_table(&config)?;
 
                 if config.monolith().common().is_tls_enabled() {
                     vault.write_all_secrets(None).await?;
@@ -83,11 +96,7 @@ impl CoreCommands {
                 }
 
                 let db_connection = vault.get_db_connection(config.monolith().common()).await;
-                let table =
-                    json_to_table::json_to_table(&serde_json::to_value(&config.monolith())?)
-                        .collapse()
-                        .to_string();
-                info!("Current Core Connector Config:\n{}", table);
+
                 CoreProviderMigration::run(&db_connection).await?;
             }
         };

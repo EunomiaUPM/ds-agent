@@ -17,15 +17,16 @@
  *
  */
 
-use crate::setup::CoreHttpWorker;
+use std::str::FromStr;
+use std::sync::Arc;
+
 use rainbow_catalog_agent::{CatalogDto, DataServiceDto, NewCatalogDto, NewDataServiceDto};
 use rainbow_common::boot::BootstrapServiceTrait;
+use rainbow_common::config::services::traits::CatalogConfigTrait;
 use rainbow_common::config::types::traits::{CacheConfigTrait, CommonConfigTrait};
 use rainbow_common::config::ApplicationConfig;
 use rainbow_common::http_client::{HttpClient, HttpClientError};
 use rainbow_common::utils::flush_redis_cache;
-use std::str::FromStr;
-use std::sync::Arc;
 use tokio::fs;
 use tokio::sync::broadcast;
 use tokio::sync::broadcast::Sender;
@@ -35,23 +36,27 @@ use urn::Urn;
 use ymir::config::traits::{ApiConfigTrait, HostsConfigTrait};
 use ymir::config::types::HostType;
 use ymir::data::entities::mates;
-use ymir::services::vault::vault_rs::VaultService;
+use ymir::errors::{Errors, Outcome};
+use ymir::services::vault::global::VaultService;
+
+use crate::setup::CoreHttpWorker;
 
 pub struct CoreBoot;
 
 #[async_trait::async_trait]
 impl BootstrapServiceTrait for CoreBoot {
     type Config = ApplicationConfig;
-    async fn load_config(env_file: String) -> anyhow::Result<Self::Config> {
-        let config = Self::Config::load(env_file)?;
-        let table = json_to_table::json_to_table(&serde_json::to_value(&config.monolith())?)
-            .collapse()
-            .to_string();
+    async fn load_config(env_file: String) -> Outcome<Self::Config> {
+        let config = Self::Config::load(&env_file)?;
+        let table = json_to_table::json_to_table(
+            &serde_json::to_value(&config)
+                .map_err(|e| Errors::parse("Error with config table", Some(Box::new(e))))?
+        );
         info!("Current Monolith Dataspace Agent Config:\n{}", table);
         Ok(config)
     }
 
-    async fn create_participant(config: &Self::Config) -> anyhow::Result<String> {
+    async fn create_participant(config: &Self::Config) -> Outcome<String> {
         let client = HttpClient::new(1, 30);
         let base_url = config.ssi_auth().common().get_host(HostType::Http);
         let api = config.ssi_auth().common().get_api_version();
@@ -70,7 +75,7 @@ impl BootstrapServiceTrait for CoreBoot {
                     let url = format!("{}{}/wallet/onboard", base_url, api);
                     client.post_void::<()>(url.as_str()).await?;
                 }
-                _ => anyhow::bail!(err),
+                _ => return Err(err.into())
             }
             // attempt again
             let url = format!("{}{}/mates/myself", base_url, api);
@@ -86,8 +91,8 @@ impl BootstrapServiceTrait for CoreBoot {
 
     async fn load_catalog(
         participant_id: &Option<String>,
-        config: &Self::Config,
-    ) -> anyhow::Result<String> {
+        config: &Self::Config
+    ) -> Outcome<String> {
         let participant_id = participant_id.clone().unwrap_or_default();
         let client = HttpClient::new(1, 3);
         let base_url = config.catalog().common().get_host(HostType::Http);
@@ -99,7 +104,7 @@ impl BootstrapServiceTrait for CoreBoot {
                 &NewCatalogDto {
                     dspace_participant_id: Some(participant_id),
                     ..NewCatalogDto::default()
-                },
+                }
             )
             .await?;
         Ok(catalog.inner.id)
@@ -107,8 +112,8 @@ impl BootstrapServiceTrait for CoreBoot {
 
     async fn load_dataservice(
         catalog_id: &Option<String>,
-        config: &Self::Config,
-    ) -> anyhow::Result<String> {
+        config: &Self::Config
+    ) -> Outcome<String> {
         let catalog_id = catalog_id.clone().unwrap_or_default();
         let client = HttpClient::new(1, 3);
         let base_url = config.catalog().common().get_host(HostType::Http);
@@ -121,15 +126,17 @@ impl BootstrapServiceTrait for CoreBoot {
                 url.as_str(),
                 &NewDataServiceDto {
                     dcat_endpoint_url: format!("{}/dsp/current", negotiation_url),
-                    catalog_id: Urn::from_str(catalog_id.as_str())?,
+                    catalog_id: Urn::from_str(catalog_id.as_str()).map_err(|e| {
+                        Errors::parse("Error parsing urn catalog_id", Some(Box::new(e)))
+                    })?,
                     ..Default::default()
-                },
+                }
             )
             .await?;
         Ok(catalog.inner.id)
     }
 
-    async fn load_policy_templates(config: &Self::Config) -> anyhow::Result<()> {
+    async fn load_policy_templates(config: &Self::Config) -> Outcome<()> {
         let client = HttpClient::new(1, 3);
         let base_url = config.catalog().common().get_host(HostType::Http);
         let api = config.catalog().common().get_api_version();
@@ -175,7 +182,7 @@ impl BootstrapServiceTrait for CoreBoot {
         Ok(())
     }
 
-    async fn cleanup_cache(config: &Self::Config) -> anyhow::Result<()> {
+    async fn cleanup_cache(config: &Self::Config) -> Outcome<()> {
         let url = config.monolith().get_full_cache_url();
         tracing::info!("Flushing Redis at {}...", url);
         if let Err(e) = flush_redis_cache(&url).await {
@@ -188,8 +195,8 @@ impl BootstrapServiceTrait for CoreBoot {
 
     async fn start_services_background(
         config: &Self::Config,
-        vault: Arc<VaultService>,
-    ) -> anyhow::Result<Sender<()>> {
+        vault: Arc<VaultService>
+    ) -> Outcome<Sender<()>> {
         // thread control
         let (shutdown_tx, mut shutdown_rx) = broadcast::channel::<()>(1);
         let cancel_token = CancellationToken::new();

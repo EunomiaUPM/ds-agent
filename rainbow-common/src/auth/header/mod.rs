@@ -15,20 +15,21 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use std::sync::Arc;
+
 use axum::extract::Request;
 use axum::http::StatusCode;
 use axum::middleware::Next;
 use axum::response::Response;
-use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub struct RequestInfo {
-    pub token: String,
+    pub token: String
 }
 
 pub async fn extract_request_info(
     mut request: Request,
-    next: Next,
+    next: Next
 ) -> Result<Response, StatusCode> {
     let headers = request.headers();
     let token = headers

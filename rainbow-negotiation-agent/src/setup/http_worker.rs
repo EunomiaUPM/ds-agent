@@ -45,7 +45,7 @@ use ymir::config::traits::{ApiConfigTrait, ConnectionConfigTrait, HostsConfigTra
 use ymir::config::types::HostType;
 use ymir::http::HealthRouter;
 use ymir::services::vault::VaultTrait;
-use ymir::services::vault::vault_rs::VaultService;
+use ymir::services::vault::global::VaultService;
 
 pub struct NegotiationHttpWorker {}
 impl NegotiationHttpWorker {

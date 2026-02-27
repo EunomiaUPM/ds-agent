@@ -1,15 +1,15 @@
+use std::sync::Arc;
+
+use ymir::errors::{Errors, Outcome};
+
 use crate::dsp_common::well_known_types::{VersionPath, VersionResponse};
 use crate::facades::ssi_auth_facade::MatesFacadeTrait;
 use crate::http_client::HttpClient;
 use crate::well_known::rpc::{WellKnownRPCRequest, WellKnownRPCTrait, DSP_CURRENT_VERSION};
-use anyhow::bail;
-use std::sync::Arc;
-use tracing::error;
-use ymir::errors::{Errors, Outcome};
 
 pub struct WellKnownRPCService {
     http_client: Arc<HttpClient>,
-    mates_facade: Arc<dyn MatesFacadeTrait>,
+    mates_facade: Arc<dyn MatesFacadeTrait>
 }
 
 impl WellKnownRPCService {
@@ -19,7 +19,7 @@ impl WellKnownRPCService {
     async fn get_base_url(&self, mate_id: &str) -> Outcome<String> {
         let participant =
             self.mates_facade.get_mate_by_id(mate_id.to_string()).await.map_err(|e| {
-                Errors::missing_resource(mate_id, "Mate not found", Some(anyhow::Error::from(e)))
+                Errors::missing_resource(mate_id, "Mate not found", Some(Box::new(e)))
             })?;
         participant
             .base_url
@@ -31,7 +31,7 @@ impl WellKnownRPCService {
 impl WellKnownRPCTrait for WellKnownRPCService {
     async fn fetch_dataspace_well_known(
         &self,
-        input: &WellKnownRPCRequest,
+        input: &WellKnownRPCRequest
     ) -> Outcome<(VersionResponse, String)> {
         let mate_id = input.participant_id.clone();
         let base_url = self.get_base_url(&mate_id).await?;
@@ -42,7 +42,7 @@ impl WellKnownRPCTrait for WellKnownRPCService {
 
     async fn fetch_dataspace_current_path(
         &self,
-        input: &WellKnownRPCRequest,
+        input: &WellKnownRPCRequest
     ) -> Outcome<VersionPath> {
         let (wk, base_url) = self.fetch_dataspace_well_known(input).await?;
 

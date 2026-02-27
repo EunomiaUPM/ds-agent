@@ -24,7 +24,7 @@ use rainbow_common::config::services::TransferConfig;
 use rainbow_common::config::types::traits::ConfigLoader;
 use std::sync::Arc;
 use tracing::{debug, info};
-use ymir::services::vault::vault_rs::VaultService;
+use ymir::services::vault::global::VaultService;
 
 #[derive(Parser, Debug)]
 #[command(name = "Rainbow Dataspace Connector Transfer Agent")]

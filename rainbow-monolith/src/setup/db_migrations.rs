@@ -26,6 +26,7 @@ use rainbow_negotiation_agent::get_negotiation_agent_migrations;
 use rainbow_transfer_agent::get_transfer_agent_migrations;
 use sea_orm::DatabaseConnection;
 use sea_orm_migration::{MigrationTrait, MigratorTrait};
+use ymir::errors::{Errors, Outcome};
 
 pub struct CoreProviderMigration;
 
@@ -52,8 +53,9 @@ impl MigratorTrait for CoreProviderMigration {
 }
 
 impl CoreProviderMigration {
-    pub async fn run(db_connection: &DatabaseConnection) -> anyhow::Result<()> {
-        Self::refresh(db_connection).await?;
-        Ok(())
+    pub async fn run(db_connection: &DatabaseConnection) -> Outcome<()> {
+        Self::refresh(db_connection)
+            .await
+            .map_err(|e| Errors::db("Error migrating data", Some(Box::new(e))))
     }
 }

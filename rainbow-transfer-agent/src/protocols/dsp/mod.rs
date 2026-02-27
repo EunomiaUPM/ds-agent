@@ -49,7 +49,6 @@ use crate::protocols::protocol::ProtocolPluginTrait;
 use axum::Router;
 use rainbow_common::config::services::TransferConfig;
 use rainbow_common::config::types::traits::CommonConfigTrait;
-use ymir::config::traits::HostsConfigTrait;
 use rainbow_common::facades::ssi_auth_facade::ssi_auth_facade::SSIAuthFacadeService;
 use rainbow_common::facades::ssi_auth_facade::MatesFacadeTrait;
 use rainbow_common::http_client::HttpClient;
@@ -57,7 +56,8 @@ use rainbow_dataplane::setup::DataplaneSetup;
 use std::sync::Arc;
 use validator::validators::protocol::validate_state_transition::ValidatedStateTransitionServiceForDsp;
 use validator::validators::rpc::validation_rpc_steps::ValidationRpcStepsService;
-use ymir::services::vault::vault_rs::VaultService;
+use ymir::config::traits::HostsConfigTrait;
+use ymir::services::vault::global::VaultService;
 
 use rainbow_connector::ConnectorSetup;
 
@@ -136,28 +136,33 @@ impl ProtocolPluginTrait for TransferDSP {
 
         // connector
         let connector_setup = ConnectorSetup::new();
-        let connector_entity = connector_setup.get_connector_instance_entity(
-            self.config.as_ref(),
-            self.vault.clone(),
-            http_client.clone(),
-        ).await;
+        let connector_entity = connector_setup
+            .get_connector_instance_entity(
+                self.config.as_ref(),
+                self.vault.clone(),
+                http_client.clone(),
+            )
+            .await;
 
         // dataplane
         let dataplane = DataplaneSetup::new();
         let dataplane_manager = Arc::new(
-            dataplane.get_data_plane_manager(
-                self.config.clone(),
-                self.vault.clone(),
-                connector_entity.clone(),
-                http_client.clone(),
-            ).await,
+            dataplane
+                .get_data_plane_manager(
+                    self.config.clone(),
+                    self.vault.clone(),
+                    connector_entity.clone(),
+                    http_client.clone(),
+                )
+                .await,
         );
         let http = self.config.common().http();
         let proxy_base_url = match &http.port {
             Some(port) => format!("{}://{}:{}", http.protocol, http.url, port),
             None => format!("{}://{}", http.protocol, http.url),
         };
-        let dataplane_facade = Arc::new(DataPlaneFacade::new(dataplane_manager.clone(), proxy_base_url));
+        let dataplane_facade =
+            Arc::new(DataPlaneFacade::new(dataplane_manager.clone(), proxy_base_url));
 
         // data service resolver (resolves agreement → dataset → distribution → connector)
         let data_service_resolver = Arc::new(DataServiceFacadeServiceForDSProtocol::new(

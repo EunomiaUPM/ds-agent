@@ -19,7 +19,7 @@ use rainbow_connector::ConnectorInstanceTrait;
 use sea_orm::Database;
 use std::ops::Deref;
 use std::sync::Arc;
-use ymir::services::vault::vault_rs::VaultService;
+use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
 
 pub struct DataplaneSetup {}

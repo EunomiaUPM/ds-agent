@@ -18,6 +18,7 @@
 use async_trait::async_trait;
 use reqwest::Response;
 use ymir::data::entities::{mates, req_interaction, req_vc, req_verification};
+use ymir::errors::Outcome;
 use ymir::types::gnap::grant_request::InteractStart;
 
 use crate::ssi::types::entities::ReachAuthority;
@@ -26,19 +27,19 @@ use crate::ssi::types::entities::ReachAuthority;
 pub trait VcRequesterTrait: Send + Sync + 'static {
     fn start(
         &self,
-        payload: ReachAuthority,
-        reach_method: InteractStart,
+        payload: &ReachAuthority,
+        reach_method: &InteractStart
     ) -> (req_vc::NewModel, req_interaction::NewModel);
     async fn send_req(
         &self,
         vc_model: &mut req_vc::Model,
-        int_model: &mut req_interaction::Model,
-    ) -> anyhow::Result<Option<String>>;
-    fn save_ver_data(&self, uri: &str, id: &str) -> anyhow::Result<req_verification::NewModel>;
+        int_model: &mut req_interaction::Model
+    ) -> Outcome<Option<String>>;
+    fn save_ver_data(&self, uri: &str, id: &str) -> Outcome<req_verification::NewModel>;
     async fn manage_res(
         &self,
         vc_req_model: &mut req_vc::Model,
-        res: Response,
-    ) -> anyhow::Result<mates::NewModel>;
-    async fn manage_rejection(&self, vc_req_model: &mut req_vc::Model) -> anyhow::Result<()>;
+        res: Response
+    ) -> Outcome<mates::NewModel>;
+    async fn manage_rejection(&self, vc_req_model: &mut req_vc::Model) -> Outcome<()>;
 }

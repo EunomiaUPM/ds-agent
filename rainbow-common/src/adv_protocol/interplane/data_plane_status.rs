@@ -15,11 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::adv_protocol::interplane::{
-    DataPlaneControllerMessages, DataPlaneControllerVersion, DataPlaneSDPResponseField,
-};
 use serde::{Deserialize, Serialize};
 use urn::Urn;
+
+use crate::adv_protocol::interplane::{
+    DataPlaneControllerMessages, DataPlaneControllerVersion, DataPlaneSDPResponseField
+};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct DataPlaneStatusRequest {
@@ -28,7 +29,7 @@ pub struct DataPlaneStatusRequest {
     #[serde(rename = "@version")]
     pub version: DataPlaneControllerVersion,
     #[serde(rename = "sessionId")]
-    pub session_id: Urn,
+    pub session_id: Urn
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -40,5 +41,5 @@ pub struct DataPlaneStatusResponse {
     #[serde(rename = "sessionId")]
     pub session_id: Urn,
     #[serde(rename = "sdpResponse")]
-    pub sdp_response: Vec<DataPlaneSDPResponseField>,
+    pub sdp_response: Vec<DataPlaneSDPResponseField>
 }

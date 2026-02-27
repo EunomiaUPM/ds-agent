@@ -15,38 +15,34 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use serde::{Deserialize, Serialize};
+use ymir::errors::Outcome;
+
 use crate::config::services::traits::ContractsConfigTrait;
 use crate::config::services::CommonConfig;
 use crate::config::types::min_known_config::MinKnownConfig;
 use crate::config::types::traits::{CommonConfigTrait, ConfigLoader};
-use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ContractsConfig {
     common: CommonConfig,
     ssi_auth: MinKnownConfig,
-    is_catalog_datahub: bool,
+    is_catalog_datahub: bool
 }
 
 impl ContractsConfigTrait for ContractsConfig {
-    fn ssi_auth(&self) -> &MinKnownConfig {
-        &self.ssi_auth
-    }
-    fn is_catalog_datahub(&self) -> bool {
-        self.is_catalog_datahub
-    }
+    fn ssi_auth(&self) -> &MinKnownConfig { &self.ssi_auth }
+    fn is_catalog_datahub(&self) -> bool { self.is_catalog_datahub }
 }
 
 impl ConfigLoader for ContractsConfig {
-    fn load(env_file: &str) -> Self {
+    fn load(env_file: &str) -> Outcome<Self> {
         Self::global_load(env_file)
             .map(|data| data.contracts().clone())
-            .unwrap_or(Self::local_load(env_file).expect("Unable to load Contracts config"))
+            .or_else(|_| Self::local_load(env_file))
     }
 }
 
 impl CommonConfigTrait for ContractsConfig {
-    fn common(&self) -> &CommonConfig {
-        &self.common
-    }
+    fn common(&self) -> &CommonConfig { &self.common }
 }

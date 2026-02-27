@@ -15,9 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::config::types::traits::{CommonConfigTrait, ConfigLoader, EntityClientTrait, GaiaConfigTrait};
 use ymir::config::traits::{
-    DidConfigTrait, VcConfigTrait, VerifyReqConfigTrait, WalletConfigTrait,
+    DidConfigTrait, VcConfigTrait, VerifyReqConfigTrait, WalletConfigTrait
+};
+
+use crate::config::types::traits::{
+    CommonConfigTrait, ConfigLoader, EntityClientTrait, GaiaConfigTrait
 };
 
 pub trait SsiAuthConfigTrait:

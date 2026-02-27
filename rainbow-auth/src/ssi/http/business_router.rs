@@ -19,23 +19,21 @@ use std::sync::Arc;
 
 use axum::extract::rejection::JsonRejection;
 use axum::extract::State;
-use axum::http::StatusCode;
-use axum::response::IntoResponse;
 use axum::routing::post;
 use axum::{Json, Router};
 use rainbow_common::auth::business::RainbowBusinessLoginRequest;
-use ymir::errors::CustomToResponse;
+use ymir::errors::AppResult;
+use ymir::utils::extract_payload;
 
 use crate::ssi::core::traits::CoreBusinessTrait;
+use crate::ssi::types::business::BusinessResponse;
 
 pub struct BusinessRouter {
-    pub business: Arc<dyn CoreBusinessTrait>,
+    pub business: Arc<dyn CoreBusinessTrait>
 }
 
 impl BusinessRouter {
-    pub fn new(business: Arc<dyn CoreBusinessTrait>) -> Self {
-        BusinessRouter { business }
-    }
+    pub fn new(business: Arc<dyn CoreBusinessTrait>) -> Self { BusinessRouter { business } }
 
     pub fn router(self) -> Router {
         Router::new()
@@ -46,34 +44,16 @@ impl BusinessRouter {
 
     async fn login(
         State(business): State<Arc<dyn CoreBusinessTrait>>,
-        payload: Result<Json<RainbowBusinessLoginRequest>, JsonRejection>,
-    ) -> impl IntoResponse {
-        let payload = match payload {
-            Ok(Json(data)) => data,
-            Err(e) => {
-                return e.to_response();
-            }
-        };
-
-        match business.login(payload).await {
-            Ok(data) => data.into_response(),
-            Err(e) => e.to_response(),
-        }
+        payload: Result<Json<RainbowBusinessLoginRequest>, JsonRejection>
+    ) -> AppResult<String> {
+        let payload = extract_payload(payload)?;
+        business.login(payload).await
     }
     async fn token(
         State(business): State<Arc<dyn CoreBusinessTrait>>,
-        payload: Result<Json<RainbowBusinessLoginRequest>, JsonRejection>,
-    ) -> impl IntoResponse {
-        let payload = match payload {
-            Ok(Json(data)) => data,
-            Err(e) => {
-                return e.to_response();
-            }
-        };
-
-        match business.token(payload).await {
-            Ok(data) => (StatusCode::OK, Json(data)).into_response(),
-            Err(e) => e.to_response(),
-        }
+        payload: Result<Json<RainbowBusinessLoginRequest>, JsonRejection>
+    ) -> AppResult<Json<BusinessResponse>> {
+        let payload = extract_payload(payload)?;
+        Ok(Json(business.token(payload).await?))
     }
 }

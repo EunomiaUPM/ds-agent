@@ -15,14 +15,21 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::config::types::{EntityClientConfig, DisplayInfo};
+use ymir::types::gnap::grant_request::{Client4GR, Key4GR};
+
+use crate::config::types::{DisplayInfo, EntityClientConfig};
 
 pub trait EntityClientTrait {
     fn client_config(&self) -> &EntityClientConfig;
-    fn get_clas_id(&self) -> &str {
-        &self.client_config().class_id
-    }
-    fn get_display_info(&self) -> Option<&DisplayInfo> {
-        self.client_config().display.as_ref()
+    fn get_clas_id(&self) -> &str { &self.client_config().class_id }
+    fn get_display_info(&self) -> Option<&DisplayInfo> { self.client_config().display.as_ref() }
+    fn get_pretty_client_config(&self, cert: &str) -> Client4GR {
+        let clean_cert = cert.lines().filter(|line| !line.starts_with("-----")).collect::<String>();
+
+        Client4GR {
+            key: Key4GR { proof: "httpsig".to_string(), jwk: None, cert: Some(clean_cert) },
+            class_id: Some(self.get_clas_id().to_string()),
+            display: None
+        }
     }
 }

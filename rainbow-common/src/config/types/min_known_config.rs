@@ -15,28 +15,25 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::config::services::{
-    CatalogConfig, ContractsConfig, GatewayConfig, SsiAuthConfig, TransferConfig,
-};
-use crate::config::types::traits::{CommonConfigTrait, MinKnownConfigTrait};
-use crate::config::ApplicationConfig;
 use serde::{Deserialize, Serialize};
 use ymir::config::traits::{ApiConfigTrait, HostsConfigTrait};
 use ymir::config::types::{CommonHostsConfig, HostType};
 
+use crate::config::services::{
+    CatalogConfig, ContractsConfig, GatewayConfig, SsiAuthConfig, TransferConfig
+};
+use crate::config::types::traits::{CommonConfigTrait, MinKnownConfigTrait};
+use crate::config::ApplicationConfig;
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct MinKnownConfig {
     pub hosts: CommonHostsConfig,
-    pub api_version: String,
+    pub api_version: String
 }
 
 impl MinKnownConfigTrait for MinKnownConfig {
-    fn get_host(&self, host_type: HostType) -> String {
-        self.hosts.get_host(host_type)
-    }
-    fn get_api_version(&self) -> String {
-        format!("/api/{}", self.api_version)
-    }
+    fn get_host(&self, host_type: HostType) -> String { self.hosts.get_host(host_type) }
+    fn get_api_version(&self) -> String { format!("/api/{}", self.api_version) }
 }
 
 impl From<SsiAuthConfig> for MinKnownConfig {
@@ -52,9 +49,7 @@ impl From<CatalogConfig> for MinKnownConfig {
 }
 
 impl From<&CatalogConfig> for MinKnownConfig {
-    fn from(value: &CatalogConfig) -> Self {
-        value.clone().into()
-    }
+    fn from(value: &CatalogConfig) -> Self { value.clone().into() }
 }
 
 impl From<ContractsConfig> for MinKnownConfig {
@@ -64,9 +59,7 @@ impl From<ContractsConfig> for MinKnownConfig {
 }
 
 impl From<&ContractsConfig> for MinKnownConfig {
-    fn from(value: &ContractsConfig) -> Self {
-        value.clone().into()
-    }
+    fn from(value: &ContractsConfig) -> Self { value.clone().into() }
 }
 
 impl From<TransferConfig> for MinKnownConfig {
@@ -76,9 +69,7 @@ impl From<TransferConfig> for MinKnownConfig {
 }
 
 impl From<&TransferConfig> for MinKnownConfig {
-    fn from(value: &TransferConfig) -> Self {
-        value.clone().into()
-    }
+    fn from(value: &TransferConfig) -> Self { value.clone().into() }
 }
 
 impl From<GatewayConfig> for MinKnownConfig {
@@ -88,22 +79,18 @@ impl From<GatewayConfig> for MinKnownConfig {
 }
 
 impl From<&GatewayConfig> for MinKnownConfig {
-    fn from(value: &GatewayConfig) -> Self {
-        value.clone().into()
-    }
+    fn from(value: &GatewayConfig) -> Self { value.clone().into() }
 }
 
 impl From<ApplicationConfig> for MinKnownConfig {
     fn from(value: ApplicationConfig) -> Self {
         Self {
             hosts: value.monolith().common().hosts.clone(),
-            api_version: value.monolith().common().get_api_version(),
+            api_version: value.monolith().common().get_api_version()
         }
     }
 }
 
 impl From<&ApplicationConfig> for MinKnownConfig {
-    fn from(value: &ApplicationConfig) -> Self {
-        value.clone().into()
-    }
+    fn from(value: &ApplicationConfig) -> Self { value.clone().into() }
 }

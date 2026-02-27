@@ -15,11 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use anyhow::anyhow;
-use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
-use ymir::errors::{Errors, Outcome};
-use ymir::types::errors::BadFormat;
+
+use serde::{Deserialize, Serialize};
+use ymir::errors::{BadFormat, Errors, Outcome};
 
 pub static CONTEXT: &str = "https://w3id.org/dspace/2025/1/context.jsonld";
 
@@ -27,7 +26,7 @@ pub static CONTEXT: &str = "https://w3id.org/dspace/2025/1/context.jsonld";
 #[serde(untagged)]
 pub enum ContextField {
     Single(String),
-    Multiple(Vec<String>),
+    Multiple(Vec<String>)
 }
 
 impl ContextField {
@@ -52,13 +51,9 @@ impl ContextField {
 }
 
 impl Display for ContextField {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_str(CONTEXT)
-    }
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result { f.write_str(CONTEXT) }
 }
 
 impl Default for ContextField {
-    fn default() -> Self {
-        ContextField::Multiple(vec![CONTEXT.to_string()])
-    }
+    fn default() -> Self { ContextField::Multiple(vec![CONTEXT.to_string()]) }
 }

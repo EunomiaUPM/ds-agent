@@ -42,7 +42,7 @@ use tower_http::trace::{DefaultOnResponse, TraceLayer};
 use uuid::Uuid;
 use ymir::config::traits::{ApiConfigTrait, ConnectionConfigTrait, HostsConfigTrait};
 use ymir::config::types::HostType;
-use ymir::services::vault::vault_rs::VaultService;
+use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
 
 pub struct TransferHttpWorker {}
@@ -165,9 +165,7 @@ pub async fn create_root_http_router(
         .nest("/dsp/current/transfers", dsp_router)
         .nest(
             "/dataplane/proxy",
-            dataplane_setup
-                .build_testing_proxy(config.deref(), vault.clone())
-                .await,
+            dataplane_setup.build_testing_proxy(config.deref(), vault.clone()).await,
         );
     Ok(router)
 }

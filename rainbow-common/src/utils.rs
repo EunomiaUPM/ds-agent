@@ -14,9 +14,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
+use std::str::FromStr;
 
 use axum::response::{IntoResponse, Response};
-use std::str::FromStr;
+use serde::de::DeserializeOwned;
+use serde::Serialize;
+use tracing::info;
 use urn::Urn;
 use uuid::Uuid;
 use ymir::errors::{Errors, Outcome};
@@ -33,25 +36,46 @@ pub fn get_urn(optional_urn: Option<Urn>) -> Urn {
 }
 
 pub fn get_urn_from_string(string_in: &String) -> Outcome<Urn> {
-    string_in
-        .parse::<Urn>()
-        .map_err(|e| Errors::parse("Error parsing urn", Some(anyhow::Error::from(e))))
+    string_in.parse::<Urn>().map_err(|e| Errors::parse("Error parsing urn", Some(Box::new(e))))
 }
 
 pub fn parse_urn(id: &str) -> Result<Urn, Response> {
     Urn::from_str(id).map_err(|err| {
-        let e = Errors::parse("Error parsing urn", Some(anyhow::Error::from(err)));
+        let e = Errors::parse("Error parsing urn", Some(Box::new(err)));
         e.log();
         e.into_response()
     })
 }
 
 pub async fn flush_redis_cache(url: &str) -> Outcome<()> {
-    tracing::info!("Connecting to Redis at {}...", url);
-    // CREAR NUEVO ERROR DE REDSIS?
-    let client = redis::Client::open(url).map_err(|err| todo!())?;
-    let mut con = client.get_async_connection().await.map_err(|err| todo!())?;
-    redis::cmd("FLUSHALL").query_async::<_, ()>(&mut con).await.map_err(|err| todo!())?;
-    tracing::info!("Redis cache flushed successfully.");
+    info!("Connecting to Redis at {}...", url);
+    // TODO
+    // NEW REDSIS ERROR?
+    let client = redis::Client::open(url)
+        .map_err(|err| Errors::crazy("Redis client open url failed", Some(Box::new(err))))?;
+    let mut con = client.get_async_connection().await.map_err(|err| {
+        Errors::crazy("Redis getting async connection failed", Some(Box::new(err)))
+    })?;
+    redis::cmd("FLUSHALL")
+        .query_async::<_, ()>(&mut con)
+        .await
+        .map_err(|err| Errors::crazy("Redis command failed", Some(Box::new(err))))?;
+    info!("Redis cache flushed successfully.");
     Ok(())
+}
+
+pub fn show_table(config: &impl Serialize) -> Outcome<()> {
+    let table = json_to_table::json_to_table(
+        &serde_json::to_value(config)
+            .map_err(|e| Errors::parse("Error with config table", Some(Box::new(e))))?
+    )
+    .collapse()
+    .to_string();
+    info!("Current Config:\n{}", table);
+    Ok(())
+}
+
+pub fn parse_yaml<T: DeserializeOwned>(path: &str) -> Outcome<T> {
+    serde_norway::from_str(path)
+        .map_err(|e| Errors::parse("Unable to parse config file", Some(Box::new(e))))
 }

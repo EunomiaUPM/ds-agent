@@ -24,7 +24,7 @@ use rainbow_connector::get_connector_migrations;
 use sea_orm::Database;
 use sea_orm_migration::{MigrationTrait, MigratorTrait};
 use std::sync::Arc;
-use ymir::services::vault::vault_rs::VaultService;
+use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
 
 pub struct CatalogAgentMigration;

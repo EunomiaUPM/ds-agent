@@ -15,11 +15,11 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::config::types::traits::{
-    CacheConfigTrait, CommonConfigTrait, ConfigLoader, DatahubConfigTrait,
-};
 use crate::config::types::cache::CacheConfig;
 use crate::config::types::min_known_config::MinKnownConfig;
+use crate::config::types::traits::{
+    CacheConfigTrait, CommonConfigTrait, ConfigLoader, DatahubConfigTrait
+};
 
 pub trait CatalogConfigTrait:
     ConfigLoader + CommonConfigTrait + DatahubConfigTrait + CacheConfigTrait

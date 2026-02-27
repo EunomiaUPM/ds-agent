@@ -15,8 +15,9 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::utils::get_urn;
 use serde::{Deserialize, Serialize};
+
+use crate::utils::get_urn;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Mates {
@@ -28,7 +29,7 @@ pub struct Mates {
     pub token_actions: Option<String>,
     pub saved_at: chrono::NaiveDateTime,
     pub last_interaction: chrono::NaiveDateTime,
-    pub is_me: bool,
+    pub is_me: bool
 }
 
 impl Mates {
@@ -38,7 +39,7 @@ impl Mates {
         url: String,
         token: Option<String>,
         token_actions: Option<String>,
-        is_me: bool,
+        is_me: bool
     ) -> Self {
         let participant_id = id.unwrap_or_else(|| get_urn(None).to_string());
 
@@ -51,7 +52,7 @@ impl Mates {
             token_actions,
             saved_at: chrono::Utc::now().naive_utc(),
             last_interaction: chrono::Utc::now().naive_utc(),
-            is_me,
+            is_me
         }
     }
 
@@ -61,7 +62,7 @@ impl Mates {
         url: String,
         token: Option<String>,
         token_actions: Option<String>,
-        is_me: bool,
+        is_me: bool
     ) -> Self {
         let participant_id = id.unwrap_or_else(|| get_urn(None).to_string());
 
@@ -74,12 +75,12 @@ impl Mates {
             token_actions,
             saved_at: chrono::Utc::now().naive_utc(),
             last_interaction: chrono::Utc::now().naive_utc(),
-            is_me,
+            is_me
         }
     }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct VerifyTokenRequest {
-    pub token: String,
+    pub token: String
 }

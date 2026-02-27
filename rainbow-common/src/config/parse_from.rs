@@ -15,15 +15,16 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::config::services::SsiAuthConfig;
-use crate::config::types::traits::CommonConfigTrait;
 use ymir::config::traits::{
     ApiConfigTrait, ConnectionConfigTrait, DidConfigTrait, HostsConfigTrait, VcConfigTrait,
-    VerifyReqConfigTrait, WalletConfigTrait,
+    VerifyReqConfigTrait, WalletConfigTrait
 };
 use ymir::services::issuer::basic::config::{BasicIssuerConfig, BasicIssuerConfigBuilder};
 use ymir::services::verifier::basic::config::{BasicVerifierConfig, BasicVerifierConfigBuilder};
 use ymir::services::wallet::walt_id::config::{WaltIdConfig, WaltIdConfigBuilder};
+
+use crate::config::services::SsiAuthConfig;
+use crate::config::types::traits::CommonConfigTrait;
 
 impl From<SsiAuthConfig> for WaltIdConfig {
     fn from(value: SsiAuthConfig) -> Self {

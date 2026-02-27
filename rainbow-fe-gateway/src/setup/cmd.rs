@@ -32,7 +32,7 @@ use std::path::Path;
 use std::process::Command;
 use std::sync::Arc;
 use tracing::debug;
-use ymir::services::vault::vault_rs::VaultService;
+use ymir::services::vault::global::VaultService;
 
 #[derive(Parser, Debug)]
 #[command(name = "Rainbow Dataspace Connector Gateway Server")]

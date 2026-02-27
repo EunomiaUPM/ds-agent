@@ -19,6 +19,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use ymir::data::entities::{mates, req_vc};
+use ymir::errors::Outcome;
 use ymir::types::gnap::grant_request::InteractStart;
 use ymir::types::gnap::ApprovedCallbackBody;
 
@@ -35,9 +36,9 @@ pub trait CoreVcRequesterTrait: Send + Sync + 'static {
     async fn beg_vc(
         &self,
         payload: ReachAuthority,
-        method: InteractStart,
-    ) -> anyhow::Result<Option<String>> {
-        let (vc_model, int_model) = self.vc_req().start(payload, method);
+        method: InteractStart
+    ) -> Outcome<Option<String>> {
+        let (vc_model, int_model) = self.vc_req().start(&payload, &method);
         let mut vc_model = self.repo().vc_req().create(vc_model).await?;
         let mut int_model = self.repo().interaction_req().create(int_model).await?;
         let uri = self.vc_req().send_req(&mut vc_model, &mut int_model).await?;
@@ -49,22 +50,22 @@ pub trait CoreVcRequesterTrait: Send + Sync + 'static {
                 let _ver_model = self.repo().verification_req().create(ver_model).await?;
                 Ok(Some(uri))
             }
-            None => Ok(None),
+            None => Ok(None)
         }
     }
 
-    async fn get_all(&self) -> anyhow::Result<Vec<req_vc::Model>> {
+    async fn get_all(&self) -> Outcome<Vec<req_vc::Model>> {
         self.repo().vc_req().get_all(None, None).await
     }
 
-    async fn get_by_id(&self, id: String) -> anyhow::Result<req_vc::Model> {
+    async fn get_by_id(&self, id: String) -> Outcome<req_vc::Model> {
         self.repo().vc_req().get_by_id(&id).await
     }
     async fn continue_req(
         &self,
         id: String,
-        payload: ApprovedCallbackBody,
-    ) -> anyhow::Result<mates::Model> {
+        payload: ApprovedCallbackBody
+    ) -> Outcome<mates::Model> {
         let mut int_model = self.repo().interaction_req().get_by_id(&id).await?;
         let result = self.callback().check_callback(&mut int_model, &payload);
         let int_model = self.repo().interaction_req().update(int_model).await?;
@@ -76,7 +77,7 @@ pub trait CoreVcRequesterTrait: Send + Sync + 'static {
         let mate = self.repo().mates().force_create(mate).await?;
         Ok(mate)
     }
-    async fn manage_rejection(&self, id: String) -> anyhow::Result<()> {
+    async fn manage_rejection(&self, id: String) -> Outcome<()> {
         let mut vc_req_model = self.repo().vc_req().get_by_id(&id).await?;
         self.vc_req().manage_rejection(&mut vc_req_model).await?;
         self.repo().vc_req().update(vc_req_model).await?;

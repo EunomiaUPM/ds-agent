@@ -17,5 +17,4 @@
  *
  */
 
-mod http;
 pub mod setup;

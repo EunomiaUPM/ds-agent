@@ -11,7 +11,7 @@ use rainbow_common::config::services::CatalogConfig;
 use rainbow_common::config::types::traits::CommonConfigTrait;
 use rainbow_common::http_client::HttpClient;
 use std::sync::Arc;
-use ymir::services::vault::vault_rs::VaultService;
+use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
 
 pub struct ConnectorSetup {}

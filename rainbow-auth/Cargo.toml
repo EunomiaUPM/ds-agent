@@ -18,7 +18,6 @@ rainbow_common = { version = "0.3.8", path = "../rainbow-common", default-featur
 serde = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "full"] }
-anyhow = { workspace = true }
 base64 = { workspace = true }
 tracing = { workspace = true }
 axum = { workspace = true }

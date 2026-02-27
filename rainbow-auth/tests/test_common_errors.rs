@@ -132,7 +132,7 @@ mod tests {
             message: "Test error".to_string(),
             error_code: 4001,
             status_code: status,
-            details: Some("Details about the error".to_string()),
+            details: Some("Details about the error".to_string())
         }
     }
 

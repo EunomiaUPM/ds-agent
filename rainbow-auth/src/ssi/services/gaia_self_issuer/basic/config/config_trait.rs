@@ -15,16 +15,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use rainbow_common::config::types::EntityClientConfig;
-use ymir::config::types::{CommonHostsConfig, HostConfig};
+use rainbow_common::config::types::traits::{EntityClientTrait, GaiaConfigTrait};
+use ymir::config::traits::HostsConfigTrait;
 use ymir::types::vcs::W3cDataModelVersion;
 
-pub trait GaiaGaiaSelfIssuerConfigTrait {
-    fn hosts(&self) -> &CommonHostsConfig;
-    fn gaia_api(&self) -> &HostConfig;
+pub trait GaiaGaiaSelfIssuerConfigTrait:
+    HostsConfigTrait + GaiaConfigTrait + EntityClientTrait
+{
     fn is_local(&self) -> bool;
-    fn get_api_path(&self) -> String;
-    fn get_data_model_version(&self) -> W3cDataModelVersion;
-    fn get_did(&self) -> String;
-    fn get_client_config(&self) -> &EntityClientConfig;
+    fn get_api_path(&self) -> &str;
+    fn get_data_model_version(&self) -> &W3cDataModelVersion;
+    fn get_did(&self) -> &str;
 }

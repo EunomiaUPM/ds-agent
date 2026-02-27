@@ -17,25 +17,24 @@
 
 use std::sync::Arc;
 
-use anyhow::bail;
 use async_trait::async_trait;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use base64::Engine;
-use reqwest::header::{HeaderMap, ACCEPT, AUTHORIZATION, CONTENT_TYPE};
+use reqwest::header::AUTHORIZATION;
 use reqwest::Response;
 use sha2::{Digest, Sha256};
-use tracing::{error, info};
+use tracing::info;
 use ymir::data::entities::req_interaction;
-use ymir::errors::{ErrorLogTrait, Errors};
+use ymir::errors::{Errors, Outcome};
 use ymir::services::client::ClientTrait;
 use ymir::types::gnap::{ApprovedCallbackBody, RefBody};
 use ymir::types::http::Body;
-use ymir::utils::get_from_opt;
+use ymir::utils::{get_from_opt, json_headers, ParseHeaderExt};
 
-use super::super::CallbackTrait;
+use crate::ssi::services::callback::CallbackTrait;
 
 pub struct BasicCallbackService {
-    client: Arc<dyn ClientTrait>,
+    client: Arc<dyn ClientTrait>
 }
 
 impl BasicCallbackService {
@@ -49,14 +48,14 @@ impl CallbackTrait for BasicCallbackService {
     fn check_callback(
         &self,
         int_model: &mut req_interaction::Model,
-        payload: &ApprovedCallbackBody,
-    ) -> anyhow::Result<()> {
+        payload: &ApprovedCallbackBody
+    ) -> Outcome<()> {
         info!("Checking callback");
 
         int_model.interact_ref = Some(payload.interact_ref.clone());
         int_model.hash = Some(payload.hash.clone());
-        let nonce = get_from_opt(&int_model.as_nonce, "as_nonce")?;
-        let interact_ref = get_from_opt(&int_model.interact_ref, "interact_ref")?;
+        let nonce = get_from_opt(int_model.as_nonce.as_ref(), "as_nonce")?;
+        let interact_ref = get_from_opt(int_model.interact_ref.as_ref(), "interact_ref")?;
         let hash_input = format!(
             "{}\n{}\n{}\n{}",
             int_model.client_nonce, nonce, interact_ref, int_model.grant_endpoint
@@ -68,32 +67,28 @@ impl CallbackTrait for BasicCallbackService {
 
         let calculated_hash = URL_SAFE_NO_PAD.encode(result);
 
-        let hash = get_from_opt(&int_model.hash, "hash")?;
+        let hash = get_from_opt(int_model.hash.as_ref(), "hash")?;
         if calculated_hash != hash {
-            let error = Errors::security_new("Hash does not match the calculated one");
-            error!("{}", error.log());
-            bail!(error);
+            return Err(Errors::security("Hash does not match the calculated one", None));
         }
 
         info!("Hash matches the calculated one");
         Ok(())
     }
 
-    async fn continue_req(&self, int_model: &req_interaction::Model) -> anyhow::Result<Response> {
+    async fn continue_req(&self, int_model: &req_interaction::Model) -> Outcome<Response> {
         info!("Continuing request");
 
-        let url = get_from_opt(&int_model.continue_endpoint, "continue-endpoint")?;
-        let base_token = get_from_opt(&int_model.continue_token, "continue token")?;
+        let url = get_from_opt(int_model.continue_endpoint.as_ref(), "continue-endpoint")?;
+        let base_token = get_from_opt(int_model.continue_token.as_ref(), "continue token")?;
         let token = format!("GNAP {}", base_token);
 
-        let mut headers = HeaderMap::new();
-        headers.insert(CONTENT_TYPE, "application/json".parse()?);
-        headers.insert(ACCEPT, "application/json".parse()?);
-        headers.insert(AUTHORIZATION, token.parse()?);
+        let mut headers = json_headers();
+        headers.insert(AUTHORIZATION, format!("Bearer {}", token).parse_header()?);
 
-        let interact_ref = get_from_opt(&int_model.interact_ref, "interact_ref")?;
+        let interact_ref = get_from_opt(int_model.interact_ref.as_ref(), "interact_ref")?;
         let body = RefBody { interact_ref };
 
-        self.client.post(&url, Some(headers), Body::Json(serde_json::to_value(body)?)).await
+        self.client.post(&url, Some(headers), Body::json(&body)?).await
     }
 }

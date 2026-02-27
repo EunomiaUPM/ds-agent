@@ -15,19 +15,21 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use std::sync::Arc;
+
+use async_trait::async_trait;
+use ymir::config::types::HostType;
+use ymir::errors::Outcome;
+
 use super::MatesFacadeTrait;
 use crate::config::types::min_known_config::MinKnownConfig;
 use crate::config::types::traits::MinKnownConfigTrait;
 use crate::http_client::HttpClient;
 use crate::mates::Mates;
-use async_trait::async_trait;
-use std::sync::Arc;
-use ymir::config::types::HostType;
-use ymir::errors::Outcome;
 
 pub struct MatesFacadeService {
     config: Arc<MinKnownConfig>,
-    client: Arc<HttpClient>,
+    client: Arc<HttpClient>
 }
 
 impl MatesFacadeService {

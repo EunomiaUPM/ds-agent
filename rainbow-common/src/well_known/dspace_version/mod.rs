@@ -1,14 +1,16 @@
-use crate::dsp_common::well_known_types::{
-    Auth, AuthProtocolTypes, DSPBindings, DSPIdentifierTypes, DSPProtocolVersions, Version,
-    VersionResponse,
-};
+use std::sync::Arc;
+
 use axum::routing::get;
 use axum::{Json, Router};
 use reqwest::StatusCode;
-use std::sync::Arc;
 use urn::UrnBuilder;
 use uuid::Uuid;
 use ymir::errors::{Errors, Outcome};
+
+use crate::dsp_common::well_known_types::{
+    Auth, AuthProtocolTypes, DSPBindings, DSPIdentifierTypes, DSPProtocolVersions, Version,
+    VersionResponse
+};
 
 pub mod dspace_version;
 
@@ -32,8 +34,7 @@ pub trait WellKnownDSpaceVersionTrait: Send + Sync + 'static {
 
     fn get_dspace_version_str(&self, str: &String) -> Outcome<Version> {
         if str != "2025-1" {
-            todo!()
-            // return Err(Errors::crazy("invalid dspace version", None));
+            return Err(Errors::crazy("invalid dspace version", None));
         }
         Ok(self.get_base_dspace_version())
     }
@@ -46,10 +47,10 @@ pub trait WellKnownDSpaceVersionTrait: Send + Sync + 'static {
             auth: Some(Auth {
                 protocol: AuthProtocolTypes::Gnap,
                 version: "1".to_string(),
-                profile: None,
+                profile: None
             }),
             identifier_type: Some(DSPIdentifierTypes::DidJWK),
-            service_id: Option::from(self.dspace_service_id()),
+            service_id: Option::from(self.dspace_service_id())
         }
     }
 
@@ -60,7 +61,7 @@ pub trait WellKnownDSpaceVersionTrait: Send + Sync + 'static {
             get(move || {
                 let res = version_response.clone();
                 async move { (StatusCode::OK, Json(res)) }
-            }),
+            })
         ))
     }
 }

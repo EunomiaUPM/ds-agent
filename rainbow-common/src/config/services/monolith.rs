@@ -15,17 +15,19 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use serde::{Deserialize, Serialize};
+use ymir::errors::Outcome;
+
 use crate::config::services::traits::MonolithConfigTrait;
 use crate::config::services::CommonConfig;
 use crate::config::types::cache::CacheConfig;
 use crate::config::types::traits::{CacheConfigTrait, CommonConfigTrait, ConfigLoader};
-use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct MonolithConfig {
     common: CommonConfig,
     #[serde(default)]
-    pub cache: CacheConfig,
+    pub cache: CacheConfig
 }
 
 impl MonolithConfig {
@@ -35,22 +37,18 @@ impl MonolithConfig {
 }
 
 impl ConfigLoader for MonolithConfig {
-    fn load(env_file: &str) -> Self {
+    fn load(env_file: &str) -> Outcome<Self> {
         Self::global_load(env_file)
             .map(|data| data.monolith().clone())
-            .unwrap_or(Self::local_load(env_file).expect("Unable to load Monolith config"))
+            .or_else(|_| Self::local_load(env_file))
     }
 }
 
 impl MonolithConfigTrait for MonolithConfig {}
 
 impl CommonConfigTrait for MonolithConfig {
-    fn common(&self) -> &CommonConfig {
-        &self.common
-    }
+    fn common(&self) -> &CommonConfig { &self.common }
 }
 impl CacheConfigTrait for MonolithConfig {
-    fn cache_config(&self) -> &CacheConfig {
-        &self.cache
-    }
+    fn cache_config(&self) -> &CacheConfig { &self.cache }
 }

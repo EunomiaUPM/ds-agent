@@ -76,7 +76,7 @@ $C_BEG_BODY = @{
     url = "$DockerAuthorityUrl/api/v1/gate/access"
     id  = $AUTH_DID
     slug = "authority"
-    vc_type = "DataspaceParticipant"
+    vc_type = "DataspaceParticipant_jwt_vc_json"
 }
 $C_BEG_RESPONSE = Invoke-CurlJson -Method "POST" -Url "$ConsumerUrl/api/v1/vc-request/beg/cross-user" -Body $C_BEG_BODY -ParseJson:$false
 Write-Host "Consumer request completed."

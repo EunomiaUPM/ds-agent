@@ -50,14 +50,14 @@ use super::config::{GaiaGaiaSelfIssuerConfigTrait, GaiaSelfIssuerConfig};
 pub struct BasicGaiaSelfIssuer {
     vault: Arc<VaultService>,
     client: Arc<dyn ClientTrait>,
-    config: GaiaSelfIssuerConfig
+    config: GaiaSelfIssuerConfig,
 }
 
 impl BasicGaiaSelfIssuer {
     pub fn new(
         vault: Arc<VaultService>,
         client: Arc<dyn ClientTrait>,
-        config: GaiaSelfIssuerConfig
+        config: GaiaSelfIssuerConfig,
     ) -> BasicGaiaSelfIssuer {
         BasicGaiaSelfIssuer { vault, client, config }
     }
@@ -68,14 +68,10 @@ impl GaiaOwnIssuerTrait for BasicGaiaSelfIssuer {
     fn start_basic_vcs(&self) -> issuing::NewModel {
         info!("Starting retrieving basic gaia vcs");
         let id = uuid::Uuid::new_v4().to_string();
-        let host = format!(
-            "{}{}/gaia",
-            self.config.hosts().get_host(HostType::Http),
-            self.config.get_api_path()
-        );
+        let host = self.config.get_host(HostType::Http);
         let aud = match self.config.is_local() {
             true => host.replace("127.0.0.1", "host.docker.internal"),
-            false => host
+            false => host,
         };
 
         let vc_type = format!("{}&{}", VcType::LegalPerson, VcType::TermsAndConditions);
@@ -87,7 +83,9 @@ impl GaiaOwnIssuerTrait for BasicGaiaSelfIssuer {
         IssuingToken::default()
     }
 
-    fn get_did(&self) -> String { self.config.get_did().to_string() }
+    fn get_did(&self) -> String {
+        self.config.get_did().to_string()
+    }
 
     async fn issue_cred(&self, did: &str) -> Outcome<Value> {
         info!("Issuing cred");
@@ -126,7 +124,7 @@ impl GaiaOwnIssuerTrait for BasicGaiaSelfIssuer {
         id: String,
         vc_type: VcType,
         subject: Value,
-        now: DateTime<Utc>
+        now: DateTime<Utc>,
     ) -> Outcome<Value> {
         let issuer = VCIssuer { id: did.to_string(), name: None };
         let context_v1 = vec!["https://www.w3.org/ns/credentials/v1".to_string()];
@@ -148,8 +146,8 @@ impl GaiaOwnIssuerTrait for BasicGaiaSelfIssuer {
                     credential_subject: subject,
                     issuer,
                     valid_from: Some(now),
-                    valid_until
-                }
+                    valid_until,
+                },
             }),
             W3cDataModelVersion::V2 => parse_to_value(&VCClaimsV2 {
                 exp: None,
@@ -163,8 +161,8 @@ impl GaiaOwnIssuerTrait for BasicGaiaSelfIssuer {
                 credential_subject: subject,
                 issuer,
                 valid_from: Some(now),
-                valid_until
-            })
+                valid_until,
+            }),
         }
     }
 
@@ -188,7 +186,7 @@ impl GaiaOwnIssuerTrait for BasicGaiaSelfIssuer {
             verifiable_credential: vec![],
             issuer: did.to_string(),
             valid_from: Some(now),
-            valid_until: Some(now + Duration::days(1))
+            valid_until: Some(now + Duration::days(1)),
         };
 
         let context;
@@ -240,10 +238,12 @@ impl GaiaOwnIssuerTrait for BasicGaiaSelfIssuer {
                 Some(res.status()),
                 PetitionFailure::HttpStatus(res.status()),
                 "Petition to retrieve gaia vc failed",
-                None
+                None,
             ))
         }
     }
 
-    fn get_vc_types(&self) -> Vec<VcType> { vec![VcType::LegalPerson, VcType::TermsAndConditions] }
+    fn get_vc_types(&self) -> Vec<VcType> {
+        vec![VcType::LegalPerson, VcType::TermsAndConditions]
+    }
 }

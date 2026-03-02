@@ -39,7 +39,7 @@ use crate::ssi::http::{GaiaSelfIssuerRouter, MateRouter, VcRequesterRouter};
 
 pub struct AuthRouter {
     core: Arc<AuthCore>,
-    openapi: String
+    openapi: String,
 }
 
 impl AuthRouter {
@@ -49,14 +49,14 @@ impl AuthRouter {
     }
 
     pub fn router(self) -> Router {
-        let vc_requester_router = VcRequesterRouter::new(self.core.clone()).router();
-        let gatekeeper_router = GateKeeperRouter::new(self.core.clone()).router();
-        let mate_router = MateRouter::new(self.core.clone()).router();
-        let verifier_router = VerifierRouter::new(self.core.clone()).router();
-        let openapi_router = OpenapiRouter::new(self.openapi.clone()).router();
-        let business_router = BusinessRouter::new(self.core.clone()).router();
-        let onboarder_router = OnboarderRouter::new(self.core.clone()).router();
-        let health_router = HealthRouter::new().router();
+        let vc_requester_router = VcRequesterRouter::new(self.core.clone());
+        let gatekeeper_router = GateKeeperRouter::new(self.core.clone());
+        let mate_router = MateRouter::new(self.core.clone());
+        let verifier_router = VerifierRouter::new(self.core.clone());
+        let openapi_router = OpenapiRouter::new(self.openapi.clone());
+        let business_router = BusinessRouter::new(self.core.clone());
+        let onboarder_router = OnboarderRouter::new(self.core.clone());
+        let health_router = HealthRouter::new();
 
         let api_path = self.core.config().common().get_api_version();
 
@@ -65,27 +65,29 @@ impl AuthRouter {
             .allow_methods([
                 axum::http::Method::GET,
                 axum::http::Method::POST,
-                axum::http::Method::DELETE
+                axum::http::Method::DELETE,
             ])
             .allow_headers(Any)
             .allow_credentials(false);
 
         let router = Router::new()
-            .nest(&format!("{}", api_path), health_router)
-            .nest(&format!("{}/mates", api_path), mate_router)
-            .nest(&format!("{}/vc-request", api_path), vc_requester_router)
-            .nest(&format!("{}/gate", api_path), gatekeeper_router)
-            .nest(&format!("{}/verifier", api_path), verifier_router)
-            .nest(&format!("{}/business", api_path), business_router)
-            .nest(&format!("{}/onboard", api_path), onboarder_router)
-            .nest(&format!("{}/docs", api_path), openapi_router);
+            .nest(&format!("{}", api_path), health_router.router())
+            .nest(&format!("{}/mates", api_path), mate_router.router())
+            .nest(&format!("{}/vc-request", api_path), vc_requester_router.router())
+            .nest(&format!("{}/gate", api_path), gatekeeper_router.router())
+            .nest(&format!("{}/verifier", api_path), verifier_router.router())
+            .nest(&format!("{}/business", api_path), business_router.router())
+            .nest(&format!("{}/onboard", api_path), onboarder_router.router())
+            .nest(&format!("{}/docs", api_path), openapi_router.router());
 
         let router = match self.core.is_gaia_active() {
             true => {
-                let gaia_router = GaiaSelfIssuerRouter::new(self.core.clone()).router();
-                router.nest(&format!("{}/gaia", api_path), gaia_router)
+                let gaia_router = GaiaSelfIssuerRouter::new(self.core.clone());
+                router
+                    .merge(gaia_router.well_known())
+                    .nest(&format!("{}/gaia", api_path), gaia_router.router())
             }
-            false => router
+            false => router,
         };
 
         let router = match self.core.is_wallet_active() {
@@ -95,18 +97,18 @@ impl AuthRouter {
                     .merge(wallet.well_known())
                     .nest(&format!("{}/wallet", api_path), wallet.router())
             }
-            false => router
+            false => router,
         };
 
         router.fallback(Self::fallback).layer(cors).layer(
             TraceLayer::new_for_http()
                 .make_span_with(
-                    |_req: &Request<_>| tracing::info_span!("P-Auth-request", id = %Uuid::new_v4())
+                    |_req: &Request<_>| tracing::info_span!("P-Auth-request", id = %Uuid::new_v4()),
                 )
                 .on_request(|req: &Request<_>, _span: &tracing::Span| {
                     info!("{} {}", req.method(), req.uri().path());
                 })
-                .on_response(DefaultOnResponse::new().level(Level::TRACE))
+                .on_response(DefaultOnResponse::new().level(Level::TRACE)),
         )
     }
 

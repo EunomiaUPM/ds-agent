@@ -29,7 +29,7 @@ pub trait VcRequesterTrait: Send + Sync + 'static {
         &self,
         payload: &ReachAuthority,
         reach_method: &InteractStart
-    ) -> (req_vc::NewModel, req_interaction::NewModel);
+    ) -> Outcome<(req_vc::NewModel, req_interaction::NewModel)>;
     async fn send_req(
         &self,
         vc_model: &mut req_vc::Model,

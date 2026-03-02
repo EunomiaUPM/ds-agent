@@ -36,9 +36,9 @@ pub trait CoreVcRequesterTrait: Send + Sync + 'static {
     async fn beg_vc(
         &self,
         payload: ReachAuthority,
-        method: InteractStart
+        method: InteractStart,
     ) -> Outcome<Option<String>> {
-        let (vc_model, int_model) = self.vc_req().start(&payload, &method);
+        let (vc_model, int_model) = self.vc_req().start(&payload, &method)?;
         let mut vc_model = self.repo().vc_req().create(vc_model).await?;
         let mut int_model = self.repo().interaction_req().create(int_model).await?;
         let uri = self.vc_req().send_req(&mut vc_model, &mut int_model).await?;
@@ -50,7 +50,7 @@ pub trait CoreVcRequesterTrait: Send + Sync + 'static {
                 let _ver_model = self.repo().verification_req().create(ver_model).await?;
                 Ok(Some(uri))
             }
-            None => Ok(None)
+            None => Ok(None),
         }
     }
 
@@ -64,7 +64,7 @@ pub trait CoreVcRequesterTrait: Send + Sync + 'static {
     async fn continue_req(
         &self,
         id: String,
-        payload: ApprovedCallbackBody
+        payload: ApprovedCallbackBody,
     ) -> Outcome<mates::Model> {
         let mut int_model = self.repo().interaction_req().get_by_id(&id).await?;
         let result = self.callback().check_callback(&mut int_model, &payload);

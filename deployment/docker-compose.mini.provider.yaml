@@ -1,3 +1,5 @@
+name: mini-provider
+
 services:
   provider-db:
     container_name: "provider-db"
@@ -37,4 +39,4 @@ services:
       - ./../static/environment/envs/core.provider.env.example
     environment:
       CONFIG_PATH: /app/static/environment/config/core.provider.mini.yaml
-      RUST_BACKTRACE: 1
+      RUST_BACKTRACE: full

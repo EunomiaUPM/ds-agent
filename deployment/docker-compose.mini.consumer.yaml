@@ -1,3 +1,5 @@
+name: mini-consumer
+
 services:
   consumer-db:
     container_name: "consumer-db"
@@ -37,4 +39,4 @@ services:
       - ./../static/environment/envs/core.consumer.env.example
     environment:
       CONFIG_PATH: /app/static/environment/config/core.consumer.mini.yaml
-      RUST_BACKTRACE: 1
+      RUST_BACKTRACE: full

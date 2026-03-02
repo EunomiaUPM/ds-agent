@@ -16,7 +16,7 @@ RUN apk add --no-cache \
 COPY . .
 
 # Compilamos el binario de auth
-RUN cargo build --release --manifest-path rainbow-auth/Cargo.toml
+RUN cargo build --manifest-path rainbow-auth/Cargo.toml
 
 # ----------------------------
 # Stage 2: Runtime minimal
@@ -28,7 +28,7 @@ WORKDIR /app
 RUN apk add --no-cache libgcc libstdc++ ca-certificates
 
 # Copiar el binario ya compilado
-COPY --from=backend-builder /app/target/release/rainbow_auth /app/rainbow-auth
+COPY --from=backend-builder /app/target/debug/rainbow_auth /app/rainbow-auth
 
 # Exponer puerto
 EXPOSE 1500

@@ -1,0 +1,122 @@
+# ==========================
+# COMMON ANCHORS
+# ==========================
+http_host: &http_host
+  protocol: 'http'
+  url: 'host.docker.internal'
+  port: '1200'
+
+hosts_default: &hosts_default
+  http: *http_host
+  grpc: null
+  graphql: null
+
+api_version: &api_version 'v1'
+
+min_known_config: &min_known_config
+  hosts: *hosts_default
+  api_version: *api_version
+
+is_catalog_datahub: &is_catalog_datahub false
+
+policy_templates_folder: &policy_templates_folder '/app/static/policy_templates'
+
+cache_config: &cache_config
+  cache_type: Redis
+  url: 'provider-redis'
+  port: '6379'
+  user: 'default'
+  password: 'ds_core_provider_redis'
+
+common_config: &common_config
+  hosts: *hosts_default
+  db:
+    db_type: Postgres
+    url: 'provider-db'
+    port: '5432'
+  api:
+    version: *api_version
+    openapi_path: '/app/static/specs/openapi/merged_openapi.json'
+  connection:
+    is_local: true
+    is_tls_enabled: false
+    is_vault_real: false
+
+# ==========================
+# MONOLITH
+# ==========================
+monolith:
+  common: *common_config
+  cache: *cache_config
+
+# ==========================
+# CATALOG
+# ==========================
+catalog:
+  common: *common_config
+  cache: *cache_config
+  is_datahub: *is_catalog_datahub
+  policy_templates_folder: *policy_templates_folder
+  datahub_host: null
+  datahub_token: null
+  ssi_auth: *min_known_config
+  contracts: *min_known_config
+
+# ==========================
+# SSI AUTH
+# ==========================
+ssi_auth:
+  common_config: *common_config
+  wallet_config:
+    api:
+      protocol: 'http'
+      url: 'host.docker.internal'
+      port: '7001'
+    id: null
+  client_config:
+    class_id: 'rainbow_provider'
+    display: null
+  vc_config:
+    vc_model: JwtVc
+    w3c_data_model: V2
+  verify_req_config:
+    is_cert_allowed: false
+    vcs_requested: [DataspaceParticipant]
+  gaia_config: null
+  did_config:
+    did: 'did:jwk:...'
+    type: Jwk
+    did_web_options: null
+    #    domain: "CHANGE_ME"
+    #    path: null
+
+# ==========================
+# CONTRACTS
+# ==========================
+contracts:
+  common: *common_config
+  ssi_auth: *min_known_config
+  is_catalog_datahub: *is_catalog_datahub
+
+# ==========================
+# TRANSFER
+# ==========================
+transfer:
+  common: *common_config
+  cache: *cache_config
+  contracts: *min_known_config
+  catalog: *min_known_config
+  ssi_auth: *min_known_config
+  is_catalog_datahub: *is_catalog_datahub
+
+# ==========================
+# GATEWAY
+# ==========================
+gateway:
+  common: *common_config
+  is_production: false
+  transfer: *min_known_config
+  contracts: *min_known_config
+  catalog: *min_known_config
+  ssi_auth: *min_known_config
+  is_catalog_datahub: *is_catalog_datahub

@@ -46,7 +46,6 @@ async fn main() -> Outcome<()> {
             error
         })?;
     tracing_subscriber::fmt()
-        .event_format(tracing_subscriber::fmt::format().with_line_number(true))
         .with_env_filter(filter)
         .init();
     info!("{}", INFO);

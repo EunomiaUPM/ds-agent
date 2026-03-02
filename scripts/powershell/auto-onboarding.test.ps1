@@ -1,8 +1,11 @@
 # auto-onboarding.ps1
 param(
-    [string]$AuthorityUrl = "https://dev-dataspaces.dit.upm.es:1500",
-    [string]$ConsumerUrl  = "https://dev-dataspaces.dit.upm.es:1100",
-    [string]$ProviderUrl  = "https://dev-dataspaces.dit.upm.es:1200"
+    [string]$AuthorityUrl = "http://127.0.0.1:1500",
+    [string]$ConsumerUrl  = "http://127.0.0.1:1100",
+    [string]$ProviderUrl  = "http://127.0.0.1:1200",
+    [string]$DockerAuthorityUrl = "http://host.docker.internal:1500",
+    [string]$DockerConsumerUrl  = "http://host.docker.internal:1100",
+    [string]$DockerProviderUrl  = "http://host.docker.internal:1200"
 )
 
 function Invoke-CurlJson {
@@ -67,7 +70,7 @@ Write-Host "Consumer DID: $CONSUMER_DID"
 # Consumer begins request for credential
 # ----------------------------
 $C_BEG_BODY = @{
-    url = "$AuthorityUrl/api/v1/gate/access"
+    url = "$DockerAuthorityUrl/api/v1/gate/access"
     id  = $AUTH_DID
     slug = "authority"
     vc_type = "DataspaceParticipant"

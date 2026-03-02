@@ -80,11 +80,10 @@ impl CallbackTrait for BasicCallbackService {
         info!("Continuing request");
 
         let url = get_from_opt(int_model.continue_endpoint.as_ref(), "continue-endpoint")?;
-        let base_token = get_from_opt(int_model.continue_token.as_ref(), "continue token")?;
-        let token = format!("GNAP {}", base_token);
+        let token = get_from_opt(int_model.continue_token.as_ref(), "continue token")?;
 
         let mut headers = json_headers();
-        headers.insert(AUTHORIZATION, format!("Bearer {}", token).parse_header()?);
+        headers.insert(AUTHORIZATION, format!("GNAP {}", token).parse_header()?);
 
         let interact_ref = get_from_opt(int_model.interact_ref.as_ref(), "interact_ref")?;
         let body = RefBody { interact_ref };

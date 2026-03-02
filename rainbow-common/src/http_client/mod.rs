@@ -37,6 +37,69 @@ pub enum HttpClientError {
     ConcurrencyError
 }
 
+impl From<HttpClientError> for Errors {
+    fn from(e: HttpClientError) -> Self {
+        match e {
+            HttpClientError::RequestError(e) => Errors::petition(
+                "unknown",
+                "unknown",
+                None,
+                PetitionFailure::Network,
+                "Network error",
+                Some(Box::new(e))
+            ),
+            HttpClientError::HttpError { status, message } => Errors::petition(
+                "unknown",
+                "unknown",
+                Some(status),
+                PetitionFailure::HttpStatus(status),
+                message,
+                None
+            ),
+            HttpClientError::BodyReadError(e) => Errors::petition(
+                "unknown",
+                "unknown",
+                None,
+                PetitionFailure::BodyRead,
+                "Failed to read body",
+                Some(Box::new(e))
+            ),
+            HttpClientError::DeserializeError { source, raw_text } => Errors::petition(
+                "unknown",
+                "unknown",
+                None,
+                PetitionFailure::BodyDeserialization,
+                format!("Raw: {}", raw_text),
+                Some(Box::new(source))
+            ),
+            HttpClientError::JsonSerializeError(e) => Errors::petition(
+                "unknown",
+                "unknown",
+                None,
+                PetitionFailure::Serialization,
+                "JSON serialization failed",
+                Some(Box::new(e))
+            ),
+            HttpClientError::FormSerializeError(e) => Errors::petition(
+                "unknown",
+                "unknown",
+                None,
+                PetitionFailure::Serialization,
+                "Form serialization failed",
+                Some(Box::new(e))
+            ),
+            HttpClientError::ConcurrencyError => Errors::petition(
+                "unknown",
+                "unknown",
+                None,
+                PetitionFailure::Concurrency,
+                "Semaphore closed",
+                None
+            )
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct JsonResponse<T>(pub T);
 

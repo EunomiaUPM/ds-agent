@@ -42,8 +42,7 @@ impl VcRequesterRouter {
 
     pub fn router(self) -> Router {
         Router::new()
-            .route("/beg/cross-user", post(Self::beg_cross_user))
-            .route("/beg/oidc", post(Self::beg_oidc))
+            .route("/beg", post(Self::beg))
             .route("/all", get(Self::get_all))
             .route("/{id}", get(Self::get_one))
             .route("/callback/{id}", get(Self::get_callback))
@@ -51,24 +50,12 @@ impl VcRequesterRouter {
             .with_state(self.requester)
     }
 
-    async fn beg_cross_user(
+    async fn beg(
         State(requester): State<Arc<dyn CoreVcRequesterTrait>>,
         payload: Result<Json<ReachAuthority>, JsonRejection>
     ) -> AppResult {
         let payload = extract_payload(payload)?;
-        Ok(match requester.beg_vc(payload, InteractStart::CrossUser).await {
-            Ok(Some(data)) => data.into_response(),
-            Ok(None) => ().into_response(),
-            Err(err) => err.into_response()
-        })
-    }
-
-    async fn beg_oidc(
-        State(requester): State<Arc<dyn CoreVcRequesterTrait>>,
-        payload: Result<Json<ReachAuthority>, JsonRejection>
-    ) -> AppResult {
-        let payload = extract_payload(payload)?;
-        Ok(match requester.beg_vc(payload, InteractStart::Oidc4VP).await {
+        Ok(match requester.beg_vc(payload).await {
             Ok(Some(data)) => data.into_response(),
             Ok(None) => ().into_response(),
             Err(err) => err.into_response()

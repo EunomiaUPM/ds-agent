@@ -27,8 +27,7 @@ use crate::ssi::types::entities::ReachAuthority;
 pub trait VcRequesterTrait: Send + Sync + 'static {
     fn start(
         &self,
-        payload: &ReachAuthority,
-        reach_method: &InteractStart
+        payload: &ReachAuthority
     ) -> Outcome<(req_vc::NewModel, req_interaction::NewModel)>;
     async fn send_req(
         &self,

@@ -1,11 +1,11 @@
 # auto-onboarding.ps1
 param(
-    [string]$AuthorityUrl = "http://127.0.0.1:1500",
-    [string]$ConsumerUrl  = "http://127.0.0.1:1100",
-    [string]$ProviderUrl  = "http://127.0.0.1:1200",
-    [string]$DockerAuthorityUrl = "http://host.docker.internal:1500",
-    [string]$DockerConsumerUrl  = "http://host.docker.internal:1100",
-    [string]$DockerProviderUrl  = "http://host.docker.internal:1200"
+    [string]$AuthorityUrl = "https://dev-dataspaces.dit.upm.es",
+    [string]$ConsumerUrl  = "https://eunomia-consumer.dit.upm.es",
+    [string]$ProviderUrl  = "https://eunomia-provider.dit.upm.es",
+    [string]$DockerAuthorityUrl = "https://dev-dataspaces.dit.upm.es",
+    [string]$DockerConsumerUrl  = "https://eunomia-consumer.dit.upm.es",
+    [string]$DockerProviderUrl  = "https://eunomia-provider.dit.upm.es"
 )
 
 function Invoke-CurlJson {
@@ -73,7 +73,7 @@ Write-Host "Provider DID: $PROVIDER_DID"
 # Consumer begins request for credential
 # ----------------------------
 $C_BEG_BODY = @{
-    url = "$DockerAuthorityUrl/api/v1/gate/access"
+    url = "$AuthorityUrl/api/v1/gate/access"
     id  = $AUTH_DID
     slug = "authority"
     vc_type = "DataspaceParticipant_jwt_vc_json"
@@ -113,7 +113,7 @@ Write-Host "OIDC4VCI processed."
 # Consumer requests grant from Provider
 # ----------------------------
 $OIDC4VP_BODY = @{
-    url = "$DockerProviderUrl/api/v1/gate/access"
+    url = "$ProviderUrl/api/v1/gate/access"
     id  = $PROVIDER_DID
     slug = "provider"
     actions = "talk"

@@ -36,7 +36,7 @@ use ymir::types::http::Body;
 use ymir::types::secrets::StringHelper;
 use ymir::types::vcs::VcType;
 use ymir::utils::{
-    expect_from_env, get_from_opt, get_query_param, json_headers, trim_4_base, ResponseExt,
+    expect_from_env, get_from_opt, get_query_param, json_headers, trim_4_base, ResponseExt
 };
 
 use super::super::VcRequesterTrait;
@@ -47,14 +47,14 @@ use crate::ssi::utils::parse_url;
 pub struct VCReqService {
     client: Arc<dyn ClientTrait>,
     vault: Arc<VaultService>,
-    config: VCRequesterConfig,
+    config: VCRequesterConfig
 }
 
 impl VCReqService {
     pub fn new(
         client: Arc<dyn ClientTrait>,
         vault: Arc<VaultService>,
-        config: VCRequesterConfig,
+        config: VCRequesterConfig
     ) -> Self {
         VCReqService { client, config, vault }
     }
@@ -64,11 +64,10 @@ impl VCReqService {
 impl VcRequesterTrait for VCReqService {
     fn start(
         &self,
-        payload: &ReachAuthority,
-        reach_method: &InteractStart,
+        payload: &ReachAuthority
     ) -> Outcome<(req_vc::NewModel, req_interaction::NewModel)> {
         info!("Begging for a credential");
-
+        let reach_method = InteractStart::from_str(&payload.method)?;
         let vc_type = VcType::from_conf(&payload.vc_type)?;
         let id = uuid::Uuid::new_v4().to_string();
         let callback_uri = format!(
@@ -83,7 +82,7 @@ impl VcRequesterTrait for VCReqService {
             authority_id: payload.id.clone(),
             authority_slug: payload.slug.clone(),
             grant_endpoint: payload.url.clone(),
-            vc_type: vc_type.to_string(),
+            vc_type: vc_type.to_string()
         };
 
         let int_model = req_interaction::NewModel {
@@ -93,7 +92,7 @@ impl VcRequesterTrait for VCReqService {
             uri: callback_uri,
             hash_method: None,
             hints: None,
-            grant_endpoint: payload.url.clone(),
+            grant_endpoint: payload.url.clone()
         };
 
         Ok((vc_model, int_model))
@@ -102,7 +101,7 @@ impl VcRequesterTrait for VCReqService {
     async fn send_req(
         &self,
         vc_model: &mut req_vc::Model,
-        int_model: &mut req_interaction::Model,
+        int_model: &mut req_interaction::Model
     ) -> Outcome<Option<String>> {
         info!("Sending grant request request to authority");
 
@@ -132,7 +131,7 @@ impl VcRequesterTrait for VCReqService {
                 "POST",
                 Some(status),
                 &error_res.error.unwrap_or("Unknown error while reaching authority".to_string()),
-                None,
+                None
             ));
         };
 
@@ -174,14 +173,14 @@ impl VcRequesterTrait for VCReqService {
             pd_uri,
             client_id_scheme,
             nonce,
-            response_uri,
+            response_uri
         })
     }
 
     async fn manage_res(
         &self,
         vc_req_model: &mut req_vc::Model,
-        res: Response,
+        res: Response
     ) -> Outcome<mates::NewModel> {
         info!("Managing response");
 
@@ -194,7 +193,7 @@ impl VcRequesterTrait for VCReqService {
                 "POST",
                 Some(res.status()),
                 "Error with authority continue request",
-                None,
+                None
             ));
         };
 
@@ -208,7 +207,7 @@ impl VcRequesterTrait for VCReqService {
             participant_type: "Authority".to_string(),
             base_url,
             token: None,
-            is_me: false,
+            is_me: false
         };
 
         Ok(mate)

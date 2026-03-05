@@ -70,3 +70,4 @@ services:
       - ./../../static/environment/envs/consumer.env
     environment:
       CONFIG_PATH: /app/static/environment/config/prod/core.consumer.yaml
+      RUST_BACKTRACE: full

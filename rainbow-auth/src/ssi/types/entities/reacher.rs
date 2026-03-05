@@ -22,7 +22,8 @@ pub struct ReachAuthority {
     pub id: String,
     pub slug: String,
     pub url: String,
-    pub vc_type: String
+    pub vc_type: String,
+    pub method: String
 }
 
 #[derive(Serialize, Deserialize, Debug)]

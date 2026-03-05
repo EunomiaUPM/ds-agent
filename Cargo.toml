@@ -61,4 +61,4 @@ rustls = { version = "0.23", features = ["ring"] }
 axum-server = { version = "0.8.0", features = ["tls-rustls"] }
 async-trait = "0.1.89"
 #ymir = { path = "./../ymir" }
-ymir = {git = "https://github.com/EunomiaUPM/ymir.git", tag = "v0.5.1"}
+ymir = {git = "https://github.com/EunomiaUPM/ymir.git", tag = "v0.5.2"}

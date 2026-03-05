@@ -23,7 +23,7 @@ services:
 
   consumer:
     container_name: consumer
-    image: rmenendez8/rainbow:v1.2.1
+    image: rmenendez8/rainbow:v1.2.2
     # build:
     #   context: ./..
     #   dockerfile: deployment/prod/Dockerfile.test

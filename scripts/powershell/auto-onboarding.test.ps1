@@ -89,6 +89,7 @@ $C_BEG_BODY = @{
     slug = "authority"
     vc_type = "DataspaceParticipant_jwt_vc_json"
     method = "cross-user"
+    auto = $true
 }
 $C_BEG_RESPONSE = Invoke-CurlJson -Method "POST" -Url "$ConsumerUrl/api/v1/vc-request/beg" -Body $C_BEG_BODY -ParseJson:$false
 Write-Host "Consumer request completed."

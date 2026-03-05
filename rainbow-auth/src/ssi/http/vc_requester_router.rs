@@ -26,7 +26,6 @@ use axum::{Json, Router};
 use ymir::data::entities::mates;
 use ymir::data::entities::req_vc::Model;
 use ymir::errors::AppResult;
-use ymir::types::gnap::grant_request::InteractStart;
 use ymir::types::gnap::{ApprovedCallbackBody, CallbackBody};
 use ymir::utils::{extract_payload, extract_query_param};
 

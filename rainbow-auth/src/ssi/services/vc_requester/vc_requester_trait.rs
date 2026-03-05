@@ -19,7 +19,6 @@ use async_trait::async_trait;
 use reqwest::Response;
 use ymir::data::entities::{mates, req_interaction, req_vc, req_verification};
 use ymir::errors::Outcome;
-use ymir::types::gnap::grant_request::InteractStart;
 
 use crate::ssi::types::entities::ReachAuthority;
 

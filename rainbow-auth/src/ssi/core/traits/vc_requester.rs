@@ -19,8 +19,8 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use ymir::data::entities::{mates, req_vc};
-use ymir::errors::Outcome;
-use ymir::types::gnap::grant_request::InteractStart;
+use ymir::errors::{Errors, Outcome};
+use ymir::services::wallet::WalletTrait;
 use ymir::types::gnap::ApprovedCallbackBody;
 
 use crate::ssi::services::callback::CallbackTrait;
@@ -33,20 +33,28 @@ pub trait CoreVcRequesterTrait: Send + Sync + 'static {
     fn vc_req(&self) -> Arc<dyn VcRequesterTrait>;
     fn repo(&self) -> Arc<dyn AuthRepoTrait>;
     fn callback(&self) -> Arc<dyn CallbackTrait>;
+    fn wallet(&self) -> Option<Arc<dyn WalletTrait>>;
     async fn beg_vc(&self, payload: ReachAuthority) -> Outcome<Option<String>> {
         let (vc_model, int_model) = self.vc_req().start(&payload)?;
         let mut vc_model = self.repo().vc_req().create(vc_model).await?;
         let mut int_model = self.repo().interaction_req().create(int_model).await?;
         let uri = self.vc_req().send_req(&mut vc_model, &mut int_model).await?;
-        let _vc_model = self.repo().vc_req().update(vc_model).await?;
+        let vc_model = self.repo().vc_req().update(vc_model).await?;
         let int_model = self.repo().interaction_req().update(int_model).await?;
         match uri {
             Some(uri) => {
                 let ver_model = self.vc_req().save_ver_data(&uri, &int_model.id)?;
                 let _ver_model = self.repo().verification_req().create(ver_model).await?;
+
+                if vc_model.auto {
+                    if let Some(wallet) = self.wallet() {
+                        wallet.process_oidc4vp(&uri).await?;
+                        return Ok(None);
+                    }
+                }
                 Ok(Some(uri))
             }
-            None => Ok(None)
+            None => Ok(None),
         }
     }
 
@@ -60,7 +68,7 @@ pub trait CoreVcRequesterTrait: Send + Sync + 'static {
     async fn continue_req(
         &self,
         id: String,
-        payload: ApprovedCallbackBody
+        payload: ApprovedCallbackBody,
     ) -> Outcome<mates::Model> {
         let mut int_model = self.repo().interaction_req().get_by_id(&id).await?;
         let result = self.callback().check_callback(&mut int_model, &payload);
@@ -69,8 +77,18 @@ pub trait CoreVcRequesterTrait: Send + Sync + 'static {
         let response = self.callback().continue_req(&int_model).await?;
         let mut vc_req_model = self.repo().vc_req().get_by_id(&id).await?;
         let mate = self.vc_req().manage_res(&mut vc_req_model, response).await?;
-        self.repo().vc_req().update(vc_req_model).await?;
+        let vc_req_model = self.repo().vc_req().update(vc_req_model).await?;
         let mate = self.repo().mates().force_create(mate).await?;
+
+        if vc_req_model.auto {
+            if let Some(wallet) = self.wallet() {
+                let uri = vc_req_model.vc_uri.as_deref().ok_or_else(|| {
+                    Errors::crazy("Something crazy with auto wallet happened", None)
+                })?;
+                wallet.process_oidc4vci(uri).await?;
+            }
+        }
+
         Ok(mate)
     }
     async fn manage_rejection(&self, id: String) -> Outcome<()> {

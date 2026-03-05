@@ -23,7 +23,7 @@ services:
 
   provider:
     container_name: provider
-    image: rmenendez8/rainbow:v1.2.1
+    image: rmenendez8/rainbow:v1.2.2
     # build:
     #   context: .
     #   dockerfile: Dockerfile

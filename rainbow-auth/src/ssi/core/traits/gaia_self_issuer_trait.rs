@@ -52,7 +52,7 @@ pub trait CoreGaiaSelfIssuerTrait: Send + Sync + 'static {
     async fn get_cred_offer_data(&self, id: String) -> Outcome<VCCredOffer> {
         let mut model = self.repo().issuing().get_by_id(&id).await?;
 
-        let data = self.issuer().get_cred_offer_data(&model, Some("gaia"))?;
+        let data = self.issuer().get_cred_offer_data(&model)?;
 
         if model.step {
             model.step = false;
@@ -63,11 +63,11 @@ pub trait CoreGaiaSelfIssuerTrait: Send + Sync + 'static {
     }
     fn issuer_metadata(&self) -> IssuerMetadata {
         let vcs = self.gaia().get_vc_types();
-        self.issuer().get_issuer_data(Some("gaia"), Some(&vcs))
+        self.issuer().get_issuer_data(Some("/gaia"), Some(&vcs))
     }
     fn oauth_server_metadata(&self) -> AuthServerMetadata {
         let vcs = self.gaia().get_vc_types();
-        self.issuer().get_oauth_server_data(Some("gaia"), Some(&vcs))
+        self.issuer().get_oauth_server_data(Some("/gaia"), Some(&vcs))
     }
     async fn get_token(&self, payload: TokenRequest) -> Outcome<IssuingToken> {
         let model =

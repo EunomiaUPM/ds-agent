@@ -23,10 +23,10 @@ services:
 
   consumer:
     container_name: consumer
-    image: rmenendez8/rainbow:v1.2.2
-    # build:
-    #   context: ./..
-    #   dockerfile: deployment/prod/Dockerfile.test
+    # image: rmenendez8/rainbow:v1.2.2
+    build:
+      context: ./..
+      dockerfile: deployment/prod/Dockerfile.test
     ports:
       - "1100:1100"
     volumes:

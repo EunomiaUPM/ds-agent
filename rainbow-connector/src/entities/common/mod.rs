@@ -1,7 +1,14 @@
-pub(crate) mod default_parameter;
-pub(crate) mod parameter_mutator;
-pub(crate) mod parameter_visitor;
-pub(crate) mod parameters;
+//! Shared primitives used across the connector domain.
+//!
+//! | Module | Contents |
+//! |---|---|
+//! | [`secret_management`] | [`SecretSource`] and [`SecretString`] for credential storage |
+//!
+//! [`SecretSource`]: secret_management::SecretSource
+//! [`SecretString`]: secret_management::SecretString
+
 pub(crate) mod secret_management;
-pub(crate) mod system_context;
-pub(crate) mod system_parameter;
+
+pub mod parameter_mutator {
+    // Deprecated or removed. Use ParameterResolverBehavior instead.
+}

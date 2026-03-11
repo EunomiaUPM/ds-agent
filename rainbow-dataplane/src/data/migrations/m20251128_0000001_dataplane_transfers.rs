@@ -35,11 +35,7 @@ impl MigrationTrait for Migration {
                             .timestamp_with_time_zone()
                             .not_null(),
                     )
-                    .col(
-                        ColumnDef::new(DataplaneTransfers::UpdatedAt)
-                            .timestamp_with_time_zone()
-                                
-                    )
+                    .col(ColumnDef::new(DataplaneTransfers::UpdatedAt).timestamp_with_time_zone())
                     .to_owned(),
             )
             .await

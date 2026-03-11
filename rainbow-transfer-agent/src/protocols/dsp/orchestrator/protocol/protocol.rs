@@ -84,12 +84,12 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
         dbg!("4.");
 
         // validation: PUSH connector requires a DataAddress from the consumer
-        if matches!(connector_instance.interaction, rainbow_connector::InteractionConfig::Push(_))
-            && input.dto.data_address.is_none()
+        if matches!(
+            connector_instance.interaction,
+            rainbow_connector::InteractionConfig::Push(_)
+        ) && input.dto.data_address.is_none()
         {
-            return Err(anyhow!(
-                "PUSH transfer requires a DataAddress from the consumer"
-            ));
+            return Err(anyhow!("PUSH transfer requires a DataAddress from the consumer"));
         }
         // check idempotency
         let consumer_pid = input.dto.get_consumer_pid().ok_or(anyhow!("no consumer id"))?;
@@ -129,11 +129,7 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
         self.facades
             .get_data_plane_facade()
             .await
-            .on_transfer_request_post(
-                &id,
-                &connector_instance,
-                &input.dto.data_address,
-            )
+            .on_transfer_request_post(&id, &connector_instance, &input.dto.data_address)
             .await?;
 
         dbg!("7.");
@@ -166,7 +162,8 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
 
         // data plane hook: start local dataplane, applying incoming DataAddress as egress
         // Returns the consumer's own ingress URL to include in the ACK.
-        let consumer_ingress = self.facades
+        let consumer_ingress = self
+            .facades
             .get_data_plane_facade()
             .await
             .on_transfer_start_post(&transfer_process_id, input.dto.data_address.clone())

@@ -51,7 +51,10 @@ impl DataPlaneProcessesRouter {
             .route("/{dataplane_id}", put(Self::handle_put_dataplane_transfer_by_id))
             .route("/{dataplane_id}", delete(Self::handle_delete_dataplane_transfer))
             .route("/{dataplane_id}/info", get(Self::handle_get_dataplane_info))
-            .route("/transfer-process/{transfer_process_id}", get(Self::handle_get_dataplane_transfer_by_process_id))
+            .route(
+                "/transfer-process/{transfer_process_id}",
+                get(Self::handle_get_dataplane_transfer_by_process_id),
+            )
             .with_state(self)
     }
 
@@ -112,7 +115,11 @@ impl DataPlaneProcessesRouter {
             Ok(urn) => urn,
             Err(resp) => return resp,
         };
-        match state.data_plane_process_entity.get_dataplane_transfer_by_process_id(&process_urn).await {
+        match state
+            .data_plane_process_entity
+            .get_dataplane_transfer_by_process_id(&process_urn)
+            .await
+        {
             Ok(dataplane_session) => match dataplane_session {
                 Some(dataplane_session) => {
                     (StatusCode::OK, Json(dataplane_session)).into_response()
@@ -138,7 +145,11 @@ impl DataPlaneProcessesRouter {
             Ok(v) => v,
             Err(e) => return e,
         };
-        match state.data_plane_process_entity.create_dataplane_transfer(&new_dataplane_transfer).await {
+        match state
+            .data_plane_process_entity
+            .create_dataplane_transfer(&new_dataplane_transfer)
+            .await
+        {
             Ok(transfer) => (StatusCode::CREATED, Json(transfer)).into_response(),
             Err(e) => e.to_response(),
         }
@@ -157,7 +168,11 @@ impl DataPlaneProcessesRouter {
             Ok(v) => v,
             Err(e) => return e,
         };
-        match state.data_plane_process_entity.put_dataplane_transfer_by_id(&data_plane_id, &input).await {
+        match state
+            .data_plane_process_entity
+            .put_dataplane_transfer_by_id(&data_plane_id, &input)
+            .await
+        {
             Ok(transfer) => (StatusCode::OK, Json(transfer)).into_response(),
             Err(e) => e.to_response(),
         }
@@ -186,29 +201,30 @@ impl DataPlaneProcessesRouter {
             Ok(urn) => urn,
             Err(resp) => return resp,
         };
-        
+
         match state.data_plane_process_entity.get_dataplane_transfer_by_id(&data_plane_id).await {
             Ok(Some(transfer)) => {
                 let mut ingress_url = None;
-                if transfer.inner.interaction_mode == crate::entities::dataplane_transfers::InteractionMode::Pull {
+                if transfer.inner.interaction_mode
+                    == crate::entities::dataplane_transfers::InteractionMode::Pull
+                {
                     if let Some(host) = headers.get("host").and_then(|h| h.to_str().ok()) {
                         ingress_url = Some(format!("{}/dataplane/proxy/{}", host, data_plane_id));
                     }
                 }
-                
+
                 let response = DataplaneInfoResponse {
                     id: transfer.inner.id,
                     interaction_mode: transfer.inner.interaction_mode.to_string(),
                     ingress_url,
                 };
                 (StatusCode::OK, Json(response)).into_response()
-            },
-             Ok(None) => {
-                 CommonErrors::missing_resource_new(
-                     data_plane_id.to_string().as_str(), 
-                     "Dataplane transfer not found"
-                 ).into_response()
-             },
+            }
+            Ok(None) => CommonErrors::missing_resource_new(
+                data_plane_id.to_string().as_str(),
+                "Dataplane transfer not found",
+            )
+            .into_response(),
             Err(e) => e.to_response(),
         }
     }

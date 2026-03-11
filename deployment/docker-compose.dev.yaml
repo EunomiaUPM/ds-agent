@@ -241,6 +241,8 @@ services:
         condition: service_healthy
       heimdall-vault:
         condition: service_started
+      heimdall_vault_setup:
+        condition: service_completed_successfully
     env_file:
       - ../static/vault/authority/data/vault.env
     environment:

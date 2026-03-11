@@ -36,10 +36,7 @@ pub enum EgressConfig {
     /// Provider PULL: forward to the final system via connector spec
     Connector { spec: ProtocolSpec },
     /// Forward to a DataAddress endpoint (consumer PUSH → client destination)
-    DataAddress {
-        endpoint_type: String,
-        endpoint: String,
-    },
+    DataAddress { endpoint_type: String, endpoint: String },
 }
 
 // ─── Builder ───
@@ -75,7 +72,9 @@ impl DataplaneConfigBuilder {
             // ─── PULL Provider ───
             // Ingress: proxy listener (DataAddress sent to consumer)
             // Egress: HTTP URL from connector's data_access (final system)
-            (TransferRole::Provider, Some(ci)) if matches!(ci.interaction, InteractionConfig::Pull(_)) => {
+            (TransferRole::Provider, Some(ci))
+                if matches!(ci.interaction, InteractionConfig::Pull(_)) =>
+            {
                 let pull = match &ci.interaction {
                     InteractionConfig::Pull(p) => p,
                     _ => unreachable!(),
@@ -86,17 +85,16 @@ impl DataplaneConfigBuilder {
                     }
                     spec => to_json(EgressConfig::Connector { spec: spec.clone() }),
                 };
-                Self {
-                    ingress: to_json(IngressConfig::HttpListener { path: auto_path }),
-                    egress,
-                }
+                Self { ingress: to_json(IngressConfig::HttpListener { path: auto_path }), egress }
             }
 
             // ─── PUSH Provider ───
             // Ingress: HttpListener (auto path — the proxy callback URL that the backend pushes to;
             //          when perform_subscribe runs it tells the backend to push here)
             // Egress: null (filled later from consumer's ingest URL via SetEgress)
-            (TransferRole::Provider, Some(ci)) if matches!(ci.interaction, InteractionConfig::Push(_)) => {
+            (TransferRole::Provider, Some(ci))
+                if matches!(ci.interaction, InteractionConfig::Push(_)) =>
+            {
                 Self {
                     ingress: to_json(IngressConfig::HttpListener { path: auto_path }),
                     egress: serde_json::Value::Null,

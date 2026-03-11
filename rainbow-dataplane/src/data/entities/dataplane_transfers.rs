@@ -1,12 +1,14 @@
+use rainbow_common::config::types::roles::RoleConfig;
 use sea_orm::entity::prelude::*;
 use sea_orm::ActiveValue;
 use serde::{Deserialize, Serialize};
 use urn::{Urn, UrnBuilder};
-use rainbow_common::config::types::roles::RoleConfig;
 
 use strum::Display;
 
-#[derive(Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, Display)]
+#[derive(
+    Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, Display,
+)]
 #[sea_orm(rs_type = "String", db_type = "Text")]
 pub enum TransferRole {
     #[sea_orm(string_value = "Provider")]
@@ -43,7 +45,9 @@ impl TryFrom<&RoleConfig> for TransferRole {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, Display)]
+#[derive(
+    Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, Display,
+)]
 #[sea_orm(rs_type = "String", db_type = "Text")]
 pub enum InteractionMode {
     #[sea_orm(string_value = "Pull")]
@@ -124,16 +128,19 @@ pub struct NewDataplaneTransfer {
 
 impl From<NewDataplaneTransfer> for ActiveModel {
     fn from(value: NewDataplaneTransfer) -> Self {
-            let new_urn = UrnBuilder::new("dataplane-process", uuid::Uuid::new_v4().to_string().as_str())
-            .build()
-            .expect("UrnBuilder failed");
+        let new_urn =
+            UrnBuilder::new("dataplane-process", uuid::Uuid::new_v4().to_string().as_str())
+                .build()
+                .expect("UrnBuilder failed");
         Self {
             id: ActiveValue::Set(value.id.unwrap_or(new_urn.clone()).to_string()),
             transfer_process_id: ActiveValue::Set(value.transfer_process_id),
             role: ActiveValue::Set(value.role),
             interaction_mode: ActiveValue::Set(value.interaction_mode),
             state: ActiveValue::Set(value.state),
-            connector_instance_id: ActiveValue::Set(value.connector_instance_id.map(|urn| urn.to_string())),
+            connector_instance_id: ActiveValue::Set(
+                value.connector_instance_id.map(|urn| urn.to_string()),
+            ),
             ingress_config: ActiveValue::Set(value.ingress_config),
             egress_config: ActiveValue::Set(value.egress_config),
             flow_control: ActiveValue::Set(Some(serde_json::json!({}))),
@@ -156,15 +163,18 @@ pub struct EditDataplaneTransferModel {
 
 impl From<EditDataplaneTransferModel> for ActiveModel {
     fn from(value: EditDataplaneTransferModel) -> Self {
-        let mut active_model =
-            Self { updated_at: ActiveValue::Set(Some(chrono::Utc::now().into())), ..Default::default() };
+        let mut active_model = Self {
+            updated_at: ActiveValue::Set(Some(chrono::Utc::now().into())),
+            ..Default::default()
+        };
 
         if let Some(state) = value.state {
             active_model.state = ActiveValue::Set(state);
         }
 
         if let Some(connector_instance_id) = value.connector_instance_id {
-            active_model.connector_instance_id = ActiveValue::Set(Some(connector_instance_id.to_string()));
+            active_model.connector_instance_id =
+                ActiveValue::Set(Some(connector_instance_id.to_string()));
         }
 
         if let Some(ingress_config) = value.ingress_config {

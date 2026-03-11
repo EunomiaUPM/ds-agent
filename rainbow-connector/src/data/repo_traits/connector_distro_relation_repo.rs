@@ -20,6 +20,7 @@
 use crate::data::entities::connector_distro_relation;
 use crate::data::repo_traits::connector_repo_errors::ConnectorAgentRepoErrors;
 
+#[cfg_attr(test, mockall::automock)]
 #[async_trait::async_trait]
 pub trait ConnectorDistroRelationRepoTrait: Send + Sync {
     async fn create_relation(

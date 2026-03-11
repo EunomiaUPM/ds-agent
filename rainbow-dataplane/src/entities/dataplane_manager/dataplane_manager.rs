@@ -1,3 +1,6 @@
+use crate::entities::dataplane_manager::config_builder::{
+    DataplaneConfigBuilder, EgressConfig, IngressConfig,
+};
 use crate::entities::dataplane_manager::driver_factory::{DataplaneDriver, DataplaneDriverFactory};
 use crate::entities::dataplane_manager::{
     DataplaneAddress, DataplaneCommand, DataplaneManagerInput, DataplaneResponse,
@@ -11,7 +14,6 @@ use rainbow_connector::{ConnectorInstanceDto, ConnectorInstanceTrait, Interactio
 use std::sync::Arc;
 use urn::{Urn, UrnBuilder};
 use uuid::Uuid;
-use crate::entities::dataplane_manager::config_builder::{DataplaneConfigBuilder, EgressConfig, IngressConfig};
 
 // ─── Context passed to each command handler ───
 
@@ -61,11 +63,7 @@ impl DataplaneManager {
         connector_entity: Arc<dyn ConnectorInstanceTrait>,
         driver_factory: Arc<DataplaneDriverFactory>,
     ) -> Self {
-        Self {
-            dataplane_entity,
-            connector_entity,
-            driver_factory,
-        }
+        Self { dataplane_entity, connector_entity, driver_factory }
     }
 
     /// Main entry point: receives a command from the control plane and executes it.
@@ -88,8 +86,7 @@ impl DataplaneManager {
 
         // 4. CREATION GUARD: If no process exists, only SetInit is allowed → create it
         if dataplane_process_opt.is_none() {
-            self.handle_creation(&input, &connector_urn, &connector_instance)
-                .await?;
+            self.handle_creation(&input, &connector_urn, &connector_instance).await?;
             // Re-execute: now the process exists, so cmd_init runs (Init → Configuring)
             // and trigger_autonomous_transition chains (Configuring → Auth → Ready)
             return Box::pin(self.execute_command(input)).await;
@@ -100,9 +97,7 @@ impl DataplaneManager {
             .ok_or_else(|| anyhow!("Dataplane process not found after creation check"))?;
 
         // 6. Build driver (connector is optional)
-        let driver = self
-            .driver_factory
-            .create_driver(&process, connector_instance.as_ref())?;
+        let driver = self.driver_factory.create_driver(&process, connector_instance.as_ref())?;
 
         let ctx = CommandContext::from(&process, &driver, connector_instance.as_ref())?;
 
@@ -110,8 +105,7 @@ impl DataplaneManager {
         let response = self.handle_command(&input.command, &process, &ctx).await?;
 
         // 8. Fire autonomous transitions (recursive chain)
-        self.trigger_autonomous_transition(&input.transfer_process_id)
-            .await?;
+        self.trigger_autonomous_transition(&input.transfer_process_id).await?;
 
         Ok(response)
     }
@@ -125,8 +119,12 @@ impl DataplaneManager {
     ) -> anyhow::Result<Option<Urn>> {
         match process_opt {
             None => match command {
-                DataplaneCommand::SetInit { connector_instance, .. } => Ok(connector_instance.clone()),
-                _ => Err(anyhow!("Cannot execute command without an existing dataplane process")),
+                DataplaneCommand::SetInit { connector_instance, .. } => {
+                    Ok(connector_instance.clone())
+                }
+                _ => Err(anyhow!(
+                    "Cannot execute command without an existing dataplane process"
+                )),
             },
             Some(process) => match &process.inner.connector_instance_id {
                 Some(id_str) => Ok(Some(id_str.parse::<Urn>()?)),
@@ -199,7 +197,9 @@ impl DataplaneManager {
 
             Ok(DataplaneResponse::Ok)
         } else {
-            Err(anyhow!("Cannot execute command without an existing process (only SetInit creates)"))
+            Err(anyhow!(
+                "Cannot execute command without an existing process (only SetInit creates)"
+            ))
         }
     }
 
@@ -213,15 +213,17 @@ impl DataplaneManager {
     ) -> anyhow::Result<DataplaneResponse> {
         match cmd {
             DataplaneCommand::SetInit { .. } => self.cmd_init(process, ctx).await,
-            DataplaneCommand::SetConfiguring    => Ok(DataplaneResponse::Ok),
-            DataplaneCommand::SetAuth           => self.cmd_auth(ctx).await,
-            DataplaneCommand::SetReady          => self.cmd_ready(ctx).await,
-            DataplaneCommand::SetSubscribing    => self.cmd_subscribing(ctx).await,
-            DataplaneCommand::SetStarted        => self.cmd_started(ctx).await,
-            DataplaneCommand::SetUnsubscribing  => self.cmd_unsubscribing(ctx).await,
-            DataplaneCommand::SetStopped        => self.cmd_stopped(ctx).await,
-            DataplaneCommand::SetTerminated     => self.cmd_terminated(ctx).await,
-            DataplaneCommand::SetEgress { data_address } => self.cmd_set_egress(data_address, ctx).await,
+            DataplaneCommand::SetConfiguring => Ok(DataplaneResponse::Ok),
+            DataplaneCommand::SetAuth => self.cmd_auth(ctx).await,
+            DataplaneCommand::SetReady => self.cmd_ready(ctx).await,
+            DataplaneCommand::SetSubscribing => self.cmd_subscribing(ctx).await,
+            DataplaneCommand::SetStarted => self.cmd_started(ctx).await,
+            DataplaneCommand::SetUnsubscribing => self.cmd_unsubscribing(ctx).await,
+            DataplaneCommand::SetStopped => self.cmd_stopped(ctx).await,
+            DataplaneCommand::SetTerminated => self.cmd_terminated(ctx).await,
+            DataplaneCommand::SetEgress { data_address } => {
+                self.cmd_set_egress(data_address, ctx).await
+            }
         }
     }
 
@@ -241,7 +243,8 @@ impl DataplaneManager {
                 TransferState::Configuring,
                 Some(builder.ingress),
                 Some(builder.egress),
-            ).await?;
+            )
+            .await?;
         }
         Ok(DataplaneResponse::Ok)
     }
@@ -303,7 +306,10 @@ impl DataplaneManager {
     }
 
     /// STARTED → UNSUBSCRIBING (PUSH only): driver unsubscribes
-    async fn cmd_unsubscribing(&self, ctx: &CommandContext<'_>) -> anyhow::Result<DataplaneResponse> {
+    async fn cmd_unsubscribing(
+        &self,
+        ctx: &CommandContext<'_>,
+    ) -> anyhow::Result<DataplaneResponse> {
         if ctx.is_state(TransferState::Started) && ctx.is_push() {
             self.unsubscribe_or_terminate(ctx).await?;
             self.update_state(&ctx.process_id, TransferState::Unsubscribing).await?;
@@ -381,14 +387,9 @@ impl DataplaneManager {
 
     // ─── Autonomous transitions (recursive chain) ───
 
-    async fn trigger_autonomous_transition(
-        &self,
-        transfer_process_id: &Urn,
-    ) -> anyhow::Result<()> {
-        let current = self
-            .dataplane_entity
-            .get_dataplane_transfer_by_process_id(transfer_process_id)
-            .await?;
+    async fn trigger_autonomous_transition(&self, transfer_process_id: &Urn) -> anyhow::Result<()> {
+        let current =
+            self.dataplane_entity.get_dataplane_transfer_by_process_id(transfer_process_id).await?;
 
         let process = match current {
             Some(p) => p,
@@ -396,18 +397,16 @@ impl DataplaneManager {
         };
 
         let next_command = match process.inner.state {
-            TransferState::Configuring   => Some(DataplaneCommand::SetAuth),
-            TransferState::Auth          => Some(DataplaneCommand::SetReady),
-            TransferState::Subscribing   => Some(DataplaneCommand::SetStarted),
+            TransferState::Configuring => Some(DataplaneCommand::SetAuth),
+            TransferState::Auth => Some(DataplaneCommand::SetReady),
+            TransferState::Subscribing => Some(DataplaneCommand::SetStarted),
             TransferState::Unsubscribing => Some(DataplaneCommand::SetStopped),
             _ => None,
         };
 
         if let Some(command) = next_command {
-            let next_input = DataplaneManagerInput {
-                transfer_process_id: transfer_process_id.clone(),
-                command,
-            };
+            let next_input =
+                DataplaneManagerInput { transfer_process_id: transfer_process_id.clone(), command };
             Box::pin(self.execute_command(&next_input)).await?;
         }
 
@@ -424,10 +423,7 @@ impl DataplaneManager {
         self.dataplane_entity
             .put_dataplane_transfer_by_id(
                 process_id,
-                &EditDataplaneTransferDto {
-                    state: Some(new_state),
-                    ..Default::default()
-                },
+                &EditDataplaneTransferDto { state: Some(new_state), ..Default::default() },
             )
             .await
     }
@@ -458,9 +454,7 @@ impl DataplaneManager {
         data_address: &DataplaneAddress,
         ctx: &CommandContext<'_>,
     ) -> anyhow::Result<DataplaneResponse> {
-        let egress = EgressConfig::HttpProxy {
-            url: data_address.endpoint.clone(),
-        };
+        let egress = EgressConfig::HttpProxy { url: data_address.endpoint.clone() };
         self.dataplane_entity
             .put_dataplane_transfer_by_id(
                 &ctx.process_id,
@@ -482,10 +476,8 @@ impl DataplaneManager {
         &self,
         transfer_id: &Urn,
     ) -> anyhow::Result<Option<DataplaneAddress>> {
-        let Some(process) = self
-            .dataplane_entity
-            .get_dataplane_transfer_by_process_id(transfer_id)
-            .await?
+        let Some(process) =
+            self.dataplane_entity.get_dataplane_transfer_by_process_id(transfer_id).await?
         else {
             return Ok(None);
         };
@@ -504,10 +496,8 @@ impl DataplaneManager {
 
     /// Check if the transfer is in PULL mode.
     pub async fn is_pull(&self, transfer_id: &Urn) -> anyhow::Result<bool> {
-        if let Some(process) = self
-            .dataplane_entity
-            .get_dataplane_transfer_by_process_id(transfer_id)
-            .await?
+        if let Some(process) =
+            self.dataplane_entity.get_dataplane_transfer_by_process_id(transfer_id).await?
         {
             Ok(process.inner.interaction_mode == InteractionMode::Pull)
         } else {

@@ -35,8 +35,9 @@ pub(crate) struct Distribution {
     pub dct_format: Option<String>,
 }
 
+#[cfg_attr(test, mockall::automock)]
 #[async_trait::async_trait]
-pub(crate) trait DistributionFacadeTrait: Send + Sync {
+pub trait DistributionFacadeTrait: Send + Sync {
     async fn resolve_distribution_by_id(
         &self,
         distribution_id: &String,

@@ -59,11 +59,7 @@ impl TestingHTTPProxy {
         repo: Arc<dyn DataplaneRepoTrait>,
     ) -> Self {
         let client = reqwest::Client::new();
-        Self {
-            client,
-            dataplane_service,
-            repo,
-        }
+        Self { client, dataplane_service, repo }
     }
     pub fn router(self) -> Router {
         Router::new()
@@ -102,21 +98,27 @@ impl TestingHTTPProxy {
         };
 
         // PDP: Fetch by Dataplane ID (urn:dataplane-transfer:...)
-        let dataplane = match state
-            .dataplane_service
-            .get_dataplane_transfer_by_id(&data_plane_urn)
-            .await
-        {
-            Ok(dataplane) => match dataplane {
-                Some(dataplane) => dataplane,
-                None => return (StatusCode::NOT_FOUND, "dataplane id not found").into_response(),
-            },
-            Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, "error fetching dataplane").into_response(),
-        };
+        let dataplane =
+            match state.dataplane_service.get_dataplane_transfer_by_id(&data_plane_urn).await {
+                Ok(dataplane) => match dataplane {
+                    Some(dataplane) => dataplane,
+                    None => {
+                        return (StatusCode::NOT_FOUND, "dataplane id not found").into_response()
+                    }
+                },
+                Err(_) => {
+                    return (StatusCode::INTERNAL_SERVER_ERROR, "error fetching dataplane")
+                        .into_response()
+                }
+            };
 
         // STRICT State Check: Only STARTED is allowed
         if dataplane.inner.state != TransferState::Started {
-             return (StatusCode::FORBIDDEN, format!("Transfer is not STARTED (current: {:?})", dataplane.inner.state)).into_response();
+            return (
+                StatusCode::FORBIDDEN,
+                format!("Transfer is not STARTED (current: {:?})", dataplane.inner.state),
+            )
+                .into_response();
         }
 
         // Read egress config from the dataplane process
@@ -125,10 +127,7 @@ impl TestingHTTPProxy {
             match serde_json::from_value(dataplane.inner.egress_config.clone()) {
                 Ok(e) => e,
                 Err(_) => {
-                    return (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        "Invalid or missing egress_config",
-                    )
+                    return (StatusCode::INTERNAL_SERVER_ERROR, "Invalid or missing egress_config")
                         .into_response()
                 }
             };
@@ -153,7 +152,7 @@ impl TestingHTTPProxy {
             }
             next_hop.push_str(&p);
         }
-        
+
         let body = std::mem::take(req.body_mut());
         let body_bytes = match to_bytes(body, 2024 * 1024) // MAX_BUFFER 2MB?
             .await
@@ -165,15 +164,25 @@ impl TestingHTTPProxy {
             Ok(method) => method,
             Err(_) => return (StatusCode::BAD_REQUEST, "method not allowed").into_response(),
         };
-        let res = state.client.request(method.clone(), next_hop.clone()).body(body_bytes).send().await;
+        let res =
+            state.client.request(method.clone(), next_hop.clone()).body(body_bytes).send().await;
 
         // Enhance Logging
         let role = dataplane.inner.role;
         let mode = dataplane.inner.interaction_mode;
-        
-        let ingress_type = match serde_json::from_value::<crate::entities::dataplane_manager::config_builder::IngressConfig>(dataplane.inner.ingress_config.clone()) {
-            Ok(crate::entities::dataplane_manager::config_builder::IngressConfig::HttpListener { .. }) => "HttpListener",
-            Ok(crate::entities::dataplane_manager::config_builder::IngressConfig::Connector { .. }) => "Connector",
+
+        let ingress_type = match serde_json::from_value::<
+            crate::entities::dataplane_manager::config_builder::IngressConfig,
+        >(dataplane.inner.ingress_config.clone())
+        {
+            Ok(
+                crate::entities::dataplane_manager::config_builder::IngressConfig::HttpListener {
+                    ..
+                },
+            ) => "HttpListener",
+            Ok(crate::entities::dataplane_manager::config_builder::IngressConfig::Connector {
+                ..
+            }) => "Connector",
             Err(_) => "Unknown",
         };
 
@@ -189,7 +198,7 @@ impl TestingHTTPProxy {
             level: LogLevel::Info,
             component: "DataProxy".to_string(),
             message: format!(
-                "Transfer [{}|{}] from {} to {} | Ingress: {} | Egress: {}", 
+                "Transfer [{}|{}] from {} to {} | Ingress: {} | Egress: {}",
                 role, mode, data_plane_id, next_hop, ingress_type, egress_type
             ),
             data: Some(json!({
@@ -203,7 +212,7 @@ impl TestingHTTPProxy {
                 "status": res.as_ref().map(|r| r.status().as_u16()).unwrap_or(0),
             })),
         };
-        
+
         // Fire and forget logging (or await/warn)
         if let Err(e) = state.repo.get_transfer_events_repo().create_transfer_event(&event).await {
             error!("Failed to log transfer event: {:?}", e);

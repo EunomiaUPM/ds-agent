@@ -49,9 +49,10 @@ pub struct NewTransferLog {
 
 impl From<NewTransferLog> for ActiveModel {
     fn from(value: NewTransferLog) -> Self {
-        let new_urn = UrnBuilder::new("dataplane-process-log", uuid::Uuid::new_v4().to_string().as_str())
-            .build()
-            .expect("UrnBuilder failed");
+        let new_urn =
+            UrnBuilder::new("dataplane-process-log", uuid::Uuid::new_v4().to_string().as_str())
+                .build()
+                .expect("UrnBuilder failed");
         Self {
             id: ActiveValue::Set(new_urn.to_string()),
             dataplane_process_id: ActiveValue::Set(value.dataplane_process_id),

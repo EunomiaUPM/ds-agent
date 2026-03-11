@@ -1,0 +1,778 @@
+
+use crate::entities::auth_config::BasicAuthConfig;
+use crate::entities::auth_config::{ApiKeyLocation, OAuthGrantType};
+use crate::entities::common::secret_management::{SecretSource, SecretString};
+use crate::entities::connector_template::ConnectorTemplateDto;
+use crate::entities::parameters::parameters::TemplateMapString;
+use crate::entities::parameters::template_parameters_extractor::TemplateParameterExtractor;
+use crate::entities::parameters::template_parameters_visitor::ParameterExtractorVisitor;
+use crate::entities::resource::KafkaSpec;
+use crate::{
+    AuthenticationConfig, ConnectorMetadata, HttpSpec, InteractionConfig, ProtocolSpec,
+    PullLifecycle, PushLifecycle, TemplateVecString,
+};
+use std::collections::HashMap;
+
+fn run(mut dto: ConnectorTemplateDto) -> Vec<String> {
+    let mut extractor = TemplateParameterExtractor::new();
+    ParameterExtractorVisitor::new(&mut extractor).extract(&mut dto);
+    extractor.found_parameters().iter().map(|fp| fp.name.clone()).collect()
+}
+
+// =========================================================================
+// authentication variants
+// =========================================================================
+
+#[test]
+fn no_auth_extracts_no_parameters() {
+    // NoAuth has no fields to scan, the auth step should contribute nothing.
+    let dto = ConnectorTemplateDto {
+        metadata: ConnectorMetadata {
+            name: None,
+            author: None,
+            description: None,
+            version: None,
+            created_at: None,
+        },
+        authentication: AuthenticationConfig::NoAuth,
+        interaction: InteractionConfig::Pull(PullLifecycle {
+            data_access: ProtocolSpec::Http(HttpSpec {
+                url_template: "https://api.example.com/data".to_string(),
+                method: TemplateVecString::Value(vec!["GET".to_string()]),
+                headers: None,
+                body_template: None,
+            }),
+        }),
+        parameters: vec![],
+    };
+    assert!(run(dto).is_empty());
+}
+
+#[test]
+fn basic_auth_username_template_extracts_parameter() {
+    // The visitor scans the username field of BasicAuth.
+    let dto = ConnectorTemplateDto {
+        metadata: ConnectorMetadata {
+            name: None,
+            author: None,
+            description: None,
+            version: None,
+            created_at: None,
+        },
+        authentication: AuthenticationConfig::BasicAuth(BasicAuthConfig {
+            username: "{{__USERNAME__}}".to_string(),
+            password: SecretString { source: SecretSource::Plain("secret".to_string()) },
+        }),
+        interaction: InteractionConfig::Pull(PullLifecycle {
+            data_access: ProtocolSpec::Http(HttpSpec {
+                url_template: "https://api.example.com/data".to_string(),
+                method: TemplateVecString::Value(vec!["GET".to_string()]),
+                headers: None,
+                body_template: None,
+            }),
+        }),
+        parameters: vec![],
+    };
+    let found = run(dto);
+    assert_eq!(1, found.len());
+    assert_eq!("USERNAME", found[0]);
+}
+
+#[test]
+fn basic_auth_literal_username_extracts_no_parameters() {
+    // A literal username value contains no template placeholders.
+    let dto = ConnectorTemplateDto {
+        metadata: ConnectorMetadata {
+            name: None,
+            author: None,
+            description: None,
+            version: None,
+            created_at: None,
+        },
+        authentication: AuthenticationConfig::BasicAuth(BasicAuthConfig {
+            username: "admin".to_string(),
+            password: SecretString { source: SecretSource::Plain("secret".to_string()) },
+        }),
+        interaction: InteractionConfig::Pull(PullLifecycle {
+            data_access: ProtocolSpec::Http(HttpSpec {
+                url_template: "https://api.example.com/data".to_string(),
+                method: TemplateVecString::Value(vec!["GET".to_string()]),
+                headers: None,
+                body_template: None,
+            }),
+        }),
+        parameters: vec![],
+    };
+    assert!(run(dto).is_empty());
+}
+
+#[test]
+fn bearer_token_extracts_no_parameters() {
+    // The BearerToken arm in the walker is currently a no-op.
+    let dto = ConnectorTemplateDto {
+        metadata: ConnectorMetadata {
+            name: None,
+            author: None,
+            description: None,
+            version: None,
+            created_at: None,
+        },
+        authentication: AuthenticationConfig::BearerToken {
+            token: SecretString { source: SecretSource::Plain("{{__TOKEN__}}".to_string()) },
+        },
+        interaction: InteractionConfig::Pull(PullLifecycle {
+            data_access: ProtocolSpec::Http(HttpSpec {
+                url_template: "https://api.example.com/data".to_string(),
+                method: TemplateVecString::Value(vec!["GET".to_string()]),
+                headers: None,
+                body_template: None,
+            }),
+        }),
+        parameters: vec![],
+    };
+    assert!(run(dto).is_empty());
+}
+
+#[test]
+fn api_key_with_literal_key_extracts_no_parameters() {
+    // A literal key name has no placeholders; value is SecretString (not scanned).
+    let dto = ConnectorTemplateDto {
+        metadata: ConnectorMetadata {
+            name: None,
+            author: None,
+            description: None,
+            version: None,
+            created_at: None,
+        },
+        authentication: AuthenticationConfig::ApiKey {
+            key: "X-Api-Key".to_string(),
+            value: SecretString { source: SecretSource::Plain("s3cr3t".to_string()) },
+            location: ApiKeyLocation::Header,
+        },
+        interaction: InteractionConfig::Pull(PullLifecycle {
+            data_access: ProtocolSpec::Http(HttpSpec {
+                url_template: "https://api.example.com/data".to_string(),
+                method: TemplateVecString::Value(vec!["GET".to_string()]),
+                headers: None,
+                body_template: None,
+            }),
+        }),
+        parameters: vec![],
+    };
+    assert!(run(dto).is_empty());
+}
+
+#[test]
+fn api_key_with_template_key_extracts_parameter() {
+    // The header/query-param name may itself be parameterised.
+    let dto = ConnectorTemplateDto {
+        metadata: ConnectorMetadata {
+            name: None,
+            author: None,
+            description: None,
+            version: None,
+            created_at: None,
+        },
+        authentication: AuthenticationConfig::ApiKey {
+            key: "{{__API_KEY_HEADER__}}".to_string(),
+            value: SecretString { source: SecretSource::Plain("s3cr3t".to_string()) },
+            location: ApiKeyLocation::Header,
+        },
+        interaction: InteractionConfig::Pull(PullLifecycle {
+            data_access: ProtocolSpec::Http(HttpSpec {
+                url_template: "https://api.example.com/data".to_string(),
+                method: TemplateVecString::Value(vec!["GET".to_string()]),
+                headers: None,
+                body_template: None,
+            }),
+        }),
+        parameters: vec![],
+    };
+    let found = run(dto);
+    assert_eq!(1, found.len());
+    assert_eq!("API_KEY_HEADER", found[0]);
+}
+
+#[test]
+fn oauth2_with_literal_fields_extracts_no_parameters() {
+    // All TemplateString/TemplateVecString fields are literals; client_secret
+    // is a SecretString and is intentionally not scanned.
+    let dto = ConnectorTemplateDto {
+        metadata: ConnectorMetadata {
+            name: None,
+            author: None,
+            description: None,
+            version: None,
+            created_at: None,
+        },
+        authentication: AuthenticationConfig::OAuth2 {
+            grant_type: OAuthGrantType::ClientCredentials,
+            token_url: "https://auth.example.com/token".to_string(),
+            client_id: "my-client".to_string(),
+            client_secret: SecretString { source: SecretSource::Plain("s3cr3t".to_string()) },
+            scopes: TemplateVecString::Value(vec!["read".to_string()]),
+        },
+        interaction: InteractionConfig::Pull(PullLifecycle {
+            data_access: ProtocolSpec::Http(HttpSpec {
+                url_template: "https://api.example.com/data".to_string(),
+                method: TemplateVecString::Value(vec!["GET".to_string()]),
+                headers: None,
+                body_template: None,
+            }),
+        }),
+        parameters: vec![],
+    };
+    assert!(run(dto).is_empty());
+}
+
+#[test]
+fn oauth2_with_template_fields_extracts_parameters() {
+    // token_url, client_id, and scopes all support placeholders.
+    let dto = ConnectorTemplateDto {
+        metadata: ConnectorMetadata {
+            name: None,
+            author: None,
+            description: None,
+            version: None,
+            created_at: None,
+        },
+        authentication: AuthenticationConfig::OAuth2 {
+            grant_type: OAuthGrantType::ClientCredentials,
+            token_url: "{{__TOKEN_URL__}}".to_string(),
+            client_id: "{{__CLIENT_ID__}}".to_string(),
+            client_secret: SecretString { source: SecretSource::Plain("s3cr3t".to_string()) },
+            scopes: TemplateVecString::Template("{{__SCOPES__}}".to_string()),
+        },
+        interaction: InteractionConfig::Pull(PullLifecycle {
+            data_access: ProtocolSpec::Http(HttpSpec {
+                url_template: "https://api.example.com/data".to_string(),
+                method: TemplateVecString::Value(vec!["GET".to_string()]),
+                headers: None,
+                body_template: None,
+            }),
+        }),
+        parameters: vec![],
+    };
+    let found = run(dto);
+    assert_eq!(3, found.len());
+    assert!(found.contains(&"TOKEN_URL".to_string()));
+    assert!(found.contains(&"CLIENT_ID".to_string()));
+    assert!(found.contains(&"SCOPES".to_string()));
+}
+
+// =========================================================================
+// Pull + HTTP
+// =========================================================================
+
+#[test]
+fn pull_http_url_template_extracts_parameter() {
+    // A template placeholder in url_template should be found.
+    let dto = ConnectorTemplateDto {
+        metadata: ConnectorMetadata {
+            name: None,
+            author: None,
+            description: None,
+            version: None,
+            created_at: None,
+        },
+        authentication: AuthenticationConfig::NoAuth,
+        interaction: InteractionConfig::Pull(PullLifecycle {
+            data_access: ProtocolSpec::Http(HttpSpec {
+                url_template: "https://api.example.com/{{__RESOURCE_ID__}}".to_string(),
+                method: TemplateVecString::Value(vec!["GET".to_string()]),
+                headers: None,
+                body_template: None,
+            }),
+        }),
+        parameters: vec![],
+    };
+    let found = run(dto);
+    assert_eq!(1, found.len());
+    assert_eq!("RESOURCE_ID", found[0]);
+}
+
+#[test]
+fn pull_http_url_with_multiple_parameters_extracts_all() {
+    // Multiple placeholders in the same URL should all be found.
+    let dto = ConnectorTemplateDto {
+        metadata: ConnectorMetadata {
+            name: None,
+            author: None,
+            description: None,
+            version: None,
+            created_at: None,
+        },
+        authentication: AuthenticationConfig::NoAuth,
+        interaction: InteractionConfig::Pull(PullLifecycle {
+            data_access: ProtocolSpec::Http(HttpSpec {
+                url_template: "https://{{__HOST__}}/{{__PATH__}}".to_string(),
+                method: TemplateVecString::Value(vec!["GET".to_string()]),
+                headers: None,
+                body_template: None,
+            }),
+        }),
+        parameters: vec![],
+    };
+    let found = run(dto);
+    assert_eq!(2, found.len());
+    assert!(found.contains(&"HOST".to_string()));
+    assert!(found.contains(&"PATH".to_string()));
+}
+
+#[test]
+fn pull_http_method_as_template_extracts_parameter() {
+    // When method is a Template string (not a Value vec), the placeholder is extracted.
+    let dto = ConnectorTemplateDto {
+        metadata: ConnectorMetadata {
+            name: None,
+            author: None,
+            description: None,
+            version: None,
+            created_at: None,
+        },
+        authentication: AuthenticationConfig::NoAuth,
+        interaction: InteractionConfig::Pull(PullLifecycle {
+            data_access: ProtocolSpec::Http(HttpSpec {
+                url_template: "https://api.example.com/data".to_string(),
+                method: TemplateVecString::Template("{{__METHOD__}}".to_string()),
+                headers: None,
+                body_template: None,
+            }),
+        }),
+        parameters: vec![],
+    };
+    let found = run(dto);
+    assert_eq!(1, found.len());
+    assert_eq!("METHOD", found[0]);
+}
+
+#[test]
+fn pull_http_method_value_with_template_item_extracts_parameter() {
+    // A Value vec where one element contains a placeholder should be scanned.
+    let dto = ConnectorTemplateDto {
+        metadata: ConnectorMetadata {
+            name: None,
+            author: None,
+            description: None,
+            version: None,
+            created_at: None,
+        },
+        authentication: AuthenticationConfig::NoAuth,
+        interaction: InteractionConfig::Pull(PullLifecycle {
+            data_access: ProtocolSpec::Http(HttpSpec {
+                url_template: "https://api.example.com/data".to_string(),
+                method: TemplateVecString::Value(vec![
+                    "GET".to_string(),
+                    "{{__EXTRA_METHOD__}}".to_string(),
+                ]),
+                headers: None,
+                body_template: None,
+            }),
+        }),
+        parameters: vec![],
+    };
+    let found = run(dto);
+    assert_eq!(1, found.len());
+    assert_eq!("EXTRA_METHOD", found[0]);
+}
+
+#[test]
+fn pull_http_headers_extra_key_extracts_parameter() {
+    // The map extractor scans the value of the "__EXTRA__" key for placeholders.
+    let dto = ConnectorTemplateDto {
+        metadata: ConnectorMetadata {
+            name: None,
+            author: None,
+            description: None,
+            version: None,
+            created_at: None,
+        },
+        authentication: AuthenticationConfig::NoAuth,
+        interaction: InteractionConfig::Pull(PullLifecycle {
+            data_access: ProtocolSpec::Http(HttpSpec {
+                url_template: "https://api.example.com/data".to_string(),
+                method: TemplateVecString::Value(vec!["GET".to_string()]),
+                headers: Some(TemplateMapString::Value(HashMap::from([(
+                    "__EXTRA__".to_string(),
+                    "Bearer {{__TOKEN__}}".to_string(),
+                )]))),
+                body_template: None,
+            }),
+        }),
+        parameters: vec![],
+    };
+    let found = run(dto);
+    assert_eq!(1, found.len());
+    assert_eq!("TOKEN", found[0]);
+}
+
+#[test]
+fn pull_http_headers_without_extra_key_extracts_nothing() {
+    // Without the "__EXTRA__" key, the map extractor scans nothing.
+    let dto = ConnectorTemplateDto {
+        metadata: ConnectorMetadata {
+            name: None,
+            author: None,
+            description: None,
+            version: None,
+            created_at: None,
+        },
+        authentication: AuthenticationConfig::NoAuth,
+        interaction: InteractionConfig::Pull(PullLifecycle {
+            data_access: ProtocolSpec::Http(HttpSpec {
+                url_template: "https://api.example.com/data".to_string(),
+                method: TemplateVecString::Value(vec!["GET".to_string()]),
+                headers: Some(TemplateMapString::Value(HashMap::from([(
+                    "Authorization".to_string(),
+                    "Bearer {{__TOKEN__}}".to_string(),
+                )]))),
+                body_template: None,
+            }),
+        }),
+        parameters: vec![],
+    };
+    assert!(run(dto).is_empty());
+}
+
+#[test]
+fn pull_http_headers_as_template_extracts_parameter() {
+    // When headers is a Template string the placeholder is extracted directly.
+    let dto = ConnectorTemplateDto {
+        metadata: ConnectorMetadata {
+            name: None,
+            author: None,
+            description: None,
+            version: None,
+            created_at: None,
+        },
+        authentication: AuthenticationConfig::NoAuth,
+        interaction: InteractionConfig::Pull(PullLifecycle {
+            data_access: ProtocolSpec::Http(HttpSpec {
+                url_template: "https://api.example.com/data".to_string(),
+                method: TemplateVecString::Value(vec!["GET".to_string()]),
+                headers: Some(TemplateMapString::Template("{{__HEADERS__}}".to_string())),
+                body_template: None,
+            }),
+        }),
+        parameters: vec![],
+    };
+    let found = run(dto);
+    assert_eq!(1, found.len());
+    assert_eq!("HEADERS", found[0]);
+}
+
+#[test]
+fn pull_http_body_template_extracts_parameter() {
+    // A placeholder in body_template should be extracted.
+    let dto = ConnectorTemplateDto {
+        metadata: ConnectorMetadata {
+            name: None,
+            author: None,
+            description: None,
+            version: None,
+            created_at: None,
+        },
+        authentication: AuthenticationConfig::NoAuth,
+        interaction: InteractionConfig::Pull(PullLifecycle {
+            data_access: ProtocolSpec::Http(HttpSpec {
+                url_template: "https://api.example.com/data".to_string(),
+                method: TemplateVecString::Value(vec!["POST".to_string()]),
+                headers: None,
+                body_template: Some("{{__PAYLOAD__}}".to_string()),
+            }),
+        }),
+        parameters: vec![],
+    };
+    let found = run(dto);
+    assert_eq!(1, found.len());
+    assert_eq!("PAYLOAD", found[0]);
+}
+
+#[test]
+fn pull_http_no_optional_fields_extracts_nothing() {
+    // When headers and body_template are None and url is literal, nothing is found.
+    let dto = ConnectorTemplateDto {
+        metadata: ConnectorMetadata {
+            name: None,
+            author: None,
+            description: None,
+            version: None,
+            created_at: None,
+        },
+        authentication: AuthenticationConfig::NoAuth,
+        interaction: InteractionConfig::Pull(PullLifecycle {
+            data_access: ProtocolSpec::Http(HttpSpec {
+                url_template: "https://api.example.com/data".to_string(),
+                method: TemplateVecString::Value(vec!["GET".to_string()]),
+                headers: None,
+                body_template: None,
+            }),
+        }),
+        parameters: vec![],
+    };
+    assert!(run(dto).is_empty());
+}
+
+// =========================================================================
+// Pull + Kafka
+// =========================================================================
+
+#[test]
+fn pull_kafka_topic_template_extracts_parameter() {
+    // A placeholder in the topic field should be extracted.
+    let dto = ConnectorTemplateDto {
+        metadata: ConnectorMetadata {
+            name: None,
+            author: None,
+            description: None,
+            version: None,
+            created_at: None,
+        },
+        authentication: AuthenticationConfig::NoAuth,
+        interaction: InteractionConfig::Pull(PullLifecycle {
+            data_access: ProtocolSpec::Kafka(KafkaSpec {
+                brokers: TemplateVecString::Value(vec!["localhost:9092".to_string()]),
+                topic: "{{__TOPIC__}}".to_string(),
+                group_id: None,
+            }),
+        }),
+        parameters: vec![],
+    };
+    let found = run(dto);
+    assert_eq!(1, found.len());
+    assert_eq!("TOPIC", found[0]);
+}
+
+#[test]
+fn pull_kafka_brokers_as_template_extracts_parameter() {
+    // When brokers is a Template string, the placeholder is extracted.
+    let dto = ConnectorTemplateDto {
+        metadata: ConnectorMetadata {
+            name: None,
+            author: None,
+            description: None,
+            version: None,
+            created_at: None,
+        },
+        authentication: AuthenticationConfig::NoAuth,
+        interaction: InteractionConfig::Pull(PullLifecycle {
+            data_access: ProtocolSpec::Kafka(KafkaSpec {
+                brokers: TemplateVecString::Template("{{__BROKERS__}}".to_string()),
+                topic: "events".to_string(),
+                group_id: None,
+            }),
+        }),
+        parameters: vec![],
+    };
+    let found = run(dto);
+    assert_eq!(1, found.len());
+    assert_eq!("BROKERS", found[0]);
+}
+
+#[test]
+fn pull_kafka_brokers_value_with_template_item_extracts_parameter() {
+    // A Value vec where one broker address contains a placeholder should be scanned.
+    let dto = ConnectorTemplateDto {
+        metadata: ConnectorMetadata {
+            name: None,
+            author: None,
+            description: None,
+            version: None,
+            created_at: None,
+        },
+        authentication: AuthenticationConfig::NoAuth,
+        interaction: InteractionConfig::Pull(PullLifecycle {
+            data_access: ProtocolSpec::Kafka(KafkaSpec {
+                brokers: TemplateVecString::Value(vec![
+                    "localhost:9092".to_string(),
+                    "{{__BROKER_HOST__}}:9092".to_string(),
+                ]),
+                topic: "events".to_string(),
+                group_id: None,
+            }),
+        }),
+        parameters: vec![],
+    };
+    let found = run(dto);
+    assert_eq!(1, found.len());
+    assert_eq!("BROKER_HOST", found[0]);
+}
+
+#[test]
+fn pull_kafka_group_id_extracts_parameter() {
+    // A placeholder in the optional group_id should be extracted.
+    let dto = ConnectorTemplateDto {
+        metadata: ConnectorMetadata {
+            name: None,
+            author: None,
+            description: None,
+            version: None,
+            created_at: None,
+        },
+        authentication: AuthenticationConfig::NoAuth,
+        interaction: InteractionConfig::Pull(PullLifecycle {
+            data_access: ProtocolSpec::Kafka(KafkaSpec {
+                brokers: TemplateVecString::Value(vec!["localhost:9092".to_string()]),
+                topic: "events".to_string(),
+                group_id: Some("{{__GROUP_ID__}}".to_string()),
+            }),
+        }),
+        parameters: vec![],
+    };
+    let found = run(dto);
+    assert_eq!(1, found.len());
+    assert_eq!("GROUP_ID", found[0]);
+}
+
+#[test]
+fn pull_kafka_without_group_id_extracts_nothing() {
+    // When group_id is None and all other fields are literals, nothing is found.
+    let dto = ConnectorTemplateDto {
+        metadata: ConnectorMetadata {
+            name: None,
+            author: None,
+            description: None,
+            version: None,
+            created_at: None,
+        },
+        authentication: AuthenticationConfig::NoAuth,
+        interaction: InteractionConfig::Pull(PullLifecycle {
+            data_access: ProtocolSpec::Kafka(KafkaSpec {
+                brokers: TemplateVecString::Value(vec!["localhost:9092".to_string()]),
+                topic: "events".to_string(),
+                group_id: None,
+            }),
+        }),
+        parameters: vec![],
+    };
+    assert!(run(dto).is_empty());
+}
+
+// =========================================================================
+// Push lifecycle
+// =========================================================================
+
+#[test]
+fn push_http_subscribe_only_extracts_parameters() {
+    // With no unsubscribe, only the subscribe spec is scanned.
+    let dto = ConnectorTemplateDto {
+        metadata: ConnectorMetadata {
+            name: None,
+            author: None,
+            description: None,
+            version: None,
+            created_at: None,
+        },
+        authentication: AuthenticationConfig::NoAuth,
+        interaction: InteractionConfig::Push(PushLifecycle {
+            subscribe: ProtocolSpec::Http(HttpSpec {
+                url_template: "https://api.example.com/{{__RESOURCE_ID__}}/subscribe".to_string(),
+                method: TemplateVecString::Value(vec!["POST".to_string()]),
+                headers: None,
+                body_template: None,
+            }),
+            unsubscribe: None,
+        }),
+        parameters: vec![],
+    };
+    let found = run(dto);
+    assert_eq!(1, found.len());
+    assert_eq!("RESOURCE_ID", found[0]);
+}
+
+#[test]
+fn push_http_with_unsubscribe_extracts_parameters_from_both() {
+    // Both subscribe and unsubscribe specs are scanned; all parameters are collected.
+    let dto = ConnectorTemplateDto {
+        metadata: ConnectorMetadata {
+            name: None,
+            author: None,
+            description: None,
+            version: None,
+            created_at: None,
+        },
+        authentication: AuthenticationConfig::NoAuth,
+        interaction: InteractionConfig::Push(PushLifecycle {
+            subscribe: ProtocolSpec::Http(HttpSpec {
+                url_template: "https://api.example.com/{{__SUBSCRIBE_ID__}}/subscribe".to_string(),
+                method: TemplateVecString::Value(vec!["POST".to_string()]),
+                headers: None,
+                body_template: None,
+            }),
+            unsubscribe: Some(ProtocolSpec::Http(HttpSpec {
+                url_template: "https://api.example.com/{{__UNSUBSCRIBE_ID__}}/unsubscribe"
+                    .to_string(),
+                method: TemplateVecString::Value(vec!["DELETE".to_string()]),
+                headers: None,
+                body_template: None,
+            })),
+        }),
+        parameters: vec![],
+    };
+    let found = run(dto);
+    assert_eq!(2, found.len());
+    assert!(found.contains(&"SUBSCRIBE_ID".to_string()));
+    assert!(found.contains(&"UNSUBSCRIBE_ID".to_string()));
+}
+
+#[test]
+fn push_kafka_subscribe_without_unsubscribe_extracts_parameters() {
+    // Push interaction can also use Kafka; the topic placeholder should be found.
+    let dto = ConnectorTemplateDto {
+        metadata: ConnectorMetadata {
+            name: None,
+            author: None,
+            description: None,
+            version: None,
+            created_at: None,
+        },
+        authentication: AuthenticationConfig::NoAuth,
+        interaction: InteractionConfig::Push(PushLifecycle {
+            subscribe: ProtocolSpec::Kafka(KafkaSpec {
+                brokers: TemplateVecString::Value(vec!["localhost:9092".to_string()]),
+                topic: "{{__TOPIC__}}".to_string(),
+                group_id: None,
+            }),
+            unsubscribe: None,
+        }),
+        parameters: vec![],
+    };
+    let found = run(dto);
+    assert_eq!(1, found.len());
+    assert_eq!("TOPIC", found[0]);
+}
+
+// =========================================================================
+// combined auth + interaction
+// =========================================================================
+
+#[test]
+fn basic_auth_and_http_url_extracts_all_parameters() {
+    // Auth is visited before interaction; parameters appear in that order.
+    let dto = ConnectorTemplateDto {
+        metadata: ConnectorMetadata {
+            name: None,
+            author: None,
+            description: None,
+            version: None,
+            created_at: None,
+        },
+        authentication: AuthenticationConfig::BasicAuth(BasicAuthConfig {
+            username: "{{__USERNAME__}}".to_string(),
+            password: SecretString { source: SecretSource::Plain("secret".to_string()) },
+        }),
+        interaction: InteractionConfig::Pull(PullLifecycle {
+            data_access: ProtocolSpec::Http(HttpSpec {
+                url_template: "https://api.example.com/{{__RESOURCE_ID__}}".to_string(),
+                method: TemplateVecString::Value(vec!["GET".to_string()]),
+                headers: None,
+                body_template: None,
+            }),
+        }),
+        parameters: vec![],
+    };
+    let found = run(dto);
+    assert_eq!(2, found.len());
+    assert_eq!("USERNAME", found[0]); // auth is visited first
+    assert_eq!("RESOURCE_ID", found[1]);
+}

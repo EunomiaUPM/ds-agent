@@ -1,10 +1,12 @@
-use std::sync::Arc;
-use urn::Urn;
-use rainbow_common::config::types::roles::RoleConfig;
-use rainbow_connector::ConnectorInstanceDto;
-use rainbow_dataplane::{DataplaneAddress, DataplaneCommand, DataplaneManager, DataplaneManagerInput};
 use crate::protocols::dsp::facades::dataplane_facade::DataPlaneFacadeTrait;
 use crate::protocols::dsp::protocol_types::DataAddressDto;
+use rainbow_common::config::types::roles::RoleConfig;
+use rainbow_connector::ConnectorInstanceDto;
+use rainbow_dataplane::{
+    DataplaneAddress, DataplaneCommand, DataplaneManager, DataplaneManagerInput,
+};
+use std::sync::Arc;
+use urn::Urn;
 
 pub struct DataPlaneFacade {
     dataplane_manager: Arc<DataplaneManager>,
@@ -12,7 +14,10 @@ pub struct DataPlaneFacade {
 }
 
 impl DataPlaneFacade {
-    pub fn new(dataplane_manager: Arc<DataplaneManager>, proxy_base_url: String) -> DataPlaneFacade {
+    pub fn new(
+        dataplane_manager: Arc<DataplaneManager>,
+        proxy_base_url: String,
+    ) -> DataPlaneFacade {
         DataPlaneFacade { dataplane_manager, proxy_base_url }
     }
 
@@ -80,14 +85,18 @@ impl DataPlaneFacadeTrait for DataPlaneFacade {
         // then return the auto-generated ingest URL to replace the outgoing DataAddress field.
         if let Some(da) = data_address {
             if let Some(endpoint) = &da.endpoint {
-                self.fire_command(transfer_id, DataplaneCommand::SetEgress {
-                    data_address: DataplaneAddress {
-                        endpoint_type: da.endpoint_type.clone(),
-                        endpoint: endpoint.clone(),
-                        authorization_type: None,
-                        authorization: None,
+                self.fire_command(
+                    transfer_id,
+                    DataplaneCommand::SetEgress {
+                        data_address: DataplaneAddress {
+                            endpoint_type: da.endpoint_type.clone(),
+                            endpoint: endpoint.clone(),
+                            authorization_type: None,
+                            authorization: None,
+                        },
                     },
-                }).await?;
+                )
+                .await?;
             }
             return self.ingress_as_data_address(transfer_id).await;
         }
@@ -115,14 +124,18 @@ impl DataPlaneFacadeTrait for DataPlaneFacade {
         // exists and is Ready before we fire SetEgress.
         if let Some(da) = data_address {
             if let Some(endpoint) = &da.endpoint {
-                self.fire_command(transfer_id, DataplaneCommand::SetEgress {
-                    data_address: DataplaneAddress {
-                        endpoint_type: da.endpoint_type.clone(),
-                        endpoint: endpoint.clone(),
-                        authorization_type: None,
-                        authorization: None,
+                self.fire_command(
+                    transfer_id,
+                    DataplaneCommand::SetEgress {
+                        data_address: DataplaneAddress {
+                            endpoint_type: da.endpoint_type.clone(),
+                            endpoint: endpoint.clone(),
+                            authorization_type: None,
+                            authorization: None,
+                        },
                     },
-                }).await?;
+                )
+                .await?;
             }
         }
         Ok(())
@@ -153,14 +166,18 @@ impl DataPlaneFacadeTrait for DataPlaneFacade {
         if self.dataplane_manager.is_pull(transfer_id).await? {
             if let Some(ref da) = data_address {
                 if let Some(endpoint) = &da.endpoint {
-                    self.fire_command(transfer_id, DataplaneCommand::SetEgress {
-                        data_address: DataplaneAddress {
-                            endpoint_type: da.endpoint_type.clone(),
-                            endpoint: endpoint.clone(),
-                            authorization_type: None,
-                            authorization: None,
+                    self.fire_command(
+                        transfer_id,
+                        DataplaneCommand::SetEgress {
+                            data_address: DataplaneAddress {
+                                endpoint_type: da.endpoint_type.clone(),
+                                endpoint: endpoint.clone(),
+                                authorization_type: None,
+                                authorization: None,
+                            },
                         },
-                    }).await?;
+                    )
+                    .await?;
                 }
             }
         }
@@ -207,10 +224,6 @@ impl DataPlaneFacadeTrait for DataPlaneFacade {
         transfer_id: &Urn,
         data_address: DataplaneAddress,
     ) -> anyhow::Result<()> {
-        self.fire_command(
-            transfer_id,
-            DataplaneCommand::SetEgress { data_address },
-        )
-        .await
+        self.fire_command(transfer_id, DataplaneCommand::SetEgress { data_address }).await
     }
 }

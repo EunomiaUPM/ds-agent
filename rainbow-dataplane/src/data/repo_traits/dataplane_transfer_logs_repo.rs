@@ -10,7 +10,11 @@ pub trait DataplaneTransferLogsRepo: Send + Sync {
         &self,
         new_log: dataplane_transfer_logs::NewTransferLog,
     ) -> Result<dataplane_transfer_logs::Model, DataplaneTransferLogsRepoErrors>;
-    async fn get_all_transfer_logs(&self, limit: Option<u64>, page: Option<u64>) -> Result<Vec<dataplane_transfer_logs::Model>, DataplaneTransferLogsRepoErrors>;
+    async fn get_all_transfer_logs(
+        &self,
+        limit: Option<u64>,
+        page: Option<u64>,
+    ) -> Result<Vec<dataplane_transfer_logs::Model>, DataplaneTransferLogsRepoErrors>;
     async fn get_transfer_log_by_id(
         &self,
         log_id: &Urn,

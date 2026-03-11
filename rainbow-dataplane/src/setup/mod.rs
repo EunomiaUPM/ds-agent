@@ -14,11 +14,11 @@ use axum::Router;
 use rainbow_common::config::services::TransferConfig;
 use rainbow_common::config::traits::{CacheConfigTrait, CommonConfigTrait};
 use rainbow_common::http_client::HttpClient;
-use ymir::config::traits::HostsConfigTrait;
 use rainbow_connector::ConnectorInstanceTrait;
 use sea_orm::Database;
 use std::ops::Deref;
 use std::sync::Arc;
+use ymir::config::traits::HostsConfigTrait;
 use ymir::services::vault::vault_rs::VaultService;
 use ymir::services::vault::VaultTrait;
 
@@ -52,9 +52,9 @@ impl DataplaneSetup {
         let db_connection = vault.get_db_connection(config.deref().common()).await;
         let redis_client = self.get_redis_client(&config).await;
         let redis_conn = redis_client
-        .get_multiplexed_async_connection()
-        .await
-        .expect("Failed to get redis connection");
+            .get_multiplexed_async_connection()
+            .await
+            .expect("Failed to get redis connection");
 
         // cache
         let cache = Arc::new(DataplaneTransferCacheForRedis::new(redis_conn));
@@ -75,11 +75,7 @@ impl DataplaneSetup {
         // driver factory
         let driver_factory = Arc::new(DataplaneDriverFactory::new(proxy_base_url, http_client));
 
-        DataplaneManager::new(
-            dataplane_process_entity,
-            connector_entity,
-            driver_factory,
-        )
+        DataplaneManager::new(dataplane_process_entity, connector_entity, driver_factory)
     }
 
     pub async fn build_control_router(
@@ -89,30 +85,35 @@ impl DataplaneSetup {
     ) -> Router {
         let redis_client = self.get_redis_client(config).await;
         let redis_conn = redis_client
-        .get_multiplexed_async_connection()
-        .await
-        .expect("Failed to get redis connection");
+            .get_multiplexed_async_connection()
+            .await
+            .expect("Failed to get redis connection");
 
         // cache
         let cache = Arc::new(DataplaneTransferCacheForRedis::new(redis_conn));
         // repo
         let dataplane_repo = self.get_data_plane_repo(config, vault.clone()).await;
-    
+
         // entities and routres
         let transfer_event_entity = Arc::new(TransferEventEntityService::new(&dataplane_repo));
         let transfer_event_service = TransferEventsRouter::new(transfer_event_entity.clone());
-        let dataplane_processes_events_router = transfer_event_service.clone().dataplane_processes_sub_router();
+        let dataplane_processes_events_router =
+            transfer_event_service.clone().dataplane_processes_sub_router();
         let events_lookup_router = transfer_event_service.events_sub_router();
         let logs_entity = Arc::new(DataplaneTransferLogsEntityService::new(dataplane_repo.clone()));
         let logs_router = DataplaneTransferLogsRouter::new(logs_entity).router();
         let dataplane_process_entity =
             Arc::new(DataplaneTransfersEntityService::new(dataplane_repo.clone(), cache));
-        let dataplane_processes_router =
-            DataPlaneProcessesRouter::new(dataplane_process_entity.clone(), transfer_event_entity.clone())
-                .router();
+        let dataplane_processes_router = DataPlaneProcessesRouter::new(
+            dataplane_process_entity.clone(),
+            transfer_event_entity.clone(),
+        )
+        .router();
 
-        let dataplane_processes_router =
-            Router::new().merge(dataplane_processes_router).merge(logs_router).merge(dataplane_processes_events_router);
+        let dataplane_processes_router = Router::new()
+            .merge(dataplane_processes_router)
+            .merge(logs_router)
+            .merge(dataplane_processes_events_router);
 
         // merge router
         Router::new()
@@ -127,9 +128,9 @@ impl DataplaneSetup {
     ) -> Router {
         let redis_client = self.get_redis_client(config).await;
         let redis_conn = redis_client
-        .get_multiplexed_async_connection()
-        .await
-        .expect("Failed to get redis connection");
+            .get_multiplexed_async_connection()
+            .await
+            .expect("Failed to get redis connection");
 
         let cache = Arc::new(DataplaneTransferCacheForRedis::new(redis_conn));
         let dataplane_repo = self.get_data_plane_repo(config, vault.clone()).await;

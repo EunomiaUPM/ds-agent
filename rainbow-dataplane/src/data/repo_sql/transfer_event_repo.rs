@@ -72,7 +72,8 @@ impl TransferEventRepo for TransferEventRepoForSql {
         transfer_event_urn: &Urn,
     ) -> anyhow::Result<Option<transfer_event::Model>, TransferEventRepoErrors> {
         let transfer_event_urn = transfer_event_urn.to_string();
-        let event = transfer_event::Entity::find_by_id(transfer_event_urn).one(&self.db_connection).await;
+        let event =
+            transfer_event::Entity::find_by_id(transfer_event_urn).one(&self.db_connection).await;
 
         match event {
             Ok(event) => Ok(event),

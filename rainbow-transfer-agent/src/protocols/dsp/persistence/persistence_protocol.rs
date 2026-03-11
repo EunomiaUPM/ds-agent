@@ -32,10 +32,10 @@ use anyhow::bail;
 use rainbow_common::config::types::roles::RoleConfig;
 use rainbow_common::errors::CommonErrors;
 use rainbow_common::errors::ErrorLog;
+use serde_json::Value;
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
-use serde_json::Value;
 use tracing::error;
 use urn::Urn;
 
@@ -96,20 +96,32 @@ impl TransferPersistenceTrait for TransferPersistenceForProtocolService {
         // create id
         let transfer_process_id =
             Urn::from_str(format!("urn:transfer-process:{}", uuid::Uuid::new_v4()).as_str())?;
-        let transfer_process = self.create_process_with_id(
-            transfer_process_id,
-            protocol,
-            direction,
-            associated_agent_peer,
-            provider_pid,
-            provider_address,
-            payload_dto,
-            payload_value
-        ).await?;
+        let transfer_process = self
+            .create_process_with_id(
+                transfer_process_id,
+                protocol,
+                direction,
+                associated_agent_peer,
+                provider_pid,
+                provider_address,
+                payload_dto,
+                payload_value,
+            )
+            .await?;
         Ok(transfer_process)
     }
 
-    async fn create_process_with_id(&self, id: Urn, protocol: &str, direction: &str, associated_agent_peer: &str, provider_pid: Option<Urn>, provider_address: Option<String>, payload_dto: Arc<dyn TransferProcessMessageTrait>, payload_value: Value) -> anyhow::Result<TransferProcessDto> {
+    async fn create_process_with_id(
+        &self,
+        id: Urn,
+        protocol: &str,
+        direction: &str,
+        associated_agent_peer: &str,
+        provider_pid: Option<Urn>,
+        provider_address: Option<String>,
+        payload_dto: Arc<dyn TransferProcessMessageTrait>,
+        payload_value: Value,
+    ) -> anyhow::Result<TransferProcessDto> {
         // get from payload
         let consumer_pid = payload_dto.get_consumer_pid().unwrap(); // always
         let format = payload_dto.get_format().unwrap();

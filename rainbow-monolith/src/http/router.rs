@@ -32,10 +32,7 @@ use tower_http::trace::{DefaultOnResponse, TraceLayer};
 use uuid::Uuid;
 use ymir::services::vault::vault_rs::VaultService;
 
-pub async fn create_core_router(
-    config: &ApplicationConfig,
-    vault: Arc<VaultService>,
-) -> Router {
+pub async fn create_core_router(config: &ApplicationConfig, vault: Arc<VaultService>) -> Router {
     let well_known_root_dspace =
         WellKnownRoot::get_well_known_router(&config.into()).expect("Failed to well known router");
     let auth_router = AuthApplication::create_router(&config.ssi_auth(), vault.clone()).await;

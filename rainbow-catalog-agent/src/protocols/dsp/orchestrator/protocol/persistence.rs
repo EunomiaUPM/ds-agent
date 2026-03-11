@@ -359,7 +359,6 @@ impl OrchestrationPersistenceForProtocol {
         dto: DistributionDto,
         service: Option<DataService>,
     ) -> anyhow::Result<Distribution> {
-
         Ok(Distribution {
             context: ContextField::default(),
             _type: "Distribution".to_string(),

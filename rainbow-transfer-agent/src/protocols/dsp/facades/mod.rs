@@ -19,8 +19,8 @@
  */
 
 use crate::protocols::dsp::facades::data_service_resolver_facade::DataServiceFacadeTrait;
-use std::sync::Arc;
 use crate::protocols::dsp::facades::dataplane_facade::DataPlaneFacadeTrait;
+use std::sync::Arc;
 
 pub mod data_service_resolver_facade;
 pub mod dataplane_facade;
@@ -41,10 +41,7 @@ impl FacadeService {
         data_service_resolver_facade: Arc<dyn DataServiceFacadeTrait>,
         data_plane_facade: Arc<dyn DataPlaneFacadeTrait>,
     ) -> FacadeService {
-        Self {
-            data_service_resolver_facade,
-            data_plane_facade
-        }
+        Self { data_service_resolver_facade, data_plane_facade }
     }
 }
 

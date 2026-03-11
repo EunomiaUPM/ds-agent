@@ -93,10 +93,7 @@ impl DataServiceFacadeTrait for DataServiceFacadeServiceForDSProtocol {
             .get_instance_by_distribution(&distribution_id)
             .await?
             .ok_or_else(|| {
-                anyhow!(
-                    "No connector instance found for distribution {}",
-                    distribution_id
-                )
+                anyhow!("No connector instance found for distribution {}", distribution_id)
             })?;
         dbg!("3.4");
 

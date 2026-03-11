@@ -7,13 +7,13 @@ use axum::routing::{any, get, post};
 use axum::{body::Body, Json, Router};
 use rainbow_common::config::services::GatewayConfig;
 use rainbow_common::config::traits::CommonConfigTrait;
-use ymir::config::traits::HostsConfigTrait;
-use ymir::config::types::HostType;
 use rust_embed::Embed;
 use serde_json::{json, Value};
 use std::sync::Arc;
 use tokio::sync::broadcast;
 use tower_http::cors::{Any, CorsLayer};
+use ymir::config::traits::HostsConfigTrait;
+use ymir::config::types::HostType;
 
 #[derive(Embed)]
 #[folder = "src/static/admin/dist"]

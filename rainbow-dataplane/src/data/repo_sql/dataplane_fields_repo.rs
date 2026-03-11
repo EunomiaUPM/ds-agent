@@ -27,7 +27,7 @@ impl DataplaneFieldRepoTrait for DataplaneFieldRepoForSql {
         limit: Option<u64>,
         page: Option<u64>,
     ) -> anyhow::Result<Vec<dataplane_field::Model>, DataplaneFieldRepoErrors> {
-      let fields = dataplane_field::Entity::find()
+        let fields = dataplane_field::Entity::find()
             .limit(limit.unwrap_or(100))
             .offset(page.map(|p| p * limit.unwrap_or(100)).unwrap_or(0))
             .all(&self.db)

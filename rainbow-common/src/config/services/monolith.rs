@@ -31,10 +31,7 @@ pub struct MonolithConfig {
 
 impl MonolithConfig {
     pub fn new(common_config: CommonConfig) -> Self {
-        Self { 
-            common: common_config,
-            cache: CacheConfig::default(), 
-        }
+        Self { common: common_config, cache: CacheConfig::default() }
     }
 }
 

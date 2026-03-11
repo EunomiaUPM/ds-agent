@@ -1,4 +1,5 @@
 use crate::entities::dataplane_transfer_logs::DataplaneTransferLogsEntitiesTrait;
+use crate::http::common::parse_urn;
 use axum::extract::{FromRef, Path, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
@@ -7,7 +8,6 @@ use axum::{Json, Router};
 use rainbow_common::errors::{CommonErrors, ErrorLog};
 use std::sync::Arc;
 use tracing::error;
-use crate::http::common::parse_urn;
 
 #[derive(Clone)]
 pub struct DataplaneTransferLogsRouter {
@@ -27,7 +27,10 @@ impl DataplaneTransferLogsRouter {
 
     pub fn router(self) -> Router {
         Router::new()
-            .route("/{dataplane_process_id}/logs", get(Self::handle_get_logs_by_dataplane_process_id))
+            .route(
+                "/{dataplane_process_id}/logs",
+                get(Self::handle_get_logs_by_dataplane_process_id),
+            )
             .with_state(self)
     }
 
@@ -40,7 +43,11 @@ impl DataplaneTransferLogsRouter {
             Err(resp) => return resp,
         };
 
-        match state.logs_entity.get_transfer_logs_by_dataplane_process_id(&dataplane_process_id).await {
+        match state
+            .logs_entity
+            .get_transfer_logs_by_dataplane_process_id(&dataplane_process_id)
+            .await
+        {
             Ok(logs) => (StatusCode::OK, Json(logs)).into_response(),
             Err(e) => {
                 let err = CommonErrors::database_new(&e.to_string());

@@ -1,14 +1,14 @@
+pub mod config_builder;
 pub(crate) mod dataplane_manager;
 pub(crate) mod driver_factory;
-pub mod config_builder;
-pub use config_builder::{IngressConfig, EgressConfig};
+pub use config_builder::{EgressConfig, IngressConfig};
 pub(crate) mod tests;
 
 use anyhow::{anyhow, Error};
-use serde::{Deserialize, Serialize};
-use urn::Urn;
 use rainbow_common::config::types::roles::RoleConfig;
 use rainbow_common::dsp_common::data_address::DataAddress;
+use serde::{Deserialize, Serialize};
+use urn::Urn;
 
 pub struct DataplaneAddress {
     pub endpoint_type: String,
@@ -22,10 +22,14 @@ impl Into<DataplaneAddress> for DataAddress {
         DataplaneAddress {
             endpoint_type: self.endpoint_type,
             endpoint: self.endpoint,
-            authorization_type: self.endpoint_properties.iter()
+            authorization_type: self
+                .endpoint_properties
+                .iter()
                 .find(|p| p.name == "authType")
                 .map(|p| p.value.clone()),
-            authorization: self.endpoint_properties.iter()
+            authorization: self
+                .endpoint_properties
+                .iter()
                 .find(|p| p.name == "authorization")
                 .map(|p| p.value.clone()),
         }

@@ -138,11 +138,7 @@ impl Into<TransferProcessMessageWrapper<TransferStartMessageDto>> for RpcTransfe
         TransferProcessMessageWrapper {
             context: ContextField::default(),
             _type: TransferProcessMessageType::TransferStartMessage,
-            dto: TransferStartMessageDto {
-                data_address: None,
-                provider_pid,
-                consumer_pid,
-            },
+            dto: TransferStartMessageDto { data_address: None, provider_pid, consumer_pid },
         }
     }
 }

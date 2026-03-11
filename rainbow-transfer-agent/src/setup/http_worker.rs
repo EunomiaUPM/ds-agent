@@ -165,9 +165,7 @@ pub async fn create_root_http_router(
         .nest("/dsp/current/transfers", dsp_router)
         .nest(
             "/dataplane/proxy",
-            dataplane_setup
-                .build_testing_proxy(config.deref(), vault.clone())
-                .await,
+            dataplane_setup.build_testing_proxy(config.deref(), vault.clone()).await,
         );
     Ok(router)
 }

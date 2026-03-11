@@ -1,18 +1,33 @@
-pub(crate) mod connector_template;
-pub(crate) mod validator;
+//! Connector template DTOs and the template service trait.
+//!
+//! A *connector template* is the reusable, parameterised blueprint from which
+//! connector instances are created.  It declares:
+//!
+//! - [`ConnectorMetadata`] — name, version, author, description.
+//! - An [`AuthenticationConfig`] section with `{{__PARAM__}}` placeholders.
+//! - An [`InteractionConfig`] section with `{{__PARAM__}}` placeholders.
+//! - A `parameters` list ([`ParameterDefinition`]) that declares the name, type,
+//!   and optional default for every placeholder used in the template.
+//!
+//! When a template is created the engine validates that every placeholder in
+//! the auth/interaction sections has a matching declaration in `parameters`, and
+//! vice-versa.
+//!
+//! [`AuthenticationConfig`]: crate::entities::auth_config::AuthenticationConfig
+//! [`InteractionConfig`]: crate::entities::interaction::InteractionConfig
+//! [`ParameterDefinition`]: crate::entities::parameters::ParameterDefinition
+
+pub(crate) mod service;
 
 use crate::data::entities::connector_templates::NewConnectorTemplateModel;
 use crate::entities::auth_config::AuthenticationConfig;
-use crate::entities::common::parameter_mutator::TemplateMutator;
-use crate::entities::common::parameter_visitor::ParameterVisitor;
-use crate::entities::common::parameters::{
-    ParameterDefinition, TemplateMutable, TemplateVisitable,
-};
 use crate::entities::interaction::InteractionConfig;
+use crate::entities::parameters::ParameterDefinition;
 use sea_orm::prelude::DateTimeWithTimeZone;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
+/// Display and versioning metadata for a connector template.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ConnectorMetadata {
@@ -23,41 +38,16 @@ pub struct ConnectorMetadata {
     pub created_at: Option<DateTimeWithTimeZone>,
 }
 
+/// The full connector template: metadata + parameterised auth/interaction + declarations.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConnectorTemplateDto {
     #[serde(flatten)]
     pub metadata: ConnectorMetadata,
     pub authentication: AuthenticationConfig,
     pub interaction: InteractionConfig,
+    /// Declared parameter definitions — every `{{__NAME__}}` placeholder used in
+    /// the auth or interaction sections must have a matching entry here.
     pub parameters: Vec<ParameterDefinition>,
-}
-
-impl TemplateVisitable for ConnectorTemplateDto {
-    fn accept<V: ParameterVisitor>(&mut self, visitor: &mut V) -> Result<(), V::Error> {
-        visitor.enter_scope("authentication");
-        self.authentication.accept(visitor)?;
-        visitor.exit_scope();
-
-        visitor.enter_scope("interaction");
-        self.interaction.accept(visitor)?;
-        visitor.exit_scope();
-
-        Ok(())
-    }
-}
-
-impl TemplateMutable for ConnectorTemplateDto {
-    fn accept_mutator<V: TemplateMutator>(&mut self, visitor: &mut V) -> Result<(), V::Error> {
-        visitor.enter_scope("authentication");
-        self.authentication.accept_mutator(visitor)?;
-        visitor.exit_scope();
-
-        visitor.enter_scope("interaction");
-        self.interaction.accept_mutator(visitor)?;
-        visitor.exit_scope();
-
-        Ok(())
-    }
 }
 
 impl TryFrom<ConnectorTemplateDto> for NewConnectorTemplateModel {
@@ -80,6 +70,7 @@ impl TryFrom<ConnectorTemplateDto> for NewConnectorTemplateModel {
     }
 }
 
+/// Service interface for connector template CRUD operations.
 #[async_trait::async_trait]
 pub trait ConnectorTemplateEntitiesTrait: Send + Sync {
     async fn get_all_templates(

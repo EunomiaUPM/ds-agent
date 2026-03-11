@@ -94,16 +94,18 @@ impl TransferPersistenceTrait for TransferPersistenceForRpcService {
     ) -> anyhow::Result<TransferProcessDto> {
         let transfer_process_id =
             Urn::from_str(format!("urn:transfer-process:{}", uuid::Uuid::new_v4()).as_str())?;
-        let transfer_process = self.create_process_with_id(
-            transfer_process_id,
-            protocol,
-            direction,
-            associated_agent_peer,
-            provider_pid,
-            provider_address,
-            payload_dto,
-            payload_value,
-        ).await?;
+        let transfer_process = self
+            .create_process_with_id(
+                transfer_process_id,
+                protocol,
+                direction,
+                associated_agent_peer,
+                provider_pid,
+                provider_address,
+                payload_dto,
+                payload_value,
+            )
+            .await?;
         Ok(transfer_process)
     }
 

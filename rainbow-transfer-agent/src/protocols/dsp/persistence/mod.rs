@@ -20,14 +20,16 @@
 pub(crate) mod persistence_protocol;
 pub(crate) mod persistence_rpc;
 
+use crate::entities::transfer_messages::{NewTransferMessageDto, TransferAgentMessagesTrait};
+use crate::entities::transfer_process::{
+    NewTransferProcessDto, TransferAgentProcessesTrait, TransferProcessDto,
+};
+use crate::protocols::dsp::protocol_types::{TransferProcessMessageTrait, TransferStateAttribute};
+use crate::protocols::dsp::transfer_types::TransferState;
 use std::collections::HashMap;
 use std::format;
-use crate::entities::transfer_messages::{NewTransferMessageDto, TransferAgentMessagesTrait};
-use crate::entities::transfer_process::{NewTransferProcessDto, TransferAgentProcessesTrait, TransferProcessDto};
-use crate::protocols::dsp::protocol_types::{TransferProcessMessageTrait, TransferStateAttribute};
 use std::sync::Arc;
 use urn::Urn;
-use crate::protocols::dsp::transfer_types::TransferState;
 
 #[async_trait::async_trait]
 #[allow(unused)]

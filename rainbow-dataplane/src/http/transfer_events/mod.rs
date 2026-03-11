@@ -27,7 +27,10 @@ impl TransferEventsRouter {
 
     pub fn dataplane_processes_sub_router(self) -> Router {
         Router::new()
-            .route("/{dataplane_process_id}/events", get(Self::handle_get_events_by_transfer_id))
+            .route(
+                "/{dataplane_process_id}/events",
+                get(Self::handle_get_events_by_transfer_id),
+            )
             .with_state(self)
     }
 
@@ -44,7 +47,11 @@ impl TransferEventsRouter {
             Err(resp) => return resp,
         };
 
-        match state.transfer_event_entity.get_transfer_events_by_process_id(&dataplane_process_id).await {
+        match state
+            .transfer_event_entity
+            .get_transfer_events_by_process_id(&dataplane_process_id)
+            .await
+        {
             Ok(events) => (StatusCode::OK, Json(events)).into_response(),
             Err(e) => e.to_response(),
         }

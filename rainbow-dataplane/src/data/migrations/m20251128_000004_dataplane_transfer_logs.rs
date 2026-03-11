@@ -18,12 +18,21 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(DataplaneTransferLogs::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(DataplaneTransferLogs::Id).string().not_null().primary_key())
-                    .col(ColumnDef::new(DataplaneTransferLogs::DataplaneProcessId).string().not_null())
+                    .col(
+                        ColumnDef::new(DataplaneTransferLogs::Id).string().not_null().primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(DataplaneTransferLogs::DataplaneProcessId)
+                            .string()
+                            .not_null(),
+                    )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_logs_transfer_id")
-                            .from(DataplaneTransferLogs::Table, DataplaneTransferLogs::DataplaneProcessId)
+                            .from(
+                                DataplaneTransferLogs::Table,
+                                DataplaneTransferLogs::DataplaneProcessId,
+                            )
                             .to(DataplaneTransfers::Table, DataplaneTransfers::Id)
                             .on_delete(ForeignKeyAction::Cascade)
                             .on_update(ForeignKeyAction::Cascade),

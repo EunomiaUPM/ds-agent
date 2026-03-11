@@ -1,8 +1,8 @@
 use crate::data::factory_sql::ConnectorRepoForSql;
 use crate::data::factory_trait::ConnectorRepoTrait;
-use crate::entities::connector_instance::connector_instance::ConnectorInstanceEntitiesService;
+use crate::entities::connector_instance::service::ConnectorInstanceEntitiesService;
 use crate::entities::connector_instance::ConnectorInstanceTrait;
-use crate::entities::connector_template::connector_template::ConnectorTemplateEntitiesService;
+use crate::entities::connector_template::service::ConnectorTemplateEntitiesService;
 use crate::facades::distribution_resolver_facade::data_service_resolver_facade::DistributionFacadeServiceForConnector;
 use crate::http::connector_instance::ConnectorInstanceRouter;
 use crate::http::connector_template::ConnectorTemplateRouter;
@@ -10,6 +10,7 @@ use axum::Router;
 use rainbow_common::config::services::CatalogConfig;
 use rainbow_common::config::traits::CommonConfigTrait;
 use rainbow_common::http_client::HttpClient;
+use rainbow_common::utils::get_host_helper;
 use std::sync::Arc;
 use ymir::services::vault::vault_rs::VaultService;
 use ymir::services::vault::VaultTrait;
@@ -36,14 +37,16 @@ impl ConnectorSetup {
         http_client: Arc<HttpClient>,
     ) -> Arc<dyn ConnectorInstanceTrait> {
         let db_connection = vault.get_db_connection(config.common()).await;
-        let connector_repo: Arc<dyn ConnectorRepoTrait> = Arc::new(ConnectorRepoForSql::create_repo(db_connection));
-        let distribution_facade = Arc::new(DistributionFacadeServiceForConnector::new(
-            config,
-            http_client,
-        ));
+        let connector_repo: Arc<dyn ConnectorRepoTrait> =
+            Arc::new(ConnectorRepoForSql::create_repo(db_connection));
+        let distribution_facade =
+            Arc::new(DistributionFacadeServiceForConnector::new(config, http_client));
+        let own_url = get_host_helper(Some(&config.common().hosts.http), "connector")
+            .unwrap_or_else(|_| "http://localhost:8080".to_string());
         Arc::new(ConnectorInstanceEntitiesService::new(
             connector_repo,
             distribution_facade,
+            own_url,
         ))
     }
 
@@ -66,9 +69,12 @@ impl ConnectorSetup {
         let connector_template_router =
             ConnectorTemplateRouter::new(connector_template_service.clone(), config_arc.clone())
                 .router();
+        let own_url = get_host_helper(Some(&config.common().hosts.http), "connector")
+            .unwrap_or_else(|_| "http://localhost:8080".to_string());
         let connector_instance_service = Arc::new(ConnectorInstanceEntitiesService::new(
             connector_repo.clone(),
             distribution_facade.clone(),
+            own_url,
         ));
         let connector_instance_router =
             ConnectorInstanceRouter::new(connector_instance_service.clone()).router();

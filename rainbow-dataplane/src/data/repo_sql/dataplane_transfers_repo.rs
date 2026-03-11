@@ -27,7 +27,7 @@ impl DataplaneTransfersRepo for DataplaneTransfersRepoForSql {
         limit: Option<u64>,
         page: Option<u64>,
     ) -> anyhow::Result<Vec<dataplane_transfers::Model>, DataplaneTransfersRepoErrors> {
-      let transfers = dataplane_transfers::Entity::find()
+        let transfers = dataplane_transfers::Entity::find()
             .limit(limit.unwrap_or(100))
             .offset(page.map(|p| p * limit.unwrap_or(100)).unwrap_or(0))
             .all(&self.db)

@@ -2,6 +2,7 @@ use crate::data::entities::connector_instances;
 use crate::data::entities::connector_instances::NewConnectorInstanceModel;
 use crate::data::repo_traits::connector_repo_errors::ConnectorAgentRepoErrors;
 
+#[cfg_attr(test, mockall::automock)]
 #[async_trait::async_trait]
 pub trait ConnectorInstanceRepoTrait: Send + Sync {
     async fn create_instance(

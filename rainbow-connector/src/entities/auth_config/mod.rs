@@ -11,8 +11,16 @@
 //! placeholders.  Only the non-secret fields (username, key name, token URL,
 //! client ID, scopes) support template substitution.
 
+pub mod api_key;
+pub mod basic_auth;
+pub mod oauth;
+
+pub use api_key::*;
+pub use basic_auth::*;
+pub use oauth::*;
+
 use crate::entities::common::secret_management::SecretString;
-use crate::entities::parameters::parameters::{TemplateString, TemplateVecString};
+use crate::entities::parameters::{TemplateString, TemplateVecString};
 use serde::{Deserialize, Serialize};
 
 /// The authentication strategy for a connector.
@@ -51,26 +59,4 @@ pub enum AuthenticationConfig {
         client_secret: SecretString,
         scopes: TemplateVecString,
     },
-}
-
-/// Credentials for HTTP Basic Authentication.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BasicAuthConfig {
-    pub username: TemplateString,
-    pub password: SecretString,
-}
-
-/// Where an API key is attached to the request.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum ApiKeyLocation {
-    Header,
-    Query,
-}
-
-/// OAuth 2.0 grant type.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum OAuthGrantType {
-    ClientCredentials,
-    AuthorizationCode,
 }

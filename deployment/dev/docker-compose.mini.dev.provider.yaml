@@ -1,0 +1,22 @@
+name: provider-dev
+
+services:
+  provider-db:
+    container_name: "provider-db"
+    image: "postgres"
+    restart: always
+    env_file:
+      - ./../../static/environment/envs/provider.db.env.example
+    ports:
+      - "1400:5432"
+
+  provider-redis:
+    image: redis:alpine
+    restart: always
+    container_name: provider-redis
+    ports:
+      - "6379:6379"
+    command: >
+      redis-server 
+      --requirepass ds_core_provider_redis
+      --user admin on >ds_core_provider_redis ~* +@all

@@ -3,9 +3,9 @@ param(
     [string]$AuthorityUrl = "http://127.0.0.1:1500",
     [string]$ConsumerUrl  = "http://127.0.0.1:1100",
     [string]$ProviderUrl  = "http://127.0.0.1:1200",
-    [string]$DockerAuthorityUrl = "http://host.docker.internal:1500",
-    [string]$DockerConsumerUrl  = "http://host.docker.internal:1100",
-    [string]$DockerProviderUrl  = "http://host.docker.internal:1200"
+    [string]$DockerAuthorityUrl = "http://127.0.0.1:1500",
+    [string]$DockerConsumerUrl  = "http://127.0.0.1:1100",
+    [string]$DockerProviderUrl  = "http://127.0.0.1:1200"
 )
 
 
@@ -87,7 +87,7 @@ $C_BEG_BODY = @{
     url = "$DockerAuthorityUrl/api/v1/gate/access"
     id = $AUTH_DID
     slug = "authority"
-    vc_type = "DataspaceParticipant_jwt_vc_json"
+    vc_type = "gx_VatId_jwt_vc_json"
     method = "cross-user"
     auto = $true
 }

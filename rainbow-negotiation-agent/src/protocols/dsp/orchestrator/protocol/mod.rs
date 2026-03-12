@@ -19,6 +19,15 @@
 
 pub(crate) mod persistence;
 pub(crate) mod protocol;
+pub(crate) mod step_trait;
+pub(crate) mod step_initial_request;
+pub(crate) mod step_consumer_request;
+pub(crate) mod step_agreement_verification;
+pub(crate) mod step_initial_offer;
+pub(crate) mod step_provider_offer;
+pub(crate) mod step_agreement_reception;
+pub(crate) mod step_negotiation_event;
+pub(crate) mod step_termination;
 
 use crate::protocols::dsp::protocol_types::{
     NegotiationAckMessageDto, NegotiationAgreementMessageDto, NegotiationEventMessageDto,

@@ -36,9 +36,7 @@ use crate::protocols::dsp::http::rpc::RpcRouter;
 use crate::protocols::dsp::orchestrator::orchestrator::OrchestratorService;
 use crate::protocols::dsp::orchestrator::protocol::persistence::OrchestrationPersistenceForProtocol;
 use crate::protocols::dsp::orchestrator::protocol::protocol::ProtocolOrchestratorService;
-use crate::protocols::dsp::orchestrator::rpc::persistence::OrchestrationPersistenceForRpc;
 use crate::protocols::dsp::orchestrator::rpc::rpc::RPCOrchestratorService;
-use crate::protocols::dsp::persistence::persistence_protocol::NegotiationPersistenceForProtocolService;
 use crate::protocols::dsp::persistence::persistence_rpc::NegotiationPersistenceForRpcService;
 use crate::protocols::dsp::validator::validators::protocol::validate_state_transition::ValidatedStateTransitionServiceForDsp;
 use crate::protocols::dsp::validator::validators::protocol::validation_dsp_steps::ValidationDspStepsService;
@@ -129,7 +127,7 @@ impl ProtocolPluginTrait for NegotiationDSP {
             self.negotiation_offer_service.clone(),
             self.negotiation_agreement_service.clone(),
         ));
-        let persistence_rpc_service = Arc::new(OrchestrationPersistenceForRpc::new(
+        let persistence_rpc_service = Arc::new(NegotiationPersistenceForRpcService::new(
             self.negotiation_agent_process_entities.clone(),
             self.negotiation_agent_message_service.clone(),
             self.negotiation_offer_service.clone(),

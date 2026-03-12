@@ -18,21 +18,42 @@
  */
 
 use crate::protocols::dsp::facades::FacadeTrait;
-use crate::protocols::dsp::orchestrator::protocol::ProtocolOrchestratorTrait;
 use crate::protocols::dsp::orchestrator::protocol::persistence::OrchestrationPersistenceForProtocol;
-use crate::protocols::dsp::persistence::NegotiationPersistenceTrait;
+use crate::protocols::dsp::orchestrator::protocol::step_agreement_reception::AgreementReceptionStep;
+use crate::protocols::dsp::orchestrator::protocol::step_agreement_verification::AgreementVerificationStep;
+use crate::protocols::dsp::orchestrator::protocol::step_consumer_request::ConsumerRequestStep;
+use crate::protocols::dsp::orchestrator::protocol::step_initial_offer::InitialProviderOfferStep;
+use crate::protocols::dsp::orchestrator::protocol::step_initial_request::InitialContractRequestStep;
+use crate::protocols::dsp::orchestrator::protocol::step_negotiation_event::NegotiationEventStep;
+use crate::protocols::dsp::orchestrator::protocol::step_provider_offer::ProviderOfferStep;
+use crate::protocols::dsp::orchestrator::protocol::step_termination::NegotiationTerminationStep;
+use crate::protocols::dsp::orchestrator::protocol::step_trait::NegotiationProtocolStep;
+use crate::protocols::dsp::orchestrator::protocol::ProtocolOrchestratorTrait;
 use crate::protocols::dsp::protocol_types::{
     NegotiationAckMessageDto, NegotiationAgreementMessageDto, NegotiationEventMessageDto,
-    NegotiationEventType, NegotiationOfferInitMessageDto, NegotiationOfferMessageDto,
-    NegotiationProcessMessageWrapper, NegotiationRequestInitMessageDto,
-    NegotiationRequestMessageDto, NegotiationTerminationMessageDto,
-    NegotiationVerificationMessageDto,
+    NegotiationOfferInitMessageDto, NegotiationOfferMessageDto, NegotiationProcessMessageWrapper,
+    NegotiationRequestInitMessageDto, NegotiationRequestMessageDto,
+    NegotiationTerminationMessageDto, NegotiationVerificationMessageDto,
 };
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
 use rainbow_common::config::services::ContractsConfig;
 use rainbow_common::mates::mates::Mates;
 use std::sync::Arc;
 
+// ─── Service ──────────────────────────────────────────────────────────────────
+
+/// DSP protocol orchestrator for inbound negotiation operations.
+///
+/// Handles messages arriving on the DSP HTTP endpoints.  All eight operations
+/// (two initial + six lifecycle steps) are driven by the
+/// [`NegotiationProtocolStep`] template; `run_lifecycle` encodes the algorithm
+/// once:
+///
+/// 1. **validate** → 2. **prepare context** (with optional early ack) →
+/// 3. **persist**
+///
+/// Unlike the transfer orchestrator there is no `post_hook` because negotiation
+/// does not involve a data-plane session.
 pub struct ProtocolOrchestratorService {
     facades: Arc<dyn FacadeTrait>,
     validator: Arc<dyn ValidationDspSteps>,
@@ -51,6 +72,8 @@ impl ProtocolOrchestratorService {
     }
 }
 
+// ─── Trait implementation ──────────────────────────────────────────────────────
+
 #[async_trait::async_trait]
 impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
     async fn on_get_negotiation(
@@ -67,13 +90,7 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
         input: &NegotiationProcessMessageWrapper<NegotiationRequestInitMessageDto>,
         mate: &Mates,
     ) -> anyhow::Result<(NegotiationProcessMessageWrapper<NegotiationAckMessageDto>, bool)> {
-        self.validator.on_contract_request_init(&input).await?;
-
-        // persist
-        let negotiation = self.persistence_service.create_new(&input.dto, mate).await?;
-        // notify
-        let negotiation_process_dto = NegotiationProcessMessageWrapper::try_from(negotiation)?;
-        Ok((negotiation_process_dto, false))
+        self.run_lifecycle::<InitialContractRequestStep>("", mate, input).await
     }
 
     async fn on_consumer_request(
@@ -82,14 +99,8 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
         input: &NegotiationProcessMessageWrapper<NegotiationRequestMessageDto>,
         mate: &Mates,
     ) -> anyhow::Result<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>> {
-        self.validator.on_contract_request(id, &input).await?;
-
-        // persist
-        let negotiation =
-            self.persistence_service.update_with_offer(id.as_str(), &input.dto, mate).await?;
-        // notify
-        let negotiation_process_dto = NegotiationProcessMessageWrapper::try_from(negotiation)?;
-        Ok(negotiation_process_dto)
+        let (ack, _) = self.run_lifecycle::<ConsumerRequestStep>(id, mate, input).await?;
+        Ok(ack)
     }
 
     async fn on_agreement_verification(
@@ -98,13 +109,8 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
         input: &NegotiationProcessMessageWrapper<NegotiationVerificationMessageDto>,
         mate: &Mates,
     ) -> anyhow::Result<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>> {
-        self.validator.on_contract_agreement_verification(&id, &input).await?;
-
-        // persist
-        let negotiation = self.persistence_service.update(id.as_str(), &input.dto, mate).await?;
-        // notify
-        let negotiation_process_dto = NegotiationProcessMessageWrapper::try_from(negotiation)?;
-        Ok(negotiation_process_dto)
+        let (ack, _) = self.run_lifecycle::<AgreementVerificationStep>(id, mate, input).await?;
+        Ok(ack)
     }
 
     async fn on_initial_provider_offer(
@@ -112,13 +118,7 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
         input: &NegotiationProcessMessageWrapper<NegotiationOfferInitMessageDto>,
         mate: &Mates,
     ) -> anyhow::Result<(NegotiationProcessMessageWrapper<NegotiationAckMessageDto>, bool)> {
-        self.validator.on_contract_offer_init(&input).await?;
-
-        // persist
-        let negotiation = self.persistence_service.create_new(&input.dto, mate).await?;
-        // notify
-        let negotiation_process_dto = NegotiationProcessMessageWrapper::try_from(negotiation)?;
-        Ok((negotiation_process_dto, false))
+        self.run_lifecycle::<InitialProviderOfferStep>("", mate, input).await
     }
 
     async fn on_provider_offer(
@@ -127,14 +127,8 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
         input: &NegotiationProcessMessageWrapper<NegotiationOfferMessageDto>,
         mate: &Mates,
     ) -> anyhow::Result<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>> {
-        self.validator.on_contract_offer(id, &input).await?;
-
-        // persist
-        let negotiation =
-            self.persistence_service.update_with_offer(id.as_str(), &input.dto, mate).await?;
-        // notify
-        let negotiation_process_dto = NegotiationProcessMessageWrapper::try_from(negotiation)?;
-        Ok(negotiation_process_dto)
+        let (ack, _) = self.run_lifecycle::<ProviderOfferStep>(id, mate, input).await?;
+        Ok(ack)
     }
 
     async fn on_agreement_reception(
@@ -143,16 +137,8 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
         input: &NegotiationProcessMessageWrapper<NegotiationAgreementMessageDto>,
         mate: &Mates,
     ) -> anyhow::Result<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>> {
-        self.validator.on_contract_agreement(id, &input).await?;
-
-        // persist
-        let negotiation = self
-            .persistence_service
-            .update_with_new_agreement(id.as_str(), &input.dto, mate)
-            .await?;
-        // notify
-        let negotiation_process_dto = NegotiationProcessMessageWrapper::try_from(negotiation)?;
-        Ok(negotiation_process_dto)
+        let (ack, _) = self.run_lifecycle::<AgreementReceptionStep>(id, mate, input).await?;
+        Ok(ack)
     }
 
     async fn on_negotiation_event(
@@ -161,22 +147,8 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
         input: &NegotiationProcessMessageWrapper<NegotiationEventMessageDto>,
         mate: &Mates,
     ) -> anyhow::Result<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>> {
-        self.validator.on_contract_event(id, &input).await?;
-
-        // persist
-        let negotiation = match &input.dto.event_type {
-            NegotiationEventType::ACCEPTED => {
-                self.persistence_service.update(id.as_str(), &input.dto, mate).await?
-            }
-            NegotiationEventType::FINALIZED => {
-                self.persistence_service
-                    .update_with_agreement(id.as_str(), &input.dto, mate)
-                    .await?
-            }
-        };
-        // notify
-        let negotiation_process_dto = NegotiationProcessMessageWrapper::try_from(negotiation)?;
-        Ok(negotiation_process_dto)
+        let (ack, _) = self.run_lifecycle::<NegotiationEventStep>(id, mate, input).await?;
+        Ok(ack)
     }
 
     async fn on_negotiation_termination(
@@ -185,12 +157,39 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
         input: &NegotiationProcessMessageWrapper<NegotiationTerminationMessageDto>,
         mate: &Mates,
     ) -> anyhow::Result<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>> {
-        self.validator.on_contract_termination(id, &input).await?;
+        let (ack, _) = self.run_lifecycle::<NegotiationTerminationStep>(id, mate, input).await?;
+        Ok(ack)
+    }
+}
 
-        // persist
-        let negotiation = self.persistence_service.update(id.as_str(), &input.dto, mate).await?;
-        // notify
-        let negotiation_process_dto = NegotiationProcessMessageWrapper::try_from(negotiation)?;
-        Ok(negotiation_process_dto)
+// ─── Template engine ───────────────────────────────────────────────────────────
+
+impl ProtocolOrchestratorService {
+    /// Execute any inbound DSP negotiation lifecycle step using the
+    /// [`NegotiationProtocolStep`] template.
+    ///
+    /// The algorithm is the same regardless of step type:
+    /// validate → prepare context (with optional early ack) → persist.
+    ///
+    /// `id` is the peer-facing process identifier (continuation steps; pass `""`
+    /// for initial steps that create a new process).
+    /// `mate` is the authenticated peer identity provided by the DSP middleware.
+    async fn run_lifecycle<S: NegotiationProtocolStep>(
+        &self,
+        id: &str,
+        mate: &Mates,
+        input: &NegotiationProcessMessageWrapper<S::Dto>,
+    ) -> anyhow::Result<(NegotiationProcessMessageWrapper<NegotiationAckMessageDto>, bool)> {
+        S::validate(&self.validator, id, input, mate).await?;
+
+        let (ctx, early) =
+            S::prepare_context(id, mate, input, &self.persistence_service).await?;
+        if let Some(early_ack) = early {
+            return Ok((early_ack, true));
+        }
+
+        let process = S::persist(&self.persistence_service, id, &ctx, input, mate).await?;
+        let ack = NegotiationProcessMessageWrapper::try_from(process)?;
+        Ok((ack, false))
     }
 }

@@ -29,7 +29,14 @@ use std::fmt::Debug;
 use std::str::FromStr;
 use urn::Urn;
 
-#[allow(unused)]
+
+// ─── Trait ────────────────────────────────────────────────────────────────────
+
+/// Uniform accessor interface over every inbound RPC message DTO.
+///
+/// Each concrete DTO (request, start, suspension, …) only carries the fields
+/// that make sense for its lifecycle step.  All other accessors return `None`,
+/// so callers can use the trait without knowing the concrete type.
 pub trait RpcTransferProcessMessageTrait: Debug + Send + Sync {
     fn get_consumer_pid(&self) -> Option<Urn>;
     fn get_provider_pid(&self) -> Option<Urn>;
@@ -44,6 +51,13 @@ pub trait RpcTransferProcessMessageTrait: Debug + Send + Sync {
     fn get_message(&self) -> TransferProcessMessageType;
 }
 
+// ─── TransferRequestMessage ───────────────────────────────────────────────────
+
+/// RPC payload for initiating a new transfer process (Consumer → Provider).
+///
+/// Carries everything needed to build a DSP `TransferRequestMessage` plus the
+/// routing fields (`associated_agent_peer`, `provider_address`) that are
+/// consumed locally and never forwarded on the wire.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
@@ -123,6 +137,13 @@ impl RpcTransferProcessMessageTrait for RpcTransferRequestMessageDto {
     }
 }
 
+// ─── TransferStartMessage ─────────────────────────────────────────────────────
+
+/// RPC payload for starting an already-requested transfer process.
+///
+/// Both PIDs must be known at this point: `consumer_pid` was generated when
+/// the request was first submitted; `provider_pid` was received in the
+/// provider's acknowledgement.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
@@ -189,6 +210,12 @@ impl RpcTransferProcessMessageTrait for RpcTransferStartMessageDto {
     }
 }
 
+// ─── TransferSuspensionMessage ────────────────────────────────────────────────
+
+/// RPC payload for temporarily suspending an active transfer.
+///
+/// `code` and `reason` are optional; when supplied they are forwarded verbatim
+/// in the DSP `TransferSuspensionMessage`.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
@@ -264,6 +291,9 @@ impl RpcTransferProcessMessageTrait for RpcTransferSuspensionMessageDto {
     }
 }
 
+// ─── TransferCompletionMessage ────────────────────────────────────────────────
+
+/// RPC payload for marking a transfer as successfully completed.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
@@ -332,6 +362,11 @@ impl RpcTransferProcessMessageTrait for RpcTransferCompletionMessageDto {
     }
 }
 
+// ─── TransferTerminationMessage ───────────────────────────────────────────────
+
+/// RPC payload for permanently terminating a transfer (abnormal end).
+///
+/// Like suspension, `code` and `reason` are optional diagnostic fields.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
@@ -406,6 +441,10 @@ impl RpcTransferProcessMessageTrait for RpcTransferTerminationMessageDto {
     }
 }
 
+// ─── Response wrappers ────────────────────────────────────────────────────────
+
+/// Successful RPC response: echoes the original request, the DSP acknowledgement,
+/// and the updated transfer process model.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
@@ -415,6 +454,7 @@ pub struct RpcTransferMessageDto<T> {
     pub transfer_agent_model: TransferProcessDto,
 }
 
+/// Error RPC response: echoes the original request alongside the DSP error body.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]

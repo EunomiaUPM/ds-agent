@@ -18,6 +18,12 @@
  */
 
 pub(crate) mod protocol;
+pub(crate) mod step_trait;
+pub(crate) mod step_request;
+pub(crate) mod step_start;
+pub(crate) mod step_suspension;
+pub(crate) mod step_completion;
+pub(crate) mod step_termination;
 
 use crate::protocols::dsp::protocol_types::{
     TransferCompletionMessageDto, TransferProcessAckDto, TransferProcessMessageWrapper,

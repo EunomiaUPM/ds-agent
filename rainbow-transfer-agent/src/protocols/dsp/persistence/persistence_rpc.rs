@@ -18,27 +18,31 @@
  */
 
 use crate::entities::transfer_messages::{NewTransferMessageDto, TransferAgentMessagesTrait};
-use crate::entities::transfer_process::TransferProcessDto;
 use crate::entities::transfer_process::{
-    EditTransferProcessDto, NewTransferProcessDto, TransferAgentProcessesTrait,
+    EditTransferProcessDto, TransferAgentProcessesTrait, TransferProcessDto,
 };
 use crate::http::common::parse_urn;
-use crate::protocols::dsp::persistence::TransferPersistenceTrait;
+use crate::protocols::dsp::persistence::{create_process_record, CreateProcessInput, TransferPersistenceTrait};
 use crate::protocols::dsp::protocol_types::{
     TransferProcessMessageTrait, TransferProcessMessageType, TransferProcessState,
     TransferStateAttribute,
 };
-use crate::protocols::dsp::transfer_types::TransferState;
 use anyhow::bail;
 use rainbow_common::config::types::roles::RoleConfig;
 use rainbow_common::errors::CommonErrors;
 use rainbow_common::errors::ErrorLog;
-use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
 use tracing::error;
 use urn::Urn;
 
+// ─── Service ─────────────────────────────────────────────────────────────────
+
+/// Persistence service for the outbound RPC path.
+///
+/// Used when the local agent acts as **Consumer**, sending transfer messages to a
+/// remote Provider via the internal RPC interface.  Messages are recorded as
+/// `OUTBOUND` and state attributes are attributed to the local party (Consumer).
 pub struct TransferPersistenceForRpcService {
     pub transfer_message_service: Arc<dyn TransferAgentMessagesTrait>,
     pub transfer_process_service: Arc<dyn TransferAgentProcessesTrait>,
@@ -60,193 +64,143 @@ impl TransferPersistenceTrait for TransferPersistenceForRpcService {
     ) -> anyhow::Result<Arc<dyn TransferAgentProcessesTrait>> {
         Ok(self.transfer_process_service.clone())
     }
+
     async fn get_transfer_message_service(
         &self,
     ) -> anyhow::Result<Arc<dyn TransferAgentMessagesTrait>> {
         Ok(self.transfer_message_service.clone())
     }
+
     async fn fetch_process(&self, id: &str) -> anyhow::Result<TransferProcessDto> {
         let urn = parse_urn(id).unwrap();
-        // get by any transfer id (or provider o consumer)
-        let transfer_process =
-            self.transfer_process_service.get_transfer_process_by_key_value(&urn).await.map_err(
-                |_e| {
-                    let err = CommonErrors::missing_resource_new(
-                        urn.to_string().as_str(),
-                        "Process service not found",
-                    );
-                    error!("{}", err.log());
-                    err
-                },
-            )?;
-        Ok(transfer_process)
+        // RPC clients send the consumerPid; resolve by any key value in the identifiers map.
+        self.transfer_process_service
+            .get_transfer_process_by_key_value(&urn)
+            .await
+            .map_err(|_| {
+                let err = CommonErrors::missing_resource_new(
+                    urn.to_string().as_str(),
+                    "Transfer process not found",
+                );
+                error!("{}", err.log());
+                err.into()
+            })
     }
 
     async fn create_process(
         &self,
-        protocol: &str,
-        direction: &str,
-        associated_agent_peer: &str,
-        provider_pid: Option<Urn>,
-        provider_address: Option<String>,
-        payload_dto: Arc<dyn TransferProcessMessageTrait>,
-        payload_value: serde_json::Value,
+        input: CreateProcessInput,
     ) -> anyhow::Result<TransferProcessDto> {
-        let transfer_process_id =
-            Urn::from_str(format!("urn:transfer-process:{}", uuid::Uuid::new_v4()).as_str())?;
-        let transfer_process = self
-            .create_process_with_id(
-                transfer_process_id,
-                protocol,
-                direction,
-                associated_agent_peer,
-                provider_pid,
-                provider_address,
-                payload_dto,
-                payload_value,
-            )
-            .await?;
-        Ok(transfer_process)
+        let id = input.id.unwrap_or_else(|| {
+            Urn::from_str(&format!("urn:transfer-process:{}", uuid::Uuid::new_v4())).unwrap()
+        });
+        create_process_record(
+            &self.transfer_process_service,
+            &self.transfer_message_service,
+            id,
+            input.protocol,
+            input.direction,
+            &input.associated_agent_peer,
+            input.provider_pid,
+            input.provider_address,
+            input.payload_dto,
+            input.payload_value,
+        )
+        .await
     }
 
-    async fn create_process_with_id(
-        &self,
-        id: Urn,
-        protocol: &str,
-        direction: &str,
-        associated_agent_peer: &str,
-        provider_pid: Option<Urn>,
-        provider_address: Option<String>,
-        payload_dto: Arc<dyn TransferProcessMessageTrait>,
-        payload_value: serde_json::Value,
-    ) -> anyhow::Result<TransferProcessDto> {
-        // get from payload
-        let consumer_pid = payload_dto.get_consumer_pid().unwrap(); // always
-        let format = payload_dto.get_format().unwrap();
-        let agreement_id = payload_dto.get_agreement_id().unwrap();
-        let message_type = payload_dto.get_message();
-        // create dsp compliant identifiers
-        let mut identifiers = HashMap::new();
-        let role = if direction == "INBOUND" { "Provider" } else { "Consumer" };
-        if direction == "INBOUND" {
-            let provider_pid = format!("urn:provider-pid:{}", uuid::Uuid::new_v4());
-            identifiers.insert("providerPid".to_string(), provider_pid);
-        } else {
-            identifiers.insert("providerPid".to_string(), provider_pid.unwrap().to_string());
-        }
-        identifiers.insert("consumerPid".to_string(), consumer_pid.to_string());
-        // create callback address
-        let callback_address =
-            provider_address.unwrap_or(payload_dto.get_callback_address().unwrap());
-        // create entities
-        let mut transfer_process = self
-            .transfer_process_service
-            .create_transfer_process(&NewTransferProcessDto {
-                id: Some(id.clone()),
-                state: TransferState::REQUESTED.to_string(),
-                associated_agent_peer: associated_agent_peer.to_string(),
-                protocol: protocol.to_string(),
-                transfer_direction: format,
-                agreement_id,
-                callback_address: Some(callback_address),
-                role: role.to_string(),
-                state_attribute: Some(TransferStateAttribute::OnRequest.to_string()),
-                properties: None,
-                identifiers: Some(identifiers),
-            })
-            .await?;
-        let transfer_message = self
-            .transfer_message_service
-            .create_transfer_message(&NewTransferMessageDto {
-                id: None,
-                transfer_agent_process_id: id.clone(),
-                direction: direction.to_string(),
-                protocol: protocol.to_string(),
-                message_type: message_type.to_string(),
-                state_transition_from: "-".to_string(),
-                state_transition_to: TransferState::REQUESTED.to_string(),
-                payload: Some(payload_value),
-            })
-            .await?;
-        transfer_process.messages.push(transfer_message.inner);
-        Ok(transfer_process)
-    }
-
+    /// Records an outbound state transition (message sent by the local agent).
+    ///
+    /// The state attribute is attributed to the *local* party: a Consumer records
+    /// actions as `ByConsumer`, and a Provider as `ByProvider`.
     async fn update_process(
         &self,
         id: &str,
         payload_dto: Arc<dyn TransferProcessMessageTrait>,
         payload_value: serde_json::Value,
     ) -> anyhow::Result<TransferProcessDto> {
-        // get from payload
+        let urn_id = Urn::from_str(id).expect("Failed to parse process URN");
         let message_type = payload_dto.get_message();
-        let urn_id = Urn::from_str(id).expect("Failed to parse urnID");
-        let new_state: TransferProcessState = TransferProcessState::from(message_type.clone());
-        // current state
-        let transfer_process =
-            self.transfer_process_service.get_transfer_process_by_id(&urn_id).await?;
-        // role
-        let role = transfer_process.inner.role.parse::<RoleConfig>()?;
-        let state_attribute = transfer_process
+        let new_state = TransferProcessState::from(message_type.clone());
+
+        // RPC uses the primary process ID (not a peer identifier) for lookups.
+        let process = self.transfer_process_service.get_transfer_process_by_id(&urn_id).await?;
+        let process_urn = Urn::from_str(process.inner.id.as_str())?;
+
+        let role = process.inner.role.parse::<RoleConfig>()?;
+        let prev_attr = process
             .inner
             .state_attribute
             .unwrap_or(TransferStateAttribute::OnRequest.to_string())
             .parse::<TransferStateAttribute>()?;
-        // new state attribute
-        // logical semaphore for avoiding consumer to start provider's suspension and viceversa
-        let new_state_attribute = match &message_type {
-            TransferProcessMessageType::TransferStartMessage => match &state_attribute {
-                TransferStateAttribute::OnRequest => TransferStateAttribute::OnRequest,
-                _ => match &role {
-                    RoleConfig::Provider => TransferStateAttribute::ByProvider,
-                    RoleConfig::Consumer => TransferStateAttribute::ByConsumer,
-                    _ => {
-                        let err = CommonErrors::parse_new("Process service not found");
-                        error!("{}", err.log());
-                        bail!(err)
-                    }
-                },
-            },
-            _ => match &role {
-                RoleConfig::Provider => TransferStateAttribute::ByProvider,
-                RoleConfig::Consumer => TransferStateAttribute::ByConsumer,
-                _ => {
-                    let err = CommonErrors::parse_new("Process service not found");
-                    error!("{}", err.log());
-                    bail!(err)
-                }
-            },
-        };
 
-        // update
-        let transfer_process_urn = Urn::from_str(transfer_process.inner.id.as_str())?;
-        let mut new_transfer_process = self
+        let new_attr = resolve_outbound_state_attribute(&message_type, &prev_attr, &role)?;
+
+        let mut updated = self
             .transfer_process_service
             .put_transfer_process(
-                &transfer_process_urn,
+                &process_urn,
                 &EditTransferProcessDto {
                     state: Some(new_state.to_string()),
-                    state_attribute: Some(new_state_attribute.to_string()),
+                    state_attribute: Some(new_attr.to_string()),
                     properties: None,
                     error_details: None,
                     identifiers: None,
                 },
             )
             .await?;
-        let message = self
+
+        let msg = self
             .transfer_message_service
             .create_transfer_message(&NewTransferMessageDto {
                 id: None,
-                transfer_agent_process_id: transfer_process_urn.clone(),
+                transfer_agent_process_id: process_urn,
                 direction: "OUTBOUND".to_string(),
                 protocol: "DSP".to_string(),
                 message_type: message_type.to_string(),
-                state_transition_from: transfer_process.inner.state.to_string(),
+                state_transition_from: process.inner.state,
                 state_transition_to: new_state.to_string(),
                 payload: Some(payload_value),
             })
             .await?;
-        new_transfer_process.messages.push(message.inner);
-        Ok(new_transfer_process)
+
+        updated.messages.push(msg.inner);
+        Ok(updated)
+    }
+}
+
+// ─── State attribute helpers ──────────────────────────────────────────────────
+
+/// Derives the new state attribute for a message **sent** by the local agent.
+///
+/// For outbound messages the local agent is the initiator, so the attribute
+/// reflects the *same* party as the local role.
+///
+/// Exception: mirroring the inbound case, a Start message while still in
+/// `OnRequest` phase retains the `OnRequest` attribute.
+fn resolve_outbound_state_attribute(
+    message_type: &TransferProcessMessageType,
+    current: &TransferStateAttribute,
+    local_role: &RoleConfig,
+) -> anyhow::Result<TransferStateAttribute> {
+    match message_type {
+        TransferProcessMessageType::TransferStartMessage => match current {
+            TransferStateAttribute::OnRequest => Ok(TransferStateAttribute::OnRequest),
+            _ => own_attribute(local_role),
+        },
+        _ => own_attribute(local_role),
+    }
+}
+
+/// Returns the state attribute that represents the *local* role itself.
+fn own_attribute(local_role: &RoleConfig) -> anyhow::Result<TransferStateAttribute> {
+    match local_role {
+        RoleConfig::Provider => Ok(TransferStateAttribute::ByProvider),
+        RoleConfig::Consumer => Ok(TransferStateAttribute::ByConsumer),
+        _ => {
+            let err = CommonErrors::parse_new("Unknown role when resolving state attribute");
+            error!("{}", err.log());
+            bail!(err)
+        }
     }
 }

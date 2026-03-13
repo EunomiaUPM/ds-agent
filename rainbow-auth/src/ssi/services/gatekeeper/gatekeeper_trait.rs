@@ -35,7 +35,7 @@ pub trait GateKeeperTrait: Send + Sync + 'static {
         recv_interaction::NewModel,
         token_requirements::Model
     )>;
-    fn validate_sig(&self, payload: &Bytes, headers: &HeaderMap) -> Outcome<GrantRequest>;
+    fn validate_req(&self, payload: &Bytes, headers: &HeaderMap) -> Outcome<GrantRequest>;
     fn respond_req(&self, int_model: &recv_interaction::Model, uri: &str) -> GrantResponse;
     fn validate_cont_req(
         &self,
@@ -47,6 +47,7 @@ pub trait GateKeeperTrait: Send + Sync + 'static {
         &self,
         req_model: &mut recv_request::Model,
         int_model: &recv_interaction::Model,
+        token_model: &token_requirements::Model,
         ver_model: &recv_verification::Model
     ) -> (mates::NewModel, AccessToken);
 }

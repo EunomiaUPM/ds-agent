@@ -32,6 +32,6 @@ pub struct ReachProvider {
     pub id: String,
     pub slug: String,
     pub url: String,
-    pub actions: String,
+    pub actions: Vec<String>,
     pub auto: Option<bool>
 }

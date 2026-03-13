@@ -32,7 +32,7 @@ use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
 use ymir::types::gnap::grant_request::{GrantRequest, InteractStart};
 use ymir::types::gnap::grant_response::GrantResponse;
-use ymir::types::gnap::GRUse;
+use ymir::types::gnap::CredentialResponse;
 use ymir::types::http::Body;
 use ymir::types::secrets::StringHelper;
 use ymir::types::vcs::VcType;
@@ -89,7 +89,7 @@ impl VcRequesterTrait for VCReqService {
 
         let int_model = req_interaction::NewModel {
             id,
-            start: vec![reach_method.to_string()],
+            start: vec![reach_method.to_start()],
             method: "push".to_string(),
             uri: callback_uri,
             hash_method: None,
@@ -114,7 +114,7 @@ impl VcRequesterTrait for VCReqService {
         let key: StringHelper = self.vault.read(None, &key).await?;
 
         let client = self.config.get_pretty_client_config(cert.data())?;
-        let grant_request = GrantRequest::new(&GRUse::VcReq, &client, Some(&vc_type), int_model);
+        let grant_request = GrantRequest::new_vc(&client, &vc_type, int_model);
 
         let (body, body_bytes) = Body::from_json_bytes(&grant_request)?;
 
@@ -196,9 +196,9 @@ impl VcRequesterTrait for VCReqService {
     ) -> Outcome<mates::NewModel> {
         info!("Managing response");
 
-        let res = if res.status().is_success() {
+        let res: CredentialResponse = if res.status().is_success() {
             info!("Success retrieving the vc_uri");
-            res.parse_text().await?
+            res.parse_json().await?
         } else {
             return Err(Errors::authority(
                 res.url().to_string(),
@@ -209,7 +209,7 @@ impl VcRequesterTrait for VCReqService {
             ));
         };
 
-        vc_req_model.vc_uri = Some(res);
+        vc_req_model.vc_uri = Some(res.credential_uri);
         vc_req_model.status = "Approved".to_string();
 
         let base_url = trim_4_base(&vc_req_model.grant_endpoint);

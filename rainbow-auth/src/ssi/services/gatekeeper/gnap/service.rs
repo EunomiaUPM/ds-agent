@@ -27,7 +27,7 @@ use ymir::data::entities::{
     mates, recv_interaction, recv_request, recv_verification, token_requirements
 };
 use ymir::errors::{BadFormat, Errors, Outcome};
-use ymir::types::gnap::grant_request::{GrantRequest, InteractStart, KeyProof};
+use ymir::types::gnap::grant_request::{GrantRequest, InteractActions, InteractStart, KeyProof};
 use ymir::types::gnap::grant_response::GrantResponse;
 use ymir::types::gnap::{AccessToken, RefBody};
 use ymir::utils::{create_opaque_token, extract_gnap_token, trim_4_base};
@@ -58,7 +58,7 @@ impl GateKeeperTrait for GnapGateKeeperService {
     )> {
         info!("Managing Grant Request");
 
-        let payload = self.validate_sig(payload, headers)?;
+        let payload = self.validate_req(payload, headers)?;
 
         let interact = get_from_opt(payload.interact.as_ref(), "interact")?;
 
@@ -76,6 +76,29 @@ impl GateKeeperTrait for GnapGateKeeperService {
         let class_id = payload.client.class_id.as_ref().ok_or_else(|| {
             Errors::format(BadFormat::Received, "Missing field class_id in the petition", None)
         })?;
+
+        let tok_req = payload.access_token.as_ref().ok_or_else(|| {
+            Errors::format(
+                BadFormat::Received,
+                "Missing field access_token in the Grant Request",
+                None
+            )
+        })?;
+
+        let actions: Vec<InteractActions> = tok_req
+            .access
+            .actions
+            .as_deref()
+            .unwrap_or(&["talk".to_string()])
+            .iter()
+            .filter_map(|data| InteractActions::from_str(data).ok())
+            .collect();
+
+        let actions = if actions.is_empty() {
+            vec![InteractActions::Talk.to_string()]
+        } else {
+            actions.iter().map(|data| data.to_string()).collect()
+        };
 
         let uri = get_from_opt(interact.finish.uri.as_ref(), "interact finish uri")?;
         let id = uuid::Uuid::new_v4().to_string();
@@ -108,13 +131,8 @@ impl GateKeeperTrait for GnapGateKeeperService {
 
         let token_model = token_requirements::Model {
             id,
-            r#type: payload.access_token.access.r#type.clone(),
-            actions: payload
-                .access_token
-                .access
-                .actions
-                .clone()
-                .unwrap_or(vec![String::from("talk")]),
+            r#type: tok_req.access.r#type.clone(),
+            actions,
             locations: None,
             datatypes: None,
             identifier: None,
@@ -126,7 +144,7 @@ impl GateKeeperTrait for GnapGateKeeperService {
         Ok((req_model, int_model, token_model))
     }
 
-    fn validate_sig(&self, payload: &Bytes, headers: &HeaderMap) -> Outcome<GrantRequest> {
+    fn validate_req(&self, payload: &Bytes, headers: &HeaderMap) -> Outcome<GrantRequest> {
         let grant_request: GrantRequest = parse_from_slice(payload)?;
 
         match grant_request.client.key.cert.as_deref() {
@@ -172,7 +190,7 @@ impl GateKeeperTrait for GnapGateKeeperService {
 
     fn respond_req(&self, int_model: &recv_interaction::Model, uri: &str) -> GrantResponse {
         info!("Generating Grant Response");
-        GrantResponse::new(&InteractStart::Oidc4VP, int_model, Some(uri))
+        GrantResponse::pending(&InteractStart::Oidc4VP, int_model, Some(uri))
     }
 
     fn validate_cont_req(
@@ -214,6 +232,7 @@ impl GateKeeperTrait for GnapGateKeeperService {
         &self,
         req_model: &mut recv_request::Model,
         int_model: &recv_interaction::Model,
+        token_model: &token_requirements::Model,
         ver_model: &recv_verification::Model
     ) -> (mates::NewModel, AccessToken) {
         info!("Continuing Request");
@@ -232,7 +251,7 @@ impl GateKeeperTrait for GnapGateKeeperService {
             is_me: false
         };
 
-        let token = AccessToken::new(token);
+        let token = AccessToken::new(token, token_model);
         (mate, token)
     }
 }

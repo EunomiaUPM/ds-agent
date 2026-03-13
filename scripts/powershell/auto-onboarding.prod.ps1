@@ -13,7 +13,7 @@ function Invoke-CurlJson {
         [string]$Method = "GET",
         [string]$Url,
         [object]$Body = $null,
-        [bool]$ParseJson = $true  # parse to JSON only if JSON is expected
+        [bool]$ParseJson = $true
     )
 
     try {
@@ -53,7 +53,7 @@ function Invoke-CurlJson {
 Write-Host "Starting auto-onboarding script..."
 
 # ----------------------------
-# Onboarding Authority / Consumer / Provider (no JSON parsing)
+# Onboarding Authority / Consumer / Provider
 # ----------------------------
 Invoke-CurlJson -Method "POST" -Url "$AuthorityUrl/api/v1/wallet/link" -ParseJson:$false
 Invoke-CurlJson -Method "POST" -Url "$ConsumerUrl/api/v1/wallet/link" -ParseJson:$false
@@ -73,11 +73,11 @@ Write-Host "Provider DID: $PROVIDER_DID"
 # Consumer begins request for credential
 # ----------------------------
 $C_BEG_BODY = @{
-    url = "$AuthorityUrl/api/v1/gate/access"
-    id  = $AUTH_DID
-    slug = "authority"
+    url     = "$DockerAuthorityUrl/api/v1/gate/access"
+    id      = $AUTH_DID
+    slug    = "authority"
     vc_type = "DataspaceParticipant_jwt_vc_json"
-    method = "cross-user"
+    method  = "cert"   # ← antes "cross-user"
 }
 $C_BEG_RESPONSE = Invoke-CurlJson -Method "POST" -Url "$ConsumerUrl/api/v1/vc-request/beg" -Body $C_BEG_BODY -ParseJson:$false
 Write-Host "Consumer request completed."
@@ -113,10 +113,10 @@ Write-Host "OIDC4VCI processed."
 # Consumer requests grant from Provider
 # ----------------------------
 $OIDC4VP_BODY = @{
-    url = "$ProviderUrl/api/v1/gate/access"
-    id  = $PROVIDER_DID
-    slug = "provider"
-    actions = "talk"
+    url     = "$DockerProviderUrl/api/v1/gate/access"
+    id      = $PROVIDER_DID
+    slug    = "provider"
+    actions = @("talk")  # ← antes "talk" string, ahora array
 }
 $OIDC4VP_URI = Invoke-CurlJson -Method "POST" -Url "$ConsumerUrl/api/v1/onboard/provider" -Body $OIDC4VP_BODY -ParseJson:$false
 Write-Host "OIDC4VP_URI: $OIDC4VP_URI"
@@ -125,7 +125,7 @@ Write-Host "OIDC4VP_URI: $OIDC4VP_URI"
 # Consumer processes OIDC4VP
 # ----------------------------
 Write-Host "Consumer processes OIDC4VP..."
-Invoke-CurlJson -Method "POST" -Url "$ConsumerUrl/api/v1/wallet/oidc4vp" -Body @{ uri = $OIDC4VP_URI } -ReturnJson:$false
+Invoke-CurlJson -Method "POST" -Url "$ConsumerUrl/api/v1/wallet/oidc4vp" -Body @{ uri = $OIDC4VP_URI } -ParseJson:$false
 Write-Host "OIDC4VP processed."
 
 Write-Host "Onboarding script finished successfully!"

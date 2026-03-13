@@ -15,6 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use std::str::FromStr;
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -31,9 +32,9 @@ use ymir::errors::{Errors, Outcome};
 use ymir::services::client::ClientTrait;
 use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
-use ymir::types::gnap::grant_request::{GrantRequest, InteractStart};
+use ymir::types::gnap::grant_request::{GrantRequest, InteractActions, InteractStart};
 use ymir::types::gnap::grant_response::GrantResponse;
-use ymir::types::gnap::{AccessToken, GRUse};
+use ymir::types::gnap::AccessToken;
 use ymir::types::http::Body;
 use ymir::types::secrets::StringHelper;
 use ymir::utils::{
@@ -101,10 +102,23 @@ impl OnboarderTrait for GnapOnboarderService {
             grant_endpoint: payload.url.clone()
         };
 
+        // TO VALIDATE ACTIONS
+        let actions: Vec<InteractActions> = payload
+            .actions
+            .iter()
+            .filter_map(|data| InteractActions::from_str(data).ok())
+            .collect();
+
+        let actions = if actions.is_empty() {
+            vec![InteractActions::Talk.to_string()]
+        } else {
+            actions.iter().map(|data| data.to_string()).collect()
+        };
+
         let token_model = token_requirements::Model {
             id,
             r#type: "provider-api".to_string(),
-            actions: vec!["talk".to_string()],
+            actions,
             locations: None,
             datatypes: None,
             identifier: None,
@@ -129,7 +143,7 @@ impl OnboarderTrait for GnapOnboarderService {
         let key: StringHelper = self.vault.read(None, &key).await?;
 
         let client = self.config.get_pretty_client_config(cert.data())?;
-        let grant_request = GrantRequest::new(&GRUse::Talk, &client, None, &int_model);
+        let grant_request = GrantRequest::new_token(&client, None, &int_model);
 
         let (body, body_bytes) = Body::from_json_bytes(&grant_request)?;
 

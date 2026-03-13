@@ -24,12 +24,13 @@ use reqwest::header::AUTHORIZATION;
 use reqwest::Response;
 use sha2::{Digest, Sha256};
 use tracing::info;
+use ymir::capabilities::HttpSig;
 use ymir::data::entities::req_interaction;
 use ymir::errors::{Errors, Outcome};
 use ymir::services::client::ClientTrait;
 use ymir::services::vault::{VaultService, VaultTrait};
 use ymir::types::gnap::{ApprovedCallbackBody, RefBody};
-use ymir::types::http::{Body, HttpSig};
+use ymir::types::http::Body;
 use ymir::types::secrets::StringHelper;
 use ymir::utils::{expect_from_env, get_from_opt, json_headers, ParseHeaderExt};
 

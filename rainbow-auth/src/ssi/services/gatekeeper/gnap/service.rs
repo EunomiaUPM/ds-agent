@@ -20,6 +20,7 @@ use std::str::FromStr;
 use axum::body::Bytes;
 use axum::http::HeaderMap;
 use tracing::info;
+use ymir::capabilities::HttpSig;
 use ymir::config::traits::HostsConfigTrait;
 use ymir::config::types::HostType;
 use ymir::data::entities::{
@@ -29,7 +30,6 @@ use ymir::errors::{BadFormat, Errors, Outcome};
 use ymir::types::gnap::grant_request::{GrantRequest, InteractStart, KeyProof};
 use ymir::types::gnap::grant_response::GrantResponse;
 use ymir::types::gnap::{AccessToken, RefBody};
-use ymir::types::http::HttpSig;
 use ymir::utils::{create_opaque_token, extract_gnap_token, trim_4_base};
 use ymir::utils::{get_from_opt, parse_from_slice};
 
@@ -147,6 +147,7 @@ impl GateKeeperTrait for GnapGateKeeperService {
                     self.config.get_host(HostType::Http),
                     self.config.get_api_path()
                 );
+
                 HttpSig::verify(headers, "POST", &grant_endpoint, payload, &cert)?;
 
                 HttpSig::check_cert(&cert)?;

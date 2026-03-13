@@ -21,6 +21,7 @@ use async_trait::async_trait;
 use rainbow_common::config::types::traits::EntityClientTrait;
 use reqwest::Response;
 use tracing::info;
+use ymir::capabilities::HttpSig;
 use ymir::config::traits::HostsConfigTrait;
 use ymir::config::types::HostType;
 use ymir::data::entities::{
@@ -33,7 +34,7 @@ use ymir::services::vault::VaultTrait;
 use ymir::types::gnap::grant_request::{GrantRequest, InteractStart};
 use ymir::types::gnap::grant_response::GrantResponse;
 use ymir::types::gnap::{AccessToken, GRUse};
-use ymir::types::http::{Body, HttpSig};
+use ymir::types::http::Body;
 use ymir::types::secrets::StringHelper;
 use ymir::utils::{
     expect_from_env, get_from_opt, get_query_param, json_headers, trim_4_base, ResponseExt

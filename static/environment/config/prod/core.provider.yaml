@@ -39,7 +39,8 @@ common_config: &common_config
     openapi_path: '/app/static/specs/openapi/merged_openapi.json'
   connection:
     is_local: false
-    is_tls_enabled: true
+    is_prod: true
+    is_vault_real: false
 
 # ==========================
 # MONOLITH

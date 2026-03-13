@@ -39,7 +39,7 @@ common_config: &common_config
     openapi_path: '/app/static/specs/openapi/merged_openapi.json'
   connection:
     is_local: true
-    is_tls_enabled: false
+    is_prod: false
     is_vault_real: false
 
 # ==========================

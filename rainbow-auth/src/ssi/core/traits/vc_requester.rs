@@ -54,7 +54,7 @@ pub trait CoreVcRequesterTrait: Send + Sync + 'static {
                 }
                 Ok(Some(uri))
             }
-            None => Ok(None),
+            None => Ok(None)
         }
     }
 
@@ -68,7 +68,7 @@ pub trait CoreVcRequesterTrait: Send + Sync + 'static {
     async fn continue_req(
         &self,
         id: String,
-        payload: ApprovedCallbackBody,
+        payload: ApprovedCallbackBody
     ) -> Outcome<mates::Model> {
         let mut int_model = self.repo().interaction_req().get_by_id(&id).await?;
         let result = self.callback().check_callback(&mut int_model, &payload);

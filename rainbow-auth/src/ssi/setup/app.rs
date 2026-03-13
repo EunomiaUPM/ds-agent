@@ -79,7 +79,7 @@ impl AuthApplication {
             vault.clone(),
             onboarder_config
         ));
-        let callback = Arc::new(BasicCallbackService::new(client.clone()));
+        let callback = Arc::new(BasicCallbackService::new(client.clone(), vault.clone()));
         let repo = Arc::new(AuthRepoForSql::create_repo(db_connection));
         let gatekeeper = Arc::new(GnapGateKeeperService::new(gatekeeper_config));
         let business = Arc::new(BasicBusinessService::new(business_config));
@@ -186,7 +186,7 @@ impl AuthApplication {
         Ok(())
     }
     pub async fn run(config: SsiAuthConfig, vault: Arc<VaultService>) -> Outcome<()> {
-        if config.common().is_tls_enabled() {
+        if config.common().is_prod() {
             info!("Running with tls active");
             Self::run_tls(&config, vault).await
         } else {

@@ -24,7 +24,7 @@ use tracing::info;
 use ymir::config::traits::HostsConfigTrait;
 use ymir::config::types::HostType;
 use ymir::data::entities::{
-    mates, req_interaction, req_request, req_verification, token_requirements,
+    mates, req_interaction, req_request, req_verification, token_requirements
 };
 use ymir::errors::{Errors, Outcome};
 use ymir::services::client::ClientTrait;
@@ -33,15 +33,15 @@ use ymir::services::vault::VaultTrait;
 use ymir::types::gnap::grant_request::{GrantRequest, InteractStart};
 use ymir::types::gnap::grant_response::GrantResponse;
 use ymir::types::gnap::{AccessToken, GRUse};
-use ymir::types::http::Body;
+use ymir::types::http::{Body, HttpSig};
 use ymir::types::secrets::StringHelper;
 use ymir::utils::{
-    expect_from_env, get_from_opt, get_query_param, json_headers, trim_4_base, ResponseExt,
+    expect_from_env, get_from_opt, get_query_param, json_headers, trim_4_base, ResponseExt
 };
 
 use super::super::OnboarderTrait;
 use crate::ssi::services::onboarder::gnap::config::{
-    GnapOnboarderConfig, GnapOnboarderConfigTrait,
+    GnapOnboarderConfig, GnapOnboarderConfigTrait
 };
 use crate::ssi::types::entities::ReachProvider;
 use crate::ssi::utils::parse_url;
@@ -49,14 +49,14 @@ use crate::ssi::utils::parse_url;
 pub struct GnapOnboarderService {
     client: Arc<dyn ClientTrait>,
     vault: Arc<VaultService>,
-    config: GnapOnboarderConfig,
+    config: GnapOnboarderConfig
 }
 
 impl GnapOnboarderService {
     pub fn new(
         client: Arc<dyn ClientTrait>,
         vault: Arc<VaultService>,
-        config: GnapOnboarderConfig,
+        config: GnapOnboarderConfig
     ) -> GnapOnboarderService {
         GnapOnboarderService { client, vault, config }
     }
@@ -66,11 +66,11 @@ impl GnapOnboarderService {
 impl OnboarderTrait for GnapOnboarderService {
     fn start(
         &self,
-        payload: &ReachProvider,
+        payload: &ReachProvider
     ) -> (
         req_request::NewModel,
         req_interaction::NewModel,
-        token_requirements::Model,
+        token_requirements::Model
     ) {
         info!("Starting process to request consumer onboarding");
 
@@ -87,7 +87,7 @@ impl OnboarderTrait for GnapOnboarderService {
             provider_id: payload.id.clone(),
             provider_slug: payload.slug.clone(),
             grant_endpoint: payload.url.clone(),
-            auto: payload.auto,
+            auto: payload.auto
         };
 
         let int_model = req_interaction::NewModel {
@@ -97,7 +97,7 @@ impl OnboarderTrait for GnapOnboarderService {
             uri: callback_uri.clone(),
             hash_method: Some("sha-256".to_string()),
             hints: None,
-            grant_endpoint: payload.url.clone(),
+            grant_endpoint: payload.url.clone()
         };
 
         let token_model = token_requirements::Model {
@@ -109,7 +109,7 @@ impl OnboarderTrait for GnapOnboarderService {
             identifier: None,
             privileges: None,
             label: None,
-            flags: None,
+            flags: None
         };
 
         (req_model, int_model, token_model)
@@ -118,22 +118,33 @@ impl OnboarderTrait for GnapOnboarderService {
     async fn send_req(
         &self,
         req_model: &mut req_request::Model,
-        int_model: &mut req_interaction::Model,
+        int_model: &mut req_interaction::Model
     ) -> Outcome<()> {
         info!("Sending onboarding request");
 
         let cert = expect_from_env("VAULT_APP_CERT");
         let cert: StringHelper = self.vault.read(None, &cert).await?;
-        let client = self.config.get_pretty_client_config(cert.data());
+        let key = expect_from_env("VAULT_APP_PRIV_KEY");
+        let key: StringHelper = self.vault.read(None, &key).await?;
 
+        let client = self.config.get_pretty_client_config(cert.data())?;
         let grant_request = GrantRequest::new(&GRUse::Talk, &client, None, &int_model);
 
-        let headers = json_headers();
+        let (body, body_bytes) = Body::from_json_bytes(&grant_request)?;
 
-        let res = self
-            .client
-            .post(&int_model.grant_endpoint, Some(headers), Body::json(&grant_request)?)
-            .await?;
+        let mut headers = json_headers();
+        let httpsig = HttpSig::build(
+            cert.data(),
+            key.data(),
+            "POST",
+            &req_model.grant_endpoint,
+            &body_bytes,
+            None
+        )?;
+
+        headers.extend(httpsig);
+
+        let res = self.client.post(&int_model.grant_endpoint, Some(headers), body).await?;
 
         let res: GrantResponse = if res.status().is_success() {
             info!("Grant Response received successfully");
@@ -146,7 +157,7 @@ impl OnboarderTrait for GnapOnboarderService {
                 "POST",
                 Some(status),
                 error_res.error.unwrap_or("Unexpected error on provider onboarding".to_string()),
-                None,
+                None
             ));
         };
 
@@ -166,7 +177,7 @@ impl OnboarderTrait for GnapOnboarderService {
 
     fn save_verification(
         &self,
-        int_model: &req_interaction::Model,
+        int_model: &req_interaction::Model
     ) -> Outcome<req_verification::NewModel> {
         info!("Saving verification data");
 
@@ -192,14 +203,14 @@ impl OnboarderTrait for GnapOnboarderService {
             pd_uri,
             client_id_scheme,
             nonce,
-            response_uri,
+            response_uri
         })
     }
 
     async fn manage_res(
         &self,
         req_model: &mut req_request::Model,
-        res: Response,
+        res: Response
     ) -> Outcome<mates::NewModel> {
         info!("Managing response");
         let token = if res.status().is_success() {
@@ -212,7 +223,7 @@ impl OnboarderTrait for GnapOnboarderService {
                 "POST",
                 Some(res.status()),
                 "Error with provider continue request",
-                None,
+                None
             ));
         };
 
@@ -226,7 +237,7 @@ impl OnboarderTrait for GnapOnboarderService {
             participant_type: "Agent".to_string(),
             base_url,
             token: req_model.token.clone(),
-            is_me: false,
+            is_me: false
         };
         Ok(mates)
     }

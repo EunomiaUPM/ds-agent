@@ -27,19 +27,22 @@ use tracing::info;
 use ymir::data::entities::req_interaction;
 use ymir::errors::{Errors, Outcome};
 use ymir::services::client::ClientTrait;
+use ymir::services::vault::{VaultService, VaultTrait};
 use ymir::types::gnap::{ApprovedCallbackBody, RefBody};
-use ymir::types::http::Body;
-use ymir::utils::{get_from_opt, json_headers, ParseHeaderExt};
+use ymir::types::http::{Body, HttpSig};
+use ymir::types::secrets::StringHelper;
+use ymir::utils::{expect_from_env, get_from_opt, json_headers, ParseHeaderExt};
 
 use crate::ssi::services::callback::CallbackTrait;
 
 pub struct BasicCallbackService {
-    client: Arc<dyn ClientTrait>
+    client: Arc<dyn ClientTrait>,
+    vault: Arc<VaultService>
 }
 
 impl BasicCallbackService {
-    pub fn new(client: Arc<dyn ClientTrait>) -> BasicCallbackService {
-        BasicCallbackService { client }
+    pub fn new(client: Arc<dyn ClientTrait>, vault: Arc<VaultService>) -> BasicCallbackService {
+        BasicCallbackService { client, vault }
     }
 }
 
@@ -82,12 +85,28 @@ impl CallbackTrait for BasicCallbackService {
         let url = get_from_opt(int_model.continue_endpoint.as_ref(), "continue-endpoint")?;
         let token = get_from_opt(int_model.continue_token.as_ref(), "continue token")?;
 
-        let mut headers = json_headers();
-        headers.insert(AUTHORIZATION, format!("GNAP {}", token).parse_header()?);
+        let cert = expect_from_env("VAULT_APP_CERT");
+        let cert: StringHelper = self.vault.read(None, &cert).await?;
+        let key = expect_from_env("VAULT_APP_PRIV_KEY");
+        let key: StringHelper = self.vault.read(None, &key).await?;
 
         let interact_ref = get_from_opt(int_model.interact_ref.as_ref(), "interact_ref")?;
-        let body = RefBody { interact_ref };
+        let (body, body_bytes) = Body::from_json_bytes(&RefBody { interact_ref })?;
 
-        self.client.post(&url, Some(headers), Body::json(&body)?).await
+        let authorization = format!("GNAP {}", token);
+        let mut headers = json_headers();
+        headers.insert(AUTHORIZATION, authorization.parse_header()?);
+        let httpsig = HttpSig::build(
+            cert.data(),
+            key.data(),
+            "POST",
+            &url,
+            &body_bytes,
+            Some(&authorization)
+        )?;
+
+        headers.extend(httpsig);
+
+        self.client.post(&url, Some(headers), body).await
     }
 }

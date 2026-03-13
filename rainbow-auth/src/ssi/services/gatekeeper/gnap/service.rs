@@ -14,25 +14,28 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
+use axum::body::Bytes;
+use axum::http::HeaderMap;
+use std::str::FromStr;
 use tracing::info;
 use ymir::config::traits::HostsConfigTrait;
 use ymir::config::types::HostType;
 use ymir::data::entities::{
-    mates, recv_interaction, recv_request, recv_verification, token_requirements
+    mates, recv_interaction, recv_request, recv_verification, token_requirements,
 };
 use ymir::errors::{BadFormat, Errors, Outcome};
-use ymir::types::gnap::grant_request::{GrantRequest, InteractStart};
+use ymir::types::gnap::grant_request::{GrantRequest, InteractStart, KeyProof};
 use ymir::types::gnap::grant_response::GrantResponse;
 use ymir::types::gnap::{AccessToken, RefBody};
-use ymir::utils::get_from_opt;
-use ymir::utils::{create_opaque_token, trim_4_base};
+use ymir::types::http::HttpSig;
+use ymir::utils::{create_opaque_token, extract_gnap_token, trim_4_base};
+use ymir::utils::{get_from_opt, parse_from_slice};
 
 use super::super::GateKeeperTrait;
 use super::config::{GnapGateKeeperConfig, GnapGateKeeperConfigTrait};
 
 pub struct GnapGateKeeperService {
-    config: GnapGateKeeperConfig
+    config: GnapGateKeeperConfig,
 }
 
 impl GnapGateKeeperService {
@@ -44,13 +47,16 @@ impl GnapGateKeeperService {
 impl GateKeeperTrait for GnapGateKeeperService {
     fn start(
         &self,
-        payload: &GrantRequest
+        payload: &Bytes,
+        headers: &HeaderMap,
     ) -> Outcome<(
         recv_request::NewModel,
         recv_interaction::NewModel,
-        token_requirements::Model
+        token_requirements::Model,
     )> {
         info!("Managing Grant Request");
+
+        let payload = self.validate_sig(payload, headers)?;
 
         let interact = get_from_opt(payload.interact.as_ref(), "interact")?;
 
@@ -58,6 +64,13 @@ impl GateKeeperTrait for GnapGateKeeperService {
             return Err(Errors::not_impl("Interact method not supported yet", None));
         }
 
+        let cert = payload.client.key.cert.ok_or_else(|| {
+            Errors::format(
+                BadFormat::Received,
+                "Right now only petitions including a cert are accepted",
+                None,
+            )
+        })?;
         let class_id = payload.client.class_id.as_ref().ok_or_else(|| {
             Errors::format(BadFormat::Received, "Missing field class_id in the petition", None)
         })?;
@@ -82,12 +95,13 @@ impl GateKeeperTrait for GnapGateKeeperService {
             start: interact.start,
             method: interact.finish.method,
             uri,
+            cert,
             client_nonce: interact.finish.nonce,
             hash_method: interact.finish.hash_method,
             hints: interact.hints,
             grant_endpoint,
             continue_endpoint,
-            continue_token
+            continue_token,
         };
 
         let token_model = token_requirements::Model {
@@ -104,10 +118,53 @@ impl GateKeeperTrait for GnapGateKeeperService {
             identifier: None,
             privileges: None,
             label: None,
-            flags: None
+            flags: None,
         };
 
         Ok((req_model, int_model, token_model))
+    }
+
+    fn validate_sig(&self, payload: &Bytes, headers: &HeaderMap) -> Outcome<GrantRequest> {
+        let grant_request: GrantRequest = parse_from_slice(payload)?;
+
+        match grant_request.client.key.cert.as_deref() {
+            Some(cert) => {
+                let proof = KeyProof::from_str(&grant_request.client.key.proof)?;
+                match proof {
+                    KeyProof::HttpSig => {}
+                    method => {
+                        return Err(Errors::not_impl(
+                            format!("Right now we only accept httpsig, not {}", method),
+                            None,
+                        ))
+                    }
+                }
+
+                let grant_endpoint = format!(
+                    "{}{}/gate/access",
+                    self.config.get_host(HostType::Http),
+                    self.config.get_api_path()
+                );
+                HttpSig::verify(headers, "POST", &grant_endpoint, payload, &cert)?;
+
+                HttpSig::check_cert(&cert)?;
+            }
+            None => {
+                if let Some(_) = grant_request.client.key.jwk.as_ref() {
+                    return Err(Errors::not_impl(
+                        "Cannot make this flow with jwk yet, try with cert",
+                        None,
+                    ));
+                }
+                return Err(Errors::format(
+                    BadFormat::Received,
+                    "Client certificate has not arrived",
+                    None,
+                ));
+            }
+        }
+
+        Ok(grant_request)
     }
 
     fn respond_req(&self, int_model: &recv_interaction::Model, uri: &str) -> GrantResponse {
@@ -118,25 +175,44 @@ impl GateKeeperTrait for GnapGateKeeperService {
     fn validate_cont_req(
         &self,
         model: &recv_interaction::Model,
-        payload: &RefBody,
-        token: &str
+        payload: &Bytes,
+        headers: &HeaderMap,
     ) -> Outcome<()> {
         info!("Validating continuing request");
 
-        if payload.interact_ref.clone() != model.interact_ref.clone() {
+        let ref_body: RefBody = parse_from_slice(payload)?;
+
+        let token = extract_gnap_token(headers)?;
+
+        HttpSig::verify(
+            headers,
+            "POST",
+            &format!(
+                "{}{}/gate/continue/{}",
+                self.config.get_host(HostType::Http),
+                self.config.get_api_path(),
+                model.id,
+            ),
+            payload,
+            &model.cert,
+        )?;
+
+        HttpSig::check_cert(&model.cert)?;
+
+        if ref_body.interact_ref.clone() != model.interact_ref.clone() {
             return Err(Errors::security(
                 &format!(
                     "Interact reference '{}' does not match '{}'",
-                    payload.interact_ref, model.interact_ref,
+                    ref_body.interact_ref, model.interact_ref,
                 ),
-                None
+                None,
             ));
         }
 
         if token != model.continue_token {
             return Err(Errors::security(
                 &format!("Token '{}' does not match '{}'", token, model.continue_token),
-                None
+                None,
             ));
         }
         Ok(())
@@ -146,7 +222,7 @@ impl GateKeeperTrait for GnapGateKeeperService {
         &self,
         req_model: &mut recv_request::Model,
         int_model: &recv_interaction::Model,
-        ver_model: &recv_verification::Model
+        ver_model: &recv_verification::Model,
     ) -> (mates::NewModel, AccessToken) {
         info!("Continuing Request");
 
@@ -161,7 +237,7 @@ impl GateKeeperTrait for GnapGateKeeperService {
             participant_type: "Agent".to_string(),
             base_url,
             token: Some(token.clone()),
-            is_me: false
+            is_me: false,
         };
 
         let token = AccessToken::new(token);

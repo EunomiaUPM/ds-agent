@@ -14,11 +14,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 use std::str::FromStr;
 use std::sync::Arc;
 
-use crate::ssi::services::gaia_self_issuer::GaiaOwnIssuerTrait;
-use crate::ssi::services::repo::repo_trait::AuthRepoTrait;
 use async_trait::async_trait;
 use serde_json::Value;
 use ymir::errors::{BadFormat, Errors, MissingAction, Outcome};
@@ -26,11 +25,14 @@ use ymir::services::issuer::IssuerTrait;
 use ymir::services::wallet::WalletTrait;
 use ymir::types::issuing::{
     AuthServerMetadata, CredentialRequestsss, IssuerMetadata, IssuingToken, TokenRequest,
-    VCCredOffer,
+    VCCredOffer
 };
 use ymir::types::vcs::VcType;
 use ymir::types::wallet::MatchingVCs;
 use ymir::utils::{get_claim, parse_to_value};
+
+use crate::ssi::services::gaia_self_issuer::GaiaOwnIssuerTrait;
+use crate::ssi::services::repo::repo_trait::AuthRepoTrait;
 
 #[async_trait]
 pub trait CoreGaiaSelfIssuerTrait: Send + Sync + 'static {
@@ -48,7 +50,7 @@ pub trait CoreGaiaSelfIssuerTrait: Send + Sync + 'static {
                 wallet.process_oidc4vci(&uri).await?;
                 Ok(None)
             }
-            None => Ok(Some(uri)),
+            None => Ok(Some(uri))
         }
     }
     async fn get_cred_offer_data(&self, id: String) -> Outcome<VCCredOffer> {
@@ -84,14 +86,14 @@ pub trait CoreGaiaSelfIssuerTrait: Send + Sync + 'static {
     async fn issue_some_cred(
         &self,
         _payload: CredentialRequestsss,
-        _token: String,
+        _token: String
     ) -> Outcome<Value> {
         let wallet = match self.wallet() {
             Some(data) => data,
             None => {
                 return Err(Errors::not_active(
                     "Wallet module is required for this step and its not active",
-                    None,
+                    None
                 ))
             }
         };
@@ -110,7 +112,7 @@ pub trait CoreGaiaSelfIssuerTrait: Send + Sync + 'static {
         let vc_type = VcType::from_str(&vc_type)?;
         let code = get_claim(
             &vc_data.parsed_document,
-            &["CredentialSubject", vc_type.to_gaia_weird()?],
+            &["CredentialSubject", vc_type.to_gaia_weird()?]
         )?;
 
         self.gaia().issue_cred(&did, &vc_type, &code).await
@@ -128,7 +130,7 @@ pub trait CoreGaiaSelfIssuerTrait: Send + Sync + 'static {
                 VcType::LeiCode,
                 VcType::LocalRegistrationNumber,
                 VcType::TaxId,
-                VcType::VatId,
+                VcType::VatId
             ])
             .await?;
         let legal_person = self.match_vcs(&[VcType::LegalPerson]).await?;
@@ -149,7 +151,7 @@ pub trait CoreGaiaSelfIssuerTrait: Send + Sync + 'static {
             None => {
                 return Err(Errors::not_active(
                     "Wallet module is required for this step and its not active",
-                    None,
+                    None
                 ))
             }
         };
@@ -167,7 +169,7 @@ pub trait CoreGaiaSelfIssuerTrait: Send + Sync + 'static {
             Errors::missing_action(
                 MissingAction::Credentials,
                 "Wallet does not have a registration number vc",
-                None,
+                None
             )
         })
     }
@@ -185,9 +187,9 @@ fn get_real_vc_type(claims: &Value) -> Outcome<String> {
                 Errors::format(
                     BadFormat::Received,
                     "No VC type found different from 'VerifiableCredential'",
-                    None,
+                    None
                 )
-            },
+            }
         )?;
 
     Ok(real_type.to_string())

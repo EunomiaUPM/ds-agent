@@ -17,11 +17,11 @@
 
 use rainbow_common::config::services::SsiAuthConfig;
 use rainbow_common::config::types::traits::{
-    CommonConfigTrait, EntityClientTrait, GaiaConfigTrait,
+    CommonConfigTrait, EntityClientTrait, GaiaConfigTrait
 };
 use rainbow_common::config::types::{EntityClientConfig, GaiaConfig};
 use ymir::config::traits::{
-    ConnectionConfigTrait, DidConfigTrait, HostsConfigTrait, VcConfigTrait,
+    ConnectionConfigTrait, DidConfigTrait, HostsConfigTrait, VcConfigTrait
 };
 use ymir::config::types::CommonHostsConfig;
 use ymir::types::vcs::W3cDataModelVersion;
@@ -34,7 +34,7 @@ pub struct GaiaSelfIssuerConfig {
     vc_data_model: W3cDataModelVersion,
     did: String,
     client_config: EntityClientConfig,
-    gaia_config: GaiaConfig,
+    gaia_config: GaiaConfig
 }
 
 impl From<SsiAuthConfig> for GaiaSelfIssuerConfig {
@@ -49,37 +49,25 @@ impl From<SsiAuthConfig> for GaiaSelfIssuerConfig {
                 .clone(),
             did: value.get_did().to_string(),
             client_config: value.client_config().clone(),
-            gaia_config: value.gaia_config().clone(),
+            gaia_config: value.gaia_config().clone()
         }
     }
 }
 
 impl HostsConfigTrait for GaiaSelfIssuerConfig {
-    fn hosts(&self) -> &CommonHostsConfig {
-        &self.hosts
-    }
+    fn hosts(&self) -> &CommonHostsConfig { &self.hosts }
 }
 
 impl GaiaConfigTrait for GaiaSelfIssuerConfig {
-    fn gaia_config(&self) -> &GaiaConfig {
-        &self.gaia_config
-    }
+    fn gaia_config(&self) -> &GaiaConfig { &self.gaia_config }
 }
 
 impl EntityClientTrait for GaiaSelfIssuerConfig {
-    fn client_config(&self) -> &EntityClientConfig {
-        &self.client_config
-    }
+    fn client_config(&self) -> &EntityClientConfig { &self.client_config }
 }
 
 impl GaiaGaiaSelfIssuerConfigTrait for GaiaSelfIssuerConfig {
-    fn is_local(&self) -> bool {
-        self.is_local
-    }
-    fn get_data_model_version(&self) -> &W3cDataModelVersion {
-        &self.vc_data_model
-    }
-    fn get_did(&self) -> &str {
-        &self.did
-    }
+    fn is_local(&self) -> bool { self.is_local }
+    fn get_data_model_version(&self) -> &W3cDataModelVersion { &self.vc_data_model }
+    fn get_did(&self) -> &str { &self.did }
 }

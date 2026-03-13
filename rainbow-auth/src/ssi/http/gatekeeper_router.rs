@@ -17,16 +17,14 @@
 
 use std::sync::Arc;
 
-use axum::extract::rejection::JsonRejection;
+use axum::body::Bytes;
 use axum::extract::{Path, State};
 use axum::http::HeaderMap;
 use axum::routing::post;
 use axum::{Json, Router};
 use ymir::errors::AppResult;
-use ymir::types::gnap::grant_request::GrantRequest;
 use ymir::types::gnap::grant_response::GrantResponse;
-use ymir::types::gnap::{AccessToken, RefBody};
-use ymir::utils::{extract_gnap_token, extract_payload};
+use ymir::types::gnap::AccessToken;
 
 use crate::ssi::core::traits::CoreGateKeeperTrait;
 
@@ -46,20 +44,18 @@ impl GateKeeperRouter {
 
     async fn manage_req(
         State(gatekeeper): State<Arc<dyn CoreGateKeeperTrait>>,
-        payload: Result<Json<GrantRequest>, JsonRejection>
+        headers: HeaderMap,
+        payload: Bytes
     ) -> AppResult<Json<GrantResponse>> {
-        let payload = extract_payload(payload)?;
-        Ok(Json(gatekeeper.manage_req(payload).await?))
+        Ok(Json(gatekeeper.manage_req(payload, headers).await?))
     }
 
     async fn continue_req(
         State(gatekeeper): State<Arc<dyn CoreGateKeeperTrait>>,
         headers: HeaderMap,
         Path(id): Path<String>,
-        payload: Result<Json<RefBody>, JsonRejection>
+        payload: Bytes
     ) -> AppResult<Json<AccessToken>> {
-        let payload = extract_payload(payload)?;
-        let token = extract_gnap_token(headers)?;
-        Ok(Json(gatekeeper.continue_req(id, payload, token).await?))
+        Ok(Json(gatekeeper.continue_req(id, payload, headers).await?))
     }
 }

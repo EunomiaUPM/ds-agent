@@ -18,11 +18,12 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use axum::body::Bytes;
+use axum::http::HeaderMap;
 use ymir::errors::Outcome;
 use ymir::services::verifier::VerifierTrait;
-use ymir::types::gnap::grant_request::GrantRequest;
 use ymir::types::gnap::grant_response::GrantResponse;
-use ymir::types::gnap::{AccessToken, RefBody};
+use ymir::types::gnap::AccessToken;
 
 use crate::ssi::services::gatekeeper::GateKeeperTrait;
 use crate::ssi::services::repo::repo_trait::AuthRepoTrait;
@@ -33,8 +34,8 @@ pub trait CoreGateKeeperTrait: Send + Sync + 'static {
     fn verifier(&self) -> Arc<dyn VerifierTrait>;
     fn repo(&self) -> Arc<dyn AuthRepoTrait>;
 
-    async fn manage_req(&self, payload: GrantRequest) -> Outcome<GrantResponse> {
-        let (req_model, int_model, token_model) = self.gatekeeper().start(&payload)?;
+    async fn manage_req(&self, payload: Bytes, headers: HeaderMap) -> Outcome<GrantResponse> {
+        let (req_model, int_model, token_model) = self.gatekeeper().start(&payload, &headers)?;
         let req_model = self.repo().request_rcv().create(req_model).await?;
         let int_model = self.repo().interaction_rcv().create(int_model).await?;
         let _token_model = self.repo().token_requirements().create(token_model).await?;
@@ -47,13 +48,13 @@ pub trait CoreGateKeeperTrait: Send + Sync + 'static {
     async fn continue_req(
         &self,
         id: String,
-        payload: RefBody,
-        token: String
+        payload: Bytes,
+        headers: HeaderMap
     ) -> Outcome<AccessToken> {
         let int_model = self.repo().interaction_rcv().get_by_cont_id(&id).await?;
+        self.gatekeeper().validate_cont_req(&int_model, &payload, &headers)?;
         let mut req_model = self.repo().request_rcv().get_by_id(&int_model.id).await?;
         let ver_model = self.repo().verification_rcv().get_by_id(&int_model.id).await?;
-        self.gatekeeper().validate_cont_req(&int_model, &payload, &token)?;
         let (mate, token_response) =
             self.gatekeeper().continue_req(&mut req_model, &int_model, &ver_model);
         let _mate = self.repo().mates().force_create(mate).await?;

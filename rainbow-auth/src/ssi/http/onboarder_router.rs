@@ -32,13 +32,11 @@ use crate::ssi::core::traits::CoreOnboarderTrait;
 use crate::ssi::types::entities::ReachProvider;
 
 pub struct OnboarderRouter {
-    onboarder: Arc<dyn CoreOnboarderTrait>,
+    onboarder: Arc<dyn CoreOnboarderTrait>
 }
 
 impl OnboarderRouter {
-    pub fn new(onboarder: Arc<dyn CoreOnboarderTrait>) -> Self {
-        Self { onboarder }
-    }
+    pub fn new(onboarder: Arc<dyn CoreOnboarderTrait>) -> Self { Self { onboarder } }
 
     pub fn router(self) -> Router {
         Router::new()
@@ -50,20 +48,20 @@ impl OnboarderRouter {
 
     async fn onboard(
         State(onboarder): State<Arc<dyn CoreOnboarderTrait>>,
-        payload: Result<Json<ReachProvider>, JsonRejection>,
+        payload: Result<Json<ReachProvider>, JsonRejection>
     ) -> AppResult {
         let payload = extract_payload(payload)?;
         Ok(match onboarder.onboard_req(payload).await {
             Ok(Some(data)) => data.into_response(),
             Ok(None) => ().into_response(),
-            Err(e) => e.into_response(),
+            Err(e) => e.into_response()
         })
     }
 
     async fn get_callback(
         State(onboarder): State<Arc<dyn CoreOnboarderTrait>>,
         Path(id): Path<String>,
-        Query(params): Query<HashMap<String, String>>,
+        Query(params): Query<HashMap<String, String>>
     ) -> AppResult<Json<Model>> {
         let hash = extract_query_param(&params, "hash")?;
         let interact_ref = extract_query_param(&params, "interact_ref")?;
@@ -74,14 +72,14 @@ impl OnboarderRouter {
     async fn post_callback(
         State(onboarder): State<Arc<dyn CoreOnboarderTrait>>,
         Path(id): Path<String>,
-        payload: Result<Json<CallbackBody>, JsonRejection>,
+        payload: Result<Json<CallbackBody>, JsonRejection>
     ) -> AppResult {
         let payload = extract_payload(payload)?;
         Ok(match payload {
             CallbackBody::Approved(data) => {
                 onboarder.continue_req(&id, data).await.map(Json).into_response()
             }
-            CallbackBody::Rejected(_) => onboarder.manage_rejection(id).await.into_response(),
+            CallbackBody::Rejected(_) => onboarder.manage_rejection(id).await.into_response()
         })
     }
 }

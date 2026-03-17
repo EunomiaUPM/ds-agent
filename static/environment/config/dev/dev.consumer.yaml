@@ -5,6 +5,7 @@ http_host: &http_host
   protocol: "http"
   url: "127.0.0.1"
   port: "1100"
+  internal_port: null
 
 hosts_default: &hosts_default
   http: *http_host
@@ -41,6 +42,7 @@ common_config: &common_config
     is_local: true
     is_prod: false
     is_vault_real: false
+    has_tls_proxy: false
 
 # ==========================
 # MONOLITH

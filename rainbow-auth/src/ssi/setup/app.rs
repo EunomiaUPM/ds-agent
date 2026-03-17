@@ -135,18 +135,15 @@ impl AuthApplication {
     }
 
     pub async fn run_basic(config: SsiAuthConfig, vault_service: Arc<VaultService>) -> Outcome<()> {
-        let server_message = format!(
-            "Starting Auth Consumer server in {}",
-            config.common().get_host(HostType::Http)
-        );
-        info!("{}", server_message);
-
         let router = Self::create_router(&config, vault_service).await;
 
-        let listener =
-            TcpListener::bind(format!("0.0.0.0:{}", config.common().get_tls_port(HostType::Http)))
-                .await
-                .map_err(|e| Errors::crazy("Error with tcp listener", Some(Box::new(e))))?;
+        let port = config.common().hosts().get_internal_port(HostType::Http);
+        let addr = format!("0.0.0.0:{}", port);
+        info!("Starting Rainbow Auth server in {}", addr);
+
+        let listener = TcpListener::bind(addr)
+            .await
+            .map_err(|e| Errors::crazy("Error with tcp listener", Some(Box::new(e))))?;
 
         serve(listener, router)
             .await
@@ -172,12 +169,12 @@ impl AuthApplication {
 
         let router = Self::create_router(config, vault).await;
 
-        let port = config.common().hosts().get_tls_port(HostType::Http);
+        let port = config.common().hosts().get_internal_port(HostType::Http);
         let addr_str = format!("0.0.0.0:{}", port);
         let addr: SocketAddr = addr_str
             .parse()
             .map_err(|e| Errors::crazy("Errors with socker address", Some(Box::new(e))))?;
-        info!("Starting Authority server with TLS in {}", addr);
+        info!("Starting Rainbow Auth server with TLS in {}", addr);
 
         axum_server::bind_rustls(addr, tls_config)
             .serve(router.into_make_service())
@@ -186,7 +183,7 @@ impl AuthApplication {
         Ok(())
     }
     pub async fn run(config: SsiAuthConfig, vault: Arc<VaultService>) -> Outcome<()> {
-        if config.common().is_prod() {
+        if config.common().is_prod() && !config.common().has_tls_proxy() {
             info!("Running with tls active");
             Self::run_tls(&config, vault).await
         } else {

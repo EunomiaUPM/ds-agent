@@ -89,7 +89,7 @@ impl CoreCommands {
                 };
                 show_table(&config)?;
 
-                if config.monolith().common().is_tls_enabled() {
+                if config.monolith().common().is_prod() {
                     vault.write_all_secrets(None).await?;
                 } else {
                     vault.write_local_secrets(None).await?;

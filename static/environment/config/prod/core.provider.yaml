@@ -5,6 +5,7 @@ http_host: &http_host
   protocol: 'https'
   url: 'dev-dataspaces.dit.upm.es'
   port: '1200'
+  internal_port: null
 
 hosts_default: &hosts_default
   http: *http_host
@@ -41,6 +42,7 @@ common_config: &common_config
     is_local: false
     is_prod: true
     is_vault_real: false
+    has_tls_proxy: false
 
 # ==========================
 # MONOLITH

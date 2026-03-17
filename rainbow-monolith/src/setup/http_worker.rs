@@ -52,7 +52,7 @@ impl CoreHttpWorker {
         );
         info!("{}", server_message);
 
-        if config.monolith().common().is_tls_enabled() {
+        if config.monolith().common().is_prod() && !config.monolith().common().has_tls_proxy() {
             info!("Running with TLS active");
             Self::run_tls(config, vault, token).await
         } else {
@@ -81,14 +81,13 @@ impl CoreHttpWorker {
         .map_err(|e| Errors::crazy("Errors parsing certificate stuff", Some(Box::new(e))))?;
 
         let router = create_core_router(config, vault.clone()).await;
-        let port = config.monolith().common().hosts().get_tls_port(HostType::Http);
+        let port = config.common().hosts().get_internal_port(HostType::Http);
+        let addr = format!("0.0.0.0:{}", port);
+        info!("Starting Rainbow server with TLS in {}", addr);
 
-        let addr_str = format!("0.0.0.0:{}", port);
-        let addr: SocketAddr = addr_str
+        let addr: SocketAddr = addr
             .parse()
             .map_err(|e| Errors::crazy("Errors with socker address", Some(Box::new(e))))?;
-
-        info!("Starting Rainbow server with TLS in {}", addr);
 
         let server_handle = axum_server::Handle::new();
         let shutdown_token = token.clone();
@@ -124,10 +123,13 @@ impl CoreHttpWorker {
     ) -> Outcome<JoinHandle<()>> {
         let router = create_core_router(config, vault.clone()).await;
 
-        let listener =
-            TcpListener::bind(format!("0.0.0.0:{}", config.common().get_tls_port(HostType::Http)))
-                .await
-                .map_err(|e| Errors::crazy("Error with tcp listener", Some(Box::new(e))))?;
+        let port = config.common().hosts().get_internal_port(HostType::Http);
+        let addr = format!("0.0.0.0:{}", port);
+        info!("Starting Rainbow server in {}", addr);
+
+        let listener = TcpListener::bind(addr)
+            .await
+            .map_err(|e| Errors::crazy("Error with tcp listener", Some(Box::new(e))))?;
         let token_clone = token.clone();
 
         let handle = tokio::spawn(async move {

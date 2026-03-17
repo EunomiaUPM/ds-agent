@@ -8,6 +8,35 @@ param(
     [string]$DockerProviderUrl  = "http://127.0.0.1:1200"
 )
 
+# ----------------------------
+# Logging helpers
+# ----------------------------
+
+function Log-Step {
+    param([string]$Message)
+    Write-Host ""
+    Write-Host $Message -ForegroundColor Cyan
+}
+
+function Log-Success {
+    param([string]$Message)
+    Write-Host $Message -ForegroundColor Green
+}
+
+function Log-Error {
+    param([string]$Message)
+    Write-Host $Message -ForegroundColor Red
+}
+
+function Log-Info {
+    param([string]$Message)
+    Write-Host $Message -ForegroundColor Yellow
+}
+
+# ----------------------------
+# HTTP helper
+# ----------------------------
+
 function Invoke-CurlJson {
     param(
         [string]$Method = "GET",
@@ -17,6 +46,7 @@ function Invoke-CurlJson {
     )
 
     try {
+
         $Params = @{
             Method      = $Method
             Uri         = $Url
@@ -24,14 +54,16 @@ function Invoke-CurlJson {
             ErrorAction = 'Stop'
         }
 
-        if ($Body) { $Params.Body = $Body | ConvertTo-Json -Compress }
+        if ($Body) {
+            $Params.Body = $Body | ConvertTo-Json -Compress
+        }
 
         $Response = Invoke-WebRequest @Params
 
         if ($Response.StatusCode -ge 200 -and $Response.StatusCode -lt 300) {
-            Write-Host "SUCCESS: $Method $Url returned $($Response.StatusCode)"
+            Log-Success "SUCCESS: $Method $Url -> $($Response.StatusCode)"
         } else {
-            Write-Host "ERROR: $Method $Url returned $($Response.StatusCode)"
+            Log-Error "ERROR: $Method $Url -> $($Response.StatusCode)"
             exit 1
         }
 
@@ -42,91 +74,159 @@ function Invoke-CurlJson {
         }
 
     } catch {
-        Write-Host "ERROR: Request to $Url failed"
-        Write-Host $_.Exception.Message
-        Write-Host "The script wont continue executing"
-        Write-Host ""
+        Log-Error "ERROR: Request to $Url failed"
+        Log-Error $_.Exception.Message
+        Log-Error "The script won't continue executing"
         exit 1
     }
 }
 
-Write-Host "Starting auto-onboarding script..."
+Write-Host ""
+Write-Host "======================================" -ForegroundColor Cyan
+Write-Host "      AUTO ONBOARDING SCRIPT" -ForegroundColor Cyan
+Write-Host "======================================" -ForegroundColor Cyan
+
 
 # ----------------------------
-# Onboarding Authority / Consumer / Provider
+# STEP 1 - Link Authority Wallet
 # ----------------------------
+
+Log-Step "STEP 1 - Linking Authority wallet"
 Invoke-CurlJson -Method "POST" -Url "$AuthorityUrl/api/v1/wallet/link" -ParseJson:$false
+
+
+# ----------------------------
+# STEP 2 - Link Consumer Wallet
+# ----------------------------
+
+Log-Step "STEP 2 - Linking Consumer wallet"
 Invoke-CurlJson -Method "POST" -Url "$ConsumerUrl/api/v1/wallet/link" -ParseJson:$false
+
+
+# ----------------------------
+# STEP 3 - Link Provider Wallet
+# ----------------------------
+
+Log-Step "STEP 3 - Linking Provider wallet"
 Invoke-CurlJson -Method "POST" -Url "$ProviderUrl/api/v1/wallet/link" -ParseJson:$false
 
-# ----------------------------
-# Getting DIDs
-# ----------------------------
-$AUTH_DID     = (Invoke-CurlJson -Url "$AuthorityUrl/.well-known/did.json").id
-Write-Host "Authority DID: $AUTH_DID"
-$CONSUMER_DID = (Invoke-CurlJson -Url "$ConsumerUrl/.well-known/did.json").id
-Write-Host "Consumer DID: $CONSUMER_DID"
-$PROVIDER_DID = (Invoke-CurlJson -Url "$ProviderUrl/.well-known/did.json").id
-Write-Host "Provider DID: $PROVIDER_DID"
 
 # ----------------------------
-# Consumer begins request for credential
+# STEP 4 - Retrieve DIDs
 # ----------------------------
+
+Log-Step "STEP 4 - Retrieving DIDs"
+
+$AUTH_DID = (Invoke-CurlJson -Url "$AuthorityUrl/.well-known/did.json").id
+Log-Success "Authority DID: $AUTH_DID"
+
+$CONSUMER_DID = (Invoke-CurlJson -Url "$ConsumerUrl/.well-known/did.json").id
+Log-Success "Consumer DID: $CONSUMER_DID"
+
+$PROVIDER_DID = (Invoke-CurlJson -Url "$ProviderUrl/.well-known/did.json").id
+Log-Success "Provider DID: $PROVIDER_DID"
+
+
+# ----------------------------
+# STEP 5 - Consumer requests credential
+# ----------------------------
+
+Log-Step "STEP 5 - Consumer requests credential from Authority"
+
 $C_BEG_BODY = @{
     url     = "$DockerAuthorityUrl/api/v1/gate/access"
     id      = $AUTH_DID
     slug    = "authority"
     vc_type = "DataspaceParticipant_jwt_vc_json"
-    method  = "cert"   # ← antes "cross-user"
+    method  = "cert"
 }
+
 $C_BEG_RESPONSE = Invoke-CurlJson -Method "POST" -Url "$ConsumerUrl/api/v1/vc-request/beg" -Body $C_BEG_BODY -ParseJson:$false
-Write-Host "Consumer request completed."
+Log-Success "Consumer credential request sent"
+
 
 # ----------------------------
-# Get all requests from Authority
+# STEP 6 - Authority retrieves requests
 # ----------------------------
+
+Log-Step "STEP 6 - Authority retrieving pending requests"
+
 $ALL_REQUESTS = Invoke-CurlJson -Url "$AuthorityUrl/api/v1/approver/all"
+
 $PETITION_ID = $ALL_REQUESTS[-1].id
-Write-Host "Petition ID: $PETITION_ID"
+Log-Info "Petition ID: $PETITION_ID"
+
 
 # ----------------------------
-# Authority approves request
+# STEP 7 - Authority approves request
 # ----------------------------
+
+Log-Step "STEP 7 - Authority approving request"
+
 $APPROVE_BODY = @{ approve = $true }
+
 Invoke-CurlJson -Method "POST" -Url "$AuthorityUrl/api/v1/approver/$PETITION_ID" -Body $APPROVE_BODY -ParseJson:$false
-Write-Host "Request approved."
+
+Log-Success "Request approved"
+
 
 # ----------------------------
-# Get all authority requests for Consumer
+# STEP 8 - Consumer retrieves credential URI
 # ----------------------------
+
+Log-Step "STEP 8 - Consumer retrieving OIDC4VCI URI"
+
 $ALL_AUTHORITY = Invoke-CurlJson -Url "$ConsumerUrl/api/v1/vc-request/all"
+
 $OIDC4VCI_URI = $ALL_AUTHORITY[-1].vc_uri
-Write-Host "OIDC4VCI_URI: $OIDC4VCI_URI"
+
+Log-Info "OIDC4VCI URI:"
+Write-Host $OIDC4VCI_URI
+
 
 # ----------------------------
-# Consumer processes OIDC4VCI
+# STEP 9 - Consumer processes OIDC4VCI
 # ----------------------------
+
+Log-Step "STEP 9 - Consumer processing credential"
+
 Invoke-CurlJson -Method "POST" -Url "$ConsumerUrl/api/v1/wallet/oidc4vci" -Body @{ uri = $OIDC4VCI_URI } -ParseJson:$false
-Write-Host "OIDC4VCI processed."
+
+Log-Success "OIDC4VCI processed"
+
 
 # ----------------------------
-# Consumer requests grant from Provider
+# STEP 10 - Consumer requests Provider access
 # ----------------------------
+
+Log-Step "STEP 10 - Consumer requesting Provider access"
+
 $OIDC4VP_BODY = @{
     url     = "$DockerProviderUrl/api/v1/gate/access"
     id      = $PROVIDER_DID
     slug    = "provider"
-    actions = @("talk")  # ← antes "talk" string, ahora array
+    actions = @("talk")
 }
+
 $OIDC4VP_URI = Invoke-CurlJson -Method "POST" -Url "$ConsumerUrl/api/v1/onboard/provider" -Body $OIDC4VP_BODY -ParseJson:$false
-Write-Host "OIDC4VP_URI: $OIDC4VP_URI"
+
+Log-Info "OIDC4VP URI:"
+Write-Host $OIDC4VP_URI
+
 
 # ----------------------------
-# Consumer processes OIDC4VP
+# STEP 11 - Consumer processes OIDC4VP
 # ----------------------------
-Write-Host "Consumer processes OIDC4VP..."
+
+Log-Step "STEP 11 - Consumer processing OIDC4VP"
+
 Invoke-CurlJson -Method "POST" -Url "$ConsumerUrl/api/v1/wallet/oidc4vp" -Body @{ uri = $OIDC4VP_URI } -ParseJson:$false
-Write-Host "OIDC4VP processed."
 
-Write-Host "Onboarding script finished successfully!"
+Log-Success "OIDC4VP processed"
+
+
+Write-Host ""
+Write-Host "======================================" -ForegroundColor Green
+Write-Host "   ONBOARDING FINISHED SUCCESSFULLY" -ForegroundColor Green
+Write-Host "======================================" -ForegroundColor Green
 Write-Host ""

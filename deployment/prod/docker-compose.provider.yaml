@@ -5,7 +5,7 @@ services:
     image: hashicorp/vault:1.21
     container_name: provider-vault
     ports:
-      - "8202:8200"
+      - "8200:8200"
     cap_add:
       - IPC_LOCK
     volumes:

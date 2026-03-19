@@ -10,7 +10,11 @@ RUN apk add --no-cache \
     build-base \
     protobuf \
     protobuf-dev \
-    ca-certificates
+    ca-certificates \
+    openssl-dev \
+    openssl-libs-static \
+    pkgconfig
+
 
 # Copiamos todo el código fuente del backend
 COPY . .

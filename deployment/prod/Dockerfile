@@ -29,10 +29,14 @@ WORKDIR /app
 
 # Instalar dependencias de compilación para Alpine (musl)
 RUN apk add --no-cache \
+    musl-dev \
+    build-base \
     protobuf \
     protobuf-dev \
-    musl-dev \
-    build-base
+    ca-certificates \
+    openssl-dev \
+    openssl-libs-static \
+    pkgconfig
 
 # 1. Copiamos todo el código fuente del backend
 COPY . .

@@ -70,3 +70,4 @@ services:
       - ./../../static/environment/envs/provider.env
     environment:
       CONFIG_PATH: /app/static/environment/config/prod/core.provider.yaml
+      RUST_BACKTRACE: full

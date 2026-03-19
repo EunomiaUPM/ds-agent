@@ -1,6 +1,6 @@
 use crate::protocols::dsp::facades::well_known_rpc_facade::WellKnownRPCFacadeTrait;
 use rainbow_common::config::services::CatalogConfig;
-use rainbow_common::config::traits::CommonConfigTrait;
+use rainbow_common::config::types::traits::CommonConfigTrait;
 use rainbow_common::dsp_common::well_known_types::{Version, VersionPath};
 use rainbow_common::http_client::HttpClient;
 use rainbow_common::well_known::rpc::WellKnownRPCRequest;

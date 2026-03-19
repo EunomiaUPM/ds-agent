@@ -17,12 +17,13 @@
  *
  */
 
-use crate::errors::CommonErrors;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
 use serde_json::json;
 use tracing::error;
+
+use crate::errors::CommonErrors;
 
 pub trait CustomToResponse {
     fn to_response(&self) -> Response;
@@ -40,7 +41,7 @@ impl CustomToResponse for anyhow::Error {
             Json(json!({
                 "message": "Internal Server Error",
                 "error_code": 5000
-            })),
+            }))
         )
             .into_response()
     }

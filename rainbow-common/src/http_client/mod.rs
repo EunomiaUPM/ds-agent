@@ -1,11 +1,13 @@
+use std::sync::Arc;
+use std::time::Duration;
+
 use async_trait::async_trait;
 use bytes::Bytes;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use std::sync::Arc;
-use std::time::Duration;
 use thiserror::Error;
 use tokio::sync::{RwLock, Semaphore};
+use ymir::errors::{Errors, PetitionFailure};
 
 #[derive(Debug, Error)]
 pub enum HttpClientError {
@@ -22,7 +24,7 @@ pub enum HttpClientError {
     DeserializeError {
         #[source]
         source: serde_json::Error,
-        raw_text: String,
+        raw_text: String
     },
 
     #[error("JSON Serialization Error: {0}")]
@@ -32,7 +34,70 @@ pub enum HttpClientError {
     FormSerializeError(#[from] serde_urlencoded::ser::Error),
 
     #[error("Semaphore closed")]
-    ConcurrencyError,
+    ConcurrencyError
+}
+
+impl From<HttpClientError> for Errors {
+    fn from(e: HttpClientError) -> Self {
+        match e {
+            HttpClientError::RequestError(e) => Errors::petition(
+                "unknown",
+                "unknown",
+                None,
+                PetitionFailure::Network,
+                "Network error",
+                Some(Box::new(e))
+            ),
+            HttpClientError::HttpError { status, message } => Errors::petition(
+                "unknown",
+                "unknown",
+                Some(status),
+                PetitionFailure::HttpStatus(status),
+                message,
+                None
+            ),
+            HttpClientError::BodyReadError(e) => Errors::petition(
+                "unknown",
+                "unknown",
+                None,
+                PetitionFailure::BodyRead,
+                "Failed to read body",
+                Some(Box::new(e))
+            ),
+            HttpClientError::DeserializeError { source, raw_text } => Errors::petition(
+                "unknown",
+                "unknown",
+                None,
+                PetitionFailure::BodyDeserialization,
+                format!("Raw: {}", raw_text),
+                Some(Box::new(source))
+            ),
+            HttpClientError::JsonSerializeError(e) => Errors::petition(
+                "unknown",
+                "unknown",
+                None,
+                PetitionFailure::Serialization,
+                "JSON serialization failed",
+                Some(Box::new(e))
+            ),
+            HttpClientError::FormSerializeError(e) => Errors::petition(
+                "unknown",
+                "unknown",
+                None,
+                PetitionFailure::Serialization,
+                "Form serialization failed",
+                Some(Box::new(e))
+            ),
+            HttpClientError::ConcurrencyError => Errors::petition(
+                "unknown",
+                "unknown",
+                None,
+                PetitionFailure::Concurrency,
+                "Semaphore closed",
+                None
+            )
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -40,19 +105,17 @@ pub struct JsonResponse<T>(pub T);
 
 #[async_trait]
 pub trait ApiResponse: Sized {
-    async fn from_response(response: reqwest::Response) -> anyhow::Result<Self, HttpClientError>;
+    async fn from_response(response: reqwest::Response) -> Result<Self, HttpClientError>;
 }
 
 #[async_trait]
 impl ApiResponse for () {
-    async fn from_response(_: reqwest::Response) -> anyhow::Result<Self, HttpClientError> {
-        Ok(())
-    }
+    async fn from_response(_: reqwest::Response) -> Result<Self, HttpClientError> { Ok(()) }
 }
 
 #[async_trait]
 impl ApiResponse for String {
-    async fn from_response(response: reqwest::Response) -> anyhow::Result<Self, HttpClientError> {
+    async fn from_response(response: reqwest::Response) -> Result<Self, HttpClientError> {
         response.text().await.map_err(HttpClientError::BodyReadError)
     }
 }
@@ -70,7 +133,7 @@ pub struct HttpClient {
     client: reqwest::Client,
     auth_token: Arc<RwLock<Option<String>>>,
     limiter: Arc<Semaphore>,
-    max_retries: u32,
+    max_retries: u32
 }
 
 impl HttpClient {
@@ -85,7 +148,7 @@ impl HttpClient {
             client,
             auth_token: Arc::new(RwLock::new(None)),
             limiter: Arc::new(Semaphore::new(concurrency_limit)),
-            max_retries: 3,
+            max_retries: 3
         }
     }
 
@@ -93,16 +156,14 @@ impl HttpClient {
         *self.auth_token.write().await = Some(token);
     }
 
-    pub async fn clear_auth_token(&self) {
-        *self.auth_token.write().await = None;
-    }
+    pub async fn clear_auth_token(&self) { *self.auth_token.write().await = None; }
 
     async fn perform_single_request(
         &self,
         method: reqwest::Method,
         url: &str,
         body: Option<Bytes>,
-        content_type: Option<&str>, // <--- Nuevo parámetro para flexibilidad
+        content_type: Option<&str> // <--- Nuevo parámetro para flexibilidad
     ) -> Result<reqwest::Response, HttpClientError> {
         let mut builder = self.client.request(method, url);
         let token_guard = self.auth_token.read().await;
@@ -123,7 +184,7 @@ impl HttpClient {
         if status.is_client_error() || status.is_server_error() {
             return Err(HttpClientError::HttpError {
                 status,
-                message: response.text().await.unwrap_or_default(),
+                message: response.text().await.unwrap_or_default()
             });
         }
 
@@ -135,7 +196,7 @@ impl HttpClient {
         method: reqwest::Method,
         url: &str,
         body: Option<Bytes>,
-        content_type: Option<&str>,
+        content_type: Option<&str>
     ) -> Result<reqwest::Response, HttpClientError> {
         let mut attempt = 1;
 
@@ -166,7 +227,7 @@ impl HttpClient {
             HttpClientError::HttpError { status, .. } => {
                 status.is_server_error() || *status == reqwest::StatusCode::TOO_MANY_REQUESTS
             }
-            _ => false,
+            _ => false
         }
     }
 
@@ -175,16 +236,16 @@ impl HttpClient {
         method: reqwest::Method,
         url: &str,
         body: Option<Bytes>,
-        content_type: Option<&str>,
+        content_type: Option<&str>
     ) -> Result<reqwest::Response, HttpClientError> {
         let _permit =
             self.limiter.acquire().await.map_err(|_| HttpClientError::ConcurrencyError)?;
         self.execute_with_retries(method, url, body, content_type).await
     }
 
-    pub async fn get_json<R>(&self, url: &str) -> anyhow::Result<R, HttpClientError>
+    pub async fn get_json<R>(&self, url: &str) -> Result<R, HttpClientError>
     where
-        R: DeserializeOwned,
+        R: DeserializeOwned
     {
         let response = self.dispatch(reqwest::Method::GET, url, None, None).await?;
         Self::deserialize_internal(response).await
@@ -193,11 +254,11 @@ impl HttpClient {
     pub async fn get_json_with_payload<T, R>(
         &self,
         url: &str,
-        payload: &T,
-    ) -> anyhow::Result<R, HttpClientError>
+        payload: &T
+    ) -> Result<R, HttpClientError>
     where
         T: Serialize,
-        R: DeserializeOwned,
+        R: DeserializeOwned
     {
         let bytes = serde_json::to_vec(payload)?;
         let body = Bytes::from(bytes);
@@ -207,14 +268,10 @@ impl HttpClient {
         Self::deserialize_internal(response).await
     }
 
-    pub async fn post_json<T, R>(
-        &self,
-        url: &str,
-        payload: &T,
-    ) -> anyhow::Result<R, HttpClientError>
+    pub async fn post_json<T, R>(&self, url: &str, payload: &T) -> Result<R, HttpClientError>
     where
         T: Serialize,
-        R: DeserializeOwned,
+        R: DeserializeOwned
     {
         let bytes = serde_json::to_vec(payload)?;
         let body = Bytes::from(bytes);
@@ -224,19 +281,19 @@ impl HttpClient {
         Self::deserialize_internal(response).await
     }
 
-    pub async fn post_void<R>(&self, url: &str) -> anyhow::Result<R, HttpClientError>
+    pub async fn post_void<R>(&self, url: &str) -> Result<R, HttpClientError>
     where
-        R: ApiResponse,
+        R: ApiResponse
     {
         let response = self.dispatch(reqwest::Method::POST, url, None, None).await?;
 
         R::from_response(response).await
     }
 
-    pub async fn put_json<T, R>(&self, url: &str, payload: &T) -> anyhow::Result<R, HttpClientError>
+    pub async fn put_json<T, R>(&self, url: &str, payload: &T) -> Result<R, HttpClientError>
     where
         T: Serialize,
-        R: DeserializeOwned,
+        R: DeserializeOwned
     {
         let bytes = serde_json::to_vec(payload)?;
         let body = Bytes::from(bytes);
@@ -245,22 +302,18 @@ impl HttpClient {
         Self::deserialize_internal(response).await
     }
 
-    pub async fn delete<R>(&self, url: &str) -> anyhow::Result<R, HttpClientError>
+    pub async fn delete<R>(&self, url: &str) -> Result<R, HttpClientError>
     where
-        R: ApiResponse,
+        R: ApiResponse
     {
         let response = self.dispatch(reqwest::Method::DELETE, url, None, None).await?;
         R::from_response(response).await
     }
 
-    pub async fn post_form<T, R>(
-        &self,
-        url: &str,
-        payload: &T,
-    ) -> anyhow::Result<R, HttpClientError>
+    pub async fn post_form<T, R>(&self, url: &str, payload: &T) -> Result<R, HttpClientError>
     where
         T: Serialize,
-        R: ApiResponse,
+        R: ApiResponse
     {
         let form_string = serde_urlencoded::to_string(payload)?;
         let body = Bytes::from(form_string);
@@ -269,7 +322,7 @@ impl HttpClient {
                 reqwest::Method::POST,
                 url,
                 Some(body),
-                Some("application/x-www-form-urlencoded"),
+                Some("application/x-www-form-urlencoded")
             )
             .await?;
         R::from_response(response).await
@@ -277,7 +330,7 @@ impl HttpClient {
 
     async fn deserialize_internal<R>(response: reqwest::Response) -> Result<R, HttpClientError>
     where
-        R: DeserializeOwned,
+        R: DeserializeOwned
     {
         let raw_text = response.text().await.map_err(HttpClientError::BodyReadError)?;
         serde_json::from_str::<R>(&raw_text)

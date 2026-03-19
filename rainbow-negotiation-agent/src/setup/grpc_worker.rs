@@ -33,7 +33,7 @@ use crate::grpc::negotiation_message::NegotiationAgentMessagesGrpc;
 use crate::grpc::negotiation_process::NegotiationAgentProcessesGrpc;
 use crate::grpc::offer::NegotiationAgentOfferGrpc;
 use rainbow_common::config::services::ContractsConfig;
-use rainbow_common::config::traits::CommonConfigTrait;
+use rainbow_common::config::types::traits::CommonConfigTrait;
 use sea_orm::Database;
 use std::sync::Arc;
 use tokio::net::TcpListener;
@@ -44,7 +44,7 @@ use tonic::transport::Server;
 use ymir::config::traits::{ConnectionConfigTrait, HostsConfigTrait};
 use ymir::config::types::HostType;
 use ymir::services::vault::VaultTrait;
-use ymir::services::vault::vault_rs::VaultService;
+use ymir::services::vault::global::VaultService;
 
 pub struct NegotiationGrpcWorker {}
 

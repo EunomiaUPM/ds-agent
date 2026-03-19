@@ -26,7 +26,7 @@ use crate::grpc::api::FILE_DESCRIPTOR_SET;
 use crate::grpc::transfer_messages::TransferAgentMessagesGrpc;
 use crate::grpc::transfer_process::TransferAgentProcessesGrpc;
 use rainbow_common::config::services::TransferConfig;
-use rainbow_common::config::traits::CommonConfigTrait;
+use rainbow_common::config::types::traits::CommonConfigTrait;
 use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio::task::JoinHandle;
@@ -35,7 +35,7 @@ use tonic::codegen::tokio_stream::wrappers::TcpListenerStream;
 use tonic::transport::Server;
 use ymir::config::traits::{ConnectionConfigTrait, HostsConfigTrait};
 use ymir::config::types::HostType;
-use ymir::services::vault::vault_rs::VaultService;
+use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
 
 pub struct TransferGrpcWorker {}

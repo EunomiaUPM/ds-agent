@@ -17,23 +17,26 @@
  *
  */
 
-use crate::http::router::create_core_router;
-use axum::serve;
-use axum_server::tls_rustls::RustlsConfig;
-use rainbow_common::config::traits::CommonConfigTrait;
-use rainbow_common::config::ApplicationConfig;
 use std::net::SocketAddr;
 use std::sync::Arc;
+
+use axum::serve;
+use axum_server::tls_rustls::RustlsConfig;
+use rainbow_common::config::types::traits::CommonConfigTrait;
+use rainbow_common::config::ApplicationConfig;
 use tokio::net::TcpListener;
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
 use ymir::config::traits::{ConnectionConfigTrait, HostsConfigTrait};
 use ymir::config::types::HostType;
-use ymir::services::vault::vault_rs::VaultService;
+use ymir::errors::{Errors, Outcome};
+use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
 use ymir::types::secrets::StringHelper;
 use ymir::utils::expect_from_env;
+
+use crate::setup::router::create_core_router;
 
 pub struct CoreHttpWorker;
 
@@ -41,15 +44,15 @@ impl CoreHttpWorker {
     pub async fn spawn(
         config: &ApplicationConfig,
         vault: Arc<VaultService>,
-        token: &CancellationToken,
-    ) -> anyhow::Result<JoinHandle<()>> {
+        token: &CancellationToken
+    ) -> Outcome<JoinHandle<()>> {
         let server_message = format!(
             "Starting Dataspace http server in {}",
             config.monolith().common().get_host(HostType::Http)
         );
         info!("{}", server_message);
 
-        if config.monolith().common().is_tls_enabled() {
+        if config.monolith().common().is_prod() && !config.monolith().common().has_tls_proxy() {
             info!("Running with TLS active");
             Self::run_tls(config, vault, token).await
         } else {
@@ -61,33 +64,30 @@ impl CoreHttpWorker {
     pub async fn run_tls(
         config: &ApplicationConfig,
         vault: Arc<VaultService>,
-        token: &CancellationToken,
-    ) -> anyhow::Result<JoinHandle<()>> {
+        token: &CancellationToken
+    ) -> Outcome<JoinHandle<()>> {
         let cert_key = expect_from_env("VAULT_APP_ROOT_CLIENT_KEY");
         let pkey_key = expect_from_env("VAULT_APP_CLIENT_KEY");
         let cert: StringHelper = vault.read(None, &cert_key).await?;
         let pkey: StringHelper = vault.read(None, &pkey_key).await?;
 
-        // Evitar doble instalación del provider de Ring
         let _ = rustls::crypto::ring::default_provider().install_default();
 
         let tls_config = RustlsConfig::from_pem(
             cert.data().as_bytes().to_vec(),
-            pkey.data().as_bytes().to_vec(),
+            pkey.data().as_bytes().to_vec()
         )
-        .await?;
+        .await
+        .map_err(|e| Errors::crazy("Errors parsing certificate stuff", Some(Box::new(e))))?;
 
         let router = create_core_router(config, vault.clone()).await;
-        let port = config.monolith().common().hosts().get_tls_port(HostType::Http);
+        let port = config.common().hosts().get_internal_port(HostType::Http);
+        let addr = format!("0.0.0.0:{}", port);
+        info!("Starting Rainbow server with TLS in {}", addr);
 
-        let addr_str = if config.monolith().common().is_local() {
-            format!("127.0.0.1:{}", port)
-        } else {
-            format!("0.0.0.0:{}", port)
-        };
-        let addr: SocketAddr = addr_str.parse()?;
-
-        info!("Starting Authority server with TLS in {}", addr);
+        let addr: SocketAddr = addr
+            .parse()
+            .map_err(|e| Errors::crazy("Errors with socker address", Some(Box::new(e))))?;
 
         let server_handle = axum_server::Handle::new();
         let shutdown_token = token.clone();
@@ -119,15 +119,17 @@ impl CoreHttpWorker {
     pub async fn run(
         config: &ApplicationConfig,
         vault: Arc<VaultService>,
-        token: &CancellationToken,
-    ) -> anyhow::Result<JoinHandle<()>> {
+        token: &CancellationToken
+    ) -> Outcome<JoinHandle<()>> {
         let router = create_core_router(config, vault.clone()).await;
 
-        let port = config.monolith().common().get_weird_port(HostType::Http);
-        let host = if config.monolith().common().is_local() { "127.0.0.1" } else { "0.0.0.0" };
-        let addr: SocketAddr = format!("{}{}", host, port).parse()?;
+        let port = config.common().hosts().get_internal_port(HostType::Http);
+        let addr = format!("0.0.0.0:{}", port);
+        info!("Starting Rainbow server in {}", addr);
 
-        let listener = TcpListener::bind(&addr).await?;
+        let listener = TcpListener::bind(addr)
+            .await
+            .map_err(|e| Errors::crazy("Error with tcp listener", Some(Box::new(e))))?;
         let token_clone = token.clone();
 
         let handle = tokio::spawn(async move {

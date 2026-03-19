@@ -12,15 +12,17 @@ use crate::http::transfer_events::TransferEventsRouter;
 use crate::testing_proxy::http::http::TestingHTTPProxy;
 use axum::Router;
 use rainbow_common::config::services::TransferConfig;
-use rainbow_common::config::traits::{CacheConfigTrait, CommonConfigTrait};
+use rainbow_common::config::types::traits::{CacheConfigTrait, CommonConfigTrait};
 use rainbow_common::http_client::HttpClient;
 use rainbow_connector::ConnectorInstanceTrait;
 use sea_orm::Database;
 use std::ops::Deref;
 use std::sync::Arc;
 use ymir::config::traits::HostsConfigTrait;
+use ymir::services::vault::global::VaultService;
 use ymir::services::vault::vault_rs::VaultService;
 use ymir::services::vault::VaultTrait;
+use rainbow_common::config::traits::{CacheConfigTrait, CommonConfigTrait};
 
 pub struct DataplaneSetup {}
 impl DataplaneSetup {
@@ -75,7 +77,11 @@ impl DataplaneSetup {
         // driver factory
         let driver_factory = Arc::new(DataplaneDriverFactory::new(proxy_base_url, http_client));
 
-        DataplaneManager::new(dataplane_process_entity, connector_entity, driver_factory)
+        DataplaneManager::new(
+            dataplane_process_entity,
+            connector_entity,
+            driver_factory,
+        )
     }
 
     pub async fn build_control_router(

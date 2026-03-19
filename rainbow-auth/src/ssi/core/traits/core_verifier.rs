@@ -18,6 +18,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use ymir::errors::Outcome;
 use ymir::services::verifier::VerifierTrait;
 use ymir::types::vcs::VPDef;
 use ymir::types::verifying::VerifyPayload;
@@ -30,17 +31,13 @@ pub trait CoreVerifierTrait: Send + Sync + 'static {
     fn verifier(&self) -> Arc<dyn VerifierTrait>;
     fn repo(&self) -> Arc<dyn AuthRepoTrait>;
     fn business(&self) -> Arc<dyn BusinessTrait>;
-    async fn get_vpd(&self, state: String) -> anyhow::Result<VPDef> {
+    async fn get_vpd(&self, state: String) -> Outcome<VPDef> {
         let ver_model = self.repo().verification_rcv().get_by_state(&state).await?;
-        Ok(self.verifier().generate_vpd(ver_model))
+        self.verifier().generate_vpd(&ver_model)
     }
-    async fn verify(
-        &self,
-        state: String,
-        payload: VerifyPayload,
-    ) -> anyhow::Result<Option<String>> {
+    async fn verify(&self, state: String, payload: VerifyPayload) -> Outcome<Option<String>> {
         let mut ver_model = self.repo().verification_rcv().get_by_state(&state).await?;
-        let result = self.verifier().verify_all(&mut ver_model, payload.vp_token).await;
+        let result = self.verifier().verify_all(&mut ver_model, &payload.vp_token).await;
         match self.repo().interaction_rcv().get_by_some_id(&ver_model.id).await? {
             Some(int_model) => {
                 self.repo().verification_rcv().update(ver_model).await?;

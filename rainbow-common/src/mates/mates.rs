@@ -1,24 +1,23 @@
 /*
+ * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
  *
- *  * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
- *  *
- *  * This program is free software: you can redistribute it and/or modify
- *  * it under the terms of the GNU General Public License as published by
- *  * the Free Software Foundation, either version 3 of the License, or
- *  * (at your option) any later version.
- *  *
- *  * This program is distributed in the hope that it will be useful,
- *  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  * GNU General Public License for more details.
- *  *
- *  * You should have received a copy of the GNU General Public License
- *  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::utils::get_urn;
 use serde::{Deserialize, Serialize};
+
+use crate::utils::get_urn;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Mates {
@@ -30,7 +29,7 @@ pub struct Mates {
     pub token_actions: Option<String>,
     pub saved_at: chrono::NaiveDateTime,
     pub last_interaction: chrono::NaiveDateTime,
-    pub is_me: bool,
+    pub is_me: bool
 }
 
 impl Mates {
@@ -40,7 +39,7 @@ impl Mates {
         url: String,
         token: Option<String>,
         token_actions: Option<String>,
-        is_me: bool,
+        is_me: bool
     ) -> Self {
         let participant_id = id.unwrap_or_else(|| get_urn(None).to_string());
 
@@ -53,7 +52,7 @@ impl Mates {
             token_actions,
             saved_at: chrono::Utc::now().naive_utc(),
             last_interaction: chrono::Utc::now().naive_utc(),
-            is_me,
+            is_me
         }
     }
 
@@ -63,7 +62,7 @@ impl Mates {
         url: String,
         token: Option<String>,
         token_actions: Option<String>,
-        is_me: bool,
+        is_me: bool
     ) -> Self {
         let participant_id = id.unwrap_or_else(|| get_urn(None).to_string());
 
@@ -76,12 +75,12 @@ impl Mates {
             token_actions,
             saved_at: chrono::Utc::now().naive_utc(),
             last_interaction: chrono::Utc::now().naive_utc(),
-            is_me,
+            is_me
         }
     }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct VerifyTokenRequest {
-    pub token: String,
+    pub token: String
 }

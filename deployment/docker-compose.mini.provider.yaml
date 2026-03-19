@@ -1,0 +1,42 @@
+name: mini-provider
+
+services:
+  provider-db:
+    container_name: "provider-db"
+    image: "postgres"
+    restart: always
+    env_file:
+      - ./../static/environment/envs/provider.db.env.example
+    ports:
+      - "1400:5432"
+
+  provider-redis:
+    image: redis:alpine
+    restart: always
+    container_name: provider-redis
+    ports:
+      - "6379:6379"
+    command: >
+      redis-server 
+      --requirepass ds_core_provider_redis
+      --user admin on >ds_core_provider_redis ~* +@all
+
+  provider:
+    container_name: provider
+    image: rmenendez8/rainbow:v1.2.2
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+    ports:
+      - "1200:1200"
+    volumes:
+      - ./../static:/app/static
+      - ./../vault/provider:/app/vault
+    depends_on:
+      - provider-db
+      - provider-redis
+    env_file:
+      - ./../static/environment/envs/core.provider.env.example
+    environment:
+      CONFIG_PATH: /app/static/environment/config/core.provider.mini.yaml
+      RUST_BACKTRACE: full

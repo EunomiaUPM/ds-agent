@@ -17,6 +17,7 @@
 
 use sea_orm::DatabaseConnection;
 use sea_orm_migration::{MigrationTrait, MigratorTrait};
+use ymir::errors::{Errors, Outcome};
 
 use crate::ssi::data::migrator::get_auth_migrations;
 
@@ -33,8 +34,9 @@ impl MigratorTrait for AuthMigrator {
 }
 
 impl AuthMigrator {
-    pub async fn run(db_connection: &DatabaseConnection) -> anyhow::Result<()> {
-        Self::refresh(db_connection).await?;
-        Ok(())
+    pub async fn run(db_connection: &DatabaseConnection) -> Outcome<()> {
+        Self::refresh(db_connection)
+            .await
+            .map_err(|e| Errors::db("Error migrating data", Some(Box::new(e))))
     }
 }

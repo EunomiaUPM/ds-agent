@@ -19,6 +19,7 @@ use rainbow_auth::ssi::setup::cmd::AuthCommands;
 use tracing::info;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
+use ymir::errors::{Errors, Outcome};
 
 const INFO: &str = r"
 ----------
@@ -35,14 +36,16 @@ Show some love on https://github.com/EunomiaUPM/rainbow
 ";
 
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
+async fn main() -> Outcome<()> {
     let filter = EnvFilter::builder()
         .with_default_directive(LevelFilter::INFO.into())
-        .parse("debug,sqlx::query=off")?;
-    tracing_subscriber::fmt()
-        .event_format(tracing_subscriber::fmt::format().with_line_number(true))
-        .with_env_filter(filter)
-        .init();
+        .parse("debug,sqlx::query=off")
+        .map_err(|e| {
+            let error = Errors::crazy("Unexpected error on main", Some(Box::new(e)));
+            error.log();
+            error
+        })?;
+    tracing_subscriber::fmt().with_env_filter(filter).init();
     info!("{}", INFO);
     AuthCommands::init_command_line().await?;
     Ok(())

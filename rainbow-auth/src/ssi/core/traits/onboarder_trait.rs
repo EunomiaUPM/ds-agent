@@ -19,6 +19,8 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use ymir::data::entities::mates;
+use ymir::errors::Outcome;
+use ymir::services::wallet::WalletTrait;
 use ymir::types::gnap::ApprovedCallbackBody;
 
 use crate::ssi::services::callback::CallbackTrait;
@@ -31,25 +33,29 @@ pub trait CoreOnboarderTrait: Send + Sync + 'static {
     fn onboarder(&self) -> Arc<dyn OnboarderTrait>;
     fn repo(&self) -> Arc<dyn AuthRepoTrait>;
     fn callback(&self) -> Arc<dyn CallbackTrait>;
+    fn wallet(&self) -> Option<Arc<dyn WalletTrait>>;
 
-    async fn onboard_req(&self, payload: ReachProvider) -> anyhow::Result<String> {
+    async fn onboard_req(&self, payload: ReachProvider) -> Outcome<Option<String>> {
         let (req_model, int_model, token_model) = self.onboarder().start(&payload);
         let mut req_model = self.repo().request_req().create(req_model).await?;
         let mut int_model = self.repo().interaction_req().create(int_model).await?;
         let _token_model = self.repo().token_requirements().create(token_model).await?;
         self.onboarder().send_req(&mut req_model, &mut int_model).await?;
-        let _req_model = self.repo().request_req().update(req_model).await?;
+        let req_model = self.repo().request_req().update(req_model).await?;
         let int_model = self.repo().interaction_req().update(int_model).await?;
         let ver_model = self.onboarder().save_verification(&int_model)?;
         let ver_model = self.repo().verification_req().create(ver_model).await?;
-        Ok(ver_model.uri)
+
+        if req_model.auto {
+            if let Some(wallet) = self.wallet() {
+                wallet.process_oidc4vp(&ver_model.uri).await?;
+                return Ok(None);
+            }
+        }
+        Ok(Some(ver_model.uri))
     }
 
-    async fn continue_req(
-        &self,
-        id: &str,
-        payload: ApprovedCallbackBody,
-    ) -> anyhow::Result<mates::Model> {
+    async fn continue_req(&self, id: &str, payload: ApprovedCallbackBody) -> Outcome<mates::Model> {
         let mut int_model = self.repo().interaction_req().get_by_id(id).await?;
         let result = self.callback().check_callback(&mut int_model, &payload);
         let int_model = self.repo().interaction_req().update(int_model).await?;
@@ -62,7 +68,7 @@ pub trait CoreOnboarderTrait: Send + Sync + 'static {
         Ok(mate)
     }
 
-    async fn manage_rejection(&self, id: String) -> anyhow::Result<()> {
+    async fn manage_rejection(&self, id: String) -> Outcome<()> {
         let mut req_model = self.repo().request_req().get_by_id(&id).await?;
         self.onboarder().manage_rejection(&mut req_model).await?;
         self.repo().request_req().update(req_model).await?;

@@ -21,10 +21,10 @@ use crate::setup::db_migrations::NegotiationAgentMigration;
 use clap::{Parser, Subcommand};
 use rainbow_common::boot::{BootstrapInit, BootstrapStepTrait};
 use rainbow_common::config::services::ContractsConfig;
-use rainbow_common::config::traits::ConfigLoader;
+use rainbow_common::config::types::traits::ConfigLoader;
 use std::sync::Arc;
 use tracing::{debug, info};
-use ymir::services::vault::vault_rs::VaultService;
+use ymir::services::vault::global::VaultService;
 
 #[derive(Parser, Debug)]
 #[command(name = "Rainbow Dataspace Connector Negotiation Agent")]

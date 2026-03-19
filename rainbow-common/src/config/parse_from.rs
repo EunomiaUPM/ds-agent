@@ -8,51 +8,53 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::config::services::SsiAuthConfig;
-use crate::config::traits::CommonConfigTrait;
-use ymir::config::traits::{ApiConfigTrait, ConnectionConfigTrait, HostsConfigTrait};
+use ymir::config::traits::{
+    ApiConfigTrait, ConnectionConfigTrait, DidConfigTrait, HostsConfigTrait, VcConfigTrait,
+    VerifyReqConfigTrait, WalletConfigTrait
+};
 use ymir::services::issuer::basic::config::{BasicIssuerConfig, BasicIssuerConfigBuilder};
 use ymir::services::verifier::basic::config::{BasicVerifierConfig, BasicVerifierConfigBuilder};
 use ymir::services::wallet::walt_id::config::{WaltIdConfig, WaltIdConfigBuilder};
+
+use crate::config::services::SsiAuthConfig;
+use crate::config::types::traits::CommonConfigTrait;
 
 impl From<SsiAuthConfig> for WaltIdConfig {
     fn from(value: SsiAuthConfig) -> Self {
         WaltIdConfigBuilder::new()
             .hosts(value.common().hosts().clone())
-            .ssi_wallet_config(value.wallet_config())
-            .did_config(value.did_config())
+            .ssi_wallet_config(value.wallet_config().clone())
+            .did_config(value.did_config().clone())
             .build()
     }
 }
 
 impl From<SsiAuthConfig> for BasicVerifierConfig {
     fn from(value: SsiAuthConfig) -> Self {
-        let api_path = value.common().get_api_version();
         BasicVerifierConfigBuilder::new()
             .hosts(value.common().hosts().clone())
-            .is_local(value.common().is_local())
-            .requested_vcs(value.verify_req_config().vcs_requested)
-            .api_path(api_path)
-            .vc_config(value.vc_config())
+            .local(value.common().is_local())
+            .requested_vcs(value.get_requested_vcs().to_vec())
+            .api_path(value.common().get_api_version())
+            .vc_config(value.vc_config().clone())
             .build()
     }
 }
 
 impl From<SsiAuthConfig> for BasicIssuerConfig {
     fn from(value: SsiAuthConfig) -> Self {
-        let api_path = value.common().get_api_version();
         BasicIssuerConfigBuilder::new()
             .hosts(value.common().hosts().clone())
-            .is_local(value.common().is_local())
-            .api_path(api_path)
-            .did_config(value.did_config())
+            .local(value.common().is_local())
+            .api_path(value.common().get_api_version())
+            .did_config(value.did_config().clone())
             .build()
     }
 }

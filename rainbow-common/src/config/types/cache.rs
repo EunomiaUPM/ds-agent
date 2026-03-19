@@ -1,26 +1,27 @@
 /*
+ * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
  *
- *  * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
- *  *
- *  * This program is free software: you can redistribute it and/or modify
- *  * it under the terms of the GNU General Public License as published by
- *  * the Free Software Foundation, either version 3 of the License, or
- *  * (at your option) any later version.
- *  *
- *  * This program is distributed in the hope that it will be useful,
- *  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  * GNU General Public License for more details.
- *  *
- *  * You should have received a copy of the GNU General Public License
- *  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
+
+use std::fmt::Display;
+use std::str::FromStr;
 
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
-use std::fmt::Display;
-use std::str::FromStr;
+
+use crate::config::types::traits::CacheConfigTrait;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CacheConfig {
@@ -28,7 +29,11 @@ pub struct CacheConfig {
     pub url: String,
     pub port: String,
     pub user: String,
-    pub password: String,
+    pub password: String
+}
+
+impl CacheConfigTrait for CacheConfig {
+    fn cache_config(&self) -> &CacheConfig { self }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -36,13 +41,11 @@ pub enum CacheType {
     Redis,
     Memcached,
     Memory,
-    Noop,
+    Noop
 }
 
 impl Default for CacheType {
-    fn default() -> Self {
-        Self::Noop
-    }
+    fn default() -> Self { Self::Noop }
 }
 
 impl Default for CacheConfig {
@@ -52,7 +55,7 @@ impl Default for CacheConfig {
             url: "".to_string(),
             port: "".to_string(),
             user: "".to_string(),
-            password: "".to_string(),
+            password: "".to_string()
         }
     }
 }
@@ -63,33 +66,33 @@ impl Display for CacheType {
             CacheType::Redis => write!(f, "redis"),
             CacheType::Memcached => write!(f, "memcached"),
             CacheType::Memory => write!(f, "memory"),
-            CacheType::Noop => write!(f, "noop"),
+            CacheType::Noop => write!(f, "noop")
         }
     }
 }
 
 impl FromStr for CacheType {
     type Err = anyhow::Error;
-    fn from_str(s: &str) -> anyhow::Result<Self, Self::Err> {
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
             "redis" => Ok(CacheType::Redis),
             "memcached" => Ok(CacheType::Memcached),
             "memory" => Ok(CacheType::Memory),
             "noop" => Ok(CacheType::Noop),
-            _ => Err(anyhow!("error")),
+            _ => Err(anyhow!("error"))
         }
     }
 }
 
 impl FromStr for &CacheType {
     type Err = anyhow::Error;
-    fn from_str(s: &str) -> anyhow::Result<Self, Self::Err> {
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
             "redis" => Ok(&CacheType::Redis),
             "memcached" => Ok(&CacheType::Memcached),
             "memory" => Ok(&CacheType::Memory),
             "noop" => Ok(&CacheType::Noop),
-            _ => Err(anyhow!("error")),
+            _ => Err(anyhow!("error"))
         }
     }
 }

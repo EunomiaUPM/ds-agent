@@ -15,10 +15,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use ymir::config::types::CommonHostsConfig;
+use ymir::config::traits::HostsConfigTrait;
 
-pub trait BusinessConfigTrait {
-    fn hosts(&self) -> &CommonHostsConfig;
+pub trait BusinessConfigTrait: HostsConfigTrait {
     fn is_local(&self) -> bool;
-    fn get_api_path(&self) -> String;
+    fn get_api_path(&self) -> &str;
 }

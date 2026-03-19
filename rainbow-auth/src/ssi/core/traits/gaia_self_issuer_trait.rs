@@ -15,19 +15,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use std::str::FromStr;
 use std::sync::Arc;
 
 use async_trait::async_trait;
 use serde_json::Value;
-use tracing::error;
-use ymir::errors::{ErrorLogTrait, Errors};
+use ymir::errors::{BadFormat, Errors, MissingAction, Outcome};
 use ymir::services::issuer::IssuerTrait;
 use ymir::services::wallet::WalletTrait;
 use ymir::types::issuing::{
-    AuthServerMetadata, CredentialRequest, CredentialRequestsss, IssuerMetadata, IssuingToken,
-    TokenRequest, VCCredOffer,
+    AuthServerMetadata, CredentialRequestsss, IssuerMetadata, IssuingToken, TokenRequest,
+    VCCredOffer
 };
-use ymir::types::wallet::OidcUri;
+use ymir::types::vcs::VcType;
+use ymir::types::wallet::MatchingVCs;
+use ymir::utils::{get_claim, parse_to_value};
 
 use crate::ssi::services::gaia_self_issuer::GaiaOwnIssuerTrait;
 use crate::ssi::services::repo::repo_trait::AuthRepoTrait;
@@ -38,26 +40,23 @@ pub trait CoreGaiaSelfIssuerTrait: Send + Sync + 'static {
     fn gaia(&self) -> Arc<dyn GaiaOwnIssuerTrait>;
     fn wallet(&self) -> Option<Arc<dyn WalletTrait>>;
     fn repo(&self) -> Arc<dyn AuthRepoTrait>;
-    async fn generate_gaia_vcs(&self) -> anyhow::Result<Option<OidcUri>> {
+    async fn generate_gaia_vcs(&self) -> Outcome<Option<String>> {
         let model = self.gaia().start_basic_vcs();
         let model = self.repo().issuing().create(model).await?;
         let uri = self.issuer().generate_issuing_uri(&model.id, Some("gaia"));
 
         match self.wallet() {
             Some(wallet) => {
-                let payload = OidcUri { uri };
-                let cred_offer = wallet.resolve_credential_offer(&payload).await?;
-                let _issuer_metadata = wallet.resolve_credential_issuer(&cred_offer).await?;
-                wallet.use_offer_req(&payload, &cred_offer).await?;
+                wallet.process_oidc4vci(&uri).await?;
                 Ok(None)
             }
-            None => Ok(Some(OidcUri { uri })),
+            None => Ok(Some(uri))
         }
     }
-    async fn get_cred_offer_data(&self, id: String) -> anyhow::Result<VCCredOffer> {
+    async fn get_cred_offer_data(&self, id: String) -> Outcome<VCCredOffer> {
         let mut model = self.repo().issuing().get_by_id(&id).await?;
 
-        let data = self.issuer().get_cred_offer_data(&model, Some("gaia"))?;
+        let data = self.issuer().get_cred_offer_data(&model)?;
 
         if model.step {
             model.step = false;
@@ -66,15 +65,15 @@ pub trait CoreGaiaSelfIssuerTrait: Send + Sync + 'static {
 
         Ok(data)
     }
-    fn get_issuer_data(&self) -> IssuerMetadata {
+    fn issuer_metadata(&self) -> IssuerMetadata {
         let vcs = self.gaia().get_vc_types();
-        self.issuer().get_issuer_data(Some("gaia"), Some(vcs))
+        self.issuer().get_issuer_data(Some("/gaia"), Some(&vcs))
     }
-    fn get_oauth_server_data(&self) -> AuthServerMetadata {
+    fn oauth_server_metadata(&self) -> AuthServerMetadata {
         let vcs = self.gaia().get_vc_types();
-        self.issuer().get_oauth_server_data(Some("gaia"), Some(vcs))
+        self.issuer().get_oauth_server_data(Some("/gaia"), Some(&vcs))
     }
-    async fn get_token(&self, payload: TokenRequest) -> anyhow::Result<IssuingToken> {
+    async fn get_token(&self, payload: TokenRequest) -> Outcome<IssuingToken> {
         let model =
             self.repo().issuing().get_by_pre_auth_code(&payload.pre_authorized_code).await?;
 
@@ -83,54 +82,115 @@ pub trait CoreGaiaSelfIssuerTrait: Send + Sync + 'static {
         let response = self.issuer().get_token(&model);
         Ok(response)
     }
-    async fn issue_cred(&self, payload: CredentialRequest, token: String) -> anyhow::Result<Value> {
-        let did = match self.wallet() {
-            Some(wallet) => wallet.get_did().await?,
-            None => self.gaia().get_did(),
-        };
-
-        let mut iss_model = self.repo().issuing().get_by_token(&token).await?;
-        self.issuer()
-            .validate_cred_req(&mut iss_model, &payload, &token, Some(did.clone()))
-            .await?;
-        self.repo().issuing().update(iss_model).await?;
-
-        self.gaia().issue_cred(&did).await
-    }
 
     async fn issue_some_cred(
         &self,
         _payload: CredentialRequestsss,
-        _token: String,
-    ) -> anyhow::Result<Value> {
-        let did = match self.wallet() {
-            Some(wallet) => wallet.get_did().await?,
-            None => self.gaia().get_did(),
+        _token: String
+    ) -> Outcome<Value> {
+        let wallet = match self.wallet() {
+            Some(data) => data,
+            None => {
+                return Err(Errors::not_active(
+                    "Wallet module is required for this step and its not active",
+                    None
+                ))
+            }
         };
+        let did = wallet.get_did().await?;
+        let vc_types = vec![
+            VcType::Euid,
+            VcType::Eori,
+            VcType::LeiCode,
+            VcType::LocalRegistrationNumber,
+            VcType::TaxId,
+            VcType::VatId,
+        ];
+        let vc_data = self.match_vcs(&vc_types).await?;
 
-        // let mut iss_model = self.repo().issuing().get_by_token(&token).await?;
-        // self.issuer().validate_cred_req(&mut iss_model, &payload, &token, Some(did.clone())).await?;
-        // self.repo().issuing().update(iss_model).await?;
+        let vc_type = get_real_vc_type(&vc_data.parsed_document)?;
+        let vc_type = VcType::from_str(&vc_type)?;
+        let code = get_claim(
+            &vc_data.parsed_document,
+            &["CredentialSubject", vc_type.to_gaia_weird()?]
+        )?;
 
-        self.gaia().issue_cred(&did).await
+        self.gaia().issue_cred(&did, &vc_type, &code).await
     }
 
-    async fn request_gaia_vc(&self) -> anyhow::Result<()> {
-        let wallet = self.wallet().ok_or_else(|| {
-            let error = Errors::not_impl_new(
-                "Not implemented if wallet is not connected",
-                "Not implemented if wallet is not connected",
-            );
-            error!("{}", error.log());
-            error
-        })?;
+    async fn request_gaia_vc(&self) -> Outcome<()> {
+        let wallet = self
+            .wallet()
+            .ok_or_else(|| Errors::not_impl("Not implemented if wallet is not connected", None))?;
 
-        let vcs = wallet.retrieve_wallet_credentials().await?;
+        let reg_number = self
+            .match_vcs(&[
+                VcType::Euid,
+                VcType::Eori,
+                VcType::LeiCode,
+                VcType::LocalRegistrationNumber,
+                VcType::TaxId,
+                VcType::VatId
+            ])
+            .await?;
+        let legal_person = self.match_vcs(&[VcType::LegalPerson]).await?;
+        let terms_conds = self.match_vcs(&[VcType::TermsAndConditions]).await?;
 
+        let vcs = vec![reg_number, legal_person, terms_conds];
         let did = wallet.get_did().await?;
-        let body = self.gaia().build_vp(vcs, Some(did)).await?;
-        let vc = self.gaia().send_req(body).await?;
+        let body = self.gaia().build_vp(&vcs, Some(&did)).await?;
+        let vc = self.gaia().send_req(&body).await?;
 
+        println!("{:#?}", vc);
         Ok(())
     }
+
+    async fn match_vcs(&self, vc_types: &[VcType]) -> Outcome<MatchingVCs> {
+        let wallet = match self.wallet() {
+            Some(data) => data,
+            None => {
+                return Err(Errors::not_active(
+                    "Wallet module is required for this step and its not active",
+                    None
+                ))
+            }
+        };
+        let vpds = self.gaia().generate_vpds(&vc_types);
+        let mut vc: Option<MatchingVCs> = None;
+        for vpd in &vpds {
+            let vpd = parse_to_value(vpd)?;
+            let vec = wallet.match_vc4vp(vpd).await?;
+            if !vec.is_empty() {
+                vc = vec.first().cloned();
+                break;
+            }
+        }
+        vc.ok_or_else(|| {
+            Errors::missing_action(
+                MissingAction::Credentials,
+                "Wallet does not have a registration number vc",
+                None
+            )
+        })
+    }
+}
+
+fn get_real_vc_type(claims: &Value) -> Outcome<String> {
+    let types = claims
+        .get("type")
+        .and_then(|v| v.as_array())
+        .ok_or_else(|| Errors::format(BadFormat::Received, "Field 'type' is not an array", None))?;
+
+    let real_type =
+        types.iter().filter_map(|v| v.as_str()).find(|t| *t != "VerifiableCredential").ok_or_else(
+            || {
+                Errors::format(
+                    BadFormat::Received,
+                    "No VC type found different from 'VerifiableCredential'",
+                    None
+                )
+            }
+        )?;
+
+    Ok(real_type.to_string())
 }

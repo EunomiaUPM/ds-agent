@@ -20,17 +20,19 @@ use std::sync::Arc;
 
 use axum::{serve, Router};
 use axum_server::tls_rustls::RustlsConfig;
+use rainbow_common::config::services::traits::SsiAuthConfigTrait;
 use rainbow_common::config::services::SsiAuthConfig;
-use rainbow_common::config::traits::CommonConfigTrait;
+use rainbow_common::config::types::traits::CommonConfigTrait;
 use tokio::net::TcpListener;
 use tracing::info;
 use ymir::config::traits::{ConnectionConfigTrait, HostsConfigTrait};
 use ymir::config::types::HostType;
-use ymir::services::client::basic::BasicClientService;
+use ymir::errors::{Errors, Outcome};
+use ymir::services::client::ClientService;
 use ymir::services::issuer::basic::config::BasicIssuerConfig;
 use ymir::services::issuer::basic::BasicIssuerService;
 use ymir::services::issuer::IssuerTrait;
-use ymir::services::vault::vault_rs::VaultService;
+use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
 use ymir::services::verifier::basic::config::BasicVerifierConfig;
 use ymir::services::verifier::basic::BasicVerifierService;
@@ -44,7 +46,7 @@ use crate::ssi::core::AuthCore;
 use crate::ssi::http::AuthRouter;
 use crate::ssi::services::business::basic::config::BusinessConfig;
 use crate::ssi::services::business::basic::BasicBusinessService;
-use crate::ssi::services::callback::basic::BasicCallbackService;
+use crate::ssi::services::callback::BasicCallbackService;
 use crate::ssi::services::gaia_self_issuer::basic::config::GaiaSelfIssuerConfig;
 use crate::ssi::services::gaia_self_issuer::basic::BasicGaiaSelfIssuer;
 use crate::ssi::services::gaia_self_issuer::GaiaOwnIssuerTrait;
@@ -70,14 +72,14 @@ impl AuthApplication {
         let core_config = Arc::new(config.clone());
 
         // SERVICES
-        let client = Arc::new(BasicClientService::new());
+        let client = Arc::new(ClientService::default());
         let vc_req = Arc::new(VCReqService::new(client.clone(), vault.clone(), vc_req_config));
         let onboarder = Arc::new(GnapOnboarderService::new(
             client.clone(),
             vault.clone(),
-            onboarder_config,
+            onboarder_config
         ));
-        let callback = Arc::new(BasicCallbackService::new(client.clone()));
+        let callback = Arc::new(BasicCallbackService::new(client.clone(), vault.clone()));
         let repo = Arc::new(AuthRepoForSql::create_repo(db_connection));
         let gatekeeper = Arc::new(GnapGateKeeperService::new(gatekeeper_config));
         let business = Arc::new(BasicBusinessService::new(business_config));
@@ -90,16 +92,16 @@ impl AuthApplication {
                     let gaia_config = GaiaSelfIssuerConfig::from(config.clone());
 
                     let gaia: Option<Arc<dyn GaiaOwnIssuerTrait>> = Some(Arc::new(
-                        BasicGaiaSelfIssuer::new(vault.clone(), client.clone(), gaia_config),
+                        BasicGaiaSelfIssuer::new(vault.clone(), client.clone(), gaia_config)
                     ));
 
                     let issuer: Option<Arc<dyn IssuerTrait>> = Some(Arc::new(
-                        BasicIssuerService::new(issuer_config, client.clone(), vault.clone()),
+                        BasicIssuerService::new(issuer_config, client.clone(), vault.clone())
                     ));
 
                     (gaia, issuer)
                 }
-                false => (None, None),
+                false => (None, None)
             };
 
         let wallet: Option<Arc<dyn WalletTrait>> = match config.is_wallet_active() {
@@ -108,10 +110,10 @@ impl AuthApplication {
                 Some(Arc::new(WaltIdService::new(
                     walt_id_config,
                     client.clone(),
-                    vault.clone(),
+                    vault.clone()
                 )))
             }
-            false => None,
+            false => None
         };
 
         // CORE
@@ -126,47 +128,29 @@ impl AuthApplication {
             core_config,
             wallet,
             issuer,
-            gaia,
+            gaia
         ));
 
         AuthRouter::new(core).router()
     }
 
-    pub async fn run_basic(
-        config: SsiAuthConfig,
-        vault_service: Arc<VaultService>,
-    ) -> anyhow::Result<()> {
-        let server_message = format!(
-            "Starting Auth Consumer server in {}",
-            config.common().get_host(HostType::Http)
-        );
-        info!("{}", server_message);
-
+    pub async fn run_basic(config: SsiAuthConfig, vault_service: Arc<VaultService>) -> Outcome<()> {
         let router = Self::create_router(&config, vault_service).await;
 
-        let listener = match config.common().is_local() {
-            true => {
-                TcpListener::bind(format!(
-                    "127.0.0.1{}",
-                    config.common().get_weird_port(HostType::Http)
-                ))
-                .await?
-            }
-            false => {
-                TcpListener::bind(format!(
-                    "0.0.0.0{}",
-                    config.common().get_weird_port(HostType::Http)
-                ))
-                .await?
-            }
-        };
+        let port = config.common().hosts().get_internal_port(HostType::Http);
+        let addr = format!("0.0.0.0:{}", port);
+        info!("Starting Rainbow Auth server in {}", addr);
 
-        serve(listener, router).await?;
+        let listener = TcpListener::bind(addr)
+            .await
+            .map_err(|e| Errors::crazy("Error with tcp listener", Some(Box::new(e))))?;
 
-        Ok(())
+        serve(listener, router)
+            .await
+            .map_err(|e| Errors::crazy("Error while running basic server", Some(Box::new(e))))
     }
 
-    pub async fn run_tls(config: &SsiAuthConfig, vault: Arc<VaultService>) -> anyhow::Result<()> {
+    pub async fn run_tls(config: &SsiAuthConfig, vault: Arc<VaultService>) -> Outcome<()> {
         let cert = expect_from_env("VAULT_APP_ROOT_CLIENT_KEY");
         let pkey = expect_from_env("VAULT_APP_CLIENT_KEY");
         let cert: StringHelper = vault.read(None, &cert).await?;
@@ -178,26 +162,28 @@ impl AuthApplication {
 
         let tls_config = RustlsConfig::from_pem(
             cert.data().as_bytes().to_vec(),
-            pkey.data().as_bytes().to_vec(),
+            pkey.data().as_bytes().to_vec()
         )
-        .await?;
+        .await
+        .map_err(|e| Errors::crazy("Errors parsing certificate stuff", Some(Box::new(e))))?;
 
         let router = Self::create_router(config, vault).await;
 
-        let port = config.common().hosts().get_tls_port(HostType::Http);
-        let addr_str = if config.common().is_local() {
-            format!("127.0.0.1:{}", port)
-        } else {
-            format!("0.0.0.0:{}", port)
-        };
-        let addr: SocketAddr = addr_str.parse()?;
-        info!("Starting Authority server with TLS in {}", addr);
+        let port = config.common().hosts().get_internal_port(HostType::Http);
+        let addr_str = format!("0.0.0.0:{}", port);
+        let addr: SocketAddr = addr_str
+            .parse()
+            .map_err(|e| Errors::crazy("Errors with socker address", Some(Box::new(e))))?;
+        info!("Starting Rainbow Auth server with TLS in {}", addr);
 
-        axum_server::bind_rustls(addr, tls_config).serve(router.into_make_service()).await?;
+        axum_server::bind_rustls(addr, tls_config)
+            .serve(router.into_make_service())
+            .await
+            .map_err(|e| Errors::crazy("Error while running basic server", Some(Box::new(e))))?;
         Ok(())
     }
-    pub async fn run(config: SsiAuthConfig, vault: Arc<VaultService>) -> anyhow::Result<()> {
-        if config.common().is_tls_enabled() {
+    pub async fn run(config: SsiAuthConfig, vault: Arc<VaultService>) -> Outcome<()> {
+        if config.common().is_prod() && !config.common().has_tls_proxy() {
             info!("Running with tls active");
             Self::run_tls(&config, vault).await
         } else {

@@ -28,7 +28,7 @@ use axum::extract::Request;
 use axum::response::IntoResponse;
 use axum::{serve, Router};
 use rainbow_common::config::services::TransferConfig;
-use rainbow_common::config::traits::CommonConfigTrait;
+use rainbow_common::config::types::traits::CommonConfigTrait;
 use rainbow_common::errors::CommonErrors;
 use rainbow_common::facades::ssi_auth_facade::mates_facade::MatesFacadeService;
 use rainbow_common::http_client::HttpClient;
@@ -42,7 +42,7 @@ use tower_http::trace::{DefaultOnResponse, TraceLayer};
 use uuid::Uuid;
 use ymir::config::traits::{ApiConfigTrait, ConnectionConfigTrait, HostsConfigTrait};
 use ymir::config::types::HostType;
-use ymir::services::vault::vault_rs::VaultService;
+use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
 
 pub struct TransferHttpWorker {}

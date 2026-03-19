@@ -1,11 +1,16 @@
 # auto-onboarding.ps1
 param(
-    [string]$AuthorityUrl = "https://dev-dataspaces.dit.upm.es:1500",
-    [string]$ConsumerUrl  = "https://dev-dataspaces.dit.upm.es:1100",
-    [string]$ProviderUrl  = "https://dev-dataspaces.dit.upm.es:1200"
+    [string]$AuthorityUrl = "http://127.0.0.1:1500",
+    [string]$ConsumerUrl  = "http://127.0.0.1:1100",
+    [string]$ProviderUrl  = "http://127.0.0.1:1200",
+    [string]$DockerAuthorityUrl = "http://127.0.0.1:1500",
+    [string]$DockerConsumerUrl  = "http://127.0.0.1:1100",
+    [string]$DockerProviderUrl  = "http://127.0.0.1:1200"
 )
 
-function Invoke-CurlJson {
+
+function Invoke-CurlJson
+{
     param(
         [string]$Method = "GET",
         [string]$Url,
@@ -13,32 +18,44 @@ function Invoke-CurlJson {
         [bool]$ParseJson = $true  # parsea a JSON solo si se espera JSON
     )
 
-    try {
+    try
+    {
         $Params = @{
-            Method      = $Method
-            Uri         = $Url
+            Method = $Method
+            Uri = $Url
             ContentType = "application/json"
             ErrorAction = 'Stop'
         }
 
-        if ($Body) { $Params.Body = $Body | ConvertTo-Json -Compress }
+        if ($Body)
+        {
+            $Params.Body = $Body | ConvertTo-Json -Compress
+        }
 
         $Response = Invoke-WebRequest @Params
 
-        if ($Response.StatusCode -ge 200 -and $Response.StatusCode -lt 300) {
-            Write-Host "SUCCESS: $Method $Url returned $($Response.StatusCode)" -ForegroundColor Green
-        } else {
-            Write-Host "ERROR: $Method $Url returned $($Response.StatusCode)" -ForegroundColor Red
+        if ($Response.StatusCode -ge 200 -and $Response.StatusCode -lt 300)
+        {
+            Write-Host "SUCCESS: $Method $Url returned $( $Response.StatusCode )" -ForegroundColor Green
+        }
+        else
+        {
+            Write-Host "ERROR: $Method $Url returned $( $Response.StatusCode )" -ForegroundColor Red
             exit 1
         }
 
-        if ($ParseJson -and $Response.Content) {
+        if ($ParseJson -and $Response.Content)
+        {
             return $Response.Content | ConvertFrom-Json
-        } else {
+        }
+        else
+        {
             return $Response.Content
         }
 
-    } catch {
+    }
+    catch
+    {
         Write-Host "ERROR: Request to $Url failed" -ForegroundColor Red
         Write-Host $_.Exception.Message -ForegroundColor Red
         Write-Host "The script wont continue executing" -ForegroundColor Red
@@ -58,7 +75,7 @@ Invoke-CurlJson -Method "POST" -Url "$ConsumerUrl/api/v1/wallet/link" -ParseJson
 # ----------------------------
 # Getting DIDs
 # ----------------------------
-$AUTH_DID     = (Invoke-CurlJson -Url "$AuthorityUrl/api/v1/wallet/did.json").id
+$AUTH_DID = (Invoke-CurlJson -Url "$AuthorityUrl/api/v1/wallet/did.json").id
 Write-Host "Authority DID: $AUTH_DID"
 $CONSUMER_DID = (Invoke-CurlJson -Url "$ConsumerUrl/api/v1/wallet/did.json").id
 Write-Host "Consumer DID: $CONSUMER_DID"
@@ -67,11 +84,13 @@ Write-Host "Consumer DID: $CONSUMER_DID"
 # Consumer begins request for credential
 # ----------------------------
 $C_BEG_BODY = @{
-    url = "$AuthorityUrl/api/v1/gate/access"
-    id  = $AUTH_DID
+    url = "$DockerAuthorityUrl/api/v1/gate/access"
+    id = $AUTH_DID
     slug = "authority"
-    vc_type = "DataspaceParticipant"
+    vc_type = "gx_VatId_jwt_vc_json"
+    method = "cross-user"
+    auto = $true
 }
-$C_BEG_RESPONSE = Invoke-CurlJson -Method "POST" -Url "$ConsumerUrl/api/v1/vc-request/beg/cross-user" -Body $C_BEG_BODY -ParseJson:$false
+$C_BEG_RESPONSE = Invoke-CurlJson -Method "POST" -Url "$ConsumerUrl/api/v1/vc-request/beg" -Body $C_BEG_BODY -ParseJson:$false
 Write-Host "Consumer request completed."
 

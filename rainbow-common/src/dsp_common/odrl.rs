@@ -1,27 +1,26 @@
 /*
+ * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
  *
- *  * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
- *  *
- *  * This program is free software: you can redistribute it and/or modify
- *  * it under the terms of the GNU General Public License as published by
- *  * the Free Software Foundation, either version 3 of the License, or
- *  * (at your option) any later version.
- *  *
- *  * This program is distributed in the hope that it will be useful,
- *  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  * GNU General Public License for more details.
- *  *
- *  * You should have received a copy of the GNU General Public License
- *  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::utils::get_urn;
-use anyhow::bail;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use urn::Urn;
+use ymir::errors::{BadFormat, Errors, Outcome};
+
+use crate::utils::get_urn;
 // use sea_orm_migration::prelude::ValueType;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -29,21 +28,21 @@ pub enum OdrlTypes {
     #[serde(rename = "Offer")]
     Offer,
     #[serde(rename = "Agreement")]
-    Agreement,
+    Agreement
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(untagged)]
 pub enum ContractRequestMessageOfferTypes {
     OfferMessage(OdrlMessageOffer),
-    OfferId(ContractRequestMessageOfferOfferId),
+    OfferId(ContractRequestMessageOfferOfferId)
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct ContractRequestMessageOfferOfferId {
     #[serde(rename = "@id")]
-    pub id: Urn,
+    pub id: Urn
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -72,7 +71,7 @@ pub struct OdrlMessageOffer {
     pub target: Urn, // anyof
     #[serde(rename = "description")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
+    pub description: Option<String>
 }
 
 impl Default for OdrlMessageOffer {
@@ -85,7 +84,7 @@ impl Default for OdrlMessageOffer {
             _type: OdrlTypes::Offer,
             prohibition: None,
             target: get_urn(None),
-            description: None,
+            description: None
         }
     }
 }
@@ -118,7 +117,7 @@ pub struct OdrlOffer {
     pub target: Option<Urn>, // anyof// anyof
     #[serde(rename = "description")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
+    pub description: Option<String>
 }
 
 impl Default for OdrlOffer {
@@ -131,7 +130,7 @@ impl Default for OdrlOffer {
             _type: OdrlTypes::Offer,
             prohibition: None,
             target: None,
-            description: None,
+            description: None
         }
     }
 }
@@ -167,7 +166,7 @@ pub struct OdrlAgreement {
     pub prohibition: Option<Vec<OdrlObligation>>, // anyof
     #[serde(rename = "description")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
+    pub description: Option<String>
 }
 
 impl Default for OdrlAgreement {
@@ -183,7 +182,7 @@ impl Default for OdrlAgreement {
             assignee: "".to_string(),
             timestamp: None,
             prohibition: None,
-            description: None,
+            description: None
         }
     }
 }
@@ -193,7 +192,7 @@ impl Default for OdrlAgreement {
 #[serde(untagged)]
 pub enum OdrlProfile {
     Single(String),
-    Multiple(Vec<String>),
+    Multiple(Vec<String>)
 }
 
 /// OdrlPermission
@@ -207,7 +206,7 @@ pub struct OdrlPermission {
     pub constraint: Option<Vec<OdrlConstraint>>,
     #[serde(rename = "duty")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub duty: Option<OdrlDuty>,
+    pub duty: Option<OdrlDuty>
 }
 
 /// OdrlDuty
@@ -217,7 +216,7 @@ pub struct OdrlDuty {
     #[serde(rename = "action")]
     pub action: OdrlAction,
     #[serde(rename = "constraint")]
-    pub constraint: Option<Vec<OdrlConstraint>>,
+    pub constraint: Option<Vec<OdrlConstraint>>
 }
 
 /// OdrlObligation
@@ -231,7 +230,7 @@ pub type OdrlAction = String;
 #[serde(untagged)]
 pub enum OdrlConstraint {
     Atomic(OdrlAtomicConstraint),
-    Logical(OdrlLogicalConstraint),
+    Logical(OdrlLogicalConstraint)
 }
 
 /// LogicalConstraint permite una de las siguientes propiedades: "and", "andSequence", "or" o "xone".
@@ -249,23 +248,27 @@ pub struct OdrlLogicalConstraint {
     pub or: Option<Vec<OdrlConstraint>>,
     #[serde(rename = "xone")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub xone: Option<Vec<OdrlConstraint>>,
+    pub xone: Option<Vec<OdrlConstraint>>
 }
 
 /// the rule that exactly one must be present is validated externally.
 /// let constraint: LogicalConstraint = serde_json::from_str(json_data)?;
 /// constraint.validate()?; // if it fails, an error is returned.
 impl OdrlLogicalConstraint {
-    pub fn validate(&self) -> anyhow::Result<()> {
+    pub fn validate(&self) -> Outcome<()> {
         let count = self.and.is_some() as usize
             + self.and_sequence.is_some() as usize
             + self.or.is_some() as usize
             + self.xone.is_some() as usize;
         if count != 1 {
-            bail!(
-                "Exactly one of 'and', 'andSequence', 'or' or 'xone' must be present, found {}",
-                count
-            )
+            Err(Errors::format(
+                BadFormat::Received,
+                format!(
+                    "Exactly one of 'and', 'andSequence', 'or' or 'xone' must be present, found {}",
+                    count
+                ),
+                None
+            ))
         } else {
             Ok(())
         }
@@ -281,7 +284,7 @@ pub struct OdrlAtomicConstraint {
     #[serde(rename = "leftOperand")]
     pub left_operand: OdrlLeftOperand,
     #[serde(rename = "operator")]
-    pub operator: Operator,
+    pub operator: Operator
 }
 
 // Operator is defined as an enum with allowed values.
@@ -313,7 +316,7 @@ pub enum Operator {
     #[serde(rename = "termLteq")]
     TermLteq,
     #[serde(rename = "neq")]
-    Neq,
+    Neq
 }
 
 // RightOperand is defined to accept string, object or array.
@@ -323,7 +326,7 @@ pub enum Operator {
 pub enum OdrlRightOperand {
     Str(String),
     Object(serde_json::Map<String, Value>),
-    Array(Vec<Value>),
+    Array(Vec<Value>)
 }
 
 // LeftOperand es un string.
@@ -346,5 +349,5 @@ pub struct OdrlPolicyInfo {
     pub prohibition: Option<Vec<OdrlObligation>>, // anyof
     #[serde(rename = "description")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
+    pub description: Option<String>
 }

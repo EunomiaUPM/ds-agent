@@ -1,0 +1,22 @@
+name: consumer-dev
+
+services:
+  consumer-db:
+    container_name: "consumer-db"
+    image: "postgres"
+    restart: always
+    env_file:
+      - ./../../static/environment/envs/consumer.db.env.example
+    ports:
+      - "1300:5432"
+
+  consumer-redis:
+    image: redis:alpine
+    restart: always
+    container_name: consumer-redis
+    ports:
+      - "6380:6379"
+    command: >
+      redis-server 
+      --requirepass ds_core_consumer_redis
+      --user admin on >ds_core_consumer_redis ~* +@all

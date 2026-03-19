@@ -1,8 +1,11 @@
 # auto-onboarding.ps1
 param(
-    [string]$AuthorityUrl = "https://dev-dataspaces.dit.upm.es:1500",
-    [string]$ConsumerUrl  = "https://dev-dataspaces.dit.upm.es:1100",
-    [string]$ProviderUrl  = "https://dev-dataspaces.dit.upm.es:1200"
+    [string]$AuthorityUrl = "http://127.0.0.1:1500",
+    [string]$ConsumerUrl  = "http://127.0.0.1:1100",
+    [string]$ProviderUrl  = "http://127.0.0.1:1200",
+    [string]$DockerAuthorityUrl = "http://host.docker.internal:1500",
+    [string]$DockerConsumerUrl  = "http://host.docker.internal:1100",
+    [string]$DockerProviderUrl  = "http://host.docker.internal:1200"
 )
 
 function Invoke-CurlJson {
@@ -10,7 +13,7 @@ function Invoke-CurlJson {
         [string]$Method = "GET",
         [string]$Url,
         [object]$Body = $null,
-        [bool]$ParseJson = $true  # parse to JSON only if JSON is expected
+        [bool]$ParseJson = $true
     )
 
     try {
@@ -50,7 +53,7 @@ function Invoke-CurlJson {
 Write-Host "Starting auto-onboarding script..."
 
 # ----------------------------
-# Onboarding Authority / Consumer / Provider (no JSON parsing)
+# Onboarding Authority / Consumer / Provider
 # ----------------------------
 Invoke-CurlJson -Method "POST" -Url "$AuthorityUrl/api/v1/wallet/link" -ParseJson:$false
 Invoke-CurlJson -Method "POST" -Url "$ConsumerUrl/api/v1/wallet/link" -ParseJson:$false
@@ -59,23 +62,24 @@ Invoke-CurlJson -Method "POST" -Url "$ProviderUrl/api/v1/wallet/link" -ParseJson
 # ----------------------------
 # Getting DIDs
 # ----------------------------
-$AUTH_DID     = (Invoke-CurlJson -Url "$AuthorityUrl/api/v1/wallet/did.json").id
+$AUTH_DID     = (Invoke-CurlJson -Url "$AuthorityUrl/.well-known/did.json").id
 Write-Host "Authority DID: $AUTH_DID"
-$CONSUMER_DID = (Invoke-CurlJson -Url "$ConsumerUrl/api/v1/wallet/did.json").id
+$CONSUMER_DID = (Invoke-CurlJson -Url "$ConsumerUrl/.well-known/did.json").id
 Write-Host "Consumer DID: $CONSUMER_DID"
-$PROVIDER_DID = (Invoke-CurlJson -Url "$ProviderUrl/api/v1/wallet/did.json").id
+$PROVIDER_DID = (Invoke-CurlJson -Url "$ProviderUrl/.well-known/did.json").id
 Write-Host "Provider DID: $PROVIDER_DID"
 
 # ----------------------------
 # Consumer begins request for credential
 # ----------------------------
 $C_BEG_BODY = @{
-    url = "$AuthorityUrl/api/v1/gate/access"
-    id  = $AUTH_DID
-    slug = "authority"
-    vc_type = "DataspaceParticipant"
+    url     = "$DockerAuthorityUrl/api/v1/gate/access"
+    id      = $AUTH_DID
+    slug    = "authority"
+    vc_type = "DataspaceParticipant_jwt_vc_json"
+    method  = "cert"   # ← antes "cross-user"
 }
-$C_BEG_RESPONSE = Invoke-CurlJson -Method "POST" -Url "$ConsumerUrl/api/v1/vc-request/beg/cross-user" -Body $C_BEG_BODY -ParseJson:$false
+$C_BEG_RESPONSE = Invoke-CurlJson -Method "POST" -Url "$ConsumerUrl/api/v1/vc-request/beg" -Body $C_BEG_BODY -ParseJson:$false
 Write-Host "Consumer request completed."
 
 # ----------------------------
@@ -109,10 +113,10 @@ Write-Host "OIDC4VCI processed."
 # Consumer requests grant from Provider
 # ----------------------------
 $OIDC4VP_BODY = @{
-    url = "$ProviderUrl/api/v1/gate/access"
-    id  = $PROVIDER_DID
-    slug = "provider"
-    actions = "talk"
+    url     = "$DockerProviderUrl/api/v1/gate/access"
+    id      = $PROVIDER_DID
+    slug    = "provider"
+    actions = @("talk")  # ← antes "talk" string, ahora array
 }
 $OIDC4VP_URI = Invoke-CurlJson -Method "POST" -Url "$ConsumerUrl/api/v1/onboard/provider" -Body $OIDC4VP_BODY -ParseJson:$false
 Write-Host "OIDC4VP_URI: $OIDC4VP_URI"
@@ -121,7 +125,7 @@ Write-Host "OIDC4VP_URI: $OIDC4VP_URI"
 # Consumer processes OIDC4VP
 # ----------------------------
 Write-Host "Consumer processes OIDC4VP..."
-Invoke-CurlJson -Method "POST" -Url "$ConsumerUrl/api/v1/wallet/oidc4vp" -Body @{ uri = $OIDC4VP_URI } -ReturnJson:$false
+Invoke-CurlJson -Method "POST" -Url "$ConsumerUrl/api/v1/wallet/oidc4vp" -Body @{ uri = $OIDC4VP_URI } -ParseJson:$false
 Write-Host "OIDC4VP processed."
 
 Write-Host "Onboarding script finished successfully!"

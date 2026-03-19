@@ -1,27 +1,27 @@
 /*
+ * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
  *
- *  * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
- *  *
- *  * This program is free software: you can redistribute it and/or modify
- *  * it under the terms of the GNU General Public License as published by
- *  * the Free Software Foundation, either version 3 of the License, or
- *  * (at your option) any later version.
- *  *
- *  * This program is distributed in the hope that it will be useful,
- *  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  * GNU General Public License for more details.
- *  *
- *  * You should have received a copy of the GNU General Public License
- *  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::dcat_formats::FormatAction;
-use anyhow::bail;
-use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
+
+use anyhow::bail;
+use serde::{Deserialize, Serialize};
+
+use crate::dcat_formats::FormatAction;
 
 pub mod data_plane_provision;
 pub mod data_plane_start;
@@ -31,7 +31,7 @@ pub mod data_plane_stop;
 #[derive(Serialize, Deserialize, Debug)]
 pub enum DataPlaneControllerVersion {
     #[serde(rename = "1.0")]
-    Version10,
+    Version10
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -51,7 +51,7 @@ pub enum DataPlaneControllerMessages {
     #[serde(rename = "DataPlaneStop")]
     DataPlaneStop,
     #[serde(rename = "DataPlaneStopAck")]
-    DataPlaneStopAck,
+    DataPlaneStopAck
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -63,7 +63,7 @@ pub enum DataPlaneSDPFieldTypes {
     #[serde(rename = "DataPlaneAddressAuthType")]
     DataPlaneAddressAuthType,
     #[serde(rename = "DataPlaneAddressAuthToke")]
-    DataPlaneAddressAuthToken,
+    DataPlaneAddressAuthToken
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -79,21 +79,21 @@ pub enum DataPlaneSDPConfigTypes {
     #[serde(rename = "NextHopAddressAuthType")]
     NextHopAddressAuthType,
     #[serde(rename = "Direction")]
-    Direction,
+    Direction
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct DataPlaneSDPRequestField {
     #[serde(rename = "@type")]
     pub _type: DataPlaneSDPFieldTypes,
-    pub format: String,
+    pub format: String
 }
 #[derive(Serialize, Deserialize, Debug)]
 pub struct DataPlaneSDPResponseField {
     #[serde(rename = "@type")]
     pub _type: DataPlaneSDPFieldTypes,
     pub format: String,
-    pub content: String,
+    pub content: String
 }
 #[derive(Serialize, Deserialize, Debug)]
 pub struct DataPlaneSDPConfigField {
@@ -101,14 +101,14 @@ pub struct DataPlaneSDPConfigField {
     pub _type: DataPlaneSDPConfigTypes,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub format: Option<String>,
-    pub content: String,
+    pub content: String
 }
 
 #[derive(Debug, Serialize)]
 pub enum DataPlaneProcessDirection {
     PUSH,
     PULL,
-    BIDI,
+    BIDI
 }
 
 impl FromStr for DataPlaneProcessDirection {
@@ -119,7 +119,7 @@ impl FromStr for DataPlaneProcessDirection {
             "PUSH" => Ok(DataPlaneProcessDirection::PUSH),
             "PULL" => Ok(DataPlaneProcessDirection::PULL),
             "BIDI" => Ok(DataPlaneProcessDirection::BIDI),
-            _ => bail!("no direction allowed"),
+            _ => bail!("no direction allowed")
         }
     }
 }
@@ -129,7 +129,7 @@ impl Display for DataPlaneProcessDirection {
         match self {
             DataPlaneProcessDirection::PUSH => f.write_str("PUSH"),
             DataPlaneProcessDirection::PULL => f.write_str("PULL"),
-            DataPlaneProcessDirection::BIDI => f.write_str("BIDI"),
+            DataPlaneProcessDirection::BIDI => f.write_str("BIDI")
         }
     }
 }
@@ -138,7 +138,7 @@ impl From<FormatAction> for DataPlaneProcessDirection {
     fn from(value: FormatAction) -> Self {
         match value {
             FormatAction::Push => DataPlaneProcessDirection::PUSH,
-            FormatAction::Pull => DataPlaneProcessDirection::PULL,
+            FormatAction::Pull => DataPlaneProcessDirection::PULL
         }
     }
 }
@@ -148,7 +148,7 @@ pub enum DataPlaneProcessState {
     REQUESTED,
     STARTED,
     STOPPED,
-    TERMINATED,
+    TERMINATED
 }
 
 impl FromStr for DataPlaneProcessState {
@@ -160,7 +160,7 @@ impl FromStr for DataPlaneProcessState {
             "STARTED" => Ok(DataPlaneProcessState::STARTED),
             "STOPPED" => Ok(DataPlaneProcessState::STOPPED),
             "TERMINATED" => Ok(DataPlaneProcessState::TERMINATED),
-            _ => bail!("no state allowed"),
+            _ => bail!("no state allowed")
         }
     }
 }
@@ -171,7 +171,7 @@ impl Display for DataPlaneProcessState {
             DataPlaneProcessState::REQUESTED => f.write_str("REQUESTED"),
             DataPlaneProcessState::STARTED => f.write_str("STARTED"),
             DataPlaneProcessState::STOPPED => f.write_str("STOPPED"),
-            DataPlaneProcessState::TERMINATED => f.write_str("TERMINATED"),
+            DataPlaneProcessState::TERMINATED => f.write_str("TERMINATED")
         }
     }
 }

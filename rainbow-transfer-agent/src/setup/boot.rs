@@ -20,12 +20,12 @@ use crate::setup::grpc_worker::TransferGrpcWorker;
 use crate::setup::http_worker::TransferHttpWorker;
 use rainbow_common::boot::BootstrapServiceTrait;
 use rainbow_common::config::services::TransferConfig;
-use rainbow_common::config::traits::ConfigLoader;
+use rainbow_common::config::types::traits::ConfigLoader;
 use std::sync::Arc;
 use tokio::sync::broadcast;
 use tokio::sync::broadcast::Sender;
 use tokio_util::sync::CancellationToken;
-use ymir::services::vault::vault_rs::VaultService;
+use ymir::services::vault::global::VaultService;
 
 pub struct TransferBoot;
 

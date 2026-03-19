@@ -5,6 +5,7 @@ http_host: &http_host
   protocol: 'https'
   url: 'dev-dataspaces.dit.upm.es'
   port: '1100'
+  internal_port: null
 
 hosts_default: &hosts_default
   http: *http_host
@@ -39,7 +40,9 @@ common_config: &common_config
     openapi_path: '/app/static/specs/openapi/merged_openapi.json'
   connection:
     is_local: false
-    is_tls_enabled: true
+    is_prod: true
+    is_vault_real: false
+    has_tls_proxy: false
 
 # ==========================
 # MONOLITH

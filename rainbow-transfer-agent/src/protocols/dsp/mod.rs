@@ -48,7 +48,7 @@ use crate::protocols::dsp::facades::dataplane_facade::dataplane_facade::DspDataP
 use crate::protocols::protocol::ProtocolPluginTrait;
 use axum::Router;
 use rainbow_common::config::services::TransferConfig;
-use rainbow_common::config::traits::CommonConfigTrait;
+use rainbow_common::config::types::traits::CommonConfigTrait;
 use rainbow_common::facades::ssi_auth_facade::ssi_auth_facade::SSIAuthFacadeService;
 use rainbow_common::facades::ssi_auth_facade::MatesFacadeTrait;
 use rainbow_common::http_client::HttpClient;
@@ -57,8 +57,8 @@ use std::sync::Arc;
 use validator::validators::protocol::validate_state_transition::ValidatedStateTransitionServiceForDsp;
 use validator::validators::rpc::validation_rpc_steps::ValidationRpcStepsService;
 use ymir::config::traits::HostsConfigTrait;
+use ymir::services::vault::global::VaultService;
 use ymir::services::vault::vault_rs::VaultService;
-
 use rainbow_connector::ConnectorSetup;
 
 pub struct TransferDSP {

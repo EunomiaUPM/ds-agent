@@ -1,0 +1,42 @@
+name: mini-consumer
+
+services:
+  consumer-db:
+    container_name: "consumer-db"
+    image: "postgres"
+    restart: always
+    env_file:
+      - ./../static/environment/envs/consumer.db.env.example
+    ports:
+      - "1300:5432"
+
+  consumer-redis:
+    image: redis:alpine
+    restart: always
+    container_name: consumer-redis
+    ports:
+      - "6380:6379"
+    command: >
+      redis-server 
+      --requirepass ds_core_consumer_redis
+      --user admin on >ds_core_consumer_redis ~* +@all
+
+  consumer:
+    container_name: consumer
+    # image: rmenendez8/rainbow:v1.2.2
+    build:
+      context: ./..
+      dockerfile: deployment/prod/Dockerfile.test
+    ports:
+      - "1100:1100"
+    volumes:
+      - ./../static/:/app/static
+      - ./../vault/consumer:/app/vault
+    depends_on:
+      - consumer-db
+      - consumer-redis
+    env_file:
+      - ./../static/environment/envs/core.consumer.env.example
+    environment:
+      CONFIG_PATH: /app/static/environment/config/core.consumer.mini.yaml
+      RUST_BACKTRACE: full

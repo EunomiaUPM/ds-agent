@@ -14,10 +14,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use ymir::config::types::CommonHostsConfig;
 
-pub trait GnapGateKeeperConfigTrait {
-    fn hosts(&self) -> &CommonHostsConfig;
+use ymir::config::traits::HostsConfigTrait;
+
+pub trait GnapGateKeeperConfigTrait: HostsConfigTrait {
     fn is_local(&self) -> bool;
-    fn get_api_path(&self) -> String;
+    fn get_api_path(&self) -> &str;
 }

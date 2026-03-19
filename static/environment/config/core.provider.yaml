@@ -40,7 +40,8 @@ common_config: &common_config
   keys_path: "../static/certificates/provider/"
   connection:
     is_local: true
-    is_tls_enabled: false
+    is_prod: false
+    is_vault_real: false
 
 # ==========================
 # MONOLITH

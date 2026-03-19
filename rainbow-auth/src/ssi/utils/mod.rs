@@ -15,20 +15,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use rainbow_common::config::types::ClientConfig;
-use ymir::types::gnap::grant_request::{Client4GR, Key4GR};
+use url::Url;
+use ymir::errors::{Errors, Outcome};
 
-pub fn get_pretty_client_config_helper(
-    client_config: &ClientConfig,
-    cert: &str,
-) -> anyhow::Result<Client4GR> {
-    let clean_cert = cert.lines().filter(|line| !line.starts_with("-----")).collect::<String>();
-
-    let client = Client4GR {
-        key: Key4GR { proof: "httpsig".to_string(), jwk: None, cert: Some(clean_cert) },
-        class_id: Some(client_config.class_id.clone()),
-        display: None,
-    };
-
-    Ok(client)
+pub fn parse_url(str: &str) -> Outcome<Url> {
+    Url::parse(str).map_err(|e| Errors::parse("Error parsing url", Some(Box::new(e))))
 }

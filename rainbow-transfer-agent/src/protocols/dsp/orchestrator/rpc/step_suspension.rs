@@ -70,7 +70,7 @@ impl TransferRpcStep for SuspensionStep {
         dp: &Arc<dyn DataPlaneFacadeTrait>,
         ctx: &RpcPeerContext,
     ) -> anyhow::Result<Option<DataAddressDto>> {
-        dp.on_transfer_suspension_pre(&ctx.process_id).await?;
+        dp.on_transfer_suspension_pre(&ctx.process).await?;
         Ok(None)
     }
 
@@ -104,8 +104,8 @@ impl TransferRpcStep for SuspensionStep {
 
     async fn post_hook(
         dp: &Arc<dyn DataPlaneFacadeTrait>,
-        process_id: &Urn,
+        ctx: &RpcPeerContext,
     ) -> anyhow::Result<()> {
-        dp.on_transfer_suspension_post(process_id).await
+        dp.on_transfer_suspension_post(&ctx.process).await
     }
 }

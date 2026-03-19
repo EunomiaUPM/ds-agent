@@ -66,7 +66,7 @@ impl TransferRpcStep for StartStep {
         dp: &Arc<dyn DataPlaneFacadeTrait>,
         ctx: &RpcPeerContext,
     ) -> anyhow::Result<Option<DataAddressDto>> {
-        dp.on_transfer_start_pre(&ctx.process_id).await
+        dp.on_transfer_start_pre(&ctx.process).await
     }
 
     fn build_message(
@@ -100,10 +100,10 @@ impl TransferRpcStep for StartStep {
 
     async fn post_hook(
         dp: &Arc<dyn DataPlaneFacadeTrait>,
-        process_id: &Urn,
+        ctx: &Self::Context
     ) -> anyhow::Result<()> {
         // Outbound sender: no incoming DataAddress to apply, so pass None.
-        dp.on_transfer_start_post(process_id, None).await?;
+        dp.on_transfer_start_post(&ctx.process, None).await?;
         Ok(())
     }
 }

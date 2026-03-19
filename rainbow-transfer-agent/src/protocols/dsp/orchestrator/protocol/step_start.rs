@@ -21,7 +21,7 @@ use crate::entities::transfer_process::TransferProcessDto;
 use crate::protocols::dsp::facades::dataplane_facade::DataPlaneFacadeTrait;
 use crate::protocols::dsp::facades::FacadeTrait;
 use crate::protocols::dsp::orchestrator::protocol::step_trait::{
-    continuation_persist, continuation_prepare_context, ProtocolContinuationContext, ProtocolStep,
+    continuation_persist, continuation_prepare_context, ProtocolContext, ProtocolStep,
 };
 use crate::protocols::dsp::persistence::TransferPersistenceTrait;
 use crate::protocols::dsp::protocol_types::{
@@ -38,12 +38,12 @@ use urn::Urn;
 /// Starts the local dataplane session.  In PULL mode the dataplane returns a
 /// consumer ingress URL which is embedded in the acknowledgement so the provider
 /// knows where to push data.
-pub(super) struct StartStep;
+pub(super) struct ProtocolStartStep;
 
 #[async_trait::async_trait]
-impl ProtocolStep for StartStep {
+impl ProtocolStep for ProtocolStartStep {
     type Dto = TransferStartMessageDto;
-    type Context = ProtocolContinuationContext;
+    type Context = ProtocolContext;
 
     async fn validate(
         validator: &Arc<dyn ValidationDspSteps>,
@@ -60,7 +60,7 @@ impl ProtocolStep for StartStep {
         persistence: &Arc<dyn TransferPersistenceTrait>,
         _facades: &Arc<dyn FacadeTrait>,
     ) -> anyhow::Result<(
-        ProtocolContinuationContext,
+        ProtocolContext,
         Option<TransferProcessMessageWrapper<TransferProcessAckDto>>,
     )> {
         continuation_prepare_context(id, persistence).await
@@ -69,7 +69,7 @@ impl ProtocolStep for StartStep {
     async fn persist(
         persistence: &Arc<dyn TransferPersistenceTrait>,
         id: &str,
-        _ctx: &ProtocolContinuationContext,
+        _ctx: &ProtocolContext,
         input: &TransferProcessMessageWrapper<TransferStartMessageDto>,
     ) -> anyhow::Result<TransferProcessDto> {
         continuation_persist(persistence, id, input).await
@@ -78,10 +78,11 @@ impl ProtocolStep for StartStep {
     /// Starts the local dataplane; returns the consumer's ingress URL for PULL mode.
     async fn post_hook(
         dp: &Arc<dyn DataPlaneFacadeTrait>,
-        ctx: &ProtocolContinuationContext,
+        ctx: &ProtocolContext,
         input: &TransferProcessMessageWrapper<TransferStartMessageDto>,
         _process_id: &Urn,
     ) -> anyhow::Result<Option<DataAddressDto>> {
-        dp.on_transfer_start_post(&ctx.process_id, input.dto.data_address.clone()).await
+        let process = &ctx.process.clone().ok_or(anyhow::anyhow!("no process found"))?;
+        dp.on_transfer_start_post(&process, input.dto.data_address.clone()).await
     }
 }

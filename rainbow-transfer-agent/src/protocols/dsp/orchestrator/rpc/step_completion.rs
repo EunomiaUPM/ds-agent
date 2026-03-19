@@ -71,7 +71,7 @@ impl TransferRpcStep for CompletionStep {
         dp: &Arc<dyn DataPlaneFacadeTrait>,
         ctx: &RpcPeerContext,
     ) -> anyhow::Result<Option<DataAddressDto>> {
-        dp.on_transfer_completion_pre(&ctx.process_id).await?;
+        dp.on_transfer_completion_pre(&ctx.process).await?;
         Ok(None)
     }
 
@@ -103,8 +103,8 @@ impl TransferRpcStep for CompletionStep {
 
     async fn post_hook(
         dp: &Arc<dyn DataPlaneFacadeTrait>,
-        process_id: &Urn,
+        ctx: &RpcPeerContext,
     ) -> anyhow::Result<()> {
-        dp.on_transfer_completion_post(process_id).await
+        dp.on_transfer_completion_post(&ctx.process).await
     }
 }

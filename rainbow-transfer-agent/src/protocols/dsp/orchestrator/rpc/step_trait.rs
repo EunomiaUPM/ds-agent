@@ -151,7 +151,7 @@ pub(super) trait TransferRpcStep: Send + Sync + 'static {
     /// Default: no-op (overridden by steps that need to react to the peer's ack).
     async fn post_hook(
         _dp: &Arc<dyn DataPlaneFacadeTrait>,
-        _process_id: &Urn,
+        _ctx: &Self::Context,
     ) -> anyhow::Result<()> {
         Ok(())
     }

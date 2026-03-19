@@ -27,7 +27,8 @@ use crate::protocols::dsp::orchestrator::rpc::types::{
 };
 use crate::protocols::dsp::persistence::TransferPersistenceTrait;
 use crate::protocols::dsp::protocol_types::{
-    DataAddressDto, TransferProcessAckDto, TransferProcessMessageWrapper, TransferTerminationMessageDto,
+    DataAddressDto, TransferProcessAckDto, TransferProcessMessageWrapper,
+    TransferTerminationMessageDto,
 };
 use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRpcSteps;
 use rainbow_common::http_client::HttpClient;
@@ -71,7 +72,7 @@ impl TransferRpcStep for TerminationStep {
         dp: &Arc<dyn DataPlaneFacadeTrait>,
         ctx: &RpcPeerContext,
     ) -> anyhow::Result<Option<DataAddressDto>> {
-        dp.on_transfer_termination_pre(&ctx.process_id).await?;
+        dp.on_transfer_termination_pre(&ctx.process).await?;
         Ok(None)
     }
 
@@ -98,15 +99,17 @@ impl TransferRpcStep for TerminationStep {
         ctx: &RpcPeerContext,
         payload: Arc<TransferTerminationMessageDto>,
         url_suffix: &str,
-    ) -> anyhow::Result<(TransferProcessMessageWrapper<TransferProcessAckDto>, TransferProcessDto)>
-    {
+    ) -> anyhow::Result<(
+        TransferProcessMessageWrapper<TransferProcessAckDto>,
+        TransferProcessDto,
+    )> {
         continuation_send_and_persist(http_client, persistence, ctx, payload, url_suffix).await
     }
 
     async fn post_hook(
         dp: &Arc<dyn DataPlaneFacadeTrait>,
-        process_id: &Urn,
+        ctx: &RpcPeerContext,
     ) -> anyhow::Result<()> {
-        dp.on_transfer_termination_post(process_id).await
+        dp.on_transfer_termination_post(&ctx.process).await
     }
 }

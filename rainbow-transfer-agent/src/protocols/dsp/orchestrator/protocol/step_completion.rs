@@ -21,7 +21,7 @@ use crate::entities::transfer_process::TransferProcessDto;
 use crate::protocols::dsp::facades::dataplane_facade::DataPlaneFacadeTrait;
 use crate::protocols::dsp::facades::FacadeTrait;
 use crate::protocols::dsp::orchestrator::protocol::step_trait::{
-    continuation_persist, continuation_prepare_context, ProtocolContinuationContext, ProtocolStep,
+    continuation_persist, continuation_prepare_context, ProtocolContext, ProtocolStep,
 };
 use crate::protocols::dsp::persistence::TransferPersistenceTrait;
 use crate::protocols::dsp::protocol_types::{
@@ -37,12 +37,12 @@ use urn::Urn;
 /// Handles an inbound `TransferCompletionMessage` from the peer.
 ///
 /// Shuts down the local dataplane session cleanly.
-pub(super) struct CompletionStep;
+pub(super) struct ProtocolCompletionStep;
 
 #[async_trait::async_trait]
-impl ProtocolStep for CompletionStep {
+impl ProtocolStep for ProtocolCompletionStep {
     type Dto = TransferCompletionMessageDto;
-    type Context = ProtocolContinuationContext;
+    type Context = ProtocolContext;
 
     async fn validate(
         validator: &Arc<dyn ValidationDspSteps>,
@@ -59,7 +59,7 @@ impl ProtocolStep for CompletionStep {
         persistence: &Arc<dyn TransferPersistenceTrait>,
         _facades: &Arc<dyn FacadeTrait>,
     ) -> anyhow::Result<(
-        ProtocolContinuationContext,
+        ProtocolContext,
         Option<TransferProcessMessageWrapper<TransferProcessAckDto>>,
     )> {
         continuation_prepare_context(id, persistence).await
@@ -68,7 +68,7 @@ impl ProtocolStep for CompletionStep {
     async fn persist(
         persistence: &Arc<dyn TransferPersistenceTrait>,
         id: &str,
-        _ctx: &ProtocolContinuationContext,
+        _ctx: &ProtocolContext,
         input: &TransferProcessMessageWrapper<TransferCompletionMessageDto>,
     ) -> anyhow::Result<TransferProcessDto> {
         continuation_persist(persistence, id, input).await
@@ -76,11 +76,12 @@ impl ProtocolStep for CompletionStep {
 
     async fn post_hook(
         dp: &Arc<dyn DataPlaneFacadeTrait>,
-        ctx: &ProtocolContinuationContext,
+        ctx: &ProtocolContext,
         _input: &TransferProcessMessageWrapper<TransferCompletionMessageDto>,
         _process_id: &Urn,
     ) -> anyhow::Result<Option<DataAddressDto>> {
-        dp.on_transfer_completion_post(&ctx.process_id).await?;
+        let process = &ctx.process.clone().ok_or(anyhow::anyhow!("no process found"))?;
+        dp.on_transfer_completion_post(process).await?;
         Ok(None)
     }
 }

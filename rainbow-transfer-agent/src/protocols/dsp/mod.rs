@@ -44,7 +44,7 @@ use crate::protocols::dsp::validator::validators::rpc::validate_state_transition
 use crate::protocols::dsp::validator::validators::validate_payload::ValidatePayloadService;
 use crate::protocols::dsp::validator::validators::validation_helpers::ValidationHelperService;
 
-use crate::protocols::dsp::facades::dataplane_facade::dataplane_facade::DataPlaneFacade;
+use crate::protocols::dsp::facades::dataplane_facade::dataplane_facade::DspDataPlaneFacade;
 use crate::protocols::protocol::ProtocolPluginTrait;
 use axum::Router;
 use rainbow_common::config::services::TransferConfig;
@@ -162,7 +162,7 @@ impl ProtocolPluginTrait for TransferDSP {
             None => format!("{}://{}", http.protocol, http.url),
         };
         let dataplane_facade =
-            Arc::new(DataPlaneFacade::new(dataplane_manager.clone(), proxy_base_url));
+            Arc::new(DspDataPlaneFacade::new(dataplane_manager.clone(), proxy_base_url));
 
         // data service resolver (resolves agreement → dataset → distribution → connector)
         let data_service_resolver = Arc::new(DataServiceFacadeServiceForDSProtocol::new(

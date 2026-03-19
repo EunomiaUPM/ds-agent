@@ -3,10 +3,12 @@ pub(crate) mod dataplane_manager;
 pub(crate) mod driver_factory;
 pub use config_builder::{EgressConfig, IngressConfig};
 pub(crate) mod tests;
+pub(crate) mod dataplane_commands;
+pub(crate) mod dataplane_persistence;
 
 use anyhow::{anyhow, Error};
 use rainbow_common::config::types::roles::RoleConfig;
-use rainbow_common::dsp_common::data_address::DataAddress;
+use rainbow_common::dsp_common::data_address::{DataAddress, EndpointProperty};
 use serde::{Deserialize, Serialize};
 use urn::Urn;
 
@@ -36,12 +38,45 @@ impl Into<DataplaneAddress> for DataAddress {
     }
 }
 
+impl Into<DataAddress> for DataplaneAddress {
+    fn into(self) -> DataAddress {
+        let ep_authorization_type = match self.authorization_type {
+            Some(at) => Some(EndpointProperty {
+                _type: "EndpointProperty".to_string(),
+                name: "authType".to_string(),
+                value: at.to_string(),
+            }),
+            None => None
+        };
+        let ep_authorization = match self.authorization {
+            Some(at) => Some(EndpointProperty {
+                _type: "EndpointProperty".to_string(),
+                name: "authorization".to_string(),
+                value: at.to_string(),
+            }),
+            None => None
+        };
+        let mut endpoint_properties: Vec<EndpointProperty> = vec![];
+        if let Some(ep_authorization_type) = ep_authorization_type {
+            endpoint_properties.push(ep_authorization_type)
+        }
+        if let Some(ep_authorization) = ep_authorization {
+            endpoint_properties.push(ep_authorization)
+        }
+        DataAddress {
+            _type: "DataAddress".to_string(),
+            endpoint_type: self.endpoint_type.to_string(),
+            endpoint: self.endpoint.to_string(),
+            endpoint_properties,
+        }
+    }
+}
+
 pub enum DataplaneCommand {
-    SetInit {
-        role: RoleConfig,
-        connector_instance: Option<Urn>,
-        data_address: Option<DataplaneAddress>,
-    },
+    /// Initiates dataplane. when transfer agent receives signals for creating a new TransferProcess
+    /// Dataplane must be initiated
+    /// Based on Role (defined when creating TransferProcess in transfer-agent
+    SetInit(DataplaneInitCommandType),
     SetConfiguring,
     SetAuth,
     SetReady,
@@ -53,6 +88,20 @@ pub enum DataplaneCommand {
     SetEgress {
         data_address: DataplaneAddress,
     },
+}
+
+pub enum DataplaneInitCommandType {
+    // If Provider, must know ConnectorInstance
+    Provider {
+        connector_instance: Urn,
+        // If PUSH Case DataAddress must be provided by any means (DSP or others are consistent here)
+        data_address: Option<DataplaneAddress>,
+    },
+    // If Consumer mustn't
+    Consumer {
+        // If PUSH Case DataAddress must be provided by any means (DSP or others are consistent here)
+        data_address: Option<DataplaneAddress>,
+    }
 }
 
 pub enum DataplaneResponse {

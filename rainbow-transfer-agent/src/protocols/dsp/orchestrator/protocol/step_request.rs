@@ -20,9 +20,7 @@
 use crate::entities::transfer_process::TransferProcessDto;
 use crate::protocols::dsp::facades::dataplane_facade::DataPlaneFacadeTrait;
 use crate::protocols::dsp::facades::FacadeTrait;
-use crate::protocols::dsp::orchestrator::protocol::step_trait::{
-    ProtocolRequestContext, ProtocolStep,
-};
+use crate::protocols::dsp::orchestrator::protocol::step_trait::{resolve_process, ProtocolContext, ProtocolStep};
 use crate::protocols::dsp::persistence::{CreateProcessInput, TransferPersistenceTrait};
 use crate::protocols::dsp::protocol_types::{
     DataAddressDto, TransferProcessAckDto, TransferProcessMessageTrait, TransferProcessMessageWrapper,
@@ -50,7 +48,7 @@ pub(super) struct ProtocolRequestStep;
 #[async_trait::async_trait]
 impl ProtocolStep for ProtocolRequestStep {
     type Dto = TransferRequestMessageDto;
-    type Context = ProtocolRequestContext;
+    type Context = ProtocolContext;
 
     async fn validate(
         validator: &Arc<dyn ValidationDspSteps>,
@@ -71,7 +69,7 @@ impl ProtocolStep for ProtocolRequestStep {
         persistence: &Arc<dyn TransferPersistenceTrait>,
         facades: &Arc<dyn FacadeTrait>,
     ) -> anyhow::Result<(
-        ProtocolRequestContext,
+        ProtocolContext,
         Option<TransferProcessMessageWrapper<TransferProcessAckDto>>,
     )> {
         // Resolve connector: agreement → dataset → distribution → connector instance.
@@ -90,7 +88,7 @@ impl ProtocolStep for ProtocolRequestStep {
         }
 
         let ctx =
-            ProtocolRequestContext { connector_instance, associated_peer: peer.to_string() };
+            ProtocolContext { process: None, connector_instance, associated_peer: peer.to_string() };
 
         // Idempotency: return the existing ack if the consumerPid is already known.
         let consumer_pid = input.dto.get_consumer_pid().ok_or(anyhow!("no consumer id"))?;
@@ -110,7 +108,7 @@ impl ProtocolStep for ProtocolRequestStep {
     async fn persist(
         persistence: &Arc<dyn TransferPersistenceTrait>,
         _id: &str,
-        ctx: &ProtocolRequestContext,
+        ctx: &ProtocolContext,
         input: &TransferProcessMessageWrapper<TransferRequestMessageDto>,
     ) -> anyhow::Result<TransferProcessDto> {
         persistence
@@ -130,11 +128,12 @@ impl ProtocolStep for ProtocolRequestStep {
     /// Registers the provider-side dataplane session for this transfer.
     async fn post_hook(
         dp: &Arc<dyn DataPlaneFacadeTrait>,
-        ctx: &ProtocolRequestContext,
+        ctx: &ProtocolContext,
         input: &TransferProcessMessageWrapper<TransferRequestMessageDto>,
         process_id: &Urn,
     ) -> anyhow::Result<Option<DataAddressDto>> {
-        dp.on_transfer_request_post(process_id, &ctx.connector_instance, &input.dto.data_address)
+        let process = resolve_process(&process_id.to_string(), ctx).await?;
+        dp.on_transfer_request_post(&process, &ctx.connector_instance, &input.dto.data_address)
             .await?;
         Ok(None)
     }

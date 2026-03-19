@@ -1,6 +1,12 @@
 #!/bin/sh
 set -e
 
+# Use a reliable mirror instead of the default CDN
+cat > /etc/apk/repositories << EOF
+https://mirrors.aliyun.com/alpine/v3.21/main
+https://mirrors.aliyun.com/alpine/v3.21/community
+EOF
+
 # Install minimal dependencies
 apk add --no-cache libcap unzip ca-certificates openssl jq curl
 

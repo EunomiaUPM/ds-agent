@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use urn::{Urn, UrnBuilder};
 
 use strum::Display;
+use crate::DataplaneInitCommandType;
 
 #[derive(
     Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, Display,
@@ -42,6 +43,23 @@ impl TryFrom<&RoleConfig> for TransferRole {
                 "Not allowed here this role. Dataplane must have Provider or Consumer Role"
             )),
         }
+    }
+}
+
+impl TryFrom<DataplaneInitCommandType> for TransferRole {
+    type Error = anyhow::Error;
+    fn try_from(value: DataplaneInitCommandType) -> Result<Self, Self::Error> {
+        match value {
+            DataplaneInitCommandType::Provider { .. } => Ok(Self::Provider),
+            DataplaneInitCommandType::Consumer { .. } => Ok(Self::Consumer),
+        }
+    }
+}
+
+impl TryFrom<&DataplaneInitCommandType> for TransferRole {
+    type Error = anyhow::Error;
+    fn try_from(value: &DataplaneInitCommandType) -> Result<Self, Self::Error> {
+        value.try_into()
     }
 }
 

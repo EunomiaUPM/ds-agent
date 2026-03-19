@@ -22,13 +22,18 @@ use crate::protocols::dsp::facades::dataplane_facade::DataPlaneFacadeTrait;
 use crate::protocols::dsp::facades::FacadeTrait;
 use crate::protocols::dsp::persistence::TransferPersistenceTrait;
 use crate::protocols::dsp::protocol_types::{
-    DataAddressDto, TransferProcessAckDto, TransferProcessMessageTrait, TransferProcessMessageWrapper,
+    DataAddressDto, TransferProcessAckDto, TransferProcessMessageTrait,
+    TransferProcessMessageWrapper,
 };
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
 use rainbow_connector::ConnectorInstanceDto;
 use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
+
+
+// ─── Request context ──────────────────────────────────────────────────────────
+
 
 // ─── Continuation context ─────────────────────────────────────────────────────
 
@@ -37,23 +42,14 @@ use urn::Urn;
 ///
 /// Populated by [`continuation_prepare_context`] from the peer-facing process
 /// identifier in the URL path.
-pub(super) struct ProtocolContinuationContext {
+pub(super) struct ProtocolContext {
     /// Canonical internal process identifier (URN), resolved from the peer-facing PID.
-    pub process_id: Urn,
-}
-
-// ─── Request context ──────────────────────────────────────────────────────────
-
-/// Resolved context for an inbound `TransferRequestMessage`.
-///
-/// The connector instance is needed both for the PUSH constraint check (in
-/// `prepare_context`) and for registering the dataplane (in `post_hook`).
-pub(super) struct ProtocolRequestContext {
-    /// Resolved connector for the referenced agreement and format.
+    pub process: Option<TransferProcessDto>,
     pub connector_instance: ConnectorInstanceDto,
-    /// Identifier of the Consumer agent that sent the request.
     pub associated_peer: String,
 }
+
+
 
 // ─── Lifecycle step template ──────────────────────────────────────────────────
 
@@ -99,7 +95,10 @@ pub(super) trait ProtocolStep: Send + Sync + 'static {
         input: &TransferProcessMessageWrapper<Self::Dto>,
         persistence: &Arc<dyn TransferPersistenceTrait>,
         facades: &Arc<dyn FacadeTrait>,
-    ) -> anyhow::Result<(Self::Context, Option<TransferProcessMessageWrapper<TransferProcessAckDto>>)>;
+    ) -> anyhow::Result<(
+        Self::Context,
+        Option<TransferProcessMessageWrapper<TransferProcessAckDto>>,
+    )>;
 
     /// Persist the inbound message as a state transition.
     ///
@@ -126,19 +125,23 @@ pub(super) trait ProtocolStep: Send + Sync + 'static {
 
 // ─── Shared helpers for continuation steps ────────────────────────────────────
 
-/// Resolve the canonical internal process URN from a peer-facing identifier.
+/// Resolve the canonical internal process from a peer-facing identifier.
 ///
 /// DSP endpoints receive a `providerPid` (or `consumerPid`) in the URL path;
 /// this function looks it up in the identifiers index and returns the local URN.
-pub(super) async fn resolve_process_id(
+pub(super) async fn resolve_process(
     peer_id: &str,
     persistence: &Arc<dyn TransferPersistenceTrait>,
-) -> anyhow::Result<Urn> {
+) -> anyhow::Result<TransferProcessDto> {
     let dpid = Urn::from_str(peer_id)?;
-    let process =
-        persistence.get_transfer_process_service().await?.get_transfer_process_by_key_value(&dpid).await?;
-    Ok(Urn::from_str(process.inner.id.as_str())?)
+    let process = persistence
+        .get_transfer_process_service()
+        .await?
+        .get_transfer_process_by_key_value(&dpid)
+        .await?;
+    Ok(process)
 }
+
 
 /// Build the continuation context by resolving the process ID from the peer-facing id.
 ///
@@ -147,11 +150,15 @@ pub(super) async fn continuation_prepare_context(
     id: &str,
     persistence: &Arc<dyn TransferPersistenceTrait>,
 ) -> anyhow::Result<(
-    ProtocolContinuationContext,
+    ProtocolContext,
     Option<TransferProcessMessageWrapper<TransferProcessAckDto>>,
 )> {
-    let process_id = resolve_process_id(id, persistence).await?;
-    Ok((ProtocolContinuationContext { process_id }, None))
+    let process = resolve_process(id, persistence).await?;
+    Ok((ProtocolContext {
+        process: Some(process),
+        connector_instance: ConnectorInstanceDto {},
+        associated_peer: "".to_string(),
+    }, None))
 }
 
 /// Persist an inbound continuation message as a state-transition update.

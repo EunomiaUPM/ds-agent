@@ -31,7 +31,7 @@ use anyhow::anyhow;
 use rainbow_connector::InteractionConfig;
 use std::sync::Arc;
 use urn::Urn;
-
+use ymir::errors::{Errors, Outcome};
 // ─── ProtocolRequestStep ──────────────────────────────────────────────────────
 
 /// Handles an inbound `TransferRequestMessage` from a Consumer.
@@ -54,7 +54,7 @@ impl ProtocolStep for ProtocolRequestStep {
         validator: &Arc<dyn ValidationDspSteps>,
         _id: &str,
         input: &TransferProcessMessageWrapper<TransferRequestMessageDto>,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         validator.on_transfer_request(&Arc::new(input.clone())).await
     }
 
@@ -68,12 +68,12 @@ impl ProtocolStep for ProtocolRequestStep {
         input: &TransferProcessMessageWrapper<TransferRequestMessageDto>,
         persistence: &Arc<dyn TransferPersistenceTrait>,
         facades: &Arc<dyn FacadeTrait>,
-    ) -> anyhow::Result<(
+    ) -> Outcome<(
         ProtocolContext,
         Option<TransferProcessMessageWrapper<TransferProcessAckDto>>,
     )> {
         // Resolve connector: agreement → dataset → distribution → connector instance.
-        let agreement_id = input.dto.get_agreement_id().ok_or(anyhow!("no agreement id"))?;
+        let agreement_id = input.dto.get_agreement_id().ok_or(Errors::crazy("no agreement id", None))?;
         let connector_instance = facades
             .get_data_service_facade()
             .await
@@ -84,7 +84,7 @@ impl ProtocolStep for ProtocolRequestStep {
         if matches!(connector_instance.interaction, InteractionConfig::Push(_))
             && input.dto.data_address.is_none()
         {
-            return Err(anyhow!("PUSH transfer requires a DataAddress from the consumer"));
+            return Err(Errors::crazy("PUSH transfer requires a DataAddress from the consumer", None));
         }
 
         let ctx =
@@ -110,7 +110,7 @@ impl ProtocolStep for ProtocolRequestStep {
         _id: &str,
         ctx: &ProtocolContext,
         input: &TransferProcessMessageWrapper<TransferRequestMessageDto>,
-    ) -> anyhow::Result<TransferProcessDto> {
+    ) -> Outcome<TransferProcessDto> {
         persistence
             .create_process(CreateProcessInput {
                 id: None,
@@ -131,7 +131,7 @@ impl ProtocolStep for ProtocolRequestStep {
         ctx: &ProtocolContext,
         input: &TransferProcessMessageWrapper<TransferRequestMessageDto>,
         process_id: &Urn,
-    ) -> anyhow::Result<Option<DataAddressDto>> {
+    ) -> Outcome<Option<DataAddressDto>> {
         let process = resolve_process(&process_id.to_string(), ctx).await?;
         dp.on_transfer_request_post(&process, &ctx.connector_instance, &input.dto.data_address)
             .await?;

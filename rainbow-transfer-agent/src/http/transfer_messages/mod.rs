@@ -28,7 +28,6 @@ use serde::Deserialize;
 use std::sync::Arc;
 
 use crate::entities::transfer_messages::{NewTransferMessageDto, TransferAgentMessagesTrait};
-use crate::errors::error_adapter::CustomToResponse;
 use crate::http::common::{extract_payload, parse_urn};
 use rainbow_common::config::services::TransferConfig;
 
@@ -81,7 +80,7 @@ impl TransferAgentMessagesRouter {
     ) -> impl IntoResponse {
         match state.service.get_all_transfer_messages(params.limit, params.page).await {
             Ok(messages) => (StatusCode::OK, Json(messages)).into_response(),
-            Err(err) => err.to_response(),
+            Err(err) => err.into_response(),
         }
     }
 
@@ -95,7 +94,7 @@ impl TransferAgentMessagesRouter {
         };
         match state.service.create_transfer_message(&input).await {
             Ok(created) => (StatusCode::CREATED, Json(created)).into_response(),
-            Err(err) => err.to_response(),
+            Err(err) => err.into_response(),
         }
     }
 
@@ -109,7 +108,7 @@ impl TransferAgentMessagesRouter {
         };
         match state.service.get_transfer_message_by_id(&id_urn).await {
             Ok(message) => (StatusCode::OK, Json(message)).into_response(),
-            Err(err) => err.to_response(),
+            Err(err) => err.into_response(),
         }
     }
 
@@ -123,7 +122,7 @@ impl TransferAgentMessagesRouter {
         };
         match state.service.delete_transfer_message(&id_urn).await {
             Ok(_) => (StatusCode::NO_CONTENT).into_response(),
-            Err(err) => err.to_response(),
+            Err(err) => err.into_response(),
         }
     }
 
@@ -137,7 +136,7 @@ impl TransferAgentMessagesRouter {
         };
         match state.service.get_messages_by_process_id(&process_urn).await {
             Ok(messages) => (StatusCode::OK, Json(messages)).into_response(),
-            Err(err) => err.to_response(),
+            Err(err) => err.into_response(),
         }
     }
 }

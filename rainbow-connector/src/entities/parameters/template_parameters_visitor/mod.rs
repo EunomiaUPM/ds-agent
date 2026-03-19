@@ -4,6 +4,7 @@ use crate::entities::parameters::template_parameters_extractor::ParameterExtract
 use crate::entities::parameters::template_walker::ConnectorTemplateWalker;
 use crate::entities::parameters::TemplateField;
 use std::convert::Infallible;
+use ymir::errors::Outcome;
 
 /// Walks a [`ConnectorTemplateDto`] and feeds every templatable field to a
 /// [`ParameterExtractorBehavior`].
@@ -47,19 +48,18 @@ impl<'a> ParameterExtractorVisitor<'a> {
 }
 
 impl ConnectorTemplateWalker for ParameterExtractorVisitor<'_> {
-    type Error = Infallible;
 
-    fn on_string(&mut self, field: &mut String) -> Result<(), Infallible> {
+    fn on_string(&mut self, field: &mut String) -> Outcome<()> {
         self.extractor.extract(TemplateField::TemplateString(field));
         Ok(())
     }
 
-    fn on_vec_string(&mut self, field: &mut TemplateVecString) -> Result<(), Infallible> {
+    fn on_vec_string(&mut self, field: &mut TemplateVecString) -> Outcome<()> {
         self.extractor.extract(TemplateField::TemplateVecString(field));
         Ok(())
     }
 
-    fn on_map_string(&mut self, field: &mut TemplateMapString) -> Result<(), Infallible> {
+    fn on_map_string(&mut self, field: &mut TemplateMapString) -> Outcome<()> {
         self.extractor.extract(TemplateField::TemplateMapString(field));
         Ok(())
     }

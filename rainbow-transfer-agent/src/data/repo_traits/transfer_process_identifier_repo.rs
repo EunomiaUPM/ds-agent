@@ -24,6 +24,7 @@ use crate::data::entities::transfer_process_identifier::{
 use anyhow::Error;
 use thiserror::Error;
 use urn::Urn;
+use ymir::errors::{Outcome, RepoIntoErrors};
 
 #[mockall::automock]
 #[async_trait::async_trait]
@@ -33,37 +34,37 @@ pub trait TransferIdentifierRepoTrait: Send + Sync {
         &self,
         limit: Option<u64>,
         page: Option<u64>,
-    ) -> anyhow::Result<Vec<transfer_process_identifier::Model>, TransferIdentifierRepoErrors>;
+    ) -> Outcome<Vec<transfer_process_identifier::Model>>;
 
     async fn get_identifiers_by_process_id(
         &self,
         process_id: &Urn,
-    ) -> anyhow::Result<Vec<transfer_process_identifier::Model>, TransferIdentifierRepoErrors>;
+    ) -> Outcome<Vec<transfer_process_identifier::Model>>;
 
     async fn get_identifier_by_id(
         &self,
         id: &Urn,
-    ) -> anyhow::Result<Option<transfer_process_identifier::Model>, TransferIdentifierRepoErrors>;
+    ) -> Outcome<Option<transfer_process_identifier::Model>>;
 
     async fn get_identifier_by_key(
         &self,
         process_id: &Urn,
         key: &str,
-    ) -> anyhow::Result<Option<transfer_process_identifier::Model>, TransferIdentifierRepoErrors>;
+    ) -> Outcome<Option<transfer_process_identifier::Model>>;
 
     async fn create_identifier(
         &self,
         new_model: &NewTransferIdentifierModel,
-    ) -> anyhow::Result<transfer_process_identifier::Model, TransferIdentifierRepoErrors>;
+    ) -> Outcome<transfer_process_identifier::Model>;
 
     async fn put_identifier(
         &self,
         id: &Urn,
         edit_model: &EditTransferIdentifierModel,
-    ) -> anyhow::Result<transfer_process_identifier::Model, TransferIdentifierRepoErrors>;
+    ) -> Outcome<transfer_process_identifier::Model>;
 
     async fn delete_identifier(&self, id: &Urn)
-        -> anyhow::Result<(), TransferIdentifierRepoErrors>;
+        -> Outcome<()>;
 }
 
 #[derive(Debug, Error)]
@@ -79,3 +80,5 @@ pub enum TransferIdentifierRepoErrors {
     #[error("Error updating transfer identifier. {0}")]
     ErrorUpdatingTransferIdentifier(Error),
 }
+
+impl RepoIntoErrors for TransferIdentifierRepoErrors {}

@@ -10,6 +10,7 @@ use rainbow_dataplane::{
 use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
+use ymir::errors::Outcome;
 
 pub struct DspDataPlaneFacade {
     dataplane_manager: Arc<DataplaneManager>,
@@ -29,7 +30,7 @@ impl DspDataPlaneFacade {
     async fn ingress_as_data_address(
         &self,
         transfer_id: &Urn,
-    ) -> anyhow::Result<Option<DataAddressDto>> {
+    ) -> Outcome<Option<DataAddressDto>> {
         if let Some(addr) = self.dataplane_manager.get_ingress_address(transfer_id).await? {
             return Ok(Some(DataAddressDto {
                 endpoint_type: addr.endpoint_type,
@@ -45,7 +46,7 @@ impl DspDataPlaneFacade {
         &self,
         transfer_id: &Urn,
         command: DataplaneCommand,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         self.dataplane_manager
             .execute_command(&DataplaneManagerInput {
                 transfer_process_id: transfer_id.clone(),
@@ -64,7 +65,7 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
         &self,
         transfer_id: &Urn,
         data_address: &Option<DataAddressDto>,
-    ) -> anyhow::Result<Option<DataAddressDto>> {
+    ) -> Outcome<Option<DataAddressDto>> {
         // HERE GET RID OF SET EGRESS
 
         // Convert the optional DataAddressDto into a DataplaneAddress.
@@ -112,7 +113,7 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
         transfer_process: &TransferProcessDto,
         connector_instance: &ConnectorInstanceDto,
         data_address: &Option<DataAddressDto>,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         // Provider side: register dataplane process with connector
         self.execute_command(
             &Urn::from_str(&*transfer_process.inner.id)?,
@@ -149,7 +150,7 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
     async fn on_transfer_start_pre(
         &self,
         transfer_process: &TransferProcessDto,
-    ) -> anyhow::Result<Option<DataAddressDto>> {
+    ) -> Outcome<Option<DataAddressDto>> {
         self.execute_command(
             &Urn::from_str(&*transfer_process.inner.id)?,
             DataplaneCommand::SetStarted,
@@ -165,7 +166,7 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
         &self,
         transfer_process: &TransferProcessDto,
         data_address: Option<DataAddressDto>,
-    ) -> anyhow::Result<Option<DataAddressDto>> {
+    ) -> Outcome<Option<DataAddressDto>> {
         // PULL Consumer: apply the provider's proxy URL as egress before starting.
         // PULL Consumer: apply the provider's proxy URL as egress before starting.
         // CHECK if we are in PULL mode before applying. In PUSH mode, Egress is already set correctly
@@ -203,7 +204,7 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
     async fn on_transfer_suspension_pre(
         &self,
         transfer_process: &TransferProcessDto,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         self.execute_command(
             &Urn::from_str(&*transfer_process.inner.id)?,
             DataplaneCommand::SetStopped,
@@ -214,7 +215,7 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
     async fn on_transfer_suspension_post(
         &self,
         transfer_process: &TransferProcessDto,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         self.execute_command(
             &Urn::from_str(&*transfer_process.inner.id)?,
             DataplaneCommand::SetStopped,
@@ -227,7 +228,7 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
     async fn on_transfer_completion_pre(
         &self,
         transfer_process: &TransferProcessDto,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         self.execute_command(
             &Urn::from_str(&*transfer_process.inner.id)?,
             DataplaneCommand::SetTerminated,
@@ -238,7 +239,7 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
     async fn on_transfer_completion_post(
         &self,
         transfer_process: &TransferProcessDto,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         self.execute_command(
             &Urn::from_str(&*transfer_process.inner.id)?,
             DataplaneCommand::SetTerminated,
@@ -251,7 +252,7 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
     async fn on_transfer_termination_pre(
         &self,
         transfer_process: &TransferProcessDto,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         self.execute_command(
             &Urn::from_str(&*transfer_process.inner.id)?,
             DataplaneCommand::SetTerminated,
@@ -262,7 +263,7 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
     async fn on_transfer_termination_post(
         &self,
         transfer_process: &TransferProcessDto,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         self.execute_command(
             &Urn::from_str(&*transfer_process.inner.id)?,
             DataplaneCommand::SetTerminated,
@@ -276,7 +277,7 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
         &self,
         transfer_process: &TransferProcessDto,
         data_address: DataplaneAddress,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         self.execute_command(
             &Urn::from_str(&*transfer_process.inner.id)?,
             DataplaneCommand::SetEgress { data_address },

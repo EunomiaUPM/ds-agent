@@ -1,3 +1,4 @@
+use crate::cache::cache_traits::entity_cache_trait::EntityCacheTrait;
 use crate::data::entities::dataplane_field::{EditDataPlaneFieldModel, NewDataPlaneFieldModel};
 use crate::data::entities::dataplane_transfer_logs::NewTransferLog;
 use crate::data::entities::dataplane_transfers::{
@@ -18,8 +19,7 @@ use std::sync::Arc;
 use tracing::error;
 use urn::Urn;
 use uuid::Uuid;
-
-use crate::cache::cache_traits::entity_cache_trait::EntityCacheTrait;
+use ymir::errors::{Errors, Outcome, RepoIntoErrors};
 
 pub struct DataplaneTransfersEntityService {
     pub data_plane_repo: Arc<dyn DataplaneRepoTrait>,
@@ -37,26 +37,15 @@ impl DataplaneTransfersEntityService {
     async fn enrich_process(
         &self,
         process: dataplane_transfers_model::Model,
-    ) -> anyhow::Result<DataplaneTransferDto> {
-        let process_urn = Urn::from_str(&process.id).map_err(|e| {
-            let err = CommonErrors::parse_new(&format!(
-                "Invalid URN found in database for process {}. Error: {}",
-                process.id, e
-            ));
-            error!("{}", err.log());
-            err
-        })?;
+    ) -> Outcome<DataplaneTransferDto> {
+        let process_urn = Urn::from_str(&process.id)?;
 
         let fields_models = self
             .data_plane_repo
             .get_dataplane_fields_repo()
             .get_all_dataplane_fields_by_process_id(&process_urn)
             .await
-            .map_err(|e| {
-                let err = CommonErrors::database_new(&e.to_string());
-                error!("{}", err.log());
-                err
-            })?;
+            .map_err(|e| e.into_errors())?;;
 
         let fields = fields_models
             .into_iter()
@@ -68,11 +57,7 @@ impl DataplaneTransfersEntityService {
             .get_dataplane_transfer_logs_repo()
             .get_transfer_logs_by_dataplane_process_id(&process_urn)
             .await
-            .map_err(|e| {
-                let err = CommonErrors::database_new(&e.to_string());
-                error!("{}", err.log());
-                err
-            })?;
+            .map_err(|e| e.into_errors())?;
 
         Ok(DataplaneTransferDto { inner: process, fields, logs })
     }
@@ -80,17 +65,13 @@ impl DataplaneTransfersEntityService {
 
 #[async_trait::async_trait]
 impl DataplaneTransfersEntitiesTrait for DataplaneTransfersEntityService {
-    async fn get_all_dataplane_transfers(&self) -> anyhow::Result<Vec<DataplaneTransferDto>> {
+    async fn get_all_dataplane_transfers(&self) -> Outcome<Vec<DataplaneTransferDto>> {
         let transfers = self
             .data_plane_repo
             .get_dataplane_transfers_repo()
             .get_all_dataplane_transfers(None, None)
             .await
-            .map_err(|e| {
-                let err = CommonErrors::database_new(&e.to_string());
-                error!("{}", err.log());
-                err
-            })?;
+            .map_err(|e| e.into_errors())?;
 
         let mut dtos = Vec::with_capacity(transfers.len());
         for t in transfers {
@@ -104,7 +85,7 @@ impl DataplaneTransfersEntitiesTrait for DataplaneTransfersEntityService {
     async fn get_dataplane_transfer_by_id(
         &self,
         id: &Urn,
-    ) -> anyhow::Result<Option<DataplaneTransferDto>> {
+    ) -> Outcome<Option<DataplaneTransferDto>> {
         // 1. Try cache
         if let Some(cached) = self.cache.get_single(id).await? {
             return Ok(Some(cached));
@@ -116,11 +97,7 @@ impl DataplaneTransfersEntitiesTrait for DataplaneTransfersEntityService {
             .get_dataplane_transfers_repo()
             .get_dataplane_transfers_by_id(id)
             .await
-            .map_err(|e| {
-                let err = CommonErrors::database_new(&e.to_string());
-                error!("{}", err.log());
-                err
-            })?;
+            .map_err(|e| e.into_errors())?;
 
         if let Some(p) = process {
             let enriched = self.enrich_process(p).await?;
@@ -135,17 +112,13 @@ impl DataplaneTransfersEntitiesTrait for DataplaneTransfersEntityService {
     async fn get_dataplane_transfer_by_process_id(
         &self,
         process_id: &Urn,
-    ) -> anyhow::Result<Option<DataplaneTransferDto>> {
+    ) -> Outcome<Option<DataplaneTransferDto>> {
         let process = self
             .data_plane_repo
             .get_dataplane_transfers_repo()
             .get_by_transfer_process_id(&process_id)
             .await
-            .map_err(|e| {
-                let err = CommonErrors::database_new(&e.to_string());
-                error!("{}", err.log());
-                err
-            })?;
+            .map_err(|e| e.into_errors())?;
 
         if let Some(p) = process {
             Ok(Some(self.enrich_process(p).await?))
@@ -157,17 +130,13 @@ impl DataplaneTransfersEntitiesTrait for DataplaneTransfersEntityService {
     async fn get_batch_dataplane_transfers(
         &self,
         transfer_ids: &Vec<Urn>,
-    ) -> anyhow::Result<Vec<DataplaneTransferDto>> {
+    ) -> Outcome<Vec<DataplaneTransferDto>> {
         let processes = self
             .data_plane_repo
             .get_dataplane_transfers_repo()
             .get_batch_dataplane_transfers(transfer_ids)
             .await
-            .map_err(|e| {
-                let err = CommonErrors::database_new(&e.to_string());
-                error!("{}", err.log());
-                err
-            })?;
+            .map_err(|e| e.into_errors())?;
 
         let mut dtos = Vec::with_capacity(processes.len());
         for p in processes {
@@ -181,18 +150,14 @@ impl DataplaneTransfersEntitiesTrait for DataplaneTransfersEntityService {
     async fn create_dataplane_transfer(
         &self,
         new_data_plane_process: &NewDataplaneTransferDto,
-    ) -> anyhow::Result<DataplaneTransferDto> {
+    ) -> Outcome<DataplaneTransferDto> {
         let new_model: NewDataplaneTransfer = new_data_plane_process.clone().into();
         let created_process = self
             .data_plane_repo
             .get_dataplane_transfers_repo()
             .create_dataplane_transfers(&new_model)
             .await
-            .map_err(|e| {
-                let err = CommonErrors::database_new(&e.to_string());
-                error!("{}", err.log());
-                err
-            })?;
+            .map_err(|e| e.into_errors())?;
 
         // LOGGING: Creation
         let log = NewTransferLog {
@@ -223,7 +188,7 @@ impl DataplaneTransfersEntitiesTrait for DataplaneTransfersEntityService {
         &self,
         id: &Urn,
         edit_dataplane_transfer: &EditDataplaneTransferDto,
-    ) -> anyhow::Result<DataplaneTransferDto> {
+    ) -> Outcome<DataplaneTransferDto> {
         // Fetch current state for logging (use cache/DB via self)
         let current_dto = self.get_dataplane_transfer_by_id(id).await?;
 
@@ -237,20 +202,18 @@ impl DataplaneTransfersEntitiesTrait for DataplaneTransfersEntityService {
 
         if let Some(fields) = edit_dataplane_transfer.fields.as_ref() {
             let fields_repo = self.data_plane_repo.get_dataplane_fields_repo();
-            fields_repo.delete_all_dataplane_fields_by_process_id(id).await.map_err(|e| {
-                let err = CommonErrors::database_new(&format!("Error deleting fields: {}", e));
-                error!("{}", err.log());
-                err
-            })?;
+            fields_repo
+                .delete_all_dataplane_fields_by_process_id(id)
+                .await
+                .map_err(|e| e.into_errors())?;
 
             for (key, value) in fields {
                 let new_field =
                     NewDataPlaneFieldModel { key: key.clone(), value: Some(value.clone()) };
-                fields_repo.create_dataplane_field(id, &new_field).await.map_err(|e| {
-                    let err = CommonErrors::database_new(&format!("Error creating field: {}", e));
-                    error!("{}", err.log());
-                    err
-                })?;
+                fields_repo
+                    .create_dataplane_field(id, &new_field)
+                    .await
+                    .map_err(|e| e.into_errors())?;
             }
         }
 
@@ -259,11 +222,7 @@ impl DataplaneTransfersEntitiesTrait for DataplaneTransfersEntityService {
             .get_dataplane_transfers_repo()
             .put_dataplane_transfers(id, &edit_model)
             .await
-            .map_err(|e| {
-                let err = CommonErrors::database_new(&e.to_string());
-                error!("{}", err.log());
-                err
-            })?;
+            .map_err(|e| e.into_errors())?;
 
         // LOGGING: Update (if state changed)
         if let Some(new_state) = &edit_dataplane_transfer.state {
@@ -299,16 +258,12 @@ impl DataplaneTransfersEntitiesTrait for DataplaneTransfersEntityService {
         Ok(enriched)
     }
 
-    async fn delete_dataplane_transfer(&self, id: &Urn) -> anyhow::Result<()> {
+    async fn delete_dataplane_transfer(&self, id: &Urn) -> Outcome<()> {
         self.data_plane_repo
             .get_dataplane_transfers_repo()
             .delete_dataplane_transfers(id)
             .await
-            .map_err(|e| {
-                let err = CommonErrors::database_new(&e.to_string());
-                error!("{}", err.log());
-                err
-            })?;
+            .map_err(|e| e.into_errors())?;
 
         // Remove from cache
         let _ = self.cache.delete_single(id).await;

@@ -33,7 +33,7 @@ use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRp
 use rainbow_common::http_client::HttpClient;
 use std::sync::Arc;
 use urn::Urn;
-
+use ymir::errors::{Errors, Outcome};
 // ─── CompletionStep ───────────────────────────────────────────────────────────
 
 /// Marks the transfer as successfully finished on both the local dataplane and
@@ -53,24 +53,24 @@ impl TransferRpcStep for CompletionStep {
     async fn validate(
         validator: &Arc<dyn ValidationRpcSteps>,
         input: &RpcTransferCompletionMessageDto,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         validator.transfer_completion_rpc(input).await
     }
 
     async fn prepare_context(
         input: &RpcTransferCompletionMessageDto,
         persistence: &Arc<dyn TransferPersistenceTrait>,
-    ) -> anyhow::Result<RpcPeerContext> {
+    ) -> Outcome<RpcPeerContext> {
         let pid = input
             .get_consumer_pid()
-            .ok_or_else(|| anyhow::anyhow!("CompletionStep: missing consumer PID"))?;
+            .ok_or_else(|| Errors::crazy("CompletionStep: missing consumer PID", None))?;
         resolve_continuation_context(&pid, persistence).await
     }
 
     async fn pre_hook(
         dp: &Arc<dyn DataPlaneFacadeTrait>,
         ctx: &RpcPeerContext,
-    ) -> anyhow::Result<Option<DataAddressDto>> {
+    ) -> Outcome<Option<DataAddressDto>> {
         dp.on_transfer_completion_pre(&ctx.process).await?;
         Ok(None)
     }
@@ -79,7 +79,7 @@ impl TransferRpcStep for CompletionStep {
         _input: &RpcTransferCompletionMessageDto,
         ctx: &RpcPeerContext,
         _pre_addr: Option<DataAddressDto>,
-    ) -> anyhow::Result<TransferCompletionMessageDto> {
+    ) -> Outcome<TransferCompletionMessageDto> {
         Ok(TransferCompletionMessageDto {
             provider_pid: ctx.provider_pid.clone(),
             consumer_pid: ctx.consumer_pid.clone(),
@@ -96,7 +96,7 @@ impl TransferRpcStep for CompletionStep {
         ctx: &RpcPeerContext,
         payload: Arc<TransferCompletionMessageDto>,
         url_suffix: &str,
-    ) -> anyhow::Result<(TransferProcessMessageWrapper<TransferProcessAckDto>, TransferProcessDto)>
+    ) -> Outcome<(TransferProcessMessageWrapper<TransferProcessAckDto>, TransferProcessDto)>
     {
         continuation_send_and_persist(http_client, persistence, ctx, payload, url_suffix).await
     }
@@ -104,7 +104,7 @@ impl TransferRpcStep for CompletionStep {
     async fn post_hook(
         dp: &Arc<dyn DataPlaneFacadeTrait>,
         ctx: &RpcPeerContext,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         dp.on_transfer_completion_post(&ctx.process).await
     }
 }

@@ -7,12 +7,13 @@ use rainbow_common::config::services::GatewayConfig;
 
 use reqwest::Client;
 
-use rainbow_common::config::types::traits::CommonConfigTrait;
+use rainbow_common::config::types::traits::{CommonConfigTrait, MinKnownConfigTrait};
 use std::time::Duration;
 use tokio::sync::broadcast;
 use tracing::{debug, error, info, warn};
 use ymir::config::traits::SingleHostTrait;
 use ymir::config::types::HostType;
+use rainbow_common::config::services::traits::GatewayConfigTrait;
 
 #[async_trait::async_trait]
 pub trait GatewayServiceTrait: Send + Sync {

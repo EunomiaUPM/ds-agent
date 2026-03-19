@@ -22,6 +22,7 @@ use crate::data::entities::transfer_message::NewTransferMessageModel;
 use anyhow::Error;
 use thiserror::Error;
 use urn::Urn;
+use ymir::errors::{Outcome, RepoIntoErrors};
 
 #[mockall::automock]
 #[async_trait::async_trait]
@@ -31,27 +32,27 @@ pub trait TransferMessageRepoTrait: Send + Sync {
         &self,
         limit: Option<u64>,
         page: Option<u64>,
-    ) -> anyhow::Result<Vec<transfer_message::Model>, TransferMessageRepoErrors>;
+    ) -> Outcome<Vec<transfer_message::Model>>;
 
     async fn get_messages_by_process_id(
         &self,
         process_id: &Urn,
-    ) -> anyhow::Result<Vec<transfer_message::Model>, TransferMessageRepoErrors>;
+    ) -> Outcome<Vec<transfer_message::Model>>;
 
     async fn get_transfer_message_by_id(
         &self,
         id: &Urn,
-    ) -> anyhow::Result<Option<transfer_message::Model>, TransferMessageRepoErrors>;
+    ) -> Outcome<Option<transfer_message::Model>>;
 
     async fn create_transfer_message(
         &self,
         new_model: &NewTransferMessageModel,
-    ) -> anyhow::Result<transfer_message::Model, TransferMessageRepoErrors>;
+    ) -> Outcome<transfer_message::Model>;
 
     async fn delete_transfer_message(
         &self,
         id: &Urn,
-    ) -> anyhow::Result<(), TransferMessageRepoErrors>;
+    ) -> Outcome<()>;
 }
 
 #[derive(Debug, Error)]
@@ -65,3 +66,5 @@ pub enum TransferMessageRepoErrors {
     #[error("Error deleting transfer message. {0}")]
     ErrorDeletingTransferMessage(Error),
 }
+
+impl RepoIntoErrors for TransferMessageRepoErrors {}

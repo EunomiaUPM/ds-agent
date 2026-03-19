@@ -22,11 +22,11 @@ use crate::protocols::dsp::protocol_types::{
 };
 use crate::protocols::dsp::validator::traits::validate_state_transition::ValidateStateTransition;
 use crate::protocols::dsp::validator::traits::validation_helpers::ValidationHelpers;
-use anyhow::bail;
 use log::error;
 use rainbow_common::config::types::roles::RoleConfig;
 use rainbow_common::errors::{CommonErrors, ErrorLog};
 use std::sync::Arc;
+use ymir::errors::{Errors, Outcome};
 
 pub struct ValidatedStateTransitionServiceForDsp {
     _helpers: Arc<dyn ValidationHelpers>,
@@ -42,7 +42,7 @@ impl ValidateStateTransition for ValidatedStateTransitionServiceForDsp {
         &self,
         role: &RoleConfig,
         message_type: &TransferProcessMessageType,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         match (role, message_type) {
             // provider can receive all messages
             (RoleConfig::Provider, _) => {}
@@ -52,7 +52,7 @@ impl ValidateStateTransition for ValidatedStateTransitionServiceForDsp {
                     "Only Provider roles are allowed to receive TransferProcessMessageType TransferRequestMessage",
                 );
                 error!("{}", err.log());
-                bail!(err)
+                return Err(Errors::parse(err.to_string(), None));
             }
             // consumer can receive all messages but TransferRequestMessage
             (RoleConfig::Consumer, _) => {} // each other role should not be allowed
@@ -65,7 +65,7 @@ impl ValidateStateTransition for ValidatedStateTransitionServiceForDsp {
         &self,
         current_state: &TransferProcessState,
         message_type: &TransferProcessMessageType,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         match message_type {
             TransferProcessMessageType::TransferRequestMessage => {
                 // is not validated since there's no transition
@@ -135,14 +135,14 @@ impl ValidateStateTransition for ValidatedStateTransitionServiceForDsp {
                     "TransferProcessMessageType TransferProcess is not allowed here",
                 );
                 error!("{}", err.log());
-                bail!(err)
+                return Err(Errors::parse(err.to_string(), None));
             }
             TransferProcessMessageType::TransferError => {
                 let err = CommonErrors::parse_new(
                     "TransferProcessMessageType TransferProcess is not allowed here",
                 );
                 error!("{}", err.log());
-                bail!(err)
+                return Err(Errors::parse(err.to_string(), None));
             }
         }
         Ok(())
@@ -154,11 +154,7 @@ impl ValidateStateTransition for ValidatedStateTransitionServiceForDsp {
         current_state_attribute: &TransferStateAttribute,
         message_type: &TransferProcessMessageType,
         role: &RoleConfig,
-    ) -> anyhow::Result<()> {
-        // if message is TransferStartMessage
-        // if on request, ok
-        // if byConsumer or byProvider, only could be changed by same role.
-        // to avoid start processes suspended by peer
+    ) -> Outcome<()> {
         match message_type {
             TransferProcessMessageType::TransferStartMessage => match current_state_attribute {
                 TransferStateAttribute::OnRequest => {}
@@ -175,14 +171,13 @@ impl ValidateStateTransition for ValidatedStateTransitionServiceForDsp {
                             .as_str(),
                         );
                         error!("{}", err.log());
-                        bail!(err);
+                        return Err(Errors::parse(err.to_string(), None));
                     }
                     _ => {}
                 },
             },
             _ => {}
         };
-        // sorry by the arrow matching...
         Ok(())
     }
 }
@@ -190,7 +185,7 @@ impl ValidateStateTransition for ValidatedStateTransitionServiceForDsp {
 fn validate_state_transition_error_helper(
     current_state: &TransferProcessState,
     message_type: &TransferProcessMessageType,
-) -> anyhow::Result<()> {
+) -> Outcome<()> {
     let err = CommonErrors::parse_new(
         format!(
             "TransferProcessMessageType {} is not allowed here. Current state is {}",
@@ -200,5 +195,5 @@ fn validate_state_transition_error_helper(
         .as_str(),
     );
     error!("{}", err.log());
-    bail!(err)
+    Err(Errors::parse(err.to_string(), None))
 }

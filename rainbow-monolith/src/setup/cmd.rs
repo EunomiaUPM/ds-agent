@@ -82,12 +82,15 @@ impl CoreCommands {
             }
             CoreCliCommands::Setup(args) => {
                 let config = ApplicationConfig::load(&args.env_file)?;
-                let vault = if config.monolith().is_vault_real() {
+                let vault = if config.monolith().common().is_vault_real() {
                     VaultService::Real(RealVaultService::new())
                 } else {
                     VaultService::Fake(FakeVaultService::new())
                 };
-                show_table(&config)?;
+                let table = json_to_table::json_to_table(&serde_json::to_value(&config.monolith())?)
+                    .collapse()
+                    .to_string();
+                info!("Current Config:\n{}", &table);
 
                 if config.monolith().common().is_prod() {
                     vault.write_all_secrets(None).await?;

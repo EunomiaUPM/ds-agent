@@ -11,6 +11,7 @@ use crate::entities::parameters::parameters::ParameterDefinition;
 use crate::entities::parameters::ParameterEnricher;
 use serde_json::Value;
 use std::collections::HashMap;
+use ymir::errors::Outcome;
 
 /// Enriches the parameter map with declared default values.
 ///
@@ -40,7 +41,7 @@ impl<'a> DefaultParameterEnricher<'a> {
 impl ParameterEnricher for DefaultParameterEnricher<'_> {
     /// Fills in the declared `default_value` for every parameter that has one
     /// and whose key is not yet present in `params`.
-    fn enrich(&self, params: &mut HashMap<String, Value>) -> anyhow::Result<()> {
+    fn enrich(&self, params: &mut HashMap<String, Value>) -> Outcome<()> {
         DefaultParametersInjector::inject(self.definitions, params)
     }
 }

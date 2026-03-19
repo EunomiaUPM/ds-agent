@@ -42,8 +42,10 @@ use tower_http::trace::{DefaultOnResponse, TraceLayer};
 use uuid::Uuid;
 use ymir::config::traits::{ApiConfigTrait, ConnectionConfigTrait, HostsConfigTrait};
 use ymir::config::types::HostType;
+use ymir::errors::{Errors, Outcome};
 use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
+use rainbow_common::config::services::traits::TransferConfigTrait;
 
 pub struct TransferHttpWorker {}
 impl TransferHttpWorker {
@@ -51,17 +53,18 @@ impl TransferHttpWorker {
         config: &TransferConfig,
         vault: Arc<VaultService>,
         token: &CancellationToken,
-    ) -> anyhow::Result<JoinHandle<()>> {
+    ) -> Outcome<JoinHandle<()>> {
         // well known router
         let well_known_router = WellKnownRoot::get_well_known_router(&config.into())?;
         // module transfer router
         let router =
             Self::create_root_http_router(&config, vault.clone()).await?.merge(well_known_router);
         let host = if config.common().is_local() { "127.0.0.1" } else { "0.0.0.0" };
-        let port = config.common().get_weird_port(HostType::Http);
+        let port = config.common().get_internal_port(HostType::Http);
         let addr = format!("{}{}", host, port);
 
-        let listener = TcpListener::bind(&addr).await?;
+        let listener = TcpListener::bind(&addr).await
+            .map_err(|e| Errors::crazy("Error listening on the socket", Some(Box::new(e))))?;
         tracing::info!("HTTP Transfer Service running on {}", addr);
 
         let token = token.clone();
@@ -81,7 +84,7 @@ impl TransferHttpWorker {
     pub async fn create_root_http_router(
         config: &TransferConfig,
         vault: Arc<VaultService>,
-    ) -> anyhow::Result<Router> {
+    ) -> Outcome<Router> {
         let router = create_root_http_router(config, vault.clone())
             .await?
             .fallback(Self::handler_404)
@@ -110,7 +113,7 @@ impl TransferHttpWorker {
 pub async fn create_root_http_router(
     config: &TransferConfig,
     vault: Arc<VaultService>,
-) -> anyhow::Result<Router> {
+) -> Outcome<Router> {
     // ROOT Dependency Injection
     let db_connection = vault.get_db_connection(config.common()).await;
     let config = Arc::new(config.clone());

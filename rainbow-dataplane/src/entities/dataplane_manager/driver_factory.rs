@@ -9,7 +9,7 @@ use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::sync::Arc;
 use urn::Urn;
-
+use ymir::errors::{Errors, Outcome};
 // ─── System runtime context ───
 //
 // Computed at subscribe/unsubscribe time from the active dataplane process and node config.
@@ -72,15 +72,12 @@ impl HttpSubscribeLifecycle {
 
 #[async_trait::async_trait]
 impl LifeCycleActionTrait for HttpSubscribeLifecycle {
-    async fn perform_subscribe(
-        &self,
-        connector: Option<&ConnectorInstanceDto>,
-    ) -> anyhow::Result<Value> {
-        let connector =
-            connector.ok_or_else(|| anyhow::anyhow!("No connector instance for PUSH subscribe"))?;
+    async fn perform_subscribe(&self, connector: Option<&ConnectorInstanceDto>) -> Outcome<Value> {
+        let connector = connector
+            .ok_or_else(|| Errors::crazy("No connector instance for PUSH subscribe", None))?;
         let push = match &connector.interaction {
             InteractionConfig::Push(p) => p,
-            _ => return Err(anyhow::anyhow!("Connector interaction is not PUSH")),
+            _ => return Err(Errors::crazy("Connector interaction is not PUSH", None)),
         };
 
         // Clone subscribe spec and apply RUNTIME_* params (no SUB context yet at subscribe time).
@@ -91,7 +88,7 @@ impl LifeCycleActionTrait for HttpSubscribeLifecycle {
 
         let http_spec = match &subscribe_spec {
             ProtocolSpec::Http(spec) => spec,
-            _ => return Err(anyhow::anyhow!("Only HTTP subscribe is supported")),
+            _ => return Err(Errors::crazy("Only HTTP subscribe is supported", None)),
         };
 
         let body: Option<Value> = http_spec
@@ -101,28 +98,23 @@ impl LifeCycleActionTrait for HttpSubscribeLifecycle {
 
         let url = http_spec.url_template.clone();
         let response: Value = if let Some(body) = body {
-            self.http_client
-                .post_json(&url, &body)
-                .await
-                .map_err(|e| anyhow::anyhow!("Subscribe POST failed: {}", e))?
+            self.http_client.post_json(&url, &body).await.map_err(|e| {
+                Errors::crazy(format!("Subscribe POST failed: {}", e), Some(Box::new(e)))
+            })?
         } else {
-            self.http_client
-                .post_json(&url, &json!({}))
-                .await
-                .map_err(|e| anyhow::anyhow!("Subscribe POST (no body) failed: {}", e))?
+            self.http_client.post_json(&url, &json!({})).await.map_err(|e| {
+                Errors::crazy(format!("Subscribe POST (no body) failed: {}", e), Some(Box::new(e)))
+            })?
         };
         Ok(response)
     }
 
-    async fn perform_unsubscribe(
-        &self,
-        connector: Option<&ConnectorInstanceDto>,
-    ) -> anyhow::Result<()> {
+    async fn perform_unsubscribe(&self, connector: Option<&ConnectorInstanceDto>) -> Outcome<()> {
         let connector = connector
-            .ok_or_else(|| anyhow::anyhow!("No connector instance for PUSH unsubscribe"))?;
+            .ok_or_else(|| Errors::crazy("No connector instance for PUSH unsubscribe", None))?;
         let push = match &connector.interaction {
             InteractionConfig::Push(p) => p,
-            _ => return Err(anyhow::anyhow!("Connector interaction is not PUSH")),
+            _ => return Err(Errors::crazy("Connector interaction is not PUSH", None)),
         };
 
         let mut unsubscribe_spec = match &push.unsubscribe {
@@ -139,7 +131,7 @@ impl LifeCycleActionTrait for HttpSubscribeLifecycle {
 
         let http_spec = match &unsubscribe_spec {
             ProtocolSpec::Http(spec) => spec,
-            _ => return Err(anyhow::anyhow!("Only HTTP unsubscribe is supported")),
+            _ => return Err(Errors::crazy("Only HTTP unsubscribe is supported", None)),
         };
 
         let body: Option<Value> = http_spec
@@ -149,17 +141,16 @@ impl LifeCycleActionTrait for HttpSubscribeLifecycle {
 
         let url = http_spec.url_template.clone();
         if let Some(body) = body {
-            let _: Value = self
-                .http_client
-                .post_json(&url, &body)
-                .await
-                .map_err(|e| anyhow::anyhow!("Unsubscribe POST failed: {}", e))?;
+            let _: Value = self.http_client.post_json(&url, &body).await.map_err(|e| {
+                Errors::crazy(format!("Unsubscribe POST failed: {}", e), Some(Box::new(e)))
+            })?;
         } else {
-            let _: Value = self
-                .http_client
-                .post_json(&url, &json!({}))
-                .await
-                .map_err(|e| anyhow::anyhow!("Unsubscribe POST (no body) failed: {}", e))?;
+            let _: Value = self.http_client.post_json(&url, &json!({})).await.map_err(|e| {
+                Errors::crazy(
+                    format!("Unsubscribe POST (no body) failed: {}", e),
+                    Some(Box::new(e)),
+                )
+            })?;
         }
         Ok(())
     }
@@ -181,7 +172,7 @@ impl DataplaneDriverFactory {
         &self,
         process: &DataplaneTransferDto,
         connector_instance_dto: Option<&ConnectorInstanceDto>,
-    ) -> anyhow::Result<DataplaneDriver> {
+    ) -> Outcome<DataplaneDriver> {
         let role = process.inner.role.clone();
         let interaction_mode = process.inner.interaction_mode.clone();
 
@@ -205,15 +196,14 @@ impl DataplaneDriverFactory {
         Ok(DataplaneDriver { auth_driver, lifecycle_driver })
     }
 
-    fn extract_ingress_path(&self, process: &DataplaneTransferDto) -> anyhow::Result<String> {
-        let ingress: IngressConfig =
-            serde_json::from_value(process.inner.ingress_config.clone())
-                .map_err(|e| anyhow::anyhow!("Failed to parse ingress_config: {}", e))?;
+    fn extract_ingress_path(&self, process: &DataplaneTransferDto) -> Outcome<String> {
+        let ingress: IngressConfig = serde_json::from_value(process.inner.ingress_config.clone())?;
         match ingress {
             IngressConfig::HttpListener { path } => Ok(path),
-            IngressConfig::Connector { .. } => {
-                Err(anyhow::anyhow!("Cannot compute callback URL for Connector ingress"))
-            }
+            IngressConfig::Connector { .. } => Err(Errors::crazy(
+                "Cannot compute callback URL for Connector ingress",
+                None,
+            )),
         }
     }
 }
@@ -225,7 +215,7 @@ pub struct DataplaneDriver {
 
 #[async_trait::async_trait]
 pub trait AuthActionTrait: Send + Sync {
-    async fn perform_auth(&self, connector: Option<&ConnectorInstanceDto>) -> anyhow::Result<()>;
+    async fn perform_auth(&self, connector: Option<&ConnectorInstanceDto>) -> Outcome<()>;
 }
 
 pub struct NoOpAuth {}
@@ -238,7 +228,7 @@ impl NoOpAuth {
 
 #[async_trait::async_trait]
 impl AuthActionTrait for NoOpAuth {
-    async fn perform_auth(&self, _connector: Option<&ConnectorInstanceDto>) -> anyhow::Result<()> {
+    async fn perform_auth(&self, _connector: Option<&ConnectorInstanceDto>) -> Outcome<()> {
         Ok(())
     }
 }
@@ -246,14 +236,8 @@ impl AuthActionTrait for NoOpAuth {
 #[async_trait::async_trait]
 pub trait LifeCycleActionTrait: Send + Sync {
     /// Performs subscription. Returns the response body (stored in flow_control for later use).
-    async fn perform_subscribe(
-        &self,
-        connector: Option<&ConnectorInstanceDto>,
-    ) -> anyhow::Result<Value>;
-    async fn perform_unsubscribe(
-        &self,
-        connector: Option<&ConnectorInstanceDto>,
-    ) -> anyhow::Result<()>;
+    async fn perform_subscribe(&self, connector: Option<&ConnectorInstanceDto>) -> Outcome<Value>;
+    async fn perform_unsubscribe(&self, connector: Option<&ConnectorInstanceDto>) -> Outcome<()>;
 }
 
 pub struct NoOpLifecycle {}
@@ -266,17 +250,11 @@ impl NoOpLifecycle {
 
 #[async_trait::async_trait]
 impl LifeCycleActionTrait for NoOpLifecycle {
-    async fn perform_subscribe(
-        &self,
-        _connector: Option<&ConnectorInstanceDto>,
-    ) -> anyhow::Result<Value> {
+    async fn perform_subscribe(&self, _connector: Option<&ConnectorInstanceDto>) -> Outcome<Value> {
         Ok(Value::Null)
     }
 
-    async fn perform_unsubscribe(
-        &self,
-        _connector: Option<&ConnectorInstanceDto>,
-    ) -> anyhow::Result<()> {
+    async fn perform_unsubscribe(&self, _connector: Option<&ConnectorInstanceDto>) -> Outcome<()> {
         Ok(())
     }
 }

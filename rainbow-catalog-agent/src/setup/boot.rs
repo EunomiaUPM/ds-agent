@@ -22,7 +22,7 @@ use crate::{CatalogDto, DataServiceDto, NewCatalogDto, NewDataServiceDto};
 use rainbow_common::boot::shutdown::shutdown_signal;
 use rainbow_common::boot::BootstrapServiceTrait;
 use rainbow_common::config::services::{CatalogConfig, ContractsConfig, TransferConfig};
-use rainbow_common::config::types::traits::{CommonConfigTrait, ConfigLoader};
+use rainbow_common::config::types::traits::{CommonConfigTrait, ConfigLoader, MinKnownConfigTrait};
 use rainbow_common::config::types::roles::RoleConfig;
 use rainbow_common::http_client::{HttpClient, HttpClientError};
 use std::str::FromStr;
@@ -35,21 +35,23 @@ use urn::Urn;
 use ymir::config::traits::{ApiConfigTrait, HostsConfigTrait};
 use ymir::config::types::HostType;
 use ymir::data::entities::mates;
+use ymir::errors::{Errors, Outcome};
 use ymir::services::vault::global::VaultService;
+use rainbow_common::config::services::traits::CatalogConfigTrait;
 
 pub struct CatalogAgentBoot;
 
 #[async_trait::async_trait]
 impl BootstrapServiceTrait for CatalogAgentBoot {
     type Config = CatalogConfig;
-    async fn load_config(env_file: String) -> anyhow::Result<Self::Config> {
-        let config = Self::Config::load(env_file);
+    async fn load_config(env_file: String) -> Outcome<Self::Config> {
+        let config = Self::Config::load(&*env_file)?;
         let table =
             json_to_table::json_to_table(&serde_json::to_value(&config)?).collapse().to_string();
         tracing::info!("Current Catalog Agent Config:\n{}", table);
         Ok(config)
     }
-    async fn create_participant(config: &Self::Config) -> anyhow::Result<String> {
+    async fn create_participant(config: &Self::Config) -> Outcome<String> {
         let client = HttpClient::new(1, 30);
         let base_url = config.ssi_auth().get_host(HostType::Http);
         let api = config.ssi_auth().get_api_version();
@@ -67,7 +69,7 @@ impl BootstrapServiceTrait for CatalogAgentBoot {
                     let url = format!("{}{}/wallet/onboard", base_url, api);
                     client.post_void::<()>(url.as_str()).await?;
                 }
-                _ => anyhow::bail!(err),
+                _ => return Err(Errors::from(err)),
             }
             // attempt again
             let url = format!("{}{}/mates/myself", base_url, api);
@@ -84,7 +86,7 @@ impl BootstrapServiceTrait for CatalogAgentBoot {
     async fn load_catalog(
         participant_id: &Option<String>,
         config: &Self::Config,
-    ) -> anyhow::Result<String> {
+    ) -> Outcome<String> {
         let participant_id = participant_id.clone().unwrap_or_default();
         let client = HttpClient::new(1, 3);
         let base_url = config.common().get_host(HostType::Http);
@@ -105,7 +107,7 @@ impl BootstrapServiceTrait for CatalogAgentBoot {
     async fn load_dataservice(
         catalog_id: &Option<String>,
         config: &Self::Config,
-    ) -> anyhow::Result<String> {
+    ) -> Outcome<String> {
         let catalog_id = catalog_id.clone().unwrap_or_default();
         let client = HttpClient::new(1, 3);
         let base_url = config.common().get_host(HostType::Http);
@@ -125,7 +127,7 @@ impl BootstrapServiceTrait for CatalogAgentBoot {
         Ok(catalog.inner.id)
     }
 
-    async fn load_policy_templates(config: &Self::Config) -> anyhow::Result<()> {
+    async fn load_policy_templates(config: &Self::Config) -> Outcome<()> {
         let client = HttpClient::new(1, 3);
         let base_url = config.common().get_host(HostType::Http);
         let api = config.common().get_api_version();
@@ -174,7 +176,7 @@ impl BootstrapServiceTrait for CatalogAgentBoot {
     async fn start_services_background(
         config: &Self::Config,
         vault: Arc<VaultService>,
-    ) -> anyhow::Result<broadcast::Sender<()>> {
+    ) -> Outcome<broadcast::Sender<()>> {
         // thread control
         let (shutdown_tx, mut shutdown_rx) = broadcast::channel(1);
         let cancel_token = CancellationToken::new();

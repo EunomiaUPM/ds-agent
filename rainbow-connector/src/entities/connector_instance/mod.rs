@@ -21,6 +21,7 @@ use crate::entities::interaction::InteractionConfig;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use urn::Urn;
+use ymir::errors::Outcome;
 
 /// Request payload for creating or updating a connector instance.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -71,11 +72,11 @@ pub struct ConnectorInstanceDto {
 #[cfg_attr(test, mockall::automock)]
 #[async_trait::async_trait]
 pub trait ConnectorInstanceTrait: Send + Sync {
-    async fn get_instance_by_id(&self, id: &Urn) -> anyhow::Result<Option<ConnectorInstanceDto>>;
+    async fn get_instance_by_id(&self, id: &Urn) -> Outcome<Option<ConnectorInstanceDto>>;
     async fn get_instance_by_distribution(
         &self,
         distribution_id: &Urn,
-    ) -> anyhow::Result<Option<ConnectorInstanceDto>>;
+    ) -> Outcome<Option<ConnectorInstanceDto>>;
     /// Validate parameters, resolve placeholders, and persist the instance.
     ///
     /// Idempotent: if an instance already exists for `distribution_id` it is
@@ -83,6 +84,6 @@ pub trait ConnectorInstanceTrait: Send + Sync {
     async fn upsert_instance(
         &self,
         instance_dto: &mut ConnectorInstantiationDto,
-    ) -> anyhow::Result<ConnectorInstanceDto>;
-    async fn delete_instance_by_id(&self, id: &Urn) -> anyhow::Result<()>;
+    ) -> Outcome<ConnectorInstanceDto>;
+    async fn delete_instance_by_id(&self, id: &Urn) -> Outcome<()>;
 }

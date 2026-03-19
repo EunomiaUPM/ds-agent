@@ -19,8 +19,8 @@ use std::fmt::Display;
 use std::ops::Not;
 use std::str::FromStr;
 
-use anyhow::bail;
 use serde::{Deserialize, Serialize};
+use ymir::errors::Errors;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Copy)]
 pub enum RoleConfig {
@@ -42,14 +42,14 @@ impl Not for RoleConfig {
 }
 
 impl FromStr for RoleConfig {
-    type Err = anyhow::Error;
+    type Err = Errors;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "Consumer" => Ok(RoleConfig::Consumer),
             "Provider" => Ok(RoleConfig::Provider),
             "" => Ok(RoleConfig::NotDefined),
-            _ => bail!("Invalid config role: {}", s)
+            _ => Err(Errors::crazy(format!("Invalid config role: {}", s), None))
         }
     }
 }

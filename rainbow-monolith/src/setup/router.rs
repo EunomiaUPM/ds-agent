@@ -27,7 +27,7 @@ use rainbow_common::config::ApplicationConfig;
 use rainbow_common::well_known::WellKnownRoot;
 use rainbow_fe_gateway::create_gateway_http_router;
 use rainbow_negotiation_agent::create_negotiations_http_router;
-use rainbow_transfer_agent::setup::create_root_http_router;
+// use rainbow_transfer_agent::setup::create_root_http_router;
 use tower_http::trace::{DefaultOnResponse, TraceLayer};
 use uuid::Uuid;
 use ymir::services::vault::global::VaultService;
@@ -38,9 +38,9 @@ pub async fn create_core_router(config: &ApplicationConfig, vault: Arc<VaultServ
     let auth_router = AuthApplication::create_router(&config.ssi_auth(), vault.clone()).await;
     let negotiation_agent_router =
         create_negotiations_http_router(&config.contracts(), vault.clone()).await;
-    let transfer_agent_router = create_root_http_router(&config.transfer(), vault.clone())
-        .await
-        .expect("Failed to create transfer agent router");
+    // let transfer_agent_router = create_root_http_router(&config.transfer(), vault.clone())
+    //     .await
+    //     .expect("Failed to create transfer agent router");
     let catalog_agent_router = catalog_router(&config.catalog(), vault.clone())
         .await
         .expect("Failed to create catalog router");
@@ -51,7 +51,7 @@ pub async fn create_core_router(config: &ApplicationConfig, vault: Arc<VaultServ
         .merge(catalog_agent_router)
         .merge(auth_router)
         .merge(negotiation_agent_router)
-        .merge(transfer_agent_router)
+        // .merge(transfer_agent_router)
         .merge(gateway_router)
         .layer(
             TraceLayer::new_for_http()

@@ -57,6 +57,7 @@ use tonic::codegen::tokio_stream::wrappers::TcpListenerStream;
 use tonic::transport::Server;
 use ymir::config::traits::{ConnectionConfigTrait, HostsConfigTrait};
 use ymir::config::types::HostType;
+use ymir::errors::{Errors, Outcome};
 use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
 
@@ -67,13 +68,14 @@ impl CatalogGrpcWorker {
         config: &CatalogConfig,
         vault: Arc<VaultService>,
         token: &CancellationToken,
-    ) -> anyhow::Result<JoinHandle<()>> {
+    ) -> Outcome<JoinHandle<()>> {
         let router = Self::create_root_grpc_router(&config, vault.clone()).await?;
         let host = if config.common().is_local() { "127.0.0.1" } else { "0.0.0.0" };
-        let port = config.common().get_weird_port(HostType::Http);
+        let port = config.common().get_internal_port(HostType::Http);
         let addr = format!("{}{}", host, port);
 
-        let listener = TcpListener::bind(&addr).await?;
+        let listener = TcpListener::bind(&addr).await
+            .map_err(|e| Errors::crazy("Error listening on the socket", Some(Box::new(e))))?;
         let incoming = TcpListenerStream::new(listener);
         tracing::info!("GRPC Catalog Service running on {}", addr);
 
@@ -94,11 +96,12 @@ impl CatalogGrpcWorker {
     pub async fn create_root_grpc_router(
         config: &CatalogConfig,
         vault: Arc<VaultService>,
-    ) -> anyhow::Result<tonic::transport::server::Router> {
+    ) -> Outcome<tonic::transport::server::Router> {
         // conn
         let db_connection = vault.get_db_connection(config.common()).await;
         let cache_connection_url = config.get_full_cache_url();
-        let redis_client = redis::Client::open(cache_connection_url)?;
+        let redis_client = redis::Client::open(cache_connection_url)
+            .map_err(|e| Errors::crazy("Error creating Redis client", Some(Box::new(e))))?;
         let redis_connection =
             redis_client.get_multiplexed_async_connection().await.expect("Redis connection failed");
 
@@ -143,7 +146,8 @@ impl CatalogGrpcWorker {
 
         let reflection_service = tonic_reflection::server::Builder::configure()
             .register_encoded_file_descriptor_set(FILE_DESCRIPTOR_SET)
-            .build_v1()?;
+            .build_v1()
+            .map_err(|e| Errors::crazy("Error building gRPC server", Some(Box::new(e))))?;
 
         let router = Server::builder()
             .add_service(reflection_service)

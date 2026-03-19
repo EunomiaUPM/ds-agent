@@ -16,6 +16,8 @@
  */
 
 use serde::{Deserialize, Serialize};
+use ymir::config::traits::ConnectionConfigTrait;
+use ymir::config::types::ConnectionConfig;
 use ymir::errors::Outcome;
 
 use crate::config::services::traits::ContractsConfigTrait;
@@ -45,4 +47,10 @@ impl ConfigLoader for ContractsConfig {
 
 impl CommonConfigTrait for ContractsConfig {
     fn common(&self) -> &CommonConfig { &self.common }
+}
+
+impl ConnectionConfigTrait for ContractsConfig {
+    fn connection(&self) -> &ConnectionConfig {
+        self.common.connection()
+    }
 }

@@ -19,6 +19,7 @@
 
 use anyhow::Error;
 use thiserror::Error;
+use ymir::errors::RepoIntoErrors;
 
 #[derive(Error, Debug)]
 pub enum ConnectorAgentRepoErrors {
@@ -71,3 +72,8 @@ pub enum ConnectorDistroRelationRepoErrors {
     #[error("Error updating relation. {0}")]
     ErrorUpdatingRelation(Error),
 }
+
+impl RepoIntoErrors for ConnectorAgentRepoErrors {}
+impl RepoIntoErrors for ConnectorTemplateRepoErrors {}
+impl RepoIntoErrors for ConnectorInstanceRepoErrors {}
+impl RepoIntoErrors for ConnectorDistroRelationRepoErrors {}

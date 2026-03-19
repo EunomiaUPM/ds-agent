@@ -35,6 +35,7 @@ use tonic::codegen::tokio_stream::wrappers::TcpListenerStream;
 use tonic::transport::Server;
 use ymir::config::traits::{ConnectionConfigTrait, HostsConfigTrait};
 use ymir::config::types::HostType;
+use ymir::errors::{Errors, Outcome};
 use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
 
@@ -45,13 +46,14 @@ impl TransferGrpcWorker {
         config: &TransferConfig,
         vault: Arc<VaultService>,
         token: &CancellationToken,
-    ) -> anyhow::Result<JoinHandle<()>> {
+    ) -> Outcome<JoinHandle<()>> {
         let router = Self::create_root_grpc_router(&config, vault.clone()).await?;
         let host = if config.common().is_local() { "127.0.0.1" } else { "0.0.0.0" };
-        let port = config.common().get_weird_port(HostType::Grpc);
+        let port = config.common().get_internal_port(HostType::Grpc);
         let addr = format!("{}{}", host, port);
 
-        let listener = TcpListener::bind(&addr).await?;
+        let listener = TcpListener::bind(&addr).await
+            .map_err(|e| Errors::crazy("Error listening on the socket", Some(Box::new(e))))?;
         let incoming = TcpListenerStream::new(listener);
         tracing::info!("GRPC Transfer Service running on {}", addr);
 
@@ -72,7 +74,7 @@ impl TransferGrpcWorker {
     pub async fn create_root_grpc_router(
         config: &TransferConfig,
         vault: Arc<VaultService>,
-    ) -> anyhow::Result<tonic::transport::server::Router> {
+    ) -> Outcome<tonic::transport::server::Router> {
         let db_connection = vault.get_db_connection(config.common()).await;
         let transfer_repo = Arc::new(TransferAgentRepoForSql::create_repo(db_connection.clone()));
 
@@ -83,7 +85,8 @@ impl TransferGrpcWorker {
 
         let reflection_service = tonic_reflection::server::Builder::configure()
             .register_encoded_file_descriptor_set(FILE_DESCRIPTOR_SET)
-            .build_v1()?;
+            .build_v1()
+            .map_err(|e| Errors::crazy("Error building gRPC server", Some(Box::new(e))))?;
 
         let router = Server::builder()
             .add_service(reflection_service)

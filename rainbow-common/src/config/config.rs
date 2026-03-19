@@ -19,6 +19,8 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 use tracing::debug;
+use ymir::config::traits::ConnectionConfigTrait;
+use ymir::config::types::ConnectionConfig;
 use ymir::errors::{Errors, Outcome};
 use ymir::utils::read;
 
@@ -27,6 +29,7 @@ use crate::config::services::{
     CatalogConfig, CommonConfig, ContractsConfig, GatewayConfig, MonolithConfig, SsiAuthConfig,
     TransferConfig
 };
+use crate::config::types::traits::CommonConfigTrait;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ApplicationConfig {
@@ -85,5 +88,11 @@ impl ApplicationConfig {
         let data = read(path)?;
         serde_norway::from_str(&data)
             .map_err(|e| Errors::parse("Unable to parse config file", Some(Box::new(e))))
+    }
+}
+
+impl ConnectionConfigTrait for ApplicationConfig {
+    fn connection(&self) -> &ConnectionConfig {
+        self.monolith().common().connection()
     }
 }

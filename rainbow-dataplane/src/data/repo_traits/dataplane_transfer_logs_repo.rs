@@ -3,6 +3,7 @@ use anyhow::Error;
 use async_trait::async_trait;
 use thiserror::Error;
 use urn::Urn;
+use ymir::errors::RepoIntoErrors;
 
 #[async_trait]
 pub trait DataplaneTransferLogsRepo: Send + Sync {
@@ -38,3 +39,6 @@ pub enum DataplaneTransferLogsRepoErrors {
     #[error("Error updating dataplane transfer log. {0}")]
     ErrorUpdatingDataplaneTransferLog(Error),
 }
+
+impl RepoIntoErrors for DataplaneTransferLogsRepoErrors {}
+

@@ -22,7 +22,9 @@ use crate::entities::transfer_process::{
     EditTransferProcessDto, TransferAgentProcessesTrait, TransferProcessDto,
 };
 use crate::http::common::parse_urn;
-use crate::protocols::dsp::persistence::{create_process_record, CreateProcessInput, TransferPersistenceTrait};
+use crate::protocols::dsp::persistence::{
+    create_process_record, CreateProcessInput, TransferPersistenceTrait,
+};
 use crate::protocols::dsp::protocol_types::{
     TransferProcessMessageTrait, TransferProcessMessageType, TransferProcessState,
     TransferStateAttribute,
@@ -35,7 +37,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tracing::error;
 use urn::Urn;
-
+use ymir::errors::{Errors, Outcome};
 // ─── Service ─────────────────────────────────────────────────────────────────
 
 /// Persistence service for the outbound RPC path.
@@ -59,38 +61,21 @@ impl TransferPersistenceForRpcService {
 
 #[async_trait::async_trait]
 impl TransferPersistenceTrait for TransferPersistenceForRpcService {
-    async fn get_transfer_process_service(
-        &self,
-    ) -> anyhow::Result<Arc<dyn TransferAgentProcessesTrait>> {
+    async fn get_transfer_process_service(&self) -> Outcome<Arc<dyn TransferAgentProcessesTrait>> {
         Ok(self.transfer_process_service.clone())
     }
 
-    async fn get_transfer_message_service(
-        &self,
-    ) -> anyhow::Result<Arc<dyn TransferAgentMessagesTrait>> {
+    async fn get_transfer_message_service(&self) -> Outcome<Arc<dyn TransferAgentMessagesTrait>> {
         Ok(self.transfer_message_service.clone())
     }
 
-    async fn fetch_process(&self, id: &str) -> anyhow::Result<TransferProcessDto> {
+    async fn fetch_process(&self, id: &str) -> Outcome<TransferProcessDto> {
         let urn = parse_urn(id).unwrap();
         // RPC clients send the consumerPid; resolve by any key value in the identifiers map.
-        self.transfer_process_service
-            .get_transfer_process_by_key_value(&urn)
-            .await
-            .map_err(|_| {
-                let err = CommonErrors::missing_resource_new(
-                    urn.to_string().as_str(),
-                    "Transfer process not found",
-                );
-                error!("{}", err.log());
-                err.into()
-            })
+        self.transfer_process_service.get_transfer_process_by_key_value(&urn).await
     }
 
-    async fn create_process(
-        &self,
-        input: CreateProcessInput,
-    ) -> anyhow::Result<TransferProcessDto> {
+    async fn create_process(&self, input: CreateProcessInput) -> Outcome<TransferProcessDto> {
         let id = input.id.unwrap_or_else(|| {
             Urn::from_str(&format!("urn:transfer-process:{}", uuid::Uuid::new_v4())).unwrap()
         });
@@ -118,7 +103,7 @@ impl TransferPersistenceTrait for TransferPersistenceForRpcService {
         id: &str,
         payload_dto: Arc<dyn TransferProcessMessageTrait>,
         payload_value: serde_json::Value,
-    ) -> anyhow::Result<TransferProcessDto> {
+    ) -> Outcome<TransferProcessDto> {
         let urn_id = Urn::from_str(id).expect("Failed to parse process URN");
         let message_type = payload_dto.get_message();
         let new_state = TransferProcessState::from(message_type.clone());
@@ -127,12 +112,17 @@ impl TransferPersistenceTrait for TransferPersistenceForRpcService {
         let process = self.transfer_process_service.get_transfer_process_by_id(&urn_id).await?;
         let process_urn = Urn::from_str(process.inner.id.as_str())?;
 
-        let role = process.inner.role.parse::<RoleConfig>()?;
+        let role = process
+            .inner
+            .role
+            .parse::<RoleConfig>()
+            .map_err(|e| Errors::crazy(format!("Not able to parse RoleConfig: {e}"), None))?;
         let prev_attr = process
             .inner
             .state_attribute
             .unwrap_or(TransferStateAttribute::OnRequest.to_string())
-            .parse::<TransferStateAttribute>()?;
+            .parse::<TransferStateAttribute>()
+            .map_err(|e| Errors::crazy(format!("Not able to parse TransferStateAttribute: {e}"), None))?;
 
         let new_attr = resolve_outbound_state_attribute(&message_type, &prev_attr, &role)?;
 
@@ -182,7 +172,7 @@ fn resolve_outbound_state_attribute(
     message_type: &TransferProcessMessageType,
     current: &TransferStateAttribute,
     local_role: &RoleConfig,
-) -> anyhow::Result<TransferStateAttribute> {
+) -> Outcome<TransferStateAttribute> {
     match message_type {
         TransferProcessMessageType::TransferStartMessage => match current {
             TransferStateAttribute::OnRequest => Ok(TransferStateAttribute::OnRequest),
@@ -193,14 +183,12 @@ fn resolve_outbound_state_attribute(
 }
 
 /// Returns the state attribute that represents the *local* role itself.
-fn own_attribute(local_role: &RoleConfig) -> anyhow::Result<TransferStateAttribute> {
+fn own_attribute(local_role: &RoleConfig) -> Outcome<TransferStateAttribute> {
     match local_role {
         RoleConfig::Provider => Ok(TransferStateAttribute::ByProvider),
         RoleConfig::Consumer => Ok(TransferStateAttribute::ByConsumer),
         _ => {
-            let err = CommonErrors::parse_new("Unknown role when resolving state attribute");
-            error!("{}", err.log());
-            bail!(err)
+            return Err(Errors::crazy("Unknown role when resolving state attribute", None));
         }
     }
 }

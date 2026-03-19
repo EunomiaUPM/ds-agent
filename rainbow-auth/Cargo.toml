@@ -29,7 +29,6 @@ sea-orm = { workspace = true }
 urlencoding = { workspace = true }
 jsonwebtoken = { workspace = true }
 sha2 = { workspace = true }
-json_to_table = { workspace = true }
 url = { workspace = true }
 clap = { workspace = true }
 sea-orm-migration = { workspace = true }
@@ -39,5 +38,3 @@ async-trait = {workspace = true}
 rustls = {workspace = true}
 axum-server = {workspace = true}
 ymir = { workspace = true }
-#ymir = { path = "./../../ymir" }
-#ymir = {git = "https://github.com/EunomiaUPM/ymir.git", tag = "v0.3.0"}

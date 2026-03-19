@@ -13,6 +13,7 @@ use tower_http::trace::{DefaultOnResponse, TraceLayer};
 use uuid::Uuid;
 use ymir::config::traits::{ConnectionConfigTrait, HostsConfigTrait};
 use ymir::config::types::HostType;
+use ymir::errors::{Errors, Outcome};
 use ymir::http::HealthRouter;
 
 pub struct GatewayHttpWorker {}
@@ -21,7 +22,7 @@ impl GatewayHttpWorker {
     pub async fn spawn(
         config: &GatewayConfig,
         token: &CancellationToken,
-    ) -> anyhow::Result<JoinHandle<()>> {
+    ) -> Outcome<JoinHandle<()>> {
         // well known router
         let well_known_router = WellKnownRoot::get_well_known_router(&config.into())?;
         let health_router = HealthRouter::new().router();
@@ -31,10 +32,12 @@ impl GatewayHttpWorker {
             .merge(well_known_router)
             .merge(health_router);
         let host = if config.common().is_local() { "127.0.0.1" } else { "0.0.0.0" };
-        let port = config.common().get_weird_port(HostType::Http);
+        let port = config.common().get_internal_port(HostType::Http);
         let addr = format!("{}{}", host, port);
 
-        let listener = TcpListener::bind(&addr).await?;
+        let listener = TcpListener::bind(&addr)
+            .await
+            .map_err(|e| Errors::crazy("Error with TCP listener", Some(Box::new(e))))?;
         tracing::info!("HTTP Gateway running on {}", addr);
 
         let token = token.clone();
@@ -51,7 +54,7 @@ impl GatewayHttpWorker {
         Ok(handle)
     }
 
-    pub async fn create_root_http_router(config: &GatewayConfig) -> anyhow::Result<Router> {
+    pub async fn create_root_http_router(config: &GatewayConfig) -> Outcome<Router> {
         let router = create_gateway_http_router(config).await.fallback(Self::handler_404).layer(
             TraceLayer::new_for_http()
                 .make_span_with(

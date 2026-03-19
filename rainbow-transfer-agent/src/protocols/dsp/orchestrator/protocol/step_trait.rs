@@ -30,8 +30,7 @@ use rainbow_connector::ConnectorInstanceDto;
 use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
-
-
+use ymir::errors::Outcome;
 // ─── Request context ──────────────────────────────────────────────────────────
 
 
@@ -80,7 +79,7 @@ pub(super) trait ProtocolStep: Send + Sync + 'static {
         validator: &Arc<dyn ValidationDspSteps>,
         id: &str,
         input: &TransferProcessMessageWrapper<Self::Dto>,
-    ) -> anyhow::Result<()>;
+    ) -> Outcome<()>;
 
     /// Resolve or build the routing context for this step.
     ///
@@ -95,7 +94,7 @@ pub(super) trait ProtocolStep: Send + Sync + 'static {
         input: &TransferProcessMessageWrapper<Self::Dto>,
         persistence: &Arc<dyn TransferPersistenceTrait>,
         facades: &Arc<dyn FacadeTrait>,
-    ) -> anyhow::Result<(
+    ) -> Outcome<(
         Self::Context,
         Option<TransferProcessMessageWrapper<TransferProcessAckDto>>,
     )>;
@@ -109,7 +108,7 @@ pub(super) trait ProtocolStep: Send + Sync + 'static {
         id: &str,
         ctx: &Self::Context,
         input: &TransferProcessMessageWrapper<Self::Dto>,
-    ) -> anyhow::Result<TransferProcessDto>;
+    ) -> Outcome<TransferProcessDto>;
 
     /// Trigger the local dataplane after persisting the state transition.
     ///
@@ -120,7 +119,7 @@ pub(super) trait ProtocolStep: Send + Sync + 'static {
         ctx: &Self::Context,
         input: &TransferProcessMessageWrapper<Self::Dto>,
         process_id: &Urn,
-    ) -> anyhow::Result<Option<DataAddressDto>>;
+    ) -> Outcome<Option<DataAddressDto>>;
 }
 
 // ─── Shared helpers for continuation steps ────────────────────────────────────
@@ -132,7 +131,7 @@ pub(super) trait ProtocolStep: Send + Sync + 'static {
 pub(super) async fn resolve_process(
     peer_id: &str,
     persistence: &Arc<dyn TransferPersistenceTrait>,
-) -> anyhow::Result<TransferProcessDto> {
+) -> Outcome<TransferProcessDto> {
     let dpid = Urn::from_str(peer_id)?;
     let process = persistence
         .get_transfer_process_service()
@@ -149,7 +148,7 @@ pub(super) async fn resolve_process(
 pub(super) async fn continuation_prepare_context(
     id: &str,
     persistence: &Arc<dyn TransferPersistenceTrait>,
-) -> anyhow::Result<(
+) -> Outcome<(
     ProtocolContext,
     Option<TransferProcessMessageWrapper<TransferProcessAckDto>>,
 )> {
@@ -168,7 +167,7 @@ pub(super) async fn continuation_persist<T>(
     persistence: &Arc<dyn TransferPersistenceTrait>,
     id: &str,
     input: &TransferProcessMessageWrapper<T>,
-) -> anyhow::Result<TransferProcessDto>
+) -> Outcome<TransferProcessDto>
 where
     T: TransferProcessMessageTrait + Clone + serde::Serialize + Send + Sync + 'static,
 {

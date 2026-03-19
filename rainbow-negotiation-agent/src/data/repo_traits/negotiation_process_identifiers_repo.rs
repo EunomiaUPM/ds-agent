@@ -24,6 +24,7 @@ use crate::data::entities::negotiation_process_identifier::{
 use anyhow::Error;
 use thiserror::Error;
 use urn::Urn;
+use ymir::errors::RepoIntoErrors;
 
 #[async_trait::async_trait]
 #[allow(unused)]
@@ -86,3 +87,5 @@ pub enum NegotiationIdentifierRepoErrors {
     #[error("Error updating negotiation identifier. {0}")]
     ErrorUpdatingNegotiationIdentifier(Error),
 }
+
+impl RepoIntoErrors for NegotiationIdentifierRepoErrors {}

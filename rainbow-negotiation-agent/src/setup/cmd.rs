@@ -21,10 +21,13 @@ use crate::setup::db_migrations::NegotiationAgentMigration;
 use clap::{Parser, Subcommand};
 use rainbow_common::boot::{BootstrapInit, BootstrapStepTrait};
 use rainbow_common::config::services::ContractsConfig;
-use rainbow_common::config::types::traits::ConfigLoader;
+use rainbow_common::config::types::traits::{CommonConfigTrait, ConfigLoader};
 use std::sync::Arc;
 use tracing::{debug, info};
+use ymir::config::traits::ConnectionConfigTrait;
+use ymir::services::vault::fake_vault::FakeVaultService;
 use ymir::services::vault::global::VaultService;
+use ymir::services::vault::vault_rs::RealVaultService;
 
 #[derive(Parser, Debug)]
 #[command(name = "Rainbow Dataspace Connector Negotiation Agent")]
@@ -65,13 +68,17 @@ impl NegotiationCommands {
                 let _ = step_finalized.0.next_step().await?;
             }
             NegotiationCliCommands::Setup(args) => {
-                let config = ContractsConfig::load(args.env_file);
-                let vault = Arc::new(VaultService::new());
+                let config = ContractsConfig::load(&*args.env_file)?;
+                let vault = if config.common().is_vault_real() {
+                    VaultService::Real(RealVaultService::new())
+                } else {
+                    VaultService::Fake(FakeVaultService::new())
+                };
                 let table = json_to_table::json_to_table(&serde_json::to_value(&config)?)
                     .collapse()
                     .to_string();
                 info!("Current Negotiations Agent Config:\n{}", table);
-                NegotiationAgentMigration::run(&config, vault.clone()).await?;
+                NegotiationAgentMigration::run(&config, Arc::new(vault)).await?;
             }
         }
         Ok(())

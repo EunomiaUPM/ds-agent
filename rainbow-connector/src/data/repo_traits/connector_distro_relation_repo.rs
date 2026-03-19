@@ -16,9 +16,9 @@
  * * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
-
 use crate::data::entities::connector_distro_relation;
-use crate::data::repo_traits::connector_repo_errors::ConnectorAgentRepoErrors;
+use crate::data::repo_traits::connector_repo_errors;
+use ymir::errors::Outcome;
 
 #[cfg_attr(test, mockall::automock)]
 #[async_trait::async_trait]
@@ -27,31 +27,25 @@ pub trait ConnectorDistroRelationRepoTrait: Send + Sync {
         &self,
         distro: &String,
         instance: &String,
-    ) -> anyhow::Result<connector_distro_relation::Model, ConnectorAgentRepoErrors>;
+    ) -> Outcome<connector_distro_relation::Model>;
 
     async fn update_relation(
         &self,
         distro: &String,
         instance: &String,
-    ) -> anyhow::Result<connector_distro_relation::Model, ConnectorAgentRepoErrors>;
+    ) -> Outcome<connector_distro_relation::Model>;
 
     async fn get_relation_by_distribution(
         &self,
         distro: &String,
-    ) -> anyhow::Result<Option<connector_distro_relation::Model>, ConnectorAgentRepoErrors>;
+    ) -> Outcome<Option<connector_distro_relation::Model>>;
 
     async fn get_relation_by_instance(
         &self,
         instance: &String,
-    ) -> anyhow::Result<Option<connector_distro_relation::Model>, ConnectorAgentRepoErrors>;
+    ) -> Outcome<Option<connector_distro_relation::Model>>;
 
-    async fn delete_relation_by_distribution(
-        &self,
-        distro: &String,
-    ) -> anyhow::Result<(), ConnectorAgentRepoErrors>;
+    async fn delete_relation_by_distribution(&self, distro: &String) -> Outcome<()>;
 
-    async fn delete_relation_by_instance(
-        &self,
-        distro: &String,
-    ) -> anyhow::Result<(), ConnectorAgentRepoErrors>;
+    async fn delete_relation_by_instance(&self, distro: &String) -> Outcome<()>;
 }

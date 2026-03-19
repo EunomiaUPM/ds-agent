@@ -29,6 +29,7 @@ use sea_orm::{
     QuerySelect,
 };
 use urn::Urn;
+use ymir::errors::{Outcome, RepoIntoErrors};
 
 pub struct TransferIdentifierRepoForSql {
     db_connection: DatabaseConnection,
@@ -46,7 +47,7 @@ impl TransferIdentifierRepoTrait for TransferIdentifierRepoForSql {
         &self,
         limit: Option<u64>,
         page: Option<u64>,
-    ) -> anyhow::Result<Vec<transfer_process_identifier::Model>, TransferIdentifierRepoErrors> {
+    ) -> Outcome<Vec<transfer_process_identifier::Model>> {
         let identifiers = transfer_process_identifier::Entity::find()
             .limit(limit.unwrap_or(20))
             .offset(page.map(|p| p * limit.unwrap_or(20)).unwrap_or(0))
@@ -55,16 +56,17 @@ impl TransferIdentifierRepoTrait for TransferIdentifierRepoForSql {
 
         match identifiers {
             Ok(identifiers) => Ok(identifiers),
-            Err(e) => Err(TransferIdentifierRepoErrors::ErrorFetchingTransferIdentifier(
-                e.into(),
-            )),
+            Err(e) => Err(
+                TransferIdentifierRepoErrors::ErrorFetchingTransferIdentifier(e.into())
+                    .into_errors(),
+            ),
         }
     }
 
     async fn get_identifiers_by_process_id(
         &self,
         process_id: &Urn,
-    ) -> anyhow::Result<Vec<transfer_process_identifier::Model>, TransferIdentifierRepoErrors> {
+    ) -> Outcome<Vec<transfer_process_identifier::Model>> {
         let pid = process_id.to_string();
         let identifiers = transfer_process_identifier::Entity::find()
             .filter(transfer_process_identifier::Column::TransferAgentProcessId.eq(pid))
@@ -73,26 +75,27 @@ impl TransferIdentifierRepoTrait for TransferIdentifierRepoForSql {
 
         match identifiers {
             Ok(identifiers) => Ok(identifiers),
-            Err(e) => Err(TransferIdentifierRepoErrors::ErrorFetchingTransferIdentifier(
-                e.into(),
-            )),
+            Err(e) => Err(
+                TransferIdentifierRepoErrors::ErrorFetchingTransferIdentifier(e.into())
+                    .into_errors(),
+            ),
         }
     }
 
     async fn get_identifier_by_id(
         &self,
         id: &Urn,
-    ) -> anyhow::Result<Option<transfer_process_identifier::Model>, TransferIdentifierRepoErrors>
-    {
+    ) -> Outcome<Option<transfer_process_identifier::Model>> {
         let iid = id.to_string();
         let identifier =
             transfer_process_identifier::Entity::find_by_id(iid).one(&self.db_connection).await;
 
         match identifier {
             Ok(identifier) => Ok(identifier),
-            Err(e) => Err(TransferIdentifierRepoErrors::ErrorFetchingTransferIdentifier(
-                e.into(),
-            )),
+            Err(e) => Err(
+                TransferIdentifierRepoErrors::ErrorFetchingTransferIdentifier(e.into())
+                    .into_errors(),
+            ),
         }
     }
 
@@ -100,8 +103,7 @@ impl TransferIdentifierRepoTrait for TransferIdentifierRepoForSql {
         &self,
         process_id: &Urn,
         key: &str,
-    ) -> anyhow::Result<Option<transfer_process_identifier::Model>, TransferIdentifierRepoErrors>
-    {
+    ) -> Outcome<Option<transfer_process_identifier::Model>> {
         let pid = process_id.to_string();
         let identifier = transfer_process_identifier::Entity::find()
             .filter(transfer_process_identifier::Column::TransferAgentProcessId.eq(pid))
@@ -111,25 +113,27 @@ impl TransferIdentifierRepoTrait for TransferIdentifierRepoForSql {
 
         match identifier {
             Ok(identifier) => Ok(identifier),
-            Err(e) => Err(TransferIdentifierRepoErrors::ErrorFetchingTransferIdentifier(
-                e.into(),
-            )),
+            Err(e) => Err(
+                TransferIdentifierRepoErrors::ErrorFetchingTransferIdentifier(e.into())
+                    .into_errors(),
+            ),
         }
     }
 
     async fn create_identifier(
         &self,
         new_model: &NewTransferIdentifierModel,
-    ) -> anyhow::Result<transfer_process_identifier::Model, TransferIdentifierRepoErrors> {
+    ) -> Outcome<transfer_process_identifier::Model> {
         let model: transfer_process_identifier::ActiveModel = new_model.clone().into();
         let result = transfer_process_identifier::Entity::insert(model)
             .exec_with_returning(&self.db_connection)
             .await;
         match result {
             Ok(identifier) => Ok(identifier),
-            Err(e) => Err(TransferIdentifierRepoErrors::ErrorCreatingTransferIdentifier(
-                e.into(),
-            )),
+            Err(e) => Err(
+                TransferIdentifierRepoErrors::ErrorCreatingTransferIdentifier(e.into())
+                    .into_errors(),
+            ),
         }
     }
 
@@ -137,17 +141,20 @@ impl TransferIdentifierRepoTrait for TransferIdentifierRepoForSql {
         &self,
         id: &Urn,
         edit_model: &EditTransferIdentifierModel,
-    ) -> anyhow::Result<transfer_process_identifier::Model, TransferIdentifierRepoErrors> {
+    ) -> Outcome<transfer_process_identifier::Model> {
         let iid = id.to_string();
         let old_model =
             transfer_process_identifier::Entity::find_by_id(&iid).one(&self.db_connection).await;
         let old_model = match old_model {
             Ok(Some(model)) => model,
-            Ok(None) => return Err(TransferIdentifierRepoErrors::TransferIdentifierNotFound),
+            Ok(None) => {
+                return Err(TransferIdentifierRepoErrors::TransferIdentifierNotFound.into_errors())
+            }
             Err(e) => {
-                return Err(TransferIdentifierRepoErrors::ErrorFetchingTransferIdentifier(
-                    e.into(),
-                ))
+                return Err(
+                    TransferIdentifierRepoErrors::ErrorFetchingTransferIdentifier(e.into())
+                        .into_errors(),
+                )
             }
         };
 
@@ -162,28 +169,27 @@ impl TransferIdentifierRepoTrait for TransferIdentifierRepoForSql {
         let result = active_model.update(&self.db_connection).await;
         match result {
             Ok(updated_model) => Ok(updated_model),
-            Err(e) => Err(TransferIdentifierRepoErrors::ErrorUpdatingTransferIdentifier(
-                e.into(),
-            )),
+            Err(e) => Err(
+                TransferIdentifierRepoErrors::ErrorUpdatingTransferIdentifier(e.into())
+                    .into_errors(),
+            ),
         }
     }
 
-    async fn delete_identifier(
-        &self,
-        id: &Urn,
-    ) -> anyhow::Result<(), TransferIdentifierRepoErrors> {
+    async fn delete_identifier(&self, id: &Urn) -> Outcome<()> {
         let iid = id.to_string();
         let result =
             transfer_process_identifier::Entity::delete_by_id(iid).exec(&self.db_connection).await;
 
         match result {
             Ok(delete_result) => match delete_result.rows_affected {
-                0 => Err(TransferIdentifierRepoErrors::TransferIdentifierNotFound),
+                0 => Err(TransferIdentifierRepoErrors::TransferIdentifierNotFound.into_errors()),
                 _ => Ok(()),
             },
-            Err(e) => Err(TransferIdentifierRepoErrors::ErrorDeletingTransferIdentifier(
-                e.into(),
-            )),
+            Err(e) => Err(
+                TransferIdentifierRepoErrors::ErrorDeletingTransferIdentifier(e.into())
+                    .into_errors(),
+            ),
         }
     }
 }

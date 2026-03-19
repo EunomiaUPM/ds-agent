@@ -24,28 +24,22 @@ use crate::protocols::dsp::protocol_types::{
 };
 use rainbow_common::config::types::roles::RoleConfig;
 use urn::Urn;
+use ymir::errors::Outcome;
 
 #[async_trait::async_trait]
 pub trait ValidationHelpers: Send + Sync + 'static {
-    async fn parse_urn(&self, uri_id: &String) -> anyhow::Result<Urn>;
-    async fn parse_identifier_into_role(&self, identifier: &str) -> anyhow::Result<RoleConfig>;
-    async fn parse_role_into_identifier(&self, role: &RoleConfig) -> anyhow::Result<&str>;
+    async fn parse_urn(&self, uri_id: &String) -> Outcome<Urn>;
+    async fn parse_identifier_into_role(&self, identifier: &str) -> Outcome<RoleConfig>;
+    async fn parse_role_into_identifier(&self, role: &RoleConfig) -> Outcome<&str>;
     async fn get_current_dto_from_payload(
         &self,
         payload: &dyn TransferProcessMessageTrait,
-    ) -> anyhow::Result<TransferProcessDto>;
-    async fn get_pid_by_role(
-        &self,
-        dto: &TransferProcessDto,
-        role: RoleConfig,
-    ) -> anyhow::Result<Urn>;
-    async fn get_role_from_dto(&self, dto: &TransferProcessDto) -> anyhow::Result<RoleConfig>;
-    async fn get_state_from_dto(
-        &self,
-        dto: &TransferProcessDto,
-    ) -> anyhow::Result<TransferProcessState>;
+    ) -> Outcome<TransferProcessDto>;
+    async fn get_pid_by_role(&self, dto: &TransferProcessDto, role: RoleConfig) -> Outcome<Urn>;
+    async fn get_role_from_dto(&self, dto: &TransferProcessDto) -> Outcome<RoleConfig>;
+    async fn get_state_from_dto(&self, dto: &TransferProcessDto) -> Outcome<TransferProcessState>;
     async fn get_state_attribute_from_dto(
         &self,
         dto: &TransferProcessDto,
-    ) -> anyhow::Result<TransferStateAttribute>;
+    ) -> Outcome<TransferStateAttribute>;
 }

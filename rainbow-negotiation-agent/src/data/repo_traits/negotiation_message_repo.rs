@@ -22,6 +22,7 @@ use crate::data::entities::negotiation_message::NewNegotiationMessageModel;
 use anyhow::Error;
 use thiserror::Error;
 use urn::Urn;
+use ymir::errors::RepoIntoErrors;
 
 #[async_trait::async_trait]
 pub trait NegotiationMessageRepoTrait: Send + Sync {
@@ -63,3 +64,5 @@ pub enum NegotiationMessageRepoErrors {
     #[error("Error deleting negotiation message. {0}")]
     ErrorDeletingNegotiationMessage(Error),
 }
+
+impl RepoIntoErrors for NegotiationMessageRepoErrors {}

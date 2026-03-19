@@ -17,7 +17,6 @@ rainbow_common = { version = "0.3.8", path = "../rainbow-common", default-featur
 serde_json = { workspace = true }
 clap = { workspace = true }
 tokio = { workspace = true }
-anyhow = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 axum = { workspace = true }

@@ -13,9 +13,9 @@ use axum::routing::{delete, get, patch, post, put};
 use axum::{Json, Router};
 use rainbow_common::batch_requests::BatchRequests;
 use rainbow_common::errors::{CommonErrors, ErrorLog};
-use rainbow_common::utils::extract_payload;
 use serde_json::Value;
 use std::sync::Arc;
+use ymir::utils::extract_payload;
 
 #[derive(Clone)]
 pub struct DataPlaneProcessesRouter {
@@ -63,7 +63,7 @@ impl DataPlaneProcessesRouter {
     ) -> impl IntoResponse {
         match state.data_plane_process_entity.get_all_dataplane_transfers().await {
             Ok(transfers) => (StatusCode::OK, Json(transfers)).into_response(),
-            Err(e) => e.to_response(),
+            Err(e) => e.into_response(),
         }
     }
 
@@ -89,7 +89,7 @@ impl DataPlaneProcessesRouter {
                     err.into_response()
                 }
             },
-            Err(e) => e.to_response(),
+            Err(e) => e.into_response(),
         }
     }
 
@@ -99,11 +99,11 @@ impl DataPlaneProcessesRouter {
     ) -> impl IntoResponse {
         let input = match extract_payload(input) {
             Ok(v) => v,
-            Err(e) => return e,
+            Err(e) => return e.into_response(),
         };
         match state.data_plane_process_entity.get_batch_dataplane_transfers(&input.ids).await {
             Ok(transfers) => (StatusCode::OK, Json(transfers)).into_response(),
-            Err(e) => e.to_response(),
+            Err(e) => e.into_response(),
         }
     }
 
@@ -133,7 +133,7 @@ impl DataPlaneProcessesRouter {
                     err.into_response()
                 }
             },
-            Err(e) => e.to_response(),
+            Err(e) => e.into_response(),
         }
     }
 
@@ -143,7 +143,7 @@ impl DataPlaneProcessesRouter {
     ) -> impl IntoResponse {
         let new_dataplane_transfer = match extract_payload(input) {
             Ok(v) => v,
-            Err(e) => return e,
+            Err(e) => return e.into_response(),
         };
         match state
             .data_plane_process_entity
@@ -151,7 +151,7 @@ impl DataPlaneProcessesRouter {
             .await
         {
             Ok(transfer) => (StatusCode::CREATED, Json(transfer)).into_response(),
-            Err(e) => e.to_response(),
+            Err(e) => e.into_response(),
         }
     }
 
@@ -166,7 +166,7 @@ impl DataPlaneProcessesRouter {
         };
         let input = match extract_payload(input) {
             Ok(v) => v,
-            Err(e) => return e,
+            Err(e) => return e.into_response(),
         };
         match state
             .data_plane_process_entity
@@ -174,7 +174,7 @@ impl DataPlaneProcessesRouter {
             .await
         {
             Ok(transfer) => (StatusCode::OK, Json(transfer)).into_response(),
-            Err(e) => e.to_response(),
+            Err(e) => e.into_response(),
         }
     }
 
@@ -188,7 +188,7 @@ impl DataPlaneProcessesRouter {
         };
         match state.data_plane_process_entity.delete_dataplane_transfer(&data_plane_id).await {
             Ok(_) => StatusCode::NO_CONTENT.into_response(),
-            Err(e) => e.to_response(),
+            Err(e) => e.into_response(),
         }
     }
 
@@ -225,7 +225,7 @@ impl DataPlaneProcessesRouter {
                 "Dataplane transfer not found",
             )
             .into_response(),
-            Err(e) => e.to_response(),
+            Err(e) => e.into_response(),
         }
     }
 }

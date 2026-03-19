@@ -16,10 +16,10 @@
  * * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
-
 use crate::data::entities::connector_templates;
 use crate::data::entities::connector_templates::NewConnectorTemplateModel;
-use crate::data::repo_traits::connector_repo_errors::ConnectorAgentRepoErrors;
+use crate::data::repo_traits::connector_repo_errors;
+use ymir::errors::Outcome;
 
 #[cfg_attr(test, mockall::automock)]
 #[async_trait::async_trait]
@@ -27,28 +27,28 @@ pub trait ConnectorTemplateRepoTrait: Send + Sync {
     async fn create_template(
         &self,
         new_template_model: &NewConnectorTemplateModel,
-    ) -> anyhow::Result<connector_templates::Model, ConnectorAgentRepoErrors>;
+    ) -> Outcome<connector_templates::Model>;
 
     async fn get_templates_by_name(
         &self,
         template_name: &String,
-    ) -> anyhow::Result<Vec<connector_templates::Model>, ConnectorAgentRepoErrors>;
+    ) -> Outcome<Vec<connector_templates::Model>>;
 
     async fn get_template_by_name_and_version(
         &self,
         name: &String,
         version: &String,
-    ) -> anyhow::Result<Option<connector_templates::Model>, ConnectorAgentRepoErrors>;
+    ) -> Outcome<Option<connector_templates::Model>>;
 
     async fn get_all_templates(
         &self,
         limit: Option<u64>,
         page: Option<u64>,
-    ) -> anyhow::Result<Vec<connector_templates::Model>, ConnectorAgentRepoErrors>;
+    ) -> Outcome<Vec<connector_templates::Model>>;
 
     async fn delete_template_by_name_and_version(
         &self,
         name: &String,
         version: &String,
-    ) -> anyhow::Result<(), ConnectorAgentRepoErrors>;
+    ) -> Outcome<()>;
 }

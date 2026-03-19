@@ -30,6 +30,7 @@ use crate::entities::parameters::{TemplateMapString, TemplateVecString};
 use crate::ProtocolSpec;
 use anyhow::anyhow;
 use serde_json::Value;
+use ymir::errors::{Errors, Outcome};
 
 /// Resolves every `{{__PARAM__}}` placeholder in a [`ConnectorTemplateDto`]
 /// in-place using the supplied [`ParameterResolverBehavior`].
@@ -39,30 +40,28 @@ use serde_json::Value;
 ///
 /// [`ParameterExtractorVisitor`]: super::template_parameters_visitor::ParameterExtractorVisitor
 pub struct TemplateResolverVisitor<'a> {
-    resolver: &'a mut dyn ParameterResolverBehavior<Error = anyhow::Error>,
+    resolver: &'a mut dyn ParameterResolverBehavior,
 }
 
 impl<'a> TemplateResolverVisitor<'a> {
-    pub fn new(resolver: &'a mut dyn ParameterResolverBehavior<Error = anyhow::Error>) -> Self {
+    pub fn new(resolver: &'a mut dyn ParameterResolverBehavior) -> Self {
         Self { resolver }
     }
 
     /// Resolve all `{{__PARAM__}}` placeholders in `template` using
     /// the resolver supplied at construction time, mutating the template in-place.
-    pub fn apply(&mut self, template: &mut ConnectorTemplateDto) -> anyhow::Result<()> {
+    pub fn apply(&mut self, template: &mut ConnectorTemplateDto) -> Outcome<()> {
         self.walk(template)
     }
 
     /// Resolve all placeholders in a single protocol specification in-place.
-    pub fn apply_protocol(&mut self, spec: &mut ProtocolSpec) -> anyhow::Result<()> {
+    pub fn apply_protocol(&mut self, spec: &mut ProtocolSpec) -> Outcome<()> {
         self.walk_protocol(spec)
     }
 }
 
 impl ConnectorTemplateWalker for TemplateResolverVisitor<'_> {
-    type Error = anyhow::Error;
-
-    fn on_string(&mut self, field: &mut String) -> anyhow::Result<()> {
+    fn on_string(&mut self, field: &mut String) -> Outcome<()> {
         if let Some(val) = self.resolver.resolve(field.as_str()) {
             *field = match val {
                 Value::String(s) => s,
@@ -78,12 +77,15 @@ impl ConnectorTemplateWalker for TemplateResolverVisitor<'_> {
     /// - `Value` variant: each element is individually interpolated. If an element
     ///   is exactly a `{{__NAME__}}` placeholder and it resolves to an array,
     ///   the array is spliced into the list.
-    fn on_vec_string(&mut self, field: &mut TemplateVecString) -> anyhow::Result<()> {
+    fn on_vec_string(&mut self, field: &mut TemplateVecString) -> Outcome<()> {
         match field {
             TemplateVecString::Template(tmpl) => {
                 if let Some(val) = self.resolver.resolve(tmpl.as_str()) {
                     let list: Vec<String> = serde_json::from_value(val).map_err(|e| {
-                        anyhow!("Failed to resolve TemplateVecString for '{}': {}", tmpl, e)
+                        Errors::crazy(
+                            format!("Failed to resolve TemplateVecString for '{}': {}", tmpl, e),
+                            None,
+                        )
                     })?;
                     *field = TemplateVecString::Value(list);
                 }
@@ -127,13 +129,19 @@ impl ConnectorTemplateWalker for TemplateResolverVisitor<'_> {
     /// If a key is exactly `__EXTRA__` and its value (after resolution) is a JSON object,
     /// that object is flattened and its keys are merged into the top-level map,
     /// and the `__EXTRA__` key is removed.
-    fn on_map_string(&mut self, field: &mut TemplateMapString) -> anyhow::Result<()> {
+    fn on_map_string(&mut self, field: &mut TemplateMapString) -> Outcome<()> {
         match field {
             TemplateMapString::Template(tmpl) => {
                 if let Some(val) = self.resolver.resolve(tmpl.as_str()) {
                     let map: std::collections::HashMap<String, String> =
                         serde_json::from_value(val).map_err(|e| {
-                            anyhow!("Failed to resolve TemplateMapString for '{}': {}", tmpl, e)
+                            Errors::crazy(
+                                format!(
+                                    "Failed to resolve TemplateMapString for '{}': {}",
+                                    tmpl, e
+                                ),
+                                None,
+                            )
                         })?;
                     *field = TemplateMapString::Value(map);
                 }

@@ -10,8 +10,9 @@ use axum::Router;
 use rainbow_common::config::services::CatalogConfig;
 use rainbow_common::config::types::traits::CommonConfigTrait;
 use rainbow_common::http_client::HttpClient;
-use rainbow_common::utils::get_host_helper;
 use std::sync::Arc;
+use ymir::config::traits::HostsConfigTrait;
+use ymir::config::types::HostType;
 use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
 
@@ -41,8 +42,7 @@ impl ConnectorSetup {
             Arc::new(ConnectorRepoForSql::create_repo(db_connection));
         let distribution_facade =
             Arc::new(DistributionFacadeServiceForConnector::new(config, http_client));
-        let own_url = get_host_helper(Some(&config.common().hosts.http), "connector")
-            .unwrap_or_else(|_| "http://localhost:8080".to_string());
+        let own_url = config.common().get_host(HostType::Http);
         Arc::new(ConnectorInstanceEntitiesService::new(
             connector_repo,
             distribution_facade,
@@ -69,8 +69,7 @@ impl ConnectorSetup {
         let connector_template_router =
             ConnectorTemplateRouter::new(connector_template_service.clone(), config_arc.clone())
                 .router();
-        let own_url = get_host_helper(Some(&config.common().hosts.http), "connector")
-            .unwrap_or_else(|_| "http://localhost:8080".to_string());
+        let own_url = config.common().get_host(HostType::Http);
         let connector_instance_service = Arc::new(ConnectorInstanceEntitiesService::new(
             connector_repo.clone(),
             distribution_facade.clone(),

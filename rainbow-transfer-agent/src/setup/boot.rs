@@ -25,6 +25,7 @@ use std::sync::Arc;
 use tokio::sync::broadcast;
 use tokio::sync::broadcast::Sender;
 use tokio_util::sync::CancellationToken;
+use ymir::errors::Outcome;
 use ymir::services::vault::global::VaultService;
 
 pub struct TransferBoot;
@@ -32,8 +33,8 @@ pub struct TransferBoot;
 #[async_trait::async_trait]
 impl BootstrapServiceTrait for TransferBoot {
     type Config = TransferConfig;
-    async fn load_config(env_file: String) -> anyhow::Result<Self::Config> {
-        let config = Self::Config::load(env_file);
+    async fn load_config(env_file: String) -> Outcome<Self::Config> {
+        let config = Self::Config::load(&*env_file)?;
         let table =
             json_to_table::json_to_table(&serde_json::to_value(&config)?).collapse().to_string();
         tracing::info!("Current Transfer Agent Config:\n{}", table);
@@ -55,7 +56,7 @@ impl BootstrapServiceTrait for TransferBoot {
     async fn start_services_background(
         config: &Self::Config,
         vault: Arc<VaultService>,
-    ) -> anyhow::Result<Sender<()>> {
+    ) -> Outcome<Sender<()>> {
         // thread control
         let (shutdown_tx, mut shutdown_rx) = broadcast::channel(1);
         let cancel_token = CancellationToken::new();

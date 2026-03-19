@@ -21,6 +21,7 @@ use rainbow_monolith::setup::cmd::CoreCommands;
 use tracing::info;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
+use ymir::errors::{Errors, Outcome};
 
 const INFO: &str = r"
 ----------
@@ -40,7 +41,8 @@ Show some love on https://github.com/EunomiaUPM/rainbow
 async fn main() -> Outcome<()> {
     let filter = EnvFilter::builder()
         .with_default_directive(LevelFilter::INFO.into())
-        .parse("debug,sqlx::query=off")?;
+        .parse("debug,sqlx::query=off")
+        .map_err(|e| Errors::crazy(e.to_string(), Some(Box::new(e))))?;
     tracing_subscriber::fmt()
         .event_format(tracing_subscriber::fmt::format().with_line_number(true))
         .with_env_filter(filter)

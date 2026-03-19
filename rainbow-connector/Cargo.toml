@@ -12,23 +12,16 @@ rainbow_common = { version = "0.3.8", path = "../rainbow-common", default-featur
 
 serde = { workspace = true }
 serde_json = { workspace = true }
-clap = { workspace = true }
 tokio = { workspace = true }
-anyhow = { workspace = true }
 tracing = { workspace = true }
-tracing-subscriber = { workspace = true }
 axum = { workspace = true }
-reqwest = { workspace = true }
-once_cell = { workspace = true }
 thiserror = { workspace = true }
-jsonschema = { workspace = true }
 chrono = { workspace = true }
 urn = { workspace = true }
 log = { workspace = true }
 sea-orm = { workspace = true }
 sea-orm-migration = { workspace = true }
 mockall = { workspace = true }
-url = { workspace = true }
 uuid = { workspace = true }
 async-trait = "0.1.89"
 regex = "1.12.2"

@@ -48,10 +48,8 @@ impl BootstrapServiceTrait for CoreBoot {
     type Config = ApplicationConfig;
     async fn load_config(env_file: String) -> Outcome<Self::Config> {
         let config = Self::Config::load(&env_file)?;
-        let table = json_to_table::json_to_table(
-            &serde_json::to_value(&config)
-                .map_err(|e| Errors::parse("Error with config table", Some(Box::new(e))))?
-        );
+        let config_value = serde_json::to_value(&config)?;
+        let table = json_to_table::json_to_table(&config_value);
         info!("Current Monolith Dataspace Agent Config:\n{}", table);
         Ok(config)
     }

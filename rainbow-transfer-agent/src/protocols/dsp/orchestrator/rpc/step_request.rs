@@ -32,7 +32,7 @@ use rainbow_common::http_client::HttpClient;
 use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
-
+use ymir::errors::Outcome;
 // ─── RequestStep ──────────────────────────────────────────────────────────────
 
 /// Initiates a brand-new transfer by sending a `TransferRequestMessage` to the provider.
@@ -56,7 +56,7 @@ impl TransferRpcStep for RequestStep {
     async fn validate(
         validator: &Arc<dyn ValidationRpcSteps>,
         input: &RpcTransferRequestMessageDto,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         validator.transfer_request_rpc(input).await
     }
 
@@ -65,7 +65,7 @@ impl TransferRpcStep for RequestStep {
     async fn prepare_context(
         input: &RpcTransferRequestMessageDto,
         _persistence: &Arc<dyn TransferPersistenceTrait>,
-    ) -> anyhow::Result<RpcRequestContext> {
+    ) -> Outcome<RpcRequestContext> {
         let process_id =
             Urn::from_str(&format!("urn:transfer-process:{}", uuid::Uuid::new_v4()))?;
         Ok(RpcRequestContext {
@@ -82,7 +82,7 @@ impl TransferRpcStep for RequestStep {
     async fn pre_hook(
         dp: &Arc<dyn DataPlaneFacadeTrait>,
         ctx: &RpcRequestContext,
-    ) -> anyhow::Result<Option<DataAddressDto>> {
+    ) -> Outcome<Option<DataAddressDto>> {
         dp.on_transfer_request_pre(&ctx.process_id, &ctx.input_data_address).await
     }
 
@@ -93,7 +93,7 @@ impl TransferRpcStep for RequestStep {
         input: &RpcTransferRequestMessageDto,
         _ctx: &RpcRequestContext,
         pre_addr: Option<DataAddressDto>,
-    ) -> anyhow::Result<TransferRequestMessageDto> {
+    ) -> Outcome<TransferRequestMessageDto> {
         let mut wrapper: TransferProcessMessageWrapper<TransferRequestMessageDto> =
             input.clone().into();
         // PUSH mode: override data_address with the auto-generated consumer ingest URL.
@@ -115,7 +115,7 @@ impl TransferRpcStep for RequestStep {
         ctx: &RpcRequestContext,
         payload: Arc<TransferRequestMessageDto>,
         url_suffix: &str,
-    ) -> anyhow::Result<(TransferProcessMessageWrapper<TransferProcessAckDto>, TransferProcessDto)>
+    ) -> Outcome<(TransferProcessMessageWrapper<TransferProcessAckDto>, TransferProcessDto)>
     {
         let peer_url = format!("{}/transfers/{}", ctx.provider_address, url_suffix);
 

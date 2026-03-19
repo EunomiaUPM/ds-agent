@@ -3,6 +3,7 @@ use crate::data::entities::transfer_event::NewTransferEvent;
 use anyhow::Error;
 use thiserror::Error;
 use urn::Urn;
+use ymir::errors::RepoIntoErrors;
 
 #[async_trait::async_trait]
 pub trait TransferEventRepo: Send + Sync + 'static {
@@ -42,3 +43,5 @@ pub enum TransferEventRepoErrors {
     #[error("Error updating transfer event. {0}")]
     ErrorUpdatingTransferEvent(Error),
 }
+
+impl RepoIntoErrors for TransferEventRepoErrors {}

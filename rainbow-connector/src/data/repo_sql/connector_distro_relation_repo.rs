@@ -7,6 +7,8 @@ use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel,
     QueryFilter,
 };
+use ymir::errors::{Outcome, RepoIntoErrors};
+
 pub struct ConnectorDistroRelationRepoForSql {
     db_connection: DatabaseConnection,
 }
@@ -23,7 +25,7 @@ impl ConnectorDistroRelationRepoTrait for ConnectorDistroRelationRepoForSql {
         &self,
         distro: &String,
         instance: &String,
-    ) -> anyhow::Result<connector_distro_relation::Model, ConnectorAgentRepoErrors> {
+    ) -> Outcome<connector_distro_relation::Model> {
         let relation = connector_distro_relation::ActiveModel {
             distribution_id: ActiveValue::Set(distro.clone()),
             connector_instance_id: ActiveValue::Set(instance.clone()),
@@ -35,7 +37,8 @@ impl ConnectorDistroRelationRepoTrait for ConnectorDistroRelationRepoForSql {
             Ok(instance) => Ok(instance),
             Err(err) => Err(ConnectorAgentRepoErrors::ConnectorDistroRelationRepoErrors(
                 ConnectorDistroRelationRepoErrors::ErrorCreatingRelation(err.into()),
-            )),
+            )
+            .into_errors()),
         }
     }
 
@@ -43,12 +46,13 @@ impl ConnectorDistroRelationRepoTrait for ConnectorDistroRelationRepoForSql {
         &self,
         distro: &String,
         instance: &String,
-    ) -> anyhow::Result<connector_distro_relation::Model, ConnectorAgentRepoErrors> {
+    ) -> Outcome<connector_distro_relation::Model> {
         let relation = self.get_relation_by_distribution(distro).await?;
         if relation.is_none() {
             return Err(ConnectorAgentRepoErrors::ConnectorDistroRelationRepoErrors(
                 ConnectorDistroRelationRepoErrors::RelationNotFound,
-            ));
+            )
+            .into_errors());
         }
         let mut old_relation: connector_distro_relation::ActiveModel = relation.unwrap().into();
         old_relation.connector_instance_id = ActiveValue::Set(instance.clone());
@@ -57,14 +61,15 @@ impl ConnectorDistroRelationRepoTrait for ConnectorDistroRelationRepoForSql {
             Ok(model) => Ok(model),
             Err(err) => Err(ConnectorAgentRepoErrors::ConnectorDistroRelationRepoErrors(
                 ConnectorDistroRelationRepoErrors::ErrorUpdatingRelation(err.into()),
-            )),
+            )
+            .into_errors()),
         }
     }
 
     async fn get_relation_by_distribution(
         &self,
         distro: &String,
-    ) -> anyhow::Result<Option<connector_distro_relation::Model>, ConnectorAgentRepoErrors> {
+    ) -> Outcome<Option<connector_distro_relation::Model>> {
         let relation = connector_distro_relation::Entity::find()
             .filter(connector_distro_relation::Column::DistributionId.eq(distro))
             .one(&self.db_connection)
@@ -73,33 +78,33 @@ impl ConnectorDistroRelationRepoTrait for ConnectorDistroRelationRepoForSql {
             Ok(relation) => Ok(relation),
             Err(err) => Err(ConnectorAgentRepoErrors::ConnectorDistroRelationRepoErrors(
                 ConnectorDistroRelationRepoErrors::ErrorFetchingRelation(err.into()),
-            )),
+            )
+            .into_errors()),
         }
     }
 
     async fn get_relation_by_instance(
         &self,
         instance: &String,
-    ) -> anyhow::Result<Option<connector_distro_relation::Model>, ConnectorAgentRepoErrors> {
+    ) -> Outcome<Option<connector_distro_relation::Model>> {
         let relation =
             connector_distro_relation::Entity::find_by_id(instance).one(&self.db_connection).await;
         match relation {
             Ok(relation) => Ok(relation),
             Err(err) => Err(ConnectorAgentRepoErrors::ConnectorDistroRelationRepoErrors(
                 ConnectorDistroRelationRepoErrors::ErrorFetchingRelation(err.into()),
-            )),
+            )
+            .into_errors()),
         }
     }
 
-    async fn delete_relation_by_distribution(
-        &self,
-        distro: &String,
-    ) -> anyhow::Result<(), ConnectorAgentRepoErrors> {
+    async fn delete_relation_by_distribution(&self, distro: &String) -> Outcome<()> {
         let relation = self.get_relation_by_distribution(distro).await?;
         if relation.is_none() {
             return Err(ConnectorAgentRepoErrors::ConnectorDistroRelationRepoErrors(
                 ConnectorDistroRelationRepoErrors::RelationNotFound,
-            ));
+            )
+            .into_errors());
         }
         let relation = relation.unwrap();
 
@@ -110,31 +115,32 @@ impl ConnectorDistroRelationRepoTrait for ConnectorDistroRelationRepoForSql {
             Ok(delete_result) => match delete_result.rows_affected {
                 0 => Err(ConnectorAgentRepoErrors::ConnectorDistroRelationRepoErrors(
                     ConnectorDistroRelationRepoErrors::RelationNotFound,
-                )),
+                )
+                .into_errors()),
                 _ => Ok(()),
             },
             Err(err) => Err(ConnectorAgentRepoErrors::ConnectorDistroRelationRepoErrors(
                 ConnectorDistroRelationRepoErrors::ErrorDeletingRelation(err.into()),
-            )),
+            )
+            .into_errors()),
         }
     }
 
-    async fn delete_relation_by_instance(
-        &self,
-        distro: &String,
-    ) -> anyhow::Result<(), ConnectorAgentRepoErrors> {
+    async fn delete_relation_by_instance(&self, distro: &String) -> Outcome<()> {
         let relation =
             connector_distro_relation::Entity::delete_by_id(distro).exec(&self.db_connection).await;
         match relation {
             Ok(delete_result) => match delete_result.rows_affected {
                 0 => Err(ConnectorAgentRepoErrors::ConnectorDistroRelationRepoErrors(
                     ConnectorDistroRelationRepoErrors::RelationNotFound,
-                )),
+                )
+                .into_errors()),
                 _ => Ok(()),
             },
             Err(err) => Err(ConnectorAgentRepoErrors::ConnectorDistroRelationRepoErrors(
                 ConnectorDistroRelationRepoErrors::ErrorDeletingRelation(err.into()),
-            )),
+            )
+            .into_errors()),
         }
     }
 }

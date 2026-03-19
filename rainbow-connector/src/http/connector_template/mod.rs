@@ -9,9 +9,9 @@ use axum::{Json, Router};
 use rainbow_common::config::services::CatalogConfig;
 use rainbow_common::errors::error_adapter::CustomToResponse;
 use rainbow_common::errors::CommonErrors;
-use rainbow_common::utils::extract_payload;
 use serde::Deserialize;
 use std::sync::Arc;
+use ymir::utils::extract_payload;
 
 #[derive(Clone)]
 pub struct ConnectorTemplateRouter {
@@ -69,7 +69,7 @@ impl ConnectorTemplateRouter {
     ) -> impl IntoResponse {
         let mut input = match extract_payload(input) {
             Ok(v) => v,
-            Err(e) => return e,
+            Err(e) => return e.into_response(),
         };
         match state.service.create_template(&mut input).await {
             Ok(template) => (StatusCode::OK, Json(template)).into_response(),

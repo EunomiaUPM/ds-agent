@@ -33,8 +33,7 @@ use crate::protocols::dsp::protocol_types::{
 use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRpcSteps;
 use rainbow_common::http_client::HttpClient;
 use std::sync::Arc;
-use urn::Urn;
-
+use ymir::errors::{Errors, Outcome};
 // ─── TerminationStep ──────────────────────────────────────────────────────────
 
 /// Ends the transfer prematurely, stopping the local dataplane and notifying
@@ -54,24 +53,24 @@ impl TransferRpcStep for TerminationStep {
     async fn validate(
         validator: &Arc<dyn ValidationRpcSteps>,
         input: &RpcTransferTerminationMessageDto,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         validator.transfer_termination_rpc(input).await
     }
 
     async fn prepare_context(
         input: &RpcTransferTerminationMessageDto,
         persistence: &Arc<dyn TransferPersistenceTrait>,
-    ) -> anyhow::Result<RpcPeerContext> {
+    ) -> Outcome<RpcPeerContext> {
         let pid = input
             .get_consumer_pid()
-            .ok_or_else(|| anyhow::anyhow!("TerminationStep: missing consumer PID"))?;
+            .ok_or_else(|| Errors::crazy("TerminationStep: missing consumer PID", None))?;
         resolve_continuation_context(&pid, persistence).await
     }
 
     async fn pre_hook(
         dp: &Arc<dyn DataPlaneFacadeTrait>,
         ctx: &RpcPeerContext,
-    ) -> anyhow::Result<Option<DataAddressDto>> {
+    ) -> Outcome<Option<DataAddressDto>> {
         dp.on_transfer_termination_pre(&ctx.process).await?;
         Ok(None)
     }
@@ -80,7 +79,7 @@ impl TransferRpcStep for TerminationStep {
         input: &RpcTransferTerminationMessageDto,
         ctx: &RpcPeerContext,
         _pre_addr: Option<DataAddressDto>,
-    ) -> anyhow::Result<TransferTerminationMessageDto> {
+    ) -> Outcome<TransferTerminationMessageDto> {
         Ok(TransferTerminationMessageDto {
             provider_pid: ctx.provider_pid.clone(),
             consumer_pid: ctx.consumer_pid.clone(),
@@ -99,17 +98,14 @@ impl TransferRpcStep for TerminationStep {
         ctx: &RpcPeerContext,
         payload: Arc<TransferTerminationMessageDto>,
         url_suffix: &str,
-    ) -> anyhow::Result<(
+    ) -> Outcome<(
         TransferProcessMessageWrapper<TransferProcessAckDto>,
         TransferProcessDto,
     )> {
         continuation_send_and_persist(http_client, persistence, ctx, payload, url_suffix).await
     }
 
-    async fn post_hook(
-        dp: &Arc<dyn DataPlaneFacadeTrait>,
-        ctx: &RpcPeerContext,
-    ) -> anyhow::Result<()> {
+    async fn post_hook(dp: &Arc<dyn DataPlaneFacadeTrait>, ctx: &RpcPeerContext) -> Outcome<()> {
         dp.on_transfer_termination_post(&ctx.process).await
     }
 }

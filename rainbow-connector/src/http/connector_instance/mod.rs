@@ -7,8 +7,9 @@ use axum::routing::{delete, get, post};
 use axum::{Json, Router};
 use rainbow_common::errors::error_adapter::CustomToResponse;
 use rainbow_common::errors::CommonErrors;
-use rainbow_common::utils::{extract_payload, parse_urn};
+use rainbow_common::utils::{parse_urn};
 use std::sync::Arc;
+use ymir::utils::extract_payload;
 
 #[derive(Clone)]
 pub struct ConnectorInstanceRouter {
@@ -40,11 +41,11 @@ impl ConnectorInstanceRouter {
     ) -> impl IntoResponse {
         let mut input = match extract_payload(input) {
             Ok(v) => v,
-            Err(e) => return e,
+            Err(e) => return e.into_response(),
         };
         match state.service.upsert_instance(&mut input).await {
             Ok(instance) => (StatusCode::OK, Json(instance)).into_response(),
-            Err(err) => err.to_response(),
+            Err(err) => err.into_response(),
         }
     }
     async fn handle_get_instance_by_id(
@@ -61,7 +62,7 @@ impl ConnectorInstanceRouter {
                 let err = CommonErrors::missing_resource_new("instance", "Instance not found");
                 err.into_response()
             }
-            Err(err) => err.to_response(),
+            Err(err) => err.into_response(),
         }
     }
     async fn get_instance_by_distribution(
@@ -78,7 +79,7 @@ impl ConnectorInstanceRouter {
                 let err = CommonErrors::missing_resource_new("instance", "Instance not found");
                 err.into_response()
             }
-            Err(err) => err.to_response(),
+            Err(err) => err.into_response(),
         }
     }
     async fn handle_delete_instance_by_id(
@@ -91,7 +92,7 @@ impl ConnectorInstanceRouter {
         };
         match state.service.delete_instance_by_id(&did).await {
             Ok(_) => StatusCode::ACCEPTED.into_response(),
-            Err(err) => err.to_response(),
+            Err(err) => err.into_response(),
         }
     }
 }

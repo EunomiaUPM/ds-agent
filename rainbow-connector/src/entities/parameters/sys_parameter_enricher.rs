@@ -36,6 +36,7 @@ use crate::entities::parameters::ParameterEnricher;
 use chrono::Utc;
 use serde_json::{json, Value};
 use std::collections::HashMap;
+use ymir::errors::Outcome;
 
 /// Enriches the parameter map with `SYS_*` runtime values.
 ///
@@ -91,7 +92,7 @@ impl<'a> SysParameterEnricher<'a> {
 impl ParameterEnricher for SysParameterEnricher<'_> {
     /// Scans the template for `{{__SYS_*__}}` placeholders and inserts a
     /// runtime value for each one that does not already exist in `params`.
-    fn enrich(&self, params: &mut HashMap<String, Value>) -> anyhow::Result<()> {
+    fn enrich(&self, params: &mut HashMap<String, Value>) -> Outcome<()> {
         let mut extractor = SystemParameterExtractor::new();
         // Clone the template so we can satisfy the &mut requirement of
         // ParameterExtractorVisitor without modifying the original.

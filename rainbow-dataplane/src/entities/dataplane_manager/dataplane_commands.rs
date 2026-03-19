@@ -1,10 +1,12 @@
-use urn::Urn;
-use rainbow_connector::ConnectorInstanceDto;
-use crate::{DataplaneManager, DataplaneResponse};
 use crate::config_builder::DataplaneConfigBuilder;
 use crate::entities::dataplane_manager::driver_factory::DataplaneDriver;
-use crate::entities::dataplane_transfers::{DataplaneTransferDto, EditDataplaneTransferDto, InteractionMode, TransferState};
-
+use crate::entities::dataplane_transfers::{
+    DataplaneTransferDto, EditDataplaneTransferDto, InteractionMode, TransferState,
+};
+use crate::{DataplaneManager, DataplaneResponse};
+use rainbow_connector::ConnectorInstanceDto;
+use urn::Urn;
+use ymir::errors::Outcome;
 
 pub(super) struct CommandContext<'a> {
     pub(super) process_id: Urn,
@@ -19,7 +21,7 @@ impl<'a> CommandContext<'a> {
         process: &'a DataplaneTransferDto,
         driver: &'a DataplaneDriver,
         connector: Option<&'a ConnectorInstanceDto>,
-    ) -> anyhow::Result<Self> {
+    ) -> Outcome<Self> {
         Ok(Self {
             process_id: process.inner.id.parse()?,
             state: &process.inner.state,
@@ -46,7 +48,7 @@ impl DataplaneManager {
         &self,
         process: &DataplaneTransferDto,
         ctx: &CommandContext<'_>,
-    ) -> anyhow::Result<DataplaneResponse> {
+    ) -> Outcome<DataplaneResponse> {
         if ctx.is_state(TransferState::Init) {
             // Config was already computed in handle_creation, just persist and transition
             let builder = DataplaneConfigBuilder::from_process(process);
@@ -56,13 +58,13 @@ impl DataplaneManager {
                 Some(builder.ingress),
                 Some(builder.egress),
             )
-                .await?;
+            .await?;
         }
         Ok(DataplaneResponse::Ok)
     }
 
     /// CONFIGURING → AUTH: driver authenticates
-    pub(super) async fn cmd_auth(&self, ctx: &CommandContext<'_>) -> anyhow::Result<DataplaneResponse> {
+    pub(super) async fn cmd_auth(&self, ctx: &CommandContext<'_>) -> Outcome<DataplaneResponse> {
         if ctx.is_state(TransferState::Configuring) {
             ctx.driver.auth_driver.perform_auth(ctx.connector).await?;
             self.update_state(&ctx.process_id, TransferState::Auth).await?;
@@ -71,7 +73,7 @@ impl DataplaneManager {
     }
 
     /// AUTH → READY
-    pub(super) async fn cmd_ready(&self, ctx: &CommandContext<'_>) -> anyhow::Result<DataplaneResponse> {
+    pub(super) async fn cmd_ready(&self, ctx: &CommandContext<'_>) -> Outcome<DataplaneResponse> {
         if ctx.is_state(TransferState::Auth) {
             self.update_state(&ctx.process_id, TransferState::Ready).await?;
         }
@@ -79,7 +81,10 @@ impl DataplaneManager {
     }
 
     /// READY → SUBSCRIBING (PUSH only): driver subscribes to upstream
-    pub(super) async fn cmd_subscribing(&self, ctx: &CommandContext<'_>) -> anyhow::Result<DataplaneResponse> {
+    pub(super) async fn cmd_subscribing(
+        &self,
+        ctx: &CommandContext<'_>,
+    ) -> Outcome<DataplaneResponse> {
         if ctx.is_state(TransferState::Ready) && ctx.is_push() {
             self.subscribe_or_terminate(ctx).await?;
             self.update_state(&ctx.process_id, TransferState::Subscribing).await?;
@@ -88,7 +93,7 @@ impl DataplaneManager {
     }
 
     /// READY or STOPPED → STARTED (PULL: direct) or via SUBSCRIBING (PUSH: autonomous)
-    pub(super) async fn cmd_started(&self, ctx: &CommandContext<'_>) -> anyhow::Result<DataplaneResponse> {
+    pub(super) async fn cmd_started(&self, ctx: &CommandContext<'_>) -> Outcome<DataplaneResponse> {
         match (ctx.mode, ctx.state) {
             // PULL: Ready → Started directly
             (InteractionMode::Pull, &TransferState::Ready) => {
@@ -121,7 +126,7 @@ impl DataplaneManager {
     pub(super) async fn cmd_unsubscribing(
         &self,
         ctx: &CommandContext<'_>,
-    ) -> anyhow::Result<DataplaneResponse> {
+    ) -> Outcome<DataplaneResponse> {
         if ctx.is_state(TransferState::Started) && ctx.is_push() {
             self.unsubscribe_or_terminate(ctx).await?;
             self.update_state(&ctx.process_id, TransferState::Unsubscribing).await?;
@@ -130,7 +135,7 @@ impl DataplaneManager {
     }
 
     /// STARTED → STOPPED (PULL: direct) or STARTED → UNSUBSCRIBING → STOPPED (PUSH: via autonomous)
-    pub(super) async fn cmd_stopped(&self, ctx: &CommandContext<'_>) -> anyhow::Result<DataplaneResponse> {
+    pub(super) async fn cmd_stopped(&self, ctx: &CommandContext<'_>) -> Outcome<DataplaneResponse> {
         match (ctx.mode, ctx.state) {
             // PULL: Started → Stopped directly
             (InteractionMode::Pull, &TransferState::Started) => {
@@ -151,7 +156,7 @@ impl DataplaneManager {
     }
 
     /// Calls `perform_subscribe`; stores response in flow_control, or persists TERMINATED on failure.
-    async fn subscribe_or_terminate(&self, ctx: &CommandContext<'_>) -> anyhow::Result<()> {
+    async fn subscribe_or_terminate(&self, ctx: &CommandContext<'_>) -> Outcome<()> {
         match ctx.driver.lifecycle_driver.perform_subscribe(ctx.connector).await {
             Ok(response) => {
                 if !response.is_null() {
@@ -175,7 +180,7 @@ impl DataplaneManager {
     }
 
     /// Calls `perform_unsubscribe`; on failure persists TERMINATED state before returning the error.
-    async fn unsubscribe_or_terminate(&self, ctx: &CommandContext<'_>) -> anyhow::Result<()> {
+    async fn unsubscribe_or_terminate(&self, ctx: &CommandContext<'_>) -> Outcome<()> {
         if let Err(e) = ctx.driver.lifecycle_driver.perform_unsubscribe(ctx.connector).await {
             self.update_state(&ctx.process_id, TransferState::Terminated).await?;
             return Err(e);
@@ -184,7 +189,10 @@ impl DataplaneManager {
     }
 
     /// ANY → TERMINATED: cleanup (emergency unsubscribe if PUSH active)
-    pub(super) async fn cmd_terminated(&self, ctx: &CommandContext<'_>) -> anyhow::Result<DataplaneResponse> {
+    pub(super) async fn cmd_terminated(
+        &self,
+        ctx: &CommandContext<'_>,
+    ) -> Outcome<DataplaneResponse> {
         if ctx.is_push() {
             match ctx.state {
                 TransferState::Started | TransferState::Subscribing => {

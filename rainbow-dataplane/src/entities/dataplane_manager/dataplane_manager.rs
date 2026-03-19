@@ -16,7 +16,7 @@ use rainbow_connector::{ConnectorInstanceDto, ConnectorInstanceTrait, Interactio
 use std::sync::Arc;
 use urn::{Urn, UrnBuilder};
 use uuid::Uuid;
-
+use ymir::errors::{Errors, Outcome};
 // ─── DataplaneManager ───
 
 pub struct DataplaneManager {
@@ -38,13 +38,12 @@ impl DataplaneManager {
     pub async fn execute_command(
         &self,
         input: &DataplaneManagerInput,
-    ) -> anyhow::Result<DataplaneResponse> {
+    ) -> Outcome<DataplaneResponse> {
         // 1. Load existing dataplane process (if any)
         let dataplane_process_opt = self
             .dataplane_entity
             .get_dataplane_transfer_by_process_id(&input.transfer_process_id)
-            .await
-            .map_err(anyhow::Error::from)?;
+            .await?;
 
         // 2. Resolve connector URN → Option<Urn>
         // If still no process -> If setInit, connectorUrn in message,
@@ -63,8 +62,9 @@ impl DataplaneManager {
         }
 
         // 5. Process is guaranteed to exist from here
-        let process = dataplane_process_opt
-            .ok_or_else(|| anyhow!("Dataplane process not found after creation check"))?;
+        let process = dataplane_process_opt.ok_or_else(|| {
+            Errors::crazy("Dataplane process not found after creation check", None)
+        })?;
 
         // 6. Build driver (connector is optional)
         let driver = self.driver_factory.create_driver(&process, connector_instance.as_ref())?;
@@ -89,20 +89,22 @@ impl DataplaneManager {
         &self,
         process_opt: &Option<DataplaneTransferDto>,
         command: &DataplaneCommand,
-    ) -> anyhow::Result<Option<Urn>> {
+    ) -> Outcome<Option<Urn>> {
         match process_opt {
             None => match command {
                 DataplaneCommand::SetInit(role) => match role {
                     DataplaneInitCommandType::Provider { connector_instance, .. } => {
                         Ok(Some(connector_instance.clone()))
                     }
-                    DataplaneInitCommandType::Consumer { .. } => {
-                        Err(anyhow!("Consumer role shouldn't ever have a Connector instance"))
-                    }
+                    DataplaneInitCommandType::Consumer { .. } => Err(Errors::crazy(
+                        "Consumer role shouldn't ever have a Connector instance",
+                        None,
+                    )),
                 },
 
-                _ => Err(anyhow!(
-                    "Cannot execute command without an existing dataplane process"
+                _ => Err(Errors::crazy(
+                    "Cannot execute command without an existing dataplane process",
+                    None,
                 )),
             },
             Some(process) => match &process.inner.connector_instance_id {
@@ -117,14 +119,16 @@ impl DataplaneManager {
     async fn fetch_connector(
         &self,
         connector_urn: &Option<Urn>,
-    ) -> anyhow::Result<Option<ConnectorInstanceDto>> {
+    ) -> Outcome<Option<ConnectorInstanceDto>> {
         match connector_urn {
             Some(urn) => {
-                let instance = self
-                    .connector_entity
-                    .get_instance_by_id(urn)
-                    .await?
-                    .ok_or_else(|| anyhow!("Connector instance not found for URN: {}", urn))?;
+                let instance =
+                    self.connector_entity.get_instance_by_id(urn).await?.ok_or_else(|| {
+                        Errors::crazy(
+                            format!("Connector instance not found for URN: {}", urn),
+                            None,
+                        )
+                    })?;
                 Ok(Some(instance))
             }
             None => Ok(None),
@@ -138,7 +142,7 @@ impl DataplaneManager {
         cmd: &DataplaneCommand,
         process: &DataplaneTransferDto,
         ctx: &CommandContext<'_>,
-    ) -> anyhow::Result<DataplaneResponse> {
+    ) -> Outcome<DataplaneResponse> {
         match cmd {
             DataplaneCommand::SetInit { .. } => self.cmd_init(process, ctx).await,
             DataplaneCommand::SetConfiguring => Ok(DataplaneResponse::Ok),
@@ -157,7 +161,7 @@ impl DataplaneManager {
 
     // ─── Autonomous transitions (recursive chain) ───
 
-    async fn trigger_autonomous_transition(&self, transfer_process_id: &Urn) -> anyhow::Result<()> {
+    async fn trigger_autonomous_transition(&self, transfer_process_id: &Urn) -> Outcome<()> {
         let current =
             self.dataplane_entity.get_dataplane_transfer_by_process_id(transfer_process_id).await?;
 
@@ -191,14 +195,13 @@ impl DataplaneManager {
     pub async fn get_ingress_address(
         &self,
         transfer_id: &Urn,
-    ) -> anyhow::Result<Option<DataplaneAddress>> {
+    ) -> Outcome<Option<DataplaneAddress>> {
         let Some(process) =
             self.dataplane_entity.get_dataplane_transfer_by_process_id(transfer_id).await?
         else {
             return Ok(None);
         };
-        let ingress: IngressConfig = serde_json::from_value(process.inner.ingress_config)
-            .map_err(|e| anyhow!("Failed to parse ingress_config: {}", e))?;
+        let ingress: IngressConfig = serde_json::from_value(process.inner.ingress_config)?;
         match ingress {
             IngressConfig::HttpListener { path } => Ok(Some(DataplaneAddress {
                 endpoint_type: "HttpProxy".to_string(),
@@ -211,7 +214,7 @@ impl DataplaneManager {
     }
 
     /// Check if the transfer is in PULL mode.
-    pub async fn is_pull(&self, transfer_id: &Urn) -> anyhow::Result<bool> {
+    pub async fn is_pull(&self, transfer_id: &Urn) -> Outcome<bool> {
         if let Some(process) =
             self.dataplane_entity.get_dataplane_transfer_by_process_id(transfer_id).await?
         {

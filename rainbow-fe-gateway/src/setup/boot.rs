@@ -6,16 +6,18 @@ use std::sync::Arc;
 use tokio::sync::broadcast;
 use tokio::sync::broadcast::Sender;
 use tokio_util::sync::CancellationToken;
+use ymir::errors::Outcome;
 use ymir::services::vault::global::VaultService;
 
 pub struct GatewayBoot;
+
 
 #[async_trait::async_trait]
 impl BootstrapServiceTrait for GatewayBoot {
     type Config = GatewayConfig;
 
-    async fn load_config(env_file: String) -> anyhow::Result<Self::Config> {
-        let config = Self::Config::load(env_file);
+    async fn load_config(env_file: String) -> Outcome<Self::Config> {
+        let config = Self::Config::load(&*env_file)?;
         let table =
             json_to_table::json_to_table(&serde_json::to_value(&config)?).collapse().to_string();
         tracing::info!("Current Catalog Agent Config:\n{}", table);
@@ -25,7 +27,7 @@ impl BootstrapServiceTrait for GatewayBoot {
     async fn start_services_background(
         config: &Self::Config,
         _vault_service: Arc<VaultService>,
-    ) -> anyhow::Result<Sender<()>> {
+    ) -> Outcome<Sender<()>> {
         // thread control
         let (shutdown_tx, mut shutdown_rx) = broadcast::channel(1);
         let cancel_token = CancellationToken::new();

@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use urn::{Urn, UrnBuilder};
 
 use strum::Display;
+use ymir::errors::Errors;
 use crate::DataplaneInitCommandType;
 
 #[derive(
@@ -57,7 +58,7 @@ impl TryFrom<DataplaneInitCommandType> for TransferRole {
 }
 
 impl TryFrom<&DataplaneInitCommandType> for TransferRole {
-    type Error = anyhow::Error;
+    type Error = Errors;
     fn try_from(value: &DataplaneInitCommandType) -> Result<Self, Self::Error> {
         value.try_into()
     }

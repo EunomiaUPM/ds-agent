@@ -20,7 +20,9 @@
 use crate::protocols::dsp::facades::data_service_resolver_facade::DataServiceFacadeTrait;
 use anyhow::{anyhow, bail};
 use rainbow_catalog_agent::{DatasetDto, DistributionDto};
+use rainbow_common::config::services::traits::TransferConfigTrait;
 use rainbow_common::config::services::TransferConfig;
+use rainbow_common::config::types::traits::MinKnownConfigTrait;
 use rainbow_common::http_client::HttpClient;
 use rainbow_common::utils::get_urn_from_string;
 use rainbow_connector::{ConnectorInstanceDto, ConnectorInstanceTrait};
@@ -29,6 +31,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
 use ymir::config::types::HostType;
+use ymir::errors::{Errors, Outcome};
 
 pub struct DataServiceFacadeServiceForDSProtocol {
     config: Arc<TransferConfig>,
@@ -52,7 +55,7 @@ impl DataServiceFacadeTrait for DataServiceFacadeServiceForDSProtocol {
         &self,
         agreement_id: &Urn,
         formats: Option<&String>,
-    ) -> anyhow::Result<ConnectorInstanceDto> {
+    ) -> Outcome<ConnectorInstanceDto> {
         let contracts_url = self.config.contracts().get_host(HostType::Http);
         let catalog_url = self.config.catalog().get_host(HostType::Http);
         let agreement_url = format!(
@@ -62,7 +65,6 @@ impl DataServiceFacadeTrait for DataServiceFacadeServiceForDSProtocol {
 
         // 1. resolve agreement → get target (dataset id)
         let agreement = self.client.get_json::<AgreementDto>(agreement_url.as_str()).await?;
-        dbg!("3.1");
         let agreement_target = get_urn_from_string(&agreement.inner.target)?;
 
         // 2. resolve dataset entity
@@ -72,7 +74,6 @@ impl DataServiceFacadeTrait for DataServiceFacadeServiceForDSProtocol {
             agreement_target.clone()
         );
         let dataset = self.client.get_json::<DatasetDto>(datasets_url.as_str()).await?;
-        dbg!("3.2");
         let dataset_id = get_urn_from_string(&dataset.inner.id)?;
 
         // 3. resolve distribution by dataset + format
@@ -80,11 +81,10 @@ impl DataServiceFacadeTrait for DataServiceFacadeServiceForDSProtocol {
             "{}/api/v1/catalog-agent/distributions/dataset/{}/format/{}",
             catalog_url,
             dataset_id.clone(),
-            formats.ok_or_else(|| anyhow!("dct_formats is required"))?.to_string()
+            formats.ok_or_else(|| Errors::crazy("dct_formats is required", None))?.to_string()
         );
         let distribution =
             self.client.get_json::<DistributionDto>(distribution_url.as_str()).await?;
-        dbg!("3.3");
         let distribution_id = Urn::from_str(distribution.inner.id.as_str())?;
 
         // 4. resolve connector instance by distribution
@@ -93,9 +93,11 @@ impl DataServiceFacadeTrait for DataServiceFacadeServiceForDSProtocol {
             .get_instance_by_distribution(&distribution_id)
             .await?
             .ok_or_else(|| {
-                anyhow!("No connector instance found for distribution {}", distribution_id)
+                Errors::crazy(
+                    format!("No connector instance found for distribution {}", distribution_id),
+                    None,
+                )
             })?;
-        dbg!("3.4");
 
         Ok(connector_instance)
     }

@@ -24,6 +24,7 @@ use crate::data::entities::negotiation_process::{
 use anyhow::Error;
 use thiserror::Error;
 use urn::Urn;
+use ymir::errors::RepoIntoErrors;
 
 #[async_trait::async_trait]
 pub trait NegotiationProcessRepoTrait: Send + Sync {
@@ -77,3 +78,5 @@ pub enum NegotiationProcessRepoErrors {
     #[error("Error updating negotiation process. {0}")]
     ErrorUpdatingNegotiationProcess(Error),
 }
+
+impl RepoIntoErrors for NegotiationProcessRepoErrors {}

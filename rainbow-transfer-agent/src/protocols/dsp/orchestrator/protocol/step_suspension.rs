@@ -30,7 +30,7 @@ use crate::protocols::dsp::protocol_types::{
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
 use std::sync::Arc;
 use urn::Urn;
-
+use ymir::errors::{Errors, Outcome};
 // ─── SuspensionStep ───────────────────────────────────────────────────────────
 
 /// Handles an inbound `TransferSuspensionMessage` from the peer.
@@ -47,7 +47,7 @@ impl ProtocolStep for ProtocolSuspensionStep {
         validator: &Arc<dyn ValidationDspSteps>,
         id: &str,
         input: &TransferProcessMessageWrapper<TransferSuspensionMessageDto>,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         validator.on_transfer_suspension(&id.to_string(), input).await
     }
 
@@ -57,7 +57,7 @@ impl ProtocolStep for ProtocolSuspensionStep {
         _input: &TransferProcessMessageWrapper<TransferSuspensionMessageDto>,
         persistence: &Arc<dyn TransferPersistenceTrait>,
         _facades: &Arc<dyn FacadeTrait>,
-    ) -> anyhow::Result<(
+    ) -> Outcome<(
         ProtocolContext,
         Option<TransferProcessMessageWrapper<TransferProcessAckDto>>,
     )> {
@@ -69,7 +69,7 @@ impl ProtocolStep for ProtocolSuspensionStep {
         id: &str,
         _ctx: &ProtocolContext,
         input: &TransferProcessMessageWrapper<TransferSuspensionMessageDto>,
-    ) -> anyhow::Result<TransferProcessDto> {
+    ) -> Outcome<TransferProcessDto> {
         continuation_persist(persistence, id, input).await
     }
 
@@ -78,8 +78,8 @@ impl ProtocolStep for ProtocolSuspensionStep {
         ctx: &ProtocolContext,
         _input: &TransferProcessMessageWrapper<TransferSuspensionMessageDto>,
         _process_id: &Urn,
-    ) -> anyhow::Result<Option<DataAddressDto>> {
-        let process = &ctx.process.clone().ok_or(anyhow::anyhow!("no process found"))?;
+    ) -> Outcome<Option<DataAddressDto>> {
+        let process = &ctx.process.clone().ok_or(Errors::crazy("no process found", None))?;
         dp.on_transfer_suspension_post(process).await?;
         Ok(None)
     }

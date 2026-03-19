@@ -85,7 +85,7 @@ impl TransferAgentProcessesRouter {
     ) -> impl IntoResponse {
         match state.service.get_all_transfer_processes(params.limit, params.page).await {
             Ok(processes) => (StatusCode::OK, Json(processes)).into_response(),
-            Err(err) => err.to_response(),
+            Err(err) => err.into_response(),
         }
     }
 
@@ -99,7 +99,7 @@ impl TransferAgentProcessesRouter {
         };
         match state.service.create_transfer_process(&input).await {
             Ok(created_process) => (StatusCode::CREATED, Json(created_process)).into_response(),
-            Err(err) => err.to_response(),
+            Err(err) => err.into_response(),
         }
     }
 
@@ -113,7 +113,7 @@ impl TransferAgentProcessesRouter {
         };
         match state.service.get_batch_transfer_processes(&input.ids).await {
             Ok(processes) => (StatusCode::OK, Json(processes)).into_response(),
-            Err(err) => err.to_response(),
+            Err(err) => err.into_response(),
         }
     }
 
@@ -127,7 +127,7 @@ impl TransferAgentProcessesRouter {
         };
         match state.service.get_transfer_process_by_id(&id_urn).await {
             Ok(process) => (StatusCode::OK, Json(process)).into_response(),
-            Err(err) => err.to_response(),
+            Err(err) => err.into_response(),
         }
     }
 
@@ -146,7 +146,7 @@ impl TransferAgentProcessesRouter {
         };
         match state.service.put_transfer_process(&id_urn, &input).await {
             Ok(updated_process) => (StatusCode::OK, Json(updated_process)).into_response(),
-            Err(err) => err.to_response(),
+            Err(err) => err.into_response(),
         }
     }
 
@@ -160,7 +160,7 @@ impl TransferAgentProcessesRouter {
         };
         match state.service.delete_transfer_process(&id_urn).await {
             Ok(_) => (StatusCode::NO_CONTENT).into_response(),
-            Err(err) => err.to_response(),
+            Err(err) => err.into_response(),
         }
     }
 
@@ -174,7 +174,7 @@ impl TransferAgentProcessesRouter {
         };
         match state.service.get_transfer_process_by_key_id(&key_id, &id_urn).await {
             Ok(process) => (StatusCode::OK, Json(process)).into_response(),
-            Err(err) => err.to_response(),
+            Err(err) => err.into_response(),
         }
     }
 }

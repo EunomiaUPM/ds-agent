@@ -23,6 +23,7 @@ use async_trait::async_trait;
 use sea_orm::DatabaseConnection;
 use thiserror::Error;
 use urn::Urn;
+use ymir::errors::RepoIntoErrors;
 
 pub mod sql;
 
@@ -158,3 +159,5 @@ pub enum EventRepoErrors {
     #[error("Error updating notification. {0}")]
     ErrorUpdatingNotification(Error),
 }
+
+impl RepoIntoErrors for EventRepoErrors {}

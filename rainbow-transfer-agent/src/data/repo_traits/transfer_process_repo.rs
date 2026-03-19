@@ -22,6 +22,7 @@ use crate::data::entities::transfer_process::{EditTransferProcessModel, NewTrans
 use anyhow::Error;
 use thiserror::Error;
 use urn::Urn;
+use ymir::errors::{Outcome, RepoIntoErrors};
 
 #[mockall::automock]
 #[async_trait::async_trait]
@@ -30,37 +31,34 @@ pub trait TransferProcessRepoTrait: Send + Sync {
         &self,
         limit: Option<u64>,
         page: Option<u64>,
-    ) -> anyhow::Result<Vec<transfer_process::Model>, TransferProcessRepoErrors>;
+    ) -> Outcome<Vec<transfer_process::Model>>;
     async fn get_batch_transfer_processes(
         &self,
         ids: &Vec<Urn>,
-    ) -> anyhow::Result<Vec<transfer_process::Model>, TransferProcessRepoErrors>;
+    ) -> Outcome<Vec<transfer_process::Model>>;
     async fn get_transfer_process_by_id(
         &self,
         id: &Urn,
-    ) -> anyhow::Result<Option<transfer_process::Model>, TransferProcessRepoErrors>;
+    ) -> Outcome<Option<transfer_process::Model>>;
     async fn get_transfer_process_by_key_id(
         &self,
         key_id: &str,
         id: &Urn,
-    ) -> anyhow::Result<Option<transfer_process::Model>, TransferProcessRepoErrors>;
+    ) -> Outcome<Option<transfer_process::Model>>;
     async fn get_transfer_process_by_key_value(
         &self,
         id: &Urn,
-    ) -> anyhow::Result<Option<transfer_process::Model>, TransferProcessRepoErrors>;
+    ) -> Outcome<Option<transfer_process::Model>>;
     async fn create_transfer_process(
         &self,
         new_model: &NewTransferProcessModel,
-    ) -> anyhow::Result<transfer_process::Model, TransferProcessRepoErrors>;
+    ) -> Outcome<transfer_process::Model>;
     async fn put_transfer_process(
         &self,
         id: &Urn,
         edit_model: &EditTransferProcessModel,
-    ) -> anyhow::Result<transfer_process::Model, TransferProcessRepoErrors>;
-    async fn delete_transfer_process(
-        &self,
-        id: &Urn,
-    ) -> anyhow::Result<(), TransferProcessRepoErrors>;
+    ) -> Outcome<transfer_process::Model>;
+    async fn delete_transfer_process(&self, id: &Urn) -> Outcome<()>;
 }
 
 #[derive(Debug, Error)]
@@ -76,3 +74,5 @@ pub enum TransferProcessRepoErrors {
     #[error("Error updating transfer process. {0}")]
     ErrorUpdatingTransferProcess(Error),
 }
+
+impl RepoIntoErrors for TransferProcessRepoErrors {}

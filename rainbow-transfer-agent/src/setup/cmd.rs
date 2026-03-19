@@ -21,10 +21,13 @@ use crate::setup::db_migrations::TransferAgentMigration;
 use clap::{Parser, Subcommand};
 use rainbow_common::boot::{BootstrapInit, BootstrapStepTrait};
 use rainbow_common::config::services::TransferConfig;
-use rainbow_common::config::types::traits::ConfigLoader;
+use rainbow_common::config::types::traits::{CommonConfigTrait, ConfigLoader};
 use std::sync::Arc;
 use tracing::{debug, info};
+use ymir::config::traits::ConnectionConfigTrait;
+use ymir::services::vault::fake_vault::FakeVaultService;
 use ymir::services::vault::global::VaultService;
+use ymir::services::vault::vault_rs::RealVaultService;
 
 #[derive(Parser, Debug)]
 #[command(name = "Rainbow Dataspace Connector Transfer Agent")]
@@ -65,13 +68,17 @@ impl TransferCommands {
                 let _ = step_finalized.0.next_step().await?;
             }
             TransferCliCommands::Setup(args) => {
-                let config = TransferConfig::load(args.env_file);
-                let vault = Arc::new(VaultService::new());
+                let config = TransferConfig::load(&*args.env_file)?;
+                let vault = if config.common().is_vault_real() {
+                    VaultService::Real(RealVaultService::new())
+                } else {
+                    VaultService::Fake(FakeVaultService::new())
+                };
                 let table = json_to_table::json_to_table(&serde_json::to_value(&config)?)
                     .collapse()
                     .to_string();
                 info!("Current Transfer Agent Config:\n{}", table);
-                TransferAgentMigration::run(&config, vault.clone()).await?;
+                TransferAgentMigration::run(&config, Arc::new(vault)).await?;
             }
         }
         Ok(())

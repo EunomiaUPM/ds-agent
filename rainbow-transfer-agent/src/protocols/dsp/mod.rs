@@ -57,8 +57,9 @@ use std::sync::Arc;
 use validator::validators::protocol::validate_state_transition::ValidatedStateTransitionServiceForDsp;
 use validator::validators::rpc::validation_rpc_steps::ValidationRpcStepsService;
 use ymir::config::traits::HostsConfigTrait;
+use ymir::errors::Outcome;
 use ymir::services::vault::global::VaultService;
-use ymir::services::vault::vault_rs::VaultService;
+use rainbow_common::config::services::traits::TransferConfigTrait;
 use rainbow_connector::ConnectorSetup;
 
 pub struct TransferDSP {
@@ -101,7 +102,7 @@ impl ProtocolPluginTrait for TransferDSP {
         "DSP"
     }
 
-    async fn build_router(&self) -> anyhow::Result<Router> {
+    async fn build_router(&self) -> Outcome<Router> {
         let http_client = Arc::new(HttpClient::new(10, 10));
 
         // Validator
@@ -208,7 +209,7 @@ impl ProtocolPluginTrait for TransferDSP {
         Ok(Router::new().merge(dsp_router.router()).merge(rcp_router.router()))
     }
 
-    fn build_grpc_router(&self) -> anyhow::Result<Option<Router>> {
+    fn build_grpc_router(&self) -> Outcome<Option<Router>> {
         todo!()
     }
 }

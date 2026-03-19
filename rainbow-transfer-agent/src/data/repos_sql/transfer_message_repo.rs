@@ -24,6 +24,7 @@ use crate::data::repo_traits::transfer_message_repo::{
 };
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, QuerySelect};
 use urn::Urn;
+use ymir::errors::{Outcome, RepoIntoErrors};
 
 pub struct TransferMessageRepoForSql {
     db_connection: DatabaseConnection,
@@ -41,7 +42,7 @@ impl TransferMessageRepoTrait for TransferMessageRepoForSql {
         &self,
         limit: Option<u64>,
         page: Option<u64>,
-    ) -> anyhow::Result<Vec<transfer_message::Model>, TransferMessageRepoErrors> {
+    ) -> Outcome<Vec<transfer_message::Model>> {
         let messages = transfer_message::Entity::find()
             .limit(limit.unwrap_or(20))
             .offset(page.map(|p| p * limit.unwrap_or(20)).unwrap_or(0))
@@ -51,14 +52,16 @@ impl TransferMessageRepoTrait for TransferMessageRepoForSql {
 
         match messages {
             Ok(messages) => Ok(messages),
-            Err(e) => Err(TransferMessageRepoErrors::ErrorFetchingTransferMessage(e.into())),
+            Err(e) => {
+                Err(TransferMessageRepoErrors::ErrorFetchingTransferMessage(e.into()).into_errors())
+            }
         }
     }
 
     async fn get_messages_by_process_id(
         &self,
         process_id: &Urn,
-    ) -> anyhow::Result<Vec<transfer_message::Model>, TransferMessageRepoErrors> {
+    ) -> Outcome<Vec<transfer_message::Model>> {
         let pid = process_id.to_string();
         let messages = transfer_message::Entity::find()
             .filter(transfer_message::Column::TransferAgentProcessId.eq(pid))
@@ -68,48 +71,53 @@ impl TransferMessageRepoTrait for TransferMessageRepoForSql {
 
         match messages {
             Ok(messages) => Ok(messages),
-            Err(e) => Err(TransferMessageRepoErrors::ErrorFetchingTransferMessage(e.into())),
+            Err(e) => {
+                Err(TransferMessageRepoErrors::ErrorFetchingTransferMessage(e.into()).into_errors())
+            }
         }
     }
 
     async fn get_transfer_message_by_id(
         &self,
         id: &Urn,
-    ) -> anyhow::Result<Option<transfer_message::Model>, TransferMessageRepoErrors> {
+    ) -> Outcome<Option<transfer_message::Model>> {
         let mid = id.to_string();
         let message = transfer_message::Entity::find_by_id(mid).one(&self.db_connection).await;
         match message {
             Ok(message) => Ok(message),
-            Err(e) => Err(TransferMessageRepoErrors::ErrorFetchingTransferMessage(e.into())),
+            Err(e) => {
+                Err(TransferMessageRepoErrors::ErrorFetchingTransferMessage(e.into()).into_errors())
+            }
         }
     }
 
     async fn create_transfer_message(
         &self,
         new_model: &NewTransferMessageModel,
-    ) -> anyhow::Result<transfer_message::Model, TransferMessageRepoErrors> {
+    ) -> Outcome<transfer_message::Model> {
         let model: transfer_message::ActiveModel = new_model.clone().into();
         let result =
             transfer_message::Entity::insert(model).exec_with_returning(&self.db_connection).await;
         match result {
             Ok(message) => Ok(message),
-            Err(e) => Err(TransferMessageRepoErrors::ErrorCreatingTransferMessage(e.into())),
+            Err(e) => {
+                Err(TransferMessageRepoErrors::ErrorCreatingTransferMessage(e.into()).into_errors())
+            }
         }
     }
 
-    async fn delete_transfer_message(
-        &self,
-        id: &Urn,
-    ) -> anyhow::Result<(), TransferMessageRepoErrors> {
+    async fn delete_transfer_message(&self, id: &Urn) -> Outcome<()> {
         let mid = id.to_string();
         let result = transfer_message::Entity::delete_by_id(mid).exec(&self.db_connection).await;
 
         match result {
             Ok(delete_result) => match delete_result.rows_affected {
-                0 => Err(TransferMessageRepoErrors::TransferMessageNotFound),
+                0 => Err(TransferMessageRepoErrors::TransferMessageNotFound.into_errors()),
                 _ => Ok(()),
             },
-            Err(e) => Err(TransferMessageRepoErrors::ErrorDeletingTransferMessage(e.into())),
+            Err(e) => {
+                Err(TransferMessageRepoErrors::ErrorDeletingTransferMessage(e.into()).into_errors())
+            }
         }
     }
 }

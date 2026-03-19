@@ -16,6 +16,8 @@
  */
 
 use serde::{Deserialize, Serialize};
+use ymir::config::traits::ConnectionConfigTrait;
+use ymir::config::types::ConnectionConfig;
 use ymir::errors::Outcome;
 
 use crate::config::services::traits::CatalogConfigTrait;
@@ -65,5 +67,11 @@ impl CatalogConfigTrait for CatalogConfig {
 
     fn get_policy_templates_folder(&self) -> &str {
         self.policy_templates_folder.as_deref().unwrap_or("/")
+    }
+}
+
+impl ConnectionConfigTrait for CatalogConfig {
+    fn connection(&self) -> &ConnectionConfig {
+        self.common.connection()
     }
 }

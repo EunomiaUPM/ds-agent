@@ -26,6 +26,7 @@ use crate::protocols::dsp::validator::traits::validate_state_transition::Validat
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
 use crate::protocols::dsp::validator::traits::validation_helpers::ValidationHelpers;
 use std::sync::Arc;
+use ymir::errors::Outcome;
 
 pub struct ValidationDspStepsService {
     payload_validator: Arc<dyn ValidatePayload>,
@@ -47,7 +48,7 @@ impl ValidationDspSteps for ValidationDspStepsService {
     async fn on_transfer_request(
         &self,
         input: &TransferProcessMessageWrapper<TransferRequestMessageDto>,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         self.payload_validator.validate_with_json_schema(&input.dto).await?;
         self.payload_validator.validate_identifiers_as_urn(&input.dto).await?;
         self.payload_validator.validate_auth(&input.dto).await?;
@@ -59,7 +60,7 @@ impl ValidationDspSteps for ValidationDspStepsService {
         &self,
         uri_id: &String,
         input: &TransferProcessMessageWrapper<TransferStartMessageDto>,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         let dto = self.helpers.get_current_dto_from_payload(&input.dto).await?;
         let role = self.helpers.get_role_from_dto(&dto).await?;
         let message_type = input._type.clone();
@@ -91,7 +92,7 @@ impl ValidationDspSteps for ValidationDspStepsService {
         &self,
         uri_id: &String,
         input: &TransferProcessMessageWrapper<TransferCompletionMessageDto>,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         let dto = self.helpers.get_current_dto_from_payload(&input.dto).await?;
         let role = self.helpers.get_role_from_dto(&dto).await?;
         let message_type = input._type.clone();
@@ -122,7 +123,7 @@ impl ValidationDspSteps for ValidationDspStepsService {
         &self,
         uri_id: &String,
         input: &TransferProcessMessageWrapper<TransferSuspensionMessageDto>,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         let dto = self.helpers.get_current_dto_from_payload(&input.dto).await?;
         let role = self.helpers.get_role_from_dto(&dto).await?;
         let message_type = input._type.clone();
@@ -153,7 +154,7 @@ impl ValidationDspSteps for ValidationDspStepsService {
         &self,
         uri_id: &String,
         input: &TransferProcessMessageWrapper<TransferTerminationMessageDto>,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         let dto = self.helpers.get_current_dto_from_payload(&input.dto).await?;
         let role = self.helpers.get_role_from_dto(&dto).await?;
         let message_type = input._type.clone();

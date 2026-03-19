@@ -38,7 +38,7 @@ use rainbow_common::http_client::HttpClient;
 use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
-
+use ymir::errors::Outcome;
 // ─── Service ─────────────────────────────────────────────────────────────────
 
 /// RPC orchestrator for outbound transfer operations.
@@ -75,7 +75,7 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
     async fn setup_transfer_request(
         &self,
         input: &RpcTransferRequestMessageDto,
-    ) -> anyhow::Result<RpcTransferMessageDto<RpcTransferRequestMessageDto>> {
+    ) -> Outcome<RpcTransferMessageDto<RpcTransferRequestMessageDto>> {
         let (response, process) = self.run_lifecycle::<RequestStep>(input).await?;
         Ok(RpcTransferMessageDto { request: input.clone(), response, transfer_agent_model: process })
     }
@@ -83,7 +83,7 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
     async fn setup_transfer_start(
         &self,
         input: &RpcTransferStartMessageDto,
-    ) -> anyhow::Result<RpcTransferMessageDto<RpcTransferStartMessageDto>> {
+    ) -> Outcome<RpcTransferMessageDto<RpcTransferStartMessageDto>> {
         let (response, process) = self.run_lifecycle::<StartStep>(input).await?;
         Ok(RpcTransferMessageDto { request: input.clone(), response, transfer_agent_model: process })
     }
@@ -91,7 +91,7 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
     async fn setup_transfer_suspension(
         &self,
         input: &RpcTransferSuspensionMessageDto,
-    ) -> anyhow::Result<RpcTransferMessageDto<RpcTransferSuspensionMessageDto>> {
+    ) -> Outcome<RpcTransferMessageDto<RpcTransferSuspensionMessageDto>> {
         let (response, process) = self.run_lifecycle::<SuspensionStep>(input).await?;
         Ok(RpcTransferMessageDto { request: input.clone(), response, transfer_agent_model: process })
     }
@@ -99,7 +99,7 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
     async fn setup_transfer_completion(
         &self,
         input: &RpcTransferCompletionMessageDto,
-    ) -> anyhow::Result<RpcTransferMessageDto<RpcTransferCompletionMessageDto>> {
+    ) -> Outcome<RpcTransferMessageDto<RpcTransferCompletionMessageDto>> {
         let (response, process) = self.run_lifecycle::<CompletionStep>(input).await?;
         Ok(RpcTransferMessageDto { request: input.clone(), response, transfer_agent_model: process })
     }
@@ -107,7 +107,7 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
     async fn setup_transfer_termination(
         &self,
         input: &RpcTransferTerminationMessageDto,
-    ) -> anyhow::Result<RpcTransferMessageDto<RpcTransferTerminationMessageDto>> {
+    ) -> Outcome<RpcTransferMessageDto<RpcTransferTerminationMessageDto>> {
         let (response, process) = self.run_lifecycle::<TerminationStep>(input).await?;
         Ok(RpcTransferMessageDto { request: input.clone(), response, transfer_agent_model: process })
     }
@@ -124,7 +124,7 @@ impl RPCOrchestratorService {
     async fn run_lifecycle<S: TransferRpcStep>(
         &self,
         input: &S::Input,
-    ) -> anyhow::Result<(
+    ) -> Outcome<(
         TransferProcessMessageWrapper<TransferProcessAckDto>,
         TransferProcessDto,
     )> {

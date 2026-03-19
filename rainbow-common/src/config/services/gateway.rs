@@ -16,6 +16,8 @@
  */
 
 use serde::{Deserialize, Serialize};
+use ymir::config::traits::ConnectionConfigTrait;
+use ymir::config::types::ConnectionConfig;
 use ymir::errors::Outcome;
 
 use crate::config::services::traits::GatewayConfigTrait;
@@ -52,4 +54,10 @@ impl ConfigLoader for GatewayConfig {
 
 impl CommonConfigTrait for GatewayConfig {
     fn common(&self) -> &CommonConfig { &self.common }
+}
+
+impl ConnectionConfigTrait for GatewayConfig {
+    fn connection(&self) -> &ConnectionConfig {
+        self.common.connection()
+    }
 }

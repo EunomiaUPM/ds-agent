@@ -33,6 +33,7 @@ use crate::protocols::dsp::validator::traits::validation_helpers::ValidationHelp
 use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRpcSteps;
 use anyhow::bail;
 use std::sync::Arc;
+use ymir::errors::Outcome;
 
 pub struct ValidationRpcStepsService {
     payload_validator: Arc<dyn ValidatePayload>,
@@ -51,17 +52,14 @@ impl ValidationRpcStepsService {
 
 #[async_trait::async_trait]
 impl ValidationRpcSteps for ValidationRpcStepsService {
-    async fn transfer_request_rpc(
-        &self,
-        input: &RpcTransferRequestMessageDto,
-    ) -> anyhow::Result<()> {
+    async fn transfer_request_rpc(&self, input: &RpcTransferRequestMessageDto) -> Outcome<()> {
         let request_body: TransferProcessMessageWrapper<TransferRequestMessageDto> =
             input.clone().into();
         //self.payload_validator.validate_format_data_address(&request_body.dto).await?;
         Ok(())
     }
 
-    async fn transfer_start_rpc(&self, input: &RpcTransferStartMessageDto) -> anyhow::Result<()> {
+    async fn transfer_start_rpc(&self, input: &RpcTransferStartMessageDto) -> Outcome<()> {
         // review well this...
         let input: TransferProcessMessageWrapper<TransferStartMessageDto> = input.clone().into();
         let dto = self.helpers.get_current_dto_from_payload(&input.dto).await?;
@@ -92,7 +90,7 @@ impl ValidationRpcSteps for ValidationRpcStepsService {
     async fn transfer_completion_rpc(
         &self,
         input: &RpcTransferCompletionMessageDto,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         let input: TransferProcessMessageWrapper<TransferCompletionMessageDto> =
             input.clone().into();
         let dto = self.helpers.get_current_dto_from_payload(&input.dto).await?;
@@ -124,7 +122,7 @@ impl ValidationRpcSteps for ValidationRpcStepsService {
     async fn transfer_suspension_rpc(
         &self,
         input: &RpcTransferSuspensionMessageDto,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         let input: TransferProcessMessageWrapper<TransferSuspensionMessageDto> =
             input.clone().into();
         let dto = self.helpers.get_current_dto_from_payload(&input.dto).await?;
@@ -154,7 +152,7 @@ impl ValidationRpcSteps for ValidationRpcStepsService {
     async fn transfer_termination_rpc(
         &self,
         input: &RpcTransferTerminationMessageDto,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         let input: TransferProcessMessageWrapper<TransferTerminationMessageDto> =
             input.clone().into();
         let dto = self.helpers.get_current_dto_from_payload(&input.dto).await?;

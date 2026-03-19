@@ -7,6 +7,7 @@ use crate::data::repo_traits::connector_repo_errors::{
 use sea_orm::{
     ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter, RuntimeErr, SqlxError,
 };
+use ymir::errors::{Outcome, RepoIntoErrors};
 
 pub struct ConnectorInstanceRepoForSql {
     db_connection: DatabaseConnection,
@@ -23,7 +24,7 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
     async fn create_instance(
         &self,
         new_instance_model: &NewConnectorInstanceModel,
-    ) -> anyhow::Result<connector_instances::Model, ConnectorAgentRepoErrors> {
+    ) -> Outcome<connector_instances::Model> {
         let model: connector_instances::ActiveModel = new_instance_model.clone().into();
         let instance = connector_instances::Entity::insert(model)
             .exec_with_returning(&self.db_connection)
@@ -42,21 +43,25 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
                                 ConnectorInstanceRepoErrors::ErrorCreatingTemplateByDuplication(
                                     err.into(),
                                 ),
-                            ))
+                            )
+                            .into_errors())
                         } else {
                             Err(ConnectorAgentRepoErrors::ConnectorInstanceRepoErrors(
                                 ConnectorInstanceRepoErrors::ErrorCreatingInstance(err.into()),
-                            ))
+                            )
+                            .into_errors())
                         }
                     } else {
                         Err(ConnectorAgentRepoErrors::ConnectorInstanceRepoErrors(
                             ConnectorInstanceRepoErrors::ErrorCreatingInstance(err.into()),
-                        ))
+                        )
+                        .into_errors())
                     }
                 }
                 _ => Err(ConnectorAgentRepoErrors::ConnectorInstanceRepoErrors(
                     ConnectorInstanceRepoErrors::ErrorCreatingInstance(err.into()),
-                )),
+                )
+                .into_errors()),
             },
         }
     }
@@ -64,14 +69,15 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
     async fn get_instance_by_id(
         &self,
         instance_id: &String,
-    ) -> anyhow::Result<Option<connector_instances::Model>, ConnectorAgentRepoErrors> {
+    ) -> Outcome<Option<connector_instances::Model>> {
         let result =
             connector_instances::Entity::find_by_id(instance_id).one(&self.db_connection).await;
         match result {
             Ok(opt) => Ok(opt),
             Err(err) => Err(ConnectorAgentRepoErrors::ConnectorInstanceRepoErrors(
                 ConnectorInstanceRepoErrors::ErrorFetchingInstance(err.into()),
-            )),
+            )
+            .into_errors()),
         }
     }
 
@@ -79,7 +85,7 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
         &self,
         name: &String,
         version: &String,
-    ) -> anyhow::Result<Option<connector_instances::Model>, ConnectorAgentRepoErrors> {
+    ) -> Outcome<Option<connector_instances::Model>> {
         let result = connector_instances::Entity::find()
             .filter(connector_instances::Column::TemplateName.eq(name))
             .filter(connector_instances::Column::TemplateVersion.eq(version))
@@ -89,14 +95,15 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
             Ok(opt) => Ok(opt),
             Err(err) => Err(ConnectorAgentRepoErrors::ConnectorInstanceRepoErrors(
                 ConnectorInstanceRepoErrors::ErrorFetchingInstance(err.into()),
-            )),
+            )
+            .into_errors()),
         }
     }
 
     async fn get_instances_by_distribution(
         &self,
         distribution_id: &String,
-    ) -> anyhow::Result<Option<connector_instances::Model>, ConnectorAgentRepoErrors> {
+    ) -> Outcome<Option<connector_instances::Model>> {
         let result = connector_instances::Entity::find()
             .filter(connector_instances::Column::DistributionId.eq(distribution_id))
             .one(&self.db_connection)
@@ -105,7 +112,8 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
             Ok(list) => Ok(list),
             Err(err) => Err(ConnectorAgentRepoErrors::ConnectorInstanceRepoErrors(
                 ConnectorInstanceRepoErrors::ErrorFetchingInstance(err.into()),
-            )),
+            )
+            .into_errors()),
         }
     }
 
@@ -113,12 +121,13 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
         &self,
         name: &String,
         version: &String,
-    ) -> anyhow::Result<(), ConnectorAgentRepoErrors> {
+    ) -> Outcome<()> {
         let instance = self.get_instance_by_name_and_version(name, &version).await?;
         if instance.is_none() {
             return Err(ConnectorAgentRepoErrors::ConnectorInstanceRepoErrors(
                 ConnectorInstanceRepoErrors::InstanceNotFound,
-            ));
+            )
+            .into_errors());
         }
         let instance = instance.unwrap();
         let result =
@@ -128,19 +137,18 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
             Ok(delete_result) => match delete_result.rows_affected {
                 0 => Err(ConnectorAgentRepoErrors::ConnectorInstanceRepoErrors(
                     ConnectorInstanceRepoErrors::InstanceNotFound,
-                )),
+                )
+                .into_errors()),
                 _ => Ok(()),
             },
             Err(err) => Err(ConnectorAgentRepoErrors::ConnectorInstanceRepoErrors(
                 ConnectorInstanceRepoErrors::ErrorDeletingInstance(err.into()),
-            )),
+            )
+            .into_errors()),
         }
     }
 
-    async fn delete_instance_by_id(
-        &self,
-        instance_id: &String,
-    ) -> anyhow::Result<(), ConnectorAgentRepoErrors> {
+    async fn delete_instance_by_id(&self, instance_id: &String) -> Outcome<()> {
         let result =
             connector_instances::Entity::delete_by_id(instance_id).exec(&self.db_connection).await;
 
@@ -148,12 +156,14 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
             Ok(delete_result) => match delete_result.rows_affected {
                 0 => Err(ConnectorAgentRepoErrors::ConnectorInstanceRepoErrors(
                     ConnectorInstanceRepoErrors::InstanceNotFound,
-                )),
+                )
+                .into_errors()),
                 _ => Ok(()),
             },
             Err(err) => Err(ConnectorAgentRepoErrors::ConnectorInstanceRepoErrors(
                 ConnectorInstanceRepoErrors::ErrorDeletingInstance(err.into()),
-            )),
+            )
+            .into_errors()),
         }
     }
 }

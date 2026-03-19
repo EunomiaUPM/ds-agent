@@ -27,6 +27,7 @@ use rainbow_common::errors::{CommonErrors, ErrorLog};
 use std::sync::Arc;
 use tracing::error;
 use urn::Urn;
+use ymir::errors::{Errors, Outcome};
 
 pub struct TransferAgentMessagesService {
     pub transfer_repo: Arc<dyn TransferAgentRepoTrait>,
@@ -44,17 +45,12 @@ impl TransferAgentMessagesTrait for TransferAgentMessagesService {
         &self,
         limit: Option<u64>,
         page: Option<u64>,
-    ) -> anyhow::Result<Vec<TransferMessageDto>> {
+    ) -> Outcome<Vec<TransferMessageDto>> {
         let messages = self
             .transfer_repo
             .get_transfer_message_repo() // Asumo que existe este método en el Factory
             .get_all_transfer_messages(limit, page)
-            .await
-            .map_err(|e| {
-                let err = CommonErrors::database_new(&e.to_string());
-                error!("{}", err.log());
-                err
-            })?;
+            .await?;
 
         Ok(messages.into_iter().map(|m| TransferMessageDto { inner: m }).collect())
     }
@@ -62,40 +58,23 @@ impl TransferAgentMessagesTrait for TransferAgentMessagesService {
     async fn get_messages_by_process_id(
         &self,
         process_id: &Urn,
-    ) -> anyhow::Result<Vec<TransferMessageDto>> {
+    ) -> Outcome<Vec<TransferMessageDto>> {
         let messages = self
             .transfer_repo
             .get_transfer_message_repo()
             .get_messages_by_process_id(process_id)
-            .await
-            .map_err(|e| {
-                let err = CommonErrors::database_new(&e.to_string());
-                error!("{}", err.log());
-                err
-            })?;
+            .await?;
 
         Ok(messages.into_iter().map(|m| TransferMessageDto { inner: m }).collect())
     }
 
-    async fn get_transfer_message_by_id(&self, id: &Urn) -> anyhow::Result<TransferMessageDto> {
+    async fn get_transfer_message_by_id(&self, id: &Urn) -> Outcome<TransferMessageDto> {
         let message = self
             .transfer_repo
             .get_transfer_message_repo()
             .get_transfer_message_by_id(id)
-            .await
-            .map_err(|e| {
-                let err = CommonErrors::database_new(&e.to_string());
-                error!("{}", err.log());
-                err
-            })?
-            .ok_or_else(|| {
-                let err = CommonErrors::missing_resource_new(
-                    &id.to_string(),
-                    "Transfer Message not found",
-                );
-                error!("{}", err.log());
-                err
-            })?;
+            .await?
+            .ok_or_else(|| Errors::crazy("Transfer Message not found", None))?;
 
         Ok(TransferMessageDto { inner: message })
     }
@@ -103,41 +82,20 @@ impl TransferAgentMessagesTrait for TransferAgentMessagesService {
     async fn create_transfer_message(
         &self,
         new_model_dto: &NewTransferMessageDto,
-    ) -> anyhow::Result<TransferMessageDto> {
+    ) -> Outcome<TransferMessageDto> {
         let new_model: NewTransferMessageModel = new_model_dto.clone().into();
 
         let created = self
             .transfer_repo
             .get_transfer_message_repo()
             .create_transfer_message(&new_model)
-            .await
-            .map_err(|e| {
-                let err = CommonErrors::database_new(&e.to_string());
-                error!("{}", err.log());
-                err
-            })?;
+            .await?;
 
         Ok(TransferMessageDto { inner: created })
     }
 
-    async fn delete_transfer_message(&self, id: &Urn) -> anyhow::Result<()> {
-        self.transfer_repo.get_transfer_message_repo().delete_transfer_message(id).await.map_err(
-            |e| match e {
-                TransferMessageRepoErrors::TransferMessageNotFound => {
-                    let err = CommonErrors::missing_resource_new(
-                        &id.to_string(),
-                        "Transfer Message not found for deletion",
-                    );
-                    error!("{}", err.log());
-                    err
-                }
-                _ => {
-                    let err = CommonErrors::database_new(&e.to_string());
-                    error!("{}", err.log());
-                    err
-                }
-            },
-        )?;
+    async fn delete_transfer_message(&self, id: &Urn) -> Outcome<()> {
+        self.transfer_repo.get_transfer_message_repo().delete_transfer_message(id).await?;
         Ok(())
     }
 }

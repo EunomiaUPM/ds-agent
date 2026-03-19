@@ -14,7 +14,6 @@ rainbow_connector = { version = "0.3.1", path = "../rainbow-connector", default-
 
 serde = { workspace = true }
 serde_json = { workspace = true }
-anyhow = { workspace = true }
 tracing = { workspace = true }
 axum = { workspace = true }
 reqwest = { workspace = true }

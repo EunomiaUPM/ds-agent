@@ -34,8 +34,13 @@ fi
 # Execution
 echo "Running [${CMD}] for [${ROLE}]..."
 
+LOCAL_ENV_FILE="../static/vault/${ROLE}/data/local.vault.env"
+
 set -a
 source "$ENV_FILE"
+if [ -f "$LOCAL_ENV_FILE" ]; then
+    source "$LOCAL_ENV_FILE"
+fi
 set +a
 
 cargo run "$CMD" -e "$CONFIG_FILE"

@@ -5,6 +5,7 @@ use crate::data::entities::dataplane_transfers::{
 use anyhow::Error;
 use thiserror::Error;
 use urn::Urn;
+use ymir::errors::RepoIntoErrors;
 
 #[async_trait::async_trait]
 pub trait DataplaneTransfersRepo: Send + Sync + 'static {
@@ -53,3 +54,5 @@ pub enum DataplaneTransfersRepoErrors {
     #[error("Error updating dataplane transfer. {0}")]
     ErrorUpdatingDataplaneTransfer(Error),
 }
+
+impl RepoIntoErrors for DataplaneTransfersRepoErrors {}

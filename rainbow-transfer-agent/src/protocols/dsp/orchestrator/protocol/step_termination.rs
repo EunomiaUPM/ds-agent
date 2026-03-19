@@ -31,7 +31,7 @@ use crate::protocols::dsp::protocol_types::{
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
 use std::sync::Arc;
 use urn::Urn;
-
+use ymir::errors::{Errors, Outcome};
 // ─── TerminationStep ──────────────────────────────────────────────────────────
 
 /// Handles an inbound `TransferTerminationMessage` from the peer.
@@ -48,7 +48,7 @@ impl ProtocolStep for ProtocolTerminationStep {
         validator: &Arc<dyn ValidationDspSteps>,
         id: &str,
         input: &TransferProcessMessageWrapper<TransferTerminationMessageDto>,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         validator.on_transfer_termination(&id.to_string(), input).await
     }
 
@@ -58,7 +58,7 @@ impl ProtocolStep for ProtocolTerminationStep {
         _input: &TransferProcessMessageWrapper<TransferTerminationMessageDto>,
         persistence: &Arc<dyn TransferPersistenceTrait>,
         _facades: &Arc<dyn FacadeTrait>,
-    ) -> anyhow::Result<(
+    ) -> Outcome<(
         ProtocolContext,
         Option<TransferProcessMessageWrapper<TransferProcessAckDto>>,
     )> {
@@ -70,7 +70,7 @@ impl ProtocolStep for ProtocolTerminationStep {
         id: &str,
         _ctx: &ProtocolContext,
         input: &TransferProcessMessageWrapper<TransferTerminationMessageDto>,
-    ) -> anyhow::Result<TransferProcessDto> {
+    ) -> Outcome<TransferProcessDto> {
         continuation_persist(persistence, id, input).await
     }
 
@@ -79,8 +79,8 @@ impl ProtocolStep for ProtocolTerminationStep {
         ctx: &ProtocolContext,
         _input: &TransferProcessMessageWrapper<TransferTerminationMessageDto>,
         _process_id: &Urn,
-    ) -> anyhow::Result<Option<DataAddressDto>> {
-        let process = &ctx.process.clone().ok_or(anyhow::anyhow!("no process found"))?;
+    ) -> Outcome<Option<DataAddressDto>> {
+        let process = &ctx.process.clone().ok_or(Errors::crazy("no process found", None))?;
         dp.on_transfer_termination_post(process).await?;
         Ok(None)
     }

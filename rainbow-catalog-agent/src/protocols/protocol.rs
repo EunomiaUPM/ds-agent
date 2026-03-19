@@ -16,6 +16,7 @@
  *  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
+use ymir::errors::Outcome;
 
 #[async_trait::async_trait]
 #[allow(unused)]
@@ -23,6 +24,6 @@ pub trait ProtocolPluginTrait {
     fn name(&self) -> &'static str;
     fn version(&self) -> &'static str;
     fn short_name(&self) -> &'static str;
-    async fn build_router(&self) -> anyhow::Result<axum::Router>;
-    fn build_grpc_router(&self) -> anyhow::Result<Option<axum::Router>>;
+    async fn build_router(&self) -> Outcome<axum::Router>;
+    fn build_grpc_router(&self) -> Outcome<Option<axum::Router>>;
 }

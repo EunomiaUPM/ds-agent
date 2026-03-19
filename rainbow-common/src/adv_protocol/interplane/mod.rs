@@ -18,9 +18,8 @@
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
-use anyhow::bail;
 use serde::{Deserialize, Serialize};
-
+use ymir::errors::Errors;
 use crate::dcat_formats::FormatAction;
 
 pub mod data_plane_provision;
@@ -112,14 +111,14 @@ pub enum DataPlaneProcessDirection {
 }
 
 impl FromStr for DataPlaneProcessDirection {
-    type Err = anyhow::Error;
+    type Err = Errors;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "PUSH" => Ok(DataPlaneProcessDirection::PUSH),
             "PULL" => Ok(DataPlaneProcessDirection::PULL),
             "BIDI" => Ok(DataPlaneProcessDirection::BIDI),
-            _ => bail!("no direction allowed")
+            _ => Err(Errors::crazy("no direction allowed", None))
         }
     }
 }
@@ -152,7 +151,7 @@ pub enum DataPlaneProcessState {
 }
 
 impl FromStr for DataPlaneProcessState {
-    type Err = anyhow::Error;
+    type Err = Errors;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
@@ -160,7 +159,7 @@ impl FromStr for DataPlaneProcessState {
             "STARTED" => Ok(DataPlaneProcessState::STARTED),
             "STOPPED" => Ok(DataPlaneProcessState::STOPPED),
             "TERMINATED" => Ok(DataPlaneProcessState::TERMINATED),
-            _ => bail!("no state allowed")
+            _ => Err(Errors::crazy("no state allowed", None))
         }
     }
 }

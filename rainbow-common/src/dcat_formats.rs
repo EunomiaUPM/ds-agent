@@ -18,9 +18,9 @@
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
-use anyhow::bail;
 use serde::de::Error;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use ymir::errors::Errors;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum FormatProtocol {
@@ -30,7 +30,7 @@ pub enum FormatProtocol {
     Grpc,
     Kafka,
     Mqtt,
-    S3
+    S3,
 }
 
 impl Display for FormatProtocol {
@@ -42,14 +42,14 @@ impl Display for FormatProtocol {
             FormatProtocol::Grpc => "Grpc".to_string(),
             FormatProtocol::Kafka => "Kafka".to_string(),
             FormatProtocol::Mqtt => "Mqtt".to_string(),
-            FormatProtocol::S3 => "S3".to_string()
+            FormatProtocol::S3 => "S3".to_string(),
         };
         write!(f, "{}", str)
     }
 }
 
 impl FromStr for FormatProtocol {
-    type Err = anyhow::Error;
+    type Err = Errors;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
@@ -60,7 +60,7 @@ impl FromStr for FormatProtocol {
             "Kafka" => Ok(FormatProtocol::Kafka),
             "Mqtt" => Ok(FormatProtocol::Mqtt),
             "S3" => Ok(FormatProtocol::S3),
-            _ => bail!("Value {} not recognized", s)
+            _ => Err(Errors::crazy(format!("Value {} not recognized", s), None)),
         }
     }
 }
@@ -68,27 +68,27 @@ impl FromStr for FormatProtocol {
 #[derive(Debug, Clone, Copy)]
 pub enum FormatAction {
     Push,
-    Pull
+    Pull,
 }
 
 impl Display for FormatAction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let str = match self {
             FormatAction::Push => "Push".to_string(),
-            FormatAction::Pull => "Pull".to_string()
+            FormatAction::Pull => "Pull".to_string(),
         };
         write!(f, "{}", str)
     }
 }
 
 impl FromStr for FormatAction {
-    type Err = anyhow::Error;
+    type Err = Errors;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "Push" => Ok(FormatAction::Push),
             "Pull" => Ok(FormatAction::Pull),
-            _ => bail!("Value {} not recognized", s)
+            _ => Err(Errors::crazy(format!("Value {} not recognized", s), None)),
         }
     }
 }
@@ -98,7 +98,7 @@ impl PartialEq for FormatAction {
         match (self, other) {
             (FormatAction::Push, FormatAction::Push) => true,
             (FormatAction::Pull, FormatAction::Pull) => true,
-            (_, _) => false
+            (_, _) => false,
         }
     }
 }
@@ -106,7 +106,7 @@ impl PartialEq for FormatAction {
 #[derive(Debug, Clone)]
 pub struct DctFormats {
     pub protocol: FormatProtocol,
-    pub action: FormatAction
+    pub action: FormatAction,
 }
 
 impl Display for DctFormats {
@@ -119,12 +119,12 @@ impl Display for DctFormats {
 }
 
 impl FromStr for DctFormats {
-    type Err = anyhow::Error;
+    type Err = Errors;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let parts: Vec<&str> = s.split("+").collect();
         if parts.len() != 2 {
-            bail!("Expected string in format PROTOCOL_ACTION");
+            return Err(Errors::crazy("Expected string in format PROTOCOL_ACTION", None));
         }
         let protocol = match parts[0].to_lowercase().as_str() {
             "ngsi-ld" => FormatProtocol::NgsiLd,
@@ -132,12 +132,12 @@ impl FromStr for DctFormats {
             "http" => FormatProtocol::Http,
             "quic" => FormatProtocol::Quic,
             "kafka" => FormatProtocol::Kafka,
-            _ => bail!("expected a correct protocol")
+            _ => return Err(Errors::crazy("Expected a correct protocol", None)),
         };
         let action = match parts[1].to_lowercase().as_str() {
             "push" => FormatAction::Push,
             "pull" => FormatAction::Pull,
-            _ => bail!("expected a correct protocol")
+            _ => return Err(Errors::crazy("Expected a correct protocol", None)),
         };
         Ok(DctFormats { protocol, action })
     }
@@ -146,7 +146,7 @@ impl FromStr for DctFormats {
 impl Serialize for DctFormats {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: Serializer
+        S: Serializer,
     {
         let protocol = match self.protocol {
             FormatProtocol::NgsiLd => "ngsi-ld",
@@ -155,11 +155,11 @@ impl Serialize for DctFormats {
             FormatProtocol::Grpc => "grpc",
             FormatProtocol::Kafka => "kafka",
             FormatProtocol::Mqtt => "mqtt",
-            FormatProtocol::S3 => "s3"
+            FormatProtocol::S3 => "s3",
         };
         let action = match self.action {
             FormatAction::Push => "push",
-            FormatAction::Pull => "pull"
+            FormatAction::Pull => "pull",
         };
         let combined = format!("{}+{}", protocol, action);
         serializer.serialize_str(&combined)
@@ -169,7 +169,7 @@ impl Serialize for DctFormats {
 impl<'de> Deserialize<'de> for DctFormats {
     fn deserialize<D>(deserializer: D) -> Result<DctFormats, D::Error>
     where
-        D: Deserializer<'de>
+        D: Deserializer<'de>,
     {
         let v = String::deserialize(deserializer)?;
         let parts: Vec<&str> = v.split("+").collect();
@@ -182,12 +182,12 @@ impl<'de> Deserialize<'de> for DctFormats {
             "http" => FormatProtocol::Http,
             "quic" => FormatProtocol::Quic,
             "kafka" => FormatProtocol::Kafka,
-            _ => return Err(Error::custom("expected a correct protocol"))
+            _ => return Err(Error::custom("expected a correct protocol")),
         };
         let action = match parts[1].to_lowercase().as_str() {
             "push" => FormatAction::Push,
             "pull" => FormatAction::Pull,
-            _ => return Err(Error::custom("expected a correct protocol"))
+            _ => return Err(Error::custom("expected a correct protocol")),
         };
         Ok(DctFormats { protocol, action })
     }

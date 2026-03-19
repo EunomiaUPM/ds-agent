@@ -134,8 +134,6 @@ impl<'a> TemplateParametersResolver<'a> {
 /// JSON path to the field currently being resolved, which is useful for error
 /// messages and context-aware resolution.
 pub trait ParameterResolverBehavior {
-    type Error: From<anyhow::Error>;
-
     /// Push a named scope onto the resolution context stack.
     fn enter_scope(&mut self, name: &str);
 
@@ -151,8 +149,6 @@ pub trait ParameterResolverBehavior {
 }
 
 impl ParameterResolverBehavior for TemplateParametersResolver<'_> {
-    type Error = anyhow::Error;
-
     fn enter_scope(&mut self, name: &str) {
         self.context_stack.push(name.to_string());
     }

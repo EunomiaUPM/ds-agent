@@ -31,7 +31,7 @@ use rainbow_common::http_client::HttpClient;
 use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
-
+use ymir::errors::Outcome;
 // ─── Peer context (continuation steps) ───────────────────────────────────────
 
 /// Resolved routing state for an in-progress transfer process.
@@ -102,7 +102,7 @@ pub(super) trait TransferRpcStep: Send + Sync + 'static {
     async fn validate(
         _validator: &Arc<dyn ValidationRpcSteps>,
         _input: &Self::Input,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         Ok(())
     }
 
@@ -114,7 +114,7 @@ pub(super) trait TransferRpcStep: Send + Sync + 'static {
     async fn prepare_context(
         input: &Self::Input,
         persistence: &Arc<dyn TransferPersistenceTrait>,
-    ) -> anyhow::Result<Self::Context>;
+    ) -> Outcome<Self::Context>;
 
     /// Local dataplane hook executed **before** sending the message to the peer.
     ///
@@ -123,14 +123,14 @@ pub(super) trait TransferRpcStep: Send + Sync + 'static {
     async fn pre_hook(
         dp: &Arc<dyn DataPlaneFacadeTrait>,
         ctx: &Self::Context,
-    ) -> anyhow::Result<Option<DataAddressDto>>;
+    ) -> Outcome<Option<DataAddressDto>>;
 
     /// Produce the outgoing DSP protocol message from the input and context.
     fn build_message(
         input: &Self::Input,
         ctx: &Self::Context,
         pre_addr: Option<DataAddressDto>,
-    ) -> anyhow::Result<Self::DspMessage>;
+    ) -> Outcome<Self::DspMessage>;
 
     /// Return the peer identifier string used for auth-token lookup.
     fn auth_peer(ctx: &Self::Context) -> &str;
@@ -145,14 +145,14 @@ pub(super) trait TransferRpcStep: Send + Sync + 'static {
         ctx: &Self::Context,
         payload: Arc<Self::DspMessage>,
         url_suffix: &str,
-    ) -> anyhow::Result<(TransferProcessMessageWrapper<TransferProcessAckDto>, TransferProcessDto)>;
+    ) -> Outcome<(TransferProcessMessageWrapper<TransferProcessAckDto>, TransferProcessDto)>;
 
     /// Local dataplane hook executed **after** the peer acknowledges the message.
     /// Default: no-op (overridden by steps that need to react to the peer's ack).
     async fn post_hook(
         _dp: &Arc<dyn DataPlaneFacadeTrait>,
         _ctx: &Self::Context,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         Ok(())
     }
 
@@ -186,7 +186,7 @@ pub(super) trait TransferRpcStep: Send + Sync + 'static {
 pub(super) async fn resolve_continuation_context(
     consumer_pid: &Urn,
     persistence: &Arc<dyn TransferPersistenceTrait>,
-) -> anyhow::Result<RpcPeerContext> {
+) -> Outcome<RpcPeerContext> {
     let process = persistence.fetch_process(consumer_pid.to_string().as_str()).await?;
 
     let provider_pid = Urn::from_str(process.identifiers.get("providerPid").unwrap().as_str())?;
@@ -222,7 +222,7 @@ pub(super) async fn continuation_send_and_persist<T>(
     ctx: &RpcPeerContext,
     payload: Arc<T>,
     url_suffix: &str,
-) -> anyhow::Result<(TransferProcessMessageWrapper<TransferProcessAckDto>, TransferProcessDto)>
+) -> Outcome<(TransferProcessMessageWrapper<TransferProcessAckDto>, TransferProcessDto)>
 where
     T: TransferProcessMessageTrait + Clone + serde::Serialize + Send + Sync + 'static,
 {

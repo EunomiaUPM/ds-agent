@@ -55,9 +55,11 @@ use tower_http::trace::{DefaultOnResponse, TraceLayer};
 use uuid::Uuid;
 use ymir::config::traits::{ApiConfigTrait, ConnectionConfigTrait, HostsConfigTrait};
 use ymir::config::types::HostType;
+use ymir::errors::{Errors, Outcome};
 use ymir::http::HealthRouter;
 use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
+use rainbow_common::config::services::traits::CatalogConfigTrait;
 
 pub struct CatalogHttpWorker {}
 impl CatalogHttpWorker {
@@ -65,7 +67,7 @@ impl CatalogHttpWorker {
         config: &CatalogConfig,
         vault: Arc<VaultService>,
         token: &CancellationToken,
-    ) -> anyhow::Result<JoinHandle<()>> {
+    ) -> Outcome<JoinHandle<()>> {
         // well known router
         let well_known_router = WellKnownRoot::get_well_known_router(&config.into())?;
         let health_router = HealthRouter::new().router();
@@ -75,10 +77,11 @@ impl CatalogHttpWorker {
             .merge(well_known_router)
             .merge(health_router);
         let host = if config.common().is_local() { "127.0.0.1" } else { "0.0.0.0" };
-        let port = config.common().get_weird_port(HostType::Http);
+        let port = config.common().get_internal_port(HostType::Http);
         let addr = format!("{}{}", host, port);
 
-        let listener = TcpListener::bind(&addr).await?;
+        let listener = TcpListener::bind(&addr).await
+            .map_err(|e| Errors::crazy("Error listening on the socket", Some(Box::new(e))))?;
         tracing::info!("HTTP Catalog Service running on {}", addr);
 
         let token = token.clone();
@@ -98,7 +101,7 @@ impl CatalogHttpWorker {
     pub async fn create_root_http_router(
         config: &CatalogConfig,
         vault: Arc<VaultService>,
-    ) -> anyhow::Result<Router> {
+    ) -> Outcome<Router> {
         let router = create_root_http_router(config, vault.clone())
             .await?
             .fallback(Self::handler_404)
@@ -127,12 +130,13 @@ impl CatalogHttpWorker {
 pub async fn create_root_http_router(
     config: &CatalogConfig,
     vault: Arc<VaultService>,
-) -> anyhow::Result<Router> {
+) -> Outcome<Router> {
     // ROOT Dependency Injection
     let db_connection = vault.get_db_connection(config.common()).await;
     let config = Arc::new(config.clone());
     let cache_connection_url = config.get_full_cache_url();
-    let redis_client = redis::Client::open(cache_connection_url)?;
+    let redis_client = redis::Client::open(cache_connection_url)
+        .map_err(|e| Errors::crazy("Not able to connect to Redis client", Some(Box::new(e))))?;
     let redis_connection =
         redis_client.get_multiplexed_async_connection().await.expect("Redis connection failed");
     let http_client = Arc::new(HttpClient::new(20, 3));

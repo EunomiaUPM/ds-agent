@@ -30,7 +30,7 @@ use crate::protocols::dsp::protocol_types::{
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
 use std::sync::Arc;
 use urn::Urn;
-
+use ymir::errors::{Errors, Outcome};
 // ─── StartStep ────────────────────────────────────────────────────────────────
 
 /// Handles an inbound `TransferStartMessage` from the peer.
@@ -49,7 +49,7 @@ impl ProtocolStep for ProtocolStartStep {
         validator: &Arc<dyn ValidationDspSteps>,
         id: &str,
         input: &TransferProcessMessageWrapper<TransferStartMessageDto>,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         validator.on_transfer_start(&id.to_string(), input).await
     }
 
@@ -59,7 +59,7 @@ impl ProtocolStep for ProtocolStartStep {
         _input: &TransferProcessMessageWrapper<TransferStartMessageDto>,
         persistence: &Arc<dyn TransferPersistenceTrait>,
         _facades: &Arc<dyn FacadeTrait>,
-    ) -> anyhow::Result<(
+    ) -> Outcome<(
         ProtocolContext,
         Option<TransferProcessMessageWrapper<TransferProcessAckDto>>,
     )> {
@@ -71,7 +71,7 @@ impl ProtocolStep for ProtocolStartStep {
         id: &str,
         _ctx: &ProtocolContext,
         input: &TransferProcessMessageWrapper<TransferStartMessageDto>,
-    ) -> anyhow::Result<TransferProcessDto> {
+    ) -> Outcome<TransferProcessDto> {
         continuation_persist(persistence, id, input).await
     }
 
@@ -81,8 +81,8 @@ impl ProtocolStep for ProtocolStartStep {
         ctx: &ProtocolContext,
         input: &TransferProcessMessageWrapper<TransferStartMessageDto>,
         _process_id: &Urn,
-    ) -> anyhow::Result<Option<DataAddressDto>> {
-        let process = &ctx.process.clone().ok_or(anyhow::anyhow!("no process found"))?;
+    ) -> Outcome<Option<DataAddressDto>> {
+        let process = &ctx.process.clone().ok_or(Errors::crazy("no process found", None))?;
         dp.on_transfer_start_post(&process, input.dto.data_address.clone()).await
     }
 }

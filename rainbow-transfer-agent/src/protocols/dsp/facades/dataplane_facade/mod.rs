@@ -4,6 +4,7 @@ use crate::protocols::dsp::protocol_types::DataAddressDto;
 use rainbow_connector::ConnectorInstanceDto;
 use rainbow_dataplane::DataplaneAddress;
 use urn::Urn;
+use ymir::errors::Outcome;
 use crate::entities::transfer_process::TransferProcessDto;
 
 #[mockall::automock]
@@ -17,7 +18,7 @@ pub trait DataPlaneFacadeTrait: Send + Sync {
         &self,
         transfer_id: &Urn,
         data_address: &Option<DataAddressDto>,
-    ) -> anyhow::Result<Option<DataAddressDto>>;
+    ) -> Outcome<Option<DataAddressDto>>;
 
     /// Provider INBOUND: init provider DP with connector (SetInit Provider).
     async fn on_transfer_request_post(
@@ -25,7 +26,7 @@ pub trait DataPlaneFacadeTrait: Send + Sync {
         transfer_process: &TransferProcessDto,
         connector_instance: &ConnectorInstanceDto,
         data_address: &Option<DataAddressDto>,
-    ) -> anyhow::Result<()>;
+    ) -> Outcome<()>;
 
     // ─── TransferStart ───
 
@@ -34,7 +35,7 @@ pub trait DataPlaneFacadeTrait: Send + Sync {
     async fn on_transfer_start_pre(
         &self,
         transfer_process: &TransferProcessDto,
-    ) -> anyhow::Result<Option<DataAddressDto>>;
+    ) -> Outcome<Option<DataAddressDto>>;
 
     /// INBOUND: start local DP (SetStarted).
     /// Accepts the peer's DataAddress (PULL consumer: provider proxy URL) to set as egress.
@@ -42,22 +43,22 @@ pub trait DataPlaneFacadeTrait: Send + Sync {
         &self,
         transfer_process: &TransferProcessDto,
         data_address: Option<DataAddressDto>,
-    ) -> anyhow::Result<Option<DataAddressDto>>;
+    ) -> Outcome<Option<DataAddressDto>>;
 
     // ─── TransferSuspension ───
 
-    async fn on_transfer_suspension_pre(&self, transfer_process: &TransferProcessDto,) -> anyhow::Result<()>;
-    async fn on_transfer_suspension_post(&self, transfer_process: &TransferProcessDto,) -> anyhow::Result<()>;
+    async fn on_transfer_suspension_pre(&self, transfer_process: &TransferProcessDto,) -> Outcome<()>;
+    async fn on_transfer_suspension_post(&self, transfer_process: &TransferProcessDto,) -> Outcome<()>;
 
     // ─── TransferCompletion ───
 
-    async fn on_transfer_completion_pre(&self, transfer_process: &TransferProcessDto,) -> anyhow::Result<()>;
-    async fn on_transfer_completion_post(&self, transfer_process: &TransferProcessDto,) -> anyhow::Result<()>;
+    async fn on_transfer_completion_pre(&self, transfer_process: &TransferProcessDto,) -> Outcome<()>;
+    async fn on_transfer_completion_post(&self, transfer_process: &TransferProcessDto,) -> Outcome<()>;
 
     // ─── TransferTermination ───
 
-    async fn on_transfer_termination_pre(&self, transfer_process: &TransferProcessDto,) -> anyhow::Result<()>;
-    async fn on_transfer_termination_post(&self, transfer_process: &TransferProcessDto,) -> anyhow::Result<()>;
+    async fn on_transfer_termination_pre(&self, transfer_process: &TransferProcessDto,) -> Outcome<()>;
+    async fn on_transfer_termination_post(&self, transfer_process: &TransferProcessDto,) -> Outcome<()>;
 
     // ─── Config updates ───
 
@@ -66,5 +67,5 @@ pub trait DataPlaneFacadeTrait: Send + Sync {
         &self,
         transfer_process: &TransferProcessDto,
         data_address: DataplaneAddress,
-    ) -> anyhow::Result<()>;
+    ) -> Outcome<()>;
 }

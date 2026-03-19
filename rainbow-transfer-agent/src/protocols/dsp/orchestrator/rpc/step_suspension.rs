@@ -33,7 +33,7 @@ use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRp
 use rainbow_common::http_client::HttpClient;
 use std::sync::Arc;
 use urn::Urn;
-
+use ymir::errors::{Errors, Outcome};
 // ─── SuspensionStep ───────────────────────────────────────────────────────────
 
 /// Pauses the local dataplane and notifies the peer to suspend the transfer.
@@ -52,24 +52,24 @@ impl TransferRpcStep for SuspensionStep {
     async fn validate(
         validator: &Arc<dyn ValidationRpcSteps>,
         input: &RpcTransferSuspensionMessageDto,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         validator.transfer_suspension_rpc(input).await
     }
 
     async fn prepare_context(
         input: &RpcTransferSuspensionMessageDto,
         persistence: &Arc<dyn TransferPersistenceTrait>,
-    ) -> anyhow::Result<RpcPeerContext> {
+    ) -> Outcome<RpcPeerContext> {
         let pid = input
             .get_consumer_pid()
-            .ok_or_else(|| anyhow::anyhow!("SuspensionStep: missing consumer PID"))?;
+            .ok_or_else(|| Errors::crazy("SuspensionStep: missing consumer PID", None))?;
         resolve_continuation_context(&pid, persistence).await
     }
 
     async fn pre_hook(
         dp: &Arc<dyn DataPlaneFacadeTrait>,
         ctx: &RpcPeerContext,
-    ) -> anyhow::Result<Option<DataAddressDto>> {
+    ) -> Outcome<Option<DataAddressDto>> {
         dp.on_transfer_suspension_pre(&ctx.process).await?;
         Ok(None)
     }
@@ -78,7 +78,7 @@ impl TransferRpcStep for SuspensionStep {
         input: &RpcTransferSuspensionMessageDto,
         ctx: &RpcPeerContext,
         _pre_addr: Option<DataAddressDto>,
-    ) -> anyhow::Result<TransferSuspensionMessageDto> {
+    ) -> Outcome<TransferSuspensionMessageDto> {
         Ok(TransferSuspensionMessageDto {
             provider_pid: ctx.provider_pid.clone(),
             consumer_pid: ctx.consumer_pid.clone(),
@@ -97,7 +97,7 @@ impl TransferRpcStep for SuspensionStep {
         ctx: &RpcPeerContext,
         payload: Arc<TransferSuspensionMessageDto>,
         url_suffix: &str,
-    ) -> anyhow::Result<(TransferProcessMessageWrapper<TransferProcessAckDto>, TransferProcessDto)>
+    ) -> Outcome<(TransferProcessMessageWrapper<TransferProcessAckDto>, TransferProcessDto)>
     {
         continuation_send_and_persist(http_client, persistence, ctx, payload, url_suffix).await
     }
@@ -105,7 +105,7 @@ impl TransferRpcStep for SuspensionStep {
     async fn post_hook(
         dp: &Arc<dyn DataPlaneFacadeTrait>,
         ctx: &RpcPeerContext,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         dp.on_transfer_suspension_post(&ctx.process).await
     }
 }

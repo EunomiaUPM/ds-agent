@@ -23,6 +23,7 @@ use rainbow_common::http_client::HttpClient;
 use std::sync::Arc;
 use ymir::config::traits::HostsConfigTrait;
 use ymir::config::types::HostType;
+use ymir::errors::Outcome;
 
 pub struct DistributionFacadeServiceForConnector {
     catalog_base_url: String,
@@ -41,7 +42,7 @@ impl DistributionFacadeTrait for DistributionFacadeServiceForConnector {
     async fn resolve_distribution_by_id(
         &self,
         distribution_id: &String,
-    ) -> anyhow::Result<Distribution> {
+    ) -> Outcome<Distribution> {
         let distribution_url = format!(
             "{}/api/v1/catalog-agent/distributions/{}",
             self.catalog_base_url, distribution_id

@@ -22,6 +22,7 @@ use crate::data::entities::agreement::{EditAgreementModel, NewAgreementModel};
 use anyhow::Error;
 use thiserror::Error;
 use urn::Urn;
+use ymir::errors::RepoIntoErrors;
 
 #[async_trait::async_trait]
 pub trait AgreementRepoTrait: Send + Sync {
@@ -81,3 +82,5 @@ pub enum AgreementRepoErrors {
     #[error("Error deleting agreement. {0}")]
     ErrorDeletingAgreement(Error),
 }
+
+impl RepoIntoErrors for AgreementRepoErrors {}

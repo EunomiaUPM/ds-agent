@@ -25,14 +25,17 @@ use clap::{Parser, Subcommand};
 use fs_extra::dir::{copy, CopyOptions};
 use rainbow_common::boot::BootstrapServiceTrait;
 use rainbow_common::config::services::GatewayConfig;
-use rainbow_common::config::types::traits::ConfigLoader;
+use rainbow_common::config::types::traits::{CommonConfigTrait, ConfigLoader};
 use std::cmp::PartialEq;
 use std::fs;
 use std::path::Path;
 use std::process::Command;
 use std::sync::Arc;
 use tracing::debug;
+use ymir::config::traits::ConnectionConfigTrait;
+use ymir::services::vault::fake_vault::FakeVaultService;
 use ymir::services::vault::global::VaultService;
+use ymir::services::vault::vault_rs::RealVaultService;
 
 #[derive(Parser, Debug)]
 #[command(name = "Rainbow Dataspace Connector Gateway Server")]
@@ -67,11 +70,15 @@ impl GatewayCommands {
         match cli.command {
             GatewayCliCommands::Start(args) => {
                 let config = GatewayBoot::load_config(args.env_file).await?;
-                let vault = Arc::new(VaultService::new());
-                GatewayBoot::start_services_background(&config, vault).await?;
+                let vault = if config.common().is_vault_real() {
+                    VaultService::Real(RealVaultService::new())
+                } else {
+                    VaultService::Fake(FakeVaultService::new())
+                };
+                GatewayBoot::start_services_background(&config, Arc::new(vault)).await?;
             }
             GatewayCliCommands::Subscribe(args) => {
-                let config = GatewayConfig::load(args.env_file);
+                let config = GatewayConfig::load(&*args.env_file)?;
                 let microservices_subs = RainbowProviderGatewaySubscriptions::new(config.clone());
                 microservices_subs
                     .subscribe_to_microservice(MicroserviceSubscriptionKey::Catalog)

@@ -18,9 +18,8 @@
 use std::fmt::Display;
 use std::str::FromStr;
 
-use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
-
+use ymir::errors::Errors;
 use crate::config::types::traits::CacheConfigTrait;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -72,27 +71,27 @@ impl Display for CacheType {
 }
 
 impl FromStr for CacheType {
-    type Err = anyhow::Error;
+    type Err = Errors;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
             "redis" => Ok(CacheType::Redis),
             "memcached" => Ok(CacheType::Memcached),
             "memory" => Ok(CacheType::Memory),
             "noop" => Ok(CacheType::Noop),
-            _ => Err(anyhow!("error"))
+            _ => Err(Errors::crazy("no cache allowed", None))
         }
     }
 }
 
 impl FromStr for &CacheType {
-    type Err = anyhow::Error;
+    type Err = Errors;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
             "redis" => Ok(&CacheType::Redis),
             "memcached" => Ok(&CacheType::Memcached),
             "memory" => Ok(&CacheType::Memory),
             "noop" => Ok(&CacheType::Noop),
-            _ => Err(anyhow!("error"))
+            _ => Err(Errors::crazy("no cache allowed", None))
         }
     }
 }

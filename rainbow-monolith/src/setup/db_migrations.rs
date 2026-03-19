@@ -23,7 +23,7 @@ use rainbow_connector::get_connector_migrations;
 use rainbow_dataplane::get_dataplane_migrations;
 use rainbow_events::data::migrations::get_events_migrations;
 use rainbow_negotiation_agent::get_negotiation_agent_migrations;
-use rainbow_transfer_agent::get_transfer_agent_migrations;
+// use rainbow_transfer_agent::get_transfer_agent_migrations;
 use sea_orm::DatabaseConnection;
 use sea_orm_migration::{MigrationTrait, MigratorTrait};
 use ymir::errors::{Errors, Outcome};
@@ -39,7 +39,7 @@ impl MigratorTrait for CoreProviderMigration {
         let mut pub_sub_migrations = get_events_migrations();
         let mut auth_migrations = get_auth_migrations();
         let mut dataplane_migrations = get_dataplane_migrations();
-        let mut transfer_agent_migrations = get_transfer_agent_migrations();
+        // let mut transfer_agent_migrations = get_transfer_agent_migrations();
 
         migrations.append(&mut catalog_migrations);
         migrations.append(&mut connector_migrations);
@@ -47,7 +47,7 @@ impl MigratorTrait for CoreProviderMigration {
         migrations.append(&mut pub_sub_migrations);
         migrations.append(&mut auth_migrations);
         migrations.append(&mut dataplane_migrations);
-        migrations.append(&mut transfer_agent_migrations);
+        // migrations.append(&mut transfer_agent_migrations);
         migrations
     }
 }

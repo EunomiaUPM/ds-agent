@@ -11,7 +11,7 @@
 //! 2. `interaction` fields (pull → data_access; push → subscribe then unsubscribe)
 //!
 //! [`ConnectorTemplateDto`]: crate::entities::connector_template::ConnectorTemplateDto
-
+use ymir::errors::Outcome;
 use crate::entities::auth_config::AuthenticationConfig;
 use crate::entities::connector_template::ConnectorTemplateDto;
 use crate::entities::interaction::{InteractionConfig, PullLifecycle, PushLifecycle};
@@ -37,27 +37,26 @@ use crate::ProtocolSpec;
 /// [`TemplateResolverVisitor`]: super::template_resolver_visitor::TemplateResolverVisitor
 /// [`ParameterExtractorVisitor`]: super::template_parameters_visitor::ParameterExtractorVisitor
 pub trait ConnectorTemplateWalker {
-    type Error;
 
     // -------------------------------------------------------------------------
     // Leaf operations — implementors must supply these.
     // -------------------------------------------------------------------------
 
-    fn on_string(&mut self, field: &mut String) -> Result<(), Self::Error>;
-    fn on_vec_string(&mut self, field: &mut TemplateVecString) -> Result<(), Self::Error>;
-    fn on_map_string(&mut self, field: &mut TemplateMapString) -> Result<(), Self::Error>;
+    fn on_string(&mut self, field: &mut String) -> Outcome<()>;
+    fn on_vec_string(&mut self, field: &mut TemplateVecString) -> Outcome<()>;
+    fn on_map_string(&mut self, field: &mut TemplateMapString) -> Outcome<()>;
 
     // -------------------------------------------------------------------------
     // Structural traversal — defined once here, shared by all implementors.
     // -------------------------------------------------------------------------
 
-    fn walk(&mut self, template: &mut ConnectorTemplateDto) -> Result<(), Self::Error> {
+    fn walk(&mut self, template: &mut ConnectorTemplateDto) -> Outcome<()> {
         self.walk_auth(&mut template.authentication)?;
         self.walk_interaction(&mut template.interaction)?;
         Ok(())
     }
 
-    fn walk_auth(&mut self, auth: &mut AuthenticationConfig) -> Result<(), Self::Error> {
+    fn walk_auth(&mut self, auth: &mut AuthenticationConfig) -> Outcome<()> {
         match auth {
             AuthenticationConfig::NoAuth => {}
             AuthenticationConfig::BasicAuth(c) => {
@@ -77,18 +76,18 @@ pub trait ConnectorTemplateWalker {
         Ok(())
     }
 
-    fn walk_interaction(&mut self, interaction: &mut InteractionConfig) -> Result<(), Self::Error> {
+    fn walk_interaction(&mut self, interaction: &mut InteractionConfig) -> Outcome<()> {
         match interaction {
             InteractionConfig::Pull(lc) => self.walk_pull(lc),
             InteractionConfig::Push(lc) => self.walk_push(lc),
         }
     }
 
-    fn walk_pull(&mut self, lc: &mut PullLifecycle) -> Result<(), Self::Error> {
+    fn walk_pull(&mut self, lc: &mut PullLifecycle) -> Outcome<()> {
         self.walk_protocol(&mut lc.data_access)
     }
 
-    fn walk_push(&mut self, lc: &mut PushLifecycle) -> Result<(), Self::Error> {
+    fn walk_push(&mut self, lc: &mut PushLifecycle) -> Outcome<()> {
         self.walk_protocol(&mut lc.subscribe)?;
         if let Some(unsub) = &mut lc.unsubscribe {
             self.walk_protocol(unsub)?;
@@ -96,14 +95,14 @@ pub trait ConnectorTemplateWalker {
         Ok(())
     }
 
-    fn walk_protocol(&mut self, spec: &mut ProtocolSpec) -> Result<(), Self::Error> {
+    fn walk_protocol(&mut self, spec: &mut ProtocolSpec) -> Outcome<()> {
         match spec {
             ProtocolSpec::Http(s) => self.walk_http(s),
             ProtocolSpec::Kafka(s) => self.walk_kafka(s),
         }
     }
 
-    fn walk_http(&mut self, spec: &mut HttpSpec) -> Result<(), Self::Error> {
+    fn walk_http(&mut self, spec: &mut HttpSpec) -> Outcome<()> {
         self.on_string(&mut spec.url_template)?;
         self.on_vec_string(&mut spec.method)?;
         if let Some(headers) = &mut spec.headers {
@@ -115,7 +114,7 @@ pub trait ConnectorTemplateWalker {
         Ok(())
     }
 
-    fn walk_kafka(&mut self, spec: &mut KafkaSpec) -> Result<(), Self::Error> {
+    fn walk_kafka(&mut self, spec: &mut KafkaSpec) -> Outcome<()> {
         self.on_vec_string(&mut spec.brokers)?;
         self.on_string(&mut spec.topic)?;
         if let Some(group_id) = &mut spec.group_id {

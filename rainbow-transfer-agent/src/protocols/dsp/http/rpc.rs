@@ -38,7 +38,7 @@ use crate::protocols::dsp::protocol_types::{
     TransferErrorDto, TransferProcessMessageType, TransferProcessMessageWrapper,
 };
 use rainbow_common::dsp_common::context_field::ContextField;
-use rainbow_common::errors::CommonErrors;
+use ymir::errors::Outcome;
 
 #[derive(Clone)]
 pub struct RpcRouter {
@@ -75,7 +75,7 @@ impl RpcRouter {
         T: Send + Serialize + Clone + 'static,
         R: Serialize,
         F: FnOnce(T) -> Fut,
-        Fut: Future<Output = anyhow::Result<R>> + Send,
+        Fut: Future<Output = Outcome<R>> + Send,
     {
         let payload = match extract_payload_error(input) {
             Ok(v) => v,
@@ -89,7 +89,7 @@ impl RpcRouter {
     }
 
     fn map_service_result<R, T>(
-        result: anyhow::Result<R>,
+        result: Outcome<R>,
         success_code: StatusCode,
         original_request: T,
     ) -> impl IntoResponse
@@ -101,17 +101,14 @@ impl RpcRouter {
             Ok(data) => (success_code, Json(data)).into_response(),
             Err(err) => {
                 let error_wrapper: TransferProcessMessageWrapper<TransferErrorDto> =
-                    match err.downcast::<CommonErrors>() {
-                        Ok(common_errors) => common_errors.into(),
-                        Err(original_err) => TransferProcessMessageWrapper {
-                            context: ContextField::default(),
-                            _type: TransferProcessMessageType::TransferError,
-                            dto: TransferErrorDto {
-                                consumer_pid: None,
-                                provider_pid: None,
-                                code: Some("5000".to_string()),
-                                reason: Some(vec![original_err.to_string()]),
-                            },
+                    TransferProcessMessageWrapper {
+                        context: ContextField::default(),
+                        _type: TransferProcessMessageType::TransferError,
+                        dto: TransferErrorDto {
+                            consumer_pid: None,
+                            provider_pid: None,
+                            code: Some("5000".to_string()),
+                            reason: Some(vec![err.to_string()]),
                         },
                     };
                 let rpc_error_dto: RpcTransferErrorDto<T> =

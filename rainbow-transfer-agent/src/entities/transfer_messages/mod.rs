@@ -23,6 +23,7 @@ use crate::data::entities::transfer_message::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value as Json;
 use urn::Urn;
+use ymir::errors::Outcome;
 
 pub(crate) mod transfer_messages;
 
@@ -69,19 +70,19 @@ pub trait TransferAgentMessagesTrait: Send + Sync + 'static {
         &self,
         limit: Option<u64>,
         page: Option<u64>,
-    ) -> anyhow::Result<Vec<TransferMessageDto>>;
+    ) -> Outcome<Vec<TransferMessageDto>>;
 
     async fn get_messages_by_process_id(
         &self,
         process_id: &Urn,
-    ) -> anyhow::Result<Vec<TransferMessageDto>>;
+    ) -> Outcome<Vec<TransferMessageDto>>;
 
-    async fn get_transfer_message_by_id(&self, id: &Urn) -> anyhow::Result<TransferMessageDto>;
+    async fn get_transfer_message_by_id(&self, id: &Urn) -> Outcome<TransferMessageDto>;
 
     async fn create_transfer_message(
         &self,
         new_model: &NewTransferMessageDto,
-    ) -> anyhow::Result<TransferMessageDto>;
+    ) -> Outcome<TransferMessageDto>;
 
-    async fn delete_transfer_message(&self, id: &Urn) -> anyhow::Result<()>;
+    async fn delete_transfer_message(&self, id: &Urn) -> Outcome<()>;
 }

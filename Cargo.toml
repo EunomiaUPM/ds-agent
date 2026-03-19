@@ -7,15 +7,16 @@ members = [
     "rainbow-auth",
     "rainbow-events",
     "rainbow-fe-gateway",
-    # "rainbow-business-gateway",
     "rainbow-catalog-agent",
     "rainbow-negotiation-agent",
-    "rainbow-transfer-agent", "rainbow-connector",
+    #"rainbow-transfer-agent",
+    "rainbow-connector",
 ]
 exclude = [
     "static",
     "gui",
-    "deployment"
+    "deployment",
+    "rainbow-transfer-agent"
 ]
 resolver = "2"
 
@@ -31,7 +32,6 @@ clap = { version = "4.4.9", features = [
 ] }
 base64 = "0.22.1"
 tokio = { version = "1.35.0", features = ["full"] }
-anyhow = { version = "1.0.80", features = ["backtrace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 axum = { version = "0.8.8", features = ["ws"] }

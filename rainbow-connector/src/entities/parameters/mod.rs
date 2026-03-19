@@ -63,6 +63,7 @@ pub use parameters::*;
 
 use serde_json::Value;
 use std::collections::HashMap;
+use ymir::errors::Outcome;
 
 pub(crate) mod default_parameter_enricher;
 pub(crate) mod default_parameter_injector;
@@ -98,7 +99,7 @@ pub trait ParameterEnricher {
     /// Implementations should use [`HashMap::entry`] semantics (insert only
     /// when the key is absent) so that earlier pipeline steps are not
     /// overwritten by later ones.
-    fn enrich(&self, params: &mut HashMap<String, Value>) -> anyhow::Result<()>;
+    fn enrich(&self, params: &mut HashMap<String, Value>) -> Outcome<()>;
 }
 
 /// A borrowed reference to a single templatable field of any supported type.

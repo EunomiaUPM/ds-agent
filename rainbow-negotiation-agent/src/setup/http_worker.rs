@@ -43,9 +43,11 @@ use tower_http::trace::{DefaultOnResponse, TraceLayer};
 use uuid::Uuid;
 use ymir::config::traits::{ApiConfigTrait, ConnectionConfigTrait, HostsConfigTrait};
 use ymir::config::types::HostType;
+use ymir::errors::{Errors, Outcome};
 use ymir::http::HealthRouter;
 use ymir::services::vault::VaultTrait;
 use ymir::services::vault::global::VaultService;
+use rainbow_common::config::services::traits::ContractsConfigTrait;
 
 pub struct NegotiationHttpWorker {}
 impl NegotiationHttpWorker {
@@ -53,7 +55,7 @@ impl NegotiationHttpWorker {
         config: &ContractsConfig,
         vault: Arc<VaultService>,
         token: &CancellationToken,
-    ) -> anyhow::Result<JoinHandle<()>> {
+    ) -> Outcome<JoinHandle<()>> {
         // well known router
         let well_known_router = WellKnownRoot::get_well_known_router(&config.into())?;
         let health_router = HealthRouter::new().router();
@@ -63,10 +65,11 @@ impl NegotiationHttpWorker {
             .merge(well_known_router)
             .merge(health_router);
         let host = if config.common().is_local() { "127.0.0.1" } else { "0.0.0.0" };
-        let port = config.common().get_weird_port(HostType::Http);
+        let port = config.common().get_internal_port(HostType::Http);
         let addr = format!("{}{}", host, port);
 
-        let listener = TcpListener::bind(&addr).await?;
+        let listener = TcpListener::bind(&addr).await
+            .map_err(|e| Errors::crazy("Error listening on the socket", Some(Box::new(e))))?;
         tracing::info!("HTTP Negotiation Service running on {}", addr);
 
         let token = token.clone();
@@ -86,7 +89,7 @@ impl NegotiationHttpWorker {
     pub async fn create_root_http_router(
         config: &ContractsConfig,
         vault: Arc<VaultService>,
-    ) -> anyhow::Result<Router> {
+    ) -> Outcome<Router> {
         let router =
             create_root_http_router(config, vault.clone()).await.fallback(Self::handler_404).layer(
                 TraceLayer::new_for_http()
@@ -140,7 +143,7 @@ pub async fn create_root_http_router(config: &ContractsConfig, vault: Arc<VaultS
 
     // dsp
     let http_client = Arc::new(HttpClient::new(10, 10));
-    let ssi_auth_config = Arc::new(config.ssi_auth());
+    let ssi_auth_config = Arc::new(config.ssi_auth().clone());
 
     let ssi_auth_service = Arc::new(SSIAuthFacadeService::new(
         ssi_auth_config.clone(),

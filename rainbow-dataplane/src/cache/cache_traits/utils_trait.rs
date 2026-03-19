@@ -1,5 +1,6 @@
 use serde::de::DeserializeOwned;
 use urn::Urn;
+use ymir::errors::{Errors, Outcome};
 
 #[async_trait::async_trait]
 pub trait UtilsCacheTrait: Send + Sync {
@@ -58,13 +59,17 @@ pub trait UtilsCacheTrait: Send + Sync {
     async fn hydrate_from_multiple_keys(
         mut connection: redis::aio::MultiplexedConnection,
         keys: Vec<String>,
-    ) -> anyhow::Result<Vec<Self::Dto>> {
+    ) -> Outcome<Vec<Self::Dto>> {
         if keys.is_empty() {
             return Ok(vec![]);
         }
 
-        let data: Vec<Option<String>> =
-            redis::cmd("JSON.MGET").arg(&keys).arg("$").query_async(&mut connection).await?;
+        let data: Vec<Option<String>> = redis::cmd("JSON.MGET")
+            .arg(&keys)
+            .arg("$")
+            .query_async(&mut connection)
+            .await
+            .map_err(|e| Errors::crazy("Redis not able to query", Some(Box::new(e))))?;
 
         let mut results = Vec::with_capacity(data.len());
         for entry in data.into_iter().flatten() {
@@ -79,9 +84,13 @@ pub trait UtilsCacheTrait: Send + Sync {
     async fn hydrate_from_single_key(
         mut connection: redis::aio::MultiplexedConnection,
         key: String,
-    ) -> anyhow::Result<Option<Self::Dto>> {
-        let data: Option<String> =
-            redis::cmd("JSON.GET").arg(&key).arg("$").query_async(&mut connection).await?;
+    ) -> Outcome<Option<Self::Dto>> {
+        let data: Option<String> = redis::cmd("JSON.GET")
+            .arg(&key)
+            .arg("$")
+            .query_async(&mut connection)
+            .await
+            .map_err(|e| Errors::crazy("Redis not able to query", Some(Box::new(e))))?;
 
         if let Some(json_str) = data {
             let mut models: Vec<Self::Dto> = serde_json::from_str(&json_str)?;

@@ -3,6 +3,7 @@ use crate::data::entities::dataplane_field::{EditDataPlaneFieldModel, NewDataPla
 use anyhow::Error;
 use thiserror::Error;
 use urn::Urn;
+use ymir::errors::RepoIntoErrors;
 
 #[async_trait::async_trait]
 pub trait DataplaneFieldRepoTrait: Send + Sync + 'static {
@@ -56,3 +57,5 @@ pub enum DataplaneFieldRepoErrors {
     #[error("Error updating dataplane field. {0}")]
     ErrorUpdatingDataplaneField(Error),
 }
+
+impl RepoIntoErrors for DataplaneFieldRepoErrors {}

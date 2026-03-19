@@ -81,7 +81,7 @@ impl CoreHttpWorker {
         .map_err(|e| Errors::crazy("Errors parsing certificate stuff", Some(Box::new(e))))?;
 
         let router = create_core_router(config, vault.clone()).await;
-        let port = config.common().hosts().get_internal_port(HostType::Http);
+        let port = config.monolith().common().hosts().get_internal_port(HostType::Http);
         let addr = format!("0.0.0.0:{}", port);
         info!("Starting Rainbow server with TLS in {}", addr);
 
@@ -123,7 +123,7 @@ impl CoreHttpWorker {
     ) -> Outcome<JoinHandle<()>> {
         let router = create_core_router(config, vault.clone()).await;
 
-        let port = config.common().hosts().get_internal_port(HostType::Http);
+        let port = config.monolith().common().hosts().get_internal_port(HostType::Http);
         let addr = format!("0.0.0.0:{}", port);
         info!("Starting Rainbow server in {}", addr);
 

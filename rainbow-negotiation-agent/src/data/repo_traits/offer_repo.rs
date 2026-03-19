@@ -22,6 +22,7 @@ use crate::data::entities::offer::NewOfferModel;
 use anyhow::Error;
 use thiserror::Error;
 use urn::Urn;
+use ymir::errors::RepoIntoErrors;
 
 #[async_trait::async_trait]
 pub trait OfferRepoTrait: Send + Sync {
@@ -72,3 +73,5 @@ pub enum OfferRepoErrors {
     #[error("Error deleting offer. {0}")]
     ErrorDeletingOffer(Error),
 }
+
+impl RepoIntoErrors for OfferRepoErrors {}

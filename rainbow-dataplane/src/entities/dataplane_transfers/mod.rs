@@ -11,6 +11,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use urn::Urn;
 use uuid::Uuid;
+use ymir::errors::Outcome;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -65,33 +66,33 @@ impl From<NewDataplaneTransferDto> for NewDataplaneTransfer {
 #[cfg_attr(test, mockall::automock)]
 #[async_trait::async_trait]
 pub trait DataplaneTransfersEntitiesTrait: Send + Sync + 'static {
-    async fn get_all_dataplane_transfers(&self) -> anyhow::Result<Vec<DataplaneTransferDto>>;
+    async fn get_all_dataplane_transfers(&self) -> Outcome<Vec<DataplaneTransferDto>>;
 
     async fn get_dataplane_transfer_by_id(
         &self,
         id: &Urn,
-    ) -> anyhow::Result<Option<DataplaneTransferDto>>;
+    ) -> Outcome<Option<DataplaneTransferDto>>;
 
     async fn get_dataplane_transfer_by_process_id(
         &self,
         process_id: &Urn,
-    ) -> anyhow::Result<Option<DataplaneTransferDto>>;
+    ) -> Outcome<Option<DataplaneTransferDto>>;
 
     async fn get_batch_dataplane_transfers(
         &self,
         transfer_ids: &Vec<Urn>,
-    ) -> anyhow::Result<Vec<DataplaneTransferDto>>;
+    ) -> Outcome<Vec<DataplaneTransferDto>>;
 
     async fn create_dataplane_transfer(
         &self,
         new_data_plane_process: &NewDataplaneTransferDto,
-    ) -> anyhow::Result<DataplaneTransferDto>;
+    ) -> Outcome<DataplaneTransferDto>;
 
     async fn put_dataplane_transfer_by_id(
         &self,
         id: &Urn,
         edit_dataplane_transfer: &EditDataplaneTransferDto,
-    ) -> anyhow::Result<DataplaneTransferDto>;
+    ) -> Outcome<DataplaneTransferDto>;
 
-    async fn delete_dataplane_transfer(&self, id: &Urn) -> anyhow::Result<()>;
+    async fn delete_dataplane_transfer(&self, id: &Urn) -> Outcome<()>;
 }

@@ -20,9 +20,7 @@ use std::ops::Deref;
 use std::sync::Arc;
 use ymir::config::traits::HostsConfigTrait;
 use ymir::services::vault::global::VaultService;
-use ymir::services::vault::vault_rs::VaultService;
 use ymir::services::vault::VaultTrait;
-use rainbow_common::config::traits::{CacheConfigTrait, CommonConfigTrait};
 
 pub struct DataplaneSetup {}
 impl DataplaneSetup {

@@ -1,5 +1,6 @@
 use anyhow::Error;
 use thiserror::Error;
+use ymir::errors::RepoIntoErrors;
 
 #[derive(Error, Debug)]
 pub enum CatalogAgentRepoErrors {
@@ -100,3 +101,11 @@ pub enum PolicyTemplatesRepoErrors {
     #[error("Error deleting policy template. {0}")]
     ErrorDeletingPolicyTemplate(Error),
 }
+
+impl RepoIntoErrors for CatalogAgentRepoErrors {}
+impl RepoIntoErrors for CatalogRepoErrors {}
+impl RepoIntoErrors for DataServiceRepoErrors {}
+impl RepoIntoErrors for DatasetRepoErrors {}
+impl RepoIntoErrors for DistributionRepoErrors {}
+impl RepoIntoErrors for OdrlOfferRepoErrors {}
+impl RepoIntoErrors for PolicyTemplatesRepoErrors {}

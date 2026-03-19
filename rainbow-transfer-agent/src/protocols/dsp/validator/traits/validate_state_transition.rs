@@ -20,6 +20,7 @@ use crate::protocols::dsp::protocol_types::{
     TransferProcessMessageType, TransferProcessState, TransferStateAttribute,
 };
 use rainbow_common::config::types::roles::RoleConfig;
+use ymir::errors::Outcome;
 
 #[async_trait::async_trait]
 pub trait ValidateStateTransition: Send + Sync + 'static {
@@ -30,13 +31,13 @@ pub trait ValidateStateTransition: Send + Sync + 'static {
         &self,
         role: &RoleConfig,
         message_type: &TransferProcessMessageType,
-    ) -> anyhow::Result<()>;
+    ) -> Outcome<()>;
     // validate state transition from state a to b based in DSP state machine
     async fn validate_state_transition(
         &self,
         current_state: &TransferProcessState,
         message_type: &TransferProcessMessageType,
-    ) -> anyhow::Result<()>;
+    ) -> Outcome<()>;
     // logical semaphore for avoiding consumer to start provider's suspension and viceversa
     async fn validate_state_attribute_transition(
         &self,
@@ -44,5 +45,5 @@ pub trait ValidateStateTransition: Send + Sync + 'static {
         current_state_attribute: &TransferStateAttribute,
         message_type: &TransferProcessMessageType,
         role: &RoleConfig,
-    ) -> anyhow::Result<()>;
+    ) -> Outcome<()>;
 }

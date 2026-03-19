@@ -1,6 +1,7 @@
 use crate::entities::dataplane_manager::config_builder::{
     DataplaneConfigBuilder, EgressConfig, IngressConfig,
 };
+use crate::entities::dataplane_manager::dataplane_commands::CommandContext;
 use crate::entities::dataplane_manager::driver_factory::{DataplaneDriver, DataplaneDriverFactory};
 use crate::entities::dataplane_manager::{
     DataplaneAddress, DataplaneCommand, DataplaneManagerInput, DataplaneResponse,
@@ -9,17 +10,16 @@ use crate::entities::dataplane_transfers::{
     DataplaneTransferDto, DataplaneTransfersEntitiesTrait, EditDataplaneTransferDto,
     InteractionMode, NewDataplaneTransferDto, TransferRole, TransferState,
 };
+use crate::{DataplaneInitCommandType, DataplaneManager};
 use anyhow::anyhow;
 use rainbow_connector::{ConnectorInstanceDto, ConnectorInstanceTrait, InteractionConfig};
 use std::sync::Arc;
 use urn::{Urn, UrnBuilder};
 use uuid::Uuid;
-use crate::{DataplaneInitCommandType, DataplaneManager};
-use crate::entities::dataplane_manager::dataplane_commands::CommandContext;
+use ymir::errors::{Errors, Outcome};
 
 impl DataplaneManager {
     // ─── Persistence helpers ───
-
 
     /// Logic for creating the Dataplane.
     /// Only input.command == DataplaneCommand::SetInit message is allowed
@@ -30,7 +30,7 @@ impl DataplaneManager {
         input: &DataplaneManagerInput,
         connector_urn: &Option<Urn>,
         connector_instance: &Option<ConnectorInstanceDto>,
-    ) -> anyhow::Result<DataplaneResponse> {
+    ) -> Outcome<DataplaneResponse> {
         if let DataplaneCommand::SetInit(role) = &input.command {
             // InteractionMode (PUSH or PULL)
             let interaction_mode = match role {
@@ -39,16 +39,16 @@ impl DataplaneManager {
                     Some(c) => match &c.interaction {
                         InteractionConfig::Pull(_) => Ok(InteractionMode::Pull),
                         InteractionConfig::Push(_) => Ok(InteractionMode::Push),
-                    }
-                    None => Err(anyhow!("Missing Connector Instance")),
+                    },
+                    None => Err(Errors::crazy("Missing Connector Instance", None)),
                 },
                 // But, Consumer has no connector. We need a hack here.
                 // PUSH mode is signaled by a non-None data_address in DSP. (if any other protocol, this feature would be consistent
                 // If DataAddress present in SetInit, is PUSH, otherwise is PULL
-                DataplaneInitCommandType::Consumer { data_address } => match data_address{
+                DataplaneInitCommandType::Consumer { data_address } => match data_address {
                     Some(_) => Ok(InteractionMode::Push),
                     None => Ok(InteractionMode::Pull),
-                }
+                },
             }?;
             // Id
             let new_id = UrnBuilder::new("dataplane-transfer", Uuid::new_v4().to_string().as_str())
@@ -77,8 +77,9 @@ impl DataplaneManager {
             // return
             Ok(DataplaneResponse::Ok)
         } else {
-            Err(anyhow!(
-                "Cannot execute command without an existing process (only SetInit creates)"
+            Err(Errors::crazy(
+                "Cannot execute command without an existing process (only SetInit creates)",
+                None,
             ))
         }
     }
@@ -87,7 +88,7 @@ impl DataplaneManager {
         &self,
         process_id: &Urn,
         new_state: TransferState,
-    ) -> anyhow::Result<DataplaneTransferDto> {
+    ) -> Outcome<DataplaneTransferDto> {
         self.dataplane_entity
             .put_dataplane_transfer_by_id(
                 process_id,
@@ -102,7 +103,7 @@ impl DataplaneManager {
         new_state: TransferState,
         ingress: Option<serde_json::Value>,
         egress: Option<serde_json::Value>,
-    ) -> anyhow::Result<DataplaneTransferDto> {
+    ) -> Outcome<DataplaneTransferDto> {
         self.dataplane_entity
             .put_dataplane_transfer_by_id(
                 process_id,
@@ -121,7 +122,7 @@ impl DataplaneManager {
         &self,
         data_address: &DataplaneAddress,
         ctx: &CommandContext<'_>,
-    ) -> anyhow::Result<DataplaneResponse> {
+    ) -> Outcome<DataplaneResponse> {
         let egress = EgressConfig::HttpProxy { url: data_address.endpoint.clone() };
         self.dataplane_entity
             .put_dataplane_transfer_by_id(

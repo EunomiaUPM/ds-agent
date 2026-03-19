@@ -1,5 +1,6 @@
 use rainbow_connector::ConnectorInstanceDto;
 use urn::Urn;
+use ymir::errors::Outcome;
 
 pub mod data_service_resolver_facade;
 
@@ -10,5 +11,5 @@ pub trait DataServiceFacadeTrait: Send + Sync {
         &self,
         agreement_id: &Urn,
         formats: Option<&String>,
-    ) -> anyhow::Result<ConnectorInstanceDto>;
+    ) -> Outcome<ConnectorInstanceDto>;
 }

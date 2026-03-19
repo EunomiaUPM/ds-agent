@@ -19,6 +19,7 @@
 
 use sea_orm::prelude::DateTimeWithTimeZone;
 use serde::Deserialize;
+use ymir::errors::Outcome;
 
 pub mod data_service_resolver_facade;
 
@@ -41,5 +42,5 @@ pub trait DistributionFacadeTrait: Send + Sync {
     async fn resolve_distribution_by_id(
         &self,
         distribution_id: &String,
-    ) -> anyhow::Result<Distribution>;
+    ) -> Outcome<Distribution>;
 }

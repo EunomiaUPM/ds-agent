@@ -32,7 +32,7 @@ use crate::protocols::dsp::protocol_types::{
 use rainbow_common::http_client::HttpClient;
 use std::sync::Arc;
 use urn::Urn;
-
+use ymir::errors::{Errors, Outcome};
 // ─── StartStep ────────────────────────────────────────────────────────────────
 
 /// Activates the local dataplane and signals the peer to start the transfer.
@@ -55,17 +55,17 @@ impl TransferRpcStep for StartStep {
     async fn prepare_context(
         input: &RpcTransferStartMessageDto,
         persistence: &Arc<dyn TransferPersistenceTrait>,
-    ) -> anyhow::Result<RpcPeerContext> {
+    ) -> Outcome<RpcPeerContext> {
         let pid = input
             .get_consumer_pid()
-            .ok_or_else(|| anyhow::anyhow!("StartStep: missing consumer PID"))?;
+            .ok_or_else(|| Errors::crazy("StartStep: missing consumer PID", None))?;
         resolve_continuation_context(&pid, persistence).await
     }
 
     async fn pre_hook(
         dp: &Arc<dyn DataPlaneFacadeTrait>,
         ctx: &RpcPeerContext,
-    ) -> anyhow::Result<Option<DataAddressDto>> {
+    ) -> Outcome<Option<DataAddressDto>> {
         dp.on_transfer_start_pre(&ctx.process).await
     }
 
@@ -73,7 +73,7 @@ impl TransferRpcStep for StartStep {
         _input: &RpcTransferStartMessageDto,
         ctx: &RpcPeerContext,
         pre_addr: Option<DataAddressDto>,
-    ) -> anyhow::Result<TransferStartMessageDto> {
+    ) -> Outcome<TransferStartMessageDto> {
         // For restarts, omit the data address to avoid re-initiating the dataplane.
         let data_address = if ctx.is_restart { None } else { pre_addr };
         Ok(TransferStartMessageDto {
@@ -93,7 +93,7 @@ impl TransferRpcStep for StartStep {
         ctx: &RpcPeerContext,
         payload: Arc<TransferStartMessageDto>,
         url_suffix: &str,
-    ) -> anyhow::Result<(TransferProcessMessageWrapper<TransferProcessAckDto>, TransferProcessDto)>
+    ) -> Outcome<(TransferProcessMessageWrapper<TransferProcessAckDto>, TransferProcessDto)>
     {
         continuation_send_and_persist(http_client, persistence, ctx, payload, url_suffix).await
     }
@@ -101,7 +101,7 @@ impl TransferRpcStep for StartStep {
     async fn post_hook(
         dp: &Arc<dyn DataPlaneFacadeTrait>,
         ctx: &Self::Context
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         // Outbound sender: no incoming DataAddress to apply, so pass None.
         dp.on_transfer_start_post(&ctx.process, None).await?;
         Ok(())

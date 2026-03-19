@@ -29,7 +29,7 @@ use crate::protocols::dsp::transfer_types::TransferState;
 use std::collections::HashMap;
 use std::sync::Arc;
 use urn::Urn;
-
+use ymir::errors::Outcome;
 // ─── Context struct ───────────────────────────────────────────────────────────
 
 /// Input bundle for creating a new transfer process record.
@@ -67,22 +67,15 @@ pub struct CreateProcessInput {
 #[async_trait::async_trait]
 #[allow(unused)]
 pub trait TransferPersistenceTrait: Send + Sync {
-    async fn get_transfer_process_service(
-        &self,
-    ) -> anyhow::Result<Arc<dyn TransferAgentProcessesTrait>>;
+    async fn get_transfer_process_service(&self) -> Outcome<Arc<dyn TransferAgentProcessesTrait>>;
 
-    async fn get_transfer_message_service(
-        &self,
-    ) -> anyhow::Result<Arc<dyn TransferAgentMessagesTrait>>;
+    async fn get_transfer_message_service(&self) -> Outcome<Arc<dyn TransferAgentMessagesTrait>>;
 
     /// Fetch a process by any of its known identifiers (process URN, consumerPid, providerPid).
-    async fn fetch_process(&self, id: &str) -> anyhow::Result<TransferProcessDto>;
+    async fn fetch_process(&self, id: &str) -> Outcome<TransferProcessDto>;
 
     /// Persist a new transfer process together with its initial message log entry.
-    async fn create_process(
-        &self,
-        input: CreateProcessInput,
-    ) -> anyhow::Result<TransferProcessDto>;
+    async fn create_process(&self, input: CreateProcessInput) -> Outcome<TransferProcessDto>;
 
     /// Record the next state transition for an existing process.
     async fn update_process(
@@ -90,7 +83,7 @@ pub trait TransferPersistenceTrait: Send + Sync {
         id: &str,
         payload_dto: Arc<dyn TransferProcessMessageTrait>,
         payload_value: serde_json::Value,
-    ) -> anyhow::Result<TransferProcessDto>;
+    ) -> Outcome<TransferProcessDto>;
 }
 
 // ─── Shared creation logic ────────────────────────────────────────────────────
@@ -114,7 +107,7 @@ pub(crate) async fn create_process_record(
     provider_address: Option<String>,
     payload_dto: Arc<dyn TransferProcessMessageTrait>,
     payload_value: serde_json::Value,
-) -> anyhow::Result<TransferProcessDto> {
+) -> Outcome<TransferProcessDto> {
     // Extract fields from the typed message payload.
     let consumer_pid = payload_dto.get_consumer_pid().unwrap(); // always present on TransferRequest
     let format = payload_dto.get_format().unwrap();

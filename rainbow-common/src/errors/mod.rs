@@ -17,9 +17,9 @@
  *
  */
 
-pub mod error_adapter;
 mod error_log_trait;
 pub mod helpers;
+pub mod outcome_adapter;
 
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};

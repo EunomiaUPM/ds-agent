@@ -16,6 +16,8 @@
  */
 
 use serde::{Deserialize, Serialize};
+use ymir::config::traits::ConnectionConfigTrait;
+use ymir::config::types::ConnectionConfig;
 use ymir::errors::Outcome;
 
 use crate::config::services::traits::TransferConfigTrait;
@@ -55,4 +57,10 @@ impl CommonConfigTrait for TransferConfig {
 
 impl CacheConfigTrait for TransferConfig {
     fn cache_config(&self) -> &CacheConfig { &self.cache }
+}
+
+impl ConnectionConfigTrait for TransferConfig {
+    fn connection(&self) -> &ConnectionConfig {
+        self.common.connection()
+    }
 }

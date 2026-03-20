@@ -51,10 +51,7 @@ pub trait ValidatePayload: Send + Sync + 'static {
     /// Validates if Header Bearer token corresponds to associated_consumer in db
     async fn validate_auth(&self, payload: &dyn TransferProcessMessageTrait) -> Outcome<()>; // db call
     /// Validates if data_address_present if format contains PUSH
-    async fn validate_format_data_address(
-        &self,
-        payload: &dyn TransferProcessMessageTrait,
-    ) -> Outcome<()>;
+
     /// Validates if data_address_present if format contains PUSH
     async fn validate_data_address_in_start(
         &self,

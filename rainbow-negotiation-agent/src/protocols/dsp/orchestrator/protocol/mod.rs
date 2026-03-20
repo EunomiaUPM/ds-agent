@@ -35,8 +35,8 @@ use crate::protocols::dsp::protocol_types::{
     NegotiationRequestInitMessageDto, NegotiationRequestMessageDto,
     NegotiationTerminationMessageDto, NegotiationVerificationMessageDto,
 };
-use rainbow_common::mates::mates::Mates;
 use ymir::errors::Outcome;
+use rainbow_common::facades::Mates;
 
 #[async_trait::async_trait]
 pub trait ProtocolOrchestratorTrait: Send + Sync + 'static {

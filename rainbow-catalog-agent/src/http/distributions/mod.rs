@@ -27,7 +27,6 @@ use axum::routing::{delete, get, post, put};
 use axum::{Json, Router};
 use rainbow_common::batch_requests::BatchRequests;
 use rainbow_common::config::services::CatalogConfig;
-use rainbow_common::dcat_formats::DctFormats;
 use rainbow_common::errors::CommonErrors;
 use serde::Deserialize;
 use std::str::FromStr;

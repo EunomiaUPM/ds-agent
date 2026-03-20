@@ -22,7 +22,6 @@ use crate::protocols::dsp::protocol_types::{TransferProcessMessageTrait, Transfe
 use crate::protocols::dsp::validator::traits::validate_payload::ValidatePayload;
 use crate::protocols::dsp::validator::traits::validation_helpers::ValidationHelpers;
 use rainbow_common::config::types::roles::RoleConfig;
-use rainbow_common::dcat_formats::{DctFormats, FormatAction};
 use rainbow_common::errors::{CommonErrors, ErrorLog};
 use std::str::FromStr;
 use std::sync::Arc;
@@ -124,31 +123,6 @@ impl ValidatePayload for ValidatePayloadService {
     async fn validate_auth(&self, payload: &dyn TransferProcessMessageTrait) -> Outcome<()> {
         // TODO
         Ok(())
-    }
-
-    async fn validate_format_data_address(
-        &self,
-        payload: &dyn TransferProcessMessageTrait,
-    ) -> Outcome<()> {
-        let is_data_address_in_payload = payload.get_data_address().is_some();
-        let format = payload.get_format().unwrap(); // in this call there is always format
-        let format = format.parse::<DctFormats>()?;
-        let format_direction = format.action;
-        match (is_data_address_in_payload, format_direction) {
-            (is_data_address_in_payload, FormatAction::Push)
-                if is_data_address_in_payload == true =>
-            {
-                Ok(())
-            }
-            (is_data_address_in_payload, FormatAction::Pull)
-                if is_data_address_in_payload == false =>
-            {
-                Ok(())
-            }
-            _ => {
-                return Err(Errors::crazy("Data address should be defined if format action is push", None))
-            }
-        }
     }
 
     async fn validate_data_address_in_start(

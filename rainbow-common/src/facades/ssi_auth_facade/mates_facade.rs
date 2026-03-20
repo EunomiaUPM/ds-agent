@@ -24,8 +24,8 @@ use ymir::errors::Outcome;
 use super::MatesFacadeTrait;
 use crate::config::types::min_known_config::MinKnownConfig;
 use crate::config::types::traits::MinKnownConfigTrait;
+use crate::facades::Mates;
 use crate::http_client::HttpClient;
-use crate::mates::Mates;
 
 pub struct MatesFacadeService {
     config: Arc<MinKnownConfig>,

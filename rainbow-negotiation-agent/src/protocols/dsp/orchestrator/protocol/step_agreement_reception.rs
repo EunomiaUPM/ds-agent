@@ -26,10 +26,9 @@ use crate::protocols::dsp::protocol_types::{
     NegotiationAckMessageDto, NegotiationAgreementMessageDto, NegotiationProcessMessageWrapper,
 };
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
-use rainbow_common::mates::mates::Mates;
 use ymir::errors::Outcome;
 use std::sync::Arc;
-
+use rainbow_common::facades::Mates;
 // ─── AgreementReceptionStep ───────────────────────────────────────────────────
 
 /// Handles an inbound `ContractAgreementMessage` from the Provider.

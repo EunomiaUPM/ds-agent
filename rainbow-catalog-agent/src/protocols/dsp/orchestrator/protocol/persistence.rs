@@ -34,7 +34,6 @@ use crate::protocols::dsp::types::dataset_definition::{
 use crate::protocols::dsp::types::distribution_definition::{
     Distribution, DistributionDcatDeclaration, DistributionDctDeclaration,
 };
-use rainbow_common::dcat_formats::{DctFormats, FormatAction, FormatProtocol};
 use rainbow_common::dsp_common::context_field::ContextField;
 use rainbow_common::dsp_common::odrl::{OdrlOffer, OdrlPolicyInfo, OdrlTypes};
 use rainbow_common::errors::ErrorLog;

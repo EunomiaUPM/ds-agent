@@ -22,7 +22,6 @@ use crate::protocols::dsp::protocol_types::NegotiationProcessMessageTrait;
 use crate::protocols::dsp::validator::traits::validate_payload::ValidatePayload;
 use crate::protocols::dsp::validator::traits::validation_helpers::ValidationHelpers;
 use rainbow_common::config::types::roles::RoleConfig;
-use rainbow_common::dcat_formats::{DctFormats, FormatAction};
 use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;

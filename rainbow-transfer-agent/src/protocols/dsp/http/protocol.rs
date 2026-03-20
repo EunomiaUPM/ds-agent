@@ -43,8 +43,8 @@ use axum::{
 };
 use rainbow_common::config::services::TransferConfig;
 use rainbow_common::facades::ssi_auth_facade::SSIAuthFacadeTrait;
-use rainbow_common::mates::mates::Mates;
 use ymir::errors::{Errors, Outcome};
+use rainbow_common::facades::Mates;
 use crate::http::common::extract_payload;
 
 #[derive(Clone)]

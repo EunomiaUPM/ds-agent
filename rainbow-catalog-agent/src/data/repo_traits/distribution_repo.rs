@@ -18,7 +18,6 @@
 use crate::data::entities::distribution;
 use crate::data::entities::distribution::{EditDistributionModel, NewDistributionModel};
 use crate::data::repo_traits::catalog_db_errors::CatalogAgentRepoErrors;
-use rainbow_common::dcat_formats::DctFormats;
 use urn::Urn;
 use ymir::errors::Outcome;
 

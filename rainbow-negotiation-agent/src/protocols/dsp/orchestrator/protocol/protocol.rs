@@ -37,10 +37,9 @@ use crate::protocols::dsp::protocol_types::{
 };
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
 use rainbow_common::config::services::ContractsConfig;
-use rainbow_common::mates::mates::Mates;
 use std::sync::Arc;
 use ymir::errors::Outcome;
-
+use rainbow_common::facades::Mates;
 // ─── Service ──────────────────────────────────────────────────────────────────
 
 /// DSP protocol orchestrator for inbound negotiation operations.

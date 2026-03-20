@@ -31,9 +31,9 @@ use axum::{
 };
 use rainbow_common::config::services::CatalogConfig;
 use rainbow_common::facades::ssi_auth_facade::SSIAuthFacadeTrait;
-use rainbow_common::mates::mates::Mates;
 use reqwest::StatusCode;
 use std::sync::Arc;
+use rainbow_common::facades::Mates;
 
 #[derive(Clone)]
 pub struct DspRouter {

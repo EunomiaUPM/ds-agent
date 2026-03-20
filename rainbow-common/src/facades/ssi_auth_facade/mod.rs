@@ -17,8 +17,7 @@
 
 use async_trait::async_trait;
 use ymir::errors::Outcome;
-
-use crate::mates::Mates;
+use crate::facades::Mates;
 
 pub mod mates_facade;
 pub mod ssi_auth_facade;

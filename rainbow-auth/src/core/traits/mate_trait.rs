@@ -19,10 +19,9 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use rainbow_common::batch_requests::BatchRequests;
-use rainbow_common::mates::mates::VerifyTokenRequest;
 use ymir::data::entities::mates::Model;
 use ymir::errors::Outcome;
-
+use rainbow_common::facades::VerifyTokenRequest;
 use crate::services::repo::repo_trait::AuthRepoTrait;
 
 #[async_trait]

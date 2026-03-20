@@ -21,7 +21,6 @@ use crate::data::repo_traits::catalog_db_errors::{
     CatalogAgentRepoErrors, DataServiceRepoErrors, DatasetRepoErrors, DistributionRepoErrors,
 };
 use crate::data::repo_traits::distribution_repo::DistributionRepositoryTrait;
-use rainbow_common::dcat_formats::DctFormats;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
     QuerySelect,

@@ -26,10 +26,9 @@ use crate::protocols::dsp::protocol_types::{
     NegotiationAckMessageDto, NegotiationProcessMessageWrapper, NegotiationRequestMessageDto,
 };
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
-use rainbow_common::mates::mates::Mates;
 use ymir::errors::Outcome;
 use std::sync::Arc;
-
+use rainbow_common::facades::Mates;
 // ─── ConsumerRequestStep ──────────────────────────────────────────────────────
 
 /// Handles a subsequent `ContractRequestMessage` from the Consumer (counter-offer

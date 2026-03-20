@@ -19,7 +19,6 @@ pub(crate) mod distributions;
 
 use crate::data::entities::distribution;
 use crate::data::entities::distribution::{EditDistributionModel, Model, NewDistributionModel};
-use rainbow_common::dcat_formats::DctFormats;
 use serde::{Deserialize, Serialize};
 use urn::Urn;
 use ymir::errors::Outcome;

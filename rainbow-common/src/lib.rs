@@ -15,16 +15,13 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod adv_protocol;
 pub mod auth;
 pub mod batch_requests;
 pub mod boot;
 pub mod config;
-pub mod dcat_formats;
 pub mod dsp_common;
 pub mod errors;
 pub mod facades;
 pub mod http_client;
-pub mod mates;
 pub mod utils;
 pub mod well_known;

@@ -37,13 +37,13 @@ use rainbow_common::config::types::roles::RoleConfig;
 use rainbow_common::dsp_common::odrl::ContractRequestMessageOfferTypes;
 use rainbow_common::errors::{CommonErrors, ErrorLog};
 use ymir::errors::{Errors, Outcome};
-use rainbow_common::mates::mates::Mates;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::sync::Arc;
 use tracing::error;
 use urn::Urn;
+use rainbow_common::facades::Mates;
 
 pub struct OrchestrationPersistenceForProtocol {
     negotiation_process_service: Arc<dyn NegotiationAgentProcessesTrait>,

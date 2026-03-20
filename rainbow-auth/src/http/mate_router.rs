@@ -22,11 +22,10 @@ use axum::extract::{Path, State};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use rainbow_common::batch_requests::BatchRequests;
-use rainbow_common::mates::mates::VerifyTokenRequest;
 use ymir::data::entities::mates::Model;
 use ymir::errors::AppResult;
 use ymir::utils::extract_payload;
-
+use rainbow_common::facades::VerifyTokenRequest;
 use crate::core::traits::CoreMateTrait;
 
 pub struct MateRouter {

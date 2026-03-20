@@ -38,10 +38,10 @@ use rainbow_common::config::services::ContractsConfig;
 use rainbow_common::dsp_common::context_field::ContextField;
 use ymir::errors::Errors;
 use rainbow_common::facades::ssi_auth_facade::SSIAuthFacadeTrait;
-use rainbow_common::mates::mates::Mates;
 use serde::Serialize;
 use std::future::Future;
 use std::sync::Arc;
+use rainbow_common::facades::Mates;
 
 #[derive(Clone)]
 pub struct DspRouter {

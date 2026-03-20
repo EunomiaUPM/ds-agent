@@ -16,7 +16,6 @@
  */
 
 use crate::DataServiceDto;
-use rainbow_common::dcat_formats::DctFormats;
 use rainbow_common::well_known::rpc::WellKnownRPCRequest;
 use urn::Urn;
 use ymir::errors::Outcome;

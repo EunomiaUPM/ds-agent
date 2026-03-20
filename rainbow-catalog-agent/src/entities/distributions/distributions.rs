@@ -20,7 +20,6 @@ use crate::data::factory_trait::CatalogAgentRepoTrait;
 use crate::entities::distributions::{
     DistributionDto, DistributionEntityTrait, EditDistributionDto, NewDistributionDto,
 };
-use rainbow_common::dcat_formats::DctFormats;
 use rainbow_common::errors::{CommonErrors, ErrorLog};
 use std::str::FromStr;
 use std::sync::Arc;

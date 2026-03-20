@@ -29,7 +29,6 @@ use crate::grpc::api::catalog_agent::{
     PutDatasetRequest, PutDistributionRequest,
 };
 use prost_types::Struct;
-use rainbow_common::dcat_formats::DctFormats;
 use rainbow_common::dsp_common::odrl::OdrlPolicyInfo;
 use std::str::FromStr;
 use tonic::Status;

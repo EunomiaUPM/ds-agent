@@ -24,7 +24,6 @@ use crate::grpc::api::catalog_agent::{
     DistributionResponse, GetAllRequest, GetBatchRequest, GetByIdRequest, GetByParentIdRequest,
     GetDistributionByFormatRequest, PutDistributionRequest,
 };
-use rainbow_common::dcat_formats::DctFormats;
 use std::str::FromStr;
 use std::sync::Arc;
 use tonic::{Request, Response, Status};

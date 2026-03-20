@@ -26,7 +26,6 @@ use axum::response::{IntoResponse, Response};
 use axum::routing::any;
 use axum::Router;
 use hyper::Method;
-use rainbow_common::adv_protocol::interplane::{DataPlaneProcessDirection, DataPlaneProcessState};
 use rainbow_common::utils::get_urn_from_string;
 use reqwest::Response as ReqwestResponse;
 use reqwest::{Client, StatusCode};

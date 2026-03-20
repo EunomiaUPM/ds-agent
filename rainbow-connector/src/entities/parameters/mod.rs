@@ -110,8 +110,6 @@ pub trait ParameterEnricher {
 #[derive(Debug)]
 pub enum TemplateField<'a> {
     TemplateString(&'a TemplateString),
-    TemplateInt(&'a TemplateInt),
-    TemplateBoolean(&'a TemplateBoolean),
     TemplateVecString(&'a TemplateVecString),
     TemplateMapString(&'a TemplateMapString),
 }
@@ -119,8 +117,6 @@ pub enum TemplateField<'a> {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum FoundParameterType {
     String,
-    Int,
-    Boolean,
     VecString,
     MapString,
 }

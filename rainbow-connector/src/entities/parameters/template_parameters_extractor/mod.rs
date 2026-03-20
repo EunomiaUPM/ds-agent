@@ -1,6 +1,5 @@
 use crate::entities::parameters::{
-    FoundParameterType, TemplateBoolean, TemplateField, TemplateInt, TemplateMapString,
-    TemplateVecString,
+    FoundParameterType, TemplateField, TemplateMapString, TemplateVecString,
 };
 use regex::Regex;
 use std::collections::HashMap;
@@ -58,18 +57,6 @@ impl ParameterExtractorBehavior for TemplateParameterExtractor {
             TemplateField::TemplateString(t) => {
                 self.partial_value_extractor(TemplateField::TemplateString(t))
             }
-            TemplateField::TemplateInt(t) => match t {
-                TemplateInt::Value(_) => {}
-                TemplateInt::Template(value) => {
-                    self.complete_value_extractor(value.as_str(), &FoundParameterType::Int)
-                }
-            },
-            TemplateField::TemplateBoolean(t) => match t {
-                TemplateBoolean::Value(_) => {}
-                TemplateBoolean::Template(value) => {
-                    self.complete_value_extractor(value.as_str(), &FoundParameterType::Boolean)
-                }
-            },
             TemplateField::TemplateVecString(t) => match t {
                 TemplateVecString::Value(_) => {
                     self.partial_value_extractor(TemplateField::TemplateVecString(t))
@@ -126,7 +113,6 @@ impl TemplateParameterExtractor {
                     self.map_string_parameter_extractor(map)
                 }
             }
-            _ => {}
         }
     }
 

@@ -54,8 +54,6 @@ pub enum ConnectorInstanceRepoErrors {
     ErrorCreatingTemplateByDuplication(String),
     #[error("Error deleting connector instance. {0}")]
     ErrorDeletingInstance(String),
-    #[error("Error updating connector instance. {0}")]
-    ErrorUpdatingInstance(String),
 }
 
 #[derive(Error, Debug)]

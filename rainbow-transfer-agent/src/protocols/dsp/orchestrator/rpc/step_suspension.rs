@@ -32,7 +32,6 @@ use crate::protocols::dsp::protocol_types::{
 use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRpcSteps;
 use rainbow_common::http_client::HttpClient;
 use std::sync::Arc;
-use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 // ─── SuspensionStep ───────────────────────────────────────────────────────────
 

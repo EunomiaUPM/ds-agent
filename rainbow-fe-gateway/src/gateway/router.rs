@@ -10,7 +10,6 @@ use rainbow_common::config::types::traits::CommonConfigTrait;
 use rust_embed::Embed;
 use serde_json::{json, Value};
 use std::sync::Arc;
-use tokio::sync::broadcast;
 use tower_http::cors::{Any, CorsLayer};
 use ymir::config::traits::HostsConfigTrait;
 use ymir::config::types::HostType;

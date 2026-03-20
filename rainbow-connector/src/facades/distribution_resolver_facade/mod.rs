@@ -17,24 +17,9 @@
  *
  */
 
-use sea_orm::prelude::DateTimeWithTimeZone;
-use serde::Deserialize;
 use ymir::errors::Outcome;
 
 pub mod data_service_resolver_facade;
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct Distribution {
-    pub id: String,
-    pub dct_issued: DateTimeWithTimeZone,
-    pub dct_modified: Option<DateTimeWithTimeZone>,
-    pub dct_title: Option<String>,
-    pub dct_description: Option<String>,
-    pub dcat_access_service: String,
-    pub dataset_id: String,
-    pub dct_format: Option<String>,
-}
 
 #[cfg_attr(test, mockall::automock)]
 #[async_trait::async_trait]
@@ -42,5 +27,5 @@ pub trait DistributionFacadeTrait: Send + Sync {
     async fn resolve_distribution_by_id(
         &self,
         distribution_id: &String,
-    ) -> Outcome<Distribution>;
+    ) -> Outcome<()>;
 }

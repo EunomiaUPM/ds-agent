@@ -18,7 +18,6 @@
  */
 use crate::data::entities::connector_templates;
 use crate::data::entities::connector_templates::NewConnectorTemplateModel;
-use crate::data::repo_traits::connector_repo_errors;
 use ymir::errors::Outcome;
 
 #[cfg_attr(test, mockall::automock)]

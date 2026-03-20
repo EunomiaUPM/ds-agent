@@ -17,7 +17,8 @@
  *
  */
 
-use crate::facades::distribution_resolver_facade::{Distribution, DistributionFacadeTrait};
+use crate::facades::distribution_resolver_facade::DistributionFacadeTrait;
+use serde_json::Value;
 use rainbow_common::config::types::traits::CommonConfigTrait;
 use rainbow_common::http_client::HttpClient;
 use std::sync::Arc;
@@ -42,12 +43,12 @@ impl DistributionFacadeTrait for DistributionFacadeServiceForConnector {
     async fn resolve_distribution_by_id(
         &self,
         distribution_id: &String,
-    ) -> Outcome<Distribution> {
+    ) -> Outcome<()> {
         let distribution_url = format!(
             "{}/api/v1/catalog-agent/distributions/{}",
             self.catalog_base_url, distribution_id
         );
-        let distribution = self.client.get_json::<Distribution>(distribution_url.as_str()).await?;
-        Ok(distribution)
+        self.client.get_json::<Value>(distribution_url.as_str()).await?;
+        Ok(())
     }
 }

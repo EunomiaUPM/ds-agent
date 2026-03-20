@@ -20,9 +20,8 @@
 use crate::data::entities::offer::NewOfferModel;
 use crate::data::factory_trait::NegotiationAgentRepoTrait;
 use crate::entities::offer::{NegotiationAgentOffersTrait, NewOfferDto, OfferDto};
-use ymir::errors::{Errors, Outcome};
+use ymir::errors::Outcome;
 use std::sync::Arc;
-use tracing::error;
 use urn::Urn;
 
 pub struct NegotiationAgentOffersService {

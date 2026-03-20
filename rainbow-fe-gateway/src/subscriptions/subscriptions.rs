@@ -52,13 +52,6 @@ impl RainbowProviderGatewaySubscriptions {
                 true => self.config.contracts().get_host(HostType::Http),
                 false => self.config.catalog().get_host(HostType::Http),
             },
-            MicroserviceSubscriptionKey::ContractNegotiation => {
-                self.config.contracts().get_host(HostType::Http)
-            }
-            MicroserviceSubscriptionKey::TransferControlPlane => {
-                self.config.transfer().get_host(HostType::Http)
-            }
-            _ => todo!(),
         };
         let microservice_url = microservice_url.trim_end_matches("/");
         let microservice_tag = match microservice_key_name {
@@ -66,9 +59,6 @@ impl RainbowProviderGatewaySubscriptions {
                 true => "contract-negotiation",
                 false => "catalog",
             },
-            MicroserviceSubscriptionKey::ContractNegotiation => "contract-negotiation",
-            MicroserviceSubscriptionKey::TransferControlPlane => "transfers",
-            _ => todo!(),
         };
         let subscription_base = format!("/api/v1/{}/subscriptions", microservice_tag);
         let subscription_url = format!("{}{}", microservice_url, subscription_base);

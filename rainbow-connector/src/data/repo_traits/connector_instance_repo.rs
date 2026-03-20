@@ -1,6 +1,5 @@
 use crate::data::entities::connector_instances;
 use crate::data::entities::connector_instances::NewConnectorInstanceModel;
-use crate::data::repo_traits::connector_repo_errors;
 use ymir::errors::Outcome;
 
 #[cfg_attr(test, mockall::automock)]

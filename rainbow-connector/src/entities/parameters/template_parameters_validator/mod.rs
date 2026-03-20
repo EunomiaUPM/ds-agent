@@ -47,8 +47,6 @@ fn is_compatible(found: &FoundParameterType, defined: &ParameterType) -> bool {
         (FoundParameterType::String, ParameterType::String) => true,
         (FoundParameterType::String, ParameterType::Int) => true,
         (FoundParameterType::String, ParameterType::Boolean) => true,
-        (FoundParameterType::Int, ParameterType::Int) => true,
-        (FoundParameterType::Boolean, ParameterType::Boolean) => true,
         (FoundParameterType::VecString, ParameterType::VecString) => true,
         (FoundParameterType::MapString, ParameterType::MapStringString) => true,
         _ => false,

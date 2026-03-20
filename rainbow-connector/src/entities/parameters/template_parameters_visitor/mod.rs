@@ -3,7 +3,6 @@ use crate::entities::parameters::parameters::{TemplateMapString, TemplateVecStri
 use crate::entities::parameters::template_parameters_extractor::ParameterExtractorBehavior;
 use crate::entities::parameters::template_walker::ConnectorTemplateWalker;
 use crate::entities::parameters::TemplateField;
-use std::convert::Infallible;
 use ymir::errors::Outcome;
 
 /// Walks a [`ConnectorTemplateDto`] and feeds every templatable field to a

@@ -1,5 +1,5 @@
 
-use crate::entities::parameters::parameters::{TemplateBoolean, TemplateInt, TemplateMapString};
+use crate::entities::parameters::parameters::TemplateMapString;
 use crate::entities::parameters::template_parameters_extractor::{
     ParameterExtractorBehavior, TemplateParameterExtractor,
 };
@@ -7,26 +7,6 @@ use crate::entities::parameters::{FoundParameterType, TemplateField};
 use crate::TemplateVecString;
 use std::collections::HashMap;
 
-#[test]
-fn complete_value_extractor_on_int() {
-    let mut extractor = TemplateParameterExtractor::new();
-    let field = TemplateInt::Template("{{__TIMEOUT__}}".to_string());
-    extractor.extract(TemplateField::TemplateInt(&field));
-    let found = extractor.found_parameters();
-    assert_eq!(found.len(), 1);
-    assert_eq!(found[0].name, "TIMEOUT");
-    assert_eq!(found[0].content_type, FoundParameterType::Int);
-}
-#[test]
-fn complete_value_extractor_on_boolean() {
-    let mut extractor = TemplateParameterExtractor::new();
-    let field = TemplateBoolean::Template("{{__TEST__}}".to_string());
-    extractor.extract(TemplateField::TemplateBoolean(&field));
-    let found_parameters = extractor.found_parameters();
-    assert_eq!(found_parameters.len(), 1);
-    assert_eq!(found_parameters[0].name, "TEST");
-    assert_eq!(found_parameters[0].content_type, FoundParameterType::Boolean);
-}
 #[test]
 fn complete_value_extractor_on_string() {
     let mut extractor = TemplateParameterExtractor::new();

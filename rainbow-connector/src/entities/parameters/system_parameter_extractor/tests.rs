@@ -1,7 +1,5 @@
 
-use crate::entities::parameters::parameters::{
-    SysParameterType, TemplateBoolean, TemplateInt, TemplateMapString,
-};
+use crate::entities::parameters::parameters::{SysParameterType, TemplateMapString};
 use crate::entities::parameters::system_parameter_extractor::SystemParameterExtractor;
 use crate::entities::parameters::template_parameters_extractor::ParameterExtractorBehavior;
 use crate::entities::parameters::TemplateField;
@@ -88,43 +86,6 @@ fn ignores_unknown_sys_placeholder_in_string() {
 fn literal_string_extracts_nothing() {
     let field = "https://api.example.com/data".to_string();
     let found = extract(TemplateField::TemplateString(&field));
-    assert!(found.is_empty());
-}
-
-// =========================================================================
-// TemplateInt — only SYS_TIMESTAMP makes semantic sense
-// =========================================================================
-
-#[test]
-fn extracts_sys_timestamp_from_int_template() {
-    let field = TemplateInt::Template("{{__SYS_TIMESTAMP__}}".to_string());
-    let found = extract(TemplateField::TemplateInt(&field));
-    assert_eq!(1, found.len());
-    assert!(matches!(found[0].1, SysParameterType::SysTimestamp));
-}
-
-#[test]
-fn int_value_variant_extracts_nothing() {
-    let field = TemplateInt::Value(42);
-    let found = extract(TemplateField::TemplateInt(&field));
-    assert!(found.is_empty());
-}
-
-// =========================================================================
-// TemplateBoolean — no sys parameter applies
-// =========================================================================
-
-#[test]
-fn boolean_template_extracts_nothing() {
-    let field = TemplateBoolean::Template("{{__SYS_TOKEN__}}".to_string());
-    let found = extract(TemplateField::TemplateBoolean(&field));
-    assert!(found.is_empty());
-}
-
-#[test]
-fn boolean_value_extracts_nothing() {
-    let field = TemplateBoolean::Value(true);
-    let found = extract(TemplateField::TemplateBoolean(&field));
     assert!(found.is_empty());
 }
 

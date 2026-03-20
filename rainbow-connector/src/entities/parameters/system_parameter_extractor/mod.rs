@@ -1,8 +1,6 @@
 use crate::entities::parameters::template_parameters_extractor::ParameterExtractorBehavior;
 use crate::entities::parameters::TemplateField;
-use crate::entities::parameters::{
-    SysParameterType, TemplateInt, TemplateMapString, TemplateVecString,
-};
+use crate::entities::parameters::{SysParameterType, TemplateMapString, TemplateVecString};
 use regex::Regex;
 use std::sync::OnceLock;
 
@@ -63,15 +61,6 @@ impl ParameterExtractorBehavior for SystemParameterExtractor {
         match template {
             // Plain string or interpolated string — scan always
             TemplateField::TemplateString(t) => self.scan_str(t),
-
-            // Only SYS_TIMESTAMP makes semantic sense as an int
-            TemplateField::TemplateInt(t) => match t {
-                TemplateInt::Value(_) => {}
-                TemplateInt::Template(value) => self.scan_str(value.as_str()),
-            },
-
-            // Booleans: no sys parameter makes sense here
-            TemplateField::TemplateBoolean(_) => {}
 
             // Vec items are strings — scan each element or the whole template string
             TemplateField::TemplateVecString(t) => match t {

@@ -21,8 +21,4 @@ pub mod subscriptions;
 
 pub enum MicroserviceSubscriptionKey {
     Catalog,
-    ContractNegotiation,
-    TransferControlPlane,
-    TransferDataPlane,
-    HeartBeat,
 }

@@ -189,7 +189,7 @@ impl DspRouter {
     async fn handle_transfer_start(
         State(state): State<DspRouter>,
         Path(id): Path<String>,
-        Extension(mate): Extension<Mates>,
+        Extension(_mate): Extension<Mates>,
         input: Result<Json<TransferProcessMessageWrapper<TransferStartMessageDto>>, JsonRejection>,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::OK, |data| async move {
@@ -201,7 +201,7 @@ impl DspRouter {
     async fn handle_transfer_completion(
         State(state): State<DspRouter>,
         Path(id): Path<String>,
-        Extension(mate): Extension<Mates>,
+        Extension(_mate): Extension<Mates>,
         input: Result<
             Json<TransferProcessMessageWrapper<TransferCompletionMessageDto>>,
             JsonRejection,
@@ -216,7 +216,7 @@ impl DspRouter {
     async fn handle_transfer_termination(
         State(state): State<DspRouter>,
         Path(id): Path<String>,
-        Extension(mate): Extension<Mates>,
+        Extension(_mate): Extension<Mates>,
         input: Result<
             Json<TransferProcessMessageWrapper<TransferTerminationMessageDto>>,
             JsonRejection,
@@ -231,7 +231,7 @@ impl DspRouter {
     async fn handle_transfer_suspension(
         State(state): State<DspRouter>,
         Path(id): Path<String>,
-        Extension(mate): Extension<Mates>,
+        Extension(_mate): Extension<Mates>,
         input: Result<
             Json<TransferProcessMessageWrapper<TransferSuspensionMessageDto>>,
             JsonRejection,

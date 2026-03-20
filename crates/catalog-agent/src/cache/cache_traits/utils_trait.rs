@@ -23,27 +23,27 @@ use ymir::errors::{Errors, Outcome};
 pub trait UtilsCacheTrait: Send + Sync {
     type Dto: DeserializeOwned + Send + Sync;
 
-    /// Key for a single entity: rainbow_catalogs:entity_name:urn
+    /// Key for a single entity: ds_agent_catalogs:entity_name:urn
     fn format_key_name_with_id(&self, entity: &str, id: &Urn) -> String {
-        format!("rainbow_catalogs:{}:{}", entity, id)
+        format!("ds_agent_catalogs:{}:{}", entity, id)
     }
 
     fn format_key_name_with_string(&self, entity: &str, id: &String) -> String {
-        format!("rainbow_catalogs:{}:{}", entity, id)
+        format!("ds_agent_catalogs:{}:{}", entity, id)
     }
 
-    /// Key for the main pointer: rainbow_catalogs:entity_name:main
+    /// Key for the main pointer: ds_agent_catalogs:entity_name:main
     fn format_key_name_main(&self, entity: &str) -> String {
-        format!("rainbow_catalogs:{}:main", entity)
+        format!("ds_agent_catalogs:{}:main", entity)
     }
 
-    /// Key for the all-entities set: rainbow_catalogs:entity_name:all
+    /// Key for the all-entities set: ds_agent_catalogs:entity_name:all
     fn format_key_name_all(&self, entity: &str) -> String {
-        format!("rainbow_catalogs:{}:all", entity)
+        format!("ds_agent_catalogs:{}:all", entity)
     }
 
-    /// Key for relational lookups: rainbow_catalogs:child_entity:parent_entity:parent_id
-    /// Example: rainbow_catalogs:dataset:catalog:urn:catalog:123
+    /// Key for relational lookups: ds_agent_catalogs:child_entity:parent_entity:parent_id
+    /// Example: ds_agent_catalogs:dataset:catalog:urn:catalog:123
     fn format_key_name_lookup(
         &self,
         child_entity: &str,
@@ -51,14 +51,14 @@ pub trait UtilsCacheTrait: Send + Sync {
         parent_id: &Urn,
     ) -> String {
         format!(
-            "rainbow_catalogs:{}:{}:{}",
+            "ds_agent_catalogs:{}:{}:{}",
             child_entity, parent_entity, parent_id
         )
     }
 
     /// Removes the prefix from a key to recover the raw ID/URN
     fn remove_key_name(&self, key: &str, entity: &str) -> String {
-        key.replace(&format!("rainbow_catalogs:{}:", entity), "")
+        key.replace(&format!("ds_agent_catalogs:{}:", entity), "")
     }
 
     fn compute_pagination_range(&self, limit: Option<u64>, page: Option<u64>) -> (isize, isize) {

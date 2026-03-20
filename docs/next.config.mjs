@@ -9,7 +9,7 @@ const config = {
   images: {
     unoptimized: true,
   },
-  basePath: "/rainbow"
+  basePath: "/ds-agent"
 
 };
 

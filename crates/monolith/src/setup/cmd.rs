@@ -40,7 +40,7 @@ use crate::setup::boot::CoreBoot;
 use crate::setup::db_migrations::CoreProviderMigration;
 
 #[derive(Parser, Debug)]
-#[command(name = "Rainbow Dataspace Connector Core Server")]
+#[command(name = "Eunomia DS-Agent Dataspace Connector Core Server")]
 #[command(version = "0.2")]
 struct CoreCli {
     #[command(subcommand)]

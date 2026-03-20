@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use common::auth::business::RainbowBusinessLoginRequest;
+use common::auth::business::BusinessLoginRequest;
 use ymir::data::entities::{business_mates, mates, recv_request, recv_verification};
 use ymir::errors::Outcome;
 
@@ -24,7 +24,7 @@ use crate::types::business::BusinessResponse;
 pub trait BusinessTrait: Send + Sync + 'static {
     fn start(
         &self,
-        payload: &RainbowBusinessLoginRequest,
+        payload: &BusinessLoginRequest,
     ) -> (recv_request::NewModel, recv_verification::Model);
     fn get_token(
         &self,

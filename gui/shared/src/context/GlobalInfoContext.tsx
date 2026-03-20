@@ -4,7 +4,7 @@ import { createContext, ReactNode, useEffect, useMemo, useState } from "react";
 import React from "react";
 
 export interface GlobalInfoContextType {
-  catalog_type: "rainbow" | "datahub" | "both";
+  catalog_type: "agent" | "datahub" | "both";
   dsrole: string;
   api_gateway_base: string;
   api_gateway: string;
@@ -22,7 +22,7 @@ export const GlobalInfoContextProvider = ({ children }: { children: ReactNode })
   const [apiGatewayBase, setApiGatewayBase] = useState<string>("/");
   const [dspBase, setDspBase] = useState<string>("");
   const [configRole, setConfigRole] = useState<string>("");
-  const [catalogType] = useState<"rainbow" | "datahub" | "both">("rainbow");
+  const [catalogType] = useState<"agent" | "datahub" | "both">("agent");
   const [isConfigLoaded, setIsConfigLoaded] = useState(false);
 
   /**

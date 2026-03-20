@@ -1,5 +1,5 @@
 version: "3.8"
-name: "rainbow-dev"
+name: "eunomia-ds-agent-dev"
 
 # ====================================================================
 # REUSABLE TEMPLATES (DRY)

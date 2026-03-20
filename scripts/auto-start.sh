@@ -2,13 +2,12 @@
 set -euo pipefail
 
 # -----------------------------------------------------------------------------
-# RAINBOW SERVICE START SCRIPT
-# This script manages the full startup of the Rainbow environment:
+# Eunomia DS-Agent SERVICE START SCRIPT
+# This script manages the full startup of the Eunomia DS-Agent environment:
 # 1. Validates the target module (core, catalog, etc.).
 # 2. Starts necessary databases using Docker Compose.
 # 3. Launches the Authority, Consumer, and Provider services, each in its own
 #    dedicated terminal window/tab to display live logs.
-# Usage: ./rainbow_start.sh [module_name] (e.g., ./rainbow_start.sh core)
 # -----------------------------------------------------------------------------
 
 # ----------------------------
@@ -23,7 +22,7 @@ BASE_DIR="$(cd "$(dirname "$0")" && pwd)/../.."
 MODULE=${1:-core}  # Default to 'core' if no module is passed
 DOCKER_COMPOSE_PATH="$BASE_DIR/deployment/docker-compose.core.yaml"
 
-echo "=== Starting Rainbow environment for module '$MODULE'..."
+echo "=== Starting Eunomia DS-Agent environment for module '$MODULE'..."
 
 # List of valid modules that can be initialized
 VALID_MODULES=("core" "catalog" "contracts" "transfer" "auth")
@@ -76,7 +75,7 @@ spawn_terminal() {
     elif command -v cmd.exe &> /dev/null; then
         # Windows (WSL/Git Bash fallback - using PowerShell for better command handling)
         # This relies on cmd.exe's 'start' command to launch a PowerShell window.
-        cmd.exe /C start "Rainbow $title" powershell -NoExit -Command "cd '$run_dir'; & $command_to_run"
+        cmd.exe /C start "Eunomia DS-Agent $title" powershell -NoExit -Command "cd '$run_dir'; & $command_to_run"
     else
         echo "WARNING: Could not find a suitable terminal emulator (gnome-terminal, konsole, xterm, Terminal). Starting in background (nohup)..." >&2
         # Fallback method: runs the command in the background using nohup,
@@ -92,13 +91,13 @@ spawn_terminal() {
 # ----------------------------
 # 5. Paths and Commands Definition
 # ----------------------------
-CONSUMER_DIR="$BASE_DIR/rainbow-$MODULE"
-PROVIDER_DIR="$BASE_DIR/rainbow-$MODULE"
+CONSUMER_DIR="$BASE_DIR/crates/$MODULE"
+PROVIDER_DIR="$BASE_DIR/crates/$MODULE"
 
 # Adjust directories for the 'core' module case
 if [[ "$MODULE" == "core" ]]; then
-    CONSUMER_DIR="$BASE_DIR/rainbow-core"
-    PROVIDER_DIR="$BASE_DIR/rainbow-core"
+    CONSUMER_DIR="$BASE_DIR/crates/monolith"
+    PROVIDER_DIR="$BASE_DIR/crates/monolith"
 fi
 
 # Service commands to run inside the new terminals
@@ -111,11 +110,11 @@ PROVIDER_CMD="cargo run --manifest-path Cargo.toml provider start --env-file sta
 # ----------------------------
 
 # Start Consumer service
-spawn_terminal "Rainbow Consumer" "$CONSUMER_CMD" "$CONSUMER_DIR"
+spawn_terminal "Eunomia DS-Agent Consumer" "$CONSUMER_CMD" "$CONSUMER_DIR"
 
 # Start Provider service
-spawn_terminal "Rainbow Provider" "$PROVIDER_CMD" "$PROVIDER_DIR"
+spawn_terminal "Eunomia DS-Agent Provider" "$PROVIDER_CMD" "$PROVIDER_DIR"
 
 echo ""
-echo "Rainbow services started. Check the new terminal windows/tabs for live logs."
+echo "Eunomia DS-Agent services started. Check the new terminal windows/tabs for live logs."
 echo "The main script window will now exit, but the services will remain active in their respective terminals."

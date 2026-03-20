@@ -87,7 +87,7 @@ impl CoreHttpWorker {
             .hosts()
             .get_internal_port(HostType::Http);
         let addr = format!("0.0.0.0:{}", port);
-        info!("Starting Rainbow server with TLS in {}", addr);
+        info!("Starting Eunomia DS-Agent server with TLS in {}", addr);
 
         let addr: SocketAddr = addr
             .parse()
@@ -133,7 +133,7 @@ impl CoreHttpWorker {
             .hosts()
             .get_internal_port(HostType::Http);
         let addr = format!("0.0.0.0:{}", port);
-        info!("Starting Rainbow server in {}", addr);
+        info!("Starting Eunomia DS-Agent server in {}", addr);
 
         let listener = TcpListener::bind(addr)
             .await

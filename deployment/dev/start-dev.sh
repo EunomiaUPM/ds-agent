@@ -24,7 +24,7 @@ run_compose() {
     (cd "$COMPOSE_DIR" && $DC -f docker-compose.dev.yaml "$@")
 }
 
-echo "=== Rainbow Dev Environment Setup ==="
+echo "=== Eunomia Dev Environment Setup ==="
 
 # 1. Start infrastructure (DBs, Redis, IDM, Vault servers)
 #    Vault server containers MUST be (re)started before the setup containers run,

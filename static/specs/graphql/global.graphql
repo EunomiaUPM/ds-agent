@@ -44,7 +44,7 @@ type Query {
     agreement(id: UUID!): Agreement                                                             # both
 
     # ---------------------------
-    # Rainbow Catalog (DCAT)
+    # Eunomia DS-Agent Catalog (DCAT)
     # ---------------------------
     catalogs(limit: Int = 10, offset: Int = 0): [Catalog!]!                                     # provider
     catalog(id: UUID!): Catalog                                                                 # provider

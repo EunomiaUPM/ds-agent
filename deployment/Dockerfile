@@ -1,48 +1,43 @@
 # syntax=docker/dockerfile:1
+# Build context must be the PARENT directory of ds-protocol (to include ymir):
+#   docker build -f ds-protocol/deployment/Dockerfile --build-arg APP_NAME=... ..
 
 ARG RUST_VERSION=1.88.0
-ARG APP_NAME=rainbow_transfer
+ARG APP_NAME=monolith
 
 # --- builder ---
-# Usa una imagen base Rust optimizada para compilación.
 FROM rust:${RUST_VERSION}-slim-bookworm AS builder
 ARG APP_NAME
 
 WORKDIR /app
 
-# dependencies
+# system dependencies
 RUN apt-get update && \
     apt-get install -y pkg-config libssl-dev curl protobuf-compiler && \
     rm -rf /var/lib/apt/lists/*
 
-
 # app building
 # https://docs.docker.com/guides/rust/develop/
-RUN --mount=type=bind,source=./../Cargo.toml,target=/app/Cargo.toml \
-    --mount=type=bind,source=./../Cargo.lock,target=/app/Cargo.lock \
-    --mount=type=bind,source=./../rainbow-core,target=/app/rainbow-core \
-    --mount=type=bind,source=./../rainbow-catalog,target=/app/rainbow-catalog \
-    --mount=type=bind,source=./../rainbow-contracts,target=/app/rainbow-contracts \
-    --mount=type=bind,source=./../rainbow-dataplane,target=/app/rainbow-dataplane \
-    --mount=type=bind,source=./../rainbow-transfer,target=/app/rainbow-transfer \
-    --mount=type=bind,source=./../rainbow-transfer-agent,target=/app/rainbow-transfer-agent \
-    --mount=type=bind,source=./../rainbow-common,target=/app/rainbow-common \
-    --mount=type=bind,source=./../rainbow-auth,target=/app/rainbow-auth \
-    --mount=type=bind,source=./../rainbow-db,target=/app/rainbow-db \
-    --mount=type=bind,source=./../rainbow-events,target=/app/rainbow-events \
-    --mount=type=bind,source=./../rainbow-datahub-catalog,target=/app/rainbow-datahub-catalog \
-    --mount=type=bind,source=./../rainbow-fe-gateway,target=/app/rainbow-fe-gateway \
-    --mount=type=bind,source=./../rainbow-business-gateway,target=/app/rainbow-business-gateway \
-    --mount=type=bind,source=./../static,target=/app/static \
+# source paths are relative to the build context (parent of ds-protocol)
+RUN --mount=type=bind,source=ds-protocol/Cargo.toml,target=/app/Cargo.toml \
+    --mount=type=bind,source=ds-protocol/Cargo.lock,target=/app/Cargo.lock \
+    --mount=type=bind,source=ds-protocol/crates/monolith,target=/app/crates/monolith \
+    --mount=type=bind,source=ds-protocol/crates/catalog-agent,target=/app/crates/catalog-agent \
+    --mount=type=bind,source=ds-protocol/crates/negotiation-agent,target=/app/crates/negotiation-agent \
+    --mount=type=bind,source=ds-protocol/crates/transfer-agent,target=/app/crates/transfer-agent \
+    --mount=type=bind,source=ds-protocol/crates/dataplane,target=/app/crates/dataplane \
+    --mount=type=bind,source=ds-protocol/crates/common,target=/app/crates/common \
+    --mount=type=bind,source=ds-protocol/crates/auth,target=/app/crates/auth \
+    --mount=type=bind,source=ds-protocol/crates/events,target=/app/crates/events \
+    --mount=type=bind,source=ds-protocol/crates/bff,target=/app/crates/bff \
+    --mount=type=bind,source=ds-protocol/crates/connector,target=/app/crates/connector \
+    --mount=type=bind,source=ds-protocol/static,target=/app/static \
+    --mount=type=bind,source=ymir,target=/ymir \
     --mount=type=cache,target=/app/target/ \
     --mount=type=cache,target=/usr/local/cargo/registry/ \
     /bin/sh -c "\
     set -e; \
-    \
-    \
-    \
     cargo build --locked --release -p ${APP_NAME}; \
-    \
     cp ./target/release/${APP_NAME} /bin/${APP_NAME}; \
 "
 

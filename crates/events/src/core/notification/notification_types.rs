@@ -25,7 +25,7 @@ use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 
 #[derive(Serialize, Deserialize)]
-pub struct RainbowEventsNotificationResponse {
+pub struct EventsNotificationResponse {
     #[serde(rename = "notificationId")]
     pub id: Urn,
     pub timestamp: chrono::NaiveDateTime,
@@ -41,7 +41,7 @@ pub struct RainbowEventsNotificationResponse {
     pub subscription_id: Urn,
 }
 
-impl TryFrom<notification::Model> for RainbowEventsNotificationResponse {
+impl TryFrom<notification::Model> for EventsNotificationResponse {
     type Error = Errors;
 
     fn try_from(value: notification::Model) -> Outcome<Self> {
@@ -59,51 +59,51 @@ impl TryFrom<notification::Model> for RainbowEventsNotificationResponse {
 }
 
 #[derive(Serialize, Deserialize)]
-pub enum RainbowEventsNotificationMessageTypes {
+pub enum EventsNotificationMessageTypes {
     RPCMessage,
     DSProtocolMessage,
-    RainbowEntitiesMessage,
+    EntitiesMessage,
 }
 
-impl Display for RainbowEventsNotificationMessageTypes {
+impl Display for EventsNotificationMessageTypes {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            RainbowEventsNotificationMessageTypes::RPCMessage => Ok(f.write_str("RPCMessage")?),
-            RainbowEventsNotificationMessageTypes::DSProtocolMessage => {
+            EventsNotificationMessageTypes::RPCMessage => Ok(f.write_str("RPCMessage")?),
+            EventsNotificationMessageTypes::DSProtocolMessage => {
                 Ok(f.write_str("DSProtocolMessage")?)
             }
-            RainbowEventsNotificationMessageTypes::RainbowEntitiesMessage => {
-                Ok(f.write_str("RainbowEntitiesMessage")?)
+            EventsNotificationMessageTypes::EntitiesMessage => {
+                Ok(f.write_str("EunomiaDSAgentEntitiesMessage")?)
             }
         }
     }
 }
 
 #[derive(Serialize, Deserialize)]
-pub enum RainbowEventsNotificationMessageCategory {
+pub enum EventsNotificationMessageCategory {
     TransferProcess,
     Catalog,
     ContractNegotiation,
     DataPlane,
 }
 
-impl Display for RainbowEventsNotificationMessageCategory {
+impl Display for EventsNotificationMessageCategory {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            RainbowEventsNotificationMessageCategory::TransferProcess => {
+            EventsNotificationMessageCategory::TransferProcess => {
                 Ok(f.write_str("TransferProcess")?)
             }
-            RainbowEventsNotificationMessageCategory::Catalog => Ok(f.write_str("Catalog")?),
-            RainbowEventsNotificationMessageCategory::ContractNegotiation => {
+            EventsNotificationMessageCategory::Catalog => Ok(f.write_str("Catalog")?),
+            EventsNotificationMessageCategory::ContractNegotiation => {
                 Ok(f.write_str("ContractNegotiation")?)
             }
-            RainbowEventsNotificationMessageCategory::DataPlane => Ok(f.write_str("DataPlane")?),
+            EventsNotificationMessageCategory::DataPlane => Ok(f.write_str("DataPlane")?),
         }
     }
 }
 
 #[derive(Serialize, Deserialize)]
-pub enum RainbowEventsNotificationMessageOperation {
+pub enum EventsNotificationMessageOperation {
     Creation,
     Update,
     Deletion,
@@ -111,16 +111,16 @@ pub enum RainbowEventsNotificationMessageOperation {
     OutgoingMessage,
 }
 
-impl Display for RainbowEventsNotificationMessageOperation {
+impl Display for EventsNotificationMessageOperation {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            RainbowEventsNotificationMessageOperation::Creation => Ok(f.write_str("Creation")?),
-            RainbowEventsNotificationMessageOperation::Update => Ok(f.write_str("Update")?),
-            RainbowEventsNotificationMessageOperation::Deletion => Ok(f.write_str("Deletion")?),
-            RainbowEventsNotificationMessageOperation::IncomingMessage => {
+            EventsNotificationMessageOperation::Creation => Ok(f.write_str("Creation")?),
+            EventsNotificationMessageOperation::Update => Ok(f.write_str("Update")?),
+            EventsNotificationMessageOperation::Deletion => Ok(f.write_str("Deletion")?),
+            EventsNotificationMessageOperation::IncomingMessage => {
                 Ok(f.write_str("IncomingMessage")?)
             }
-            RainbowEventsNotificationMessageOperation::OutgoingMessage => {
+            EventsNotificationMessageOperation::OutgoingMessage => {
                 Ok(f.write_str("OutgoingMessage")?)
             }
         }
@@ -128,35 +128,35 @@ impl Display for RainbowEventsNotificationMessageOperation {
 }
 
 #[derive(Serialize, Deserialize)]
-pub enum RainbowEventsNotificationStatus {
+pub enum EventsNotificationStatus {
     Pending,
     Ok,
 }
 
-impl Display for RainbowEventsNotificationStatus {
+impl Display for EventsNotificationStatus {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            RainbowEventsNotificationStatus::Pending => Ok(f.write_str("Pending")?),
-            RainbowEventsNotificationStatus::Ok => Ok(f.write_str("Ok")?),
+            EventsNotificationStatus::Pending => Ok(f.write_str("Pending")?),
+            EventsNotificationStatus::Ok => Ok(f.write_str("Ok")?),
         }
     }
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct RainbowEventsNotificationCreationRequest {
-    pub category: RainbowEventsNotificationMessageCategory,
+pub struct EventsNotificationCreationRequest {
+    pub category: EventsNotificationMessageCategory,
     pub subcategory: String,
-    pub message_type: RainbowEventsNotificationMessageTypes,
-    pub message_operation: RainbowEventsNotificationMessageOperation,
+    pub message_type: EventsNotificationMessageTypes,
+    pub message_operation: EventsNotificationMessageOperation,
     pub message_content: serde_json::Value,
-    pub status: RainbowEventsNotificationStatus,
+    pub status: EventsNotificationStatus,
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct RainbowEventsNotificationBroadcastRequest {
-    pub category: RainbowEventsNotificationMessageCategory,
+pub struct EventsNotificationBroadcastRequest {
+    pub category: EventsNotificationMessageCategory,
     pub subcategory: String,
-    pub message_type: RainbowEventsNotificationMessageTypes,
+    pub message_type: EventsNotificationMessageTypes,
     pub message_content: serde_json::Value,
-    pub message_operation: RainbowEventsNotificationMessageOperation,
+    pub message_operation: EventsNotificationMessageOperation,
 }

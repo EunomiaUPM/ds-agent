@@ -1,4 +1,4 @@
-name: "rainbow-provider"
+name: "eunomia-ds-agent-provider"
 
 services:
   provider-vault:

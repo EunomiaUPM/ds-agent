@@ -33,7 +33,7 @@ use ymir::config::types::HostType;
 
 #[derive(Embed)]
 #[folder = "src/static/admin/dist"]
-pub struct RainbowProviderReactApp;
+pub struct ReactApp;
 
 #[derive(Clone)]
 pub struct GatewayHttpRouter {
@@ -100,7 +100,7 @@ impl GatewayHttpRouter {
             path = "index.html".to_string();
         }
 
-        match RainbowProviderReactApp::get(&path) {
+        match ReactApp::get(&path) {
             Some(content) => {
                 let mime_type = mime_guess::from_path(&path).first_or_octet_stream();
                 Response::builder()
@@ -108,7 +108,7 @@ impl GatewayHttpRouter {
                     .body(Body::from(content.data))
                     .unwrap()
             }
-            None => match RainbowProviderReactApp::get("index.html") {
+            None => match ReactApp::get("index.html") {
                 Some(content) => {
                     let mime_type = mime_guess::from_path("index.html").first_or_octet_stream();
                     Response::builder()

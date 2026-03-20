@@ -69,4 +69,4 @@ ENV CONFIG_PATH=/app/static/environment/config/prod/core.consumer.yaml
 
 # Comando de entrada corregido (usando directamente el binario)
 ENTRYPOINT ["/bin/sh", "-c"]
-CMD ["/app/rainbow-monolith setup --env-file $CONFIG_PATH && /app/rainbow-monolith start --env-file $CONFIG_PATH"]
+CMD ["/app/monolith setup --env-file $CONFIG_PATH && /app/monolith start --env-file $CONFIG_PATH"]

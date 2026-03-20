@@ -47,7 +47,7 @@ stuff_to_issue:
   vc_config:
     vc_model: JwtVc
     w3c_data_model: V1
-  dataspace_id: 'RainbowDataspace'
+  dataspace_id: 'Dataspace'
   federated_catalog_uri: 'http://uri_to_federated_catalog'
 
 verify_req_config:

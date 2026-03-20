@@ -21,7 +21,7 @@ gui/node_modules
 .DS_Store
 db
 .db
-rainbow-pslm
+pslm
 .run
 test_command_stub.sh
 venv

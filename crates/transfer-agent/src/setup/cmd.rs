@@ -31,7 +31,7 @@ use ymir::services::vault::global::VaultService;
 use ymir::services::vault::vault_rs::RealVaultService;
 
 #[derive(Parser, Debug)]
-#[command(name = "Rainbow Dataspace Connector Transfer Agent")]
+#[command(name = "Eunomia DS-Agent Dataspace Connector Transfer Agent")]
 #[command(version = "0.2")]
 struct TransferCli {
     #[clap(subcommand)]

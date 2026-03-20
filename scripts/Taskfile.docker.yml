@@ -7,12 +7,10 @@ version: '3'
 vars:
   REGISTRY: '{{.REGISTRY | default "quay.io/eunomia_upm"}}'
   VERSION:  '{{.VERSION  | default "0.3.9"}}'
+  # -f path is relative to CWD (project root)
+  # context is the parent directory so ymir (path = "./../ymir") is accessible
   DOCKERFILE: deployment/Dockerfile
-
-# ─── helpers ──────────────────────────────────────────────────────────────────
-# Internal macro: builds one image.
-# Call via: task docker:build:core   (namespace injected by root include)
-# ──────────────────────────────────────────────────────────────────────────────
+  CONTEXT: ..
 
 tasks:
   # ─── build ──────────────────────────────────────────────────────────────────
@@ -20,65 +18,65 @@ tasks:
     desc: "Build ds-agent-core (monolith) image"
     cmds:
       - docker build --progress plain
-          -t {{.REGISTRY}}/rainbow:{{.VERSION}}
-          --build-arg APP_NAME=rainbow_core
-          -f {{.DOCKERFILE}} .
+          -t {{.REGISTRY}}/ds-agent-core:{{.VERSION}}
+          --build-arg APP_NAME=monolith
+          -f {{.DOCKERFILE}} {{.CONTEXT}}
 
   build:catalog:
     desc: "Build ds-agent-catalog image"
     cmds:
       - docker build --progress plain
           -t {{.REGISTRY}}/ds-agent-catalog:{{.VERSION}}
-          --build-arg APP_NAME=rainbow_catalog
-          -f {{.DOCKERFILE}} .
+          --build-arg APP_NAME=catalog_agent
+          -f {{.DOCKERFILE}} {{.CONTEXT}}
 
   build:contracts:
     desc: "Build ds-agent-contracts (negotiation) image"
     cmds:
       - docker build --progress plain
           -t {{.REGISTRY}}/ds-agent-contracts:{{.VERSION}}
-          --build-arg APP_NAME=rainbow_contracts
-          -f {{.DOCKERFILE}} .
-
-  build:transfer:
-    desc: "Build ds-agent-transfer image"
-    cmds:
-      - docker build --progress plain
-          -t {{.REGISTRY}}/ds-agent-transfer:{{.VERSION}}
-          --build-arg APP_NAME=rainbow_transfer
-          -f {{.DOCKERFILE}} .
+          --build-arg APP_NAME=negotiation_agent
+          -f {{.DOCKERFILE}} {{.CONTEXT}}
 
   build:transfer-agent:
     desc: "Build ds-agent-transfer-agent image"
     cmds:
       - docker build --progress plain
           -t {{.REGISTRY}}/ds-agent-transfer-agent:{{.VERSION}}
-          --build-arg APP_NAME=rainbow_transfer_agent
-          -f {{.DOCKERFILE}} .
+          --build-arg APP_NAME=transfer_agent
+          -f {{.DOCKERFILE}} {{.CONTEXT}}
+
+  build:dataplane:
+    desc: "Build ds-agent-dataplane image"
+    cmds:
+      - docker build --progress plain
+          -t {{.REGISTRY}}/ds-agent-dataplane:{{.VERSION}}
+          --build-arg APP_NAME=dataplane
+          -f {{.DOCKERFILE}} {{.CONTEXT}}
 
   build:auth:
     desc: "Build ds-agent-auth image"
     cmds:
       - docker build --progress plain
           -t {{.REGISTRY}}/ds-agent-auth:{{.VERSION}}
-          --build-arg APP_NAME=rainbow_auth
-          -f {{.DOCKERFILE}} .
+          --build-arg APP_NAME=auth
+          -f {{.DOCKERFILE}} {{.CONTEXT}}
 
-  build:fe-gateway:
-    desc: "Build ds-agent-fe-gateway image"
+  build:bff:
+    desc: "Build ds-agent-bff (frontend gateway) image"
     cmds:
       - docker build --progress plain
-          -t {{.REGISTRY}}/ds-agent-fe-gateway:{{.VERSION}}
-          --build-arg APP_NAME=rainbow_fe_gateway
-          -f {{.DOCKERFILE}} .
+          -t {{.REGISTRY}}/ds-agent-bff:{{.VERSION}}
+          --build-arg APP_NAME=bff
+          -f {{.DOCKERFILE}} {{.CONTEXT}}
 
-  build:business-gateway:
-    desc: "Build ds-agent-business-gateway image"
+  build:connector:
+    desc: "Build ds-agent-connector image"
     cmds:
       - docker build --progress plain
-          -t {{.REGISTRY}}/ds-agent-business-gateway:{{.VERSION}}
-          --build-arg APP_NAME=rainbow_business_gateway
-          -f {{.DOCKERFILE}} .
+          -t {{.REGISTRY}}/ds-agent-connector:{{.VERSION}}
+          --build-arg APP_NAME=connector
+          -f {{.DOCKERFILE}} {{.CONTEXT}}
 
   build:all:
     desc: "Build all images"
@@ -86,17 +84,17 @@ tasks:
       - task: build:core
       - task: build:catalog
       - task: build:contracts
-      - task: build:transfer
       - task: build:transfer-agent
+      - task: build:dataplane
       - task: build:auth
-      - task: build:fe-gateway
-      - task: build:business-gateway
+      - task: build:bff
+      - task: build:connector
 
   # ─── push ───────────────────────────────────────────────────────────────────
   push:core:
     desc: "Push ds-agent-core image"
     cmds:
-      - docker push {{.REGISTRY}}/rainbow:{{.VERSION}}
+      - docker push {{.REGISTRY}}/ds-agent-core:{{.VERSION}}
 
   push:catalog:
     desc: "Push ds-agent-catalog image"
@@ -108,30 +106,30 @@ tasks:
     cmds:
       - docker push {{.REGISTRY}}/ds-agent-contracts:{{.VERSION}}
 
-  push:transfer:
-    desc: "Push ds-agent-transfer image"
-    cmds:
-      - docker push {{.REGISTRY}}/ds-agent-transfer:{{.VERSION}}
-
   push:transfer-agent:
     desc: "Push ds-agent-transfer-agent image"
     cmds:
       - docker push {{.REGISTRY}}/ds-agent-transfer-agent:{{.VERSION}}
+
+  push:dataplane:
+    desc: "Push ds-agent-dataplane image"
+    cmds:
+      - docker push {{.REGISTRY}}/ds-agent-dataplane:{{.VERSION}}
 
   push:auth:
     desc: "Push ds-agent-auth image"
     cmds:
       - docker push {{.REGISTRY}}/ds-agent-auth:{{.VERSION}}
 
-  push:fe-gateway:
-    desc: "Push ds-agent-fe-gateway image"
+  push:bff:
+    desc: "Push ds-agent-bff image"
     cmds:
-      - docker push {{.REGISTRY}}/ds-agent-fe-gateway:{{.VERSION}}
+      - docker push {{.REGISTRY}}/ds-agent-bff:{{.VERSION}}
 
-  push:business-gateway:
-    desc: "Push ds-agent-business-gateway image"
+  push:connector:
+    desc: "Push ds-agent-connector image"
     cmds:
-      - docker push {{.REGISTRY}}/ds-agent-business-gateway:{{.VERSION}}
+      - docker push {{.REGISTRY}}/ds-agent-connector:{{.VERSION}}
 
   push:all:
     desc: "Push all images"
@@ -139,8 +137,8 @@ tasks:
       - task: push:core
       - task: push:catalog
       - task: push:contracts
-      - task: push:transfer
       - task: push:transfer-agent
+      - task: push:dataplane
       - task: push:auth
-      - task: push:fe-gateway
-      - task: push:business-gateway
+      - task: push:bff
+      - task: push:connector

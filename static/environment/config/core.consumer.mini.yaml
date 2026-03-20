@@ -74,7 +74,7 @@ ssi_auth:
       port: '7001'
     id: null
   client_config:
-    class_id: 'rainbow_consumer'
+    class_id: 'consumer'
     display: null
   vc_config:
     vc_model: JwtVc

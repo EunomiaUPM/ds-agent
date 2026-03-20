@@ -19,34 +19,31 @@
 
 use crate::core::subscription::subscription_err::SubscriptionErrors;
 use crate::core::subscription::subscription_types::{
-    RainbowEventsSubscriptionCreationRequest, RainbowEventsSubscriptionCreationResponse,
-    SubscriptionEntities,
+    EventsSubscriptionCreationRequest, EventsSubscriptionCreationResponse, SubscriptionEntities,
 };
-use crate::core::subscription::RainbowEventsSubscriptionTrait;
+use crate::core::subscription::EventsSubscriptionTrait;
 use crate::data::repo::{EditSubscription, EventsRepoFactory, NewSubscription};
 use async_trait::async_trait;
 use std::sync::Arc;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome, RepoIntoErrors};
 
-pub struct RainbowEventsSubscriptionService<T> {
+pub struct EventsSubscriptionService<T> {
     repo: Arc<T>,
 }
 
-impl<T> RainbowEventsSubscriptionService<T> {
+impl<T> EventsSubscriptionService<T> {
     pub fn new(repo: Arc<T>) -> Self {
         Self { repo }
     }
 }
 
 #[async_trait]
-impl<T> RainbowEventsSubscriptionTrait for RainbowEventsSubscriptionService<T>
+impl<T> EventsSubscriptionTrait for EventsSubscriptionService<T>
 where
     T: EventsRepoFactory + Send + Sync + 'static,
 {
-    async fn get_all_subscriptions(
-        &self,
-    ) -> Outcome<Vec<RainbowEventsSubscriptionCreationResponse>> {
+    async fn get_all_subscriptions(&self) -> Outcome<Vec<EventsSubscriptionCreationResponse>> {
         let subscriptions = self
             .repo
             .get_all_subscriptions()
@@ -54,7 +51,7 @@ where
             .map_err(|e| e.into_errors())?;
         let subscriptions = subscriptions
             .iter()
-            .map(|sub| RainbowEventsSubscriptionCreationResponse::try_from(sub.to_owned()).unwrap())
+            .map(|sub| EventsSubscriptionCreationResponse::try_from(sub.to_owned()).unwrap())
             .collect();
         Ok(subscriptions)
     }
@@ -62,7 +59,7 @@ where
     async fn get_subscription_by_id(
         &self,
         subscription_id: Urn,
-    ) -> Outcome<RainbowEventsSubscriptionCreationResponse> {
+    ) -> Outcome<EventsSubscriptionCreationResponse> {
         let subscription = self
             .repo
             .get_subscription_by_id(subscription_id.clone())
@@ -71,29 +68,29 @@ where
             .ok_or_else(|| {
                 Errors::missing_resource(subscription_id.as_str(), "Subscription not found", None)
             })?;
-        let subscription = RainbowEventsSubscriptionCreationResponse::try_from(subscription)?;
+        let subscription = EventsSubscriptionCreationResponse::try_from(subscription)?;
         Ok(subscription)
     }
 
     async fn get_subscription_by_callback_url(
         &self,
         callback_url: String,
-    ) -> Outcome<RainbowEventsSubscriptionCreationResponse> {
+    ) -> Outcome<EventsSubscriptionCreationResponse> {
         let subscription = self
             .repo
             .get_subscription_by_callback_string(callback_url)
             .await
             .map_err(|e| e.into_errors())?
             .ok_or_else(|| Errors::missing_resource("unknown", "Subscription not found", None))?;
-        let subscription = RainbowEventsSubscriptionCreationResponse::try_from(subscription)?;
+        let subscription = EventsSubscriptionCreationResponse::try_from(subscription)?;
         Ok(subscription)
     }
 
     async fn put_subscription_by_id(
         &self,
         subscription_id: Urn,
-        input: RainbowEventsSubscriptionCreationRequest,
-    ) -> Outcome<RainbowEventsSubscriptionCreationResponse> {
+        input: EventsSubscriptionCreationRequest,
+    ) -> Outcome<EventsSubscriptionCreationResponse> {
         let subscription = self
             .repo
             .put_subscription_by_id(
@@ -106,15 +103,15 @@ where
             )
             .await
             .map_err(|e| e.into_errors())?;
-        let subscription = RainbowEventsSubscriptionCreationResponse::try_from(subscription)?;
+        let subscription = EventsSubscriptionCreationResponse::try_from(subscription)?;
         Ok(subscription)
     }
 
     async fn create_subscription(
         &self,
-        input: RainbowEventsSubscriptionCreationRequest,
+        input: EventsSubscriptionCreationRequest,
         subscription_type: SubscriptionEntities,
-    ) -> Outcome<RainbowEventsSubscriptionCreationResponse> {
+    ) -> Outcome<EventsSubscriptionCreationResponse> {
         let subscription = self
             .repo
             .get_subscription_by_callback_string(input.callback_address.clone())
@@ -142,7 +139,7 @@ where
             })
             .await
             .map_err(|e| e.into_errors())?;
-        let subscription = RainbowEventsSubscriptionCreationResponse::try_from(subscription)?;
+        let subscription = EventsSubscriptionCreationResponse::try_from(subscription)?;
         Ok(subscription)
     }
 

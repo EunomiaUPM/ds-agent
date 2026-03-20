@@ -1,12 +1,12 @@
 ---
 title: "Development environment"
-description: "Rainbow environment for developers and testers"
+description: "Eunomia DS-Agent environment for developers and testers"
 ---
 
 
-## Rainbow Protocol: Local Development Deployment Guide
+## Eunomia DS-Agent Protocol: Local Development Deployment Guide
 
-This document outlines the architecture, prerequisites, and steps required to deploy the Rainbow Protocol development environment. The setup utilizes Docker Compose for infrastructure persistence (Databases, Vault, Redis) and local Rust execution for the application logic.
+This document outlines the architecture, prerequisites, and steps required to deploy the Eunomia DS-Agent Protocol development environment. The setup utilizes Docker Compose for infrastructure persistence (Databases, Vault, Redis) and local Rust execution for the application logic.
 
 ## 1. Architecture Overview
 
@@ -28,7 +28,7 @@ The environment is isolated into three distinct logical stacks to simulate a rea
 ### C. Infrastructure & Authority
 
 * **Identity Management:** Keycloak (Port `2000`).
-* **Authority Service:** Rainbow Authority node (Port `1500`).
+* **Authority Service:** Eunomia DS-Agent Authority node (Port `1500`).
 * **SSI Layer:** Walt.id Identity Suite (External Dependency).
 
 ---
@@ -40,8 +40,8 @@ Ensure the project files are organized as follows:
 ```text
 project-root/
 ├── waltid-identity/       # External SSI Dependency
-├── docker-compose.yml     # Rainbow Infrastructure
-├── rainbow-monolith/      # Rust Source Code
+├── docker-compose.yml     # Eunomia DS-Agent Infrastructure
+├── monolith/      # Rust Source Code
 ├── scripts/
 │   └── bash/
 │       └── dev.sh         # Application runner script
@@ -55,7 +55,7 @@ project-root/
 
 ## 3. External Dependencies (Walt.id)
 
-The entire authentication layer is based on the Self-Sovereign Identity (SSI) paradigm provided by **walt.id**. This stack must be deployed before starting the Rainbow services.
+The entire authentication layer is based on the Self-Sovereign Identity (SSI) paradigm provided by **walt.id**. This stack must be deployed before starting the Eunomia DS-Agent services.
 
 ### Step 1: Clone and Configure
 
@@ -99,13 +99,13 @@ docker compose up -d
 
 ---
 
-## 4. Rainbow Infrastructure Deployment
+## 4. Eunomia DS-Agent Infrastructure Deployment
 
-Once the walt.id stack is running, proceed with the main Rainbow infrastructure.
+Once the walt.id stack is running, proceed with the main Eunomia DS-Agent infrastructure.
 
 ### Step 1: Start Infrastructure
 
-Run the following command from the root directory where the Rainbow `docker-compose.yml` is located:
+Run the following command from the root directory where the Eunomia DS-Agent `docker-compose.yml` is located:
 
 ```bash
 docker compose up -d

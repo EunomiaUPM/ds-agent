@@ -1,4 +1,4 @@
-name: "rainbow-consumer"
+name: "eunomia-ds-agent-consumer"
 
 services:
   consumer-vault:

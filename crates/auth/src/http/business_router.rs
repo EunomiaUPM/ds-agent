@@ -21,7 +21,7 @@ use axum::extract::rejection::JsonRejection;
 use axum::extract::State;
 use axum::routing::post;
 use axum::{Json, Router};
-use common::auth::business::RainbowBusinessLoginRequest;
+use common::auth::business::BusinessLoginRequest;
 use ymir::errors::AppResult;
 use ymir::utils::extract_payload;
 
@@ -46,14 +46,14 @@ impl BusinessRouter {
 
     async fn login(
         State(business): State<Arc<dyn CoreBusinessTrait>>,
-        payload: Result<Json<RainbowBusinessLoginRequest>, JsonRejection>,
+        payload: Result<Json<BusinessLoginRequest>, JsonRejection>,
     ) -> AppResult<String> {
         let payload = extract_payload(payload)?;
         business.login(payload).await
     }
     async fn token(
         State(business): State<Arc<dyn CoreBusinessTrait>>,
-        payload: Result<Json<RainbowBusinessLoginRequest>, JsonRejection>,
+        payload: Result<Json<BusinessLoginRequest>, JsonRejection>,
     ) -> AppResult<Json<BusinessResponse>> {
         let payload = extract_payload(payload)?;
         Ok(Json(business.token(payload).await?))

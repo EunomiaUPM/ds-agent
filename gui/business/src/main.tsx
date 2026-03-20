@@ -28,7 +28,7 @@ const InnerApp = () => {
   return <RouterProvider router={router} />;
 };
 const apiGatewayBase = `${import.meta.env.GATEWAY_PROTOCOL}://${import.meta.env.GATEWAY_HOST}:${import.meta.env.GATEWAY_PORT}`;
-const catalogType = import.meta.env.CATALOG_AS_DATAHUB === "true" ? "datahub" : "rainbow";
+const catalogType = import.meta.env.CATALOG_AS_DATAHUB === "true" ? "datahub" : "agent";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <GlobalInfoContextProvider

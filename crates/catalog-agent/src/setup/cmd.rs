@@ -32,7 +32,7 @@ use ymir::services::vault::global::VaultService;
 use ymir::services::vault::vault_rs::RealVaultService;
 
 #[derive(Parser, Debug)]
-#[command(name = "Rainbow Dataspace Connector Catalog Agent")]
+#[command(name = "Eunomia Dataspace Catalog Agent")]
 #[command(version = "0.2")]
 struct CatalogCli {
     #[clap(subcommand)]

@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
-  title: Rainbow Auth Agent API
-  description: OpenAPI specification for the Rainbow Auth Agent, managing SSI interactions, detailed verifiable credential logic, and authorization flow.
+  title: Eunomia DS Auth Agent API
+  description: OpenAPI specification for the Eunomia DS Auth Agent, managing SSI interactions, detailed verifiable credential logic, and authorization flow.
   version: 1.0.0
 servers:
   - url: /v1/auth
@@ -35,7 +35,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/RainbowBusinessLoginRequest"
+              $ref: "#/components/schemas/BusinessLoginRequest"
       responses:
         "200":
           description: Login successful
@@ -58,7 +58,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/RainbowBusinessLoginRequest"
+              $ref: "#/components/schemas/BusinessLoginRequest"
       responses:
         "200":
           description: Token retrieved successfully
@@ -646,7 +646,7 @@ components:
       bearerFormat: JWT
 
   schemas:
-    RainbowBusinessLoginRequest:
+    BusinessLoginRequest:
       type: object
       properties:
         username:

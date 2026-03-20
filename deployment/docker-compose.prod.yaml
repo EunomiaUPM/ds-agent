@@ -1,4 +1,4 @@
-name: "rainbow-prod"
+name: "eunomia-ds-agent-prod"
 
 services:
   consumer_vault:
@@ -9,8 +9,8 @@ services:
     cap_add:
       - IPC_LOCK
     volumes:
-      - C:/Users/rodme/Uni/EUNOMIA/rainbow/vault/consumer/config:/vault/config
-      - C:/Users/rodme/Uni/EUNOMIA/rainbow/vault/consumer/data:/vault/file
+      - ../vault/consumer/config:/vault/config
+      - ../vault/consumer/data:/vault/file
     environment:
 #      VAULT_CACERT: /vault/config/root-ca.pem
 #      VAULT_LOCAL_CONFIG: >
@@ -67,8 +67,8 @@ services:
     cap_add:
       - IPC_LOCK
     volumes:
-      - C:/Users/rodme/Uni/EUNOMIA/rainbow/vault/provider/config:/vault/config
-      - C:/Users/rodme/Uni/EUNOMIA/rainbow/vault/provider/data:/vault/file
+      - ../vault/provider/config:/vault/config
+      - ../vault/provider/data:/vault/file
     environment:
 #      VAULT_CACERT: /vault/config/root-ca.pem
 #      VAULT_LOCAL_CONFIG: >

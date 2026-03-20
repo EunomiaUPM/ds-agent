@@ -1,4 +1,4 @@
-const SESSION_KEY = "rainbow_admin_session";
+const SESSION_KEY = "eunomia_admin_session";
 
 export const isSessionActive = (): boolean => {
   return localStorage.getItem(SESSION_KEY) === "true";

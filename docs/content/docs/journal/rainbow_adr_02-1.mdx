@@ -10,7 +10,7 @@ description: "ADR-02-1: Advanced Data Access Configuration, Polymorphic Drivers,
 
 ## Context and Problem Statement
 
-The current implementation of data service definitions within the Rainbow Agent is insufficiently expressive for complex production environments. At present, our system relies heavily on the basic DCAT `DataService` model, which is primarily designed for static metadata cataloging rather than operational provisioning. The existing model effectively supports simple "Pull" mechanisms via static URLs but lacks the depth required to model sophisticated authentication flows (such as OAuth2 negotiation), complex authorization schemas, or "Push" topologies (Pub/Sub architectures like Kafka or Webhooks).
+The current implementation of data service definitions within the Eunomia DS-Agent is insufficiently expressive for complex production environments. At present, our system relies heavily on the basic DCAT `DataService` model, which is primarily designed for static metadata cataloging rather than operational provisioning. The existing model effectively supports simple "Pull" mechanisms via static URLs but lacks the depth required to model sophisticated authentication flows (such as OAuth2 negotiation), complex authorization schemas, or "Push" topologies (Pub/Sub architectures like Kafka or Webhooks).
 
 Furthermore, the current architecture exposes connection details (URLs, potential credentials) in public Data Transfer Objects (DTOs), which presents a security risk. There is no clear separation between the *definition* of how to access data and the *instance* of that access with specific credentials. We lack a state machine capable of managing the lifecycle of a connection—authenticating, subscribing, maintaining a heartbeat, and unsubscribing.
 
@@ -96,7 +96,7 @@ The implementation will follow a Hexagonal (Ports and Adapters) architecture to 
 2. **Database Migration:** Execute the SeaORM migrations to create the three core tables. Verify JSONB constraints.
 3. **Vault Integration:** Implement the `SecretVaultTrait` with a specific adapter for Hashicorp Vault (using the official Rust client or HTTP REST). Create a `MockVault` for local testing.
 4. **Manager Logic:** Implement the `ConnectorManager` service. This service orchestrates the flow: Template Lookup  Validation  Secret Offloading  Persistence.
-5. **API Exposure:** Create the secured endpoints for creating instances and listing templates. Integrate with the existing `rainbow-authority` system for request authentication.
+5. **API Exposure:** Create the secured endpoints for creating instances and listing templates. Integrate with the existing `authority` system for request authentication.
 
 ## Consequences
 

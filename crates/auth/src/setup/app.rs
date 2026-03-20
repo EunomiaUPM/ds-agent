@@ -143,7 +143,7 @@ impl AuthApplication {
 
         let port = config.common().hosts().get_internal_port(HostType::Http);
         let addr = format!("0.0.0.0:{}", port);
-        info!("Starting Rainbow Auth server in {}", addr);
+        info!("Starting Eunomia DS-Agent Auth server in {}", addr);
 
         let listener = TcpListener::bind(addr)
             .await
@@ -178,7 +178,7 @@ impl AuthApplication {
         let addr: SocketAddr = addr_str
             .parse()
             .map_err(|e| Errors::crazy("Errors with socker address", Some(Box::new(e))))?;
-        info!("Starting Rainbow Auth server with TLS in {}", addr);
+        info!("Starting Eunomia DS-Agent Auth server with TLS in {}", addr);
 
         axum_server::bind_rustls(addr, tls_config)
             .serve(router.into_make_service())

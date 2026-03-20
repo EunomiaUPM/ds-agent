@@ -18,7 +18,7 @@
  */
 
 use crate::setup::boot::GatewayBoot;
-use crate::subscriptions::subscriptions::RainbowProviderGatewaySubscriptions;
+use crate::subscriptions::subscriptions::GatewaySubscriptions;
 use crate::subscriptions::MicroserviceSubscriptionKey;
 use clap::{Parser, Subcommand};
 use common::boot::BootstrapServiceTrait;
@@ -38,7 +38,7 @@ use ymir::services::vault::global::VaultService;
 use ymir::services::vault::vault_rs::RealVaultService;
 
 #[derive(Parser, Debug)]
-#[command(name = "Rainbow Dataspace Connector Gateway Server")]
+#[command(name = "Eunomia Dataspace Connector Gateway Server")]
 #[command(version = "0.2")]
 struct GatewayCli {
     #[command(subcommand)]
@@ -79,7 +79,7 @@ impl GatewayCommands {
             }
             GatewayCliCommands::Subscribe(args) => {
                 let config = GatewayConfig::load(&*args.env_file)?;
-                let microservices_subs = RainbowProviderGatewaySubscriptions::new(config.clone());
+                let microservices_subs = GatewaySubscriptions::new(config.clone());
                 microservices_subs
                     .subscribe_to_microservice(MicroserviceSubscriptionKey::Catalog)
                     .await?;

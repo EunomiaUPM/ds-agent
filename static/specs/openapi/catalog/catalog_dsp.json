@@ -1,8 +1,8 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "Rainbow Catalog Agent API - DSP Protocol",
-    "description": "OpenAPI specification for the Rainbow Catalog Agent DSP Protocol and RPC endpoints.",
+    "title": "Eunomia DS-Agent Catalog Agent API - DSP Protocol",
+    "description": "OpenAPI specification for the Eunomia DS-Agent Catalog Agent DSP Protocol and RPC endpoints.",
     "version": "1.0.0"
   },
   "servers": [

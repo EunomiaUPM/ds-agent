@@ -18,8 +18,7 @@
  */
 
 use crate::core::subscription::subscription_types::{
-    RainbowEventsSubscriptionCreationRequest, RainbowEventsSubscriptionCreationResponse,
-    SubscriptionEntities,
+    EventsSubscriptionCreationRequest, EventsSubscriptionCreationResponse, SubscriptionEntities,
 };
 use async_trait::async_trait;
 use urn::Urn;
@@ -31,27 +30,25 @@ pub mod subscription_types;
 
 #[mockall::automock]
 #[async_trait]
-pub trait RainbowEventsSubscriptionTrait: Send + Sync {
-    async fn get_all_subscriptions(
-        &self,
-    ) -> Outcome<Vec<RainbowEventsSubscriptionCreationResponse>>;
+pub trait EventsSubscriptionTrait: Send + Sync {
+    async fn get_all_subscriptions(&self) -> Outcome<Vec<EventsSubscriptionCreationResponse>>;
     async fn get_subscription_by_id(
         &self,
         subscription_id: Urn,
-    ) -> Outcome<RainbowEventsSubscriptionCreationResponse>;
+    ) -> Outcome<EventsSubscriptionCreationResponse>;
     async fn get_subscription_by_callback_url(
         &self,
         callback_url: String,
-    ) -> Outcome<RainbowEventsSubscriptionCreationResponse>;
+    ) -> Outcome<EventsSubscriptionCreationResponse>;
     async fn put_subscription_by_id(
         &self,
         subscription_id: Urn,
-        input: RainbowEventsSubscriptionCreationRequest,
-    ) -> Outcome<RainbowEventsSubscriptionCreationResponse>;
+        input: EventsSubscriptionCreationRequest,
+    ) -> Outcome<EventsSubscriptionCreationResponse>;
     async fn create_subscription(
         &self,
-        input: RainbowEventsSubscriptionCreationRequest,
+        input: EventsSubscriptionCreationRequest,
         subscription_type: SubscriptionEntities,
-    ) -> Outcome<RainbowEventsSubscriptionCreationResponse>;
+    ) -> Outcome<EventsSubscriptionCreationResponse>;
     async fn delete_subscription_by_id(&self, subscription_id: Urn) -> Outcome<()>;
 }

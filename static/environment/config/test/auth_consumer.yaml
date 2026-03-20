@@ -21,7 +21,7 @@ common_config: &common_config
     port: "1300"
   api:
     version: *api_version
-    openapi_path: "C:/Users/rodme/Uni/EUNOMIA/rainbow/static/specs/openapi/auth/auth_consumer.json"
+    openapi_path: "static/specs/openapi/auth/auth_consumer.json"
   connection:
     is_local: true
     is_tls_enabled: false
@@ -35,7 +35,7 @@ ssi_auth:
       port: '7001'
     id: null
   client_config:
-    class_id: 'rainbow_consumer'
+    class_id: 'consumer'
     display: null
   vc_config:
     vc_model: JwtVc

@@ -25,16 +25,16 @@ use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 
 #[derive(PartialEq)]
-pub enum RainbowEventsSubscriptionCreationTypes {
-    TransferProcess(RainbowEventsSubscriptionCreationRequestForTransferProcess),
-    Catalog(RainbowEventsSubscriptionCreationRequestForCatalog),
-    ContractNegotiation(RainbowEventsSubscriptionCreationRequestForContractNegotiation),
-    DataPlane(RainbowEventsSubscriptionCreationRequestForDataPlane),
+pub enum EventsSubscriptionCreationTypes {
+    TransferProcess(EventsSubscriptionCreationRequestForTransferProcess),
+    Catalog(EventsSubscriptionCreationRequestForCatalog),
+    ContractNegotiation(EventsSubscriptionCreationRequestForContractNegotiation),
+    DataPlane(EventsSubscriptionCreationRequestForDataPlane),
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
-pub struct RainbowEventsSubscriptionCreationRequest {
+pub struct EventsSubscriptionCreationRequest {
     #[serde(rename = "callbackAddress")]
     pub callback_address: String,
     #[serde(rename = "expirationTime")]
@@ -44,7 +44,7 @@ pub struct RainbowEventsSubscriptionCreationRequest {
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
-pub struct RainbowEventsSubscriptionCreationRequestForTransferProcess {
+pub struct EventsSubscriptionCreationRequestForTransferProcess {
     #[serde(rename = "callbackAddress")]
     pub callback_address: String,
     #[serde(rename = "expirationTime")]
@@ -52,7 +52,7 @@ pub struct RainbowEventsSubscriptionCreationRequestForTransferProcess {
     pub expiration_time: Option<chrono::NaiveDateTime>,
 }
 
-impl Into<NewSubscription> for RainbowEventsSubscriptionCreationRequestForTransferProcess {
+impl Into<NewSubscription> for EventsSubscriptionCreationRequestForTransferProcess {
     fn into(self) -> NewSubscription {
         NewSubscription {
             callback_address: self.callback_address,
@@ -68,7 +68,7 @@ impl Into<NewSubscription> for RainbowEventsSubscriptionCreationRequestForTransf
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
-pub struct RainbowEventsSubscriptionCreationRequestForCatalog {
+pub struct EventsSubscriptionCreationRequestForCatalog {
     #[serde(rename = "callbackAddress")]
     pub callback_address: String,
     #[serde(rename = "expirationTime")]
@@ -76,7 +76,7 @@ pub struct RainbowEventsSubscriptionCreationRequestForCatalog {
     pub expiration_time: Option<chrono::NaiveDateTime>,
 }
 
-impl Into<NewSubscription> for RainbowEventsSubscriptionCreationRequestForCatalog {
+impl Into<NewSubscription> for EventsSubscriptionCreationRequestForCatalog {
     fn into(self) -> NewSubscription {
         NewSubscription {
             callback_address: self.callback_address,
@@ -92,7 +92,7 @@ impl Into<NewSubscription> for RainbowEventsSubscriptionCreationRequestForCatalo
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
-pub struct RainbowEventsSubscriptionCreationRequestForContractNegotiation {
+pub struct EventsSubscriptionCreationRequestForContractNegotiation {
     #[serde(rename = "callbackAddress")]
     pub callback_address: String,
     #[serde(rename = "expirationTime")]
@@ -100,7 +100,7 @@ pub struct RainbowEventsSubscriptionCreationRequestForContractNegotiation {
     pub expiration_time: Option<chrono::NaiveDateTime>,
 }
 
-impl Into<NewSubscription> for RainbowEventsSubscriptionCreationRequestForContractNegotiation {
+impl Into<NewSubscription> for EventsSubscriptionCreationRequestForContractNegotiation {
     fn into(self) -> NewSubscription {
         NewSubscription {
             callback_address: self.callback_address,
@@ -116,7 +116,7 @@ impl Into<NewSubscription> for RainbowEventsSubscriptionCreationRequestForContra
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
-pub struct RainbowEventsSubscriptionCreationRequestForDataPlane {
+pub struct EventsSubscriptionCreationRequestForDataPlane {
     #[serde(rename = "callbackAddress")]
     pub callback_address: String,
     #[serde(rename = "expirationTime")]
@@ -124,7 +124,7 @@ pub struct RainbowEventsSubscriptionCreationRequestForDataPlane {
     pub expiration_time: Option<chrono::NaiveDateTime>,
 }
 
-impl Into<NewSubscription> for RainbowEventsSubscriptionCreationRequestForDataPlane {
+impl Into<NewSubscription> for EventsSubscriptionCreationRequestForDataPlane {
     fn into(self) -> NewSubscription {
         NewSubscription {
             callback_address: self.callback_address,
@@ -151,7 +151,7 @@ pub enum SubscriptionEntities {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct RainbowEventsSubscriptionCreationResponse {
+pub struct EventsSubscriptionCreationResponse {
     #[serde(rename = "subscriptionId")]
     pub subscription_id: Urn,
     #[serde(rename = "callbackAddress")]
@@ -166,7 +166,7 @@ pub struct RainbowEventsSubscriptionCreationResponse {
     pub active: bool,
 }
 
-impl TryFrom<subscription::Model> for RainbowEventsSubscriptionCreationResponse {
+impl TryFrom<subscription::Model> for EventsSubscriptionCreationResponse {
     type Error = Errors;
 
     fn try_from(value: subscription::Model) -> Outcome<Self> {

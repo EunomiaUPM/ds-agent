@@ -34,7 +34,7 @@ use super::app::AuthApplication;
 use crate::setup::migrations::AuthMigrator;
 
 #[derive(Parser, Debug)]
-#[command(name = "Rainbow Dataspace Aut Server")]
+#[command(name = "Eunomia Dataspace Auth Server")]
 #[command(version = "0.1")]
 struct AuthCli {
     #[command(subcommand)]

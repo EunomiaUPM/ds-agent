@@ -18,7 +18,7 @@
  */
 
 use crate::core::notification::notification_err::NotificationErrors;
-use crate::core::notification::RainbowEventsNotificationTrait;
+use crate::core::notification::EventsNotificationTrait;
 use crate::core::subscription::subscription_types::SubscriptionEntities;
 use axum::extract::{Path, State};
 use axum::response::IntoResponse;
@@ -29,13 +29,13 @@ use log::info;
 use reqwest::StatusCode;
 use std::sync::Arc;
 
-pub struct RainbowEventsNotificationRouter<T> {
+pub struct EventsNotificationRouter<T> {
     service: Arc<T>,
     entity_type: Option<SubscriptionEntities>,
 }
-impl<T> RainbowEventsNotificationRouter<T>
+impl<T> EventsNotificationRouter<T>
 where
-    T: RainbowEventsNotificationTrait + Send + Sync + 'static,
+    T: EventsNotificationTrait + Send + Sync + 'static,
 {
     pub fn new(service: Arc<T>, entity_type: Option<SubscriptionEntities>) -> Self {
         Self {

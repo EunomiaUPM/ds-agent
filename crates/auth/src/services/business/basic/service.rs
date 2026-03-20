@@ -16,7 +16,7 @@
  */
 
 use chrono::Utc;
-use common::auth::business::RainbowBusinessLoginRequest;
+use common::auth::business::BusinessLoginRequest;
 use rand::distr::Alphanumeric;
 use rand::RngExt;
 use uuid::Uuid;
@@ -43,7 +43,7 @@ impl BasicBusinessService {
 impl BusinessTrait for BasicBusinessService {
     fn start(
         &self,
-        payload: &RainbowBusinessLoginRequest,
+        payload: &BusinessLoginRequest,
     ) -> (recv_request::NewModel, recv_verification::Model) {
         let id = Uuid::new_v4().to_string();
         let nonce: String = rand::rng()

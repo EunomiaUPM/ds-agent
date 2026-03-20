@@ -18,8 +18,8 @@
  */
 
 use crate::core::notification::notification_types::{
-    RainbowEventsNotificationBroadcastRequest, RainbowEventsNotificationCreationRequest,
-    RainbowEventsNotificationResponse,
+    EventsNotificationBroadcastRequest, EventsNotificationCreationRequest,
+    EventsNotificationResponse,
 };
 use async_trait::async_trait;
 use urn::Urn;
@@ -31,35 +31,35 @@ pub mod notification_types;
 
 #[mockall::automock]
 #[async_trait]
-pub trait RainbowEventsNotificationTrait: Send + Sync {
-    async fn get_all_notifications(&self) -> Outcome<Vec<RainbowEventsNotificationResponse>>;
+pub trait EventsNotificationTrait: Send + Sync {
+    async fn get_all_notifications(&self) -> Outcome<Vec<EventsNotificationResponse>>;
     async fn get_notifications_by_subscription_id(
         &self,
         subscription_id: Urn,
-    ) -> Outcome<Vec<RainbowEventsNotificationResponse>>;
+    ) -> Outcome<Vec<EventsNotificationResponse>>;
     async fn get_pending_notifications_by_subscription_id(
         &self,
         subscription_id: Urn,
-    ) -> Outcome<Vec<RainbowEventsNotificationResponse>>;
+    ) -> Outcome<Vec<EventsNotificationResponse>>;
 
     async fn ack_pending_notifications_by_subscription_id(
         &self,
         subscription_id: Urn,
-    ) -> Outcome<Vec<RainbowEventsNotificationResponse>>;
+    ) -> Outcome<Vec<EventsNotificationResponse>>;
 
     async fn get_notification_by_id(
         &self,
         subscription_id: Urn,
         notification_id: Urn,
-    ) -> Outcome<RainbowEventsNotificationResponse>;
+    ) -> Outcome<EventsNotificationResponse>;
     async fn create_notification(
         &self,
         subscription_id: Urn,
-        input: RainbowEventsNotificationCreationRequest,
-    ) -> Outcome<RainbowEventsNotificationResponse>;
+        input: EventsNotificationCreationRequest,
+    ) -> Outcome<EventsNotificationResponse>;
 
     async fn broadcast_notification(
         &self,
-        input: RainbowEventsNotificationBroadcastRequest,
+        input: EventsNotificationBroadcastRequest,
     ) -> Outcome<()>;
 }

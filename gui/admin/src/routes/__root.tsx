@@ -56,8 +56,8 @@ function RootComponent() {
   );
 }
 
-const VALID_USER = "rainbow";
-const VALID_PASSWORD = "rainbow";
+const VALID_USER = "eunomia";
+const VALID_PASSWORD = "eunomia";
 
 function LoginForm({ onSuccess }: { onSuccess: () => void }) {
   const navigate = useNavigate();
@@ -91,7 +91,7 @@ function LoginForm({ onSuccess }: { onSuccess: () => void }) {
       <div className="flex flex-1 flex-col items-center justify-center bg-background px-8">
         <div className="w-full max-w-sm flex flex-col gap-6">
           <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-semibold tracking-tight">Rainbow Admin</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Eunomia DS-Agent Admin</h1>
             <p className="text-sm text-muted-foreground">Sign in to continue</p>
           </div>
 
@@ -106,7 +106,7 @@ function LoginForm({ onSuccess }: { onSuccess: () => void }) {
                 autoComplete="username"
                 value={username}
                 onChange={(e) => { setUsername(e.target.value); setError(null); }}
-                placeholder="rainbow"
+                placeholder="agent"
               />
             </div>
 

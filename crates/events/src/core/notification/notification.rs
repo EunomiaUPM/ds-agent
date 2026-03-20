@@ -18,10 +18,10 @@
  */
 
 use crate::core::notification::notification_types::{
-    RainbowEventsNotificationBroadcastRequest, RainbowEventsNotificationCreationRequest,
-    RainbowEventsNotificationResponse,
+    EventsNotificationBroadcastRequest, EventsNotificationCreationRequest,
+    EventsNotificationResponse,
 };
-use crate::core::notification::RainbowEventsNotificationTrait;
+use crate::core::notification::EventsNotificationTrait;
 use crate::data::repo::{EventsRepoFactory, NewNotification};
 use async_trait::async_trait;
 use common::utils::{get_urn, get_urn_from_string};
@@ -31,11 +31,11 @@ use std::time::Duration;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome, RepoIntoErrors};
 
-pub struct RainbowEventsNotificationsService<T> {
+pub struct EventsNotificationsService<T> {
     repo: Arc<T>,
     client: Client,
 }
-impl<T> RainbowEventsNotificationsService<T>
+impl<T> EventsNotificationsService<T>
 where
     T: EventsRepoFactory + Sync + Send + 'static,
 {
@@ -49,11 +49,11 @@ where
 }
 
 #[async_trait]
-impl<T> RainbowEventsNotificationTrait for RainbowEventsNotificationsService<T>
+impl<T> EventsNotificationTrait for EventsNotificationsService<T>
 where
     T: EventsRepoFactory + Sync + Send + 'static,
 {
-    async fn get_all_notifications(&self) -> Outcome<Vec<RainbowEventsNotificationResponse>> {
+    async fn get_all_notifications(&self) -> Outcome<Vec<EventsNotificationResponse>> {
         let notifications = self
             .repo
             .get_all_notifications()
@@ -61,7 +61,7 @@ where
             .map_err(|e| e.into_errors())?;
         let notifications = notifications
             .iter()
-            .map(|sub| RainbowEventsNotificationResponse::try_from(sub.to_owned()).unwrap())
+            .map(|sub| EventsNotificationResponse::try_from(sub.to_owned()).unwrap())
             .collect();
         Ok(notifications)
     }
@@ -69,7 +69,7 @@ where
     async fn get_notifications_by_subscription_id(
         &self,
         subscription_id: Urn,
-    ) -> Outcome<Vec<RainbowEventsNotificationResponse>> {
+    ) -> Outcome<Vec<EventsNotificationResponse>> {
         let notifications = self
             .repo
             .get_notifications_by_subscription_id(subscription_id)
@@ -77,7 +77,7 @@ where
             .map_err(|e| e.into_errors())?;
         let notifications = notifications
             .iter()
-            .map(|sub| RainbowEventsNotificationResponse::try_from(sub.to_owned()).unwrap())
+            .map(|sub| EventsNotificationResponse::try_from(sub.to_owned()).unwrap())
             .collect();
         Ok(notifications)
     }
@@ -85,7 +85,7 @@ where
     async fn get_pending_notifications_by_subscription_id(
         &self,
         subscription_id: Urn,
-    ) -> Outcome<Vec<RainbowEventsNotificationResponse>> {
+    ) -> Outcome<Vec<EventsNotificationResponse>> {
         let notifications = self
             .repo
             .get_pending_notifications_by_subscription_id(subscription_id)
@@ -93,7 +93,7 @@ where
             .map_err(|e| e.into_errors())?;
         let notifications = notifications
             .iter()
-            .map(|sub| RainbowEventsNotificationResponse::try_from(sub.to_owned()).unwrap())
+            .map(|sub| EventsNotificationResponse::try_from(sub.to_owned()).unwrap())
             .collect();
         Ok(notifications)
     }
@@ -101,7 +101,7 @@ where
     async fn ack_pending_notifications_by_subscription_id(
         &self,
         subscription_id: Urn,
-    ) -> Outcome<Vec<RainbowEventsNotificationResponse>> {
+    ) -> Outcome<Vec<EventsNotificationResponse>> {
         let notifications = self
             .repo
             .ack_pending_notifications_by_subscription_id(subscription_id)
@@ -109,7 +109,7 @@ where
             .map_err(|e| e.into_errors())?;
         let notifications = notifications
             .iter()
-            .map(|sub| RainbowEventsNotificationResponse::try_from(sub.to_owned()).unwrap())
+            .map(|sub| EventsNotificationResponse::try_from(sub.to_owned()).unwrap())
             .collect();
         Ok(notifications)
     }
@@ -118,7 +118,7 @@ where
         &self,
         subscription_id: Urn,
         notification_id: Urn,
-    ) -> Outcome<RainbowEventsNotificationResponse> {
+    ) -> Outcome<EventsNotificationResponse> {
         let notifications = self
             .repo
             .get_notification_by_id(subscription_id.clone(), notification_id.clone())
@@ -127,15 +127,15 @@ where
             .ok_or_else(|| {
                 Errors::missing_resource(subscription_id.as_str(), "Notification not found", None)
             })?;
-        let notifications = RainbowEventsNotificationResponse::try_from(notifications)?;
+        let notifications = EventsNotificationResponse::try_from(notifications)?;
         Ok(notifications)
     }
 
     async fn create_notification(
         &self,
         subscription_id: Urn,
-        input: RainbowEventsNotificationCreationRequest,
-    ) -> Outcome<RainbowEventsNotificationResponse> {
+        input: EventsNotificationCreationRequest,
+    ) -> Outcome<EventsNotificationResponse> {
         let notification = self
             .repo
             .create_notification(
@@ -152,13 +152,13 @@ where
             .await
             .map_err(|e| e.into_errors())?;
 
-        let notifications = RainbowEventsNotificationResponse::try_from(notification)?;
+        let notifications = EventsNotificationResponse::try_from(notification)?;
         Ok(notifications)
     }
 
     async fn broadcast_notification(
         &self,
-        input: RainbowEventsNotificationBroadcastRequest,
+        input: EventsNotificationBroadcastRequest,
     ) -> Outcome<()> {
         let subscriptions = self
             .repo
@@ -167,7 +167,7 @@ where
             .map_err(|e| e.into_errors())?;
         for subscription in subscriptions {
             let callback = subscription.callback_address;
-            let message = RainbowEventsNotificationResponse {
+            let message = EventsNotificationResponse {
                 id: get_urn(None),
                 timestamp: subscription.created_at,
                 category: input.category.to_string(),

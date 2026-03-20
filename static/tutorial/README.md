@@ -1,6 +1,6 @@
-# Rainbow Negotiation Agent Tutorial
+# Eunomia DS Negotiation Agent Tutorial
 
-This folder contains Python notebooks demonstrating how to interact with the Rainbow Negotiation Agent and Transfer Agent.
+This folder contains Python notebooks demonstrating how to interact with the Eunomia DS- Negotiation Agent and Transfer Agent.
 
 ## Prerequisites
 

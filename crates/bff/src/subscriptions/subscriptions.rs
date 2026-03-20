@@ -29,12 +29,12 @@ use ymir::config::traits::HostsConfigTrait;
 use ymir::config::types::HostType;
 use ymir::errors::{Errors, Outcome};
 
-pub struct RainbowProviderGatewaySubscriptions {
+pub struct GatewaySubscriptions {
     config: GatewayConfig,
     client: Client,
 }
 
-impl RainbowProviderGatewaySubscriptions {
+impl GatewaySubscriptions {
     pub fn new(config: GatewayConfig) -> Self {
         let client = Client::builder()
             .timeout(Duration::from_secs(10))

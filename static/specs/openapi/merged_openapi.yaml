@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
-  title: Rainbow Dataspace Protocol API (Merged)
-  description: Consolidated OpenAPI specification for all Rainbow Agents and Protocols.
+  title: Eunomia DS Dataspace Protocol API (Merged)
+  description: Consolidated OpenAPI specification for all Eunomia DS Agents and Protocols.
   version: 1.0.0
 servers:
 - url: /v1/auth
@@ -92,7 +92,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RainbowBusinessLoginRequest'
+              $ref: '#/components/schemas/BusinessLoginRequest'
       responses:
         '200':
           description: Login successful
@@ -114,7 +114,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RainbowBusinessLoginRequest'
+              $ref: '#/components/schemas/BusinessLoginRequest'
       responses:
         '200':
           description: Token retrieved successfully
@@ -4106,7 +4106,7 @@ paths:
           $ref: '#/components/responses/InternalServerError'
 components:
   schemas:
-    RainbowBusinessLoginRequest:
+    BusinessLoginRequest:
       type: object
       properties:
         username:

@@ -18,7 +18,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use common::auth::business::RainbowBusinessLoginRequest;
+use common::auth::business::BusinessLoginRequest;
 use ymir::errors::Outcome;
 use ymir::services::verifier::VerifierTrait;
 
@@ -31,7 +31,7 @@ pub trait CoreBusinessTrait: Send + Sync + 'static {
     fn business(&self) -> Arc<dyn BusinessTrait>;
     fn repo(&self) -> Arc<dyn AuthRepoTrait>;
     fn verifier(&self) -> Arc<dyn VerifierTrait>;
-    async fn login(&self, payload: RainbowBusinessLoginRequest) -> Outcome<String> {
+    async fn login(&self, payload: BusinessLoginRequest) -> Outcome<String> {
         let (req_model, ver_model) = self.business().start(&payload);
         self.repo().request_rcv().create(req_model).await?;
         let ver_model = self
@@ -42,7 +42,7 @@ pub trait CoreBusinessTrait: Send + Sync + 'static {
         let uri = self.verifier().generate_verification_uri(&ver_model);
         Ok(uri)
     }
-    async fn token(&self, payload: RainbowBusinessLoginRequest) -> Outcome<BusinessResponse> {
+    async fn token(&self, payload: BusinessLoginRequest) -> Outcome<BusinessResponse> {
         let bus_model = self
             .repo()
             .business_mates()

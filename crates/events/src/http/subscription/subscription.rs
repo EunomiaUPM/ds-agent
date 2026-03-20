@@ -19,9 +19,9 @@
 
 use crate::core::subscription::subscription_err::SubscriptionErrors;
 use crate::core::subscription::subscription_types::{
-    RainbowEventsSubscriptionCreationRequest, SubscriptionEntities,
+    EventsSubscriptionCreationRequest, SubscriptionEntities,
 };
-use crate::core::subscription::RainbowEventsSubscriptionTrait;
+use crate::core::subscription::EventsSubscriptionTrait;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{Path, Query, State};
 use axum::response::IntoResponse;
@@ -33,9 +33,9 @@ use serde::Deserialize;
 use std::sync::Arc;
 use tracing::info;
 
-pub struct RainbowEventsSubscriptionRouter<T>
+pub struct EventsSubscriptionRouter<T>
 where
-    T: RainbowEventsSubscriptionTrait + Send + Sync,
+    T: EventsSubscriptionTrait + Send + Sync,
 {
     service: Arc<T>,
     entity_type: Option<SubscriptionEntities>,
@@ -46,9 +46,9 @@ struct SubscriptionQueryParams {
     callback_address: Option<String>,
 }
 
-impl<T> RainbowEventsSubscriptionRouter<T>
+impl<T> EventsSubscriptionRouter<T>
 where
-    T: RainbowEventsSubscriptionTrait + Send + Sync + 'static,
+    T: EventsSubscriptionTrait + Send + Sync + 'static,
 {
     pub fn new(service: Arc<T>, entity_type: Option<SubscriptionEntities>) -> Self {
         Self {
@@ -132,7 +132,7 @@ where
     async fn handle_put_subscription_by_id(
         State((service, entity)): State<(Arc<T>, Option<SubscriptionEntities>)>,
         Path(id): Path<String>,
-        input: Result<Json<RainbowEventsSubscriptionCreationRequest>, JsonRejection>,
+        input: Result<Json<EventsSubscriptionCreationRequest>, JsonRejection>,
     ) -> impl IntoResponse {
         info!(
             "PUT {}/subscriptions/{}",
@@ -154,7 +154,7 @@ where
     }
     async fn handle_post_subscription_by_id(
         State((service, entity)): State<(Arc<T>, Option<SubscriptionEntities>)>,
-        input: Result<Json<RainbowEventsSubscriptionCreationRequest>, JsonRejection>,
+        input: Result<Json<EventsSubscriptionCreationRequest>, JsonRejection>,
     ) -> impl IntoResponse {
         info!(
             "POST {}/subscriptions",

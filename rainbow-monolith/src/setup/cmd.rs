@@ -21,7 +21,7 @@ use std::cmp::PartialEq;
 use std::sync::Arc;
 
 use clap::{Parser, Subcommand};
-use rainbow_auth::ssi::setup::cmd::AuthCliArgs;
+use rainbow_auth::setup::cmd::AuthCliArgs;
 use rainbow_common::boot::{BootstrapInit, BootstrapStepTrait};
 use rainbow_common::config::services::SsiAuthConfig;
 use rainbow_common::config::types::traits::CommonConfigTrait;

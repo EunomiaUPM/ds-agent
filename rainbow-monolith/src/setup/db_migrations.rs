@@ -17,7 +17,7 @@
  *
  */
 
-use rainbow_auth::ssi::data::migrator::get_auth_migrations;
+use rainbow_auth::data::migrator::get_auth_migrations;
 use rainbow_catalog_agent::get_catalog_migrations;
 use rainbow_connector::get_connector_migrations;
 use rainbow_dataplane::get_dataplane_migrations;

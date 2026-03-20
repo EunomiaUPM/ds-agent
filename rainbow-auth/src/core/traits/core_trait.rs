@@ -15,11 +15,31 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod core;
-pub mod data;
-pub mod http;
-pub mod services;
-pub mod setup;
-pub mod types;
-pub mod utils;
+use std::sync::Arc;
 
+use rainbow_common::config::services::SsiAuthConfig;
+use ymir::core_traits::CoreWalletTrait;
+
+use crate::core::traits::{
+    CoreBusinessTrait, CoreGaiaSelfIssuerTrait, CoreGateKeeperTrait, CoreMateTrait,
+    CoreOnboarderTrait, CoreVcRequesterTrait, CoreVerifierTrait
+};
+
+pub trait AuthCoreTrait:
+    CoreOnboarderTrait
+    + CoreWalletTrait
+    + CoreVcRequesterTrait
+    + CoreMateTrait
+    + CoreGaiaSelfIssuerTrait
+    + CoreVerifierTrait
+    + CoreBusinessTrait
+    + CoreVcRequesterTrait
+    + CoreGateKeeperTrait
+    + Send
+    + Sync
+    + 'static
+{
+    fn is_gaia_active(&self) -> bool;
+    fn is_wallet_active(&self) -> bool;
+    fn config(&self) -> Arc<SsiAuthConfig>;
+}

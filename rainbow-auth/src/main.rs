@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use rainbow_auth::ssi::setup::cmd::AuthCommands;
+use rainbow_auth::setup::cmd::AuthCommands;
 use tracing::info;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;

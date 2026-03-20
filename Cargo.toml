@@ -9,14 +9,13 @@ members = [
     "rainbow-fe-gateway",
     "rainbow-catalog-agent",
     "rainbow-negotiation-agent",
-    #"rainbow-transfer-agent",
+    "rainbow-transfer-agent",
     "rainbow-connector",
 ]
 exclude = [
     "static",
     "gui",
     "deployment",
-    "rainbow-transfer-agent"
 ]
 resolver = "2"
 

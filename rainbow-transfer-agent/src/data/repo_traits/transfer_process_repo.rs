@@ -19,7 +19,6 @@
 
 use crate::data::entities::transfer_process;
 use crate::data::entities::transfer_process::{EditTransferProcessModel, NewTransferProcessModel};
-use anyhow::Error;
 use thiserror::Error;
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
@@ -66,13 +65,13 @@ pub enum TransferProcessRepoErrors {
     #[error("Transfer Process not found")]
     TransferProcessNotFound,
     #[error("Error fetching transfer process. {0}")]
-    ErrorFetchingTransferProcess(Error),
+    ErrorFetchingTransferProcess(Box<dyn std::error::Error + Send + Sync>),
     #[error("Error creating transfer process. {0}")]
-    ErrorCreatingTransferProcess(Error),
+    ErrorCreatingTransferProcess(Box<dyn std::error::Error + Send + Sync>),
     #[error("Error deleting transfer process. {0}")]
-    ErrorDeletingTransferProcess(Error),
+    ErrorDeletingTransferProcess(Box<dyn std::error::Error + Send + Sync>),
     #[error("Error updating transfer process. {0}")]
-    ErrorUpdatingTransferProcess(Error),
+    ErrorUpdatingTransferProcess(Box<dyn std::error::Error + Send + Sync>),
 }
 
 impl RepoIntoErrors for TransferProcessRepoErrors {}

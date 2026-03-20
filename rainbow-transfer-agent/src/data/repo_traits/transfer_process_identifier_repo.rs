@@ -21,7 +21,6 @@ use crate::data::entities::transfer_process_identifier;
 use crate::data::entities::transfer_process_identifier::{
     EditTransferIdentifierModel, NewTransferIdentifierModel,
 };
-use anyhow::Error;
 use thiserror::Error;
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
@@ -72,13 +71,13 @@ pub enum TransferIdentifierRepoErrors {
     #[error("Transfer Identifier not found")]
     TransferIdentifierNotFound,
     #[error("Error fetching transfer identifier. {0}")]
-    ErrorFetchingTransferIdentifier(Error),
+    ErrorFetchingTransferIdentifier(Box<dyn std::error::Error + Send + Sync>),
     #[error("Error creating transfer identifier. {0}")]
-    ErrorCreatingTransferIdentifier(Error),
+    ErrorCreatingTransferIdentifier(Box<dyn std::error::Error + Send + Sync>),
     #[error("Error deleting transfer identifier. {0}")]
-    ErrorDeletingTransferIdentifier(Error),
+    ErrorDeletingTransferIdentifier(Box<dyn std::error::Error + Send + Sync>),
     #[error("Error updating transfer identifier. {0}")]
-    ErrorUpdatingTransferIdentifier(Error),
+    ErrorUpdatingTransferIdentifier(Box<dyn std::error::Error + Send + Sync>),
 }
 
 impl RepoIntoErrors for TransferIdentifierRepoErrors {}

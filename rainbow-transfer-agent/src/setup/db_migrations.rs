@@ -22,6 +22,7 @@ use rainbow_common::config::types::traits::CommonConfigTrait;
 use rainbow_dataplane::get_dataplane_migrations;
 use sea_orm_migration::{MigrationTrait, MigratorTrait};
 use std::sync::Arc;
+use ymir::errors::{Errors, Outcome};
 use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
 
@@ -40,11 +41,12 @@ impl MigratorTrait for TransferAgentMigration {
 }
 
 impl TransferAgentMigration {
-    pub async fn run(config: &TransferConfig, vault: Arc<VaultService>) -> anyhow::Result<()> {
+    pub async fn run(config: &TransferConfig, vault: Arc<VaultService>) -> Outcome<()> {
         // db_connection
         let db_connection = vault.get_db_connection(config.common()).await;
         // run migration
-        Self::refresh(&db_connection).await?;
+        Self::refresh(&db_connection).await
+            .map_err(|e| Errors::crazy("Not able to run migration", Some(Box::new(e))))?;
         Ok(())
     }
 }

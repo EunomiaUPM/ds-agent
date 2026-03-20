@@ -24,7 +24,6 @@ use crate::data::entities::transfer_process_identifier::{
     EditTransferIdentifierModel, NewTransferIdentifierModel,
 };
 use crate::data::factory_trait::TransferAgentRepoTrait;
-use crate::data::repo_traits::transfer_process_repo::TransferProcessRepoErrors;
 use crate::entities::transfer_process::{
     EditTransferProcessDto, NewTransferProcessDto, TransferAgentProcessesTrait, TransferProcessDto,
 };

@@ -1,7 +1,7 @@
-use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::str::FromStr;
+use ymir::errors::Errors;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum TransferState {
@@ -18,7 +18,7 @@ pub enum TransferState {
 }
 
 impl FromStr for TransferState {
-    type Err = anyhow::Error;
+    type Err = Errors;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
@@ -27,7 +27,7 @@ impl FromStr for TransferState {
             "TERMINATED" => Ok(Self::TERMINATED),
             "COMPLETED" => Ok(Self::COMPLETED),
             "SUSPENDED" => Ok(Self::SUSPENDED),
-            _ => Err(anyhow!("State not recognized")),
+            _ => Err(Errors::parse("State not recognized", None)),
         }
     }
 }
@@ -55,14 +55,14 @@ pub enum TransferStateAttribute {
 }
 
 impl FromStr for TransferStateAttribute {
-    type Err = anyhow::Error;
+    type Err = Errors;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "ON_REQUEST" => Ok(Self::OnRequest),
             "BY_PROVIDER" => Ok(Self::ByProvider),
             "BY_CONSUMER" => Ok(Self::ByConsumer),
-            _ => Err(anyhow!("State Attribute not recognized")),
+            _ => Err(Errors::parse("State Attribute not recognized", None)),
         }
     }
 }

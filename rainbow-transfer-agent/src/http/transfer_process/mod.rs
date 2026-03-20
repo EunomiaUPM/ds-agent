@@ -20,7 +20,6 @@
 use crate::entities::transfer_process::{
     EditTransferProcessDto, NewTransferProcessDto, TransferAgentProcessesTrait,
 };
-use crate::errors::error_adapter::CustomToResponse;
 use crate::http::common::{extract_payload, parse_urn};
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{FromRef, Path, Query, State};

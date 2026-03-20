@@ -19,7 +19,6 @@
 
 use crate::data::entities::transfer_message;
 use crate::data::entities::transfer_message::NewTransferMessageModel;
-use anyhow::Error;
 use thiserror::Error;
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
@@ -60,11 +59,11 @@ pub enum TransferMessageRepoErrors {
     #[error("Transfer Message not found")]
     TransferMessageNotFound,
     #[error("Error fetching transfer message. {0}")]
-    ErrorFetchingTransferMessage(Error),
+    ErrorFetchingTransferMessage(Box<dyn std::error::Error + Send + Sync>),
     #[error("Error creating transfer message. {0}")]
-    ErrorCreatingTransferMessage(Error),
+    ErrorCreatingTransferMessage(Box<dyn std::error::Error + Send + Sync>),
     #[error("Error deleting transfer message. {0}")]
-    ErrorDeletingTransferMessage(Error),
+    ErrorDeletingTransferMessage(Box<dyn std::error::Error + Send + Sync>),
 }
 
 impl RepoIntoErrors for TransferMessageRepoErrors {}

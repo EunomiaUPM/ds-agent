@@ -31,7 +31,6 @@ use crate::protocols::dsp::validator::traits::validate_payload::ValidatePayload;
 use crate::protocols::dsp::validator::traits::validate_state_transition::ValidateStateTransition;
 use crate::protocols::dsp::validator::traits::validation_helpers::ValidationHelpers;
 use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRpcSteps;
-use anyhow::bail;
 use std::sync::Arc;
 use ymir::errors::Outcome;
 

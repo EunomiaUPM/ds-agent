@@ -22,12 +22,9 @@ use crate::protocols::dsp::protocol_types::{
     TransferProcessMessageTrait, TransferProcessState, TransferStateAttribute,
 };
 use crate::protocols::dsp::validator::traits::validation_helpers::ValidationHelpers;
-use anyhow::{anyhow, bail};
 use rainbow_common::config::types::roles::RoleConfig;
-use rainbow_common::errors::{CommonErrors, ErrorLog};
 use std::str::FromStr;
 use std::sync::Arc;
-use tracing::error;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 

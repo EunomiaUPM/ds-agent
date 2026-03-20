@@ -18,7 +18,6 @@
  */
 
 use crate::protocols::dsp::facades::data_service_resolver_facade::DataServiceFacadeTrait;
-use anyhow::{anyhow, bail};
 use rainbow_catalog_agent::{DatasetDto, DistributionDto};
 use rainbow_common::config::services::traits::TransferConfigTrait;
 use rainbow_common::config::services::TransferConfig;

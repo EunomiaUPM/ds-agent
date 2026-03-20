@@ -25,6 +25,7 @@ pub(crate) mod step_suspension;
 pub(crate) mod step_completion;
 pub(crate) mod step_termination;
 
+use ymir::errors::Outcome;
 use crate::protocols::dsp::protocol_types::{
     TransferCompletionMessageDto, TransferProcessAckDto, TransferProcessMessageWrapper,
     TransferRequestMessageDto, TransferStartMessageDto, TransferSuspensionMessageDto,
@@ -36,30 +37,30 @@ pub trait ProtocolOrchestratorTrait: Send + Sync + 'static {
     async fn on_get_transfer_process(
         &self,
         id: &String,
-    ) -> anyhow::Result<TransferProcessMessageWrapper<TransferProcessAckDto>>;
+    ) -> Outcome<TransferProcessMessageWrapper<TransferProcessAckDto>>;
     async fn on_transfer_request(
         &self,
         input: &TransferProcessMessageWrapper<TransferRequestMessageDto>,
         associated_agent_peer: &str,
-    ) -> anyhow::Result<(TransferProcessMessageWrapper<TransferProcessAckDto>, bool)>;
+    ) -> Outcome<(TransferProcessMessageWrapper<TransferProcessAckDto>, bool)>;
     async fn on_transfer_start(
         &self,
         id: &String,
         input: &TransferProcessMessageWrapper<TransferStartMessageDto>,
-    ) -> anyhow::Result<TransferProcessMessageWrapper<TransferProcessAckDto>>;
+    ) -> Outcome<TransferProcessMessageWrapper<TransferProcessAckDto>>;
     async fn on_transfer_suspension(
         &self,
         id: &String,
         input: &TransferProcessMessageWrapper<TransferSuspensionMessageDto>,
-    ) -> anyhow::Result<TransferProcessMessageWrapper<TransferProcessAckDto>>;
+    ) -> Outcome<TransferProcessMessageWrapper<TransferProcessAckDto>>;
     async fn on_transfer_completion(
         &self,
         id: &String,
         input: &TransferProcessMessageWrapper<TransferCompletionMessageDto>,
-    ) -> anyhow::Result<TransferProcessMessageWrapper<TransferProcessAckDto>>;
+    ) -> Outcome<TransferProcessMessageWrapper<TransferProcessAckDto>>;
     async fn on_transfer_termination(
         &self,
         id: &String,
         input: &TransferProcessMessageWrapper<TransferTerminationMessageDto>,
-    ) -> anyhow::Result<TransferProcessMessageWrapper<TransferProcessAckDto>>;
+    ) -> Outcome<TransferProcessMessageWrapper<TransferProcessAckDto>>;
 }

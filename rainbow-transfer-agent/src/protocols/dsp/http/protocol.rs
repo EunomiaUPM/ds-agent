@@ -16,7 +16,6 @@
  *  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
-
 use axum::{
     extract::{rejection::JsonRejection, FromRef, Path, State},
     http::StatusCode,
@@ -28,7 +27,6 @@ use serde::Serialize;
 use std::future::Future;
 use std::sync::Arc;
 
-use crate::protocols::dsp::errors::extract_payload_error;
 use crate::protocols::dsp::orchestrator::OrchestratorTrait;
 use crate::protocols::dsp::protocol_types::{
     TransferCompletionMessageDto, TransferErrorDto, TransferProcessMessageType,
@@ -36,17 +34,18 @@ use crate::protocols::dsp::protocol_types::{
     TransferSuspensionMessageDto, TransferTerminationMessageDto,
 };
 use rainbow_common::dsp_common::context_field::ContextField;
-use rainbow_common::errors::CommonErrors;
 
 use axum::{
-    extract::Request,
-    http::HeaderMap,
+    extract::Request
+    ,
     middleware::{self, Next},
     Extension,
 };
 use rainbow_common::config::services::TransferConfig;
 use rainbow_common::facades::ssi_auth_facade::SSIAuthFacadeTrait;
 use rainbow_common::mates::mates::Mates;
+use ymir::errors::{Errors, Outcome};
+use crate::http::common::extract_payload;
 
 #[derive(Clone)]
 pub struct DspRouter {
@@ -112,20 +111,17 @@ impl DspRouter {
         T: Send,
         R: Serialize,
         F: FnOnce(T) -> Fut,
-        Fut: Future<Output = anyhow::Result<R>> + Send,
+        Fut: Future<Output = Outcome<R>> + Send,
     {
-        let payload = match extract_payload_error(input) {
+        let payload = match extract_payload(input) {
             Ok(v) => v,
-            Err(e) => {
-                let error_dto: TransferProcessMessageWrapper<TransferErrorDto> = e.into();
-                return (StatusCode::BAD_REQUEST, Json(error_dto)).into_response();
-            }
+            Err(e) => return e,
         };
         Self::map_service_result(action(payload).await, success_code).into_response()
     }
 
     fn map_service_result<R>(
-        result: anyhow::Result<R>,
+        result: Outcome<R>,
         success_code: StatusCode,
     ) -> impl IntoResponse
     where
@@ -137,28 +133,19 @@ impl DspRouter {
         }
     }
 
-    fn map_service_error(err: anyhow::Error) -> impl IntoResponse {
-        match err.downcast::<CommonErrors>() {
-            Ok(common_errors) => {
-                let error_dto: TransferProcessMessageWrapper<TransferErrorDto> =
-                    common_errors.into();
-                (StatusCode::BAD_REQUEST, Json(error_dto)).into_response()
-            }
-            Err(original_err) => {
-                let error_dto: TransferProcessMessageWrapper<TransferErrorDto> =
-                    TransferProcessMessageWrapper {
-                        context: ContextField::default(),
-                        _type: TransferProcessMessageType::TransferError,
-                        dto: TransferErrorDto {
-                            consumer_pid: None,
-                            provider_pid: None,
-                            code: Some("5000".to_string()),
-                            reason: Some(vec![original_err.to_string()]),
-                        },
-                    };
-                (StatusCode::BAD_REQUEST, Json(error_dto)).into_response()
-            }
-        }
+    fn map_service_error(err: Errors) -> impl IntoResponse {
+        let error_dto: TransferProcessMessageWrapper<TransferErrorDto> =
+            TransferProcessMessageWrapper {
+                context: ContextField::default(),
+                _type: TransferProcessMessageType::TransferError,
+                dto: TransferErrorDto {
+                    consumer_pid: None,
+                    provider_pid: None,
+                    code: Some("5000".to_string()),
+                    reason: Some(vec![err.to_string()]),
+                },
+            };
+        (StatusCode::BAD_REQUEST, Json(error_dto)).into_response()
     }
 
     async fn handle_get_transfer_process(
@@ -179,12 +166,9 @@ impl DspRouter {
             JsonRejection,
         >,
     ) -> impl IntoResponse {
-        let payload = match extract_payload_error(input) {
+        let payload = match extract_payload(input) {
             Ok(v) => v,
-            Err(e) => {
-                let error_dto: TransferProcessMessageWrapper<TransferErrorDto> = e.into();
-                return (StatusCode::BAD_REQUEST, Json(error_dto)).into_response();
-            }
+            Err(e) => return e,
         };
 
         let result = state

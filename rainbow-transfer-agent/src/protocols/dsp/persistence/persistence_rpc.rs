@@ -29,13 +29,9 @@ use crate::protocols::dsp::protocol_types::{
     TransferProcessMessageTrait, TransferProcessMessageType, TransferProcessState,
     TransferStateAttribute,
 };
-use anyhow::bail;
 use rainbow_common::config::types::roles::RoleConfig;
-use rainbow_common::errors::CommonErrors;
-use rainbow_common::errors::ErrorLog;
 use std::str::FromStr;
 use std::sync::Arc;
-use tracing::error;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 // ─── Service ─────────────────────────────────────────────────────────────────

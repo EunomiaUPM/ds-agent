@@ -25,6 +25,7 @@ use rainbow_common::config::types::traits::{CommonConfigTrait, ConfigLoader};
 use std::sync::Arc;
 use tracing::{debug, info};
 use ymir::config::traits::ConnectionConfigTrait;
+use ymir::errors::Outcome;
 use ymir::services::vault::fake_vault::FakeVaultService;
 use ymir::services::vault::global::VaultService;
 use ymir::services::vault::vault_rs::RealVaultService;
@@ -52,7 +53,7 @@ pub struct TransferCliArgs {
 pub struct TransferCommands {}
 
 impl TransferCommands {
-    pub async fn init_command_line() -> anyhow::Result<()> {
+    pub async fn init_command_line() -> Outcome<()> {
         debug!("init_command_line - Initialize transfer commands");
         let cli = TransferCli::parse();
         match cli.command {

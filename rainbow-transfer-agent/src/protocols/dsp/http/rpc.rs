@@ -28,7 +28,6 @@ use serde::Serialize;
 use std::future::Future;
 use std::sync::Arc;
 
-use crate::protocols::dsp::errors::extract_payload_error;
 use crate::protocols::dsp::orchestrator::rpc::types::{
     RpcTransferCompletionMessageDto, RpcTransferErrorDto, RpcTransferRequestMessageDto,
     RpcTransferStartMessageDto, RpcTransferSuspensionMessageDto, RpcTransferTerminationMessageDto,
@@ -39,6 +38,7 @@ use crate::protocols::dsp::protocol_types::{
 };
 use rainbow_common::dsp_common::context_field::ContextField;
 use ymir::errors::Outcome;
+use crate::http::common::extract_payload;
 
 #[derive(Clone)]
 pub struct RpcRouter {
@@ -77,12 +77,9 @@ impl RpcRouter {
         F: FnOnce(T) -> Fut,
         Fut: Future<Output = Outcome<R>> + Send,
     {
-        let payload = match extract_payload_error(input) {
+        let payload = match extract_payload(input) {
             Ok(v) => v,
-            Err(e) => {
-                let error_dto: TransferProcessMessageWrapper<TransferErrorDto> = e.into();
-                return (StatusCode::BAD_REQUEST, Json(error_dto)).into_response();
-            }
+            Err(e) => return e,
         };
         Self::map_service_result(action(payload.clone()).await, success_code, payload)
             .into_response()

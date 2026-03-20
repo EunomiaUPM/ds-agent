@@ -19,7 +19,7 @@
 
 use crate::data::entities::transfer_process;
 use crate::data::entities::transfer_process::{
-    EditTransferProcessModel, Model, NewTransferProcessModel,
+    EditTransferProcessModel, NewTransferProcessModel,
 };
 use crate::data::entities::transfer_process_identifier;
 use crate::data::repo_traits::transfer_process_repo::{
@@ -114,7 +114,7 @@ impl TransferProcessRepoTrait for TransferProcessRepoForSql {
         }
     }
 
-    async fn get_transfer_process_by_key_value(&self, id: &Urn) -> Outcome<Option<Model>> {
+    async fn get_transfer_process_by_key_value(&self, id: &Urn) -> Outcome<Option<transfer_process::Model>> {
         let id = id.to_string();
         let transfer_process = transfer_process::Entity::find()
             .join(JoinType::InnerJoin, transfer_process::Relation::Identifiers.def())

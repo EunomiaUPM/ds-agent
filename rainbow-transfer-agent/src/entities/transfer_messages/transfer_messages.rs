@@ -19,13 +19,10 @@
 
 use crate::data::entities::transfer_message::NewTransferMessageModel;
 use crate::data::factory_trait::TransferAgentRepoTrait;
-use crate::data::repo_traits::transfer_message_repo::TransferMessageRepoErrors;
 use crate::entities::transfer_messages::{
     NewTransferMessageDto, TransferAgentMessagesTrait, TransferMessageDto,
 };
-use rainbow_common::errors::{CommonErrors, ErrorLog};
 use std::sync::Arc;
-use tracing::error;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 

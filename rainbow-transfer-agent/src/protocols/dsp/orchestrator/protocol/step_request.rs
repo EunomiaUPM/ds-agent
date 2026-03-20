@@ -20,14 +20,15 @@
 use crate::entities::transfer_process::TransferProcessDto;
 use crate::protocols::dsp::facades::dataplane_facade::DataPlaneFacadeTrait;
 use crate::protocols::dsp::facades::FacadeTrait;
-use crate::protocols::dsp::orchestrator::protocol::step_trait::{resolve_process, ProtocolContext, ProtocolStep};
+use crate::protocols::dsp::orchestrator::protocol::step_trait::{
+    resolve_process, ProtocolContext, ProtocolStep,
+};
 use crate::protocols::dsp::persistence::{CreateProcessInput, TransferPersistenceTrait};
 use crate::protocols::dsp::protocol_types::{
-    DataAddressDto, TransferProcessAckDto, TransferProcessMessageTrait, TransferProcessMessageWrapper,
-    TransferRequestMessageDto,
+    DataAddressDto, TransferProcessAckDto, TransferProcessMessageTrait,
+    TransferProcessMessageWrapper, TransferRequestMessageDto,
 };
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
-use anyhow::anyhow;
 use rainbow_connector::InteractionConfig;
 use std::sync::Arc;
 use urn::Urn;
@@ -73,7 +74,8 @@ impl ProtocolStep for ProtocolRequestStep {
         Option<TransferProcessMessageWrapper<TransferProcessAckDto>>,
     )> {
         // Resolve connector: agreement → dataset → distribution → connector instance.
-        let agreement_id = input.dto.get_agreement_id().ok_or(Errors::crazy("no agreement id", None))?;
+        let agreement_id =
+            input.dto.get_agreement_id().ok_or(Errors::crazy("no agreement id", None))?;
         let connector_instance = facades
             .get_data_service_facade()
             .await
@@ -84,14 +86,21 @@ impl ProtocolStep for ProtocolRequestStep {
         if matches!(connector_instance.interaction, InteractionConfig::Push(_))
             && input.dto.data_address.is_none()
         {
-            return Err(Errors::crazy("PUSH transfer requires a DataAddress from the consumer", None));
+            return Err(Errors::crazy(
+                "PUSH transfer requires a DataAddress from the consumer",
+                None,
+            ));
         }
 
-        let ctx =
-            ProtocolContext { process: None, connector_instance, associated_peer: peer.to_string() };
+        let ctx = ProtocolContext {
+            process: None,
+            connector_instance,
+            associated_peer: peer.to_string(),
+        };
 
         // Idempotency: return the existing ack if the consumerPid is already known.
-        let consumer_pid = input.dto.get_consumer_pid().ok_or(anyhow!("no consumer id"))?;
+        let consumer_pid =
+            input.dto.get_consumer_pid().ok_or(Errors::missing_resource("","no consumer id", None))?;
         let existing = persistence
             .get_transfer_process_service()
             .await?

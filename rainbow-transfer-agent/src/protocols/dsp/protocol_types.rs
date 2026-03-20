@@ -18,14 +18,12 @@
  */
 
 use crate::entities::transfer_process::TransferProcessDto;
-use anyhow::bail;
 use rainbow_common::dsp_common::context_field::ContextField;
-use rainbow_common::errors::{CommonErrors, ErrorLog};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display};
 use std::str::FromStr;
-use tracing::error;
 use urn::Urn;
+use ymir::errors::Errors;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -426,7 +424,7 @@ impl Display for TransferProcessState {
 }
 
 impl FromStr for TransferProcessState {
-    type Err = ();
+    type Err = Errors;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
@@ -435,7 +433,7 @@ impl FromStr for TransferProcessState {
             "COMPLETED" => Ok(TransferProcessState::Completed),
             "SUSPENDED" => Ok(TransferProcessState::Suspended),
             "TERMINATED" => Ok(TransferProcessState::Terminated),
-            _ => Err(()),
+            _ => Err(Errors::parse("Not a TransferProcess state.", None)),
         }
     }
 }
@@ -513,7 +511,7 @@ impl Display for TransferStateAttribute {
 }
 
 impl FromStr for TransferStateAttribute {
-    type Err = anyhow::Error;
+    type Err = Errors;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
@@ -521,74 +519,68 @@ impl FromStr for TransferStateAttribute {
             "ByConsumer" => Ok(TransferStateAttribute::ByConsumer),
             "ByProvider" => Ok(TransferStateAttribute::ByProvider),
             v => {
-                let err = CommonErrors::parse_new(&format!(
+                let err = Errors::parse(&format!(
                     "Invalid or unknown TransferStateAttribute '{}'",
                     v
-                ));
-                error!("{}", err.log());
-                bail!(err);
+                ), None);
+                return Err(err)
             }
         }
     }
 }
 
 impl TryFrom<TransferProcessDto> for TransferProcessMessageWrapper<TransferProcessAckDto> {
-    type Error = anyhow::Error;
+    type Error = Errors;
 
     fn try_from(value: TransferProcessDto) -> Result<Self, Self::Error> {
         let consumer_str = match value.identifiers.get("consumerPid") {
             Some(val) => val,
             None => {
-                let err = CommonErrors::parse_new(
-                    "Missing 'consumerPid' in TransferProcessDto identifiers map",
+                let err = Errors::parse(
+                    "Missing 'consumerPid' in TransferProcessDto identifiers map", None,
                 );
-                error!("{}", err.log());
-                bail!(err);
+                return Err(err);
             }
         };
         let consumer_pid = match Urn::from_str(consumer_str) {
             Ok(urn) => urn,
             Err(e) => {
-                let err = CommonErrors::parse_new(&format!(
+                let err = Errors::parse(&format!(
                     "Invalid URN format for consumerPid '{}': {}",
                     consumer_str, e
-                ));
-                error!("{}", err.log());
-                bail!(err);
+                ), None);
+                return Err(err);
             }
         };
 
         let provider_str = match value.identifiers.get("providerPid") {
             Some(val) => val,
             None => {
-                let err = CommonErrors::parse_new(
-                    "Missing 'providerPid' in TransferProcessDto identifiers map",
+                let err = Errors::parse(
+                    "Missing 'providerPid' in TransferProcessDto identifiers map", None,
                 );
-                error!("{}", err.log());
-                bail!(err);
+                return Err(err);
             }
         };
         let provider_pid = match Urn::from_str(provider_str) {
             Ok(urn) => urn,
             Err(e) => {
-                let err = CommonErrors::parse_new(&format!(
+                let err = Errors::parse(&format!(
                     "Invalid URN format for providerPid '{}': {}",
                     provider_str, e
-                ));
-                error!("{}", err.log());
-                bail!(err);
+                ), None);
+                return Err(err);
             }
         };
 
         let state = match value.inner.state.parse::<TransferProcessState>() {
             Ok(s) => s,
             Err(_) => {
-                let err = CommonErrors::parse_new(&format!(
+                let err = Errors::parse(&format!(
                     "Invalid or unknown TransferProcessState '{}' in database model",
                     value.inner.state
-                ));
-                error!("{}", err.log());
-                bail!(err);
+                ), None);
+                return Err(err);
             }
         };
 

@@ -6,8 +6,8 @@ ROLE=${1:-provider}
 CMD=${2:-setup}
 
 # Paths (Relative to project root)
-CONFIG_FILE="../static/environment/config/core.${ROLE}.yaml"
-ENV_FILE="../static/vault/${ROLE}/data/vault.env"
+CONFIG_FILE="../../static/environment/config/core.${ROLE}.yaml"
+ENV_FILE="../../static/vault/${ROLE}/data/vault.env"
 
 # Validations
 if [[ ! "$ROLE" =~ ^(provider|consumer)$ ]]; then
@@ -34,7 +34,7 @@ fi
 # Execution
 echo "Running [${CMD}] for [${ROLE}]..."
 
-LOCAL_ENV_FILE="../static/vault/${ROLE}/data/local.vault.env"
+LOCAL_ENV_FILE="../../static/vault/${ROLE}/data/local.vault.env"
 
 set -a
 source "$ENV_FILE"

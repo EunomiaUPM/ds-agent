@@ -1,0 +1,42 @@
+[package]
+name = "monolith"
+version = "0.3.8"
+edition = "2021"
+
+[lib]
+name = "monolith"
+path = "src/lib.rs"
+
+[[bin]]
+name = "monolith"
+path = "src/main.rs"
+
+[dependencies]
+common = { version = "0.3.8", path = "../common", default-features = false }
+dataplane = { version = "0.3.8", path = "../dataplane", default-features = false }
+auth = { version = "0.3.8", path = "../auth", default-features = false }
+events = { version = "0.3.8", path = "../events", default-features = false }
+transfer_agent = { version = "0.3.8", path = "../transfer-agent", default-features = false }
+catalog_agent = { version = "0.3.8", path = "../catalog-agent", default-features = false }
+connector = { version = "0.3.8", path = "../connector", default-features = false }
+bff = { version = "0.3.8", path = "../bff", default-features = false }
+negotiation_agent = { version = "0.3.8", path = "../negotiation-agent", default-features = false }
+
+
+clap = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+axum = { workspace = true }
+sea-orm = { workspace = true }
+sea-orm-migration = { workspace = true }
+json_to_table = { workspace = true }
+serde_json = { workspace = true }
+uuid = { workspace = true }
+tower-http = { workspace = true }
+tokio-util = { workspace = true }
+async-trait = { workspace = true }
+urn = { workspace = true }
+ymir = { workspace = true }
+rustls = { workspace = true }
+axum-server = { workspace = true }

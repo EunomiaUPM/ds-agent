@@ -1,0 +1,108 @@
+# https://taskfile.dev
+version: '3'
+
+vars:
+  SCRIPTS_DIR: scripts/bash
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SETUP — initialise databases and run migrations
+# Usage:
+#   task setup                   (defaults to module=core)
+#   task setup MODULE=catalog
+# Valid modules: core | catalog | contracts | transfer | auth
+# ─────────────────────────────────────────────────────────────────────────────
+tasks:
+  setup:
+    desc: "Restart databases and run migrations for MODULE (default: core)"
+    vars:
+      MODULE: '{{.MODULE | default "core"}}'
+    cmds:
+      - bash {{.SCRIPTS_DIR}}/auto-setup.sh {{.MODULE}}
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # START — launch Consumer and Provider services in separate terminals
+  # Usage:
+  #   task start
+  #   task start MODULE=catalog
+  # ─────────────────────────────────────────────────────────────────────────
+  start:
+    desc: "Start Consumer and Provider services for MODULE (default: core)"
+    vars:
+      MODULE: '{{.MODULE | default "core"}}'
+    cmds:
+      - bash {{.SCRIPTS_DIR}}/auto-start.sh {{.MODULE}}
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # DEV — run a single role locally against Vault secrets
+  # Usage:
+  #   task dev:provider:setup
+  #   task dev:provider:start
+  #   task dev:consumer:setup
+  #   task dev:consumer:start
+  # ─────────────────────────────────────────────────────────────────────────
+  dev:provider:setup:
+    desc: "Provider — setup (dev, reads Vault secrets)"
+    dir: "{{.SCRIPTS_DIR}}"
+    cmds:
+      - bash dev.sh provider setup
+
+  dev:provider:start:
+    desc: "Provider — start (dev, reads Vault secrets)"
+    dir: "{{.SCRIPTS_DIR}}"
+    cmds:
+      - bash dev.sh provider start
+
+  dev:consumer:setup:
+    desc: "Consumer — setup (dev, reads Vault secrets)"
+    dir: "{{.SCRIPTS_DIR}}"
+    cmds:
+      - bash dev.sh consumer setup
+
+  dev:consumer:start:
+    desc: "Consumer — start (dev, reads Vault secrets)"
+    dir: "{{.SCRIPTS_DIR}}"
+    cmds:
+      - bash dev.sh consumer start
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # ONBOARD — full OIDC4VCI / OIDC4VP onboarding flow
+  # Usage:
+  #   task onboard
+  # ─────────────────────────────────────────────────────────────────────────
+  onboard:
+    desc: "Run the full onboarding sequence (Authority → Consumer → Provider)"
+    cmds:
+      - bash {{.SCRIPTS_DIR}}/auto-onboarding.sh
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # POPULATE — seed mock data into a running environment
+  # Usage:
+  #   task populate               (all: data + contracts + transfers)
+  #   task populate:data
+  #   task populate:contracts
+  #   task populate:transfers
+  #   task populate:transfers AGREEMENT_ID=urn:agreement:abc-123
+  # ─────────────────────────────────────────────────────────────────────────
+  populate:
+    desc: "Seed all mock data (catalog data + contracts + transfers)"
+    cmds:
+      - task: populate:data
+      - task: populate:contracts
+      - task: populate:transfers
+
+  populate:data:
+    desc: "Seed mock catalog data (catalogs, datasets, distributions, connectors)"
+    cmds:
+      - bash {{.SCRIPTS_DIR}}/populate_mock_data.sh
+
+  populate:contracts:
+    desc: "Seed mock negotiation contracts (processes, messages, offers, agreements)"
+    cmds:
+      - bash {{.SCRIPTS_DIR}}/populate_mock_contracts.sh
+
+  populate:transfers:
+    desc: "Seed mock transfer processes (AGREEMENT_ID optional)"
+    vars:
+      AGREEMENT_ID: '{{.AGREEMENT_ID | default ""}}'
+    cmds:
+      - bash {{.SCRIPTS_DIR}}/populate_mock_transfers.sh {{.AGREEMENT_ID}}

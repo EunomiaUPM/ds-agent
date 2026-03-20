@@ -41,3 +41,5 @@ static/vault/**
 # ENVIRONMENT
 static/environment/envs/**
 !static/environment/envs/**/*.example
+
+.claude

@@ -18,9 +18,9 @@
  */
 
 use crate::facades::distribution_resolver_facade::DistributionFacadeTrait;
-use serde_json::Value;
 use common::config::types::traits::CommonConfigTrait;
 use common::http_client::HttpClient;
+use serde_json::Value;
 use std::sync::Arc;
 use ymir::config::traits::HostsConfigTrait;
 use ymir::config::types::HostType;
@@ -34,21 +34,23 @@ pub struct DistributionFacadeServiceForConnector {
 impl DistributionFacadeServiceForConnector {
     pub fn new(config: &dyn CommonConfigTrait, client: Arc<HttpClient>) -> Self {
         let catalog_base_url = config.common().get_host(HostType::Http);
-        Self { catalog_base_url, client }
+        Self {
+            catalog_base_url,
+            client,
+        }
     }
 }
 
 #[async_trait::async_trait]
 impl DistributionFacadeTrait for DistributionFacadeServiceForConnector {
-    async fn resolve_distribution_by_id(
-        &self,
-        distribution_id: &String,
-    ) -> Outcome<()> {
+    async fn resolve_distribution_by_id(&self, distribution_id: &String) -> Outcome<()> {
         let distribution_url = format!(
             "{}/api/v1/catalog-agent/distributions/{}",
             self.catalog_base_url, distribution_id
         );
-        self.client.get_json::<Value>(distribution_url.as_str()).await?;
+        self.client
+            .get_json::<Value>(distribution_url.as_str())
+            .await?;
         Ok(())
     }
 }

@@ -56,14 +56,12 @@ impl OdrlOfferRepositoryTrait for OdrlOfferRepositoryForSql {
             Ok(odrl_offers) => Ok(odrl_offers),
             Err(err) => Err(CatalogAgentRepoErrors::OdrlOfferRepoErrors(
                 OdrlOfferRepoErrors::ErrorFetchingOdrlOffer(err.into()),
-            ).into_errors()),
+            )
+            .into_errors()),
         }
     }
 
-    async fn get_batch_odrl_offers(
-        &self,
-        ids: &Vec<Urn>,
-    ) -> Outcome<Vec<odrl_offer::Model>> {
+    async fn get_batch_odrl_offers(&self, ids: &Vec<Urn>) -> Outcome<Vec<odrl_offer::Model>> {
         let odrl_ids = ids.iter().map(|t| t.to_string()).collect::<Vec<_>>();
         let odrl_process = odrl_offer::Entity::find()
             .filter(odrl_offer::Column::Id.is_in(odrl_ids))
@@ -73,14 +71,12 @@ impl OdrlOfferRepositoryTrait for OdrlOfferRepositoryForSql {
             Ok(odrl_process) => Ok(odrl_process),
             Err(err) => Err(CatalogAgentRepoErrors::OdrlOfferRepoErrors(
                 OdrlOfferRepoErrors::ErrorFetchingOdrlOffer(err.into()),
-            ).into_errors()),
+            )
+            .into_errors()),
         }
     }
 
-    async fn get_all_odrl_offers_by_entity(
-        &self,
-        entity: &Urn,
-    ) -> Outcome<Vec<odrl_offer::Model>> {
+    async fn get_all_odrl_offers_by_entity(&self, entity: &Urn) -> Outcome<Vec<odrl_offer::Model>> {
         let entity = entity.to_string();
         let odrl_offers = odrl_offer::Entity::find()
             .filter(odrl_offer::Column::Entity.eq(entity))
@@ -90,7 +86,8 @@ impl OdrlOfferRepositoryTrait for OdrlOfferRepositoryForSql {
             Ok(odrl_offers) => Ok(odrl_offers),
             Err(err) => Err(CatalogAgentRepoErrors::OdrlOfferRepoErrors(
                 OdrlOfferRepoErrors::ErrorFetchingOdrlOffer(err.into()),
-            ).into_errors()),
+            )
+            .into_errors()),
         }
     }
 
@@ -99,13 +96,15 @@ impl OdrlOfferRepositoryTrait for OdrlOfferRepositoryForSql {
         odrl_offer_id: &Urn,
     ) -> Outcome<Option<odrl_offer::Model>> {
         let odrl_offer_id = odrl_offer_id.to_string();
-        let odrl_offer =
-            odrl_offer::Entity::find_by_id(odrl_offer_id).one(&self.db_connection).await;
+        let odrl_offer = odrl_offer::Entity::find_by_id(odrl_offer_id)
+            .one(&self.db_connection)
+            .await;
         match odrl_offer {
             Ok(odrl_offer) => Ok(odrl_offer),
             Err(err) => Err(CatalogAgentRepoErrors::OdrlOfferRepoErrors(
                 OdrlOfferRepoErrors::ErrorFetchingOdrlOffer(err.into()),
-            ).into_errors()),
+            )
+            .into_errors()),
         }
     }
 
@@ -123,11 +122,15 @@ impl OdrlOfferRepositoryTrait for OdrlOfferRepositoryForSql {
                     .map_err(|err| {
                         CatalogAgentRepoErrors::DistributionRepoErrors(
                             DistributionRepoErrors::ErrorFetchingDistribution(err.into()),
-                        ).into_errors()
+                        )
+                        .into_errors()
                     })?
-                    .ok_or(CatalogAgentRepoErrors::DistributionRepoErrors(
-                        DistributionRepoErrors::DistributionNotFound,
-                    ).into_errors())?;
+                    .ok_or(
+                        CatalogAgentRepoErrors::DistributionRepoErrors(
+                            DistributionRepoErrors::DistributionNotFound,
+                        )
+                        .into_errors(),
+                    )?;
                 let odrl_offer = odrl_offer::Entity::insert(model)
                     .exec_with_returning(&self.db_connection)
                     .await;
@@ -140,11 +143,15 @@ impl OdrlOfferRepositoryTrait for OdrlOfferRepositoryForSql {
                     .map_err(|err| {
                         CatalogAgentRepoErrors::DataServiceRepoErrors(
                             DataServiceRepoErrors::ErrorFetchingDataService(err.into()),
-                        ).into_errors()
+                        )
+                        .into_errors()
                     })?
-                    .ok_or(CatalogAgentRepoErrors::DataServiceRepoErrors(
-                        DataServiceRepoErrors::DataServiceNotFound,
-                    ).into_errors())?;
+                    .ok_or(
+                        CatalogAgentRepoErrors::DataServiceRepoErrors(
+                            DataServiceRepoErrors::DataServiceNotFound,
+                        )
+                        .into_errors(),
+                    )?;
                 let odrl_offer = odrl_offer::Entity::insert(model)
                     .exec_with_returning(&self.db_connection)
                     .await;
@@ -157,11 +164,15 @@ impl OdrlOfferRepositoryTrait for OdrlOfferRepositoryForSql {
                     .map_err(|err| {
                         CatalogAgentRepoErrors::CatalogRepoErrors(
                             CatalogRepoErrors::ErrorFetchingCatalog(err.into()),
-                        ).into_errors()
+                        )
+                        .into_errors()
                     })?
-                    .ok_or(CatalogAgentRepoErrors::CatalogRepoErrors(
-                        CatalogRepoErrors::CatalogNotFound,
-                    ).into_errors())?;
+                    .ok_or(
+                        CatalogAgentRepoErrors::CatalogRepoErrors(
+                            CatalogRepoErrors::CatalogNotFound,
+                        )
+                        .into_errors(),
+                    )?;
                 let odrl_offer = odrl_offer::Entity::insert(model)
                     .exec_with_returning(&self.db_connection)
                     .await;
@@ -174,11 +185,15 @@ impl OdrlOfferRepositoryTrait for OdrlOfferRepositoryForSql {
                     .map_err(|err| {
                         CatalogAgentRepoErrors::DatasetRepoErrors(
                             DatasetRepoErrors::ErrorFetchingDataset(err.into()),
-                        ).into_errors()
+                        )
+                        .into_errors()
                     })?
-                    .ok_or(CatalogAgentRepoErrors::DatasetRepoErrors(
-                        DatasetRepoErrors::DatasetNotFound,
-                    ).into_errors())?;
+                    .ok_or(
+                        CatalogAgentRepoErrors::DatasetRepoErrors(
+                            DatasetRepoErrors::DatasetNotFound,
+                        )
+                        .into_errors(),
+                    )?;
                 let odrl_offer = odrl_offer::Entity::insert(model)
                     .exec_with_returning(&self.db_connection)
                     .await;
@@ -190,34 +205,32 @@ impl OdrlOfferRepositoryTrait for OdrlOfferRepositoryForSql {
             Ok(odrl_offer) => Ok(odrl_offer),
             Err(err) => Err(CatalogAgentRepoErrors::OdrlOfferRepoErrors(
                 OdrlOfferRepoErrors::ErrorCreatingOdrlOffer(err.into()),
-            ).into_errors()),
+            )
+            .into_errors()),
         }
     }
 
-    async fn delete_odrl_offer_by_id(
-        &self,
-        odrl_offer_id: &Urn,
-    ) -> Outcome<()> {
+    async fn delete_odrl_offer_by_id(&self, odrl_offer_id: &Urn) -> Outcome<()> {
         let odrl_offer_id = odrl_offer_id.to_string();
-        let odrl_offer =
-            odrl_offer::Entity::delete_by_id(odrl_offer_id).exec(&self.db_connection).await;
+        let odrl_offer = odrl_offer::Entity::delete_by_id(odrl_offer_id)
+            .exec(&self.db_connection)
+            .await;
         match odrl_offer {
             Ok(delete_result) => match delete_result.rows_affected {
                 0 => Err(CatalogAgentRepoErrors::OdrlOfferRepoErrors(
                     OdrlOfferRepoErrors::OdrlOfferNotFound,
-                ).into_errors()),
+                )
+                .into_errors()),
                 _ => Ok(()),
             },
             Err(err) => Err(CatalogAgentRepoErrors::OdrlOfferRepoErrors(
                 OdrlOfferRepoErrors::ErrorDeletingOdrlOffer(err.into()),
-            ).into_errors()),
+            )
+            .into_errors()),
         }
     }
 
-    async fn delete_odrl_offers_by_entity(
-        &self,
-        entity_id: &Urn,
-    ) -> Outcome<()> {
+    async fn delete_odrl_offers_by_entity(&self, entity_id: &Urn) -> Outcome<()> {
         let entity_id = entity_id.to_string();
         let odrl_offer = odrl_offer::Entity::delete_many()
             .filter(odrl_offer::Column::Entity.eq(entity_id))
@@ -227,12 +240,14 @@ impl OdrlOfferRepositoryTrait for OdrlOfferRepositoryForSql {
             Ok(delete_result) => match delete_result.rows_affected {
                 0 => Err(CatalogAgentRepoErrors::OdrlOfferRepoErrors(
                     OdrlOfferRepoErrors::OdrlOfferNotFound,
-                ).into_errors()),
+                )
+                .into_errors()),
                 _ => Ok(()),
             },
             Err(err) => Err(CatalogAgentRepoErrors::OdrlOfferRepoErrors(
                 OdrlOfferRepoErrors::ErrorDeletingOdrlOffer(err.into()),
-            ).into_errors()),
+            )
+            .into_errors()),
         }
     }
 }

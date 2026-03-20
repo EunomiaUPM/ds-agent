@@ -120,7 +120,9 @@ impl DataServiceEntityService for DataServiceEntityGrpc {
             .map_err(|e| Status::internal(e.to_string()))?;
 
         match data_service_opt {
-            Some(dto) => Ok(Response::new(DataServiceResponse { data_service: Some(dto.into()) })),
+            Some(dto) => Ok(Response::new(DataServiceResponse {
+                data_service: Some(dto.into()),
+            })),
             None => Err(Status::not_found("DataService not found")),
         }
     }
@@ -138,7 +140,9 @@ impl DataServiceEntityService for DataServiceEntityGrpc {
             .map_err(|e| Status::internal(e.to_string()))?;
 
         match data_service_opt {
-            Some(dto) => Ok(Response::new(DataServiceResponse { data_service: Some(dto.into()) })),
+            Some(dto) => Ok(Response::new(DataServiceResponse {
+                data_service: Some(dto.into()),
+            })),
             None => Err(Status::not_found("DataService not found")),
         }
     }

@@ -36,10 +36,23 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(TransferEvents::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(TransferEvents::Id).string().not_null().primary_key())
-                    .col(ColumnDef::new(TransferEvents::TransferId).string().not_null())
+                    .col(
+                        ColumnDef::new(TransferEvents::Id)
+                            .string()
+                            .not_null()
+                            .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(TransferEvents::TransferId)
+                            .string()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(TransferEvents::Level).string().not_null())
-                    .col(ColumnDef::new(TransferEvents::Component).string().not_null())
+                    .col(
+                        ColumnDef::new(TransferEvents::Component)
+                            .string()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(TransferEvents::Message).text().not_null())
                     .col(ColumnDef::new(TransferEvents::Data).json_binary().null())
                     .col(
@@ -60,7 +73,9 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager.drop_table(Table::drop().table(TransferEvents::Table).to_owned()).await
+        manager
+            .drop_table(Table::drop().table(TransferEvents::Table).to_owned())
+            .await
     }
 }
 

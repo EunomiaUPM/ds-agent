@@ -21,9 +21,10 @@ use crate::setup::http_worker::CatalogHttpWorker;
 use crate::{CatalogDto, DataServiceDto, NewCatalogDto, NewDataServiceDto};
 use common::boot::shutdown::shutdown_signal;
 use common::boot::BootstrapServiceTrait;
+use common::config::services::traits::CatalogConfigTrait;
 use common::config::services::{CatalogConfig, ContractsConfig, TransferConfig};
-use common::config::types::traits::{CommonConfigTrait, ConfigLoader, MinKnownConfigTrait};
 use common::config::types::roles::RoleConfig;
+use common::config::types::traits::{CommonConfigTrait, ConfigLoader, MinKnownConfigTrait};
 use common::http_client::{HttpClient, HttpClientError};
 use std::str::FromStr;
 use std::sync::Arc;
@@ -37,7 +38,6 @@ use ymir::config::types::HostType;
 use ymir::data::entities::mates;
 use ymir::errors::{Errors, Outcome};
 use ymir::services::vault::global::VaultService;
-use common::config::services::traits::CatalogConfigTrait;
 
 pub struct CatalogAgentBoot;
 
@@ -46,8 +46,9 @@ impl BootstrapServiceTrait for CatalogAgentBoot {
     type Config = CatalogConfig;
     async fn load_config(env_file: String) -> Outcome<Self::Config> {
         let config = Self::Config::load(&*env_file)?;
-        let table =
-            json_to_table::json_to_table(&serde_json::to_value(&config)?).collapse().to_string();
+        let table = json_to_table::json_to_table(&serde_json::to_value(&config)?)
+            .collapse()
+            .to_string();
         tracing::info!("Current Catalog Agent Config:\n{}", table);
         Ok(config)
     }

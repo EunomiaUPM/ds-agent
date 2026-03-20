@@ -18,8 +18,8 @@
  */
 
 use crate::entities::negotiation_process::NegotiationProcessDto;
-use crate::protocols::dsp::persistence::NegotiationRpcPersistenceTrait;
 use crate::protocols::dsp::orchestrator::rpc::types::RpcNegotiationProcessMessageTrait;
+use crate::protocols::dsp::persistence::NegotiationRpcPersistenceTrait;
 use crate::protocols::dsp::protocol_types::{
     NegotiationAckMessageDto, NegotiationProcessMessageWrapper,
 };
@@ -177,7 +177,9 @@ pub(super) async fn resolve_continuation_context(
     consumer_pid: &Urn,
     persistence: &Arc<dyn NegotiationRpcPersistenceTrait>,
 ) -> Outcome<NegotiationRpcContinuationContext> {
-    let process = persistence.fetch_process(consumer_pid.to_string().as_str()).await?;
+    let process = persistence
+        .fetch_process(consumer_pid.to_string().as_str())
+        .await?;
 
     // The outgoing URL uses the *peer's* identifier (opposite of the local role).
     let peer_role_key = match process.inner.role.as_str() {
@@ -187,5 +189,9 @@ pub(super) async fn resolve_continuation_context(
     let peer_identifier = process.identifiers.get(peer_role_key).unwrap().clone();
     let peer_address = process.inner.callback_address.clone().unwrap_or_default();
 
-    Ok(NegotiationRpcContinuationContext { process, peer_identifier, peer_address })
+    Ok(NegotiationRpcContinuationContext {
+        process,
+        peer_identifier,
+        peer_address,
+    })
 }

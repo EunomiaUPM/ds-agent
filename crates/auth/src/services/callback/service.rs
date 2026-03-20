@@ -38,7 +38,7 @@ use crate::services::callback::CallbackTrait;
 
 pub struct BasicCallbackService {
     client: Arc<dyn ClientTrait>,
-    vault: Arc<VaultService>
+    vault: Arc<VaultService>,
 }
 
 impl BasicCallbackService {
@@ -52,7 +52,7 @@ impl CallbackTrait for BasicCallbackService {
     fn check_callback(
         &self,
         int_model: &mut req_interaction::Model,
-        payload: &ApprovedCallbackBody
+        payload: &ApprovedCallbackBody,
     ) -> Outcome<()> {
         info!("Checking callback");
 
@@ -73,7 +73,10 @@ impl CallbackTrait for BasicCallbackService {
 
         let hash = get_from_opt(int_model.hash.as_ref(), "hash")?;
         if calculated_hash != hash {
-            return Err(Errors::security("Hash does not match the calculated one", None));
+            return Err(Errors::security(
+                "Hash does not match the calculated one",
+                None,
+            ));
         }
 
         info!("Hash matches the calculated one");
@@ -103,7 +106,7 @@ impl CallbackTrait for BasicCallbackService {
             "POST",
             &url,
             &body_bytes,
-            Some(&authorization)
+            Some(&authorization),
         )?;
 
         headers.extend(httpsig);

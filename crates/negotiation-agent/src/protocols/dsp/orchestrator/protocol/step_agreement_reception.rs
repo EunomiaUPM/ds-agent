@@ -20,15 +20,15 @@
 use crate::entities::negotiation_process::NegotiationProcessDto;
 use crate::protocols::dsp::orchestrator::protocol::persistence::OrchestrationPersistenceForProtocol;
 use crate::protocols::dsp::orchestrator::protocol::step_trait::{
-    continuation_prepare_context, NegotiationContinuationContext, NegotiationProtocolStep,
+    NegotiationContinuationContext, NegotiationProtocolStep, continuation_prepare_context,
 };
 use crate::protocols::dsp::protocol_types::{
     NegotiationAckMessageDto, NegotiationAgreementMessageDto, NegotiationProcessMessageWrapper,
 };
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
-use ymir::errors::Outcome;
-use std::sync::Arc;
 use common::facades::Mates;
+use std::sync::Arc;
+use ymir::errors::Outcome;
 // ─── AgreementReceptionStep ───────────────────────────────────────────────────
 
 /// Handles an inbound `ContractAgreementMessage` from the Provider.
@@ -49,7 +49,9 @@ impl NegotiationProtocolStep for AgreementReceptionStep {
         input: &NegotiationProcessMessageWrapper<NegotiationAgreementMessageDto>,
         _mate: &Mates,
     ) -> Outcome<()> {
-        validator.on_contract_agreement(&id.to_string(), input).await
+        validator
+            .on_contract_agreement(&id.to_string(), input)
+            .await
     }
 
     async fn prepare_context(
@@ -72,6 +74,8 @@ impl NegotiationProtocolStep for AgreementReceptionStep {
         input: &NegotiationProcessMessageWrapper<NegotiationAgreementMessageDto>,
         mate: &Mates,
     ) -> Outcome<NegotiationProcessDto> {
-        persistence.update_with_new_agreement(ctx.id.as_str(), &input.dto, mate).await
+        persistence
+            .update_with_new_agreement(ctx.id.as_str(), &input.dto, mate)
+            .await
     }
 }

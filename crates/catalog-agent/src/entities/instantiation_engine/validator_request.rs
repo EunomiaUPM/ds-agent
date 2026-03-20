@@ -44,22 +44,27 @@ impl NewPolicyInstantiationDto {
                     if let Some(default_val) = &param_def.default_value {
                         default_val
                     } else {
-                        let err = Errors::parse(&format!(
-                            "Validation Error: Missing required parameter '{}'",
-                            param_key
-                        ), None);
+                        let err = Errors::parse(
+                            &format!(
+                                "Validation Error: Missing required parameter '{}'",
+                                param_key
+                            ),
+                            None,
+                        );
                         return Err(err);
                     }
                 }
             };
 
             let validator = ValidatorFactory::get_validator(param_def.data_type);
-            validator.validate(value_to_validate, &param_def.restrictions).map_err(|e| {
-                Errors::parse(&format!(
-                    "Validation Error for '{}': {:?}",
-                    param_key, e
-                ), None)
-            })?;
+            validator
+                .validate(value_to_validate, &param_def.restrictions)
+                .map_err(|e| {
+                    Errors::parse(
+                        &format!("Validation Error for '{}': {:?}", param_key, e),
+                        None,
+                    )
+                })?;
         }
 
         Ok(())

@@ -48,10 +48,7 @@ pub trait TransferMessageRepoTrait: Send + Sync {
         new_model: &NewTransferMessageModel,
     ) -> Outcome<transfer_message::Model>;
 
-    async fn delete_transfer_message(
-        &self,
-        id: &Urn,
-    ) -> Outcome<()>;
+    async fn delete_transfer_message(&self, id: &Urn) -> Outcome<()>;
 }
 
 #[derive(Debug, Error)]

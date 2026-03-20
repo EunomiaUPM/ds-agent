@@ -35,14 +35,26 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(ConnectorTemplates::Table)
                     .col(ColumnDef::new(ConnectorTemplates::Name).string().not_null())
-                    .col(ColumnDef::new(ConnectorTemplates::Version).string().not_null())
-                    .col(ColumnDef::new(ConnectorTemplates::Author).string().not_null())
+                    .col(
+                        ColumnDef::new(ConnectorTemplates::Version)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(ConnectorTemplates::Author)
+                            .string()
+                            .not_null(),
+                    )
                     .col(
                         ColumnDef::new(ConnectorTemplates::CreatedAt)
                             .timestamp_with_time_zone()
                             .not_null(),
                     )
-                    .col(ColumnDef::new(ConnectorTemplates::Spec).json_binary().not_null())
+                    .col(
+                        ColumnDef::new(ConnectorTemplates::Spec)
+                            .json_binary()
+                            .not_null(),
+                    )
                     .to_owned(),
             )
             .await?;
@@ -61,7 +73,9 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager.drop_table(Table::drop().table(ConnectorTemplates::Table).to_owned()).await
+        manager
+            .drop_table(Table::drop().table(ConnectorTemplates::Table).to_owned())
+            .await
     }
 }
 

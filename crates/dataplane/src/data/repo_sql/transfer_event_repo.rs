@@ -48,7 +48,9 @@ impl TransferEventRepo for TransferEventRepoForSql {
             .await;
         match events {
             Ok(events) => Ok(events),
-            Err(e) => Err(TransferEventRepoErrors::ErrorFetchingTransferEvent(e.into()).into_errors()),
+            Err(e) => {
+                Err(TransferEventRepoErrors::ErrorFetchingTransferEvent(e.into()).into_errors())
+            }
         }
     }
 
@@ -65,7 +67,9 @@ impl TransferEventRepo for TransferEventRepoForSql {
 
         match events {
             Ok(events) => Ok(events),
-            Err(e) => Err(TransferEventRepoErrors::ErrorFetchingTransferEvent(e.into()).into_errors()),
+            Err(e) => {
+                Err(TransferEventRepoErrors::ErrorFetchingTransferEvent(e.into()).into_errors())
+            }
         }
     }
 
@@ -81,7 +85,9 @@ impl TransferEventRepo for TransferEventRepoForSql {
 
         match events {
             Ok(events) => Ok(events),
-            Err(e) => Err(TransferEventRepoErrors::ErrorFetchingTransferEvent(e.into()).into_errors()),
+            Err(e) => {
+                Err(TransferEventRepoErrors::ErrorFetchingTransferEvent(e.into()).into_errors())
+            }
         }
     }
 
@@ -90,12 +96,15 @@ impl TransferEventRepo for TransferEventRepoForSql {
         transfer_event_urn: &Urn,
     ) -> Outcome<Option<transfer_event::Model>> {
         let transfer_event_urn = transfer_event_urn.to_string();
-        let event =
-            transfer_event::Entity::find_by_id(transfer_event_urn).one(&self.db_connection).await;
+        let event = transfer_event::Entity::find_by_id(transfer_event_urn)
+            .one(&self.db_connection)
+            .await;
 
         match event {
             Ok(event) => Ok(event),
-            Err(e) => Err(TransferEventRepoErrors::ErrorFetchingTransferEvent(e.into()).into_errors()),
+            Err(e) => {
+                Err(TransferEventRepoErrors::ErrorFetchingTransferEvent(e.into()).into_errors())
+            }
         }
     }
 
@@ -105,11 +114,16 @@ impl TransferEventRepo for TransferEventRepoForSql {
     ) -> Outcome<transfer_event::Model> {
         let model: transfer_event::ActiveModel = new_transfer_event.clone().into();
 
-        let event =
-            transfer_event::Entity::insert(model).exec_with_returning(&self.db_connection).await;
+        let event = transfer_event::Entity::insert(model)
+            .exec_with_returning(&self.db_connection)
+            .await;
         match event {
             Ok(event) => Ok(event),
-            Err(e) => return Err(TransferEventRepoErrors::ErrorCreatingTransferEvent(e.into()).into_errors()),
+            Err(e) => {
+                return Err(
+                    TransferEventRepoErrors::ErrorCreatingTransferEvent(e.into()).into_errors(),
+                )
+            }
         }
     }
 }

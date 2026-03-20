@@ -65,8 +65,12 @@ mod test_dataservice {
     async fn test_dataservice_lookup_by_catalog() {
         let mut cache = setup().await;
 
-        let catalog_id = UrnBuilder::new("catalog", &Uuid::new_v4().to_string()).build().unwrap();
-        let ds_id = UrnBuilder::new("data-service", &Uuid::new_v4().to_string()).build().unwrap();
+        let catalog_id = UrnBuilder::new("catalog", &Uuid::new_v4().to_string())
+            .build()
+            .unwrap();
+        let ds_id = UrnBuilder::new("data-service", &Uuid::new_v4().to_string())
+            .build()
+            .unwrap();
 
         let ds_dto = DataServiceDto {
             inner: DataServiceModel {
@@ -97,15 +101,24 @@ mod test_dataservice {
 
         // 2. Index it under the catalog (Lookup)
         let score = ds_dto.inner.dct_issued.timestamp() as f64;
-        cache.add_to_relation("catalogs", &catalog_id, &ds_id, score).await.unwrap();
+        cache
+            .add_to_relation("catalogs", &catalog_id, &ds_id, score)
+            .await
+            .unwrap();
 
         // 3. Retrieve using the relation
-        let results = cache.get_by_relation("catalogs", &catalog_id, None, None).await.unwrap();
+        let results = cache
+            .get_by_relation("catalogs", &catalog_id, None, None)
+            .await
+            .unwrap();
         dbg!(&results);
 
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].inner.id, ds_id.to_string());
 
-        println!("Test finished. Inspect in Redis: ZRANGE {} 0 -1", lookup_key);
+        println!(
+            "Test finished. Inspect in Redis: ZRANGE {} 0 -1",
+            lookup_key
+        );
     }
 }

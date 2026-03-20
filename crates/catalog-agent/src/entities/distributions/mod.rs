@@ -88,8 +88,7 @@ pub trait DistributionEntityTrait: Send + Sync {
         limit: Option<u64>,
         page: Option<u64>,
     ) -> Outcome<Vec<DistributionDto>>;
-    async fn get_batch_distributions(&self, ids: &Vec<Urn>)
-        -> Outcome<Vec<DistributionDto>>;
+    async fn get_batch_distributions(&self, ids: &Vec<Urn>) -> Outcome<Vec<DistributionDto>>;
 
     async fn get_distributions_by_dataset_id(
         &self,

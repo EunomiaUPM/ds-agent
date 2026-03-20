@@ -123,10 +123,11 @@ impl PolicyTemplateEntityService for PolicyTemplateEntityGrpc {
         let req = request.into_inner();
         let new_template_dto: NewPolicyTemplateDto = req.try_into()?;
 
-        let created_dto =
-            self.service.create_policy_template(&new_template_dto).await.map_err(|e| {
-                Status::internal(format!("Failed to create Policy Template: {}", e))
-            })?;
+        let created_dto = self
+            .service
+            .create_policy_template(&new_template_dto)
+            .await
+            .map_err(|e| Status::internal(format!("Failed to create Policy Template: {}", e)))?;
 
         Ok(Response::new(PolicyTemplateResponse {
             policy_template: Some(created_dto.into()),

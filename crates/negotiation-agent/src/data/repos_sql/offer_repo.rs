@@ -36,11 +36,7 @@ impl OfferRepoForSql {
 
 #[async_trait::async_trait]
 impl OfferRepoTrait for OfferRepoForSql {
-    async fn get_all_offers(
-        &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<Model>> {
+    async fn get_all_offers(&self, limit: Option<u64>, page: Option<u64>) -> Outcome<Vec<Model>> {
         let offers = offer::Entity::find()
             .limit(limit.unwrap_or(20))
             .offset(page.map(|p| p * limit.unwrap_or(20)).unwrap_or(0))
@@ -54,10 +50,7 @@ impl OfferRepoTrait for OfferRepoForSql {
         }
     }
 
-    async fn get_batch_offers(
-        &self,
-        ids: &Vec<Urn>,
-    ) -> Outcome<Vec<Model>> {
+    async fn get_batch_offers(&self, ids: &Vec<Urn>) -> Outcome<Vec<Model>> {
         let offer_ids = ids.iter().map(|t| t.to_string()).collect::<Vec<_>>();
         let offers = offer::Entity::find()
             .filter(offer::Column::Id.is_in(offer_ids))
@@ -70,10 +63,7 @@ impl OfferRepoTrait for OfferRepoForSql {
         }
     }
 
-    async fn get_offers_by_negotiation_process(
-        &self,
-        id: &Urn,
-    ) -> Outcome<Vec<Model>> {
+    async fn get_offers_by_negotiation_process(&self, id: &Urn) -> Outcome<Vec<Model>> {
         let pid = id.to_string();
         let offers = offer::Entity::find()
             .filter(offer::Column::NegotiationAgentProcessId.eq(pid))
@@ -87,10 +77,7 @@ impl OfferRepoTrait for OfferRepoForSql {
         }
     }
 
-    async fn get_last_offer_by_negotiation_process(
-        &self,
-        id: &Urn,
-    ) -> Outcome<Option<Model>> {
+    async fn get_last_offer_by_negotiation_process(&self, id: &Urn) -> Outcome<Option<Model>> {
         let pid = id.to_string();
         let offers = offer::Entity::find()
             .filter(offer::Column::NegotiationAgentProcessId.eq(pid))
@@ -106,7 +93,9 @@ impl OfferRepoTrait for OfferRepoForSql {
 
     async fn get_offer_by_id(&self, id: &Urn) -> Outcome<Option<Model>> {
         let oid = id.to_string();
-        let offer = offer::Entity::find_by_id(oid).one(&self.db_connection).await;
+        let offer = offer::Entity::find_by_id(oid)
+            .one(&self.db_connection)
+            .await;
 
         match offer {
             Ok(offer) => Ok(offer),
@@ -114,10 +103,7 @@ impl OfferRepoTrait for OfferRepoForSql {
         }
     }
 
-    async fn get_offer_by_negotiation_message(
-        &self,
-        id: &Urn,
-    ) -> Outcome<Option<Model>> {
+    async fn get_offer_by_negotiation_message(&self, id: &Urn) -> Outcome<Option<Model>> {
         let mid = id.to_string();
         let offer = offer::Entity::find()
             .filter(offer::Column::NegotiationAgentMessageId.eq(mid))
@@ -130,10 +116,7 @@ impl OfferRepoTrait for OfferRepoForSql {
         }
     }
 
-    async fn get_offer_by_offer_id(
-        &self,
-        id: &Urn,
-    ) -> Outcome<Option<Model>> {
+    async fn get_offer_by_offer_id(&self, id: &Urn) -> Outcome<Option<Model>> {
         let external_offer_id = id.to_string();
         let offer = offer::Entity::find()
             .filter(offer::Column::OfferId.eq(external_offer_id))
@@ -146,12 +129,11 @@ impl OfferRepoTrait for OfferRepoForSql {
         }
     }
 
-    async fn create_offer(
-        &self,
-        new_model: &NewOfferModel,
-    ) -> Outcome<Model> {
+    async fn create_offer(&self, new_model: &NewOfferModel) -> Outcome<Model> {
         let model: offer::ActiveModel = new_model.clone().into();
-        let result = offer::Entity::insert(model).exec_with_returning(&self.db_connection).await;
+        let result = offer::Entity::insert(model)
+            .exec_with_returning(&self.db_connection)
+            .await;
 
         match result {
             Ok(offer) => Ok(offer),
@@ -161,7 +143,9 @@ impl OfferRepoTrait for OfferRepoForSql {
 
     async fn delete_offer(&self, id: &Urn) -> Outcome<()> {
         let oid = id.to_string();
-        let result = offer::Entity::delete_by_id(oid).exec(&self.db_connection).await;
+        let result = offer::Entity::delete_by_id(oid)
+            .exec(&self.db_connection)
+            .await;
 
         match result {
             Ok(delete_result) => match delete_result.rows_affected {

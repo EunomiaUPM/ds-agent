@@ -20,8 +20,8 @@
 use crate::data::entities::offer;
 use crate::data::entities::offer::NewOfferModel;
 use thiserror::Error;
-use ymir::errors::Outcome;
 use urn::Urn;
+use ymir::errors::Outcome;
 use ymir::errors::RepoIntoErrors;
 
 #[async_trait::async_trait]
@@ -31,34 +31,16 @@ pub trait OfferRepoTrait: Send + Sync {
         limit: Option<u64>,
         page: Option<u64>,
     ) -> Outcome<Vec<offer::Model>>;
-    async fn get_batch_offers(
-        &self,
-        ids: &Vec<Urn>,
-    ) -> Outcome<Vec<offer::Model>>;
-    async fn get_offers_by_negotiation_process(
-        &self,
-        id: &Urn,
-    ) -> Outcome<Vec<offer::Model>>;
+    async fn get_batch_offers(&self, ids: &Vec<Urn>) -> Outcome<Vec<offer::Model>>;
+    async fn get_offers_by_negotiation_process(&self, id: &Urn) -> Outcome<Vec<offer::Model>>;
     async fn get_last_offer_by_negotiation_process(
         &self,
         id: &Urn,
     ) -> Outcome<Option<offer::Model>>;
-    async fn get_offer_by_id(
-        &self,
-        id: &Urn,
-    ) -> Outcome<Option<offer::Model>>;
-    async fn get_offer_by_negotiation_message(
-        &self,
-        id: &Urn,
-    ) -> Outcome<Option<offer::Model>>;
-    async fn get_offer_by_offer_id(
-        &self,
-        id: &Urn,
-    ) -> Outcome<Option<offer::Model>>;
-    async fn create_offer(
-        &self,
-        new_model: &NewOfferModel,
-    ) -> Outcome<offer::Model>;
+    async fn get_offer_by_id(&self, id: &Urn) -> Outcome<Option<offer::Model>>;
+    async fn get_offer_by_negotiation_message(&self, id: &Urn) -> Outcome<Option<offer::Model>>;
+    async fn get_offer_by_offer_id(&self, id: &Urn) -> Outcome<Option<offer::Model>>;
+    async fn create_offer(&self, new_model: &NewOfferModel) -> Outcome<offer::Model>;
     async fn delete_offer(&self, id: &Urn) -> Outcome<()>;
 }
 

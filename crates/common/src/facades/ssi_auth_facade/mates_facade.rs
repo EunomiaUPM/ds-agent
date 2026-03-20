@@ -29,7 +29,7 @@ use crate::http_client::HttpClient;
 
 pub struct MatesFacadeService {
     config: Arc<MinKnownConfig>,
-    client: Arc<HttpClient>
+    client: Arc<HttpClient>,
 }
 
 impl MatesFacadeService {

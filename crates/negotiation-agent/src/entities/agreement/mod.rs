@@ -85,15 +85,11 @@ pub trait NegotiationAgentAgreementsTrait: Send + Sync + 'static {
 
     async fn get_agreement_by_id(&self, id: &Urn) -> Outcome<Option<AgreementDto>>;
 
-    async fn get_agreement_by_negotiation_process(
-        &self,
-        id: &Urn,
-    ) -> Outcome<Option<AgreementDto>>;
+    async fn get_agreement_by_negotiation_process(&self, id: &Urn)
+    -> Outcome<Option<AgreementDto>>;
 
-    async fn get_agreement_by_negotiation_message(
-        &self,
-        id: &Urn,
-    ) -> Outcome<Option<AgreementDto>>;
+    async fn get_agreement_by_negotiation_message(&self, id: &Urn)
+    -> Outcome<Option<AgreementDto>>;
 
     async fn get_agreements_by_assignee(&self, id: &String) -> Outcome<Vec<AgreementDto>>;
 
@@ -101,11 +97,8 @@ pub trait NegotiationAgentAgreementsTrait: Send + Sync + 'static {
 
     async fn create_agreement(&self, new_model: &NewAgreementDto) -> Outcome<AgreementDto>;
 
-    async fn put_agreement(
-        &self,
-        id: &Urn,
-        edit_model: &EditAgreementDto,
-    ) -> Outcome<AgreementDto>;
+    async fn put_agreement(&self, id: &Urn, edit_model: &EditAgreementDto)
+    -> Outcome<AgreementDto>;
 
     async fn delete_agreement(&self, id: &Urn) -> Outcome<()>;
 }

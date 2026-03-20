@@ -33,22 +33,49 @@ impl MigrationTrait for Migration {
             .create_table(
                 Table::create()
                     .table(TransferAgentProcess::Table)
-                    .col(ColumnDef::new(TransferAgentProcess::Id).string().not_null().primary_key())
-                    .col(ColumnDef::new(TransferAgentProcess::State).string().not_null())
+                    .col(
+                        ColumnDef::new(TransferAgentProcess::Id)
+                            .string()
+                            .not_null()
+                            .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(TransferAgentProcess::State)
+                            .string()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(TransferAgentProcess::StateAttribute).string())
                     .col(
                         ColumnDef::new(TransferAgentProcess::AssociatedAgentPeer)
                             .string()
                             .not_null(),
                     )
-                    .col(ColumnDef::new(TransferAgentProcess::Protocol).string().not_null())
                     .col(
-                        ColumnDef::new(TransferAgentProcess::TransferDirection).string().not_null(),
+                        ColumnDef::new(TransferAgentProcess::Protocol)
+                            .string()
+                            .not_null(),
                     )
-                    .col(ColumnDef::new(TransferAgentProcess::AgreementId).string().not_null())
+                    .col(
+                        ColumnDef::new(TransferAgentProcess::TransferDirection)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(TransferAgentProcess::AgreementId)
+                            .string()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(TransferAgentProcess::CallbackAddress).string())
-                    .col(ColumnDef::new(TransferAgentProcess::Role).string().not_null())
-                    .col(ColumnDef::new(TransferAgentProcess::Properties).json_binary().not_null())
+                    .col(
+                        ColumnDef::new(TransferAgentProcess::Role)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(TransferAgentProcess::Properties)
+                            .json_binary()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(TransferAgentProcess::ErrorDetails).json_binary())
                     .col(
                         ColumnDef::new(TransferAgentProcess::CreatedAt)
@@ -82,7 +109,9 @@ impl MigrationTrait for Migration {
                     .to_owned(),
             )
             .await?;
-        manager.drop_table(Table::drop().table(TransferAgentProcess::Table).to_owned()).await
+        manager
+            .drop_table(Table::drop().table(TransferAgentProcess::Table).to_owned())
+            .await
     }
 }
 

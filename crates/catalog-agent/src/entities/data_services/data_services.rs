@@ -21,8 +21,8 @@ use crate::data::factory_trait::CatalogAgentRepoTrait;
 use crate::entities::data_services::{
     DataServiceDto, DataServiceEntityTrait, EditDataServiceDto, NewDataServiceDto,
 };
-use log::error;
 use common::errors::{CommonErrors, ErrorLog};
+use log::error;
 use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
@@ -50,7 +50,12 @@ impl DataServiceEntityTrait for DataServiceEntities {
         page: Option<u64>,
     ) -> Outcome<Vec<DataServiceDto>> {
         // cache
-        if let Ok(dtos) = self.cache.get_dataservice_cache().get_collection(limit, page).await {
+        if let Ok(dtos) = self
+            .cache
+            .get_dataservice_cache()
+            .get_collection(limit, page)
+            .await
+        {
             if !dtos.is_empty() {
                 return Ok(dtos);
             }
@@ -100,7 +105,9 @@ impl DataServiceEntityTrait for DataServiceEntities {
         for dto in &dtos {
             if let Ok(id) = Urn::from_str(dto.inner.id.as_str()) {
                 let _ = cache.set_single(&id, dto).await;
-                let _ = cache.add_to_collection(&id, dto.inner.dct_issued.timestamp() as f64).await;
+                let _ = cache
+                    .add_to_collection(&id, dto.inner.dct_issued.timestamp() as f64)
+                    .await;
             }
         }
         Ok(dtos)
@@ -139,7 +146,9 @@ impl DataServiceEntityTrait for DataServiceEntities {
                 let _ = cache.set_single(&id, dto).await;
                 // Hydrate both global collection and catalog-specific relation
                 let _ = cache.add_to_collection(&id, score).await;
-                let _ = cache.add_to_relation("catalogs", catalog_id, &id, score).await;
+                let _ = cache
+                    .add_to_relation("catalogs", catalog_id, &id, score)
+                    .await;
             }
         }
 
@@ -175,7 +184,11 @@ impl DataServiceEntityTrait for DataServiceEntities {
         data_service_id: &Urn,
     ) -> Outcome<Option<DataServiceDto>> {
         // cache hit
-        if let Ok(Some(dto)) = self.cache.get_dataservice_cache().get_single(data_service_id).await
+        if let Ok(Some(dto)) = self
+            .cache
+            .get_dataservice_cache()
+            .get_single(data_service_id)
+            .await
         {
             return Ok(Some(dto));
         }
@@ -219,7 +232,9 @@ impl DataServiceEntityTrait for DataServiceEntities {
         // hydration
         let cache = self.cache.get_dataservice_cache();
         let _ = cache.set_single(&ds_urn, &dto).await;
-        let _ = cache.add_to_collection(&ds_urn, dto.inner.dct_issued.timestamp() as f64).await;
+        let _ = cache
+            .add_to_collection(&ds_urn, dto.inner.dct_issued.timestamp() as f64)
+            .await;
 
         Ok(dto)
     }
@@ -247,7 +262,9 @@ impl DataServiceEntityTrait for DataServiceEntities {
 
         // lookup cache hydration
         if let Ok(catalog_id) = Urn::from_str(&*dto.inner.catalog_id) {
-            let _ = cache.add_to_relation("catalogs", &catalog_id, &ds_urn, score).await;
+            let _ = cache
+                .add_to_relation("catalogs", &catalog_id, &ds_urn, score)
+                .await;
         }
 
         Ok(dto)
@@ -291,7 +308,9 @@ impl DataServiceEntityTrait for DataServiceEntities {
         // lookup invalidation
         if let Some(dto) = current {
             if let Ok(catalog_id) = Urn::from_str(&*dto.inner.catalog_id) {
-                let _ = cache.remove_from_relation("catalogs", &catalog_id, data_service_id).await;
+                let _ = cache
+                    .remove_from_relation("catalogs", &catalog_id, data_service_id)
+                    .await;
             }
         }
 

@@ -519,11 +519,11 @@ impl FromStr for TransferStateAttribute {
             "ByConsumer" => Ok(TransferStateAttribute::ByConsumer),
             "ByProvider" => Ok(TransferStateAttribute::ByProvider),
             v => {
-                let err = Errors::parse(&format!(
-                    "Invalid or unknown TransferStateAttribute '{}'",
-                    v
-                ), None);
-                return Err(err)
+                let err = Errors::parse(
+                    &format!("Invalid or unknown TransferStateAttribute '{}'", v),
+                    None,
+                );
+                return Err(err);
             }
         }
     }
@@ -537,7 +537,8 @@ impl TryFrom<TransferProcessDto> for TransferProcessMessageWrapper<TransferProce
             Some(val) => val,
             None => {
                 let err = Errors::parse(
-                    "Missing 'consumerPid' in TransferProcessDto identifiers map", None,
+                    "Missing 'consumerPid' in TransferProcessDto identifiers map",
+                    None,
                 );
                 return Err(err);
             }
@@ -545,10 +546,13 @@ impl TryFrom<TransferProcessDto> for TransferProcessMessageWrapper<TransferProce
         let consumer_pid = match Urn::from_str(consumer_str) {
             Ok(urn) => urn,
             Err(e) => {
-                let err = Errors::parse(&format!(
-                    "Invalid URN format for consumerPid '{}': {}",
-                    consumer_str, e
-                ), None);
+                let err = Errors::parse(
+                    &format!(
+                        "Invalid URN format for consumerPid '{}': {}",
+                        consumer_str, e
+                    ),
+                    None,
+                );
                 return Err(err);
             }
         };
@@ -557,7 +561,8 @@ impl TryFrom<TransferProcessDto> for TransferProcessMessageWrapper<TransferProce
             Some(val) => val,
             None => {
                 let err = Errors::parse(
-                    "Missing 'providerPid' in TransferProcessDto identifiers map", None,
+                    "Missing 'providerPid' in TransferProcessDto identifiers map",
+                    None,
                 );
                 return Err(err);
             }
@@ -565,10 +570,13 @@ impl TryFrom<TransferProcessDto> for TransferProcessMessageWrapper<TransferProce
         let provider_pid = match Urn::from_str(provider_str) {
             Ok(urn) => urn,
             Err(e) => {
-                let err = Errors::parse(&format!(
-                    "Invalid URN format for providerPid '{}': {}",
-                    provider_str, e
-                ), None);
+                let err = Errors::parse(
+                    &format!(
+                        "Invalid URN format for providerPid '{}': {}",
+                        provider_str, e
+                    ),
+                    None,
+                );
                 return Err(err);
             }
         };
@@ -576,10 +584,13 @@ impl TryFrom<TransferProcessDto> for TransferProcessMessageWrapper<TransferProce
         let state = match value.inner.state.parse::<TransferProcessState>() {
             Ok(s) => s,
             Err(_) => {
-                let err = Errors::parse(&format!(
-                    "Invalid or unknown TransferProcessState '{}' in database model",
-                    value.inner.state
-                ), None);
+                let err = Errors::parse(
+                    &format!(
+                        "Invalid or unknown TransferProcessState '{}' in database model",
+                        value.inner.state
+                    ),
+                    None,
+                );
                 return Err(err);
             }
         };
@@ -587,7 +598,12 @@ impl TryFrom<TransferProcessDto> for TransferProcessMessageWrapper<TransferProce
         Ok(Self {
             context: ContextField::default(),
             _type: TransferProcessMessageType::TransferProcess,
-            dto: TransferProcessAckDto { consumer_pid, provider_pid, state, data_address: None },
+            dto: TransferProcessAckDto {
+                consumer_pid,
+                provider_pid,
+                state,
+                data_address: None,
+            },
         })
     }
 }

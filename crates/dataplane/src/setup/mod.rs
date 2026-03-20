@@ -76,11 +76,15 @@ impl DataplaneSetup {
         // cache
         let cache = Arc::new(DataplaneTransferCacheForRedis::new(redis_conn));
         // repo
-        let dataplane_repo = self.get_data_plane_repo(config.as_ref(), vault.clone()).await;
+        let dataplane_repo = self
+            .get_data_plane_repo(config.as_ref(), vault.clone())
+            .await;
 
         // entity
-        let dataplane_process_entity =
-            Arc::new(DataplaneTransfersEntityService::new(dataplane_repo.clone(), cache));
+        let dataplane_process_entity = Arc::new(DataplaneTransfersEntityService::new(
+            dataplane_repo.clone(),
+            cache,
+        ));
 
         // proxy base URL (used by driver to build callback URLs)
         let http_cfg = config.common().http();
@@ -92,11 +96,7 @@ impl DataplaneSetup {
         // driver factory
         let driver_factory = Arc::new(DataplaneDriverFactory::new(proxy_base_url, http_client));
 
-        DataplaneManager::new(
-            dataplane_process_entity,
-            connector_entity,
-            driver_factory,
-        )
+        DataplaneManager::new(dataplane_process_entity, connector_entity, driver_factory)
     }
 
     pub async fn build_control_router(
@@ -118,13 +118,18 @@ impl DataplaneSetup {
         // entities and routres
         let transfer_event_entity = Arc::new(TransferEventEntityService::new(&dataplane_repo));
         let transfer_event_service = TransferEventsRouter::new(transfer_event_entity.clone());
-        let dataplane_processes_events_router =
-            transfer_event_service.clone().dataplane_processes_sub_router();
+        let dataplane_processes_events_router = transfer_event_service
+            .clone()
+            .dataplane_processes_sub_router();
         let events_lookup_router = transfer_event_service.events_sub_router();
-        let logs_entity = Arc::new(DataplaneTransferLogsEntityService::new(dataplane_repo.clone()));
+        let logs_entity = Arc::new(DataplaneTransferLogsEntityService::new(
+            dataplane_repo.clone(),
+        ));
         let logs_router = DataplaneTransferLogsRouter::new(logs_entity).router();
-        let dataplane_process_entity =
-            Arc::new(DataplaneTransfersEntityService::new(dataplane_repo.clone(), cache));
+        let dataplane_process_entity = Arc::new(DataplaneTransfersEntityService::new(
+            dataplane_repo.clone(),
+            cache,
+        ));
         let dataplane_processes_router = DataPlaneProcessesRouter::new(
             dataplane_process_entity.clone(),
             transfer_event_entity.clone(),
@@ -156,8 +161,10 @@ impl DataplaneSetup {
         let cache = Arc::new(DataplaneTransferCacheForRedis::new(redis_conn));
         let dataplane_repo = self.get_data_plane_repo(config, vault.clone()).await;
 
-        let dataplane_process_entity =
-            Arc::new(DataplaneTransfersEntityService::new(dataplane_repo.clone(), cache));
+        let dataplane_process_entity = Arc::new(DataplaneTransfersEntityService::new(
+            dataplane_repo.clone(),
+            cache,
+        ));
         TestingHTTPProxy::new(dataplane_process_entity.clone(), dataplane_repo).router()
     }
 }

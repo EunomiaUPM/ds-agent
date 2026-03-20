@@ -32,7 +32,6 @@ pub(crate) mod types;
 // Each step encodes one DSP negotiation lifecycle operation.  The orchestrator
 // in `rpc.rs` dispatches through `run_lifecycle<S: NegotiationRpcStep>` so the
 // algorithm (validate → prepare context → auth → send + persist) is written once.
-pub(super) mod step_trait;
 pub(super) mod step_agreement;
 pub(super) mod step_event_accepted;
 pub(super) mod step_event_finalized;
@@ -41,6 +40,7 @@ pub(super) mod step_offer_init;
 pub(super) mod step_request;
 pub(super) mod step_request_init;
 pub(super) mod step_termination;
+pub(super) mod step_trait;
 pub(super) mod step_verification;
 
 #[async_trait::async_trait]

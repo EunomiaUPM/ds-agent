@@ -41,7 +41,10 @@ impl FacadeService {
         data_service_resolver_facade: Arc<dyn DataServiceFacadeTrait>,
         data_plane_facade: Arc<dyn DataPlaneFacadeTrait>,
     ) -> FacadeService {
-        Self { data_service_resolver_facade, data_plane_facade }
+        Self {
+            data_service_resolver_facade,
+            data_plane_facade,
+        }
     }
 }
 

@@ -36,13 +36,13 @@ use crate::protocols::dsp::validator::validators::validate_payload::ValidatePayl
 use crate::protocols::dsp::validator::validators::validation_helpers::ValidationHelperService;
 use crate::protocols::protocol::ProtocolPluginTrait;
 use axum::Router;
+use common::config::services::traits::CatalogConfigTrait;
 use common::config::services::CatalogConfig;
 use common::facades::ssi_auth_facade::ssi_auth_facade::SSIAuthFacadeService;
 use common::facades::ssi_auth_facade::MatesFacadeTrait;
 use common::http_client::HttpClient;
 use std::sync::Arc;
 use ymir::errors::Outcome;
-use common::config::services::traits::CatalogConfigTrait;
 
 mod errors;
 pub(crate) mod facades;
@@ -163,7 +163,9 @@ impl ProtocolPluginTrait for CatalogDSP {
             DspRouter::new(orchestrator_service.clone(), self.config.clone(), ssi_auth);
         let rpc_router = RpcRouter::new(orchestrator_service.clone());
 
-        Ok(Router::new().merge(dsp_router.router()).merge(rpc_router.router()))
+        Ok(Router::new()
+            .merge(dsp_router.router())
+            .merge(rpc_router.router()))
     }
 
     fn build_grpc_router(&self) -> Outcome<Option<Router>> {

@@ -108,8 +108,10 @@ impl OrchestrationPersistenceForProtocol {
     // Builders
     // =========================================================================
     async fn build_sub_catalogs(&self, exclude_id: &Urn) -> Outcome<Vec<CatalogMinimized>> {
-        let catalogs_dtos =
-            self.catalog_entities_service.get_all_catalogs(None, None, false).await?;
+        let catalogs_dtos = self
+            .catalog_entities_service
+            .get_all_catalogs(None, None, false)
+            .await?;
         let mut dcat_catalogs = Vec::with_capacity(catalogs_dtos.len());
         for catalog_dto in catalogs_dtos {
             let catalog_urn = Urn::from_str(&catalog_dto.inner.id)?;
@@ -123,8 +125,10 @@ impl OrchestrationPersistenceForProtocol {
         Ok(dcat_catalogs)
     }
     async fn build_datasets_for_catalog(&self, catalog_id: &Urn) -> Outcome<Vec<Dataset>> {
-        let datasets_dtos =
-            self.dataset_entities_service.get_datasets_by_catalog_id(catalog_id).await?;
+        let datasets_dtos = self
+            .dataset_entities_service
+            .get_datasets_by_catalog_id(catalog_id)
+            .await?;
         let mut dcat_datasets = Vec::with_capacity(datasets_dtos.len());
 
         for dataset_dto in datasets_dtos {
@@ -137,8 +141,10 @@ impl OrchestrationPersistenceForProtocol {
     }
 
     async fn build_dataservices_for_catalog(&self, catalog_id: &Urn) -> Outcome<Vec<DataService>> {
-        let dataservices_dtos =
-            self.data_service_entities_service.get_data_services_by_catalog_id(catalog_id).await?;
+        let dataservices_dtos = self
+            .data_service_entities_service
+            .get_data_services_by_catalog_id(catalog_id)
+            .await?;
         let mut dcat_dataservices = Vec::with_capacity(dataservices_dtos.len());
 
         for dataservices_dto in dataservices_dtos {
@@ -165,8 +171,10 @@ impl OrchestrationPersistenceForProtocol {
         &self,
         dataset_id: &Urn,
     ) -> Outcome<Vec<Distribution>> {
-        let distributions_dtos =
-            self.distributions_entity_service.get_distributions_by_dataset_id(dataset_id).await?;
+        let distributions_dtos = self
+            .distributions_entity_service
+            .get_distributions_by_dataset_id(dataset_id)
+            .await?;
         // batch dataservices
         let access_services_ids: Vec<Urn> = distributions_dtos
             .iter()
@@ -211,7 +219,11 @@ impl OrchestrationPersistenceForProtocol {
     }
 
     async fn fetch_main_dataservice_dto(&self) -> Outcome<DataServiceDto> {
-        match self.data_service_entities_service.get_main_data_service().await? {
+        match self
+            .data_service_entities_service
+            .get_main_data_service()
+            .await?
+        {
             Some(c) => Ok(c),
             None => {
                 let err = Errors::missing_resource("", "Main dataservice not found", None);
@@ -221,7 +233,11 @@ impl OrchestrationPersistenceForProtocol {
     }
 
     async fn fetch_dataset_dto(&self, dataset_id: &Urn) -> Outcome<DatasetDto> {
-        match self.dataset_entities_service.get_dataset_by_id(dataset_id).await? {
+        match self
+            .dataset_entities_service
+            .get_dataset_by_id(dataset_id)
+            .await?
+        {
             Some(d) => Ok(d),
             None => {
                 let err = Errors::missing_resource(dataset_id.as_str(), "Dataset not found", None);
@@ -246,8 +262,13 @@ impl OrchestrationPersistenceForProtocol {
             _type: "Catalog".to_string(),
             id: Urn::from_str(&dto.inner.id)
                 .unwrap_or_else(|_| Urn::from_str("urn:error").unwrap()),
-            foaf: CatalogFoafDeclaration { homepage: dto.inner.foaf_home_page },
-            dcat: CatalogDcatDeclaration { theme: None, keyword: None },
+            foaf: CatalogFoafDeclaration {
+                homepage: dto.inner.foaf_home_page,
+            },
+            dcat: CatalogDcatDeclaration {
+                theme: None,
+                keyword: None,
+            },
             dct: CatalogDctDeclaration {
                 conforms_to: dto.inner.dct_conforms_to,
                 creator: dto.inner.dct_creator,
@@ -257,7 +278,9 @@ impl OrchestrationPersistenceForProtocol {
                 title: dto.inner.dct_title,
                 description: vec![],
             },
-            dspace: CatalogDSpaceDeclaration { participant_id: None },
+            dspace: CatalogDSpaceDeclaration {
+                participant_id: None,
+            },
             odrl_offer: None,
             extra_fields: Default::default(),
             catalogs: CatalogCatalogTypes::CatalogMultipleMinimized(catalogs),
@@ -280,8 +303,13 @@ impl OrchestrationPersistenceForProtocol {
             _type: "Catalog".to_string(),
             id: Urn::from_str(&dto.inner.id)
                 .unwrap_or_else(|_| Urn::from_str("urn:error").unwrap()),
-            foaf: CatalogFoafDeclaration { homepage: dto.inner.foaf_home_page },
-            dcat: CatalogDcatDeclaration { theme: None, keyword: None },
+            foaf: CatalogFoafDeclaration {
+                homepage: dto.inner.foaf_home_page,
+            },
+            dcat: CatalogDcatDeclaration {
+                theme: None,
+                keyword: None,
+            },
             dct: CatalogDctDeclaration {
                 conforms_to: dto.inner.dct_conforms_to,
                 creator: dto.inner.dct_creator,
@@ -291,7 +319,9 @@ impl OrchestrationPersistenceForProtocol {
                 title: dto.inner.dct_title,
                 description: vec![],
             },
-            dspace: CatalogDSpaceDeclaration { participant_id: None },
+            dspace: CatalogDSpaceDeclaration {
+                participant_id: None,
+            },
             odrl_offer: None,
             extra_fields: Default::default(),
             catalogs: CatalogCatalogTypes::CatalogMultipleMinimized(
@@ -314,8 +344,13 @@ impl OrchestrationPersistenceForProtocol {
             _type: "Catalog".to_string(),
             id: Urn::from_str(&dto.inner.id)
                 .unwrap_or_else(|_| Urn::from_str("urn:error").unwrap()),
-            foaf: CatalogFoafDeclaration { homepage: dto.inner.foaf_home_page },
-            dcat: CatalogDcatDeclaration { theme: None, keyword: None },
+            foaf: CatalogFoafDeclaration {
+                homepage: dto.inner.foaf_home_page,
+            },
+            dcat: CatalogDcatDeclaration {
+                theme: None,
+                keyword: None,
+            },
             dct: CatalogDctDeclaration {
                 conforms_to: dto.inner.dct_conforms_to,
                 creator: dto.inner.dct_creator,
@@ -325,7 +360,9 @@ impl OrchestrationPersistenceForProtocol {
                 title: dto.inner.dct_title,
                 description: vec![],
             },
-            dspace: CatalogDSpaceDeclaration { participant_id: None },
+            dspace: CatalogDSpaceDeclaration {
+                participant_id: None,
+            },
             odrl_offer: None,
             extra_fields: Default::default(),
             datasets: CatalogDatasetTypes::DatasetMultipleMinimized(
@@ -345,7 +382,10 @@ impl OrchestrationPersistenceForProtocol {
             context: ContextField::default(),
             _type: "Dataset".to_string(),
             id: dto.inner.id.clone(),
-            dcat: DatasetDcatDeclaration { theme: None, keyword: None },
+            dcat: DatasetDcatDeclaration {
+                theme: None,
+                keyword: None,
+            },
             dct: DatasetDctDeclaration {
                 conforms_to: dto.inner.dct_conforms_to,
                 creator: dto.inner.dct_creator,

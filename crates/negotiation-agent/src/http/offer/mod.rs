@@ -66,7 +66,10 @@ impl NegotiationAgentOffersRouter {
 
     pub fn router(self) -> Router {
         Router::new()
-            .route("/", get(Self::handle_get_all_offers).post(Self::handle_create_offer))
+            .route(
+                "/",
+                get(Self::handle_get_all_offers).post(Self::handle_create_offer),
+            )
             .route("/batch", post(Self::handle_get_batch_offers))
             .route(
                 "/{id}",
@@ -80,7 +83,10 @@ impl NegotiationAgentOffersRouter {
                 "/message/{message_id}",
                 get(Self::handle_get_offer_by_negotiation_message),
             )
-            .route("/offer-id/{offer_id}", get(Self::handle_get_offer_by_offer_id))
+            .route(
+                "/offer-id/{offer_id}",
+                get(Self::handle_get_offer_by_offer_id),
+            )
             .with_state(self)
     }
 
@@ -88,7 +94,11 @@ impl NegotiationAgentOffersRouter {
         State(state): State<NegotiationAgentOffersRouter>,
         Query(params): Query<PaginationParams>,
     ) -> impl IntoResponse {
-        match state.service.get_all_offers(params.limit, params.page).await {
+        match state
+            .service
+            .get_all_offers(params.limit, params.page)
+            .await
+        {
             Ok(offers) => (StatusCode::OK, Json(offers)).into_response(),
             Err(err) => err.to_response(),
         }
@@ -159,7 +169,11 @@ impl NegotiationAgentOffersRouter {
             Ok(urn) => urn,
             Err(resp) => return resp,
         };
-        match state.service.get_offers_by_negotiation_process(&process_urn).await {
+        match state
+            .service
+            .get_offers_by_negotiation_process(&process_urn)
+            .await
+        {
             Ok(offers) => (StatusCode::OK, Json(offers)).into_response(),
             Err(err) => err.to_response(),
         }
@@ -173,7 +187,11 @@ impl NegotiationAgentOffersRouter {
             Ok(urn) => urn,
             Err(resp) => return resp,
         };
-        match state.service.get_offer_by_negotiation_message(&message_urn).await {
+        match state
+            .service
+            .get_offer_by_negotiation_message(&message_urn)
+            .await
+        {
             Ok(Some(offer)) => (StatusCode::OK, Json(offer)).into_response(),
             Ok(None) => (StatusCode::NOT_FOUND).into_response(),
             Err(err) => err.to_response(),

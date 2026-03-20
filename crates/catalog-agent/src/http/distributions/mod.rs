@@ -65,7 +65,10 @@ impl DistributionEntityRouter {
     pub fn router(self) -> Router {
         Router::new()
             .route("/", get(Self::handle_get_all_distributions))
-            .route("/dataset/{id}", get(Self::handle_get_distributions_by_dataset_id))
+            .route(
+                "/dataset/{id}",
+                get(Self::handle_get_distributions_by_dataset_id),
+            )
             .route(
                 "/dataset/{id}/format/{format}",
                 get(Self::handle_get_distribution_by_dataset_id_and_dct_format),
@@ -82,7 +85,11 @@ impl DistributionEntityRouter {
         State(state): State<DistributionEntityRouter>,
         Query(params): Query<PaginationParams>,
     ) -> impl IntoResponse {
-        match state.service.get_all_distributions(params.limit, params.page).await {
+        match state
+            .service
+            .get_all_distributions(params.limit, params.page)
+            .await
+        {
             Ok(distributions) => (StatusCode::OK, Json(ToCamelCase(distributions))).into_response(),
             Err(e) => return e.into_response(),
         }

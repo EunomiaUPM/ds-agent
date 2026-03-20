@@ -33,7 +33,12 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(DataplaneTransfers::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(DataplaneTransfers::Id).string().not_null().primary_key())
+                    .col(
+                        ColumnDef::new(DataplaneTransfers::Id)
+                            .string()
+                            .not_null()
+                            .primary_key(),
+                    )
                     .col(
                         ColumnDef::new(DataplaneTransfers::TransferProcessId)
                             .string()
@@ -41,12 +46,36 @@ impl MigrationTrait for Migration {
                             .not_null(),
                     )
                     .col(ColumnDef::new(DataplaneTransfers::Role).string().not_null())
-                    .col(ColumnDef::new(DataplaneTransfers::InteractionMode).string().not_null())
-                    .col(ColumnDef::new(DataplaneTransfers::State).string().not_null())
-                    .col(ColumnDef::new(DataplaneTransfers::ConnectorInstanceId).string().null())
-                    .col(ColumnDef::new(DataplaneTransfers::IngressConfig).json_binary().not_null())
-                    .col(ColumnDef::new(DataplaneTransfers::EgressConfig).json_binary().not_null())
-                    .col(ColumnDef::new(DataplaneTransfers::FlowControl).json_binary().null())
+                    .col(
+                        ColumnDef::new(DataplaneTransfers::InteractionMode)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(DataplaneTransfers::State)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(DataplaneTransfers::ConnectorInstanceId)
+                            .string()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(DataplaneTransfers::IngressConfig)
+                            .json_binary()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(DataplaneTransfers::EgressConfig)
+                            .json_binary()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(DataplaneTransfers::FlowControl)
+                            .json_binary()
+                            .null(),
+                    )
                     .col(
                         ColumnDef::new(DataplaneTransfers::CreatedAt)
                             .timestamp_with_time_zone()
@@ -59,7 +88,9 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager.drop_table(Table::drop().table(DataplaneTransfers::Table).to_owned()).await
+        manager
+            .drop_table(Table::drop().table(DataplaneTransfers::Table).to_owned())
+            .await
     }
 }
 

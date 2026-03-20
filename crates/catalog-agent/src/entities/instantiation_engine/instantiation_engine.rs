@@ -37,7 +37,10 @@ impl PolicyInstantiationEngine {
         odrl_policy_service: Arc<dyn OdrlPolicyEntityTrait>,
         policy_templates_service: Arc<dyn PolicyTemplateEntityTrait>,
     ) -> PolicyInstantiationEngine {
-        Self { odrl_policy_service, policy_templates_service }
+        Self {
+            odrl_policy_service,
+            policy_templates_service,
+        }
     }
 
     fn substitute_variables_recursive(

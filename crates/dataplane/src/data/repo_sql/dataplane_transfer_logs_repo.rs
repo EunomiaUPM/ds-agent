@@ -46,10 +46,10 @@ impl DataplaneTransferLogsRepo for DataplaneTransferLogsRepoForSql {
         let result = active_model.insert(&self.db).await;
         match result {
             Ok(result) => Ok(result),
-            Err(e) => Err(DataplaneTransferLogsRepoErrors::ErrorCreatingDataplaneTransferLog(
-                e.into(),
-            )
-            .into_errors()),
+            Err(e) => Err(
+                DataplaneTransferLogsRepoErrors::ErrorCreatingDataplaneTransferLog(e.into())
+                    .into_errors(),
+            ),
         }
     }
 
@@ -65,10 +65,10 @@ impl DataplaneTransferLogsRepo for DataplaneTransferLogsRepoForSql {
             .await;
         match logs {
             Ok(logs) => Ok(logs),
-            Err(e) => Err(DataplaneTransferLogsRepoErrors::ErrorFetchingDataplaneTransferLog(
-                e.into(),
-            )
-            .into_errors()),
+            Err(e) => Err(
+                DataplaneTransferLogsRepoErrors::ErrorFetchingDataplaneTransferLog(e.into())
+                    .into_errors(),
+            ),
         }
     }
 
@@ -77,13 +77,15 @@ impl DataplaneTransferLogsRepo for DataplaneTransferLogsRepoForSql {
         log_id: &Urn,
     ) -> Outcome<Option<dataplane_transfer_logs::Model>> {
         let log_id = log_id.to_string();
-        let log = dataplane_transfer_logs::Entity::find_by_id(log_id).one(&self.db).await;
+        let log = dataplane_transfer_logs::Entity::find_by_id(log_id)
+            .one(&self.db)
+            .await;
         match log {
             Ok(log) => Ok(log),
-            Err(e) => Err(DataplaneTransferLogsRepoErrors::ErrorFetchingDataplaneTransferLog(
-                e.into(),
-            )
-            .into_errors()),
+            Err(e) => Err(
+                DataplaneTransferLogsRepoErrors::ErrorFetchingDataplaneTransferLog(e.into())
+                    .into_errors(),
+            ),
         }
     }
 
@@ -98,10 +100,10 @@ impl DataplaneTransferLogsRepo for DataplaneTransferLogsRepoForSql {
             .await;
         match logs {
             Ok(logs) => Ok(logs),
-            Err(e) => Err(DataplaneTransferLogsRepoErrors::ErrorFetchingDataplaneTransferLog(
-                e.into(),
-            )
-            .into_errors()),
+            Err(e) => Err(
+                DataplaneTransferLogsRepoErrors::ErrorFetchingDataplaneTransferLog(e.into())
+                    .into_errors(),
+            ),
         }
     }
 }

@@ -19,27 +19,20 @@
 
 #![allow(unused)]
 
-use ymir::errors::Outcome;
 use crate::protocols::dsp::orchestrator::rpc::types::{
     RpcTransferCompletionMessageDto, RpcTransferRequestMessageDto, RpcTransferStartMessageDto,
     RpcTransferSuspensionMessageDto, RpcTransferTerminationMessageDto,
 };
+use ymir::errors::Outcome;
 
 #[async_trait::async_trait]
 pub trait ValidationRpcSteps: Send + Sync + 'static {
-    async fn transfer_request_rpc(
-        &self,
-        input: &RpcTransferRequestMessageDto,
-    ) -> Outcome<()>;
+    async fn transfer_request_rpc(&self, input: &RpcTransferRequestMessageDto) -> Outcome<()>;
     async fn transfer_start_rpc(&self, input: &RpcTransferStartMessageDto) -> Outcome<()>;
-    async fn transfer_completion_rpc(
-        &self,
-        input: &RpcTransferCompletionMessageDto,
-    ) -> Outcome<()>;
-    async fn transfer_suspension_rpc(
-        &self,
-        input: &RpcTransferSuspensionMessageDto,
-    ) -> Outcome<()>;
+    async fn transfer_completion_rpc(&self, input: &RpcTransferCompletionMessageDto)
+        -> Outcome<()>;
+    async fn transfer_suspension_rpc(&self, input: &RpcTransferSuspensionMessageDto)
+        -> Outcome<()>;
     async fn transfer_termination_rpc(
         &self,
         input: &RpcTransferTerminationMessageDto,

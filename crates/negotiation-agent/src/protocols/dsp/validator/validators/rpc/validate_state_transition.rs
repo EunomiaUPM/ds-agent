@@ -22,11 +22,11 @@ use crate::protocols::dsp::protocol_types::{
 };
 use crate::protocols::dsp::validator::traits::validate_state_transition::ValidateStateTransition;
 use crate::protocols::dsp::validator::traits::validation_helpers::ValidationHelpers;
-use log::error;
 use common::config::types::roles::RoleConfig;
 use common::errors::{CommonErrors, ErrorLog};
-use ymir::errors::{Errors, Outcome};
+use log::error;
 use std::sync::Arc;
+use ymir::errors::{Errors, Outcome};
 
 pub struct ValidatedStateTransitionServiceForRcp {
     _helpers: Arc<dyn ValidationHelpers>,

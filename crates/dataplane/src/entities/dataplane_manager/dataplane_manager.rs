@@ -47,7 +47,11 @@ impl DataplaneManager {
         connector_entity: Arc<dyn ConnectorInstanceTrait>,
         driver_factory: Arc<DataplaneDriverFactory>,
     ) -> Self {
-        Self { dataplane_entity, connector_entity, driver_factory }
+        Self {
+            dataplane_entity,
+            connector_entity,
+            driver_factory,
+        }
     }
 
     /// Main entry point: receives a command from the control plane and executes it.
@@ -71,7 +75,8 @@ impl DataplaneManager {
 
         // 4. CREATION GUARD: If no process exists, only SetInit is allowed → create it
         if dataplane_process_opt.is_none() {
-            self.handle_creation(&input, &connector_urn, &connector_instance).await?;
+            self.handle_creation(&input, &connector_urn, &connector_instance)
+                .await?;
             // Re-execute: now the process exists, so cmd_init runs (Init → Configuring)
             // and trigger_autonomous_transition chains (Configuring → Auth → Ready)
             return Box::pin(self.execute_command(input)).await;
@@ -83,7 +88,9 @@ impl DataplaneManager {
         })?;
 
         // 6. Build driver (connector is optional)
-        let driver = self.driver_factory.create_driver(&process, connector_instance.as_ref())?;
+        let driver = self
+            .driver_factory
+            .create_driver(&process, connector_instance.as_ref())?;
 
         // 7. Creates context for avoiding prop drilling
         let ctx = CommandContext::from_connector(&process, &driver, connector_instance.as_ref())?;
@@ -92,7 +99,8 @@ impl DataplaneManager {
         let response = self.handle_command(&input.command, &process, &ctx).await?;
 
         // 9. Fire autonomous transitions (recursive chain)
-        self.trigger_autonomous_transition(&input.transfer_process_id).await?;
+        self.trigger_autonomous_transition(&input.transfer_process_id)
+            .await?;
 
         Ok(response)
     }
@@ -109,9 +117,9 @@ impl DataplaneManager {
         match process_opt {
             None => match command {
                 DataplaneCommand::SetInit(role) => match role {
-                    DataplaneInitCommandType::Provider { connector_instance, .. } => {
-                        Ok(Some(connector_instance.clone()))
-                    }
+                    DataplaneInitCommandType::Provider {
+                        connector_instance, ..
+                    } => Ok(Some(connector_instance.clone())),
                     DataplaneInitCommandType::Consumer { .. } => Err(Errors::crazy(
                         "Consumer role shouldn't ever have a Connector instance",
                         None,
@@ -138,8 +146,11 @@ impl DataplaneManager {
     ) -> Outcome<Option<ConnectorInstanceDto>> {
         match connector_urn {
             Some(urn) => {
-                let instance =
-                    self.connector_entity.get_instance_by_id(urn).await?.ok_or_else(|| {
+                let instance = self
+                    .connector_entity
+                    .get_instance_by_id(urn)
+                    .await?
+                    .ok_or_else(|| {
                         Errors::crazy(
                             format!("Connector instance not found for URN: {}", urn),
                             None,
@@ -178,8 +189,10 @@ impl DataplaneManager {
     // ─── Autonomous transitions (recursive chain) ───
 
     async fn trigger_autonomous_transition(&self, transfer_process_id: &Urn) -> Outcome<()> {
-        let current =
-            self.dataplane_entity.get_dataplane_transfer_by_process_id(transfer_process_id).await?;
+        let current = self
+            .dataplane_entity
+            .get_dataplane_transfer_by_process_id(transfer_process_id)
+            .await?;
 
         let process = match current {
             Some(p) => p,
@@ -195,8 +208,10 @@ impl DataplaneManager {
         };
 
         if let Some(command) = next_command {
-            let next_input =
-                DataplaneManagerInput { transfer_process_id: transfer_process_id.clone(), command };
+            let next_input = DataplaneManagerInput {
+                transfer_process_id: transfer_process_id.clone(),
+                command,
+            };
             Box::pin(self.execute_command(&next_input)).await?;
         }
 
@@ -212,8 +227,10 @@ impl DataplaneManager {
         &self,
         transfer_id: &Urn,
     ) -> Outcome<Option<DataplaneAddress>> {
-        let Some(process) =
-            self.dataplane_entity.get_dataplane_transfer_by_process_id(transfer_id).await?
+        let Some(process) = self
+            .dataplane_entity
+            .get_dataplane_transfer_by_process_id(transfer_id)
+            .await?
         else {
             return Ok(None);
         };
@@ -231,8 +248,10 @@ impl DataplaneManager {
 
     /// Check if the transfer is in PULL mode.
     pub async fn is_pull(&self, transfer_id: &Urn) -> Outcome<bool> {
-        if let Some(process) =
-            self.dataplane_entity.get_dataplane_transfer_by_process_id(transfer_id).await?
+        if let Some(process) = self
+            .dataplane_entity
+            .get_dataplane_transfer_by_process_id(transfer_id)
+            .await?
         {
             Ok(process.inner.interaction_mode == InteractionMode::Pull)
         } else {

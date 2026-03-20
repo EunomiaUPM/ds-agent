@@ -18,19 +18,19 @@
  */
 
 pub(crate) mod protocol;
-pub(crate) mod step_trait;
+pub(crate) mod step_completion;
 pub(crate) mod step_request;
 pub(crate) mod step_start;
 pub(crate) mod step_suspension;
-pub(crate) mod step_completion;
 pub(crate) mod step_termination;
+pub(crate) mod step_trait;
 
-use ymir::errors::Outcome;
 use crate::protocols::dsp::protocol_types::{
     TransferCompletionMessageDto, TransferProcessAckDto, TransferProcessMessageWrapper,
     TransferRequestMessageDto, TransferStartMessageDto, TransferSuspensionMessageDto,
     TransferTerminationMessageDto,
 };
+use ymir::errors::Outcome;
 
 #[async_trait::async_trait]
 pub trait ProtocolOrchestratorTrait: Send + Sync + 'static {

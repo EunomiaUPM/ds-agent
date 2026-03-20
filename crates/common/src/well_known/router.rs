@@ -32,72 +32,89 @@ use crate::well_known::rpc::{WellKnownRPCRequest, WellKnownRPCTrait};
 #[derive(Clone)]
 pub struct WellKnownRouter {
     pub dspace_version_service: WellKnownDSpaceVersionService,
-    pub dspace_version_rpc: Arc<dyn WellKnownRPCTrait>
+    pub dspace_version_rpc: Arc<dyn WellKnownRPCTrait>,
 }
 
 impl FromRef<WellKnownRouter> for Arc<dyn WellKnownRPCTrait> {
-    fn from_ref(state: &WellKnownRouter) -> Self { state.dspace_version_rpc.clone() }
+    fn from_ref(state: &WellKnownRouter) -> Self {
+        state.dspace_version_rpc.clone()
+    }
 }
 
 impl FromRef<WellKnownRouter> for WellKnownDSpaceVersionService {
-    fn from_ref(state: &WellKnownRouter) -> Self { state.dspace_version_service.clone() }
+    fn from_ref(state: &WellKnownRouter) -> Self {
+        state.dspace_version_service.clone()
+    }
 }
 
 impl WellKnownRouter {
     pub fn new(
         dspace_version_service: WellKnownDSpaceVersionService,
-        dspace_version_rpc: Arc<dyn WellKnownRPCTrait>
+        dspace_version_rpc: Arc<dyn WellKnownRPCTrait>,
     ) -> WellKnownRouter {
-        WellKnownRouter { dspace_version_service, dspace_version_rpc }
+        WellKnownRouter {
+            dspace_version_service,
+            dspace_version_rpc,
+        }
     }
     pub fn router(self) -> Router {
         Router::new()
             .route(
                 "/.well-known/dspace-version",
-                get(Self::handle_get_well_known_version)
+                get(Self::handle_get_well_known_version),
             )
             .route(
                 "/.well-known/dspace-version/{version}",
-                get(Self::handle_get_well_known_version_version)
+                get(Self::handle_get_well_known_version_version),
             )
             .route(
                 "/rpc/.well-known/dspace-version",
-                post(Self::handle_post_well_known_version_from_participant)
+                post(Self::handle_post_well_known_version_from_participant),
             )
             .route(
                 "/rpc/.well-known/dspace-version/path",
-                post(Self::handle_post_well_known_version_from_participant_path)
+                post(Self::handle_post_well_known_version_from_participant_path),
             )
             .with_state(self)
     }
 
     async fn handle_get_well_known_version(
-        State(state): State<WellKnownRouter>
+        State(state): State<WellKnownRouter>,
     ) -> AppResult<Json<VersionResponse>> {
         Ok(Json(state.dspace_version_service.get_dspace_version()?))
     }
     async fn handle_get_well_known_version_version(
         State(state): State<WellKnownRouter>,
-        Path(version): Path<String>
+        Path(version): Path<String>,
     ) -> AppResult<Json<Version>> {
-        Ok(Json(state.dspace_version_service.get_dspace_version_str(&version)?))
+        Ok(Json(
+            state
+                .dspace_version_service
+                .get_dspace_version_str(&version)?,
+        ))
     }
     async fn handle_post_well_known_version_from_participant(
         State(state): State<WellKnownRouter>,
-        input: Result<Json<WellKnownRPCRequest>, JsonRejection>
+        input: Result<Json<WellKnownRPCRequest>, JsonRejection>,
     ) -> AppResult<Json<VersionResponse>> {
         let input = extract_payload(input)?;
-        let (version, _) = state.dspace_version_rpc.fetch_dataspace_well_known(&input).await?;
+        let (version, _) = state
+            .dspace_version_rpc
+            .fetch_dataspace_well_known(&input)
+            .await?;
         Ok(Json(version))
     }
 
     async fn handle_post_well_known_version_from_participant_path(
         State(state): State<WellKnownRouter>,
-        input: Result<Json<WellKnownRPCRequest>, JsonRejection>
+        input: Result<Json<WellKnownRPCRequest>, JsonRejection>,
     ) -> AppResult<Json<VersionPath>> {
         let input = extract_payload(input)?;
         Ok(Json(
-            state.dspace_version_rpc.fetch_dataspace_current_path(&input).await?
+            state
+                .dspace_version_rpc
+                .fetch_dataspace_current_path(&input)
+                .await?,
         ))
     }
 }

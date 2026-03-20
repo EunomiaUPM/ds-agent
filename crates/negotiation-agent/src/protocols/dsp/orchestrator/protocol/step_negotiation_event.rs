@@ -20,16 +20,16 @@
 use crate::entities::negotiation_process::NegotiationProcessDto;
 use crate::protocols::dsp::orchestrator::protocol::persistence::OrchestrationPersistenceForProtocol;
 use crate::protocols::dsp::orchestrator::protocol::step_trait::{
-    continuation_prepare_context, NegotiationContinuationContext, NegotiationProtocolStep,
+    NegotiationContinuationContext, NegotiationProtocolStep, continuation_prepare_context,
 };
 use crate::protocols::dsp::protocol_types::{
     NegotiationAckMessageDto, NegotiationEventMessageDto, NegotiationEventType,
     NegotiationProcessMessageWrapper,
 };
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
-use ymir::errors::Outcome;
-use std::sync::Arc;
 use common::facades::Mates;
+use std::sync::Arc;
+use ymir::errors::Outcome;
 // ─── NegotiationEventStep ─────────────────────────────────────────────────────
 
 /// Handles an inbound `ContractNegotiationEventMessage`.
@@ -83,7 +83,9 @@ impl NegotiationProtocolStep for NegotiationEventStep {
                 persistence.update(ctx.id.as_str(), &input.dto, mate).await
             }
             NegotiationEventType::FINALIZED => {
-                persistence.update_with_agreement(ctx.id.as_str(), &input.dto, mate).await
+                persistence
+                    .update_with_agreement(ctx.id.as_str(), &input.dto, mate)
+                    .await
             }
         }
     }

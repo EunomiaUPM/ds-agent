@@ -18,13 +18,13 @@
  */
 
 use crate::entities::negotiation_process::NegotiationProcessDto;
-use crate::protocols::dsp::persistence::NegotiationRpcPersistenceTrait;
 use crate::protocols::dsp::orchestrator::rpc::step_trait::{
     NegotiationRpcInitialContext, NegotiationRpcStep,
 };
 use crate::protocols::dsp::orchestrator::rpc::types::{
     RpcNegotiationOfferInitMessageDto, RpcNegotiationProcessMessageTrait,
 };
+use crate::protocols::dsp::persistence::NegotiationRpcPersistenceTrait;
 use crate::protocols::dsp::protocol_types::{
     NegotiationAckMessageDto, NegotiationOfferInitMessageDto, NegotiationProcessMessageWrapper,
 };
@@ -67,7 +67,10 @@ impl NegotiationRpcStep for RpcOfferInitStep {
     ) -> Outcome<NegotiationRpcInitialContext> {
         let provider_address = input.get_provider_address().unwrap_or_default();
         let associated_peer = input.get_associated_agent_peer().unwrap_or_default();
-        Ok(NegotiationRpcInitialContext { provider_address, associated_peer })
+        Ok(NegotiationRpcInitialContext {
+            provider_address,
+            associated_peer,
+        })
     }
 
     fn auth_peer(ctx: &NegotiationRpcInitialContext) -> &str {
@@ -89,11 +92,13 @@ impl NegotiationRpcStep for RpcOfferInitStep {
         let request_body: NegotiationProcessMessageWrapper<NegotiationOfferInitMessageDto> =
             input.clone().into();
 
-        let response: NegotiationProcessMessageWrapper<NegotiationAckMessageDto> =
-            http_client.post_json(peer_url.as_str(), &request_body).await?;
+        let response: NegotiationProcessMessageWrapper<NegotiationAckMessageDto> = http_client
+            .post_json(peer_url.as_str(), &request_body)
+            .await?;
 
-        let process =
-            persistence.create_new(input, &request_body.dto, &response.dto).await?;
+        let process = persistence
+            .create_new(input, &request_body.dto, &response.dto)
+            .await?;
 
         Ok((response, process))
     }

@@ -17,11 +17,11 @@
  *
  */
 
+use monolith::setup::cmd::CoreCommands;
 use tracing::info;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 use ymir::errors::{Errors, Outcome};
-use monolith::setup::cmd::CoreCommands;
 
 const INFO: &str = r"
 ----------

@@ -47,7 +47,9 @@ impl PeerCatalogEntityRouter {
     }
 
     pub fn router(self) -> Router {
-        Router::new().route("/{peer_id}", get(Self::handle_get_catalog_by_peer_id)).with_state(self)
+        Router::new()
+            .route("/{peer_id}", get(Self::handle_get_catalog_by_peer_id))
+            .with_state(self)
     }
 
     async fn handle_get_catalog_by_peer_id(

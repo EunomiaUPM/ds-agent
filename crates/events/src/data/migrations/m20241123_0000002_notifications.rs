@@ -34,15 +34,44 @@ impl MigrationTrait for Migration {
             .create_table(
                 Table::create()
                     .table(Notifications::Table)
-                    .col(ColumnDef::new(Notifications::Id).string().not_null().primary_key())
-                    .col(ColumnDef::new(Notifications::Timestamp).date_time().not_null())
+                    .col(
+                        ColumnDef::new(Notifications::Id)
+                            .string()
+                            .not_null()
+                            .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(Notifications::Timestamp)
+                            .date_time()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(Notifications::Category).string().not_null())
-                    .col(ColumnDef::new(Notifications::Subcategory).string().not_null())
-                    .col(ColumnDef::new(Notifications::MessageType).string().not_null())
-                    .col(ColumnDef::new(Notifications::MessageContent).json().not_null())
-                    .col(ColumnDef::new(Notifications::MessageOperation).string().not_null())
+                    .col(
+                        ColumnDef::new(Notifications::Subcategory)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(Notifications::MessageType)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(Notifications::MessageContent)
+                            .json()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(Notifications::MessageOperation)
+                            .string()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(Notifications::Status).string().not_null())
-                    .col(ColumnDef::new(Notifications::SubscriptionId).string().not_null())
+                    .col(
+                        ColumnDef::new(Notifications::SubscriptionId)
+                            .string()
+                            .not_null(),
+                    )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_notifications_subscriptions")
@@ -55,7 +84,9 @@ impl MigrationTrait for Migration {
             .await
     }
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager.drop_table(Table::drop().table(Notifications::Table).to_owned()).await
+        manager
+            .drop_table(Table::drop().table(Notifications::Table).to_owned())
+            .await
     }
 }
 

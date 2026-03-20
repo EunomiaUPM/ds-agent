@@ -84,7 +84,8 @@ impl DataplaneManager {
     pub(super) async fn cmd_auth(&self, ctx: &CommandContext<'_>) -> Outcome<DataplaneResponse> {
         if ctx.is_state(TransferState::Configuring) {
             ctx.driver.auth_driver.perform_auth(ctx.connector).await?;
-            self.update_state(&ctx.process_id, TransferState::Auth).await?;
+            self.update_state(&ctx.process_id, TransferState::Auth)
+                .await?;
         }
         Ok(DataplaneResponse::Ok)
     }
@@ -92,7 +93,8 @@ impl DataplaneManager {
     /// AUTH → READY
     pub(super) async fn cmd_ready(&self, ctx: &CommandContext<'_>) -> Outcome<DataplaneResponse> {
         if ctx.is_state(TransferState::Auth) {
-            self.update_state(&ctx.process_id, TransferState::Ready).await?;
+            self.update_state(&ctx.process_id, TransferState::Ready)
+                .await?;
         }
         Ok(DataplaneResponse::Ok)
     }
@@ -104,7 +106,8 @@ impl DataplaneManager {
     ) -> Outcome<DataplaneResponse> {
         if ctx.is_state(TransferState::Ready) && ctx.is_push() {
             self.subscribe_or_terminate(ctx).await?;
-            self.update_state(&ctx.process_id, TransferState::Subscribing).await?;
+            self.update_state(&ctx.process_id, TransferState::Subscribing)
+                .await?;
         }
         Ok(DataplaneResponse::Ok)
     }
@@ -114,25 +117,30 @@ impl DataplaneManager {
         match (ctx.mode, ctx.state) {
             // PULL: Ready → Started directly
             (InteractionMode::Pull, &TransferState::Ready) => {
-                self.update_state(&ctx.process_id, TransferState::Started).await?;
+                self.update_state(&ctx.process_id, TransferState::Started)
+                    .await?;
             }
             // PULL: Stopped → Started (resume after suspension)
             (InteractionMode::Pull, &TransferState::Stopped) => {
-                self.update_state(&ctx.process_id, TransferState::Started).await?;
+                self.update_state(&ctx.process_id, TransferState::Started)
+                    .await?;
             }
             // PUSH: Ready → subscribe → Subscribing (autonomous will chain to Started)
             (InteractionMode::Push, &TransferState::Ready) => {
                 self.subscribe_or_terminate(ctx).await?;
-                self.update_state(&ctx.process_id, TransferState::Subscribing).await?;
+                self.update_state(&ctx.process_id, TransferState::Subscribing)
+                    .await?;
             }
             // PUSH: Stopped → re-subscribe → Subscribing (resume after suspension)
             (InteractionMode::Push, &TransferState::Stopped) => {
                 self.subscribe_or_terminate(ctx).await?;
-                self.update_state(&ctx.process_id, TransferState::Subscribing).await?;
+                self.update_state(&ctx.process_id, TransferState::Subscribing)
+                    .await?;
             }
             // PUSH: Subscribing → Started (autonomous transition target)
             (InteractionMode::Push, &TransferState::Subscribing) => {
-                self.update_state(&ctx.process_id, TransferState::Started).await?;
+                self.update_state(&ctx.process_id, TransferState::Started)
+                    .await?;
             }
             _ => {}
         }
@@ -146,7 +154,8 @@ impl DataplaneManager {
     ) -> Outcome<DataplaneResponse> {
         if ctx.is_state(TransferState::Started) && ctx.is_push() {
             self.unsubscribe_or_terminate(ctx).await?;
-            self.update_state(&ctx.process_id, TransferState::Unsubscribing).await?;
+            self.update_state(&ctx.process_id, TransferState::Unsubscribing)
+                .await?;
         }
         Ok(DataplaneResponse::Ok)
     }
@@ -156,16 +165,19 @@ impl DataplaneManager {
         match (ctx.mode, ctx.state) {
             // PULL: Started → Stopped directly
             (InteractionMode::Pull, &TransferState::Started) => {
-                self.update_state(&ctx.process_id, TransferState::Stopped).await?;
+                self.update_state(&ctx.process_id, TransferState::Stopped)
+                    .await?;
             }
             // PUSH: Started → unsubscribe → Unsubscribing (autonomous will chain to Stopped)
             (InteractionMode::Push, &TransferState::Started) => {
                 self.unsubscribe_or_terminate(ctx).await?;
-                self.update_state(&ctx.process_id, TransferState::Unsubscribing).await?;
+                self.update_state(&ctx.process_id, TransferState::Unsubscribing)
+                    .await?;
             }
             // PUSH: Unsubscribing → Stopped (autonomous transition target)
             (InteractionMode::Push, &TransferState::Unsubscribing) => {
-                self.update_state(&ctx.process_id, TransferState::Stopped).await?;
+                self.update_state(&ctx.process_id, TransferState::Stopped)
+                    .await?;
             }
             _ => {}
         }
@@ -174,7 +186,12 @@ impl DataplaneManager {
 
     /// Calls `perform_subscribe`; stores response in flow_control, or persists TERMINATED on failure.
     async fn subscribe_or_terminate(&self, ctx: &CommandContext<'_>) -> Outcome<()> {
-        match ctx.driver.lifecycle_driver.perform_subscribe(ctx.connector).await {
+        match ctx
+            .driver
+            .lifecycle_driver
+            .perform_subscribe(ctx.connector)
+            .await
+        {
             Ok(response) => {
                 if !response.is_null() {
                     self.dataplane_entity
@@ -190,7 +207,8 @@ impl DataplaneManager {
                 Ok(())
             }
             Err(e) => {
-                self.update_state(&ctx.process_id, TransferState::Terminated).await?;
+                self.update_state(&ctx.process_id, TransferState::Terminated)
+                    .await?;
                 Err(e)
             }
         }
@@ -198,8 +216,14 @@ impl DataplaneManager {
 
     /// Calls `perform_unsubscribe`; on failure persists TERMINATED state before returning the error.
     async fn unsubscribe_or_terminate(&self, ctx: &CommandContext<'_>) -> Outcome<()> {
-        if let Err(e) = ctx.driver.lifecycle_driver.perform_unsubscribe(ctx.connector).await {
-            self.update_state(&ctx.process_id, TransferState::Terminated).await?;
+        if let Err(e) = ctx
+            .driver
+            .lifecycle_driver
+            .perform_unsubscribe(ctx.connector)
+            .await
+        {
+            self.update_state(&ctx.process_id, TransferState::Terminated)
+                .await?;
             return Err(e);
         }
         Ok(())
@@ -213,12 +237,17 @@ impl DataplaneManager {
         if ctx.is_push() {
             match ctx.state {
                 TransferState::Started | TransferState::Subscribing => {
-                    let _ = ctx.driver.lifecycle_driver.perform_unsubscribe(ctx.connector).await;
+                    let _ = ctx
+                        .driver
+                        .lifecycle_driver
+                        .perform_unsubscribe(ctx.connector)
+                        .await;
                 }
                 _ => {}
             }
         }
-        self.update_state(&ctx.process_id, TransferState::Terminated).await?;
+        self.update_state(&ctx.process_id, TransferState::Terminated)
+            .await?;
         Ok(DataplaneResponse::Ok)
     }
 }

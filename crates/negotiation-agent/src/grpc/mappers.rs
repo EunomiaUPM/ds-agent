@@ -40,9 +40,9 @@ use crate::grpc::api::negotiation_agent::{
 };
 use crate::grpc::api::negotiation_agent::{CreateOfferRequest, OfferResponse};
 
+use common::batch_requests::BatchRequests;
 use prost_types::value::Kind;
 use prost_types::{ListValue, Struct, Value as ProstValue};
-use common::batch_requests::BatchRequests;
 use serde_json::{Map, Value as JsonValue};
 use std::str::FromStr;
 use tonic::Status;
@@ -72,7 +72,11 @@ impl TryFrom<CreateNegotiationProcessRequest> for NewNegotiationProcessDto {
             None
         };
 
-        let identifiers = if proto.identifiers.is_empty() { None } else { Some(proto.identifiers) };
+        let identifiers = if proto.identifiers.is_empty() {
+            None
+        } else {
+            Some(proto.identifiers)
+        };
 
         Ok(NewNegotiationProcessDto {
             id: id_urn,
@@ -94,7 +98,11 @@ impl TryFrom<PutNegotiationProcessRequest> for EditNegotiationProcessDto {
     fn try_from(proto: PutNegotiationProcessRequest) -> Result<Self, Self::Error> {
         let properties = proto.properties.map(prost_struct_to_serde);
         let error_details = proto.error_details.map(prost_struct_to_serde);
-        let identifiers = if proto.identifiers.is_empty() { None } else { Some(proto.identifiers) };
+        let identifiers = if proto.identifiers.is_empty() {
+            None
+        } else {
+            Some(proto.identifiers)
+        };
 
         Ok(EditNegotiationProcessDto {
             state: proto.state,
@@ -124,11 +132,17 @@ impl From<NegotiationProcessDto> for NegotiationProcessResponse {
         let inner = dto.inner;
 
         // Convertir Sub-entidades a Proto
-        let messages: Vec<ProtoMessage> =
-            dto.messages.into_iter().map(model_message_to_proto).collect();
+        let messages: Vec<ProtoMessage> = dto
+            .messages
+            .into_iter()
+            .map(model_message_to_proto)
+            .collect();
         let offers: Vec<ProtoOffer> = dto.offers.into_iter().map(model_offer_to_proto).collect();
-        let agreements: Vec<ProtoAgreement> =
-            dto.agreement.into_iter().map(model_agreement_to_proto).collect();
+        let agreements: Vec<ProtoAgreement> = dto
+            .agreement
+            .into_iter()
+            .map(model_agreement_to_proto)
+            .collect();
 
         let properties = serde_to_prost_struct(inner.properties);
         let error_details = inner.error_details.map(serde_to_prost_struct);
@@ -151,7 +165,9 @@ impl From<NegotiationProcessDto> for NegotiationProcessResponse {
             agreements,
         };
 
-        NegotiationProcessResponse { process: Some(process) }
+        NegotiationProcessResponse {
+            process: Some(process),
+        }
     }
 }
 
@@ -216,7 +232,9 @@ impl From<NegotiationMessageDto> for NegotiationMessageResponse {
             agreement,
         };
 
-        NegotiationMessageResponse { message: Some(message) }
+        NegotiationMessageResponse {
+            message: Some(message),
+        }
     }
 }
 
@@ -260,7 +278,9 @@ impl TryFrom<CreateOfferRequest> for NewOfferDto {
 
 impl From<OfferDto> for OfferResponse {
     fn from(dto: OfferDto) -> Self {
-        OfferResponse { offer: Some(model_offer_to_proto(dto.inner)) }
+        OfferResponse {
+            offer: Some(model_offer_to_proto(dto.inner)),
+        }
     }
 }
 
@@ -315,7 +335,9 @@ impl TryFrom<PutAgreementRequest> for EditAgreementDto {
 
 impl From<AgreementDto> for AgreementResponse {
     fn from(dto: AgreementDto) -> Self {
-        AgreementResponse { agreement: Some(model_agreement_to_proto(dto.inner)) }
+        AgreementResponse {
+            agreement: Some(model_agreement_to_proto(dto.inner)),
+        }
     }
 }
 
@@ -373,7 +395,10 @@ fn model_agreement_to_proto(m: crate::data::entities::agreement::Model) -> Proto
 pub fn serde_to_prost_struct(json: JsonValue) -> Struct {
     match json {
         JsonValue::Object(map) => {
-            let fields = map.into_iter().map(|(k, v)| (k, serde_to_prost_value(v))).collect();
+            let fields = map
+                .into_iter()
+                .map(|(k, v)| (k, serde_to_prost_value(v)))
+                .collect();
             Struct { fields }
         }
         _ => Struct::default(), // Si no es un objeto, devolvemos struct vacío
@@ -382,8 +407,11 @@ pub fn serde_to_prost_struct(json: JsonValue) -> Struct {
 
 /// Convierte un prost_types::Struct a serde_json::Value
 pub fn prost_struct_to_serde(proto_struct: Struct) -> JsonValue {
-    let map: Map<String, JsonValue> =
-        proto_struct.fields.into_iter().map(|(k, v)| (k, prost_value_to_serde(v))).collect();
+    let map: Map<String, JsonValue> = proto_struct
+        .fields
+        .into_iter()
+        .map(|(k, v)| (k, prost_value_to_serde(v)))
+        .collect();
     JsonValue::Object(map)
 }
 
@@ -395,11 +423,14 @@ fn serde_to_prost_value(json: JsonValue) -> ProstValue {
         JsonValue::Bool(v) => Kind::BoolValue(v),
         JsonValue::Number(n) => Kind::NumberValue(n.as_f64().unwrap_or(0.0)),
         JsonValue::String(s) => Kind::StringValue(s),
-        JsonValue::Array(v) => {
-            Kind::ListValue(ListValue { values: v.into_iter().map(serde_to_prost_value).collect() })
-        }
+        JsonValue::Array(v) => Kind::ListValue(ListValue {
+            values: v.into_iter().map(serde_to_prost_value).collect(),
+        }),
         JsonValue::Object(v) => Kind::StructValue(Struct {
-            fields: v.into_iter().map(|(k, v)| (k, serde_to_prost_value(v))).collect(),
+            fields: v
+                .into_iter()
+                .map(|(k, v)| (k, serde_to_prost_value(v)))
+                .collect(),
         }),
     };
     ProstValue { kind: Some(kind) }
@@ -412,14 +443,20 @@ fn prost_value_to_serde(prost: ProstValue) -> JsonValue {
         Some(Kind::NumberValue(n)) => {
             // serde_json::Number::from_f64 puede fallar si es infinito/NaN,
             // fallback a Null o 0 si ocurre.
-            serde_json::Number::from_f64(n).map(JsonValue::Number).unwrap_or(JsonValue::Null)
+            serde_json::Number::from_f64(n)
+                .map(JsonValue::Number)
+                .unwrap_or(JsonValue::Null)
         }
         Some(Kind::StringValue(s)) => JsonValue::String(s),
         Some(Kind::ListValue(l)) => {
             JsonValue::Array(l.values.into_iter().map(prost_value_to_serde).collect())
         }
         Some(Kind::StructValue(s)) => {
-            let map = s.fields.into_iter().map(|(k, v)| (k, prost_value_to_serde(v))).collect();
+            let map = s
+                .fields
+                .into_iter()
+                .map(|(k, v)| (k, prost_value_to_serde(v)))
+                .collect();
             JsonValue::Object(map)
         }
     }

@@ -26,7 +26,7 @@ pub struct DataAddress {
     #[serde(rename = "endpoint")]
     pub endpoint: String,
     #[serde(rename = "endpointProperties")]
-    pub endpoint_properties: Vec<EndpointProperty>
+    pub endpoint_properties: Vec<EndpointProperty>,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Eq)]
@@ -36,5 +36,5 @@ pub struct EndpointProperty {
     #[serde(rename = "name")]
     pub name: String,
     #[serde(rename = "value")]
-    pub value: String
+    pub value: String,
 }

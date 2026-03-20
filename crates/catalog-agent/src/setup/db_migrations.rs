@@ -46,8 +46,12 @@ impl CatalogAgentMigration {
         // db_connection
         let db_connection = vault.get_db_connection(config.common()).await;
         // run migration
-        Self::refresh(&db_connection).await
-            .map_err(|e| Errors::crazy(format!("Failed to refresh database connection: {}", e), Some(Box::new(e))))?;
+        Self::refresh(&db_connection).await.map_err(|e| {
+            Errors::crazy(
+                format!("Failed to refresh database connection: {}", e),
+                Some(Box::new(e)),
+            )
+        })?;
         Ok(())
     }
 }

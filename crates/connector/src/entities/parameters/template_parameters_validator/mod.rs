@@ -72,7 +72,10 @@ fn is_compatible(found: &FoundParameterType, defined: &ParameterType) -> bool {
 
 impl<'a> ParameterValidator<'a> {
     pub fn new(parameters: &'a [ParameterDefinition], exclude_runtime: bool) -> Self {
-        Self { parameters, exclude_runtime }
+        Self {
+            parameters,
+            exclude_runtime,
+        }
     }
 
     /// Validates `parameters_found` against the declared definitions.
@@ -85,8 +88,11 @@ impl<'a> ParameterValidator<'a> {
 
         let found_names: HashSet<&str> = found_filtered.iter().map(|s| s.name.as_str()).collect();
 
-        let defined_map: HashMap<&str, &ParameterDefinition> =
-            self.parameters.iter().map(|p| (p.name.as_str(), p)).collect();
+        let defined_map: HashMap<&str, &ParameterDefinition> = self
+            .parameters
+            .iter()
+            .map(|p| (p.name.as_str(), p))
+            .collect();
 
         let defined_names: HashSet<&str> = defined_map.keys().copied().collect();
 
@@ -168,7 +174,10 @@ impl<'a> ParameterValidator<'a> {
         }
 
         undeclared.sort();
-        vec![format!("Undeclared parameters found in template: [{}]", undeclared.join(", "))]
+        vec![format!(
+            "Undeclared parameters found in template: [{}]",
+            undeclared.join(", ")
+        )]
     }
 
     /// Returns an error string when entries in `parameters[]` have no
@@ -185,7 +194,10 @@ impl<'a> ParameterValidator<'a> {
         }
 
         unused.sort();
-        vec![format!("Declared parameters not found in template: [{}]", unused.join(", "))]
+        vec![format!(
+            "Declared parameters not found in template: [{}]",
+            unused.join(", ")
+        )]
     }
 
     /// Returns an error string for every placeholder whose usage context is

@@ -33,15 +33,25 @@ pub struct TransferConfig {
     contracts: MinKnownConfig,
     catalog: MinKnownConfig,
     is_catalog_datahub: bool,
-    ssi_auth: MinKnownConfig
+    ssi_auth: MinKnownConfig,
 }
 
 impl TransferConfigTrait for TransferConfig {
-    fn contracts(&self) -> &MinKnownConfig { &self.contracts }
-    fn catalog(&self) -> &MinKnownConfig { &self.catalog }
-    fn ssi_auth(&self) -> &MinKnownConfig { &self.ssi_auth }
-    fn cache(&self) -> &CacheConfig { &self.cache }
-    fn is_catalog_datahub(&self) -> bool { self.is_catalog_datahub }
+    fn contracts(&self) -> &MinKnownConfig {
+        &self.contracts
+    }
+    fn catalog(&self) -> &MinKnownConfig {
+        &self.catalog
+    }
+    fn ssi_auth(&self) -> &MinKnownConfig {
+        &self.ssi_auth
+    }
+    fn cache(&self) -> &CacheConfig {
+        &self.cache
+    }
+    fn is_catalog_datahub(&self) -> bool {
+        self.is_catalog_datahub
+    }
 }
 impl ConfigLoader for TransferConfig {
     fn load(env_file: &str) -> Outcome<Self> {
@@ -52,11 +62,15 @@ impl ConfigLoader for TransferConfig {
 }
 
 impl CommonConfigTrait for TransferConfig {
-    fn common(&self) -> &CommonConfig { &self.common }
+    fn common(&self) -> &CommonConfig {
+        &self.common
+    }
 }
 
 impl CacheConfigTrait for TransferConfig {
-    fn cache_config(&self) -> &CacheConfig { &self.cache }
+    fn cache_config(&self) -> &CacheConfig {
+        &self.cache
+    }
 }
 
 impl ConnectionConfigTrait for TransferConfig {

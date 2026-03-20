@@ -90,12 +90,14 @@ impl<'a> SysParameterEnricher<'a> {
             SysParameterType::SysTimestamp => Some(json!(Utc::now().timestamp())),
             SysParameterType::SysIso8601 => Some(json!(Utc::now().to_rfc3339())),
             // The regular own URL — returned as-is from config.
-            SysParameterType::SysOwnUrl { host_docker_internal: false } => {
-                Some(json!(self.own_url))
-            }
+            SysParameterType::SysOwnUrl {
+                host_docker_internal: false,
+            } => Some(json!(self.own_url)),
             // The Docker variant — replace localhost / 127.0.0.1 so that the
             // address is reachable from inside a container.
-            SysParameterType::SysOwnUrl { host_docker_internal: true } => {
+            SysParameterType::SysOwnUrl {
+                host_docker_internal: true,
+            } => {
                 let docker_url = self
                     .own_url
                     .replace("localhost", "host.docker.internal")
@@ -184,7 +186,9 @@ mod test {
 
     fn enrich(template: &ConnectorTemplateDto) -> HashMap<String, Value> {
         let mut params = HashMap::new();
-        SysParameterEnricher::new(template, OWN_URL).enrich(&mut params).unwrap();
+        SysParameterEnricher::new(template, OWN_URL)
+            .enrich(&mut params)
+            .unwrap();
         params
     }
 
@@ -197,8 +201,14 @@ mod test {
         let template = template_with_url("https://api.example.com/{{__SYS_URN__}}");
         let params = enrich(&template);
 
-        let s = params["SYS_URN"].as_str().expect("SYS_URN must be a string");
-        assert!(s.starts_with("urn:uuid:"), "expected URN prefix, got: {}", s);
+        let s = params["SYS_URN"]
+            .as_str()
+            .expect("SYS_URN must be a string");
+        assert!(
+            s.starts_with("urn:uuid:"),
+            "expected URN prefix, got: {}",
+            s
+        );
     }
 
     // -------------------------------------------------------------------------
@@ -210,7 +220,9 @@ mod test {
         let template = template_with_body("{{__SYS_TOKEN__}}");
         let params = enrich(&template);
 
-        let s = params["SYS_TOKEN"].as_str().expect("SYS_TOKEN must be a string");
+        let s = params["SYS_TOKEN"]
+            .as_str()
+            .expect("SYS_TOKEN must be a string");
         assert_eq!(s.len(), 36, "expected UUID string, got: {}", s);
     }
 
@@ -223,7 +235,9 @@ mod test {
         let template = template_with_body("since={{__SYS_TIMESTAMP__}}");
         let params = enrich(&template);
 
-        let ts = params["SYS_TIMESTAMP"].as_i64().expect("SYS_TIMESTAMP must be an integer");
+        let ts = params["SYS_TIMESTAMP"]
+            .as_i64()
+            .expect("SYS_TIMESTAMP must be an integer");
         assert!(ts > 1_580_000_000, "timestamp looks wrong: {}", ts);
     }
 
@@ -236,7 +250,9 @@ mod test {
         let template = template_with_url("https://api.example.com/{{__SYS_ISO8601__}}");
         let params = enrich(&template);
 
-        let s = params["SYS_ISO8601"].as_str().expect("SYS_ISO8601 must be a string");
+        let s = params["SYS_ISO8601"]
+            .as_str()
+            .expect("SYS_ISO8601 must be a string");
         assert!(s.contains('T'), "expected ISO8601 string, got: {}", s);
     }
 
@@ -273,7 +289,9 @@ mod test {
         let template = template_with_url("{{__SYS_OWN_URL_DOCKER__}}/webhook");
         let url_with_ip = "http://127.0.0.1:8080";
         let mut params = HashMap::new();
-        SysParameterEnricher::new(&template, url_with_ip).enrich(&mut params).unwrap();
+        SysParameterEnricher::new(&template, url_with_ip)
+            .enrich(&mut params)
+            .unwrap();
 
         let resolved = params["SYS_OWN_URL_DOCKER"].as_str().unwrap();
         assert!(
@@ -293,7 +311,9 @@ mod test {
         let template = template_with_url("{{__SYS_OWN_URL_DOCKER__}}/webhook");
         let remote_url = "https://my-connector.example.com:8080";
         let mut params = HashMap::new();
-        SysParameterEnricher::new(&template, remote_url).enrich(&mut params).unwrap();
+        SysParameterEnricher::new(&template, remote_url)
+            .enrich(&mut params)
+            .unwrap();
 
         // Non-localhost URLs should pass through unchanged
         assert_eq!(
@@ -313,7 +333,9 @@ mod test {
         let pre_existing = "urn:uuid:pre-existing-value".to_string();
         let mut params = HashMap::from([("SYS_URN".to_string(), json!(pre_existing.clone()))]);
 
-        SysParameterEnricher::new(&template, OWN_URL).enrich(&mut params).unwrap();
+        SysParameterEnricher::new(&template, OWN_URL)
+            .enrich(&mut params)
+            .unwrap();
 
         assert_eq!(params["SYS_URN"].as_str().unwrap(), pre_existing);
     }
@@ -324,7 +346,9 @@ mod test {
         let pre_existing = "https://override.example.com".to_string();
         let mut params = HashMap::from([("SYS_OWN_URL".to_string(), json!(pre_existing.clone()))]);
 
-        SysParameterEnricher::new(&template, OWN_URL).enrich(&mut params).unwrap();
+        SysParameterEnricher::new(&template, OWN_URL)
+            .enrich(&mut params)
+            .unwrap();
 
         assert_eq!(params["SYS_OWN_URL"].as_str().unwrap(), pre_existing);
     }

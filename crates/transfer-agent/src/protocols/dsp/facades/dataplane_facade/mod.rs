@@ -17,12 +17,12 @@
 
 pub(crate) mod dataplane_facade;
 
+use crate::entities::transfer_process::TransferProcessDto;
 use crate::protocols::dsp::protocol_types::DataAddressDto;
 use connector::ConnectorInstanceDto;
 use dataplane::DataplaneAddress;
 use urn::Urn;
 use ymir::errors::Outcome;
-use crate::entities::transfer_process::TransferProcessDto;
 
 #[mockall::automock]
 #[async_trait::async_trait]
@@ -64,18 +64,36 @@ pub trait DataPlaneFacadeTrait: Send + Sync {
 
     // ─── TransferSuspension ───
 
-    async fn on_transfer_suspension_pre(&self, transfer_process: &TransferProcessDto,) -> Outcome<()>;
-    async fn on_transfer_suspension_post(&self, transfer_process: &TransferProcessDto,) -> Outcome<()>;
+    async fn on_transfer_suspension_pre(
+        &self,
+        transfer_process: &TransferProcessDto,
+    ) -> Outcome<()>;
+    async fn on_transfer_suspension_post(
+        &self,
+        transfer_process: &TransferProcessDto,
+    ) -> Outcome<()>;
 
     // ─── TransferCompletion ───
 
-    async fn on_transfer_completion_pre(&self, transfer_process: &TransferProcessDto,) -> Outcome<()>;
-    async fn on_transfer_completion_post(&self, transfer_process: &TransferProcessDto,) -> Outcome<()>;
+    async fn on_transfer_completion_pre(
+        &self,
+        transfer_process: &TransferProcessDto,
+    ) -> Outcome<()>;
+    async fn on_transfer_completion_post(
+        &self,
+        transfer_process: &TransferProcessDto,
+    ) -> Outcome<()>;
 
     // ─── TransferTermination ───
 
-    async fn on_transfer_termination_pre(&self, transfer_process: &TransferProcessDto,) -> Outcome<()>;
-    async fn on_transfer_termination_post(&self, transfer_process: &TransferProcessDto,) -> Outcome<()>;
+    async fn on_transfer_termination_pre(
+        &self,
+        transfer_process: &TransferProcessDto,
+    ) -> Outcome<()>;
+    async fn on_transfer_termination_post(
+        &self,
+        transfer_process: &TransferProcessDto,
+    ) -> Outcome<()>;
 
     // ─── Config updates ───
 

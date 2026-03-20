@@ -44,7 +44,7 @@ impl CoreHttpWorker {
     pub async fn spawn(
         config: &ApplicationConfig,
         vault: Arc<VaultService>,
-        token: &CancellationToken
+        token: &CancellationToken,
     ) -> Outcome<JoinHandle<()>> {
         let server_message = format!(
             "Starting Dataspace http server in {}",
@@ -64,7 +64,7 @@ impl CoreHttpWorker {
     pub async fn run_tls(
         config: &ApplicationConfig,
         vault: Arc<VaultService>,
-        token: &CancellationToken
+        token: &CancellationToken,
     ) -> Outcome<JoinHandle<()>> {
         let cert_key = expect_from_env("VAULT_APP_ROOT_CLIENT_KEY");
         let pkey_key = expect_from_env("VAULT_APP_CLIENT_KEY");
@@ -75,13 +75,17 @@ impl CoreHttpWorker {
 
         let tls_config = RustlsConfig::from_pem(
             cert.data().as_bytes().to_vec(),
-            pkey.data().as_bytes().to_vec()
+            pkey.data().as_bytes().to_vec(),
         )
         .await
         .map_err(|e| Errors::crazy("Errors parsing certificate stuff", Some(Box::new(e))))?;
 
         let router = create_core_router(config, vault.clone()).await;
-        let port = config.monolith().common().hosts().get_internal_port(HostType::Http);
+        let port = config
+            .monolith()
+            .common()
+            .hosts()
+            .get_internal_port(HostType::Http);
         let addr = format!("0.0.0.0:{}", port);
         info!("Starting Rainbow server with TLS in {}", addr);
 
@@ -119,11 +123,15 @@ impl CoreHttpWorker {
     pub async fn run(
         config: &ApplicationConfig,
         vault: Arc<VaultService>,
-        token: &CancellationToken
+        token: &CancellationToken,
     ) -> Outcome<JoinHandle<()>> {
         let router = create_core_router(config, vault.clone()).await;
 
-        let port = config.monolith().common().hosts().get_internal_port(HostType::Http);
+        let port = config
+            .monolith()
+            .common()
+            .hosts()
+            .get_internal_port(HostType::Http);
         let addr = format!("0.0.0.0:{}", port);
         info!("Starting Rainbow server in {}", addr);
 

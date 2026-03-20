@@ -21,11 +21,10 @@ use crate::setup::boot::GatewayBoot;
 use crate::subscriptions::subscriptions::RainbowProviderGatewaySubscriptions;
 use crate::subscriptions::MicroserviceSubscriptionKey;
 use clap::{Parser, Subcommand};
-use ymir::errors::{Errors, Outcome};
-use fs_extra::dir::{copy, CopyOptions};
 use common::boot::BootstrapServiceTrait;
 use common::config::services::GatewayConfig;
 use common::config::types::traits::{CommonConfigTrait, ConfigLoader};
+use fs_extra::dir::{copy, CopyOptions};
 use std::cmp::PartialEq;
 use std::fs;
 use std::path::Path;
@@ -33,6 +32,7 @@ use std::process::Command;
 use std::sync::Arc;
 use tracing::debug;
 use ymir::config::traits::ConnectionConfigTrait;
+use ymir::errors::{Errors, Outcome};
 use ymir::services::vault::fake_vault::FakeVaultService;
 use ymir::services::vault::global::VaultService;
 use ymir::services::vault::vault_rs::RealVaultService;
@@ -103,9 +103,12 @@ impl GatewayCommands {
             .current_dir(&cwd)
             .args(["run", "build", "-w", "admin"])
             .spawn()
-            .map_err(|e| Errors::parse(&format!("Failed to spawn npm build process: {}", e), None))?;
+            .map_err(|e| {
+                Errors::parse(&format!("Failed to spawn npm build process: {}", e), None)
+            })?;
 
-        cmd.wait().map_err(|e| Errors::parse(&format!("Failed to wait for npm build: {}", e), None))?;
+        cmd.wait()
+            .map_err(|e| Errors::parse(&format!("Failed to wait for npm build: {}", e), None))?;
         debug!("Build command finished successfully");
 
         // 2. Routes
@@ -133,7 +136,8 @@ impl GatewayCommands {
         let mut options = CopyOptions::new();
         options.overwrite = true;
         options.copy_inside = true;
-        let _ = copy(&origin, &destination, &options).map_err(|e| Errors::parse(&e.to_string(), None))?;
+        let _ = copy(&origin, &destination, &options)
+            .map_err(|e| Errors::parse(&e.to_string(), None))?;
 
         debug!("Copy command finished successfully");
 

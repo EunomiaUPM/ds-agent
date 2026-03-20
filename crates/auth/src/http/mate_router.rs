@@ -17,23 +17,25 @@
 
 use std::sync::Arc;
 
+use crate::core::traits::CoreMateTrait;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{Path, State};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use common::batch_requests::BatchRequests;
+use common::facades::VerifyTokenRequest;
 use ymir::data::entities::mates::Model;
 use ymir::errors::AppResult;
 use ymir::utils::extract_payload;
-use common::facades::VerifyTokenRequest;
-use crate::core::traits::CoreMateTrait;
 
 pub struct MateRouter {
-    mater: Arc<dyn CoreMateTrait>
+    mater: Arc<dyn CoreMateTrait>,
 }
 
 impl MateRouter {
-    pub fn new(mater: Arc<dyn CoreMateTrait>) -> MateRouter { MateRouter { mater } }
+    pub fn new(mater: Arc<dyn CoreMateTrait>) -> MateRouter {
+        MateRouter { mater }
+    }
 
     pub fn router(self) -> Router {
         Router::new()
@@ -50,7 +52,7 @@ impl MateRouter {
     }
     async fn get_by_id(
         State(mater): State<Arc<dyn CoreMateTrait>>,
-        Path(id): Path<String>
+        Path(id): Path<String>,
     ) -> AppResult<Json<Model>> {
         Ok(Json(mater.get_by_id(id).await?))
     }
@@ -61,7 +63,7 @@ impl MateRouter {
 
     async fn get_batch(
         State(mater): State<Arc<dyn CoreMateTrait>>,
-        payload: Result<Json<BatchRequests>, JsonRejection>
+        payload: Result<Json<BatchRequests>, JsonRejection>,
     ) -> AppResult<Json<Vec<Model>>> {
         let payload = extract_payload(payload)?;
         Ok(Json(mater.get_mate_batch(payload).await?))
@@ -69,7 +71,7 @@ impl MateRouter {
 
     async fn get_by_token(
         State(mater): State<Arc<dyn CoreMateTrait>>,
-        payload: Result<Json<VerifyTokenRequest>, JsonRejection>
+        payload: Result<Json<VerifyTokenRequest>, JsonRejection>,
     ) -> AppResult<Json<Model>> {
         let payload = extract_payload(payload)?;
         Ok(Json(mater.get_by_token(payload).await?))

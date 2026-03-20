@@ -62,7 +62,10 @@ impl OdrlOfferEntityRouter {
     pub fn router(self) -> Router {
         Router::new()
             .route("/", get(Self::handle_get_all_odrl_offers))
-            .route("/entity/{entity_id}", get(Self::handle_get_all_odrl_offers_by_entity))
+            .route(
+                "/entity/{entity_id}",
+                get(Self::handle_get_all_odrl_offers_by_entity),
+            )
             .route("/", post(Self::handle_create_odrl_offer))
             .route("/batch", post(Self::handle_get_batch_odrl_offers))
             .route("/{id}", get(Self::handle_get_odrl_offer_by_id))
@@ -78,7 +81,11 @@ impl OdrlOfferEntityRouter {
         State(state): State<OdrlOfferEntityRouter>,
         Query(params): Query<PaginationParams>,
     ) -> impl IntoResponse {
-        match state.service.get_all_odrl_offers(params.limit, params.page).await {
+        match state
+            .service
+            .get_all_odrl_offers(params.limit, params.page)
+            .await
+        {
             Ok(offers) => (StatusCode::OK, Json(ToCamelCase(offers))).into_response(),
             Err(e) => return e.into_response(),
         }
@@ -104,7 +111,11 @@ impl OdrlOfferEntityRouter {
             Ok(urn) => urn,
             Err(resp) => return resp.into_response(),
         };
-        match state.service.get_all_odrl_offers_by_entity(&entity_id).await {
+        match state
+            .service
+            .get_all_odrl_offers_by_entity(&entity_id)
+            .await
+        {
             Ok(offers) => (StatusCode::OK, Json(ToCamelCase(offers))).into_response(),
             Err(e) => return e.into_response(),
         }

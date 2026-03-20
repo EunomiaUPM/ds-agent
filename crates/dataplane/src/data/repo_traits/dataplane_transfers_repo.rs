@@ -51,10 +51,7 @@ pub trait DataplaneTransfersRepo: Send + Sync + 'static {
         process_id: &Urn,
         new_dataplane_transfer: &EditDataplaneTransferModel,
     ) -> Outcome<dataplane_transfers::Model>;
-    async fn delete_dataplane_transfers(
-        &self,
-        process_id: &Urn,
-    ) -> Outcome<()>;
+    async fn delete_dataplane_transfers(&self, process_id: &Urn) -> Outcome<()>;
 }
 
 #[derive(Debug, Error)]

@@ -47,14 +47,24 @@ impl ConnectorTemplateEntitiesService {
                 .ok_or_else(|| Errors::parse("Missing 'authentication' in template spec", None))?
                 .clone(),
         )
-        .map_err(|e| Errors::parse(&format!("Error deserializing authentication config: {}", e), None))?;
+        .map_err(|e| {
+            Errors::parse(
+                &format!("Error deserializing authentication config: {}", e),
+                None,
+            )
+        })?;
 
         let interaction: InteractionConfig = serde_json::from_value(
             spec.get("interaction")
                 .ok_or_else(|| Errors::parse("Missing 'interaction' in template spec", None))?
                 .clone(),
         )
-        .map_err(|e| Errors::parse(&format!("Error deserializing interaction config: {}", e), None))?;
+        .map_err(|e| {
+            Errors::parse(
+                &format!("Error deserializing interaction config: {}", e),
+                None,
+            )
+        })?;
 
         let parameters: Vec<ParameterDefinition> = serde_json::from_value(
             spec.get("parameters")
@@ -85,8 +95,12 @@ impl ConnectorTemplateEntitiesTrait for ConnectorTemplateEntitiesService {
         limit: Option<u64>,
         page: Option<u64>,
     ) -> Outcome<Vec<ConnectorTemplateDto>> {
-        let models =
-            self.repo.get_templates_repo().get_all_templates(limit, page).await.map_err(|e| {
+        let models = self
+            .repo
+            .get_templates_repo()
+            .get_all_templates(limit, page)
+            .await
+            .map_err(|e| {
                 error!("{}", e);
                 Errors::db(&e.to_string(), None)
             })?;
@@ -103,13 +117,15 @@ impl ConnectorTemplateEntitiesTrait for ConnectorTemplateEntitiesService {
         &self,
         template_id: &String,
     ) -> Outcome<Vec<ConnectorTemplateDto>> {
-        let models =
-            self.repo.get_templates_repo().get_templates_by_name(template_id).await.map_err(
-                |e| {
-                    error!("{}", e);
-                    Errors::db(&e.to_string(), None)
-                },
-            )?;
+        let models = self
+            .repo
+            .get_templates_repo()
+            .get_templates_by_name(template_id)
+            .await
+            .map_err(|e| {
+                error!("{}", e);
+                Errors::db(&e.to_string(), None)
+            })?;
 
         let mut dtos = Vec::with_capacity(models.len());
         for model in models {
@@ -161,8 +177,12 @@ impl ConnectorTemplateEntitiesTrait for ConnectorTemplateEntitiesService {
                 error!("{}", e);
                 Errors::parse(&format!("Error preparing template model: {}", e), None)
             })?;
-        let saved_model =
-            self.repo.get_templates_repo().create_template(&new_model).await.map_err(|e| {
+        let saved_model = self
+            .repo
+            .get_templates_repo()
+            .create_template(&new_model)
+            .await
+            .map_err(|e| {
                 error!("{}", e);
                 Errors::db(&e.to_string(), None)
             })?;

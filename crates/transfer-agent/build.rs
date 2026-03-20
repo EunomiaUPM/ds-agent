@@ -25,7 +25,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .compile_well_known_types(false)
         .file_descriptor_set_path(descriptor_path)
         .compile_protos(
-            &["proto/transfer_messages.proto", "proto/transfer_process.proto"],
+            &[
+                "proto/transfer_messages.proto",
+                "proto/transfer_process.proto",
+            ],
             &["proto"],
         )?;
 

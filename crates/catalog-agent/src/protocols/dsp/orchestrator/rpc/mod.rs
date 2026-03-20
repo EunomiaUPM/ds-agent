@@ -15,13 +15,13 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use ymir::errors::Outcome;
 use crate::protocols::dsp::orchestrator::rpc::types::{
     RpcCatalogRequestMessageDto, RpcCatalogResponseMessageDto, RpcDatasetRequestMessageDto,
 };
 use crate::protocols::dsp::protocol_types::{CatalogMessageWrapper, CatalogRequestMessageDto};
 use crate::protocols::dsp::types::catalog_definition::Catalog;
 use crate::protocols::dsp::types::dataset_definition::Dataset;
+use ymir::errors::Outcome;
 
 pub(crate) mod persistence;
 pub(crate) mod rpc;

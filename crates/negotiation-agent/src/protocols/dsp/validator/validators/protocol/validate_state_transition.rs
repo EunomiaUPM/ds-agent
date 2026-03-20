@@ -23,11 +23,11 @@ use crate::protocols::dsp::protocol_types::{
 };
 use crate::protocols::dsp::validator::traits::validate_state_transition::ValidateStateTransition;
 use crate::protocols::dsp::validator::traits::validation_helpers::ValidationHelpers;
-use log::error;
 use common::config::types::roles::RoleConfig;
 use common::errors::{CommonErrors, ErrorLog};
-use ymir::errors::{Errors, Outcome};
+use log::error;
 use std::sync::Arc;
+use ymir::errors::{Errors, Outcome};
 
 pub struct ValidatedStateTransitionServiceForDsp {
     _helpers: Arc<dyn ValidationHelpers>,
@@ -69,7 +69,7 @@ impl ValidateStateTransition for ValidatedStateTransitionServiceForDsp {
                     .as_str(),
                 );
                 error!("{}", err.log());
-                return Err(Errors::parse(err.to_string().as_str(), None))
+                return Err(Errors::parse(err.to_string().as_str(), None));
             }
         }
     }
@@ -226,14 +226,14 @@ impl ValidateStateTransition for ValidatedStateTransitionServiceForDsp {
                     "NegotiationProcessMessageType NegotiationProcess is not allowed here",
                 );
                 error!("{}", err.log());
-                return Err(Errors::parse(err.to_string().as_str(), None))
+                return Err(Errors::parse(err.to_string().as_str(), None));
             }
             NegotiationProcessMessageType::NegotiationError => {
                 let err = CommonErrors::parse_new(
                     "NegotiationProcessMessageType NegotiationError is not allowed here",
                 );
                 error!("{}", err.log());
-                return Err(Errors::parse(err.to_string().as_str(), None))
+                return Err(Errors::parse(err.to_string().as_str(), None));
             }
         }
         Ok(())

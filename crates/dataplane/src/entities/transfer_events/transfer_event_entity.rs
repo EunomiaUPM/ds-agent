@@ -33,7 +33,9 @@ pub struct TransferEventEntityService {
 
 impl TransferEventEntityService {
     pub fn new(data_plane_repo: &std::sync::Arc<dyn DataplaneRepoTrait>) -> Self {
-        Self { data_plane_repo: data_plane_repo.clone() }
+        Self {
+            data_plane_repo: data_plane_repo.clone(),
+        }
     }
 }
 
@@ -50,20 +52,23 @@ impl TransferEventEntitiesTrait for TransferEventEntityService {
             .get_all_transfer_events(limit, page)
             .await?;
 
-        Ok(events.into_iter().map(|e| TransferEventDto { inner: e }).collect())
+        Ok(events
+            .into_iter()
+            .map(|e| TransferEventDto { inner: e })
+            .collect())
     }
 
-    async fn get_batch_transfer_events(
-        &self,
-        ids: Vec<Urn>,
-    ) -> Outcome<Vec<TransferEventDto>> {
+    async fn get_batch_transfer_events(&self, ids: Vec<Urn>) -> Outcome<Vec<TransferEventDto>> {
         let events = self
             .data_plane_repo
             .get_transfer_events_repo()
             .get_batch_transfer_events(&ids)
             .await?;
 
-        Ok(events.into_iter().map(|e| TransferEventDto { inner: e }).collect())
+        Ok(events
+            .into_iter()
+            .map(|e| TransferEventDto { inner: e })
+            .collect())
     }
 
     async fn get_transfer_event_by_id(&self, id: &Urn) -> Outcome<Option<TransferEventDto>> {
@@ -86,7 +91,10 @@ impl TransferEventEntitiesTrait for TransferEventEntityService {
             .get_all_transfer_events_by_process_id(process_id)
             .await?;
 
-        Ok(events.into_iter().map(|e| TransferEventDto { inner: e }).collect())
+        Ok(events
+            .into_iter()
+            .map(|e| TransferEventDto { inner: e })
+            .collect())
     }
 
     async fn create_transfer_event(
@@ -101,6 +109,8 @@ impl TransferEventEntitiesTrait for TransferEventEntityService {
             .create_transfer_event(&new_model)
             .await?;
 
-        Ok(TransferEventDto { inner: created_event })
+        Ok(TransferEventDto {
+            inner: created_event,
+        })
     }
 }

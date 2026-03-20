@@ -50,7 +50,11 @@ fn run_jq(expr: &str, value: Value) -> Option<Value> {
     let filter = defs.compile(f);
 
     if !defs.errs.is_empty() {
-        tracing::warn!("run_jq: {} compile error(s) for {:?}", defs.errs.len(), expr);
+        tracing::warn!(
+            "run_jq: {} compile error(s) for {:?}",
+            defs.errs.len(),
+            expr
+        );
         return None;
     }
 
@@ -75,7 +79,11 @@ pub struct TemplateParametersResolver<'a> {
 
 impl<'a> TemplateParametersResolver<'a> {
     pub fn new(values: &'a HashMap<String, Value>) -> Self {
-        Self { values, context_stack: vec![], response_contexts: HashMap::new() }
+        Self {
+            values,
+            context_stack: vec![],
+            response_contexts: HashMap::new(),
+        }
     }
 
     /// Attach a named response context used to resolve `RUNTIME_{name}_RESPONSE_{jq}` placeholders.
@@ -85,7 +93,8 @@ impl<'a> TemplateParametersResolver<'a> {
     ///   `resolver.with_response_context("SUB", flow_control_value)`
     ///   → `{{__RUNTIME_SUB_RESPONSE_{.id}__}}` resolves via `.id` applied to `flow_control_value`
     pub fn with_response_context(mut self, context_type: &str, value: Value) -> Self {
-        self.response_contexts.insert(context_type.to_uppercase(), value);
+        self.response_contexts
+            .insert(context_type.to_uppercase(), value);
         self
     }
 

@@ -64,8 +64,16 @@ impl MigrationTrait for Migration {
                             .json_binary()
                             .not_null(),
                     )
-                    .col(ColumnDef::new(NegotiationAgentAgreements::Target).string().not_null())
-                    .col(ColumnDef::new(NegotiationAgentAgreements::State).string().not_null())
+                    .col(
+                        ColumnDef::new(NegotiationAgentAgreements::Target)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(NegotiationAgentAgreements::State)
+                            .string()
+                            .not_null(),
+                    )
                     .col(
                         ColumnDef::new(NegotiationAgentAgreements::CreatedAt)
                             .timestamp_with_time_zone()
@@ -92,7 +100,10 @@ impl MigrationTrait for Migration {
                                 NegotiationAgentAgreements::Table,
                                 NegotiationAgentAgreements::NegotiationAgentMessageId,
                             )
-                            .to(NegotiationAgentMessages::Table, NegotiationAgentMessages::Id)
+                            .to(
+                                NegotiationAgentMessages::Table,
+                                NegotiationAgentMessages::Id,
+                            )
                             .on_delete(ForeignKeyAction::Cascade),
                     )
                     .to_owned(),
@@ -101,7 +112,13 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager.drop_table(Table::drop().table(NegotiationAgentAgreements::Table).to_owned()).await
+        manager
+            .drop_table(
+                Table::drop()
+                    .table(NegotiationAgentAgreements::Table)
+                    .to_owned(),
+            )
+            .await
     }
 }
 

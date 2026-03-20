@@ -21,12 +21,12 @@ use crate::entities::negotiation_process::NegotiationProcessDto;
 use common::dsp_common::context_field::ContextField;
 use common::dsp_common::odrl::{ContractRequestMessageOfferTypes, OdrlAgreement};
 use serde::{Deserialize, Serialize};
-use ymir::errors::Errors;
 use serde_json::Value;
 use std::fmt::{Debug, Display};
 use std::str::FromStr;
 use tracing::error;
 use urn::Urn;
+use ymir::errors::Errors;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -778,7 +778,10 @@ impl TryFrom<NegotiationProcessDto> for NegotiationProcessMessageWrapper<Negotia
             Ok(urn) => urn,
             Err(e) => {
                 let err = Errors::parse(
-                    format!("Invalid URN format for consumerPid '{}': {}", consumer_str, e),
+                    format!(
+                        "Invalid URN format for consumerPid '{}': {}",
+                        consumer_str, e
+                    ),
                     None,
                 );
                 error!("{}", err);
@@ -801,7 +804,10 @@ impl TryFrom<NegotiationProcessDto> for NegotiationProcessMessageWrapper<Negotia
             Ok(urn) => urn,
             Err(e) => {
                 let err = Errors::parse(
-                    format!("Invalid URN format for providerPid '{}': {}", provider_str, e),
+                    format!(
+                        "Invalid URN format for providerPid '{}': {}",
+                        provider_str, e
+                    ),
                     None,
                 );
                 error!("{}", err);
@@ -827,7 +833,11 @@ impl TryFrom<NegotiationProcessDto> for NegotiationProcessMessageWrapper<Negotia
         Ok(Self {
             context: ContextField::default(),
             _type: NegotiationProcessMessageType::NegotiationProcess,
-            dto: NegotiationAckMessageDto { consumer_pid, provider_pid, state },
+            dto: NegotiationAckMessageDto {
+                consumer_pid,
+                provider_pid,
+                state,
+            },
         })
     }
 }

@@ -17,7 +17,7 @@
 
 use serde::{Deserialize, Serialize};
 use ymir::config::traits::{
-    ApiConfigTrait, ConnectionConfigTrait, DatabaseConfigTrait, HostsConfigTrait
+    ApiConfigTrait, ConnectionConfigTrait, DatabaseConfigTrait, HostsConfigTrait,
 };
 use ymir::config::types::{ApiConfig, CommonHostsConfig, ConnectionConfig, DatabaseConfig};
 
@@ -26,21 +26,29 @@ pub struct CommonConfig {
     pub hosts: CommonHostsConfig,
     pub db: DatabaseConfig,
     pub api: ApiConfig,
-    pub connection: ConnectionConfig
+    pub connection: ConnectionConfig,
 }
 
 impl HostsConfigTrait for CommonConfig {
-    fn hosts(&self) -> &CommonHostsConfig { &self.hosts }
+    fn hosts(&self) -> &CommonHostsConfig {
+        &self.hosts
+    }
 }
 
 impl DatabaseConfigTrait for CommonConfig {
-    fn db(&self) -> &DatabaseConfig { &self.db }
+    fn db(&self) -> &DatabaseConfig {
+        &self.db
+    }
 }
 
 impl ConnectionConfigTrait for CommonConfig {
-    fn connection(&self) -> &ConnectionConfig { &self.connection }
+    fn connection(&self) -> &ConnectionConfig {
+        &self.connection
+    }
 }
 
 impl ApiConfigTrait for CommonConfig {
-    fn api(&self) -> &ApiConfig { &self.api }
+    fn api(&self) -> &ApiConfig {
+        &self.api
+    }
 }

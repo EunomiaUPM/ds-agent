@@ -54,7 +54,9 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
                 | DbErr::Exec(RuntimeErr::SqlxError(SqlxError::Database(ref db_err))) => {
                     if let Some(code) = db_err.code() {
                         if code == "23505"
-                            && db_err.message().contains("idx_unique_distribution_connector")
+                            && db_err
+                                .message()
+                                .contains("idx_unique_distribution_connector")
                         {
                             Err(ConnectorAgentRepoErrors::ConnectorInstanceRepoErrors(
                                 ConnectorInstanceRepoErrors::ErrorCreatingTemplateByDuplication(
@@ -87,8 +89,9 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
         &self,
         instance_id: &String,
     ) -> Outcome<Option<connector_instances::Model>> {
-        let result =
-            connector_instances::Entity::find_by_id(instance_id).one(&self.db_connection).await;
+        let result = connector_instances::Entity::find_by_id(instance_id)
+            .one(&self.db_connection)
+            .await;
         match result {
             Ok(opt) => Ok(opt),
             Err(err) => Err(ConnectorAgentRepoErrors::ConnectorInstanceRepoErrors(
@@ -139,7 +142,9 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
         name: &String,
         version: &String,
     ) -> Outcome<()> {
-        let instance = self.get_instance_by_name_and_version(name, &version).await?;
+        let instance = self
+            .get_instance_by_name_and_version(name, &version)
+            .await?;
         if instance.is_none() {
             return Err(ConnectorAgentRepoErrors::ConnectorInstanceRepoErrors(
                 ConnectorInstanceRepoErrors::InstanceNotFound,
@@ -147,8 +152,9 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
             .into_errors());
         }
         let instance = instance.unwrap();
-        let result =
-            connector_instances::Entity::delete_by_id(instance.id).exec(&self.db_connection).await;
+        let result = connector_instances::Entity::delete_by_id(instance.id)
+            .exec(&self.db_connection)
+            .await;
 
         match result {
             Ok(delete_result) => match delete_result.rows_affected {
@@ -166,8 +172,9 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
     }
 
     async fn delete_instance_by_id(&self, instance_id: &String) -> Outcome<()> {
-        let result =
-            connector_instances::Entity::delete_by_id(instance_id).exec(&self.db_connection).await;
+        let result = connector_instances::Entity::delete_by_id(instance_id)
+            .exec(&self.db_connection)
+            .await;
 
         match result {
             Ok(delete_result) => match delete_result.rows_affected {

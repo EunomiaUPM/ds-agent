@@ -16,24 +16,18 @@
  *  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
-use ymir::errors::Outcome;
 use crate::protocols::dsp::protocol_types::CatalogMessageTrait;
 use common::config::types::roles::RoleConfig;
+use ymir::errors::Outcome;
 
 #[async_trait::async_trait]
 pub trait ValidatePayload: Send + Sync + 'static {
     /// Validates with json schema
-    async fn validate_with_json_schema(
-        &self,
-        payload: &dyn CatalogMessageTrait,
-    ) -> Outcome<()>;
+    async fn validate_with_json_schema(&self, payload: &dyn CatalogMessageTrait) -> Outcome<()>;
     /// Validates uri in URL to check if it is URN encoded
     async fn validate_uri_id_as_urn(&self, uri_id: &String) -> Outcome<()>;
     /// Validates if identifiers provider_pid and consumer_pid are urn
-    async fn validate_identifiers_as_urn(
-        &self,
-        payload: &dyn CatalogMessageTrait,
-    ) -> Outcome<()>;
+    async fn validate_identifiers_as_urn(&self, payload: &dyn CatalogMessageTrait) -> Outcome<()>;
     /// Validates depending on role if uri_id == ***_pid
     async fn validate_uri_and_pid(
         &self,

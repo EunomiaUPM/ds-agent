@@ -28,13 +28,13 @@
 //! 2. `interaction` fields (pull → data_access; push → subscribe then unsubscribe)
 //!
 //! [`ConnectorTemplateDto`]: crate::entities::connector_template::ConnectorTemplateDto
-use ymir::errors::Outcome;
 use crate::entities::auth_config::AuthenticationConfig;
 use crate::entities::connector_template::ConnectorTemplateDto;
 use crate::entities::interaction::{InteractionConfig, PullLifecycle, PushLifecycle};
 use crate::entities::parameters::{TemplateMapString, TemplateVecString};
 use crate::entities::resource::{HttpSpec, KafkaSpec};
 use crate::ProtocolSpec;
+use ymir::errors::Outcome;
 
 /// Structural traversal over the templatable fields of a [`ConnectorTemplateDto`].
 ///
@@ -54,7 +54,6 @@ use crate::ProtocolSpec;
 /// [`TemplateResolverVisitor`]: super::template_resolver_visitor::TemplateResolverVisitor
 /// [`ParameterExtractorVisitor`]: super::template_parameters_visitor::ParameterExtractorVisitor
 pub trait ConnectorTemplateWalker {
-
     // -------------------------------------------------------------------------
     // Leaf operations — implementors must supply these.
     // -------------------------------------------------------------------------
@@ -84,7 +83,12 @@ pub trait ConnectorTemplateWalker {
             AuthenticationConfig::ApiKey { key, .. } => {
                 self.on_string(key)?;
             }
-            AuthenticationConfig::OAuth2 { token_url, client_id, scopes, .. } => {
+            AuthenticationConfig::OAuth2 {
+                token_url,
+                client_id,
+                scopes,
+                ..
+            } => {
                 self.on_string(token_url)?;
                 self.on_string(client_id)?;
                 self.on_vec_string(scopes)?;

@@ -118,7 +118,11 @@ impl NegotiationAgentMessagesService for NegotiationAgentMessagesGrpc {
 
         let new_message_dto: NewNegotiationMessageDto = req.try_into()?;
 
-        match self.service.create_negotiation_message(&new_message_dto).await {
+        match self
+            .service
+            .create_negotiation_message(&new_message_dto)
+            .await
+        {
             Ok(dto) => Ok(Response::new(dto.into())),
             Err(e) => Err(Status::internal(e.to_string())),
         }

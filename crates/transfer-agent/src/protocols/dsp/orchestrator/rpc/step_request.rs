@@ -23,8 +23,8 @@ use crate::protocols::dsp::orchestrator::rpc::step_trait::{RpcRequestContext, Tr
 use crate::protocols::dsp::orchestrator::rpc::types::RpcTransferRequestMessageDto;
 use crate::protocols::dsp::persistence::{CreateProcessInput, TransferPersistenceTrait};
 use crate::protocols::dsp::protocol_types::{
-    DataAddressDto, TransferProcessAckDto, TransferProcessMessageTrait, TransferProcessMessageWrapper,
-    TransferRequestMessageDto,
+    DataAddressDto, TransferProcessAckDto, TransferProcessMessageTrait,
+    TransferProcessMessageWrapper, TransferRequestMessageDto,
 };
 use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRpcSteps;
 use common::dsp_common::context_field::ContextField;
@@ -66,8 +66,7 @@ impl TransferRpcStep for RequestStep {
         input: &RpcTransferRequestMessageDto,
         _persistence: &Arc<dyn TransferPersistenceTrait>,
     ) -> Outcome<RpcRequestContext> {
-        let process_id =
-            Urn::from_str(&format!("urn:transfer-process:{}", uuid::Uuid::new_v4()))?;
+        let process_id = Urn::from_str(&format!("urn:transfer-process:{}", uuid::Uuid::new_v4()))?;
         Ok(RpcRequestContext {
             process_id,
             provider_address: input.provider_address.clone(),
@@ -83,7 +82,8 @@ impl TransferRpcStep for RequestStep {
         dp: &Arc<dyn DataPlaneFacadeTrait>,
         ctx: &RpcRequestContext,
     ) -> Outcome<Option<DataAddressDto>> {
-        dp.on_transfer_request_pre(&ctx.process_id, &ctx.input_data_address).await
+        dp.on_transfer_request_pre(&ctx.process_id, &ctx.input_data_address)
+            .await
     }
 
     /// Converts the RPC input into a `TransferRequestMessageDto`, generating a
@@ -115,8 +115,10 @@ impl TransferRpcStep for RequestStep {
         ctx: &RpcRequestContext,
         payload: Arc<TransferRequestMessageDto>,
         url_suffix: &str,
-    ) -> Outcome<(TransferProcessMessageWrapper<TransferProcessAckDto>, TransferProcessDto)>
-    {
+    ) -> Outcome<(
+        TransferProcessMessageWrapper<TransferProcessAckDto>,
+        TransferProcessDto,
+    )> {
         let peer_url = format!("{}/transfers/{}", ctx.provider_address, url_suffix);
 
         let message = TransferProcessMessageWrapper {

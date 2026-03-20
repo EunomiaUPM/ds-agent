@@ -34,7 +34,10 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(TransferAgentMessages::Table)
                     .col(
-                        ColumnDef::new(TransferAgentMessages::Id).string().not_null().primary_key(),
+                        ColumnDef::new(TransferAgentMessages::Id)
+                            .string()
+                            .not_null()
+                            .primary_key(),
                     )
                     .col(
                         ColumnDef::new(TransferAgentMessages::TransferAgentProcessId)
@@ -46,9 +49,21 @@ impl MigrationTrait for Migration {
                             .timestamp_with_time_zone()
                             .not_null(),
                     )
-                    .col(ColumnDef::new(TransferAgentMessages::Direction).string().not_null())
-                    .col(ColumnDef::new(TransferAgentMessages::Protocol).string().not_null())
-                    .col(ColumnDef::new(TransferAgentMessages::MessageType).string().not_null())
+                    .col(
+                        ColumnDef::new(TransferAgentMessages::Direction)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(TransferAgentMessages::Protocol)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(TransferAgentMessages::MessageType)
+                            .string()
+                            .not_null(),
+                    )
                     .col(
                         ColumnDef::new(TransferAgentMessages::StateTransitionFrom)
                             .string()
@@ -77,7 +92,9 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager.drop_table(Table::drop().table(TransferAgentMessages::Table).to_owned()).await
+        manager
+            .drop_table(Table::drop().table(TransferAgentMessages::Table).to_owned())
+            .await
     }
 }
 

@@ -65,11 +65,20 @@ impl SysRuntimeContext {
         let cb_url_dockerized = format!("{}{}", proxy_dockerized, self.ingress_path);
 
         let mut map = HashMap::new();
-        map.insert("RUNTIME_URN".to_string(), json!(self.transfer_id.to_string()));
+        map.insert(
+            "RUNTIME_URN".to_string(),
+            json!(self.transfer_id.to_string()),
+        );
         map.insert("RUNTIME_OWN_URL".to_string(), json!(self.proxy_base_url));
-        map.insert("RUNTIME_OWN_URL_DOCKERIZED".to_string(), json!(proxy_dockerized));
+        map.insert(
+            "RUNTIME_OWN_URL_DOCKERIZED".to_string(),
+            json!(proxy_dockerized),
+        );
         map.insert("RUNTIME_CB_URL".to_string(), json!(cb_url));
-        map.insert("RUNTIME_CB_URL_DOCKERIZED".to_string(), json!(cb_url_dockerized));
+        map.insert(
+            "RUNTIME_CB_URL_DOCKERIZED".to_string(),
+            json!(cb_url_dockerized),
+        );
         map
     }
 }
@@ -83,7 +92,10 @@ pub struct HttpSubscribeLifecycle {
 
 impl HttpSubscribeLifecycle {
     pub fn new(http_client: Arc<HttpClient>, sys_context: SysRuntimeContext) -> Self {
-        Self { http_client, sys_context }
+        Self {
+            http_client,
+            sys_context,
+        }
     }
 }
 
@@ -119,9 +131,15 @@ impl LifeCycleActionTrait for HttpSubscribeLifecycle {
                 Errors::crazy(format!("Subscribe POST failed: {}", e), Some(Box::new(e)))
             })?
         } else {
-            self.http_client.post_json(&url, &json!({})).await.map_err(|e| {
-                Errors::crazy(format!("Subscribe POST (no body) failed: {}", e), Some(Box::new(e)))
-            })?
+            self.http_client
+                .post_json(&url, &json!({}))
+                .await
+                .map_err(|e| {
+                    Errors::crazy(
+                        format!("Subscribe POST (no body) failed: {}", e),
+                        Some(Box::new(e)),
+                    )
+                })?
         };
         Ok(response)
     }
@@ -141,7 +159,11 @@ impl LifeCycleActionTrait for HttpSubscribeLifecycle {
 
         // Second-pass resolver: RUNTIME_* params + SUB response context for RUNTIME_SUB_RESPONSE_{jq}
         let runtime_params = self.sys_context.to_params();
-        let sub_state = self.sys_context.subscription_state.clone().unwrap_or(Value::Null);
+        let sub_state = self
+            .sys_context
+            .subscription_state
+            .clone()
+            .unwrap_or(Value::Null);
         let mut resolver = TemplateParametersResolver::new(&runtime_params)
             .with_response_context("SUB", sub_state);
         TemplateResolverVisitor::new(&mut resolver).apply_protocol(&mut unsubscribe_spec)?;
@@ -162,12 +184,16 @@ impl LifeCycleActionTrait for HttpSubscribeLifecycle {
                 Errors::crazy(format!("Unsubscribe POST failed: {}", e), Some(Box::new(e)))
             })?;
         } else {
-            let _: Value = self.http_client.post_json(&url, &json!({})).await.map_err(|e| {
-                Errors::crazy(
-                    format!("Unsubscribe POST (no body) failed: {}", e),
-                    Some(Box::new(e)),
-                )
-            })?;
+            let _: Value = self
+                .http_client
+                .post_json(&url, &json!({}))
+                .await
+                .map_err(|e| {
+                    Errors::crazy(
+                        format!("Unsubscribe POST (no body) failed: {}", e),
+                        Some(Box::new(e)),
+                    )
+                })?;
         }
         Ok(())
     }
@@ -182,7 +208,10 @@ pub struct DataplaneDriverFactory {
 
 impl DataplaneDriverFactory {
     pub fn new(proxy_base_url: String, http_client: Arc<HttpClient>) -> Self {
-        Self { proxy_base_url, http_client }
+        Self {
+            proxy_base_url,
+            http_client,
+        }
     }
 
     pub fn create_driver(
@@ -205,12 +234,18 @@ impl DataplaneDriverFactory {
                     ingress_path,
                     subscription_state: process.inner.flow_control.clone(),
                 };
-                Arc::new(HttpSubscribeLifecycle::new(self.http_client.clone(), sys_context))
+                Arc::new(HttpSubscribeLifecycle::new(
+                    self.http_client.clone(),
+                    sys_context,
+                ))
             }
             _ => Arc::new(NoOpLifecycle::new()),
         };
 
-        Ok(DataplaneDriver { auth_driver, lifecycle_driver })
+        Ok(DataplaneDriver {
+            auth_driver,
+            lifecycle_driver,
+        })
     }
 
     fn extract_ingress_path(&self, process: &DataplaneTransferDto) -> Outcome<String> {

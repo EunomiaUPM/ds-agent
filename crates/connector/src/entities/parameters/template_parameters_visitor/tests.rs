@@ -15,7 +15,6 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 use crate::entities::auth_config::BasicAuthConfig;
 use crate::entities::auth_config::{ApiKeyLocation, OAuthGrantType};
 use crate::entities::common::secret_management::{SecretSource, SecretString};
@@ -33,7 +32,11 @@ use std::collections::HashMap;
 fn run(mut dto: ConnectorTemplateDto) -> Vec<String> {
     let mut extractor = TemplateParameterExtractor::new();
     ParameterExtractorVisitor::new(&mut extractor).extract(&mut dto);
-    extractor.found_parameters().iter().map(|fp| fp.name.clone()).collect()
+    extractor
+        .found_parameters()
+        .iter()
+        .map(|fp| fp.name.clone())
+        .collect()
 }
 
 // =========================================================================
@@ -78,7 +81,9 @@ fn basic_auth_username_template_extracts_parameter() {
         },
         authentication: AuthenticationConfig::BasicAuth(BasicAuthConfig {
             username: "{{__USERNAME__}}".to_string(),
-            password: SecretString { source: SecretSource::Plain("secret".to_string()) },
+            password: SecretString {
+                source: SecretSource::Plain("secret".to_string()),
+            },
         }),
         interaction: InteractionConfig::Pull(PullLifecycle {
             data_access: ProtocolSpec::Http(HttpSpec {
@@ -108,7 +113,9 @@ fn basic_auth_literal_username_extracts_no_parameters() {
         },
         authentication: AuthenticationConfig::BasicAuth(BasicAuthConfig {
             username: "admin".to_string(),
-            password: SecretString { source: SecretSource::Plain("secret".to_string()) },
+            password: SecretString {
+                source: SecretSource::Plain("secret".to_string()),
+            },
         }),
         interaction: InteractionConfig::Pull(PullLifecycle {
             data_access: ProtocolSpec::Http(HttpSpec {
@@ -135,7 +142,9 @@ fn bearer_token_extracts_no_parameters() {
             created_at: None,
         },
         authentication: AuthenticationConfig::BearerToken {
-            token: SecretString { source: SecretSource::Plain("{{__TOKEN__}}".to_string()) },
+            token: SecretString {
+                source: SecretSource::Plain("{{__TOKEN__}}".to_string()),
+            },
         },
         interaction: InteractionConfig::Pull(PullLifecycle {
             data_access: ProtocolSpec::Http(HttpSpec {
@@ -163,7 +172,9 @@ fn api_key_with_literal_key_extracts_no_parameters() {
         },
         authentication: AuthenticationConfig::ApiKey {
             key: "X-Api-Key".to_string(),
-            value: SecretString { source: SecretSource::Plain("s3cr3t".to_string()) },
+            value: SecretString {
+                source: SecretSource::Plain("s3cr3t".to_string()),
+            },
             location: ApiKeyLocation::Header,
         },
         interaction: InteractionConfig::Pull(PullLifecycle {
@@ -192,7 +203,9 @@ fn api_key_with_template_key_extracts_parameter() {
         },
         authentication: AuthenticationConfig::ApiKey {
             key: "{{__API_KEY_HEADER__}}".to_string(),
-            value: SecretString { source: SecretSource::Plain("s3cr3t".to_string()) },
+            value: SecretString {
+                source: SecretSource::Plain("s3cr3t".to_string()),
+            },
             location: ApiKeyLocation::Header,
         },
         interaction: InteractionConfig::Pull(PullLifecycle {
@@ -226,7 +239,9 @@ fn oauth2_with_literal_fields_extracts_no_parameters() {
             grant_type: OAuthGrantType::ClientCredentials,
             token_url: "https://auth.example.com/token".to_string(),
             client_id: "my-client".to_string(),
-            client_secret: SecretString { source: SecretSource::Plain("s3cr3t".to_string()) },
+            client_secret: SecretString {
+                source: SecretSource::Plain("s3cr3t".to_string()),
+            },
             scopes: TemplateVecString::Value(vec!["read".to_string()]),
         },
         interaction: InteractionConfig::Pull(PullLifecycle {
@@ -257,7 +272,9 @@ fn oauth2_with_template_fields_extracts_parameters() {
             grant_type: OAuthGrantType::ClientCredentials,
             token_url: "{{__TOKEN_URL__}}".to_string(),
             client_id: "{{__CLIENT_ID__}}".to_string(),
-            client_secret: SecretString { source: SecretSource::Plain("s3cr3t".to_string()) },
+            client_secret: SecretString {
+                source: SecretSource::Plain("s3cr3t".to_string()),
+            },
             scopes: TemplateVecString::Template("{{__SCOPES__}}".to_string()),
         },
         interaction: InteractionConfig::Pull(PullLifecycle {
@@ -776,7 +793,9 @@ fn basic_auth_and_http_url_extracts_all_parameters() {
         },
         authentication: AuthenticationConfig::BasicAuth(BasicAuthConfig {
             username: "{{__USERNAME__}}".to_string(),
-            password: SecretString { source: SecretSource::Plain("secret".to_string()) },
+            password: SecretString {
+                source: SecretSource::Plain("secret".to_string()),
+            },
         }),
         interaction: InteractionConfig::Pull(PullLifecycle {
             data_access: ProtocolSpec::Http(HttpSpec {

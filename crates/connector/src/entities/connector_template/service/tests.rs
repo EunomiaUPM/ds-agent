@@ -15,7 +15,6 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 use crate::data::entities::connector_templates;
 use crate::data::factory_trait::MockConnectorRepoTrait;
 use crate::data::repo_traits::connector_template_repo::{
@@ -34,13 +33,16 @@ use std::sync::Arc;
 /// — mockall only panics on *unexpected* calls, not on uncalled ones.
 fn mock_entities() -> ConnectorTemplateEntitiesService {
     let mut template_repo = MockConnectorTemplateRepoTrait::new();
-    template_repo.expect_create_template().returning(|m| Ok(echo_model(m)));
+    template_repo
+        .expect_create_template()
+        .returning(|m| Ok(echo_model(m)));
 
     let template_repo: Arc<dyn ConnectorTemplateRepoTrait> = Arc::new(template_repo);
     let template_repo_clone = Arc::clone(&template_repo);
 
     let mut repo = MockConnectorRepoTrait::new();
-    repo.expect_get_templates_repo().returning(move || Arc::clone(&template_repo_clone));
+    repo.expect_get_templates_repo()
+        .returning(move || Arc::clone(&template_repo_clone));
 
     ConnectorTemplateEntitiesService::new(Arc::new(repo))
 }
@@ -160,7 +162,10 @@ async fn test_create_instance_too_much_parameters() {
         !full.contains("ACCESS_METHODS"),
         "ACCESS_METHODS should not be in error: {full}"
     );
-    assert!(!full.contains("HEADERS"), "HEADERS should not be in error: {full}");
+    assert!(
+        !full.contains("HEADERS"),
+        "HEADERS should not be in error: {full}"
+    );
 }
 
 #[tokio::test]
@@ -204,7 +209,10 @@ async fn test_create_instance_too_less_parameters() {
         !full.contains("ACCESS_METHODS"),
         "ACCESS_METHODS should not be in error: {full}"
     );
-    assert!(!full.contains("HEADERS"), "HEADERS should not be in error: {full}");
+    assert!(
+        !full.contains("HEADERS"),
+        "HEADERS should not be in error: {full}"
+    );
 }
 
 #[tokio::test]

@@ -26,7 +26,7 @@ use ymir::errors::{Errors, Outcome};
 
 use crate::dsp_common::well_known_types::{
     Auth, AuthProtocolTypes, DSPBindings, DSPIdentifierTypes, DSPProtocolVersions, Version,
-    VersionResponse
+    VersionResponse,
 };
 
 pub mod dspace_version;
@@ -43,8 +43,9 @@ pub trait WellKnownDSpaceVersionTrait: Send + Sync + 'static {
     }
 
     fn get_dspace_version(&self) -> Outcome<VersionResponse> {
-        let protocol_version =
-            VersionResponse { protocol_versions: vec![self.get_base_dspace_version()] };
+        let protocol_version = VersionResponse {
+            protocol_versions: vec![self.get_base_dspace_version()],
+        };
 
         Ok(protocol_version)
     }
@@ -64,10 +65,10 @@ pub trait WellKnownDSpaceVersionTrait: Send + Sync + 'static {
             auth: Some(Auth {
                 protocol: AuthProtocolTypes::Gnap,
                 version: "1".to_string(),
-                profile: None
+                profile: None,
             }),
             identifier_type: Some(DSPIdentifierTypes::DidJWK),
-            service_id: Option::from(self.dspace_service_id())
+            service_id: Option::from(self.dspace_service_id()),
         }
     }
 
@@ -78,7 +79,7 @@ pub trait WellKnownDSpaceVersionTrait: Send + Sync + 'static {
             get(move || {
                 let res = version_response.clone();
                 async move { (StatusCode::OK, Json(res)) }
-            })
+            }),
         ))
     }
 }

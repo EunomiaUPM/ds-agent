@@ -15,7 +15,6 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 use super::*;
 use crate::entities::auth_config::BasicAuthConfig;
 use crate::entities::auth_config::{ApiKeyLocation, OAuthGrantType};
@@ -68,7 +67,9 @@ fn resolves_url_template() {
     let mut template = pull_http("https://api.example.com/{{__RESOURCE__}}");
     let params = HashMap::from([("RESOURCE".to_string(), json!("items"))]);
 
-    TemplateResolverVisitor::new(&resolver(&params)).apply(&mut template).unwrap();
+    TemplateResolverVisitor::new(&resolver(&params))
+        .apply(&mut template)
+        .unwrap();
 
     let url = match &template.interaction {
         InteractionConfig::Pull(lc) => match &lc.data_access {
@@ -95,7 +96,9 @@ fn resolves_method_template_variant() {
     };
     let params = HashMap::from([("METHOD".to_string(), json!(["POST"]))]);
 
-    TemplateResolverVisitor::new(&resolver(&params)).apply(&mut template).unwrap();
+    TemplateResolverVisitor::new(&resolver(&params))
+        .apply(&mut template)
+        .unwrap();
 
     let method = match &template.interaction {
         InteractionConfig::Pull(lc) => match &lc.data_access {
@@ -122,7 +125,9 @@ fn resolves_body_template() {
     };
     let params = HashMap::from([("ID".to_string(), json!("abc123"))]);
 
-    TemplateResolverVisitor::new(&resolver(&params)).apply(&mut template).unwrap();
+    TemplateResolverVisitor::new(&resolver(&params))
+        .apply(&mut template)
+        .unwrap();
 
     let body = match &template.interaction {
         InteractionConfig::Pull(lc) => match &lc.data_access {
@@ -152,7 +157,9 @@ fn resolves_headers_map_value_variant() {
     };
     let params = HashMap::from([("TOKEN".to_string(), json!("secret"))]);
 
-    TemplateResolverVisitor::new(&resolver(&params)).apply(&mut template).unwrap();
+    TemplateResolverVisitor::new(&resolver(&params))
+        .apply(&mut template)
+        .unwrap();
 
     let headers = match &template.interaction {
         InteractionConfig::Pull(lc) => match &lc.data_access {
@@ -185,7 +192,9 @@ fn resolves_kafka_topic() {
     };
     let params = HashMap::from([("TOPIC".to_string(), json!("events"))]);
 
-    TemplateResolverVisitor::new(&resolver(&params)).apply(&mut template).unwrap();
+    TemplateResolverVisitor::new(&resolver(&params))
+        .apply(&mut template)
+        .unwrap();
 
     let topic = match &template.interaction {
         InteractionConfig::Pull(lc) => match &lc.data_access {
@@ -206,13 +215,17 @@ fn resolves_basic_auth_username() {
     let mut template = ConnectorTemplateDto {
         authentication: AuthenticationConfig::BasicAuth(BasicAuthConfig {
             username: "{{__USERNAME__}}".to_string(),
-            password: SecretString { source: SecretSource::Plain("pass".to_string()) },
+            password: SecretString {
+                source: SecretSource::Plain("pass".to_string()),
+            },
         }),
         ..pull_http("https://api.example.com")
     };
     let params = HashMap::from([("USERNAME".to_string(), json!("alice"))]);
 
-    TemplateResolverVisitor::new(&resolver(&params)).apply(&mut template).unwrap();
+    TemplateResolverVisitor::new(&resolver(&params))
+        .apply(&mut template)
+        .unwrap();
 
     match &template.authentication {
         AuthenticationConfig::BasicAuth(c) => assert_eq!(c.username, "alice"),
@@ -225,14 +238,18 @@ fn resolves_api_key_name() {
     let mut template = ConnectorTemplateDto {
         authentication: AuthenticationConfig::ApiKey {
             key: "{{__HEADER_NAME__}}".to_string(),
-            value: SecretString { source: SecretSource::Plain("s3cr3t".to_string()) },
+            value: SecretString {
+                source: SecretSource::Plain("s3cr3t".to_string()),
+            },
             location: ApiKeyLocation::Header,
         },
         ..pull_http("https://api.example.com")
     };
     let params = HashMap::from([("HEADER_NAME".to_string(), json!("X-Custom-Key"))]);
 
-    TemplateResolverVisitor::new(&resolver(&params)).apply(&mut template).unwrap();
+    TemplateResolverVisitor::new(&resolver(&params))
+        .apply(&mut template)
+        .unwrap();
 
     match &template.authentication {
         AuthenticationConfig::ApiKey { key, .. } => assert_eq!(key, "X-Custom-Key"),
@@ -247,20 +264,31 @@ fn resolves_oauth2_token_url_and_client_id() {
             grant_type: OAuthGrantType::ClientCredentials,
             token_url: "{{__TOKEN_URL__}}".to_string(),
             client_id: "{{__CLIENT_ID__}}".to_string(),
-            client_secret: SecretString { source: SecretSource::Plain("s3cr3t".to_string()) },
+            client_secret: SecretString {
+                source: SecretSource::Plain("s3cr3t".to_string()),
+            },
             scopes: TemplateVecString::Value(vec![]),
         },
         ..pull_http("https://api.example.com")
     };
     let params = HashMap::from([
-        ("TOKEN_URL".to_string(), json!("https://auth.example.com/token")),
+        (
+            "TOKEN_URL".to_string(),
+            json!("https://auth.example.com/token"),
+        ),
         ("CLIENT_ID".to_string(), json!("my-client")),
     ]);
 
-    TemplateResolverVisitor::new(&resolver(&params)).apply(&mut template).unwrap();
+    TemplateResolverVisitor::new(&resolver(&params))
+        .apply(&mut template)
+        .unwrap();
 
     match &template.authentication {
-        AuthenticationConfig::OAuth2 { token_url, client_id, .. } => {
+        AuthenticationConfig::OAuth2 {
+            token_url,
+            client_id,
+            ..
+        } => {
             assert_eq!(token_url, "https://auth.example.com/token");
             assert_eq!(client_id, "my-client");
         }
@@ -278,7 +306,9 @@ fn leaves_literal_fields_unchanged() {
     let mut template = pull_http(url);
     let params = HashMap::new();
 
-    TemplateResolverVisitor::new(&resolver(&params)).apply(&mut template).unwrap();
+    TemplateResolverVisitor::new(&resolver(&params))
+        .apply(&mut template)
+        .unwrap();
 
     match &template.interaction {
         InteractionConfig::Pull(lc) => match &lc.data_access {
@@ -294,7 +324,9 @@ fn leaves_unresolved_placeholder_unchanged_when_param_missing() {
     let mut template = pull_http("https://api.example.com/{{__MISSING__}}");
     let params = HashMap::new();
 
-    TemplateResolverVisitor::new(&resolver(&params)).apply(&mut template).unwrap();
+    TemplateResolverVisitor::new(&resolver(&params))
+        .apply(&mut template)
+        .unwrap();
 
     match &template.interaction {
         InteractionConfig::Pull(lc) => match &lc.data_access {
@@ -332,7 +364,9 @@ fn resolves_push_subscribe_and_unsubscribe() {
     };
     let params = HashMap::from([("ID".to_string(), json!("res-42"))]);
 
-    TemplateResolverVisitor::new(&resolver(&params)).apply(&mut template).unwrap();
+    TemplateResolverVisitor::new(&resolver(&params))
+        .apply(&mut template)
+        .unwrap();
 
     match &template.interaction {
         InteractionConfig::Push(lc) => {

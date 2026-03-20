@@ -47,7 +47,12 @@ impl OdrlPolicyEntityTrait for OdrlPolicyEntities {
         page: Option<u64>,
     ) -> Outcome<Vec<OdrlPolicyDto>> {
         // 1. Cache hit
-        if let Ok(dtos) = self.cache.get_odrl_offer_cache().get_collection(limit, page).await {
+        if let Ok(dtos) = self
+            .cache
+            .get_odrl_offer_cache()
+            .get_collection(limit, page)
+            .await
+        {
             if !dtos.is_empty() {
                 return Ok(dtos);
             }
@@ -102,13 +107,13 @@ impl OdrlPolicyEntityTrait for OdrlPolicyEntities {
         Ok(dtos)
     }
 
-    async fn get_all_odrl_offers_by_entity(
-        &self,
-        entity: &Urn,
-    ) -> Outcome<Vec<OdrlPolicyDto>> {
+    async fn get_all_odrl_offers_by_entity(&self, entity: &Urn) -> Outcome<Vec<OdrlPolicyDto>> {
         // cache
-        if let Ok(dtos) =
-            self.cache.get_odrl_offer_cache().get_by_relation("target", entity, None, None).await
+        if let Ok(dtos) = self
+            .cache
+            .get_odrl_offer_cache()
+            .get_by_relation("target", entity, None, None)
+            .await
         {
             if !dtos.is_empty() {
                 return Ok(dtos);
@@ -136,12 +141,14 @@ impl OdrlPolicyEntityTrait for OdrlPolicyEntities {
         Ok(dtos)
     }
 
-    async fn get_odrl_offer_by_id(
-        &self,
-        odrl_offer_id: &Urn,
-    ) -> Outcome<Option<OdrlPolicyDto>> {
+    async fn get_odrl_offer_by_id(&self, odrl_offer_id: &Urn) -> Outcome<Option<OdrlPolicyDto>> {
         // cache
-        if let Ok(Some(dto)) = self.cache.get_odrl_offer_cache().get_single(odrl_offer_id).await {
+        if let Ok(Some(dto)) = self
+            .cache
+            .get_odrl_offer_cache()
+            .get_single(odrl_offer_id)
+            .await
+        {
             return Ok(Some(dto));
         }
 
@@ -156,7 +163,11 @@ impl OdrlPolicyEntityTrait for OdrlPolicyEntities {
 
         // hydration
         if let Some(dto) = &dto {
-            let _ = self.cache.get_odrl_offer_cache().set_single(odrl_offer_id, dto).await;
+            let _ = self
+                .cache
+                .get_odrl_offer_cache()
+                .set_single(odrl_offer_id, dto)
+                .await;
         }
         Ok(dto)
     }
@@ -183,7 +194,9 @@ impl OdrlPolicyEntityTrait for OdrlPolicyEntities {
 
         // lookup
         if let Ok(target_urn) = Urn::from_str(&dto.inner.entity) {
-            let _ = cache.add_to_relation("target", &target_urn, &policy_id, 0.0).await;
+            let _ = cache
+                .add_to_relation("target", &target_urn, &policy_id, 0.0)
+                .await;
         }
 
         Ok(dto)
@@ -206,7 +219,9 @@ impl OdrlPolicyEntityTrait for OdrlPolicyEntities {
         // lookup invalidation
         if let Some(dto) = current {
             if let Ok(target_urn) = Urn::from_str(&dto.inner.entity) {
-                let _ = cache.remove_from_relation("target", &target_urn, odrl_offer_id).await;
+                let _ = cache
+                    .remove_from_relation("target", &target_urn, odrl_offer_id)
+                    .await;
             }
         }
 
@@ -233,7 +248,9 @@ impl OdrlPolicyEntityTrait for OdrlPolicyEntities {
         }
 
         // lookup invalidation
-        let _ = cache.remove_from_relation("target", entity_id, &Urn::from_str("nil:nil")?).await; // dummy trigger
+        let _ = cache
+            .remove_from_relation("target", entity_id, &Urn::from_str("nil:nil")?)
+            .await; // dummy trigger
 
         Ok(())
     }

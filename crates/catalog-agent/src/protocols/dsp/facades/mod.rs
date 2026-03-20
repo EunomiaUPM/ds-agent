@@ -32,7 +32,9 @@ pub struct FacadeService {
 
 impl FacadeService {
     pub fn new(catalog_rpc_path_facade: Arc<dyn WellKnownRPCFacadeTrait>) -> FacadeService {
-        Self { catalog_rpc_path_facade }
+        Self {
+            catalog_rpc_path_facade,
+        }
     }
 }
 

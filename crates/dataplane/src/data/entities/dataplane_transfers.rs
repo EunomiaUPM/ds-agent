@@ -167,10 +167,12 @@ pub struct NewDataplaneTransfer {
 
 impl From<NewDataplaneTransfer> for ActiveModel {
     fn from(value: NewDataplaneTransfer) -> Self {
-        let new_urn =
-            UrnBuilder::new("dataplane-process", uuid::Uuid::new_v4().to_string().as_str())
-                .build()
-                .expect("UrnBuilder failed");
+        let new_urn = UrnBuilder::new(
+            "dataplane-process",
+            uuid::Uuid::new_v4().to_string().as_str(),
+        )
+        .build()
+        .expect("UrnBuilder failed");
         Self {
             id: ActiveValue::Set(value.id.unwrap_or(new_urn.clone()).to_string()),
             transfer_process_id: ActiveValue::Set(value.transfer_process_id),

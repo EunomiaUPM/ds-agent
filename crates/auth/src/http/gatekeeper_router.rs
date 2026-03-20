@@ -29,11 +29,13 @@ use ymir::types::gnap::AccessToken;
 use crate::core::traits::CoreGateKeeperTrait;
 
 pub struct GateKeeperRouter {
-    gatekeeper: Arc<dyn CoreGateKeeperTrait>
+    gatekeeper: Arc<dyn CoreGateKeeperTrait>,
 }
 
 impl GateKeeperRouter {
-    pub fn new(gatekeeper: Arc<dyn CoreGateKeeperTrait>) -> Self { GateKeeperRouter { gatekeeper } }
+    pub fn new(gatekeeper: Arc<dyn CoreGateKeeperTrait>) -> Self {
+        GateKeeperRouter { gatekeeper }
+    }
 
     pub fn router(self) -> Router {
         Router::new()
@@ -45,7 +47,7 @@ impl GateKeeperRouter {
     async fn manage_req(
         State(gatekeeper): State<Arc<dyn CoreGateKeeperTrait>>,
         headers: HeaderMap,
-        payload: Bytes
+        payload: Bytes,
     ) -> AppResult<Json<GrantResponse>> {
         Ok(Json(gatekeeper.manage_req(payload, headers).await?))
     }
@@ -54,7 +56,7 @@ impl GateKeeperRouter {
         State(gatekeeper): State<Arc<dyn CoreGateKeeperTrait>>,
         headers: HeaderMap,
         Path(id): Path<String>,
-        payload: Bytes
+        payload: Bytes,
     ) -> AppResult<Json<AccessToken>> {
         Ok(Json(gatekeeper.continue_req(id, payload, headers).await?))
     }

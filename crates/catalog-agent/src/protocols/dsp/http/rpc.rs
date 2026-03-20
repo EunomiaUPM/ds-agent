@@ -45,8 +45,14 @@ impl RpcRouter {
     }
     pub fn router(self) -> Router {
         Router::new()
-            .route("/rpc/setup-catalog-request", post(Self::handle_rpc_catalog_request))
-            .route("/rpc/setup-dataset-request", post(Self::handle_rpc_dataset_request))
+            .route(
+                "/rpc/setup-catalog-request",
+                post(Self::handle_rpc_catalog_request),
+            )
+            .route(
+                "/rpc/setup-dataset-request",
+                post(Self::handle_rpc_dataset_request),
+            )
             .with_state(self)
     }
 
@@ -58,7 +64,12 @@ impl RpcRouter {
             Ok(v) => v,
             Err(e) => return e.into_response(),
         };
-        match state.orchestrator.get_rpc_service().setup_catalog_request_rpc(&input).await {
+        match state
+            .orchestrator
+            .get_rpc_service()
+            .setup_catalog_request_rpc(&input)
+            .await
+        {
             Ok(catalog) => (StatusCode::OK, Json(catalog)).into_response(),
             Err(err) => err.into_response(),
         }
@@ -71,7 +82,12 @@ impl RpcRouter {
             Ok(v) => v,
             Err(e) => return e.into_response(),
         };
-        match state.orchestrator.get_rpc_service().setup_dataset_request_rpc(&input).await {
+        match state
+            .orchestrator
+            .get_rpc_service()
+            .setup_dataset_request_rpc(&input)
+            .await
+        {
             Ok(dataset) => (StatusCode::OK, Json(dataset)).into_response(),
             Err(err) => err.into_response(),
         }

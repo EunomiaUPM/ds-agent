@@ -19,15 +19,15 @@
 
 pub(crate) mod persistence;
 pub(crate) mod protocol;
-pub(crate) mod step_trait;
-pub(crate) mod step_initial_request;
-pub(crate) mod step_consumer_request;
-pub(crate) mod step_agreement_verification;
-pub(crate) mod step_initial_offer;
-pub(crate) mod step_provider_offer;
 pub(crate) mod step_agreement_reception;
+pub(crate) mod step_agreement_verification;
+pub(crate) mod step_consumer_request;
+pub(crate) mod step_initial_offer;
+pub(crate) mod step_initial_request;
 pub(crate) mod step_negotiation_event;
+pub(crate) mod step_provider_offer;
 pub(crate) mod step_termination;
+pub(crate) mod step_trait;
 
 use crate::protocols::dsp::protocol_types::{
     NegotiationAckMessageDto, NegotiationAgreementMessageDto, NegotiationEventMessageDto,
@@ -35,8 +35,8 @@ use crate::protocols::dsp::protocol_types::{
     NegotiationRequestInitMessageDto, NegotiationRequestMessageDto,
     NegotiationTerminationMessageDto, NegotiationVerificationMessageDto,
 };
-use ymir::errors::Outcome;
 use common::facades::Mates;
+use ymir::errors::Outcome;
 
 #[async_trait::async_trait]
 pub trait ProtocolOrchestratorTrait: Send + Sync + 'static {
@@ -49,7 +49,10 @@ pub trait ProtocolOrchestratorTrait: Send + Sync + 'static {
         &self,
         input: &NegotiationProcessMessageWrapper<NegotiationRequestInitMessageDto>,
         mate: &Mates,
-    ) -> Outcome<(NegotiationProcessMessageWrapper<NegotiationAckMessageDto>, bool)>;
+    ) -> Outcome<(
+        NegotiationProcessMessageWrapper<NegotiationAckMessageDto>,
+        bool,
+    )>;
 
     async fn on_consumer_request(
         &self,
@@ -69,7 +72,10 @@ pub trait ProtocolOrchestratorTrait: Send + Sync + 'static {
         &self,
         input: &NegotiationProcessMessageWrapper<NegotiationOfferInitMessageDto>,
         mate: &Mates,
-    ) -> Outcome<(NegotiationProcessMessageWrapper<NegotiationAckMessageDto>, bool)>;
+    ) -> Outcome<(
+        NegotiationProcessMessageWrapper<NegotiationAckMessageDto>,
+        bool,
+    )>;
 
     async fn on_provider_offer(
         &self,

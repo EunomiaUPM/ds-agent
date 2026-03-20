@@ -18,9 +18,9 @@
 use std::fmt::Display;
 use std::str::FromStr;
 
+use crate::config::types::traits::CacheConfigTrait;
 use serde::{Deserialize, Serialize};
 use ymir::errors::Errors;
-use crate::config::types::traits::CacheConfigTrait;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CacheConfig {
@@ -28,11 +28,13 @@ pub struct CacheConfig {
     pub url: String,
     pub port: String,
     pub user: String,
-    pub password: String
+    pub password: String,
 }
 
 impl CacheConfigTrait for CacheConfig {
-    fn cache_config(&self) -> &CacheConfig { self }
+    fn cache_config(&self) -> &CacheConfig {
+        self
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -40,11 +42,13 @@ pub enum CacheType {
     Redis,
     Memcached,
     Memory,
-    Noop
+    Noop,
 }
 
 impl Default for CacheType {
-    fn default() -> Self { Self::Noop }
+    fn default() -> Self {
+        Self::Noop
+    }
 }
 
 impl Default for CacheConfig {
@@ -54,7 +58,7 @@ impl Default for CacheConfig {
             url: "".to_string(),
             port: "".to_string(),
             user: "".to_string(),
-            password: "".to_string()
+            password: "".to_string(),
         }
     }
 }
@@ -65,7 +69,7 @@ impl Display for CacheType {
             CacheType::Redis => write!(f, "redis"),
             CacheType::Memcached => write!(f, "memcached"),
             CacheType::Memory => write!(f, "memory"),
-            CacheType::Noop => write!(f, "noop")
+            CacheType::Noop => write!(f, "noop"),
         }
     }
 }
@@ -78,7 +82,7 @@ impl FromStr for CacheType {
             "memcached" => Ok(CacheType::Memcached),
             "memory" => Ok(CacheType::Memory),
             "noop" => Ok(CacheType::Noop),
-            _ => Err(Errors::crazy("no cache allowed", None))
+            _ => Err(Errors::crazy("no cache allowed", None)),
         }
     }
 }
@@ -91,7 +95,7 @@ impl FromStr for &CacheType {
             "memcached" => Ok(&CacheType::Memcached),
             "memory" => Ok(&CacheType::Memory),
             "noop" => Ok(&CacheType::Noop),
-            _ => Err(Errors::crazy("no cache allowed", None))
+            _ => Err(Errors::crazy("no cache allowed", None)),
         }
     }
 }

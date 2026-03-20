@@ -64,7 +64,13 @@ impl RPCOrchestratorService {
         facades: Arc<dyn FacadeTrait>,
         mates_facade: Arc<dyn MatesFacadeTrait>,
     ) -> RPCOrchestratorService {
-        RPCOrchestratorService { validator, persistence_service, http_client, facades, mates_facade }
+        RPCOrchestratorService {
+            validator,
+            persistence_service,
+            http_client,
+            facades,
+            mates_facade,
+        }
     }
 }
 
@@ -77,7 +83,11 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         input: &RpcTransferRequestMessageDto,
     ) -> Outcome<RpcTransferMessageDto<RpcTransferRequestMessageDto>> {
         let (response, process) = self.run_lifecycle::<RequestStep>(input).await?;
-        Ok(RpcTransferMessageDto { request: input.clone(), response, transfer_agent_model: process })
+        Ok(RpcTransferMessageDto {
+            request: input.clone(),
+            response,
+            transfer_agent_model: process,
+        })
     }
 
     async fn setup_transfer_start(
@@ -85,7 +95,11 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         input: &RpcTransferStartMessageDto,
     ) -> Outcome<RpcTransferMessageDto<RpcTransferStartMessageDto>> {
         let (response, process) = self.run_lifecycle::<StartStep>(input).await?;
-        Ok(RpcTransferMessageDto { request: input.clone(), response, transfer_agent_model: process })
+        Ok(RpcTransferMessageDto {
+            request: input.clone(),
+            response,
+            transfer_agent_model: process,
+        })
     }
 
     async fn setup_transfer_suspension(
@@ -93,7 +107,11 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         input: &RpcTransferSuspensionMessageDto,
     ) -> Outcome<RpcTransferMessageDto<RpcTransferSuspensionMessageDto>> {
         let (response, process) = self.run_lifecycle::<SuspensionStep>(input).await?;
-        Ok(RpcTransferMessageDto { request: input.clone(), response, transfer_agent_model: process })
+        Ok(RpcTransferMessageDto {
+            request: input.clone(),
+            response,
+            transfer_agent_model: process,
+        })
     }
 
     async fn setup_transfer_completion(
@@ -101,7 +119,11 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         input: &RpcTransferCompletionMessageDto,
     ) -> Outcome<RpcTransferMessageDto<RpcTransferCompletionMessageDto>> {
         let (response, process) = self.run_lifecycle::<CompletionStep>(input).await?;
-        Ok(RpcTransferMessageDto { request: input.clone(), response, transfer_agent_model: process })
+        Ok(RpcTransferMessageDto {
+            request: input.clone(),
+            response,
+            transfer_agent_model: process,
+        })
     }
 
     async fn setup_transfer_termination(
@@ -109,7 +131,11 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         input: &RpcTransferTerminationMessageDto,
     ) -> Outcome<RpcTransferMessageDto<RpcTransferTerminationMessageDto>> {
         let (response, process) = self.run_lifecycle::<TerminationStep>(input).await?;
-        Ok(RpcTransferMessageDto { request: input.clone(), response, transfer_agent_model: process })
+        Ok(RpcTransferMessageDto {
+            request: input.clone(),
+            response,
+            transfer_agent_model: process,
+        })
     }
 }
 

@@ -18,7 +18,7 @@
 use crate::config::types::cache::CacheConfig;
 use crate::config::types::min_known_config::MinKnownConfig;
 use crate::config::types::traits::{
-    CacheConfigTrait, CommonConfigTrait, ConfigLoader, DatahubConfigTrait
+    CacheConfigTrait, CommonConfigTrait, ConfigLoader, DatahubConfigTrait,
 };
 
 pub trait CatalogConfigTrait:

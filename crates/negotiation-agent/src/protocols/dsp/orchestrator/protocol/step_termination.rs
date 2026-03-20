@@ -20,15 +20,15 @@
 use crate::entities::negotiation_process::NegotiationProcessDto;
 use crate::protocols::dsp::orchestrator::protocol::persistence::OrchestrationPersistenceForProtocol;
 use crate::protocols::dsp::orchestrator::protocol::step_trait::{
-    continuation_prepare_context, NegotiationContinuationContext, NegotiationProtocolStep,
+    NegotiationContinuationContext, NegotiationProtocolStep, continuation_prepare_context,
 };
 use crate::protocols::dsp::protocol_types::{
     NegotiationAckMessageDto, NegotiationProcessMessageWrapper, NegotiationTerminationMessageDto,
 };
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
-use ymir::errors::Outcome;
-use std::sync::Arc;
 use common::facades::Mates;
+use std::sync::Arc;
+use ymir::errors::Outcome;
 // ─── NegotiationTerminationStep ───────────────────────────────────────────────
 
 /// Handles an inbound `ContractNegotiationTerminationMessage` from the peer.
@@ -48,7 +48,9 @@ impl NegotiationProtocolStep for NegotiationTerminationStep {
         input: &NegotiationProcessMessageWrapper<NegotiationTerminationMessageDto>,
         _mate: &Mates,
     ) -> Outcome<()> {
-        validator.on_contract_termination(&id.to_string(), input).await
+        validator
+            .on_contract_termination(&id.to_string(), input)
+            .await
     }
 
     async fn prepare_context(

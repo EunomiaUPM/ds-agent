@@ -33,7 +33,9 @@ pub fn get_urn(optional_urn: Option<Urn>) -> Urn {
 }
 
 pub fn get_urn_from_string(string_in: &String) -> Outcome<Urn> {
-    string_in.parse::<Urn>().map_err(|e| Errors::parse("Error parsing urn", Some(Box::new(e))))
+    string_in
+        .parse::<Urn>()
+        .map_err(|e| Errors::parse("Error parsing urn", Some(Box::new(e))))
 }
 
 pub async fn flush_redis_cache(url: &str) -> Outcome<()> {
@@ -41,9 +43,12 @@ pub async fn flush_redis_cache(url: &str) -> Outcome<()> {
     // NEW REDS IS ERROR?
     let client = redis::Client::open(url)
         .map_err(|err| Errors::crazy("Redis client open url failed", Some(Box::new(err))))?;
-    let mut con = client.get_multiplexed_async_connection().await.map_err(|err| {
-        Errors::crazy("Redis getting async connection failed", Some(Box::new(err)))
-    })?;
+    let mut con = client
+        .get_multiplexed_async_connection()
+        .await
+        .map_err(|err| {
+            Errors::crazy("Redis getting async connection failed", Some(Box::new(err)))
+        })?;
     redis::cmd("FLUSHALL")
         .query_async::<()>(&mut con)
         .await
@@ -55,7 +60,7 @@ pub async fn flush_redis_cache(url: &str) -> Outcome<()> {
 pub fn show_table(config: &impl Serialize) -> Outcome<()> {
     let table = json_to_table::json_to_table(
         &serde_json::to_value(config)
-            .map_err(|e| Errors::parse("Error with config table", Some(Box::new(e))))?
+            .map_err(|e| Errors::parse("Error with config table", Some(Box::new(e))))?,
     )
     .collapse()
     .to_string();

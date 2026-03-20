@@ -74,7 +74,11 @@ impl PolicyTemplateEntityRouter {
         policy_engine: Arc<dyn PolicyInstantiationTrait>,
         config: Arc<CatalogConfig>,
     ) -> Self {
-        Self { service, policy_engine, config }
+        Self {
+            service,
+            policy_engine,
+            config,
+        }
     }
 
     pub fn router(self) -> Router {
@@ -91,7 +95,10 @@ impl PolicyTemplateEntityRouter {
                 "/{id}/{version}",
                 delete(Self::handle_delete_policy_template_by_id_and_version),
             )
-            .route("/instantiate-odrl-offer", post(Self::handle_instantiate_offer))
+            .route(
+                "/instantiate-odrl-offer",
+                post(Self::handle_instantiate_offer),
+            )
             .with_state(self)
     }
 
@@ -99,7 +106,11 @@ impl PolicyTemplateEntityRouter {
         State(state): State<PolicyTemplateEntityRouter>,
         Query(params): Query<PaginationParams>,
     ) -> impl IntoResponse {
-        match state.service.get_all_policy_templates(params.limit, params.page).await {
+        match state
+            .service
+            .get_all_policy_templates(params.limit, params.page)
+            .await
+        {
             Ok(templates) => (StatusCode::OK, Json(ToCamelCase(templates))).into_response(),
             Err(e) => return e.into_response(),
         }
@@ -130,11 +141,14 @@ impl PolicyTemplateEntityRouter {
         State(state): State<PolicyTemplateEntityRouter>,
         Path((id, version)): Path<(String, String)>,
     ) -> impl IntoResponse {
-        match state.service.get_policies_template_by_version_and_id(&id, &version).await {
+        match state
+            .service
+            .get_policies_template_by_version_and_id(&id, &version)
+            .await
+        {
             Ok(Some(template)) => (StatusCode::OK, Json(ToCamelCase(template))).into_response(),
             Ok(None) => {
-                let err =
-                    Errors::missing_resource(id.as_str(), "Policy template not found", None);
+                let err = Errors::missing_resource(id.as_str(), "Policy template not found", None);
                 err.into_response()
             }
             Err(e) => return e.into_response(),
@@ -166,7 +180,11 @@ impl PolicyTemplateEntityRouter {
         State(state): State<PolicyTemplateEntityRouter>,
         Path((id, version)): Path<(String, String)>,
     ) -> impl IntoResponse {
-        match state.service.delete_policy_template_by_version_and_id(&id, &version).await {
+        match state
+            .service
+            .delete_policy_template_by_version_and_id(&id, &version)
+            .await
+        {
             Ok(_) => StatusCode::ACCEPTED.into_response(),
             Err(e) => return e.into_response(),
         }

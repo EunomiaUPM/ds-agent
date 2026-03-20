@@ -15,7 +15,6 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 use crate::connector_instance::service::ConnectorInstanceEntitiesService;
 use crate::data::entities::{connector_distro_relation, connector_instances, connector_templates};
 use crate::data::factory_trait::{ConnectorRepoTrait, MockConnectorRepoTrait};
@@ -100,28 +99,37 @@ fn mock_service() -> ConnectorInstanceEntitiesService {
         .returning(|_, _| Ok(Some(get_template_fixture_model())));
     // at some point i'd like to persist
     let mut connector_instance_repo = MockConnectorInstanceRepoTrait::new();
-    connector_instance_repo.expect_create_instance().times(1).returning(|model| {
-        Ok(connector_instances::Model {
-            id: "urn:connector-instance:fake".to_string(),
-            template_name: model.template_name.clone(),
-            template_version: model.template_version.clone(),
-            distribution_id: model.distribution_id.clone(),
-            created_at: chrono::Utc::now().into(),
-            metadata: model.metadata.clone(),
-            configuration_parameters: model.configuration_parameters.clone(),
-            authentication: model.authentication.clone(),
-            interaction: model.interaction.clone(),
-        })
-    });
+    connector_instance_repo
+        .expect_create_instance()
+        .times(1)
+        .returning(|model| {
+            Ok(connector_instances::Model {
+                id: "urn:connector-instance:fake".to_string(),
+                template_name: model.template_name.clone(),
+                template_version: model.template_version.clone(),
+                distribution_id: model.distribution_id.clone(),
+                created_at: chrono::Utc::now().into(),
+                metadata: model.metadata.clone(),
+                configuration_parameters: model.configuration_parameters.clone(),
+                authentication: model.authentication.clone(),
+                interaction: model.interaction.clone(),
+            })
+        });
     // at some point
     let mut connector_distro_repo = MockConnectorDistroRelationRepoTrait::new();
-    connector_distro_repo.expect_get_relation_by_distribution().once().returning(|_| Ok(None));
-    connector_distro_repo.expect_create_relation().once().returning(|_, _| {
-        Ok(connector_distro_relation::Model {
-            distribution_id: "".to_string(),
-            connector_instance_id: "".to_string(),
-        })
-    });
+    connector_distro_repo
+        .expect_get_relation_by_distribution()
+        .once()
+        .returning(|_| Ok(None));
+    connector_distro_repo
+        .expect_create_relation()
+        .once()
+        .returning(|_, _| {
+            Ok(connector_distro_relation::Model {
+                distribution_id: "".to_string(),
+                connector_instance_id: "".to_string(),
+            })
+        });
 
     // arcs
     let connector_template_repo: Arc<dyn ConnectorTemplateRepoTrait> =
@@ -133,9 +141,15 @@ fn mock_service() -> ConnectorInstanceEntitiesService {
 
     // connector repo
     let mut connector_repo = MockConnectorRepoTrait::new();
-    connector_repo.expect_get_templates_repo().return_const(connector_template_repo);
-    connector_repo.expect_get_instances_repo().return_const(connector_instance_repo);
-    connector_repo.expect_get_distro_relation_repo().return_const(connector_distro_repo);
+    connector_repo
+        .expect_get_templates_repo()
+        .return_const(connector_template_repo);
+    connector_repo
+        .expect_get_instances_repo()
+        .return_const(connector_instance_repo);
+    connector_repo
+        .expect_get_distro_relation_repo()
+        .return_const(connector_distro_repo);
     let connector_repo = Arc::new(connector_repo);
 
     let mut distribution_facade = MockDistributionFacadeTrait::new();

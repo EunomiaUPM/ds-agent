@@ -69,14 +69,12 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
             Ok(catalogs) => Ok(catalogs),
             Err(err) => Err(CatalogAgentRepoErrors::CatalogRepoErrors(
                 CatalogRepoErrors::ErrorFetchingCatalog(err.into()),
-            ).into_errors()),
+            )
+            .into_errors()),
         }
     }
 
-    async fn get_batch_catalogs(
-        &self,
-        ids: &Vec<Urn>,
-    ) -> Outcome<Vec<catalog::Model>> {
+    async fn get_batch_catalogs(&self, ids: &Vec<Urn>) -> Outcome<Vec<catalog::Model>> {
         let catalog_ids = ids.iter().map(|t| t.to_string()).collect::<Vec<_>>();
         let catalog_process = catalog::Entity::find()
             .filter(catalog::Column::Id.is_in(catalog_ids))
@@ -86,27 +84,26 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
             Ok(catalog_process) => Ok(catalog_process),
             Err(err) => Err(CatalogAgentRepoErrors::CatalogRepoErrors(
                 CatalogRepoErrors::ErrorFetchingCatalog(err.into()),
-            ).into_errors()),
+            )
+            .into_errors()),
         }
     }
 
-    async fn get_catalog_by_id(
-        &self,
-        catalog_id: &Urn,
-    ) -> Outcome<Option<catalog::Model>> {
+    async fn get_catalog_by_id(&self, catalog_id: &Urn) -> Outcome<Option<catalog::Model>> {
         let catalog_id = catalog_id.to_string();
-        let catalog = catalog::Entity::find_by_id(catalog_id).one(&self.db_connection).await;
+        let catalog = catalog::Entity::find_by_id(catalog_id)
+            .one(&self.db_connection)
+            .await;
         match catalog {
             Ok(catalog) => Ok(catalog),
             Err(err) => Err(CatalogAgentRepoErrors::CatalogRepoErrors(
                 CatalogRepoErrors::ErrorFetchingCatalog(err.into()),
-            ).into_errors()),
+            )
+            .into_errors()),
         }
     }
 
-    async fn get_main_catalog(
-        &self,
-    ) -> Outcome<Option<catalog::Model>> {
+    async fn get_main_catalog(&self) -> Outcome<Option<catalog::Model>> {
         let catalog = catalog::Entity::find()
             .filter(catalog::Column::DspaceMainCatalog.eq(true))
             .one(&self.db_connection)
@@ -114,7 +111,8 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
             .map_err(|err| {
                 CatalogAgentRepoErrors::CatalogRepoErrors(CatalogRepoErrors::ErrorFetchingCatalog(
                     err.into(),
-                )).into_errors()
+                ))
+                .into_errors()
             })?;
         Ok(catalog)
     }
@@ -125,20 +123,24 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
         edit_catalog_model: &EditCatalogModel,
     ) -> Outcome<catalog::Model> {
         let catalog_id = catalog_id.to_string();
-        let old_model = catalog::Entity::find_by_id(catalog_id).one(&self.db_connection).await;
+        let old_model = catalog::Entity::find_by_id(catalog_id)
+            .one(&self.db_connection)
+            .await;
         let old_model = match old_model {
             Ok(old_model) => match old_model {
                 Some(old_model) => old_model,
                 None => {
                     return Err(CatalogAgentRepoErrors::CatalogRepoErrors(
                         CatalogRepoErrors::CatalogNotFound,
-                    ).into_errors())
+                    )
+                    .into_errors())
                 }
             },
             Err(err) => {
                 return Err(CatalogAgentRepoErrors::CatalogRepoErrors(
                     CatalogRepoErrors::ErrorFetchingCatalog(err.into()),
-                ).into_errors())
+                )
+                .into_errors())
             }
         };
 
@@ -162,29 +164,31 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
             Ok(model) => Ok(model),
             Err(err) => Err(CatalogAgentRepoErrors::CatalogRepoErrors(
                 CatalogRepoErrors::ErrorUpdatingCatalog(err.into()),
-            ).into_errors()),
+            )
+            .into_errors()),
         }
     }
 
-    async fn create_catalog(
-        &self,
-        new_catalog_model: &NewCatalogModel,
-    ) -> Outcome<catalog::Model> {
+    async fn create_catalog(&self, new_catalog_model: &NewCatalogModel) -> Outcome<catalog::Model> {
         let main_catalog = self.get_main_catalog().await?;
         if main_catalog.is_none() {
             return Err(CatalogAgentRepoErrors::CatalogRepoErrors(
                 CatalogRepoErrors::ErrorCreatingCatalog(
-                    "Main Catalog must be created first".into()
+                    "Main Catalog must be created first".into(),
                 ),
-            ).into_errors());
+            )
+            .into_errors());
         }
         let model: catalog::ActiveModel = new_catalog_model.clone().into();
-        let catalog = catalog::Entity::insert(model).exec_with_returning(&self.db_connection).await;
+        let catalog = catalog::Entity::insert(model)
+            .exec_with_returning(&self.db_connection)
+            .await;
         match catalog {
             Ok(catalog) => Ok(catalog),
             Err(err) => Err(CatalogAgentRepoErrors::CatalogRepoErrors(
                 CatalogRepoErrors::ErrorCreatingCatalog(err.into()),
-            ).into_errors()),
+            )
+            .into_errors()),
         }
     }
 
@@ -199,31 +203,35 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
 
         let mut model: catalog::ActiveModel = new_catalog_model.into();
         model.dspace_main_catalog = ActiveValue::Set(true);
-        let catalog = catalog::Entity::insert(model).exec_with_returning(&self.db_connection).await;
+        let catalog = catalog::Entity::insert(model)
+            .exec_with_returning(&self.db_connection)
+            .await;
         match catalog {
             Ok(catalog) => Ok(catalog),
             Err(err) => Err(CatalogAgentRepoErrors::CatalogRepoErrors(
                 CatalogRepoErrors::ErrorCreatingCatalog(err.into()),
-            ).into_errors()),
+            )
+            .into_errors()),
         }
     }
 
-    async fn delete_catalog_by_id(
-        &self,
-        catalog_id: &Urn,
-    ) -> Outcome<()> {
+    async fn delete_catalog_by_id(&self, catalog_id: &Urn) -> Outcome<()> {
         let catalog_id = catalog_id.to_string();
-        let catalog = catalog::Entity::delete_by_id(catalog_id).exec(&self.db_connection).await;
+        let catalog = catalog::Entity::delete_by_id(catalog_id)
+            .exec(&self.db_connection)
+            .await;
         match catalog {
             Ok(delete_result) => match delete_result.rows_affected {
                 0 => Err(CatalogAgentRepoErrors::CatalogRepoErrors(
                     CatalogRepoErrors::CatalogNotFound,
-                ).into_errors()),
+                )
+                .into_errors()),
                 _ => Ok(()),
             },
             Err(err) => Err(CatalogAgentRepoErrors::CatalogRepoErrors(
                 CatalogRepoErrors::ErrorDeletingCatalog(err.into()),
-            ).into_errors()),
+            )
+            .into_errors()),
         }
     }
 }

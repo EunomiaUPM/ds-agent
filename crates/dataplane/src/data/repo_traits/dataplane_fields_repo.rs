@@ -50,14 +50,8 @@ pub trait DataplaneFieldRepoTrait: Send + Sync + 'static {
         field_id: &Urn,
         edit_field: &EditDataPlaneFieldModel,
     ) -> Outcome<dataplane_field::Model>;
-    async fn delete_dataplane_field(
-        &self,
-        field_id: &Urn,
-    ) -> Outcome<()>;
-    async fn delete_all_dataplane_fields_by_process_id(
-        &self,
-        process_id: &Urn,
-    ) -> Outcome<()>;
+    async fn delete_dataplane_field(&self, field_id: &Urn) -> Outcome<()>;
+    async fn delete_all_dataplane_fields_by_process_id(&self, process_id: &Urn) -> Outcome<()>;
 }
 
 #[derive(Debug, Error)]

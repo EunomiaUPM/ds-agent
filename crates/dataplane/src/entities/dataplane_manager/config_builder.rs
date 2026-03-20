@@ -53,7 +53,10 @@ pub enum EgressConfig {
     /// Provider PULL: forward to the final system via connector spec
     Connector { spec: ProtocolSpec },
     /// Forward to a DataAddress endpoint (consumer PUSH → client destination)
-    DataAddress { endpoint_type: String, endpoint: String },
+    DataAddress {
+        endpoint_type: String,
+        endpoint: String,
+    },
 }
 
 // ─── Builder ───
@@ -97,12 +100,15 @@ impl DataplaneConfigBuilder {
                     _ => unreachable!(),
                 };
                 let egress = match &pull.data_access {
-                    ProtocolSpec::Http(http) => {
-                        to_json(EgressConfig::HttpProxy { url: http.url_template.clone() })
-                    }
+                    ProtocolSpec::Http(http) => to_json(EgressConfig::HttpProxy {
+                        url: http.url_template.clone(),
+                    }),
                     spec => to_json(EgressConfig::Connector { spec: spec.clone() }),
                 };
-                Self { ingress: to_json(IngressConfig::HttpListener { path: auto_path }), egress }
+                Self {
+                    ingress: to_json(IngressConfig::HttpListener { path: auto_path }),
+                    egress,
+                }
             }
 
             // ─── PUSH Provider ───

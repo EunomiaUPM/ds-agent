@@ -39,7 +39,9 @@ impl FromRef<TransferEventsRouter> for Arc<dyn TransferEventEntitiesTrait> {
 
 impl TransferEventsRouter {
     pub fn new(transfer_event_entity: Arc<dyn TransferEventEntitiesTrait>) -> Self {
-        Self { transfer_event_entity }
+        Self {
+            transfer_event_entity,
+        }
     }
 
     pub fn dataplane_processes_sub_router(self) -> Router {
@@ -52,7 +54,9 @@ impl TransferEventsRouter {
     }
 
     pub fn events_sub_router(self) -> Router {
-        Router::new().route("/{event_id}", get(Self::handle_get_event_by_id)).with_state(self)
+        Router::new()
+            .route("/{event_id}", get(Self::handle_get_event_by_id))
+            .with_state(self)
     }
 
     async fn handle_get_events_by_transfer_id(
@@ -82,7 +86,11 @@ impl TransferEventsRouter {
             Ok(urn) => urn,
             Err(resp) => return resp,
         };
-        match state.transfer_event_entity.get_transfer_event_by_id(&event_id).await {
+        match state
+            .transfer_event_entity
+            .get_transfer_event_by_id(&event_id)
+            .await
+        {
             Ok(transfer_event) => match transfer_event {
                 Some(transfer_event) => (StatusCode::OK, Json(transfer_event)).into_response(),
                 None => {

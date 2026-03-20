@@ -23,9 +23,9 @@ use crate::protocols::dsp::protocol_types::{
     NegotiationAckMessageDto, NegotiationProcessMessageTrait, NegotiationProcessMessageWrapper,
 };
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
+use common::facades::Mates;
 use std::sync::Arc;
 use ymir::errors::Outcome;
-use common::facades::Mates;
 // ─── Contexts ─────────────────────────────────────────────────────────────────
 
 /// Context for steps that create a new negotiation process (initial request and

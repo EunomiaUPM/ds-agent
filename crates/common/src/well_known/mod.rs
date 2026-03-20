@@ -38,8 +38,10 @@ impl WellKnownRoot {
         let mates_facade = Arc::new(MatesFacadeService::new(config.clone(), http_client.clone()));
 
         let dspace_version_service = WellKnownDSpaceVersionService::new();
-        let dspace_version_rpc =
-            Arc::new(WellKnownRPCService::new(http_client.clone(), mates_facade.clone()));
+        let dspace_version_rpc = Arc::new(WellKnownRPCService::new(
+            http_client.clone(),
+            mates_facade.clone(),
+        ));
         let router = WellKnownRouter::new(dspace_version_service, dspace_version_rpc.clone());
         Ok(router.router())
     }

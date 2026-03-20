@@ -75,7 +75,10 @@ impl NegotiationAgentMessagesRouter {
                 "/{id}",
                 get(Self::handle_get_message_by_id).delete(Self::handle_delete_message),
             )
-            .route("/process/{process_id}", get(Self::handle_get_messages_by_process_id))
+            .route(
+                "/process/{process_id}",
+                get(Self::handle_get_messages_by_process_id),
+            )
             .with_state(self)
     }
 
@@ -83,7 +86,11 @@ impl NegotiationAgentMessagesRouter {
         State(state): State<NegotiationAgentMessagesRouter>,
         Query(params): Query<PaginationParams>,
     ) -> impl IntoResponse {
-        match state.service.get_all_negotiation_messages(params.limit, params.page).await {
+        match state
+            .service
+            .get_all_negotiation_messages(params.limit, params.page)
+            .await
+        {
             Ok(messages) => (StatusCode::OK, Json(messages)).into_response(),
             Err(err) => err.to_response(),
         }

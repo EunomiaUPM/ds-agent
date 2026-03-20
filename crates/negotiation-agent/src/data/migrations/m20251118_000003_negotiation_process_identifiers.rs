@@ -44,7 +44,11 @@ impl MigrationTrait for Migration {
                             .string()
                             .not_null(),
                     )
-                    .col(ColumnDef::new(NegotiationAgentIdentifiers::IdKey).string().not_null())
+                    .col(
+                        ColumnDef::new(NegotiationAgentIdentifiers::IdKey)
+                            .string()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(NegotiationAgentIdentifiers::IdValue).string())
                     .foreign_key(
                         ForeignKey::create()
@@ -62,7 +66,13 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager.drop_table(Table::drop().table(NegotiationAgentIdentifiers::Table).to_owned()).await
+        manager
+            .drop_table(
+                Table::drop()
+                    .table(NegotiationAgentIdentifiers::Table)
+                    .to_owned(),
+            )
+            .await
     }
 }
 

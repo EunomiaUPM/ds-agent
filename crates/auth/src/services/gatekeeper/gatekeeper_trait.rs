@@ -18,7 +18,7 @@
 use axum::body::Bytes;
 use axum::http::HeaderMap;
 use ymir::data::entities::{
-    mates, recv_interaction, recv_request, recv_verification, token_requirements
+    mates, recv_interaction, recv_request, recv_verification, token_requirements,
 };
 use ymir::errors::Outcome;
 use ymir::types::gnap::grant_request::GrantRequest;
@@ -29,11 +29,11 @@ pub trait GateKeeperTrait: Send + Sync + 'static {
     fn start(
         &self,
         payload: &Bytes,
-        headers: &HeaderMap
+        headers: &HeaderMap,
     ) -> Outcome<(
         recv_request::NewModel,
         recv_interaction::NewModel,
-        token_requirements::Model
+        token_requirements::Model,
     )>;
     fn validate_req(&self, payload: &Bytes, headers: &HeaderMap) -> Outcome<GrantRequest>;
     fn respond_req(&self, int_model: &recv_interaction::Model, uri: &str) -> GrantResponse;
@@ -41,13 +41,13 @@ pub trait GateKeeperTrait: Send + Sync + 'static {
         &self,
         model: &recv_interaction::Model,
         payload: &Bytes,
-        headers: &HeaderMap
+        headers: &HeaderMap,
     ) -> Outcome<()>;
     fn continue_req(
         &self,
         req_model: &mut recv_request::Model,
         int_model: &recv_interaction::Model,
         token_model: &token_requirements::Model,
-        ver_model: &recv_verification::Model
+        ver_model: &recv_verification::Model,
     ) -> (mates::NewModel, AccessToken);
 }

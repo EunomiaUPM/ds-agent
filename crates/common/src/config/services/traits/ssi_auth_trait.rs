@@ -16,11 +16,11 @@
  */
 
 use ymir::config::traits::{
-    DidConfigTrait, VcConfigTrait, VerifyReqConfigTrait, WalletConfigTrait
+    DidConfigTrait, VcConfigTrait, VerifyReqConfigTrait, WalletConfigTrait,
 };
 
 use crate::config::types::traits::{
-    CommonConfigTrait, ConfigLoader, EntityClientTrait, GaiaConfigTrait
+    CommonConfigTrait, ConfigLoader, EntityClientTrait, GaiaConfigTrait,
 };
 
 pub trait SsiAuthConfigTrait:

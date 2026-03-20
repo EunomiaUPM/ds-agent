@@ -48,7 +48,9 @@ pub struct FoundParameter {
 
 impl TemplateParameterExtractor {
     pub fn new() -> Self {
-        Self { found_parameters: Vec::new() }
+        Self {
+            found_parameters: Vec::new(),
+        }
     }
 
     /// Returns the ordered list of parameter names found so far.
@@ -100,8 +102,10 @@ impl TemplateParameterExtractor {
     fn scan_str(&mut self, value: &str, content_type: &FoundParameterType) {
         let re = template_regex();
         for cap in re.captures_iter(value) {
-            self.found_parameters
-                .push(FoundParameter { name: cap[1].to_string(), content_type: *content_type });
+            self.found_parameters.push(FoundParameter {
+                name: cap[1].to_string(),
+                content_type: *content_type,
+            });
         }
     }
 

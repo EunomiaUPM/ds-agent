@@ -28,10 +28,7 @@ pub trait DistributionRepositoryTrait: Send + Sync {
         limit: Option<u64>,
         page: Option<u64>,
     ) -> Outcome<Vec<distribution::Model>>;
-    async fn get_batch_distributions(
-        &self,
-        ids: &Vec<Urn>,
-    ) -> Outcome<Vec<distribution::Model>>;
+    async fn get_batch_distributions(&self, ids: &Vec<Urn>) -> Outcome<Vec<distribution::Model>>;
 
     async fn get_distributions_by_dataset_id(
         &self,
@@ -55,8 +52,5 @@ pub trait DistributionRepositoryTrait: Send + Sync {
         &self,
         new_distribution_model: &NewDistributionModel,
     ) -> Outcome<distribution::Model>;
-    async fn delete_distribution_by_id(
-        &self,
-        distribution_id: &Urn,
-    ) -> Outcome<()>;
+    async fn delete_distribution_by_id(&self, distribution_id: &Urn) -> Outcome<()>;
 }

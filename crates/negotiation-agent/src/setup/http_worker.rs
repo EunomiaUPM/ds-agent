@@ -32,6 +32,7 @@ use axum::extract::Request;
 use axum::response::IntoResponse;
 use axum::{Router, serve};
 use common::config::services::ContractsConfig;
+use common::config::services::traits::ContractsConfigTrait;
 use common::config::types::traits::CommonConfigTrait;
 use common::errors::CommonErrors;
 use common::well_known::WellKnownRoot;
@@ -47,7 +48,6 @@ use ymir::errors::{Errors, Outcome};
 use ymir::http::HealthRouter;
 use ymir::services::vault::VaultTrait;
 use ymir::services::vault::global::VaultService;
-use common::config::services::traits::ContractsConfigTrait;
 
 pub struct NegotiationHttpWorker {}
 impl NegotiationHttpWorker {
@@ -64,11 +64,16 @@ impl NegotiationHttpWorker {
             .await?
             .merge(well_known_router)
             .merge(health_router);
-        let host = if config.common().is_local() { "127.0.0.1" } else { "0.0.0.0" };
+        let host = if config.common().is_local() {
+            "127.0.0.1"
+        } else {
+            "0.0.0.0"
+        };
         let port = config.common().get_internal_port(HostType::Http);
         let addr = format!("{}{}", host, port);
 
-        let listener = TcpListener::bind(&addr).await
+        let listener = TcpListener::bind(&addr)
+            .await
             .map_err(|e| Errors::crazy("Error listening on the socket", Some(Box::new(e))))?;
         tracing::info!("HTTP Negotiation Service running on {}", addr);
 
@@ -90,8 +95,10 @@ impl NegotiationHttpWorker {
         config: &ContractsConfig,
         vault: Arc<VaultService>,
     ) -> Outcome<Router> {
-        let router =
-            create_root_http_router(config, vault.clone()).await.fallback(Self::handler_404).layer(
+        let router = create_root_http_router(config, vault.clone())
+            .await
+            .fallback(Self::handler_404)
+            .layer(
                 TraceLayer::new_for_http()
                     .make_span_with(
                         |_req: &Request<_>| tracing::info_span!("request", id = %Uuid::new_v4()),
@@ -117,23 +124,28 @@ pub async fn create_root_http_router(config: &ContractsConfig, vault: Arc<VaultS
     // ROOT Dependency Injection
     let db_connection = vault.get_db_connection(config.common()).await;
     let config = Arc::new(config.clone());
-    let negotiation_repo = Arc::new(NegotiationAgentRepoForSql::create_repo(db_connection.clone()));
+    let negotiation_repo = Arc::new(NegotiationAgentRepoForSql::create_repo(
+        db_connection.clone(),
+    ));
 
     // entities
-    let messages_controller_service =
-        Arc::new(NegotiationAgentMessagesService::new(negotiation_repo.clone()));
+    let messages_controller_service = Arc::new(NegotiationAgentMessagesService::new(
+        negotiation_repo.clone(),
+    ));
     let messages_router =
         NegotiationAgentMessagesRouter::new(messages_controller_service.clone(), config.clone());
-    let entities_controller_service =
-        Arc::new(NegotiationAgentProcessesService::new(negotiation_repo.clone()));
+    let entities_controller_service = Arc::new(NegotiationAgentProcessesService::new(
+        negotiation_repo.clone(),
+    ));
     let entities_router =
         NegotiationAgentProcessesRouter::new(entities_controller_service.clone(), config.clone());
     let offer_controller_service =
         Arc::new(NegotiationAgentOffersService::new(negotiation_repo.clone()));
     let offer_router =
         NegotiationAgentOffersRouter::new(offer_controller_service.clone(), config.clone());
-    let agreement_controller_service =
-        Arc::new(NegotiationAgentAgreementsService::new(negotiation_repo.clone()));
+    let agreement_controller_service = Arc::new(NegotiationAgentAgreementsService::new(
+        negotiation_repo.clone(),
+    ));
     let agreement_router =
         NegotiationAgentAgreementsRouter::new(agreement_controller_service.clone(), config.clone());
 
@@ -149,8 +161,10 @@ pub async fn create_root_http_router(config: &ContractsConfig, vault: Arc<VaultS
         ssi_auth_config.clone(),
         http_client.clone(),
     ));
-    let mates_service =
-        Arc::new(MatesFacadeService::new(ssi_auth_config.clone(), http_client.clone()));
+    let mates_service = Arc::new(MatesFacadeService::new(
+        ssi_auth_config.clone(),
+        http_client.clone(),
+    ));
 
     let dsp_router = NegotiationDSP::new(
         entities_controller_service.clone(),

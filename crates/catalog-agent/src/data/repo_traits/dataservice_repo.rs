@@ -28,18 +28,13 @@ pub trait DataServiceRepositoryTrait: Send + Sync {
         limit: Option<u64>,
         page: Option<u64>,
     ) -> Outcome<Vec<dataservice::Model>>;
-    async fn get_batch_data_services(
-        &self,
-        ids: &Vec<Urn>,
-    ) -> Outcome<Vec<dataservice::Model>>;
+    async fn get_batch_data_services(&self, ids: &Vec<Urn>) -> Outcome<Vec<dataservice::Model>>;
 
     async fn get_data_services_by_catalog_id(
         &self,
         catalog_id: &Urn,
     ) -> Outcome<Vec<dataservice::Model>>;
-    async fn get_main_data_service(
-        &self,
-    ) -> Outcome<Option<dataservice::Model>>;
+    async fn get_main_data_service(&self) -> Outcome<Option<dataservice::Model>>;
 
     async fn get_data_service_by_id(
         &self,
@@ -59,8 +54,5 @@ pub trait DataServiceRepositoryTrait: Send + Sync {
         &self,
         new_data_service_model: &NewDataServiceModel,
     ) -> Outcome<dataservice::Model>;
-    async fn delete_data_service_by_id(
-        &self,
-        data_service_id: &Urn,
-    ) -> Outcome<()>;
+    async fn delete_data_service_by_id(&self, data_service_id: &Urn) -> Outcome<()>;
 }

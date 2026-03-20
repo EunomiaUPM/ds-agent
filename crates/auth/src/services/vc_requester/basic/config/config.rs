@@ -26,7 +26,7 @@ use super::VCRequesterConfigTrait;
 pub struct VCRequesterConfig {
     hosts: CommonHostsConfig,
     client: EntityClientConfig,
-    api_path: String
+    api_path: String,
 }
 
 impl From<SsiAuthConfig> for VCRequesterConfig {
@@ -34,19 +34,25 @@ impl From<SsiAuthConfig> for VCRequesterConfig {
         VCRequesterConfig {
             hosts: value.common().hosts().clone(),
             client: value.client_config().clone(),
-            api_path: value.common().get_api_version()
+            api_path: value.common().get_api_version(),
         }
     }
 }
 
 impl HostsConfigTrait for VCRequesterConfig {
-    fn hosts(&self) -> &CommonHostsConfig { &self.hosts }
+    fn hosts(&self) -> &CommonHostsConfig {
+        &self.hosts
+    }
 }
 
 impl EntityClientTrait for VCRequesterConfig {
-    fn client_config(&self) -> &EntityClientConfig { &self.client }
+    fn client_config(&self) -> &EntityClientConfig {
+        &self.client
+    }
 }
 
 impl VCRequesterConfigTrait for VCRequesterConfig {
-    fn get_api_path(&self) -> &str { &self.api_path }
+    fn get_api_path(&self) -> &str {
+        &self.api_path
+    }
 }

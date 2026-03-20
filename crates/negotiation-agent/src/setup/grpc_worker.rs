@@ -56,12 +56,17 @@ impl NegotiationGrpcWorker {
         token: &CancellationToken,
     ) -> Outcome<JoinHandle<()>> {
         let router = Self::create_root_grpc_router(&config, vault.clone()).await?;
-        let host = if config.common().is_local() { "127.0.0.1" } else { "0.0.0.0" };
+        let host = if config.common().is_local() {
+            "127.0.0.1"
+        } else {
+            "0.0.0.0"
+        };
         let port = config.common().get_internal_port(HostType::Grpc);
         let grpc_port = format!("{}{}", port, "1");
         let addr = format!("{}:{}", host, grpc_port);
 
-        let listener = TcpListener::bind(&addr).await
+        let listener = TcpListener::bind(&addr)
+            .await
             .map_err(|e| Errors::crazy("Error listening on the socket", Some(Box::new(e))))?;
         let incoming = TcpListenerStream::new(listener);
         tracing::info!("GRPC Negotiation Service running on {}", addr);
@@ -86,22 +91,26 @@ impl NegotiationGrpcWorker {
     ) -> Outcome<tonic::transport::server::Router> {
         let db_connection = vault.get_db_connection(config.common()).await;
         let config = Arc::new(config.clone());
-        let negotiation_repo =
-            Arc::new(NegotiationAgentRepoForSql::create_repo(db_connection.clone()));
+        let negotiation_repo = Arc::new(NegotiationAgentRepoForSql::create_repo(
+            db_connection.clone(),
+        ));
 
-        let messages_controller_service =
-            Arc::new(NegotiationAgentMessagesService::new(negotiation_repo.clone()));
+        let messages_controller_service = Arc::new(NegotiationAgentMessagesService::new(
+            negotiation_repo.clone(),
+        ));
         let message_controller =
             NegotiationAgentMessagesGrpc::new(messages_controller_service.clone());
-        let processes_controller_service =
-            Arc::new(NegotiationAgentProcessesService::new(negotiation_repo.clone()));
+        let processes_controller_service = Arc::new(NegotiationAgentProcessesService::new(
+            negotiation_repo.clone(),
+        ));
         let processes_controller =
             NegotiationAgentProcessesGrpc::new(processes_controller_service.clone());
         let offer_controller_service =
             Arc::new(NegotiationAgentOffersService::new(negotiation_repo.clone()));
         let offer_controller = NegotiationAgentOfferGrpc::new(offer_controller_service.clone());
-        let agreement_controller_service =
-            Arc::new(NegotiationAgentAgreementsService::new(negotiation_repo.clone()));
+        let agreement_controller_service = Arc::new(NegotiationAgentAgreementsService::new(
+            negotiation_repo.clone(),
+        ));
         let agreement_controller =
             NegotiationAgentAgreementGrpc::new(agreement_controller_service.clone());
 
@@ -112,10 +121,16 @@ impl NegotiationGrpcWorker {
 
         let router = Server::builder()
             .add_service(reflection_service)
-            .add_service(NegotiationAgentProcessesServiceServer::new(processes_controller))
-            .add_service(NegotiationAgentMessagesServiceServer::new(message_controller))
+            .add_service(NegotiationAgentProcessesServiceServer::new(
+                processes_controller,
+            ))
+            .add_service(NegotiationAgentMessagesServiceServer::new(
+                message_controller,
+            ))
             .add_service(NegotiationAgentOffersServiceServer::new(offer_controller))
-            .add_service(NegotiationAgentAgreementsServiceServer::new(agreement_controller));
+            .add_service(NegotiationAgentAgreementsServiceServer::new(
+                agreement_controller,
+            ));
 
         Ok(router)
     }

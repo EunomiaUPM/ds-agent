@@ -50,7 +50,10 @@ pub trait UtilsCacheTrait: Send + Sync {
         parent_entity: &str,
         parent_id: &Urn,
     ) -> String {
-        format!("rainbow_dataplane:{}:{}:{}", child_entity, parent_entity, parent_id)
+        format!(
+            "rainbow_dataplane:{}:{}:{}",
+            child_entity, parent_entity, parent_id
+        )
     }
 
     /// Removes the prefix from a key to recover the raw ID/URN

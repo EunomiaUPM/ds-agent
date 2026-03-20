@@ -49,7 +49,10 @@ impl TransferAgentMessagesTrait for TransferAgentMessagesService {
             .get_all_transfer_messages(limit, page)
             .await?;
 
-        Ok(messages.into_iter().map(|m| TransferMessageDto { inner: m }).collect())
+        Ok(messages
+            .into_iter()
+            .map(|m| TransferMessageDto { inner: m })
+            .collect())
     }
 
     async fn get_messages_by_process_id(
@@ -62,7 +65,10 @@ impl TransferAgentMessagesTrait for TransferAgentMessagesService {
             .get_messages_by_process_id(process_id)
             .await?;
 
-        Ok(messages.into_iter().map(|m| TransferMessageDto { inner: m }).collect())
+        Ok(messages
+            .into_iter()
+            .map(|m| TransferMessageDto { inner: m })
+            .collect())
     }
 
     async fn get_transfer_message_by_id(&self, id: &Urn) -> Outcome<TransferMessageDto> {
@@ -92,7 +98,10 @@ impl TransferAgentMessagesTrait for TransferAgentMessagesService {
     }
 
     async fn delete_transfer_message(&self, id: &Urn) -> Outcome<()> {
-        self.transfer_repo.get_transfer_message_repo().delete_transfer_message(id).await?;
+        self.transfer_repo
+            .get_transfer_message_repo()
+            .delete_transfer_message(id)
+            .await?;
         Ok(())
     }
 }

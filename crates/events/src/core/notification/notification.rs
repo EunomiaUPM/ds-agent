@@ -53,9 +53,7 @@ impl<T> RainbowEventsNotificationTrait for RainbowEventsNotificationsService<T>
 where
     T: EventsRepoFactory + Sync + Send + 'static,
 {
-    async fn get_all_notifications(
-        &self,
-    ) -> Outcome<Vec<RainbowEventsNotificationResponse>> {
+    async fn get_all_notifications(&self) -> Outcome<Vec<RainbowEventsNotificationResponse>> {
         let notifications = self
             .repo
             .get_all_notifications()
@@ -126,7 +124,9 @@ where
             .get_notification_by_id(subscription_id.clone(), notification_id.clone())
             .await
             .map_err(|e| e.into_errors())?
-            .ok_or_else(|| Errors::missing_resource(subscription_id.as_str(), "Notification not found", None))?;
+            .ok_or_else(|| {
+                Errors::missing_resource(subscription_id.as_str(), "Notification not found", None)
+            })?;
         let notifications = RainbowEventsNotificationResponse::try_from(notifications)?;
         Ok(notifications)
     }
@@ -195,7 +195,8 @@ where
                                 },
                             },
                         )
-                        .await.map_err(|e| e.into_errors())?;
+                        .await
+                        .map_err(|e| e.into_errors())?;
                 }
                 Err(_) => {
                     self.repo
@@ -210,7 +211,8 @@ where
                                 status: "Pending".to_string(),
                             },
                         )
-                        .await.map_err(|e| e.into_errors())?;
+                        .await
+                        .map_err(|e| e.into_errors())?;
                 }
             }
         }

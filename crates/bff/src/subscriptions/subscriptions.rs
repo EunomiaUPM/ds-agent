@@ -18,8 +18,8 @@
  */
 
 use crate::subscriptions::MicroserviceSubscriptionKey;
+use common::config::services::traits::GatewayConfigTrait;
 use common::config::services::GatewayConfig;
-use ymir::errors::{Errors, Outcome};
 use common::config::types::traits::{CommonConfigTrait, MinKnownConfigTrait};
 use reqwest::Client;
 use serde_json::json;
@@ -27,7 +27,7 @@ use std::time::Duration;
 use tracing::{debug, error};
 use ymir::config::traits::HostsConfigTrait;
 use ymir::config::types::HostType;
-use common::config::services::traits::GatewayConfigTrait;
+use ymir::errors::{Errors, Outcome};
 
 pub struct RainbowProviderGatewaySubscriptions {
     config: GatewayConfig,
@@ -83,11 +83,17 @@ impl RainbowProviderGatewaySubscriptions {
             Ok(request) => request,
             Err(e) => {
                 error!("Error on subscribing. Microservice not available{}", e);
-                return Err(Errors::parse(&format!("Error on subscribing. Microservice not available {}", e), None));
+                return Err(Errors::parse(
+                    &format!("Error on subscribing. Microservice not available {}", e),
+                    None,
+                ));
             }
         };
         if !request.status().is_success() {
-            return Err(Errors::parse(&format!("Error on subscribing. Status {}", request.status()), None));
+            return Err(Errors::parse(
+                &format!("Error on subscribing. Status {}", request.status()),
+                None,
+            ));
         }
         Ok(())
     }

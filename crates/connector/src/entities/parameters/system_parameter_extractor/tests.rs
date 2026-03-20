@@ -15,7 +15,6 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 use crate::entities::parameters::parameters::{SysParameterType, TemplateMapString};
 use crate::entities::parameters::system_parameter_extractor::SystemParameterExtractor;
 use crate::entities::parameters::template_parameters_extractor::ParameterExtractorBehavior;
@@ -69,7 +68,9 @@ fn extracts_sys_own_url_non_docker() {
     assert_eq!(1, found.len());
     assert!(matches!(
         found[0].1,
-        SysParameterType::SysOwnUrl { host_docker_internal: false }
+        SysParameterType::SysOwnUrl {
+            host_docker_internal: false
+        }
     ));
 }
 
@@ -80,7 +81,9 @@ fn extracts_sys_own_url_docker() {
     assert_eq!(1, found.len());
     assert!(matches!(
         found[0].1,
-        SysParameterType::SysOwnUrl { host_docker_internal: true }
+        SysParameterType::SysOwnUrl {
+            host_docker_internal: true
+        }
     ));
 }
 
@@ -166,7 +169,9 @@ fn extracts_sys_own_url_docker_from_map_extra_key() {
     assert_eq!(1, found.len());
     assert!(matches!(
         found[0].1,
-        SysParameterType::SysOwnUrl { host_docker_internal: true }
+        SysParameterType::SysOwnUrl {
+            host_docker_internal: true
+        }
     ));
 }
 

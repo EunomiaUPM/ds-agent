@@ -116,7 +116,9 @@ impl PolicyTemplatesRepositoryTrait for PolicyTemplatesRepositoryForSql {
         new_policy_template: &NewPolicyTemplateModel,
     ) -> Outcome<policy_template::Model> {
         let model: policy_template::ActiveModel = new_policy_template.into();
-        match policy_template::Entity::insert(model).exec_with_returning(&self.db_connection).await
+        match policy_template::Entity::insert(model)
+            .exec_with_returning(&self.db_connection)
+            .await
         {
             Ok(template) => Ok(template),
             Err(err) => Err(CatalogAgentRepoErrors::PolicyTemplatesRepoErrors(

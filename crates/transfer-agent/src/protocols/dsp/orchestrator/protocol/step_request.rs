@@ -56,7 +56,9 @@ impl ProtocolStep for ProtocolRequestStep {
         _id: &str,
         input: &TransferProcessMessageWrapper<TransferRequestMessageDto>,
     ) -> Outcome<()> {
-        validator.on_transfer_request(&Arc::new(input.clone())).await
+        validator
+            .on_transfer_request(&Arc::new(input.clone()))
+            .await
     }
 
     /// Resolves the connector and checks PUSH constraints.
@@ -74,8 +76,10 @@ impl ProtocolStep for ProtocolRequestStep {
         Option<TransferProcessMessageWrapper<TransferProcessAckDto>>,
     )> {
         // Resolve connector: agreement → dataset → distribution → connector instance.
-        let agreement_id =
-            input.dto.get_agreement_id().ok_or(Errors::crazy("no agreement id", None))?;
+        let agreement_id = input
+            .dto
+            .get_agreement_id()
+            .ok_or(Errors::crazy("no agreement id", None))?;
         let connector_instance = facades
             .get_data_service_facade()
             .await
@@ -99,8 +103,10 @@ impl ProtocolStep for ProtocolRequestStep {
         };
 
         // Idempotency: return the existing ack if the consumerPid is already known.
-        let consumer_pid =
-            input.dto.get_consumer_pid().ok_or(Errors::missing_resource("","no consumer id", None))?;
+        let consumer_pid = input
+            .dto
+            .get_consumer_pid()
+            .ok_or(Errors::missing_resource("", "no consumer id", None))?;
         let existing = persistence
             .get_transfer_process_service()
             .await?

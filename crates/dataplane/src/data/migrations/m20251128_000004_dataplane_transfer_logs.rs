@@ -36,7 +36,10 @@ impl MigrationTrait for Migration {
                     .table(DataplaneTransferLogs::Table)
                     .if_not_exists()
                     .col(
-                        ColumnDef::new(DataplaneTransferLogs::Id).string().not_null().primary_key(),
+                        ColumnDef::new(DataplaneTransferLogs::Id)
+                            .string()
+                            .not_null()
+                            .primary_key(),
                     )
                     .col(
                         ColumnDef::new(DataplaneTransferLogs::DataplaneProcessId)
@@ -54,9 +57,21 @@ impl MigrationTrait for Migration {
                             .on_delete(ForeignKeyAction::Cascade)
                             .on_update(ForeignKeyAction::Cascade),
                     )
-                    .col(ColumnDef::new(DataplaneTransferLogs::PreviousState).string().null())
-                    .col(ColumnDef::new(DataplaneTransferLogs::NewState).string().not_null())
-                    .col(ColumnDef::new(DataplaneTransferLogs::Trigger).string().not_null())
+                    .col(
+                        ColumnDef::new(DataplaneTransferLogs::PreviousState)
+                            .string()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(DataplaneTransferLogs::NewState)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(DataplaneTransferLogs::Trigger)
+                            .string()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(DataplaneTransferLogs::Reason).text().null())
                     .col(
                         ColumnDef::new(DataplaneTransferLogs::CreatedAt)
@@ -71,7 +86,9 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager.drop_table(Table::drop().table(DataplaneTransferLogs::Table).to_owned()).await?;
+        manager
+            .drop_table(Table::drop().table(DataplaneTransferLogs::Table).to_owned())
+            .await?;
 
         Ok(())
     }

@@ -19,16 +19,16 @@
 
 use std::sync::Arc;
 
+use auth::setup::app::AuthApplication;
 use axum::extract::Request;
 use axum::Router;
-use auth::setup::app::AuthApplication;
+use bff::create_gateway_http_router;
 use catalog_agent::setup::create_root_http_router as catalog_router;
 use common::config::ApplicationConfig;
 use common::well_known::WellKnownRoot;
-use bff::create_gateway_http_router;
 use negotiation_agent::create_negotiations_http_router;
-use transfer_agent::setup::create_root_http_router;
 use tower_http::trace::{DefaultOnResponse, TraceLayer};
+use transfer_agent::setup::create_root_http_router;
 use uuid::Uuid;
 use ymir::services::vault::global::VaultService;
 
@@ -56,11 +56,11 @@ pub async fn create_core_router(config: &ApplicationConfig, vault: Arc<VaultServ
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(
-                    |_req: &Request<_>| tracing::info_span!("request", id = %Uuid::new_v4())
+                    |_req: &Request<_>| tracing::info_span!("request", id = %Uuid::new_v4()),
                 )
                 .on_request(|request: &Request<_>, _span: &tracing::Span| {
                     tracing::info!("{} {}", request.method(), request.uri());
                 })
-                .on_response(DefaultOnResponse::new().level(tracing::Level::TRACE))
+                .on_response(DefaultOnResponse::new().level(tracing::Level::TRACE)),
         )
 }

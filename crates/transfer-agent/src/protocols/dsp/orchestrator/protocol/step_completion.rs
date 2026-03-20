@@ -49,7 +49,9 @@ impl ProtocolStep for ProtocolCompletionStep {
         id: &str,
         input: &TransferProcessMessageWrapper<TransferCompletionMessageDto>,
     ) -> Outcome<()> {
-        validator.on_transfer_completion(&id.to_string(), input).await
+        validator
+            .on_transfer_completion(&id.to_string(), input)
+            .await
     }
 
     async fn prepare_context(
@@ -80,7 +82,10 @@ impl ProtocolStep for ProtocolCompletionStep {
         _input: &TransferProcessMessageWrapper<TransferCompletionMessageDto>,
         _process_id: &Urn,
     ) -> Outcome<Option<DataAddressDto>> {
-        let process = &ctx.process.clone().ok_or(Errors::crazy("no process found", None))?;
+        let process = &ctx
+            .process
+            .clone()
+            .ok_or(Errors::crazy("no process found", None))?;
         dp.on_transfer_completion_post(process).await?;
         Ok(None)
     }

@@ -49,7 +49,9 @@ impl ProtocolStep for ProtocolTerminationStep {
         id: &str,
         input: &TransferProcessMessageWrapper<TransferTerminationMessageDto>,
     ) -> Outcome<()> {
-        validator.on_transfer_termination(&id.to_string(), input).await
+        validator
+            .on_transfer_termination(&id.to_string(), input)
+            .await
     }
 
     async fn prepare_context(
@@ -80,7 +82,10 @@ impl ProtocolStep for ProtocolTerminationStep {
         _input: &TransferProcessMessageWrapper<TransferTerminationMessageDto>,
         _process_id: &Urn,
     ) -> Outcome<Option<DataAddressDto>> {
-        let process = &ctx.process.clone().ok_or(Errors::crazy("no process found", None))?;
+        let process = &ctx
+            .process
+            .clone()
+            .ok_or(Errors::crazy("no process found", None))?;
         dp.on_transfer_termination_post(process).await?;
         Ok(None)
     }

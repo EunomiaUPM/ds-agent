@@ -69,10 +69,12 @@ pub struct NewConnectorInstanceModel {
 
 impl From<NewConnectorInstanceModel> for ActiveModel {
     fn from(dto: NewConnectorInstanceModel) -> Self {
-        let new_urn =
-            UrnBuilder::new("connector-instance", uuid::Uuid::new_v4().to_string().as_str())
-                .build()
-                .expect("UrnBuilder failed");
+        let new_urn = UrnBuilder::new(
+            "connector-instance",
+            uuid::Uuid::new_v4().to_string().as_str(),
+        )
+        .build()
+        .expect("UrnBuilder failed");
         let now = chrono::Utc::now().into();
 
         Self {

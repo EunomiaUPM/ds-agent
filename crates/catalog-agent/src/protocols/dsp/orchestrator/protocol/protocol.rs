@@ -41,7 +41,11 @@ impl ProtocolOrchestratorService {
         facades: Arc<dyn FacadeTrait>,
         persistence: Arc<OrchestrationPersistenceForProtocol>,
     ) -> ProtocolOrchestratorService {
-        ProtocolOrchestratorService { validator, facades, persistence }
+        ProtocolOrchestratorService {
+            validator,
+            facades,
+            persistence,
+        }
     }
 }
 

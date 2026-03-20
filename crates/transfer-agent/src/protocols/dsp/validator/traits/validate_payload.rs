@@ -16,10 +16,10 @@
  *  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
-use ymir::errors::Outcome;
 use crate::entities::transfer_process::TransferProcessDto;
 use crate::protocols::dsp::protocol_types::TransferProcessMessageTrait;
 use common::config::types::roles::RoleConfig;
+use ymir::errors::Outcome;
 
 #[async_trait::async_trait]
 pub trait ValidatePayload: Send + Sync + 'static {

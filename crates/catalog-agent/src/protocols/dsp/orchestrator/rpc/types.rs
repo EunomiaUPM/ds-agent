@@ -48,7 +48,9 @@ impl Into<CatalogMessageWrapper<CatalogRequestMessageDto>> for RpcCatalogRequest
         CatalogMessageWrapper {
             context: ContextField::default(),
             _type: CatalogMessageType::CatalogRequestMessage,
-            dto: CatalogRequestMessageDto { filter: self.filter },
+            dto: CatalogRequestMessageDto {
+                filter: self.filter,
+            },
         }
     }
 }
@@ -83,7 +85,9 @@ impl Into<CatalogMessageWrapper<DatasetRequestMessage>> for RpcDatasetRequestMes
         CatalogMessageWrapper {
             context: ContextField::default(),
             _type: CatalogMessageType::DatasetRequestMessage,
-            dto: DatasetRequestMessage { dataset: dataset_urn },
+            dto: DatasetRequestMessage {
+                dataset: dataset_urn,
+            },
         }
     }
 }

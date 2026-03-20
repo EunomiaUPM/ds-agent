@@ -48,11 +48,16 @@ impl TransferGrpcWorker {
         token: &CancellationToken,
     ) -> Outcome<JoinHandle<()>> {
         let router = Self::create_root_grpc_router(&config, vault.clone()).await?;
-        let host = if config.common().is_local() { "127.0.0.1" } else { "0.0.0.0" };
+        let host = if config.common().is_local() {
+            "127.0.0.1"
+        } else {
+            "0.0.0.0"
+        };
         let port = config.common().get_internal_port(HostType::Grpc);
         let addr = format!("{}{}", host, port);
 
-        let listener = TcpListener::bind(&addr).await
+        let listener = TcpListener::bind(&addr)
+            .await
             .map_err(|e| Errors::crazy("Error listening on the socket", Some(Box::new(e))))?;
         let incoming = TcpListenerStream::new(listener);
         tracing::info!("GRPC Transfer Service running on {}", addr);

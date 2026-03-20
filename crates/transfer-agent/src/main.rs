@@ -17,10 +17,10 @@
  *
  */
 
-use transfer_agent::setup::cmd::TransferCommands;
 use tracing::info;
 use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::EnvFilter;
+use transfer_agent::setup::cmd::TransferCommands;
 use ymir::errors::{Errors, Outcome};
 
 const INFO: &str = r"

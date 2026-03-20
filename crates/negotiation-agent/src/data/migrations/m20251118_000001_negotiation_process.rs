@@ -39,16 +39,28 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(NegotiationAgentProcess::State).string().not_null())
+                    .col(
+                        ColumnDef::new(NegotiationAgentProcess::State)
+                            .string()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(NegotiationAgentProcess::StateAttribute).string())
                     .col(
                         ColumnDef::new(NegotiationAgentProcess::AssociatedAgentPeer)
                             .string()
                             .not_null(),
                     )
-                    .col(ColumnDef::new(NegotiationAgentProcess::Protocol).string().not_null())
+                    .col(
+                        ColumnDef::new(NegotiationAgentProcess::Protocol)
+                            .string()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(NegotiationAgentProcess::CallbackAddress).string())
-                    .col(ColumnDef::new(NegotiationAgentProcess::Role).string().not_null())
+                    .col(
+                        ColumnDef::new(NegotiationAgentProcess::Role)
+                            .string()
+                            .not_null(),
+                    )
                     .col(
                         ColumnDef::new(NegotiationAgentProcess::Properties)
                             .json_binary()
@@ -90,7 +102,13 @@ impl MigrationTrait for Migration {
                     .to_owned(),
             )
             .await?;
-        manager.drop_table(Table::drop().table(NegotiationAgentProcess::Table).to_owned()).await
+        manager
+            .drop_table(
+                Table::drop()
+                    .table(NegotiationAgentProcess::Table)
+                    .to_owned(),
+            )
+            .await
     }
 }
 

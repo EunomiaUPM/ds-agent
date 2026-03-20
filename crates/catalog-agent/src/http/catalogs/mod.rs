@@ -81,7 +81,11 @@ impl CatalogEntityRouter {
         Query(params): Query<PaginationParams>,
     ) -> impl IntoResponse {
         let with_main_catalog = params.with_main_catalog.unwrap_or(true);
-        match state.service.get_all_catalogs(params.limit, params.page, with_main_catalog).await {
+        match state
+            .service
+            .get_all_catalogs(params.limit, params.page, with_main_catalog)
+            .await
+        {
             Ok(catalogs) => (StatusCode::OK, Json(ToCamelCase(catalogs))).into_response(),
             Err(err) => err.into_response(),
         }

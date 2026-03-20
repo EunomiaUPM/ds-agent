@@ -36,13 +36,23 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(PolicyTemplates::Id).string().not_null())
                     .col(ColumnDef::new(PolicyTemplates::Version).string().not_null())
                     .col(
-                        ColumnDef::new(PolicyTemplates::Date).timestamp_with_time_zone().not_null(),
+                        ColumnDef::new(PolicyTemplates::Date)
+                            .timestamp_with_time_zone()
+                            .not_null(),
                     )
                     .col(ColumnDef::new(PolicyTemplates::Author).string().not_null())
                     .col(ColumnDef::new(PolicyTemplates::Title).json_binary())
                     .col(ColumnDef::new(PolicyTemplates::Description).json_binary())
-                    .col(ColumnDef::new(PolicyTemplates::Content).json_binary().not_null())
-                    .col(ColumnDef::new(PolicyTemplates::Parameters).json_binary().not_null())
+                    .col(
+                        ColumnDef::new(PolicyTemplates::Content)
+                            .json_binary()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(PolicyTemplates::Parameters)
+                            .json_binary()
+                            .not_null(),
+                    )
                     .primary_key(
                         Index::create()
                             .name("pk_policy_templates")
@@ -55,7 +65,9 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager.drop_table(Table::drop().table(PolicyTemplates::Table).to_owned()).await
+        manager
+            .drop_table(Table::drop().table(PolicyTemplates::Table).to_owned())
+            .await
     }
 }
 

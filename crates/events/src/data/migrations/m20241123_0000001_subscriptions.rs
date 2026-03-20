@@ -33,18 +33,47 @@ impl MigrationTrait for Migration {
             .create_table(
                 Table::create()
                     .table(Subscriptions::Table)
-                    .col(ColumnDef::new(Subscriptions::Id).string().not_null().primary_key())
-                    .col(ColumnDef::new(Subscriptions::CallbackAddress).string().not_null())
-                    .col(ColumnDef::new(Subscriptions::TransferProcess).boolean().default("false"))
+                    .col(
+                        ColumnDef::new(Subscriptions::Id)
+                            .string()
+                            .not_null()
+                            .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(Subscriptions::CallbackAddress)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(Subscriptions::TransferProcess)
+                            .boolean()
+                            .default("false"),
+                    )
                     .col(
                         ColumnDef::new(Subscriptions::ContractNegotiationProcess)
                             .boolean()
                             .default("false"),
                     )
-                    .col(ColumnDef::new(Subscriptions::Catalog).boolean().default("false"))
-                    .col(ColumnDef::new(Subscriptions::DataPlane).boolean().default("false"))
-                    .col(ColumnDef::new(Subscriptions::Active).boolean().default("true"))
-                    .col(ColumnDef::new(Subscriptions::CreatedAt).date_time().not_null())
+                    .col(
+                        ColumnDef::new(Subscriptions::Catalog)
+                            .boolean()
+                            .default("false"),
+                    )
+                    .col(
+                        ColumnDef::new(Subscriptions::DataPlane)
+                            .boolean()
+                            .default("false"),
+                    )
+                    .col(
+                        ColumnDef::new(Subscriptions::Active)
+                            .boolean()
+                            .default("true"),
+                    )
+                    .col(
+                        ColumnDef::new(Subscriptions::CreatedAt)
+                            .date_time()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(Subscriptions::UpdatedAt).date_time())
                     .col(ColumnDef::new(Subscriptions::ExpirationTime).date_time())
                     .to_owned(),
@@ -52,7 +81,9 @@ impl MigrationTrait for Migration {
             .await
     }
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager.drop_table(Table::drop().table(Subscriptions::Table).to_owned()).await
+        manager
+            .drop_table(Table::drop().table(Subscriptions::Table).to_owned())
+            .await
     }
 }
 

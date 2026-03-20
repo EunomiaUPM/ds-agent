@@ -28,15 +28,15 @@ use ymir::services::vault::global::VaultService;
 
 pub struct GatewayBoot;
 
-
 #[async_trait::async_trait]
 impl BootstrapServiceTrait for GatewayBoot {
     type Config = GatewayConfig;
 
     async fn load_config(env_file: String) -> Outcome<Self::Config> {
         let config = Self::Config::load(&*env_file)?;
-        let table =
-            json_to_table::json_to_table(&serde_json::to_value(&config)?).collapse().to_string();
+        let table = json_to_table::json_to_table(&serde_json::to_value(&config)?)
+            .collapse()
+            .to_string();
         tracing::info!("Current Catalog Agent Config:\n{}", table);
         Ok(config)
     }

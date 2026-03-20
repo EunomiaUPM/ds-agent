@@ -25,7 +25,8 @@ use crate::protocols::dsp::orchestrator::protocol::step_trait::{
 };
 use crate::protocols::dsp::persistence::TransferPersistenceTrait;
 use crate::protocols::dsp::protocol_types::{
-    DataAddressDto, TransferProcessAckDto, TransferProcessMessageWrapper, TransferSuspensionMessageDto,
+    DataAddressDto, TransferProcessAckDto, TransferProcessMessageWrapper,
+    TransferSuspensionMessageDto,
 };
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
 use std::sync::Arc;
@@ -48,7 +49,9 @@ impl ProtocolStep for ProtocolSuspensionStep {
         id: &str,
         input: &TransferProcessMessageWrapper<TransferSuspensionMessageDto>,
     ) -> Outcome<()> {
-        validator.on_transfer_suspension(&id.to_string(), input).await
+        validator
+            .on_transfer_suspension(&id.to_string(), input)
+            .await
     }
 
     async fn prepare_context(
@@ -79,7 +82,10 @@ impl ProtocolStep for ProtocolSuspensionStep {
         _input: &TransferProcessMessageWrapper<TransferSuspensionMessageDto>,
         _process_id: &Urn,
     ) -> Outcome<Option<DataAddressDto>> {
-        let process = &ctx.process.clone().ok_or(Errors::crazy("no process found", None))?;
+        let process = &ctx
+            .process
+            .clone()
+            .ok_or(Errors::crazy("no process found", None))?;
         dp.on_transfer_suspension_post(process).await?;
         Ok(None)
     }

@@ -52,7 +52,9 @@ impl OdrlPolicyEntityService for OdrlPolicyEntityGrpc {
 
         let proto_policies: Vec<OdrlPolicy> = policies.into_iter().map(Into::into).collect();
 
-        Ok(Response::new(OdrlPolicyListResponse { policies: proto_policies }))
+        Ok(Response::new(OdrlPolicyListResponse {
+            policies: proto_policies,
+        }))
     }
 
     async fn get_batch_odrl_offers(
@@ -75,7 +77,9 @@ impl OdrlPolicyEntityService for OdrlPolicyEntityGrpc {
 
         let proto_policies: Vec<OdrlPolicy> = policies.into_iter().map(Into::into).collect();
 
-        Ok(Response::new(OdrlPolicyListResponse { policies: proto_policies }))
+        Ok(Response::new(OdrlPolicyListResponse {
+            policies: proto_policies,
+        }))
     }
 
     async fn get_all_odrl_offers_by_entity(
@@ -94,7 +98,9 @@ impl OdrlPolicyEntityService for OdrlPolicyEntityGrpc {
 
         let proto_policies: Vec<OdrlPolicy> = policies.into_iter().map(Into::into).collect();
 
-        Ok(Response::new(OdrlPolicyListResponse { policies: proto_policies }))
+        Ok(Response::new(OdrlPolicyListResponse {
+            policies: proto_policies,
+        }))
     }
 
     async fn get_odrl_offer_by_id(
@@ -111,7 +117,9 @@ impl OdrlPolicyEntityService for OdrlPolicyEntityGrpc {
             .map_err(|e| Status::internal(e.to_string()))?;
 
         match policy_opt {
-            Some(dto) => Ok(Response::new(OdrlPolicyResponse { policy: Some(dto.into()) })),
+            Some(dto) => Ok(Response::new(OdrlPolicyResponse {
+                policy: Some(dto.into()),
+            })),
             None => Err(Status::not_found("ODRL Policy not found")),
         }
     }
@@ -129,7 +137,9 @@ impl OdrlPolicyEntityService for OdrlPolicyEntityGrpc {
             .await
             .map_err(|e| Status::internal(format!("Failed to create ODRL Policy: {}", e)))?;
 
-        Ok(Response::new(OdrlPolicyResponse { policy: Some(created_dto.into()) }))
+        Ok(Response::new(OdrlPolicyResponse {
+            policy: Some(created_dto.into()),
+        }))
     }
 
     async fn delete_odrl_offer_by_id(
@@ -155,9 +165,12 @@ impl OdrlPolicyEntityService for OdrlPolicyEntityGrpc {
         let urn = Urn::from_str(&req.entity_id)
             .map_err(|_| Status::invalid_argument("Invalid Entity URN"))?;
 
-        self.service.delete_odrl_offers_by_entity(&urn).await.map_err(|e| {
-            Status::internal(format!("Failed to delete ODRL Policies by Entity: {}", e))
-        })?;
+        self.service
+            .delete_odrl_offers_by_entity(&urn)
+            .await
+            .map_err(|e| {
+                Status::internal(format!("Failed to delete ODRL Policies by Entity: {}", e))
+            })?;
 
         Ok(Response::new(()))
     }

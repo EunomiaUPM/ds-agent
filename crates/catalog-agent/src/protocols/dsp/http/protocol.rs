@@ -31,9 +31,9 @@ use axum::{
 };
 use common::config::services::CatalogConfig;
 use common::facades::ssi_auth_facade::SSIAuthFacadeTrait;
+use common::facades::Mates;
 use reqwest::StatusCode;
 use std::sync::Arc;
-use common::facades::Mates;
 
 #[derive(Clone)]
 pub struct DspRouter {
@@ -54,7 +54,11 @@ impl DspRouter {
         config: Arc<CatalogConfig>,
         ssi_auth: Arc<dyn SSIAuthFacadeTrait>,
     ) -> Self {
-        Self { orchestrator: service, config, ssi_auth }
+        Self {
+            orchestrator: service,
+            config,
+            ssi_auth,
+        }
     }
 
     async fn auth_middleware(
@@ -82,7 +86,10 @@ impl DspRouter {
         Router::new()
             .route("/request", post(Self::handle_catalog_request))
             .route("/datasets/{id}", get(Self::handle_dataset_request))
-            .layer(middleware::from_fn_with_state(self.clone(), Self::auth_middleware))
+            .layer(middleware::from_fn_with_state(
+                self.clone(),
+                Self::auth_middleware,
+            ))
             .with_state(self)
     }
 
@@ -95,7 +102,12 @@ impl DspRouter {
             Ok(input) => input.0,
             Err(e) => return (StatusCode::BAD_REQUEST, e.body_text()).into_response(),
         };
-        match state.orchestrator.get_protocol_service().on_catalog_request(&input).await {
+        match state
+            .orchestrator
+            .get_protocol_service()
+            .on_catalog_request(&input)
+            .await
+        {
             Ok(catalog) => (StatusCode::OK, Json(catalog)).into_response(),
             Err(e) => (StatusCode::BAD_REQUEST, e.to_string()).into_response(),
         }
@@ -111,7 +123,12 @@ impl DspRouter {
             Ok(input) => input.0,
             Err(e) => return (StatusCode::BAD_REQUEST, e.body_text()).into_response(),
         };
-        match state.orchestrator.get_protocol_service().on_dataset_request(&input).await {
+        match state
+            .orchestrator
+            .get_protocol_service()
+            .on_dataset_request(&input)
+            .await
+        {
             Ok(dataset) => (StatusCode::OK, Json(dataset)).into_response(),
             Err(e) => (StatusCode::BAD_REQUEST, e.to_string()).into_response(),
         }

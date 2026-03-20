@@ -32,7 +32,11 @@ pub struct DspNegotiationError {
 
 impl From<Errors> for DspNegotiationError {
     fn from(value: Errors) -> Self {
-        Self { inner: value, consumer_pid: None, provider_pid: None }
+        Self {
+            inner: value,
+            consumer_pid: None,
+            provider_pid: None,
+        }
     }
 }
 

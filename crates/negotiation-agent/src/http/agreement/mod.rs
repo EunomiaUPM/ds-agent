@@ -87,8 +87,14 @@ impl NegotiationAgentAgreementsRouter {
                 "/message/{message_id}",
                 get(Self::handle_get_agreement_by_negotiation_message),
             )
-            .route("/assignee/{assignee}", get(Self::handle_get_agreement_by_assignee))
-            .route("/assigner/{assigner}", get(Self::handle_get_agreement_by_assigner))
+            .route(
+                "/assignee/{assignee}",
+                get(Self::handle_get_agreement_by_assignee),
+            )
+            .route(
+                "/assigner/{assigner}",
+                get(Self::handle_get_agreement_by_assigner),
+            )
             .with_state(self)
     }
 
@@ -96,7 +102,11 @@ impl NegotiationAgentAgreementsRouter {
         State(state): State<NegotiationAgentAgreementsRouter>,
         Query(params): Query<PaginationParams>,
     ) -> impl IntoResponse {
-        match state.service.get_all_agreements(params.limit, params.page).await {
+        match state
+            .service
+            .get_all_agreements(params.limit, params.page)
+            .await
+        {
             Ok(agreements) => (StatusCode::OK, Json(agreements)).into_response(),
             Err(err) => err.to_response(),
         }
@@ -186,7 +196,11 @@ impl NegotiationAgentAgreementsRouter {
             Ok(urn) => urn,
             Err(resp) => return resp,
         };
-        match state.service.get_agreement_by_negotiation_process(&process_urn).await {
+        match state
+            .service
+            .get_agreement_by_negotiation_process(&process_urn)
+            .await
+        {
             Ok(Some(agreement)) => (StatusCode::OK, Json(agreement)).into_response(),
             Ok(None) => (StatusCode::NOT_FOUND).into_response(),
             Err(err) => err.to_response(),
@@ -201,7 +215,11 @@ impl NegotiationAgentAgreementsRouter {
             Ok(urn) => urn,
             Err(resp) => return resp,
         };
-        match state.service.get_agreement_by_negotiation_message(&message_urn).await {
+        match state
+            .service
+            .get_agreement_by_negotiation_message(&message_urn)
+            .await
+        {
             Ok(Some(agreement)) => (StatusCode::OK, Json(agreement)).into_response(),
             Ok(None) => (StatusCode::NOT_FOUND).into_response(),
             Err(err) => err.to_response(),

@@ -33,11 +33,13 @@ use crate::core::traits::CoreVcRequesterTrait;
 use crate::types::entities::ReachAuthority;
 
 pub struct VcRequesterRouter {
-    requester: Arc<dyn CoreVcRequesterTrait>
+    requester: Arc<dyn CoreVcRequesterTrait>,
 }
 
 impl VcRequesterRouter {
-    pub fn new(requester: Arc<dyn CoreVcRequesterTrait>) -> Self { VcRequesterRouter { requester } }
+    pub fn new(requester: Arc<dyn CoreVcRequesterTrait>) -> Self {
+        VcRequesterRouter { requester }
+    }
 
     pub fn router(self) -> Router {
         Router::new()
@@ -51,32 +53,32 @@ impl VcRequesterRouter {
 
     async fn beg(
         State(requester): State<Arc<dyn CoreVcRequesterTrait>>,
-        payload: Result<Json<ReachAuthority>, JsonRejection>
+        payload: Result<Json<ReachAuthority>, JsonRejection>,
     ) -> AppResult {
         let payload = extract_payload(payload)?;
         Ok(match requester.beg_vc(payload).await {
             Ok(Some(data)) => data.into_response(),
             Ok(None) => ().into_response(),
-            Err(err) => err.into_response()
+            Err(err) => err.into_response(),
         })
     }
 
     async fn get_all(
-        State(requester): State<Arc<dyn CoreVcRequesterTrait>>
+        State(requester): State<Arc<dyn CoreVcRequesterTrait>>,
     ) -> AppResult<Json<Vec<Model>>> {
         Ok(Json(requester.get_all().await?))
     }
 
     async fn get_one(
         State(requester): State<Arc<dyn CoreVcRequesterTrait>>,
-        Path(id): Path<String>
+        Path(id): Path<String>,
     ) -> AppResult<Json<Model>> {
         Ok(Json(requester.get_by_id(id).await?))
     }
     async fn get_callback(
         State(requester): State<Arc<dyn CoreVcRequesterTrait>>,
         Path(id): Path<String>,
-        Query(params): Query<HashMap<String, String>>
+        Query(params): Query<HashMap<String, String>>,
     ) -> AppResult<Json<mates::Model>> {
         let hash = extract_query_param(&params, "hash")?;
         let interact_ref = extract_query_param(&params, "interact_ref")?;
@@ -87,14 +89,16 @@ impl VcRequesterRouter {
     async fn post_callback(
         State(requester): State<Arc<dyn CoreVcRequesterTrait>>,
         Path(id): Path<String>,
-        payload: Result<Json<CallbackBody>, JsonRejection>
+        payload: Result<Json<CallbackBody>, JsonRejection>,
     ) -> AppResult {
         let payload = extract_payload(payload)?;
         Ok(match payload {
-            CallbackBody::Approved(data) => {
-                requester.continue_req(id, data).await.map(Json).into_response()
-            }
-            CallbackBody::Rejected(_) => requester.manage_rejection(id).await.into_response()
+            CallbackBody::Approved(data) => requester
+                .continue_req(id, data)
+                .await
+                .map(Json)
+                .into_response(),
+            CallbackBody::Rejected(_) => requester.manage_rejection(id).await.into_response(),
         })
     }
 }

@@ -19,8 +19,8 @@ use crate::cache::factory_trait::CatalogAgentCacheTrait;
 use crate::data::entities::catalog::{EditCatalogModel, NewCatalogModel};
 use crate::data::factory_trait::CatalogAgentRepoTrait;
 use crate::entities::catalogs::{CatalogDto, CatalogEntityTrait, EditCatalogDto, NewCatalogDto};
-use log::error;
 use common::errors::{CommonErrors, ErrorLog};
+use log::error;
 use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
@@ -50,7 +50,12 @@ impl CatalogEntityTrait for CatalogEntities {
     ) -> Outcome<Vec<CatalogDto>> {
         // cache
         if !with_main_catalog {
-            if let Ok(dtos) = self.cache.get_catalog_cache().get_collection(limit, page).await {
+            if let Ok(dtos) = self
+                .cache
+                .get_catalog_cache()
+                .get_collection(limit, page)
+                .await
+            {
                 if !dtos.is_empty() {
                     return Ok(dtos);
                 }
@@ -88,11 +93,7 @@ impl CatalogEntityTrait for CatalogEntities {
         }
 
         // db
-        let catalogs = self
-            .repo
-            .get_catalog_repo()
-            .get_batch_catalogs(ids)
-            .await?;
+        let catalogs = self.repo.get_catalog_repo().get_batch_catalogs(ids).await?;
 
         let dtos: Vec<CatalogDto> = catalogs.into_iter().map(Into::into).collect();
 
@@ -101,7 +102,9 @@ impl CatalogEntityTrait for CatalogEntities {
         for dto in &dtos {
             if let Ok(id) = Urn::from_str(dto.inner.id.as_str()) {
                 let _ = cache.set_single(&id, dto).await;
-                let _ = cache.add_to_collection(&id, dto.inner.dct_issued.timestamp() as f64).await;
+                let _ = cache
+                    .add_to_collection(&id, dto.inner.dct_issued.timestamp() as f64)
+                    .await;
             }
         }
 
@@ -127,8 +130,9 @@ impl CatalogEntityTrait for CatalogEntities {
         if let Some(dto) = &dto {
             let cache = self.cache.get_catalog_cache();
             let _ = cache.set_single(catalog_id, dto).await;
-            let _ =
-                cache.add_to_collection(catalog_id, dto.inner.dct_issued.timestamp() as f64).await;
+            let _ = cache
+                .add_to_collection(catalog_id, dto.inner.dct_issued.timestamp() as f64)
+                .await;
         }
 
         Ok(dto)
@@ -172,16 +176,14 @@ impl CatalogEntityTrait for CatalogEntities {
         // cache
         let cache = self.cache.get_catalog_cache();
         let _ = cache.set_single(&catalog_urn, &dto).await;
-        let _ =
-            cache.add_to_collection(&catalog_urn, dto.inner.dct_issued.timestamp() as f64).await;
+        let _ = cache
+            .add_to_collection(&catalog_urn, dto.inner.dct_issued.timestamp() as f64)
+            .await;
 
         Ok(dto)
     }
 
-    async fn create_catalog(
-        &self,
-        new_catalog_model: &NewCatalogDto,
-    ) -> Outcome<CatalogDto> {
+    async fn create_catalog(&self, new_catalog_model: &NewCatalogDto) -> Outcome<CatalogDto> {
         let new_model: NewCatalogModel = new_catalog_model.clone().into();
         let catalog = self
             .repo
@@ -195,33 +197,48 @@ impl CatalogEntityTrait for CatalogEntities {
         // hydration
         let cache = self.cache.get_catalog_cache();
         let _ = cache.set_single(&catalog_urn, &dto).await;
-        let _ =
-            cache.add_to_collection(&catalog_urn, dto.inner.dct_issued.timestamp() as f64).await;
+        let _ = cache
+            .add_to_collection(&catalog_urn, dto.inner.dct_issued.timestamp() as f64)
+            .await;
 
         Ok(dto)
     }
 
-    async fn create_main_catalog(
-        &self,
-        new_catalog_model: &NewCatalogDto,
-    ) -> Outcome<CatalogDto> {
+    async fn create_main_catalog(&self, new_catalog_model: &NewCatalogDto) -> Outcome<CatalogDto> {
         let new_model: NewCatalogModel = new_catalog_model.clone().into();
-        let catalog =
-            self.repo.get_catalog_repo().create_main_catalog(&new_model).await?;
+        let catalog = self
+            .repo
+            .get_catalog_repo()
+            .create_main_catalog(&new_model)
+            .await?;
         let catalog_urn = Urn::from_str(&*catalog.id)?;
         let dto = catalog.into();
 
         // cache
-        self.cache.get_catalog_cache().set_main(&catalog_urn, &dto).await;
+        self.cache
+            .get_catalog_cache()
+            .set_main(&catalog_urn, &dto)
+            .await;
         Ok(dto)
     }
 
     async fn delete_catalog_by_id(&self, catalog_id: &Urn) -> Outcome<()> {
-        self.repo.get_catalog_repo().delete_catalog_by_id(catalog_id).await?;
+        self.repo
+            .get_catalog_repo()
+            .delete_catalog_by_id(catalog_id)
+            .await?;
 
         // invalidate cache
-        let _ = self.cache.get_catalog_cache().delete_single(catalog_id).await;
-        let _ = self.cache.get_catalog_cache().remove_from_collection(catalog_id).await;
+        let _ = self
+            .cache
+            .get_catalog_cache()
+            .delete_single(catalog_id)
+            .await;
+        let _ = self
+            .cache
+            .get_catalog_cache()
+            .remove_from_collection(catalog_id)
+            .await;
 
         Ok(())
     }

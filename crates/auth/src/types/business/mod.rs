@@ -21,5 +21,5 @@ use ymir::data::entities::mates::Model;
 #[derive(Deserialize, Serialize, Debug)]
 pub struct BusinessResponse {
     pub token: String,
-    pub mate: Model
+    pub mate: Model,
 }

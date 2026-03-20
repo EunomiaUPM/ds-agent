@@ -21,5 +21,7 @@ use crate::config::types::GaiaConfig;
 
 pub trait GaiaConfigTrait {
     fn gaia_config(&self) -> &GaiaConfig;
-    fn get_gaia_api_host(&self) -> String { self.gaia_config().api.get_host() }
+    fn get_gaia_api_host(&self) -> String {
+        self.gaia_config().api.get_host()
+    }
 }

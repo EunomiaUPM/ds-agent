@@ -24,7 +24,7 @@ pub struct ReachAuthority {
     pub url: String,
     pub vc_type: String,
     pub method: String,
-    pub auto: Option<bool>
+    pub auto: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -33,5 +33,5 @@ pub struct ReachProvider {
     pub slug: String,
     pub url: String,
     pub actions: Vec<String>,
-    pub auto: Option<bool>
+    pub auto: Option<bool>,
 }

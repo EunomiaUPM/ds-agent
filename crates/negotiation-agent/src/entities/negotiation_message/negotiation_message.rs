@@ -24,11 +24,11 @@ use crate::data::factory_trait::NegotiationAgentRepoTrait;
 use crate::entities::negotiation_message::{
     NegotiationAgentMessagesTrait, NegotiationMessageDto, NewNegotiationMessageDto,
 };
-use ymir::errors::{Errors, Outcome};
 use std::str::FromStr;
 use std::sync::Arc;
 use tracing::error;
 use urn::Urn;
+use ymir::errors::{Errors, Outcome};
 
 pub struct NegotiationAgentMessagesService {
     pub negotiation_repo: Arc<dyn NegotiationAgentRepoTrait>,
@@ -44,10 +44,13 @@ impl NegotiationAgentMessagesService {
         message: negotiation_message_model::Model,
     ) -> Outcome<NegotiationMessageDto> {
         let message_urn = Urn::from_str(&message.id).map_err(|e| {
-            let err = Errors::parse(format!(
-                "Invalid URN found in database for message {}. Error: {}",
-                message.id, e
-            ), None);
+            let err = Errors::parse(
+                format!(
+                    "Invalid URN found in database for message {}. Error: {}",
+                    message.id, e
+                ),
+                None,
+            );
             error!("{}", err);
             err
         })?;
@@ -74,7 +77,11 @@ impl NegotiationAgentMessagesService {
                 err
             })?;
 
-        Ok(NegotiationMessageDto { inner: message, offer, agreement })
+        Ok(NegotiationMessageDto {
+            inner: message,
+            offer,
+            agreement,
+        })
     }
 }
 
@@ -147,7 +154,11 @@ impl NegotiationAgentMessagesTrait for NegotiationAgentMessagesService {
             .create_negotiation_message(&new_model)
             .await?;
 
-        Ok(NegotiationMessageDto { inner: created, offer: None, agreement: None })
+        Ok(NegotiationMessageDto {
+            inner: created,
+            offer: None,
+            agreement: None,
+        })
     }
 
     async fn delete_negotiation_message(&self, id: &Urn) -> Outcome<()> {

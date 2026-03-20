@@ -15,8 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use serde::{Deserialize, Serialize};
 use crate::utils::get_urn;
+use serde::{Deserialize, Serialize};
 
 pub mod inner_auth_facade;
 pub mod ssi_auth_facade;

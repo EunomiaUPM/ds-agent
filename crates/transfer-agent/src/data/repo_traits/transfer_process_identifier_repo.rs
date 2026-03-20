@@ -62,8 +62,7 @@ pub trait TransferIdentifierRepoTrait: Send + Sync {
         edit_model: &EditTransferIdentifierModel,
     ) -> Outcome<transfer_process_identifier::Model>;
 
-    async fn delete_identifier(&self, id: &Urn)
-        -> Outcome<()>;
+    async fn delete_identifier(&self, id: &Urn) -> Outcome<()>;
 }
 
 #[derive(Debug, Error)]

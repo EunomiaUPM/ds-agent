@@ -20,8 +20,8 @@
 use crate::data::entities::agreement;
 use crate::data::entities::agreement::{EditAgreementModel, NewAgreementModel};
 use thiserror::Error;
-use ymir::errors::Outcome;
 use urn::Urn;
+use ymir::errors::Outcome;
 use ymir::errors::RepoIntoErrors;
 
 #[async_trait::async_trait]
@@ -31,36 +31,21 @@ pub trait AgreementRepoTrait: Send + Sync {
         limit: Option<u64>,
         page: Option<u64>,
     ) -> Outcome<Vec<agreement::Model>>;
-    async fn get_batch_agreements(
-        &self,
-        ids: &Vec<Urn>,
-    ) -> Outcome<Vec<agreement::Model>>;
-    async fn get_agreement_by_id(
-        &self,
-        id: &Urn,
-    ) -> Outcome<Option<agreement::Model>>;
+    async fn get_batch_agreements(&self, ids: &Vec<Urn>) -> Outcome<Vec<agreement::Model>>;
+    async fn get_agreement_by_id(&self, id: &Urn) -> Outcome<Option<agreement::Model>>;
     async fn get_agreement_by_negotiation_process(
         &self,
         id: &Urn,
     ) -> Outcome<Option<agreement::Model>>;
-    async fn get_agreements_by_assignee(
-        &self,
-        id: &String,
-    ) -> Outcome<Vec<agreement::Model>>;
+    async fn get_agreements_by_assignee(&self, id: &String) -> Outcome<Vec<agreement::Model>>;
 
-    async fn get_agreements_by_assigner(
-        &self,
-        id: &String,
-    ) -> Outcome<Vec<agreement::Model>>;
+    async fn get_agreements_by_assigner(&self, id: &String) -> Outcome<Vec<agreement::Model>>;
 
     async fn get_agreement_by_negotiation_message(
         &self,
         id: &Urn,
     ) -> Outcome<Option<agreement::Model>>;
-    async fn create_agreement(
-        &self,
-        new_model: &NewAgreementModel,
-    ) -> Outcome<agreement::Model>;
+    async fn create_agreement(&self, new_model: &NewAgreementModel) -> Outcome<agreement::Model>;
     async fn put_agreement(
         &self,
         id: &Urn,

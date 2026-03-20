@@ -41,14 +41,13 @@ impl WellKnownRPCFacadeForDSProtocol {
 
 #[async_trait::async_trait]
 impl WellKnownRPCFacadeTrait for WellKnownRPCFacadeForDSProtocol {
-    async fn resolve_dataspace_current_path(
-        &self,
-        input: &WellKnownRPCRequest,
-    ) -> Outcome<String> {
+    async fn resolve_dataspace_current_path(&self, input: &WellKnownRPCRequest) -> Outcome<String> {
         let host = self.config.common().get_host(HostType::Http);
         let url = format!("{}{}", host, RPC_WELL_KNOWN_PATH);
-        let provider_address =
-            self.client.post_json::<WellKnownRPCRequest, VersionPath>(&url, input).await?;
+        let provider_address = self
+            .client
+            .post_json::<WellKnownRPCRequest, VersionPath>(&url, input)
+            .await?;
         Ok(provider_address.path)
     }
 }

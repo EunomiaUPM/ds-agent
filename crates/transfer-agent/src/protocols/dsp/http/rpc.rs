@@ -28,6 +28,7 @@ use serde::Serialize;
 use std::future::Future;
 use std::sync::Arc;
 
+use crate::http::common::extract_payload;
 use crate::protocols::dsp::orchestrator::rpc::types::{
     RpcTransferCompletionMessageDto, RpcTransferErrorDto, RpcTransferRequestMessageDto,
     RpcTransferStartMessageDto, RpcTransferSuspensionMessageDto, RpcTransferTerminationMessageDto,
@@ -38,7 +39,6 @@ use crate::protocols::dsp::protocol_types::{
 };
 use common::dsp_common::context_field::ContextField;
 use ymir::errors::Outcome;
-use crate::http::common::extract_payload;
 
 #[derive(Clone)]
 pub struct RpcRouter {
@@ -53,16 +53,30 @@ impl FromRef<RpcRouter> for Arc<dyn OrchestratorTrait> {
 
 impl RpcRouter {
     pub fn new(service: Arc<dyn OrchestratorTrait>) -> Self {
-        Self { orchestrator: service }
+        Self {
+            orchestrator: service,
+        }
     }
 
     pub fn router(self) -> Router {
         Router::new()
-            .route("/rpc/setup-request", post(Self::handle_transfer_request_rpc))
+            .route(
+                "/rpc/setup-request",
+                post(Self::handle_transfer_request_rpc),
+            )
             .route("/rpc/setup-start", post(Self::handle_transfer_start_rpc))
-            .route("/rpc/setup-completion", post(Self::handle_transfer_completion_rpc))
-            .route("/rpc/setup-termination", post(Self::handle_transfer_termination_rpc))
-            .route("/rpc/setup-suspension", post(Self::handle_transfer_suspension_rpc))
+            .route(
+                "/rpc/setup-completion",
+                post(Self::handle_transfer_completion_rpc),
+            )
+            .route(
+                "/rpc/setup-termination",
+                post(Self::handle_transfer_termination_rpc),
+            )
+            .route(
+                "/rpc/setup-suspension",
+                post(Self::handle_transfer_suspension_rpc),
+            )
             .with_state(self)
     }
 
@@ -108,8 +122,10 @@ impl RpcRouter {
                             reason: Some(vec![err.to_string()]),
                         },
                     };
-                let rpc_error_dto: RpcTransferErrorDto<T> =
-                    RpcTransferErrorDto { request: original_request, error: error_wrapper };
+                let rpc_error_dto: RpcTransferErrorDto<T> = RpcTransferErrorDto {
+                    request: original_request,
+                    error: error_wrapper,
+                };
 
                 (StatusCode::BAD_REQUEST, Json(rpc_error_dto)).into_response()
             }
@@ -121,7 +137,11 @@ impl RpcRouter {
         input: Result<Json<RpcTransferRequestMessageDto>, JsonRejection>,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::CREATED, |data| async move {
-            state.orchestrator.get_rpc_service().setup_transfer_request(&data).await
+            state
+                .orchestrator
+                .get_rpc_service()
+                .setup_transfer_request(&data)
+                .await
         })
         .await
     }
@@ -131,7 +151,11 @@ impl RpcRouter {
         input: Result<Json<RpcTransferStartMessageDto>, JsonRejection>,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::ACCEPTED, |data| async move {
-            state.orchestrator.get_rpc_service().setup_transfer_start(&data).await
+            state
+                .orchestrator
+                .get_rpc_service()
+                .setup_transfer_start(&data)
+                .await
         })
         .await
     }
@@ -141,7 +165,11 @@ impl RpcRouter {
         input: Result<Json<RpcTransferCompletionMessageDto>, JsonRejection>,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::ACCEPTED, |data| async move {
-            state.orchestrator.get_rpc_service().setup_transfer_completion(&data).await
+            state
+                .orchestrator
+                .get_rpc_service()
+                .setup_transfer_completion(&data)
+                .await
         })
         .await
     }
@@ -151,7 +179,11 @@ impl RpcRouter {
         input: Result<Json<RpcTransferTerminationMessageDto>, JsonRejection>,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::ACCEPTED, |data| async move {
-            state.orchestrator.get_rpc_service().setup_transfer_termination(&data).await
+            state
+                .orchestrator
+                .get_rpc_service()
+                .setup_transfer_termination(&data)
+                .await
         })
         .await
     }
@@ -161,7 +193,11 @@ impl RpcRouter {
         input: Result<Json<RpcTransferSuspensionMessageDto>, JsonRejection>,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::ACCEPTED, |data| async move {
-            state.orchestrator.get_rpc_service().setup_transfer_suspension(&data).await
+            state
+                .orchestrator
+                .get_rpc_service()
+                .setup_transfer_suspension(&data)
+                .await
         })
         .await
     }

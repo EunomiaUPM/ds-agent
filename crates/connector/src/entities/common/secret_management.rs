@@ -65,6 +65,9 @@ impl SecretString {
     /// For now this always returns an error.  Callers that genuinely need the
     /// resolved value must wait for the implementation to be completed.
     pub async fn resolve(&self) -> Outcome<String> {
-        Err(Errors::parse("SecretString::resolve is not yet implemented", None))
+        Err(Errors::parse(
+            "SecretString::resolve is not yet implemented",
+            None,
+        ))
     }
 }

@@ -17,7 +17,7 @@
 
 use ymir::config::traits::{
     ApiConfigTrait, ConnectionConfigTrait, DidConfigTrait, HostsConfigTrait, VcConfigTrait,
-    VerifyReqConfigTrait, WalletConfigTrait
+    VerifyReqConfigTrait, WalletConfigTrait,
 };
 use ymir::services::issuer::basic::config::{BasicIssuerConfig, BasicIssuerConfigBuilder};
 use ymir::services::verifier::basic::config::{BasicVerifierConfig, BasicVerifierConfigBuilder};

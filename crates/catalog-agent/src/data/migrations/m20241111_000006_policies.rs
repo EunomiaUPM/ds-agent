@@ -33,22 +33,43 @@ impl MigrationTrait for Migration {
             .create_table(
                 Table::create()
                     .table(CatalogODRLOffers::Table)
-                    .col(ColumnDef::new(CatalogODRLOffers::Id).string().not_null().primary_key())
+                    .col(
+                        ColumnDef::new(CatalogODRLOffers::Id)
+                            .string()
+                            .not_null()
+                            .primary_key(),
+                    )
                     .col(
                         ColumnDef::new(CatalogODRLOffers::ODRLOffer)
                             .json_binary()
                             .not_null()
                             .default("{}"),
                     )
-                    .col(ColumnDef::new(CatalogODRLOffers::Entity).string().not_null())
-                    .col(ColumnDef::new(CatalogODRLOffers::EntityType).string().not_null())
+                    .col(
+                        ColumnDef::new(CatalogODRLOffers::Entity)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(CatalogODRLOffers::EntityType)
+                            .string()
+                            .not_null(),
+                    )
                     .col(
                         ColumnDef::new(CatalogODRLOffers::CreatedAt)
                             .timestamp_with_time_zone()
                             .not_null(),
                     )
-                    .col(ColumnDef::new(CatalogODRLOffers::SourceTemplateId).string().null())
-                    .col(ColumnDef::new(CatalogODRLOffers::SourceTemplateVersion).string().null())
+                    .col(
+                        ColumnDef::new(CatalogODRLOffers::SourceTemplateId)
+                            .string()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(CatalogODRLOffers::SourceTemplateVersion)
+                            .string()
+                            .null(),
+                    )
                     .col(
                         ColumnDef::new(CatalogODRLOffers::InstantiationParameters)
                             .json_binary()
@@ -77,7 +98,9 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager.drop_table(Table::drop().table(CatalogODRLOffers::Table).to_owned()).await
+        manager
+            .drop_table(Table::drop().table(CatalogODRLOffers::Table).to_owned())
+            .await
     }
 }
 

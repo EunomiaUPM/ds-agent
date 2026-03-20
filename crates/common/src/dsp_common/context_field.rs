@@ -26,7 +26,7 @@ pub static CONTEXT: &str = "https://w3id.org/dspace/2025/1/context.jsonld";
 #[serde(untagged)]
 pub enum ContextField {
     Single(String),
-    Multiple(Vec<String>)
+    Multiple(Vec<String>),
 }
 
 impl ContextField {
@@ -36,14 +36,22 @@ impl ContextField {
                 if s == CONTEXT {
                     Ok(())
                 } else {
-                    Err(Errors::format(BadFormat::Received, "Invalid @context value", None))
+                    Err(Errors::format(
+                        BadFormat::Received,
+                        "Invalid @context value",
+                        None,
+                    ))
                 }
             }
             ContextField::Multiple(v) => {
                 if v.iter().any(|s| s == CONTEXT) {
                     Ok(())
                 } else {
-                    Err(Errors::format(BadFormat::Received, "Invalid @context value", None))
+                    Err(Errors::format(
+                        BadFormat::Received,
+                        "Invalid @context value",
+                        None,
+                    ))
                 }
             }
         }
@@ -51,9 +59,13 @@ impl ContextField {
 }
 
 impl Display for ContextField {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result { f.write_str(CONTEXT) }
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str(CONTEXT)
+    }
 }
 
 impl Default for ContextField {
-    fn default() -> Self { ContextField::Multiple(vec![CONTEXT.to_string()]) }
+    fn default() -> Self {
+        ContextField::Multiple(vec![CONTEXT.to_string()])
+    }
 }

@@ -45,7 +45,8 @@ impl TransferAgentMigration {
         // db_connection
         let db_connection = vault.get_db_connection(config.common()).await;
         // run migration
-        Self::refresh(&db_connection).await
+        Self::refresh(&db_connection)
+            .await
             .map_err(|e| Errors::crazy("Not able to run migration", Some(Box::new(e))))?;
         Ok(())
     }

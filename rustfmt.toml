@@ -1,24 +1,18 @@
-unstable_features = true
+# rustfmt configuration — stable toolchain compatible
+# Run:   cargo fmt
+# Check: cargo fmt --check
 
-max_width = 100
-hard_tabs = false
-tab_spaces = 4
+edition = "2021"
 
-reorder_imports = true
-group_imports = "StdExternalCrate"
+# ── width ─────────────────────────────────────────────────────────────────────
+max_width            = 100
+tab_spaces           = 4
+hard_tabs            = false
+use_small_heuristics = "Default"
 
-struct_lit_single_line = true
-fn_call_width = 70
-fn_single_line = true
-
+# ── line endings ──────────────────────────────────────────────────────────────
 newline_style = "Unix"
-use_small_heuristics = "Max"
 
-control_brace_style = "AlwaysSameLine"
-
-trailing_comma = "Never"
-space_before_colon = false
-
-# Important: do NOT touch license headers
-normalize_comments = false
-wrap_comments = false
+# ── imports ───────────────────────────────────────────────────────────────────
+reorder_imports = true
+reorder_modules = true

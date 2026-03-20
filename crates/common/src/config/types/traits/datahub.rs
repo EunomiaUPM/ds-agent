@@ -19,6 +19,10 @@ use crate::config::types::DatahubConfig;
 
 pub trait DatahubConfigTrait {
     fn datahub(&self) -> &DatahubConfig;
-    fn get_host(&self) -> String { self.datahub().get_host() }
-    fn get_token(&self) -> &str { &self.datahub().token }
+    fn get_host(&self) -> String {
+        self.datahub().get_host()
+    }
+    fn get_token(&self) -> &str {
+        &self.datahub().token
+    }
 }

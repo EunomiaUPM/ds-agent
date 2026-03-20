@@ -38,19 +38,19 @@ use crate::setup::migrations::AuthMigrator;
 #[command(version = "0.1")]
 struct AuthCli {
     #[command(subcommand)]
-    command: AuthCliCommands
+    command: AuthCliCommands,
 }
 
 #[derive(Subcommand, Debug, PartialEq)]
 pub enum AuthCliCommands {
     Start(AuthCliArgs),
-    Setup(AuthCliArgs)
+    Setup(AuthCliArgs),
 }
 
 #[derive(Parser, Debug, PartialEq)]
 pub struct AuthCliArgs {
     #[arg(short, long)]
-    env_file: String
+    env_file: String,
 }
 
 pub struct AuthCommands;
@@ -70,7 +70,7 @@ impl AuthCommands {
                 let (config, vault) = Self::bootstrap(args)?;
                 match config.common().is_prod() {
                     true => vault.write_all_secrets(None).await?,
-                    false => vault.write_local_secrets(None).await?
+                    false => vault.write_local_secrets(None).await?,
                 }
                 let connection = vault.get_db_connection(config.common()).await;
                 AuthMigrator::run(&connection).await?;

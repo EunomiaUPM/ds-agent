@@ -60,8 +60,11 @@ impl PolicyTemplateEntityTrait for PolicyTemplateEntities {
         &self,
         ids: &Vec<String>,
     ) -> Outcome<Vec<PolicyTemplateDto>> {
-        let policy_templates =
-            self.repo.get_policy_template_repo().get_batch_policy_templates(ids).await?;
+        let policy_templates = self
+            .repo
+            .get_policy_template_repo()
+            .get_batch_policy_templates(ids)
+            .await?;
         let mut dtos = Vec::with_capacity(policy_templates.len());
         for c in policy_templates {
             let dto: PolicyTemplateDto = PolicyTemplateDto::try_from(c)?;
@@ -107,8 +110,11 @@ impl PolicyTemplateEntityTrait for PolicyTemplateEntities {
     ) -> Outcome<PolicyTemplateDto> {
         new_policy_template.validate_dto()?;
         let new_model: NewPolicyTemplateModel = new_policy_template.clone().try_into()?;
-        let policy_template =
-            self.repo.get_policy_template_repo().create_policy_template(&new_model).await?;
+        let policy_template = self
+            .repo
+            .get_policy_template_repo()
+            .create_policy_template(&new_model)
+            .await?;
         let dto: PolicyTemplateDto = PolicyTemplateDto::try_from(policy_template)?;
         Ok(dto)
     }

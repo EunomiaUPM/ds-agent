@@ -22,9 +22,9 @@ pub(crate) mod persistence_rpc;
 
 use crate::entities::negotiation_process::NegotiationProcessDto;
 use crate::entities::offer::OfferDto;
-use ymir::errors::Outcome;
 use crate::protocols::dsp::orchestrator::rpc::types::RpcNegotiationProcessMessageTrait;
 use crate::protocols::dsp::protocol_types::NegotiationProcessMessageTrait;
+use ymir::errors::Outcome;
 
 // ─── Design notes ─────────────────────────────────────────────────────────────
 //

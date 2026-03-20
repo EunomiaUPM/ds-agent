@@ -31,21 +31,26 @@ use super::config::{BusinessConfig, BusinessConfigTrait};
 use crate::types::business::BusinessResponse;
 
 pub struct BasicBusinessService {
-    config: BusinessConfig
+    config: BusinessConfig,
 }
 
 impl BasicBusinessService {
-    pub fn new(config: BusinessConfig) -> BasicBusinessService { BasicBusinessService { config } }
+    pub fn new(config: BusinessConfig) -> BasicBusinessService {
+        BasicBusinessService { config }
+    }
 }
 
 impl BusinessTrait for BasicBusinessService {
     fn start(
         &self,
-        payload: &RainbowBusinessLoginRequest
+        payload: &RainbowBusinessLoginRequest,
     ) -> (recv_request::NewModel, recv_verification::Model) {
         let id = Uuid::new_v4().to_string();
-        let nonce: String =
-            rand::rng().sample_iter(&Alphanumeric).take(12).map(char::from).collect();
+        let nonce: String = rand::rng()
+            .sample_iter(&Alphanumeric)
+            .take(12)
+            .map(char::from)
+            .collect();
         let provider_url = format!(
             "{}{}",
             self.config.hosts().get_host(HostType::Http),
@@ -53,7 +58,7 @@ impl BusinessTrait for BasicBusinessService {
         );
         let provider_url = match self.config.is_local() {
             true => provider_url.replace("127.0.0.1", "host.docker.internal"),
-            false => provider_url
+            false => provider_url,
         };
 
         let client_id = format!("{}/verify", &provider_url);
@@ -69,20 +74,26 @@ impl BusinessTrait for BasicBusinessService {
             success: None,
             status: "Pending".to_string(),
             created_at: Utc::now().naive_utc(),
-            ended_at: None
+            ended_at: None,
         };
 
-        let req_model = recv_request::NewModel { id, consumer_slug: "----".to_string() };
+        let req_model = recv_request::NewModel {
+            id,
+            consumer_slug: "----".to_string(),
+        };
 
         (req_model, ver_model)
     }
     fn get_token(
         &self,
         mate: &mates::Model,
-        bus_model: &business_mates::Model
+        bus_model: &business_mates::Model,
     ) -> Outcome<BusinessResponse> {
         let token = get_from_opt(bus_model.token.as_ref(), "token")?;
-        Ok(BusinessResponse { token, mate: mate.clone() })
+        Ok(BusinessResponse {
+            token,
+            mate: mate.clone(),
+        })
     }
     fn end(&self, ver_model: &recv_verification::Model) -> Outcome<business_mates::NewModel> {
         let holder = get_from_opt(ver_model.holder.as_ref(), "holder")?;
@@ -91,7 +102,7 @@ impl BusinessTrait for BasicBusinessService {
         Ok(business_mates::NewModel {
             id: ver_model.state.clone(),
             participant_id: holder,
-            token: Some(token)
+            token: Some(token),
         })
     }
 }

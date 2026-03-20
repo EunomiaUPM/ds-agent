@@ -50,7 +50,11 @@ impl ValidationRpcStepsService {
         step_transition_validator: Arc<dyn ValidateStateTransition>,
         helpers: Arc<dyn ValidationHelpers>,
     ) -> Self {
-        Self { payload_validator, step_transition_validator, helpers }
+        Self {
+            payload_validator,
+            step_transition_validator,
+            helpers,
+        }
     }
 }
 
@@ -81,15 +85,26 @@ impl ValidationRpcSteps for ValidationRpcStepsService {
     ) -> Outcome<()> {
         let input: NegotiationProcessMessageWrapper<NegotiationRequestMessageDto> =
             input.clone().into();
-        let dto = self.helpers.get_current_dto_from_payload(&input.dto).await?;
+        let dto = self
+            .helpers
+            .get_current_dto_from_payload(&input.dto)
+            .await?;
         let role = self.helpers.get_role_from_dto(&dto).await?;
         let message_type = input._type.clone();
         let current_state = self.helpers.get_state_from_dto(&dto).await?;
-        self.payload_validator.validate_with_json_schema(&input.dto).await?;
-        self.payload_validator.validate_identifiers_as_urn(&input.dto).await?;
-        self.payload_validator.validate_correlation(&input.dto, &dto).await?;
+        self.payload_validator
+            .validate_with_json_schema(&input.dto)
+            .await?;
+        self.payload_validator
+            .validate_identifiers_as_urn(&input.dto)
+            .await?;
+        self.payload_validator
+            .validate_correlation(&input.dto, &dto)
+            .await?;
         self.payload_validator.validate_auth(&input.dto).await?;
-        self.step_transition_validator.validate_role_for_message(&role, &message_type).await?;
+        self.step_transition_validator
+            .validate_role_for_message(&role, &message_type)
+            .await?;
         self.step_transition_validator
             .validate_state_transition(&current_state, &message_type)
             .await?;
@@ -117,21 +132,29 @@ impl ValidationRpcSteps for ValidationRpcStepsService {
         Ok(())
     }
 
-    async fn negotiation_offer_rpc(
-        &self,
-        input: &RpcNegotiationOfferMessageDto,
-    ) -> Outcome<()> {
+    async fn negotiation_offer_rpc(&self, input: &RpcNegotiationOfferMessageDto) -> Outcome<()> {
         let input: NegotiationProcessMessageWrapper<NegotiationOfferMessageDto> =
             input.clone().into();
-        let dto = self.helpers.get_current_dto_from_payload(&input.dto).await?;
+        let dto = self
+            .helpers
+            .get_current_dto_from_payload(&input.dto)
+            .await?;
         let role = self.helpers.get_role_from_dto(&dto).await?;
         let message_type = input._type.clone();
         let current_state = self.helpers.get_state_from_dto(&dto).await?;
-        self.payload_validator.validate_with_json_schema(&input.dto).await?;
-        self.payload_validator.validate_identifiers_as_urn(&input.dto).await?;
-        self.payload_validator.validate_correlation(&input.dto, &dto).await?;
+        self.payload_validator
+            .validate_with_json_schema(&input.dto)
+            .await?;
+        self.payload_validator
+            .validate_identifiers_as_urn(&input.dto)
+            .await?;
+        self.payload_validator
+            .validate_correlation(&input.dto, &dto)
+            .await?;
         self.payload_validator.validate_auth(&input.dto).await?;
-        self.step_transition_validator.validate_role_for_message(&role, &message_type).await?;
+        self.step_transition_validator
+            .validate_role_for_message(&role, &message_type)
+            .await?;
         self.step_transition_validator
             .validate_state_transition(&current_state, &message_type)
             .await?;
@@ -144,15 +167,26 @@ impl ValidationRpcSteps for ValidationRpcStepsService {
     ) -> Outcome<()> {
         let input: NegotiationProcessMessageWrapper<NegotiationAgreementMessageDto> =
             input.clone().into();
-        let dto = self.helpers.get_current_dto_from_payload(&input.dto).await?;
+        let dto = self
+            .helpers
+            .get_current_dto_from_payload(&input.dto)
+            .await?;
         let role = self.helpers.get_role_from_dto(&dto).await?;
         let message_type = input._type.clone();
         let current_state = self.helpers.get_state_from_dto(&dto).await?;
-        self.payload_validator.validate_with_json_schema(&input.dto).await?;
-        self.payload_validator.validate_identifiers_as_urn(&input.dto).await?;
-        self.payload_validator.validate_correlation(&input.dto, &dto).await?;
+        self.payload_validator
+            .validate_with_json_schema(&input.dto)
+            .await?;
+        self.payload_validator
+            .validate_identifiers_as_urn(&input.dto)
+            .await?;
+        self.payload_validator
+            .validate_correlation(&input.dto, &dto)
+            .await?;
         self.payload_validator.validate_auth(&input.dto).await?;
-        self.step_transition_validator.validate_role_for_message(&role, &message_type).await?;
+        self.step_transition_validator
+            .validate_role_for_message(&role, &message_type)
+            .await?;
         self.step_transition_validator
             .validate_state_transition(&current_state, &message_type)
             .await?;
@@ -165,15 +199,26 @@ impl ValidationRpcSteps for ValidationRpcStepsService {
     ) -> Outcome<()> {
         let input: NegotiationProcessMessageWrapper<NegotiationVerificationMessageDto> =
             input.clone().into();
-        let dto = self.helpers.get_current_dto_from_payload(&input.dto).await?;
+        let dto = self
+            .helpers
+            .get_current_dto_from_payload(&input.dto)
+            .await?;
         let role = self.helpers.get_role_from_dto(&dto).await?;
         let message_type = input._type.clone();
         let current_state = self.helpers.get_state_from_dto(&dto).await?;
-        self.payload_validator.validate_with_json_schema(&input.dto).await?;
-        self.payload_validator.validate_identifiers_as_urn(&input.dto).await?;
-        self.payload_validator.validate_correlation(&input.dto, &dto).await?;
+        self.payload_validator
+            .validate_with_json_schema(&input.dto)
+            .await?;
+        self.payload_validator
+            .validate_identifiers_as_urn(&input.dto)
+            .await?;
+        self.payload_validator
+            .validate_correlation(&input.dto, &dto)
+            .await?;
         self.payload_validator.validate_auth(&input.dto).await?;
-        self.step_transition_validator.validate_role_for_message(&role, &message_type).await?;
+        self.step_transition_validator
+            .validate_role_for_message(&role, &message_type)
+            .await?;
         self.step_transition_validator
             .validate_state_transition(&current_state, &message_type)
             .await?;
@@ -186,15 +231,26 @@ impl ValidationRpcSteps for ValidationRpcStepsService {
     ) -> Outcome<()> {
         let input: NegotiationProcessMessageWrapper<NegotiationEventMessageDto> =
             input.clone().into();
-        let dto = self.helpers.get_current_dto_from_payload(&input.dto).await?;
+        let dto = self
+            .helpers
+            .get_current_dto_from_payload(&input.dto)
+            .await?;
         let role = self.helpers.get_role_from_dto(&dto).await?;
         let message_type = input._type.clone();
         let current_state = self.helpers.get_state_from_dto(&dto).await?;
-        self.payload_validator.validate_with_json_schema(&input.dto).await?;
-        self.payload_validator.validate_identifiers_as_urn(&input.dto).await?;
-        self.payload_validator.validate_correlation(&input.dto, &dto).await?;
+        self.payload_validator
+            .validate_with_json_schema(&input.dto)
+            .await?;
+        self.payload_validator
+            .validate_identifiers_as_urn(&input.dto)
+            .await?;
+        self.payload_validator
+            .validate_correlation(&input.dto, &dto)
+            .await?;
         self.payload_validator.validate_auth(&input.dto).await?;
-        self.step_transition_validator.validate_role_for_message(&role, &message_type).await?;
+        self.step_transition_validator
+            .validate_role_for_message(&role, &message_type)
+            .await?;
         self.step_transition_validator
             .validate_state_transition(&current_state, &message_type)
             .await?;
@@ -207,15 +263,26 @@ impl ValidationRpcSteps for ValidationRpcStepsService {
     ) -> Outcome<()> {
         let input: NegotiationProcessMessageWrapper<NegotiationEventMessageDto> =
             input.clone().into();
-        let dto = self.helpers.get_current_dto_from_payload(&input.dto).await?;
+        let dto = self
+            .helpers
+            .get_current_dto_from_payload(&input.dto)
+            .await?;
         let role = self.helpers.get_role_from_dto(&dto).await?;
         let message_type = input._type.clone();
         let current_state = self.helpers.get_state_from_dto(&dto).await?;
-        self.payload_validator.validate_with_json_schema(&input.dto).await?;
-        self.payload_validator.validate_identifiers_as_urn(&input.dto).await?;
-        self.payload_validator.validate_correlation(&input.dto, &dto).await?;
+        self.payload_validator
+            .validate_with_json_schema(&input.dto)
+            .await?;
+        self.payload_validator
+            .validate_identifiers_as_urn(&input.dto)
+            .await?;
+        self.payload_validator
+            .validate_correlation(&input.dto, &dto)
+            .await?;
         self.payload_validator.validate_auth(&input.dto).await?;
-        self.step_transition_validator.validate_role_for_message(&role, &message_type).await?;
+        self.step_transition_validator
+            .validate_role_for_message(&role, &message_type)
+            .await?;
         self.step_transition_validator
             .validate_state_transition(&current_state, &message_type)
             .await?;
@@ -228,15 +295,26 @@ impl ValidationRpcSteps for ValidationRpcStepsService {
     ) -> Outcome<()> {
         let input: NegotiationProcessMessageWrapper<NegotiationTerminationMessageDto> =
             input.clone().into();
-        let dto = self.helpers.get_current_dto_from_payload(&input.dto).await?;
+        let dto = self
+            .helpers
+            .get_current_dto_from_payload(&input.dto)
+            .await?;
         let role = self.helpers.get_role_from_dto(&dto).await?;
         let message_type = input._type.clone();
         let current_state = self.helpers.get_state_from_dto(&dto).await?;
-        self.payload_validator.validate_with_json_schema(&input.dto).await?;
-        self.payload_validator.validate_identifiers_as_urn(&input.dto).await?;
-        self.payload_validator.validate_correlation(&input.dto, &dto).await?;
+        self.payload_validator
+            .validate_with_json_schema(&input.dto)
+            .await?;
+        self.payload_validator
+            .validate_identifiers_as_urn(&input.dto)
+            .await?;
+        self.payload_validator
+            .validate_correlation(&input.dto, &dto)
+            .await?;
         self.payload_validator.validate_auth(&input.dto).await?;
-        self.step_transition_validator.validate_role_for_message(&role, &message_type).await?;
+        self.step_transition_validator
+            .validate_role_for_message(&role, &message_type)
+            .await?;
         self.step_transition_validator
             .validate_state_transition(&current_state, &message_type)
             .await?;

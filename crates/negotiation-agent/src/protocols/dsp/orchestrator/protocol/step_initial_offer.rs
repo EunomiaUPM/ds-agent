@@ -26,9 +26,9 @@ use crate::protocols::dsp::protocol_types::{
     NegotiationAckMessageDto, NegotiationOfferInitMessageDto, NegotiationProcessMessageWrapper,
 };
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
-use ymir::errors::Outcome;
-use std::sync::Arc;
 use common::facades::Mates;
+use std::sync::Arc;
+use ymir::errors::Outcome;
 // ─── InitialProviderOfferStep ─────────────────────────────────────────────────
 
 /// Handles an inbound `ContractOfferMessage` that initiates a new negotiation

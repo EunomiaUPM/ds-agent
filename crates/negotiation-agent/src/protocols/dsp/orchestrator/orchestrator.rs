@@ -32,7 +32,10 @@ impl OrchestratorService {
         protocol_service: Arc<dyn ProtocolOrchestratorTrait>,
         rpc_service: Arc<dyn RPCOrchestratorTrait>,
     ) -> OrchestratorService {
-        Self { protocol_service, rpc_service }
+        Self {
+            protocol_service,
+            rpc_service,
+        }
     }
 }
 

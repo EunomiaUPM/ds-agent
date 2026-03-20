@@ -27,12 +27,15 @@ use crate::config::types::traits::{CacheConfigTrait, CommonConfigTrait, ConfigLo
 pub struct MonolithConfig {
     common: CommonConfig,
     #[serde(default)]
-    pub cache: CacheConfig
+    pub cache: CacheConfig,
 }
 
 impl MonolithConfig {
     pub fn new(common_config: CommonConfig) -> Self {
-        Self { common: common_config, cache: CacheConfig::default() }
+        Self {
+            common: common_config,
+            cache: CacheConfig::default(),
+        }
     }
 }
 
@@ -47,8 +50,12 @@ impl ConfigLoader for MonolithConfig {
 impl MonolithConfigTrait for MonolithConfig {}
 
 impl CommonConfigTrait for MonolithConfig {
-    fn common(&self) -> &CommonConfig { &self.common }
+    fn common(&self) -> &CommonConfig {
+        &self.common
+    }
 }
 impl CacheConfigTrait for MonolithConfig {
-    fn cache_config(&self) -> &CacheConfig { &self.cache }
+    fn cache_config(&self) -> &CacheConfig {
+        &self.cache
+    }
 }

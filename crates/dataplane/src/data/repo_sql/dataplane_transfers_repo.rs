@@ -52,7 +52,10 @@ impl DataplaneTransfersRepo for DataplaneTransfersRepoForSql {
             .await;
         match transfers {
             Ok(transfers) => Ok(transfers),
-            Err(e) => Err(DataplaneTransfersRepoErrors::ErrorFetchingDataplaneTransfer(e.into()).into_errors()),
+            Err(e) => Err(
+                DataplaneTransfersRepoErrors::ErrorFetchingDataplaneTransfer(e.into())
+                    .into_errors(),
+            ),
         }
     }
 
@@ -67,7 +70,10 @@ impl DataplaneTransfersRepo for DataplaneTransfersRepoForSql {
             .await;
         match transfers {
             Ok(transfers) => Ok(transfers),
-            Err(e) => Err(DataplaneTransfersRepoErrors::ErrorFetchingDataplaneTransfer(e.into()).into_errors()),
+            Err(e) => Err(
+                DataplaneTransfersRepoErrors::ErrorFetchingDataplaneTransfer(e.into())
+                    .into_errors(),
+            ),
         }
     }
 
@@ -76,10 +82,15 @@ impl DataplaneTransfersRepo for DataplaneTransfersRepoForSql {
         process_id: &Urn,
     ) -> Outcome<Option<dataplane_transfers::Model>> {
         let process_id = process_id.to_string();
-        let transfer = dataplane_transfers::Entity::find_by_id(process_id).one(&self.db).await;
+        let transfer = dataplane_transfers::Entity::find_by_id(process_id)
+            .one(&self.db)
+            .await;
         match transfer {
             Ok(transfer) => Ok(transfer),
-            Err(e) => Err(DataplaneTransfersRepoErrors::ErrorFetchingDataplaneTransfer(e.into()).into_errors()),
+            Err(e) => Err(
+                DataplaneTransfersRepoErrors::ErrorFetchingDataplaneTransfer(e.into())
+                    .into_errors(),
+            ),
         }
     }
 
@@ -94,7 +105,10 @@ impl DataplaneTransfersRepo for DataplaneTransfersRepoForSql {
             .await;
         match transfer {
             Ok(transfer) => Ok(transfer),
-            Err(e) => Err(DataplaneTransfersRepoErrors::ErrorFetchingDataplaneTransfer(e.into()).into_errors()),
+            Err(e) => Err(
+                DataplaneTransfersRepoErrors::ErrorFetchingDataplaneTransfer(e.into())
+                    .into_errors(),
+            ),
         }
     }
 
@@ -106,7 +120,10 @@ impl DataplaneTransfersRepo for DataplaneTransfersRepoForSql {
         let transfer = active_model.insert(&self.db).await;
         match transfer {
             Ok(transfer) => Ok(transfer),
-            Err(e) => Err(DataplaneTransfersRepoErrors::ErrorCreatingDataplaneTransfer(e.into()).into_errors()),
+            Err(e) => Err(
+                DataplaneTransfersRepoErrors::ErrorCreatingDataplaneTransfer(e.into())
+                    .into_errors(),
+            ),
         }
     }
 
@@ -123,19 +140,24 @@ impl DataplaneTransfersRepo for DataplaneTransfersRepoForSql {
         let transfer = active_model.update(&self.db).await;
         match transfer {
             Ok(transfer) => Ok(transfer),
-            Err(e) => Err(DataplaneTransfersRepoErrors::ErrorUpdatingDataplaneTransfer(e.into()).into_errors()),
+            Err(e) => Err(
+                DataplaneTransfersRepoErrors::ErrorUpdatingDataplaneTransfer(e.into())
+                    .into_errors(),
+            ),
         }
     }
 
-    async fn delete_dataplane_transfers(
-        &self,
-        process_id: &Urn,
-    ) -> Outcome<()> {
+    async fn delete_dataplane_transfers(&self, process_id: &Urn) -> Outcome<()> {
         let process_id = process_id.to_string();
-        let transfer = dataplane_transfers::Entity::delete_by_id(process_id).exec(&self.db).await;
+        let transfer = dataplane_transfers::Entity::delete_by_id(process_id)
+            .exec(&self.db)
+            .await;
         match transfer {
             Ok(_) => Ok(()),
-            Err(e) => Err(DataplaneTransfersRepoErrors::ErrorDeletingDataplaneTransfer(e.into()).into_errors()),
+            Err(e) => Err(
+                DataplaneTransfersRepoErrors::ErrorDeletingDataplaneTransfer(e.into())
+                    .into_errors(),
+            ),
         }
     }
 }

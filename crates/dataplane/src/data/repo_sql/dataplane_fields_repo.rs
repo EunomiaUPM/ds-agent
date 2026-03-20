@@ -91,10 +91,12 @@ impl DataplaneFieldRepoTrait for DataplaneFieldRepoForSql {
         &self,
         field_id: &Urn,
     ) -> Outcome<Option<dataplane_field::Model>> {
-        let result =
-            dataplane_field::Entity::find_by_id(field_id.to_string()).one(&self.db).await.map_err(
-                |e| DataplaneFieldRepoErrors::ErrorFetchingDataplaneField(e.into()).into_errors(),
-            )?;
+        let result = dataplane_field::Entity::find_by_id(field_id.to_string())
+            .one(&self.db)
+            .await
+            .map_err(|e| {
+                DataplaneFieldRepoErrors::ErrorFetchingDataplaneField(e.into()).into_errors()
+            })?;
         Ok(result)
     }
 

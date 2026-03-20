@@ -35,16 +35,16 @@ impl ValidationDspStepsService {
         payload_validator: Arc<dyn ValidatePayload>,
         helpers: Arc<dyn ValidationHelpers>,
     ) -> Self {
-        Self { payload_validator, helpers }
+        Self {
+            payload_validator,
+            helpers,
+        }
     }
 }
 
 #[async_trait::async_trait]
 impl ValidationDspSteps for ValidationDspStepsService {
-    async fn on_catalog_request(
-        &self,
-        input: &CatalogMessageWrapper<Catalog>,
-    ) -> Outcome<()> {
+    async fn on_catalog_request(&self, input: &CatalogMessageWrapper<Catalog>) -> Outcome<()> {
         todo!()
     }
 

@@ -22,7 +22,8 @@ use crate::protocols::dsp::facades::dataplane_facade::DataPlaneFacadeTrait;
 use crate::protocols::dsp::orchestrator::rpc::types::RpcTransferProcessMessageTrait;
 use crate::protocols::dsp::persistence::TransferPersistenceTrait;
 use crate::protocols::dsp::protocol_types::{
-    DataAddressDto, TransferProcessAckDto, TransferProcessMessageTrait, TransferProcessMessageWrapper,
+    DataAddressDto, TransferProcessAckDto, TransferProcessMessageTrait,
+    TransferProcessMessageWrapper,
 };
 use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRpcSteps;
 use common::dsp_common::context_field::ContextField;
@@ -145,14 +146,14 @@ pub(super) trait TransferRpcStep: Send + Sync + 'static {
         ctx: &Self::Context,
         payload: Arc<Self::DspMessage>,
         url_suffix: &str,
-    ) -> Outcome<(TransferProcessMessageWrapper<TransferProcessAckDto>, TransferProcessDto)>;
+    ) -> Outcome<(
+        TransferProcessMessageWrapper<TransferProcessAckDto>,
+        TransferProcessDto,
+    )>;
 
     /// Local dataplane hook executed **after** the peer acknowledges the message.
     /// Default: no-op (overridden by steps that need to react to the peer's ack).
-    async fn post_hook(
-        _dp: &Arc<dyn DataPlaneFacadeTrait>,
-        _ctx: &Self::Context,
-    ) -> Outcome<()> {
+    async fn post_hook(_dp: &Arc<dyn DataPlaneFacadeTrait>, _ctx: &Self::Context) -> Outcome<()> {
         Ok(())
     }
 
@@ -187,7 +188,9 @@ pub(super) async fn resolve_continuation_context(
     consumer_pid: &Urn,
     persistence: &Arc<dyn TransferPersistenceTrait>,
 ) -> Outcome<RpcPeerContext> {
-    let process = persistence.fetch_process(consumer_pid.to_string().as_str()).await?;
+    let process = persistence
+        .fetch_process(consumer_pid.to_string().as_str())
+        .await?;
 
     let provider_pid = Urn::from_str(process.identifiers.get("providerPid").unwrap().as_str())?;
     let consumer_pid_resolved =
@@ -222,11 +225,19 @@ pub(super) async fn continuation_send_and_persist<T>(
     ctx: &RpcPeerContext,
     payload: Arc<T>,
     url_suffix: &str,
-) -> Outcome<(TransferProcessMessageWrapper<TransferProcessAckDto>, TransferProcessDto)>
+) -> Outcome<(
+    TransferProcessMessageWrapper<TransferProcessAckDto>,
+    TransferProcessDto,
+)>
 where
     T: TransferProcessMessageTrait + Clone + serde::Serialize + Send + Sync + 'static,
 {
-    let callback = ctx.process.inner.callback_address.clone().unwrap_or_default();
+    let callback = ctx
+        .process
+        .inner
+        .callback_address
+        .clone()
+        .unwrap_or_default();
     let peer_url = format!("{}/transfers/{}/{}", callback, ctx.peer_url_id, url_suffix);
 
     let message = TransferProcessMessageWrapper {

@@ -20,15 +20,15 @@
 use crate::entities::negotiation_process::NegotiationProcessDto;
 use crate::protocols::dsp::orchestrator::protocol::persistence::OrchestrationPersistenceForProtocol;
 use crate::protocols::dsp::orchestrator::protocol::step_trait::{
-    continuation_prepare_context, NegotiationContinuationContext, NegotiationProtocolStep,
+    NegotiationContinuationContext, NegotiationProtocolStep, continuation_prepare_context,
 };
 use crate::protocols::dsp::protocol_types::{
     NegotiationAckMessageDto, NegotiationProcessMessageWrapper, NegotiationVerificationMessageDto,
 };
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
-use ymir::errors::Outcome;
-use std::sync::Arc;
 use common::facades::Mates;
+use std::sync::Arc;
+use ymir::errors::Outcome;
 // ─── AgreementVerificationStep ────────────────────────────────────────────────
 
 /// Handles an inbound `ContractAgreementVerificationMessage` from the Consumer.
@@ -49,7 +49,9 @@ impl NegotiationProtocolStep for AgreementVerificationStep {
         input: &NegotiationProcessMessageWrapper<NegotiationVerificationMessageDto>,
         _mate: &Mates,
     ) -> Outcome<()> {
-        validator.on_contract_agreement_verification(&id.to_string(), input).await
+        validator
+            .on_contract_agreement_verification(&id.to_string(), input)
+            .await
     }
 
     async fn prepare_context(

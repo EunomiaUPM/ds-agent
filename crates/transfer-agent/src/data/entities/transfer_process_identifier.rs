@@ -79,6 +79,9 @@ pub struct EditTransferIdentifierModel {
 
 impl Default for EditTransferIdentifierModel {
     fn default() -> Self {
-        Self { id_key: None, id_value: None }
+        Self {
+            id_key: None,
+            id_value: None,
+        }
     }
 }

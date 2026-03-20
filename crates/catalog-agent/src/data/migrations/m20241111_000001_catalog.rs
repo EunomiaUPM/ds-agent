@@ -33,7 +33,12 @@ impl MigrationTrait for Migration {
             .create_table(
                 Table::create()
                     .table(CatalogCatalogs::Table)
-                    .col(ColumnDef::new(CatalogCatalogs::Id).string().not_null().primary_key())
+                    .col(
+                        ColumnDef::new(CatalogCatalogs::Id)
+                            .string()
+                            .not_null()
+                            .primary_key(),
+                    )
                     .col(ColumnDef::new(CatalogCatalogs::FoafHomePage).string())
                     .col(ColumnDef::new(CatalogCatalogs::DctConformsTo).string())
                     .col(ColumnDef::new(CatalogCatalogs::DctCreator).string())
@@ -58,7 +63,9 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager.drop_table(Table::drop().table(CatalogCatalogs::Table).to_owned()).await
+        manager
+            .drop_table(Table::drop().table(CatalogCatalogs::Table).to_owned())
+            .await
     }
 }
 

@@ -28,17 +28,19 @@ use ymir::errors::{Errors, Outcome};
 pub trait OrchestrationExtractors: Send + Sync {
     fn get_role_from_dto(&self, dto: &NegotiationProcessDto) -> Outcome<RoleConfig> {
         let role = &dto.inner.role;
-        let role = role.parse::<RoleConfig>().map_err(|_| Errors::parse("Not able to parse role", None))?;
+        let role = role
+            .parse::<RoleConfig>()
+            .map_err(|_| Errors::parse("Not able to parse role", None))?;
         Ok(role)
     }
 
-    fn get_state_from_dto(
-        &self,
-        dto: &NegotiationProcessDto,
-    ) -> Outcome<NegotiationProcessState> {
+    fn get_state_from_dto(&self, dto: &NegotiationProcessDto) -> Outcome<NegotiationProcessState> {
         let state = &dto.inner.state;
         let state = state.parse::<NegotiationProcessState>().map_err(|_e| {
-            Errors::parse("Something is wrong. Seems this process' state is not protocol compliant", None)
+            Errors::parse(
+                "Something is wrong. Seems this process' state is not protocol compliant",
+                None,
+            )
         })?;
         Ok(state)
     }

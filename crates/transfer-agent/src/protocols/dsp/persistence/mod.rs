@@ -117,7 +117,11 @@ pub(crate) async fn create_process_record(
     // The local role and providerPid assignment depend on who initiated the transfer.
     // INBOUND (Provider): we generate the providerPid ourselves.
     // OUTBOUND (Consumer): the providerPid was received from the peer.
-    let role = if direction == "INBOUND" { "Provider" } else { "Consumer" };
+    let role = if direction == "INBOUND" {
+        "Provider"
+    } else {
+        "Consumer"
+    };
     let mut identifiers = HashMap::new();
     if direction == "INBOUND" {
         identifiers.insert(

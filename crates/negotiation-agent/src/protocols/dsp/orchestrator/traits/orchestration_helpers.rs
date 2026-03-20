@@ -22,12 +22,12 @@ use crate::protocols::dsp::protocol_types::{
     NegotiationProcessMessageWrapper, NegotiationProcessState,
 };
 use common::config::types::roles::RoleConfig;
-use ymir::errors::{Errors, Outcome};
 use common::dsp_common::odrl::{ContractRequestMessageOfferTypes, OdrlAgreement};
 use common::errors::{CommonErrors, ErrorLog};
 use std::str::FromStr;
 use tracing::error;
 use urn::Urn;
+use ymir::errors::{Errors, Outcome};
 
 pub trait OrchestrationHelpers: Send + Sync + 'static {
     fn convert_string_to_urn(&self, uri_id: &String) -> Outcome<Urn> {
@@ -52,7 +52,7 @@ pub trait OrchestrationHelpers: Send + Sync + 'static {
             _ => {
                 let err = CommonErrors::parse_new("Not able to parse indentifier into role");
                 error!("{}", err.log());
-                return Err(Errors::parse(err.to_string().as_str(), None))
+                return Err(Errors::parse(err.to_string().as_str(), None));
             }
         }
     }
@@ -63,15 +63,11 @@ pub trait OrchestrationHelpers: Send + Sync + 'static {
             _ => {
                 let err = CommonErrors::parse_new("Not able to parse indentifier into role");
                 error!("{}", err.log());
-                return Err(Errors::parse(err.to_string().as_str(), None))
+                return Err(Errors::parse(err.to_string().as_str(), None));
             }
         }
     }
-    fn get_pid_by_role(
-        &self,
-        dto: &NegotiationProcessDto,
-        role: RoleConfig,
-    ) -> Outcome<Urn> {
+    fn get_pid_by_role(&self, dto: &NegotiationProcessDto, role: RoleConfig) -> Outcome<Urn> {
         let role_as_identifier = self.parse_role_into_identifier(&role)?;
         let pid = dto.identifiers.get(role_as_identifier).ok_or_else(|| {
             let err = CommonErrors::parse_new("There is no such a identifier, role is mandatory.");

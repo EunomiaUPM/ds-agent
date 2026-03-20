@@ -27,8 +27,8 @@ use crate::data::factory_trait::TransferAgentRepoTrait;
 use crate::entities::transfer_process::{
     EditTransferProcessDto, NewTransferProcessDto, TransferAgentProcessesTrait, TransferProcessDto,
 };
-use log::error;
 use common::utils::get_urn;
+use log::error;
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -74,7 +74,11 @@ impl TransferAgentProcessesService {
             })
             .collect();
 
-        Ok(TransferProcessDto { inner: process, identifiers: ids_map, messages })
+        Ok(TransferProcessDto {
+            inner: process,
+            identifiers: ids_map,
+            messages,
+        })
     }
 }
 
@@ -125,9 +129,7 @@ impl TransferAgentProcessesTrait for TransferAgentProcessesService {
             .get_transfer_process_repo()
             .get_transfer_process_by_id(id)
             .await?
-            .ok_or_else(|| {
-                Errors::crazy("Transfer Process not found", None)
-            })?;
+            .ok_or_else(|| Errors::crazy("Transfer Process not found", None))?;
 
         self.enrich_process(process).await
     }
@@ -142,9 +144,7 @@ impl TransferAgentProcessesTrait for TransferAgentProcessesService {
             .get_transfer_process_repo()
             .get_transfer_process_by_key_id(key_id, id)
             .await?
-            .ok_or_else(|| {
-                Errors::crazy("Transfer Process not found by key identifier", None)
-            })?;
+            .ok_or_else(|| Errors::crazy("Transfer Process not found by key identifier", None))?;
 
         self.enrich_process(process).await
     }
@@ -246,7 +246,10 @@ impl TransferAgentProcessesTrait for TransferAgentProcessesService {
     }
 
     async fn delete_transfer_process(&self, id: &Urn) -> Outcome<()> {
-        self.transfer_repo.get_transfer_process_repo().delete_transfer_process(id).await?;
+        self.transfer_repo
+            .get_transfer_process_repo()
+            .delete_transfer_process(id)
+            .await?;
         Ok(())
     }
 }

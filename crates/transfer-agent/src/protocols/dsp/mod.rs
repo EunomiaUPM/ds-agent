@@ -46,11 +46,13 @@ use crate::protocols::dsp::validator::validators::validation_helpers::Validation
 use crate::protocols::dsp::facades::dataplane_facade::dataplane_facade::DspDataPlaneFacade;
 use crate::protocols::protocol::ProtocolPluginTrait;
 use axum::Router;
+use common::config::services::traits::TransferConfigTrait;
 use common::config::services::TransferConfig;
 use common::config::types::traits::CommonConfigTrait;
 use common::facades::ssi_auth_facade::ssi_auth_facade::SSIAuthFacadeService;
 use common::facades::ssi_auth_facade::MatesFacadeTrait;
 use common::http_client::HttpClient;
+use connector::ConnectorSetup;
 use dataplane::setup::DataplaneSetup;
 use std::sync::Arc;
 use validator::validators::protocol::validate_state_transition::ValidatedStateTransitionServiceForDsp;
@@ -58,8 +60,6 @@ use validator::validators::rpc::validation_rpc_steps::ValidationRpcStepsService;
 use ymir::config::traits::HostsConfigTrait;
 use ymir::errors::Outcome;
 use ymir::services::vault::global::VaultService;
-use common::config::services::traits::TransferConfigTrait;
-use connector::ConnectorSetup;
 
 pub struct TransferDSP {
     transfer_agent_process_entities: Arc<dyn TransferAgentProcessesTrait>,
@@ -109,15 +109,17 @@ impl ProtocolPluginTrait for TransferDSP {
             self.transfer_agent_process_entities.clone(),
         ));
         let validator_payload = Arc::new(ValidatePayloadService::new(validator_helper.clone()));
-        let validator_state_machine_dsp =
-            Arc::new(ValidatedStateTransitionServiceForDsp::new(validator_helper.clone()));
+        let validator_state_machine_dsp = Arc::new(ValidatedStateTransitionServiceForDsp::new(
+            validator_helper.clone(),
+        ));
         let dsp_validator = Arc::new(ValidationDspStepsService::new(
             validator_payload.clone(),
             validator_state_machine_dsp.clone(),
             validator_helper.clone(),
         ));
-        let validator_state_machine_rcp =
-            Arc::new(ValidatedStateTransitionServiceForRcp::new(validator_helper.clone()));
+        let validator_state_machine_rcp = Arc::new(ValidatedStateTransitionServiceForRcp::new(
+            validator_helper.clone(),
+        ));
         let rcp_validator = Arc::new(ValidationRpcStepsService::new(
             validator_payload.clone(),
             validator_state_machine_rcp.clone(),
@@ -161,8 +163,10 @@ impl ProtocolPluginTrait for TransferDSP {
             Some(port) => format!("{}://{}:{}", http.protocol, http.url, port),
             None => format!("{}://{}", http.protocol, http.url),
         };
-        let dataplane_facade =
-            Arc::new(DspDataPlaneFacade::new(dataplane_manager.clone(), proxy_base_url));
+        let dataplane_facade = Arc::new(DspDataPlaneFacade::new(
+            dataplane_manager.clone(),
+            proxy_base_url,
+        ));
 
         // data service resolver (resolves agreement → dataset → distribution → connector)
         let data_service_resolver = Arc::new(DataServiceFacadeServiceForDSProtocol::new(
@@ -205,7 +209,9 @@ impl ProtocolPluginTrait for TransferDSP {
             DspRouter::new(orchestrator_service.clone(), self.config.clone(), ssi_auth);
         let rcp_router = RpcRouter::new(orchestrator_service.clone());
 
-        Ok(Router::new().merge(dsp_router.router()).merge(rcp_router.router()))
+        Ok(Router::new()
+            .merge(dsp_router.router())
+            .merge(rcp_router.router()))
     }
 
     fn build_grpc_router(&self) -> Outcome<Option<Router>> {

@@ -42,7 +42,9 @@ impl NegotiationAgentMigration {
         // db_connection
         let db_connection = vault.get_db_connection(config.common()).await;
         // run migration
-        Self::refresh(&db_connection).await.map_err(|e| Errors::db(e.to_string(), None))?;
+        Self::refresh(&db_connection)
+            .await
+            .map_err(|e| Errors::db(e.to_string(), None))?;
         Ok(())
     }
 }

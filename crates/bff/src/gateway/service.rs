@@ -19,18 +19,18 @@ use axum::body::Body;
 use axum::extract::Request;
 use axum::http::{HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
-use futures_util::TryStreamExt;
 use common::config::services::GatewayConfig;
+use futures_util::TryStreamExt;
 
 use reqwest::Client;
 
+use common::config::services::traits::GatewayConfigTrait;
 use common::config::types::traits::{CommonConfigTrait, MinKnownConfigTrait};
 use std::time::Duration;
 use tokio::sync::broadcast;
 use tracing::{debug, error, info, warn};
 use ymir::config::traits::SingleHostTrait;
 use ymir::config::types::HostType;
-use common::config::services::traits::GatewayConfigTrait;
 
 #[async_trait::async_trait]
 pub trait GatewayServiceTrait: Send + Sync {
@@ -67,7 +67,11 @@ impl GatewayService {
             .build()
             .expect("Failed to build reqwest client");
         let (notification_tx, _) = broadcast::channel(100);
-        Self { config, client, notification_tx }
+        Self {
+            config,
+            client,
+            notification_tx,
+        }
     }
 }
 
@@ -253,8 +257,9 @@ pub async fn execute_proxy(
         );
     }
     // X-Forwarded-*
-    if let Some(client_ip) =
-        req.extensions().get::<axum::extract::ConnectInfo<std::net::SocketAddr>>()
+    if let Some(client_ip) = req
+        .extensions()
+        .get::<axum::extract::ConnectInfo<std::net::SocketAddr>>()
     {
         if let Ok(x_forwarded_for_val) = HeaderValue::from_str(&client_ip.0.ip().to_string()) {
             original_headers.insert("x-forwarded-for", x_forwarded_for_val);
@@ -311,10 +316,18 @@ pub async fn execute_proxy(
             })
         }
         Err(e) => {
-            error!("Error on requesting microservice '{}': {}", target_url_str.clone(), e);
+            error!(
+                "Error on requesting microservice '{}': {}",
+                target_url_str.clone(),
+                e
+            );
             (
                 StatusCode::BAD_GATEWAY,
-                format!("Error on requesting backend '{}': {}", target_url_str.clone(), e),
+                format!(
+                    "Error on requesting backend '{}': {}",
+                    target_url_str.clone(),
+                    e
+                ),
             )
                 .into_response()
         }

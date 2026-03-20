@@ -92,15 +92,14 @@ impl TransferRpcStep for StartStep {
         ctx: &RpcPeerContext,
         payload: Arc<TransferStartMessageDto>,
         url_suffix: &str,
-    ) -> Outcome<(TransferProcessMessageWrapper<TransferProcessAckDto>, TransferProcessDto)>
-    {
+    ) -> Outcome<(
+        TransferProcessMessageWrapper<TransferProcessAckDto>,
+        TransferProcessDto,
+    )> {
         continuation_send_and_persist(http_client, persistence, ctx, payload, url_suffix).await
     }
 
-    async fn post_hook(
-        dp: &Arc<dyn DataPlaneFacadeTrait>,
-        ctx: &Self::Context
-    ) -> Outcome<()> {
+    async fn post_hook(dp: &Arc<dyn DataPlaneFacadeTrait>, ctx: &Self::Context) -> Outcome<()> {
         // Outbound sender: no incoming DataAddress to apply, so pass None.
         dp.on_transfer_start_post(&ctx.process, None).await?;
         Ok(())

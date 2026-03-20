@@ -18,19 +18,19 @@
  */
 
 pub(crate) mod rpc;
-pub(crate) mod types;
-pub(crate) mod step_trait;
+pub(crate) mod step_completion;
 pub(crate) mod step_request;
 pub(crate) mod step_start;
 pub(crate) mod step_suspension;
-pub(crate) mod step_completion;
 pub(crate) mod step_termination;
+pub(crate) mod step_trait;
+pub(crate) mod types;
 
-use ymir::errors::Outcome;
 use crate::protocols::dsp::orchestrator::rpc::types::{
     RpcTransferCompletionMessageDto, RpcTransferMessageDto, RpcTransferRequestMessageDto,
     RpcTransferStartMessageDto, RpcTransferSuspensionMessageDto, RpcTransferTerminationMessageDto,
 };
+use ymir::errors::Outcome;
 
 #[async_trait::async_trait]
 pub trait RPCOrchestratorTrait: Send + Sync + 'static {

@@ -18,21 +18,21 @@
  */
 
 use crate::entities::negotiation_process::NegotiationProcessDto;
-use crate::protocols::dsp::persistence::NegotiationRpcPersistenceTrait;
 use crate::protocols::dsp::orchestrator::rpc::step_trait::{
-    resolve_continuation_context, NegotiationRpcContinuationContext, NegotiationRpcStep,
+    NegotiationRpcContinuationContext, NegotiationRpcStep, resolve_continuation_context,
 };
 use crate::protocols::dsp::orchestrator::rpc::types::{
     RpcNegotiationEventAcceptedMessageDto, RpcNegotiationProcessMessageTrait,
 };
+use crate::protocols::dsp::persistence::NegotiationRpcPersistenceTrait;
 use crate::protocols::dsp::protocol_types::{
     NegotiationAckMessageDto, NegotiationEventMessageDto, NegotiationProcessMessageWrapper,
 };
 use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRpcSteps;
-use ymir::errors::{Errors, Outcome};
 use common::facades::ssi_auth_facade::MatesFacadeTrait;
 use common::http_client::HttpClient;
 use std::sync::Arc;
+use ymir::errors::{Errors, Outcome};
 
 // ─── RpcEventAcceptedStep ─────────────────────────────────────────────────────
 
@@ -78,19 +78,27 @@ impl NegotiationRpcStep for RpcEventAcceptedStep {
         NegotiationProcessMessageWrapper<NegotiationAckMessageDto>,
         NegotiationProcessDto,
     )> {
-        let peer_url =
-            format!("{}/negotiations/{}/events", ctx.peer_address, ctx.peer_identifier);
+        let peer_url = format!(
+            "{}/negotiations/{}/events",
+            ctx.peer_address, ctx.peer_identifier
+        );
         let request_body: NegotiationProcessMessageWrapper<NegotiationEventMessageDto> =
             input.clone().into();
 
-        let response: NegotiationProcessMessageWrapper<NegotiationAckMessageDto> =
-            http_client.post_json(peer_url.as_str(), &request_body).await?;
+        let response: NegotiationProcessMessageWrapper<NegotiationAckMessageDto> = http_client
+            .post_json(peer_url.as_str(), &request_body)
+            .await?;
 
         let id = input
             .get_consumer_pid()
             .ok_or_else(|| Errors::parse("RpcEventAcceptedStep: missing consumer PID", None))?;
         let process = persistence
-            .update(id.to_string().as_str(), input, &request_body.dto, &response.dto)
+            .update(
+                id.to_string().as_str(),
+                input,
+                &request_body.dto,
+                &response.dto,
+            )
             .await?;
 
         Ok((response, process))

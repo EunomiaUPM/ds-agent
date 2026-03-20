@@ -70,11 +70,16 @@ impl CatalogGrpcWorker {
         token: &CancellationToken,
     ) -> Outcome<JoinHandle<()>> {
         let router = Self::create_root_grpc_router(&config, vault.clone()).await?;
-        let host = if config.common().is_local() { "127.0.0.1" } else { "0.0.0.0" };
+        let host = if config.common().is_local() {
+            "127.0.0.1"
+        } else {
+            "0.0.0.0"
+        };
         let port = config.common().get_internal_port(HostType::Http);
         let addr = format!("{}{}", host, port);
 
-        let listener = TcpListener::bind(&addr).await
+        let listener = TcpListener::bind(&addr)
+            .await
             .map_err(|e| Errors::crazy("Error listening on the socket", Some(Box::new(e))))?;
         let incoming = TcpListenerStream::new(listener);
         tracing::info!("GRPC Catalog Service running on {}", addr);
@@ -102,8 +107,10 @@ impl CatalogGrpcWorker {
         let cache_connection_url = config.get_full_cache_url();
         let redis_client = redis::Client::open(cache_connection_url)
             .map_err(|e| Errors::crazy("Error creating Redis client", Some(Box::new(e))))?;
-        let redis_connection =
-            redis_client.get_multiplexed_async_connection().await.expect("Redis connection failed");
+        let redis_connection = redis_client
+            .get_multiplexed_async_connection()
+            .await
+            .expect("Redis connection failed");
 
         // repo
         let catalog_agent_cache =
@@ -156,7 +163,9 @@ impl CatalogGrpcWorker {
             .add_service(DatasetEntityServiceServer::new(datasets_router))
             .add_service(DistributionEntityServiceServer::new(distributions_router))
             .add_service(OdrlPolicyEntityServiceServer::new(odrl_offer_router))
-            .add_service(PolicyTemplateEntityServiceServer::new(policy_templates_router));
+            .add_service(PolicyTemplateEntityServiceServer::new(
+                policy_templates_router,
+            ));
 
         Ok(router)
     }

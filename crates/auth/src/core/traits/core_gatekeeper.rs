@@ -49,15 +49,25 @@ pub trait CoreGateKeeperTrait: Send + Sync + 'static {
         &self,
         id: String,
         payload: Bytes,
-        headers: HeaderMap
+        headers: HeaderMap,
     ) -> Outcome<AccessToken> {
         let int_model = self.repo().interaction_rcv().get_by_cont_id(&id).await?;
-        self.gatekeeper().validate_cont_req(&int_model, &payload, &headers)?;
+        self.gatekeeper()
+            .validate_cont_req(&int_model, &payload, &headers)?;
         let mut req_model = self.repo().request_rcv().get_by_id(&int_model.id).await?;
-        let ver_model = self.repo().verification_rcv().get_by_id(&int_model.id).await?;
-        let token_model = self.repo().token_requirements().get_by_id(&int_model.id).await?;
+        let ver_model = self
+            .repo()
+            .verification_rcv()
+            .get_by_id(&int_model.id)
+            .await?;
+        let token_model = self
+            .repo()
+            .token_requirements()
+            .get_by_id(&int_model.id)
+            .await?;
         let (mate, token_response) =
-            self.gatekeeper().continue_req(&mut req_model, &int_model, &token_model, &ver_model);
+            self.gatekeeper()
+                .continue_req(&mut req_model, &int_model, &token_model, &ver_model);
         let _mate = self.repo().mates().force_create(mate).await?;
         Ok(token_response)
     }

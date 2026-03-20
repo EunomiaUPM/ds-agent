@@ -55,7 +55,11 @@ impl ProtocolOrchestratorService {
         persistence_service: Arc<dyn TransferPersistenceTrait>,
         facades: Arc<dyn FacadeTrait>,
     ) -> ProtocolOrchestratorService {
-        ProtocolOrchestratorService { validator, persistence_service, facades }
+        ProtocolOrchestratorService {
+            validator,
+            persistence_service,
+            facades,
+        }
     }
 }
 
@@ -76,7 +80,8 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
         input: &TransferProcessMessageWrapper<TransferRequestMessageDto>,
         associated_agent_peer: &str,
     ) -> Outcome<(TransferProcessMessageWrapper<TransferProcessAckDto>, bool)> {
-        self.run_lifecycle::<ProtocolRequestStep>("", associated_agent_peer, input).await
+        self.run_lifecycle::<ProtocolRequestStep>("", associated_agent_peer, input)
+            .await
     }
 
     async fn on_transfer_start(
@@ -84,7 +89,9 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
         id: &String,
         input: &TransferProcessMessageWrapper<TransferStartMessageDto>,
     ) -> Outcome<TransferProcessMessageWrapper<TransferProcessAckDto>> {
-        let (ack, _) = self.run_lifecycle::<ProtocolStartStep>(id, "", input).await?;
+        let (ack, _) = self
+            .run_lifecycle::<ProtocolStartStep>(id, "", input)
+            .await?;
         Ok(ack)
     }
 
@@ -93,7 +100,9 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
         id: &String,
         input: &TransferProcessMessageWrapper<TransferSuspensionMessageDto>,
     ) -> Outcome<TransferProcessMessageWrapper<TransferProcessAckDto>> {
-        let (ack, _) = self.run_lifecycle::<ProtocolSuspensionStep>(id, "", input).await?;
+        let (ack, _) = self
+            .run_lifecycle::<ProtocolSuspensionStep>(id, "", input)
+            .await?;
         Ok(ack)
     }
 
@@ -102,7 +111,9 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
         id: &String,
         input: &TransferProcessMessageWrapper<TransferCompletionMessageDto>,
     ) -> Outcome<TransferProcessMessageWrapper<TransferProcessAckDto>> {
-        let (ack, _) = self.run_lifecycle::<ProtocolCompletionStep>(id, "", input).await?;
+        let (ack, _) = self
+            .run_lifecycle::<ProtocolCompletionStep>(id, "", input)
+            .await?;
         Ok(ack)
     }
 
@@ -111,7 +122,9 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
         id: &String,
         input: &TransferProcessMessageWrapper<TransferTerminationMessageDto>,
     ) -> Outcome<TransferProcessMessageWrapper<TransferProcessAckDto>> {
-        let (ack, _) = self.run_lifecycle::<ProtocolTerminationStep>(id, "", input).await?;
+        let (ack, _) = self
+            .run_lifecycle::<ProtocolTerminationStep>(id, "", input)
+            .await?;
         Ok(ack)
     }
 }

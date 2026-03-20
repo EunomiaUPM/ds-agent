@@ -51,7 +51,10 @@ impl TransferPersistenceForRpcService {
         transfer_message_service: Arc<dyn TransferAgentMessagesTrait>,
         transfer_process_service: Arc<dyn TransferAgentProcessesTrait>,
     ) -> Self {
-        Self { transfer_message_service, transfer_process_service }
+        Self {
+            transfer_message_service,
+            transfer_process_service,
+        }
     }
 }
 
@@ -68,7 +71,9 @@ impl TransferPersistenceTrait for TransferPersistenceForRpcService {
     async fn fetch_process(&self, id: &str) -> Outcome<TransferProcessDto> {
         let urn = parse_urn(id).unwrap();
         // RPC clients send the consumerPid; resolve by any key value in the identifiers map.
-        self.transfer_process_service.get_transfer_process_by_key_value(&urn).await
+        self.transfer_process_service
+            .get_transfer_process_by_key_value(&urn)
+            .await
     }
 
     async fn create_process(&self, input: CreateProcessInput) -> Outcome<TransferProcessDto> {
@@ -105,7 +110,10 @@ impl TransferPersistenceTrait for TransferPersistenceForRpcService {
         let new_state = TransferProcessState::from(message_type.clone());
 
         // RPC uses the primary process ID (not a peer identifier) for lookups.
-        let process = self.transfer_process_service.get_transfer_process_by_id(&urn_id).await?;
+        let process = self
+            .transfer_process_service
+            .get_transfer_process_by_id(&urn_id)
+            .await?;
         let process_urn = Urn::from_str(process.inner.id.as_str())?;
 
         let role = process
@@ -118,7 +126,12 @@ impl TransferPersistenceTrait for TransferPersistenceForRpcService {
             .state_attribute
             .unwrap_or(TransferStateAttribute::OnRequest.to_string())
             .parse::<TransferStateAttribute>()
-            .map_err(|e| Errors::crazy(format!("Not able to parse TransferStateAttribute: {e}"), None))?;
+            .map_err(|e| {
+                Errors::crazy(
+                    format!("Not able to parse TransferStateAttribute: {e}"),
+                    None,
+                )
+            })?;
 
         let new_attr = resolve_outbound_state_attribute(&message_type, &prev_attr, &role)?;
 
@@ -184,7 +197,10 @@ fn own_attribute(local_role: &RoleConfig) -> Outcome<TransferStateAttribute> {
         RoleConfig::Provider => Ok(TransferStateAttribute::ByProvider),
         RoleConfig::Consumer => Ok(TransferStateAttribute::ByConsumer),
         _ => {
-            return Err(Errors::crazy("Unknown role when resolving state attribute", None));
+            return Err(Errors::crazy(
+                "Unknown role when resolving state attribute",
+                None,
+            ));
         }
     }
 }

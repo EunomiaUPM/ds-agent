@@ -68,7 +68,9 @@ where
             .get_subscription_by_id(subscription_id.clone())
             .await
             .map_err(|e| e.into_errors())?
-            .ok_or_else(|| Errors::missing_resource(subscription_id.as_str(), "Subscription not found", None))?;
+            .ok_or_else(|| {
+                Errors::missing_resource(subscription_id.as_str(), "Subscription not found", None)
+            })?;
         let subscription = RainbowEventsSubscriptionCreationResponse::try_from(subscription)?;
         Ok(subscription)
     }
@@ -120,7 +122,8 @@ where
             .map_err(|e| e.into_errors())?;
         if let Some(existing) = subscription {
             return Err(Errors::parse(
-                &SubscriptionErrors::SubscriptionCallbackAddressExists(existing.callback_address).to_string(),
+                &SubscriptionErrors::SubscriptionCallbackAddressExists(existing.callback_address)
+                    .to_string(),
                 None,
             ));
         }

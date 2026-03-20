@@ -38,11 +38,11 @@ use crate::protocols::dsp::protocol_types::{
 use common::config::types::roles::RoleConfig;
 use common::dsp_common::odrl::ContractRequestMessageOfferTypes;
 use common::errors::{CommonErrors, ErrorLog};
-use ymir::errors::{Errors, Outcome};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tracing::error;
 use urn::Urn;
+use ymir::errors::{Errors, Outcome};
 
 // ─── Service ─────────────────────────────────────────────────────────────────
 
@@ -110,8 +110,9 @@ impl NegotiationRpcPersistenceTrait for NegotiationPersistenceForRpcService {
     ) -> Outcome<NegotiationProcessDto> {
         let mut process = self.create_process(payload, request, response).await?;
         let process_id = self.convert_string_to_urn(&process.inner.id)?;
-        let message =
-            self.create_message_with_old_state(&process_id, payload, &process, "-").await?;
+        let message = self
+            .create_message_with_old_state(&process_id, payload, &process, "-")
+            .await?;
         let message_id = self.convert_string_to_urn(&message.inner.id)?;
         let offer = self.create_offer(&process_id, &message_id, payload).await?;
         process.messages.push(message.inner);
@@ -128,8 +129,9 @@ impl NegotiationRpcPersistenceTrait for NegotiationPersistenceForRpcService {
     ) -> Outcome<NegotiationProcessDto> {
         let process = self.fetch_process(identifier).await?;
         let process_id = self.convert_string_to_urn(&process.inner.id)?;
-        let mut new_process =
-            self.update_process(&process_id, payload, request, response).await?;
+        let mut new_process = self
+            .update_process(&process_id, payload, request, response)
+            .await?;
         let message = self.create_message(&process_id, payload, &process).await?;
         new_process.messages.push(message.inner);
         Ok(new_process)
@@ -144,8 +146,9 @@ impl NegotiationRpcPersistenceTrait for NegotiationPersistenceForRpcService {
     ) -> Outcome<NegotiationProcessDto> {
         let process = self.fetch_process(identifier).await?;
         let process_id = self.convert_string_to_urn(&process.inner.id)?;
-        let mut new_process =
-            self.update_process(&process_id, payload, request, response).await?;
+        let mut new_process = self
+            .update_process(&process_id, payload, request, response)
+            .await?;
         let message = self.create_message(&process_id, payload, &process).await?;
         let message_id = self.convert_string_to_urn(&message.inner.id)?;
         let offer = self.create_offer(&process_id, &message_id, payload).await?;
@@ -164,12 +167,19 @@ impl NegotiationRpcPersistenceTrait for NegotiationPersistenceForRpcService {
         let process = self.fetch_process(identifier).await?;
         let associated_agent_peer = process.inner.associated_agent_peer.clone();
         let process_id = self.convert_string_to_urn(&process.inner.id)?;
-        let mut new_process =
-            self.update_process(&process_id, payload, request, response).await?;
+        let mut new_process = self
+            .update_process(&process_id, payload, request, response)
+            .await?;
         let message = self.create_message(&process_id, payload, &process).await?;
         let message_id = self.convert_string_to_urn(&message.inner.id)?;
         let agreement = self
-            .create_agreement(&process_id, &message_id, &associated_agent_peer, payload, request)
+            .create_agreement(
+                &process_id,
+                &message_id,
+                &associated_agent_peer,
+                payload,
+                request,
+            )
             .await?;
         new_process.messages.push(message.inner);
         new_process.agreement = Some(agreement.inner);
@@ -185,11 +195,14 @@ impl NegotiationRpcPersistenceTrait for NegotiationPersistenceForRpcService {
     ) -> Outcome<NegotiationProcessDto> {
         let process = self.fetch_process(identifier).await?;
         let process_id = self.convert_string_to_urn(&process.inner.id)?;
-        let mut new_process =
-            self.update_process(&process_id, payload, request, response).await?;
+        let mut new_process = self
+            .update_process(&process_id, payload, request, response)
+            .await?;
         let message = self.create_message(&process_id, payload, &process).await?;
         let message_id = self.convert_string_to_urn(&message.inner.id)?;
-        let agreement = self.activate_agreement(&process_id, &message_id, payload).await?;
+        let agreement = self
+            .activate_agreement(&process_id, &message_id, payload)
+            .await?;
         new_process.messages.push(message.inner);
         new_process.agreement = Some(agreement.inner);
         Ok(new_process)
@@ -246,7 +259,8 @@ impl NegotiationPersistenceForRpcService {
         process: &NegotiationProcessDto,
     ) -> Outcome<NegotiationMessageDto> {
         let old_state = process.inner.state.clone();
-        self.create_message_with_old_state(process_id, message, process, &old_state).await
+        self.create_message_with_old_state(process_id, message, process, &old_state)
+            .await
     }
 
     async fn create_message_with_old_state(
@@ -358,7 +372,9 @@ impl NegotiationPersistenceForRpcService {
             .agreement_service
             .put_agreement(
                 &agreement_urn,
-                &EditAgreementDto { state: Some("ACTIVE".to_string()) },
+                &EditAgreementDto {
+                    state: Some("ACTIVE".to_string()),
+                },
             )
             .await?;
         Ok(agreement)

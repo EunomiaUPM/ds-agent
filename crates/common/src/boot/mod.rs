@@ -34,50 +34,60 @@ pub trait BootstrapServiceTrait: Send + Sync {
 
     async fn load_config(env_file: String) -> Outcome<Self::Config>;
 
-    fn enable_participant() -> bool { true }
+    fn enable_participant() -> bool {
+        true
+    }
     async fn create_participant(_config: &Self::Config) -> Outcome<String> {
         Err(Errors::crazy(
             "This service does not support creation of participants.",
-            None
+            None,
         ))
     }
 
-    fn enable_catalog() -> bool { true }
+    fn enable_catalog() -> bool {
+        true
+    }
     async fn load_catalog(
         _participant_id: &Option<String>,
-        _config: &Self::Config
+        _config: &Self::Config,
     ) -> Outcome<String> {
         Err(Errors::crazy(
             "This service does not support creation of catalogs.",
-            None
+            None,
         ))
     }
 
-    fn enable_dataservice() -> bool { true }
+    fn enable_dataservice() -> bool {
+        true
+    }
     async fn load_dataservice(
         _catalog_id: &Option<String>,
-        _config: &Self::Config
+        _config: &Self::Config,
     ) -> Outcome<String> {
         Err(Errors::crazy(
             "This service does not support creation of data services.",
-            None
+            None,
         ))
     }
 
-    fn enable_policy_templates() -> bool { true }
+    fn enable_policy_templates() -> bool {
+        true
+    }
 
     async fn load_policy_templates(_config: &Self::Config) -> Outcome<()> {
         Err(Errors::crazy(
             "This service does not support creation of policy templates.",
-            None
+            None,
         ))
     }
 
-    async fn cleanup_cache(_config: &Self::Config) -> Outcome<()> { Ok(()) }
+    async fn cleanup_cache(_config: &Self::Config) -> Outcome<()> {
+        Ok(())
+    }
 
     async fn start_services_background(
         config: &Self::Config,
-        vault_service: Arc<VaultService>
+        vault_service: Arc<VaultService>,
     ) -> Outcome<broadcast::Sender<()>>;
 }
 
@@ -91,34 +101,39 @@ pub struct BootstrapCurrentState<S: BootstrapStepTrait>(pub S);
 
 pub struct BootstrapInit<S: BootstrapServiceTrait> {
     pub _marker: PhantomData<S>,
-    pub env_file: String
+    pub env_file: String,
 }
 
 impl<S: BootstrapServiceTrait> BootstrapInit<S> {
-    pub fn new(env_file: String) -> Self { Self { _marker: PhantomData, env_file } }
+    pub fn new(env_file: String) -> Self {
+        Self {
+            _marker: PhantomData,
+            env_file,
+        }
+    }
 }
 
 pub struct BootstrapConfigLoaded<S: BootstrapServiceTrait> {
     pub _marker: PhantomData<S>,
-    pub env_file: String
+    pub env_file: String,
 }
 
 pub struct BootstrapServicesStarted<S: BootstrapServiceTrait> {
     pub config: S::Config,
-    pub shutdown_tx: broadcast::Sender<()>
+    pub shutdown_tx: broadcast::Sender<()>,
 }
 
 pub struct BootstrapSelfParticipantOnBoarded<S: BootstrapServiceTrait> {
     pub config: S::Config,
     pub shutdown_tx: broadcast::Sender<()>,
-    pub participant_id: Option<String>
+    pub participant_id: Option<String>,
 }
 
 pub struct BootstrapCatalogLoaded<S: BootstrapServiceTrait> {
     pub config: S::Config,
     pub shutdown_tx: broadcast::Sender<()>,
     pub participant_id: Option<String>,
-    pub catalog_id: Option<String>
+    pub catalog_id: Option<String>,
 }
 
 pub struct BootstrapDataServiceLoaded<S: BootstrapServiceTrait> {
@@ -126,17 +141,17 @@ pub struct BootstrapDataServiceLoaded<S: BootstrapServiceTrait> {
     pub shutdown_tx: broadcast::Sender<()>,
     pub participant_id: Option<String>,
     pub catalog_id: Option<String>,
-    pub dataservice_id: Option<String>
+    pub dataservice_id: Option<String>,
 }
 
 pub struct BootstrapPolicyTemplateLoaded<S: BootstrapServiceTrait> {
     pub config: S::Config,
-    pub shutdown_tx: broadcast::Sender<()>
+    pub shutdown_tx: broadcast::Sender<()>,
 }
 
 pub struct BootstrapFinalized<S: BootstrapServiceTrait> {
     pub _marker: PhantomData<S>,
-    pub shutdown_tx: broadcast::Sender<()>
+    pub shutdown_tx: broadcast::Sender<()>,
 }
 
 pub struct BootstrapTerminated<S: BootstrapServiceTrait>(PhantomData<S>);
@@ -149,7 +164,7 @@ impl<S: BootstrapServiceTrait> BootstrapStepTrait for BootstrapInit<S> {
         tracing::info!("Step [1/8]: Init bootstrap configuration");
         Ok(BootstrapCurrentState(BootstrapConfigLoaded {
             _marker: PhantomData,
-            env_file: self.env_file
+            env_file: self.env_file,
         }))
     }
 }
@@ -164,7 +179,7 @@ impl<S: BootstrapServiceTrait> BootstrapStepTrait for BootstrapConfigLoaded<S> {
 
         let vault = match config.is_vault_real() {
             true => VaultService::Real(RealVaultService::new()),
-            false => VaultService::Fake(FakeVaultService::new())
+            false => VaultService::Fake(FakeVaultService::new()),
         };
         let vault = Arc::new(vault);
 
@@ -177,7 +192,7 @@ impl<S: BootstrapServiceTrait> BootstrapStepTrait for BootstrapConfigLoaded<S> {
 
         Ok(BootstrapCurrentState(BootstrapServicesStarted {
             config,
-            shutdown_tx
+            shutdown_tx,
         }))
     }
 }
@@ -198,7 +213,7 @@ impl<S: BootstrapServiceTrait> BootstrapStepTrait for BootstrapServicesStarted<S
         Ok(BootstrapCurrentState(BootstrapSelfParticipantOnBoarded {
             config: self.config,
             shutdown_tx: self.shutdown_tx,
-            participant_id
+            participant_id,
         }))
     }
 }
@@ -220,7 +235,7 @@ impl<S: BootstrapServiceTrait> BootstrapStepTrait for BootstrapSelfParticipantOn
             config: self.config,
             shutdown_tx: self.shutdown_tx,
             participant_id: self.participant_id,
-            catalog_id
+            catalog_id,
         }))
     }
 }
@@ -243,7 +258,7 @@ impl<S: BootstrapServiceTrait> BootstrapStepTrait for BootstrapCatalogLoaded<S> 
             shutdown_tx: self.shutdown_tx,
             participant_id: self.participant_id,
             catalog_id: self.catalog_id,
-            dataservice_id
+            dataservice_id,
         }))
     }
 }
@@ -261,7 +276,7 @@ impl<S: BootstrapServiceTrait> BootstrapStepTrait for BootstrapDataServiceLoaded
 
         Ok(BootstrapCurrentState(BootstrapPolicyTemplateLoaded {
             config: self.config,
-            shutdown_tx: self.shutdown_tx
+            shutdown_tx: self.shutdown_tx,
         }))
     }
 }
@@ -275,7 +290,7 @@ impl<S: BootstrapServiceTrait> BootstrapStepTrait for BootstrapPolicyTemplateLoa
 
         Ok(BootstrapCurrentState(BootstrapFinalized {
             _marker: PhantomData,
-            shutdown_tx: self.shutdown_tx
+            shutdown_tx: self.shutdown_tx,
         }))
     }
 }
@@ -289,7 +304,7 @@ impl<S: BootstrapServiceTrait> BootstrapStepTrait for BootstrapFinalized<S> {
         tracing::info!("System is RUNNING. Waiting for termination signal (Ctrl+C)...");
         match tokio::signal::ctrl_c().await {
             Ok(()) => tracing::info!("Shutdown signal received."),
-            Err(err) => tracing::error!("Unable to listen for shutdown signal: {}", err)
+            Err(err) => tracing::error!("Unable to listen for shutdown signal: {}", err),
         }
         tracing::info!("Sending shutdown signal to background services...");
         let _ = self.shutdown_tx.send(());

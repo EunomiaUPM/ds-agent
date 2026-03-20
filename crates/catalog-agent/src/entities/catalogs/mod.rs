@@ -113,13 +113,9 @@ pub trait CatalogEntityTrait: Send + Sync {
         catalog_id: &Urn,
         edit_catalog_model: &EditCatalogDto,
     ) -> Outcome<CatalogDto>;
-    async fn create_catalog(&self, new_catalog_model: &NewCatalogDto)
-        -> Outcome<CatalogDto>;
+    async fn create_catalog(&self, new_catalog_model: &NewCatalogDto) -> Outcome<CatalogDto>;
 
-    async fn create_main_catalog(
-        &self,
-        new_catalog_model: &NewCatalogDto,
-    ) -> Outcome<CatalogDto>;
+    async fn create_main_catalog(&self, new_catalog_model: &NewCatalogDto) -> Outcome<CatalogDto>;
 
     async fn delete_catalog_by_id(&self, catalog_id: &Urn) -> Outcome<()>;
 }

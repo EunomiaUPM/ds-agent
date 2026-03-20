@@ -68,15 +68,19 @@ impl TryFrom<CreateMessageRequest> for NewTransferMessageDto {
 
 impl From<PaginationRequestMessages> for PaginationParams {
     fn from(proto: PaginationRequestMessages) -> Self {
-        Self { limit: proto.limit, page: proto.page }
+        Self {
+            limit: proto.limit,
+            page: proto.page,
+        }
     }
 }
 
 impl From<TransferMessageDto> for TransferMessageResponse {
     fn from(dto: TransferMessageDto) -> Self {
         let model = dto.inner;
-        let payload_json =
-            model.payload.map(|json| serde_json::to_string(&json).unwrap_or_default());
+        let payload_json = model
+            .payload
+            .map(|json| serde_json::to_string(&json).unwrap_or_default());
         let created_at = to_prost_timestamp(DateTime::from(model.created_at));
 
         Self {
@@ -95,5 +99,8 @@ impl From<TransferMessageDto> for TransferMessageResponse {
 }
 
 fn to_prost_timestamp(dt: chrono::DateTime<chrono::Utc>) -> prost_types::Timestamp {
-    prost_types::Timestamp { seconds: dt.timestamp(), nanos: dt.timestamp_subsec_nanos() as i32 }
+    prost_types::Timestamp {
+        seconds: dt.timestamp(),
+        nanos: dt.timestamp_subsec_nanos() as i32,
+    }
 }

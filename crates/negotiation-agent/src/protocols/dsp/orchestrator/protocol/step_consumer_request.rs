@@ -20,15 +20,15 @@
 use crate::entities::negotiation_process::NegotiationProcessDto;
 use crate::protocols::dsp::orchestrator::protocol::persistence::OrchestrationPersistenceForProtocol;
 use crate::protocols::dsp::orchestrator::protocol::step_trait::{
-    continuation_prepare_context, NegotiationContinuationContext, NegotiationProtocolStep,
+    NegotiationContinuationContext, NegotiationProtocolStep, continuation_prepare_context,
 };
 use crate::protocols::dsp::protocol_types::{
     NegotiationAckMessageDto, NegotiationProcessMessageWrapper, NegotiationRequestMessageDto,
 };
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
-use ymir::errors::Outcome;
-use std::sync::Arc;
 use common::facades::Mates;
+use std::sync::Arc;
+use ymir::errors::Outcome;
 // ─── ConsumerRequestStep ──────────────────────────────────────────────────────
 
 /// Handles a subsequent `ContractRequestMessage` from the Consumer (counter-offer
@@ -72,6 +72,8 @@ impl NegotiationProtocolStep for ConsumerRequestStep {
         input: &NegotiationProcessMessageWrapper<NegotiationRequestMessageDto>,
         mate: &Mates,
     ) -> Outcome<NegotiationProcessDto> {
-        persistence.update_with_offer(ctx.id.as_str(), &input.dto, mate).await
+        persistence
+            .update_with_offer(ctx.id.as_str(), &input.dto, mate)
+            .await
     }
 }

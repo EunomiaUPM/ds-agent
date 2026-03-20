@@ -49,9 +49,21 @@ impl MigrationTrait for Migration {
                             .timestamp_with_time_zone()
                             .not_null(),
                     )
-                    .col(ColumnDef::new(NegotiationAgentMessages::Direction).string().not_null())
-                    .col(ColumnDef::new(NegotiationAgentMessages::Protocol).string().not_null())
-                    .col(ColumnDef::new(NegotiationAgentMessages::MessageType).string().not_null())
+                    .col(
+                        ColumnDef::new(NegotiationAgentMessages::Direction)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(NegotiationAgentMessages::Protocol)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(NegotiationAgentMessages::MessageType)
+                            .string()
+                            .not_null(),
+                    )
                     .col(
                         ColumnDef::new(NegotiationAgentMessages::StateTransitionFrom)
                             .string()
@@ -62,7 +74,11 @@ impl MigrationTrait for Migration {
                             .string()
                             .not_null(),
                     )
-                    .col(ColumnDef::new(NegotiationAgentMessages::Payload).json_binary().not_null())
+                    .col(
+                        ColumnDef::new(NegotiationAgentMessages::Payload)
+                            .json_binary()
+                            .not_null(),
+                    )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk-negotiation_messages-process_id")
@@ -80,7 +96,13 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager.drop_table(Table::drop().table(NegotiationAgentMessages::Table).to_owned()).await
+        manager
+            .drop_table(
+                Table::drop()
+                    .table(NegotiationAgentMessages::Table)
+                    .to_owned(),
+            )
+            .await
     }
 }
 

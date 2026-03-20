@@ -33,7 +33,6 @@ use urn::Urn;
 use ymir::errors::Outcome;
 // ─── Request context ──────────────────────────────────────────────────────────
 
-
 // ─── Continuation context ─────────────────────────────────────────────────────
 
 /// Resolved routing state for an inbound continuation message (start / suspension /
@@ -47,8 +46,6 @@ pub(super) struct ProtocolContext {
     pub connector_instance: ConnectorInstanceDto,
     pub associated_peer: String,
 }
-
-
 
 // ─── Lifecycle step template ──────────────────────────────────────────────────
 
@@ -141,7 +138,6 @@ pub(super) async fn resolve_process(
     Ok(process)
 }
 
-
 /// Build the continuation context by resolving the process ID from the peer-facing id.
 ///
 /// Called by all four continuation steps from their `prepare_context` implementations.
@@ -153,11 +149,14 @@ pub(super) async fn continuation_prepare_context(
     Option<TransferProcessMessageWrapper<TransferProcessAckDto>>,
 )> {
     let process = resolve_process(id, persistence).await?;
-    Ok((ProtocolContext {
-        process: Some(process),
-        connector_instance: ConnectorInstanceDto {},
-        associated_peer: "".to_string(),
-    }, None))
+    Ok((
+        ProtocolContext {
+            process: Some(process),
+            connector_instance: ConnectorInstanceDto {},
+            associated_peer: "".to_string(),
+        },
+        None,
+    ))
 }
 
 /// Persist an inbound continuation message as a state-transition update.
@@ -172,6 +171,10 @@ where
     T: TransferProcessMessageTrait + Clone + serde::Serialize + Send + Sync + 'static,
 {
     persistence
-        .update_process(id, Arc::new(input.dto.clone()), serde_json::to_value(input).unwrap())
+        .update_process(
+            id,
+            Arc::new(input.dto.clone()),
+            serde_json::to_value(input).unwrap(),
+        )
         .await
 }

@@ -58,10 +58,12 @@ pub struct NewConnectorTemplateModel {
 
 impl From<NewConnectorTemplateModel> for ActiveModel {
     fn from(dto: NewConnectorTemplateModel) -> Self {
-        let new_urn =
-            UrnBuilder::new("connector-template", uuid::Uuid::new_v4().to_string().as_str())
-                .build()
-                .expect("UrnBuilder failed");
+        let new_urn = UrnBuilder::new(
+            "connector-template",
+            uuid::Uuid::new_v4().to_string().as_str(),
+        )
+        .build()
+        .expect("UrnBuilder failed");
 
         Self {
             name: ActiveValue::Set(dto.name.clone().unwrap_or(new_urn.to_string()).to_string()),

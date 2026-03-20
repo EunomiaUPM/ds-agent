@@ -82,7 +82,9 @@ impl TransferMessageRepoTrait for TransferMessageRepoForSql {
         id: &Urn,
     ) -> Outcome<Option<transfer_message::Model>> {
         let mid = id.to_string();
-        let message = transfer_message::Entity::find_by_id(mid).one(&self.db_connection).await;
+        let message = transfer_message::Entity::find_by_id(mid)
+            .one(&self.db_connection)
+            .await;
         match message {
             Ok(message) => Ok(message),
             Err(e) => {
@@ -96,8 +98,9 @@ impl TransferMessageRepoTrait for TransferMessageRepoForSql {
         new_model: &NewTransferMessageModel,
     ) -> Outcome<transfer_message::Model> {
         let model: transfer_message::ActiveModel = new_model.clone().into();
-        let result =
-            transfer_message::Entity::insert(model).exec_with_returning(&self.db_connection).await;
+        let result = transfer_message::Entity::insert(model)
+            .exec_with_returning(&self.db_connection)
+            .await;
         match result {
             Ok(message) => Ok(message),
             Err(e) => {
@@ -108,7 +111,9 @@ impl TransferMessageRepoTrait for TransferMessageRepoForSql {
 
     async fn delete_transfer_message(&self, id: &Urn) -> Outcome<()> {
         let mid = id.to_string();
-        let result = transfer_message::Entity::delete_by_id(mid).exec(&self.db_connection).await;
+        let result = transfer_message::Entity::delete_by_id(mid)
+            .exec(&self.db_connection)
+            .await;
 
         match result {
             Ok(delete_result) => match delete_result.rows_affected {

@@ -25,7 +25,7 @@ use ymir::services::issuer::IssuerTrait;
 use ymir::services::wallet::WalletTrait;
 use ymir::types::issuing::{
     AuthServerMetadata, CredentialRequestsss, IssuerMetadata, IssuingToken, TokenRequest,
-    VCCredOffer
+    VCCredOffer,
 };
 use ymir::types::vcs::VcType;
 use ymir::types::wallet::MatchingVCs;
@@ -50,7 +50,7 @@ pub trait CoreGaiaSelfIssuerTrait: Send + Sync + 'static {
                 wallet.process_oidc4vci(&uri).await?;
                 Ok(None)
             }
-            None => Ok(Some(uri))
+            None => Ok(Some(uri)),
         }
     }
     async fn get_cred_offer_data(&self, id: String) -> Outcome<VCCredOffer> {
@@ -71,11 +71,15 @@ pub trait CoreGaiaSelfIssuerTrait: Send + Sync + 'static {
     }
     fn oauth_server_metadata(&self) -> AuthServerMetadata {
         let vcs = self.gaia().get_vc_types();
-        self.issuer().get_oauth_server_data(Some("/gaia"), Some(&vcs))
+        self.issuer()
+            .get_oauth_server_data(Some("/gaia"), Some(&vcs))
     }
     async fn get_token(&self, payload: TokenRequest) -> Outcome<IssuingToken> {
-        let model =
-            self.repo().issuing().get_by_pre_auth_code(&payload.pre_authorized_code).await?;
+        let model = self
+            .repo()
+            .issuing()
+            .get_by_pre_auth_code(&payload.pre_authorized_code)
+            .await?;
 
         self.issuer().validate_token_req(&model, &payload)?;
 
@@ -86,14 +90,14 @@ pub trait CoreGaiaSelfIssuerTrait: Send + Sync + 'static {
     async fn issue_some_cred(
         &self,
         _payload: CredentialRequestsss,
-        _token: String
+        _token: String,
     ) -> Outcome<Value> {
         let wallet = match self.wallet() {
             Some(data) => data,
             None => {
                 return Err(Errors::not_active(
                     "Wallet module is required for this step and its not active",
-                    None
+                    None,
                 ))
             }
         };
@@ -112,7 +116,7 @@ pub trait CoreGaiaSelfIssuerTrait: Send + Sync + 'static {
         let vc_type = VcType::from_str(&vc_type)?;
         let code = get_claim(
             &vc_data.parsed_document,
-            &["CredentialSubject", vc_type.to_gaia_weird()?]
+            &["CredentialSubject", vc_type.to_gaia_weird()?],
         )?;
 
         self.gaia().issue_cred(&did, &vc_type, &code).await
@@ -130,7 +134,7 @@ pub trait CoreGaiaSelfIssuerTrait: Send + Sync + 'static {
                 VcType::LeiCode,
                 VcType::LocalRegistrationNumber,
                 VcType::TaxId,
-                VcType::VatId
+                VcType::VatId,
             ])
             .await?;
         let legal_person = self.match_vcs(&[VcType::LegalPerson]).await?;
@@ -151,7 +155,7 @@ pub trait CoreGaiaSelfIssuerTrait: Send + Sync + 'static {
             None => {
                 return Err(Errors::not_active(
                     "Wallet module is required for this step and its not active",
-                    None
+                    None,
                 ))
             }
         };
@@ -169,7 +173,7 @@ pub trait CoreGaiaSelfIssuerTrait: Send + Sync + 'static {
             Errors::missing_action(
                 MissingAction::Credentials,
                 "Wallet does not have a registration number vc",
-                None
+                None,
             )
         })
     }
@@ -181,16 +185,17 @@ fn get_real_vc_type(claims: &Value) -> Outcome<String> {
         .and_then(|v| v.as_array())
         .ok_or_else(|| Errors::format(BadFormat::Received, "Field 'type' is not an array", None))?;
 
-    let real_type =
-        types.iter().filter_map(|v| v.as_str()).find(|t| *t != "VerifiableCredential").ok_or_else(
-            || {
-                Errors::format(
-                    BadFormat::Received,
-                    "No VC type found different from 'VerifiableCredential'",
-                    None
-                )
-            }
-        )?;
+    let real_type = types
+        .iter()
+        .filter_map(|v| v.as_str())
+        .find(|t| *t != "VerifiableCredential")
+        .ok_or_else(|| {
+            Errors::format(
+                BadFormat::Received,
+                "No VC type found different from 'VerifiableCredential'",
+                None,
+            )
+        })?;
 
     Ok(real_type.to_string())
 }

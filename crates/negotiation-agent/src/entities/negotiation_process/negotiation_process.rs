@@ -28,13 +28,13 @@ use crate::entities::negotiation_process::{
     EditNegotiationProcessDto, NegotiationAgentProcessesTrait, NegotiationProcessDto,
     NewNegotiationProcessDto,
 };
-use log::error;
-use ymir::errors::{Errors, Outcome};
 use common::utils::get_urn;
+use log::error;
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
+use ymir::errors::{Errors, Outcome};
 
 pub struct NegotiationAgentProcessesService {
     pub negotiation_repo: Arc<dyn NegotiationAgentRepoTrait>,
@@ -50,10 +50,13 @@ impl NegotiationAgentProcessesService {
         process: negotiation_process_model::Model,
     ) -> Outcome<NegotiationProcessDto> {
         let process_urn = Urn::from_str(&process.id).map_err(|e| {
-            let err = Errors::parse(format!(
-                "Invalid URN found in database for process {}. Error: {}",
-                process.id, e
-            ), None);
+            let err = Errors::parse(
+                format!(
+                    "Invalid URN found in database for process {}. Error: {}",
+                    process.id, e
+                ),
+                None,
+            );
             error!("{}", err);
             err
         })?;
@@ -272,10 +275,8 @@ impl NegotiationAgentProcessesTrait for NegotiationAgentProcessesService {
                 } else {
                     let id_urn_ident = Urn::from_str(identifier_model.unwrap().id.as_str())
                         .map_err(|e| {
-                            let err = Errors::parse(format!(
-                                "Identifier URN malformed: {}",
-                                e
-                            ), None);
+                            let err =
+                                Errors::parse(format!("Identifier URN malformed: {}", e), None);
                             error!("{}", err);
                             err
                         })?;

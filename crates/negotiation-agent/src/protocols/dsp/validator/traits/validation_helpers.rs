@@ -18,13 +18,13 @@
  */
 
 #![allow(unused)]
-use ymir::errors::Outcome;
 use crate::entities::negotiation_process::NegotiationProcessDto;
 use crate::protocols::dsp::protocol_types::{
     NegotiationProcessMessageTrait, NegotiationProcessState,
 };
 use common::config::types::roles::RoleConfig;
 use urn::Urn;
+use ymir::errors::Outcome;
 
 #[async_trait::async_trait]
 pub trait ValidationHelpers: Send + Sync + 'static {
@@ -39,18 +39,12 @@ pub trait ValidationHelpers: Send + Sync + 'static {
         &self,
         payload: &dyn NegotiationProcessMessageTrait,
     ) -> Outcome<NegotiationProcessDto>;
-    async fn get_pid_by_role(
-        &self,
-        dto: &NegotiationProcessDto,
-        role: &RoleConfig,
-    ) -> Outcome<Urn>;
+    async fn get_pid_by_role(&self, dto: &NegotiationProcessDto, role: &RoleConfig)
+    -> Outcome<Urn>;
     async fn get_role_from_dto(&self, dto: &NegotiationProcessDto) -> Outcome<RoleConfig>;
     async fn get_state_from_dto(
         &self,
         dto: &NegotiationProcessDto,
     ) -> Outcome<NegotiationProcessState>;
-    async fn get_state_attribute_from_dto(
-        &self,
-        dto: &NegotiationProcessDto,
-    ) -> Outcome<String>;
+    async fn get_state_attribute_from_dto(&self, dto: &NegotiationProcessDto) -> Outcome<String>;
 }

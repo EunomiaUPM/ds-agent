@@ -54,7 +54,13 @@ impl RPCOrchestratorService {
         persistence: Arc<OrchestrationPersistenceForProtocolForRPC>,
         mates_facade: Arc<dyn MatesFacadeTrait>,
     ) -> RPCOrchestratorService {
-        Self { validator, http_client, facades, persistence, mates_facade }
+        Self {
+            validator,
+            http_client,
+            facades,
+            persistence,
+            mates_facade,
+        }
     }
 }
 
@@ -65,8 +71,9 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         input: &RpcCatalogRequestMessageDto,
     ) -> Outcome<RpcCatalogResponseMessageDto<RpcCatalogRequestMessageDto, Catalog>> {
         // agent_peer
-        let agent_peer =
-            input.get_associated_agent_peer().ok_or(Errors::crazy("No associated agent", None))?;
+        let agent_peer = input
+            .get_associated_agent_peer()
+            .ok_or(Errors::crazy("No associated agent", None))?;
 
         // validation
         self.validator.on_catalog_request(input).await?;
@@ -75,16 +82,19 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
             // hit caché and return guard
             let catalog_in_cache = self.persistence.get_catalog(&agent_peer).await?;
             if let Some(catalog) = catalog_in_cache {
-                let response =
-                    RpcCatalogResponseMessageDto { request: input.clone(), response: catalog };
+                let response = RpcCatalogResponseMessageDto {
+                    request: input.clone(),
+                    response: catalog,
+                };
                 return Ok(response);
             }
         }
 
         // send message to peer
         // resolve path
-        let participant_id =
-            input.get_associated_agent_peer().ok_or(Errors::crazy("No associated agent", None))?;
+        let participant_id = input
+            .get_associated_agent_peer()
+            .ok_or(Errors::crazy("No associated agent", None))?;
         let provider_address = self
             .facades
             .get_catalog_rpc_path_facade()
@@ -114,7 +124,10 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         }
 
         // return response
-        let response = RpcCatalogResponseMessageDto { request: input.clone(), response };
+        let response = RpcCatalogResponseMessageDto {
+            request: input.clone(),
+            response,
+        };
         Ok(response)
     }
 
@@ -125,8 +138,9 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         // validation
         self.validator.on_dataset_request(input).await?;
 
-        let participant_id =
-            input.get_associated_agent_peer().ok_or(Errors::crazy("No associated agent", None))?;
+        let participant_id = input
+            .get_associated_agent_peer()
+            .ok_or(Errors::crazy("No associated agent", None))?;
         let provider_address = self
             .facades
             .get_catalog_rpc_path_facade()
@@ -142,10 +156,15 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
                 self.http_client.set_auth_token(token).await;
             }
         }
-        let response: Dataset =
-            self.http_client.get_json_with_payload(peer_url.as_str(), &request_body).await?;
+        let response: Dataset = self
+            .http_client
+            .get_json_with_payload(peer_url.as_str(), &request_body)
+            .await?;
 
-        let response = RpcCatalogResponseMessageDto { request: input.clone(), response };
+        let response = RpcCatalogResponseMessageDto {
+            request: input.clone(),
+            response,
+        };
         Ok(response)
     }
 }

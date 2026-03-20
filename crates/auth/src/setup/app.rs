@@ -73,11 +73,15 @@ impl AuthApplication {
 
         // SERVICES
         let client = Arc::new(ClientService::default());
-        let vc_req = Arc::new(VCReqService::new(client.clone(), vault.clone(), vc_req_config));
+        let vc_req = Arc::new(VCReqService::new(
+            client.clone(),
+            vault.clone(),
+            vc_req_config,
+        ));
         let onboarder = Arc::new(GnapOnboarderService::new(
             client.clone(),
             vault.clone(),
-            onboarder_config
+            onboarder_config,
         ));
         let callback = Arc::new(BasicCallbackService::new(client.clone(), vault.clone()));
         let repo = Arc::new(AuthRepoForSql::create_repo(db_connection));
@@ -92,16 +96,16 @@ impl AuthApplication {
                     let gaia_config = GaiaSelfIssuerConfig::from(config.clone());
 
                     let gaia: Option<Arc<dyn GaiaOwnIssuerTrait>> = Some(Arc::new(
-                        BasicGaiaSelfIssuer::new(vault.clone(), client.clone(), gaia_config)
+                        BasicGaiaSelfIssuer::new(vault.clone(), client.clone(), gaia_config),
                     ));
 
                     let issuer: Option<Arc<dyn IssuerTrait>> = Some(Arc::new(
-                        BasicIssuerService::new(issuer_config, client.clone(), vault.clone())
+                        BasicIssuerService::new(issuer_config, client.clone(), vault.clone()),
                     ));
 
                     (gaia, issuer)
                 }
-                false => (None, None)
+                false => (None, None),
             };
 
         let wallet: Option<Arc<dyn WalletTrait>> = match config.is_wallet_active() {
@@ -110,10 +114,10 @@ impl AuthApplication {
                 Some(Arc::new(WaltIdService::new(
                     walt_id_config,
                     client.clone(),
-                    vault.clone()
+                    vault.clone(),
                 )))
             }
-            false => None
+            false => None,
         };
 
         // CORE
@@ -128,7 +132,7 @@ impl AuthApplication {
             core_config,
             wallet,
             issuer,
-            gaia
+            gaia,
         ));
 
         AuthRouter::new(core).router()
@@ -162,7 +166,7 @@ impl AuthApplication {
 
         let tls_config = RustlsConfig::from_pem(
             cert.data().as_bytes().to_vec(),
-            pkey.data().as_bytes().to_vec()
+            pkey.data().as_bytes().to_vec(),
         )
         .await
         .map_err(|e| Errors::crazy("Errors parsing certificate stuff", Some(Box::new(e))))?;

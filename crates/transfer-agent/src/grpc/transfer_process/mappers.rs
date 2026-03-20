@@ -93,7 +93,11 @@ impl TryFrom<UpdateProcessRequest> for EditTransferProcessDto {
         let properties = parse_optional_json(proto.properties_json)?;
         let error_details = parse_optional_json(proto.error_details_json)?;
 
-        let identifiers = if proto.identifiers.is_empty() { None } else { Some(proto.identifiers) };
+        let identifiers = if proto.identifiers.is_empty() {
+            None
+        } else {
+            Some(proto.identifiers)
+        };
 
         Ok(EditTransferProcessDto {
             state: proto.state,
@@ -107,7 +111,13 @@ impl TryFrom<UpdateProcessRequest> for EditTransferProcessDto {
 
 impl From<BatchProcessRequest> for BatchRequests {
     fn from(proto: BatchProcessRequest) -> Self {
-        BatchRequests { ids: proto.ids.iter().map(|i| Urn::from_str(i).unwrap()).collect() }
+        BatchRequests {
+            ids: proto
+                .ids
+                .iter()
+                .map(|i| Urn::from_str(i).unwrap())
+                .collect(),
+        }
     }
 }
 
@@ -120,12 +130,15 @@ impl From<TransferProcessDto> for TransferProcessResponse {
         let model = dto.inner;
 
         let properties_json = serde_json::to_string(&model.properties).unwrap_or_default();
-        let error_details_json =
-            model.error_details.map(|j| serde_json::to_string(&j).unwrap_or_default());
+        let error_details_json = model
+            .error_details
+            .map(|j| serde_json::to_string(&j).unwrap_or_default());
 
         // 2. dates
         let created_at = to_prost_timestamp(DateTime::from(model.created_at));
-        let updated_at = model.updated_at.map(|d| to_prost_timestamp(DateTime::from(d)));
+        let updated_at = model
+            .updated_at
+            .map(|d| to_prost_timestamp(DateTime::from(d)));
 
         // 3. nested
         let messages_proto: Vec<TransferMessageResponse> = dto
@@ -172,5 +185,8 @@ fn parse_optional_json(input: Option<String>) -> Result<Option<JsonValue>, Statu
 }
 
 fn to_prost_timestamp(dt: chrono::DateTime<chrono::Utc>) -> prost_types::Timestamp {
-    prost_types::Timestamp { seconds: dt.timestamp(), nanos: dt.timestamp_subsec_nanos() as i32 }
+    prost_types::Timestamp {
+        seconds: dt.timestamp(),
+        nanos: dt.timestamp_subsec_nanos() as i32,
+    }
 }

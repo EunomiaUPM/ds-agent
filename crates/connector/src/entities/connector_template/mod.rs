@@ -96,10 +96,8 @@ pub trait ConnectorTemplateEntitiesTrait: Send + Sync {
         limit: Option<u64>,
         page: Option<u64>,
     ) -> Outcome<Vec<ConnectorTemplateDto>>;
-    async fn get_templates_by_id(
-        &self,
-        template_id: &String,
-    ) -> Outcome<Vec<ConnectorTemplateDto>>;
+    async fn get_templates_by_id(&self, template_id: &String)
+        -> Outcome<Vec<ConnectorTemplateDto>>;
     async fn get_template_by_name_and_version(
         &self,
         name: &String,

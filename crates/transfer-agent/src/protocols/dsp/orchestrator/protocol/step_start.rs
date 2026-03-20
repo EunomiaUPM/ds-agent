@@ -82,7 +82,11 @@ impl ProtocolStep for ProtocolStartStep {
         input: &TransferProcessMessageWrapper<TransferStartMessageDto>,
         _process_id: &Urn,
     ) -> Outcome<Option<DataAddressDto>> {
-        let process = &ctx.process.clone().ok_or(Errors::crazy("no process found", None))?;
-        dp.on_transfer_start_post(&process, input.dto.data_address.clone()).await
+        let process = &ctx
+            .process
+            .clone()
+            .ok_or(Errors::crazy("no process found", None))?;
+        dp.on_transfer_start_post(&process, input.dto.data_address.clone())
+            .await
     }
 }

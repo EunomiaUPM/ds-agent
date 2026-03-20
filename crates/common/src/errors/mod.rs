@@ -54,7 +54,7 @@ pub struct ErrorInfo {
     pub status_code: StatusCode,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub details: Option<String>,
-    pub cause: String
+    pub cause: String,
 }
 
 #[derive(Error, Debug, Serialize, Deserialize, Clone)]
@@ -66,7 +66,7 @@ pub enum CommonErrors {
         http_code: Option<u16>,
         url: String,
         method: String,
-        cause: String
+        cause: String,
     },
     #[error("Provider Error")]
     ProviderError {
@@ -75,7 +75,7 @@ pub enum CommonErrors {
         http_code: Option<u16>,
         url: String,
         method: String,
-        cause: String
+        cause: String,
     },
     #[error("Consumer Error")]
     ConsumerError {
@@ -84,7 +84,7 @@ pub enum CommonErrors {
         http_code: Option<u16>,
         url: String,
         method: String,
-        cause: String
+        cause: String,
     },
     #[error("Authority Error")]
     AuthorityError {
@@ -93,91 +93,91 @@ pub enum CommonErrors {
         http_code: Option<u16>,
         url: String,
         method: String,
-        cause: String
+        cause: String,
     },
     #[error("Missing Action Error")]
     MissingActionError {
         #[serde(flatten)]
         info: ErrorInfo,
         action: MissingAction,
-        cause: String
+        cause: String,
     },
     #[error("Missing Resource Error")]
     MissingResourceError {
         #[serde(flatten)]
         info: ErrorInfo,
         resource_id: String,
-        cause: String
+        cause: String,
     },
     #[error("Format Error")]
     FormatError {
         #[serde(flatten)]
         info: ErrorInfo,
-        cause: String
+        cause: String,
     },
     #[error("Unauthorized")]
     UnauthorizedError {
         #[serde(flatten)]
         info: ErrorInfo,
-        cause: String
+        cause: String,
     },
     #[error("Forbidden")]
     ForbiddenError {
         #[serde(flatten)]
         info: ErrorInfo,
-        cause: String
+        cause: String,
     },
     #[error("Database Error")]
     DatabaseError {
         #[serde(flatten)]
         info: ErrorInfo,
-        cause: String
+        cause: String,
     },
     #[error("Feature Not Implemented Error")]
     FeatureNotImplError {
         #[serde(flatten)]
         info: ErrorInfo,
         feature: String,
-        cause: String
+        cause: String,
     },
     #[error("File Read Error")]
     ReadError {
         #[serde(flatten)]
         info: ErrorInfo,
         path: String,
-        cause: String
+        cause: String,
     },
     #[error("File Write Error")]
     WriteError {
         #[serde(flatten)]
         info: ErrorInfo,
         path: String,
-        cause: String
+        cause: String,
     },
     #[error("Parse Error")]
     ParseError {
         #[serde(flatten)]
         info: ErrorInfo,
-        cause: String
+        cause: String,
     },
     #[error("Module not active Error")]
     ModuleNotActiveError {
         #[serde(flatten)]
         info: ErrorInfo,
-        cause: String
+        cause: String,
     },
     #[error("Environment Variable Error")]
     EnvVarError {
         #[serde(flatten)]
         info: ErrorInfo,
-        cause: String
+        cause: String,
     },
     #[error("Vault Error")]
     VaultError {
         #[serde(flatten)]
         info: ErrorInfo,
-        cause: String
-    }
+        cause: String,
+    },
 }
 
 impl IntoResponse for &CommonErrors {
@@ -199,7 +199,7 @@ impl IntoResponse for &CommonErrors {
             | CommonErrors::ModuleNotActiveError { info, .. }
             | CommonErrors::VaultError { info, .. }
             | CommonErrors::EnvVarError { info, .. }
-            | CommonErrors::FeatureNotImplError { info, .. } => info
+            | CommonErrors::FeatureNotImplError { info, .. } => info,
         };
 
         (info.status_code, Json(info)).into_response()
@@ -221,27 +221,64 @@ impl ErrorLog for CommonErrors {
             url: &str,
             method: &str,
             http_code: Option<u16>,
-            cause: &str
+            cause: &str,
         ) -> String {
             let base = format_info(info, cause);
             let code = http_code.unwrap_or(0);
-            format!("{}\nMethod: {}\nUrl: {}\nHttp Code: {}", base, method, url, code)
+            format!(
+                "{}\nMethod: {}\nUrl: {}\nHttp Code: {}",
+                base, method, url, code
+            )
         }
 
         match self {
-            CommonErrors::PetitionError { info, http_code, url, method, cause }
-            | CommonErrors::ProviderError { info, http_code, url, method, cause }
-            | CommonErrors::AuthorityError { info, http_code, url, method, cause }
-            | CommonErrors::ConsumerError { info, http_code, url, method, cause } => {
-                format_http_error(info, url, method, *http_code, cause)
+            CommonErrors::PetitionError {
+                info,
+                http_code,
+                url,
+                method,
+                cause,
             }
-            CommonErrors::MissingActionError { info, action, cause } => {
+            | CommonErrors::ProviderError {
+                info,
+                http_code,
+                url,
+                method,
+                cause,
+            }
+            | CommonErrors::AuthorityError {
+                info,
+                http_code,
+                url,
+                method,
+                cause,
+            }
+            | CommonErrors::ConsumerError {
+                info,
+                http_code,
+                url,
+                method,
+                cause,
+            } => format_http_error(info, url, method, *http_code, cause),
+            CommonErrors::MissingActionError {
+                info,
+                action,
+                cause,
+            } => {
                 format!("{}\nMissingAction: {}", format_info(info, cause), action)
             }
-            CommonErrors::FeatureNotImplError { info, feature, cause } => {
+            CommonErrors::FeatureNotImplError {
+                info,
+                feature,
+                cause,
+            } => {
                 format!("{}\nFeature: {}", format_info(info, cause), feature)
             }
-            CommonErrors::MissingResourceError { info, resource_id, cause } => {
+            CommonErrors::MissingResourceError {
+                info,
+                resource_id,
+                cause,
+            } => {
                 format!("{}\nResource Id: {}", format_info(info, cause), resource_id)
             }
             CommonErrors::ReadError { info, path, cause } => {
@@ -257,7 +294,7 @@ impl ErrorLog for CommonErrors {
             | CommonErrors::DatabaseError { info, cause }
             | CommonErrors::EnvVarError { info, cause }
             | CommonErrors::VaultError { info, cause }
-            | CommonErrors::ParseError { info, cause } => format_info(info, cause)
+            | CommonErrors::ParseError { info, cause } => format_info(info, cause),
         }
     }
 }
@@ -267,7 +304,7 @@ impl CommonErrors {
         url: &str,
         method: &str,
         http_code: Option<u16>,
-        cause: &str
+        cause: &str,
     ) -> CommonErrors {
         CommonErrors::PetitionError {
             info: ErrorInfo {
@@ -275,19 +312,19 @@ impl CommonErrors {
                 error_code: 1000,
                 status_code: StatusCode::BAD_GATEWAY,
                 details: None,
-                cause: cause.to_string()
+                cause: cause.to_string(),
             },
             http_code,
             url: url.to_string(),
             method: method.to_string(),
-            cause: cause.to_string()
+            cause: cause.to_string(),
         }
     }
     pub fn provider_new(
         url: &str,
         method: &str,
         http_code: Option<u16>,
-        cause: &str
+        cause: &str,
     ) -> CommonErrors {
         CommonErrors::ProviderError {
             info: ErrorInfo {
@@ -295,19 +332,19 @@ impl CommonErrors {
                 error_code: 2200,
                 status_code: StatusCode::BAD_GATEWAY,
                 details: None,
-                cause: cause.to_string()
+                cause: cause.to_string(),
             },
             http_code,
             url: url.to_string(),
             method: method.to_string(),
-            cause: cause.to_string()
+            cause: cause.to_string(),
         }
     }
     pub fn consumer_new(
         url: &str,
         method: &str,
         http_code: Option<u16>,
-        cause: &str
+        cause: &str,
     ) -> CommonErrors {
         CommonErrors::ConsumerError {
             info: ErrorInfo {
@@ -315,19 +352,19 @@ impl CommonErrors {
                 error_code: 2300,
                 status_code: StatusCode::BAD_GATEWAY,
                 details: None,
-                cause: cause.to_string()
+                cause: cause.to_string(),
             },
             http_code,
             url: url.to_string(),
             method: method.to_string(),
-            cause: cause.to_string()
+            cause: cause.to_string(),
         }
     }
     pub fn authority_new(
         url: &str,
         method: &str,
         http_code: Option<u16>,
-        cause: &str
+        cause: &str,
     ) -> CommonErrors {
         CommonErrors::AuthorityError {
             info: ErrorInfo {
@@ -335,12 +372,12 @@ impl CommonErrors {
                 error_code: 2400,
                 status_code: StatusCode::BAD_GATEWAY,
                 details: None,
-                cause: cause.to_string()
+                cause: cause.to_string(),
             },
             http_code,
             url: url.to_string(),
             method: method.to_string(),
-            cause: cause.to_string()
+            cause: cause.to_string(),
         }
     }
     pub fn missing_action_new(action: MissingAction, cause: &str) -> CommonErrors {
@@ -350,18 +387,21 @@ impl CommonErrors {
             MissingAction::Key => 3130,
             MissingAction::Did => 3140,
             MissingAction::Onboarding => 3150,
-            _ => 3100
+            _ => 3100,
         };
         CommonErrors::MissingActionError {
             info: ErrorInfo {
-                message: format!("The action {} is required to proceed with this step", action),
+                message: format!(
+                    "The action {} is required to proceed with this step",
+                    action
+                ),
                 error_code,
                 status_code: StatusCode::PRECONDITION_FAILED,
                 details: None,
-                cause: cause.to_string()
+                cause: cause.to_string(),
             },
             action,
-            cause: cause.to_string()
+            cause: cause.to_string(),
         }
     }
     pub fn missing_resource_new(resource_id: &str, cause: &str) -> CommonErrors {
@@ -372,17 +412,17 @@ impl CommonErrors {
                 error_code: 3200,
                 status_code: StatusCode::NOT_FOUND,
                 details: None,
-                cause: cause.to_string()
+                cause: cause.to_string(),
             },
             resource_id: resource_id.to_string(),
-            cause: cause.to_string()
+            cause: cause.to_string(),
         }
     }
     pub fn format_new(option: BadFormat, cause: &str) -> CommonErrors {
         let (error_code, status_code) = match option {
             BadFormat::Sent => (3110, StatusCode::BAD_GATEWAY),
             BadFormat::Received => (3120, StatusCode::BAD_REQUEST),
-            _ => (3100, StatusCode::BAD_REQUEST)
+            _ => (3100, StatusCode::BAD_REQUEST),
         };
         CommonErrors::FormatError {
             info: ErrorInfo {
@@ -390,9 +430,9 @@ impl CommonErrors {
                 error_code,
                 status_code,
                 details: Some(cause.to_string()),
-                cause: cause.to_string()
+                cause: cause.to_string(),
             },
-            cause: cause.to_string()
+            cause: cause.to_string(),
         }
     }
     pub fn unauthorized_new(cause: &str) -> CommonErrors {
@@ -402,9 +442,9 @@ impl CommonErrors {
                 error_code: 4200,
                 status_code: StatusCode::UNAUTHORIZED,
                 details: None,
-                cause: cause.to_string()
+                cause: cause.to_string(),
             },
-            cause: cause.to_string()
+            cause: cause.to_string(),
         }
     }
     pub fn forbidden_new(cause: &str) -> CommonErrors {
@@ -414,9 +454,9 @@ impl CommonErrors {
                 error_code: 4300,
                 status_code: StatusCode::FORBIDDEN,
                 details: None,
-                cause: cause.to_string()
+                cause: cause.to_string(),
             },
-            cause: cause.to_string()
+            cause: cause.to_string(),
         }
     }
     pub fn database_new(cause: &str) -> CommonErrors {
@@ -426,9 +466,9 @@ impl CommonErrors {
                 error_code: 5100,
                 status_code: StatusCode::INTERNAL_SERVER_ERROR,
                 details: None,
-                cause: cause.to_string()
+                cause: cause.to_string(),
             },
-            cause: cause.to_string()
+            cause: cause.to_string(),
         }
     }
     pub fn not_impl_new(feature: &str, cause: &str) -> CommonErrors {
@@ -438,10 +478,10 @@ impl CommonErrors {
                 error_code: 5200,
                 status_code: StatusCode::NOT_IMPLEMENTED,
                 details: None,
-                cause: cause.to_string()
+                cause: cause.to_string(),
             },
             feature: feature.to_string(),
-            cause: cause.to_string()
+            cause: cause.to_string(),
         }
     }
     pub fn read_new(path: &str, cause: &str) -> Self {
@@ -451,10 +491,10 @@ impl CommonErrors {
                 error_code: 6010,
                 status_code: StatusCode::INTERNAL_SERVER_ERROR,
                 details: None,
-                cause: cause.to_string()
+                cause: cause.to_string(),
             },
             path: path.to_string(),
-            cause: cause.to_string()
+            cause: cause.to_string(),
         }
     }
 
@@ -465,10 +505,10 @@ impl CommonErrors {
                 error_code: 6020,
                 status_code: StatusCode::INTERNAL_SERVER_ERROR,
                 details: None,
-                cause: cause.to_string()
+                cause: cause.to_string(),
             },
             path: path.to_string(),
-            cause: cause.to_string()
+            cause: cause.to_string(),
         }
     }
 
@@ -479,9 +519,9 @@ impl CommonErrors {
                 error_code: 6030,
                 status_code: StatusCode::BAD_REQUEST,
                 details: None,
-                cause: cause.to_string()
+                cause: cause.to_string(),
             },
-            cause: cause.to_string()
+            cause: cause.to_string(),
         }
     }
     pub fn module_new(module: &str) -> Self {
@@ -491,9 +531,9 @@ impl CommonErrors {
                 error_code: 5500,
                 status_code: StatusCode::INTERNAL_SERVER_ERROR,
                 details: None,
-                cause: module.to_string()
+                cause: module.to_string(),
             },
-            cause: format!("module {} is not active", module)
+            cause: format!("module {} is not active", module),
         }
     }
     pub fn env_new(e: String) -> Self {
@@ -503,9 +543,9 @@ impl CommonErrors {
                 error_code: 800,
                 status_code: StatusCode::INTERNAL_SERVER_ERROR,
                 details: None,
-                cause: e.clone()
+                cause: e.clone(),
             },
-            cause: e
+            cause: e,
         }
     }
     pub fn vault_new(e: String) -> Self {
@@ -515,9 +555,9 @@ impl CommonErrors {
                 error_code: 800,
                 status_code: StatusCode::INTERNAL_SERVER_ERROR,
                 details: None,
-                cause: e.clone()
+                cause: e.clone(),
             },
-            cause: e
+            cause: e,
         }
     }
 }

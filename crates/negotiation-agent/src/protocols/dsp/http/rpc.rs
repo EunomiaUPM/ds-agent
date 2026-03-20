@@ -62,23 +62,44 @@ impl FromRef<RpcRouter> for Arc<ContractsConfig> {
 
 impl RpcRouter {
     pub fn new(service: Arc<dyn OrchestratorTrait>, config: Arc<ContractsConfig>) -> Self {
-        Self { orchestrator: service, config }
+        Self {
+            orchestrator: service,
+            config,
+        }
     }
 
     pub fn router(self) -> Router {
         Router::new()
-            .route("/rpc/setup-request-init", post(Self::negotiation_request_init_rpc))
+            .route(
+                "/rpc/setup-request-init",
+                post(Self::negotiation_request_init_rpc),
+            )
             .route("/rpc/setup-request", post(Self::negotiation_request_rpc))
-            .route("/rpc/setup-offer-init", post(Self::negotiation_offer_init_rpc))
+            .route(
+                "/rpc/setup-offer-init",
+                post(Self::negotiation_offer_init_rpc),
+            )
             .route("/rpc/setup-offer", post(Self::negotiation_offer_rpc))
-            .route("/rpc/setup-acceptance", post(Self::negotiation_event_accepted_rpc))
-            .route("/rpc/setup-agreement", post(Self::negotiation_agreement_rpc))
+            .route(
+                "/rpc/setup-acceptance",
+                post(Self::negotiation_event_accepted_rpc),
+            )
+            .route(
+                "/rpc/setup-agreement",
+                post(Self::negotiation_agreement_rpc),
+            )
             .route(
                 "/rpc/setup-verification",
                 post(Self::negotiation_agreement_verification_rpc),
             )
-            .route("/rpc/setup-finalization", post(Self::negotiation_event_finalized_rpc))
-            .route("/rpc/setup-termination", post(Self::negotiation_termination_rpc))
+            .route(
+                "/rpc/setup-finalization",
+                post(Self::negotiation_event_finalized_rpc),
+            )
+            .route(
+                "/rpc/setup-termination",
+                post(Self::negotiation_termination_rpc),
+            )
             .with_state(self)
     }
 
@@ -119,8 +140,10 @@ impl RpcRouter {
             Err(err) => {
                 let error_wrapper: NegotiationProcessMessageWrapper<NegotiationErrorMessageDto> =
                     err.into();
-                let rpc_error_dto: RpcNegotiationErrorDto<T> =
-                    RpcNegotiationErrorDto { request: original_request, error: error_wrapper };
+                let rpc_error_dto: RpcNegotiationErrorDto<T> = RpcNegotiationErrorDto {
+                    request: original_request,
+                    error: error_wrapper,
+                };
 
                 (StatusCode::BAD_REQUEST, Json(rpc_error_dto)).into_response()
             }
@@ -132,7 +155,11 @@ impl RpcRouter {
         input: Result<Json<RpcNegotiationRequestInitMessageDto>, JsonRejection>,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::CREATED, |data| async move {
-            state.orchestrator.get_rpc_service().setup_negotiation_request_init_rpc(&data).await
+            state
+                .orchestrator
+                .get_rpc_service()
+                .setup_negotiation_request_init_rpc(&data)
+                .await
         })
         .await
     }
@@ -141,7 +168,11 @@ impl RpcRouter {
         input: Result<Json<RpcNegotiationRequestMessageDto>, JsonRejection>,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::CREATED, |data| async move {
-            state.orchestrator.get_rpc_service().setup_negotiation_request_rpc(&data).await
+            state
+                .orchestrator
+                .get_rpc_service()
+                .setup_negotiation_request_rpc(&data)
+                .await
         })
         .await
     }
@@ -150,7 +181,11 @@ impl RpcRouter {
         input: Result<Json<RpcNegotiationOfferInitMessageDto>, JsonRejection>,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::CREATED, |data| async move {
-            state.orchestrator.get_rpc_service().setup_negotiation_offer_init_rpc(&data).await
+            state
+                .orchestrator
+                .get_rpc_service()
+                .setup_negotiation_offer_init_rpc(&data)
+                .await
         })
         .await
     }
@@ -159,7 +194,11 @@ impl RpcRouter {
         input: Result<Json<RpcNegotiationOfferMessageDto>, JsonRejection>,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::CREATED, |data| async move {
-            state.orchestrator.get_rpc_service().setup_negotiation_offer_rpc(&data).await
+            state
+                .orchestrator
+                .get_rpc_service()
+                .setup_negotiation_offer_rpc(&data)
+                .await
         })
         .await
     }
@@ -168,7 +207,11 @@ impl RpcRouter {
         input: Result<Json<RpcNegotiationEventAcceptedMessageDto>, JsonRejection>,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::CREATED, |data| async move {
-            state.orchestrator.get_rpc_service().setup_negotiation_event_accepted_rpc(&data).await
+            state
+                .orchestrator
+                .get_rpc_service()
+                .setup_negotiation_event_accepted_rpc(&data)
+                .await
         })
         .await
     }
@@ -177,7 +220,11 @@ impl RpcRouter {
         input: Result<Json<RpcNegotiationAgreementMessageDto>, JsonRejection>,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::CREATED, |data| async move {
-            state.orchestrator.get_rpc_service().setup_negotiation_agreement_rpc(&data).await
+            state
+                .orchestrator
+                .get_rpc_service()
+                .setup_negotiation_agreement_rpc(&data)
+                .await
         })
         .await
     }
@@ -199,7 +246,11 @@ impl RpcRouter {
         input: Result<Json<RpcNegotiationEventFinalizedMessageDto>, JsonRejection>,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::CREATED, |data| async move {
-            state.orchestrator.get_rpc_service().setup_negotiation_event_finalized_rpc(&data).await
+            state
+                .orchestrator
+                .get_rpc_service()
+                .setup_negotiation_event_finalized_rpc(&data)
+                .await
         })
         .await
     }
@@ -208,7 +259,11 @@ impl RpcRouter {
         input: Result<Json<RpcNegotiationTerminationMessageDto>, JsonRejection>,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::CREATED, |data| async move {
-            state.orchestrator.get_rpc_service().setup_negotiation_termination_rpc(&data).await
+            state
+                .orchestrator
+                .get_rpc_service()
+                .setup_negotiation_termination_rpc(&data)
+                .await
         })
         .await
     }

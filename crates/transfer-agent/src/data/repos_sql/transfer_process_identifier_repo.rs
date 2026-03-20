@@ -87,8 +87,9 @@ impl TransferIdentifierRepoTrait for TransferIdentifierRepoForSql {
         id: &Urn,
     ) -> Outcome<Option<transfer_process_identifier::Model>> {
         let iid = id.to_string();
-        let identifier =
-            transfer_process_identifier::Entity::find_by_id(iid).one(&self.db_connection).await;
+        let identifier = transfer_process_identifier::Entity::find_by_id(iid)
+            .one(&self.db_connection)
+            .await;
 
         match identifier {
             Ok(identifier) => Ok(identifier),
@@ -143,8 +144,9 @@ impl TransferIdentifierRepoTrait for TransferIdentifierRepoForSql {
         edit_model: &EditTransferIdentifierModel,
     ) -> Outcome<transfer_process_identifier::Model> {
         let iid = id.to_string();
-        let old_model =
-            transfer_process_identifier::Entity::find_by_id(&iid).one(&self.db_connection).await;
+        let old_model = transfer_process_identifier::Entity::find_by_id(&iid)
+            .one(&self.db_connection)
+            .await;
         let old_model = match old_model {
             Ok(Some(model)) => model,
             Ok(None) => {
@@ -178,8 +180,9 @@ impl TransferIdentifierRepoTrait for TransferIdentifierRepoForSql {
 
     async fn delete_identifier(&self, id: &Urn) -> Outcome<()> {
         let iid = id.to_string();
-        let result =
-            transfer_process_identifier::Entity::delete_by_id(iid).exec(&self.db_connection).await;
+        let result = transfer_process_identifier::Entity::delete_by_id(iid)
+            .exec(&self.db_connection)
+            .await;
 
         match result {
             Ok(delete_result) => match delete_result.rows_affected {

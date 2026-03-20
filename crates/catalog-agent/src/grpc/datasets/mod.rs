@@ -51,7 +51,9 @@ impl DatasetEntityService for DatasetEntityGrpc {
 
         let proto_datasets: Vec<Dataset> = datasets.into_iter().map(Into::into).collect();
 
-        Ok(Response::new(DatasetListResponse { datasets: proto_datasets }))
+        Ok(Response::new(DatasetListResponse {
+            datasets: proto_datasets,
+        }))
     }
 
     async fn get_batch_datasets(
@@ -75,7 +77,9 @@ impl DatasetEntityService for DatasetEntityGrpc {
 
         let proto_datasets: Vec<Dataset> = datasets.into_iter().map(Into::into).collect();
 
-        Ok(Response::new(DatasetListResponse { datasets: proto_datasets }))
+        Ok(Response::new(DatasetListResponse {
+            datasets: proto_datasets,
+        }))
     }
 
     async fn get_datasets_by_catalog_id(
@@ -94,7 +98,9 @@ impl DatasetEntityService for DatasetEntityGrpc {
 
         let proto_datasets: Vec<Dataset> = datasets.into_iter().map(Into::into).collect();
 
-        Ok(Response::new(DatasetListResponse { datasets: proto_datasets }))
+        Ok(Response::new(DatasetListResponse {
+            datasets: proto_datasets,
+        }))
     }
 
     async fn get_dataset_by_id(
@@ -111,7 +117,9 @@ impl DatasetEntityService for DatasetEntityGrpc {
             .map_err(|e| Status::internal(e.to_string()))?;
 
         match dataset_opt {
-            Some(dto) => Ok(Response::new(DatasetResponse { dataset: Some(dto.into()) })),
+            Some(dto) => Ok(Response::new(DatasetResponse {
+                dataset: Some(dto.into()),
+            })),
             None => Err(Status::not_found("Dataset not found")),
         }
     }
@@ -129,7 +137,9 @@ impl DatasetEntityService for DatasetEntityGrpc {
             .await
             .map_err(|e| Status::internal(format!("Failed to create dataset: {}", e)))?;
 
-        Ok(Response::new(DatasetResponse { dataset: Some(created_dto.into()) }))
+        Ok(Response::new(DatasetResponse {
+            dataset: Some(created_dto.into()),
+        }))
     }
 
     async fn put_dataset_by_id(
@@ -146,7 +156,9 @@ impl DatasetEntityService for DatasetEntityGrpc {
             .await
             .map_err(|e| Status::internal(format!("Failed to update dataset: {}", e)))?;
 
-        Ok(Response::new(DatasetResponse { dataset: Some(updated_dto.into()) }))
+        Ok(Response::new(DatasetResponse {
+            dataset: Some(updated_dto.into()),
+        }))
     }
 
     async fn delete_dataset_by_id(

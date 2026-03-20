@@ -22,12 +22,18 @@ use crate::facades::inner_auth_facade::InnerAuthFacadeTrait;
 
 pub struct InnerAuthFacadeService {}
 impl InnerAuthFacadeService {
-    pub fn new() -> Self { Self {} }
+    pub fn new() -> Self {
+        Self {}
+    }
 }
 
 #[async_trait]
 impl InnerAuthFacadeTrait for InnerAuthFacadeService {
-    async fn authenticate(&self) -> Outcome<()> { Ok(()) }
+    async fn authenticate(&self) -> Outcome<()> {
+        Ok(())
+    }
 
-    async fn authorize(&self) -> Outcome<()> { Ok(()) }
+    async fn authorize(&self) -> Outcome<()> {
+        Ok(())
+    }
 }

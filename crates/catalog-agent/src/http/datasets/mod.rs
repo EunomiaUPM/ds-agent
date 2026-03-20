@@ -63,7 +63,10 @@ impl DatasetEntityRouter {
     pub fn router(self) -> Router {
         Router::new()
             .route("/", get(Self::handle_get_all_datasets))
-            .route("/catalog/{id}", get(Self::handle_get_datasets_by_catalog_id))
+            .route(
+                "/catalog/{id}",
+                get(Self::handle_get_datasets_by_catalog_id),
+            )
             .route("/", post(Self::handle_create_dataset))
             .route("/batch", post(Self::handle_get_batch_datasets))
             .route("/{id}", get(Self::handle_get_dataset_by_id))
@@ -76,7 +79,11 @@ impl DatasetEntityRouter {
         State(state): State<DatasetEntityRouter>,
         Query(params): Query<PaginationParams>,
     ) -> impl IntoResponse {
-        match state.service.get_all_datasets(params.limit, params.page).await {
+        match state
+            .service
+            .get_all_datasets(params.limit, params.page)
+            .await
+        {
             Ok(datasets) => (StatusCode::OK, Json(ToCamelCase(datasets))).into_response(),
             Err(e) => return e.into_response(),
         }

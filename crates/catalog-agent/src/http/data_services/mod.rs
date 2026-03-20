@@ -64,7 +64,10 @@ impl DataServiceEntityRouter {
     pub fn router(self) -> Router {
         Router::new()
             .route("/", get(Self::handle_get_all_data_services))
-            .route("/catalog/{id}", get(Self::handle_get_data_services_by_catalog_id))
+            .route(
+                "/catalog/{id}",
+                get(Self::handle_get_data_services_by_catalog_id),
+            )
             .route("/", post(Self::handle_create_data_service))
             .route("/batch", post(Self::handle_get_batch_data_services))
             .route("/main", get(Self::handle_get_main_data_service))
@@ -79,9 +82,14 @@ impl DataServiceEntityRouter {
         State(state): State<DataServiceEntityRouter>,
         Query(params): Query<PaginationParams>,
     ) -> impl IntoResponse {
-        match state.service.get_all_data_services(params.limit, params.page).await {
+        match state
+            .service
+            .get_all_data_services(params.limit, params.page)
+            .await
+        {
             Ok(data_services) => (StatusCode::OK, Json(ToCamelCase(data_services))).into_response(),
-            Err(e) => return e.into_response(),        }
+            Err(e) => return e.into_response(),
+        }
     }
     async fn handle_get_batch_data_services(
         State(state): State<DataServiceEntityRouter>,
@@ -93,7 +101,8 @@ impl DataServiceEntityRouter {
         };
         match state.service.get_batch_data_services(&input.ids).await {
             Ok(data_services) => (StatusCode::OK, Json(ToCamelCase(data_services))).into_response(),
-            Err(e) => return e.into_response(),        }
+            Err(e) => return e.into_response(),
+        }
     }
     async fn handle_get_data_services_by_catalog_id(
         State(state): State<DataServiceEntityRouter>,
@@ -124,7 +133,8 @@ impl DataServiceEntityRouter {
                 let err = Errors::missing_resource(id.as_str(), "Data service not found", None);
                 err.into_response()
             }
-            Err(e) => return e.into_response(),        }
+            Err(e) => return e.into_response(),
+        }
     }
 
     async fn handle_get_main_data_service(
@@ -138,7 +148,8 @@ impl DataServiceEntityRouter {
                 let err = Errors::missing_resource("", "Main Data service not found", None);
                 err.into_response()
             }
-            Err(e) => return e.into_response(),        }
+            Err(e) => return e.into_response(),
+        }
     }
 
     async fn handle_put_data_service_by_id(

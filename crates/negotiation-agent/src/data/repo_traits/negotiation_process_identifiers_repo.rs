@@ -22,8 +22,8 @@ use crate::data::entities::negotiation_process_identifier::{
     EditNegotiationIdentifierModel, NewNegotiationIdentifierModel,
 };
 use thiserror::Error;
-use ymir::errors::Outcome;
 use urn::Urn;
+use ymir::errors::Outcome;
 use ymir::errors::RepoIntoErrors;
 
 #[async_trait::async_trait]
@@ -62,10 +62,7 @@ pub trait NegotiationIdentifierRepoTrait: Send + Sync {
         edit_model: &EditNegotiationIdentifierModel,
     ) -> Outcome<negotiation_process_identifier::Model>;
 
-    async fn delete_identifier(
-        &self,
-        id: &Urn,
-    ) -> Outcome<()>;
+    async fn delete_identifier(&self, id: &Urn) -> Outcome<()>;
 }
 
 #[derive(Debug, Error)]

@@ -49,7 +49,12 @@ impl DistributionEntityTrait for DistributionEntities {
         page: Option<u64>,
     ) -> Outcome<Vec<DistributionDto>> {
         // cache
-        if let Ok(dtos) = self.cache.get_distribution_cache().get_collection(limit, page).await {
+        if let Ok(dtos) = self
+            .cache
+            .get_distribution_cache()
+            .get_collection(limit, page)
+            .await
+        {
             if !dtos.is_empty() {
                 return Ok(dtos);
             }
@@ -76,10 +81,7 @@ impl DistributionEntityTrait for DistributionEntities {
         Ok(dtos)
     }
 
-    async fn get_batch_distributions(
-        &self,
-        ids: &Vec<Urn>,
-    ) -> Outcome<Vec<DistributionDto>> {
+    async fn get_batch_distributions(&self, ids: &Vec<Urn>) -> Outcome<Vec<DistributionDto>> {
         // cache
         if let Ok(dtos) = self.cache.get_distribution_cache().get_batch(ids).await {
             if !dtos.is_empty() {
@@ -101,7 +103,9 @@ impl DistributionEntityTrait for DistributionEntities {
         for dto in &dtos {
             if let Ok(id) = Urn::from_str(dto.inner.id.as_str()) {
                 let _ = cache.set_single(&id, dto).await;
-                let _ = cache.add_to_collection(&id, dto.inner.dct_issued.timestamp() as f64).await;
+                let _ = cache
+                    .add_to_collection(&id, dto.inner.dct_issued.timestamp() as f64)
+                    .await;
             }
         }
         Ok(dtos)
@@ -139,7 +143,9 @@ impl DistributionEntityTrait for DistributionEntities {
                 let score = dto.inner.dct_issued.timestamp() as f64;
                 let _ = cache.set_single(&id, dto).await;
                 let _ = cache.add_to_collection(&id, score).await;
-                let _ = cache.add_to_relation("datasets", dataset_id, &id, score).await;
+                let _ = cache
+                    .add_to_relation("datasets", dataset_id, &id, score)
+                    .await;
             }
         }
         Ok(dtos)
@@ -160,7 +166,11 @@ impl DistributionEntityTrait for DistributionEntities {
 
         // Hydrate single
         if let Ok(id) = Urn::from_str(dto.inner.id.as_str()) {
-            let _ = self.cache.get_distribution_cache().set_single(&id, &dto).await;
+            let _ = self
+                .cache
+                .get_distribution_cache()
+                .set_single(&id, &dto)
+                .await;
         }
 
         Ok(dto)
@@ -171,7 +181,11 @@ impl DistributionEntityTrait for DistributionEntities {
         distribution_id: &Urn,
     ) -> Outcome<Option<DistributionDto>> {
         // Cache
-        if let Ok(Some(dto)) = self.cache.get_distribution_cache().get_single(distribution_id).await
+        if let Ok(Some(dto)) = self
+            .cache
+            .get_distribution_cache()
+            .get_single(distribution_id)
+            .await
         {
             return Ok(Some(dto));
         }
@@ -214,7 +228,9 @@ impl DistributionEntityTrait for DistributionEntities {
         // Update single and score
         let cache = self.cache.get_distribution_cache();
         let _ = cache.set_single(&dist_urn, &dto).await;
-        let _ = cache.add_to_collection(&dist_urn, dto.inner.dct_issued.timestamp() as f64).await;
+        let _ = cache
+            .add_to_collection(&dist_urn, dto.inner.dct_issued.timestamp() as f64)
+            .await;
 
         Ok(dto)
     }
@@ -241,7 +257,9 @@ impl DistributionEntityTrait for DistributionEntities {
 
         // Lookup hydration (Distribution -> Dataset)
         if let Ok(dataset_id) = Urn::from_str(&*dto.inner.dataset_id) {
-            let _ = cache.add_to_relation("datasets", &dataset_id, &dist_urn, score).await;
+            let _ = cache
+                .add_to_relation("datasets", &dataset_id, &dist_urn, score)
+                .await;
         }
 
         Ok(dto)
@@ -264,7 +282,9 @@ impl DistributionEntityTrait for DistributionEntities {
         // lookup invalidation
         if let Some(dto) = current {
             if let Ok(dataset_id) = Urn::from_str(&*dto.inner.dataset_id) {
-                let _ = cache.remove_from_relation("datasets", &dataset_id, distribution_id).await;
+                let _ = cache
+                    .remove_from_relation("datasets", &dataset_id, distribution_id)
+                    .await;
             }
         }
 

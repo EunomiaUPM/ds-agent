@@ -83,12 +83,20 @@ impl ParameterValidator for StringValidator {
 
         if let Some(min) = restrictions.min_length {
             if s.len() < min {
-                return Err(ValidationError::MinLength { length: s.len(), min }.into_errors());
+                return Err(ValidationError::MinLength {
+                    length: s.len(),
+                    min,
+                }
+                .into_errors());
             }
         }
         if let Some(max) = restrictions.max_length {
             if s.len() > max {
-                return Err(ValidationError::MaxLength { length: s.len(), max }.into_errors());
+                return Err(ValidationError::MaxLength {
+                    length: s.len(),
+                    max,
+                }
+                .into_errors());
             }
         }
         if let Some(pattern) = &restrictions.regex {
@@ -189,8 +197,11 @@ impl ParameterValidator for DateTimeValidator {
                 .map_err(|e| ValidationError::DateConfigError(e.to_string()).into_errors())?;
 
             if input_date < min_date {
-                return Err(ValidationError::MinDate { value: s.clone(), min: min_str.clone() }
-                    .into_errors());
+                return Err(ValidationError::MinDate {
+                    value: s.clone(),
+                    min: min_str.clone(),
+                }
+                .into_errors());
             }
         }
 
@@ -199,8 +210,11 @@ impl ParameterValidator for DateTimeValidator {
                 .map_err(|e| ValidationError::DateConfigError(e.to_string()).into_errors())?;
 
             if input_date > max_date {
-                return Err(ValidationError::MaxDate { value: s.clone(), max: max_str.clone() }
-                    .into_errors());
+                return Err(ValidationError::MaxDate {
+                    value: s.clone(),
+                    max: max_str.clone(),
+                }
+                .into_errors());
             }
         }
 

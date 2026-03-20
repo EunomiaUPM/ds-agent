@@ -38,7 +38,9 @@ pub struct FoundSysParameter {
 
 impl SystemParameterExtractor {
     pub fn new() -> Self {
-        Self { found_parameters: Vec::new() }
+        Self {
+            found_parameters: Vec::new(),
+        }
     }
 
     pub fn found_sys_parameters(&self) -> &[FoundSysParameter] {
@@ -50,7 +52,8 @@ impl SystemParameterExtractor {
         for cap in re.captures_iter(value) {
             let name = cap[1].to_string();
             if let Some(content_type) = self.sys_parameter_type_from_name(&name) {
-                self.found_parameters.push(FoundSysParameter { name, content_type });
+                self.found_parameters
+                    .push(FoundSysParameter { name, content_type });
             }
         }
     }
@@ -61,10 +64,12 @@ impl SystemParameterExtractor {
             "SYS_TOKEN" => Some(SysParameterType::SysToken),
             "SYS_TIMESTAMP" => Some(SysParameterType::SysTimestamp),
             "SYS_ISO8601" => Some(SysParameterType::SysIso8601),
-            "SYS_OWN_URL" => Some(SysParameterType::SysOwnUrl { host_docker_internal: false }),
-            "SYS_OWN_URL_DOCKER" => {
-                Some(SysParameterType::SysOwnUrl { host_docker_internal: true })
-            }
+            "SYS_OWN_URL" => Some(SysParameterType::SysOwnUrl {
+                host_docker_internal: false,
+            }),
+            "SYS_OWN_URL_DOCKER" => Some(SysParameterType::SysOwnUrl {
+                host_docker_internal: true,
+            }),
             _ => None,
         }
     }

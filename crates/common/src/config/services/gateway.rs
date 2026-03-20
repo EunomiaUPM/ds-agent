@@ -33,16 +33,28 @@ pub struct GatewayConfig {
     contracts: MinKnownConfig,
     catalog: MinKnownConfig,
     is_catalog_datahub: bool,
-    ssi_auth: MinKnownConfig
+    ssi_auth: MinKnownConfig,
 }
 
 impl GatewayConfigTrait for GatewayConfig {
-    fn ssi_auth(&self) -> &MinKnownConfig { &self.ssi_auth }
-    fn transfer(&self) -> &MinKnownConfig { &self.transfer }
-    fn contracts(&self) -> &MinKnownConfig { &self.contracts }
-    fn catalog(&self) -> &MinKnownConfig { &self.catalog }
-    fn is_production(&self) -> bool { self.is_production }
-    fn is_catalog_datahub(&self) -> bool { self.is_catalog_datahub }
+    fn ssi_auth(&self) -> &MinKnownConfig {
+        &self.ssi_auth
+    }
+    fn transfer(&self) -> &MinKnownConfig {
+        &self.transfer
+    }
+    fn contracts(&self) -> &MinKnownConfig {
+        &self.contracts
+    }
+    fn catalog(&self) -> &MinKnownConfig {
+        &self.catalog
+    }
+    fn is_production(&self) -> bool {
+        self.is_production
+    }
+    fn is_catalog_datahub(&self) -> bool {
+        self.is_catalog_datahub
+    }
 }
 impl ConfigLoader for GatewayConfig {
     fn load(env_file: &str) -> Outcome<Self> {
@@ -53,7 +65,9 @@ impl ConfigLoader for GatewayConfig {
 }
 
 impl CommonConfigTrait for GatewayConfig {
-    fn common(&self) -> &CommonConfig { &self.common }
+    fn common(&self) -> &CommonConfig {
+        &self.common
+    }
 }
 
 impl ConnectionConfigTrait for GatewayConfig {

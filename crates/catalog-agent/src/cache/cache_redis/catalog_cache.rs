@@ -58,13 +58,17 @@ mod test_catalog_complete {
     async fn setup() -> CatalogCacheForRedis {
         let redis_url = "redis://default:ds_core_provider_redis@127.0.0.1:6379";
         let client = redis::Client::open(redis_url).unwrap();
-        let conn =
-            client.get_multiplexed_async_connection().await.expect("Redis connection failed");
+        let conn = client
+            .get_multiplexed_async_connection()
+            .await
+            .expect("Redis connection failed");
         CatalogCacheForRedis::new(conn)
     }
 
     fn mock_catalog(title: &str) -> (Urn, CatalogDto) {
-        let id = UrnBuilder::new("catalog", &Uuid::new_v4().to_string()).build().unwrap();
+        let id = UrnBuilder::new("catalog", &Uuid::new_v4().to_string())
+            .build()
+            .unwrap();
         let dto = CatalogDto {
             inner: Model {
                 id: id.to_string(),
@@ -112,7 +116,10 @@ mod test_catalog_complete {
         cache.set_single(&id2, &dto2).await.unwrap();
 
         // Fetch multiple entities in one Round Trip
-        let batch = cache.get_batch(&vec![id1.clone(), id2.clone()]).await.unwrap();
+        let batch = cache
+            .get_batch(&vec![id1.clone(), id2.clone()])
+            .await
+            .unwrap();
         dbg!(&batch);
 
         assert_eq!(batch.len(), 2);

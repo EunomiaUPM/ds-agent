@@ -119,7 +119,11 @@ impl Default for DataService {
 
 impl From<DataService> for DataServiceMinimized {
     fn from(dc: DataService) -> Self {
-        Self { _type: dc._type, id: dc.id, dcat: dc.dcat }
+        Self {
+            _type: dc._type,
+            id: dc.id,
+            dcat: dc.dcat,
+        }
     }
 }
 

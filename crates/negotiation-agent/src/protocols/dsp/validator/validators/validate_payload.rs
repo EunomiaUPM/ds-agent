@@ -70,14 +70,20 @@ impl ValidatePayload for ValidatePayloadService {
             RoleConfig::Provider => payload.get_provider_pid(),
             RoleConfig::Consumer => payload.get_consumer_pid(),
             _ => {
-                return Err(Errors::parse("Something went wrong. Role not recognized.", None))
+                return Err(Errors::parse(
+                    "Something went wrong. Role not recognized.",
+                    None,
+                ));
             }
         }
         .ok_or_else(|| Errors::parse("Something went wrong. Role not recognized.", None))?
         .to_string();
         let uri_id = self.helpers.parse_urn(uri_id).await?.to_string();
         if identifier.ne(&uri_id) {
-            return Err(Errors::parse("Uri string and body identifier are not correlated", None));
+            return Err(Errors::parse(
+                "Uri string and body identifier are not correlated",
+                None,
+            ));
         }
         Ok(())
     }
@@ -87,27 +93,37 @@ impl ValidatePayload for ValidatePayloadService {
         payload: &dyn NegotiationProcessMessageTrait,
         dto: &NegotiationProcessDto,
     ) -> Outcome<()> {
-        let provider_pid_in_dto =
-            self.helpers.get_pid_by_role(dto, &RoleConfig::Provider).await?.to_string();
-        let consumer_pid_in_dto =
-            self.helpers.get_pid_by_role(dto, &RoleConfig::Consumer).await?.to_string();
-        let provider_pid_in_payload =
-            payload.get_provider_pid().unwrap_or(Urn::from_str("urn:fake:0")?).to_string();
-        let consumer_pid_in_payload =
-            payload.get_consumer_pid().unwrap_or(Urn::from_str("urn:fake:0")?).to_string();
+        let provider_pid_in_dto = self
+            .helpers
+            .get_pid_by_role(dto, &RoleConfig::Provider)
+            .await?
+            .to_string();
+        let consumer_pid_in_dto = self
+            .helpers
+            .get_pid_by_role(dto, &RoleConfig::Consumer)
+            .await?
+            .to_string();
+        let provider_pid_in_payload = payload
+            .get_provider_pid()
+            .unwrap_or(Urn::from_str("urn:fake:0")?)
+            .to_string();
+        let consumer_pid_in_payload = payload
+            .get_consumer_pid()
+            .unwrap_or(Urn::from_str("urn:fake:0")?)
+            .to_string();
         if provider_pid_in_dto != provider_pid_in_payload
             || consumer_pid_in_dto != consumer_pid_in_payload
         {
-            return Err(Errors::parse("Uri string and body identifier are not correlated", None));
+            return Err(Errors::parse(
+                "Uri string and body identifier are not correlated",
+                None,
+            ));
         }
         Ok(())
     }
 
     #[allow(unused)]
-    async fn validate_auth(
-        &self,
-        payload: &dyn NegotiationProcessMessageTrait,
-    ) -> Outcome<()> {
+    async fn validate_auth(&self, payload: &dyn NegotiationProcessMessageTrait) -> Outcome<()> {
         // TODO
         Ok(())
     }

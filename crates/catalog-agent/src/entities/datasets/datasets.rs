@@ -18,8 +18,8 @@
 use crate::cache::factory_trait::CatalogAgentCacheTrait;
 use crate::data::factory_trait::CatalogAgentRepoTrait;
 use crate::entities::datasets::{DatasetDto, DatasetEntityTrait, EditDatasetDto, NewDatasetDto};
-use log::error;
 use common::errors::{CommonErrors, ErrorLog};
+use log::error;
 use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
@@ -47,7 +47,12 @@ impl DatasetEntityTrait for DatasetEntities {
         page: Option<u64>,
     ) -> Outcome<Vec<DatasetDto>> {
         // cache
-        if let Ok(dtos) = self.cache.get_dataset_cache().get_collection(limit, page).await {
+        if let Ok(dtos) = self
+            .cache
+            .get_dataset_cache()
+            .get_collection(limit, page)
+            .await
+        {
             if !dtos.is_empty() {
                 return Ok(dtos);
             }
@@ -83,11 +88,7 @@ impl DatasetEntityTrait for DatasetEntities {
         }
 
         // db
-        let datasets = self
-            .repo
-            .get_dataset_repo()
-            .get_batch_datasets(ids)
-            .await?;
+        let datasets = self.repo.get_dataset_repo().get_batch_datasets(ids).await?;
 
         let dtos: Vec<DatasetDto> = datasets.into_iter().map(Into::into).collect();
 
@@ -96,19 +97,21 @@ impl DatasetEntityTrait for DatasetEntities {
         for dto in &dtos {
             if let Ok(id) = Urn::from_str(dto.inner.id.as_str()) {
                 let _ = cache.set_single(&id, dto).await;
-                let _ = cache.add_to_collection(&id, dto.inner.dct_issued.timestamp() as f64).await;
+                let _ = cache
+                    .add_to_collection(&id, dto.inner.dct_issued.timestamp() as f64)
+                    .await;
             }
         }
         Ok(dtos)
     }
 
-    async fn get_datasets_by_catalog_id(
-        &self,
-        catalog_id: &Urn,
-    ) -> Outcome<Vec<DatasetDto>> {
+    async fn get_datasets_by_catalog_id(&self, catalog_id: &Urn) -> Outcome<Vec<DatasetDto>> {
         // cache
-        if let Ok(dtos) =
-            self.cache.get_dataset_cache().get_by_relation("catalogs", catalog_id, None, None).await
+        if let Ok(dtos) = self
+            .cache
+            .get_dataset_cache()
+            .get_by_relation("catalogs", catalog_id, None, None)
+            .await
         {
             if !dtos.is_empty() {
                 return Ok(dtos);
@@ -131,7 +134,9 @@ impl DatasetEntityTrait for DatasetEntities {
                 let score = dto.inner.dct_issued.timestamp() as f64;
                 let _ = cache.set_single(&id, dto).await;
                 let _ = cache.add_to_collection(&id, score).await;
-                let _ = cache.add_to_relation("catalogs", catalog_id, &id, score).await;
+                let _ = cache
+                    .add_to_relation("catalogs", catalog_id, &id, score)
+                    .await;
             }
         }
         Ok(dtos)
@@ -156,8 +161,9 @@ impl DatasetEntityTrait for DatasetEntities {
         if let Some(dto) = &dto {
             let cache = self.cache.get_dataset_cache();
             let _ = cache.set_single(dataset_id, dto).await;
-            let _ =
-                cache.add_to_collection(dataset_id, dto.inner.dct_issued.timestamp() as f64).await;
+            let _ = cache
+                .add_to_collection(dataset_id, dto.inner.dct_issued.timestamp() as f64)
+                .await;
         }
         Ok(dto)
     }
@@ -181,15 +187,14 @@ impl DatasetEntityTrait for DatasetEntities {
         // hydration
         let cache = self.cache.get_dataset_cache();
         let _ = cache.set_single(&ds_urn, &dto).await;
-        let _ = cache.add_to_collection(&ds_urn, dto.inner.dct_issued.timestamp() as f64).await;
+        let _ = cache
+            .add_to_collection(&ds_urn, dto.inner.dct_issued.timestamp() as f64)
+            .await;
 
         Ok(dto)
     }
 
-    async fn create_dataset(
-        &self,
-        new_dataset_model: &NewDatasetDto,
-    ) -> Outcome<DatasetDto> {
+    async fn create_dataset(&self, new_dataset_model: &NewDatasetDto) -> Outcome<DatasetDto> {
         // db
         let new_model = new_dataset_model.clone().into();
         let dataset = self
@@ -209,7 +214,9 @@ impl DatasetEntityTrait for DatasetEntities {
 
         // lookup cache hydration
         if let Ok(catalog_id) = Urn::from_str(&*dto.inner.catalog_id) {
-            let _ = cache.add_to_relation("catalogs", &catalog_id, &ds_urn, score).await;
+            let _ = cache
+                .add_to_relation("catalogs", &catalog_id, &ds_urn, score)
+                .await;
         }
 
         Ok(dto)
@@ -233,7 +240,9 @@ impl DatasetEntityTrait for DatasetEntities {
         // Relation invalidation
         if let Some(dto) = current {
             if let Ok(catalog_id) = Urn::from_str(&*dto.inner.catalog_id) {
-                let _ = cache.remove_from_relation("catalogs", &catalog_id, dataset_id).await;
+                let _ = cache
+                    .remove_from_relation("catalogs", &catalog_id, dataset_id)
+                    .await;
             }
         }
 

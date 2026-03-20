@@ -35,17 +35,16 @@ use crate::protocols::dsp::protocol_types::{
 };
 use common::dsp_common::context_field::ContextField;
 
+use crate::http::common::extract_payload;
 use axum::{
-    extract::Request
-    ,
+    extract::Request,
     middleware::{self, Next},
     Extension,
 };
 use common::config::services::TransferConfig;
 use common::facades::ssi_auth_facade::SSIAuthFacadeTrait;
-use ymir::errors::{Errors, Outcome};
 use common::facades::Mates;
-use crate::http::common::extract_payload;
+use ymir::errors::{Errors, Outcome};
 
 #[derive(Clone)]
 pub struct DspRouter {
@@ -66,7 +65,11 @@ impl DspRouter {
         config: Arc<TransferConfig>,
         ssi_auth: Arc<dyn SSIAuthFacadeTrait>,
     ) -> Self {
-        Self { orchestrator: service, config, ssi_auth }
+        Self {
+            orchestrator: service,
+            config,
+            ssi_auth,
+        }
     }
 
     async fn auth_middleware(
@@ -98,7 +101,10 @@ impl DspRouter {
             .route("/{id}/completion", post(Self::handle_transfer_completion))
             .route("/{id}/termination", post(Self::handle_transfer_termination))
             .route("/{id}/suspension", post(Self::handle_transfer_suspension))
-            .layer(middleware::from_fn_with_state(self.clone(), Self::auth_middleware))
+            .layer(middleware::from_fn_with_state(
+                self.clone(),
+                Self::auth_middleware,
+            ))
             .with_state(self)
     }
 
@@ -120,10 +126,7 @@ impl DspRouter {
         Self::map_service_result(action(payload).await, success_code).into_response()
     }
 
-    fn map_service_result<R>(
-        result: Outcome<R>,
-        success_code: StatusCode,
-    ) -> impl IntoResponse
+    fn map_service_result<R>(result: Outcome<R>, success_code: StatusCode) -> impl IntoResponse
     where
         R: Serialize,
     {
@@ -153,7 +156,11 @@ impl DspRouter {
         Path(id): Path<String>,
     ) -> impl IntoResponse {
         Self::map_service_result(
-            state.orchestrator.get_protocol_service().on_get_transfer_process(&id).await,
+            state
+                .orchestrator
+                .get_protocol_service()
+                .on_get_transfer_process(&id)
+                .await,
             StatusCode::OK,
         )
     }
@@ -179,7 +186,11 @@ impl DspRouter {
 
         match result {
             Ok((data, already_exists)) => {
-                let status = if already_exists { StatusCode::OK } else { StatusCode::CREATED };
+                let status = if already_exists {
+                    StatusCode::OK
+                } else {
+                    StatusCode::CREATED
+                };
                 (status, Json(data)).into_response()
             }
             Err(err) => Self::map_service_error(err).into_response(),
@@ -193,7 +204,11 @@ impl DspRouter {
         input: Result<Json<TransferProcessMessageWrapper<TransferStartMessageDto>>, JsonRejection>,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::OK, |data| async move {
-            state.orchestrator.get_protocol_service().on_transfer_start(&id, &data).await
+            state
+                .orchestrator
+                .get_protocol_service()
+                .on_transfer_start(&id, &data)
+                .await
         })
         .await
     }
@@ -208,7 +223,11 @@ impl DspRouter {
         >,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::OK, |data| async move {
-            state.orchestrator.get_protocol_service().on_transfer_completion(&id, &data).await
+            state
+                .orchestrator
+                .get_protocol_service()
+                .on_transfer_completion(&id, &data)
+                .await
         })
         .await
     }
@@ -223,7 +242,11 @@ impl DspRouter {
         >,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::OK, |data| async move {
-            state.orchestrator.get_protocol_service().on_transfer_termination(&id, &data).await
+            state
+                .orchestrator
+                .get_protocol_service()
+                .on_transfer_termination(&id, &data)
+                .await
         })
         .await
     }
@@ -238,7 +261,11 @@ impl DspRouter {
         >,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::OK, |data| async move {
-            state.orchestrator.get_protocol_service().on_transfer_suspension(&id, &data).await
+            state
+                .orchestrator
+                .get_protocol_service()
+                .on_transfer_suspension(&id, &data)
+                .await
         })
         .await
     }

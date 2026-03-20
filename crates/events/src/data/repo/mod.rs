@@ -68,9 +68,7 @@ impl Default for EditSubscription {
 
 #[async_trait]
 pub trait SubscriptionRepo {
-    async fn get_all_subscriptions(
-        &self,
-    ) -> Result<Vec<subscription::Model>, EventRepoErrors>;
+    async fn get_all_subscriptions(&self) -> Result<Vec<subscription::Model>, EventRepoErrors>;
     async fn get_subscription_by_id(
         &self,
         subscription_id: Urn,
@@ -88,10 +86,7 @@ pub trait SubscriptionRepo {
         &self,
         new_subscription: NewSubscription,
     ) -> Result<subscription::Model, EventRepoErrors>;
-    async fn delete_subscription_by_id(
-        &self,
-        subscription_id: Urn,
-    ) -> Result<(), EventRepoErrors>;
+    async fn delete_subscription_by_id(&self, subscription_id: Urn) -> Result<(), EventRepoErrors>;
 }
 
 pub struct NewNotification {
@@ -105,9 +100,7 @@ pub struct NewNotification {
 
 #[async_trait]
 pub trait NotificationRepo {
-    async fn get_all_notifications(
-        &self,
-    ) -> Result<Vec<notification::Model>, EventRepoErrors>;
+    async fn get_all_notifications(&self) -> Result<Vec<notification::Model>, EventRepoErrors>;
     async fn get_notifications_by_subscription_id(
         &self,
         subscription_id: Urn,

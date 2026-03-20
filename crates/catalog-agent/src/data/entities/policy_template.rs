@@ -65,12 +65,19 @@ pub struct NewPolicyTemplateModel {
 
 impl From<NewPolicyTemplateModel> for ActiveModel {
     fn from(dto: NewPolicyTemplateModel) -> Self {
-        let new_urn =
-            UrnBuilder::new("policy-templates", uuid::Uuid::new_v4().to_string().as_str())
-                .build()
-                .expect("UrnBuilder failed");
+        let new_urn = UrnBuilder::new(
+            "policy-templates",
+            uuid::Uuid::new_v4().to_string().as_str(),
+        )
+        .build()
+        .expect("UrnBuilder failed");
         Self {
-            id: ActiveValue::Set(dto.id.clone().unwrap_or(new_urn.clone().to_string()).to_string()),
+            id: ActiveValue::Set(
+                dto.id
+                    .clone()
+                    .unwrap_or(new_urn.clone().to_string())
+                    .to_string(),
+            ),
             version: ActiveValue::Set(dto.version.unwrap_or("1.0".to_string())),
             date: ActiveValue::Set(dto.date.unwrap_or(chrono::Utc::now().into())),
             author: ActiveValue::Set(dto.author.unwrap_or("".to_string())),

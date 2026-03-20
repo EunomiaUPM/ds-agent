@@ -23,9 +23,9 @@ use connector::get_connector_migrations;
 use dataplane::get_dataplane_migrations;
 use events::data::migrations::get_events_migrations;
 use negotiation_agent::get_negotiation_agent_migrations;
-use transfer_agent::get_transfer_agent_migrations;
 use sea_orm::DatabaseConnection;
 use sea_orm_migration::{MigrationTrait, MigratorTrait};
+use transfer_agent::get_transfer_agent_migrations;
 use ymir::errors::{Errors, Outcome};
 
 pub struct CoreProviderMigration;

@@ -112,10 +112,12 @@ impl Default for NewNegotiationProcessModel {
 
 impl From<NewNegotiationProcessModel> for ActiveModel {
     fn from(value: NewNegotiationProcessModel) -> Self {
-        let new_urn =
-            UrnBuilder::new("negotiation-process", uuid::Uuid::new_v4().to_string().as_str())
-                .build()
-                .expect("UrnBuilder failed");
+        let new_urn = UrnBuilder::new(
+            "negotiation-process",
+            uuid::Uuid::new_v4().to_string().as_str(),
+        )
+        .build()
+        .expect("UrnBuilder failed");
 
         Self {
             id: ActiveValue::Set(value.id.unwrap_or(new_urn).to_string()),
@@ -148,6 +150,11 @@ pub struct EditNegotiationProcessModel {
 
 impl Default for EditNegotiationProcessModel {
     fn default() -> Self {
-        Self { state: None, state_attribute: None, properties: None, error_details: None }
+        Self {
+            state: None,
+            state_attribute: None,
+            properties: None,
+            error_details: None,
+        }
     }
 }

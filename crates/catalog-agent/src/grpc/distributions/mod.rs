@@ -142,7 +142,9 @@ impl DistributionEntityService for DistributionEntityGrpc {
             .map_err(|e| Status::internal(e.to_string()))?;
 
         match distribution_opt {
-            Some(dto) => Ok(Response::new(DistributionResponse { distribution: Some(dto.into()) })),
+            Some(dto) => Ok(Response::new(DistributionResponse {
+                distribution: Some(dto.into()),
+            })),
             None => Err(Status::not_found("Distribution not found")),
         }
     }

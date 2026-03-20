@@ -18,24 +18,24 @@
  */
 
 use crate::entities::negotiation_process::NegotiationProcessDto;
-use crate::protocols::dsp::persistence::NegotiationRpcPersistenceTrait;
 use crate::protocols::dsp::orchestrator::rpc::step_trait::{
-    resolve_continuation_context, NegotiationRpcAgreementContext, NegotiationRpcStep,
+    NegotiationRpcAgreementContext, NegotiationRpcStep, resolve_continuation_context,
 };
 use crate::protocols::dsp::orchestrator::rpc::types::{
     RpcNegotiationAgreementMessageDto, RpcNegotiationProcessMessageTrait,
 };
 use crate::protocols::dsp::orchestrator::traits::orchestration_helpers::OrchestrationHelpers;
+use crate::protocols::dsp::persistence::NegotiationRpcPersistenceTrait;
 use crate::protocols::dsp::protocol_types::{
     NegotiationAckMessageDto, NegotiationAgreementMessageDto, NegotiationProcessMessageWrapper,
 };
 use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRpcSteps;
-use ymir::errors::{Errors, Outcome};
 use common::dsp_common::odrl::{OdrlAgreement, OdrlMessageOffer, OdrlTypes};
 use common::facades::ssi_auth_facade::MatesFacadeTrait;
 use common::http_client::HttpClient;
 use std::sync::Arc;
 use urn::Urn;
+use ymir::errors::{Errors, Outcome};
 
 // ─── AgreementEnricher (helper for build_message) ─────────────────────────────
 
@@ -90,8 +90,11 @@ impl NegotiationRpcStep for RpcAgreementStep {
             serde_json::from_value::<OdrlMessageOffer>(last_offer_record.inner.offer_content)?;
 
         // Resolve participant IDs from the mates directory.
-        let assigner =
-            mates_service.get_me_mate().await.map(|m| m.participant_id).unwrap_or_default();
+        let assigner = mates_service
+            .get_me_mate()
+            .await
+            .map(|m| m.participant_id)
+            .unwrap_or_default();
         let assignee = mates_service
             .get_mate_by_id(base.process.inner.associated_agent_peer.clone())
             .await
@@ -125,8 +128,10 @@ impl NegotiationRpcStep for RpcAgreementStep {
         NegotiationProcessMessageWrapper<NegotiationAckMessageDto>,
         NegotiationProcessDto,
     )> {
-        let peer_url =
-            format!("{}/negotiations/{}/agreement", ctx.peer_address, ctx.peer_identifier);
+        let peer_url = format!(
+            "{}/negotiations/{}/agreement",
+            ctx.peer_address, ctx.peer_identifier
+        );
 
         let helper = AgreementEnricher;
         let mut request_body: NegotiationProcessMessageWrapper<NegotiationAgreementMessageDto> =
@@ -147,8 +152,9 @@ impl NegotiationRpcStep for RpcAgreementStep {
             description: ctx.last_offer.description.clone(),
         };
 
-        let response: NegotiationProcessMessageWrapper<NegotiationAckMessageDto> =
-            http_client.post_json(peer_url.as_str(), &request_body).await?;
+        let response: NegotiationProcessMessageWrapper<NegotiationAckMessageDto> = http_client
+            .post_json(peer_url.as_str(), &request_body)
+            .await?;
 
         let id = input
             .get_consumer_pid()

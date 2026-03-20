@@ -24,7 +24,7 @@ use ymir::capabilities::HttpSig;
 use ymir::config::traits::HostsConfigTrait;
 use ymir::config::types::HostType;
 use ymir::data::entities::{
-    mates, recv_interaction, recv_request, recv_verification, token_requirements
+    mates, recv_interaction, recv_request, recv_verification, token_requirements,
 };
 use ymir::errors::{BadFormat, Errors, Outcome};
 use ymir::types::gnap::grant_request::{GrantRequest, InteractActions, InteractStart, KeyProof};
@@ -37,7 +37,7 @@ use super::super::GateKeeperTrait;
 use super::config::{GnapGateKeeperConfig, GnapGateKeeperConfigTrait};
 
 pub struct GnapGateKeeperService {
-    config: GnapGateKeeperConfig
+    config: GnapGateKeeperConfig,
 }
 
 impl GnapGateKeeperService {
@@ -50,11 +50,11 @@ impl GateKeeperTrait for GnapGateKeeperService {
     fn start(
         &self,
         payload: &Bytes,
-        headers: &HeaderMap
+        headers: &HeaderMap,
     ) -> Outcome<(
         recv_request::NewModel,
         recv_interaction::NewModel,
-        token_requirements::Model
+        token_requirements::Model,
     )> {
         info!("Managing Grant Request");
 
@@ -70,18 +70,22 @@ impl GateKeeperTrait for GnapGateKeeperService {
             Errors::format(
                 BadFormat::Received,
                 "Right now only petitions including a cert are accepted",
-                None
+                None,
             )
         })?;
         let class_id = payload.client.class_id.as_ref().ok_or_else(|| {
-            Errors::format(BadFormat::Received, "Missing field class_id in the petition", None)
+            Errors::format(
+                BadFormat::Received,
+                "Missing field class_id in the petition",
+                None,
+            )
         })?;
 
         let tok_req = payload.access_token.as_ref().ok_or_else(|| {
             Errors::format(
                 BadFormat::Received,
                 "Missing field access_token in the Grant Request",
-                None
+                None,
             )
         })?;
 
@@ -103,7 +107,10 @@ impl GateKeeperTrait for GnapGateKeeperService {
         let uri = get_from_opt(interact.finish.uri.as_ref(), "interact finish uri")?;
         let id = uuid::Uuid::new_v4().to_string();
 
-        let req_model = recv_request::NewModel { id: id.clone(), consumer_slug: class_id.clone() };
+        let req_model = recv_request::NewModel {
+            id: id.clone(),
+            consumer_slug: class_id.clone(),
+        };
 
         let host = format!(
             "{}{}/gate",
@@ -126,7 +133,7 @@ impl GateKeeperTrait for GnapGateKeeperService {
             hints: interact.hints,
             grant_endpoint,
             continue_endpoint,
-            continue_token
+            continue_token,
         };
 
         let token_model = token_requirements::Model {
@@ -138,7 +145,7 @@ impl GateKeeperTrait for GnapGateKeeperService {
             identifier: None,
             privileges: None,
             label: None,
-            flags: None
+            flags: None,
         };
 
         Ok((req_model, int_model, token_model))
@@ -155,7 +162,7 @@ impl GateKeeperTrait for GnapGateKeeperService {
                     method => {
                         return Err(Errors::not_impl(
                             format!("Right now we only accept httpsig, not {}", method),
-                            None
+                            None,
                         ))
                     }
                 }
@@ -174,13 +181,13 @@ impl GateKeeperTrait for GnapGateKeeperService {
                 if let Some(_) = grant_request.client.key.jwk.as_ref() {
                     return Err(Errors::not_impl(
                         "Cannot make this flow with jwk yet, try with cert",
-                        None
+                        None,
                     ));
                 }
                 return Err(Errors::format(
                     BadFormat::Received,
                     "Client certificate has not arrived",
-                    None
+                    None,
                 ));
             }
         }
@@ -197,7 +204,7 @@ impl GateKeeperTrait for GnapGateKeeperService {
         &self,
         model: &recv_interaction::Model,
         payload: &Bytes,
-        headers: &HeaderMap
+        headers: &HeaderMap,
     ) -> Outcome<()> {
         info!("Validating continuing request");
 
@@ -205,7 +212,13 @@ impl GateKeeperTrait for GnapGateKeeperService {
 
         let token = extract_gnap_token(headers)?;
 
-        HttpSig::verify(headers, "POST", &model.continue_endpoint, payload, &model.cert)?;
+        HttpSig::verify(
+            headers,
+            "POST",
+            &model.continue_endpoint,
+            payload,
+            &model.cert,
+        )?;
 
         HttpSig::check_cert(&model.cert)?;
 
@@ -215,14 +228,17 @@ impl GateKeeperTrait for GnapGateKeeperService {
                     "Interact reference '{}' does not match '{}'",
                     ref_body.interact_ref, model.interact_ref,
                 ),
-                None
+                None,
             ));
         }
 
         if token != model.continue_token {
             return Err(Errors::security(
-                &format!("Token '{}' does not match '{}'", token, model.continue_token),
-                None
+                &format!(
+                    "Token '{}' does not match '{}'",
+                    token, model.continue_token
+                ),
+                None,
             ));
         }
         Ok(())
@@ -233,7 +249,7 @@ impl GateKeeperTrait for GnapGateKeeperService {
         req_model: &mut recv_request::Model,
         int_model: &recv_interaction::Model,
         token_model: &token_requirements::Model,
-        ver_model: &recv_verification::Model
+        ver_model: &recv_verification::Model,
     ) -> (mates::NewModel, AccessToken) {
         info!("Continuing Request");
 
@@ -248,7 +264,7 @@ impl GateKeeperTrait for GnapGateKeeperService {
             participant_type: "Agent".to_string(),
             base_url,
             token: Some(token.clone()),
-            is_me: false
+            is_me: false,
         };
 
         let token = AccessToken::new(token, token_model);

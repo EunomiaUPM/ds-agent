@@ -102,10 +102,12 @@ impl Default for NewTransferProcessModel {
 
 impl From<NewTransferProcessModel> for ActiveModel {
     fn from(dto: NewTransferProcessModel) -> Self {
-        let new_urn =
-            UrnBuilder::new("transfer-process", uuid::Uuid::new_v4().to_string().as_str())
-                .build()
-                .expect("UrnBuilder failed");
+        let new_urn = UrnBuilder::new(
+            "transfer-process",
+            uuid::Uuid::new_v4().to_string().as_str(),
+        )
+        .build()
+        .expect("UrnBuilder failed");
         Self {
             id: ActiveValue::Set(dto.id.unwrap_or(new_urn).to_string()),
             state: ActiveValue::Set(dto.state),
@@ -133,6 +135,11 @@ pub struct EditTransferProcessModel {
 
 impl Default for EditTransferProcessModel {
     fn default() -> Self {
-        Self { state: None, state_attribute: None, properties: None, error_details: None }
+        Self {
+            state: None,
+            state_attribute: None,
+            properties: None,
+            error_details: None,
+        }
     }
 }

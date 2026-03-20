@@ -85,10 +85,8 @@ impl From<NewDataplaneTransferDto> for NewDataplaneTransfer {
 pub trait DataplaneTransfersEntitiesTrait: Send + Sync + 'static {
     async fn get_all_dataplane_transfers(&self) -> Outcome<Vec<DataplaneTransferDto>>;
 
-    async fn get_dataplane_transfer_by_id(
-        &self,
-        id: &Urn,
-    ) -> Outcome<Option<DataplaneTransferDto>>;
+    async fn get_dataplane_transfer_by_id(&self, id: &Urn)
+        -> Outcome<Option<DataplaneTransferDto>>;
 
     async fn get_dataplane_transfer_by_process_id(
         &self,

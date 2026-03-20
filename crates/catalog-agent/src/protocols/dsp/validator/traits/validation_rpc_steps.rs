@@ -16,10 +16,10 @@
  *  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
-use ymir::errors::Outcome;
 use crate::protocols::dsp::orchestrator::rpc::types::{
     RpcCatalogRequestMessageDto, RpcDatasetRequestMessageDto,
 };
+use ymir::errors::Outcome;
 
 #[async_trait::async_trait]
 pub trait ValidationRpcSteps: Send + Sync + 'static {

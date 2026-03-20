@@ -33,9 +33,18 @@ impl MigrationTrait for Migration {
             .create_table(
                 Table::create()
                     .table(CatalogDataServices::Table)
-                    .col(ColumnDef::new(CatalogDataServices::Id).string().not_null().primary_key())
+                    .col(
+                        ColumnDef::new(CatalogDataServices::Id)
+                            .string()
+                            .not_null()
+                            .primary_key(),
+                    )
                     .col(ColumnDef::new(CatalogDataServices::DcatEndpointDescription).string())
-                    .col(ColumnDef::new(CatalogDataServices::DcatEndpointURL).string().not_null())
+                    .col(
+                        ColumnDef::new(CatalogDataServices::DcatEndpointURL)
+                            .string()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(CatalogDataServices::DctConformsTo).string())
                     .col(ColumnDef::new(CatalogDataServices::DctCreator).string())
                     .col(ColumnDef::new(CatalogDataServices::DctIdentifier).string())
@@ -49,7 +58,11 @@ impl MigrationTrait for Migration {
                     )
                     .col(ColumnDef::new(CatalogDataServices::DctTitle).string())
                     .col(ColumnDef::new(CatalogDataServices::DctDescription).string())
-                    .col(ColumnDef::new(CatalogDataServices::CatalogId).string().not_null())
+                    .col(
+                        ColumnDef::new(CatalogDataServices::CatalogId)
+                            .string()
+                            .not_null(),
+                    )
                     .col(
                         ColumnDef::new(CatalogDataServices::DspaceMainDataService)
                             .boolean()
@@ -68,7 +81,9 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager.drop_table(Table::drop().table(CatalogDataServices::Table).to_owned()).await
+        manager
+            .drop_table(Table::drop().table(CatalogDataServices::Table).to_owned())
+            .await
     }
 }
 

@@ -58,19 +58,13 @@ impl From<NewOfferDto> for NewOfferModel {
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait NegotiationAgentOffersTrait: Send + Sync + 'static {
-    async fn get_all_offers(
-        &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<OfferDto>>;
+    async fn get_all_offers(&self, limit: Option<u64>, page: Option<u64>)
+    -> Outcome<Vec<OfferDto>>;
 
     async fn get_batch_offers(&self, ids: &Vec<Urn>) -> Outcome<Vec<OfferDto>>;
 
     async fn get_offers_by_negotiation_process(&self, id: &Urn) -> Outcome<Vec<OfferDto>>;
-    async fn get_last_offer_by_negotiation_process(
-        &self,
-        id: &Urn,
-    ) -> Outcome<Option<OfferDto>>;
+    async fn get_last_offer_by_negotiation_process(&self, id: &Urn) -> Outcome<Option<OfferDto>>;
 
     async fn get_offer_by_id(&self, id: &Urn) -> Outcome<Option<OfferDto>>;
 

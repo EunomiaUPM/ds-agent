@@ -28,8 +28,8 @@ use crate::grpc::api::catalog_agent::{
     Dataset, Distribution, OdrlPolicy, PolicyTemplate, PutCatalogRequest, PutDataServiceRequest,
     PutDatasetRequest, PutDistributionRequest,
 };
-use prost_types::Struct;
 use common::dsp_common::odrl::OdrlPolicyInfo;
+use prost_types::Struct;
 use std::str::FromStr;
 use tonic::Status;
 use urn::Urn;
@@ -52,7 +52,11 @@ fn proto_value_to_json(v: prost_types::Value) -> serde_json::Value {
 }
 
 fn proto_struct_to_json(s: prost_types::Struct) -> serde_json::Value {
-    let map = s.fields.into_iter().map(|(k, v)| (k, proto_value_to_json(v))).collect();
+    let map = s
+        .fields
+        .into_iter()
+        .map(|(k, v)| (k, proto_value_to_json(v)))
+        .collect();
     serde_json::Value::Object(map)
 }
 
@@ -62,16 +66,20 @@ fn json_to_proto_value(v: serde_json::Value) -> prost_types::Value {
         serde_json::Value::Bool(b) => Some(prost_types::value::Kind::BoolValue(b)),
         serde_json::Value::Number(n) => {
             // Proto usa f64 para números genéricos
-            Some(prost_types::value::Kind::NumberValue(n.as_f64().unwrap_or(0.0)))
+            Some(prost_types::value::Kind::NumberValue(
+                n.as_f64().unwrap_or(0.0),
+            ))
         }
         serde_json::Value::String(s) => Some(prost_types::value::Kind::StringValue(s)),
         serde_json::Value::Array(a) => {
             let values = a.into_iter().map(json_to_proto_value).collect();
-            Some(prost_types::value::Kind::ListValue(prost_types::ListValue { values }))
+            Some(prost_types::value::Kind::ListValue(
+                prost_types::ListValue { values },
+            ))
         }
-        serde_json::Value::Object(_) => {
-            Some(prost_types::value::Kind::StructValue(json_to_proto_struct(v)))
-        }
+        serde_json::Value::Object(_) => Some(prost_types::value::Kind::StructValue(
+            json_to_proto_struct(v),
+        )),
     };
     prost_types::Value { kind }
 }
@@ -79,7 +87,10 @@ fn json_to_proto_value(v: serde_json::Value) -> prost_types::Value {
 fn json_to_proto_struct(v: serde_json::Value) -> prost_types::Struct {
     match v {
         serde_json::Value::Object(map) => {
-            let fields = map.into_iter().map(|(k, v)| (k, json_to_proto_value(v))).collect();
+            let fields = map
+                .into_iter()
+                .map(|(k, v)| (k, json_to_proto_value(v)))
+                .collect();
             prost_types::Struct { fields }
         }
         _ => prost_types::Struct::default(),
@@ -87,11 +98,13 @@ fn json_to_proto_struct(v: serde_json::Value) -> prost_types::Struct {
 }
 
 fn localized_text_to_proto(txt: Option<LocalizedText>) -> Option<prost_types::Value> {
-    txt.and_then(|t| serde_json::to_value(t).ok()).map(|json| json_to_proto_value(json))
+    txt.and_then(|t| serde_json::to_value(t).ok())
+        .map(|json| json_to_proto_value(json))
 }
 
 fn proto_to_localized_text(val: Option<prost_types::Value>) -> Option<LocalizedText> {
-    val.map(proto_value_to_json).and_then(|json| serde_json::from_value(json).ok())
+    val.map(proto_value_to_json)
+        .and_then(|json| serde_json::from_value(json).ok())
 }
 
 impl From<CatalogDto> for crate::grpc::api::catalog_agent::Catalog {
@@ -395,7 +408,11 @@ impl TryFrom<CreateOdrlPolicyRequest> for NewOdrlPolicyDto {
             CatalogEntityType::DataService => CatalogEntityTypes::DataService,
             CatalogEntityType::Catalog => CatalogEntityTypes::Catalog,
             CatalogEntityType::Dataset => CatalogEntityTypes::Dataset,
-            _ => return Err(Status::invalid_argument("Invalid or Unspecified Entity Type")),
+            _ => {
+                return Err(Status::invalid_argument(
+                    "Invalid or Unspecified Entity Type",
+                ))
+            }
         };
 
         Ok(Self {
@@ -447,8 +464,9 @@ impl TryFrom<CreatePolicyTemplateRequest> for NewPolicyTemplateDto {
     type Error = Status;
 
     fn try_from(req: CreatePolicyTemplateRequest) -> Result<Self, Self::Error> {
-        let content_struct =
-            req.content.ok_or_else(|| Status::invalid_argument("content is required"))?;
+        let content_struct = req
+            .content
+            .ok_or_else(|| Status::invalid_argument("content is required"))?;
         let content_prost_val = prost_types::Value {
             kind: Some(prost_types::value::Kind::StructValue(content_struct)),
         };

@@ -70,7 +70,10 @@ impl TransferAgentMessagesRouter {
                 "/{id}",
                 get(Self::handle_get_message_by_id).delete(Self::handle_delete_message),
             )
-            .route("/process/{process_id}", get(Self::handle_get_messages_by_process_id))
+            .route(
+                "/process/{process_id}",
+                get(Self::handle_get_messages_by_process_id),
+            )
             .with_state(self)
     }
 
@@ -78,7 +81,11 @@ impl TransferAgentMessagesRouter {
         State(state): State<TransferAgentMessagesRouter>,
         Query(params): Query<PaginationParams>,
     ) -> impl IntoResponse {
-        match state.service.get_all_transfer_messages(params.limit, params.page).await {
+        match state
+            .service
+            .get_all_transfer_messages(params.limit, params.page)
+            .await
+        {
             Ok(messages) => (StatusCode::OK, Json(messages)).into_response(),
             Err(err) => err.into_response(),
         }

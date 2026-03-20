@@ -90,10 +90,12 @@ pub struct NewNegotiationMessageModel {
 
 impl From<NewNegotiationMessageModel> for ActiveModel {
     fn from(dto: NewNegotiationMessageModel) -> Self {
-        let new_urn =
-            UrnBuilder::new("negotiation-message", uuid::Uuid::new_v4().to_string().as_str())
-                .build()
-                .expect("UrnBuilder failed");
+        let new_urn = UrnBuilder::new(
+            "negotiation-message",
+            uuid::Uuid::new_v4().to_string().as_str(),
+        )
+        .build()
+        .expect("UrnBuilder failed");
         Self {
             id: ActiveValue::Set(dto.id.unwrap_or(new_urn).to_string()),
             negotiation_agent_process_id: ActiveValue::Set(

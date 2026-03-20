@@ -18,7 +18,7 @@
  */
 
 use crate::entities::negotiation_process::NegotiationProcessDto;
-use crate::protocols::dsp::persistence::NegotiationRpcPersistenceTrait;
+use crate::protocols::dsp::orchestrator::rpc::RPCOrchestratorTrait;
 use crate::protocols::dsp::orchestrator::rpc::step_agreement::RpcAgreementStep;
 use crate::protocols::dsp::orchestrator::rpc::step_event_accepted::RpcEventAcceptedStep;
 use crate::protocols::dsp::orchestrator::rpc::step_event_finalized::RpcEventFinalizedStep;
@@ -36,7 +36,7 @@ use crate::protocols::dsp::orchestrator::rpc::types::{
     RpcNegotiationRequestInitMessageDto, RpcNegotiationRequestMessageDto,
     RpcNegotiationTerminationMessageDto, RpcNegotiationVerificationMessageDto,
 };
-use crate::protocols::dsp::orchestrator::rpc::RPCOrchestratorTrait;
+use crate::protocols::dsp::persistence::NegotiationRpcPersistenceTrait;
 use crate::protocols::dsp::protocol_types::{
     NegotiationAckMessageDto, NegotiationProcessMessageWrapper,
 };
@@ -94,7 +94,11 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         input: &RpcNegotiationRequestInitMessageDto,
     ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationRequestInitMessageDto>> {
         let (response, process) = self.run_lifecycle::<RpcRequestInitStep>(input).await?;
-        Ok(RpcNegotiationMessageDto { request: input.clone(), response, negotiation_agent_model: process })
+        Ok(RpcNegotiationMessageDto {
+            request: input.clone(),
+            response,
+            negotiation_agent_model: process,
+        })
     }
 
     /// Sends a continuation `ContractRequestMessage` (Consumer counter-offer).
@@ -103,7 +107,11 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         input: &RpcNegotiationRequestMessageDto,
     ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationRequestMessageDto>> {
         let (response, process) = self.run_lifecycle::<RpcRequestStep>(input).await?;
-        Ok(RpcNegotiationMessageDto { request: input.clone(), response, negotiation_agent_model: process })
+        Ok(RpcNegotiationMessageDto {
+            request: input.clone(),
+            response,
+            negotiation_agent_model: process,
+        })
     }
 
     /// Sends an initial `ContractOfferMessage` to the Consumer (Provider-initiated flow).
@@ -112,7 +120,11 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         input: &RpcNegotiationOfferInitMessageDto,
     ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationOfferInitMessageDto>> {
         let (response, process) = self.run_lifecycle::<RpcOfferInitStep>(input).await?;
-        Ok(RpcNegotiationMessageDto { request: input.clone(), response, negotiation_agent_model: process })
+        Ok(RpcNegotiationMessageDto {
+            request: input.clone(),
+            response,
+            negotiation_agent_model: process,
+        })
     }
 
     /// Sends a continuation `ContractOfferMessage` (Provider counter-offer).
@@ -121,7 +133,11 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         input: &RpcNegotiationOfferMessageDto,
     ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationOfferMessageDto>> {
         let (response, process) = self.run_lifecycle::<RpcOfferStep>(input).await?;
-        Ok(RpcNegotiationMessageDto { request: input.clone(), response, negotiation_agent_model: process })
+        Ok(RpcNegotiationMessageDto {
+            request: input.clone(),
+            response,
+            negotiation_agent_model: process,
+        })
     }
 
     /// Sends a `ContractAgreementMessage` to the Consumer.
@@ -133,7 +149,11 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         input: &RpcNegotiationAgreementMessageDto,
     ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationAgreementMessageDto>> {
         let (response, process) = self.run_lifecycle::<RpcAgreementStep>(input).await?;
-        Ok(RpcNegotiationMessageDto { request: input.clone(), response, negotiation_agent_model: process })
+        Ok(RpcNegotiationMessageDto {
+            request: input.clone(),
+            response,
+            negotiation_agent_model: process,
+        })
     }
 
     /// Sends a `ContractAgreementVerificationMessage` to the Provider.
@@ -142,7 +162,11 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         input: &RpcNegotiationVerificationMessageDto,
     ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationVerificationMessageDto>> {
         let (response, process) = self.run_lifecycle::<RpcVerificationStep>(input).await?;
-        Ok(RpcNegotiationMessageDto { request: input.clone(), response, negotiation_agent_model: process })
+        Ok(RpcNegotiationMessageDto {
+            request: input.clone(),
+            response,
+            negotiation_agent_model: process,
+        })
     }
 
     /// Sends a `ContractNegotiationEventMessage` with event type `ACCEPTED`.
@@ -151,7 +175,11 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         input: &RpcNegotiationEventAcceptedMessageDto,
     ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationEventAcceptedMessageDto>> {
         let (response, process) = self.run_lifecycle::<RpcEventAcceptedStep>(input).await?;
-        Ok(RpcNegotiationMessageDto { request: input.clone(), response, negotiation_agent_model: process })
+        Ok(RpcNegotiationMessageDto {
+            request: input.clone(),
+            response,
+            negotiation_agent_model: process,
+        })
     }
 
     /// Sends a `ContractNegotiationEventMessage` with event type `FINALIZED`.
@@ -160,7 +188,11 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         input: &RpcNegotiationEventFinalizedMessageDto,
     ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationEventFinalizedMessageDto>> {
         let (response, process) = self.run_lifecycle::<RpcEventFinalizedStep>(input).await?;
-        Ok(RpcNegotiationMessageDto { request: input.clone(), response, negotiation_agent_model: process })
+        Ok(RpcNegotiationMessageDto {
+            request: input.clone(),
+            response,
+            negotiation_agent_model: process,
+        })
     }
 
     /// Sends a `ContractNegotiationTerminationMessage` to the peer.
@@ -169,7 +201,11 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         input: &RpcNegotiationTerminationMessageDto,
     ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationTerminationMessageDto>> {
         let (response, process) = self.run_lifecycle::<RpcTerminationStep>(input).await?;
-        Ok(RpcNegotiationMessageDto { request: input.clone(), response, negotiation_agent_model: process })
+        Ok(RpcNegotiationMessageDto {
+            request: input.clone(),
+            response,
+            negotiation_agent_model: process,
+        })
     }
 }
 
@@ -192,8 +228,7 @@ impl RPCOrchestratorService {
         NegotiationProcessDto,
     )> {
         S::validate(&self.validator, input).await?;
-        let ctx =
-            S::prepare_context(input, &self.persistence_service, &self.mates_service).await?;
+        let ctx = S::prepare_context(input, &self.persistence_service, &self.mates_service).await?;
         S::apply_auth_token(&self.mates_service, &self.http_client, S::auth_peer(&ctx)).await;
         let (response, process) =
             S::send_and_persist(&self.http_client, &self.persistence_service, &ctx, input).await?;

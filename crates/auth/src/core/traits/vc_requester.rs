@@ -38,7 +38,10 @@ pub trait CoreVcRequesterTrait: Send + Sync + 'static {
         let (vc_model, int_model) = self.vc_req().start(&payload)?;
         let mut vc_model = self.repo().vc_req().create(vc_model).await?;
         let mut int_model = self.repo().interaction_req().create(int_model).await?;
-        let uri = self.vc_req().send_req(&mut vc_model, &mut int_model).await?;
+        let uri = self
+            .vc_req()
+            .send_req(&mut vc_model, &mut int_model)
+            .await?;
         let vc_model = self.repo().vc_req().update(vc_model).await?;
         let int_model = self.repo().interaction_req().update(int_model).await?;
         match uri {
@@ -54,7 +57,7 @@ pub trait CoreVcRequesterTrait: Send + Sync + 'static {
                 }
                 Ok(Some(uri))
             }
-            None => Ok(None)
+            None => Ok(None),
         }
     }
 
@@ -68,7 +71,7 @@ pub trait CoreVcRequesterTrait: Send + Sync + 'static {
     async fn continue_req(
         &self,
         id: String,
-        payload: ApprovedCallbackBody
+        payload: ApprovedCallbackBody,
     ) -> Outcome<mates::Model> {
         let mut int_model = self.repo().interaction_req().get_by_id(&id).await?;
         let result = self.callback().check_callback(&mut int_model, &payload);
@@ -76,7 +79,10 @@ pub trait CoreVcRequesterTrait: Send + Sync + 'static {
         result?;
         let response = self.callback().continue_req(&int_model).await?;
         let mut vc_req_model = self.repo().vc_req().get_by_id(&id).await?;
-        let mate = self.vc_req().manage_res(&mut vc_req_model, response).await?;
+        let mate = self
+            .vc_req()
+            .manage_res(&mut vc_req_model, response)
+            .await?;
         let vc_req_model = self.repo().vc_req().update(vc_req_model).await?;
         let mate = self.repo().mates().force_create(mate).await?;
 

@@ -49,7 +49,11 @@ impl MigrationTrait for Migration {
                             .string()
                             .not_null(),
                     )
-                    .col(ColumnDef::new(NegotiationAgentOffers::OfferId).string().not_null())
+                    .col(
+                        ColumnDef::new(NegotiationAgentOffers::OfferId)
+                            .string()
+                            .not_null(),
+                    )
                     .col(
                         ColumnDef::new(NegotiationAgentOffers::OfferContent)
                             .json_binary()
@@ -77,7 +81,10 @@ impl MigrationTrait for Migration {
                                 NegotiationAgentOffers::Table,
                                 NegotiationAgentOffers::NegotiationAgentMessageId,
                             )
-                            .to(NegotiationAgentMessages::Table, NegotiationAgentMessages::Id)
+                            .to(
+                                NegotiationAgentMessages::Table,
+                                NegotiationAgentMessages::Id,
+                            )
                             .on_delete(ForeignKeyAction::Cascade),
                     )
                     .to_owned(),
@@ -86,7 +93,13 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager.drop_table(Table::drop().table(NegotiationAgentOffers::Table).to_owned()).await
+        manager
+            .drop_table(
+                Table::drop()
+                    .table(NegotiationAgentOffers::Table)
+                    .to_owned(),
+            )
+            .await
     }
 }
 

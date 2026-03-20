@@ -27,7 +27,8 @@ use crate::protocols::dsp::orchestrator::rpc::types::{
 };
 use crate::protocols::dsp::persistence::TransferPersistenceTrait;
 use crate::protocols::dsp::protocol_types::{
-    DataAddressDto, TransferCompletionMessageDto, TransferProcessAckDto, TransferProcessMessageWrapper,
+    DataAddressDto, TransferCompletionMessageDto, TransferProcessAckDto,
+    TransferProcessMessageWrapper,
 };
 use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRpcSteps;
 use common::http_client::HttpClient;
@@ -95,15 +96,14 @@ impl TransferRpcStep for CompletionStep {
         ctx: &RpcPeerContext,
         payload: Arc<TransferCompletionMessageDto>,
         url_suffix: &str,
-    ) -> Outcome<(TransferProcessMessageWrapper<TransferProcessAckDto>, TransferProcessDto)>
-    {
+    ) -> Outcome<(
+        TransferProcessMessageWrapper<TransferProcessAckDto>,
+        TransferProcessDto,
+    )> {
         continuation_send_and_persist(http_client, persistence, ctx, payload, url_suffix).await
     }
 
-    async fn post_hook(
-        dp: &Arc<dyn DataPlaneFacadeTrait>,
-        ctx: &RpcPeerContext,
-    ) -> Outcome<()> {
+    async fn post_hook(dp: &Arc<dyn DataPlaneFacadeTrait>, ctx: &RpcPeerContext) -> Outcome<()> {
         dp.on_transfer_completion_post(&ctx.process).await
     }
 }

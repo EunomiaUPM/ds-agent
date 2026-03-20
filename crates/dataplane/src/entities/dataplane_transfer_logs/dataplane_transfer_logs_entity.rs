@@ -46,6 +46,9 @@ impl DataplaneTransferLogsEntitiesTrait for DataplaneTransferLogsEntityService {
             .get_transfer_logs_by_dataplane_process_id(&dataplane_process_id)
             .await?;
 
-        Ok(logs.into_iter().map(|log| DataplaneTransferLogDto { inner: log }).collect())
+        Ok(logs
+            .into_iter()
+            .map(|log| DataplaneTransferLogDto { inner: log })
+            .collect())
     }
 }

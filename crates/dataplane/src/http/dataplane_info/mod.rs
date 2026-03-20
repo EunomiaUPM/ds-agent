@@ -56,7 +56,10 @@ impl DataPlaneProcessesRouter {
         data_plane_process_entity: Arc<dyn DataplaneTransfersEntitiesTrait>,
         transfer_event_entity: Arc<dyn TransferEventEntitiesTrait>,
     ) -> Self {
-        Self { data_plane_process_entity, transfer_event_entity }
+        Self {
+            data_plane_process_entity,
+            transfer_event_entity,
+        }
     }
     pub fn router(self) -> Router {
         Router::new()
@@ -64,8 +67,14 @@ impl DataPlaneProcessesRouter {
             .route("/", post(Self::handle_create_dataplane_transfer))
             .route("/batch", post(Self::handle_get_batch_dataplane_transfers))
             .route("/{dataplane_id}", get(Self::handle_get_data_plane_by_id))
-            .route("/{dataplane_id}", put(Self::handle_put_dataplane_transfer_by_id))
-            .route("/{dataplane_id}", delete(Self::handle_delete_dataplane_transfer))
+            .route(
+                "/{dataplane_id}",
+                put(Self::handle_put_dataplane_transfer_by_id),
+            )
+            .route(
+                "/{dataplane_id}",
+                delete(Self::handle_delete_dataplane_transfer),
+            )
             .route("/{dataplane_id}/info", get(Self::handle_get_dataplane_info))
             .route(
                 "/transfer-process/{transfer_process_id}",
@@ -77,7 +86,11 @@ impl DataPlaneProcessesRouter {
     async fn handle_get_all_dataplane_transfers(
         State(state): State<DataPlaneProcessesRouter>,
     ) -> impl IntoResponse {
-        match state.data_plane_process_entity.get_all_dataplane_transfers().await {
+        match state
+            .data_plane_process_entity
+            .get_all_dataplane_transfers()
+            .await
+        {
             Ok(transfers) => (StatusCode::OK, Json(transfers)).into_response(),
             Err(e) => e.into_response(),
         }
@@ -91,7 +104,11 @@ impl DataPlaneProcessesRouter {
             Ok(urn) => urn,
             Err(resp) => return resp,
         };
-        match state.data_plane_process_entity.get_dataplane_transfer_by_id(&data_plane_id).await {
+        match state
+            .data_plane_process_entity
+            .get_dataplane_transfer_by_id(&data_plane_id)
+            .await
+        {
             Ok(dataplane_session) => match dataplane_session {
                 Some(dataplane_session) => {
                     (StatusCode::OK, Json(dataplane_session)).into_response()
@@ -117,7 +134,11 @@ impl DataPlaneProcessesRouter {
             Ok(v) => v,
             Err(e) => return e.into_response(),
         };
-        match state.data_plane_process_entity.get_batch_dataplane_transfers(&input.ids).await {
+        match state
+            .data_plane_process_entity
+            .get_batch_dataplane_transfers(&input.ids)
+            .await
+        {
             Ok(transfers) => (StatusCode::OK, Json(transfers)).into_response(),
             Err(e) => e.into_response(),
         }
@@ -202,7 +223,11 @@ impl DataPlaneProcessesRouter {
             Ok(urn) => urn,
             Err(resp) => return resp,
         };
-        match state.data_plane_process_entity.delete_dataplane_transfer(&data_plane_id).await {
+        match state
+            .data_plane_process_entity
+            .delete_dataplane_transfer(&data_plane_id)
+            .await
+        {
             Ok(_) => StatusCode::NO_CONTENT.into_response(),
             Err(e) => e.into_response(),
         }
@@ -218,7 +243,11 @@ impl DataPlaneProcessesRouter {
             Err(resp) => return resp,
         };
 
-        match state.data_plane_process_entity.get_dataplane_transfer_by_id(&data_plane_id).await {
+        match state
+            .data_plane_process_entity
+            .get_dataplane_transfer_by_id(&data_plane_id)
+            .await
+        {
             Ok(Some(transfer)) => {
                 let mut ingress_url = None;
                 if transfer.inner.interaction_mode

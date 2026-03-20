@@ -24,12 +24,12 @@ use crate::types::business::BusinessResponse;
 pub trait BusinessTrait: Send + Sync + 'static {
     fn start(
         &self,
-        payload: &RainbowBusinessLoginRequest
+        payload: &RainbowBusinessLoginRequest,
     ) -> (recv_request::NewModel, recv_verification::Model);
     fn get_token(
         &self,
         mate: &mates::Model,
-        bus_model: &business_mates::Model
+        bus_model: &business_mates::Model,
     ) -> Outcome<BusinessResponse>;
     fn end(&self, ver_model: &recv_verification::Model) -> Outcome<business_mates::NewModel>;
 }

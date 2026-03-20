@@ -74,7 +74,11 @@ impl ConnectorTemplateRouter {
         State(state): State<ConnectorTemplateRouter>,
         Query(params): Query<PaginationParams>,
     ) -> impl IntoResponse {
-        match state.service.get_all_templates(params.limit, params.page).await {
+        match state
+            .service
+            .get_all_templates(params.limit, params.page)
+            .await
+        {
             Ok(templates) => (StatusCode::OK, Json(templates)).into_response(),
             Err(err) => err.into_response(),
         }
@@ -105,7 +109,11 @@ impl ConnectorTemplateRouter {
         State(state): State<ConnectorTemplateRouter>,
         Path((name, version)): Path<(String, String)>,
     ) -> impl IntoResponse {
-        match state.service.get_template_by_name_and_version(&name, &version).await {
+        match state
+            .service
+            .get_template_by_name_and_version(&name, &version)
+            .await
+        {
             Ok(Some(template)) => (StatusCode::OK, Json(template)).into_response(),
             Ok(None) => {
                 let err = CommonErrors::missing_resource_new("main", "Main Catalog not found");
@@ -118,7 +126,11 @@ impl ConnectorTemplateRouter {
         State(state): State<ConnectorTemplateRouter>,
         Path((name, version)): Path<(String, String)>,
     ) -> impl IntoResponse {
-        match state.service.delete_template_by_name_and_version(&name, &version).await {
+        match state
+            .service
+            .delete_template_by_name_and_version(&name, &version)
+            .await
+        {
             Ok(_) => StatusCode::ACCEPTED.into_response(),
             Err(err) => err.into_response(),
         }

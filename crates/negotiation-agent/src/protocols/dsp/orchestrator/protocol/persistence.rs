@@ -36,14 +36,14 @@ use async_trait::async_trait;
 use common::config::types::roles::RoleConfig;
 use common::dsp_common::odrl::ContractRequestMessageOfferTypes;
 use common::errors::{CommonErrors, ErrorLog};
-use ymir::errors::{Errors, Outcome};
+use common::facades::Mates;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::sync::Arc;
 use tracing::error;
 use urn::Urn;
-use common::facades::Mates;
+use ymir::errors::{Errors, Outcome};
 
 pub struct OrchestrationPersistenceForProtocol {
     negotiation_process_service: Arc<dyn NegotiationAgentProcessesTrait>,
@@ -74,8 +74,9 @@ impl OrchestrationPersistenceForProtocol {
     ) -> Outcome<NegotiationProcessDto> {
         let mut process = self.create_process(payload, mate).await?;
         let process_id = self.convert_string_to_urn(&process.inner.id)?;
-        let message =
-            self.create_message_with_old_state(&process_id, payload, &process, "-").await?;
+        let message = self
+            .create_message_with_old_state(&process_id, payload, &process, "-")
+            .await?;
         let message_id = self.convert_string_to_urn(&message.inner.id)?;
         let offer = self.create_offer(&process_id, &message_id, payload).await?;
         process.messages.push(message.inner);
@@ -127,7 +128,13 @@ impl OrchestrationPersistenceForProtocol {
         let message = self.create_message(&process_id, payload, &process).await?;
         let message_id = self.convert_string_to_urn(&message.inner.id)?;
         let agreement = self
-            .create_agreement(&process_id, &message_id, &associated_agent_peer, payload, mate)
+            .create_agreement(
+                &process_id,
+                &message_id,
+                &associated_agent_peer,
+                payload,
+                mate,
+            )
             .await?;
         new_process.messages.push(message.inner);
         new_process.agreement = Some(agreement.inner);
@@ -145,7 +152,9 @@ impl OrchestrationPersistenceForProtocol {
         let mut new_process = self.update_process(&process_id, payload, mate).await?;
         let message = self.create_message(&process_id, payload, &process).await?;
         let message_id = self.convert_string_to_urn(&message.inner.id)?;
-        let agreement = self.update_agreement(&process_id, &message_id, payload, mate).await?;
+        let agreement = self
+            .update_agreement(&process_id, &message_id, payload, mate)
+            .await?;
         new_process.messages.push(message.inner);
         new_process.agreement = Some(agreement.inner);
         Ok(new_process)
@@ -249,7 +258,8 @@ impl OrchestrationPersistenceForProtocol {
         process: &NegotiationProcessDto,
     ) -> Outcome<NegotiationMessageDto> {
         let old_state = process.inner.state.clone();
-        self.create_message_with_old_state(process_id, message, process, &old_state).await
+        self.create_message_with_old_state(process_id, message, process, &old_state)
+            .await
     }
 
     async fn create_message_with_old_state(
@@ -363,7 +373,9 @@ impl OrchestrationPersistenceForProtocol {
             .agreement_service
             .put_agreement(
                 &agreement_urn,
-                &EditAgreementDto { state: Some("ACTIVE".to_string()) },
+                &EditAgreementDto {
+                    state: Some("ACTIVE".to_string()),
+                },
             )
             .await?;
         Ok(agreement)

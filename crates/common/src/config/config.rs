@@ -27,7 +27,7 @@ use ymir::utils::read;
 use crate::config::services::traits::CatalogConfigTrait;
 use crate::config::services::{
     CatalogConfig, CommonConfig, ContractsConfig, GatewayConfig, MonolithConfig, SsiAuthConfig,
-    TransferConfig
+    TransferConfig,
 };
 use crate::config::types::traits::CommonConfigTrait;
 
@@ -38,7 +38,7 @@ pub struct ApplicationConfig {
     contracts: Option<ContractsConfig>,
     catalog: Option<CatalogConfig>,
     ssi_auth: Option<SsiAuthConfig>,
-    gateway: Option<GatewayConfig>
+    gateway: Option<GatewayConfig>,
 }
 
 impl ApplicationConfig {
@@ -49,20 +49,25 @@ impl ApplicationConfig {
             contracts: None,
             catalog: None,
             ssi_auth: None,
-            gateway: None
+            gateway: None,
         }
     }
 }
 
 impl ApplicationConfig {
     pub fn is_mono_catalog_datahub(&self) -> bool {
-        self.catalog.as_ref().map(|catalog| catalog.is_datahub()).unwrap_or(false)
+        self.catalog
+            .as_ref()
+            .map(|catalog| catalog.is_datahub())
+            .unwrap_or(false)
     }
 }
 
 impl ApplicationConfig {
     pub fn ssi_auth(&self) -> &SsiAuthConfig {
-        self.ssi_auth.as_ref().expect("Missing SSI Authentication Config")
+        self.ssi_auth
+            .as_ref()
+            .expect("Missing SSI Authentication Config")
     }
     pub fn transfer(&self) -> &TransferConfig {
         self.transfer.as_ref().expect("Missing Transfer Config")

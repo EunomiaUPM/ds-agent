@@ -26,14 +26,14 @@ pub enum MissingAction {
     Did,
     Onboarding,
     Key,
-    Unknown
+    Unknown,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum BadFormat {
     Sent,
     Received,
-    Unknown
+    Unknown,
 }
 impl fmt::Display for MissingAction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -43,7 +43,7 @@ impl fmt::Display for MissingAction {
             MissingAction::Did => "DID",
             MissingAction::Key => "Key",
             MissingAction::Onboarding => "Onboarding",
-            _ => "Unknown"
+            _ => "Unknown",
         };
         write!(f, "{}", s)
     }

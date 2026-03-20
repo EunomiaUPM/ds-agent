@@ -23,15 +23,15 @@ use ymir::errors::Outcome;
 
 use crate::config::types::min_known_config::MinKnownConfig;
 use crate::config::types::traits::MinKnownConfigTrait;
-use crate::facades::{Mates, VerifyTokenRequest};
 use crate::facades::ssi_auth_facade::SSIAuthFacadeTrait;
+use crate::facades::{Mates, VerifyTokenRequest};
 use crate::http_client::HttpClient;
 
 const SSI_AUTH_FACADE_VERIFICATION_URL: &str = "/api/v1/mates/token";
 
 pub struct SSIAuthFacadeService {
     config: Arc<MinKnownConfig>,
-    client: Arc<HttpClient>
+    client: Arc<HttpClient>,
 }
 
 impl SSIAuthFacadeService {

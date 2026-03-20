@@ -48,7 +48,11 @@ impl GatewayHttpWorker {
             .await?
             .merge(well_known_router)
             .merge(health_router);
-        let host = if config.common().is_local() { "127.0.0.1" } else { "0.0.0.0" };
+        let host = if config.common().is_local() {
+            "127.0.0.1"
+        } else {
+            "0.0.0.0"
+        };
         let port = config.common().get_internal_port(HostType::Http);
         let addr = format!("{}{}", host, port);
 
@@ -72,16 +76,19 @@ impl GatewayHttpWorker {
     }
 
     pub async fn create_root_http_router(config: &GatewayConfig) -> Outcome<Router> {
-        let router = create_gateway_http_router(config).await.fallback(Self::handler_404).layer(
-            TraceLayer::new_for_http()
-                .make_span_with(
-                    |_req: &Request<_>| tracing::info_span!("request", id = %Uuid::new_v4()),
-                )
-                .on_request(|request: &Request<_>, _span: &tracing::Span| {
-                    tracing::info!("{} {}", request.method(), request.uri());
-                })
-                .on_response(DefaultOnResponse::new().level(tracing::Level::TRACE)),
-        );
+        let router = create_gateway_http_router(config)
+            .await
+            .fallback(Self::handler_404)
+            .layer(
+                TraceLayer::new_for_http()
+                    .make_span_with(
+                        |_req: &Request<_>| tracing::info_span!("request", id = %Uuid::new_v4()),
+                    )
+                    .on_request(|request: &Request<_>, _span: &tracing::Span| {
+                        tracing::info!("{} {}", request.method(), request.uri());
+                    })
+                    .on_response(DefaultOnResponse::new().level(tracing::Level::TRACE)),
+            );
         Ok(router)
     }
 

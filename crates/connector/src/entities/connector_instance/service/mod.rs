@@ -49,7 +49,11 @@ impl ConnectorInstanceEntitiesService {
         distribution_facade: Arc<dyn DistributionFacadeTrait>,
         own_url: String,
     ) -> Self {
-        Self { repo, distribution_facade, own_url }
+        Self {
+            repo,
+            distribution_facade,
+            own_url,
+        }
     }
 
     fn map_model_to_dto(model: connector_instances::Model) -> Outcome<ConnectorInstanceDto> {
@@ -64,7 +68,10 @@ impl ConnectorInstanceEntitiesService {
         let distribution_urn = Urn::from_str(&model.distribution_id)?;
 
         let instance_meta: InstanceMetadataDto = serde_json::from_value(model.metadata.clone())
-            .unwrap_or(InstanceMetadataDto { description: None, owner_id: None });
+            .unwrap_or(InstanceMetadataDto {
+                description: None,
+                owner_id: None,
+            });
 
         Ok(ConnectorInstanceDto {
             id: urn,
@@ -86,7 +93,11 @@ impl ConnectorInstanceEntitiesService {
 impl ConnectorInstanceTrait for ConnectorInstanceEntitiesService {
     async fn get_instance_by_id(&self, id: &Urn) -> Outcome<Option<ConnectorInstanceDto>> {
         let id_str = id.to_string();
-        let instance = self.repo.get_instances_repo().get_instance_by_id(&id_str).await?;
+        let instance = self
+            .repo
+            .get_instances_repo()
+            .get_instance_by_id(&id_str)
+            .await?;
 
         match instance {
             Some(model) => Ok(Some(Self::map_model_to_dto(model)?)),
@@ -100,8 +111,11 @@ impl ConnectorInstanceTrait for ConnectorInstanceEntitiesService {
     ) -> Outcome<Option<ConnectorInstanceDto>> {
         let dist_id_str = distribution_id.to_string();
 
-        let instance =
-            self.repo.get_distro_relation_repo().get_relation_by_distribution(&dist_id_str).await?;
+        let instance = self
+            .repo
+            .get_distro_relation_repo()
+            .get_relation_by_distribution(&dist_id_str)
+            .await?;
 
         if instance.is_none() {
             return Ok(None);
@@ -148,7 +162,10 @@ impl ConnectorInstanceTrait for ConnectorInstanceEntitiesService {
 
         // fetch distribution or error
         let distribution_id = instance_dto.distribution_id.to_string();
-        let _ = self.distribution_facade.resolve_distribution_by_id(&distribution_id).await?;
+        let _ = self
+            .distribution_facade
+            .resolve_distribution_by_id(&distribution_id)
+            .await?;
 
         // validate instance parameters
         let mut template_spec: ConnectorTemplateDto =
@@ -211,7 +228,11 @@ impl ConnectorInstanceTrait for ConnectorInstanceEntitiesService {
             authentication: serde_json::to_value(authentication)?,
             interaction: serde_json::to_value(interaction)?,
         };
-        let saved_model = self.repo.get_instances_repo().create_instance(&new_instance).await?;
+        let saved_model = self
+            .repo
+            .get_instances_repo()
+            .create_instance(&new_instance)
+            .await?;
 
         // create or edit relation
         let instance_distro_relation = self
@@ -239,7 +260,10 @@ impl ConnectorInstanceTrait for ConnectorInstanceEntitiesService {
 
     async fn delete_instance_by_id(&self, id: &Urn) -> Outcome<()> {
         let id_str = id.to_string();
-        self.repo.get_instances_repo().delete_instance_by_id(&id_str).await?;
+        self.repo
+            .get_instances_repo()
+            .delete_instance_by_id(&id_str)
+            .await?;
         Ok(())
     }
 }

@@ -57,8 +57,10 @@ impl ConnectorSetup {
         let db_connection = vault.get_db_connection(config.common()).await;
         let connector_repo: Arc<dyn ConnectorRepoTrait> =
             Arc::new(ConnectorRepoForSql::create_repo(db_connection));
-        let distribution_facade =
-            Arc::new(DistributionFacadeServiceForConnector::new(config, http_client));
+        let distribution_facade = Arc::new(DistributionFacadeServiceForConnector::new(
+            config,
+            http_client,
+        ));
         let own_url = config.common().get_host(HostType::Http);
         Arc::new(ConnectorInstanceEntitiesService::new(
             connector_repo,
@@ -81,8 +83,9 @@ impl ConnectorSetup {
             http_client.clone(),
         ));
 
-        let connector_template_service =
-            Arc::new(ConnectorTemplateEntitiesService::new(connector_repo.clone()));
+        let connector_template_service = Arc::new(ConnectorTemplateEntitiesService::new(
+            connector_repo.clone(),
+        ));
         let connector_template_router =
             ConnectorTemplateRouter::new(connector_template_service.clone(), config_arc.clone())
                 .router();

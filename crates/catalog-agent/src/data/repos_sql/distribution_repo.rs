@@ -57,14 +57,12 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
             Ok(distributions) => Ok(distributions),
             Err(err) => Err(CatalogAgentRepoErrors::DistributionRepoErrors(
                 DistributionRepoErrors::ErrorFetchingDistribution(err.into()),
-            ).into_errors()),
+            )
+            .into_errors()),
         }
     }
 
-    async fn get_batch_distributions(
-        &self,
-        ids: &Vec<Urn>,
-    ) -> Outcome<Vec<distribution::Model>> {
+    async fn get_batch_distributions(&self, ids: &Vec<Urn>) -> Outcome<Vec<distribution::Model>> {
         let distribution_ids = ids.iter().map(|t| t.to_string()).collect::<Vec<_>>();
         let distribution_process = distribution::Entity::find()
             .filter(distribution::Column::Id.is_in(distribution_ids))
@@ -74,7 +72,8 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
             Ok(dataset_process) => Ok(dataset_process),
             Err(err) => Err(CatalogAgentRepoErrors::DistributionRepoErrors(
                 DistributionRepoErrors::ErrorFetchingDistribution(err.into()),
-            ).into_errors()),
+            )
+            .into_errors()),
         }
     }
 
@@ -83,7 +82,9 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
         dataset_id: &Urn,
     ) -> Outcome<Vec<distribution::Model>> {
         let dataset_id = dataset_id.to_string();
-        let dataset = dataset::Entity::find_by_id(dataset_id).one(&self.db_connection).await;
+        let dataset = dataset::Entity::find_by_id(dataset_id)
+            .one(&self.db_connection)
+            .await;
         match dataset {
             Ok(dataset) => match dataset {
                 Some(dataset) => {
@@ -95,16 +96,19 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
                         Ok(distributions) => Ok(distributions),
                         Err(err) => Err(CatalogAgentRepoErrors::DistributionRepoErrors(
                             DistributionRepoErrors::ErrorFetchingDistribution(err.into()),
-                        ).into_errors()),
+                        )
+                        .into_errors()),
                     }
                 }
                 None => Err(CatalogAgentRepoErrors::DatasetRepoErrors(
                     DatasetRepoErrors::DatasetNotFound,
-                ).into_errors()),
+                )
+                .into_errors()),
             },
             Err(err) => Err(CatalogAgentRepoErrors::DistributionRepoErrors(
                 DistributionRepoErrors::ErrorFetchingDistribution(err.into()),
-            ).into_errors()),
+            )
+            .into_errors()),
         }
     }
 
@@ -120,11 +124,13 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
             .map_err(|err| {
                 CatalogAgentRepoErrors::DistributionRepoErrors(
                     DistributionRepoErrors::ErrorFetchingDistribution(err.into()),
-                ).into_errors()
+                )
+                .into_errors()
             })?
-            .ok_or(CatalogAgentRepoErrors::DatasetRepoErrors(
-                DatasetRepoErrors::DatasetNotFound,
-            ).into_errors())?;
+            .ok_or(
+                CatalogAgentRepoErrors::DatasetRepoErrors(DatasetRepoErrors::DatasetNotFound)
+                    .into_errors(),
+            )?;
         let distribution = distribution::Entity::find()
             .filter(distribution::Column::DatasetId.eq(dataset_id.clone()))
             .filter(distribution::Column::DctFormat.eq(dct_formats.to_string()))
@@ -133,11 +139,15 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
             .map_err(|err| {
                 CatalogAgentRepoErrors::DistributionRepoErrors(
                     DistributionRepoErrors::ErrorFetchingDistribution(err.into()),
-                ).into_errors()
+                )
+                .into_errors()
             })?
-            .ok_or(CatalogAgentRepoErrors::DistributionRepoErrors(
-                DistributionRepoErrors::DistributionNotFound,
-            ).into_errors())?;
+            .ok_or(
+                CatalogAgentRepoErrors::DistributionRepoErrors(
+                    DistributionRepoErrors::DistributionNotFound,
+                )
+                .into_errors(),
+            )?;
         Ok(distribution)
     }
 
@@ -146,13 +156,15 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
         distribution_id: &Urn,
     ) -> Outcome<Option<distribution::Model>> {
         let distribution_id = distribution_id.to_string();
-        let distribution =
-            distribution::Entity::find_by_id(distribution_id).one(&self.db_connection).await;
+        let distribution = distribution::Entity::find_by_id(distribution_id)
+            .one(&self.db_connection)
+            .await;
         match distribution {
             Ok(distribution) => Ok(distribution),
             Err(err) => Err(CatalogAgentRepoErrors::DistributionRepoErrors(
                 DistributionRepoErrors::ErrorFetchingDistribution(err.into()),
-            ).into_errors()),
+            )
+            .into_errors()),
         }
     }
 
@@ -168,32 +180,37 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
                 .one(&self.db_connection)
                 .await
                 .map_err(|e| {
-                CatalogAgentRepoErrors::DistributionRepoErrors(
-                    DistributionRepoErrors::ErrorFetchingDistribution(e.into()),
-                ).into_errors()
-            })?;
+                    CatalogAgentRepoErrors::DistributionRepoErrors(
+                        DistributionRepoErrors::ErrorFetchingDistribution(e.into()),
+                    )
+                    .into_errors()
+                })?;
             if data_service.is_none() {
                 return Err(CatalogAgentRepoErrors::DistributionRepoErrors(
                     DistributionRepoErrors::DistributionNotFound,
-                ).into_errors());
+                )
+                .into_errors());
             }
         }
 
-        let old_model =
-            distribution::Entity::find_by_id(distribution_id).one(&self.db_connection).await;
+        let old_model = distribution::Entity::find_by_id(distribution_id)
+            .one(&self.db_connection)
+            .await;
         let old_model = match old_model {
             Ok(old_model) => match old_model {
                 Some(old_model) => old_model,
                 None => {
                     return Err(CatalogAgentRepoErrors::DistributionRepoErrors(
                         DistributionRepoErrors::DistributionNotFound,
-                    ).into_errors())
+                    )
+                    .into_errors())
                 }
             },
             Err(err) => {
                 return Err(CatalogAgentRepoErrors::DistributionRepoErrors(
                     DistributionRepoErrors::ErrorFetchingDistribution(err.into()),
-                ).into_errors());
+                )
+                .into_errors());
             }
         };
         let mut old_active_model: distribution::ActiveModel = old_model.into();
@@ -212,7 +229,8 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
             Ok(model) => Ok(model),
             Err(err) => Err(CatalogAgentRepoErrors::DistributionRepoErrors(
                 DistributionRepoErrors::ErrorUpdatingDistribution(err.into()),
-            ).into_errors()),
+            )
+            .into_errors()),
         }
     }
 
@@ -227,12 +245,14 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
                 .map_err(|err| {
                     CatalogAgentRepoErrors::DistributionRepoErrors(
                         DistributionRepoErrors::ErrorFetchingDistribution(err.into()),
-                    ).into_errors()
+                    )
+                    .into_errors()
                 })?;
         if dataset.is_none() {
             return Err(CatalogAgentRepoErrors::DatasetRepoErrors(
                 DatasetRepoErrors::DatasetNotFound,
-            ).into_errors());
+            )
+            .into_errors());
         }
 
         let data_service =
@@ -242,42 +262,46 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
                 .map_err(|err| {
                     CatalogAgentRepoErrors::DistributionRepoErrors(
                         DistributionRepoErrors::ErrorFetchingDistribution(err.into()),
-                    ).into_errors()
+                    )
+                    .into_errors()
                 })?;
         if data_service.is_none() {
             return Err(CatalogAgentRepoErrors::DataServiceRepoErrors(
                 DataServiceRepoErrors::DataServiceNotFound,
-            ).into_errors());
+            )
+            .into_errors());
         }
 
         let model: distribution::ActiveModel = new_distribution_model.into();
-        let distribution =
-            distribution::Entity::insert(model).exec_with_returning(&self.db_connection).await;
+        let distribution = distribution::Entity::insert(model)
+            .exec_with_returning(&self.db_connection)
+            .await;
         match distribution {
             Ok(distribution) => Ok(distribution),
             Err(err) => Err(CatalogAgentRepoErrors::DistributionRepoErrors(
                 DistributionRepoErrors::ErrorCreatingDistribution(err.into()),
-            ).into_errors()),
+            )
+            .into_errors()),
         }
     }
 
-    async fn delete_distribution_by_id(
-        &self,
-        distribution_id: &Urn,
-    ) -> Outcome<()> {
+    async fn delete_distribution_by_id(&self, distribution_id: &Urn) -> Outcome<()> {
         let distribution_id = distribution_id.to_string();
-        let distribution =
-            distribution::Entity::delete_by_id(distribution_id).exec(&self.db_connection).await;
+        let distribution = distribution::Entity::delete_by_id(distribution_id)
+            .exec(&self.db_connection)
+            .await;
         match distribution {
             Ok(delete_result) => match delete_result.rows_affected {
                 0 => Err(CatalogAgentRepoErrors::DistributionRepoErrors(
                     DistributionRepoErrors::DistributionNotFound,
-                ).into_errors()),
+                )
+                .into_errors()),
                 _ => Ok(()),
             },
             Err(err) => Err(CatalogAgentRepoErrors::DistributionRepoErrors(
                 DistributionRepoErrors::ErrorDeletingDistribution(err.into()),
-            ).into_errors()),
+            )
+            .into_errors()),
         }
     }
 }

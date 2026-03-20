@@ -62,7 +62,9 @@ impl NegotiationAgentAgreementsService for NegotiationAgentAgreementGrpc {
             })
             .collect();
 
-        Ok(Response::new(AgreementListResponse { agreements: proto_agreements }))
+        Ok(Response::new(AgreementListResponse {
+            agreements: proto_agreements,
+        }))
     }
 
     async fn get_batch_agreements(
@@ -92,7 +94,9 @@ impl NegotiationAgentAgreementsService for NegotiationAgentAgreementGrpc {
             })
             .collect();
 
-        Ok(Response::new(AgreementListResponse { agreements: proto_agreements }))
+        Ok(Response::new(AgreementListResponse {
+            agreements: proto_agreements,
+        }))
     }
 
     async fn get_agreement_by_id(
@@ -118,9 +122,15 @@ impl NegotiationAgentAgreementsService for NegotiationAgentAgreementGrpc {
         let urn = Urn::from_str(&req.process_id)
             .map_err(|e| Status::invalid_argument(format!("Invalid Process ID URN: {}", e)))?;
 
-        match self.service.get_agreement_by_negotiation_process(&urn).await {
+        match self
+            .service
+            .get_agreement_by_negotiation_process(&urn)
+            .await
+        {
             Ok(Some(dto)) => Ok(Response::new(dto.into())),
-            Ok(None) => Err(Status::not_found("Agreement not found for this negotiation process")),
+            Ok(None) => Err(Status::not_found(
+                "Agreement not found for this negotiation process",
+            )),
             Err(e) => Err(Status::internal(e.to_string())),
         }
     }
@@ -133,9 +143,15 @@ impl NegotiationAgentAgreementsService for NegotiationAgentAgreementGrpc {
         let urn = Urn::from_str(&req.message_id)
             .map_err(|e| Status::invalid_argument(format!("Invalid Message ID URN: {}", e)))?;
 
-        match self.service.get_agreement_by_negotiation_message(&urn).await {
+        match self
+            .service
+            .get_agreement_by_negotiation_message(&urn)
+            .await
+        {
             Ok(Some(dto)) => Ok(Response::new(dto.into())),
-            Ok(None) => Err(Status::not_found("Agreement not found for this negotiation message")),
+            Ok(None) => Err(Status::not_found(
+                "Agreement not found for this negotiation message",
+            )),
             Err(e) => Err(Status::internal(e.to_string())),
         }
     }

@@ -39,16 +39,20 @@ impl DspDataPlaneFacade {
         dataplane_manager: Arc<DataplaneManager>,
         proxy_base_url: String,
     ) -> DspDataPlaneFacade {
-        DspDataPlaneFacade { dataplane_manager, proxy_base_url }
+        DspDataPlaneFacade {
+            dataplane_manager,
+            proxy_base_url,
+        }
     }
 
     /// Reads the `IngressConfig::HttpListener` path from the DB and prepends `proxy_base_url`
     /// to produce a full DataAddressDto. Returns `None` for Connector-based ingress.
-    async fn ingress_as_data_address(
-        &self,
-        transfer_id: &Urn,
-    ) -> Outcome<Option<DataAddressDto>> {
-        if let Some(addr) = self.dataplane_manager.get_ingress_address(transfer_id).await? {
+    async fn ingress_as_data_address(&self, transfer_id: &Urn) -> Outcome<Option<DataAddressDto>> {
+        if let Some(addr) = self
+            .dataplane_manager
+            .get_ingress_address(transfer_id)
+            .await?
+        {
             return Ok(Some(DataAddressDto {
                 endpoint_type: addr.endpoint_type,
                 endpoint: Some(format!("{}{}", self.proxy_base_url, addr.endpoint)),
@@ -59,11 +63,7 @@ impl DspDataPlaneFacade {
     }
 
     /// Helper: fire a simple command (no payload) on the DataplaneManager.
-    async fn execute_command(
-        &self,
-        transfer_id: &Urn,
-        command: DataplaneCommand,
-    ) -> Outcome<()> {
+    async fn execute_command(&self, transfer_id: &Urn, command: DataplaneCommand) -> Outcome<()> {
         self.dataplane_manager
             .execute_command(&DataplaneManagerInput {
                 transfer_process_id: transfer_id.clone(),
@@ -176,7 +176,8 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
         // PULL Provider: return the proxy listener URL to include in the TransferStart message.
         // PULL Consumer / PUSH: ingress is an HttpListener too, but consumer never sends a
         // TransferStart, so the value is unused — returning it is harmless.
-        self.ingress_as_data_address(&Urn::from_str(&*transfer_process.inner.id)?).await
+        self.ingress_as_data_address(&Urn::from_str(&*transfer_process.inner.id)?)
+            .await
     }
 
     async fn on_transfer_start_post(
@@ -188,7 +189,11 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
         // PULL Consumer: apply the provider's proxy URL as egress before starting.
         // CHECK if we are in PULL mode before applying. In PUSH mode, Egress is already set correctly
         // to the client destination in on_transfer_request_pre and must not be overwritten.
-        if self.dataplane_manager.is_pull(&Urn::from_str(&*transfer_process.inner.id)?).await? {
+        if self
+            .dataplane_manager
+            .is_pull(&Urn::from_str(&*transfer_process.inner.id)?)
+            .await?
+        {
             if let Some(ref da) = data_address {
                 if let Some(endpoint) = &da.endpoint {
                     self.execute_command(
@@ -213,7 +218,8 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
         )
         .await?;
         // Return consumer's own ingress URL so the data client knows where to fetch data.
-        self.ingress_as_data_address(&Urn::from_str(&*transfer_process.inner.id)?).await
+        self.ingress_as_data_address(&Urn::from_str(&*transfer_process.inner.id)?)
+            .await
     }
 
     // ─── TransferSuspension → SetStopped ───

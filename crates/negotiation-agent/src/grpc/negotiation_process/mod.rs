@@ -128,9 +128,15 @@ impl NegotiationAgentProcessesService for NegotiationAgentProcessesGrpc {
         let urn = Urn::from_str(&req.id)
             .map_err(|e| Status::invalid_argument(format!("Invalid Process ID URN: {}", e)))?;
 
-        match self.service.get_negotiation_process_by_key_id(&req.key_id, &urn).await {
+        match self
+            .service
+            .get_negotiation_process_by_key_id(&req.key_id, &urn)
+            .await
+        {
             Ok(Some(dto)) => Ok(Response::new(dto.into())),
-            Ok(None) => Err(Status::not_found("Negotiation process not found by identifier key")),
+            Ok(None) => Err(Status::not_found(
+                "Negotiation process not found by identifier key",
+            )),
             Err(e) => Err(Status::internal(e.to_string())),
         }
     }
@@ -145,9 +151,15 @@ impl NegotiationAgentProcessesService for NegotiationAgentProcessesGrpc {
             Status::invalid_argument(format!("Invalid Identifier Value URN: {}", e))
         })?;
 
-        match self.service.get_negotiation_process_by_key_value(&urn).await {
+        match self
+            .service
+            .get_negotiation_process_by_key_value(&urn)
+            .await
+        {
             Ok(Some(dto)) => Ok(Response::new(dto.into())),
-            Ok(None) => Err(Status::not_found("Negotiation process not found by identifier value")),
+            Ok(None) => Err(Status::not_found(
+                "Negotiation process not found by identifier value",
+            )),
             Err(e) => Err(Status::internal(e.to_string())),
         }
     }
@@ -161,7 +173,11 @@ impl NegotiationAgentProcessesService for NegotiationAgentProcessesGrpc {
         // Conversión Request -> NewDto
         let new_process_dto: NewNegotiationProcessDto = req.try_into()?;
 
-        match self.service.create_negotiation_process(&new_process_dto).await {
+        match self
+            .service
+            .create_negotiation_process(&new_process_dto)
+            .await
+        {
             Ok(dto) => Ok(Response::new(dto.into())),
             Err(e) => Err(Status::internal(e.to_string())),
         }
@@ -178,7 +194,11 @@ impl NegotiationAgentProcessesService for NegotiationAgentProcessesGrpc {
         // Conversión Request -> EditDto
         let edit_process_dto: EditNegotiationProcessDto = req.try_into()?;
 
-        match self.service.put_negotiation_process(&urn, &edit_process_dto).await {
+        match self
+            .service
+            .put_negotiation_process(&urn, &edit_process_dto)
+            .await
+        {
             Ok(dto) => Ok(Response::new(dto.into())),
             Err(e) => Err(Status::internal(e.to_string())),
         }

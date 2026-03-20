@@ -25,8 +25,8 @@ use axum::extract::{FromRef, Path, Request, State};
 use axum::response::{IntoResponse, Response};
 use axum::routing::any;
 use axum::Router;
-use hyper::Method;
 use common::utils::get_urn_from_string;
+use hyper::Method;
 use reqwest::Response as ReqwestResponse;
 use reqwest::{Client, StatusCode};
 use serde_json::json;
@@ -58,12 +58,19 @@ impl TestingHTTPProxy {
         repo: Arc<dyn DataplaneRepoTrait>,
     ) -> Self {
         let client = reqwest::Client::new();
-        Self { client, dataplane_service, repo }
+        Self {
+            client,
+            dataplane_service,
+            repo,
+        }
     }
     pub fn router(self) -> Router {
         Router::new()
             .route("/{data_plane_id}", any(Self::forward_request_base))
-            .route("/{data_plane_id}/{*path}", any(Self::forward_request_wildcard))
+            .route(
+                "/{data_plane_id}/{*path}",
+                any(Self::forward_request_wildcard),
+            )
             .with_state(self)
     }
 
@@ -97,25 +104,32 @@ impl TestingHTTPProxy {
         };
 
         // PDP: Fetch by Dataplane ID (urn:dataplane-transfer:...)
-        let dataplane =
-            match state.dataplane_service.get_dataplane_transfer_by_id(&data_plane_urn).await {
-                Ok(dataplane) => match dataplane {
-                    Some(dataplane) => dataplane,
-                    None => {
-                        return (StatusCode::NOT_FOUND, "dataplane id not found").into_response()
-                    }
-                },
-                Err(_) => {
-                    return (StatusCode::INTERNAL_SERVER_ERROR, "error fetching dataplane")
-                        .into_response()
-                }
-            };
+        let dataplane = match state
+            .dataplane_service
+            .get_dataplane_transfer_by_id(&data_plane_urn)
+            .await
+        {
+            Ok(dataplane) => match dataplane {
+                Some(dataplane) => dataplane,
+                None => return (StatusCode::NOT_FOUND, "dataplane id not found").into_response(),
+            },
+            Err(_) => {
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "error fetching dataplane",
+                )
+                    .into_response()
+            }
+        };
 
         // STRICT State Check: Only STARTED is allowed
         if dataplane.inner.state != TransferState::Started {
             return (
                 StatusCode::FORBIDDEN,
-                format!("Transfer is not STARTED (current: {:?})", dataplane.inner.state),
+                format!(
+                    "Transfer is not STARTED (current: {:?})",
+                    dataplane.inner.state
+                ),
             )
                 .into_response();
         }
@@ -126,7 +140,10 @@ impl TestingHTTPProxy {
             match serde_json::from_value(dataplane.inner.egress_config.clone()) {
                 Ok(e) => e,
                 Err(_) => {
-                    return (StatusCode::INTERNAL_SERVER_ERROR, "Invalid or missing egress_config")
+                    return (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        "Invalid or missing egress_config",
+                    )
                         .into_response()
                 }
             };
@@ -163,8 +180,12 @@ impl TestingHTTPProxy {
             Ok(method) => method,
             Err(_) => return (StatusCode::BAD_REQUEST, "method not allowed").into_response(),
         };
-        let res =
-            state.client.request(method.clone(), next_hop.clone()).body(body_bytes).send().await;
+        let res = state
+            .client
+            .request(method.clone(), next_hop.clone())
+            .body(body_bytes)
+            .send()
+            .await;
 
         // Enhance Logging
         let role = dataplane.inner.role;
@@ -213,7 +234,12 @@ impl TestingHTTPProxy {
         };
 
         // Fire and forget logging (or await/warn)
-        if let Err(e) = state.repo.get_transfer_events_repo().create_transfer_event(&event).await {
+        if let Err(e) = state
+            .repo
+            .get_transfer_events_repo()
+            .create_transfer_event(&event)
+            .await
+        {
             error!("Failed to log transfer event: {:?}", e);
         }
 

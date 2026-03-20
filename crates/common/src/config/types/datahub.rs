@@ -23,9 +23,11 @@ use crate::config::types::traits::DatahubConfigTrait;
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct DatahubConfig {
     pub host: HostConfig,
-    pub token: String
+    pub token: String,
 }
 
 impl DatahubConfigTrait for DatahubConfig {
-    fn datahub(&self) -> &DatahubConfig { self }
+    fn datahub(&self) -> &DatahubConfig {
+        self
+    }
 }

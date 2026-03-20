@@ -37,7 +37,10 @@ impl ValidationRpcStepsService {
         payload_validator: Arc<dyn ValidatePayload>,
         helpers: Arc<dyn ValidationHelpers>,
     ) -> Self {
-        Self { payload_validator, helpers }
+        Self {
+            payload_validator,
+            helpers,
+        }
     }
 }
 

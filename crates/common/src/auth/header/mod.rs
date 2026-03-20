@@ -24,12 +24,12 @@ use axum::response::Response;
 
 #[derive(Debug, Clone)]
 pub struct RequestInfo {
-    pub token: String
+    pub token: String,
 }
 
 pub async fn extract_request_info(
     mut request: Request,
-    next: Next
+    next: Next,
 ) -> Result<Response, StatusCode> {
     let headers = request.headers();
     let token = headers

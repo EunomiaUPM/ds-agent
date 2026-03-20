@@ -28,31 +28,16 @@ pub trait DatasetRepositoryTrait: Send + Sync {
         limit: Option<u64>,
         page: Option<u64>,
     ) -> Outcome<Vec<dataset::Model>>;
-    async fn get_batch_datasets(
-        &self,
-        ids: &Vec<Urn>,
-    ) -> Outcome<Vec<dataset::Model>>;
-    async fn get_datasets_by_catalog_id(
-        &self,
-        catalog_id: &Urn,
-    ) -> Outcome<Vec<dataset::Model>>;
-    async fn get_dataset_by_id(
-        &self,
-        dataset_id: &Urn,
-    ) -> Outcome<Option<dataset::Model>>;
+    async fn get_batch_datasets(&self, ids: &Vec<Urn>) -> Outcome<Vec<dataset::Model>>;
+    async fn get_datasets_by_catalog_id(&self, catalog_id: &Urn) -> Outcome<Vec<dataset::Model>>;
+    async fn get_dataset_by_id(&self, dataset_id: &Urn) -> Outcome<Option<dataset::Model>>;
 
     async fn put_dataset_by_id(
         &self,
         dataset_id: &Urn,
         edit_dataset_model: &EditDatasetModel,
     ) -> Outcome<dataset::Model>;
-    async fn create_dataset(
-        &self,
-        new_dataset_model: &NewDatasetModel,
-    ) -> Outcome<dataset::Model>;
+    async fn create_dataset(&self, new_dataset_model: &NewDatasetModel) -> Outcome<dataset::Model>;
 
-    async fn delete_dataset_by_id(
-        &self,
-        dataset_id: &Urn,
-    ) -> Outcome<()>;
+    async fn delete_dataset_by_id(&self, dataset_id: &Urn) -> Outcome<()>;
 }

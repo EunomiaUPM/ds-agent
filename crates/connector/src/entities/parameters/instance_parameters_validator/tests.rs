@@ -15,7 +15,6 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 use super::*;
 use serde_json::json;
 
@@ -31,7 +30,10 @@ fn make_template_parameters(name: &str, param_type: ParameterType) -> ParameterD
 }
 
 fn make_optional_param(name: &str, param_type: ParameterType) -> ParameterDefinition {
-    ParameterDefinition { required: false, ..make_template_parameters(name, param_type) }
+    ParameterDefinition {
+        required: false,
+        ..make_template_parameters(name, param_type)
+    }
 }
 
 fn make_instance_parameters(name: &str, value: Value) -> (String, Value) {
@@ -83,7 +85,10 @@ fn err_when_sys_param_is_manually_set() {
 
 #[test]
 fn err_when_runtime_param_is_manually_set() {
-    let defs = vec![make_template_parameters("RUNTIME_TOKEN", ParameterType::String)];
+    let defs = vec![make_template_parameters(
+        "RUNTIME_TOKEN",
+        ParameterType::String,
+    )];
     let validator = InstanceParametersValidator::new(&defs);
     let result = validator.validate(&HashMap::from([make_instance_parameters(
         "TOKEN",
@@ -124,8 +129,10 @@ fn ok_when_optional_param_is_absent() {
 fn ok_when_string_param_receives_string_value() {
     let defs = vec![make_template_parameters("NAME", ParameterType::String)];
     let validator = InstanceParametersValidator::new(&defs);
-    let result =
-        validator.validate(&HashMap::from([make_instance_parameters("NAME", json!("alice"))]));
+    let result = validator.validate(&HashMap::from([make_instance_parameters(
+        "NAME",
+        json!("alice"),
+    )]));
     assert_eq!(result.len(), 0);
 }
 
@@ -133,7 +140,10 @@ fn ok_when_string_param_receives_string_value() {
 fn err_when_string_param_receives_int_value() {
     let defs = vec![make_template_parameters("NAME", ParameterType::String)];
     let validator = InstanceParametersValidator::new(&defs);
-    let result = validator.validate(&HashMap::from([make_instance_parameters("NAME", json!(42))]));
+    let result = validator.validate(&HashMap::from([make_instance_parameters(
+        "NAME",
+        json!(42),
+    )]));
     assert_eq!(result.len(), 1);
     assert!(result[0].contains("NAME"));
     assert!(result[0].contains("Type mismatch"));
@@ -143,8 +153,10 @@ fn err_when_string_param_receives_int_value() {
 fn ok_when_int_param_receives_int_value() {
     let defs = vec![make_template_parameters("PORT", ParameterType::Int)];
     let validator = InstanceParametersValidator::new(&defs);
-    let result =
-        validator.validate(&HashMap::from([make_instance_parameters("PORT", json!(3306))]));
+    let result = validator.validate(&HashMap::from([make_instance_parameters(
+        "PORT",
+        json!(3306),
+    )]));
     assert_eq!(result.len(), 0);
 }
 
@@ -165,8 +177,10 @@ fn err_when_int_param_receives_string_value() {
 fn ok_when_boolean_param_receives_bool_value() {
     let defs = vec![make_template_parameters("ENABLED", ParameterType::Boolean)];
     let validator = InstanceParametersValidator::new(&defs);
-    let result =
-        validator.validate(&HashMap::from([make_instance_parameters("ENABLED", json!(true))]));
+    let result = validator.validate(&HashMap::from([make_instance_parameters(
+        "ENABLED",
+        json!(true),
+    )]));
     assert_eq!(result.len(), 0);
 }
 
@@ -175,8 +189,10 @@ fn err_when_boolean_param_receives_string_value() {
     // The string "true" does not satisfy ParameterType::Boolean.
     let defs = vec![make_template_parameters("ENABLED", ParameterType::Boolean)];
     let validator = InstanceParametersValidator::new(&defs);
-    let result =
-        validator.validate(&HashMap::from([make_instance_parameters("ENABLED", json!("true"))]));
+    let result = validator.validate(&HashMap::from([make_instance_parameters(
+        "ENABLED",
+        json!("true"),
+    )]));
     assert_eq!(result.len(), 1);
     assert!(result[0].contains("ENABLED"));
     assert!(result[0].contains("Type mismatch"));
@@ -209,7 +225,10 @@ fn err_when_vec_string_param_receives_mixed_array() {
 
 #[test]
 fn ok_when_map_param_receives_string_string_object() {
-    let defs = vec![make_template_parameters("ENV", ParameterType::MapStringString)];
+    let defs = vec![make_template_parameters(
+        "ENV",
+        ParameterType::MapStringString,
+    )];
     let validator = InstanceParametersValidator::new(&defs);
     let result = validator.validate(&HashMap::from([make_instance_parameters(
         "ENV",
@@ -221,7 +240,10 @@ fn ok_when_map_param_receives_string_string_object() {
 #[test]
 fn err_when_map_param_receives_non_string_value() {
     // Objects whose values are not strings are rejected.
-    let defs = vec![make_template_parameters("ENV", ParameterType::MapStringString)];
+    let defs = vec![make_template_parameters(
+        "ENV",
+        ParameterType::MapStringString,
+    )];
     let validator = InstanceParametersValidator::new(&defs);
     let result = validator.validate(&HashMap::from([make_instance_parameters(
         "ENV",

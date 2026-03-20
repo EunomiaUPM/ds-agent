@@ -33,7 +33,12 @@ impl MigrationTrait for Migration {
             .create_table(
                 Table::create()
                     .table(CatalogDatasets::Table)
-                    .col(ColumnDef::new(CatalogDatasets::Id).string().not_null().primary_key())
+                    .col(
+                        ColumnDef::new(CatalogDatasets::Id)
+                            .string()
+                            .not_null()
+                            .primary_key(),
+                    )
                     .col(ColumnDef::new(CatalogDatasets::DctConformsTo).string())
                     .col(ColumnDef::new(CatalogDatasets::DctCreator).string())
                     .col(ColumnDef::new(CatalogDatasets::DctIdentifier).string())
@@ -45,7 +50,11 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(CatalogDatasets::DctModified).timestamp_with_time_zone())
                     .col(ColumnDef::new(CatalogDatasets::DctTitle).string())
                     .col(ColumnDef::new(CatalogDatasets::DctDescription).string())
-                    .col(ColumnDef::new(CatalogDatasets::CatalogId).string().not_null())
+                    .col(
+                        ColumnDef::new(CatalogDatasets::CatalogId)
+                            .string()
+                            .not_null(),
+                    )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_dataset_catalog")
@@ -59,7 +68,9 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager.drop_table(Table::drop().table(CatalogDatasets::Table).to_owned()).await
+        manager
+            .drop_table(Table::drop().table(CatalogDatasets::Table).to_owned())
+            .await
     }
 }
 

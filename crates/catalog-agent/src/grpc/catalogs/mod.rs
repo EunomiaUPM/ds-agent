@@ -51,7 +51,9 @@ impl CatalogEntityService for CatalogEntityGrpc {
 
         let proto_catalogs: Vec<Catalog> = catalogs.into_iter().map(Into::into).collect();
 
-        Ok(Response::new(CatalogListResponse { catalogs: proto_catalogs }))
+        Ok(Response::new(CatalogListResponse {
+            catalogs: proto_catalogs,
+        }))
     }
 
     async fn get_batch_catalogs(
@@ -75,7 +77,9 @@ impl CatalogEntityService for CatalogEntityGrpc {
 
         let proto_catalogs = catalogs.into_iter().map(Into::into).collect();
 
-        Ok(Response::new(CatalogListResponse { catalogs: proto_catalogs }))
+        Ok(Response::new(CatalogListResponse {
+            catalogs: proto_catalogs,
+        }))
     }
 
     async fn get_catalog_by_id(
@@ -92,7 +96,9 @@ impl CatalogEntityService for CatalogEntityGrpc {
             .map_err(|e| Status::internal(e.to_string()))?;
 
         match catalog_opt {
-            Some(dto) => Ok(Response::new(CatalogResponse { catalog: Some(dto.into()) })),
+            Some(dto) => Ok(Response::new(CatalogResponse {
+                catalog: Some(dto.into()),
+            })),
             None => Err(Status::not_found("Catalog not found")),
         }
     }
@@ -101,11 +107,16 @@ impl CatalogEntityService for CatalogEntityGrpc {
         &self,
         _request: Request<()>,
     ) -> Result<Response<CatalogResponse>, Status> {
-        let catalog_opt =
-            self.service.get_main_catalog().await.map_err(|e| Status::internal(e.to_string()))?;
+        let catalog_opt = self
+            .service
+            .get_main_catalog()
+            .await
+            .map_err(|e| Status::internal(e.to_string()))?;
 
         match catalog_opt {
-            Some(dto) => Ok(Response::new(CatalogResponse { catalog: Some(dto.into()) })),
+            Some(dto) => Ok(Response::new(CatalogResponse {
+                catalog: Some(dto.into()),
+            })),
             None => Err(Status::not_found("Main catalog not configured")),
         }
     }
@@ -123,7 +134,9 @@ impl CatalogEntityService for CatalogEntityGrpc {
             .await
             .map_err(|e| Status::internal(format!("Failed to create catalog: {}", e)))?;
 
-        Ok(Response::new(CatalogResponse { catalog: Some(created_dto.into()) }))
+        Ok(Response::new(CatalogResponse {
+            catalog: Some(created_dto.into()),
+        }))
     }
 
     async fn create_main_catalog(
@@ -139,7 +152,9 @@ impl CatalogEntityService for CatalogEntityGrpc {
             .await
             .map_err(|e| Status::internal(format!("Failed to create main catalog: {}", e)))?;
 
-        Ok(Response::new(CatalogResponse { catalog: Some(created_dto.into()) }))
+        Ok(Response::new(CatalogResponse {
+            catalog: Some(created_dto.into()),
+        }))
     }
 
     async fn put_catalog_by_id(
@@ -156,7 +171,9 @@ impl CatalogEntityService for CatalogEntityGrpc {
             .await
             .map_err(|e| Status::internal(format!("Failed to update catalog: {}", e)))?;
 
-        Ok(Response::new(CatalogResponse { catalog: Some(updated_dto.into()) }))
+        Ok(Response::new(CatalogResponse {
+            catalog: Some(updated_dto.into()),
+        }))
     }
 
     async fn delete_catalog_by_id(

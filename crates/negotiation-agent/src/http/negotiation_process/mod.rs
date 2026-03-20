@@ -78,7 +78,10 @@ impl NegotiationAgentProcessesRouter {
                     .put(Self::handle_put_process)
                     .delete(Self::handle_delete_process),
             )
-            .route("/{id}/key/{key_id}", get(Self::handle_get_process_by_key_id))
+            .route(
+                "/{id}/key/{key_id}",
+                get(Self::handle_get_process_by_key_id),
+            )
             .with_state(self)
     }
 
@@ -86,7 +89,11 @@ impl NegotiationAgentProcessesRouter {
         State(state): State<NegotiationAgentProcessesRouter>,
         Query(params): Query<PaginationParams>,
     ) -> impl IntoResponse {
-        match state.service.get_all_negotiation_processes(params.limit, params.page).await {
+        match state
+            .service
+            .get_all_negotiation_processes(params.limit, params.page)
+            .await
+        {
             Ok(processes) => (StatusCode::OK, Json(processes)).into_response(),
             Err(err) => err.to_response(),
         }
@@ -114,7 +121,11 @@ impl NegotiationAgentProcessesRouter {
             Ok(v) => v,
             Err(e) => return e,
         };
-        match state.service.get_batch_negotiation_processes(&input.ids).await {
+        match state
+            .service
+            .get_batch_negotiation_processes(&input.ids)
+            .await
+        {
             Ok(processes) => (StatusCode::OK, Json(processes)).into_response(),
             Err(err) => err.to_response(),
         }
@@ -176,7 +187,11 @@ impl NegotiationAgentProcessesRouter {
             Ok(urn) => urn,
             Err(resp) => return resp,
         };
-        match state.service.get_negotiation_process_by_key_id(&key_id, &id_urn).await {
+        match state
+            .service
+            .get_negotiation_process_by_key_id(&key_id, &id_urn)
+            .await
+        {
             Ok(Some(process)) => (StatusCode::OK, Json(process)).into_response(),
             Ok(None) => (StatusCode::NOT_FOUND).into_response(),
             Err(err) => err.to_response(),

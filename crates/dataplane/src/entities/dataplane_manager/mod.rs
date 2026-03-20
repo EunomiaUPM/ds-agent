@@ -19,9 +19,9 @@ pub mod config_builder;
 pub(crate) mod dataplane_manager;
 pub(crate) mod driver_factory;
 pub use config_builder::{EgressConfig, IngressConfig};
-pub(crate) mod tests;
 pub(crate) mod dataplane_commands;
 pub(crate) mod dataplane_persistence;
+pub(crate) mod tests;
 
 use common::config::types::roles::RoleConfig;
 use common::dsp_common::data_address::{DataAddress, EndpointProperty};
@@ -62,7 +62,7 @@ impl Into<DataAddress> for DataplaneAddress {
                 name: "authType".to_string(),
                 value: at.to_string(),
             }),
-            None => None
+            None => None,
         };
         let ep_authorization = match self.authorization {
             Some(at) => Some(EndpointProperty {
@@ -70,7 +70,7 @@ impl Into<DataAddress> for DataplaneAddress {
                 name: "authorization".to_string(),
                 value: at.to_string(),
             }),
-            None => None
+            None => None,
         };
         let mut endpoint_properties: Vec<EndpointProperty> = vec![];
         if let Some(ep_authorization_type) = ep_authorization_type {
@@ -117,7 +117,7 @@ pub enum DataplaneInitCommandType {
     Consumer {
         // If PUSH Case DataAddress must be provided by any means (DSP or others are consistent here)
         data_address: Option<DataplaneAddress>,
-    }
+    },
 }
 
 pub enum DataplaneResponse {

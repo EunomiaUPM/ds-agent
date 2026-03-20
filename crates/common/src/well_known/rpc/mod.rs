@@ -26,16 +26,16 @@ pub const DSP_CURRENT_VERSION: DSPProtocolVersions = DSPProtocolVersions::V2025_
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WellKnownRPCRequest {
-    pub participant_id: String
+    pub participant_id: String,
 }
 #[async_trait::async_trait]
 pub trait WellKnownRPCTrait: Send + Sync {
     async fn fetch_dataspace_well_known(
         &self,
-        input: &WellKnownRPCRequest
+        input: &WellKnownRPCRequest,
     ) -> Outcome<(VersionResponse, String)>;
     async fn fetch_dataspace_current_path(
         &self,
-        input: &WellKnownRPCRequest
+        input: &WellKnownRPCRequest,
     ) -> Outcome<VersionPath>;
 }

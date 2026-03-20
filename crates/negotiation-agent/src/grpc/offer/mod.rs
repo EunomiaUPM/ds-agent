@@ -59,7 +59,9 @@ impl NegotiationAgentOffersService for NegotiationAgentOfferGrpc {
             })
             .collect();
 
-        Ok(Response::new(OfferListResponse { offers: proto_offers }))
+        Ok(Response::new(OfferListResponse {
+            offers: proto_offers,
+        }))
     }
 
     async fn get_batch_offers(
@@ -89,7 +91,9 @@ impl NegotiationAgentOffersService for NegotiationAgentOfferGrpc {
             })
             .collect();
 
-        Ok(Response::new(OfferListResponse { offers: proto_offers }))
+        Ok(Response::new(OfferListResponse {
+            offers: proto_offers,
+        }))
     }
 
     async fn get_offers_by_negotiation_process(
@@ -114,7 +118,9 @@ impl NegotiationAgentOffersService for NegotiationAgentOfferGrpc {
             })
             .collect();
 
-        Ok(Response::new(OfferListResponse { offers: proto_offers }))
+        Ok(Response::new(OfferListResponse {
+            offers: proto_offers,
+        }))
     }
 
     async fn get_offer_by_id(

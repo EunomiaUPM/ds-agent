@@ -27,6 +27,7 @@ use crate::protocols::protocol::ProtocolPluginTrait;
 use axum::extract::Request;
 use axum::response::IntoResponse;
 use axum::{serve, Router};
+use common::config::services::traits::TransferConfigTrait;
 use common::config::services::TransferConfig;
 use common::config::types::traits::CommonConfigTrait;
 use common::errors::CommonErrors;
@@ -45,7 +46,6 @@ use ymir::config::types::HostType;
 use ymir::errors::{Errors, Outcome};
 use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
-use common::config::services::traits::TransferConfigTrait;
 
 pub struct TransferHttpWorker {}
 impl TransferHttpWorker {
@@ -57,13 +57,19 @@ impl TransferHttpWorker {
         // well known router
         let well_known_router = WellKnownRoot::get_well_known_router(&config.into())?;
         // module transfer router
-        let router =
-            Self::create_root_http_router(&config, vault.clone()).await?.merge(well_known_router);
-        let host = if config.common().is_local() { "127.0.0.1" } else { "0.0.0.0" };
+        let router = Self::create_root_http_router(&config, vault.clone())
+            .await?
+            .merge(well_known_router);
+        let host = if config.common().is_local() {
+            "127.0.0.1"
+        } else {
+            "0.0.0.0"
+        };
         let port = config.common().get_internal_port(HostType::Http);
         let addr = format!("{}{}", host, port);
 
-        let listener = TcpListener::bind(&addr).await
+        let listener = TcpListener::bind(&addr)
+            .await
             .map_err(|e| Errors::crazy("Error listening on the socket", Some(Box::new(e))))?;
         tracing::info!("HTTP Transfer Service running on {}", addr);
 
@@ -122,8 +128,10 @@ pub async fn create_root_http_router(
     // facades
     let ssi_auth_config = Arc::new(config.ssi_auth().clone());
     let http_client = Arc::new(HttpClient::new(10, 10));
-    let mates_facade =
-        Arc::new(MatesFacadeService::new(ssi_auth_config.clone(), http_client.clone()));
+    let mates_facade = Arc::new(MatesFacadeService::new(
+        ssi_auth_config.clone(),
+        http_client.clone(),
+    ));
 
     // entities
     let messages_controller_service =
@@ -137,8 +145,9 @@ pub async fn create_root_http_router(
 
     // dataplane
     let dataplane_setup = dataplane::setup::DataplaneSetup::new();
-    let dataplane_router =
-        dataplane_setup.build_control_router(config.deref(), vault.clone()).await;
+    let dataplane_router = dataplane_setup
+        .build_control_router(config.deref(), vault.clone())
+        .await;
 
     // dsp
     let dsp_router = TransferDSP::new(
@@ -168,7 +177,9 @@ pub async fn create_root_http_router(
         .nest("/dsp/current/transfers", dsp_router)
         .nest(
             "/dataplane/proxy",
-            dataplane_setup.build_testing_proxy(config.deref(), vault.clone()).await,
+            dataplane_setup
+                .build_testing_proxy(config.deref(), vault.clone())
+                .await,
         );
     Ok(router)
 }

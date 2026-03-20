@@ -16,10 +16,10 @@
  *  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
-use ymir::errors::Outcome;
 use crate::entities::negotiation_process::NegotiationProcessDto;
 use crate::protocols::dsp::protocol_types::NegotiationProcessMessageTrait;
 use common::config::types::roles::RoleConfig;
+use ymir::errors::Outcome;
 
 #[async_trait::async_trait]
 pub trait ValidatePayload: Send + Sync + 'static {
@@ -49,10 +49,7 @@ pub trait ValidatePayload: Send + Sync + 'static {
         dto: &NegotiationProcessDto,
     ) -> Outcome<()>; // db call
     /// Validates if Header Bearer token corresponds to associated_consumer in db
-    async fn validate_auth(
-        &self,
-        payload: &dyn NegotiationProcessMessageTrait,
-    ) -> Outcome<()>; // db call
+    async fn validate_auth(&self, payload: &dyn NegotiationProcessMessageTrait) -> Outcome<()>; // db call
     /// Validates if data_address_present if format contains PUSH
     async fn validate_format_data_address(
         &self,

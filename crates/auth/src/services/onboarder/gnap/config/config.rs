@@ -26,7 +26,7 @@ use crate::services::onboarder::gnap::config::GnapOnboarderConfigTrait;
 pub struct GnapOnboarderConfig {
     hosts: CommonHostsConfig,
     client: EntityClientConfig,
-    api_path: String
+    api_path: String,
 }
 
 impl From<SsiAuthConfig> for GnapOnboarderConfig {
@@ -34,19 +34,25 @@ impl From<SsiAuthConfig> for GnapOnboarderConfig {
         GnapOnboarderConfig {
             hosts: value.common().hosts.clone(),
             client: value.client_config().clone(),
-            api_path: value.common().get_api_version()
+            api_path: value.common().get_api_version(),
         }
     }
 }
 
 impl HostsConfigTrait for GnapOnboarderConfig {
-    fn hosts(&self) -> &CommonHostsConfig { &self.hosts }
+    fn hosts(&self) -> &CommonHostsConfig {
+        &self.hosts
+    }
 }
 
 impl EntityClientTrait for GnapOnboarderConfig {
-    fn client_config(&self) -> &EntityClientConfig { &self.client }
+    fn client_config(&self) -> &EntityClientConfig {
+        &self.client
+    }
 }
 
 impl GnapOnboarderConfigTrait for GnapOnboarderConfig {
-    fn get_api_path(&self) -> &str { &self.api_path }
+    fn get_api_path(&self) -> &str {
+        &self.api_path
+    }
 }

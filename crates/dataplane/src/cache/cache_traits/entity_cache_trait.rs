@@ -150,8 +150,10 @@ where
 
     async fn get_batch(&self, ids: &Vec<Urn>) -> Outcome<Vec<D>> {
         tracing::debug!("cache: get batch");
-        let keys: Vec<String> =
-            ids.iter().map(|id| self.format_key_name_with_id(self.get_entity_name(), id)).collect();
+        let keys: Vec<String> = ids
+            .iter()
+            .map(|id| self.format_key_name_with_id(self.get_entity_name(), id))
+            .collect();
         Self::hydrate_from_multiple_keys(self.get_conn(), keys).await
     }
 }

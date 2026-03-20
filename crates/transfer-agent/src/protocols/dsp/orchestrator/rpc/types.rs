@@ -29,7 +29,6 @@ use std::fmt::Debug;
 use std::str::FromStr;
 use urn::Urn;
 
-
 // ─── Trait ────────────────────────────────────────────────────────────────────
 
 /// Uniform accessor interface over every inbound RPC message DTO.
@@ -159,7 +158,11 @@ impl Into<TransferProcessMessageWrapper<TransferStartMessageDto>> for RpcTransfe
         TransferProcessMessageWrapper {
             context: ContextField::default(),
             _type: TransferProcessMessageType::TransferStartMessage,
-            dto: TransferStartMessageDto { data_address: None, provider_pid, consumer_pid },
+            dto: TransferStartMessageDto {
+                data_address: None,
+                provider_pid,
+                consumer_pid,
+            },
         }
     }
 }
@@ -311,7 +314,10 @@ impl Into<TransferProcessMessageWrapper<TransferCompletionMessageDto>>
         TransferProcessMessageWrapper {
             context: ContextField::default(),
             _type: TransferProcessMessageType::TransferCompletionMessage,
-            dto: TransferCompletionMessageDto { provider_pid, consumer_pid },
+            dto: TransferCompletionMessageDto {
+                provider_pid,
+                consumer_pid,
+            },
         }
     }
 }

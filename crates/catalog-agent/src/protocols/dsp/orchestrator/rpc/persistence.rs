@@ -28,17 +28,24 @@ pub struct OrchestrationPersistenceForProtocolForRPC {
 
 impl OrchestrationPersistenceForProtocolForRPC {
     pub fn new(peer_catalog_entity_service: Arc<dyn PeerCatalogTrait>) -> Self {
-        Self { peer_catalog_entity_service }
+        Self {
+            peer_catalog_entity_service,
+        }
     }
 
     pub async fn get_catalog(&self, peer_id: &String) -> Outcome<Option<Catalog>> {
-        let catalog =
-            self.peer_catalog_entity_service.get_peer_catalog(peer_id).await?;
+        let catalog = self
+            .peer_catalog_entity_service
+            .get_peer_catalog(peer_id)
+            .await?;
         Ok(catalog)
     }
 
     pub async fn set_catalog(&self, peer_id: &String, catalog: &Catalog) -> Outcome<()> {
-        let _ = self.peer_catalog_entity_service.set_peer_catalog(peer_id, catalog).await?;
+        let _ = self
+            .peer_catalog_entity_service
+            .set_peer_catalog(peer_id, catalog)
+            .await?;
         Ok(())
     }
 }

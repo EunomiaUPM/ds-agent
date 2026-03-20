@@ -60,10 +60,16 @@ impl GatewayHttpRouter {
     }
 
     pub fn router(self) -> Router {
-        let cors = CorsLayer::new().allow_methods(Any).allow_origin(Any).allow_headers(Any);
+        let cors = CorsLayer::new()
+            .allow_methods(Any)
+            .allow_origin(Any)
+            .allow_headers(Any);
 
         Router::new()
-            .route("/api/{service_prefix}/{*extra}", any(Self::proxy_handler_with_extra))
+            .route(
+                "/api/{service_prefix}/{*extra}",
+                any(Self::proxy_handler_with_extra),
+            )
             .route(
                 "/api/dsp/current/{service_prefix}/{*extra}",
                 any(Self::proxy_dsp_handler),
@@ -73,9 +79,15 @@ impl GatewayHttpRouter {
                 any(Self::proxy_well_known_rpc_handler),
             )
             .route("/api/did-json/{url}", get(Self::fetch_did_json))
-            .route("/api/{service_prefix}", any(Self::proxy_handler_without_extra))
+            .route(
+                "/api/{service_prefix}",
+                any(Self::proxy_handler_without_extra),
+            )
             .route("/api/ws", get(Self::websocket_handler))
-            .route("/api/incoming-notification", post(Self::incoming_notification))
+            .route(
+                "/api/incoming-notification",
+                post(Self::incoming_notification),
+            )
             .route("/api/fe-config", get(Self::config_handler))
             .fallback(Self::static_path_handler)
             .layer(cors)
@@ -125,7 +137,9 @@ impl GatewayHttpRouter {
         Path((service_prefix, extra)): Path<(String, String)>,
         req: Request<Body>,
     ) -> impl IntoResponse {
-        service.proxy_request(service_prefix, Some(extra), req).await
+        service
+            .proxy_request(service_prefix, Some(extra), req)
+            .await
     }
 
     async fn proxy_handler_without_extra(
@@ -141,7 +155,9 @@ impl GatewayHttpRouter {
         Path((service_prefix, extra)): Path<(String, String)>,
         req: Request<Body>,
     ) -> impl IntoResponse {
-        service.proxy_dsp_request(service_prefix, Some(extra), req).await
+        service
+            .proxy_dsp_request(service_prefix, Some(extra), req)
+            .await
     }
 
     async fn proxy_well_known_rpc_handler(

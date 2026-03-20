@@ -104,8 +104,9 @@ impl ConnectorDistroRelationRepoTrait for ConnectorDistroRelationRepoForSql {
         &self,
         instance: &String,
     ) -> Outcome<Option<connector_distro_relation::Model>> {
-        let relation =
-            connector_distro_relation::Entity::find_by_id(instance).one(&self.db_connection).await;
+        let relation = connector_distro_relation::Entity::find_by_id(instance)
+            .one(&self.db_connection)
+            .await;
         match relation {
             Ok(relation) => Ok(relation),
             Err(err) => Err(ConnectorAgentRepoErrors::ConnectorDistroRelationRepoErrors(
@@ -144,8 +145,9 @@ impl ConnectorDistroRelationRepoTrait for ConnectorDistroRelationRepoForSql {
     }
 
     async fn delete_relation_by_instance(&self, distro: &String) -> Outcome<()> {
-        let relation =
-            connector_distro_relation::Entity::delete_by_id(distro).exec(&self.db_connection).await;
+        let relation = connector_distro_relation::Entity::delete_by_id(distro)
+            .exec(&self.db_connection)
+            .await;
         match relation {
             Ok(delete_result) => match delete_result.rows_affected {
                 0 => Err(ConnectorAgentRepoErrors::ConnectorDistroRelationRepoErrors(

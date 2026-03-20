@@ -15,7 +15,6 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 use crate::entities::parameters::parameters::TemplateMapString;
 use crate::entities::parameters::template_parameters_extractor::{
     ParameterExtractorBehavior, TemplateParameterExtractor,
@@ -60,7 +59,10 @@ fn vec_string_parameter_extractor_as_complete() {
     let found_parameters = extractor.found_parameters();
     assert_eq!(found_parameters.len(), 1);
     assert_eq!(found_parameters[0].name, "TEST");
-    assert_eq!(found_parameters[0].content_type, FoundParameterType::VecString);
+    assert_eq!(
+        found_parameters[0].content_type,
+        FoundParameterType::VecString
+    );
 }
 #[test]
 fn vec_string_parameter_extractor_as_partial() {
@@ -70,7 +72,10 @@ fn vec_string_parameter_extractor_as_partial() {
     let found_parameters = extractor.found_parameters();
     assert_eq!(found_parameters.len(), 1);
     assert_eq!(found_parameters[0].name, "TEST");
-    assert_eq!(found_parameters[0].content_type, FoundParameterType::VecString);
+    assert_eq!(
+        found_parameters[0].content_type,
+        FoundParameterType::VecString
+    );
 }
 #[test]
 fn nothing_to_extract_on_vec_string() {
@@ -88,7 +93,10 @@ fn map_string_parameter_extractor_as_complete() {
     let found_parameters = extractor.found_parameters();
     assert_eq!(found_parameters.len(), 1);
     assert_eq!(found_parameters[0].name, "TEST");
-    assert_eq!(found_parameters[0].content_type, FoundParameterType::MapString);
+    assert_eq!(
+        found_parameters[0].content_type,
+        FoundParameterType::MapString
+    );
 }
 #[test]
 fn map_string_parameter_extractor_as_partial() {
@@ -101,7 +109,10 @@ fn map_string_parameter_extractor_as_partial() {
     let found_parameters = extractor.found_parameters();
     assert_eq!(found_parameters.len(), 1);
     assert_eq!(found_parameters[0].name, "TEST");
-    assert_eq!(found_parameters[0].content_type, FoundParameterType::MapString);
+    assert_eq!(
+        found_parameters[0].content_type,
+        FoundParameterType::MapString
+    );
 }
 #[test]
 fn nothing_to_extract_on_map_string() {

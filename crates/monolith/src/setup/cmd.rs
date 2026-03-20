@@ -20,8 +20,8 @@
 use std::cmp::PartialEq;
 use std::sync::Arc;
 
-use clap::{Parser, Subcommand};
 use auth::setup::cmd::AuthCliArgs;
+use clap::{Parser, Subcommand};
 use common::boot::{BootstrapInit, BootstrapStepTrait};
 use common::config::services::SsiAuthConfig;
 use common::config::types::traits::CommonConfigTrait;
@@ -44,19 +44,19 @@ use crate::setup::db_migrations::CoreProviderMigration;
 #[command(version = "0.2")]
 struct CoreCli {
     #[command(subcommand)]
-    command: CoreCliCommands
+    command: CoreCliCommands,
 }
 
 #[derive(Subcommand, Debug, PartialEq)]
 pub enum CoreCliCommands {
     Start(CoreCliArgs),
-    Setup(CoreCliArgs)
+    Setup(CoreCliArgs),
 }
 
 #[derive(Parser, Debug, PartialEq)]
 pub struct CoreCliArgs {
     #[arg(short, long)]
-    env_file: String
+    env_file: String,
 }
 
 pub struct CoreCommands;
@@ -87,9 +87,10 @@ impl CoreCommands {
                 } else {
                     VaultService::Fake(FakeVaultService::new())
                 };
-                let table = json_to_table::json_to_table(&serde_json::to_value(&config.monolith())?)
-                    .collapse()
-                    .to_string();
+                let table =
+                    json_to_table::json_to_table(&serde_json::to_value(&config.monolith())?)
+                        .collapse()
+                        .to_string();
                 info!("Current Config:\n{}", &table);
 
                 if config.monolith().common().is_prod() {

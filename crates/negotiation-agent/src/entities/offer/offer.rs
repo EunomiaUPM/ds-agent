@@ -20,9 +20,9 @@
 use crate::data::entities::offer::NewOfferModel;
 use crate::data::factory_trait::NegotiationAgentRepoTrait;
 use crate::entities::offer::{NegotiationAgentOffersTrait, NewOfferDto, OfferDto};
-use ymir::errors::Outcome;
 use std::sync::Arc;
 use urn::Urn;
+use ymir::errors::Outcome;
 
 pub struct NegotiationAgentOffersService {
     pub negotiation_repo: Arc<dyn NegotiationAgentRepoTrait>,
@@ -41,15 +41,21 @@ impl NegotiationAgentOffersTrait for NegotiationAgentOffersService {
         limit: Option<u64>,
         page: Option<u64>,
     ) -> Outcome<Vec<OfferDto>> {
-        let offers =
-            self.negotiation_repo.get_offer_repo().get_all_offers(limit, page).await?;
+        let offers = self
+            .negotiation_repo
+            .get_offer_repo()
+            .get_all_offers(limit, page)
+            .await?;
 
         Ok(offers.into_iter().map(|m| OfferDto { inner: m }).collect())
     }
 
     async fn get_batch_offers(&self, ids: &Vec<Urn>) -> Outcome<Vec<OfferDto>> {
-        let offers =
-            self.negotiation_repo.get_offer_repo().get_batch_offers(ids).await?;
+        let offers = self
+            .negotiation_repo
+            .get_offer_repo()
+            .get_batch_offers(ids)
+            .await?;
 
         Ok(offers.into_iter().map(|m| OfferDto { inner: m }).collect())
     }
@@ -64,10 +70,7 @@ impl NegotiationAgentOffersTrait for NegotiationAgentOffersService {
         Ok(offers.into_iter().map(|m| OfferDto { inner: m }).collect())
     }
 
-    async fn get_last_offer_by_negotiation_process(
-        &self,
-        id: &Urn,
-    ) -> Outcome<Option<OfferDto>> {
+    async fn get_last_offer_by_negotiation_process(&self, id: &Urn) -> Outcome<Option<OfferDto>> {
         let offers = self
             .negotiation_repo
             .get_offer_repo()
@@ -78,8 +81,11 @@ impl NegotiationAgentOffersTrait for NegotiationAgentOffersService {
     }
 
     async fn get_offer_by_id(&self, id: &Urn) -> Outcome<Option<OfferDto>> {
-        let offer =
-            self.negotiation_repo.get_offer_repo().get_offer_by_id(id).await?;
+        let offer = self
+            .negotiation_repo
+            .get_offer_repo()
+            .get_offer_by_id(id)
+            .await?;
 
         Ok(offer.map(|m| OfferDto { inner: m }))
     }
@@ -95,8 +101,11 @@ impl NegotiationAgentOffersTrait for NegotiationAgentOffersService {
     }
 
     async fn get_offer_by_offer_id(&self, id: &Urn) -> Outcome<Option<OfferDto>> {
-        let offer =
-            self.negotiation_repo.get_offer_repo().get_offer_by_offer_id(id).await?;
+        let offer = self
+            .negotiation_repo
+            .get_offer_repo()
+            .get_offer_by_offer_id(id)
+            .await?;
 
         Ok(offer.map(|m| OfferDto { inner: m }))
     }
@@ -104,14 +113,20 @@ impl NegotiationAgentOffersTrait for NegotiationAgentOffersService {
     async fn create_offer(&self, new_model_dto: &NewOfferDto) -> Outcome<OfferDto> {
         let new_model: NewOfferModel = new_model_dto.clone().into();
 
-        let created =
-            self.negotiation_repo.get_offer_repo().create_offer(&new_model).await?;
+        let created = self
+            .negotiation_repo
+            .get_offer_repo()
+            .create_offer(&new_model)
+            .await?;
 
         Ok(OfferDto { inner: created })
     }
 
     async fn delete_offer(&self, id: &Urn) -> Outcome<()> {
-        self.negotiation_repo.get_offer_repo().delete_offer(id).await?;
+        self.negotiation_repo
+            .get_offer_repo()
+            .delete_offer(id)
+            .await?;
         Ok(())
     }
 }

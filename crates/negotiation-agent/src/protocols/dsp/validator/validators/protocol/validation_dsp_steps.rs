@@ -41,7 +41,11 @@ impl ValidationDspStepsService {
         step_transition_validator: Arc<dyn ValidateStateTransition>,
         helpers: Arc<dyn ValidationHelpers>,
     ) -> Self {
-        Self { payload_validator, step_transition_validator, helpers }
+        Self {
+            payload_validator,
+            step_transition_validator,
+            helpers,
+        }
     }
 }
 
@@ -51,8 +55,12 @@ impl ValidationDspSteps for ValidationDspStepsService {
         &self,
         input: &NegotiationProcessMessageWrapper<NegotiationRequestInitMessageDto>,
     ) -> Outcome<()> {
-        self.payload_validator.validate_with_json_schema(&input.dto).await?;
-        self.payload_validator.validate_identifiers_as_urn(&input.dto).await?;
+        self.payload_validator
+            .validate_with_json_schema(&input.dto)
+            .await?;
+        self.payload_validator
+            .validate_identifiers_as_urn(&input.dto)
+            .await?;
         self.payload_validator.validate_auth(&input.dto).await?;
         Ok(())
     }
@@ -62,18 +70,33 @@ impl ValidationDspSteps for ValidationDspStepsService {
         uri_id: &String,
         input: &NegotiationProcessMessageWrapper<NegotiationRequestMessageDto>,
     ) -> Outcome<()> {
-        let dto = self.helpers.get_current_dto_from_payload(&input.dto).await?;
+        let dto = self
+            .helpers
+            .get_current_dto_from_payload(&input.dto)
+            .await?;
         let role = self.helpers.get_role_from_dto(&dto).await?;
         let message_type = input._type.clone();
         let current_state = self.helpers.get_state_from_dto(&dto).await?;
         let current_state_attribute = self.helpers.get_state_attribute_from_dto(&dto).await?;
-        self.payload_validator.validate_with_json_schema(&input.dto).await?;
-        self.payload_validator.validate_uri_id_as_urn(uri_id).await?;
-        self.payload_validator.validate_identifiers_as_urn(&input.dto).await?;
-        self.payload_validator.validate_uri_and_pid(uri_id, &input.dto, &role).await?;
-        self.payload_validator.validate_correlation(&input.dto, &dto).await?;
+        self.payload_validator
+            .validate_with_json_schema(&input.dto)
+            .await?;
+        self.payload_validator
+            .validate_uri_id_as_urn(uri_id)
+            .await?;
+        self.payload_validator
+            .validate_identifiers_as_urn(&input.dto)
+            .await?;
+        self.payload_validator
+            .validate_uri_and_pid(uri_id, &input.dto, &role)
+            .await?;
+        self.payload_validator
+            .validate_correlation(&input.dto, &dto)
+            .await?;
         self.payload_validator.validate_auth(&input.dto).await?;
-        self.step_transition_validator.validate_role_for_message(&role, &message_type).await?;
+        self.step_transition_validator
+            .validate_role_for_message(&role, &message_type)
+            .await?;
         self.step_transition_validator
             .validate_state_transition(&current_state, &message_type)
             .await?;
@@ -84,8 +107,12 @@ impl ValidationDspSteps for ValidationDspStepsService {
         &self,
         input: &NegotiationProcessMessageWrapper<NegotiationOfferInitMessageDto>,
     ) -> Outcome<()> {
-        self.payload_validator.validate_with_json_schema(&input.dto).await?;
-        self.payload_validator.validate_identifiers_as_urn(&input.dto).await?;
+        self.payload_validator
+            .validate_with_json_schema(&input.dto)
+            .await?;
+        self.payload_validator
+            .validate_identifiers_as_urn(&input.dto)
+            .await?;
         self.payload_validator.validate_auth(&input.dto).await?;
         Ok(())
     }
@@ -95,18 +122,33 @@ impl ValidationDspSteps for ValidationDspStepsService {
         uri_id: &String,
         input: &NegotiationProcessMessageWrapper<NegotiationOfferMessageDto>,
     ) -> Outcome<()> {
-        let dto = self.helpers.get_current_dto_from_payload(&input.dto).await?;
+        let dto = self
+            .helpers
+            .get_current_dto_from_payload(&input.dto)
+            .await?;
         let role = self.helpers.get_role_from_dto(&dto).await?;
         let message_type = input._type.clone();
         let current_state = self.helpers.get_state_from_dto(&dto).await?;
         let current_state_attribute = self.helpers.get_state_attribute_from_dto(&dto).await?;
-        self.payload_validator.validate_with_json_schema(&input.dto).await?;
-        self.payload_validator.validate_uri_id_as_urn(uri_id).await?;
-        self.payload_validator.validate_identifiers_as_urn(&input.dto).await?;
-        self.payload_validator.validate_uri_and_pid(uri_id, &input.dto, &role).await?;
-        self.payload_validator.validate_correlation(&input.dto, &dto).await?;
+        self.payload_validator
+            .validate_with_json_schema(&input.dto)
+            .await?;
+        self.payload_validator
+            .validate_uri_id_as_urn(uri_id)
+            .await?;
+        self.payload_validator
+            .validate_identifiers_as_urn(&input.dto)
+            .await?;
+        self.payload_validator
+            .validate_uri_and_pid(uri_id, &input.dto, &role)
+            .await?;
+        self.payload_validator
+            .validate_correlation(&input.dto, &dto)
+            .await?;
         self.payload_validator.validate_auth(&input.dto).await?;
-        self.step_transition_validator.validate_role_for_message(&role, &message_type).await?;
+        self.step_transition_validator
+            .validate_role_for_message(&role, &message_type)
+            .await?;
         self.step_transition_validator
             .validate_state_transition(&current_state, &message_type)
             .await?;
@@ -118,18 +160,33 @@ impl ValidationDspSteps for ValidationDspStepsService {
         uri_id: &String,
         input: &NegotiationProcessMessageWrapper<NegotiationAgreementMessageDto>,
     ) -> Outcome<()> {
-        let dto = self.helpers.get_current_dto_from_payload(&input.dto).await?;
+        let dto = self
+            .helpers
+            .get_current_dto_from_payload(&input.dto)
+            .await?;
         let role = self.helpers.get_role_from_dto(&dto).await?;
         let message_type = input._type.clone();
         let current_state = self.helpers.get_state_from_dto(&dto).await?;
         let current_state_attribute = self.helpers.get_state_attribute_from_dto(&dto).await?;
-        self.payload_validator.validate_with_json_schema(&input.dto).await?;
-        self.payload_validator.validate_uri_id_as_urn(uri_id).await?;
-        self.payload_validator.validate_identifiers_as_urn(&input.dto).await?;
-        self.payload_validator.validate_uri_and_pid(uri_id, &input.dto, &role).await?;
-        self.payload_validator.validate_correlation(&input.dto, &dto).await?;
+        self.payload_validator
+            .validate_with_json_schema(&input.dto)
+            .await?;
+        self.payload_validator
+            .validate_uri_id_as_urn(uri_id)
+            .await?;
+        self.payload_validator
+            .validate_identifiers_as_urn(&input.dto)
+            .await?;
+        self.payload_validator
+            .validate_uri_and_pid(uri_id, &input.dto, &role)
+            .await?;
+        self.payload_validator
+            .validate_correlation(&input.dto, &dto)
+            .await?;
         self.payload_validator.validate_auth(&input.dto).await?;
-        self.step_transition_validator.validate_role_for_message(&role, &message_type).await?;
+        self.step_transition_validator
+            .validate_role_for_message(&role, &message_type)
+            .await?;
         self.step_transition_validator
             .validate_state_transition(&current_state, &message_type)
             .await?;
@@ -141,18 +198,33 @@ impl ValidationDspSteps for ValidationDspStepsService {
         uri_id: &String,
         input: &NegotiationProcessMessageWrapper<NegotiationVerificationMessageDto>,
     ) -> Outcome<()> {
-        let dto = self.helpers.get_current_dto_from_payload(&input.dto).await?;
+        let dto = self
+            .helpers
+            .get_current_dto_from_payload(&input.dto)
+            .await?;
         let role = self.helpers.get_role_from_dto(&dto).await?;
         let message_type = input._type.clone();
         let current_state = self.helpers.get_state_from_dto(&dto).await?;
         let current_state_attribute = self.helpers.get_state_attribute_from_dto(&dto).await?;
-        self.payload_validator.validate_with_json_schema(&input.dto).await?;
-        self.payload_validator.validate_uri_id_as_urn(uri_id).await?;
-        self.payload_validator.validate_identifiers_as_urn(&input.dto).await?;
-        self.payload_validator.validate_uri_and_pid(uri_id, &input.dto, &role).await?;
-        self.payload_validator.validate_correlation(&input.dto, &dto).await?;
+        self.payload_validator
+            .validate_with_json_schema(&input.dto)
+            .await?;
+        self.payload_validator
+            .validate_uri_id_as_urn(uri_id)
+            .await?;
+        self.payload_validator
+            .validate_identifiers_as_urn(&input.dto)
+            .await?;
+        self.payload_validator
+            .validate_uri_and_pid(uri_id, &input.dto, &role)
+            .await?;
+        self.payload_validator
+            .validate_correlation(&input.dto, &dto)
+            .await?;
         self.payload_validator.validate_auth(&input.dto).await?;
-        self.step_transition_validator.validate_role_for_message(&role, &message_type).await?;
+        self.step_transition_validator
+            .validate_role_for_message(&role, &message_type)
+            .await?;
         self.step_transition_validator
             .validate_state_transition(&current_state, &message_type)
             .await?;
@@ -164,18 +236,33 @@ impl ValidationDspSteps for ValidationDspStepsService {
         uri_id: &String,
         input: &NegotiationProcessMessageWrapper<NegotiationEventMessageDto>,
     ) -> Outcome<()> {
-        let dto = self.helpers.get_current_dto_from_payload(&input.dto).await?;
+        let dto = self
+            .helpers
+            .get_current_dto_from_payload(&input.dto)
+            .await?;
         let role = self.helpers.get_role_from_dto(&dto).await?;
         let message_type = input._type.clone();
         let current_state = self.helpers.get_state_from_dto(&dto).await?;
         let current_state_attribute = self.helpers.get_state_attribute_from_dto(&dto).await?;
-        self.payload_validator.validate_with_json_schema(&input.dto).await?;
-        self.payload_validator.validate_uri_id_as_urn(uri_id).await?;
-        self.payload_validator.validate_identifiers_as_urn(&input.dto).await?;
-        self.payload_validator.validate_uri_and_pid(uri_id, &input.dto, &role).await?;
-        self.payload_validator.validate_correlation(&input.dto, &dto).await?;
+        self.payload_validator
+            .validate_with_json_schema(&input.dto)
+            .await?;
+        self.payload_validator
+            .validate_uri_id_as_urn(uri_id)
+            .await?;
+        self.payload_validator
+            .validate_identifiers_as_urn(&input.dto)
+            .await?;
+        self.payload_validator
+            .validate_uri_and_pid(uri_id, &input.dto, &role)
+            .await?;
+        self.payload_validator
+            .validate_correlation(&input.dto, &dto)
+            .await?;
         self.payload_validator.validate_auth(&input.dto).await?;
-        self.step_transition_validator.validate_role_for_message(&role, &message_type).await?;
+        self.step_transition_validator
+            .validate_role_for_message(&role, &message_type)
+            .await?;
         self.step_transition_validator
             .validate_state_transition(&current_state, &message_type)
             .await?;
@@ -187,18 +274,33 @@ impl ValidationDspSteps for ValidationDspStepsService {
         uri_id: &String,
         input: &NegotiationProcessMessageWrapper<NegotiationTerminationMessageDto>,
     ) -> Outcome<()> {
-        let dto = self.helpers.get_current_dto_from_payload(&input.dto).await?;
+        let dto = self
+            .helpers
+            .get_current_dto_from_payload(&input.dto)
+            .await?;
         let role = self.helpers.get_role_from_dto(&dto).await?;
         let message_type = input._type.clone();
         let current_state = self.helpers.get_state_from_dto(&dto).await?;
         let current_state_attribute = self.helpers.get_state_attribute_from_dto(&dto).await?;
-        self.payload_validator.validate_with_json_schema(&input.dto).await?;
-        self.payload_validator.validate_uri_id_as_urn(uri_id).await?;
-        self.payload_validator.validate_identifiers_as_urn(&input.dto).await?;
-        self.payload_validator.validate_uri_and_pid(uri_id, &input.dto, &role).await?;
-        self.payload_validator.validate_correlation(&input.dto, &dto).await?;
+        self.payload_validator
+            .validate_with_json_schema(&input.dto)
+            .await?;
+        self.payload_validator
+            .validate_uri_id_as_urn(uri_id)
+            .await?;
+        self.payload_validator
+            .validate_identifiers_as_urn(&input.dto)
+            .await?;
+        self.payload_validator
+            .validate_uri_and_pid(uri_id, &input.dto, &role)
+            .await?;
+        self.payload_validator
+            .validate_correlation(&input.dto, &dto)
+            .await?;
         self.payload_validator.validate_auth(&input.dto).await?;
-        self.step_transition_validator.validate_role_for_message(&role, &message_type).await?;
+        self.step_transition_validator
+            .validate_role_for_message(&role, &message_type)
+            .await?;
         self.step_transition_validator
             .validate_state_transition(&current_state, &message_type)
             .await?;

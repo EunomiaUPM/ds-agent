@@ -24,8 +24,5 @@ pub mod data_service_resolver_facade;
 #[cfg_attr(test, mockall::automock)]
 #[async_trait::async_trait]
 pub trait DistributionFacadeTrait: Send + Sync {
-    async fn resolve_distribution_by_id(
-        &self,
-        distribution_id: &String,
-    ) -> Outcome<()>;
+    async fn resolve_distribution_by_id(&self, distribution_id: &String) -> Outcome<()>;
 }

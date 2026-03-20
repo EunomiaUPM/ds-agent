@@ -22,8 +22,8 @@ use crate::data::entities::negotiation_process::{
     EditNegotiationProcessModel, NewNegotiationProcessModel,
 };
 use thiserror::Error;
-use ymir::errors::Outcome;
 use urn::Urn;
+use ymir::errors::Outcome;
 use ymir::errors::RepoIntoErrors;
 
 #[async_trait::async_trait]
@@ -59,10 +59,7 @@ pub trait NegotiationProcessRepoTrait: Send + Sync {
         id: &Urn,
         edit_model: &EditNegotiationProcessModel,
     ) -> Outcome<negotiation_process::Model>;
-    async fn delete_negotiation_process(
-        &self,
-        id: &Urn,
-    ) -> Outcome<()>;
+    async fn delete_negotiation_process(&self, id: &Urn) -> Outcome<()>;
 }
 
 #[derive(Debug, Error)]

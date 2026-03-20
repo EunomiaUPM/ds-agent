@@ -50,7 +50,10 @@ impl TransferPersistenceForProtocolService {
         transfer_message_service: Arc<dyn TransferAgentMessagesTrait>,
         transfer_process_service: Arc<dyn TransferAgentProcessesTrait>,
     ) -> Self {
-        Self { transfer_message_service, transfer_process_service }
+        Self {
+            transfer_message_service,
+            transfer_process_service,
+        }
     }
 }
 
@@ -67,7 +70,9 @@ impl TransferPersistenceTrait for TransferPersistenceForProtocolService {
     async fn fetch_process(&self, id: &str) -> Outcome<TransferProcessDto> {
         let urn = Urn::from_str(id)?;
         // Resolve by identifier value; DSP peers may send either consumerPid or providerPid.
-        self.transfer_process_service.get_transfer_process_by_key_value(&urn).await
+        self.transfer_process_service
+            .get_transfer_process_by_key_value(&urn)
+            .await
     }
 
     async fn create_process(&self, input: CreateProcessInput) -> Outcome<TransferProcessDto> {
@@ -103,8 +108,10 @@ impl TransferPersistenceTrait for TransferPersistenceForProtocolService {
         let message_type = payload_dto.get_message();
         let new_state = TransferProcessState::from(message_type.clone());
 
-        let process =
-            self.transfer_process_service.get_transfer_process_by_key_value(&urn_id).await?;
+        let process = self
+            .transfer_process_service
+            .get_transfer_process_by_key_value(&urn_id)
+            .await?;
         let process_urn = Urn::from_str(process.inner.id.as_str())?;
 
         let role = process
@@ -117,7 +124,12 @@ impl TransferPersistenceTrait for TransferPersistenceForProtocolService {
             .state_attribute
             .unwrap_or(TransferStateAttribute::OnRequest.to_string())
             .parse::<TransferStateAttribute>()
-            .map_err(|e| Errors::crazy(format!("Not able to parse TransferStateAttribute: {e}"), None))?;
+            .map_err(|e| {
+                Errors::crazy(
+                    format!("Not able to parse TransferStateAttribute: {e}"),
+                    None,
+                )
+            })?;
 
         let new_attr = resolve_inbound_state_attribute(&message_type, &prev_attr, &role)?;
 
@@ -182,6 +194,9 @@ fn peer_attribute(local_role: &RoleConfig) -> Outcome<TransferStateAttribute> {
     match local_role {
         RoleConfig::Provider => Ok(TransferStateAttribute::ByConsumer),
         RoleConfig::Consumer => Ok(TransferStateAttribute::ByProvider),
-        _ => Err(Errors::crazy("Unknown role when resolving state attribute", None)),
+        _ => Err(Errors::crazy(
+            "Unknown role when resolving state attribute",
+            None,
+        )),
     }
 }

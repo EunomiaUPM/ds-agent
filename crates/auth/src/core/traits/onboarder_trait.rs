@@ -40,7 +40,9 @@ pub trait CoreOnboarderTrait: Send + Sync + 'static {
         let mut req_model = self.repo().request_req().create(req_model).await?;
         let mut int_model = self.repo().interaction_req().create(int_model).await?;
         let _token_model = self.repo().token_requirements().create(token_model).await?;
-        self.onboarder().send_req(&mut req_model, &mut int_model).await?;
+        self.onboarder()
+            .send_req(&mut req_model, &mut int_model)
+            .await?;
         let req_model = self.repo().request_req().update(req_model).await?;
         let int_model = self.repo().interaction_req().update(int_model).await?;
         let ver_model = self.onboarder().save_verification(&int_model)?;
@@ -62,7 +64,10 @@ pub trait CoreOnboarderTrait: Send + Sync + 'static {
         result?;
         let response = self.callback().continue_req(&int_model).await?;
         let mut req_model = self.repo().request_req().get_by_id(id).await?;
-        let mate = self.onboarder().manage_res(&mut req_model, response).await?;
+        let mate = self
+            .onboarder()
+            .manage_res(&mut req_model, response)
+            .await?;
         self.repo().request_req().update(req_model).await?;
         let mate = self.repo().mates().force_create(mate).await?;
         Ok(mate)

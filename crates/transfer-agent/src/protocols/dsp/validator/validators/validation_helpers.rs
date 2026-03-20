@@ -33,7 +33,9 @@ pub struct ValidationHelperService {
 }
 impl ValidationHelperService {
     pub fn new(transfer_process_service: Arc<dyn TransferAgentProcessesTrait>) -> Self {
-        Self { transfer_process_service }
+        Self {
+            transfer_process_service,
+        }
     }
 }
 #[async_trait::async_trait]
@@ -117,7 +119,12 @@ impl ValidationHelpers for ValidationHelperService {
             .clone()
             .unwrap_or(TransferStateAttribute::OnRequest.to_string())
             .parse::<TransferStateAttribute>()
-            .map_err(|e| Errors::crazy(format!("Not able to parse TransferStateAttribute: {e}"), None))?;
+            .map_err(|e| {
+                Errors::crazy(
+                    format!("Not able to parse TransferStateAttribute: {e}"),
+                    None,
+                )
+            })?;
         Ok(state_attribute)
     }
 }

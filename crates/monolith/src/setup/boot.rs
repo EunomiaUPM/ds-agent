@@ -73,7 +73,7 @@ impl BootstrapServiceTrait for CoreBoot {
                     let url = format!("{}{}/wallet/onboard", base_url, api);
                     client.post_void::<()>(url.as_str()).await?;
                 }
-                _ => return Err(err.into())
+                _ => return Err(err.into()),
             }
             // attempt again
             let url = format!("{}{}/mates/myself", base_url, api);
@@ -89,7 +89,7 @@ impl BootstrapServiceTrait for CoreBoot {
 
     async fn load_catalog(
         participant_id: &Option<String>,
-        config: &Self::Config
+        config: &Self::Config,
     ) -> Outcome<String> {
         let participant_id = participant_id.clone().unwrap_or_default();
         let client = HttpClient::new(1, 3);
@@ -102,7 +102,7 @@ impl BootstrapServiceTrait for CoreBoot {
                 &NewCatalogDto {
                     dspace_participant_id: Some(participant_id),
                     ..NewCatalogDto::default()
-                }
+                },
             )
             .await?;
         Ok(catalog.inner.id)
@@ -110,7 +110,7 @@ impl BootstrapServiceTrait for CoreBoot {
 
     async fn load_dataservice(
         catalog_id: &Option<String>,
-        config: &Self::Config
+        config: &Self::Config,
     ) -> Outcome<String> {
         let catalog_id = catalog_id.clone().unwrap_or_default();
         let client = HttpClient::new(1, 3);
@@ -128,7 +128,7 @@ impl BootstrapServiceTrait for CoreBoot {
                         Errors::parse("Error parsing urn catalog_id", Some(Box::new(e)))
                     })?,
                     ..Default::default()
-                }
+                },
             )
             .await?;
         Ok(catalog.inner.id)
@@ -138,7 +138,10 @@ impl BootstrapServiceTrait for CoreBoot {
         let client = HttpClient::new(1, 3);
         let base_url = config.catalog().common().get_host(HostType::Http);
         let api = config.catalog().common().get_api_version();
-        let url = format!("{}{}/catalog-agent/policy-templates?silent=true", base_url, api);
+        let url = format!(
+            "{}{}/catalog-agent/policy-templates?silent=true",
+            base_url, api
+        );
         // load files
         let policies_folder = config.catalog().get_policy_templates_folder();
         let mut read_dir = match fs::read_dir(&policies_folder).await {
@@ -193,7 +196,7 @@ impl BootstrapServiceTrait for CoreBoot {
 
     async fn start_services_background(
         config: &Self::Config,
-        vault: Arc<VaultService>
+        vault: Arc<VaultService>,
     ) -> Outcome<Sender<()>> {
         // thread control
         let (shutdown_tx, mut shutdown_rx) = broadcast::channel::<()>(1);

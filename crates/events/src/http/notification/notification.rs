@@ -24,8 +24,8 @@ use axum::extract::{Path, State};
 use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::{Json, Router};
-use log::info;
 use common::utils::get_urn_from_string;
+use log::info;
 use reqwest::StatusCode;
 use std::sync::Arc;
 
@@ -38,7 +38,10 @@ where
     T: RainbowEventsNotificationTrait + Send + Sync + 'static,
 {
     pub fn new(service: Arc<T>, entity_type: Option<SubscriptionEntities>) -> Self {
-        Self { service, entity_type }
+        Self {
+            service,
+            entity_type,
+        }
     }
     pub fn router(self) -> Router {
         Router::new()
@@ -114,7 +117,10 @@ where
             Ok(sid) => sid,
             Err(_) => return NotificationErrors::UrnUuidSchema(sid.to_string()).into_response(),
         };
-        match service.get_pending_notifications_by_subscription_id(sid).await {
+        match service
+            .get_pending_notifications_by_subscription_id(sid)
+            .await
+        {
             Ok(notifications) => (StatusCode::OK, Json(notifications)).into_response(),
             Err(e) => e.into_response(),
         }
@@ -132,7 +138,10 @@ where
             Ok(sid) => sid,
             Err(_) => return NotificationErrors::UrnUuidSchema(sid.to_string()).into_response(),
         };
-        match service.ack_pending_notifications_by_subscription_id(sid).await {
+        match service
+            .ack_pending_notifications_by_subscription_id(sid)
+            .await
+        {
             Ok(notifications) => (StatusCode::ACCEPTED, Json(notifications)).into_response(),
             Err(e) => e.into_response(),
         }

@@ -20,8 +20,8 @@
 use crate::protocols::dsp::errors::error_adapter::DspNegotiationError;
 use axum::Json;
 use axum::extract::rejection::JsonRejection;
-use ymir::errors::{BadFormat, Errors};
 use tracing::error;
+use ymir::errors::{BadFormat, Errors};
 
 pub(crate) mod error_adapter;
 

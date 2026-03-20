@@ -15,7 +15,6 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 use crate::entities::parameters::parameters::{ParameterDefinition, ParameterType};
 use crate::entities::parameters::template_parameters_extractor::FoundParameter;
 use crate::entities::parameters::template_parameters_validator::ParameterValidator;
@@ -33,7 +32,10 @@ fn make_def(name: &str, param_type: ParameterType) -> ParameterDefinition {
 }
 
 fn make_found(name: &str, content_type: FoundParameterType) -> FoundParameter {
-    FoundParameter { name: name.to_string(), content_type }
+    FoundParameter {
+        name: name.to_string(),
+        content_type,
+    }
 }
 
 // =========================================================================
@@ -42,19 +44,26 @@ fn make_found(name: &str, content_type: FoundParameterType) -> FoundParameter {
 
 #[test]
 fn ok_when_found_and_defined_match_exactly() {
-    let defs = vec![make_def("HOST", ParameterType::String), make_def("PORT", ParameterType::Int)];
+    let defs = vec![
+        make_def("HOST", ParameterType::String),
+        make_def("PORT", ParameterType::Int),
+    ];
     let found = vec![
         make_found("HOST", FoundParameterType::String),
         make_found("PORT", FoundParameterType::Int),
     ];
-    assert!(ParameterValidator::new(&defs, false).validate(&found).is_ok());
+    assert!(ParameterValidator::new(&defs, false)
+        .validate(&found)
+        .is_ok());
 }
 
 #[test]
 fn ok_when_both_empty() {
     let defs: Vec<ParameterDefinition> = vec![];
     let found: Vec<FoundParameter> = vec![];
-    assert!(ParameterValidator::new(&defs, false).validate(&found).is_ok());
+    assert!(ParameterValidator::new(&defs, false)
+        .validate(&found)
+        .is_ok());
 }
 
 #[test]
@@ -64,7 +73,9 @@ fn ok_when_duplicate_found_entries_deduplicated() {
         make_found("HOST", FoundParameterType::String),
         make_found("HOST", FoundParameterType::String),
     ];
-    assert!(ParameterValidator::new(&defs, false).validate(&found).is_ok());
+    assert!(ParameterValidator::new(&defs, false)
+        .validate(&found)
+        .is_ok());
 }
 
 #[test]
@@ -74,18 +85,27 @@ fn err_when_found_parameter_is_not_declared() {
         make_found("HOST", FoundParameterType::String),
         make_found("UNKNOWN", FoundParameterType::String),
     ];
-    let err = ParameterValidator::new(&defs, false).validate(&found).unwrap_err();
+    let err = ParameterValidator::new(&defs, false)
+        .validate(&found)
+        .unwrap_err();
     let msg = err.to_string();
-    assert!(msg.contains("Undeclared"), "expected undeclared error, got: {msg}");
+    assert!(
+        msg.contains("Undeclared"),
+        "expected undeclared error, got: {msg}"
+    );
     assert!(msg.contains("UNKNOWN"));
 }
 
 #[test]
 fn err_when_declared_parameter_is_not_used_in_template() {
-    let defs =
-        vec![make_def("HOST", ParameterType::String), make_def("UNUSED", ParameterType::String)];
+    let defs = vec![
+        make_def("HOST", ParameterType::String),
+        make_def("UNUSED", ParameterType::String),
+    ];
     let found = vec![make_found("HOST", FoundParameterType::String)];
-    let err = ParameterValidator::new(&defs, false).validate(&found).unwrap_err();
+    let err = ParameterValidator::new(&defs, false)
+        .validate(&found)
+        .unwrap_err();
     let msg = err.to_string();
     assert!(
         msg.contains("Declared parameters not found"),
@@ -96,13 +116,17 @@ fn err_when_declared_parameter_is_not_used_in_template() {
 
 #[test]
 fn err_contains_both_issues_when_undeclared_and_unused_exist() {
-    let defs =
-        vec![make_def("HOST", ParameterType::String), make_def("UNUSED", ParameterType::String)];
+    let defs = vec![
+        make_def("HOST", ParameterType::String),
+        make_def("UNUSED", ParameterType::String),
+    ];
     let found = vec![
         make_found("HOST", FoundParameterType::String),
         make_found("GHOST", FoundParameterType::String),
     ];
-    let err = ParameterValidator::new(&defs, false).validate(&found).unwrap_err();
+    let err = ParameterValidator::new(&defs, false)
+        .validate(&found)
+        .unwrap_err();
     let msg = err.to_string();
     assert!(msg.contains("GHOST"), "expected GHOST in error: {msg}");
     assert!(msg.contains("UNUSED"), "expected UNUSED in error: {msg}");
@@ -115,7 +139,9 @@ fn err_lists_multiple_undeclared_parameters_sorted() {
         make_found("ZEBRA", FoundParameterType::String),
         make_found("ALPHA", FoundParameterType::String),
     ];
-    let err = ParameterValidator::new(&defs, false).validate(&found).unwrap_err();
+    let err = ParameterValidator::new(&defs, false)
+        .validate(&found)
+        .unwrap_err();
     let msg = err.to_string();
     let alpha_pos = msg.find("ALPHA").unwrap();
     let zebra_pos = msg.find("ZEBRA").unwrap();
@@ -133,7 +159,9 @@ fn ok_when_runtime_parameter_is_excluded() {
         make_found("HOST", FoundParameterType::String),
         make_found("RUNTIME_TIMESTAMP", FoundParameterType::String),
     ];
-    assert!(ParameterValidator::new(&defs, true).validate(&found).is_ok());
+    assert!(ParameterValidator::new(&defs, true)
+        .validate(&found)
+        .is_ok());
 }
 
 #[test]
@@ -143,7 +171,9 @@ fn ok_when_only_runtime_parameters_found_and_no_definitions() {
         make_found("RUNTIME_URN", FoundParameterType::String),
         make_found("RUNTIME_TOKEN", FoundParameterType::String),
     ];
-    assert!(ParameterValidator::new(&defs, true).validate(&found).is_ok());
+    assert!(ParameterValidator::new(&defs, true)
+        .validate(&found)
+        .is_ok());
 }
 
 #[test]
@@ -154,7 +184,9 @@ fn err_when_non_runtime_undeclared_alongside_runtime_excluded() {
         make_found("RUNTIME_TIMESTAMP", FoundParameterType::String),
         make_found("GHOST", FoundParameterType::String),
     ];
-    let err = ParameterValidator::new(&defs, true).validate(&found).unwrap_err();
+    let err = ParameterValidator::new(&defs, true)
+        .validate(&found)
+        .unwrap_err();
     let msg = err.to_string();
     assert!(msg.contains("GHOST"), "expected GHOST in error: {msg}");
     assert!(
@@ -167,7 +199,9 @@ fn err_when_non_runtime_undeclared_alongside_runtime_excluded() {
 fn runtime_parameter_causes_error_when_exclude_runtime_is_false() {
     let defs: Vec<ParameterDefinition> = vec![];
     let found = vec![make_found("RUNTIME_TIMESTAMP", FoundParameterType::String)];
-    let err = ParameterValidator::new(&defs, false).validate(&found).unwrap_err();
+    let err = ParameterValidator::new(&defs, false)
+        .validate(&found)
+        .unwrap_err();
     assert!(err.to_string().contains("RUNTIME_TIMESTAMP"));
 }
 
@@ -179,7 +213,9 @@ fn runtime_parameter_causes_error_when_exclude_runtime_is_false() {
 fn ok_when_int_parameter_used_as_complete_int_template() {
     let defs = vec![make_def("PORT", ParameterType::Int)];
     let found = vec![make_found("PORT", FoundParameterType::Int)];
-    assert!(ParameterValidator::new(&defs, false).validate(&found).is_ok());
+    assert!(ParameterValidator::new(&defs, false)
+        .validate(&found)
+        .is_ok());
 }
 
 #[test]
@@ -188,28 +224,36 @@ fn ok_when_int_parameter_interpolated_in_string() {
     // compatible with ParameterType::Int (scalar coercion)
     let defs = vec![make_def("TIMEOUT", ParameterType::Int)];
     let found = vec![make_found("TIMEOUT", FoundParameterType::String)];
-    assert!(ParameterValidator::new(&defs, false).validate(&found).is_ok());
+    assert!(ParameterValidator::new(&defs, false)
+        .validate(&found)
+        .is_ok());
 }
 
 #[test]
 fn ok_when_boolean_parameter_interpolated_in_string() {
     let defs = vec![make_def("ENABLED", ParameterType::Boolean)];
     let found = vec![make_found("ENABLED", FoundParameterType::String)];
-    assert!(ParameterValidator::new(&defs, false).validate(&found).is_ok());
+    assert!(ParameterValidator::new(&defs, false)
+        .validate(&found)
+        .is_ok());
 }
 
 #[test]
 fn ok_when_vec_string_parameter_used_as_complete_vec_template() {
     let defs = vec![make_def("TAGS", ParameterType::VecString)];
     let found = vec![make_found("TAGS", FoundParameterType::VecString)];
-    assert!(ParameterValidator::new(&defs, false).validate(&found).is_ok());
+    assert!(ParameterValidator::new(&defs, false)
+        .validate(&found)
+        .is_ok());
 }
 
 #[test]
 fn ok_when_map_string_parameter_used_as_complete_map_template() {
     let defs = vec![make_def("HEADERS", ParameterType::MapStringString)];
     let found = vec![make_found("HEADERS", FoundParameterType::MapString)];
-    assert!(ParameterValidator::new(&defs, false).validate(&found).is_ok());
+    assert!(ParameterValidator::new(&defs, false)
+        .validate(&found)
+        .is_ok());
 }
 
 #[test]
@@ -217,9 +261,14 @@ fn err_when_string_parameter_used_as_int_template() {
     // A String parameter cannot satisfy a TemplateInt::Template context.
     let defs = vec![make_def("HOST", ParameterType::String)];
     let found = vec![make_found("HOST", FoundParameterType::Int)];
-    let err = ParameterValidator::new(&defs, false).validate(&found).unwrap_err();
+    let err = ParameterValidator::new(&defs, false)
+        .validate(&found)
+        .unwrap_err();
     let msg = err.to_string();
-    assert!(msg.contains("Type mismatches"), "expected type error, got: {msg}");
+    assert!(
+        msg.contains("Type mismatches"),
+        "expected type error, got: {msg}"
+    );
     assert!(msg.contains("HOST"));
 }
 
@@ -228,9 +277,14 @@ fn err_when_vec_string_parameter_interpolated_in_string() {
     // Vec<String> cannot be coerced into a string interpolation context.
     let defs = vec![make_def("TAGS", ParameterType::VecString)];
     let found = vec![make_found("TAGS", FoundParameterType::String)];
-    let err = ParameterValidator::new(&defs, false).validate(&found).unwrap_err();
+    let err = ParameterValidator::new(&defs, false)
+        .validate(&found)
+        .unwrap_err();
     let msg = err.to_string();
-    assert!(msg.contains("Type mismatches"), "expected type error, got: {msg}");
+    assert!(
+        msg.contains("Type mismatches"),
+        "expected type error, got: {msg}"
+    );
     assert!(msg.contains("TAGS"));
 }
 
@@ -238,9 +292,14 @@ fn err_when_vec_string_parameter_interpolated_in_string() {
 fn err_when_map_string_parameter_interpolated_in_string() {
     let defs = vec![make_def("HEADERS", ParameterType::MapStringString)];
     let found = vec![make_found("HEADERS", FoundParameterType::String)];
-    let err = ParameterValidator::new(&defs, false).validate(&found).unwrap_err();
+    let err = ParameterValidator::new(&defs, false)
+        .validate(&found)
+        .unwrap_err();
     let msg = err.to_string();
-    assert!(msg.contains("Type mismatches"), "expected type error, got: {msg}");
+    assert!(
+        msg.contains("Type mismatches"),
+        "expected type error, got: {msg}"
+    );
     assert!(msg.contains("HEADERS"));
 }
 
@@ -252,7 +311,9 @@ fn err_deduplicates_repeated_type_mismatch_for_same_parameter() {
         make_found("HOST", FoundParameterType::Int),
         make_found("HOST", FoundParameterType::Int),
     ];
-    let err = ParameterValidator::new(&defs, false).validate(&found).unwrap_err();
+    let err = ParameterValidator::new(&defs, false)
+        .validate(&found)
+        .unwrap_err();
     let msg = err.to_string();
     assert_eq!(
         msg.matches("HOST").count(),
@@ -267,9 +328,14 @@ fn err_deduplicates_repeated_type_mismatch_for_same_parameter() {
 
 #[test]
 fn err_when_two_definitions_share_the_same_name() {
-    let defs = vec![make_def("HOST", ParameterType::String), make_def("HOST", ParameterType::Int)];
+    let defs = vec![
+        make_def("HOST", ParameterType::String),
+        make_def("HOST", ParameterType::Int),
+    ];
     let found = vec![make_found("HOST", FoundParameterType::String)];
-    let err = ParameterValidator::new(&defs, false).validate(&found).unwrap_err();
+    let err = ParameterValidator::new(&defs, false)
+        .validate(&found)
+        .unwrap_err();
     let msg = err.to_string();
     assert!(
         msg.contains("Duplicate parameter names"),
@@ -289,7 +355,9 @@ fn err_when_two_definitions_share_the_same_title() {
         make_found("HOST", FoundParameterType::String),
         make_found("PORT", FoundParameterType::Int),
     ];
-    let err = ParameterValidator::new(&[def_a, def_b], false).validate(&found).unwrap_err();
+    let err = ParameterValidator::new(&[def_a, def_b], false)
+        .validate(&found)
+        .unwrap_err();
     let msg = err.to_string();
     assert!(
         msg.contains("Duplicate parameter titles"),
@@ -305,9 +373,14 @@ fn err_reports_name_and_type_issues_together() {
         make_found("HOST", FoundParameterType::Int), // type mismatch
         make_found("GHOST", FoundParameterType::String), // undeclared
     ];
-    let err = ParameterValidator::new(&defs, false).validate(&found).unwrap_err();
+    let err = ParameterValidator::new(&defs, false)
+        .validate(&found)
+        .unwrap_err();
     let msg = err.to_string();
     assert!(msg.contains("GHOST"), "expected undeclared GHOST: {msg}");
-    assert!(msg.contains("Type mismatches"), "expected type mismatch: {msg}");
+    assert!(
+        msg.contains("Type mismatches"),
+        "expected type mismatch: {msg}"
+    );
     assert!(msg.contains("HOST"), "expected HOST in type error: {msg}");
 }

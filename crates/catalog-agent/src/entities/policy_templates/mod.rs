@@ -76,7 +76,10 @@ impl TryFrom<NewPolicyTemplateDto> for NewPolicyTemplateModel {
             date: dto.date,
             author: dto.author,
             title: dto.title.map(|t| serde_json::to_value(t)).transpose()?,
-            description: dto.description.map(|t| serde_json::to_value(t)).transpose()?,
+            description: dto
+                .description
+                .map(|t| serde_json::to_value(t))
+                .transpose()?,
             content: serde_json::to_value(dto.content)?,
             parameters: serde_json::to_value(dto.parameters)?,
         })
@@ -92,7 +95,10 @@ impl TryFrom<policy_template::Model> for PolicyTemplateDto {
             version: value.version,
             date: value.date,
             title: value.title.map(|t| serde_json::from_value(t)).transpose()?,
-            description: value.description.map(|t| serde_json::from_value(t)).transpose()?,
+            description: value
+                .description
+                .map(|t| serde_json::from_value(t))
+                .transpose()?,
             author: value.author,
             content: serde_json::from_value(value.content)?,
             parameters: serde_json::from_value(value.parameters)?,

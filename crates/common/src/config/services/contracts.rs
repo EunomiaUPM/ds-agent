@@ -29,12 +29,16 @@ use crate::config::types::traits::{CommonConfigTrait, ConfigLoader};
 pub struct ContractsConfig {
     common: CommonConfig,
     ssi_auth: MinKnownConfig,
-    is_catalog_datahub: bool
+    is_catalog_datahub: bool,
 }
 
 impl ContractsConfigTrait for ContractsConfig {
-    fn ssi_auth(&self) -> &MinKnownConfig { &self.ssi_auth }
-    fn is_catalog_datahub(&self) -> bool { self.is_catalog_datahub }
+    fn ssi_auth(&self) -> &MinKnownConfig {
+        &self.ssi_auth
+    }
+    fn is_catalog_datahub(&self) -> bool {
+        self.is_catalog_datahub
+    }
 }
 
 impl ConfigLoader for ContractsConfig {
@@ -46,7 +50,9 @@ impl ConfigLoader for ContractsConfig {
 }
 
 impl CommonConfigTrait for ContractsConfig {
-    fn common(&self) -> &CommonConfig { &self.common }
+    fn common(&self) -> &CommonConfig {
+        &self.common
+    }
 }
 
 impl ConnectionConfigTrait for ContractsConfig {

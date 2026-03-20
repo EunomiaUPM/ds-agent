@@ -41,7 +41,9 @@ pub struct InstanceParametersValidator<'a> {
 
 impl<'a> InstanceParametersValidator<'a> {
     pub fn new(template_parameters: &'a [ParameterDefinition]) -> Self {
-        Self { template_parameters }
+        Self {
+            template_parameters,
+        }
     }
 
     /// Runs all validation rules against `instance_parameters` and returns
@@ -104,7 +106,10 @@ impl<'a> InstanceParametersValidator<'a> {
         // Rule B: Existence logic (Required vs Optional)
         let Some(val) = user_value else {
             if template_parameter.required {
-                return Some(format!("Missing required parameter: '{}'", template_parameter.name));
+                return Some(format!(
+                    "Missing required parameter: '{}'",
+                    template_parameter.name
+                ));
             }
             return None;
         };
@@ -137,12 +142,12 @@ impl<'a> InstanceParametersValidator<'a> {
             ParameterType::String => val.is_string(),
             ParameterType::Int => val.is_i64() || val.is_u64(),
             ParameterType::Boolean => val.is_boolean(),
-            ParameterType::VecString => {
-                val.as_array().map_or(false, |arr| arr.iter().all(|e| e.is_string()))
-            }
-            ParameterType::MapStringString => {
-                val.as_object().map_or(false, |obj| obj.values().all(|v| v.is_string()))
-            }
+            ParameterType::VecString => val
+                .as_array()
+                .map_or(false, |arr| arr.iter().all(|e| e.is_string())),
+            ParameterType::MapStringString => val
+                .as_object()
+                .map_or(false, |obj| obj.values().all(|v| v.is_string())),
         }
     }
 }

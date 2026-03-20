@@ -87,10 +87,12 @@ pub struct NewAgreementModel {
 
 impl From<NewAgreementModel> for ActiveModel {
     fn from(value: NewAgreementModel) -> Self {
-        let new_urn =
-            UrnBuilder::new("negotiation-agreement", uuid::Uuid::new_v4().to_string().as_str())
-                .build()
-                .expect("UrnBuilder failed");
+        let new_urn = UrnBuilder::new(
+            "negotiation-agreement",
+            uuid::Uuid::new_v4().to_string().as_str(),
+        )
+        .build()
+        .expect("UrnBuilder failed");
         Self {
             id: ActiveValue::Set(value.id.unwrap_or(new_urn).to_string()),
             negotiation_agent_process_id: ActiveValue::Set(

@@ -36,12 +36,12 @@ use axum::{
 };
 use common::config::services::ContractsConfig;
 use common::dsp_common::context_field::ContextField;
-use ymir::errors::Errors;
+use common::facades::Mates;
 use common::facades::ssi_auth_facade::SSIAuthFacadeTrait;
 use serde::Serialize;
 use std::future::Future;
 use std::sync::Arc;
-use common::facades::Mates;
+use ymir::errors::Errors;
 
 #[derive(Clone)]
 pub struct DspRouter {
@@ -68,7 +68,11 @@ impl DspRouter {
         config: Arc<ContractsConfig>,
         ssi_auth: Arc<dyn SSIAuthFacadeTrait>,
     ) -> Self {
-        Self { orchestrator: service, config, ssi_auth }
+        Self {
+            orchestrator: service,
+            config,
+            ssi_auth,
+        }
     }
 
     pub fn router(self) -> Router {
@@ -103,8 +107,14 @@ impl DspRouter {
             // Both allow POST /events. The logic inside must discriminate based on state/role.
             .route("/{id}/events", post(Self::handle_negotiation_events))
             // 8.2.6 (Provider Endpoint) & 8.3.7 (Consumer Endpoint) -> Termination
-            .route("/{id}/termination", post(Self::handle_negotiation_termination))
-            .layer(middleware::from_fn_with_state(self.clone(), Self::auth_middleware))
+            .route(
+                "/{id}/termination",
+                post(Self::handle_negotiation_termination),
+            )
+            .layer(middleware::from_fn_with_state(
+                self.clone(),
+                Self::auth_middleware,
+            ))
             .with_state(self)
     }
 
@@ -184,7 +194,11 @@ impl DspRouter {
         Path(id): Path<String>,
     ) -> impl IntoResponse {
         Self::map_service_result(
-            state.orchestrator.get_protocol_service().on_get_negotiation(&id).await,
+            state
+                .orchestrator
+                .get_protocol_service()
+                .on_get_negotiation(&id)
+                .await,
             StatusCode::OK,
         )
     }
@@ -215,7 +229,11 @@ impl DspRouter {
             .await;
         match result {
             Ok((data, exists)) => {
-                let status = if exists { StatusCode::OK } else { StatusCode::CREATED };
+                let status = if exists {
+                    StatusCode::OK
+                } else {
+                    StatusCode::CREATED
+                };
                 (status, Json(data)).into_response()
             }
             Err(err) => Self::map_service_error(err).into_response(),
@@ -232,7 +250,11 @@ impl DspRouter {
         >,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::OK, |data| async move {
-            state.orchestrator.get_protocol_service().on_consumer_request(&id, &data, &mate).await
+            state
+                .orchestrator
+                .get_protocol_service()
+                .on_consumer_request(&id, &data, &mate)
+                .await
         })
         .await
     }
@@ -282,7 +304,11 @@ impl DspRouter {
             .await;
         match result {
             Ok((data, exists)) => {
-                let status = if exists { StatusCode::OK } else { StatusCode::CREATED };
+                let status = if exists {
+                    StatusCode::OK
+                } else {
+                    StatusCode::CREATED
+                };
                 (status, Json(data)).into_response()
             }
             Err(err) => Self::map_service_error(err).into_response(),
@@ -299,7 +325,11 @@ impl DspRouter {
         >,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::OK, |data| async move {
-            state.orchestrator.get_protocol_service().on_provider_offer(&id, &data, &mate).await
+            state
+                .orchestrator
+                .get_protocol_service()
+                .on_provider_offer(&id, &data, &mate)
+                .await
         })
         .await
     }
@@ -335,7 +365,11 @@ impl DspRouter {
         >,
     ) -> impl IntoResponse {
         Self::process_request(input, StatusCode::OK, |data| async move {
-            state.orchestrator.get_protocol_service().on_negotiation_event(&id, &data, &mate).await
+            state
+                .orchestrator
+                .get_protocol_service()
+                .on_negotiation_event(&id, &data, &mate)
+                .await
         })
         .await
     }

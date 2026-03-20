@@ -29,11 +29,13 @@ use crate::core::traits::CoreBusinessTrait;
 use crate::types::business::BusinessResponse;
 
 pub struct BusinessRouter {
-    pub business: Arc<dyn CoreBusinessTrait>
+    pub business: Arc<dyn CoreBusinessTrait>,
 }
 
 impl BusinessRouter {
-    pub fn new(business: Arc<dyn CoreBusinessTrait>) -> Self { BusinessRouter { business } }
+    pub fn new(business: Arc<dyn CoreBusinessTrait>) -> Self {
+        BusinessRouter { business }
+    }
 
     pub fn router(self) -> Router {
         Router::new()
@@ -44,14 +46,14 @@ impl BusinessRouter {
 
     async fn login(
         State(business): State<Arc<dyn CoreBusinessTrait>>,
-        payload: Result<Json<RainbowBusinessLoginRequest>, JsonRejection>
+        payload: Result<Json<RainbowBusinessLoginRequest>, JsonRejection>,
     ) -> AppResult<String> {
         let payload = extract_payload(payload)?;
         business.login(payload).await
     }
     async fn token(
         State(business): State<Arc<dyn CoreBusinessTrait>>,
-        payload: Result<Json<RainbowBusinessLoginRequest>, JsonRejection>
+        payload: Result<Json<RainbowBusinessLoginRequest>, JsonRejection>,
     ) -> AppResult<Json<BusinessResponse>> {
         let payload = extract_payload(payload)?;
         Ok(Json(business.token(payload).await?))

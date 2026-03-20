@@ -56,16 +56,14 @@ impl NegotiationProcessRepoTrait for NegotiationProcessRepoForSql {
             .await;
         match processes {
             Ok(processes) => Ok(processes),
-            Err(e) => Err(NegotiationProcessRepoErrors::ErrorFetchingNegotiationProcess(
-                e.into(),
-            ).into_errors()),
+            Err(e) => Err(
+                NegotiationProcessRepoErrors::ErrorFetchingNegotiationProcess(e.into())
+                    .into_errors(),
+            ),
         }
     }
 
-    async fn get_batch_negotiation_processes(
-        &self,
-        ids: &Vec<Urn>,
-    ) -> Outcome<Vec<Model>> {
+    async fn get_batch_negotiation_processes(&self, ids: &Vec<Urn>) -> Outcome<Vec<Model>> {
         let negotiation_ids = ids.iter().map(|t| t.to_string()).collect::<Vec<_>>();
         let negotiation_process = negotiation_process::Entity::find()
             .filter(negotiation_process::Column::Id.is_in(negotiation_ids))
@@ -73,24 +71,24 @@ impl NegotiationProcessRepoTrait for NegotiationProcessRepoForSql {
             .await;
         match negotiation_process {
             Ok(negotiation_process) => Ok(negotiation_process),
-            Err(e) => Err(NegotiationProcessRepoErrors::ErrorFetchingNegotiationProcess(
-                e.into(),
-            ).into_errors()),
+            Err(e) => Err(
+                NegotiationProcessRepoErrors::ErrorFetchingNegotiationProcess(e.into())
+                    .into_errors(),
+            ),
         }
     }
 
-    async fn get_negotiation_process_by_id(
-        &self,
-        id: &Urn,
-    ) -> Outcome<Option<Model>> {
+    async fn get_negotiation_process_by_id(&self, id: &Urn) -> Outcome<Option<Model>> {
         let pid = id.to_string();
-        let negotiation_process =
-            negotiation_process::Entity::find_by_id(pid).one(&self.db_connection).await;
+        let negotiation_process = negotiation_process::Entity::find_by_id(pid)
+            .one(&self.db_connection)
+            .await;
         match negotiation_process {
             Ok(negotiation_process) => Ok(negotiation_process),
-            Err(e) => Err(NegotiationProcessRepoErrors::ErrorFetchingNegotiationProcess(
-                e.into(),
-            ).into_errors()),
+            Err(e) => Err(
+                NegotiationProcessRepoErrors::ErrorFetchingNegotiationProcess(e.into())
+                    .into_errors(),
+            ),
         }
     }
 
@@ -101,34 +99,39 @@ impl NegotiationProcessRepoTrait for NegotiationProcessRepoForSql {
     ) -> Outcome<Option<Model>> {
         let id = id.to_string();
         let negotiation_process = negotiation_process::Entity::find()
-            .join(JoinType::InnerJoin, negotiation_process::Relation::Identifiers.def())
+            .join(
+                JoinType::InnerJoin,
+                negotiation_process::Relation::Identifiers.def(),
+            )
             .filter(negotiation_process_identifier::Column::IdKey.eq(key_id))
             .filter(negotiation_process_identifier::Column::IdValue.eq(id))
             .one(&self.db_connection)
             .await;
         match negotiation_process {
             Ok(negotiation_process) => Ok(negotiation_process),
-            Err(e) => Err(NegotiationProcessRepoErrors::ErrorFetchingNegotiationProcess(
-                e.into(),
-            ).into_errors()),
+            Err(e) => Err(
+                NegotiationProcessRepoErrors::ErrorFetchingNegotiationProcess(e.into())
+                    .into_errors(),
+            ),
         }
     }
 
-    async fn get_negotiation_process_by_key_value(
-        &self,
-        id: &Urn,
-    ) -> Outcome<Option<Model>> {
+    async fn get_negotiation_process_by_key_value(&self, id: &Urn) -> Outcome<Option<Model>> {
         let id = id.to_string();
         let negotiation_process = negotiation_process::Entity::find()
-            .join(JoinType::InnerJoin, negotiation_process::Relation::Identifiers.def())
+            .join(
+                JoinType::InnerJoin,
+                negotiation_process::Relation::Identifiers.def(),
+            )
             .filter(negotiation_process_identifier::Column::IdValue.eq(id))
             .one(&self.db_connection)
             .await;
         match negotiation_process {
             Ok(negotiation_process) => Ok(negotiation_process),
-            Err(e) => Err(NegotiationProcessRepoErrors::ErrorFetchingNegotiationProcess(
-                e.into(),
-            ).into_errors()),
+            Err(e) => Err(
+                NegotiationProcessRepoErrors::ErrorFetchingNegotiationProcess(e.into())
+                    .into_errors(),
+            ),
         }
     }
 
@@ -142,9 +145,10 @@ impl NegotiationProcessRepoTrait for NegotiationProcessRepoForSql {
             .await;
         match negotiation_process {
             Ok(negotiation_process) => Ok(negotiation_process),
-            Err(e) => Err(NegotiationProcessRepoErrors::ErrorCreatingNegotiationProcess(
-                e.into(),
-            ).into_errors()),
+            Err(e) => Err(
+                NegotiationProcessRepoErrors::ErrorCreatingNegotiationProcess(e.into())
+                    .into_errors(),
+            ),
         }
     }
 
@@ -154,16 +158,23 @@ impl NegotiationProcessRepoTrait for NegotiationProcessRepoForSql {
         edit_model: &EditNegotiationProcessModel,
     ) -> Outcome<Model> {
         let id = id.to_string();
-        let old_model = negotiation_process::Entity::find_by_id(id).one(&self.db_connection).await;
+        let old_model = negotiation_process::Entity::find_by_id(id)
+            .one(&self.db_connection)
+            .await;
         let old_model = match old_model {
             Ok(old_model) => match old_model {
                 Some(old_model) => old_model,
-                None => return Err(NegotiationProcessRepoErrors::NegotiationProcessNotFound.into_errors()),
+                None => {
+                    return Err(
+                        NegotiationProcessRepoErrors::NegotiationProcessNotFound.into_errors()
+                    );
+                }
             },
             Err(e) => {
-                return Err(NegotiationProcessRepoErrors::ErrorFetchingNegotiationProcess(
-                    e.into(),
-                ).into_errors());
+                return Err(
+                    NegotiationProcessRepoErrors::ErrorFetchingNegotiationProcess(e.into())
+                        .into_errors(),
+                );
             }
         };
         let mut old_active_model: negotiation_process::ActiveModel = old_model.into();
@@ -183,27 +194,27 @@ impl NegotiationProcessRepoTrait for NegotiationProcessRepoForSql {
         let model = old_active_model.update(&self.db_connection).await;
         match model {
             Ok(model) => Ok(model),
-            Err(e) => Err(NegotiationProcessRepoErrors::ErrorUpdatingNegotiationProcess(
-                e.into(),
-            ).into_errors()),
+            Err(e) => Err(
+                NegotiationProcessRepoErrors::ErrorUpdatingNegotiationProcess(e.into())
+                    .into_errors(),
+            ),
         }
     }
 
-    async fn delete_negotiation_process(
-        &self,
-        id: &Urn,
-    ) -> Outcome<()> {
+    async fn delete_negotiation_process(&self, id: &Urn) -> Outcome<()> {
         let id = id.to_string();
-        let negotiation_process =
-            negotiation_process::Entity::delete_by_id(id).exec(&self.db_connection).await;
+        let negotiation_process = negotiation_process::Entity::delete_by_id(id)
+            .exec(&self.db_connection)
+            .await;
         match negotiation_process {
             Ok(delete_result) => match delete_result.rows_affected {
                 0 => Err(NegotiationProcessRepoErrors::NegotiationProcessNotFound.into_errors()),
                 _ => Ok(()),
             },
-            Err(e) => Err(NegotiationProcessRepoErrors::ErrorDeletingNegotiationProcess(
-                e.into(),
-            ).into_errors()),
+            Err(e) => Err(
+                NegotiationProcessRepoErrors::ErrorDeletingNegotiationProcess(e.into())
+                    .into_errors(),
+            ),
         }
     }
 }

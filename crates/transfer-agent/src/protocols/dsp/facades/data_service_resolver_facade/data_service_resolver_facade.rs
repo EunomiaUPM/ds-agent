@@ -44,7 +44,11 @@ impl DataServiceFacadeServiceForDSProtocol {
         client: Arc<HttpClient>,
         connector_entity: Arc<dyn ConnectorInstanceTrait>,
     ) -> Self {
-        Self { config, client, connector_entity }
+        Self {
+            config,
+            client,
+            connector_entity,
+        }
     }
 }
 
@@ -63,7 +67,10 @@ impl DataServiceFacadeTrait for DataServiceFacadeServiceForDSProtocol {
         );
 
         // 1. resolve agreement → get target (dataset id)
-        let agreement = self.client.get_json::<AgreementDto>(agreement_url.as_str()).await?;
+        let agreement = self
+            .client
+            .get_json::<AgreementDto>(agreement_url.as_str())
+            .await?;
         let agreement_target = get_urn_from_string(&agreement.inner.target)?;
 
         // 2. resolve dataset entity
@@ -72,7 +79,10 @@ impl DataServiceFacadeTrait for DataServiceFacadeServiceForDSProtocol {
             catalog_url,
             agreement_target.clone()
         );
-        let dataset = self.client.get_json::<DatasetDto>(datasets_url.as_str()).await?;
+        let dataset = self
+            .client
+            .get_json::<DatasetDto>(datasets_url.as_str())
+            .await?;
         let dataset_id = get_urn_from_string(&dataset.inner.id)?;
 
         // 3. resolve distribution by dataset + format
@@ -80,10 +90,14 @@ impl DataServiceFacadeTrait for DataServiceFacadeServiceForDSProtocol {
             "{}/api/v1/catalog-agent/distributions/dataset/{}/format/{}",
             catalog_url,
             dataset_id.clone(),
-            formats.ok_or_else(|| Errors::crazy("dct_formats is required", None))?.to_string()
+            formats
+                .ok_or_else(|| Errors::crazy("dct_formats is required", None))?
+                .to_string()
         );
-        let distribution =
-            self.client.get_json::<DistributionDto>(distribution_url.as_str()).await?;
+        let distribution = self
+            .client
+            .get_json::<DistributionDto>(distribution_url.as_str())
+            .await?;
         let distribution_id = Urn::from_str(distribution.inner.id.as_str())?;
 
         // 4. resolve connector instance by distribution
@@ -93,7 +107,10 @@ impl DataServiceFacadeTrait for DataServiceFacadeServiceForDSProtocol {
             .await?
             .ok_or_else(|| {
                 Errors::crazy(
-                    format!("No connector instance found for distribution {}", distribution_id),
+                    format!(
+                        "No connector instance found for distribution {}",
+                        distribution_id
+                    ),
                     None,
                 )
             })?;

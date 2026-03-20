@@ -28,16 +28,16 @@ use serde_json::Value;
 use ymir::errors::AppResult;
 use ymir::types::issuing::{
     AuthServerMetadata, CredentialRequestsss, IssuerMetadata, IssuingToken, TokenRequest,
-    VCCredOffer
+    VCCredOffer,
 };
 use ymir::utils::{
-    extract_bearer_token, extract_form_payload, extract_payload, extract_query_param
+    extract_bearer_token, extract_form_payload, extract_payload, extract_query_param,
 };
 
 use crate::core::traits::CoreGaiaSelfIssuerTrait;
 
 pub struct GaiaSelfIssuerRouter {
-    self_issuer: Arc<dyn CoreGaiaSelfIssuerTrait>
+    self_issuer: Arc<dyn CoreGaiaSelfIssuerTrait>,
 }
 
 impl GaiaSelfIssuerRouter {
@@ -48,8 +48,14 @@ impl GaiaSelfIssuerRouter {
     pub fn router(self) -> Router {
         Router::new()
             .route("/credentialOffer", get(Self::cred_offer))
-            .route("/.well-known/openid-credential-issuer", get(Self::get_issuer))
-            .route("/.well-known/oauth-authorization-server", get(Self::get_oauth_server))
+            .route(
+                "/.well-known/openid-credential-issuer",
+                get(Self::get_issuer),
+            )
+            .route(
+                "/.well-known/oauth-authorization-server",
+                get(Self::get_oauth_server),
+            )
             .route("/token", post(Self::get_token))
             // .route("/credential", post(Self::post_credential))
             .route("/credential-batch", post(Self::batch_credential))
@@ -60,44 +66,50 @@ impl GaiaSelfIssuerRouter {
 
     pub fn well_known(&self) -> Router {
         Router::new()
-            .route("/.well-known/openid-credential-issuer", get(Self::get_issuer))
-            .route("/.well-known/oauth-authorization-server", get(Self::get_oauth_server))
+            .route(
+                "/.well-known/openid-credential-issuer",
+                get(Self::get_issuer),
+            )
+            .route(
+                "/.well-known/oauth-authorization-server",
+                get(Self::get_oauth_server),
+            )
             .with_state(self.self_issuer.clone())
     }
 
     async fn gen_credential(
-        State(self_issuer): State<Arc<dyn CoreGaiaSelfIssuerTrait>>
+        State(self_issuer): State<Arc<dyn CoreGaiaSelfIssuerTrait>>,
     ) -> AppResult {
         Ok(match self_issuer.generate_gaia_vcs().await {
             Ok(Some(data)) => data.into_response(),
             Ok(None) => ().into_response(),
-            Err(e) => e.into_response()
+            Err(e) => e.into_response(),
         })
     }
 
     async fn cred_offer(
         State(self_issuer): State<Arc<dyn CoreGaiaSelfIssuerTrait>>,
-        Query(params): Query<HashMap<String, String>>
+        Query(params): Query<HashMap<String, String>>,
     ) -> AppResult<Json<VCCredOffer>> {
         let id = extract_query_param(&params, "id")?;
         Ok(Json(self_issuer.get_cred_offer_data(id).await?))
     }
 
     async fn get_issuer(
-        State(issuer): State<Arc<dyn CoreGaiaSelfIssuerTrait>>
+        State(issuer): State<Arc<dyn CoreGaiaSelfIssuerTrait>>,
     ) -> AppResult<Json<IssuerMetadata>> {
         Ok(Json(issuer.issuer_metadata()))
     }
 
     async fn get_oauth_server(
-        State(issuer): State<Arc<dyn CoreGaiaSelfIssuerTrait>>
+        State(issuer): State<Arc<dyn CoreGaiaSelfIssuerTrait>>,
     ) -> AppResult<Json<AuthServerMetadata>> {
         Ok(Json(issuer.oauth_server_metadata()))
     }
 
     async fn get_token(
         State(self_issuer): State<Arc<dyn CoreGaiaSelfIssuerTrait>>,
-        payload: Result<Form<TokenRequest>, FormRejection>
+        payload: Result<Form<TokenRequest>, FormRejection>,
     ) -> AppResult<Json<IssuingToken>> {
         let payload = extract_form_payload(payload)?;
         Ok(Json(self_issuer.get_token(payload).await?))
@@ -106,7 +118,7 @@ impl GaiaSelfIssuerRouter {
     async fn batch_credential(
         State(self_issuer): State<Arc<dyn CoreGaiaSelfIssuerTrait>>,
         headers: HeaderMap,
-        payload: Result<Json<CredentialRequestsss>, JsonRejection>
+        payload: Result<Json<CredentialRequestsss>, JsonRejection>,
     ) -> AppResult<Json<Value>> {
         let payload = extract_payload(payload)?;
         let token = extract_bearer_token(&headers)?;
@@ -114,7 +126,7 @@ impl GaiaSelfIssuerRouter {
     }
 
     async fn req_credential(
-        State(self_issuer): State<Arc<dyn CoreGaiaSelfIssuerTrait>>
+        State(self_issuer): State<Arc<dyn CoreGaiaSelfIssuerTrait>>,
     ) -> AppResult<()> {
         self_issuer.request_gaia_vc().await
     }

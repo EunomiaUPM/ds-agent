@@ -20,7 +20,7 @@ use std::sync::Arc;
 use ymir::services::repo::subtraits::{
     BusinessMatesRepoTrait, IssuingTrait, MatesTrait, RecvInteractionTrait, RecvRequestTrait,
     RecvVerificationTrait, ReqInteractionTrait, ReqRequestTrait, ReqVcTrait, ReqVerificationTrait,
-    TokenRequirementsTrait
+    TokenRequirementsTrait,
 };
 
 pub trait AuthRepoTrait: Send + Sync + 'static {

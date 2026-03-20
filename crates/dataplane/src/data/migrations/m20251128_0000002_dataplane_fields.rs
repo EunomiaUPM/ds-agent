@@ -35,10 +35,19 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(DataplaneFields::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(DataplaneFields::Id).string().not_null().primary_key())
+                    .col(
+                        ColumnDef::new(DataplaneFields::Id)
+                            .string()
+                            .not_null()
+                            .primary_key(),
+                    )
                     .col(ColumnDef::new(DataplaneFields::Key).string().not_null())
                     .col(ColumnDef::new(DataplaneFields::Value).string())
-                    .col(ColumnDef::new(DataplaneFields::DataplaneProcessId).string().not_null())
+                    .col(
+                        ColumnDef::new(DataplaneFields::DataplaneProcessId)
+                            .string()
+                            .not_null(),
+                    )
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_dataplane_fields_dataplane_process")
@@ -51,7 +60,9 @@ impl MigrationTrait for Migration {
             .await
     }
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager.drop_table(Table::drop().table(DataplaneFields::Table).to_owned()).await
+        manager
+            .drop_table(Table::drop().table(DataplaneFields::Table).to_owned())
+            .await
     }
 }
 

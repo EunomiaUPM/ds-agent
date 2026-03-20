@@ -89,7 +89,9 @@ mod test {
         let defs = vec![def("REGION", ParameterType::String, Some("us-east-1"))];
         let mut params = HashMap::new();
 
-        DefaultParameterEnricher::new(&defs).enrich(&mut params).unwrap();
+        DefaultParameterEnricher::new(&defs)
+            .enrich(&mut params)
+            .unwrap();
 
         assert_eq!(params["REGION"], json!("us-east-1"));
     }
@@ -99,7 +101,9 @@ mod test {
         let defs = vec![def("TIMEOUT", ParameterType::Int, Some("30"))];
         let mut params = HashMap::new();
 
-        DefaultParameterEnricher::new(&defs).enrich(&mut params).unwrap();
+        DefaultParameterEnricher::new(&defs)
+            .enrich(&mut params)
+            .unwrap();
 
         assert_eq!(params["TIMEOUT"], json!(30i64));
     }
@@ -109,27 +113,41 @@ mod test {
         let defs = vec![def("ENABLED", ParameterType::Boolean, Some("true"))];
         let mut params = HashMap::new();
 
-        DefaultParameterEnricher::new(&defs).enrich(&mut params).unwrap();
+        DefaultParameterEnricher::new(&defs)
+            .enrich(&mut params)
+            .unwrap();
 
         assert_eq!(params["ENABLED"], json!(true));
     }
 
     #[test]
     fn enrich_inserts_vec_string_default() {
-        let defs = vec![def("TAGS", ParameterType::VecString, Some(r#"["prod","eu"]"#))];
+        let defs = vec![def(
+            "TAGS",
+            ParameterType::VecString,
+            Some(r#"["prod","eu"]"#),
+        )];
         let mut params = HashMap::new();
 
-        DefaultParameterEnricher::new(&defs).enrich(&mut params).unwrap();
+        DefaultParameterEnricher::new(&defs)
+            .enrich(&mut params)
+            .unwrap();
 
         assert_eq!(params["TAGS"], json!(["prod", "eu"]));
     }
 
     #[test]
     fn enrich_inserts_map_default() {
-        let defs = vec![def("ENV", ParameterType::MapStringString, Some(r#"{"KEY":"val"}"#))];
+        let defs = vec![def(
+            "ENV",
+            ParameterType::MapStringString,
+            Some(r#"{"KEY":"val"}"#),
+        )];
         let mut params = HashMap::new();
 
-        DefaultParameterEnricher::new(&defs).enrich(&mut params).unwrap();
+        DefaultParameterEnricher::new(&defs)
+            .enrich(&mut params)
+            .unwrap();
 
         assert_eq!(params["ENV"], json!({"KEY": "val"}));
     }
@@ -139,7 +157,9 @@ mod test {
         let defs = vec![def("REGION", ParameterType::String, Some("us-east-1"))];
         let mut params = HashMap::from([("REGION".to_string(), json!("eu-west-1"))]);
 
-        DefaultParameterEnricher::new(&defs).enrich(&mut params).unwrap();
+        DefaultParameterEnricher::new(&defs)
+            .enrich(&mut params)
+            .unwrap();
 
         assert_eq!(
             params["REGION"],
@@ -153,7 +173,9 @@ mod test {
         let defs = vec![def("HOST", ParameterType::String, None)];
         let mut params = HashMap::new();
 
-        DefaultParameterEnricher::new(&defs).enrich(&mut params).unwrap();
+        DefaultParameterEnricher::new(&defs)
+            .enrich(&mut params)
+            .unwrap();
 
         assert!(
             !params.contains_key("HOST"),
@@ -179,7 +201,9 @@ mod test {
         ];
         let mut params = HashMap::new();
 
-        DefaultParameterEnricher::new(&defs).enrich(&mut params).unwrap();
+        DefaultParameterEnricher::new(&defs)
+            .enrich(&mut params)
+            .unwrap();
 
         assert_eq!(params["REGION"], json!("us-east-1"));
         assert_eq!(params["TIMEOUT"], json!(60i64));

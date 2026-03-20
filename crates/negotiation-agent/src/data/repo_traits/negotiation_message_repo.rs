@@ -20,8 +20,8 @@
 use crate::data::entities::negotiation_message;
 use crate::data::entities::negotiation_message::NewNegotiationMessageModel;
 use thiserror::Error;
-use ymir::errors::Outcome;
 use urn::Urn;
+use ymir::errors::Outcome;
 use ymir::errors::RepoIntoErrors;
 
 #[async_trait::async_trait]
@@ -47,10 +47,7 @@ pub trait NegotiationMessageRepoTrait: Send + Sync {
         new_model: &NewNegotiationMessageModel,
     ) -> Outcome<negotiation_message::Model>;
 
-    async fn delete_negotiation_message(
-        &self,
-        id: &Urn,
-    ) -> Outcome<()>;
+    async fn delete_negotiation_message(&self, id: &Urn) -> Outcome<()>;
 }
 
 #[derive(Debug, Error)]

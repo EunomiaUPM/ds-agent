@@ -106,15 +106,17 @@ impl ProtocolPluginTrait for NegotiationDSP {
             self.negotiation_agent_process_entities.clone(),
         ));
         let validator_payload = Arc::new(ValidatePayloadService::new(validator_helper.clone()));
-        let validator_state_machine_dsp =
-            Arc::new(ValidatedStateTransitionServiceForDsp::new(validator_helper.clone()));
+        let validator_state_machine_dsp = Arc::new(ValidatedStateTransitionServiceForDsp::new(
+            validator_helper.clone(),
+        ));
         let dsp_validator = Arc::new(ValidationDspStepsService::new(
             validator_payload.clone(),
             validator_state_machine_dsp.clone(),
             validator_helper.clone(),
         ));
-        let validator_state_machine_rpc =
-            Arc::new(ValidatedStateTransitionServiceForRcp::new(validator_helper.clone()));
+        let validator_state_machine_rpc = Arc::new(ValidatedStateTransitionServiceForRcp::new(
+            validator_helper.clone(),
+        ));
         let rpc_validator = Arc::new(ValidationRpcStepsService::new(
             validator_payload.clone(),
             validator_state_machine_rpc.clone(),
@@ -165,7 +167,9 @@ impl ProtocolPluginTrait for NegotiationDSP {
         );
         let rcp_router = RpcRouter::new(orchestrator_service.clone(), self.config.clone());
 
-        Ok(Router::new().merge(dsp_router.router()).merge(rcp_router.router()))
+        Ok(Router::new()
+            .merge(dsp_router.router())
+            .merge(rcp_router.router()))
     }
 
     fn build_grpc_router(&self) -> Outcome<Option<Router>> {

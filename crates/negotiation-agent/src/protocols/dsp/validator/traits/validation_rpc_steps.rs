@@ -19,7 +19,6 @@
 
 #![allow(unused)]
 
-use ymir::errors::Outcome;
 use crate::protocols::dsp::orchestrator::rpc::types::{
     RpcNegotiationAgreementMessageDto, RpcNegotiationEventAcceptedMessageDto,
     RpcNegotiationEventFinalizedMessageDto, RpcNegotiationOfferInitMessageDto,
@@ -27,6 +26,7 @@ use crate::protocols::dsp::orchestrator::rpc::types::{
     RpcNegotiationRequestMessageDto, RpcNegotiationTerminationMessageDto,
     RpcNegotiationVerificationMessageDto,
 };
+use ymir::errors::Outcome;
 
 #[async_trait::async_trait]
 pub trait ValidationRpcSteps: Send + Sync + 'static {
@@ -34,18 +34,13 @@ pub trait ValidationRpcSteps: Send + Sync + 'static {
         &self,
         input: &RpcNegotiationRequestInitMessageDto,
     ) -> Outcome<()>;
-    async fn negotiation_request_rpc(
-        &self,
-        input: &RpcNegotiationRequestMessageDto,
-    ) -> Outcome<()>;
+    async fn negotiation_request_rpc(&self, input: &RpcNegotiationRequestMessageDto)
+    -> Outcome<()>;
     async fn negotiation_offer_init_rpc(
         &self,
         input: &RpcNegotiationOfferInitMessageDto,
     ) -> Outcome<()>;
-    async fn negotiation_offer_rpc(
-        &self,
-        input: &RpcNegotiationOfferMessageDto,
-    ) -> Outcome<()>;
+    async fn negotiation_offer_rpc(&self, input: &RpcNegotiationOfferMessageDto) -> Outcome<()>;
     async fn negotiation_agreement_rpc(
         &self,
         input: &RpcNegotiationAgreementMessageDto,

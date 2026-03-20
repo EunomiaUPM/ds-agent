@@ -32,8 +32,7 @@ pub mod notification_types;
 #[mockall::automock]
 #[async_trait]
 pub trait RainbowEventsNotificationTrait: Send + Sync {
-    async fn get_all_notifications(&self)
-        -> Outcome<Vec<RainbowEventsNotificationResponse>>;
+    async fn get_all_notifications(&self) -> Outcome<Vec<RainbowEventsNotificationResponse>>;
     async fn get_notifications_by_subscription_id(
         &self,
         subscription_id: Urn,

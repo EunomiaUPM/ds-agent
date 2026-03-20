@@ -41,14 +41,15 @@ impl NewPolicyTemplateDto {
         }
         // version just alphanumeric and .
         if let Some(ver) = &self.version {
-            self.validate_value_and_regex(ver, REGEX_VERSION).map_err(|_| {
-                PolicyTemplateError::InvalidFormat {
-                    field: "version".to_string(),
-                    value: ver.clone(),
-                    pattern: REGEX_VERSION,
-                }
-                .into_errors()
-            })?;
+            self.validate_value_and_regex(ver, REGEX_VERSION)
+                .map_err(|_| {
+                    PolicyTemplateError::InvalidFormat {
+                        field: "version".to_string(),
+                        value: ver.clone(),
+                        pattern: REGEX_VERSION,
+                    }
+                    .into_errors()
+                })?;
         }
         // parameters regex
         // detect existence in JSON of $parameter in literal value
@@ -56,10 +57,13 @@ impl NewPolicyTemplateDto {
         let unique_params: HashSet<&String> = parameters.iter().collect();
 
         for param in unique_params {
-            self.validate_value_and_regex(param, REGEX_PARAM).map_err(|_| {
-                PolicyTemplateError::InvalidParameterSyntax { parameter: param.to_string() }
+            self.validate_value_and_regex(param, REGEX_PARAM)
+                .map_err(|_| {
+                    PolicyTemplateError::InvalidParameterSyntax {
+                        parameter: param.to_string(),
+                    }
                     .into_errors()
-            })?;
+                })?;
             self.validate_parameter_existence(param)?;
         }
         Ok(())
@@ -107,7 +111,11 @@ pub enum PolicyTemplateError {
     #[error(
         "Invalid format for field '{field}'. Value '{value}' does not match pattern '{pattern}'"
     )]
-    InvalidFormat { field: String, value: String, pattern: &'static str },
+    InvalidFormat {
+        field: String,
+        value: String,
+        pattern: &'static str,
+    },
     #[error("Invalid parameter syntax: '{parameter}'. Parameters must start with '$' followed by alphanumeric chars.")]
     InvalidParameterSyntax { parameter: String },
     #[error("Parameter '{parameter}' is used in 'content' ODRL but is not defined in the 'parameters' section.")]

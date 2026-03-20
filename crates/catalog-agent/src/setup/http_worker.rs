@@ -38,6 +38,7 @@ use crate::protocols::protocol::ProtocolPluginTrait;
 use axum::extract::Request;
 use axum::response::IntoResponse;
 use axum::{serve, Router};
+use common::config::services::traits::CatalogConfigTrait;
 use common::config::services::CatalogConfig;
 use common::config::types::traits::{CacheConfigTrait, CommonConfigTrait};
 use common::errors::CommonErrors;
@@ -59,7 +60,6 @@ use ymir::errors::{Errors, Outcome};
 use ymir::http::HealthRouter;
 use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
-use common::config::services::traits::CatalogConfigTrait;
 
 pub struct CatalogHttpWorker {}
 impl CatalogHttpWorker {
@@ -76,11 +76,16 @@ impl CatalogHttpWorker {
             .await?
             .merge(well_known_router)
             .merge(health_router);
-        let host = if config.common().is_local() { "127.0.0.1" } else { "0.0.0.0" };
+        let host = if config.common().is_local() {
+            "127.0.0.1"
+        } else {
+            "0.0.0.0"
+        };
         let port = config.common().get_internal_port(HostType::Http);
         let addr = format!("{}{}", host, port);
 
-        let listener = TcpListener::bind(&addr).await
+        let listener = TcpListener::bind(&addr)
+            .await
             .map_err(|e| Errors::crazy("Error listening on the socket", Some(Box::new(e))))?;
         tracing::info!("HTTP Catalog Service running on {}", addr);
 
@@ -137,8 +142,10 @@ pub async fn create_root_http_router(
     let cache_connection_url = config.get_full_cache_url();
     let redis_client = redis::Client::open(cache_connection_url)
         .map_err(|e| Errors::crazy("Not able to connect to Redis client", Some(Box::new(e))))?;
-    let redis_connection =
-        redis_client.get_multiplexed_async_connection().await.expect("Redis connection failed");
+    let redis_connection = redis_client
+        .get_multiplexed_async_connection()
+        .await
+        .expect("Redis connection failed");
     let http_client = Arc::new(HttpClient::new(20, 3));
 
     // repo
@@ -147,8 +154,10 @@ pub async fn create_root_http_router(
 
     // facades
     let ssi_auth_config = Arc::new(config.ssi_auth().clone());
-    let mates_facade =
-        Arc::new(MatesFacadeService::new(ssi_auth_config.clone(), http_client.clone()));
+    let mates_facade = Arc::new(MatesFacadeService::new(
+        ssi_auth_config.clone(),
+        http_client.clone(),
+    ));
 
     // entities
     let catalog_controller_service = Arc::new(CatalogEntities::new(
@@ -197,8 +206,9 @@ pub async fn create_root_http_router(
     let peer_catalog_router = PeerCatalogEntityRouter::new(peer_catalog_service.clone());
 
     // connector module
-    let connector_router =
-        ConnectorSetup::new().build_control_router(config.deref(), vault.clone()).await;
+    let connector_router = ConnectorSetup::new()
+        .build_control_router(config.deref(), vault.clone())
+        .await;
 
     // dsp
     let dsp_router = CatalogDSP::new(

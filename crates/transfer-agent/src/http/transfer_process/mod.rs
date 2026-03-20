@@ -74,7 +74,10 @@ impl TransferAgentProcessesRouter {
                     .put(Self::handle_put_process)
                     .delete(Self::handle_delete_process),
             )
-            .route("/{id}/key/{key_id}", get(Self::handle_get_process_by_key_id))
+            .route(
+                "/{id}/key/{key_id}",
+                get(Self::handle_get_process_by_key_id),
+            )
             .with_state(self)
     }
 
@@ -82,7 +85,11 @@ impl TransferAgentProcessesRouter {
         State(state): State<TransferAgentProcessesRouter>,
         Query(params): Query<PaginationParams>,
     ) -> impl IntoResponse {
-        match state.service.get_all_transfer_processes(params.limit, params.page).await {
+        match state
+            .service
+            .get_all_transfer_processes(params.limit, params.page)
+            .await
+        {
             Ok(processes) => (StatusCode::OK, Json(processes)).into_response(),
             Err(err) => err.into_response(),
         }
@@ -171,7 +178,11 @@ impl TransferAgentProcessesRouter {
             Ok(urn) => urn,
             Err(resp) => return resp,
         };
-        match state.service.get_transfer_process_by_key_id(&key_id, &id_urn).await {
+        match state
+            .service
+            .get_transfer_process_by_key_id(&key_id, &id_urn)
+            .await
+        {
             Ok(process) => (StatusCode::OK, Json(process)).into_response(),
             Err(err) => err.into_response(),
         }

@@ -26,18 +26,22 @@ use crate::well_known::rpc::{WellKnownRPCRequest, WellKnownRPCTrait, DSP_CURRENT
 
 pub struct WellKnownRPCService {
     http_client: Arc<HttpClient>,
-    mates_facade: Arc<dyn MatesFacadeTrait>
+    mates_facade: Arc<dyn MatesFacadeTrait>,
 }
 
 impl WellKnownRPCService {
     pub fn new(http_client: Arc<HttpClient>, mates_facade: Arc<dyn MatesFacadeTrait>) -> Self {
-        Self { http_client, mates_facade }
+        Self {
+            http_client,
+            mates_facade,
+        }
     }
     async fn get_base_url(&self, mate_id: &str) -> Outcome<String> {
-        let participant =
-            self.mates_facade.get_mate_by_id(mate_id.to_string()).await.map_err(|e| {
-                Errors::missing_resource(mate_id, "Mate not found", Some(Box::new(e)))
-            })?;
+        let participant = self
+            .mates_facade
+            .get_mate_by_id(mate_id.to_string())
+            .await
+            .map_err(|e| Errors::missing_resource(mate_id, "Mate not found", Some(Box::new(e))))?;
         participant
             .base_url
             .ok_or_else(|| Errors::missing_resource(mate_id, "Base url not found", None))
@@ -48,22 +52,28 @@ impl WellKnownRPCService {
 impl WellKnownRPCTrait for WellKnownRPCService {
     async fn fetch_dataspace_well_known(
         &self,
-        input: &WellKnownRPCRequest
+        input: &WellKnownRPCRequest,
     ) -> Outcome<(VersionResponse, String)> {
         let mate_id = input.participant_id.clone();
         let base_url = self.get_base_url(&mate_id).await?;
         let url = format!("{}/.well-known/dspace-version", base_url);
-        let response = self.http_client.get_json::<VersionResponse>(url.as_str()).await?;
+        let response = self
+            .http_client
+            .get_json::<VersionResponse>(url.as_str())
+            .await?;
         Ok((response, base_url))
     }
 
     async fn fetch_dataspace_current_path(
         &self,
-        input: &WellKnownRPCRequest
+        input: &WellKnownRPCRequest,
     ) -> Outcome<VersionPath> {
         let (wk, base_url) = self.fetch_dataspace_well_known(input).await?;
 
-        let current = wk.protocol_versions.iter().find(|p| p.version == DSP_CURRENT_VERSION);
+        let current = wk
+            .protocol_versions
+            .iter()
+            .find(|p| p.version == DSP_CURRENT_VERSION);
         if current.is_none() {
             return Err(Errors::parse("Could not find protocol version", None));
         }

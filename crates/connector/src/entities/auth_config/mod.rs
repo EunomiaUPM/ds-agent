@@ -63,7 +63,11 @@ pub enum AuthenticationConfig {
     ///
     /// `key` (the header/query-parameter name) supports `{{__PARAM__}}` placeholders.
     /// `value` is a [`SecretString`] and is not parameterisable.
-    ApiKey { key: TemplateString, value: SecretString, location: ApiKeyLocation },
+    ApiKey {
+        key: TemplateString,
+        value: SecretString,
+        location: ApiKeyLocation,
+    },
 
     /// OAuth 2.0 client-credentials or authorization-code flow.
     ///

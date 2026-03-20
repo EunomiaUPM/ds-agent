@@ -108,7 +108,10 @@ impl DataplaneManager {
         self.dataplane_entity
             .put_dataplane_transfer_by_id(
                 process_id,
-                &EditDataplaneTransferDto { state: Some(new_state), ..Default::default() },
+                &EditDataplaneTransferDto {
+                    state: Some(new_state),
+                    ..Default::default()
+                },
             )
             .await
     }
@@ -139,7 +142,9 @@ impl DataplaneManager {
         data_address: &DataplaneAddress,
         ctx: &CommandContext<'_>,
     ) -> Outcome<DataplaneResponse> {
-        let egress = EgressConfig::HttpProxy { url: data_address.endpoint.clone() };
+        let egress = EgressConfig::HttpProxy {
+            url: data_address.endpoint.clone(),
+        };
         self.dataplane_entity
             .put_dataplane_transfer_by_id(
                 &ctx.process_id,

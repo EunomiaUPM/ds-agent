@@ -52,16 +52,14 @@ impl NegotiationMessageRepoTrait for NegotiationMessageRepoForSql {
 
         match messages {
             Ok(messages) => Ok(messages),
-            Err(e) => Err(NegotiationMessageRepoErrors::ErrorFetchingNegotiationMessage(
-                e.into(),
-            ).into_errors()),
+            Err(e) => Err(
+                NegotiationMessageRepoErrors::ErrorFetchingNegotiationMessage(e.into())
+                    .into_errors(),
+            ),
         }
     }
 
-    async fn get_messages_by_process_id(
-        &self,
-        process_id: &Urn,
-    ) -> Outcome<Vec<Model>> {
+    async fn get_messages_by_process_id(&self, process_id: &Urn) -> Outcome<Vec<Model>> {
         let pid = process_id.to_string();
         let messages = negotiation_message::Entity::find()
             .filter(negotiation_message::Column::NegotiationAgentProcessId.eq(pid))
@@ -71,23 +69,24 @@ impl NegotiationMessageRepoTrait for NegotiationMessageRepoForSql {
 
         match messages {
             Ok(messages) => Ok(messages),
-            Err(e) => Err(NegotiationMessageRepoErrors::ErrorFetchingNegotiationMessage(
-                e.into(),
-            ).into_errors()),
+            Err(e) => Err(
+                NegotiationMessageRepoErrors::ErrorFetchingNegotiationMessage(e.into())
+                    .into_errors(),
+            ),
         }
     }
 
-    async fn get_negotiation_message_by_id(
-        &self,
-        id: &Urn,
-    ) -> Outcome<Option<Model>> {
+    async fn get_negotiation_message_by_id(&self, id: &Urn) -> Outcome<Option<Model>> {
         let mid = id.to_string();
-        let message = negotiation_message::Entity::find_by_id(mid).one(&self.db_connection).await;
+        let message = negotiation_message::Entity::find_by_id(mid)
+            .one(&self.db_connection)
+            .await;
         match message {
             Ok(message) => Ok(message),
-            Err(e) => Err(NegotiationMessageRepoErrors::ErrorFetchingNegotiationMessage(
-                e.into(),
-            ).into_errors()),
+            Err(e) => Err(
+                NegotiationMessageRepoErrors::ErrorFetchingNegotiationMessage(e.into())
+                    .into_errors(),
+            ),
         }
     }
 
@@ -101,27 +100,28 @@ impl NegotiationMessageRepoTrait for NegotiationMessageRepoForSql {
             .await;
         match result {
             Ok(message) => Ok(message),
-            Err(e) => Err(NegotiationMessageRepoErrors::ErrorCreatingNegotiationMessage(
-                e.into(),
-            ).into_errors()),
+            Err(e) => Err(
+                NegotiationMessageRepoErrors::ErrorCreatingNegotiationMessage(e.into())
+                    .into_errors(),
+            ),
         }
     }
 
-    async fn delete_negotiation_message(
-        &self,
-        id: &Urn,
-    ) -> Outcome<()> {
+    async fn delete_negotiation_message(&self, id: &Urn) -> Outcome<()> {
         let mid = id.to_string();
-        let result = negotiation_message::Entity::delete_by_id(mid).exec(&self.db_connection).await;
+        let result = negotiation_message::Entity::delete_by_id(mid)
+            .exec(&self.db_connection)
+            .await;
 
         match result {
             Ok(delete_result) => match delete_result.rows_affected {
                 0 => Err(NegotiationMessageRepoErrors::NegotiationMessageNotFound.into_errors()),
                 _ => Ok(()),
             },
-            Err(e) => Err(NegotiationMessageRepoErrors::ErrorDeletingNegotiationMessage(
-                e.into(),
-            ).into_errors()),
+            Err(e) => Err(
+                NegotiationMessageRepoErrors::ErrorDeletingNegotiationMessage(e.into())
+                    .into_errors(),
+            ),
         }
     }
 }

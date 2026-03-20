@@ -91,8 +91,7 @@ pub trait DatasetEntityTrait: Send + Sync {
         page: Option<u64>,
     ) -> Outcome<Vec<DatasetDto>>;
     async fn get_batch_datasets(&self, ids: &Vec<Urn>) -> Outcome<Vec<DatasetDto>>;
-    async fn get_datasets_by_catalog_id(&self, catalog_id: &Urn)
-        -> Outcome<Vec<DatasetDto>>;
+    async fn get_datasets_by_catalog_id(&self, catalog_id: &Urn) -> Outcome<Vec<DatasetDto>>;
     async fn get_dataset_by_id(&self, dataset_id: &Urn) -> Outcome<Option<DatasetDto>>;
 
     async fn put_dataset_by_id(
@@ -100,8 +99,7 @@ pub trait DatasetEntityTrait: Send + Sync {
         dataset_id: &Urn,
         edit_dataset_model: &EditDatasetDto,
     ) -> Outcome<DatasetDto>;
-    async fn create_dataset(&self, new_dataset_model: &NewDatasetDto)
-        -> Outcome<DatasetDto>;
+    async fn create_dataset(&self, new_dataset_model: &NewDatasetDto) -> Outcome<DatasetDto>;
 
     async fn delete_dataset_by_id(&self, dataset_id: &Urn) -> Outcome<()>;
 }

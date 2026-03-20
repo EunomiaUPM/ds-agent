@@ -16,6 +16,7 @@
  *  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
+use ymir::errors::Outcome;
 use crate::protocols::dsp::protocol_types::{
     NegotiationProcessMessageType, NegotiationProcessState,
 };
@@ -27,10 +28,10 @@ pub trait ValidateStateTransition: Send + Sync + 'static {
         &self,
         role: &RoleConfig,
         message_type: &NegotiationProcessMessageType,
-    ) -> anyhow::Result<()>;
+    ) -> Outcome<()>;
     async fn validate_state_transition(
         &self,
         current_state: &NegotiationProcessState,
         message_type: &NegotiationProcessMessageType,
-    ) -> anyhow::Result<()>;
+    ) -> Outcome<()>;
 }

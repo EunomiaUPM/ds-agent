@@ -2,13 +2,13 @@ use crate::entities::instantiation_engine::{NewPolicyInstantiationDto, PolicyIns
 use crate::entities::odrl_policies::{NewOdrlPolicyDto, OdrlPolicyEntityTrait};
 use crate::entities::policy_templates::{PolicyTemplateDto, PolicyTemplateEntityTrait};
 use crate::OdrlPolicyDto;
-use anyhow::{anyhow, bail, Context};
 use rainbow_common::dsp_common::odrl::OdrlPolicyInfo;
 use rainbow_common::errors::{CommonErrors, ErrorLog};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tracing::error;
+use ymir::errors::{Errors, Outcome};
 
 pub struct PolicyInstantiationEngine {
     odrl_policy_service: Arc<dyn OdrlPolicyEntityTrait>,
@@ -26,7 +26,7 @@ impl PolicyInstantiationEngine {
     fn substitute_variables_recursive(
         value: &mut Value,
         params: &HashMap<String, Value>,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         match value {
             Value::String(s) => {
                 if s.starts_with('$') {
@@ -56,7 +56,7 @@ impl PolicyInstantiationTrait for PolicyInstantiationEngine {
     async fn instantiate_policy(
         &self,
         instantiation_request: &NewPolicyInstantiationDto,
-    ) -> anyhow::Result<OdrlPolicyDto> {
+    ) -> Outcome<OdrlPolicyDto> {
         // fetch policy template
         let policy_template = self
             .policy_templates_service
@@ -66,15 +66,14 @@ impl PolicyInstantiationTrait for PolicyInstantiationEngine {
             )
             .await?
             .ok_or_else(|| {
-                let err = CommonErrors::missing_resource_new(
+                Errors::missing_resource(
                     "PolicyTemplate",
                     &format!(
                         "ID: {} Version: {}",
                         instantiation_request.id, instantiation_request.version
                     ),
-                );
-                error!("{}", err.log());
-                anyhow!(err)
+                    None,
+                )
             })?;
 
         // validate
@@ -93,13 +92,11 @@ impl PolicyInstantiationTrait for PolicyInstantiationEngine {
             final_params.insert(key.clone(), val_json);
         }
 
-        let mut odrl_content_json = serde_json::to_value(&policy_template.content)
-            .context("Failed to serialize template content")?;
+        let mut odrl_content_json = serde_json::to_value(&policy_template.content)?;
         Self::substitute_variables_recursive(&mut odrl_content_json, &final_params)?;
 
         // create policy info
-        let final_odrl: OdrlPolicyInfo = serde_json::from_value(odrl_content_json)
-            .context("Generated policy is not a valid ODRL structure")?;
+        let final_odrl: OdrlPolicyInfo = serde_json::from_value(odrl_content_json)?;
 
         // create offer
         let created_offer = self
@@ -116,8 +113,7 @@ impl PolicyInstantiationTrait for PolicyInstantiationEngine {
                 )?),
                 description: instantiation_request.description.clone(),
             })
-            .await
-            .map_err(|e| CommonErrors::database_new(&e.to_string()))?;
+            .await?;
 
         Ok(created_offer)
     }

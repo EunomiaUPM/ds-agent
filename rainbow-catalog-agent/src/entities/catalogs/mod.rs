@@ -2,6 +2,7 @@ use crate::data::entities::catalog;
 use crate::data::entities::catalog::{EditCatalogModel, Model, NewCatalogModel};
 use serde::{Deserialize, Serialize};
 use urn::Urn;
+use ymir::errors::Outcome;
 
 pub(crate) mod catalogs;
 
@@ -85,23 +86,23 @@ pub trait CatalogEntityTrait: Send + Sync {
         limit: Option<u64>,
         page: Option<u64>,
         with_main_catalog: bool,
-    ) -> anyhow::Result<Vec<CatalogDto>>;
-    async fn get_batch_catalogs(&self, ids: &Vec<Urn>) -> anyhow::Result<Vec<CatalogDto>>;
-    async fn get_catalog_by_id(&self, catalog_id: &Urn) -> anyhow::Result<Option<CatalogDto>>;
-    async fn get_main_catalog(&self) -> anyhow::Result<Option<CatalogDto>>;
+    ) -> Outcome<Vec<CatalogDto>>;
+    async fn get_batch_catalogs(&self, ids: &Vec<Urn>) -> Outcome<Vec<CatalogDto>>;
+    async fn get_catalog_by_id(&self, catalog_id: &Urn) -> Outcome<Option<CatalogDto>>;
+    async fn get_main_catalog(&self) -> Outcome<Option<CatalogDto>>;
 
     async fn put_catalog_by_id(
         &self,
         catalog_id: &Urn,
         edit_catalog_model: &EditCatalogDto,
-    ) -> anyhow::Result<CatalogDto>;
+    ) -> Outcome<CatalogDto>;
     async fn create_catalog(&self, new_catalog_model: &NewCatalogDto)
-        -> anyhow::Result<CatalogDto>;
+        -> Outcome<CatalogDto>;
 
     async fn create_main_catalog(
         &self,
         new_catalog_model: &NewCatalogDto,
-    ) -> anyhow::Result<CatalogDto>;
+    ) -> Outcome<CatalogDto>;
 
-    async fn delete_catalog_by_id(&self, catalog_id: &Urn) -> anyhow::Result<()>;
+    async fn delete_catalog_by_id(&self, catalog_id: &Urn) -> Outcome<()>;
 }

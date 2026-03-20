@@ -5,26 +5,23 @@ use crate::protocols::dsp::protocol_types::{
 use async_trait::async_trait;
 use rainbow_common::config::types::roles::RoleConfig;
 use rainbow_common::errors::{CommonErrors, ErrorLog};
+use ymir::errors::{Errors, Outcome};
 
 #[async_trait]
 pub trait OrchestrationExtractors: Send + Sync {
-    fn get_role_from_dto(&self, dto: &NegotiationProcessDto) -> anyhow::Result<RoleConfig> {
+    fn get_role_from_dto(&self, dto: &NegotiationProcessDto) -> Outcome<RoleConfig> {
         let role = &dto.inner.role;
-        let role = role.parse::<RoleConfig>()?;
+        let role = role.parse::<RoleConfig>().map_err(|_| Errors::parse("Not able to parse role", None))?;
         Ok(role)
     }
 
     fn get_state_from_dto(
         &self,
         dto: &NegotiationProcessDto,
-    ) -> anyhow::Result<NegotiationProcessState> {
+    ) -> Outcome<NegotiationProcessState> {
         let state = &dto.inner.state;
         let state = state.parse::<NegotiationProcessState>().map_err(|_e| {
-            let err = CommonErrors::parse_new(
-                "Something is wrong. Seems this process' state is not protocol compliant",
-            );
-            log::error!("{}", err.log());
-            err
+            Errors::parse("Something is wrong. Seems this process' state is not protocol compliant", None)
         })?;
         Ok(state)
     }
@@ -32,11 +29,11 @@ pub trait OrchestrationExtractors: Send + Sync {
     fn get_role_from_message_type(
         &self,
         message: &NegotiationProcessMessageType,
-    ) -> anyhow::Result<RoleConfig>;
+    ) -> Outcome<RoleConfig>;
     fn get_state_from_message_type(
         &self,
         message: &NegotiationProcessMessageType,
-    ) -> anyhow::Result<NegotiationProcessState> {
+    ) -> Outcome<NegotiationProcessState> {
         Ok(message.clone().into())
     }
 }

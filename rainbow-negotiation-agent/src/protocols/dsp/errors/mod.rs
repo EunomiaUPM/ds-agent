@@ -20,20 +20,19 @@
 use crate::protocols::dsp::errors::error_adapter::DspNegotiationError;
 use axum::Json;
 use axum::extract::rejection::JsonRejection;
-use rainbow_common::errors::helpers::BadFormat;
-use rainbow_common::errors::{CommonErrors, ErrorLog};
+use ymir::errors::{BadFormat, Errors};
 use tracing::error;
 
 pub(crate) mod error_adapter;
 
 pub(crate) fn extract_payload_error<T>(
     input: Result<Json<T>, JsonRejection>,
-) -> anyhow::Result<T, DspNegotiationError> {
+) -> Result<T, DspNegotiationError> {
     match input {
         Ok(Json(data)) => Ok(data),
         Err(err) => {
-            let e = CommonErrors::format_new(BadFormat::Received, &format!("{}", err.body_text()));
-            error!("{}", e.log());
+            let e = Errors::format(BadFormat::Received, format!("{}", err.body_text()), None);
+            error!("{}", e);
             Err(e.into())
         }
     }

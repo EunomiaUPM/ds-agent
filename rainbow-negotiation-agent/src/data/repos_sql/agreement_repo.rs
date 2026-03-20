@@ -25,6 +25,7 @@ use sea_orm::{
     QuerySelect,
 };
 use urn::Urn;
+use ymir::errors::{Outcome, RepoIntoErrors};
 
 pub struct AgreementRepoForSql {
     db_connection: DatabaseConnection,
@@ -42,7 +43,7 @@ impl AgreementRepoTrait for AgreementRepoForSql {
         &self,
         limit: Option<u64>,
         page: Option<u64>,
-    ) -> anyhow::Result<Vec<Model>, AgreementRepoErrors> {
+    ) -> Outcome<Vec<Model>> {
         let agreements = agreement::Entity::find()
             .limit(limit.unwrap_or(20))
             .offset(page.map(|p| p * limit.unwrap_or(20)).unwrap_or(0))
@@ -51,14 +52,14 @@ impl AgreementRepoTrait for AgreementRepoForSql {
 
         match agreements {
             Ok(agreements) => Ok(agreements),
-            Err(e) => Err(AgreementRepoErrors::ErrorFetchingAgreement(e.into())),
+            Err(e) => Err(AgreementRepoErrors::ErrorFetchingAgreement(e.into()).into_errors()),
         }
     }
 
     async fn get_batch_agreements(
         &self,
         ids: &Vec<Urn>,
-    ) -> anyhow::Result<Vec<Model>, AgreementRepoErrors> {
+    ) -> Outcome<Vec<Model>> {
         let agreement_ids = ids.iter().map(|t| t.to_string()).collect::<Vec<_>>();
         let agreements = agreement::Entity::find()
             .filter(agreement::Column::Id.is_in(agreement_ids))
@@ -67,27 +68,27 @@ impl AgreementRepoTrait for AgreementRepoForSql {
 
         match agreements {
             Ok(agreements) => Ok(agreements),
-            Err(e) => Err(AgreementRepoErrors::ErrorFetchingAgreement(e.into())),
+            Err(e) => Err(AgreementRepoErrors::ErrorFetchingAgreement(e.into()).into_errors()),
         }
     }
 
     async fn get_agreement_by_id(
         &self,
         id: &Urn,
-    ) -> anyhow::Result<Option<Model>, AgreementRepoErrors> {
+    ) -> Outcome<Option<Model>> {
         let aid = id.to_string();
         let agreement = agreement::Entity::find_by_id(aid).one(&self.db_connection).await;
 
         match agreement {
             Ok(agreement) => Ok(agreement),
-            Err(e) => Err(AgreementRepoErrors::ErrorFetchingAgreement(e.into())),
+            Err(e) => Err(AgreementRepoErrors::ErrorFetchingAgreement(e.into()).into_errors()),
         }
     }
 
     async fn get_agreement_by_negotiation_process(
         &self,
         id: &Urn,
-    ) -> anyhow::Result<Option<Model>, AgreementRepoErrors> {
+    ) -> Outcome<Option<Model>> {
         let pid = id.to_string();
         let agreement = agreement::Entity::find()
             .filter(agreement::Column::NegotiationAgentProcessId.eq(pid))
@@ -96,14 +97,14 @@ impl AgreementRepoTrait for AgreementRepoForSql {
 
         match agreement {
             Ok(agreement) => Ok(agreement),
-            Err(e) => Err(AgreementRepoErrors::ErrorFetchingAgreement(e.into())),
+            Err(e) => Err(AgreementRepoErrors::ErrorFetchingAgreement(e.into()).into_errors()),
         }
     }
 
     async fn get_agreements_by_assignee(
         &self,
         id: &String,
-    ) -> anyhow::Result<Vec<Model>, AgreementRepoErrors> {
+    ) -> Outcome<Vec<Model>> {
         let agreement = agreement::Entity::find()
             .filter(agreement::Column::ConsumerParticipantId.eq(id))
             .all(&self.db_connection)
@@ -111,14 +112,14 @@ impl AgreementRepoTrait for AgreementRepoForSql {
 
         match agreement {
             Ok(agreement) => Ok(agreement),
-            Err(e) => Err(AgreementRepoErrors::ErrorFetchingAgreement(e.into())),
+            Err(e) => Err(AgreementRepoErrors::ErrorFetchingAgreement(e.into()).into_errors()),
         }
     }
 
     async fn get_agreements_by_assigner(
         &self,
         id: &String,
-    ) -> anyhow::Result<Vec<Model>, AgreementRepoErrors> {
+    ) -> Outcome<Vec<Model>> {
         let agreement = agreement::Entity::find()
             .filter(agreement::Column::ProviderParticipantId.eq(id))
             .all(&self.db_connection)
@@ -126,14 +127,14 @@ impl AgreementRepoTrait for AgreementRepoForSql {
 
         match agreement {
             Ok(agreement) => Ok(agreement),
-            Err(e) => Err(AgreementRepoErrors::ErrorFetchingAgreement(e.into())),
+            Err(e) => Err(AgreementRepoErrors::ErrorFetchingAgreement(e.into()).into_errors()),
         }
     }
 
     async fn get_agreement_by_negotiation_message(
         &self,
         id: &Urn,
-    ) -> anyhow::Result<Option<Model>, AgreementRepoErrors> {
+    ) -> Outcome<Option<Model>> {
         let mid = id.to_string();
         let agreement = agreement::Entity::find()
             .filter(agreement::Column::NegotiationAgentProcessId.eq(mid))
@@ -142,21 +143,21 @@ impl AgreementRepoTrait for AgreementRepoForSql {
 
         match agreement {
             Ok(agreement) => Ok(agreement),
-            Err(e) => Err(AgreementRepoErrors::ErrorFetchingAgreement(e.into())),
+            Err(e) => Err(AgreementRepoErrors::ErrorFetchingAgreement(e.into()).into_errors()),
         }
     }
 
     async fn create_agreement(
         &self,
         new_model: &NewAgreementModel,
-    ) -> anyhow::Result<Model, AgreementRepoErrors> {
+    ) -> Outcome<Model> {
         let model: agreement::ActiveModel = new_model.clone().into();
         let result =
             agreement::Entity::insert(model).exec_with_returning(&self.db_connection).await;
 
         match result {
             Ok(agreement) => Ok(agreement),
-            Err(e) => Err(AgreementRepoErrors::ErrorCreatingAgreement(e.into())),
+            Err(e) => Err(AgreementRepoErrors::ErrorCreatingAgreement(e.into()).into_errors()),
         }
     }
 
@@ -164,13 +165,13 @@ impl AgreementRepoTrait for AgreementRepoForSql {
         &self,
         id: &Urn,
         edit_model: &EditAgreementModel,
-    ) -> anyhow::Result<Model, AgreementRepoErrors> {
+    ) -> Outcome<Model> {
         let aid = id.to_string();
         let old_model = agreement::Entity::find_by_id(aid).one(&self.db_connection).await;
         let old_model = match old_model {
             Ok(Some(model)) => model,
-            Ok(None) => return Err(AgreementRepoErrors::AgreementNotFound),
-            Err(e) => return Err(AgreementRepoErrors::ErrorFetchingAgreement(e.into())),
+            Ok(None) => return Err(AgreementRepoErrors::AgreementNotFound.into_errors()),
+            Err(e) => return Err(AgreementRepoErrors::ErrorFetchingAgreement(e.into()).into_errors()),
         };
 
         let mut active_model: agreement::ActiveModel = old_model.into();
@@ -182,20 +183,20 @@ impl AgreementRepoTrait for AgreementRepoForSql {
         let result = active_model.update(&self.db_connection).await;
         match result {
             Ok(updated_model) => Ok(updated_model),
-            Err(e) => Err(AgreementRepoErrors::ErrorUpdatingAgreement(e.into())),
+            Err(e) => Err(AgreementRepoErrors::ErrorUpdatingAgreement(e.into()).into_errors()),
         }
     }
 
-    async fn delete_agreement(&self, id: &Urn) -> anyhow::Result<(), AgreementRepoErrors> {
+    async fn delete_agreement(&self, id: &Urn) -> Outcome<()> {
         let aid = id.to_string();
         let result = agreement::Entity::delete_by_id(aid).exec(&self.db_connection).await;
 
         match result {
             Ok(delete_result) => match delete_result.rows_affected {
-                0 => Err(AgreementRepoErrors::AgreementNotFound),
+                0 => Err(AgreementRepoErrors::AgreementNotFound.into_errors()),
                 _ => Ok(()),
             },
-            Err(e) => Err(AgreementRepoErrors::ErrorDeletingAgreement(e.into())),
+            Err(e) => Err(AgreementRepoErrors::ErrorDeletingAgreement(e.into()).into_errors()),
         }
     }
 }

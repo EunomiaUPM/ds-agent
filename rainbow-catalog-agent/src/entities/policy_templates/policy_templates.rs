@@ -7,6 +7,7 @@ use rainbow_common::errors::{CommonErrors, ErrorLog};
 use std::sync::Arc;
 use tracing::error;
 use urn::Urn;
+use ymir::errors::Outcome;
 
 pub struct PolicyTemplateEntities {
     repo: Arc<dyn CatalogAgentRepoTrait>,
@@ -24,17 +25,12 @@ impl PolicyTemplateEntityTrait for PolicyTemplateEntities {
         &self,
         limit: Option<u64>,
         page: Option<u64>,
-    ) -> anyhow::Result<Vec<PolicyTemplateDto>> {
+    ) -> Outcome<Vec<PolicyTemplateDto>> {
         let policy_templates = self
             .repo
             .get_policy_template_repo()
             .get_all_policy_templates(limit, page)
-            .await
-            .map_err(|e| {
-                let err = CommonErrors::database_new(&e.to_string());
-                error!("{}", err.log());
-                err
-            })?;
+            .await?;
         let mut dtos = Vec::with_capacity(policy_templates.len());
         for c in policy_templates {
             let dto: PolicyTemplateDto = PolicyTemplateDto::try_from(c)?;
@@ -46,15 +42,9 @@ impl PolicyTemplateEntityTrait for PolicyTemplateEntities {
     async fn get_batch_policy_templates(
         &self,
         ids: &Vec<String>,
-    ) -> anyhow::Result<Vec<PolicyTemplateDto>> {
+    ) -> Outcome<Vec<PolicyTemplateDto>> {
         let policy_templates =
-            self.repo.get_policy_template_repo().get_batch_policy_templates(ids).await.map_err(
-                |e| {
-                    let err = CommonErrors::database_new(&e.to_string());
-                    error!("{}", err.log());
-                    err
-                },
-            )?;
+            self.repo.get_policy_template_repo().get_batch_policy_templates(ids).await?;
         let mut dtos = Vec::with_capacity(policy_templates.len());
         for c in policy_templates {
             let dto: PolicyTemplateDto = PolicyTemplateDto::try_from(c)?;
@@ -66,17 +56,12 @@ impl PolicyTemplateEntityTrait for PolicyTemplateEntities {
     async fn get_policies_template_by_id(
         &self,
         template_id: &String,
-    ) -> anyhow::Result<Vec<PolicyTemplateDto>> {
+    ) -> Outcome<Vec<PolicyTemplateDto>> {
         let policy_templates = self
             .repo
             .get_policy_template_repo()
             .get_policy_templates_by_id(template_id)
-            .await
-            .map_err(|e| {
-                let err = CommonErrors::database_new(&e.to_string());
-                error!("{}", err.log());
-                err
-            })?;
+            .await?;
         let mut dtos = Vec::with_capacity(policy_templates.len());
         for c in policy_templates {
             let dto: PolicyTemplateDto = PolicyTemplateDto::try_from(c)?;
@@ -89,17 +74,12 @@ impl PolicyTemplateEntityTrait for PolicyTemplateEntities {
         &self,
         template_id: &String,
         version_id: &String,
-    ) -> anyhow::Result<Option<PolicyTemplateDto>> {
+    ) -> Outcome<Option<PolicyTemplateDto>> {
         let policy_templates = self
             .repo
             .get_policy_template_repo()
             .get_policy_template_by_id_and_version(template_id, version_id)
-            .await
-            .map_err(|e| {
-                let err = CommonErrors::database_new(&e.to_string());
-                error!("{}", err.log());
-                err
-            })?;
+            .await?;
         let dto: Option<PolicyTemplateDto> = policy_templates.map(TryInto::try_into).transpose()?;
         Ok(dto)
     }
@@ -107,21 +87,11 @@ impl PolicyTemplateEntityTrait for PolicyTemplateEntities {
     async fn create_policy_template(
         &self,
         new_policy_template: &NewPolicyTemplateDto,
-    ) -> anyhow::Result<PolicyTemplateDto> {
-        new_policy_template.validate_dto().map_err(|e| {
-            let err = CommonErrors::parse_new(&e.to_string());
-            error!("{}", err.log());
-            err
-        })?;
+    ) -> Outcome<PolicyTemplateDto> {
+        new_policy_template.validate_dto()?;
         let new_model: NewPolicyTemplateModel = new_policy_template.clone().try_into()?;
         let policy_template =
-            self.repo.get_policy_template_repo().create_policy_template(&new_model).await.map_err(
-                |e| {
-                    let err = CommonErrors::database_new(&e.to_string());
-                    error!("{}", err.log());
-                    err
-                },
-            )?;
+            self.repo.get_policy_template_repo().create_policy_template(&new_model).await?;
         let dto: PolicyTemplateDto = PolicyTemplateDto::try_from(policy_template)?;
         Ok(dto)
     }
@@ -130,17 +100,12 @@ impl PolicyTemplateEntityTrait for PolicyTemplateEntities {
         &self,
         template_id: &String,
         version_id: &String,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         let _ = self
             .repo
             .get_policy_template_repo()
             .delete_policy_template_by_id_and_version(template_id, version_id)
-            .await
-            .map_err(|e| {
-                let err = CommonErrors::database_new(&e.to_string());
-                error!("{}", err.log());
-                err
-            })?;
+            .await?;
         Ok(())
     }
 }

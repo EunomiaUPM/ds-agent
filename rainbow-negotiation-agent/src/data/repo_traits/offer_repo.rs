@@ -19,8 +19,8 @@
 
 use crate::data::entities::offer;
 use crate::data::entities::offer::NewOfferModel;
-use anyhow::Error;
 use thiserror::Error;
+use ymir::errors::Outcome;
 use urn::Urn;
 use ymir::errors::RepoIntoErrors;
 
@@ -30,36 +30,36 @@ pub trait OfferRepoTrait: Send + Sync {
         &self,
         limit: Option<u64>,
         page: Option<u64>,
-    ) -> anyhow::Result<Vec<offer::Model>, OfferRepoErrors>;
+    ) -> Outcome<Vec<offer::Model>>;
     async fn get_batch_offers(
         &self,
         ids: &Vec<Urn>,
-    ) -> anyhow::Result<Vec<offer::Model>, OfferRepoErrors>;
+    ) -> Outcome<Vec<offer::Model>>;
     async fn get_offers_by_negotiation_process(
         &self,
         id: &Urn,
-    ) -> anyhow::Result<Vec<offer::Model>, OfferRepoErrors>;
+    ) -> Outcome<Vec<offer::Model>>;
     async fn get_last_offer_by_negotiation_process(
         &self,
         id: &Urn,
-    ) -> anyhow::Result<Option<offer::Model>, OfferRepoErrors>;
+    ) -> Outcome<Option<offer::Model>>;
     async fn get_offer_by_id(
         &self,
         id: &Urn,
-    ) -> anyhow::Result<Option<offer::Model>, OfferRepoErrors>;
+    ) -> Outcome<Option<offer::Model>>;
     async fn get_offer_by_negotiation_message(
         &self,
         id: &Urn,
-    ) -> anyhow::Result<Option<offer::Model>, OfferRepoErrors>;
+    ) -> Outcome<Option<offer::Model>>;
     async fn get_offer_by_offer_id(
         &self,
         id: &Urn,
-    ) -> anyhow::Result<Option<offer::Model>, OfferRepoErrors>;
+    ) -> Outcome<Option<offer::Model>>;
     async fn create_offer(
         &self,
         new_model: &NewOfferModel,
-    ) -> anyhow::Result<offer::Model, OfferRepoErrors>;
-    async fn delete_offer(&self, id: &Urn) -> anyhow::Result<(), OfferRepoErrors>;
+    ) -> Outcome<offer::Model>;
+    async fn delete_offer(&self, id: &Urn) -> Outcome<()>;
 }
 
 #[derive(Debug, Error)]
@@ -67,11 +67,11 @@ pub enum OfferRepoErrors {
     #[error("Offer not found")]
     OfferNotFound,
     #[error("Error fetching offer. {0}")]
-    ErrorFetchingOffer(Error),
+    ErrorFetchingOffer(Box<dyn std::error::Error + Send + Sync>),
     #[error("Error creating offer. {0}")]
-    ErrorCreatingOffer(Error),
+    ErrorCreatingOffer(Box<dyn std::error::Error + Send + Sync>),
     #[error("Error deleting offer. {0}")]
-    ErrorDeletingOffer(Error),
+    ErrorDeletingOffer(Box<dyn std::error::Error + Send + Sync>),
 }
 
 impl RepoIntoErrors for OfferRepoErrors {}

@@ -23,6 +23,7 @@ use crate::core::subscription::subscription_types::{
 };
 use async_trait::async_trait;
 use urn::Urn;
+use ymir::errors::Outcome;
 
 pub mod subscription;
 pub mod subscription_err;
@@ -33,24 +34,24 @@ pub mod subscription_types;
 pub trait RainbowEventsSubscriptionTrait: Send + Sync {
     async fn get_all_subscriptions(
         &self,
-    ) -> anyhow::Result<Vec<RainbowEventsSubscriptionCreationResponse>>;
+    ) -> Outcome<Vec<RainbowEventsSubscriptionCreationResponse>>;
     async fn get_subscription_by_id(
         &self,
         subscription_id: Urn,
-    ) -> anyhow::Result<RainbowEventsSubscriptionCreationResponse>;
+    ) -> Outcome<RainbowEventsSubscriptionCreationResponse>;
     async fn get_subscription_by_callback_url(
         &self,
         callback_url: String,
-    ) -> anyhow::Result<RainbowEventsSubscriptionCreationResponse>;
+    ) -> Outcome<RainbowEventsSubscriptionCreationResponse>;
     async fn put_subscription_by_id(
         &self,
         subscription_id: Urn,
         input: RainbowEventsSubscriptionCreationRequest,
-    ) -> anyhow::Result<RainbowEventsSubscriptionCreationResponse>;
+    ) -> Outcome<RainbowEventsSubscriptionCreationResponse>;
     async fn create_subscription(
         &self,
         input: RainbowEventsSubscriptionCreationRequest,
         subscription_type: SubscriptionEntities,
-    ) -> anyhow::Result<RainbowEventsSubscriptionCreationResponse>;
-    async fn delete_subscription_by_id(&self, subscription_id: Urn) -> anyhow::Result<()>;
+    ) -> Outcome<RainbowEventsSubscriptionCreationResponse>;
+    async fn delete_subscription_by_id(&self, subscription_id: Urn) -> Outcome<()>;
 }

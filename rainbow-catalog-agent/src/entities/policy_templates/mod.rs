@@ -10,6 +10,7 @@ use sea_orm::prelude::DateTimeWithTimeZone;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use urn::Urn;
+use ymir::errors::{Errors, Outcome};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -49,7 +50,7 @@ pub struct NewPolicyTemplateDto {
 }
 
 impl TryFrom<NewPolicyTemplateDto> for NewPolicyTemplateModel {
-    type Error = anyhow::Error;
+    type Error = Errors;
 
     fn try_from(dto: NewPolicyTemplateDto) -> Result<Self, Self::Error> {
         Ok(Self {
@@ -66,7 +67,7 @@ impl TryFrom<NewPolicyTemplateDto> for NewPolicyTemplateModel {
 }
 
 impl TryFrom<policy_template::Model> for PolicyTemplateDto {
-    type Error = anyhow::Error;
+    type Error = Errors;
 
     fn try_from(value: Model) -> Result<Self, Self::Error> {
         Ok(Self {
@@ -89,27 +90,27 @@ pub trait PolicyTemplateEntityTrait: Sync + Send {
         &self,
         limit: Option<u64>,
         page: Option<u64>,
-    ) -> anyhow::Result<Vec<PolicyTemplateDto>>;
+    ) -> Outcome<Vec<PolicyTemplateDto>>;
     async fn get_batch_policy_templates(
         &self,
         ids: &Vec<String>,
-    ) -> anyhow::Result<Vec<PolicyTemplateDto>>;
+    ) -> Outcome<Vec<PolicyTemplateDto>>;
     async fn get_policies_template_by_id(
         &self,
         template_id: &String,
-    ) -> anyhow::Result<Vec<PolicyTemplateDto>>;
+    ) -> Outcome<Vec<PolicyTemplateDto>>;
     async fn get_policies_template_by_version_and_id(
         &self,
         template_id: &String,
         version_id: &String,
-    ) -> anyhow::Result<Option<PolicyTemplateDto>>;
+    ) -> Outcome<Option<PolicyTemplateDto>>;
     async fn create_policy_template(
         &self,
         new_policy_template: &NewPolicyTemplateDto,
-    ) -> anyhow::Result<PolicyTemplateDto>;
+    ) -> Outcome<PolicyTemplateDto>;
     async fn delete_policy_template_by_version_and_id(
         &self,
         template_id: &String,
         version_id: &String,
-    ) -> anyhow::Result<()>;
+    ) -> Outcome<()>;
 }

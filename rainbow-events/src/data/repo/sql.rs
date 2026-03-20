@@ -56,38 +56,38 @@ impl EventsRepoFactory for EventsRepoForSql {
 impl SubscriptionRepo for EventsRepoForSql {
     async fn get_all_subscriptions(
         &self,
-    ) -> anyhow::Result<Vec<subscription::Model>, EventRepoErrors> {
+    ) -> Result<Vec<subscription::Model>, EventRepoErrors> {
         let subscriptions = subscription::Entity::find().all(&self.db_connection).await;
         match subscriptions {
             Ok(subscriptions) => Ok(subscriptions),
-            Err(e) => Err(EventRepoErrors::ErrorFetchingSubscription(e.into())),
+            Err(e) => Err(EventRepoErrors::ErrorFetchingSubscription(e.to_string())),
         }
     }
 
     async fn get_subscription_by_id(
         &self,
         subscription_id: Urn,
-    ) -> anyhow::Result<Option<subscription::Model>, EventRepoErrors> {
+    ) -> Result<Option<subscription::Model>, EventRepoErrors> {
         let subscription_id = subscription_id.to_string();
         let subscriptions =
             subscription::Entity::find_by_id(subscription_id).one(&self.db_connection).await;
         match subscriptions {
             Ok(subscriptions) => Ok(subscriptions),
-            Err(e) => Err(EventRepoErrors::ErrorFetchingSubscription(e.into())),
+            Err(e) => Err(EventRepoErrors::ErrorFetchingSubscription(e.to_string())),
         }
     }
 
     async fn get_subscription_by_callback_string(
         &self,
         callback_string: String,
-    ) -> anyhow::Result<Option<subscription::Model>, EventRepoErrors> {
+    ) -> Result<Option<subscription::Model>, EventRepoErrors> {
         let subscriptions = subscription::Entity::find()
             .filter(subscription::Column::CallbackAddress.eq(callback_string))
             .one(&self.db_connection)
             .await;
         match subscriptions {
             Ok(subscriptions) => Ok(subscriptions),
-            Err(e) => Err(EventRepoErrors::ErrorFetchingSubscription(e.into())),
+            Err(e) => Err(EventRepoErrors::ErrorFetchingSubscription(e.to_string())),
         }
     }
 
@@ -95,14 +95,11 @@ impl SubscriptionRepo for EventsRepoForSql {
         &self,
         subscription_id: Urn,
         edit_subscription: EditSubscription,
-    ) -> anyhow::Result<subscription::Model, EventRepoErrors> {
-        let old_model = self.get_subscription_by_id(subscription_id.clone()).await;
+    ) -> Result<subscription::Model, EventRepoErrors> {
+        let old_model = self.get_subscription_by_id(subscription_id.clone()).await?;
         let old_model = match old_model {
-            Ok(old_model) => match old_model {
-                Some(old_model) => old_model,
-                None => return Err(EventRepoErrors::SubscriptionNotFound),
-            },
-            Err(e) => return Err(EventRepoErrors::ErrorFetchingSubscription(e.into())),
+            Some(old_model) => old_model,
+            None => return Err(EventRepoErrors::SubscriptionNotFound),
         };
 
         let _subscription_id = subscription_id.to_string();
@@ -134,14 +131,14 @@ impl SubscriptionRepo for EventsRepoForSql {
         let model = old_active_model.update(&self.db_connection).await;
         match model {
             Ok(model) => Ok(model),
-            Err(e) => Err(EventRepoErrors::ErrorUpdatingSubscription(e.into())),
+            Err(e) => Err(EventRepoErrors::ErrorUpdatingSubscription(e.to_string())),
         }
     }
 
     async fn create_subscription(
         &self,
         new_subscription: NewSubscription,
-    ) -> anyhow::Result<subscription::Model, EventRepoErrors> {
+    ) -> Result<subscription::Model, EventRepoErrors> {
         let model = subscription::ActiveModel {
             id: ActiveValue::Set(get_urn(None).to_string()),
             callback_address: ActiveValue::Set(new_subscription.callback_address),
@@ -160,14 +157,14 @@ impl SubscriptionRepo for EventsRepoForSql {
             subscription::Entity::insert(model).exec_with_returning(&self.db_connection).await;
         match subscription {
             Ok(subscription) => Ok(subscription),
-            Err(e) => Err(EventRepoErrors::ErrorCreatingSubscription(e.into())),
+            Err(e) => Err(EventRepoErrors::ErrorCreatingSubscription(e.to_string())),
         }
     }
 
     async fn delete_subscription_by_id(
         &self,
         subscription_id: Urn,
-    ) -> anyhow::Result<(), EventRepoErrors> {
+    ) -> Result<(), EventRepoErrors> {
         let subscription_id = subscription_id.to_string();
         let subscription =
             subscription::Entity::delete_by_id(subscription_id).exec(&self.db_connection).await;
@@ -176,7 +173,7 @@ impl SubscriptionRepo for EventsRepoForSql {
                 0 => Err(EventRepoErrors::SubscriptionNotFound),
                 _ => Ok(()),
             },
-            Err(e) => Err(EventRepoErrors::ErrorDeletingSubscription(e.into())),
+            Err(e) => Err(EventRepoErrors::ErrorDeletingSubscription(e.to_string())),
         }
     }
 }
@@ -185,25 +182,21 @@ impl SubscriptionRepo for EventsRepoForSql {
 impl NotificationRepo for EventsRepoForSql {
     async fn get_all_notifications(
         &self,
-    ) -> anyhow::Result<Vec<notification::Model>, EventRepoErrors> {
+    ) -> Result<Vec<notification::Model>, EventRepoErrors> {
         let notifications = notification::Entity::find().all(&self.db_connection).await;
         match notifications {
             Ok(notifications) => Ok(notifications),
-            Err(e) => Err(EventRepoErrors::ErrorFetchingNotification(e.into())),
+            Err(e) => Err(EventRepoErrors::ErrorFetchingNotification(e.to_string())),
         }
     }
 
     async fn get_notifications_by_subscription_id(
         &self,
         subscription_id: Urn,
-    ) -> anyhow::Result<Vec<notification::Model>, EventRepoErrors> {
-        let subscription = self.get_subscription_by_id(subscription_id.clone()).await;
-        let _subscription = match subscription {
-            Ok(subscription) => match subscription {
-                Some(subscription) => subscription,
-                None => return Err(EventRepoErrors::SubscriptionNotFound),
-            },
-            Err(e) => return Err(EventRepoErrors::ErrorFetchingSubscription(e.into())),
+    ) -> Result<Vec<notification::Model>, EventRepoErrors> {
+        let _subscription = match self.get_subscription_by_id(subscription_id.clone()).await? {
+            Some(subscription) => subscription,
+            None => return Err(EventRepoErrors::SubscriptionNotFound),
         };
 
         let subscription_id = subscription_id.to_string();
@@ -213,21 +206,17 @@ impl NotificationRepo for EventsRepoForSql {
             .await;
         match notifications {
             Ok(notifications) => Ok(notifications),
-            Err(e) => Err(EventRepoErrors::ErrorFetchingNotification(e.into())),
+            Err(e) => Err(EventRepoErrors::ErrorFetchingNotification(e.to_string())),
         }
     }
 
     async fn get_pending_notifications_by_subscription_id(
         &self,
         subscription_id: Urn,
-    ) -> anyhow::Result<Vec<notification::Model>, EventRepoErrors> {
-        let subscription = self.get_subscription_by_id(subscription_id.clone()).await;
-        let _subscription = match subscription {
-            Ok(subscription) => match subscription {
-                Some(subscription) => subscription,
-                None => return Err(EventRepoErrors::SubscriptionNotFound),
-            },
-            Err(e) => return Err(EventRepoErrors::ErrorFetchingSubscription(e.into())),
+    ) -> Result<Vec<notification::Model>, EventRepoErrors> {
+        let _subscription = match self.get_subscription_by_id(subscription_id.clone()).await? {
+            Some(subscription) => subscription,
+            None => return Err(EventRepoErrors::SubscriptionNotFound),
         };
 
         let subscription_id = subscription_id.to_string();
@@ -238,21 +227,17 @@ impl NotificationRepo for EventsRepoForSql {
             .await;
         match notifications {
             Ok(notifications) => Ok(notifications),
-            Err(e) => Err(EventRepoErrors::ErrorFetchingNotification(e.into())),
+            Err(e) => Err(EventRepoErrors::ErrorFetchingNotification(e.to_string())),
         }
     }
 
     async fn ack_pending_notifications_by_subscription_id(
         &self,
         subscription_id: Urn,
-    ) -> anyhow::Result<Vec<Model>, EventRepoErrors> {
-        let subscription = self.get_subscription_by_id(subscription_id.clone()).await;
-        let _subscription = match subscription {
-            Ok(subscription) => match subscription {
-                Some(subscription) => subscription,
-                None => return Err(EventRepoErrors::SubscriptionNotFound),
-            },
-            Err(e) => return Err(EventRepoErrors::ErrorFetchingSubscription(e.into())),
+    ) -> Result<Vec<Model>, EventRepoErrors> {
+        let _subscription = match self.get_subscription_by_id(subscription_id.clone()).await? {
+            Some(subscription) => subscription,
+            None => return Err(EventRepoErrors::SubscriptionNotFound),
         };
         let subscription_id = subscription_id.to_string();
         let subscription_id = subscription_id.to_string();
@@ -264,7 +249,7 @@ impl NotificationRepo for EventsRepoForSql {
             .await;
         match notifications {
             Ok(notifications) => Ok(notifications),
-            Err(e) => Err(EventRepoErrors::ErrorFetchingNotification(e.into())),
+            Err(e) => Err(EventRepoErrors::ErrorFetchingNotification(e.to_string())),
         }
     }
 
@@ -272,21 +257,17 @@ impl NotificationRepo for EventsRepoForSql {
         &self,
         subscription_id: Urn,
         notification_id: Urn,
-    ) -> anyhow::Result<Option<notification::Model>, EventRepoErrors> {
-        let subscription = self.get_subscription_by_id(subscription_id.clone()).await;
-        let _subscription = match subscription {
-            Ok(subscription) => match subscription {
-                Some(subscription) => subscription,
-                None => return Err(EventRepoErrors::SubscriptionNotFound),
-            },
-            Err(e) => return Err(EventRepoErrors::ErrorFetchingSubscription(e.into())),
+    ) -> Result<Option<notification::Model>, EventRepoErrors> {
+        let _subscription = match self.get_subscription_by_id(subscription_id.clone()).await? {
+            Some(subscription) => subscription,
+            None => return Err(EventRepoErrors::SubscriptionNotFound),
         };
         let notification_id = notification_id.to_string();
         let notifications =
             notification::Entity::find_by_id(notification_id).one(&self.db_connection).await;
         match notifications {
             Ok(notifications) => Ok(notifications),
-            Err(e) => Err(EventRepoErrors::ErrorFetchingNotification(e.into())),
+            Err(e) => Err(EventRepoErrors::ErrorFetchingNotification(e.to_string())),
         }
     }
 
@@ -294,14 +275,10 @@ impl NotificationRepo for EventsRepoForSql {
         &self,
         subscription_id: Urn,
         new_notification: NewNotification,
-    ) -> anyhow::Result<notification::Model, EventRepoErrors> {
-        let subscription = self.get_subscription_by_id(subscription_id.clone()).await;
-        let _subscription = match subscription {
-            Ok(subscription) => match subscription {
-                Some(subscription) => subscription,
-                None => return Err(EventRepoErrors::SubscriptionNotFound),
-            },
-            Err(e) => return Err(EventRepoErrors::ErrorFetchingSubscription(e.into())),
+    ) -> Result<notification::Model, EventRepoErrors> {
+        let _subscription = match self.get_subscription_by_id(subscription_id.clone()).await? {
+            Some(subscription) => subscription,
+            None => return Err(EventRepoErrors::SubscriptionNotFound),
         };
         let subscription_id = subscription_id.to_string();
         let model = notification::ActiveModel {
@@ -319,7 +296,7 @@ impl NotificationRepo for EventsRepoForSql {
             notification::Entity::insert(model).exec_with_returning(&self.db_connection).await;
         match notification {
             Ok(notification) => Ok(notification),
-            Err(e) => Err(EventRepoErrors::ErrorCreatingNotification(e.into())),
+            Err(e) => Err(EventRepoErrors::ErrorCreatingNotification(e.to_string())),
         }
     }
 }

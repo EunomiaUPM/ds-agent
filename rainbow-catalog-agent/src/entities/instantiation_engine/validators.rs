@@ -2,8 +2,10 @@ use crate::entities::common::PolicyTemplateAllowedDefaultValues;
 use crate::entities::policy_templates::types::{
     ParameterDataType, SelectionAllowedValues, ValidationRestrictions,
 };
+use crate::entities::policy_templates::validator::PolicyTemplateError;
 use regex::Regex;
 use thiserror::Error;
+use ymir::errors::{Errors, Outcome, RepoIntoErrors};
 
 #[derive(Error, Debug)]
 pub enum ValidationError {
@@ -33,12 +35,14 @@ pub enum ValidationError {
     DateConfigError(String),
 }
 
+impl RepoIntoErrors for ValidationError {}
+
 pub trait ParameterValidator: Send + Sync {
     fn validate(
         &self,
         value: &PolicyTemplateAllowedDefaultValues,
         restrictions: &ValidationRestrictions,
-    ) -> Result<(), ValidationError>;
+    ) -> Outcome<()>;
 }
 
 pub struct StringValidator;
@@ -48,31 +52,33 @@ impl ParameterValidator for StringValidator {
         &self,
         value: &PolicyTemplateAllowedDefaultValues,
         restrictions: &ValidationRestrictions,
-    ) -> Result<(), ValidationError> {
+    ) -> Outcome<()> {
         let s = match value {
             PolicyTemplateAllowedDefaultValues::Stringable(s) => s,
             val => {
                 return Err(ValidationError::TypeMismatch {
                     expected: "String".into(),
                     got: format!("{:?}", val),
-                })
+                }
+                .into_errors())
             }
         };
 
         if let Some(min) = restrictions.min_length {
             if s.len() < min {
-                return Err(ValidationError::MinLength { length: s.len(), min });
+                return Err(ValidationError::MinLength { length: s.len(), min }.into_errors());
             }
         }
         if let Some(max) = restrictions.max_length {
             if s.len() > max {
-                return Err(ValidationError::MaxLength { length: s.len(), max });
+                return Err(ValidationError::MaxLength { length: s.len(), max }.into_errors());
             }
         }
         if let Some(pattern) = &restrictions.regex {
-            let re = Regex::new(pattern)?;
+            let re = Regex::new(pattern)
+                .map_err(|e| Errors::crazy(format!("Invalid regex: {}", e), Some(Box::new(e))))?;
             if !re.is_match(s) {
-                return Err(ValidationError::RegexMismatch { value: s.clone() });
+                return Err(ValidationError::RegexMismatch { value: s.clone() }.into_errors());
             }
         }
         Ok(())
@@ -86,25 +92,26 @@ impl ParameterValidator for NumericValidator {
         &self,
         value: &PolicyTemplateAllowedDefaultValues,
         restrictions: &ValidationRestrictions,
-    ) -> Result<(), ValidationError> {
+    ) -> Outcome<()> {
         let val = match value {
             PolicyTemplateAllowedDefaultValues::Numerable(n) => *n as f64,
             val => {
                 return Err(ValidationError::TypeMismatch {
                     expected: "Numeric".into(),
                     got: format!("{:?}", val),
-                })
+                }
+                .into_errors())
             }
         };
 
         if let Some(min) = restrictions.min_value {
             if val < min {
-                return Err(ValidationError::MinValue { value: val, min });
+                return Err(ValidationError::MinValue { value: val, min }.into_errors());
             }
         }
         if let Some(max) = restrictions.max_value {
             if val > max {
-                return Err(ValidationError::MaxValue { value: val, max });
+                return Err(ValidationError::MaxValue { value: val, max }.into_errors());
             }
         }
         Ok(())
@@ -118,7 +125,7 @@ impl ParameterValidator for SelectionValidator {
         &self,
         value: &PolicyTemplateAllowedDefaultValues,
         restrictions: &ValidationRestrictions,
-    ) -> Result<(), ValidationError> {
+    ) -> Outcome<()> {
         let val_str = match value {
             PolicyTemplateAllowedDefaultValues::Stringable(s) => s.clone(),
             PolicyTemplateAllowedDefaultValues::Numerable(n) => n.to_string(),
@@ -131,7 +138,7 @@ impl ParameterValidator for SelectionValidator {
             };
 
             if !is_allowed {
-                return Err(ValidationError::InvalidSelection { value: val_str });
+                return Err(ValidationError::InvalidSelection { value: val_str }.into_errors());
             }
         }
         Ok(())
@@ -145,34 +152,38 @@ impl ParameterValidator for DateTimeValidator {
         &self,
         value: &PolicyTemplateAllowedDefaultValues,
         restrictions: &ValidationRestrictions,
-    ) -> Result<(), ValidationError> {
+    ) -> Outcome<()> {
         let s = match value {
             PolicyTemplateAllowedDefaultValues::Stringable(s) => s,
             val => {
                 return Err(ValidationError::TypeMismatch {
                     expected: "ISO8601 String".into(),
                     got: format!("{:?}", val),
-                })
+                }
+                .into_errors())
             }
         };
 
-        let input_date = chrono::DateTime::parse_from_rfc3339(s)?;
+        let input_date = chrono::DateTime::parse_from_rfc3339(s)
+            .map_err(|e| ValidationError::DateConfigError(e.to_string()).into_errors())?;
 
         if let Some(min_str) = &restrictions.min_date {
             let min_date = chrono::DateTime::parse_from_rfc3339(min_str)
-                .map_err(|e| ValidationError::DateConfigError(e.to_string()))?;
+                .map_err(|e| ValidationError::DateConfigError(e.to_string()).into_errors())?;
 
             if input_date < min_date {
-                return Err(ValidationError::MinDate { value: s.clone(), min: min_str.clone() });
+                return Err(ValidationError::MinDate { value: s.clone(), min: min_str.clone() }
+                    .into_errors());
             }
         }
 
         if let Some(max_str) = &restrictions.max_date {
             let max_date = chrono::DateTime::parse_from_rfc3339(max_str)
-                .map_err(|e| ValidationError::DateConfigError(e.to_string()))?;
+                .map_err(|e| ValidationError::DateConfigError(e.to_string()).into_errors())?;
 
             if input_date > max_date {
-                return Err(ValidationError::MaxDate { value: s.clone(), max: max_str.clone() });
+                return Err(ValidationError::MaxDate { value: s.clone(), max: max_str.clone() }
+                    .into_errors());
             }
         }
 

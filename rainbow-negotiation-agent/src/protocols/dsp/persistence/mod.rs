@@ -22,6 +22,7 @@ pub(crate) mod persistence_rpc;
 
 use crate::entities::negotiation_process::NegotiationProcessDto;
 use crate::entities::offer::OfferDto;
+use ymir::errors::Outcome;
 use crate::protocols::dsp::orchestrator::rpc::types::RpcNegotiationProcessMessageTrait;
 use crate::protocols::dsp::protocol_types::NegotiationProcessMessageTrait;
 
@@ -64,13 +65,13 @@ use crate::protocols::dsp::protocol_types::NegotiationProcessMessageTrait;
 pub trait NegotiationRpcPersistenceTrait: Send + Sync {
     /// Fetch a negotiation process by any of its known identifiers
     /// (process URN, consumerPid, or providerPid).
-    async fn fetch_process(&self, id: &str) -> anyhow::Result<NegotiationProcessDto>;
+    async fn fetch_process(&self, id: &str) -> Outcome<NegotiationProcessDto>;
 
     /// Fetch the most recent offer stored for a process (by process URN).
     ///
     /// Used by the agreement step to copy offer policy fields into the
     /// outgoing `ContractAgreementMessage`.
-    async fn fetch_last_offer_by_process(&self, id: &str) -> anyhow::Result<OfferDto>;
+    async fn fetch_last_offer_by_process(&self, id: &str) -> Outcome<OfferDto>;
 
     /// Persist a brand-new negotiation process from the initial outbound message.
     ///
@@ -82,7 +83,7 @@ pub trait NegotiationRpcPersistenceTrait: Send + Sync {
         payload: &dyn RpcNegotiationProcessMessageTrait,
         request: &dyn NegotiationProcessMessageTrait,
         response: &dyn NegotiationProcessMessageTrait,
-    ) -> anyhow::Result<NegotiationProcessDto>;
+    ) -> Outcome<NegotiationProcessDto>;
 
     /// Advance the process state and log an outbound message.
     ///
@@ -93,7 +94,7 @@ pub trait NegotiationRpcPersistenceTrait: Send + Sync {
         payload: &dyn RpcNegotiationProcessMessageTrait,
         request: &dyn NegotiationProcessMessageTrait,
         response: &dyn NegotiationProcessMessageTrait,
-    ) -> anyhow::Result<NegotiationProcessDto>;
+    ) -> Outcome<NegotiationProcessDto>;
 
     /// Advance the process state, log the message, and attach a new offer record.
     ///
@@ -104,7 +105,7 @@ pub trait NegotiationRpcPersistenceTrait: Send + Sync {
         payload: &dyn RpcNegotiationProcessMessageTrait,
         request: &dyn NegotiationProcessMessageTrait,
         response: &dyn NegotiationProcessMessageTrait,
-    ) -> anyhow::Result<NegotiationProcessDto>;
+    ) -> Outcome<NegotiationProcessDto>;
 
     /// Advance the process state, log the message, and create a new agreement record.
     ///
@@ -115,7 +116,7 @@ pub trait NegotiationRpcPersistenceTrait: Send + Sync {
         payload: &dyn RpcNegotiationProcessMessageTrait,
         request: &dyn NegotiationProcessMessageTrait,
         response: &dyn NegotiationProcessMessageTrait,
-    ) -> anyhow::Result<NegotiationProcessDto>;
+    ) -> Outcome<NegotiationProcessDto>;
 
     /// Advance the process state, log the message, and activate the existing agreement.
     ///
@@ -127,5 +128,5 @@ pub trait NegotiationRpcPersistenceTrait: Send + Sync {
         payload: &dyn RpcNegotiationProcessMessageTrait,
         request: &dyn NegotiationProcessMessageTrait,
         response: &dyn NegotiationProcessMessageTrait,
-    ) -> anyhow::Result<NegotiationProcessDto>;
+    ) -> Outcome<NegotiationProcessDto>;
 }

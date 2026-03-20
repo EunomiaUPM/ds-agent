@@ -9,6 +9,7 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use urn::Urn;
+use ymir::errors::{Errors, Outcome};
 
 pub struct DcatCatalogCacheForRedis {
     pub redis_connection: redis::aio::MultiplexedConnection,
@@ -22,13 +23,13 @@ impl DcatCatalogCacheForRedis {
 
 #[async_trait::async_trait]
 impl PeerCatalogCacheTrait for DcatCatalogCacheForRedis {
-    async fn get_catalog(&self, participant_id: &String) -> anyhow::Result<Option<Catalog>> {
+    async fn get_catalog(&self, participant_id: &String) -> Outcome<Option<Catalog>> {
         tracing::debug!("cache: get peer catalog");
         let key = self.format_key_name_with_string(self.get_entity_name(), participant_id);
         Self::hydrate_from_single_key(self.get_conn(), key).await
     }
 
-    async fn set_catalog(&self, participant_id: &String, catalog: &Catalog) -> anyhow::Result<()> {
+    async fn set_catalog(&self, participant_id: &String, catalog: &Catalog) -> Outcome<()> {
         tracing::debug!("cache: set peer catalog");
         let key = self.format_key_name_with_string(self.get_entity_name(), participant_id);
         let json = serde_json::to_string(catalog)?;
@@ -42,7 +43,8 @@ impl PeerCatalogCacheTrait for DcatCatalogCacheForRedis {
             .arg(&key)
             .arg(PEER_CATALOG_DESIRED_CACHE_TTL)
             .query_async::<()>(&mut self.get_conn())
-            .await?;
+            .await
+            .map_err(|e| Errors::crazy("Not able to query cache", Some(Box::new(e))))?;
         Ok(())
     }
 }

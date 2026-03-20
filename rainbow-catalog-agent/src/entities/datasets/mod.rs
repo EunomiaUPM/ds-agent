@@ -4,6 +4,7 @@ use crate::data::entities::dataset;
 use crate::data::entities::dataset::{EditDatasetModel, Model, NewDatasetModel};
 use serde::{Deserialize, Serialize};
 use urn::Urn;
+use ymir::errors::Outcome;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -71,19 +72,19 @@ pub trait DatasetEntityTrait: Send + Sync {
         &self,
         limit: Option<u64>,
         page: Option<u64>,
-    ) -> anyhow::Result<Vec<DatasetDto>>;
-    async fn get_batch_datasets(&self, ids: &Vec<Urn>) -> anyhow::Result<Vec<DatasetDto>>;
+    ) -> Outcome<Vec<DatasetDto>>;
+    async fn get_batch_datasets(&self, ids: &Vec<Urn>) -> Outcome<Vec<DatasetDto>>;
     async fn get_datasets_by_catalog_id(&self, catalog_id: &Urn)
-        -> anyhow::Result<Vec<DatasetDto>>;
-    async fn get_dataset_by_id(&self, dataset_id: &Urn) -> anyhow::Result<Option<DatasetDto>>;
+        -> Outcome<Vec<DatasetDto>>;
+    async fn get_dataset_by_id(&self, dataset_id: &Urn) -> Outcome<Option<DatasetDto>>;
 
     async fn put_dataset_by_id(
         &self,
         dataset_id: &Urn,
         edit_dataset_model: &EditDatasetDto,
-    ) -> anyhow::Result<DatasetDto>;
+    ) -> Outcome<DatasetDto>;
     async fn create_dataset(&self, new_dataset_model: &NewDatasetDto)
-        -> anyhow::Result<DatasetDto>;
+        -> Outcome<DatasetDto>;
 
-    async fn delete_dataset_by_id(&self, dataset_id: &Urn) -> anyhow::Result<()>;
+    async fn delete_dataset_by_id(&self, dataset_id: &Urn) -> Outcome<()>;
 }

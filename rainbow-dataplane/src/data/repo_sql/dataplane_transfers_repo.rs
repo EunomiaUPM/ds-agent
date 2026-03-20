@@ -9,6 +9,7 @@ use sea_orm::{
 };
 use urn::Urn;
 use uuid::Uuid;
+use ymir::errors::{Outcome, RepoIntoErrors};
 
 pub struct DataplaneTransfersRepoForSql {
     db: DatabaseConnection,
@@ -26,7 +27,7 @@ impl DataplaneTransfersRepo for DataplaneTransfersRepoForSql {
         &self,
         limit: Option<u64>,
         page: Option<u64>,
-    ) -> anyhow::Result<Vec<dataplane_transfers::Model>, DataplaneTransfersRepoErrors> {
+    ) -> Outcome<Vec<dataplane_transfers::Model>> {
         let transfers = dataplane_transfers::Entity::find()
             .limit(limit.unwrap_or(100))
             .offset(page.map(|p| p * limit.unwrap_or(100)).unwrap_or(0))
@@ -34,14 +35,14 @@ impl DataplaneTransfersRepo for DataplaneTransfersRepoForSql {
             .await;
         match transfers {
             Ok(transfers) => Ok(transfers),
-            Err(e) => Err(DataplaneTransfersRepoErrors::ErrorFetchingDataplaneTransfer(e.into())),
+            Err(e) => Err(DataplaneTransfersRepoErrors::ErrorFetchingDataplaneTransfer(e.into()).into_errors()),
         }
     }
 
     async fn get_batch_dataplane_transfers(
         &self,
         ids: &Vec<Urn>,
-    ) -> anyhow::Result<Vec<dataplane_transfers::Model>, DataplaneTransfersRepoErrors> {
+    ) -> Outcome<Vec<dataplane_transfers::Model>> {
         let ids: Vec<String> = ids.iter().map(|urn| urn.to_string()).collect();
         let transfers = dataplane_transfers::Entity::find()
             .filter(dataplane_transfers::Column::Id.is_in(ids))
@@ -49,26 +50,26 @@ impl DataplaneTransfersRepo for DataplaneTransfersRepoForSql {
             .await;
         match transfers {
             Ok(transfers) => Ok(transfers),
-            Err(e) => Err(DataplaneTransfersRepoErrors::ErrorFetchingDataplaneTransfer(e.into())),
+            Err(e) => Err(DataplaneTransfersRepoErrors::ErrorFetchingDataplaneTransfer(e.into()).into_errors()),
         }
     }
 
     async fn get_dataplane_transfers_by_id(
         &self,
         process_id: &Urn,
-    ) -> anyhow::Result<Option<dataplane_transfers::Model>, DataplaneTransfersRepoErrors> {
+    ) -> Outcome<Option<dataplane_transfers::Model>> {
         let process_id = process_id.to_string();
         let transfer = dataplane_transfers::Entity::find_by_id(process_id).one(&self.db).await;
         match transfer {
             Ok(transfer) => Ok(transfer),
-            Err(e) => Err(DataplaneTransfersRepoErrors::ErrorFetchingDataplaneTransfer(e.into())),
+            Err(e) => Err(DataplaneTransfersRepoErrors::ErrorFetchingDataplaneTransfer(e.into()).into_errors()),
         }
     }
 
     async fn get_by_transfer_process_id(
         &self,
         transfer_process_id: &Urn,
-    ) -> anyhow::Result<Option<dataplane_transfers::Model>, DataplaneTransfersRepoErrors> {
+    ) -> Outcome<Option<dataplane_transfers::Model>> {
         let transfer_process_id = transfer_process_id.to_string();
         let transfer = dataplane_transfers::Entity::find()
             .filter(dataplane_transfers::Column::TransferProcessId.eq(transfer_process_id))
@@ -76,19 +77,19 @@ impl DataplaneTransfersRepo for DataplaneTransfersRepoForSql {
             .await;
         match transfer {
             Ok(transfer) => Ok(transfer),
-            Err(e) => Err(DataplaneTransfersRepoErrors::ErrorFetchingDataplaneTransfer(e.into())),
+            Err(e) => Err(DataplaneTransfersRepoErrors::ErrorFetchingDataplaneTransfer(e.into()).into_errors()),
         }
     }
 
     async fn create_dataplane_transfers(
         &self,
         new_dataplane_transfer: &NewDataplaneTransferModel,
-    ) -> anyhow::Result<dataplane_transfers::Model, DataplaneTransfersRepoErrors> {
+    ) -> Outcome<dataplane_transfers::Model> {
         let active_model: dataplane_transfers::ActiveModel = new_dataplane_transfer.clone().into();
         let transfer = active_model.insert(&self.db).await;
         match transfer {
             Ok(transfer) => Ok(transfer),
-            Err(e) => Err(DataplaneTransfersRepoErrors::ErrorCreatingDataplaneTransfer(e.into())),
+            Err(e) => Err(DataplaneTransfersRepoErrors::ErrorCreatingDataplaneTransfer(e.into()).into_errors()),
         }
     }
 
@@ -96,7 +97,7 @@ impl DataplaneTransfersRepo for DataplaneTransfersRepoForSql {
         &self,
         process_id: &Urn,
         new_dataplane_transfer: &EditDataplaneTransferModel,
-    ) -> anyhow::Result<dataplane_transfers::Model, DataplaneTransfersRepoErrors> {
+    ) -> Outcome<dataplane_transfers::Model> {
         let process_id = process_id.to_string();
         let mut active_model: dataplane_transfers::ActiveModel =
             new_dataplane_transfer.clone().into();
@@ -105,19 +106,19 @@ impl DataplaneTransfersRepo for DataplaneTransfersRepoForSql {
         let transfer = active_model.update(&self.db).await;
         match transfer {
             Ok(transfer) => Ok(transfer),
-            Err(e) => Err(DataplaneTransfersRepoErrors::ErrorUpdatingDataplaneTransfer(e.into())),
+            Err(e) => Err(DataplaneTransfersRepoErrors::ErrorUpdatingDataplaneTransfer(e.into()).into_errors()),
         }
     }
 
     async fn delete_dataplane_transfers(
         &self,
         process_id: &Urn,
-    ) -> anyhow::Result<(), DataplaneTransfersRepoErrors> {
+    ) -> Outcome<()> {
         let process_id = process_id.to_string();
         let transfer = dataplane_transfers::Entity::delete_by_id(process_id).exec(&self.db).await;
         match transfer {
             Ok(_) => Ok(()),
-            Err(e) => Err(DataplaneTransfersRepoErrors::ErrorDeletingDataplaneTransfer(e.into())),
+            Err(e) => Err(DataplaneTransfersRepoErrors::ErrorDeletingDataplaneTransfer(e.into()).into_errors()),
         }
     }
 }

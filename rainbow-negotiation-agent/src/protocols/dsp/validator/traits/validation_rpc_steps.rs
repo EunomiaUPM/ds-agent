@@ -19,6 +19,7 @@
 
 #![allow(unused)]
 
+use ymir::errors::Outcome;
 use crate::protocols::dsp::orchestrator::rpc::types::{
     RpcNegotiationAgreementMessageDto, RpcNegotiationEventAcceptedMessageDto,
     RpcNegotiationEventFinalizedMessageDto, RpcNegotiationOfferInitMessageDto,
@@ -32,37 +33,37 @@ pub trait ValidationRpcSteps: Send + Sync + 'static {
     async fn negotiation_request_init_rpc(
         &self,
         input: &RpcNegotiationRequestInitMessageDto,
-    ) -> anyhow::Result<()>;
+    ) -> Outcome<()>;
     async fn negotiation_request_rpc(
         &self,
         input: &RpcNegotiationRequestMessageDto,
-    ) -> anyhow::Result<()>;
+    ) -> Outcome<()>;
     async fn negotiation_offer_init_rpc(
         &self,
         input: &RpcNegotiationOfferInitMessageDto,
-    ) -> anyhow::Result<()>;
+    ) -> Outcome<()>;
     async fn negotiation_offer_rpc(
         &self,
         input: &RpcNegotiationOfferMessageDto,
-    ) -> anyhow::Result<()>;
+    ) -> Outcome<()>;
     async fn negotiation_agreement_rpc(
         &self,
         input: &RpcNegotiationAgreementMessageDto,
-    ) -> anyhow::Result<()>;
+    ) -> Outcome<()>;
     async fn negotiation_agreement_verification_rpc(
         &self,
         input: &RpcNegotiationVerificationMessageDto,
-    ) -> anyhow::Result<()>;
+    ) -> Outcome<()>;
     async fn negotiation_event_accepted_rpc(
         &self,
         input: &RpcNegotiationEventAcceptedMessageDto,
-    ) -> anyhow::Result<()>;
+    ) -> Outcome<()>;
     async fn negotiation_event_finalized_rpc(
         &self,
         input: &RpcNegotiationEventFinalizedMessageDto,
-    ) -> anyhow::Result<()>;
+    ) -> Outcome<()>;
     async fn negotiation_termination_rpc(
         &self,
         input: &RpcNegotiationTerminationMessageDto,
-    ) -> anyhow::Result<()>;
+    ) -> Outcome<()>;
 }

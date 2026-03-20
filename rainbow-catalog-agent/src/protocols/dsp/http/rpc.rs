@@ -1,5 +1,3 @@
-use crate::errors::error_adapter::CustomToResponse;
-use crate::http::common::extract_payload;
 use crate::protocols::dsp::orchestrator::rpc::types::{
     RpcCatalogRequestMessageDto, RpcDatasetRequestMessageDto,
 };
@@ -11,6 +9,7 @@ use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use std::sync::Arc;
+use ymir::utils::extract_payload;
 
 #[derive(Clone)]
 pub struct RpcRouter {
@@ -40,11 +39,11 @@ impl RpcRouter {
     ) -> impl IntoResponse {
         let input = match extract_payload(input) {
             Ok(v) => v,
-            Err(e) => return e,
+            Err(e) => return e.into_response(),
         };
         match state.orchestrator.get_rpc_service().setup_catalog_request_rpc(&input).await {
             Ok(catalog) => (StatusCode::OK, Json(catalog)).into_response(),
-            Err(err) => err.to_response(),
+            Err(err) => err.into_response(),
         }
     }
     async fn handle_rpc_dataset_request(
@@ -53,11 +52,11 @@ impl RpcRouter {
     ) -> impl IntoResponse {
         let input = match extract_payload(input) {
             Ok(v) => v,
-            Err(e) => return e,
+            Err(e) => return e.into_response(),
         };
         match state.orchestrator.get_rpc_service().setup_dataset_request_rpc(&input).await {
             Ok(dataset) => (StatusCode::OK, Json(dataset)).into_response(),
-            Err(err) => err.to_response(),
+            Err(err) => err.into_response(),
         }
     }
 }

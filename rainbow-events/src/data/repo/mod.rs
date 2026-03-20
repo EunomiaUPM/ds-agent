@@ -18,7 +18,6 @@
  */
 
 use crate::data::entities::{notification, subscription};
-use anyhow::Error;
 use async_trait::async_trait;
 use sea_orm::DatabaseConnection;
 use thiserror::Error;
@@ -71,28 +70,28 @@ impl Default for EditSubscription {
 pub trait SubscriptionRepo {
     async fn get_all_subscriptions(
         &self,
-    ) -> anyhow::Result<Vec<subscription::Model>, EventRepoErrors>;
+    ) -> Result<Vec<subscription::Model>, EventRepoErrors>;
     async fn get_subscription_by_id(
         &self,
         subscription_id: Urn,
-    ) -> anyhow::Result<Option<subscription::Model>, EventRepoErrors>;
+    ) -> Result<Option<subscription::Model>, EventRepoErrors>;
     async fn get_subscription_by_callback_string(
         &self,
         callback_string: String,
-    ) -> anyhow::Result<Option<subscription::Model>, EventRepoErrors>;
+    ) -> Result<Option<subscription::Model>, EventRepoErrors>;
     async fn put_subscription_by_id(
         &self,
         subscription_id: Urn,
         edit_subscription: EditSubscription,
-    ) -> anyhow::Result<subscription::Model, EventRepoErrors>;
+    ) -> Result<subscription::Model, EventRepoErrors>;
     async fn create_subscription(
         &self,
         new_subscription: NewSubscription,
-    ) -> anyhow::Result<subscription::Model, EventRepoErrors>;
+    ) -> Result<subscription::Model, EventRepoErrors>;
     async fn delete_subscription_by_id(
         &self,
         subscription_id: Urn,
-    ) -> anyhow::Result<(), EventRepoErrors>;
+    ) -> Result<(), EventRepoErrors>;
 }
 
 pub struct NewNotification {
@@ -108,30 +107,30 @@ pub struct NewNotification {
 pub trait NotificationRepo {
     async fn get_all_notifications(
         &self,
-    ) -> anyhow::Result<Vec<notification::Model>, EventRepoErrors>;
+    ) -> Result<Vec<notification::Model>, EventRepoErrors>;
     async fn get_notifications_by_subscription_id(
         &self,
         subscription_id: Urn,
-    ) -> anyhow::Result<Vec<notification::Model>, EventRepoErrors>;
+    ) -> Result<Vec<notification::Model>, EventRepoErrors>;
     async fn get_pending_notifications_by_subscription_id(
         &self,
         subscription_id: Urn,
-    ) -> anyhow::Result<Vec<notification::Model>, EventRepoErrors>;
+    ) -> Result<Vec<notification::Model>, EventRepoErrors>;
     async fn ack_pending_notifications_by_subscription_id(
         &self,
         subscription_id: Urn,
-    ) -> anyhow::Result<Vec<notification::Model>, EventRepoErrors>;
+    ) -> Result<Vec<notification::Model>, EventRepoErrors>;
 
     async fn get_notification_by_id(
         &self,
         subscription_id: Urn,
         notification_id: Urn,
-    ) -> anyhow::Result<Option<notification::Model>, EventRepoErrors>;
+    ) -> Result<Option<notification::Model>, EventRepoErrors>;
     async fn create_notification(
         &self,
         subscription_id: Urn,
         new_notification: NewNotification,
-    ) -> anyhow::Result<notification::Model, EventRepoErrors>;
+    ) -> Result<notification::Model, EventRepoErrors>;
 }
 
 #[derive(Debug, Error)]
@@ -142,22 +141,22 @@ pub enum EventRepoErrors {
     NotificationNotFound,
 
     #[error("Error fetching subscription. {0}")]
-    ErrorFetchingSubscription(Error),
+    ErrorFetchingSubscription(String),
     #[error("Error creating subscription. {0}")]
-    ErrorCreatingSubscription(Error),
+    ErrorCreatingSubscription(String),
     #[error("Error deleting subscription. {0}")]
-    ErrorDeletingSubscription(Error),
+    ErrorDeletingSubscription(String),
     #[error("Error updating subscription. {0}")]
-    ErrorUpdatingSubscription(Error),
+    ErrorUpdatingSubscription(String),
 
     #[error("Error fetching notification. {0}")]
-    ErrorFetchingNotification(Error),
+    ErrorFetchingNotification(String),
     #[error("Error creating notification. {0}")]
-    ErrorCreatingNotification(Error),
+    ErrorCreatingNotification(String),
     #[error("Error deleting notification. {0}")]
-    ErrorDeletingNotification(Error),
+    ErrorDeletingNotification(String),
     #[error("Error updating notification. {0}")]
-    ErrorUpdatingNotification(Error),
+    ErrorUpdatingNotification(String),
 }
 
 impl RepoIntoErrors for EventRepoErrors {}

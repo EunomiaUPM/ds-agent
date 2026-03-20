@@ -7,7 +7,6 @@ use axum::response::IntoResponse;
 use axum::routing::{delete, get, post};
 use axum::{Json, Router};
 use rainbow_common::config::services::CatalogConfig;
-use rainbow_common::errors::error_adapter::CustomToResponse;
 use rainbow_common::errors::CommonErrors;
 use serde::Deserialize;
 use std::sync::Arc;
@@ -60,7 +59,7 @@ impl ConnectorTemplateRouter {
     ) -> impl IntoResponse {
         match state.service.get_all_templates(params.limit, params.page).await {
             Ok(templates) => (StatusCode::OK, Json(templates)).into_response(),
-            Err(err) => err.to_response(),
+            Err(err) => err.into_response(),
         }
     }
     async fn handle_create_template(
@@ -73,7 +72,7 @@ impl ConnectorTemplateRouter {
         };
         match state.service.create_template(&mut input).await {
             Ok(template) => (StatusCode::OK, Json(template)).into_response(),
-            Err(err) => err.to_response(),
+            Err(err) => err.into_response(),
         }
     }
     async fn handle_get_templates_by_id(
@@ -82,7 +81,7 @@ impl ConnectorTemplateRouter {
     ) -> impl IntoResponse {
         match state.service.get_templates_by_id(&id).await {
             Ok(templates) => (StatusCode::OK, Json(templates)).into_response(),
-            Err(err) => err.to_response(),
+            Err(err) => err.into_response(),
         }
     }
     async fn handle_get_template_by_name_and_version(
@@ -95,7 +94,7 @@ impl ConnectorTemplateRouter {
                 let err = CommonErrors::missing_resource_new("main", "Main Catalog not found");
                 err.into_response()
             }
-            Err(err) => err.to_response(),
+            Err(err) => err.into_response(),
         }
     }
     async fn handle_delete_template_by_name_and_version(
@@ -104,7 +103,7 @@ impl ConnectorTemplateRouter {
     ) -> impl IntoResponse {
         match state.service.delete_template_by_name_and_version(&name, &version).await {
             Ok(_) => StatusCode::ACCEPTED.into_response(),
-            Err(err) => err.to_response(),
+            Err(err) => err.into_response(),
         }
     }
 }

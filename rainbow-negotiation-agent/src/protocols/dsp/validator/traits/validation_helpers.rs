@@ -18,6 +18,7 @@
  */
 
 #![allow(unused)]
+use ymir::errors::Outcome;
 use crate::entities::negotiation_process::NegotiationProcessDto;
 use crate::protocols::dsp::protocol_types::{
     NegotiationProcessMessageTrait, NegotiationProcessState,
@@ -27,29 +28,29 @@ use urn::Urn;
 
 #[async_trait::async_trait]
 pub trait ValidationHelpers: Send + Sync + 'static {
-    async fn parse_urn(&self, uri_id: &String) -> anyhow::Result<Urn>;
-    async fn parse_identifier_into_role(&self, identifier: &str) -> anyhow::Result<RoleConfig>;
-    async fn parse_role_into_identifier(&self, role: &RoleConfig) -> anyhow::Result<&str>;
+    async fn parse_urn(&self, uri_id: &String) -> Outcome<Urn>;
+    async fn parse_identifier_into_role(&self, identifier: &str) -> Outcome<RoleConfig>;
+    async fn parse_role_into_identifier(&self, role: &RoleConfig) -> Outcome<&str>;
     async fn get_current_dto_from_payload(
         &self,
         payload: &dyn NegotiationProcessMessageTrait,
-    ) -> anyhow::Result<NegotiationProcessDto>;
+    ) -> Outcome<NegotiationProcessDto>;
     async fn get_current_dto_from_payload_by_provider(
         &self,
         payload: &dyn NegotiationProcessMessageTrait,
-    ) -> anyhow::Result<NegotiationProcessDto>;
+    ) -> Outcome<NegotiationProcessDto>;
     async fn get_pid_by_role(
         &self,
         dto: &NegotiationProcessDto,
         role: &RoleConfig,
-    ) -> anyhow::Result<Urn>;
-    async fn get_role_from_dto(&self, dto: &NegotiationProcessDto) -> anyhow::Result<RoleConfig>;
+    ) -> Outcome<Urn>;
+    async fn get_role_from_dto(&self, dto: &NegotiationProcessDto) -> Outcome<RoleConfig>;
     async fn get_state_from_dto(
         &self,
         dto: &NegotiationProcessDto,
-    ) -> anyhow::Result<NegotiationProcessState>;
+    ) -> Outcome<NegotiationProcessState>;
     async fn get_state_attribute_from_dto(
         &self,
         dto: &NegotiationProcessDto,
-    ) -> anyhow::Result<String>;
+    ) -> Outcome<String>;
 }

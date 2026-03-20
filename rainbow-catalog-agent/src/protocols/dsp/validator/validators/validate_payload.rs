@@ -22,6 +22,7 @@ use crate::protocols::dsp::validator::traits::validate_payload::ValidatePayload;
 use crate::protocols::dsp::validator::traits::validation_helpers::ValidationHelpers;
 use rainbow_common::config::types::roles::RoleConfig;
 use std::sync::Arc;
+use ymir::errors::Outcome;
 
 pub struct ValidatePayloadService {
     _helpers: Arc<dyn ValidationHelpers>,
@@ -33,21 +34,15 @@ impl ValidatePayloadService {
 }
 #[async_trait::async_trait]
 impl ValidatePayload for ValidatePayloadService {
-    async fn validate_with_json_schema(
-        &self,
-        payload: &dyn CatalogMessageTrait,
-    ) -> anyhow::Result<()> {
+    async fn validate_with_json_schema(&self, payload: &dyn CatalogMessageTrait) -> Outcome<()> {
         todo!()
     }
 
-    async fn validate_uri_id_as_urn(&self, uri_id: &String) -> anyhow::Result<()> {
+    async fn validate_uri_id_as_urn(&self, uri_id: &String) -> Outcome<()> {
         todo!()
     }
 
-    async fn validate_identifiers_as_urn(
-        &self,
-        payload: &dyn CatalogMessageTrait,
-    ) -> anyhow::Result<()> {
+    async fn validate_identifiers_as_urn(&self, payload: &dyn CatalogMessageTrait) -> Outcome<()> {
         todo!()
     }
 
@@ -56,11 +51,11 @@ impl ValidatePayload for ValidatePayloadService {
         uri_id: &String,
         payload: &dyn CatalogMessageTrait,
         role: &RoleConfig,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         todo!()
     }
 
-    async fn validate_auth(&self, payload: &dyn CatalogMessageTrait) -> anyhow::Result<()> {
+    async fn validate_auth(&self, payload: &dyn CatalogMessageTrait) -> Outcome<()> {
         todo!()
     }
 }

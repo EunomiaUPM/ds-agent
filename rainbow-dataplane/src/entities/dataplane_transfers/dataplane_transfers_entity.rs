@@ -44,8 +44,7 @@ impl DataplaneTransfersEntityService {
             .data_plane_repo
             .get_dataplane_fields_repo()
             .get_all_dataplane_fields_by_process_id(&process_urn)
-            .await
-            .map_err(|e| e.into_errors())?;;
+            .await?;
 
         let fields = fields_models
             .into_iter()
@@ -56,8 +55,7 @@ impl DataplaneTransfersEntityService {
             .data_plane_repo
             .get_dataplane_transfer_logs_repo()
             .get_transfer_logs_by_dataplane_process_id(&process_urn)
-            .await
-            .map_err(|e| e.into_errors())?;
+            .await?;
 
         Ok(DataplaneTransferDto { inner: process, fields, logs })
     }
@@ -70,8 +68,7 @@ impl DataplaneTransfersEntitiesTrait for DataplaneTransfersEntityService {
             .data_plane_repo
             .get_dataplane_transfers_repo()
             .get_all_dataplane_transfers(None, None)
-            .await
-            .map_err(|e| e.into_errors())?;
+            .await?;
 
         let mut dtos = Vec::with_capacity(transfers.len());
         for t in transfers {
@@ -96,8 +93,7 @@ impl DataplaneTransfersEntitiesTrait for DataplaneTransfersEntityService {
             .data_plane_repo
             .get_dataplane_transfers_repo()
             .get_dataplane_transfers_by_id(id)
-            .await
-            .map_err(|e| e.into_errors())?;
+            .await?;
 
         if let Some(p) = process {
             let enriched = self.enrich_process(p).await?;
@@ -117,8 +113,7 @@ impl DataplaneTransfersEntitiesTrait for DataplaneTransfersEntityService {
             .data_plane_repo
             .get_dataplane_transfers_repo()
             .get_by_transfer_process_id(&process_id)
-            .await
-            .map_err(|e| e.into_errors())?;
+            .await?;
 
         if let Some(p) = process {
             Ok(Some(self.enrich_process(p).await?))
@@ -135,8 +130,7 @@ impl DataplaneTransfersEntitiesTrait for DataplaneTransfersEntityService {
             .data_plane_repo
             .get_dataplane_transfers_repo()
             .get_batch_dataplane_transfers(transfer_ids)
-            .await
-            .map_err(|e| e.into_errors())?;
+            .await?;
 
         let mut dtos = Vec::with_capacity(processes.len());
         for p in processes {
@@ -156,8 +150,7 @@ impl DataplaneTransfersEntitiesTrait for DataplaneTransfersEntityService {
             .data_plane_repo
             .get_dataplane_transfers_repo()
             .create_dataplane_transfers(&new_model)
-            .await
-            .map_err(|e| e.into_errors())?;
+            .await?;
 
         // LOGGING: Creation
         let log = NewTransferLog {
@@ -202,18 +195,12 @@ impl DataplaneTransfersEntitiesTrait for DataplaneTransfersEntityService {
 
         if let Some(fields) = edit_dataplane_transfer.fields.as_ref() {
             let fields_repo = self.data_plane_repo.get_dataplane_fields_repo();
-            fields_repo
-                .delete_all_dataplane_fields_by_process_id(id)
-                .await
-                .map_err(|e| e.into_errors())?;
+            fields_repo.delete_all_dataplane_fields_by_process_id(id).await?;
 
             for (key, value) in fields {
                 let new_field =
                     NewDataPlaneFieldModel { key: key.clone(), value: Some(value.clone()) };
-                fields_repo
-                    .create_dataplane_field(id, &new_field)
-                    .await
-                    .map_err(|e| e.into_errors())?;
+                fields_repo.create_dataplane_field(id, &new_field).await?;
             }
         }
 
@@ -221,8 +208,7 @@ impl DataplaneTransfersEntitiesTrait for DataplaneTransfersEntityService {
             .data_plane_repo
             .get_dataplane_transfers_repo()
             .put_dataplane_transfers(id, &edit_model)
-            .await
-            .map_err(|e| e.into_errors())?;
+            .await?;
 
         // LOGGING: Update (if state changed)
         if let Some(new_state) = &edit_dataplane_transfer.state {
@@ -259,11 +245,7 @@ impl DataplaneTransfersEntitiesTrait for DataplaneTransfersEntityService {
     }
 
     async fn delete_dataplane_transfer(&self, id: &Urn) -> Outcome<()> {
-        self.data_plane_repo
-            .get_dataplane_transfers_repo()
-            .delete_dataplane_transfers(id)
-            .await
-            .map_err(|e| e.into_errors())?;
+        self.data_plane_repo.get_dataplane_transfers_repo().delete_dataplane_transfers(id).await?;
 
         // Remove from cache
         let _ = self.cache.delete_single(id).await;

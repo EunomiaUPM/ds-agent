@@ -12,6 +12,7 @@
 //! resolution.  It is not yet implemented.
 
 use serde::{Deserialize, Serialize};
+use ymir::errors::{Errors, Outcome};
 
 /// Describes where a secret credential is stored.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -46,7 +47,7 @@ impl SecretString {
     /// Full resolution (Vault lookup, base64 decode, env-var read) is pending.
     /// For now this always returns an error.  Callers that genuinely need the
     /// resolved value must wait for the implementation to be completed.
-    pub async fn resolve(&self) -> anyhow::Result<String> {
-        anyhow::bail!("SecretString::resolve is not yet implemented")
+    pub async fn resolve(&self) -> Outcome<String> {
+        Err(Errors::parse("SecretString::resolve is not yet implemented", None))
     }
 }

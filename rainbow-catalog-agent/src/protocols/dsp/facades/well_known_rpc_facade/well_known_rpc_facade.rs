@@ -7,6 +7,7 @@ use rainbow_common::well_known::rpc::WellKnownRPCRequest;
 use std::sync::Arc;
 use ymir::config::traits::HostsConfigTrait;
 use ymir::config::types::HostType;
+use ymir::errors::Outcome;
 
 const RPC_WELL_KNOWN_PATH: &str = "/rpc/.well-known/dspace-version/path";
 
@@ -26,7 +27,7 @@ impl WellKnownRPCFacadeTrait for WellKnownRPCFacadeForDSProtocol {
     async fn resolve_dataspace_current_path(
         &self,
         input: &WellKnownRPCRequest,
-    ) -> anyhow::Result<String> {
+    ) -> Outcome<String> {
         let host = self.config.common().get_host(HostType::Http);
         let url = format!("{}{}", host, RPC_WELL_KNOWN_PATH);
         let provider_address =

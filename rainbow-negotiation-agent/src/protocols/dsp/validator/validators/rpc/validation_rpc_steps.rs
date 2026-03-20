@@ -36,8 +36,8 @@ use crate::protocols::dsp::validator::traits::validate_payload::ValidatePayload;
 use crate::protocols::dsp::validator::traits::validate_state_transition::ValidateStateTransition;
 use crate::protocols::dsp::validator::traits::validation_helpers::ValidationHelpers;
 use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRpcSteps;
-use anyhow::bail;
 use std::sync::Arc;
+use ymir::errors::Outcome;
 
 pub struct ValidationRpcStepsService {
     payload_validator: Arc<dyn ValidatePayload>,
@@ -59,7 +59,7 @@ impl ValidationRpcSteps for ValidationRpcStepsService {
     async fn negotiation_request_init_rpc(
         &self,
         input: &RpcNegotiationRequestInitMessageDto,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         let input: NegotiationProcessMessageWrapper<NegotiationRequestInitMessageDto> =
             input.clone().into();
         // let dto = self.helpers.get_current_dto_from_payload(&input.dto).await?;
@@ -78,7 +78,7 @@ impl ValidationRpcSteps for ValidationRpcStepsService {
     async fn negotiation_request_rpc(
         &self,
         input: &RpcNegotiationRequestMessageDto,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         let input: NegotiationProcessMessageWrapper<NegotiationRequestMessageDto> =
             input.clone().into();
         let dto = self.helpers.get_current_dto_from_payload(&input.dto).await?;
@@ -99,7 +99,7 @@ impl ValidationRpcSteps for ValidationRpcStepsService {
     async fn negotiation_offer_init_rpc(
         &self,
         input: &RpcNegotiationOfferInitMessageDto,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         let input: NegotiationProcessMessageWrapper<NegotiationOfferInitMessageDto> =
             input.clone().into();
         // let dto = self.helpers.get_current_dto_from_payload_by_provider(&input.dto).await?;
@@ -120,7 +120,7 @@ impl ValidationRpcSteps for ValidationRpcStepsService {
     async fn negotiation_offer_rpc(
         &self,
         input: &RpcNegotiationOfferMessageDto,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         let input: NegotiationProcessMessageWrapper<NegotiationOfferMessageDto> =
             input.clone().into();
         let dto = self.helpers.get_current_dto_from_payload(&input.dto).await?;
@@ -141,7 +141,7 @@ impl ValidationRpcSteps for ValidationRpcStepsService {
     async fn negotiation_agreement_rpc(
         &self,
         input: &RpcNegotiationAgreementMessageDto,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         let input: NegotiationProcessMessageWrapper<NegotiationAgreementMessageDto> =
             input.clone().into();
         let dto = self.helpers.get_current_dto_from_payload(&input.dto).await?;
@@ -162,7 +162,7 @@ impl ValidationRpcSteps for ValidationRpcStepsService {
     async fn negotiation_agreement_verification_rpc(
         &self,
         input: &RpcNegotiationVerificationMessageDto,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         let input: NegotiationProcessMessageWrapper<NegotiationVerificationMessageDto> =
             input.clone().into();
         let dto = self.helpers.get_current_dto_from_payload(&input.dto).await?;
@@ -183,7 +183,7 @@ impl ValidationRpcSteps for ValidationRpcStepsService {
     async fn negotiation_event_accepted_rpc(
         &self,
         input: &RpcNegotiationEventAcceptedMessageDto,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         let input: NegotiationProcessMessageWrapper<NegotiationEventMessageDto> =
             input.clone().into();
         let dto = self.helpers.get_current_dto_from_payload(&input.dto).await?;
@@ -204,7 +204,7 @@ impl ValidationRpcSteps for ValidationRpcStepsService {
     async fn negotiation_event_finalized_rpc(
         &self,
         input: &RpcNegotiationEventFinalizedMessageDto,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         let input: NegotiationProcessMessageWrapper<NegotiationEventMessageDto> =
             input.clone().into();
         let dto = self.helpers.get_current_dto_from_payload(&input.dto).await?;
@@ -225,7 +225,7 @@ impl ValidationRpcSteps for ValidationRpcStepsService {
     async fn negotiation_termination_rpc(
         &self,
         input: &RpcNegotiationTerminationMessageDto,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         let input: NegotiationProcessMessageWrapper<NegotiationTerminationMessageDto> =
             input.clone().into();
         let dto = self.helpers.get_current_dto_from_payload(&input.dto).await?;

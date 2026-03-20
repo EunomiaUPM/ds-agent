@@ -21,8 +21,8 @@ use crate::data::entities::negotiation_process_identifier;
 use crate::data::entities::negotiation_process_identifier::{
     EditNegotiationIdentifierModel, NewNegotiationIdentifierModel,
 };
-use anyhow::Error;
 use thiserror::Error;
+use ymir::errors::Outcome;
 use urn::Urn;
 use ymir::errors::RepoIntoErrors;
 
@@ -33,45 +33,39 @@ pub trait NegotiationIdentifierRepoTrait: Send + Sync {
         &self,
         limit: Option<u64>,
         page: Option<u64>,
-    ) -> anyhow::Result<Vec<negotiation_process_identifier::Model>, NegotiationIdentifierRepoErrors>;
+    ) -> Outcome<Vec<negotiation_process_identifier::Model>>;
 
     async fn get_identifiers_by_process_id(
         &self,
         process_id: &Urn,
-    ) -> anyhow::Result<Vec<negotiation_process_identifier::Model>, NegotiationIdentifierRepoErrors>;
+    ) -> Outcome<Vec<negotiation_process_identifier::Model>>;
 
     async fn get_identifier_by_id(
         &self,
         id: &Urn,
-    ) -> anyhow::Result<
-        Option<negotiation_process_identifier::Model>,
-        NegotiationIdentifierRepoErrors,
-    >;
+    ) -> Outcome<Option<negotiation_process_identifier::Model>>;
 
     async fn get_identifier_by_key(
         &self,
         process_id: &Urn,
         key: &str,
-    ) -> anyhow::Result<
-        Option<negotiation_process_identifier::Model>,
-        NegotiationIdentifierRepoErrors,
-    >;
+    ) -> Outcome<Option<negotiation_process_identifier::Model>>;
 
     async fn create_identifier(
         &self,
         new_model: &NewNegotiationIdentifierModel,
-    ) -> anyhow::Result<negotiation_process_identifier::Model, NegotiationIdentifierRepoErrors>;
+    ) -> Outcome<negotiation_process_identifier::Model>;
 
     async fn put_identifier(
         &self,
         id: &Urn,
         edit_model: &EditNegotiationIdentifierModel,
-    ) -> anyhow::Result<negotiation_process_identifier::Model, NegotiationIdentifierRepoErrors>;
+    ) -> Outcome<negotiation_process_identifier::Model>;
 
     async fn delete_identifier(
         &self,
         id: &Urn,
-    ) -> anyhow::Result<(), NegotiationIdentifierRepoErrors>;
+    ) -> Outcome<()>;
 }
 
 #[derive(Debug, Error)]
@@ -79,13 +73,13 @@ pub enum NegotiationIdentifierRepoErrors {
     #[error("Negotiation Identifier not found")]
     NegotiationIdentifierNotFound,
     #[error("Error fetching negotiation identifier. {0}")]
-    ErrorFetchingNegotiationIdentifier(Error),
+    ErrorFetchingNegotiationIdentifier(Box<dyn std::error::Error + Send + Sync>),
     #[error("Error creating negotiation identifier. {0}")]
-    ErrorCreatingNegotiationIdentifier(Error),
+    ErrorCreatingNegotiationIdentifier(Box<dyn std::error::Error + Send + Sync>),
     #[error("Error deleting negotiation identifier. {0}")]
-    ErrorDeletingNegotiationIdentifier(Error),
+    ErrorDeletingNegotiationIdentifier(Box<dyn std::error::Error + Send + Sync>),
     #[error("Error updating negotiation identifier. {0}")]
-    ErrorUpdatingNegotiationIdentifier(Error),
+    ErrorUpdatingNegotiationIdentifier(Box<dyn std::error::Error + Send + Sync>),
 }
 
 impl RepoIntoErrors for NegotiationIdentifierRepoErrors {}

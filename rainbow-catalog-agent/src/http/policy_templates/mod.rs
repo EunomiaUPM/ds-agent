@@ -1,8 +1,6 @@
 use crate::entities::instantiation_engine::{NewPolicyInstantiationDto, PolicyInstantiationTrait};
 use crate::entities::policy_templates::{NewPolicyTemplateDto, PolicyTemplateEntityTrait};
-use crate::errors::error_adapter::CustomToResponse;
 use crate::http::common::to_camel_case::ToCamelCase;
-use crate::http::common::{extract_payload, parse_urn};
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{FromRef, Path, Query, State};
 use axum::http::StatusCode;
@@ -14,6 +12,8 @@ use rainbow_common::config::services::CatalogConfig;
 use rainbow_common::errors::CommonErrors;
 use serde::Deserialize;
 use std::sync::Arc;
+use ymir::errors::Errors;
+use ymir::utils::extract_payload;
 
 #[derive(Clone)]
 pub struct PolicyTemplateEntityRouter {
@@ -84,7 +84,7 @@ impl PolicyTemplateEntityRouter {
     ) -> impl IntoResponse {
         match state.service.get_all_policy_templates(params.limit, params.page).await {
             Ok(templates) => (StatusCode::OK, Json(ToCamelCase(templates))).into_response(),
-            Err(err) => err.to_response(),
+            Err(e) => return e.into_response(),
         }
     }
     async fn handle_get_batch_policy_templates(
@@ -93,11 +93,11 @@ impl PolicyTemplateEntityRouter {
     ) -> impl IntoResponse {
         let input = match extract_payload(input) {
             Ok(v) => v,
-            Err(e) => return e,
+            Err(e) => return e.into_response(),
         };
         match state.service.get_batch_policy_templates(&input.ids).await {
             Ok(templates) => (StatusCode::OK, Json(ToCamelCase(templates))).into_response(),
-            Err(err) => err.to_response(),
+            Err(e) => return e.into_response(),
         }
     }
     async fn handle_get_policy_template_by_id(
@@ -106,7 +106,7 @@ impl PolicyTemplateEntityRouter {
     ) -> impl IntoResponse {
         match state.service.get_policies_template_by_id(&id).await {
             Ok(templates) => (StatusCode::OK, Json(ToCamelCase(templates))).into_response(),
-            Err(err) => err.to_response(),
+            Err(e) => return e.into_response(),
         }
     }
     async fn handle_get_policy_template_by_id_and_version(
@@ -117,10 +117,10 @@ impl PolicyTemplateEntityRouter {
             Ok(Some(template)) => (StatusCode::OK, Json(ToCamelCase(template))).into_response(),
             Ok(None) => {
                 let err =
-                    CommonErrors::missing_resource_new(id.as_str(), "Policy template not found");
+                    Errors::missing_resource(id.as_str(), "Policy template not found", None);
                 err.into_response()
             }
-            Err(err) => err.to_response(),
+            Err(e) => return e.into_response(),
         }
     }
     async fn handle_create_policy_template(
@@ -142,17 +142,7 @@ impl PolicyTemplateEntityRouter {
         };
         match state.service.create_policy_template(&input).await {
             Ok(template) => (StatusCode::OK, Json(ToCamelCase(template))).into_response(),
-            Err(err) => {
-                if silent {
-                    (
-                        StatusCode::NOT_ACCEPTABLE,
-                        format!("Silent mode: Failed to create policy template. Error: {:?}", err),
-                    )
-                        .into_response()
-                } else {
-                    err.to_response()
-                }
-            }
+            Err(e) => return e.into_response(),
         }
     }
     async fn handle_delete_policy_template_by_id_and_version(
@@ -161,20 +151,7 @@ impl PolicyTemplateEntityRouter {
     ) -> impl IntoResponse {
         match state.service.delete_policy_template_by_version_and_id(&id, &version).await {
             Ok(_) => StatusCode::ACCEPTED.into_response(),
-            Err(err) => match err.downcast::<CommonErrors>() {
-                Ok(ce) => match ce {
-                    CommonErrors::DatabaseError { ref cause, .. } => {
-                        if cause.contains("not found") {
-                            let err = CommonErrors::missing_resource_new("", cause.as_str());
-                            return err.into_response();
-                        } else {
-                            ce.into_response()
-                        }
-                    }
-                    e => return e.into_response(),
-                },
-                Err(e) => e.to_response(),
-            },
+            Err(e) => return e.into_response(),
         }
     }
 
@@ -184,24 +161,11 @@ impl PolicyTemplateEntityRouter {
     ) -> impl IntoResponse {
         let input = match extract_payload(input) {
             Ok(v) => v,
-            Err(e) => return e,
+            Err(e) => return e.into_response(),
         };
         match state.policy_engine.instantiate_policy(&input).await {
             Ok(dto) => (StatusCode::ACCEPTED, Json(ToCamelCase(dto))).into_response(),
-            Err(err) => match err.downcast::<CommonErrors>() {
-                Ok(ce) => match ce {
-                    CommonErrors::DatabaseError { ref cause, .. } => {
-                        if cause.contains("not found") {
-                            let err = CommonErrors::missing_resource_new("", cause.as_str());
-                            return err.into_response();
-                        } else {
-                            ce.into_response()
-                        }
-                    }
-                    e => return e.into_response(),
-                },
-                Err(e) => e.to_response(),
-            },
+            Err(e) => e.into_response(),
         }
     }
 }

@@ -17,17 +17,17 @@ use crate::protocols::dsp::types::dataset_definition::{
 use crate::protocols::dsp::types::distribution_definition::{
     Distribution, DistributionDcatDeclaration, DistributionDctDeclaration,
 };
-use anyhow::bail;
 use rainbow_common::dcat_formats::{DctFormats, FormatAction, FormatProtocol};
 use rainbow_common::dsp_common::context_field::ContextField;
 use rainbow_common::dsp_common::odrl::{OdrlOffer, OdrlPolicyInfo, OdrlTypes};
-use rainbow_common::errors::{CommonErrors, ErrorLog};
+use rainbow_common::errors::ErrorLog;
 use rainbow_common::facades::ssi_auth_facade::MatesFacadeTrait;
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
 use tracing::{debug, error};
 use urn::Urn;
+use ymir::errors::{Errors, Outcome};
 
 pub struct OrchestrationPersistenceForProtocol {
     pub catalog_entities_service: Arc<dyn CatalogEntityTrait>,
@@ -58,7 +58,7 @@ impl OrchestrationPersistenceForProtocol {
     // Public API
     // =========================================================================
 
-    pub async fn get_catalog(&self) -> anyhow::Result<Catalog> {
+    pub async fn get_catalog(&self) -> Outcome<Catalog> {
         // 1. Main catalog
         let main_catalog_dto = self.fetch_main_catalog_dto().await?;
         let main_catalog_urn = Urn::from_str(&main_catalog_dto.inner.id)?;
@@ -76,7 +76,7 @@ impl OrchestrationPersistenceForProtocol {
         Ok(catalog)
     }
 
-    pub async fn get_dataset(&self, dataset_id: &Urn) -> anyhow::Result<Dataset> {
+    pub async fn get_dataset(&self, dataset_id: &Urn) -> Outcome<Dataset> {
         // 1. fetch dataset
         let dataset_dto = self.fetch_dataset_dto(dataset_id).await?;
         // 2. build policies
@@ -91,7 +91,7 @@ impl OrchestrationPersistenceForProtocol {
     // =========================================================================
     // Builders
     // =========================================================================
-    async fn build_sub_catalogs(&self, exclude_id: &Urn) -> anyhow::Result<Vec<CatalogMinimized>> {
+    async fn build_sub_catalogs(&self, exclude_id: &Urn) -> Outcome<Vec<CatalogMinimized>> {
         let catalogs_dtos =
             self.catalog_entities_service.get_all_catalogs(None, None, false).await?;
         let mut dcat_catalogs = Vec::with_capacity(catalogs_dtos.len());
@@ -106,7 +106,7 @@ impl OrchestrationPersistenceForProtocol {
         }
         Ok(dcat_catalogs)
     }
-    async fn build_datasets_for_catalog(&self, catalog_id: &Urn) -> anyhow::Result<Vec<Dataset>> {
+    async fn build_datasets_for_catalog(&self, catalog_id: &Urn) -> Outcome<Vec<Dataset>> {
         let datasets_dtos =
             self.dataset_entities_service.get_datasets_by_catalog_id(catalog_id).await?;
         let mut dcat_datasets = Vec::with_capacity(datasets_dtos.len());
@@ -120,10 +120,7 @@ impl OrchestrationPersistenceForProtocol {
         Ok(dcat_datasets)
     }
 
-    async fn build_dataservices_for_catalog(
-        &self,
-        catalog_id: &Urn,
-    ) -> anyhow::Result<Vec<DataService>> {
+    async fn build_dataservices_for_catalog(&self, catalog_id: &Urn) -> Outcome<Vec<DataService>> {
         let dataservices_dtos =
             self.data_service_entities_service.get_data_services_by_catalog_id(catalog_id).await?;
         let mut dcat_dataservices = Vec::with_capacity(dataservices_dtos.len());
@@ -135,7 +132,7 @@ impl OrchestrationPersistenceForProtocol {
         Ok(dcat_dataservices)
     }
 
-    async fn build_odrl_policies(&self, entity_id: &Urn) -> anyhow::Result<Vec<OdrlOffer>> {
+    async fn build_odrl_policies(&self, entity_id: &Urn) -> Outcome<Vec<OdrlOffer>> {
         let policies_dtos = self
             .odrl_policies_service
             .get_all_odrl_offers_by_entity(entity_id)
@@ -151,7 +148,7 @@ impl OrchestrationPersistenceForProtocol {
     async fn build_distributions_with_services(
         &self,
         dataset_id: &Urn,
-    ) -> anyhow::Result<Vec<Distribution>> {
+    ) -> Outcome<Vec<Distribution>> {
         let distributions_dtos =
             self.distributions_entity_service.get_distributions_by_dataset_id(dataset_id).await?;
         // batch dataservices
@@ -187,36 +184,32 @@ impl OrchestrationPersistenceForProtocol {
     // FETCHERS
     // =========================================================================
 
-    async fn fetch_main_catalog_dto(&self) -> anyhow::Result<CatalogDto> {
+    async fn fetch_main_catalog_dto(&self) -> Outcome<CatalogDto> {
         match self.catalog_entities_service.get_main_catalog().await? {
             Some(c) => Ok(c),
             None => {
-                let err = CommonErrors::missing_resource_new("", "Main catalog not found");
-                error!("{}", err.log());
-                bail!(err)
+                let err = Errors::missing_resource("", "Main catalog not found", None);
+                Err(err)
             }
         }
     }
 
-    async fn fetch_main_dataservice_dto(&self) -> anyhow::Result<DataServiceDto> {
+    async fn fetch_main_dataservice_dto(&self) -> Outcome<DataServiceDto> {
         match self.data_service_entities_service.get_main_data_service().await? {
             Some(c) => Ok(c),
             None => {
-                let err = CommonErrors::missing_resource_new("", "Main dataservice not found");
-                error!("{}", err.log());
-                bail!(err)
+                let err = Errors::missing_resource("", "Main dataservice not found", None);
+                Err(err)
             }
         }
     }
 
-    async fn fetch_dataset_dto(&self, dataset_id: &Urn) -> anyhow::Result<DatasetDto> {
+    async fn fetch_dataset_dto(&self, dataset_id: &Urn) -> Outcome<DatasetDto> {
         match self.dataset_entities_service.get_dataset_by_id(dataset_id).await? {
             Some(d) => Ok(d),
             None => {
-                let err =
-                    CommonErrors::missing_resource_new(dataset_id.as_str(), "Dataset not found");
-                error!("{}", err.log());
-                bail!(err)
+                let err = Errors::missing_resource(dataset_id.as_str(), "Dataset not found", None);
+                Err(err)
             }
         }
     }
@@ -358,7 +351,7 @@ impl OrchestrationPersistenceForProtocol {
         &self,
         dto: DistributionDto,
         service: Option<DataService>,
-    ) -> anyhow::Result<Distribution> {
+    ) -> Outcome<Distribution> {
         Ok(Distribution {
             context: ContextField::default(),
             _type: "Distribution".to_string(),
@@ -403,9 +396,8 @@ impl OrchestrationPersistenceForProtocol {
         }
     }
 
-    fn map_odrl_policy(&self, dto: OdrlPolicyDto) -> anyhow::Result<OdrlOffer> {
-        let odrl_info = serde_json::from_value::<OdrlPolicyInfo>(dto.inner.odrl_offer)
-            .map_err(|e| anyhow::anyhow!("Invalid Policy JSON: {}", e))?;
+    fn map_odrl_policy(&self, dto: OdrlPolicyDto) -> Outcome<OdrlOffer> {
+        let odrl_info = serde_json::from_value::<OdrlPolicyInfo>(dto.inner.odrl_offer)?;
 
         Ok(OdrlOffer {
             id: Urn::from_str(&dto.inner.id)?,

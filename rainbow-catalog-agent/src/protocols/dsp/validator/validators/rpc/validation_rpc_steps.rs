@@ -26,6 +26,7 @@ use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDs
 use crate::protocols::dsp::validator::traits::validation_helpers::ValidationHelpers;
 use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRpcSteps;
 use std::sync::Arc;
+use ymir::errors::Outcome;
 
 pub struct ValidationRpcStepsService {
     payload_validator: Arc<dyn ValidatePayload>,
@@ -42,11 +43,11 @@ impl ValidationRpcStepsService {
 
 #[async_trait::async_trait]
 impl ValidationRpcSteps for ValidationRpcStepsService {
-    async fn on_catalog_request(&self, input: &RpcCatalogRequestMessageDto) -> anyhow::Result<()> {
+    async fn on_catalog_request(&self, input: &RpcCatalogRequestMessageDto) -> Outcome<()> {
         Ok(())
     }
 
-    async fn on_dataset_request(&self, input: &RpcDatasetRequestMessageDto) -> anyhow::Result<()> {
+    async fn on_dataset_request(&self, input: &RpcDatasetRequestMessageDto) -> Outcome<()> {
         Ok(())
     }
 }

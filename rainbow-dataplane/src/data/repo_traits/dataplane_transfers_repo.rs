@@ -2,10 +2,9 @@ use crate::data::entities::dataplane_transfers;
 use crate::data::entities::dataplane_transfers::{
     EditDataplaneTransferModel, NewDataplaneTransferModel,
 };
-use anyhow::Error;
 use thiserror::Error;
 use urn::Urn;
-use ymir::errors::RepoIntoErrors;
+use ymir::errors::{Outcome, RepoIntoErrors};
 
 #[async_trait::async_trait]
 pub trait DataplaneTransfersRepo: Send + Sync + 'static {
@@ -13,32 +12,32 @@ pub trait DataplaneTransfersRepo: Send + Sync + 'static {
         &self,
         limit: Option<u64>,
         page: Option<u64>,
-    ) -> anyhow::Result<Vec<dataplane_transfers::Model>, DataplaneTransfersRepoErrors>;
+    ) -> Outcome<Vec<dataplane_transfers::Model>>;
     async fn get_batch_dataplane_transfers(
         &self,
         ids: &Vec<Urn>,
-    ) -> anyhow::Result<Vec<dataplane_transfers::Model>, DataplaneTransfersRepoErrors>;
+    ) -> Outcome<Vec<dataplane_transfers::Model>>;
     async fn get_dataplane_transfers_by_id(
         &self,
         process_id: &Urn,
-    ) -> anyhow::Result<Option<dataplane_transfers::Model>, DataplaneTransfersRepoErrors>;
+    ) -> Outcome<Option<dataplane_transfers::Model>>;
     async fn get_by_transfer_process_id(
         &self,
         transfer_process_id: &Urn,
-    ) -> anyhow::Result<Option<dataplane_transfers::Model>, DataplaneTransfersRepoErrors>;
+    ) -> Outcome<Option<dataplane_transfers::Model>>;
     async fn create_dataplane_transfers(
         &self,
         new_dataplane_transfer: &NewDataplaneTransferModel,
-    ) -> anyhow::Result<dataplane_transfers::Model, DataplaneTransfersRepoErrors>;
+    ) -> Outcome<dataplane_transfers::Model>;
     async fn put_dataplane_transfers(
         &self,
         process_id: &Urn,
         new_dataplane_transfer: &EditDataplaneTransferModel,
-    ) -> anyhow::Result<dataplane_transfers::Model, DataplaneTransfersRepoErrors>;
+    ) -> Outcome<dataplane_transfers::Model>;
     async fn delete_dataplane_transfers(
         &self,
         process_id: &Urn,
-    ) -> anyhow::Result<(), DataplaneTransfersRepoErrors>;
+    ) -> Outcome<()>;
 }
 
 #[derive(Debug, Error)]
@@ -46,13 +45,13 @@ pub enum DataplaneTransfersRepoErrors {
     #[error("Dataplane transfer not found")]
     DataplaneTransferNotFound,
     #[error("Error fetching dataplane transfer. {0}")]
-    ErrorFetchingDataplaneTransfer(Error),
+    ErrorFetchingDataplaneTransfer(Box<dyn std::error::Error + Send + Sync>),
     #[error("Error creating dataplane transfer. {0}")]
-    ErrorCreatingDataplaneTransfer(Error),
+    ErrorCreatingDataplaneTransfer(Box<dyn std::error::Error + Send + Sync>),
     #[error("Error deleting dataplane transfer. {0}")]
-    ErrorDeletingDataplaneTransfer(Error),
+    ErrorDeletingDataplaneTransfer(Box<dyn std::error::Error + Send + Sync>),
     #[error("Error updating dataplane transfer. {0}")]
-    ErrorUpdatingDataplaneTransfer(Error),
+    ErrorUpdatingDataplaneTransfer(Box<dyn std::error::Error + Send + Sync>),
 }
 
 impl RepoIntoErrors for DataplaneTransfersRepoErrors {}

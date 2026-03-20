@@ -9,6 +9,7 @@ use sea_orm::{
     QuerySelect,
 };
 use urn::Urn;
+use ymir::errors::{Outcome, RepoIntoErrors};
 
 pub struct DataServiceRepositoryForSql {
     db_connection: DatabaseConnection,
@@ -26,7 +27,7 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
         &self,
         limit: Option<u64>,
         page: Option<u64>,
-    ) -> anyhow::Result<Vec<dataservice::Model>, CatalogAgentRepoErrors> {
+    ) -> Outcome<Vec<dataservice::Model>> {
         let page_limit = limit.unwrap_or(25);
         let page_number = page.unwrap_or(1);
         let calculated_offset = (page_number.max(1) - 1) * page_limit;
@@ -39,14 +40,14 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
             Ok(data_services) => Ok(data_services),
             Err(err) => Err(CatalogAgentRepoErrors::DataServiceRepoErrors(
                 DataServiceRepoErrors::ErrorFetchingDataService(err.into()),
-            )),
+            ).into_errors()),
         }
     }
 
     async fn get_batch_data_services(
         &self,
         ids: &Vec<Urn>,
-    ) -> anyhow::Result<Vec<dataservice::Model>, CatalogAgentRepoErrors> {
+    ) -> Outcome<Vec<dataservice::Model>> {
         let dataset_ids = ids.iter().map(|t| t.to_string()).collect::<Vec<_>>();
         let dataset_process = dataservice::Entity::find()
             .filter(dataservice::Column::Id.is_in(dataset_ids))
@@ -56,14 +57,14 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
             Ok(dataset_process) => Ok(dataset_process),
             Err(err) => Err(CatalogAgentRepoErrors::DataServiceRepoErrors(
                 DataServiceRepoErrors::ErrorFetchingDataService(err.into()),
-            )),
+            ).into_errors()),
         }
     }
 
     async fn get_data_services_by_catalog_id(
         &self,
         catalog_id: &Urn,
-    ) -> anyhow::Result<Vec<dataservice::Model>, CatalogAgentRepoErrors> {
+    ) -> Outcome<Vec<dataservice::Model>> {
         let catalog_id = catalog_id.to_string();
 
         let catalog = catalog::Entity::find_by_id(catalog_id.clone())
@@ -72,12 +73,12 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
             .map_err(|err| {
                 CatalogAgentRepoErrors::DataServiceRepoErrors(
                     DataServiceRepoErrors::ErrorFetchingDataService(err.into()),
-                )
+                ).into_errors()
             })?;
         if catalog.is_none() {
             return Err(CatalogAgentRepoErrors::CatalogRepoErrors(
                 CatalogRepoErrors::CatalogNotFound,
-            ));
+            ).into_errors());
         }
 
         let data_services = dataservice::Entity::find()
@@ -88,13 +89,13 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
             Ok(data_services) => Ok(data_services),
             Err(err) => Err(CatalogAgentRepoErrors::DataServiceRepoErrors(
                 DataServiceRepoErrors::ErrorFetchingDataService(err.into()),
-            )),
+            ).into_errors()),
         }
     }
 
     async fn get_main_data_service(
         &self,
-    ) -> anyhow::Result<Option<dataservice::Model>, CatalogAgentRepoErrors> {
+    ) -> Outcome<Option<dataservice::Model>> {
         let data_service = dataservice::Entity::find()
             .filter(dataservice::Column::DspaceMainDataService.eq(true))
             .one(&self.db_connection)
@@ -102,7 +103,7 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
             .map_err(|err| {
                 CatalogAgentRepoErrors::DataServiceRepoErrors(
                     DataServiceRepoErrors::ErrorFetchingDataService(err.into()),
-                )
+                ).into_errors()
             })?;
         Ok(data_service)
     }
@@ -110,7 +111,7 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
     async fn get_data_service_by_id(
         &self,
         data_service_id: &Urn,
-    ) -> anyhow::Result<Option<dataservice::Model>, CatalogAgentRepoErrors> {
+    ) -> Outcome<Option<dataservice::Model>> {
         let data_service_id = data_service_id.to_string();
         let data_service =
             dataservice::Entity::find_by_id(data_service_id).one(&self.db_connection).await;
@@ -118,7 +119,7 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
             Ok(data_service) => Ok(data_service),
             Err(err) => Err(CatalogAgentRepoErrors::DataServiceRepoErrors(
                 DataServiceRepoErrors::ErrorFetchingDataService(err.into()),
-            )),
+            ).into_errors()),
         }
     }
 
@@ -126,7 +127,7 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
         &self,
         data_service_id: &Urn,
         edit_data_service_model: &EditDataServiceModel,
-    ) -> anyhow::Result<dataservice::Model, CatalogAgentRepoErrors> {
+    ) -> Outcome<dataservice::Model> {
         let data_service_id = data_service_id.to_string();
         let old_model =
             dataservice::Entity::find_by_id(data_service_id).one(&self.db_connection).await;
@@ -136,13 +137,13 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
                 None => {
                     return Err(CatalogAgentRepoErrors::DataServiceRepoErrors(
                         DataServiceRepoErrors::DataServiceNotFound,
-                    ))
+                    ).into_errors())
                 }
             },
             Err(err) => {
                 return Err(CatalogAgentRepoErrors::DataServiceRepoErrors(
                     DataServiceRepoErrors::ErrorFetchingDataService(err.into()),
-                ))
+                ).into_errors())
             }
         };
         let mut old_active_model: dataservice::ActiveModel = old_model.into();
@@ -173,14 +174,14 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
             Ok(model) => Ok(model),
             Err(err) => Err(CatalogAgentRepoErrors::DataServiceRepoErrors(
                 DataServiceRepoErrors::ErrorUpdatingDataService(err.into()),
-            )),
+            ).into_errors()),
         }
     }
 
     async fn create_data_service(
         &self,
         new_data_service_model: &NewDataServiceModel,
-    ) -> anyhow::Result<dataservice::Model, CatalogAgentRepoErrors> {
+    ) -> Outcome<dataservice::Model> {
         let catalog =
             catalog::Entity::find_by_id(new_data_service_model.catalog_id.clone().to_string())
                 .one(&self.db_connection)
@@ -188,12 +189,12 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
                 .map_err(|err| {
                     CatalogAgentRepoErrors::DistributionRepoErrors(
                         DistributionRepoErrors::ErrorFetchingDistribution(err.into()),
-                    )
+                    ).into_errors()
                 })?;
         if catalog.is_none() {
             return Err(CatalogAgentRepoErrors::CatalogRepoErrors(
                 CatalogRepoErrors::CatalogNotFound,
-            ));
+            ).into_errors());
         }
         let model: dataservice::ActiveModel = new_data_service_model.into();
         let data_service =
@@ -202,14 +203,14 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
             Ok(data_service) => Ok(data_service),
             Err(err) => Err(CatalogAgentRepoErrors::DataServiceRepoErrors(
                 DataServiceRepoErrors::ErrorCreatingDataService(err.into()),
-            )),
+            ).into_errors()),
         }
     }
 
     async fn create_main_data_service(
         &self,
         new_data_service_model: &NewDataServiceModel,
-    ) -> anyhow::Result<dataservice::Model, CatalogAgentRepoErrors> {
+    ) -> Outcome<dataservice::Model> {
         let catalog =
             catalog::Entity::find_by_id(new_data_service_model.catalog_id.clone().to_string())
                 .one(&self.db_connection)
@@ -217,12 +218,12 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
                 .map_err(|err| {
                     CatalogAgentRepoErrors::DistributionRepoErrors(
                         DistributionRepoErrors::ErrorFetchingDistribution(err.into()),
-                    )
+                    ).into_errors()
                 })?;
         if catalog.is_none() {
             return Err(CatalogAgentRepoErrors::CatalogRepoErrors(
                 CatalogRepoErrors::CatalogNotFound,
-            ));
+            ).into_errors());
         }
 
         let main_dataservice = self.get_main_data_service().await?;
@@ -238,14 +239,14 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
             Ok(data_service) => Ok(data_service),
             Err(err) => Err(CatalogAgentRepoErrors::DataServiceRepoErrors(
                 DataServiceRepoErrors::ErrorCreatingDataService(err.into()),
-            )),
+            ).into_errors()),
         }
     }
 
     async fn delete_data_service_by_id(
         &self,
         data_service_id: &Urn,
-    ) -> anyhow::Result<(), CatalogAgentRepoErrors> {
+    ) -> Outcome<()> {
         let data_service_id = data_service_id.to_string();
         let data_service =
             dataservice::Entity::delete_by_id(data_service_id).exec(&self.db_connection).await;
@@ -253,12 +254,12 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
             Ok(delete_result) => match delete_result.rows_affected {
                 0 => Err(CatalogAgentRepoErrors::DataServiceRepoErrors(
                     DataServiceRepoErrors::DataServiceNotFound,
-                )),
+                ).into_errors()),
                 _ => Ok(()),
             },
             Err(err) => Err(CatalogAgentRepoErrors::DataServiceRepoErrors(
                 DataServiceRepoErrors::ErrorDeletingDataService(err.into()),
-            )),
+            ).into_errors()),
         }
     }
 }

@@ -21,6 +21,7 @@ use rainbow_negotiation_agent::NegotiationCommands;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 use tracing_subscriber::filter::LevelFilter;
+use ymir::errors::{Errors, Outcome};
 
 const INFO: &str = r"
 ----------
@@ -37,10 +38,11 @@ Show some love on https://github.com/EunomiaUPM/rainbow
 ";
 
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
+async fn main() -> Outcome<()> {
     let filter = EnvFilter::builder()
         .with_default_directive(LevelFilter::INFO.into())
-        .parse("debug,sqlx::query=off")?;
+        .parse("debug,sqlx::query=off")
+        .map_err(|e| Errors::crazy(e.to_string(), Some(Box::new(e))))?;
     tracing_subscriber::fmt()
         .event_format(tracing_subscriber::fmt::format().with_line_number(true))
         .with_env_filter(filter)

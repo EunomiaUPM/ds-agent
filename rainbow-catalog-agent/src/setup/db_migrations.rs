@@ -24,6 +24,7 @@ use rainbow_connector::get_connector_migrations;
 use sea_orm::Database;
 use sea_orm_migration::{MigrationTrait, MigratorTrait};
 use std::sync::Arc;
+use ymir::errors::{Errors, Outcome};
 use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
 
@@ -41,11 +42,12 @@ impl MigratorTrait for CatalogAgentMigration {
 }
 
 impl CatalogAgentMigration {
-    pub async fn run(config: &CatalogConfig, vault: Arc<VaultService>) -> anyhow::Result<()> {
+    pub async fn run(config: &CatalogConfig, vault: Arc<VaultService>) -> Outcome<()> {
         // db_connection
         let db_connection = vault.get_db_connection(config.common()).await;
         // run migration
-        Self::refresh(&db_connection).await?;
+        Self::refresh(&db_connection).await
+            .map_err(|e| Errors::crazy(format!("Failed to refresh database connection: {}", e), Some(Box::new(e))))?;
         Ok(())
     }
 }

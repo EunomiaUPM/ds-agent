@@ -30,7 +30,7 @@ use crate::protocols::dsp::protocol_types::{
     NegotiationAckMessageDto, NegotiationAgreementMessageDto, NegotiationProcessMessageWrapper,
 };
 use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRpcSteps;
-use anyhow::anyhow;
+use ymir::errors::{Errors, Outcome};
 use rainbow_common::dsp_common::odrl::{OdrlAgreement, OdrlMessageOffer, OdrlTypes};
 use rainbow_common::facades::ssi_auth_facade::MatesFacadeTrait;
 use rainbow_common::http_client::HttpClient;
@@ -66,7 +66,7 @@ impl NegotiationRpcStep for RpcAgreementStep {
     async fn validate(
         validator: &Arc<dyn ValidationRpcSteps>,
         input: &RpcNegotiationAgreementMessageDto,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         validator.negotiation_agreement_rpc(input).await
     }
 
@@ -76,10 +76,10 @@ impl NegotiationRpcStep for RpcAgreementStep {
         input: &RpcNegotiationAgreementMessageDto,
         persistence: &Arc<dyn NegotiationRpcPersistenceTrait>,
         mates_service: &Arc<dyn MatesFacadeTrait>,
-    ) -> anyhow::Result<NegotiationRpcAgreementContext> {
+    ) -> Outcome<NegotiationRpcAgreementContext> {
         let id = input
             .get_consumer_pid()
-            .ok_or_else(|| anyhow!("RpcAgreementStep: missing consumer PID"))?;
+            .ok_or_else(|| Errors::parse("RpcAgreementStep: missing consumer PID", None))?;
         let base = resolve_continuation_context(&id, persistence).await?;
 
         // Fetch the last offer to copy its policy fields into the agreement.
@@ -121,7 +121,7 @@ impl NegotiationRpcStep for RpcAgreementStep {
         persistence: &Arc<dyn NegotiationRpcPersistenceTrait>,
         ctx: &NegotiationRpcAgreementContext,
         input: &RpcNegotiationAgreementMessageDto,
-    ) -> anyhow::Result<(
+    ) -> Outcome<(
         NegotiationProcessMessageWrapper<NegotiationAckMessageDto>,
         NegotiationProcessDto,
     )> {
@@ -152,7 +152,7 @@ impl NegotiationRpcStep for RpcAgreementStep {
 
         let id = input
             .get_consumer_pid()
-            .ok_or_else(|| anyhow!("RpcAgreementStep: missing consumer PID"))?;
+            .ok_or_else(|| Errors::parse("RpcAgreementStep: missing consumer PID", None))?;
         let process = persistence
             .update_with_new_agreement(
                 id.to_string().as_str(),

@@ -18,8 +18,8 @@
  */
 
 use crate::subscriptions::MicroserviceSubscriptionKey;
-use anyhow::bail;
 use rainbow_common::config::services::GatewayConfig;
+use ymir::errors::{Errors, Outcome};
 use rainbow_common::config::types::traits::{CommonConfigTrait, MinKnownConfigTrait};
 use reqwest::Client;
 use serde_json::json;
@@ -45,7 +45,7 @@ impl RainbowProviderGatewaySubscriptions {
     pub async fn subscribe_to_microservice(
         &self,
         microservice_key_name: MicroserviceSubscriptionKey,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         let is_datahub = self.config.is_catalog_datahub();
         let microservice_url = match microservice_key_name {
             MicroserviceSubscriptionKey::Catalog => match is_datahub {
@@ -93,11 +93,11 @@ impl RainbowProviderGatewaySubscriptions {
             Ok(request) => request,
             Err(e) => {
                 error!("Error on subscribing. Microservice not available{}", e);
-                bail!("Error on subscribing. Microservice not available {}", e)
+                return Err(Errors::parse(&format!("Error on subscribing. Microservice not available {}", e), None));
             }
         };
         if !request.status().is_success() {
-            bail!("Error on subscribing. Status {}", request.status());
+            return Err(Errors::parse(&format!("Error on subscribing. Status {}", request.status()), None));
         }
         Ok(())
     }

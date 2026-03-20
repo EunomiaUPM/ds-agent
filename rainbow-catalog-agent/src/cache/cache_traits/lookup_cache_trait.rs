@@ -2,6 +2,7 @@ use crate::cache::cache_traits::redis_cache_connector_trait::RedisCacheConnector
 use crate::cache::cache_traits::utils_trait::UtilsCacheTrait;
 use serde::de::DeserializeOwned;
 use urn::Urn;
+use ymir::errors::{Errors, Outcome};
 
 #[async_trait::async_trait]
 pub trait LookupCacheTrait<D>: Send + Sync {
@@ -11,20 +12,20 @@ pub trait LookupCacheTrait<D>: Send + Sync {
         parent_id: &Urn,
         limit: Option<u64>,
         page: Option<u64>,
-    ) -> anyhow::Result<Vec<D>>;
+    ) -> Outcome<Vec<D>>;
     async fn add_to_relation(
         &self,
         parent_name: &str,
         parent_id: &Urn,
         child_id: &Urn,
         score: f64,
-    ) -> anyhow::Result<()>;
+    ) -> Outcome<()>;
     async fn remove_from_relation(
         &self,
         parent_name: &str,
         parent_id: &Urn,
         child_id: &Urn,
-    ) -> anyhow::Result<()>;
+    ) -> Outcome<()>;
 }
 
 #[async_trait::async_trait]
@@ -39,7 +40,7 @@ where
         parent_id: &Urn,
         limit: Option<u64>,
         page: Option<u64>,
-    ) -> anyhow::Result<Vec<D>> {
+    ) -> Outcome<Vec<D>> {
         tracing::debug!("cache: get by relation");
         let lookup_key =
             self.format_key_name_lookup(self.get_entity_name(), parent_name, parent_id);
@@ -50,7 +51,8 @@ where
             .arg(start)
             .arg(stop)
             .query_async(&mut self.get_conn())
-            .await?;
+            .await
+            .map_err(|e| Errors::crazy("Not able to query cache", Some(Box::new(e))))?;
 
         Self::hydrate_from_multiple_keys(self.get_conn(), keys).await
     }
@@ -61,7 +63,7 @@ where
         parent_id: &Urn,
         child_id: &Urn,
         score: f64,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         tracing::debug!("cache: add to relation");
         let lookup_key =
             self.format_key_name_lookup(self.get_entity_name(), parent_name, parent_id);
@@ -72,7 +74,8 @@ where
             .arg(score)
             .arg(child_key)
             .query_async(&mut self.get_conn())
-            .await?;
+            .await
+            .map_err(|e| Errors::crazy("Not able to query cache", Some(Box::new(e))))?;
         Ok(())
     }
 
@@ -81,7 +84,7 @@ where
         parent_name: &str,
         parent_id: &Urn,
         child_id: &Urn,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         tracing::debug!("cache: remove from relation");
         let lookup_key =
             self.format_key_name_lookup(self.get_entity_name(), parent_name, parent_id);
@@ -91,7 +94,8 @@ where
             .arg(lookup_key)
             .arg(child_key)
             .query_async(&mut self.get_conn())
-            .await?;
+            .await
+            .map_err(|e| Errors::crazy("Not able to query cache", Some(Box::new(e))))?;
         Ok(())
     }
 }

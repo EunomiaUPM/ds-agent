@@ -17,13 +17,11 @@
  *
  */
 
-use crate::core::notification::notification_err::NotificationErrors;
 use crate::core::notification::notification_types::{
     RainbowEventsNotificationBroadcastRequest, RainbowEventsNotificationCreationRequest,
     RainbowEventsNotificationResponse,
 };
 use crate::core::notification::RainbowEventsNotificationTrait;
-use crate::core::subscription::subscription_err::SubscriptionErrors;
 use crate::data::repo::{EventsRepoFactory, NewNotification};
 use async_trait::async_trait;
 use rainbow_common::utils::{get_urn, get_urn_from_string};
@@ -31,6 +29,7 @@ use reqwest::Client;
 use std::sync::Arc;
 use std::time::Duration;
 use urn::Urn;
+use ymir::errors::{Errors, Outcome, RepoIntoErrors};
 
 pub struct RainbowEventsNotificationsService<T> {
     repo: Arc<T>,
@@ -56,12 +55,12 @@ where
 {
     async fn get_all_notifications(
         &self,
-    ) -> anyhow::Result<Vec<RainbowEventsNotificationResponse>> {
+    ) -> Outcome<Vec<RainbowEventsNotificationResponse>> {
         let notifications = self
             .repo
             .get_all_notifications()
             .await
-            .map_err(|e| NotificationErrors::DbErr(e.into()))?;
+            .map_err(|e| e.into_errors())?;
         let notifications = notifications
             .iter()
             .map(|sub| RainbowEventsNotificationResponse::try_from(sub.to_owned()).unwrap())
@@ -72,12 +71,12 @@ where
     async fn get_notifications_by_subscription_id(
         &self,
         subscription_id: Urn,
-    ) -> anyhow::Result<Vec<RainbowEventsNotificationResponse>> {
+    ) -> Outcome<Vec<RainbowEventsNotificationResponse>> {
         let notifications = self
             .repo
             .get_notifications_by_subscription_id(subscription_id)
             .await
-            .map_err(|e| NotificationErrors::DbErr(e.into()))?;
+            .map_err(|e| e.into_errors())?;
         let notifications = notifications
             .iter()
             .map(|sub| RainbowEventsNotificationResponse::try_from(sub.to_owned()).unwrap())
@@ -88,12 +87,12 @@ where
     async fn get_pending_notifications_by_subscription_id(
         &self,
         subscription_id: Urn,
-    ) -> anyhow::Result<Vec<RainbowEventsNotificationResponse>> {
+    ) -> Outcome<Vec<RainbowEventsNotificationResponse>> {
         let notifications = self
             .repo
             .get_pending_notifications_by_subscription_id(subscription_id)
             .await
-            .map_err(|e| NotificationErrors::DbErr(e.into()))?;
+            .map_err(|e| e.into_errors())?;
         let notifications = notifications
             .iter()
             .map(|sub| RainbowEventsNotificationResponse::try_from(sub.to_owned()).unwrap())
@@ -104,12 +103,12 @@ where
     async fn ack_pending_notifications_by_subscription_id(
         &self,
         subscription_id: Urn,
-    ) -> anyhow::Result<Vec<RainbowEventsNotificationResponse>> {
+    ) -> Outcome<Vec<RainbowEventsNotificationResponse>> {
         let notifications = self
             .repo
             .ack_pending_notifications_by_subscription_id(subscription_id)
             .await
-            .map_err(|e| NotificationErrors::DbErr(e.into()))?;
+            .map_err(|e| e.into_errors())?;
         let notifications = notifications
             .iter()
             .map(|sub| RainbowEventsNotificationResponse::try_from(sub.to_owned()).unwrap())
@@ -121,16 +120,13 @@ where
         &self,
         subscription_id: Urn,
         notification_id: Urn,
-    ) -> anyhow::Result<RainbowEventsNotificationResponse> {
+    ) -> Outcome<RainbowEventsNotificationResponse> {
         let notifications = self
             .repo
             .get_notification_by_id(subscription_id.clone(), notification_id.clone())
             .await
-            .map_err(|e| NotificationErrors::DbErr(e.into()))?
-            .ok_or(SubscriptionErrors::NotFound {
-                id: subscription_id,
-                entity: "Notifications".to_string(),
-            })?;
+            .map_err(|e| e.into_errors())?
+            .ok_or_else(|| Errors::missing_resource(subscription_id.as_str(), "Notification not found", None))?;
         let notifications = RainbowEventsNotificationResponse::try_from(notifications)?;
         Ok(notifications)
     }
@@ -139,7 +135,7 @@ where
         &self,
         subscription_id: Urn,
         input: RainbowEventsNotificationCreationRequest,
-    ) -> anyhow::Result<RainbowEventsNotificationResponse> {
+    ) -> Outcome<RainbowEventsNotificationResponse> {
         let notification = self
             .repo
             .create_notification(
@@ -154,7 +150,7 @@ where
                 },
             )
             .await
-            .map_err(|e| NotificationErrors::DbErr(e.into()))?;
+            .map_err(|e| e.into_errors())?;
 
         let notifications = RainbowEventsNotificationResponse::try_from(notification)?;
         Ok(notifications)
@@ -163,12 +159,12 @@ where
     async fn broadcast_notification(
         &self,
         input: RainbowEventsNotificationBroadcastRequest,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         let subscriptions = self
             .repo
             .get_all_subscriptions()
             .await
-            .map_err(|e| NotificationErrors::DbErr(e.into()))?;
+            .map_err(|e| e.into_errors())?;
         for subscription in subscriptions {
             let callback = subscription.callback_address;
             let message = RainbowEventsNotificationResponse {
@@ -199,7 +195,7 @@ where
                                 },
                             },
                         )
-                        .await?;
+                        .await.map_err(|e| e.into_errors())?;
                 }
                 Err(_) => {
                     self.repo
@@ -214,7 +210,7 @@ where
                                 status: "Pending".to_string(),
                             },
                         )
-                        .await?;
+                        .await.map_err(|e| e.into_errors())?;
                 }
             }
         }

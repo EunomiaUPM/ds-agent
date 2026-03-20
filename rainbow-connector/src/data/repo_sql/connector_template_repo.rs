@@ -31,7 +31,7 @@ impl ConnectorTemplateRepoTrait for ConnectorTemplateRepoForSql {
         match template {
             Ok(template) => Ok(template),
             Err(err) => Err(ConnectorAgentRepoErrors::ConnectorTemplateRepoErrors(
-                ConnectorTemplateRepoErrors::ErrorCreatingTemplate(err.into()),
+                ConnectorTemplateRepoErrors::ErrorCreatingTemplate(err.to_string()),
             )
             .into_errors()),
         }
@@ -50,7 +50,7 @@ impl ConnectorTemplateRepoTrait for ConnectorTemplateRepoForSql {
         match result {
             Ok(opt) => Ok(opt),
             Err(err) => Err(ConnectorAgentRepoErrors::ConnectorTemplateRepoErrors(
-                ConnectorTemplateRepoErrors::ErrorFetchingTemplate(err.into()),
+                ConnectorTemplateRepoErrors::ErrorFetchingTemplate(err.to_string()),
             )
             .into_errors()),
         }
@@ -67,7 +67,7 @@ impl ConnectorTemplateRepoTrait for ConnectorTemplateRepoForSql {
         match result {
             Ok(opt) => Ok(opt),
             Err(err) => Err(ConnectorAgentRepoErrors::ConnectorTemplateRepoErrors(
-                ConnectorTemplateRepoErrors::ErrorFetchingTemplate(err.into()),
+                ConnectorTemplateRepoErrors::ErrorFetchingTemplate(err.to_string()),
             )
             .into_errors()),
         }
@@ -89,7 +89,7 @@ impl ConnectorTemplateRepoTrait for ConnectorTemplateRepoForSql {
         match result {
             Ok(list) => Ok(list),
             Err(err) => Err(ConnectorAgentRepoErrors::ConnectorTemplateRepoErrors(
-                ConnectorTemplateRepoErrors::ErrorFetchingTemplate(err.into()),
+                ConnectorTemplateRepoErrors::ErrorFetchingTemplate(err.to_string()),
             )
             .into_errors()),
         }
@@ -113,7 +113,7 @@ impl ConnectorTemplateRepoTrait for ConnectorTemplateRepoForSql {
                 _ => Ok(()),
             },
             Err(err) => Err(ConnectorAgentRepoErrors::ConnectorTemplateRepoErrors(
-                ConnectorTemplateRepoErrors::ErrorDeletingTemplate(err.into()),
+                ConnectorTemplateRepoErrors::ErrorDeletingTemplate(err.to_string()),
             )
             .into_errors()),
         }

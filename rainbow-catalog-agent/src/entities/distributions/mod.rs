@@ -5,6 +5,7 @@ use crate::data::entities::distribution::{EditDistributionModel, Model, NewDistr
 use rainbow_common::dcat_formats::DctFormats;
 use serde::{Deserialize, Serialize};
 use urn::Urn;
+use ymir::errors::Outcome;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -70,31 +71,31 @@ pub trait DistributionEntityTrait: Send + Sync {
         &self,
         limit: Option<u64>,
         page: Option<u64>,
-    ) -> anyhow::Result<Vec<DistributionDto>>;
+    ) -> Outcome<Vec<DistributionDto>>;
     async fn get_batch_distributions(&self, ids: &Vec<Urn>)
-        -> anyhow::Result<Vec<DistributionDto>>;
+        -> Outcome<Vec<DistributionDto>>;
 
     async fn get_distributions_by_dataset_id(
         &self,
         dataset_id: &Urn,
-    ) -> anyhow::Result<Vec<DistributionDto>>;
+    ) -> Outcome<Vec<DistributionDto>>;
     async fn get_distribution_by_dataset_id_and_dct_format(
         &self,
         dataset_id: &Urn,
         dct_formats: &String,
-    ) -> anyhow::Result<DistributionDto>;
+    ) -> Outcome<DistributionDto>;
     async fn get_distribution_by_id(
         &self,
         distribution_id: &Urn,
-    ) -> anyhow::Result<Option<DistributionDto>>;
+    ) -> Outcome<Option<DistributionDto>>;
     async fn put_distribution_by_id(
         &self,
         distribution_id: &Urn,
         edit_distribution_model: &EditDistributionDto,
-    ) -> anyhow::Result<DistributionDto>;
+    ) -> Outcome<DistributionDto>;
     async fn create_distribution(
         &self,
         new_distribution_model: &NewDistributionDto,
-    ) -> anyhow::Result<DistributionDto>;
-    async fn delete_distribution_by_id(&self, distribution_id: &Urn) -> anyhow::Result<()>;
+    ) -> Outcome<DistributionDto>;
+    async fn delete_distribution_by_id(&self, distribution_id: &Urn) -> Outcome<()>;
 }

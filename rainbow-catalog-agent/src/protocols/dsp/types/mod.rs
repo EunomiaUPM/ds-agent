@@ -17,9 +17,9 @@
  *
  */
 
-use anyhow::anyhow;
 use sea_orm::Value;
 use std::fmt::Display;
+use ymir::errors::Errors;
 
 pub mod catalog_definition;
 pub mod dataservice_definition;
@@ -36,7 +36,7 @@ pub enum EntityTypes {
 pub trait CatalogDspTraitDefinition {}
 
 impl TryFrom<&str> for EntityTypes {
-    type Error = anyhow::Error;
+    type Error = Errors;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         match value {
@@ -44,7 +44,7 @@ impl TryFrom<&str> for EntityTypes {
             "Dataset" => Ok(EntityTypes::Dataset),
             "DataService" => Ok(EntityTypes::DataService),
             "Distribution" => Ok(EntityTypes::Distribution),
-            _ => Err(anyhow!("Invalid Entity Type")),
+            _ => Err(Errors::parse("Entity not recognised", None)),
         }
     }
 }

@@ -25,6 +25,7 @@ use crate::data::entities::negotiation_message::NewNegotiationMessageModel;
 use crate::data::entities::offer as offer_model;
 use serde::{Deserialize, Serialize};
 use urn::Urn;
+use ymir::errors::Outcome;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -71,22 +72,22 @@ pub trait NegotiationAgentMessagesTrait: Send + Sync + 'static {
         &self,
         limit: Option<u64>,
         page: Option<u64>,
-    ) -> anyhow::Result<Vec<NegotiationMessageDto>>;
+    ) -> Outcome<Vec<NegotiationMessageDto>>;
 
     async fn get_messages_by_process_id(
         &self,
         process_id: &Urn,
-    ) -> anyhow::Result<Vec<NegotiationMessageDto>>;
+    ) -> Outcome<Vec<NegotiationMessageDto>>;
 
     async fn get_negotiation_message_by_id(
         &self,
         id: &Urn,
-    ) -> anyhow::Result<Option<NegotiationMessageDto>>;
+    ) -> Outcome<Option<NegotiationMessageDto>>;
 
     async fn create_negotiation_message(
         &self,
         new_model_dto: &NewNegotiationMessageDto,
-    ) -> anyhow::Result<NegotiationMessageDto>;
+    ) -> Outcome<NegotiationMessageDto>;
 
-    async fn delete_negotiation_message(&self, id: &Urn) -> anyhow::Result<()>;
+    async fn delete_negotiation_message(&self, id: &Urn) -> Outcome<()>;
 }

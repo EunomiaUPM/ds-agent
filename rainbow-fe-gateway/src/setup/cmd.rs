@@ -20,8 +20,8 @@
 use crate::setup::boot::GatewayBoot;
 use crate::subscriptions::subscriptions::RainbowProviderGatewaySubscriptions;
 use crate::subscriptions::MicroserviceSubscriptionKey;
-use anyhow::Context;
 use clap::{Parser, Subcommand};
+use ymir::errors::{Errors, Outcome};
 use fs_extra::dir::{copy, CopyOptions};
 use rainbow_common::boot::BootstrapServiceTrait;
 use rainbow_common::config::services::GatewayConfig;
@@ -61,7 +61,7 @@ pub struct GatewayCliArgs {
 pub struct GatewayCommands;
 
 impl GatewayCommands {
-    pub async fn init_command_line() -> anyhow::Result<()> {
+    pub async fn init_command_line() -> Outcome<()> {
         // parse command line
         debug!("Init the command line application");
         let cli = GatewayCli::parse();
@@ -95,7 +95,7 @@ impl GatewayCommands {
         Ok(())
     }
 
-    fn build_frontend(_env_file: String) -> anyhow::Result<()> {
+    fn build_frontend(_env_file: String) -> Outcome<()> {
         let cwd = "./../gui/admin".to_string();
 
         // 1. Build react application
@@ -103,12 +103,12 @@ impl GatewayCommands {
             .current_dir(&cwd)
             .args(["run", "build", "-w", "admin"])
             .spawn()
-            .context("Failed to spawn npm build process")?;
+            .map_err(|e| Errors::parse(&format!("Failed to spawn npm build process: {}", e), None))?;
 
-        cmd.wait().context("Failed to wait for npm build")?;
+        cmd.wait().map_err(|e| Errors::parse(&format!("Failed to wait for npm build: {}", e), None))?;
         debug!("Build command finished successfully");
 
-        // 2. Rutas
+        // 2. Routes
         let origin = format!("{}/dist", cwd);
         let destination = "./src/static/admin".to_string();
         let dest_path = Path::new(&destination);
@@ -116,24 +116,24 @@ impl GatewayCommands {
         // 3. Clean
         if dest_path.exists() {
             debug!("Cleaning content of: {}", destination);
-            for entry in fs::read_dir(dest_path).context("Failed to read destination dir")? {
-                let entry = entry?;
+            for entry in fs::read_dir(dest_path).map_err(|e| Errors::parse(&e.to_string(), None))? {
+                let entry = entry.map_err(|e| Errors::parse(&e.to_string(), None))?;
                 let path = entry.path();
                 if path.is_dir() {
-                    fs::remove_dir_all(&path).context("Failed to remove subdir")?;
+                    fs::remove_dir_all(&path).map_err(|e| Errors::parse(&e.to_string(), None))?;
                 } else {
-                    fs::remove_file(&path).context("Failed to remove file")?;
+                    fs::remove_file(&path).map_err(|e| Errors::parse(&e.to_string(), None))?;
                 }
             }
         } else {
-            fs::create_dir_all(dest_path).context("Failed to create destination dir")?;
+            fs::create_dir_all(dest_path).map_err(|e| Errors::parse(&e.to_string(), None))?;
         }
 
         // 4. Copy content
         let mut options = CopyOptions::new();
         options.overwrite = true;
         options.copy_inside = true;
-        let _ = copy(&origin, &destination, &options).context("Failed to execute copy process")?;
+        let _ = copy(&origin, &destination, &options).map_err(|e| Errors::parse(&e.to_string(), None))?;
 
         debug!("Copy command finished successfully");
 

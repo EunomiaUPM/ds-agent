@@ -5,6 +5,7 @@ use crate::data::entities::dataservice::{EditDataServiceModel, Model, NewDataSer
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use urn::{Urn, UrnBuilder};
+use ymir::errors::Outcome;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -96,31 +97,31 @@ pub trait DataServiceEntityTrait: Send + Sync {
         &self,
         limit: Option<u64>,
         page: Option<u64>,
-    ) -> anyhow::Result<Vec<DataServiceDto>>;
-    async fn get_batch_data_services(&self, ids: &Vec<Urn>) -> anyhow::Result<Vec<DataServiceDto>>;
+    ) -> Outcome<Vec<DataServiceDto>>;
+    async fn get_batch_data_services(&self, ids: &Vec<Urn>) -> Outcome<Vec<DataServiceDto>>;
 
     async fn get_data_services_by_catalog_id(
         &self,
         catalog_id: &Urn,
-    ) -> anyhow::Result<Vec<DataServiceDto>>;
+    ) -> Outcome<Vec<DataServiceDto>>;
 
-    async fn get_main_data_service(&self) -> anyhow::Result<Option<DataServiceDto>>;
+    async fn get_main_data_service(&self) -> Outcome<Option<DataServiceDto>>;
     async fn get_data_service_by_id(
         &self,
         data_service_id: &Urn,
-    ) -> anyhow::Result<Option<DataServiceDto>>;
+    ) -> Outcome<Option<DataServiceDto>>;
     async fn put_data_service_by_id(
         &self,
         data_service_id: &Urn,
         edit_data_service_model: &EditDataServiceDto,
-    ) -> anyhow::Result<DataServiceDto>;
+    ) -> Outcome<DataServiceDto>;
     async fn create_data_service(
         &self,
         new_data_service_model: &NewDataServiceDto,
-    ) -> anyhow::Result<DataServiceDto>;
+    ) -> Outcome<DataServiceDto>;
     async fn create_main_data_service(
         &self,
         new_data_service_model: &NewDataServiceDto,
-    ) -> anyhow::Result<DataServiceDto>;
-    async fn delete_data_service_by_id(&self, data_service_id: &Urn) -> anyhow::Result<()>;
+    ) -> Outcome<DataServiceDto>;
+    async fn delete_data_service_by_id(&self, data_service_id: &Urn) -> Outcome<()>;
 }

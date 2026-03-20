@@ -28,6 +28,7 @@ use crate::protocols::dsp::protocol_types::{
 };
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
 use rainbow_common::mates::mates::Mates;
+use ymir::errors::Outcome;
 use std::sync::Arc;
 
 // ─── NegotiationEventStep ─────────────────────────────────────────────────────
@@ -51,7 +52,7 @@ impl NegotiationProtocolStep for NegotiationEventStep {
         id: &str,
         input: &NegotiationProcessMessageWrapper<NegotiationEventMessageDto>,
         _mate: &Mates,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         validator.on_contract_event(&id.to_string(), input).await
     }
 
@@ -60,7 +61,7 @@ impl NegotiationProtocolStep for NegotiationEventStep {
         _mate: &Mates,
         _input: &NegotiationProcessMessageWrapper<NegotiationEventMessageDto>,
         persistence: &Arc<OrchestrationPersistenceForProtocol>,
-    ) -> anyhow::Result<(
+    ) -> Outcome<(
         NegotiationContinuationContext,
         Option<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>>,
     )> {
@@ -77,7 +78,7 @@ impl NegotiationProtocolStep for NegotiationEventStep {
         ctx: &NegotiationContinuationContext,
         input: &NegotiationProcessMessageWrapper<NegotiationEventMessageDto>,
         mate: &Mates,
-    ) -> anyhow::Result<NegotiationProcessDto> {
+    ) -> Outcome<NegotiationProcessDto> {
         match &input.dto.event_type {
             NegotiationEventType::ACCEPTED => {
                 persistence.update(ctx.id.as_str(), &input.dto, mate).await

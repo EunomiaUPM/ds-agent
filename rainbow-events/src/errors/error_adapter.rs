@@ -20,31 +20,12 @@
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
-use rainbow_common::errors::CommonErrors;
 use serde_json::json;
 use std::io::Error;
 use tracing::error;
 
 pub trait CustomToResponse {
     fn to_response(&self) -> Response;
-}
-
-impl CustomToResponse for anyhow::Error {
-    fn to_response(&self) -> Response {
-        if let Some(e) = self.downcast_ref::<CommonErrors>() {
-            return e.into_response();
-        }
-
-        error!("Unhandled internal error: {:?}", self);
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({
-                "message": "Internal Server Error",
-                "error_code": 5000
-            })),
-        )
-            .into_response()
-    }
 }
 
 impl CustomToResponse for Error {

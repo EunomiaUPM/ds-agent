@@ -20,6 +20,7 @@
 pub(crate) mod persistence;
 pub(crate) mod protocol;
 
+use ymir::errors::Outcome;
 use crate::protocols::dsp::protocol_types::{
     CatalogMessageWrapper, CatalogRequestMessageDto, DatasetRequestMessage,
 };
@@ -31,9 +32,9 @@ pub trait ProtocolOrchestratorTrait: Send + Sync + 'static {
     async fn on_catalog_request(
         &self,
         input: &CatalogMessageWrapper<CatalogRequestMessageDto>,
-    ) -> anyhow::Result<Catalog>;
+    ) -> Outcome<Catalog>;
     async fn on_dataset_request(
         &self,
         input: &CatalogMessageWrapper<DatasetRequestMessage>,
-    ) -> anyhow::Result<Dataset>;
+    ) -> Outcome<Dataset>;
 }

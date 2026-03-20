@@ -9,6 +9,7 @@ use rainbow_common::errors::{CommonErrors, ErrorLog};
 use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
+use ymir::errors::Outcome;
 
 pub struct DataServiceEntities {
     repo: Arc<dyn CatalogAgentRepoTrait>,
@@ -30,7 +31,7 @@ impl DataServiceEntityTrait for DataServiceEntities {
         &self,
         limit: Option<u64>,
         page: Option<u64>,
-    ) -> anyhow::Result<Vec<DataServiceDto>> {
+    ) -> Outcome<Vec<DataServiceDto>> {
         // cache
         if let Ok(dtos) = self.cache.get_dataservice_cache().get_collection(limit, page).await {
             if !dtos.is_empty() {
@@ -43,8 +44,7 @@ impl DataServiceEntityTrait for DataServiceEntities {
             .repo
             .get_dataservice_repo()
             .get_all_data_services(limit, page)
-            .await
-            .map_err(|e| CommonErrors::database_new(&e.to_string()))?;
+            .await?;
 
         let dtos: Vec<DataServiceDto> = data_services.into_iter().map(Into::into).collect();
 
@@ -61,7 +61,7 @@ impl DataServiceEntityTrait for DataServiceEntities {
         Ok(dtos)
     }
 
-    async fn get_batch_data_services(&self, ids: &Vec<Urn>) -> anyhow::Result<Vec<DataServiceDto>> {
+    async fn get_batch_data_services(&self, ids: &Vec<Urn>) -> Outcome<Vec<DataServiceDto>> {
         // cache
         if let Ok(dtos) = self.cache.get_dataservice_cache().get_batch(ids).await {
             if !dtos.is_empty() {
@@ -74,8 +74,7 @@ impl DataServiceEntityTrait for DataServiceEntities {
             .repo
             .get_dataservice_repo()
             .get_batch_data_services(ids)
-            .await
-            .map_err(|e| CommonErrors::database_new(&e.to_string()))?;
+            .await?;
 
         let dtos: Vec<DataServiceDto> = data_services.into_iter().map(Into::into).collect();
 
@@ -93,7 +92,7 @@ impl DataServiceEntityTrait for DataServiceEntities {
     async fn get_data_services_by_catalog_id(
         &self,
         catalog_id: &Urn,
-    ) -> anyhow::Result<Vec<DataServiceDto>> {
+    ) -> Outcome<Vec<DataServiceDto>> {
         // cache hit using LookupCacheTrait
         if let Ok(dtos) = self
             .cache
@@ -111,8 +110,7 @@ impl DataServiceEntityTrait for DataServiceEntities {
             .repo
             .get_dataservice_repo()
             .get_data_services_by_catalog_id(catalog_id)
-            .await
-            .map_err(|e| CommonErrors::database_new(&e.to_string()))?;
+            .await?;
 
         let dtos: Vec<DataServiceDto> = data_services.into_iter().map(Into::into).collect();
 
@@ -131,7 +129,7 @@ impl DataServiceEntityTrait for DataServiceEntities {
         Ok(dtos)
     }
 
-    async fn get_main_data_service(&self) -> anyhow::Result<Option<DataServiceDto>> {
+    async fn get_main_data_service(&self) -> Outcome<Option<DataServiceDto>> {
         let cache = self.cache.get_dataservice_cache();
         // cache
         if let Ok(Some(dto)) = cache.get_main().await {
@@ -142,8 +140,7 @@ impl DataServiceEntityTrait for DataServiceEntities {
             .repo
             .get_dataservice_repo()
             .get_main_data_service()
-            .await
-            .map_err(|e| CommonErrors::database_new(&e.to_string()))?;
+            .await?;
 
         let dto: Option<DataServiceDto> = data_service.map(Into::into);
 
@@ -159,7 +156,7 @@ impl DataServiceEntityTrait for DataServiceEntities {
     async fn get_data_service_by_id(
         &self,
         data_service_id: &Urn,
-    ) -> anyhow::Result<Option<DataServiceDto>> {
+    ) -> Outcome<Option<DataServiceDto>> {
         // cache hit
         if let Ok(Some(dto)) = self.cache.get_dataservice_cache().get_single(data_service_id).await
         {
@@ -171,8 +168,7 @@ impl DataServiceEntityTrait for DataServiceEntities {
             .repo
             .get_dataservice_repo()
             .get_data_service_by_id(data_service_id)
-            .await
-            .map_err(|e| CommonErrors::database_new(&e.to_string()))?;
+            .await?;
 
         let dto: Option<DataServiceDto> = data_service.map(Into::into);
 
@@ -192,14 +188,13 @@ impl DataServiceEntityTrait for DataServiceEntities {
         &self,
         data_service_id: &Urn,
         edit_data_service_model: &EditDataServiceDto,
-    ) -> anyhow::Result<DataServiceDto> {
+    ) -> Outcome<DataServiceDto> {
         let edit_model = edit_data_service_model.clone().into();
         let data_service = self
             .repo
             .get_dataservice_repo()
             .put_data_service_by_id(data_service_id, &edit_model)
-            .await
-            .map_err(|e| CommonErrors::database_new(&e.to_string()))?;
+            .await?;
 
         let dto: DataServiceDto = data_service.into();
         let ds_urn = Urn::from_str(dto.inner.id.as_str())?;
@@ -215,15 +210,14 @@ impl DataServiceEntityTrait for DataServiceEntities {
     async fn create_data_service(
         &self,
         new_data_service_model: &NewDataServiceDto,
-    ) -> anyhow::Result<DataServiceDto> {
+    ) -> Outcome<DataServiceDto> {
         // db
         let new_model = new_data_service_model.clone().into();
         let data_service = self
             .repo
             .get_dataservice_repo()
             .create_data_service(&new_model)
-            .await
-            .map_err(|e| CommonErrors::database_new(&e.to_string()))?;
+            .await?;
 
         let dto: DataServiceDto = data_service.into();
         let ds_urn = Urn::from_str(dto.inner.id.as_str())?;
@@ -245,15 +239,14 @@ impl DataServiceEntityTrait for DataServiceEntities {
     async fn create_main_data_service(
         &self,
         new_data_service_model: &NewDataServiceDto,
-    ) -> anyhow::Result<DataServiceDto> {
+    ) -> Outcome<DataServiceDto> {
         // db
         let new_model = new_data_service_model.clone().into();
         let data_service = self
             .repo
             .get_dataservice_repo()
             .create_main_data_service(&new_model)
-            .await
-            .map_err(|e| CommonErrors::database_new(&e.to_string()))?;
+            .await?;
         let dto: DataServiceDto = data_service.into();
 
         // cache
@@ -263,7 +256,7 @@ impl DataServiceEntityTrait for DataServiceEntities {
         Ok(dto)
     }
 
-    async fn delete_data_service_by_id(&self, data_service_id: &Urn) -> anyhow::Result<()> {
+    async fn delete_data_service_by_id(&self, data_service_id: &Urn) -> Outcome<()> {
         // db self
         let current = self.get_data_service_by_id(data_service_id).await?;
 
@@ -271,8 +264,7 @@ impl DataServiceEntityTrait for DataServiceEntities {
         self.repo
             .get_dataservice_repo()
             .delete_data_service_by_id(data_service_id)
-            .await
-            .map_err(|e| CommonErrors::database_new(&e.to_string()))?;
+            .await?;
 
         // invalidation
         let cache = self.cache.get_dataservice_cache();

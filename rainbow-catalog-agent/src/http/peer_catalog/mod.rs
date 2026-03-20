@@ -1,8 +1,6 @@
 use crate::entities::catalogs::{CatalogEntityTrait, EditCatalogDto, NewCatalogDto};
 use crate::entities::peer_catalogs::PeerCatalogTrait;
-use crate::errors::error_adapter::CustomToResponse;
 use crate::http::common::to_camel_case::ToCamelCase;
-use crate::http::common::{extract_payload, parse_urn};
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{FromRef, Path, Query, State};
 use axum::response::IntoResponse;
@@ -46,20 +44,7 @@ impl PeerCatalogEntityRouter {
                     CommonErrors::missing_resource_new("peer catalog", "Peer Catalog not found");
                 err.into_response()
             }
-            Err(err) => match err.downcast::<CommonErrors>() {
-                Ok(ce) => match ce {
-                    CommonErrors::DatabaseError { ref cause, .. } => {
-                        if cause.contains("not found") {
-                            let err = CommonErrors::missing_resource_new("", cause.as_str());
-                            return err.into_response();
-                        } else {
-                            ce.into_response()
-                        }
-                    }
-                    e => return e.into_response(),
-                },
-                Err(e) => e.to_response(),
-            },
+            Err(e) => return e.into_response(),
         }
     }
 }

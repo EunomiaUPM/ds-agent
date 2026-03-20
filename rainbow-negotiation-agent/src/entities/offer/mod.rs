@@ -23,6 +23,7 @@ use crate::data::entities::offer as offer_model;
 use crate::data::entities::offer::NewOfferModel;
 use serde::{Deserialize, Serialize};
 use urn::Urn;
+use ymir::errors::Outcome;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -61,23 +62,23 @@ pub trait NegotiationAgentOffersTrait: Send + Sync + 'static {
         &self,
         limit: Option<u64>,
         page: Option<u64>,
-    ) -> anyhow::Result<Vec<OfferDto>>;
+    ) -> Outcome<Vec<OfferDto>>;
 
-    async fn get_batch_offers(&self, ids: &Vec<Urn>) -> anyhow::Result<Vec<OfferDto>>;
+    async fn get_batch_offers(&self, ids: &Vec<Urn>) -> Outcome<Vec<OfferDto>>;
 
-    async fn get_offers_by_negotiation_process(&self, id: &Urn) -> anyhow::Result<Vec<OfferDto>>;
+    async fn get_offers_by_negotiation_process(&self, id: &Urn) -> Outcome<Vec<OfferDto>>;
     async fn get_last_offer_by_negotiation_process(
         &self,
         id: &Urn,
-    ) -> anyhow::Result<Option<OfferDto>>;
+    ) -> Outcome<Option<OfferDto>>;
 
-    async fn get_offer_by_id(&self, id: &Urn) -> anyhow::Result<Option<OfferDto>>;
+    async fn get_offer_by_id(&self, id: &Urn) -> Outcome<Option<OfferDto>>;
 
-    async fn get_offer_by_negotiation_message(&self, id: &Urn) -> anyhow::Result<Option<OfferDto>>;
+    async fn get_offer_by_negotiation_message(&self, id: &Urn) -> Outcome<Option<OfferDto>>;
 
-    async fn get_offer_by_offer_id(&self, id: &Urn) -> anyhow::Result<Option<OfferDto>>;
+    async fn get_offer_by_offer_id(&self, id: &Urn) -> Outcome<Option<OfferDto>>;
 
-    async fn create_offer(&self, new_model: &NewOfferDto) -> anyhow::Result<OfferDto>;
+    async fn create_offer(&self, new_model: &NewOfferDto) -> Outcome<OfferDto>;
 
-    async fn delete_offer(&self, id: &Urn) -> anyhow::Result<()>;
+    async fn delete_offer(&self, id: &Urn) -> Outcome<()>;
 }

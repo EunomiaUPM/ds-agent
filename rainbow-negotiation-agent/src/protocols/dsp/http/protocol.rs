@@ -36,7 +36,7 @@ use axum::{
 };
 use rainbow_common::config::services::ContractsConfig;
 use rainbow_common::dsp_common::context_field::ContextField;
-use rainbow_common::errors::CommonErrors;
+use ymir::errors::Errors;
 use rainbow_common::facades::ssi_auth_facade::SSIAuthFacadeTrait;
 use rainbow_common::mates::mates::Mates;
 use serde::Serialize;
@@ -145,7 +145,7 @@ impl DspRouter {
         T: Send,
         R: Serialize,
         F: FnOnce(T) -> Fut,
-        Fut: Future<Output = anyhow::Result<R>> + Send,
+        Fut: Future<Output = Result<R, Errors>> + Send,
     {
         let payload = match extract_payload_error(input) {
             Ok(v) => v,
@@ -159,7 +159,7 @@ impl DspRouter {
     }
 
     fn map_service_result<R>(
-        result: anyhow::Result<R>,
+        result: Result<R, Errors>,
         success_code: StatusCode,
     ) -> impl IntoResponse
     where
@@ -171,27 +171,9 @@ impl DspRouter {
         }
     }
 
-    fn map_service_error(err: anyhow::Error) -> impl IntoResponse {
-        match err.downcast::<CommonErrors>() {
-            Ok(common_errors) => {
-                let error_dto: NegotiationProcessMessageWrapper<NegotiationErrorMessageDto> =
-                    common_errors.into();
-                (StatusCode::BAD_REQUEST, Json(error_dto)).into_response()
-            }
-            Err(original_err) => {
-                let error_dto = NegotiationProcessMessageWrapper {
-                    context: ContextField::default(),
-                    _type: NegotiationProcessMessageType::NegotiationError,
-                    dto: NegotiationErrorMessageDto {
-                        consumer_pid: None,
-                        provider_pid: None,
-                        code: Some("5000".to_string()),
-                        reason: Some(vec![original_err.to_string()]),
-                    },
-                };
-                (StatusCode::BAD_REQUEST, Json(error_dto)).into_response()
-            }
-        }
+    fn map_service_error(err: Errors) -> impl IntoResponse {
+        let error_dto: NegotiationProcessMessageWrapper<NegotiationErrorMessageDto> = err.into();
+        (StatusCode::BAD_REQUEST, Json(error_dto)).into_response()
     }
 
     // --- Handlers ---

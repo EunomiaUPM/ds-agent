@@ -10,10 +10,9 @@ use crate::entities::parameters::parameters::ParameterDefinition;
 use crate::entities::parameters::template_parameters_extractor::TemplateParameterExtractor;
 use crate::entities::parameters::template_parameters_validator::ParameterValidator;
 use crate::entities::parameters::template_parameters_visitor::ParameterExtractorVisitor;
-use anyhow::anyhow;
 use log::error;
-use rainbow_common::errors::{CommonErrors, ErrorLog};
 use std::sync::Arc;
+use ymir::errors::{Errors, Outcome};
 
 pub struct ConnectorTemplateEntitiesService {
     repo: Arc<dyn ConnectorRepoTrait>,
@@ -24,28 +23,28 @@ impl ConnectorTemplateEntitiesService {
         Self { repo }
     }
 
-    fn map_model_to_dto(model: connector_templates::Model) -> anyhow::Result<ConnectorTemplateDto> {
+    fn map_model_to_dto(model: connector_templates::Model) -> Outcome<ConnectorTemplateDto> {
         let spec = model.spec;
         let authentication: AuthenticationConfig = serde_json::from_value(
             spec.get("authentication")
-                .ok_or_else(|| anyhow::anyhow!("Missing 'authentication' in template spec"))?
+                .ok_or_else(|| Errors::parse("Missing 'authentication' in template spec", None))?
                 .clone(),
         )
-        .map_err(|e| anyhow::anyhow!("Error deserializing authentication config: {}", e))?;
+        .map_err(|e| Errors::parse(&format!("Error deserializing authentication config: {}", e), None))?;
 
         let interaction: InteractionConfig = serde_json::from_value(
             spec.get("interaction")
-                .ok_or_else(|| anyhow::anyhow!("Missing 'interaction' in template spec"))?
+                .ok_or_else(|| Errors::parse("Missing 'interaction' in template spec", None))?
                 .clone(),
         )
-        .map_err(|e| anyhow::anyhow!("Error deserializing interaction config: {}", e))?;
+        .map_err(|e| Errors::parse(&format!("Error deserializing interaction config: {}", e), None))?;
 
         let parameters: Vec<ParameterDefinition> = serde_json::from_value(
             spec.get("parameters")
-                .ok_or_else(|| anyhow::anyhow!("Missing 'parameters' in template spec"))?
+                .ok_or_else(|| Errors::parse("Missing 'parameters' in template spec", None))?
                 .clone(),
         )
-        .map_err(|e| anyhow::anyhow!("Error deserializing parameters: {}", e))?;
+        .map_err(|e| Errors::parse(&format!("Error deserializing parameters: {}", e), None))?;
 
         Ok(ConnectorTemplateDto {
             metadata: ConnectorMetadata {
@@ -68,12 +67,11 @@ impl ConnectorTemplateEntitiesTrait for ConnectorTemplateEntitiesService {
         &self,
         limit: Option<u64>,
         page: Option<u64>,
-    ) -> anyhow::Result<Vec<ConnectorTemplateDto>> {
+    ) -> Outcome<Vec<ConnectorTemplateDto>> {
         let models =
             self.repo.get_templates_repo().get_all_templates(limit, page).await.map_err(|e| {
-                let err = CommonErrors::database_new(&e.to_string());
-                error!("{}", err.log());
-                err
+                error!("{}", e);
+                Errors::db(&e.to_string(), None)
             })?;
 
         let mut dtos = Vec::with_capacity(models.len());
@@ -87,13 +85,12 @@ impl ConnectorTemplateEntitiesTrait for ConnectorTemplateEntitiesService {
     async fn get_templates_by_id(
         &self,
         template_id: &String,
-    ) -> anyhow::Result<Vec<ConnectorTemplateDto>> {
+    ) -> Outcome<Vec<ConnectorTemplateDto>> {
         let models =
             self.repo.get_templates_repo().get_templates_by_name(template_id).await.map_err(
                 |e| {
-                    let err = CommonErrors::database_new(&e.to_string());
-                    error!("{}", err.log());
-                    err
+                    error!("{}", e);
+                    Errors::db(&e.to_string(), None)
                 },
             )?;
 
@@ -108,16 +105,15 @@ impl ConnectorTemplateEntitiesTrait for ConnectorTemplateEntitiesService {
         &self,
         name: &String,
         version: &String,
-    ) -> anyhow::Result<Option<ConnectorTemplateDto>> {
+    ) -> Outcome<Option<ConnectorTemplateDto>> {
         let result = self
             .repo
             .get_templates_repo()
             .get_template_by_name_and_version(name, version)
             .await
             .map_err(|e| {
-                let err = CommonErrors::database_new(&e.to_string());
-                error!("{}", err.log());
-                err
+                error!("{}", e);
+                Errors::db(&e.to_string(), None)
             })?;
 
         match result {
@@ -129,7 +125,7 @@ impl ConnectorTemplateEntitiesTrait for ConnectorTemplateEntitiesService {
     async fn create_template(
         &self,
         new_template: &mut ConnectorTemplateDto,
-    ) -> anyhow::Result<ConnectorTemplateDto> {
+    ) -> Outcome<ConnectorTemplateDto> {
         // Validation: extract all {{__NAME__}} placeholders and check that
         // names and types match the declared parameters[]. RUNTIME_* / SYS_*
         // names are excluded because they are resolved by the engine at runtime.
@@ -138,24 +134,20 @@ impl ConnectorTemplateEntitiesTrait for ConnectorTemplateEntitiesService {
         ParameterValidator::new(&new_template.parameters, true)
             .validate(extractor.found_parameters())
             .map_err(|e| {
-                let err = CommonErrors::parse_new(&e.to_string());
-                error!("{}", err.log());
-                err
+                error!("{}", e);
+                Errors::parse(&e.to_string(), None)
             })?;
 
         // persist
         let new_model: NewConnectorTemplateModel =
-            new_template.clone().try_into().map_err(|e: anyhow::Error| {
-                let err =
-                    CommonErrors::parse_new(&format!("Error preparing template model: {}", e));
-                error!("{}", err.log());
-                err
+            new_template.clone().try_into().map_err(|e: Errors| {
+                error!("{}", e);
+                Errors::parse(&format!("Error preparing template model: {}", e), None)
             })?;
         let saved_model =
             self.repo.get_templates_repo().create_template(&new_model).await.map_err(|e| {
-                let err = CommonErrors::database_new(&e.to_string());
-                error!("{}", err.log());
-                err
+                error!("{}", e);
+                Errors::db(&e.to_string(), None)
             })?;
         // create ouput
         Self::map_model_to_dto(saved_model)
@@ -165,15 +157,14 @@ impl ConnectorTemplateEntitiesTrait for ConnectorTemplateEntitiesService {
         &self,
         name: &String,
         version: &String,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         self.repo
             .get_templates_repo()
             .delete_template_by_name_and_version(name, version)
             .await
             .map_err(|e| {
-                let err = CommonErrors::database_new(&e.to_string());
-                error!("{}", err.log());
-                err
+                error!("{}", e);
+                Errors::db(&e.to_string(), None)
             })?;
 
         Ok(())

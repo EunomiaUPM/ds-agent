@@ -26,6 +26,7 @@ use rainbow_common::config::types::roles::RoleConfig;
 use std::sync::Arc;
 use tracing::{debug, info};
 use ymir::config::traits::ConnectionConfigTrait;
+use ymir::errors::Outcome;
 use ymir::services::vault::fake_vault::FakeVaultService;
 use ymir::services::vault::global::VaultService;
 use ymir::services::vault::vault_rs::RealVaultService;
@@ -53,7 +54,7 @@ pub struct CatalogCliArgs {
 pub struct CatalogCommands {}
 
 impl CatalogCommands {
-    pub async fn init_command_line() -> anyhow::Result<()> {
+    pub async fn init_command_line() -> Outcome<()> {
         debug!("init_command_line - Initialize catalog commands");
         let cli = CatalogCli::parse();
         match cli.command {

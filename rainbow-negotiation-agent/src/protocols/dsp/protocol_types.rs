@@ -18,11 +18,10 @@
  */
 
 use crate::entities::negotiation_process::NegotiationProcessDto;
-use anyhow::bail;
 use rainbow_common::dsp_common::context_field::ContextField;
 use rainbow_common::dsp_common::odrl::{ContractRequestMessageOfferTypes, OdrlAgreement};
-use rainbow_common::errors::{CommonErrors, ErrorLog};
 use serde::{Deserialize, Serialize};
+use ymir::errors::Errors;
 use serde_json::Value;
 use std::fmt::{Debug, Display};
 use std::str::FromStr;
@@ -701,7 +700,7 @@ impl Display for NegotiationProcessMessageType {
 }
 
 impl FromStr for NegotiationProcessMessageType {
-    type Err = anyhow::Error;
+    type Err = Errors;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
@@ -725,7 +724,7 @@ impl FromStr for NegotiationProcessMessageType {
             }
             "ContractNegotiation" => Ok(NegotiationProcessMessageType::NegotiationProcess),
             "ContractNegotiationError" => Ok(NegotiationProcessMessageType::NegotiationError),
-            _ => Err(anyhow::Error::msg("Invalid negotiation message")),
+            _ => Err(Errors::parse("Invalid negotiation message", None)),
         }
     }
 }
@@ -761,62 +760,67 @@ impl From<NegotiationProcessMessageType> for NegotiationProcessState {
 }
 
 impl TryFrom<NegotiationProcessDto> for NegotiationProcessMessageWrapper<NegotiationAckMessageDto> {
-    type Error = anyhow::Error;
+    type Error = Errors;
 
     fn try_from(value: NegotiationProcessDto) -> Result<Self, Self::Error> {
         let consumer_str = match value.identifiers.get("consumerPid") {
             Some(val) => val,
             None => {
-                let err = CommonErrors::parse_new(
+                let err = Errors::parse(
                     "Missing 'consumerPid' in NegotiationProcessDto identifiers map",
+                    None,
                 );
-                error!("{}", err.log());
-                bail!(err);
+                error!("{}", err);
+                return Err(err);
             }
         };
         let consumer_pid = match Urn::from_str(consumer_str) {
             Ok(urn) => urn,
             Err(e) => {
-                let err = CommonErrors::parse_new(&format!(
-                    "Invalid URN format for consumerPid '{}': {}",
-                    consumer_str, e
-                ));
-                error!("{}", err.log());
-                bail!(err);
+                let err = Errors::parse(
+                    format!("Invalid URN format for consumerPid '{}': {}", consumer_str, e),
+                    None,
+                );
+                error!("{}", err);
+                return Err(err);
             }
         };
 
         let provider_str = match value.identifiers.get("providerPid") {
             Some(val) => val,
             None => {
-                let err = CommonErrors::parse_new(
+                let err = Errors::parse(
                     "Missing 'providerPid' in NegotiationProcessDto identifiers map",
+                    None,
                 );
-                error!("{}", err.log());
-                bail!(err);
+                error!("{}", err);
+                return Err(err);
             }
         };
         let provider_pid = match Urn::from_str(provider_str) {
             Ok(urn) => urn,
             Err(e) => {
-                let err = CommonErrors::parse_new(&format!(
-                    "Invalid URN format for providerPid '{}': {}",
-                    provider_str, e
-                ));
-                error!("{}", err.log());
-                bail!(err);
+                let err = Errors::parse(
+                    format!("Invalid URN format for providerPid '{}': {}", provider_str, e),
+                    None,
+                );
+                error!("{}", err);
+                return Err(err);
             }
         };
 
         let state = match value.inner.state.parse::<NegotiationProcessState>() {
             Ok(s) => s,
             Err(_) => {
-                let err = CommonErrors::parse_new(&format!(
-                    "Invalid or unknown NegotiationProcessState '{}' in database model",
-                    value.inner.state
-                ));
-                error!("{}", err.log());
-                bail!(err);
+                let err = Errors::parse(
+                    format!(
+                        "Invalid or unknown NegotiationProcessState '{}' in database model",
+                        value.inner.state
+                    ),
+                    None,
+                );
+                error!("{}", err);
+                return Err(err);
             }
         };
 

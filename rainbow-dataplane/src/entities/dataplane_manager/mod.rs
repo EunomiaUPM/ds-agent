@@ -6,7 +6,6 @@ pub(crate) mod tests;
 pub(crate) mod dataplane_commands;
 pub(crate) mod dataplane_persistence;
 
-use anyhow::{anyhow, Error};
 use rainbow_common::config::types::roles::RoleConfig;
 use rainbow_common::dsp_common::data_address::{DataAddress, EndpointProperty};
 use serde::{Deserialize, Serialize};
@@ -107,7 +106,7 @@ pub enum DataplaneInitCommandType {
 pub enum DataplaneResponse {
     Ok,
     OkWithDataAddress(DataplaneAddress),
-    Error(Error),
+    Error(Box<dyn std::error::Error + Send + Sync>),
 }
 
 pub struct DataplaneManagerInput {

@@ -11,7 +11,6 @@ use crate::entities::dataplane_transfers::{
     InteractionMode, NewDataplaneTransferDto, TransferRole, TransferState,
 };
 use crate::{DataplaneInitCommandType, DataplaneManager};
-use anyhow::anyhow;
 use rainbow_connector::{ConnectorInstanceDto, ConnectorInstanceTrait, InteractionConfig};
 use std::sync::Arc;
 use urn::{Urn, UrnBuilder};

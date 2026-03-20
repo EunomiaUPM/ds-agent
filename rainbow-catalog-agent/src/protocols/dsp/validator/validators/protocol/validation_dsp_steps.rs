@@ -24,6 +24,7 @@ use crate::protocols::dsp::validator::traits::validate_payload::ValidatePayload;
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
 use crate::protocols::dsp::validator::traits::validation_helpers::ValidationHelpers;
 use std::sync::Arc;
+use ymir::errors::Outcome;
 
 pub struct ValidationDspStepsService {
     payload_validator: Arc<dyn ValidatePayload>,
@@ -43,7 +44,7 @@ impl ValidationDspSteps for ValidationDspStepsService {
     async fn on_catalog_request(
         &self,
         input: &CatalogMessageWrapper<Catalog>,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         todo!()
     }
 
@@ -51,7 +52,7 @@ impl ValidationDspSteps for ValidationDspStepsService {
         &self,
         uri_id: &String,
         input: &CatalogMessageWrapper<Dataset>,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         todo!()
     }
 }

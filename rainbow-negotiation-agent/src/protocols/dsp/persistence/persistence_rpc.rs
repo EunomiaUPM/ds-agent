@@ -35,10 +35,10 @@ use crate::protocols::dsp::persistence::NegotiationRpcPersistenceTrait;
 use crate::protocols::dsp::protocol_types::{
     NegotiationProcessMessageTrait, NegotiationProcessMessageType, NegotiationProcessState,
 };
-use anyhow::bail;
 use rainbow_common::config::types::roles::RoleConfig;
 use rainbow_common::dsp_common::odrl::ContractRequestMessageOfferTypes;
 use rainbow_common::errors::{CommonErrors, ErrorLog};
+use ymir::errors::{Errors, Outcome};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tracing::error;
@@ -82,27 +82,23 @@ impl NegotiationPersistenceForRpcService {
 
 #[async_trait::async_trait]
 impl NegotiationRpcPersistenceTrait for NegotiationPersistenceForRpcService {
-    async fn fetch_process(&self, id: &str) -> anyhow::Result<NegotiationProcessDto> {
+    async fn fetch_process(&self, id: &str) -> Outcome<NegotiationProcessDto> {
         let urn = self.convert_str_to_urn(id)?;
         let process = self
             .negotiation_process_service
             .get_negotiation_process_by_key_value(&urn)
             .await?
-            .ok_or_else(|| {
-                CommonErrors::missing_resource_new(urn.to_string().as_str(), "Process not found")
-            })?;
+            .ok_or_else(|| Errors::crazy("Process not found", None))?;
         Ok(process)
     }
 
-    async fn fetch_last_offer_by_process(&self, id: &str) -> anyhow::Result<OfferDto> {
+    async fn fetch_last_offer_by_process(&self, id: &str) -> Outcome<OfferDto> {
         let urn = self.convert_str_to_urn(id)?;
         let offer = self
             .offer_service
             .get_last_offer_by_negotiation_process(&urn)
             .await?
-            .ok_or_else(|| {
-                CommonErrors::missing_resource_new(urn.to_string().as_str(), "Offer not found")
-            })?;
+            .ok_or_else(|| Errors::crazy("Offer not found", None))?;
         Ok(offer)
     }
 
@@ -111,7 +107,7 @@ impl NegotiationRpcPersistenceTrait for NegotiationPersistenceForRpcService {
         payload: &dyn RpcNegotiationProcessMessageTrait,
         request: &dyn NegotiationProcessMessageTrait,
         response: &dyn NegotiationProcessMessageTrait,
-    ) -> anyhow::Result<NegotiationProcessDto> {
+    ) -> Outcome<NegotiationProcessDto> {
         let mut process = self.create_process(payload, request, response).await?;
         let process_id = self.convert_string_to_urn(&process.inner.id)?;
         let message =
@@ -129,7 +125,7 @@ impl NegotiationRpcPersistenceTrait for NegotiationPersistenceForRpcService {
         payload: &dyn RpcNegotiationProcessMessageTrait,
         request: &dyn NegotiationProcessMessageTrait,
         response: &dyn NegotiationProcessMessageTrait,
-    ) -> anyhow::Result<NegotiationProcessDto> {
+    ) -> Outcome<NegotiationProcessDto> {
         let process = self.fetch_process(identifier).await?;
         let process_id = self.convert_string_to_urn(&process.inner.id)?;
         let mut new_process =
@@ -145,7 +141,7 @@ impl NegotiationRpcPersistenceTrait for NegotiationPersistenceForRpcService {
         payload: &dyn RpcNegotiationProcessMessageTrait,
         request: &dyn NegotiationProcessMessageTrait,
         response: &dyn NegotiationProcessMessageTrait,
-    ) -> anyhow::Result<NegotiationProcessDto> {
+    ) -> Outcome<NegotiationProcessDto> {
         let process = self.fetch_process(identifier).await?;
         let process_id = self.convert_string_to_urn(&process.inner.id)?;
         let mut new_process =
@@ -164,7 +160,7 @@ impl NegotiationRpcPersistenceTrait for NegotiationPersistenceForRpcService {
         payload: &dyn RpcNegotiationProcessMessageTrait,
         request: &dyn NegotiationProcessMessageTrait,
         response: &dyn NegotiationProcessMessageTrait,
-    ) -> anyhow::Result<NegotiationProcessDto> {
+    ) -> Outcome<NegotiationProcessDto> {
         let process = self.fetch_process(identifier).await?;
         let associated_agent_peer = process.inner.associated_agent_peer.clone();
         let process_id = self.convert_string_to_urn(&process.inner.id)?;
@@ -186,7 +182,7 @@ impl NegotiationRpcPersistenceTrait for NegotiationPersistenceForRpcService {
         payload: &dyn RpcNegotiationProcessMessageTrait,
         request: &dyn NegotiationProcessMessageTrait,
         response: &dyn NegotiationProcessMessageTrait,
-    ) -> anyhow::Result<NegotiationProcessDto> {
+    ) -> Outcome<NegotiationProcessDto> {
         let process = self.fetch_process(identifier).await?;
         let process_id = self.convert_string_to_urn(&process.inner.id)?;
         let mut new_process =
@@ -208,7 +204,7 @@ impl NegotiationPersistenceForRpcService {
         message: &dyn RpcNegotiationProcessMessageTrait,
         request: &dyn NegotiationProcessMessageTrait,
         response: &dyn NegotiationProcessMessageTrait,
-    ) -> anyhow::Result<NegotiationProcessDto> {
+    ) -> Outcome<NegotiationProcessDto> {
         let id = self.create_entity_urn("negotiation-process")?;
         let agent_peer = message.get_associated_agent_peer().unwrap_or_default();
         let message_type = self.get_rpc_message_safely(message)?;
@@ -248,7 +244,7 @@ impl NegotiationPersistenceForRpcService {
         process_id: &Urn,
         message: &dyn RpcNegotiationProcessMessageTrait,
         process: &NegotiationProcessDto,
-    ) -> anyhow::Result<NegotiationMessageDto> {
+    ) -> Outcome<NegotiationMessageDto> {
         let old_state = process.inner.state.clone();
         self.create_message_with_old_state(process_id, message, process, &old_state).await
     }
@@ -259,7 +255,7 @@ impl NegotiationPersistenceForRpcService {
         message: &dyn RpcNegotiationProcessMessageTrait,
         _process: &NegotiationProcessDto,
         old_state: &str,
-    ) -> anyhow::Result<NegotiationMessageDto> {
+    ) -> Outcome<NegotiationMessageDto> {
         let id = self.create_entity_urn("negotiation-message")?;
         let message_type = self.get_rpc_message_safely(message)?;
         let state: NegotiationProcessState = message_type.clone().into();
@@ -298,7 +294,7 @@ impl NegotiationPersistenceForRpcService {
         process_id: &Urn,
         message_id: &Urn,
         message: &dyn RpcNegotiationProcessMessageTrait,
-    ) -> anyhow::Result<OfferDto> {
+    ) -> Outcome<OfferDto> {
         let id = self.create_entity_urn("offer")?;
         let offer_content = self.get_rpc_offer_safely(message)?;
         let offer_id = match &offer_content {
@@ -327,7 +323,7 @@ impl NegotiationPersistenceForRpcService {
         _peer: &str,
         _message: &dyn RpcNegotiationProcessMessageTrait,
         request: &dyn NegotiationProcessMessageTrait,
-    ) -> anyhow::Result<AgreementDto> {
+    ) -> Outcome<AgreementDto> {
         let agreement = self.get_dsp_agreement_safely(request)?;
         let id = agreement.id.clone();
         let target = agreement.clone().target;
@@ -351,14 +347,12 @@ impl NegotiationPersistenceForRpcService {
         pid: &Urn,
         _mid: &Urn,
         _message: &dyn RpcNegotiationProcessMessageTrait,
-    ) -> anyhow::Result<AgreementDto> {
+    ) -> Outcome<AgreementDto> {
         let fetching_agreement = self
             .agreement_service
             .get_agreement_by_negotiation_process(pid)
             .await?
-            .ok_or_else(|| {
-                CommonErrors::missing_resource_new(pid.to_string().as_str(), "Agreement not found")
-            })?;
+            .ok_or_else(|| Errors::crazy("Agreement not found", None))?;
         let agreement_urn = self.convert_string_to_urn(&fetching_agreement.inner.id)?;
         let agreement = self
             .agreement_service
@@ -376,7 +370,7 @@ impl NegotiationPersistenceForRpcService {
         payload: &dyn RpcNegotiationProcessMessageTrait,
         request: &dyn NegotiationProcessMessageTrait,
         _response: &dyn NegotiationProcessMessageTrait,
-    ) -> anyhow::Result<NegotiationProcessDto> {
+    ) -> Outcome<NegotiationProcessDto> {
         let message_type = self.get_dsp_message_safely(request)?;
         let state: NegotiationProcessState = message_type.clone().into();
         let process = self
@@ -404,14 +398,14 @@ impl OrchestrationExtractors for NegotiationPersistenceForRpcService {
     fn get_role_from_message_type(
         &self,
         message: &NegotiationProcessMessageType,
-    ) -> anyhow::Result<RoleConfig> {
+    ) -> Outcome<RoleConfig> {
         match message {
             NegotiationProcessMessageType::NegotiationRequestMessage => Ok(RoleConfig::Consumer),
             NegotiationProcessMessageType::NegotiationOfferMessage => Ok(RoleConfig::Provider),
             _ => {
                 let err = CommonErrors::parse_new("Message not allowed here");
                 error!("{}", err.log());
-                bail!(err);
+                return Err(Errors::parse(err.to_string().as_str(), None));
             }
         }
     }

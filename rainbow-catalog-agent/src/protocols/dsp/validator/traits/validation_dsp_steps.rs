@@ -16,6 +16,7 @@
  *  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
+use ymir::errors::Outcome;
 use crate::protocols::dsp::protocol_types::CatalogMessageWrapper;
 use crate::protocols::dsp::types::catalog_definition::Catalog;
 use crate::protocols::dsp::types::dataset_definition::Dataset;
@@ -25,10 +26,10 @@ pub trait ValidationDspSteps: Send + Sync + 'static {
     async fn on_catalog_request(
         &self,
         input: &CatalogMessageWrapper<Catalog>,
-    ) -> anyhow::Result<()>;
+    ) -> Outcome<()>;
     async fn on_dataset_request(
         &self,
         uri_id: &String,
         input: &CatalogMessageWrapper<Dataset>,
-    ) -> anyhow::Result<()>;
+    ) -> Outcome<()>;
 }

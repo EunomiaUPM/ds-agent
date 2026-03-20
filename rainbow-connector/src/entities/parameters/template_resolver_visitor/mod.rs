@@ -28,7 +28,6 @@ use crate::entities::parameters::template_parameters_resolver::ParameterResolver
 use crate::entities::parameters::template_walker::ConnectorTemplateWalker;
 use crate::entities::parameters::{TemplateMapString, TemplateVecString};
 use crate::ProtocolSpec;
-use anyhow::anyhow;
 use serde_json::Value;
 use ymir::errors::{Errors, Outcome};
 

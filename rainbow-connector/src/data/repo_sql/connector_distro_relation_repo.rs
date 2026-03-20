@@ -36,7 +36,7 @@ impl ConnectorDistroRelationRepoTrait for ConnectorDistroRelationRepoForSql {
         match instance {
             Ok(instance) => Ok(instance),
             Err(err) => Err(ConnectorAgentRepoErrors::ConnectorDistroRelationRepoErrors(
-                ConnectorDistroRelationRepoErrors::ErrorCreatingRelation(err.into()),
+                ConnectorDistroRelationRepoErrors::ErrorCreatingRelation(err.to_string()),
             )
             .into_errors()),
         }
@@ -60,7 +60,7 @@ impl ConnectorDistroRelationRepoTrait for ConnectorDistroRelationRepoForSql {
         match model {
             Ok(model) => Ok(model),
             Err(err) => Err(ConnectorAgentRepoErrors::ConnectorDistroRelationRepoErrors(
-                ConnectorDistroRelationRepoErrors::ErrorUpdatingRelation(err.into()),
+                ConnectorDistroRelationRepoErrors::ErrorUpdatingRelation(err.to_string()),
             )
             .into_errors()),
         }
@@ -77,7 +77,7 @@ impl ConnectorDistroRelationRepoTrait for ConnectorDistroRelationRepoForSql {
         match relation {
             Ok(relation) => Ok(relation),
             Err(err) => Err(ConnectorAgentRepoErrors::ConnectorDistroRelationRepoErrors(
-                ConnectorDistroRelationRepoErrors::ErrorFetchingRelation(err.into()),
+                ConnectorDistroRelationRepoErrors::ErrorFetchingRelation(err.to_string()),
             )
             .into_errors()),
         }
@@ -92,7 +92,7 @@ impl ConnectorDistroRelationRepoTrait for ConnectorDistroRelationRepoForSql {
         match relation {
             Ok(relation) => Ok(relation),
             Err(err) => Err(ConnectorAgentRepoErrors::ConnectorDistroRelationRepoErrors(
-                ConnectorDistroRelationRepoErrors::ErrorFetchingRelation(err.into()),
+                ConnectorDistroRelationRepoErrors::ErrorFetchingRelation(err.to_string()),
             )
             .into_errors()),
         }
@@ -120,7 +120,7 @@ impl ConnectorDistroRelationRepoTrait for ConnectorDistroRelationRepoForSql {
                 _ => Ok(()),
             },
             Err(err) => Err(ConnectorAgentRepoErrors::ConnectorDistroRelationRepoErrors(
-                ConnectorDistroRelationRepoErrors::ErrorDeletingRelation(err.into()),
+                ConnectorDistroRelationRepoErrors::ErrorDeletingRelation(err.to_string()),
             )
             .into_errors()),
         }
@@ -138,7 +138,7 @@ impl ConnectorDistroRelationRepoTrait for ConnectorDistroRelationRepoForSql {
                 _ => Ok(()),
             },
             Err(err) => Err(ConnectorAgentRepoErrors::ConnectorDistroRelationRepoErrors(
-                ConnectorDistroRelationRepoErrors::ErrorDeletingRelation(err.into()),
+                ConnectorDistroRelationRepoErrors::ErrorDeletingRelation(err.to_string()),
             )
             .into_errors()),
         }

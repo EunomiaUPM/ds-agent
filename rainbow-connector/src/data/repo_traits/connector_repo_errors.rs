@@ -17,7 +17,6 @@
  *
  */
 
-use anyhow::Error;
 use thiserror::Error;
 use ymir::errors::RepoIntoErrors;
 
@@ -36,11 +35,11 @@ pub enum ConnectorTemplateRepoErrors {
     #[error("Connector Template not found")]
     TemplateNotFound,
     #[error("Error fetching connector template. {0}")]
-    ErrorFetchingTemplate(Error),
+    ErrorFetchingTemplate(String),
     #[error("Error creating connector template. {0}")]
-    ErrorCreatingTemplate(Error),
+    ErrorCreatingTemplate(String),
     #[error("Error deleting connector template. {0}")]
-    ErrorDeletingTemplate(Error),
+    ErrorDeletingTemplate(String),
 }
 
 #[derive(Error, Debug)]
@@ -48,15 +47,15 @@ pub enum ConnectorInstanceRepoErrors {
     #[error("Connector Instance not found")]
     InstanceNotFound,
     #[error("Error fetching connector instance. {0}")]
-    ErrorFetchingInstance(Error),
+    ErrorFetchingInstance(String),
     #[error("Error creating connector instance. {0}")]
-    ErrorCreatingInstance(Error),
+    ErrorCreatingInstance(String),
     #[error("Error creating connector instance by duplication. {0}")]
-    ErrorCreatingTemplateByDuplication(Error),
+    ErrorCreatingTemplateByDuplication(String),
     #[error("Error deleting connector instance. {0}")]
-    ErrorDeletingInstance(Error),
+    ErrorDeletingInstance(String),
     #[error("Error updating connector instance. {0}")]
-    ErrorUpdatingInstance(Error),
+    ErrorUpdatingInstance(String),
 }
 
 #[derive(Error, Debug)]
@@ -64,13 +63,13 @@ pub enum ConnectorDistroRelationRepoErrors {
     #[error("Relation not found")]
     RelationNotFound,
     #[error("Error fetching relation. {0}")]
-    ErrorFetchingRelation(Error),
+    ErrorFetchingRelation(String),
     #[error("Error creating relation. {0}")]
-    ErrorCreatingRelation(Error),
+    ErrorCreatingRelation(String),
     #[error("Error deleting relation. {0}")]
-    ErrorDeletingRelation(Error),
+    ErrorDeletingRelation(String),
     #[error("Error updating relation. {0}")]
-    ErrorUpdatingRelation(Error),
+    ErrorUpdatingRelation(String),
 }
 
 impl RepoIntoErrors for ConnectorAgentRepoErrors {}

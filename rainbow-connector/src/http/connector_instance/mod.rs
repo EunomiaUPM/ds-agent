@@ -5,11 +5,9 @@ use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::routing::{delete, get, post};
 use axum::{Json, Router};
-use rainbow_common::errors::error_adapter::CustomToResponse;
-use rainbow_common::errors::CommonErrors;
-use rainbow_common::utils::{parse_urn};
 use std::sync::Arc;
-use ymir::utils::extract_payload;
+use ymir::errors::Errors;
+use ymir::utils::{extract_path_urn, extract_payload};
 
 #[derive(Clone)]
 pub struct ConnectorInstanceRouter {
@@ -52,14 +50,14 @@ impl ConnectorInstanceRouter {
         State(state): State<ConnectorInstanceRouter>,
         Path(id): Path<String>,
     ) -> impl IntoResponse {
-        let id = match parse_urn(&id) {
+        let id = match extract_path_urn(&id) {
             Ok(urn) => urn,
-            Err(resp) => return resp,
+            Err(err) => return err.into_response(),
         };
         match state.service.get_instance_by_id(&id).await {
             Ok(Some(instance)) => (StatusCode::OK, Json(instance)).into_response(),
             Ok(None) => {
-                let err = CommonErrors::missing_resource_new("instance", "Instance not found");
+                let err = Errors::missing_resource("instance", "Instance not found", None);
                 err.into_response()
             }
             Err(err) => err.into_response(),
@@ -69,14 +67,14 @@ impl ConnectorInstanceRouter {
         State(state): State<ConnectorInstanceRouter>,
         Path(did): Path<String>,
     ) -> impl IntoResponse {
-        let did = match parse_urn(&did) {
+        let did = match extract_path_urn(&did) {
             Ok(urn) => urn,
-            Err(resp) => return resp,
+            Err(err) => return err.into_response(),
         };
         match state.service.get_instance_by_distribution(&did).await {
             Ok(Some(instance)) => (StatusCode::OK, Json(instance)).into_response(),
             Ok(None) => {
-                let err = CommonErrors::missing_resource_new("instance", "Instance not found");
+                let err = Errors::missing_resource("instance", "Instance not found", None);
                 err.into_response()
             }
             Err(err) => err.into_response(),
@@ -86,9 +84,9 @@ impl ConnectorInstanceRouter {
         State(state): State<ConnectorInstanceRouter>,
         Path(did): Path<String>,
     ) -> impl IntoResponse {
-        let did = match parse_urn(&did) {
+        let did = match extract_path_urn(&did) {
             Ok(urn) => urn,
-            Err(resp) => return resp,
+            Err(err) => return err.into_response(),
         };
         match state.service.delete_instance_by_id(&did).await {
             Ok(_) => StatusCode::ACCEPTED.into_response(),

@@ -1,7 +1,5 @@
 use crate::entities::catalogs::{CatalogEntityTrait, EditCatalogDto, NewCatalogDto};
-use crate::errors::error_adapter::CustomToResponse;
 use crate::http::common::to_camel_case::ToCamelCase;
-use crate::http::common::{extract_payload, parse_urn};
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{FromRef, Path, Query, State};
 use axum::response::IntoResponse;
@@ -12,7 +10,11 @@ use rainbow_common::config::services::CatalogConfig;
 use rainbow_common::errors::CommonErrors;
 use reqwest::StatusCode;
 use serde::Deserialize;
+use std::str::FromStr;
 use std::sync::Arc;
+use urn::Urn;
+use ymir::errors::Errors;
+use ymir::utils::{extract_path_urn, extract_payload};
 
 #[derive(Clone)]
 pub struct CatalogEntityRouter {
@@ -64,7 +66,7 @@ impl CatalogEntityRouter {
         let with_main_catalog = params.with_main_catalog.unwrap_or(true);
         match state.service.get_all_catalogs(params.limit, params.page, with_main_catalog).await {
             Ok(catalogs) => (StatusCode::OK, Json(ToCamelCase(catalogs))).into_response(),
-            Err(err) => err.to_response(),
+            Err(err) => err.into_response(),
         }
     }
     async fn handle_get_batch_catalogs(
@@ -73,20 +75,20 @@ impl CatalogEntityRouter {
     ) -> impl IntoResponse {
         let input = match extract_payload(input) {
             Ok(v) => v,
-            Err(e) => return e,
+            Err(e) => return e.into_response(),
         };
         match state.service.get_batch_catalogs(&input.ids).await {
             Ok(catalogs) => (StatusCode::OK, Json(ToCamelCase(catalogs))).into_response(),
-            Err(err) => err.to_response(),
+            Err(err) => err.into_response(),
         }
     }
     async fn handle_get_catalog_by_id(
         State(state): State<CatalogEntityRouter>,
         Path(id): Path<String>,
     ) -> impl IntoResponse {
-        let id_urn = match parse_urn(&id) {
+        let id_urn = match extract_path_urn(&id) {
             Ok(urn) => urn,
-            Err(resp) => return resp,
+            Err(err) => return err.into_response(),
         };
         match state.service.get_catalog_by_id(&id_urn).await {
             Ok(Some(catalog)) => (StatusCode::OK, Json(ToCamelCase(catalog))).into_response(),
@@ -94,20 +96,7 @@ impl CatalogEntityRouter {
                 let err = CommonErrors::missing_resource_new(id.as_str(), "Catalog not found");
                 err.into_response()
             }
-            Err(err) => match err.downcast::<CommonErrors>() {
-                Ok(ce) => match ce {
-                    CommonErrors::DatabaseError { ref cause, .. } => {
-                        if cause.contains("not found") {
-                            let err = CommonErrors::missing_resource_new("", cause.as_str());
-                            return err.into_response();
-                        } else {
-                            ce.into_response()
-                        }
-                    }
-                    e => return e.into_response(),
-                },
-                Err(e) => e.to_response(),
-            },
+            Err(err) => err.into_response(),
         }
     }
     async fn handle_get_main_catalog(
@@ -119,20 +108,7 @@ impl CatalogEntityRouter {
                 let err = CommonErrors::missing_resource_new("main", "Main Catalog not found");
                 err.into_response()
             }
-            Err(err) => match err.downcast::<CommonErrors>() {
-                Ok(ce) => match ce {
-                    CommonErrors::DatabaseError { ref cause, .. } => {
-                        if cause.contains("not found") {
-                            let err = CommonErrors::missing_resource_new("", cause.as_str());
-                            return err.into_response();
-                        } else {
-                            ce.into_response()
-                        }
-                    }
-                    e => return e.into_response(),
-                },
-                Err(e) => e.to_response(),
-            },
+            Err(err) => err.into_response(),
         }
     }
     async fn handle_put_catalog_by_id(
@@ -140,30 +116,17 @@ impl CatalogEntityRouter {
         Path(id): Path<String>,
         input: Result<Json<EditCatalogDto>, JsonRejection>,
     ) -> impl IntoResponse {
-        let id_urn = match parse_urn(&id) {
+        let id_urn = match extract_path_urn(&id) {
             Ok(urn) => urn,
-            Err(resp) => return resp,
+            Err(err) => return err.into_response(),
         };
         let input = match extract_payload(input) {
             Ok(v) => v,
-            Err(e) => return e,
+            Err(e) => return e.into_response(),
         };
         match state.service.put_catalog_by_id(&id_urn, &input).await {
             Ok(catalog) => (StatusCode::ACCEPTED, Json(ToCamelCase(catalog))).into_response(),
-            Err(err) => match err.downcast::<CommonErrors>() {
-                Ok(ce) => match ce {
-                    CommonErrors::DatabaseError { ref cause, .. } => {
-                        if cause.contains("not found") {
-                            let err = CommonErrors::missing_resource_new("", cause.as_str());
-                            return err.into_response();
-                        } else {
-                            ce.into_response()
-                        }
-                    }
-                    e => return e.into_response(),
-                },
-                Err(e) => e.to_response(),
-            },
+            Err(err) => err.into_response(),
         }
     }
     async fn handle_create_catalog(
@@ -172,11 +135,11 @@ impl CatalogEntityRouter {
     ) -> impl IntoResponse {
         let input = match extract_payload(input) {
             Ok(v) => v,
-            Err(e) => return e,
+            Err(e) => return e.into_response(),
         };
         match state.service.create_catalog(&input).await {
             Ok(catalog) => (StatusCode::CREATED, Json(ToCamelCase(catalog))).into_response(),
-            Err(err) => err.to_response(),
+            Err(err) => err.into_response(),
         }
     }
     async fn handle_create_main_catalog(
@@ -185,37 +148,24 @@ impl CatalogEntityRouter {
     ) -> impl IntoResponse {
         let input = match extract_payload(input) {
             Ok(v) => v,
-            Err(e) => return e,
+            Err(e) => return e.into_response(),
         };
         match state.service.create_main_catalog(&input).await {
             Ok(catalog) => (StatusCode::CREATED, Json(ToCamelCase(catalog))).into_response(),
-            Err(err) => err.to_response(),
+            Err(err) => err.into_response(),
         }
     }
     async fn handle_delete_catalog_by_id(
         State(state): State<CatalogEntityRouter>,
         Path(id): Path<String>,
     ) -> impl IntoResponse {
-        let id_urn = match parse_urn(&id) {
+        let id_urn = match extract_path_urn(&id) {
             Ok(urn) => urn,
-            Err(resp) => return resp,
+            Err(err) => return err.into_response(),
         };
         match state.service.delete_catalog_by_id(&id_urn).await {
             Ok(_) => StatusCode::ACCEPTED.into_response(),
-            Err(err) => match err.downcast::<CommonErrors>() {
-                Ok(ce) => match ce {
-                    CommonErrors::DatabaseError { ref cause, .. } => {
-                        if cause.contains("not found") {
-                            let err = CommonErrors::missing_resource_new("", cause.as_str());
-                            return err.into_response();
-                        } else {
-                            ce.into_response()
-                        }
-                    }
-                    e => return e.into_response(),
-                },
-                Err(e) => e.to_response(),
-            },
+            Err(err) => err.into_response(),
         }
     }
 }

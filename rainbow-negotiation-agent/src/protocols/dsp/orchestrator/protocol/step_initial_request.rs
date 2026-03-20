@@ -27,6 +27,7 @@ use crate::protocols::dsp::protocol_types::{
 };
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
 use rainbow_common::mates::mates::Mates;
+use ymir::errors::Outcome;
 use std::sync::Arc;
 
 // ─── InitialContractRequestStep ───────────────────────────────────────────────
@@ -51,7 +52,7 @@ impl NegotiationProtocolStep for InitialContractRequestStep {
         _id: &str,
         input: &NegotiationProcessMessageWrapper<NegotiationRequestInitMessageDto>,
         _mate: &Mates,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         validator.on_contract_request_init(input).await
     }
 
@@ -61,7 +62,7 @@ impl NegotiationProtocolStep for InitialContractRequestStep {
         _mate: &Mates,
         _input: &NegotiationProcessMessageWrapper<NegotiationRequestInitMessageDto>,
         _persistence: &Arc<OrchestrationPersistenceForProtocol>,
-    ) -> anyhow::Result<(
+    ) -> Outcome<(
         NegotiationInitialContext,
         Option<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>>,
     )> {
@@ -75,7 +76,7 @@ impl NegotiationProtocolStep for InitialContractRequestStep {
         _ctx: &NegotiationInitialContext,
         input: &NegotiationProcessMessageWrapper<NegotiationRequestInitMessageDto>,
         mate: &Mates,
-    ) -> anyhow::Result<NegotiationProcessDto> {
+    ) -> Outcome<NegotiationProcessDto> {
         persistence.create_new(&input.dto, mate).await
     }
 }

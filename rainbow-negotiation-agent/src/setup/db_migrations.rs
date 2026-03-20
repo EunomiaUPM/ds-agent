@@ -21,6 +21,7 @@ use rainbow_common::config::services::ContractsConfig;
 use rainbow_common::config::types::traits::CommonConfigTrait;
 use sea_orm_migration::{MigrationTrait, MigratorTrait};
 use std::sync::Arc;
+use ymir::errors::{Errors, Outcome};
 use ymir::services::vault::VaultTrait;
 use ymir::services::vault::global::VaultService;
 
@@ -37,11 +38,11 @@ impl MigratorTrait for NegotiationAgentMigration {
 }
 
 impl NegotiationAgentMigration {
-    pub async fn run(config: &ContractsConfig, vault: Arc<VaultService>) -> anyhow::Result<()> {
+    pub async fn run(config: &ContractsConfig, vault: Arc<VaultService>) -> Outcome<()> {
         // db_connection
         let db_connection = vault.get_db_connection(config.common()).await;
         // run migration
-        Self::refresh(&db_connection).await?;
+        Self::refresh(&db_connection).await.map_err(|e| Errors::db(e.to_string(), None))?;
         Ok(())
     }
 }

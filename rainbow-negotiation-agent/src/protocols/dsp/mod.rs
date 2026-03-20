@@ -50,6 +50,7 @@ use rainbow_common::config::services::ContractsConfig;
 use rainbow_common::facades::ssi_auth_facade::{MatesFacadeTrait, SSIAuthFacadeTrait};
 use rainbow_common::http_client::HttpClient;
 use std::sync::Arc;
+use ymir::errors::Outcome;
 
 pub struct NegotiationDSP {
     negotiation_agent_process_entities: Arc<dyn NegotiationAgentProcessesTrait>,
@@ -97,7 +98,7 @@ impl ProtocolPluginTrait for NegotiationDSP {
         "DSP"
     }
 
-    async fn build_router(&self) -> anyhow::Result<Router> {
+    async fn build_router(&self) -> Outcome<Router> {
         let http_client = Arc::new(HttpClient::new(10, 10));
 
         // Validator
@@ -167,7 +168,7 @@ impl ProtocolPluginTrait for NegotiationDSP {
         Ok(Router::new().merge(dsp_router.router()).merge(rcp_router.router()))
     }
 
-    fn build_grpc_router(&self) -> anyhow::Result<Option<Router>> {
+    fn build_grpc_router(&self) -> Outcome<Option<Router>> {
         todo!()
     }
 }

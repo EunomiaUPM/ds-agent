@@ -21,14 +21,12 @@ use crate::entities::negotiation_process::NegotiationProcessDto;
 use crate::protocols::dsp::protocol_types::NegotiationProcessMessageTrait;
 use crate::protocols::dsp::validator::traits::validate_payload::ValidatePayload;
 use crate::protocols::dsp::validator::traits::validation_helpers::ValidationHelpers;
-use anyhow::{anyhow, bail};
 use rainbow_common::config::types::roles::RoleConfig;
 use rainbow_common::dcat_formats::{DctFormats, FormatAction};
-use rainbow_common::errors::{CommonErrors, ErrorLog};
 use std::str::FromStr;
 use std::sync::Arc;
-use tracing::error;
 use urn::Urn;
+use ymir::errors::{Errors, Outcome};
 
 pub struct ValidatePayloadService {
     helpers: Arc<dyn ValidationHelpers>,
@@ -44,19 +42,13 @@ impl ValidatePayload for ValidatePayloadService {
     async fn validate_with_json_schema(
         &self,
         payload: &dyn NegotiationProcessMessageTrait,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         // TODO set json_schema
         Ok(())
     }
 
-    async fn validate_uri_id_as_urn(&self, uri_id: &String) -> anyhow::Result<()> {
-        self.helpers.parse_urn(uri_id).await.map_err(|e| {
-            let err = CommonErrors::parse_new(
-                format!("Uri id parameter must be urn. {}", e.to_string()).as_str(),
-            );
-            error!("{}", err.log());
-            anyhow!(err)
-        })?;
+    async fn validate_uri_id_as_urn(&self, uri_id: &String) -> Outcome<()> {
+        self.helpers.parse_urn(uri_id).await?;
         Ok(())
     }
 
@@ -64,7 +56,7 @@ impl ValidatePayload for ValidatePayloadService {
     async fn validate_identifiers_as_urn(
         &self,
         payload: &dyn NegotiationProcessMessageTrait,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         // Are as urn defined in dtos
         Ok(())
     }
@@ -74,27 +66,19 @@ impl ValidatePayload for ValidatePayloadService {
         uri_id: &String,
         payload: &dyn NegotiationProcessMessageTrait,
         role: &RoleConfig,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         let identifier = match role {
             RoleConfig::Provider => payload.get_provider_pid(),
             RoleConfig::Consumer => payload.get_consumer_pid(),
             _ => {
-                let err = CommonErrors::parse_new("Something went wrong. Role not recognized.");
-                error!("{}", err.log());
-                bail!(err)
+                return Err(Errors::parse("Something went wrong. Role not recognized.", None))
             }
         }
-        .ok_or_else(|| {
-            let err = CommonErrors::parse_new("Something went wrong. Role not recognized.");
-            error!("{}", err.log());
-            anyhow!(err)
-        })?
+        .ok_or_else(|| Errors::parse("Something went wrong. Role not recognized.", None))?
         .to_string();
         let uri_id = self.helpers.parse_urn(uri_id).await?.to_string();
         if identifier.ne(&uri_id) {
-            let err = CommonErrors::parse_new("Uri string and body identifier are not correlated");
-            error!("{}", err.log());
-            bail!(err);
+            return Err(Errors::parse("Uri string and body identifier are not correlated", None));
         }
         Ok(())
     }
@@ -103,7 +87,7 @@ impl ValidatePayload for ValidatePayloadService {
         &self,
         payload: &dyn NegotiationProcessMessageTrait,
         dto: &NegotiationProcessDto,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         let provider_pid_in_dto =
             self.helpers.get_pid_by_role(dto, &RoleConfig::Provider).await?.to_string();
         let consumer_pid_in_dto =
@@ -115,9 +99,7 @@ impl ValidatePayload for ValidatePayloadService {
         if provider_pid_in_dto != provider_pid_in_payload
             || consumer_pid_in_dto != consumer_pid_in_payload
         {
-            let err = CommonErrors::parse_new("Uri string and body identifier are not correlated");
-            error!("{}", err.log());
-            bail!(err);
+            return Err(Errors::parse("Uri string and body identifier are not correlated", None));
         }
         Ok(())
     }
@@ -126,7 +108,7 @@ impl ValidatePayload for ValidatePayloadService {
     async fn validate_auth(
         &self,
         payload: &dyn NegotiationProcessMessageTrait,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         // TODO
         Ok(())
     }
@@ -134,7 +116,7 @@ impl ValidatePayload for ValidatePayloadService {
     async fn validate_format_data_address(
         &self,
         payload: &dyn NegotiationProcessMessageTrait,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         Ok(())
     }
 
@@ -142,7 +124,7 @@ impl ValidatePayload for ValidatePayloadService {
         &self,
         _payload: &dyn NegotiationProcessMessageTrait,
         _dto: &NegotiationProcessDto,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         Ok(())
     }
 }

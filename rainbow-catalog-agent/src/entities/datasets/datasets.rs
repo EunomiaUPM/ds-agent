@@ -6,6 +6,7 @@ use rainbow_common::errors::{CommonErrors, ErrorLog};
 use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
+use ymir::errors::Outcome;
 
 pub struct DatasetEntities {
     repo: Arc<dyn CatalogAgentRepoTrait>,
@@ -27,7 +28,7 @@ impl DatasetEntityTrait for DatasetEntities {
         &self,
         limit: Option<u64>,
         page: Option<u64>,
-    ) -> anyhow::Result<Vec<DatasetDto>> {
+    ) -> Outcome<Vec<DatasetDto>> {
         // cache
         if let Ok(dtos) = self.cache.get_dataset_cache().get_collection(limit, page).await {
             if !dtos.is_empty() {
@@ -40,8 +41,7 @@ impl DatasetEntityTrait for DatasetEntities {
             .repo
             .get_dataset_repo()
             .get_all_datasets(limit, page)
-            .await
-            .map_err(|e| CommonErrors::database_new(&e.to_string()))?;
+            .await?;
 
         let dtos: Vec<DatasetDto> = datasets.into_iter().map(Into::into).collect();
 
@@ -57,7 +57,7 @@ impl DatasetEntityTrait for DatasetEntities {
         Ok(dtos)
     }
 
-    async fn get_batch_datasets(&self, ids: &Vec<Urn>) -> anyhow::Result<Vec<DatasetDto>> {
+    async fn get_batch_datasets(&self, ids: &Vec<Urn>) -> Outcome<Vec<DatasetDto>> {
         // cache
         if let Ok(dtos) = self.cache.get_dataset_cache().get_batch(ids).await {
             if !dtos.is_empty() {
@@ -70,8 +70,7 @@ impl DatasetEntityTrait for DatasetEntities {
             .repo
             .get_dataset_repo()
             .get_batch_datasets(ids)
-            .await
-            .map_err(|e| CommonErrors::database_new(&e.to_string()))?;
+            .await?;
 
         let dtos: Vec<DatasetDto> = datasets.into_iter().map(Into::into).collect();
 
@@ -89,7 +88,7 @@ impl DatasetEntityTrait for DatasetEntities {
     async fn get_datasets_by_catalog_id(
         &self,
         catalog_id: &Urn,
-    ) -> anyhow::Result<Vec<DatasetDto>> {
+    ) -> Outcome<Vec<DatasetDto>> {
         // cache
         if let Ok(dtos) =
             self.cache.get_dataset_cache().get_by_relation("catalogs", catalog_id, None, None).await
@@ -104,8 +103,7 @@ impl DatasetEntityTrait for DatasetEntities {
             .repo
             .get_dataset_repo()
             .get_datasets_by_catalog_id(catalog_id)
-            .await
-            .map_err(|e| CommonErrors::database_new(&e.to_string()))?;
+            .await?;
 
         let dtos: Vec<DatasetDto> = datasets.into_iter().map(Into::into).collect();
 
@@ -122,7 +120,7 @@ impl DatasetEntityTrait for DatasetEntities {
         Ok(dtos)
     }
 
-    async fn get_dataset_by_id(&self, dataset_id: &Urn) -> anyhow::Result<Option<DatasetDto>> {
+    async fn get_dataset_by_id(&self, dataset_id: &Urn) -> Outcome<Option<DatasetDto>> {
         // Try cache
         if let Ok(Some(dto)) = self.cache.get_dataset_cache().get_single(dataset_id).await {
             return Ok(Some(dto));
@@ -133,8 +131,7 @@ impl DatasetEntityTrait for DatasetEntities {
             .repo
             .get_dataset_repo()
             .get_dataset_by_id(dataset_id)
-            .await
-            .map_err(|e| CommonErrors::database_new(&e.to_string()))?;
+            .await?;
 
         let dto: Option<DatasetDto> = dataset.map(Into::into);
 
@@ -152,15 +149,14 @@ impl DatasetEntityTrait for DatasetEntities {
         &self,
         dataset_id: &Urn,
         edit_dataset_model: &EditDatasetDto,
-    ) -> anyhow::Result<DatasetDto> {
+    ) -> Outcome<DatasetDto> {
         // db
         let edit_model = edit_dataset_model.clone().into();
         let dataset = self
             .repo
             .get_dataset_repo()
             .put_dataset_by_id(dataset_id, &edit_model)
-            .await
-            .map_err(|e| CommonErrors::database_new(&e.to_string()))?;
+            .await?;
 
         let dto: DatasetDto = dataset.into();
         let ds_urn = Urn::from_str(dto.inner.id.as_str())?;
@@ -176,15 +172,14 @@ impl DatasetEntityTrait for DatasetEntities {
     async fn create_dataset(
         &self,
         new_dataset_model: &NewDatasetDto,
-    ) -> anyhow::Result<DatasetDto> {
+    ) -> Outcome<DatasetDto> {
         // db
         let new_model = new_dataset_model.clone().into();
         let dataset = self
             .repo
             .get_dataset_repo()
             .create_dataset(&new_model)
-            .await
-            .map_err(|e| CommonErrors::database_new(&e.to_string()))?;
+            .await?;
 
         let dto: DatasetDto = dataset.into();
         let ds_urn = Urn::from_str(dto.inner.id.as_str())?;
@@ -203,7 +198,7 @@ impl DatasetEntityTrait for DatasetEntities {
         Ok(dto)
     }
 
-    async fn delete_dataset_by_id(&self, dataset_id: &Urn) -> anyhow::Result<()> {
+    async fn delete_dataset_by_id(&self, dataset_id: &Urn) -> Outcome<()> {
         // 1. Get current for parent URN lookup
         let current = self.get_dataset_by_id(dataset_id).await?;
 
@@ -211,8 +206,7 @@ impl DatasetEntityTrait for DatasetEntities {
         self.repo
             .get_dataset_repo()
             .delete_dataset_by_id(dataset_id)
-            .await
-            .map_err(|e| CommonErrors::database_new(&e.to_string()))?;
+            .await?;
 
         // 3. Invalidation
         let cache = self.cache.get_dataset_cache();

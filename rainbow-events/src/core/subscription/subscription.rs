@@ -24,11 +24,10 @@ use crate::core::subscription::subscription_types::{
 };
 use crate::core::subscription::RainbowEventsSubscriptionTrait;
 use crate::data::repo::{EditSubscription, EventsRepoFactory, NewSubscription};
-use anyhow::bail;
 use async_trait::async_trait;
-use rainbow_common::utils::get_urn;
 use std::sync::Arc;
 use urn::Urn;
+use ymir::errors::{Errors, Outcome, RepoIntoErrors};
 
 pub struct RainbowEventsSubscriptionService<T> {
     repo: Arc<T>,
@@ -47,12 +46,12 @@ where
 {
     async fn get_all_subscriptions(
         &self,
-    ) -> anyhow::Result<Vec<RainbowEventsSubscriptionCreationResponse>> {
+    ) -> Outcome<Vec<RainbowEventsSubscriptionCreationResponse>> {
         let subscriptions = self
             .repo
             .get_all_subscriptions()
             .await
-            .map_err(|e| SubscriptionErrors::DbErr(e.into()))?;
+            .map_err(|e| e.into_errors())?;
         let subscriptions = subscriptions
             .iter()
             .map(|sub| RainbowEventsSubscriptionCreationResponse::try_from(sub.to_owned()).unwrap())
@@ -63,16 +62,13 @@ where
     async fn get_subscription_by_id(
         &self,
         subscription_id: Urn,
-    ) -> anyhow::Result<RainbowEventsSubscriptionCreationResponse> {
+    ) -> Outcome<RainbowEventsSubscriptionCreationResponse> {
         let subscription = self
             .repo
             .get_subscription_by_id(subscription_id.clone())
             .await
-            .map_err(|e| SubscriptionErrors::DbErr(e.into()))?
-            .ok_or(SubscriptionErrors::NotFound {
-                id: subscription_id,
-                entity: "Subscription".to_string(),
-            })?;
+            .map_err(|e| e.into_errors())?
+            .ok_or_else(|| Errors::missing_resource(subscription_id.as_str(), "Subscription not found", None))?;
         let subscription = RainbowEventsSubscriptionCreationResponse::try_from(subscription)?;
         Ok(subscription)
     }
@@ -80,16 +76,13 @@ where
     async fn get_subscription_by_callback_url(
         &self,
         callback_url: String,
-    ) -> anyhow::Result<RainbowEventsSubscriptionCreationResponse> {
+    ) -> Outcome<RainbowEventsSubscriptionCreationResponse> {
         let subscription = self
             .repo
             .get_subscription_by_callback_string(callback_url)
             .await
-            .map_err(|e| SubscriptionErrors::DbErr(e.into()))?
-            .ok_or(SubscriptionErrors::NotFound {
-                id: get_urn(None),
-                entity: "Subscription".to_string(),
-            })?;
+            .map_err(|e| e.into_errors())?
+            .ok_or_else(|| Errors::missing_resource("unknown", "Subscription not found", None))?;
         let subscription = RainbowEventsSubscriptionCreationResponse::try_from(subscription)?;
         Ok(subscription)
     }
@@ -98,7 +91,7 @@ where
         &self,
         subscription_id: Urn,
         input: RainbowEventsSubscriptionCreationRequest,
-    ) -> anyhow::Result<RainbowEventsSubscriptionCreationResponse> {
+    ) -> Outcome<RainbowEventsSubscriptionCreationResponse> {
         let subscription = self
             .repo
             .put_subscription_by_id(
@@ -110,7 +103,7 @@ where
                 },
             )
             .await
-            .map_err(|e| SubscriptionErrors::DbErr(e.into()))?;
+            .map_err(|e| e.into_errors())?;
         let subscription = RainbowEventsSubscriptionCreationResponse::try_from(subscription)?;
         Ok(subscription)
     }
@@ -119,16 +112,17 @@ where
         &self,
         input: RainbowEventsSubscriptionCreationRequest,
         subscription_type: SubscriptionEntities,
-    ) -> anyhow::Result<RainbowEventsSubscriptionCreationResponse> {
+    ) -> Outcome<RainbowEventsSubscriptionCreationResponse> {
         let subscription = self
             .repo
             .get_subscription_by_callback_string(input.callback_address.clone())
             .await
-            .map_err(|e| SubscriptionErrors::DbErr(e.into()))?;
-        if subscription.is_some() {
-            bail!(SubscriptionErrors::SubscriptionCallbackAddressExists(
-                subscription.unwrap().callback_address
-            ))
+            .map_err(|e| e.into_errors())?;
+        if let Some(existing) = subscription {
+            return Err(Errors::parse(
+                &SubscriptionErrors::SubscriptionCallbackAddressExists(existing.callback_address).to_string(),
+                None,
+            ));
         }
 
         let subscription = self
@@ -144,17 +138,17 @@ where
                 expiration_time: input.expiration_time,
             })
             .await
-            .map_err(|e| SubscriptionErrors::DbErr(e.into()))?;
+            .map_err(|e| e.into_errors())?;
         let subscription = RainbowEventsSubscriptionCreationResponse::try_from(subscription)?;
         Ok(subscription)
     }
 
-    async fn delete_subscription_by_id(&self, subscription_id: Urn) -> anyhow::Result<()> {
+    async fn delete_subscription_by_id(&self, subscription_id: Urn) -> Outcome<()> {
         let _ = self
             .repo
             .delete_subscription_by_id(subscription_id)
             .await
-            .map_err(|e| SubscriptionErrors::DbErr(e.into()))?;
+            .map_err(|e| e.into_errors())?;
         Ok(())
     }
 }

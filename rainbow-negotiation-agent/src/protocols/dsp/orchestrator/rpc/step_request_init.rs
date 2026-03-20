@@ -32,6 +32,7 @@ use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRp
 use rainbow_common::facades::ssi_auth_facade::MatesFacadeTrait;
 use rainbow_common::http_client::HttpClient;
 use std::sync::Arc;
+use ymir::errors::Outcome;
 
 // ─── RpcRequestInitStep ───────────────────────────────────────────────────────
 
@@ -54,7 +55,7 @@ impl NegotiationRpcStep for RpcRequestInitStep {
     async fn validate(
         validator: &Arc<dyn ValidationRpcSteps>,
         input: &RpcNegotiationRequestInitMessageDto,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         validator.negotiation_request_init_rpc(input).await
     }
 
@@ -64,7 +65,7 @@ impl NegotiationRpcStep for RpcRequestInitStep {
         input: &RpcNegotiationRequestInitMessageDto,
         _persistence: &Arc<dyn NegotiationRpcPersistenceTrait>,
         _mates_service: &Arc<dyn MatesFacadeTrait>,
-    ) -> anyhow::Result<NegotiationRpcInitialContext> {
+    ) -> Outcome<NegotiationRpcInitialContext> {
         let provider_address =
             input.get_provider_address().unwrap_or_default();
         let associated_peer =
@@ -83,7 +84,7 @@ impl NegotiationRpcStep for RpcRequestInitStep {
         persistence: &Arc<dyn NegotiationRpcPersistenceTrait>,
         ctx: &NegotiationRpcInitialContext,
         input: &RpcNegotiationRequestInitMessageDto,
-    ) -> anyhow::Result<(
+    ) -> Outcome<(
         NegotiationProcessMessageWrapper<NegotiationAckMessageDto>,
         NegotiationProcessDto,
     )> {

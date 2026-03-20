@@ -41,25 +41,25 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
                         {
                             Err(ConnectorAgentRepoErrors::ConnectorInstanceRepoErrors(
                                 ConnectorInstanceRepoErrors::ErrorCreatingTemplateByDuplication(
-                                    err.into(),
+                                    err.to_string(),
                                 ),
                             )
                             .into_errors())
                         } else {
                             Err(ConnectorAgentRepoErrors::ConnectorInstanceRepoErrors(
-                                ConnectorInstanceRepoErrors::ErrorCreatingInstance(err.into()),
+                                ConnectorInstanceRepoErrors::ErrorCreatingInstance(err.to_string()),
                             )
                             .into_errors())
                         }
                     } else {
                         Err(ConnectorAgentRepoErrors::ConnectorInstanceRepoErrors(
-                            ConnectorInstanceRepoErrors::ErrorCreatingInstance(err.into()),
+                            ConnectorInstanceRepoErrors::ErrorCreatingInstance(err.to_string()),
                         )
                         .into_errors())
                     }
                 }
                 _ => Err(ConnectorAgentRepoErrors::ConnectorInstanceRepoErrors(
-                    ConnectorInstanceRepoErrors::ErrorCreatingInstance(err.into()),
+                    ConnectorInstanceRepoErrors::ErrorCreatingInstance(err.to_string()),
                 )
                 .into_errors()),
             },
@@ -75,7 +75,7 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
         match result {
             Ok(opt) => Ok(opt),
             Err(err) => Err(ConnectorAgentRepoErrors::ConnectorInstanceRepoErrors(
-                ConnectorInstanceRepoErrors::ErrorFetchingInstance(err.into()),
+                ConnectorInstanceRepoErrors::ErrorFetchingInstance(err.to_string()),
             )
             .into_errors()),
         }
@@ -94,7 +94,7 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
         match result {
             Ok(opt) => Ok(opt),
             Err(err) => Err(ConnectorAgentRepoErrors::ConnectorInstanceRepoErrors(
-                ConnectorInstanceRepoErrors::ErrorFetchingInstance(err.into()),
+                ConnectorInstanceRepoErrors::ErrorFetchingInstance(err.to_string()),
             )
             .into_errors()),
         }
@@ -111,7 +111,7 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
         match result {
             Ok(list) => Ok(list),
             Err(err) => Err(ConnectorAgentRepoErrors::ConnectorInstanceRepoErrors(
-                ConnectorInstanceRepoErrors::ErrorFetchingInstance(err.into()),
+                ConnectorInstanceRepoErrors::ErrorFetchingInstance(err.to_string()),
             )
             .into_errors()),
         }
@@ -142,7 +142,7 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
                 _ => Ok(()),
             },
             Err(err) => Err(ConnectorAgentRepoErrors::ConnectorInstanceRepoErrors(
-                ConnectorInstanceRepoErrors::ErrorDeletingInstance(err.into()),
+                ConnectorInstanceRepoErrors::ErrorDeletingInstance(err.to_string()),
             )
             .into_errors()),
         }
@@ -161,7 +161,7 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
                 _ => Ok(()),
             },
             Err(err) => Err(ConnectorAgentRepoErrors::ConnectorInstanceRepoErrors(
-                ConnectorInstanceRepoErrors::ErrorDeletingInstance(err.into()),
+                ConnectorInstanceRepoErrors::ErrorDeletingInstance(err.to_string()),
             )
             .into_errors()),
         }

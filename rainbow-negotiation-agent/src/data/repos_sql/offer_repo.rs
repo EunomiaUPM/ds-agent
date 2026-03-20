@@ -22,6 +22,7 @@ use crate::data::entities::offer::{Model, NewOfferModel};
 use crate::data::repo_traits::offer_repo::{OfferRepoErrors, OfferRepoTrait};
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, QuerySelect};
 use urn::Urn;
+use ymir::errors::{Outcome, RepoIntoErrors};
 
 pub struct OfferRepoForSql {
     db_connection: DatabaseConnection,
@@ -39,7 +40,7 @@ impl OfferRepoTrait for OfferRepoForSql {
         &self,
         limit: Option<u64>,
         page: Option<u64>,
-    ) -> anyhow::Result<Vec<Model>, OfferRepoErrors> {
+    ) -> Outcome<Vec<Model>> {
         let offers = offer::Entity::find()
             .limit(limit.unwrap_or(20))
             .offset(page.map(|p| p * limit.unwrap_or(20)).unwrap_or(0))
@@ -49,14 +50,14 @@ impl OfferRepoTrait for OfferRepoForSql {
 
         match offers {
             Ok(offers) => Ok(offers),
-            Err(e) => Err(OfferRepoErrors::ErrorFetchingOffer(e.into())),
+            Err(e) => Err(OfferRepoErrors::ErrorFetchingOffer(e.into()).into_errors()),
         }
     }
 
     async fn get_batch_offers(
         &self,
         ids: &Vec<Urn>,
-    ) -> anyhow::Result<Vec<Model>, OfferRepoErrors> {
+    ) -> Outcome<Vec<Model>> {
         let offer_ids = ids.iter().map(|t| t.to_string()).collect::<Vec<_>>();
         let offers = offer::Entity::find()
             .filter(offer::Column::Id.is_in(offer_ids))
@@ -65,14 +66,14 @@ impl OfferRepoTrait for OfferRepoForSql {
 
         match offers {
             Ok(offers) => Ok(offers),
-            Err(e) => Err(OfferRepoErrors::ErrorFetchingOffer(e.into())),
+            Err(e) => Err(OfferRepoErrors::ErrorFetchingOffer(e.into()).into_errors()),
         }
     }
 
     async fn get_offers_by_negotiation_process(
         &self,
         id: &Urn,
-    ) -> anyhow::Result<Vec<Model>, OfferRepoErrors> {
+    ) -> Outcome<Vec<Model>> {
         let pid = id.to_string();
         let offers = offer::Entity::find()
             .filter(offer::Column::NegotiationAgentProcessId.eq(pid))
@@ -82,14 +83,14 @@ impl OfferRepoTrait for OfferRepoForSql {
 
         match offers {
             Ok(offers) => Ok(offers),
-            Err(e) => Err(OfferRepoErrors::ErrorFetchingOffer(e.into())),
+            Err(e) => Err(OfferRepoErrors::ErrorFetchingOffer(e.into()).into_errors()),
         }
     }
 
     async fn get_last_offer_by_negotiation_process(
         &self,
         id: &Urn,
-    ) -> anyhow::Result<Option<Model>, OfferRepoErrors> {
+    ) -> Outcome<Option<Model>> {
         let pid = id.to_string();
         let offers = offer::Entity::find()
             .filter(offer::Column::NegotiationAgentProcessId.eq(pid))
@@ -99,24 +100,24 @@ impl OfferRepoTrait for OfferRepoForSql {
 
         match offers {
             Ok(offers) => Ok(offers),
-            Err(e) => Err(OfferRepoErrors::ErrorFetchingOffer(e.into())),
+            Err(e) => Err(OfferRepoErrors::ErrorFetchingOffer(e.into()).into_errors()),
         }
     }
 
-    async fn get_offer_by_id(&self, id: &Urn) -> anyhow::Result<Option<Model>, OfferRepoErrors> {
+    async fn get_offer_by_id(&self, id: &Urn) -> Outcome<Option<Model>> {
         let oid = id.to_string();
         let offer = offer::Entity::find_by_id(oid).one(&self.db_connection).await;
 
         match offer {
             Ok(offer) => Ok(offer),
-            Err(e) => Err(OfferRepoErrors::ErrorFetchingOffer(e.into())),
+            Err(e) => Err(OfferRepoErrors::ErrorFetchingOffer(e.into()).into_errors()),
         }
     }
 
     async fn get_offer_by_negotiation_message(
         &self,
         id: &Urn,
-    ) -> anyhow::Result<Option<Model>, OfferRepoErrors> {
+    ) -> Outcome<Option<Model>> {
         let mid = id.to_string();
         let offer = offer::Entity::find()
             .filter(offer::Column::NegotiationAgentMessageId.eq(mid))
@@ -125,14 +126,14 @@ impl OfferRepoTrait for OfferRepoForSql {
 
         match offer {
             Ok(offer) => Ok(offer),
-            Err(e) => Err(OfferRepoErrors::ErrorFetchingOffer(e.into())),
+            Err(e) => Err(OfferRepoErrors::ErrorFetchingOffer(e.into()).into_errors()),
         }
     }
 
     async fn get_offer_by_offer_id(
         &self,
         id: &Urn,
-    ) -> anyhow::Result<Option<Model>, OfferRepoErrors> {
+    ) -> Outcome<Option<Model>> {
         let external_offer_id = id.to_string();
         let offer = offer::Entity::find()
             .filter(offer::Column::OfferId.eq(external_offer_id))
@@ -141,33 +142,33 @@ impl OfferRepoTrait for OfferRepoForSql {
 
         match offer {
             Ok(offer) => Ok(offer),
-            Err(e) => Err(OfferRepoErrors::ErrorFetchingOffer(e.into())),
+            Err(e) => Err(OfferRepoErrors::ErrorFetchingOffer(e.into()).into_errors()),
         }
     }
 
     async fn create_offer(
         &self,
         new_model: &NewOfferModel,
-    ) -> anyhow::Result<Model, OfferRepoErrors> {
+    ) -> Outcome<Model> {
         let model: offer::ActiveModel = new_model.clone().into();
         let result = offer::Entity::insert(model).exec_with_returning(&self.db_connection).await;
 
         match result {
             Ok(offer) => Ok(offer),
-            Err(e) => Err(OfferRepoErrors::ErrorCreatingOffer(e.into())),
+            Err(e) => Err(OfferRepoErrors::ErrorCreatingOffer(e.into()).into_errors()),
         }
     }
 
-    async fn delete_offer(&self, id: &Urn) -> anyhow::Result<(), OfferRepoErrors> {
+    async fn delete_offer(&self, id: &Urn) -> Outcome<()> {
         let oid = id.to_string();
         let result = offer::Entity::delete_by_id(oid).exec(&self.db_connection).await;
 
         match result {
             Ok(delete_result) => match delete_result.rows_affected {
-                0 => Err(OfferRepoErrors::OfferNotFound),
+                0 => Err(OfferRepoErrors::OfferNotFound.into_errors()),
                 _ => Ok(()),
             },
-            Err(e) => Err(OfferRepoErrors::ErrorDeletingOffer(e.into())),
+            Err(e) => Err(OfferRepoErrors::ErrorDeletingOffer(e.into()).into_errors()),
         }
     }
 }

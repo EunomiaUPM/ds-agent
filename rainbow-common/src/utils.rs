@@ -39,18 +39,9 @@ pub fn get_urn_from_string(string_in: &String) -> Outcome<Urn> {
     string_in.parse::<Urn>().map_err(|e| Errors::parse("Error parsing urn", Some(Box::new(e))))
 }
 
-pub fn parse_urn(id: &str) -> Result<Urn, Response> {
-    Urn::from_str(id).map_err(|err| {
-        let e = Errors::parse("Error parsing urn", Some(Box::new(err)));
-        e.log();
-        e.into_response()
-    })
-}
-
 pub async fn flush_redis_cache(url: &str) -> Outcome<()> {
     info!("Connecting to Redis at {}...", url);
-    // TODO
-    // NEW REDSIS ERROR?
+    // NEW REDS IS ERROR?
     let client = redis::Client::open(url)
         .map_err(|err| Errors::crazy("Redis client open url failed", Some(Box::new(err))))?;
     let mut con = client.get_async_connection().await.map_err(|err| {

@@ -2,6 +2,7 @@ use crate::data::entities::dataservice;
 use crate::data::entities::dataservice::{EditDataServiceModel, NewDataServiceModel};
 use crate::data::repo_traits::catalog_db_errors::CatalogAgentRepoErrors;
 use urn::Urn;
+use ymir::errors::Outcome;
 
 #[async_trait::async_trait]
 pub trait DataServiceRepositoryTrait: Send + Sync {
@@ -9,40 +10,40 @@ pub trait DataServiceRepositoryTrait: Send + Sync {
         &self,
         limit: Option<u64>,
         page: Option<u64>,
-    ) -> anyhow::Result<Vec<dataservice::Model>, CatalogAgentRepoErrors>;
+    ) -> Outcome<Vec<dataservice::Model>>;
     async fn get_batch_data_services(
         &self,
         ids: &Vec<Urn>,
-    ) -> anyhow::Result<Vec<dataservice::Model>, CatalogAgentRepoErrors>;
+    ) -> Outcome<Vec<dataservice::Model>>;
 
     async fn get_data_services_by_catalog_id(
         &self,
         catalog_id: &Urn,
-    ) -> anyhow::Result<Vec<dataservice::Model>, CatalogAgentRepoErrors>;
+    ) -> Outcome<Vec<dataservice::Model>>;
     async fn get_main_data_service(
         &self,
-    ) -> anyhow::Result<Option<dataservice::Model>, CatalogAgentRepoErrors>;
+    ) -> Outcome<Option<dataservice::Model>>;
 
     async fn get_data_service_by_id(
         &self,
         data_service_id: &Urn,
-    ) -> anyhow::Result<Option<dataservice::Model>, CatalogAgentRepoErrors>;
+    ) -> Outcome<Option<dataservice::Model>>;
     async fn put_data_service_by_id(
         &self,
         data_service_id: &Urn,
         edit_data_service_model: &EditDataServiceModel,
-    ) -> anyhow::Result<dataservice::Model, CatalogAgentRepoErrors>;
+    ) -> Outcome<dataservice::Model>;
     async fn create_data_service(
         &self,
         new_data_service_model: &NewDataServiceModel,
-    ) -> anyhow::Result<dataservice::Model, CatalogAgentRepoErrors>;
+    ) -> Outcome<dataservice::Model>;
 
     async fn create_main_data_service(
         &self,
         new_data_service_model: &NewDataServiceModel,
-    ) -> anyhow::Result<dataservice::Model, CatalogAgentRepoErrors>;
+    ) -> Outcome<dataservice::Model>;
     async fn delete_data_service_by_id(
         &self,
         data_service_id: &Urn,
-    ) -> anyhow::Result<(), CatalogAgentRepoErrors>;
+    ) -> Outcome<()>;
 }

@@ -1,5 +1,4 @@
 use crate::entities::transfer_events::TransferEventEntitiesTrait;
-use crate::errors::error_adapter::CustomToResponse;
 use crate::http::common::parse_urn;
 use axum::extract::{FromRef, Path, State};
 use axum::http::StatusCode;
@@ -8,6 +7,7 @@ use axum::routing::get;
 use axum::{Json, Router};
 use rainbow_common::errors::{CommonErrors, ErrorLog};
 use std::sync::Arc;
+use ymir::errors::Errors;
 
 #[derive(Clone)]
 pub struct TransferEventsRouter {
@@ -53,7 +53,7 @@ impl TransferEventsRouter {
             .await
         {
             Ok(events) => (StatusCode::OK, Json(events)).into_response(),
-            Err(e) => e.to_response(),
+            Err(e) => e.into_response(),
         }
     }
 
@@ -69,15 +69,15 @@ impl TransferEventsRouter {
             Ok(transfer_event) => match transfer_event {
                 Some(transfer_event) => (StatusCode::OK, Json(transfer_event)).into_response(),
                 None => {
-                    let err = CommonErrors::missing_resource_new(
+                    let err = Errors::missing_resource(
                         event_id.to_string().as_str(),
                         "Transfer event not found",
+                        None,
                     );
-                    tracing::error!("{}", err.log());
                     err.into_response()
                 }
             },
-            Err(e) => e.to_response(),
+            Err(e) => e.into_response(),
         }
     }
 }

@@ -12,7 +12,6 @@ use crate::protocols::dsp::types::catalog_definition::Catalog;
 use crate::protocols::dsp::types::dataset_definition::Dataset;
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
 use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRpcSteps;
-use anyhow::anyhow;
 use rainbow_common::errors::{CommonErrors, ErrorLog};
 use rainbow_common::facades::ssi_auth_facade::MatesFacadeTrait;
 use rainbow_common::http_client::HttpClient;
@@ -20,6 +19,7 @@ use rainbow_common::well_known::rpc::WellKnownRPCRequest;
 use std::marker::PhantomData;
 use std::sync::Arc;
 use tracing::error;
+use ymir::errors::{Errors, Outcome};
 
 pub struct RPCOrchestratorService {
     validator: Arc<dyn ValidationRpcSteps>,
@@ -46,13 +46,10 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
     async fn setup_catalog_request_rpc(
         &self,
         input: &RpcCatalogRequestMessageDto,
-    ) -> anyhow::Result<RpcCatalogResponseMessageDto<RpcCatalogRequestMessageDto, Catalog>> {
+    ) -> Outcome<RpcCatalogResponseMessageDto<RpcCatalogRequestMessageDto, Catalog>> {
         // agent_peer
-        let agent_peer = input.get_associated_agent_peer().ok_or_else(|| {
-            let err = CommonErrors::missing_resource_new("", "Agent peer not set");
-            error!("{}", err.log());
-            anyhow!(err)
-        })?;
+        let agent_peer =
+            input.get_associated_agent_peer().ok_or(Errors::crazy("No associated agent", None))?;
 
         // validation
         self.validator.on_catalog_request(input).await?;
@@ -70,7 +67,7 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         // send message to peer
         // resolve path
         let participant_id =
-            input.get_associated_agent_peer().ok_or(anyhow::Error::msg("No associated agent"))?;
+            input.get_associated_agent_peer().ok_or(Errors::crazy("No associated agent", None))?;
         let provider_address = self
             .facades
             .get_catalog_rpc_path_facade()
@@ -107,12 +104,12 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
     async fn setup_dataset_request_rpc(
         &self,
         input: &RpcDatasetRequestMessageDto,
-    ) -> anyhow::Result<RpcCatalogResponseMessageDto<RpcDatasetRequestMessageDto, Dataset>> {
+    ) -> Outcome<RpcCatalogResponseMessageDto<RpcDatasetRequestMessageDto, Dataset>> {
         // validation
         self.validator.on_dataset_request(input).await?;
 
         let participant_id =
-            input.get_associated_agent_peer().ok_or(anyhow::Error::msg("No associated agent"))?;
+            input.get_associated_agent_peer().ok_or(Errors::crazy("No associated agent", None))?;
         let provider_address = self
             .facades
             .get_catalog_rpc_path_facade()

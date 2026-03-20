@@ -19,10 +19,10 @@
 
 use crate::data::entities::subscription;
 use crate::data::repo::NewSubscription;
-use anyhow::bail;
 use rainbow_common::utils::get_urn_from_string;
 use serde::{Deserialize, Serialize};
 use urn::Urn;
+use ymir::errors::{Errors, Outcome};
 
 #[derive(PartialEq)]
 pub enum RainbowEventsSubscriptionCreationTypes {
@@ -167,9 +167,9 @@ pub struct RainbowEventsSubscriptionCreationResponse {
 }
 
 impl TryFrom<subscription::Model> for RainbowEventsSubscriptionCreationResponse {
-    type Error = anyhow::Error;
+    type Error = Errors;
 
-    fn try_from(value: subscription::Model) -> anyhow::Result<Self> {
+    fn try_from(value: subscription::Model) -> Outcome<Self> {
         let entity = match (
             value.transfer_process,
             value.contract_negotiation_process,
@@ -180,7 +180,7 @@ impl TryFrom<subscription::Model> for RainbowEventsSubscriptionCreationResponse 
             (false, true, false, false) => SubscriptionEntities::ContractNegotiationProcess,
             (false, false, true, false) => SubscriptionEntities::DataPlaneProcess,
             (false, false, false, true) => SubscriptionEntities::Catalog,
-            _ => bail!("Subscription Entity not valid"),
+            _ => return Err(Errors::parse("Subscription Entity not valid", None)),
         };
         Ok(Self {
             subscription_id: get_urn_from_string(&value.id)?,

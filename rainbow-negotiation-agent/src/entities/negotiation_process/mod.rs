@@ -27,6 +27,7 @@ use crate::data::entities::offer as offer_model;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use urn::Urn;
+use ymir::errors::Outcome;
 
 pub(crate) mod negotiation_process;
 
@@ -101,39 +102,39 @@ pub trait NegotiationAgentProcessesTrait: Send + Sync + 'static {
         &self,
         limit: Option<u64>,
         page: Option<u64>,
-    ) -> anyhow::Result<Vec<NegotiationProcessDto>>;
+    ) -> Outcome<Vec<NegotiationProcessDto>>;
 
     async fn get_batch_negotiation_processes(
         &self,
         ids: &Vec<Urn>,
-    ) -> anyhow::Result<Vec<NegotiationProcessDto>>;
+    ) -> Outcome<Vec<NegotiationProcessDto>>;
 
     async fn get_negotiation_process_by_id(
         &self,
         id: &Urn,
-    ) -> anyhow::Result<Option<NegotiationProcessDto>>;
+    ) -> Outcome<Option<NegotiationProcessDto>>;
 
     async fn get_negotiation_process_by_key_id(
         &self,
         key_id: &str,
         id: &Urn,
-    ) -> anyhow::Result<Option<NegotiationProcessDto>>;
+    ) -> Outcome<Option<NegotiationProcessDto>>;
 
     async fn get_negotiation_process_by_key_value(
         &self,
         id: &Urn,
-    ) -> anyhow::Result<Option<NegotiationProcessDto>>;
+    ) -> Outcome<Option<NegotiationProcessDto>>;
 
     async fn create_negotiation_process(
         &self,
         new_model: &NewNegotiationProcessDto,
-    ) -> anyhow::Result<NegotiationProcessDto>;
+    ) -> Outcome<NegotiationProcessDto>;
 
     async fn put_negotiation_process(
         &self,
         id: &Urn,
         edit_model: &EditNegotiationProcessDto,
-    ) -> anyhow::Result<NegotiationProcessDto>;
+    ) -> Outcome<NegotiationProcessDto>;
 
-    async fn delete_negotiation_process(&self, id: &Urn) -> anyhow::Result<()>;
+    async fn delete_negotiation_process(&self, id: &Urn) -> Outcome<()>;
 }

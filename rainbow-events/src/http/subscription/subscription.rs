@@ -27,13 +27,11 @@ use axum::extract::{Path, Query, State};
 use axum::response::IntoResponse;
 use axum::routing::{delete, get, post, put};
 use axum::{Json, Router};
-use rainbow_common::errors::{CommonErrors, ErrorLog};
 use rainbow_common::utils::get_urn_from_string;
 use reqwest::StatusCode;
 use serde::Deserialize;
-use serde_json::json;
 use std::sync::Arc;
-use tracing::{error, info};
+use tracing::info;
 
 pub struct RainbowEventsSubscriptionRouter<T>
 where
@@ -90,33 +88,13 @@ where
             );
             match service.get_subscription_by_callback_url(cb.unwrap()).await {
                 Ok(subscriptions) => (StatusCode::OK, Json(subscriptions)).into_response(),
-                Err(e) => match e.downcast::<SubscriptionErrors>() {
-                    Ok(e_) => e_.into_response(),
-                    Err(_) => (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        Json(json!({
-                            "message": "Internal Server Error",
-                            "error_code": 5000
-                        })),
-                    )
-                        .into_response(),
-                },
+                Err(e) => e.into_response(),
             }
         } else {
             info!("GET {}/subscriptions", Self::serialize_entity_type(&entity));
             match service.get_all_subscriptions().await {
                 Ok(subscriptions) => (StatusCode::OK, Json(subscriptions)).into_response(),
-                Err(e) => match e.downcast::<SubscriptionErrors>() {
-                    Ok(e_) => e_.into_response(),
-                    Err(_) => (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        Json(json!({
-                            "message": "Internal Server Error",
-                            "error_code": 5000
-                        })),
-                    )
-                        .into_response(),
-                },
+                Err(e) => e.into_response(),
             }
         }
     }
@@ -132,17 +110,7 @@ where
         };
         match service.get_subscription_by_id(id).await {
             Ok(subscriptions) => (StatusCode::OK, Json(subscriptions)).into_response(),
-            Err(e) => match e.downcast::<SubscriptionErrors>() {
-                Ok(e_) => e_.into_response(),
-                Err(_) => (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(json!({
-                        "message": "Internal Server Error",
-                        "error_code": 5000
-                    })),
-                )
-                    .into_response(),
-            },
+            Err(e) => e.into_response(),
         }
     }
     async fn handle_put_subscription_by_id(
@@ -161,17 +129,7 @@ where
         };
         match service.put_subscription_by_id(id, input).await {
             Ok(subscriptions) => (StatusCode::ACCEPTED, Json(subscriptions)).into_response(),
-            Err(e) => match e.downcast::<SubscriptionErrors>() {
-                Ok(e_) => e_.into_response(),
-                Err(_) => (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(json!({
-                        "message": "Internal Server Error",
-                        "error_code": 5000
-                    })),
-                )
-                    .into_response(),
-            },
+            Err(e) => e.into_response(),
         }
     }
     async fn handle_post_subscription_by_id(
@@ -185,17 +143,7 @@ where
         };
         match service.create_subscription(input, entity.unwrap()).await {
             Ok(subscriptions) => (StatusCode::CREATED, Json(subscriptions)).into_response(),
-            Err(e) => match e.downcast::<SubscriptionErrors>() {
-                Ok(e_) => e_.into_response(),
-                Err(_) => (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(json!({
-                        "message": "Internal Server Error",
-                        "error_code": 5000
-                    })),
-                )
-                    .into_response(),
-            },
+            Err(e) => e.into_response(),
         }
     }
     async fn handle_delete_subscription_by_id(
@@ -209,17 +157,7 @@ where
         };
         match service.delete_subscription_by_id(id).await {
             Ok(subscriptions) => (StatusCode::NO_CONTENT, Json(subscriptions)).into_response(),
-            Err(e) => match e.downcast::<SubscriptionErrors>() {
-                Ok(e_) => e_.into_response(),
-                Err(_) => (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(json!({
-                        "message": "Internal Server Error",
-                        "error_code": 5000
-                    })),
-                )
-                    .into_response(),
-            },
+            Err(e) => e.into_response(),
         }
     }
 }

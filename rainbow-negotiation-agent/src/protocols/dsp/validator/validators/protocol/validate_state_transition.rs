@@ -23,10 +23,10 @@ use crate::protocols::dsp::protocol_types::{
 };
 use crate::protocols::dsp::validator::traits::validate_state_transition::ValidateStateTransition;
 use crate::protocols::dsp::validator::traits::validation_helpers::ValidationHelpers;
-use anyhow::bail;
 use log::error;
 use rainbow_common::config::types::roles::RoleConfig;
 use rainbow_common::errors::{CommonErrors, ErrorLog};
+use ymir::errors::{Errors, Outcome};
 use std::sync::Arc;
 
 pub struct ValidatedStateTransitionServiceForDsp {
@@ -43,7 +43,7 @@ impl ValidateStateTransition for ValidatedStateTransitionServiceForDsp {
         &self,
         role: &RoleConfig,
         message_type: &NegotiationProcessMessageType,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         match (role, message_type) {
             (RoleConfig::Provider, NegotiationProcessMessageType::NegotiationRequestMessage) => {
                 Ok(())
@@ -69,7 +69,7 @@ impl ValidateStateTransition for ValidatedStateTransitionServiceForDsp {
                     .as_str(),
                 );
                 error!("{}", err.log());
-                bail!(err)
+                return Err(Errors::parse(err.to_string().as_str(), None))
             }
         }
     }
@@ -78,7 +78,7 @@ impl ValidateStateTransition for ValidatedStateTransitionServiceForDsp {
         &self,
         current_state: &NegotiationProcessState,
         message_type: &NegotiationProcessMessageType,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         match message_type {
             NegotiationProcessMessageType::NegotiationRequestMessage => match current_state {
                 NegotiationProcessState::Requested => {
@@ -226,14 +226,14 @@ impl ValidateStateTransition for ValidatedStateTransitionServiceForDsp {
                     "NegotiationProcessMessageType NegotiationProcess is not allowed here",
                 );
                 error!("{}", err.log());
-                bail!(err)
+                return Err(Errors::parse(err.to_string().as_str(), None))
             }
             NegotiationProcessMessageType::NegotiationError => {
                 let err = CommonErrors::parse_new(
                     "NegotiationProcessMessageType NegotiationError is not allowed here",
                 );
                 error!("{}", err.log());
-                bail!(err)
+                return Err(Errors::parse(err.to_string().as_str(), None))
             }
         }
         Ok(())
@@ -243,7 +243,7 @@ impl ValidateStateTransition for ValidatedStateTransitionServiceForDsp {
 fn validate_state_transition_error_helper(
     current_state: &NegotiationProcessState,
     message_type: &NegotiationProcessMessageType,
-) -> anyhow::Result<()> {
+) -> Outcome<()> {
     let err = CommonErrors::parse_new(
         format!(
             "NegotiationProcessMessageType {} is not allowed here. Current state is {}",
@@ -253,5 +253,5 @@ fn validate_state_transition_error_helper(
         .as_str(),
     );
     error!("{}", err.log());
-    bail!(err)
+    Err(Errors::parse(err.to_string().as_str(), None))
 }

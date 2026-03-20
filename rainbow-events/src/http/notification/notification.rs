@@ -20,18 +20,14 @@
 use crate::core::notification::notification_err::NotificationErrors;
 use crate::core::notification::RainbowEventsNotificationTrait;
 use crate::core::subscription::subscription_types::SubscriptionEntities;
-use crate::errors::error_adapter::CustomToResponse;
 use axum::extract::{Path, State};
 use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use log::info;
-use rainbow_common::errors::{CommonErrors, ErrorLog};
 use rainbow_common::utils::get_urn_from_string;
 use reqwest::StatusCode;
-use serde_json::json;
 use std::sync::Arc;
-use tracing::error;
 
 pub struct RainbowEventsNotificationRouter<T> {
     service: Arc<T>,
@@ -84,17 +80,7 @@ where
         info!("GET {}/notifications", Self::serialize_entity_type(&entity));
         match service.get_all_notifications().await {
             Ok(notifications) => (StatusCode::OK, Json(notifications)).into_response(),
-            Err(e) => match e.downcast::<NotificationErrors>() {
-                Ok(e_) => e_.into_response(),
-                Err(_) => (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(json!({
-                        "message": "Internal Server Error",
-                        "error_code": 5000
-                    })),
-                )
-                    .into_response(),
-            },
+            Err(e) => e.into_response(),
         }
     }
     async fn handle_get_notifications_by_subscription(
@@ -112,17 +98,7 @@ where
         };
         match service.get_notifications_by_subscription_id(sid).await {
             Ok(notifications) => (StatusCode::OK, Json(notifications)).into_response(),
-            Err(e) => match e.downcast::<NotificationErrors>() {
-                Ok(e_) => e_.into_response(),
-                Err(_) => (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(json!({
-                        "message": "Internal Server Error",
-                        "error_code": 5000
-                    })),
-                )
-                    .into_response(),
-            },
+            Err(e) => e.into_response(),
         }
     }
     async fn handle_get_pending(
@@ -140,17 +116,7 @@ where
         };
         match service.get_pending_notifications_by_subscription_id(sid).await {
             Ok(notifications) => (StatusCode::OK, Json(notifications)).into_response(),
-            Err(e) => match e.downcast::<NotificationErrors>() {
-                Ok(e_) => e_.into_response(),
-                Err(_) => (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(json!({
-                        "message": "Internal Server Error",
-                        "error_code": 5000
-                    })),
-                )
-                    .into_response(),
-            },
+            Err(e) => e.into_response(),
         }
     }
     async fn handle_ack_pending(
@@ -168,17 +134,7 @@ where
         };
         match service.ack_pending_notifications_by_subscription_id(sid).await {
             Ok(notifications) => (StatusCode::ACCEPTED, Json(notifications)).into_response(),
-            Err(e) => match e.downcast::<NotificationErrors>() {
-                Ok(e_) => e_.into_response(),
-                Err(_) => (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(json!({
-                        "message": "Internal Server Error",
-                        "error_code": 5000
-                    })),
-                )
-                    .into_response(),
-            },
+            Err(e) => e.into_response(),
         }
     }
     async fn handle_get_notification_by_id(
@@ -201,17 +157,7 @@ where
         };
         match service.get_notification_by_id(sid, nid).await {
             Ok(notifications) => (StatusCode::OK, Json(notifications)).into_response(),
-            Err(e) => match e.downcast::<NotificationErrors>() {
-                Ok(e_) => e_.into_response(),
-                Err(_) => (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(json!({
-                        "message": "Internal Server Error",
-                        "error_code": 5000
-                    })),
-                )
-                    .into_response(),
-            },
+            Err(e) => e.into_response(),
         }
     }
 }

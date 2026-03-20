@@ -1,12 +1,13 @@
 use rainbow_common::config::types::roles::RoleConfig;
 use sea_orm::entity::prelude::*;
+use sea_orm::prelude::StringLen::N;
 use sea_orm::ActiveValue;
 use serde::{Deserialize, Serialize};
 use urn::{Urn, UrnBuilder};
 
+use crate::DataplaneInitCommandType;
 use strum::Display;
 use ymir::errors::Errors;
-use crate::DataplaneInitCommandType;
 
 #[derive(
     Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, Display,
@@ -20,35 +21,37 @@ pub enum TransferRole {
 }
 
 impl TryFrom<RoleConfig> for TransferRole {
-    type Error = anyhow::Error;
+    type Error = Errors;
 
     fn try_from(value: RoleConfig) -> Result<Self, Self::Error> {
         match value {
             RoleConfig::Consumer => Ok(Self::Consumer),
             RoleConfig::Provider => Ok(Self::Provider),
-            RoleConfig::NotDefined => Err(anyhow::anyhow!(
-                "Not allowed here this role. Dataplane must have Provider or Consumer Role"
+            RoleConfig::NotDefined => Err(Errors::crazy(
+                "Not allowed here this role. Dataplane must have Provider or Consumer Role",
+                None,
             )),
         }
     }
 }
 
 impl TryFrom<&RoleConfig> for TransferRole {
-    type Error = anyhow::Error;
+    type Error = Errors;
 
     fn try_from(value: &RoleConfig) -> Result<Self, Self::Error> {
         match value {
             RoleConfig::Consumer => Ok(Self::Consumer),
             RoleConfig::Provider => Ok(Self::Provider),
-            RoleConfig::NotDefined => Err(anyhow::anyhow!(
-                "Not allowed here this role. Dataplane must have Provider or Consumer Role"
+            RoleConfig::NotDefined => Err(Errors::crazy(
+                "Not allowed here this role. Dataplane must have Provider or Consumer Role",
+                None,
             )),
         }
     }
 }
 
 impl TryFrom<DataplaneInitCommandType> for TransferRole {
-    type Error = anyhow::Error;
+    type Error = Errors;
     fn try_from(value: DataplaneInitCommandType) -> Result<Self, Self::Error> {
         match value {
             DataplaneInitCommandType::Provider { .. } => Ok(Self::Provider),

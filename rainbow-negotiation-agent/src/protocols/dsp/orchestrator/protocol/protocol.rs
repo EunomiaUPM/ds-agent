@@ -39,6 +39,7 @@ use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDs
 use rainbow_common::config::services::ContractsConfig;
 use rainbow_common::mates::mates::Mates;
 use std::sync::Arc;
+use ymir::errors::Outcome;
 
 // ─── Service ──────────────────────────────────────────────────────────────────
 
@@ -79,7 +80,7 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
     async fn on_get_negotiation(
         &self,
         id: &String,
-    ) -> anyhow::Result<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>> {
+    ) -> Outcome<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>> {
         let process = self.persistence_service.fetch_process(id.as_str()).await?;
         let negotiation_process_dto = NegotiationProcessMessageWrapper::try_from(process)?;
         Ok(negotiation_process_dto)
@@ -89,7 +90,7 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
         &self,
         input: &NegotiationProcessMessageWrapper<NegotiationRequestInitMessageDto>,
         mate: &Mates,
-    ) -> anyhow::Result<(NegotiationProcessMessageWrapper<NegotiationAckMessageDto>, bool)> {
+    ) -> Outcome<(NegotiationProcessMessageWrapper<NegotiationAckMessageDto>, bool)> {
         self.run_lifecycle::<InitialContractRequestStep>("", mate, input).await
     }
 
@@ -98,7 +99,7 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
         id: &String,
         input: &NegotiationProcessMessageWrapper<NegotiationRequestMessageDto>,
         mate: &Mates,
-    ) -> anyhow::Result<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>> {
+    ) -> Outcome<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>> {
         let (ack, _) = self.run_lifecycle::<ConsumerRequestStep>(id, mate, input).await?;
         Ok(ack)
     }
@@ -108,7 +109,7 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
         id: &String,
         input: &NegotiationProcessMessageWrapper<NegotiationVerificationMessageDto>,
         mate: &Mates,
-    ) -> anyhow::Result<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>> {
+    ) -> Outcome<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>> {
         let (ack, _) = self.run_lifecycle::<AgreementVerificationStep>(id, mate, input).await?;
         Ok(ack)
     }
@@ -117,7 +118,7 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
         &self,
         input: &NegotiationProcessMessageWrapper<NegotiationOfferInitMessageDto>,
         mate: &Mates,
-    ) -> anyhow::Result<(NegotiationProcessMessageWrapper<NegotiationAckMessageDto>, bool)> {
+    ) -> Outcome<(NegotiationProcessMessageWrapper<NegotiationAckMessageDto>, bool)> {
         self.run_lifecycle::<InitialProviderOfferStep>("", mate, input).await
     }
 
@@ -126,7 +127,7 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
         id: &String,
         input: &NegotiationProcessMessageWrapper<NegotiationOfferMessageDto>,
         mate: &Mates,
-    ) -> anyhow::Result<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>> {
+    ) -> Outcome<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>> {
         let (ack, _) = self.run_lifecycle::<ProviderOfferStep>(id, mate, input).await?;
         Ok(ack)
     }
@@ -136,7 +137,7 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
         id: &String,
         input: &NegotiationProcessMessageWrapper<NegotiationAgreementMessageDto>,
         mate: &Mates,
-    ) -> anyhow::Result<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>> {
+    ) -> Outcome<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>> {
         let (ack, _) = self.run_lifecycle::<AgreementReceptionStep>(id, mate, input).await?;
         Ok(ack)
     }
@@ -146,7 +147,7 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
         id: &String,
         input: &NegotiationProcessMessageWrapper<NegotiationEventMessageDto>,
         mate: &Mates,
-    ) -> anyhow::Result<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>> {
+    ) -> Outcome<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>> {
         let (ack, _) = self.run_lifecycle::<NegotiationEventStep>(id, mate, input).await?;
         Ok(ack)
     }
@@ -156,7 +157,7 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
         id: &String,
         input: &NegotiationProcessMessageWrapper<NegotiationTerminationMessageDto>,
         mate: &Mates,
-    ) -> anyhow::Result<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>> {
+    ) -> Outcome<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>> {
         let (ack, _) = self.run_lifecycle::<NegotiationTerminationStep>(id, mate, input).await?;
         Ok(ack)
     }
@@ -179,7 +180,7 @@ impl ProtocolOrchestratorService {
         id: &str,
         mate: &Mates,
         input: &NegotiationProcessMessageWrapper<S::Dto>,
-    ) -> anyhow::Result<(NegotiationProcessMessageWrapper<NegotiationAckMessageDto>, bool)> {
+    ) -> Outcome<(NegotiationProcessMessageWrapper<NegotiationAckMessageDto>, bool)> {
         S::validate(&self.validator, id, input, mate).await?;
 
         let (ctx, early) =

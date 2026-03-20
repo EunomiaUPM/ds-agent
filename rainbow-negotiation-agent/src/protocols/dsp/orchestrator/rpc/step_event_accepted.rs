@@ -29,7 +29,7 @@ use crate::protocols::dsp::protocol_types::{
     NegotiationAckMessageDto, NegotiationEventMessageDto, NegotiationProcessMessageWrapper,
 };
 use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRpcSteps;
-use anyhow::anyhow;
+use ymir::errors::{Errors, Outcome};
 use rainbow_common::facades::ssi_auth_facade::MatesFacadeTrait;
 use rainbow_common::http_client::HttpClient;
 use std::sync::Arc;
@@ -50,7 +50,7 @@ impl NegotiationRpcStep for RpcEventAcceptedStep {
     async fn validate(
         validator: &Arc<dyn ValidationRpcSteps>,
         input: &RpcNegotiationEventAcceptedMessageDto,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         validator.negotiation_event_accepted_rpc(input).await
     }
 
@@ -58,10 +58,10 @@ impl NegotiationRpcStep for RpcEventAcceptedStep {
         input: &RpcNegotiationEventAcceptedMessageDto,
         persistence: &Arc<dyn NegotiationRpcPersistenceTrait>,
         _mates_service: &Arc<dyn MatesFacadeTrait>,
-    ) -> anyhow::Result<NegotiationRpcContinuationContext> {
+    ) -> Outcome<NegotiationRpcContinuationContext> {
         let id = input
             .get_consumer_pid()
-            .ok_or_else(|| anyhow!("RpcEventAcceptedStep: missing consumer PID"))?;
+            .ok_or_else(|| Errors::parse("RpcEventAcceptedStep: missing consumer PID", None))?;
         resolve_continuation_context(&id, persistence).await
     }
 
@@ -74,7 +74,7 @@ impl NegotiationRpcStep for RpcEventAcceptedStep {
         persistence: &Arc<dyn NegotiationRpcPersistenceTrait>,
         ctx: &NegotiationRpcContinuationContext,
         input: &RpcNegotiationEventAcceptedMessageDto,
-    ) -> anyhow::Result<(
+    ) -> Outcome<(
         NegotiationProcessMessageWrapper<NegotiationAckMessageDto>,
         NegotiationProcessDto,
     )> {
@@ -88,7 +88,7 @@ impl NegotiationRpcStep for RpcEventAcceptedStep {
 
         let id = input
             .get_consumer_pid()
-            .ok_or_else(|| anyhow!("RpcEventAcceptedStep: missing consumer PID"))?;
+            .ok_or_else(|| Errors::parse("RpcEventAcceptedStep: missing consumer PID", None))?;
         let process = persistence
             .update(id.to_string().as_str(), input, &request_body.dto, &response.dto)
             .await?;

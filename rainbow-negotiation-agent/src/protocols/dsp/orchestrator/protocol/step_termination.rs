@@ -27,6 +27,7 @@ use crate::protocols::dsp::protocol_types::{
 };
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
 use rainbow_common::mates::mates::Mates;
+use ymir::errors::Outcome;
 use std::sync::Arc;
 
 // ─── NegotiationTerminationStep ───────────────────────────────────────────────
@@ -47,7 +48,7 @@ impl NegotiationProtocolStep for NegotiationTerminationStep {
         id: &str,
         input: &NegotiationProcessMessageWrapper<NegotiationTerminationMessageDto>,
         _mate: &Mates,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         validator.on_contract_termination(&id.to_string(), input).await
     }
 
@@ -56,7 +57,7 @@ impl NegotiationProtocolStep for NegotiationTerminationStep {
         _mate: &Mates,
         _input: &NegotiationProcessMessageWrapper<NegotiationTerminationMessageDto>,
         persistence: &Arc<OrchestrationPersistenceForProtocol>,
-    ) -> anyhow::Result<(
+    ) -> Outcome<(
         NegotiationContinuationContext,
         Option<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>>,
     )> {
@@ -70,7 +71,7 @@ impl NegotiationProtocolStep for NegotiationTerminationStep {
         ctx: &NegotiationContinuationContext,
         input: &NegotiationProcessMessageWrapper<NegotiationTerminationMessageDto>,
         mate: &Mates,
-    ) -> anyhow::Result<NegotiationProcessDto> {
+    ) -> Outcome<NegotiationProcessDto> {
         persistence.update(ctx.id.as_str(), &input.dto, mate).await
     }
 }

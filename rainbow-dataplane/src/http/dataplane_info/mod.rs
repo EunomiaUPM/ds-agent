@@ -3,7 +3,6 @@ use crate::entities::dataplane_transfers::{
     InteractionMode, NewDataplaneTransferDto, TransferState,
 };
 use crate::entities::transfer_events::TransferEventEntitiesTrait;
-use crate::errors::error_adapter::CustomToResponse;
 use crate::http::common::parse_urn;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{FromRef, Path, State};

@@ -1,4 +1,3 @@
-use anyhow::Error;
 use thiserror::Error;
 use ymir::errors::RepoIntoErrors;
 
@@ -23,13 +22,13 @@ pub enum CatalogRepoErrors {
     #[error("Catalog not found")]
     CatalogNotFound,
     #[error("Error fetching catalog. {0}")]
-    ErrorFetchingCatalog(Error),
+    ErrorFetchingCatalog(Box<dyn std::error::Error + Send + Sync>),
     #[error("Error creating catalog. {0}")]
-    ErrorCreatingCatalog(Error),
+    ErrorCreatingCatalog(Box<dyn std::error::Error + Send + Sync>),
     #[error("Error deleting catalog. {0}")]
-    ErrorDeletingCatalog(Error),
+    ErrorDeletingCatalog(Box<dyn std::error::Error + Send + Sync>),
     #[error("Error updating catalog. {0}")]
-    ErrorUpdatingCatalog(Error),
+    ErrorUpdatingCatalog(Box<dyn std::error::Error + Send + Sync>),
 }
 
 #[derive(Error, Debug)]
@@ -37,13 +36,13 @@ pub enum DataServiceRepoErrors {
     #[error("DataService not found")]
     DataServiceNotFound,
     #[error("Error fetching data service. {0}")]
-    ErrorFetchingDataService(Error),
+    ErrorFetchingDataService(Box<dyn std::error::Error + Send + Sync>),
     #[error("Error creating data service. {0}")]
-    ErrorCreatingDataService(Error),
+    ErrorCreatingDataService(Box<dyn std::error::Error + Send + Sync>),
     #[error("Error deleting data service. {0}")]
-    ErrorDeletingDataService(Error),
+    ErrorDeletingDataService(Box<dyn std::error::Error + Send + Sync>),
     #[error("Error updating data service. {0}")]
-    ErrorUpdatingDataService(Error),
+    ErrorUpdatingDataService(Box<dyn std::error::Error + Send + Sync>),
 }
 
 #[derive(Error, Debug)]
@@ -51,13 +50,13 @@ pub enum DatasetRepoErrors {
     #[error("Dataset not found")]
     DatasetNotFound,
     #[error("Error fetching dataset. {0}")]
-    ErrorFetchingDataset(Error),
+    ErrorFetchingDataset(Box<dyn std::error::Error + Send + Sync>),
     #[error("Error creating dataset. {0}")]
-    ErrorCreatingDataset(Error),
+    ErrorCreatingDataset(Box<dyn std::error::Error + Send + Sync>),
     #[error("Error deleting dataset. {0}")]
-    ErrorDeletingDataset(Error),
+    ErrorDeletingDataset(Box<dyn std::error::Error + Send + Sync>),
     #[error("Error updating dataset. {0}")]
-    ErrorUpdatingDataset(Error),
+    ErrorUpdatingDataset(Box<dyn std::error::Error + Send + Sync>),
 }
 
 #[derive(Error, Debug)]
@@ -65,13 +64,13 @@ pub enum DistributionRepoErrors {
     #[error("Distribution not found")]
     DistributionNotFound,
     #[error("Error fetching distribution. {0}")]
-    ErrorFetchingDistribution(Error),
+    ErrorFetchingDistribution(Box<dyn std::error::Error + Send + Sync>),
     #[error("Error creating distribution. {0}")]
-    ErrorCreatingDistribution(Error),
+    ErrorCreatingDistribution(Box<dyn std::error::Error + Send + Sync>),
     #[error("Error deleting distribution. {0}")]
-    ErrorDeletingDistribution(Error),
+    ErrorDeletingDistribution(Box<dyn std::error::Error + Send + Sync>),
     #[error("Error updating distribution. {0}")]
-    ErrorUpdatingDistribution(Error),
+    ErrorUpdatingDistribution(Box<dyn std::error::Error + Send + Sync>),
 }
 
 #[derive(Error, Debug)]
@@ -79,13 +78,13 @@ pub enum OdrlOfferRepoErrors {
     #[error("OdrlOffer not found")]
     OdrlOfferNotFound,
     #[error("Error fetching odrl offer. {0}")]
-    ErrorFetchingOdrlOffer(Error),
+    ErrorFetchingOdrlOffer(Box<dyn std::error::Error + Send + Sync>),
     #[error("Error creating odrl offer. {0}")]
-    ErrorCreatingOdrlOffer(Error),
+    ErrorCreatingOdrlOffer(Box<dyn std::error::Error + Send + Sync>),
     #[error("Error deleting odrl offer. {0}")]
-    ErrorDeletingOdrlOffer(Error),
+    ErrorDeletingOdrlOffer(Box<dyn std::error::Error + Send + Sync>),
     #[error("Error updating odrl offer. {0}")]
-    ErrorUpdatingOdrlOffer(Error),
+    ErrorUpdatingOdrlOffer(Box<dyn std::error::Error + Send + Sync>),
     #[error("Error fetching offer ids. {missing_ids:?}")]
     SomeOdrlOffersNotFound { missing_ids: String },
 }
@@ -95,11 +94,11 @@ pub enum PolicyTemplatesRepoErrors {
     #[error("PolicyTemplate not found")]
     PolicyTemplateNotFound,
     #[error("Error fetching policy template. {0}")]
-    ErrorFetchingPolicyTemplate(Error),
+    ErrorFetchingPolicyTemplate(Box<dyn std::error::Error + Send + Sync>),
     #[error("Error creating policy template. {0}")]
-    ErrorCreatingPolicyTemplate(Error),
+    ErrorCreatingPolicyTemplate(Box<dyn std::error::Error + Send + Sync>),
     #[error("Error deleting policy template. {0}")]
-    ErrorDeletingPolicyTemplate(Error),
+    ErrorDeletingPolicyTemplate(Box<dyn std::error::Error + Send + Sync>),
 }
 
 impl RepoIntoErrors for CatalogAgentRepoErrors {}

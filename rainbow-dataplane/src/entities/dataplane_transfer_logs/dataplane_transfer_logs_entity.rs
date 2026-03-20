@@ -5,6 +5,7 @@ use std::sync::Arc;
 use tracing::error;
 use urn::Urn;
 use uuid::Uuid;
+use ymir::errors::Outcome;
 
 pub struct DataplaneTransferLogsEntityService {
     pub data_plane_repo: Arc<dyn DataplaneRepoTrait>,
@@ -21,17 +22,12 @@ impl DataplaneTransferLogsEntitiesTrait for DataplaneTransferLogsEntityService {
     async fn get_transfer_logs_by_dataplane_process_id(
         &self,
         dataplane_process_id: &Urn,
-    ) -> anyhow::Result<Vec<DataplaneTransferLogDto>> {
+    ) -> Outcome<Vec<DataplaneTransferLogDto>> {
         let logs = self
             .data_plane_repo
             .get_dataplane_transfer_logs_repo()
             .get_transfer_logs_by_dataplane_process_id(&dataplane_process_id)
-            .await
-            .map_err(|e| {
-                let err = CommonErrors::database_new(&e.to_string());
-                error!("{}", err.log());
-                err
-            })?;
+            .await?;
 
         Ok(logs.into_iter().map(|log| DataplaneTransferLogDto { inner: log }).collect())
     }

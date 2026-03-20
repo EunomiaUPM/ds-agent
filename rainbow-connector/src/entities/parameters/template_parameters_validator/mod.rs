@@ -2,6 +2,7 @@ use crate::entities::parameters::parameters::{ParameterDefinition, ParameterType
 use crate::entities::parameters::template_parameters_extractor::FoundParameter;
 use crate::entities::parameters::FoundParameterType;
 use std::collections::{HashMap, HashSet};
+use ymir::errors::{Errors, Outcome};
 
 /// Validates that the set of parameter names found in a connector template
 /// matches the set of [`ParameterDefinition`]s declared in `parameters[]`,
@@ -64,7 +65,7 @@ impl<'a> ParameterValidator<'a> {
     /// Returns `Ok(())` when all checks pass. Returns `Err` listing every
     /// issue found: duplicate definitions, undeclared names, unused names,
     /// and type mismatches.
-    pub fn validate(&self, parameters_found: &[FoundParameter]) -> anyhow::Result<()> {
+    pub fn validate(&self, parameters_found: &[FoundParameter]) -> Outcome<()> {
         let found_filtered = self.filter_runtime(parameters_found);
 
         let found_names: HashSet<&str> = found_filtered.iter().map(|s| s.name.as_str()).collect();
@@ -84,7 +85,7 @@ impl<'a> ParameterValidator<'a> {
         if errors.is_empty() {
             Ok(())
         } else {
-            Err(anyhow::anyhow!(errors.join("; ")))
+            Err(Errors::parse(&errors.join("; "), None))
         }
     }
 

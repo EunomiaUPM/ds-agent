@@ -38,9 +38,9 @@ use axum::{
 };
 use rainbow_common::config::services::ContractsConfig;
 use rainbow_common::dsp_common::context_field::ContextField;
-use rainbow_common::errors::CommonErrors;
 use serde::Serialize;
 use std::sync::Arc;
+use ymir::errors::Errors;
 
 #[derive(Clone)]
 pub struct RpcRouter {
@@ -91,7 +91,7 @@ impl RpcRouter {
         T: Send + Serialize + Clone + 'static,
         R: Serialize,
         F: FnOnce(T) -> Fut,
-        Fut: Future<Output = anyhow::Result<R>> + Send,
+        Fut: Future<Output = Result<R, Errors>> + Send,
     {
         let payload = match extract_payload_error(input) {
             Ok(v) => v,
@@ -106,7 +106,7 @@ impl RpcRouter {
     }
 
     fn map_service_result<R, T>(
-        result: anyhow::Result<R>,
+        result: Result<R, Errors>,
         success_code: StatusCode,
         original_request: T,
     ) -> impl IntoResponse
@@ -118,19 +118,7 @@ impl RpcRouter {
             Ok(data) => (success_code, Json(data)).into_response(),
             Err(err) => {
                 let error_wrapper: NegotiationProcessMessageWrapper<NegotiationErrorMessageDto> =
-                    match err.downcast::<CommonErrors>() {
-                        Ok(common_errors) => common_errors.into(),
-                        Err(original_err) => NegotiationProcessMessageWrapper {
-                            context: ContextField::default(),
-                            _type: NegotiationProcessMessageType::NegotiationError,
-                            dto: NegotiationErrorMessageDto {
-                                consumer_pid: None,
-                                provider_pid: None,
-                                code: Some("5000".to_string()),
-                                reason: Some(vec![original_err.to_string()]),
-                            },
-                        },
-                    };
+                    err.into();
                 let rpc_error_dto: RpcNegotiationErrorDto<T> =
                     RpcNegotiationErrorDto { request: original_request, error: error_wrapper };
 

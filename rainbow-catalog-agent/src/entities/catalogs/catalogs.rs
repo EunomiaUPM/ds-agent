@@ -7,6 +7,7 @@ use rainbow_common::errors::{CommonErrors, ErrorLog};
 use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
+use ymir::errors::Outcome;
 
 pub struct CatalogEntities {
     repo: Arc<dyn CatalogAgentRepoTrait>,
@@ -29,7 +30,7 @@ impl CatalogEntityTrait for CatalogEntities {
         limit: Option<u64>,
         page: Option<u64>,
         with_main_catalog: bool,
-    ) -> anyhow::Result<Vec<CatalogDto>> {
+    ) -> Outcome<Vec<CatalogDto>> {
         // cache
         if !with_main_catalog {
             if let Ok(dtos) = self.cache.get_catalog_cache().get_collection(limit, page).await {
@@ -44,8 +45,7 @@ impl CatalogEntityTrait for CatalogEntities {
             .repo
             .get_catalog_repo()
             .get_all_catalogs(limit, page, with_main_catalog)
-            .await
-            .map_err(|e| CommonErrors::database_new(&e.to_string()))?;
+            .await?;
 
         let dtos: Vec<CatalogDto> = catalogs.into_iter().map(Into::into).collect();
 
@@ -62,7 +62,7 @@ impl CatalogEntityTrait for CatalogEntities {
         Ok(dtos)
     }
 
-    async fn get_batch_catalogs(&self, ids: &Vec<Urn>) -> anyhow::Result<Vec<CatalogDto>> {
+    async fn get_batch_catalogs(&self, ids: &Vec<Urn>) -> Outcome<Vec<CatalogDto>> {
         // cache
         if let Ok(dtos) = self.cache.get_catalog_cache().get_batch(ids).await {
             if !dtos.is_empty() {
@@ -75,8 +75,7 @@ impl CatalogEntityTrait for CatalogEntities {
             .repo
             .get_catalog_repo()
             .get_batch_catalogs(ids)
-            .await
-            .map_err(|e| CommonErrors::database_new(&e.to_string()))?;
+            .await?;
 
         let dtos: Vec<CatalogDto> = catalogs.into_iter().map(Into::into).collect();
 
@@ -92,7 +91,7 @@ impl CatalogEntityTrait for CatalogEntities {
         Ok(dtos)
     }
 
-    async fn get_catalog_by_id(&self, catalog_id: &Urn) -> anyhow::Result<Option<CatalogDto>> {
+    async fn get_catalog_by_id(&self, catalog_id: &Urn) -> Outcome<Option<CatalogDto>> {
         // cache
         if let Ok(Some(catalog)) = self.cache.get_catalog_cache().get_single(catalog_id).await {
             return Ok(Some(catalog));
@@ -103,8 +102,7 @@ impl CatalogEntityTrait for CatalogEntities {
             .repo
             .get_catalog_repo()
             .get_catalog_by_id(catalog_id)
-            .await
-            .map_err(|e| CommonErrors::database_new(&e.to_string()))?;
+            .await?;
 
         let dto: Option<CatalogDto> = catalog.map(Into::into);
 
@@ -119,18 +117,14 @@ impl CatalogEntityTrait for CatalogEntities {
         Ok(dto)
     }
 
-    async fn get_main_catalog(&self) -> anyhow::Result<Option<CatalogDto>> {
+    async fn get_main_catalog(&self) -> Outcome<Option<CatalogDto>> {
         // cache
         let catalog = self.cache.get_catalog_cache().get_main().await?;
         if let Some(catalog) = catalog {
             return Ok(Some(catalog));
         }
 
-        let catalog = self.repo.get_catalog_repo().get_main_catalog().await.map_err(|e| {
-            let err = CommonErrors::database_new(&e.to_string());
-            error!("{}", err.log());
-            err
-        })?;
+        let catalog = self.repo.get_catalog_repo().get_main_catalog().await?;
         let dto: Option<CatalogDto> = catalog.map(|c| c.into());
 
         // hydrate cache
@@ -147,14 +141,13 @@ impl CatalogEntityTrait for CatalogEntities {
         &self,
         catalog_id: &Urn,
         edit_catalog_model: &EditCatalogDto,
-    ) -> anyhow::Result<CatalogDto> {
+    ) -> Outcome<CatalogDto> {
         let edit_model: EditCatalogModel = edit_catalog_model.clone().into();
         let catalog = self
             .repo
             .get_catalog_repo()
             .put_catalog_by_id(catalog_id, &edit_model)
-            .await
-            .map_err(|e| CommonErrors::database_new(&e.to_string()))?;
+            .await?;
 
         let dto: CatalogDto = catalog.into();
         let catalog_urn = Urn::from_str(dto.inner.id.as_str())?;
@@ -171,14 +164,13 @@ impl CatalogEntityTrait for CatalogEntities {
     async fn create_catalog(
         &self,
         new_catalog_model: &NewCatalogDto,
-    ) -> anyhow::Result<CatalogDto> {
+    ) -> Outcome<CatalogDto> {
         let new_model: NewCatalogModel = new_catalog_model.clone().into();
         let catalog = self
             .repo
             .get_catalog_repo()
             .create_catalog(&new_model)
-            .await
-            .map_err(|e| CommonErrors::database_new(&e.to_string()))?;
+            .await?;
 
         let dto: CatalogDto = catalog.into();
         let catalog_urn = Urn::from_str(dto.inner.id.as_str())?;
@@ -195,14 +187,10 @@ impl CatalogEntityTrait for CatalogEntities {
     async fn create_main_catalog(
         &self,
         new_catalog_model: &NewCatalogDto,
-    ) -> anyhow::Result<CatalogDto> {
+    ) -> Outcome<CatalogDto> {
         let new_model: NewCatalogModel = new_catalog_model.clone().into();
         let catalog =
-            self.repo.get_catalog_repo().create_main_catalog(&new_model).await.map_err(|e| {
-                let err = CommonErrors::database_new(&e.to_string());
-                error!("{}", err.log());
-                err
-            })?;
+            self.repo.get_catalog_repo().create_main_catalog(&new_model).await?;
         let catalog_urn = Urn::from_str(&*catalog.id)?;
         let dto = catalog.into();
 
@@ -211,12 +199,8 @@ impl CatalogEntityTrait for CatalogEntities {
         Ok(dto)
     }
 
-    async fn delete_catalog_by_id(&self, catalog_id: &Urn) -> anyhow::Result<()> {
-        self.repo.get_catalog_repo().delete_catalog_by_id(catalog_id).await.map_err(|e| {
-            let err = CommonErrors::database_new(&e.to_string());
-            error!("{}", err.log());
-            err
-        })?;
+    async fn delete_catalog_by_id(&self, catalog_id: &Urn) -> Outcome<()> {
+        self.repo.get_catalog_repo().delete_catalog_by_id(catalog_id).await?;
 
         // invalidate cache
         let _ = self.cache.get_catalog_cache().delete_single(catalog_id).await;

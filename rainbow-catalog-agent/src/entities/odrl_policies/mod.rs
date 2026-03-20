@@ -7,6 +7,7 @@ use rainbow_common::dsp_common::odrl::OdrlPolicyInfo;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use urn::Urn;
+use ymir::errors::Outcome;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -82,20 +83,14 @@ pub trait OdrlPolicyEntityTrait: Sync + Send {
         &self,
         limit: Option<u64>,
         page: Option<u64>,
-    ) -> anyhow::Result<Vec<OdrlPolicyDto>>;
-    async fn get_batch_odrl_offers(&self, ids: &Vec<Urn>) -> anyhow::Result<Vec<OdrlPolicyDto>>;
-    async fn get_all_odrl_offers_by_entity(
-        &self,
-        entity: &Urn,
-    ) -> anyhow::Result<Vec<OdrlPolicyDto>>;
-    async fn get_odrl_offer_by_id(
-        &self,
-        odrl_offer_id: &Urn,
-    ) -> anyhow::Result<Option<OdrlPolicyDto>>;
+    ) -> Outcome<Vec<OdrlPolicyDto>>;
+    async fn get_batch_odrl_offers(&self, ids: &Vec<Urn>) -> Outcome<Vec<OdrlPolicyDto>>;
+    async fn get_all_odrl_offers_by_entity(&self, entity: &Urn) -> Outcome<Vec<OdrlPolicyDto>>;
+    async fn get_odrl_offer_by_id(&self, odrl_offer_id: &Urn) -> Outcome<Option<OdrlPolicyDto>>;
     async fn create_odrl_offer(
         &self,
         new_odrl_offer_model: &NewOdrlPolicyDto,
-    ) -> anyhow::Result<OdrlPolicyDto>;
-    async fn delete_odrl_offer_by_id(&self, odrl_offer_id: &Urn) -> anyhow::Result<()>;
-    async fn delete_odrl_offers_by_entity(&self, entity_id: &Urn) -> anyhow::Result<()>;
+    ) -> Outcome<OdrlPolicyDto>;
+    async fn delete_odrl_offer_by_id(&self, odrl_offer_id: &Urn) -> Outcome<()>;
+    async fn delete_odrl_offers_by_entity(&self, entity_id: &Urn) -> Outcome<()>;
 }

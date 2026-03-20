@@ -30,6 +30,7 @@ use sea_orm::{
     QueryFilter, QuerySelect, RelationTrait,
 };
 use urn::Urn;
+use ymir::errors::{Outcome, RepoIntoErrors};
 
 pub struct NegotiationProcessRepoForSql {
     db_connection: DatabaseConnection,
@@ -47,7 +48,7 @@ impl NegotiationProcessRepoTrait for NegotiationProcessRepoForSql {
         &self,
         limit: Option<u64>,
         page: Option<u64>,
-    ) -> anyhow::Result<Vec<Model>, NegotiationProcessRepoErrors> {
+    ) -> Outcome<Vec<Model>> {
         let processes = negotiation_process::Entity::find()
             .limit(limit.unwrap_or(100))
             .offset(page.map(|p| p * limit.unwrap_or(100)).unwrap_or(0))
@@ -57,14 +58,14 @@ impl NegotiationProcessRepoTrait for NegotiationProcessRepoForSql {
             Ok(processes) => Ok(processes),
             Err(e) => Err(NegotiationProcessRepoErrors::ErrorFetchingNegotiationProcess(
                 e.into(),
-            )),
+            ).into_errors()),
         }
     }
 
     async fn get_batch_negotiation_processes(
         &self,
         ids: &Vec<Urn>,
-    ) -> anyhow::Result<Vec<Model>, NegotiationProcessRepoErrors> {
+    ) -> Outcome<Vec<Model>> {
         let negotiation_ids = ids.iter().map(|t| t.to_string()).collect::<Vec<_>>();
         let negotiation_process = negotiation_process::Entity::find()
             .filter(negotiation_process::Column::Id.is_in(negotiation_ids))
@@ -74,14 +75,14 @@ impl NegotiationProcessRepoTrait for NegotiationProcessRepoForSql {
             Ok(negotiation_process) => Ok(negotiation_process),
             Err(e) => Err(NegotiationProcessRepoErrors::ErrorFetchingNegotiationProcess(
                 e.into(),
-            )),
+            ).into_errors()),
         }
     }
 
     async fn get_negotiation_process_by_id(
         &self,
         id: &Urn,
-    ) -> anyhow::Result<Option<Model>, NegotiationProcessRepoErrors> {
+    ) -> Outcome<Option<Model>> {
         let pid = id.to_string();
         let negotiation_process =
             negotiation_process::Entity::find_by_id(pid).one(&self.db_connection).await;
@@ -89,7 +90,7 @@ impl NegotiationProcessRepoTrait for NegotiationProcessRepoForSql {
             Ok(negotiation_process) => Ok(negotiation_process),
             Err(e) => Err(NegotiationProcessRepoErrors::ErrorFetchingNegotiationProcess(
                 e.into(),
-            )),
+            ).into_errors()),
         }
     }
 
@@ -97,7 +98,7 @@ impl NegotiationProcessRepoTrait for NegotiationProcessRepoForSql {
         &self,
         key_id: &str,
         id: &Urn,
-    ) -> anyhow::Result<Option<Model>, NegotiationProcessRepoErrors> {
+    ) -> Outcome<Option<Model>> {
         let id = id.to_string();
         let negotiation_process = negotiation_process::Entity::find()
             .join(JoinType::InnerJoin, negotiation_process::Relation::Identifiers.def())
@@ -109,14 +110,14 @@ impl NegotiationProcessRepoTrait for NegotiationProcessRepoForSql {
             Ok(negotiation_process) => Ok(negotiation_process),
             Err(e) => Err(NegotiationProcessRepoErrors::ErrorFetchingNegotiationProcess(
                 e.into(),
-            )),
+            ).into_errors()),
         }
     }
 
     async fn get_negotiation_process_by_key_value(
         &self,
         id: &Urn,
-    ) -> anyhow::Result<Option<Model>, NegotiationProcessRepoErrors> {
+    ) -> Outcome<Option<Model>> {
         let id = id.to_string();
         let negotiation_process = negotiation_process::Entity::find()
             .join(JoinType::InnerJoin, negotiation_process::Relation::Identifiers.def())
@@ -127,14 +128,14 @@ impl NegotiationProcessRepoTrait for NegotiationProcessRepoForSql {
             Ok(negotiation_process) => Ok(negotiation_process),
             Err(e) => Err(NegotiationProcessRepoErrors::ErrorFetchingNegotiationProcess(
                 e.into(),
-            )),
+            ).into_errors()),
         }
     }
 
     async fn create_negotiation_process(
         &self,
         new_model: &NewNegotiationProcessModel,
-    ) -> anyhow::Result<Model, NegotiationProcessRepoErrors> {
+    ) -> Outcome<Model> {
         let model: negotiation_process::ActiveModel = new_model.clone().into();
         let negotiation_process = negotiation_process::Entity::insert(model)
             .exec_with_returning(&self.db_connection)
@@ -143,7 +144,7 @@ impl NegotiationProcessRepoTrait for NegotiationProcessRepoForSql {
             Ok(negotiation_process) => Ok(negotiation_process),
             Err(e) => Err(NegotiationProcessRepoErrors::ErrorCreatingNegotiationProcess(
                 e.into(),
-            )),
+            ).into_errors()),
         }
     }
 
@@ -151,18 +152,18 @@ impl NegotiationProcessRepoTrait for NegotiationProcessRepoForSql {
         &self,
         id: &Urn,
         edit_model: &EditNegotiationProcessModel,
-    ) -> anyhow::Result<Model, NegotiationProcessRepoErrors> {
+    ) -> Outcome<Model> {
         let id = id.to_string();
         let old_model = negotiation_process::Entity::find_by_id(id).one(&self.db_connection).await;
         let old_model = match old_model {
             Ok(old_model) => match old_model {
                 Some(old_model) => old_model,
-                None => return Err(NegotiationProcessRepoErrors::NegotiationProcessNotFound),
+                None => return Err(NegotiationProcessRepoErrors::NegotiationProcessNotFound.into_errors()),
             },
             Err(e) => {
                 return Err(NegotiationProcessRepoErrors::ErrorFetchingNegotiationProcess(
                     e.into(),
-                ));
+                ).into_errors());
             }
         };
         let mut old_active_model: negotiation_process::ActiveModel = old_model.into();
@@ -184,25 +185,25 @@ impl NegotiationProcessRepoTrait for NegotiationProcessRepoForSql {
             Ok(model) => Ok(model),
             Err(e) => Err(NegotiationProcessRepoErrors::ErrorUpdatingNegotiationProcess(
                 e.into(),
-            )),
+            ).into_errors()),
         }
     }
 
     async fn delete_negotiation_process(
         &self,
         id: &Urn,
-    ) -> anyhow::Result<(), NegotiationProcessRepoErrors> {
+    ) -> Outcome<()> {
         let id = id.to_string();
         let negotiation_process =
             negotiation_process::Entity::delete_by_id(id).exec(&self.db_connection).await;
         match negotiation_process {
             Ok(delete_result) => match delete_result.rows_affected {
-                0 => Err(NegotiationProcessRepoErrors::NegotiationProcessNotFound),
+                0 => Err(NegotiationProcessRepoErrors::NegotiationProcessNotFound.into_errors()),
                 _ => Ok(()),
             },
             Err(e) => Err(NegotiationProcessRepoErrors::ErrorDeletingNegotiationProcess(
                 e.into(),
-            )),
+            ).into_errors()),
         }
     }
 }

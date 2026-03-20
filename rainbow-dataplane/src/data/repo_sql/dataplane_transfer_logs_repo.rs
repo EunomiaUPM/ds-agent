@@ -7,6 +7,7 @@ use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QuerySelect,
 };
 use urn::Urn;
+use ymir::errors::{Outcome, RepoIntoErrors};
 
 pub struct DataplaneTransferLogsRepoForSql {
     db: DatabaseConnection,
@@ -23,14 +24,15 @@ impl DataplaneTransferLogsRepo for DataplaneTransferLogsRepoForSql {
     async fn create_log(
         &self,
         new_log: dataplane_transfer_logs::NewTransferLog,
-    ) -> anyhow::Result<dataplane_transfer_logs::Model, DataplaneTransferLogsRepoErrors> {
+    ) -> Outcome<dataplane_transfer_logs::Model> {
         let active_model: dataplane_transfer_logs::ActiveModel = new_log.into();
         let result = active_model.insert(&self.db).await;
         match result {
             Ok(result) => Ok(result),
             Err(e) => Err(DataplaneTransferLogsRepoErrors::ErrorCreatingDataplaneTransferLog(
                 e.into(),
-            )),
+            )
+            .into_errors()),
         }
     }
 
@@ -38,7 +40,7 @@ impl DataplaneTransferLogsRepo for DataplaneTransferLogsRepoForSql {
         &self,
         limit: Option<u64>,
         page: Option<u64>,
-    ) -> anyhow::Result<Vec<dataplane_transfer_logs::Model>, DataplaneTransferLogsRepoErrors> {
+    ) -> Outcome<Vec<dataplane_transfer_logs::Model>> {
         let logs = dataplane_transfer_logs::Entity::find()
             .limit(limit.unwrap_or(100))
             .offset(page.map(|p| p * limit.unwrap_or(100)).unwrap_or(0))
@@ -48,29 +50,30 @@ impl DataplaneTransferLogsRepo for DataplaneTransferLogsRepoForSql {
             Ok(logs) => Ok(logs),
             Err(e) => Err(DataplaneTransferLogsRepoErrors::ErrorFetchingDataplaneTransferLog(
                 e.into(),
-            )),
+            )
+            .into_errors()),
         }
     }
 
     async fn get_transfer_log_by_id(
         &self,
         log_id: &Urn,
-    ) -> anyhow::Result<Option<dataplane_transfer_logs::Model>, DataplaneTransferLogsRepoErrors>
-    {
+    ) -> Outcome<Option<dataplane_transfer_logs::Model>> {
         let log_id = log_id.to_string();
         let log = dataplane_transfer_logs::Entity::find_by_id(log_id).one(&self.db).await;
         match log {
             Ok(log) => Ok(log),
             Err(e) => Err(DataplaneTransferLogsRepoErrors::ErrorFetchingDataplaneTransferLog(
                 e.into(),
-            )),
+            )
+            .into_errors()),
         }
     }
 
     async fn get_transfer_logs_by_dataplane_process_id(
         &self,
         dataplane_process_id: &Urn,
-    ) -> anyhow::Result<Vec<dataplane_transfer_logs::Model>, DataplaneTransferLogsRepoErrors> {
+    ) -> Outcome<Vec<dataplane_transfer_logs::Model>> {
         let dataplane_process_id = dataplane_process_id.to_string();
         let logs = dataplane_transfer_logs::Entity::find()
             .filter(dataplane_transfer_logs::Column::DataplaneProcessId.eq(dataplane_process_id))
@@ -80,7 +83,8 @@ impl DataplaneTransferLogsRepo for DataplaneTransferLogsRepoForSql {
             Ok(logs) => Ok(logs),
             Err(e) => Err(DataplaneTransferLogsRepoErrors::ErrorFetchingDataplaneTransferLog(
                 e.into(),
-            )),
+            )
+            .into_errors()),
         }
     }
 }

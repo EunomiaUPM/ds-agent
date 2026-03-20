@@ -30,6 +30,7 @@ use rainbow_common::facades::ssi_auth_facade::MatesFacadeTrait;
 use rainbow_common::http_client::HttpClient;
 use std::sync::Arc;
 use urn::Urn;
+use ymir::errors::Outcome;
 
 // ─── Contexts ─────────────────────────────────────────────────────────────────
 
@@ -110,7 +111,7 @@ pub(super) trait NegotiationRpcStep: Send + Sync + 'static {
     async fn validate(
         _validator: &Arc<dyn ValidationRpcSteps>,
         _input: &Self::Input,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         Ok(())
     }
 
@@ -124,7 +125,7 @@ pub(super) trait NegotiationRpcStep: Send + Sync + 'static {
         input: &Self::Input,
         persistence: &Arc<dyn NegotiationRpcPersistenceTrait>,
         mates_service: &Arc<dyn MatesFacadeTrait>,
-    ) -> anyhow::Result<Self::Context>;
+    ) -> Outcome<Self::Context>;
 
     /// Return the peer identifier string used for auth-token lookup.
     fn auth_peer(ctx: &Self::Context) -> &str;
@@ -140,7 +141,7 @@ pub(super) trait NegotiationRpcStep: Send + Sync + 'static {
         persistence: &Arc<dyn NegotiationRpcPersistenceTrait>,
         ctx: &Self::Context,
         input: &Self::Input,
-    ) -> anyhow::Result<(
+    ) -> Outcome<(
         NegotiationProcessMessageWrapper<NegotiationAckMessageDto>,
         NegotiationProcessDto,
     )>;
@@ -175,7 +176,7 @@ pub(super) trait NegotiationRpcStep: Send + Sync + 'static {
 pub(super) async fn resolve_continuation_context(
     consumer_pid: &Urn,
     persistence: &Arc<dyn NegotiationRpcPersistenceTrait>,
-) -> anyhow::Result<NegotiationRpcContinuationContext> {
+) -> Outcome<NegotiationRpcContinuationContext> {
     let process = persistence.fetch_process(consumer_pid.to_string().as_str()).await?;
 
     // The outgoing URL uses the *peer's* identifier (opposite of the local role).

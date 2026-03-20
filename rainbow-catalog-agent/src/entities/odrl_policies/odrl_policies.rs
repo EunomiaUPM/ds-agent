@@ -6,6 +6,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tracing::error;
 use urn::Urn;
+use ymir::errors::Outcome;
 
 pub struct OdrlPolicyEntities {
     repo: Arc<dyn CatalogAgentRepoTrait>,
@@ -27,7 +28,7 @@ impl OdrlPolicyEntityTrait for OdrlPolicyEntities {
         &self,
         limit: Option<u64>,
         page: Option<u64>,
-    ) -> anyhow::Result<Vec<OdrlPolicyDto>> {
+    ) -> Outcome<Vec<OdrlPolicyDto>> {
         // 1. Cache hit
         if let Ok(dtos) = self.cache.get_odrl_offer_cache().get_collection(limit, page).await {
             if !dtos.is_empty() {
@@ -40,8 +41,7 @@ impl OdrlPolicyEntityTrait for OdrlPolicyEntities {
             .repo
             .get_odrl_offer_repo()
             .get_all_odrl_offers(limit, page)
-            .await
-            .map_err(|e| CommonErrors::database_new(&e.to_string()))?;
+            .await?;
 
         let dtos: Vec<OdrlPolicyDto> = odrl_policies.into_iter().map(Into::into).collect();
 
@@ -57,7 +57,7 @@ impl OdrlPolicyEntityTrait for OdrlPolicyEntities {
         Ok(dtos)
     }
 
-    async fn get_batch_odrl_offers(&self, ids: &Vec<Urn>) -> anyhow::Result<Vec<OdrlPolicyDto>> {
+    async fn get_batch_odrl_offers(&self, ids: &Vec<Urn>) -> Outcome<Vec<OdrlPolicyDto>> {
         //  cache
         if let Ok(dtos) = self.cache.get_odrl_offer_cache().get_batch(ids).await {
             if !dtos.is_empty() {
@@ -70,8 +70,7 @@ impl OdrlPolicyEntityTrait for OdrlPolicyEntities {
             .repo
             .get_odrl_offer_repo()
             .get_batch_odrl_offers(ids)
-            .await
-            .map_err(|e| CommonErrors::database_new(&e.to_string()))?;
+            .await?;
 
         let dtos: Vec<OdrlPolicyDto> = odrl_policies.into_iter().map(Into::into).collect();
 
@@ -89,7 +88,7 @@ impl OdrlPolicyEntityTrait for OdrlPolicyEntities {
     async fn get_all_odrl_offers_by_entity(
         &self,
         entity: &Urn,
-    ) -> anyhow::Result<Vec<OdrlPolicyDto>> {
+    ) -> Outcome<Vec<OdrlPolicyDto>> {
         // cache
         if let Ok(dtos) =
             self.cache.get_odrl_offer_cache().get_by_relation("target", entity, None, None).await
@@ -104,8 +103,7 @@ impl OdrlPolicyEntityTrait for OdrlPolicyEntities {
             .repo
             .get_odrl_offer_repo()
             .get_all_odrl_offers_by_entity(entity)
-            .await
-            .map_err(|e| CommonErrors::database_new(&e.to_string()))?;
+            .await?;
 
         let dtos: Vec<OdrlPolicyDto> = odrl_policies.into_iter().map(Into::into).collect();
 
@@ -124,7 +122,7 @@ impl OdrlPolicyEntityTrait for OdrlPolicyEntities {
     async fn get_odrl_offer_by_id(
         &self,
         odrl_offer_id: &Urn,
-    ) -> anyhow::Result<Option<OdrlPolicyDto>> {
+    ) -> Outcome<Option<OdrlPolicyDto>> {
         // cache
         if let Ok(Some(dto)) = self.cache.get_odrl_offer_cache().get_single(odrl_offer_id).await {
             return Ok(Some(dto));
@@ -135,8 +133,7 @@ impl OdrlPolicyEntityTrait for OdrlPolicyEntities {
             .repo
             .get_odrl_offer_repo()
             .get_odrl_offer_by_id(odrl_offer_id)
-            .await
-            .map_err(|e| CommonErrors::database_new(&e.to_string()))?;
+            .await?;
 
         let dto: Option<OdrlPolicyDto> = odrl_policy.map(Into::into);
 
@@ -150,15 +147,14 @@ impl OdrlPolicyEntityTrait for OdrlPolicyEntities {
     async fn create_odrl_offer(
         &self,
         new_odrl_offer_model: &NewOdrlPolicyDto,
-    ) -> anyhow::Result<OdrlPolicyDto> {
+    ) -> Outcome<OdrlPolicyDto> {
         // db
         let new_model = new_odrl_offer_model.clone().into();
         let odrl_policy = self
             .repo
             .get_odrl_offer_repo()
             .create_odrl_offer(&new_model)
-            .await
-            .map_err(|e| CommonErrors::database_new(&e.to_string()))?;
+            .await?;
 
         let dto: OdrlPolicyDto = odrl_policy.into();
         let policy_id = Urn::from_str(dto.inner.id.as_str())?;
@@ -176,15 +172,14 @@ impl OdrlPolicyEntityTrait for OdrlPolicyEntities {
         Ok(dto)
     }
 
-    async fn delete_odrl_offer_by_id(&self, odrl_offer_id: &Urn) -> anyhow::Result<()> {
+    async fn delete_odrl_offer_by_id(&self, odrl_offer_id: &Urn) -> Outcome<()> {
         let current = self.get_odrl_offer_by_id(odrl_offer_id).await?;
 
         // db
         self.repo
             .get_odrl_offer_repo()
             .delete_odrl_offer_by_id(odrl_offer_id)
-            .await
-            .map_err(|e| CommonErrors::database_new(&e.to_string()))?;
+            .await?;
 
         // cache invalidation
         let cache = self.cache.get_odrl_offer_cache();
@@ -201,7 +196,7 @@ impl OdrlPolicyEntityTrait for OdrlPolicyEntities {
         Ok(())
     }
 
-    async fn delete_odrl_offers_by_entity(&self, entity_id: &Urn) -> anyhow::Result<()> {
+    async fn delete_odrl_offers_by_entity(&self, entity_id: &Urn) -> Outcome<()> {
         // db
         let current_policies = self.get_all_odrl_offers_by_entity(entity_id).await?;
 
@@ -209,8 +204,7 @@ impl OdrlPolicyEntityTrait for OdrlPolicyEntities {
         self.repo
             .get_odrl_offer_repo()
             .delete_odrl_offers_by_entity(entity_id)
-            .await
-            .map_err(|e| CommonErrors::database_new(&e.to_string()))?;
+            .await?;
 
         // invalidation
         let cache = self.cache.get_odrl_offer_cache();

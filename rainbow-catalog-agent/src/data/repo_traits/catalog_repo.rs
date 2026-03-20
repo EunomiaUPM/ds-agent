@@ -2,6 +2,7 @@ use crate::data::entities::catalog;
 use crate::data::entities::catalog::{EditCatalogModel, NewCatalogModel};
 use crate::data::repo_traits::catalog_db_errors::CatalogAgentRepoErrors;
 use urn::Urn;
+use ymir::errors::Outcome;
 
 #[async_trait::async_trait]
 pub trait CatalogRepositoryTrait: Send + Sync {
@@ -10,36 +11,36 @@ pub trait CatalogRepositoryTrait: Send + Sync {
         limit: Option<u64>,
         page: Option<u64>,
         with_main_catalog: bool,
-    ) -> anyhow::Result<Vec<catalog::Model>, CatalogAgentRepoErrors>;
+    ) -> Outcome<Vec<catalog::Model>>;
     async fn get_batch_catalogs(
         &self,
         ids: &Vec<Urn>,
-    ) -> anyhow::Result<Vec<catalog::Model>, CatalogAgentRepoErrors>;
+    ) -> Outcome<Vec<catalog::Model>>;
     async fn get_catalog_by_id(
         &self,
         catalog_id: &Urn,
-    ) -> anyhow::Result<Option<catalog::Model>, CatalogAgentRepoErrors>;
+    ) -> Outcome<Option<catalog::Model>>;
     async fn get_main_catalog(
         &self,
-    ) -> anyhow::Result<Option<catalog::Model>, CatalogAgentRepoErrors>;
+    ) -> Outcome<Option<catalog::Model>>;
 
     async fn put_catalog_by_id(
         &self,
         catalog_id: &Urn,
         edit_catalog_model: &EditCatalogModel,
-    ) -> anyhow::Result<catalog::Model, CatalogAgentRepoErrors>;
+    ) -> Outcome<catalog::Model>;
     async fn create_catalog(
         &self,
         new_catalog_model: &NewCatalogModel,
-    ) -> anyhow::Result<catalog::Model, CatalogAgentRepoErrors>;
+    ) -> Outcome<catalog::Model>;
 
     async fn create_main_catalog(
         &self,
         new_catalog_model: &NewCatalogModel,
-    ) -> anyhow::Result<catalog::Model, CatalogAgentRepoErrors>;
+    ) -> Outcome<catalog::Model>;
 
     async fn delete_catalog_by_id(
         &self,
         catalog_id: &Urn,
-    ) -> anyhow::Result<(), CatalogAgentRepoErrors>;
+    ) -> Outcome<()>;
 }

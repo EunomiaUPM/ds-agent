@@ -23,6 +23,7 @@ use crate::data::entities::agreement as agreement_model;
 use crate::data::entities::agreement::{EditAgreementModel, NewAgreementModel};
 use serde::{Deserialize, Serialize};
 use urn::Urn;
+use ymir::errors::Outcome;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -78,33 +79,33 @@ pub trait NegotiationAgentAgreementsTrait: Send + Sync + 'static {
         &self,
         limit: Option<u64>,
         page: Option<u64>,
-    ) -> anyhow::Result<Vec<AgreementDto>>;
+    ) -> Outcome<Vec<AgreementDto>>;
 
-    async fn get_batch_agreements(&self, ids: &Vec<Urn>) -> anyhow::Result<Vec<AgreementDto>>;
+    async fn get_batch_agreements(&self, ids: &Vec<Urn>) -> Outcome<Vec<AgreementDto>>;
 
-    async fn get_agreement_by_id(&self, id: &Urn) -> anyhow::Result<Option<AgreementDto>>;
+    async fn get_agreement_by_id(&self, id: &Urn) -> Outcome<Option<AgreementDto>>;
 
     async fn get_agreement_by_negotiation_process(
         &self,
         id: &Urn,
-    ) -> anyhow::Result<Option<AgreementDto>>;
+    ) -> Outcome<Option<AgreementDto>>;
 
     async fn get_agreement_by_negotiation_message(
         &self,
         id: &Urn,
-    ) -> anyhow::Result<Option<AgreementDto>>;
+    ) -> Outcome<Option<AgreementDto>>;
 
-    async fn get_agreements_by_assignee(&self, id: &String) -> anyhow::Result<Vec<AgreementDto>>;
+    async fn get_agreements_by_assignee(&self, id: &String) -> Outcome<Vec<AgreementDto>>;
 
-    async fn get_agreements_by_assigner(&self, id: &String) -> anyhow::Result<Vec<AgreementDto>>;
+    async fn get_agreements_by_assigner(&self, id: &String) -> Outcome<Vec<AgreementDto>>;
 
-    async fn create_agreement(&self, new_model: &NewAgreementDto) -> anyhow::Result<AgreementDto>;
+    async fn create_agreement(&self, new_model: &NewAgreementDto) -> Outcome<AgreementDto>;
 
     async fn put_agreement(
         &self,
         id: &Urn,
         edit_model: &EditAgreementDto,
-    ) -> anyhow::Result<AgreementDto>;
+    ) -> Outcome<AgreementDto>;
 
-    async fn delete_agreement(&self, id: &Urn) -> anyhow::Result<()>;
+    async fn delete_agreement(&self, id: &Urn) -> Outcome<()>;
 }

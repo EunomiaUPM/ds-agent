@@ -6,6 +6,7 @@ use sea_orm::{
 };
 use urn::{Urn, UrnBuilder};
 use uuid::Uuid;
+use ymir::errors::{Outcome, RepoIntoErrors};
 
 pub struct TransferEventRepoForSql {
     db_connection: DatabaseConnection,
@@ -22,7 +23,7 @@ impl TransferEventRepo for TransferEventRepoForSql {
         &self,
         limit: Option<u64>,
         page: Option<u64>,
-    ) -> anyhow::Result<Vec<transfer_event::Model>, TransferEventRepoErrors> {
+    ) -> Outcome<Vec<transfer_event::Model>> {
         let events = transfer_event::Entity::find()
             .limit(limit.unwrap_or(100))
             .offset(page.map(|p| p * limit.unwrap_or(100)).unwrap_or(0))
@@ -30,14 +31,14 @@ impl TransferEventRepo for TransferEventRepoForSql {
             .await;
         match events {
             Ok(events) => Ok(events),
-            Err(e) => Err(TransferEventRepoErrors::ErrorFetchingTransferEvent(e.into())),
+            Err(e) => Err(TransferEventRepoErrors::ErrorFetchingTransferEvent(e.into()).into_errors()),
         }
     }
 
     async fn get_batch_transfer_events(
         &self,
         ids: &Vec<Urn>,
-    ) -> anyhow::Result<Vec<transfer_event::Model>, TransferEventRepoErrors> {
+    ) -> Outcome<Vec<transfer_event::Model>> {
         let ids: Vec<String> = ids.iter().map(|urn| urn.to_string()).collect();
 
         let events = transfer_event::Entity::find()
@@ -47,14 +48,14 @@ impl TransferEventRepo for TransferEventRepoForSql {
 
         match events {
             Ok(events) => Ok(events),
-            Err(e) => Err(TransferEventRepoErrors::ErrorFetchingTransferEvent(e.into())),
+            Err(e) => Err(TransferEventRepoErrors::ErrorFetchingTransferEvent(e.into()).into_errors()),
         }
     }
 
     async fn get_all_transfer_events_by_process_id(
         &self,
         process_id: &Urn,
-    ) -> anyhow::Result<Vec<transfer_event::Model>, TransferEventRepoErrors> {
+    ) -> Outcome<Vec<transfer_event::Model>> {
         let process_id = process_id.to_string();
         let events = transfer_event::Entity::find()
             .filter(transfer_event::Column::TransferId.eq(process_id))
@@ -63,35 +64,35 @@ impl TransferEventRepo for TransferEventRepoForSql {
 
         match events {
             Ok(events) => Ok(events),
-            Err(e) => Err(TransferEventRepoErrors::ErrorFetchingTransferEvent(e.into())),
+            Err(e) => Err(TransferEventRepoErrors::ErrorFetchingTransferEvent(e.into()).into_errors()),
         }
     }
 
     async fn get_transfer_event_by_id(
         &self,
         transfer_event_urn: &Urn,
-    ) -> anyhow::Result<Option<transfer_event::Model>, TransferEventRepoErrors> {
+    ) -> Outcome<Option<transfer_event::Model>> {
         let transfer_event_urn = transfer_event_urn.to_string();
         let event =
             transfer_event::Entity::find_by_id(transfer_event_urn).one(&self.db_connection).await;
 
         match event {
             Ok(event) => Ok(event),
-            Err(e) => Err(TransferEventRepoErrors::ErrorFetchingTransferEvent(e.into())),
+            Err(e) => Err(TransferEventRepoErrors::ErrorFetchingTransferEvent(e.into()).into_errors()),
         }
     }
 
     async fn create_transfer_event(
         &self,
         new_transfer_event: &NewTransferEvent,
-    ) -> anyhow::Result<transfer_event::Model, TransferEventRepoErrors> {
+    ) -> Outcome<transfer_event::Model> {
         let model: transfer_event::ActiveModel = new_transfer_event.clone().into();
 
         let event =
             transfer_event::Entity::insert(model).exec_with_returning(&self.db_connection).await;
         match event {
             Ok(event) => Ok(event),
-            Err(e) => return Err(TransferEventRepoErrors::ErrorCreatingTransferEvent(e.into())),
+            Err(e) => return Err(TransferEventRepoErrors::ErrorCreatingTransferEvent(e.into()).into_errors()),
         }
     }
 }

@@ -25,6 +25,7 @@ use crate::protocols::dsp::protocol_types::{
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
 use rainbow_common::mates::mates::Mates;
 use std::sync::Arc;
+use ymir::errors::Outcome;
 
 // ─── Contexts ─────────────────────────────────────────────────────────────────
 
@@ -81,7 +82,7 @@ pub(super) trait NegotiationProtocolStep: Send + Sync + 'static {
         id: &str,
         input: &NegotiationProcessMessageWrapper<Self::Dto>,
         mate: &Mates,
-    ) -> anyhow::Result<()>;
+    ) -> Outcome<()>;
 
     /// Resolve or build the routing context for this step.
     ///
@@ -95,7 +96,7 @@ pub(super) trait NegotiationProtocolStep: Send + Sync + 'static {
         mate: &Mates,
         input: &NegotiationProcessMessageWrapper<Self::Dto>,
         persistence: &Arc<OrchestrationPersistenceForProtocol>,
-    ) -> anyhow::Result<(
+    ) -> Outcome<(
         Self::Context,
         Option<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>>,
     )>;
@@ -114,7 +115,7 @@ pub(super) trait NegotiationProtocolStep: Send + Sync + 'static {
         ctx: &Self::Context,
         input: &NegotiationProcessMessageWrapper<Self::Dto>,
         mate: &Mates,
-    ) -> anyhow::Result<NegotiationProcessDto>;
+    ) -> Outcome<NegotiationProcessDto>;
 }
 
 // ─── Shared helpers for continuation steps ────────────────────────────────────
@@ -127,7 +128,7 @@ pub(super) trait NegotiationProtocolStep: Send + Sync + 'static {
 pub(super) async fn continuation_prepare_context(
     id: &str,
     persistence: &Arc<OrchestrationPersistenceForProtocol>,
-) -> anyhow::Result<(
+) -> Outcome<(
     NegotiationContinuationContext,
     Option<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>>,
 )> {

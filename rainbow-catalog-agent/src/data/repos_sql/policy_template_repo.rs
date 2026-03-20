@@ -6,6 +6,7 @@ use crate::data::repo_traits::catalog_db_errors::{
 use crate::data::repo_traits::policy_template_repo::PolicyTemplatesRepositoryTrait;
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, QuerySelect};
 use urn::Urn;
+use ymir::errors::{Outcome, RepoIntoErrors};
 
 pub struct PolicyTemplatesRepositoryForSql {
     db_connection: DatabaseConnection,
@@ -23,7 +24,7 @@ impl PolicyTemplatesRepositoryTrait for PolicyTemplatesRepositoryForSql {
         &self,
         limit: Option<u64>,
         page: Option<u64>,
-    ) -> anyhow::Result<Vec<policy_template::Model>, CatalogAgentRepoErrors> {
+    ) -> Outcome<Vec<policy_template::Model>> {
         let page_limit = limit.unwrap_or(25);
         let page_number = page.unwrap_or(1);
         let calculated_offset = (page_number.max(1) - 1) * page_limit;
@@ -38,14 +39,15 @@ impl PolicyTemplatesRepositoryTrait for PolicyTemplatesRepositoryForSql {
             Ok(templates) => Ok(templates),
             Err(err) => Err(CatalogAgentRepoErrors::PolicyTemplatesRepoErrors(
                 PolicyTemplatesRepoErrors::ErrorFetchingPolicyTemplate(err.into()),
-            )),
+            )
+            .into_errors()),
         }
     }
 
     async fn get_batch_policy_templates(
         &self,
         ids: &Vec<String>,
-    ) -> anyhow::Result<Vec<policy_template::Model>, CatalogAgentRepoErrors> {
+    ) -> Outcome<Vec<policy_template::Model>> {
         let policy_ids = ids.clone();
         let policy_process = policy_template::Entity::find()
             .filter(policy_template::Column::Id.is_in(policy_ids))
@@ -55,14 +57,12 @@ impl PolicyTemplatesRepositoryTrait for PolicyTemplatesRepositoryForSql {
             Ok(odrl_process) => Ok(odrl_process),
             Err(err) => Err(CatalogAgentRepoErrors::PolicyTemplatesRepoErrors(
                 PolicyTemplatesRepoErrors::ErrorFetchingPolicyTemplate(err.into()),
-            )),
+            )
+            .into_errors()),
         }
     }
 
-    async fn get_policy_templates_by_id(
-        &self,
-        template_id: &String,
-    ) -> anyhow::Result<Vec<Model>, CatalogAgentRepoErrors> {
+    async fn get_policy_templates_by_id(&self, template_id: &String) -> Outcome<Vec<Model>> {
         let template_id = template_id.to_string();
         match policy_template::Entity::find()
             .filter(policy_template::Column::Id.eq(template_id))
@@ -72,7 +72,8 @@ impl PolicyTemplatesRepositoryTrait for PolicyTemplatesRepositoryForSql {
             Ok(template) => Ok(template),
             Err(err) => Err(CatalogAgentRepoErrors::PolicyTemplatesRepoErrors(
                 PolicyTemplatesRepoErrors::ErrorFetchingPolicyTemplate(err.into()),
-            )),
+            )
+            .into_errors()),
         }
     }
 
@@ -80,7 +81,7 @@ impl PolicyTemplatesRepositoryTrait for PolicyTemplatesRepositoryForSql {
         &self,
         template_id: &String,
         version: &String,
-    ) -> anyhow::Result<Option<Model>, CatalogAgentRepoErrors> {
+    ) -> Outcome<Option<Model>> {
         match policy_template::Entity::find_by_id((template_id.clone(), version.clone()))
             .one(&self.db_connection)
             .await
@@ -88,21 +89,23 @@ impl PolicyTemplatesRepositoryTrait for PolicyTemplatesRepositoryForSql {
             Ok(template) => Ok(template),
             Err(err) => Err(CatalogAgentRepoErrors::PolicyTemplatesRepoErrors(
                 PolicyTemplatesRepoErrors::ErrorFetchingPolicyTemplate(err.into()),
-            )),
+            )
+            .into_errors()),
         }
     }
 
     async fn create_policy_template(
         &self,
         new_policy_template: &NewPolicyTemplateModel,
-    ) -> anyhow::Result<policy_template::Model, CatalogAgentRepoErrors> {
+    ) -> Outcome<policy_template::Model> {
         let model: policy_template::ActiveModel = new_policy_template.into();
         match policy_template::Entity::insert(model).exec_with_returning(&self.db_connection).await
         {
             Ok(template) => Ok(template),
             Err(err) => Err(CatalogAgentRepoErrors::PolicyTemplatesRepoErrors(
                 PolicyTemplatesRepoErrors::ErrorCreatingPolicyTemplate(err.into()),
-            )),
+            )
+            .into_errors()),
         }
     }
 
@@ -110,7 +113,7 @@ impl PolicyTemplatesRepositoryTrait for PolicyTemplatesRepositoryForSql {
         &self,
         template_id: &String,
         version: &String,
-    ) -> anyhow::Result<(), CatalogAgentRepoErrors> {
+    ) -> Outcome<()> {
         match policy_template::Entity::delete_by_id((template_id.clone(), version.clone()))
             .exec(&self.db_connection)
             .await
@@ -118,12 +121,14 @@ impl PolicyTemplatesRepositoryTrait for PolicyTemplatesRepositoryForSql {
             Ok(delete_result) => match delete_result.rows_affected {
                 0 => Err(CatalogAgentRepoErrors::PolicyTemplatesRepoErrors(
                     PolicyTemplatesRepoErrors::PolicyTemplateNotFound,
-                )),
+                )
+                .into_errors()),
                 _ => Ok(()),
             },
             Err(err) => Err(CatalogAgentRepoErrors::PolicyTemplatesRepoErrors(
                 PolicyTemplatesRepoErrors::ErrorDeletingPolicyTemplate(err.into()),
-            )),
+            )
+            .into_errors()),
         }
     }
 }

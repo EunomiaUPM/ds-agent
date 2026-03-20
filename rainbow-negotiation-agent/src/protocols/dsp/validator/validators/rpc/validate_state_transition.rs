@@ -22,10 +22,10 @@ use crate::protocols::dsp::protocol_types::{
 };
 use crate::protocols::dsp::validator::traits::validate_state_transition::ValidateStateTransition;
 use crate::protocols::dsp::validator::traits::validation_helpers::ValidationHelpers;
-use anyhow::bail;
 use log::error;
 use rainbow_common::config::types::roles::RoleConfig;
 use rainbow_common::errors::{CommonErrors, ErrorLog};
+use ymir::errors::{Errors, Outcome};
 use std::sync::Arc;
 
 pub struct ValidatedStateTransitionServiceForRcp {
@@ -42,7 +42,7 @@ impl ValidateStateTransition for ValidatedStateTransitionServiceForRcp {
         &self,
         _role: &RoleConfig,
         _message_type: &NegotiationProcessMessageType,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         Ok(())
     }
 
@@ -50,7 +50,7 @@ impl ValidateStateTransition for ValidatedStateTransitionServiceForRcp {
         &self,
         _current_state: &NegotiationProcessState,
         _message_type: &NegotiationProcessMessageType,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         Ok(())
     }
 }
@@ -58,7 +58,7 @@ impl ValidateStateTransition for ValidatedStateTransitionServiceForRcp {
 fn validate_state_transition_error_helper(
     current_state: &NegotiationProcessState,
     message_type: &NegotiationProcessMessageType,
-) -> anyhow::Result<()> {
+) -> Outcome<()> {
     let err = CommonErrors::parse_new(
         format!(
             "NegotiationProcessMessageType {} is not allowed here. Current state is {}",
@@ -68,5 +68,5 @@ fn validate_state_transition_error_helper(
         .as_str(),
     );
     error!("{}", err.log());
-    bail!(err)
+    Err(Errors::parse(err.to_string().as_str(), None))
 }

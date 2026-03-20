@@ -21,8 +21,8 @@ use crate::data::entities::negotiation_process;
 use crate::data::entities::negotiation_process::{
     EditNegotiationProcessModel, NewNegotiationProcessModel,
 };
-use anyhow::Error;
 use thiserror::Error;
+use ymir::errors::Outcome;
 use urn::Urn;
 use ymir::errors::RepoIntoErrors;
 
@@ -32,37 +32,37 @@ pub trait NegotiationProcessRepoTrait: Send + Sync {
         &self,
         limit: Option<u64>,
         page: Option<u64>,
-    ) -> anyhow::Result<Vec<negotiation_process::Model>, NegotiationProcessRepoErrors>;
+    ) -> Outcome<Vec<negotiation_process::Model>>;
     async fn get_batch_negotiation_processes(
         &self,
         ids: &Vec<Urn>,
-    ) -> anyhow::Result<Vec<negotiation_process::Model>, NegotiationProcessRepoErrors>;
+    ) -> Outcome<Vec<negotiation_process::Model>>;
     async fn get_negotiation_process_by_id(
         &self,
         id: &Urn,
-    ) -> anyhow::Result<Option<negotiation_process::Model>, NegotiationProcessRepoErrors>;
+    ) -> Outcome<Option<negotiation_process::Model>>;
     async fn get_negotiation_process_by_key_id(
         &self,
         key_id: &str,
         id: &Urn,
-    ) -> anyhow::Result<Option<negotiation_process::Model>, NegotiationProcessRepoErrors>;
+    ) -> Outcome<Option<negotiation_process::Model>>;
     async fn get_negotiation_process_by_key_value(
         &self,
         id: &Urn,
-    ) -> anyhow::Result<Option<negotiation_process::Model>, NegotiationProcessRepoErrors>;
+    ) -> Outcome<Option<negotiation_process::Model>>;
     async fn create_negotiation_process(
         &self,
         new_model: &NewNegotiationProcessModel,
-    ) -> anyhow::Result<negotiation_process::Model, NegotiationProcessRepoErrors>;
+    ) -> Outcome<negotiation_process::Model>;
     async fn put_negotiation_process(
         &self,
         id: &Urn,
         edit_model: &EditNegotiationProcessModel,
-    ) -> anyhow::Result<negotiation_process::Model, NegotiationProcessRepoErrors>;
+    ) -> Outcome<negotiation_process::Model>;
     async fn delete_negotiation_process(
         &self,
         id: &Urn,
-    ) -> anyhow::Result<(), NegotiationProcessRepoErrors>;
+    ) -> Outcome<()>;
 }
 
 #[derive(Debug, Error)]
@@ -70,13 +70,13 @@ pub enum NegotiationProcessRepoErrors {
     #[error("Negotiation Process not found")]
     NegotiationProcessNotFound,
     #[error("Error fetching negotiation process. {0}")]
-    ErrorFetchingNegotiationProcess(Error),
+    ErrorFetchingNegotiationProcess(Box<dyn std::error::Error + Send + Sync>),
     #[error("Error creating negotiation process. {0}")]
-    ErrorCreatingNegotiationProcess(Error),
+    ErrorCreatingNegotiationProcess(Box<dyn std::error::Error + Send + Sync>),
     #[error("Error deleting negotiation process. {0}")]
-    ErrorDeletingNegotiationProcess(Error),
+    ErrorDeletingNegotiationProcess(Box<dyn std::error::Error + Send + Sync>),
     #[error("Error updating negotiation process. {0}")]
-    ErrorUpdatingNegotiationProcess(Error),
+    ErrorUpdatingNegotiationProcess(Box<dyn std::error::Error + Send + Sync>),
 }
 
 impl RepoIntoErrors for NegotiationProcessRepoErrors {}

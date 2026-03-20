@@ -26,6 +26,7 @@ use crate::entities::parameters::ParameterDefinition;
 use sea_orm::prelude::DateTimeWithTimeZone;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use ymir::errors::{Errors, Outcome};
 
 /// Display and versioning metadata for a connector template.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -51,9 +52,9 @@ pub struct ConnectorTemplateDto {
 }
 
 impl TryFrom<ConnectorTemplateDto> for NewConnectorTemplateModel {
-    type Error = anyhow::Error;
+    type Error = Errors;
 
-    fn try_from(value: ConnectorTemplateDto) -> Result<Self, Self::Error> {
+    fn try_from(value: ConnectorTemplateDto) -> Outcome<Self> {
         let authentication = serde_json::to_value(value.authentication)?;
         let interaction = serde_json::to_value(value.interaction)?;
         let parameters = serde_json::to_value(value.parameters)?;
@@ -77,23 +78,23 @@ pub trait ConnectorTemplateEntitiesTrait: Send + Sync {
         &self,
         limit: Option<u64>,
         page: Option<u64>,
-    ) -> anyhow::Result<Vec<ConnectorTemplateDto>>;
+    ) -> Outcome<Vec<ConnectorTemplateDto>>;
     async fn get_templates_by_id(
         &self,
         template_id: &String,
-    ) -> anyhow::Result<Vec<ConnectorTemplateDto>>;
+    ) -> Outcome<Vec<ConnectorTemplateDto>>;
     async fn get_template_by_name_and_version(
         &self,
         name: &String,
         version: &String,
-    ) -> anyhow::Result<Option<ConnectorTemplateDto>>;
+    ) -> Outcome<Option<ConnectorTemplateDto>>;
     async fn create_template(
         &self,
         new_template: &mut ConnectorTemplateDto,
-    ) -> anyhow::Result<ConnectorTemplateDto>;
+    ) -> Outcome<ConnectorTemplateDto>;
     async fn delete_template_by_name_and_version(
         &self,
         name: &String,
         version: &String,
-    ) -> anyhow::Result<()>;
+    ) -> Outcome<()>;
 }

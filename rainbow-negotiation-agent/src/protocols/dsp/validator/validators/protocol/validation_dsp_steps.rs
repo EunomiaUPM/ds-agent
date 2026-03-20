@@ -28,6 +28,7 @@ use crate::protocols::dsp::validator::traits::validate_state_transition::Validat
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
 use crate::protocols::dsp::validator::traits::validation_helpers::ValidationHelpers;
 use std::sync::Arc;
+use ymir::errors::Outcome;
 
 pub struct ValidationDspStepsService {
     payload_validator: Arc<dyn ValidatePayload>,
@@ -49,7 +50,7 @@ impl ValidationDspSteps for ValidationDspStepsService {
     async fn on_contract_request_init(
         &self,
         input: &NegotiationProcessMessageWrapper<NegotiationRequestInitMessageDto>,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         self.payload_validator.validate_with_json_schema(&input.dto).await?;
         self.payload_validator.validate_identifiers_as_urn(&input.dto).await?;
         self.payload_validator.validate_auth(&input.dto).await?;
@@ -60,7 +61,7 @@ impl ValidationDspSteps for ValidationDspStepsService {
         &self,
         uri_id: &String,
         input: &NegotiationProcessMessageWrapper<NegotiationRequestMessageDto>,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         let dto = self.helpers.get_current_dto_from_payload(&input.dto).await?;
         let role = self.helpers.get_role_from_dto(&dto).await?;
         let message_type = input._type.clone();
@@ -82,7 +83,7 @@ impl ValidationDspSteps for ValidationDspStepsService {
     async fn on_contract_offer_init(
         &self,
         input: &NegotiationProcessMessageWrapper<NegotiationOfferInitMessageDto>,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         self.payload_validator.validate_with_json_schema(&input.dto).await?;
         self.payload_validator.validate_identifiers_as_urn(&input.dto).await?;
         self.payload_validator.validate_auth(&input.dto).await?;
@@ -93,7 +94,7 @@ impl ValidationDspSteps for ValidationDspStepsService {
         &self,
         uri_id: &String,
         input: &NegotiationProcessMessageWrapper<NegotiationOfferMessageDto>,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         let dto = self.helpers.get_current_dto_from_payload(&input.dto).await?;
         let role = self.helpers.get_role_from_dto(&dto).await?;
         let message_type = input._type.clone();
@@ -116,7 +117,7 @@ impl ValidationDspSteps for ValidationDspStepsService {
         &self,
         uri_id: &String,
         input: &NegotiationProcessMessageWrapper<NegotiationAgreementMessageDto>,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         let dto = self.helpers.get_current_dto_from_payload(&input.dto).await?;
         let role = self.helpers.get_role_from_dto(&dto).await?;
         let message_type = input._type.clone();
@@ -139,7 +140,7 @@ impl ValidationDspSteps for ValidationDspStepsService {
         &self,
         uri_id: &String,
         input: &NegotiationProcessMessageWrapper<NegotiationVerificationMessageDto>,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         let dto = self.helpers.get_current_dto_from_payload(&input.dto).await?;
         let role = self.helpers.get_role_from_dto(&dto).await?;
         let message_type = input._type.clone();
@@ -162,7 +163,7 @@ impl ValidationDspSteps for ValidationDspStepsService {
         &self,
         uri_id: &String,
         input: &NegotiationProcessMessageWrapper<NegotiationEventMessageDto>,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         let dto = self.helpers.get_current_dto_from_payload(&input.dto).await?;
         let role = self.helpers.get_role_from_dto(&dto).await?;
         let message_type = input._type.clone();
@@ -185,7 +186,7 @@ impl ValidationDspSteps for ValidationDspStepsService {
         &self,
         uri_id: &String,
         input: &NegotiationProcessMessageWrapper<NegotiationTerminationMessageDto>,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         let dto = self.helpers.get_current_dto_from_payload(&input.dto).await?;
         let role = self.helpers.get_role_from_dto(&dto).await?;
         let message_type = input._type.clone();

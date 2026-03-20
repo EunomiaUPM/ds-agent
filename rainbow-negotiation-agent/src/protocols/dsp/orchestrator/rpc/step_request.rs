@@ -29,7 +29,7 @@ use crate::protocols::dsp::protocol_types::{
     NegotiationAckMessageDto, NegotiationProcessMessageWrapper, NegotiationRequestMessageDto,
 };
 use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRpcSteps;
-use anyhow::anyhow;
+use ymir::errors::{Errors, Outcome};
 use rainbow_common::facades::ssi_auth_facade::MatesFacadeTrait;
 use rainbow_common::http_client::HttpClient;
 use std::str::FromStr;
@@ -52,7 +52,7 @@ impl NegotiationRpcStep for RpcRequestStep {
     async fn validate(
         validator: &Arc<dyn ValidationRpcSteps>,
         input: &RpcNegotiationRequestMessageDto,
-    ) -> anyhow::Result<()> {
+    ) -> Outcome<()> {
         validator.negotiation_request_rpc(input).await
     }
 
@@ -60,10 +60,10 @@ impl NegotiationRpcStep for RpcRequestStep {
         input: &RpcNegotiationRequestMessageDto,
         persistence: &Arc<dyn NegotiationRpcPersistenceTrait>,
         _mates_service: &Arc<dyn MatesFacadeTrait>,
-    ) -> anyhow::Result<NegotiationRpcContinuationContext> {
+    ) -> Outcome<NegotiationRpcContinuationContext> {
         let id = input
             .get_consumer_pid()
-            .ok_or_else(|| anyhow!("RpcRequestStep: missing consumer PID"))?;
+            .ok_or_else(|| Errors::parse("RpcRequestStep: missing consumer PID", None))?;
         resolve_continuation_context(&id, persistence).await
     }
 
@@ -76,7 +76,7 @@ impl NegotiationRpcStep for RpcRequestStep {
         persistence: &Arc<dyn NegotiationRpcPersistenceTrait>,
         ctx: &NegotiationRpcContinuationContext,
         input: &RpcNegotiationRequestMessageDto,
-    ) -> anyhow::Result<(
+    ) -> Outcome<(
         NegotiationProcessMessageWrapper<NegotiationAckMessageDto>,
         NegotiationProcessDto,
     )> {
@@ -90,7 +90,7 @@ impl NegotiationRpcStep for RpcRequestStep {
 
         let id = input
             .get_consumer_pid()
-            .ok_or_else(|| anyhow!("RpcRequestStep: missing consumer PID"))?;
+            .ok_or_else(|| Errors::parse("RpcRequestStep: missing consumer PID", None))?;
         let process = persistence
             .update_with_offer(id.to_string().as_str(), input, &request_body.dto, &response.dto)
             .await?;

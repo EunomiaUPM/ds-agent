@@ -1,3 +1,4 @@
+use ymir::errors::Outcome;
 use crate::protocols::dsp::orchestrator::rpc::types::{
     RpcCatalogRequestMessageDto, RpcCatalogResponseMessageDto, RpcDatasetRequestMessageDto,
 };
@@ -14,10 +15,10 @@ pub trait RPCOrchestratorTrait: Send + Sync + 'static {
     async fn setup_catalog_request_rpc(
         &self,
         input: &RpcCatalogRequestMessageDto,
-    ) -> anyhow::Result<RpcCatalogResponseMessageDto<RpcCatalogRequestMessageDto, Catalog>>;
+    ) -> Outcome<RpcCatalogResponseMessageDto<RpcCatalogRequestMessageDto, Catalog>>;
 
     async fn setup_dataset_request_rpc(
         &self,
         input: &RpcDatasetRequestMessageDto,
-    ) -> anyhow::Result<RpcCatalogResponseMessageDto<RpcDatasetRequestMessageDto, Dataset>>;
+    ) -> Outcome<RpcCatalogResponseMessageDto<RpcDatasetRequestMessageDto, Dataset>>;
 }

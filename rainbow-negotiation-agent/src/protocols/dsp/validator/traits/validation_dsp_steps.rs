@@ -22,45 +22,46 @@ use crate::protocols::dsp::protocol_types::{
     NegotiationRequestMessageDto, NegotiationTerminationMessageDto,
     NegotiationVerificationMessageDto,
 };
+use ymir::errors::Outcome;
 
 #[async_trait::async_trait]
 pub trait ValidationDspSteps: Send + Sync + 'static {
     async fn on_contract_request_init(
         &self,
         input: &NegotiationProcessMessageWrapper<NegotiationRequestInitMessageDto>,
-    ) -> anyhow::Result<()>;
+    ) -> Outcome<()>;
     async fn on_contract_request(
         &self,
         uri_id: &String,
         input: &NegotiationProcessMessageWrapper<NegotiationRequestMessageDto>,
-    ) -> anyhow::Result<()>;
+    ) -> Outcome<()>;
     async fn on_contract_offer_init(
         &self,
         input: &NegotiationProcessMessageWrapper<NegotiationOfferInitMessageDto>,
-    ) -> anyhow::Result<()>;
+    ) -> Outcome<()>;
     async fn on_contract_offer(
         &self,
         uri_id: &String,
         input: &NegotiationProcessMessageWrapper<NegotiationOfferMessageDto>,
-    ) -> anyhow::Result<()>;
+    ) -> Outcome<()>;
     async fn on_contract_agreement(
         &self,
         uri_id: &String,
         input: &NegotiationProcessMessageWrapper<NegotiationAgreementMessageDto>,
-    ) -> anyhow::Result<()>;
+    ) -> Outcome<()>;
     async fn on_contract_agreement_verification(
         &self,
         uri_id: &String,
         input: &NegotiationProcessMessageWrapper<NegotiationVerificationMessageDto>,
-    ) -> anyhow::Result<()>;
+    ) -> Outcome<()>;
     async fn on_contract_event(
         &self,
         uri_id: &String,
         input: &NegotiationProcessMessageWrapper<NegotiationEventMessageDto>,
-    ) -> anyhow::Result<()>;
+    ) -> Outcome<()>;
     async fn on_contract_termination(
         &self,
         uri_id: &String,
         input: &NegotiationProcessMessageWrapper<NegotiationTerminationMessageDto>,
-    ) -> anyhow::Result<()>;
+    ) -> Outcome<()>;
 }

@@ -9,6 +9,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tracing::error;
 use urn::Urn;
+use ymir::errors::Outcome;
 
 pub struct DistributionEntities {
     repo: Arc<dyn CatalogAgentRepoTrait>,
@@ -30,7 +31,7 @@ impl DistributionEntityTrait for DistributionEntities {
         &self,
         limit: Option<u64>,
         page: Option<u64>,
-    ) -> anyhow::Result<Vec<DistributionDto>> {
+    ) -> Outcome<Vec<DistributionDto>> {
         // cache
         if let Ok(dtos) = self.cache.get_distribution_cache().get_collection(limit, page).await {
             if !dtos.is_empty() {
@@ -43,8 +44,7 @@ impl DistributionEntityTrait for DistributionEntities {
             .repo
             .get_distribution_repo()
             .get_all_distributions(limit, page)
-            .await
-            .map_err(|e| CommonErrors::database_new(&e.to_string()))?;
+            .await?;
 
         let dtos: Vec<DistributionDto> = distributions.into_iter().map(Into::into).collect();
 
@@ -63,7 +63,7 @@ impl DistributionEntityTrait for DistributionEntities {
     async fn get_batch_distributions(
         &self,
         ids: &Vec<Urn>,
-    ) -> anyhow::Result<Vec<DistributionDto>> {
+    ) -> Outcome<Vec<DistributionDto>> {
         // cache
         if let Ok(dtos) = self.cache.get_distribution_cache().get_batch(ids).await {
             if !dtos.is_empty() {
@@ -76,8 +76,7 @@ impl DistributionEntityTrait for DistributionEntities {
             .repo
             .get_distribution_repo()
             .get_batch_distributions(ids)
-            .await
-            .map_err(|e| CommonErrors::database_new(&e.to_string()))?;
+            .await?;
 
         let dtos: Vec<DistributionDto> = distributions.into_iter().map(Into::into).collect();
 
@@ -95,7 +94,7 @@ impl DistributionEntityTrait for DistributionEntities {
     async fn get_distributions_by_dataset_id(
         &self,
         dataset_id: &Urn,
-    ) -> anyhow::Result<Vec<DistributionDto>> {
+    ) -> Outcome<Vec<DistributionDto>> {
         // cache
         if let Ok(dtos) = self
             .cache
@@ -113,8 +112,7 @@ impl DistributionEntityTrait for DistributionEntities {
             .repo
             .get_distribution_repo()
             .get_distributions_by_dataset_id(dataset_id)
-            .await
-            .map_err(|e| CommonErrors::database_new(&e.to_string()))?;
+            .await?;
 
         let dtos: Vec<DistributionDto> = distributions.into_iter().map(Into::into).collect();
 
@@ -135,13 +133,12 @@ impl DistributionEntityTrait for DistributionEntities {
         &self,
         dataset_id: &Urn,
         dct_formats: &String,
-    ) -> anyhow::Result<DistributionDto> {
+    ) -> Outcome<DistributionDto> {
         let distribution = self
             .repo
             .get_distribution_repo()
             .get_distribution_by_dataset_id_and_dct_format(dataset_id, dct_formats)
-            .await
-            .map_err(|e| CommonErrors::database_new(&e.to_string()))?;
+            .await?;
 
         let dto: DistributionDto = distribution.into();
 
@@ -156,7 +153,7 @@ impl DistributionEntityTrait for DistributionEntities {
     async fn get_distribution_by_id(
         &self,
         distribution_id: &Urn,
-    ) -> anyhow::Result<Option<DistributionDto>> {
+    ) -> Outcome<Option<DistributionDto>> {
         // Cache
         if let Ok(Some(dto)) = self.cache.get_distribution_cache().get_single(distribution_id).await
         {
@@ -168,8 +165,7 @@ impl DistributionEntityTrait for DistributionEntities {
             .repo
             .get_distribution_repo()
             .get_distribution_by_id(distribution_id)
-            .await
-            .map_err(|e| CommonErrors::database_new(&e.to_string()))?;
+            .await?;
 
         let dto: Option<DistributionDto> = distribution.map(Into::into);
 
@@ -188,14 +184,13 @@ impl DistributionEntityTrait for DistributionEntities {
         &self,
         distribution_id: &Urn,
         edit_distribution_model: &EditDistributionDto,
-    ) -> anyhow::Result<DistributionDto> {
+    ) -> Outcome<DistributionDto> {
         let edit_model = edit_distribution_model.clone().into();
         let distribution = self
             .repo
             .get_distribution_repo()
             .put_distribution_by_id(distribution_id, &edit_model)
-            .await
-            .map_err(|e| CommonErrors::database_new(&e.to_string()))?;
+            .await?;
 
         let dto: DistributionDto = distribution.into();
         let dist_urn = Urn::from_str(dto.inner.id.as_str())?;
@@ -211,14 +206,13 @@ impl DistributionEntityTrait for DistributionEntities {
     async fn create_distribution(
         &self,
         new_distribution_model: &NewDistributionDto,
-    ) -> anyhow::Result<DistributionDto> {
+    ) -> Outcome<DistributionDto> {
         let new_model = new_distribution_model.clone().into();
         let distribution = self
             .repo
             .get_distribution_repo()
             .create_distribution(&new_model)
-            .await
-            .map_err(|e| CommonErrors::database_new(&e.to_string()))?;
+            .await?;
 
         let dto: DistributionDto = distribution.into();
         let dist_urn = Urn::from_str(dto.inner.id.as_str())?;
@@ -237,15 +231,14 @@ impl DistributionEntityTrait for DistributionEntities {
         Ok(dto)
     }
 
-    async fn delete_distribution_by_id(&self, distribution_id: &Urn) -> anyhow::Result<()> {
+    async fn delete_distribution_by_id(&self, distribution_id: &Urn) -> Outcome<()> {
         let current = self.get_distribution_by_id(distribution_id).await?;
 
         // db
         self.repo
             .get_distribution_repo()
             .delete_distribution_by_id(distribution_id)
-            .await
-            .map_err(|e| CommonErrors::database_new(&e.to_string()))?;
+            .await?;
 
         // cache invalidation
         let cache = self.cache.get_distribution_cache();

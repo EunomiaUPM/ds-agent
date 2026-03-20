@@ -8,6 +8,7 @@ use crate::OdrlPolicyDto;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use urn::Urn;
+use ymir::errors::Outcome;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -26,5 +27,5 @@ pub trait PolicyInstantiationTrait: Send + Sync {
     async fn instantiate_policy(
         &self,
         instantiation_request: &NewPolicyInstantiationDto,
-    ) -> anyhow::Result<OdrlPolicyDto>;
+    ) -> Outcome<OdrlPolicyDto>;
 }

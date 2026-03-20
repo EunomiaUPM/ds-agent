@@ -22,6 +22,7 @@ use rainbow_common::utils::get_urn_from_string;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use urn::Urn;
+use ymir::errors::{Errors, Outcome};
 
 #[derive(Serialize, Deserialize)]
 pub struct RainbowEventsNotificationResponse {
@@ -41,9 +42,9 @@ pub struct RainbowEventsNotificationResponse {
 }
 
 impl TryFrom<notification::Model> for RainbowEventsNotificationResponse {
-    type Error = anyhow::Error;
+    type Error = Errors;
 
-    fn try_from(value: notification::Model) -> anyhow::Result<Self> {
+    fn try_from(value: notification::Model) -> Outcome<Self> {
         Ok(Self {
             id: get_urn_from_string(&value.id)?,
             timestamp: value.timestamp,

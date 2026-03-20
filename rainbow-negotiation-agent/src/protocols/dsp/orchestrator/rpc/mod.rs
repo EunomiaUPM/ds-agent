@@ -23,6 +23,7 @@ use crate::protocols::dsp::orchestrator::rpc::types::{
     RpcNegotiationRequestInitMessageDto, RpcNegotiationRequestMessageDto,
     RpcNegotiationTerminationMessageDto, RpcNegotiationVerificationMessageDto,
 };
+use ymir::errors::Outcome;
 
 pub(crate) mod rpc;
 pub(crate) mod types;
@@ -47,37 +48,37 @@ pub trait RPCOrchestratorTrait: Send + Sync + 'static {
     async fn setup_negotiation_request_init_rpc(
         &self,
         input: &RpcNegotiationRequestInitMessageDto,
-    ) -> anyhow::Result<RpcNegotiationMessageDto<RpcNegotiationRequestInitMessageDto>>;
+    ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationRequestInitMessageDto>>;
     async fn setup_negotiation_request_rpc(
         &self,
         input: &RpcNegotiationRequestMessageDto,
-    ) -> anyhow::Result<RpcNegotiationMessageDto<RpcNegotiationRequestMessageDto>>;
+    ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationRequestMessageDto>>;
     async fn setup_negotiation_offer_init_rpc(
         &self,
         input: &RpcNegotiationOfferInitMessageDto,
-    ) -> anyhow::Result<RpcNegotiationMessageDto<RpcNegotiationOfferInitMessageDto>>;
+    ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationOfferInitMessageDto>>;
     async fn setup_negotiation_offer_rpc(
         &self,
         input: &RpcNegotiationOfferMessageDto,
-    ) -> anyhow::Result<RpcNegotiationMessageDto<RpcNegotiationOfferMessageDto>>;
+    ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationOfferMessageDto>>;
     async fn setup_negotiation_agreement_rpc(
         &self,
         input: &RpcNegotiationAgreementMessageDto,
-    ) -> anyhow::Result<RpcNegotiationMessageDto<RpcNegotiationAgreementMessageDto>>;
+    ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationAgreementMessageDto>>;
     async fn setup_negotiation_agreement_verification_rpc(
         &self,
         input: &RpcNegotiationVerificationMessageDto,
-    ) -> anyhow::Result<RpcNegotiationMessageDto<RpcNegotiationVerificationMessageDto>>;
+    ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationVerificationMessageDto>>;
     async fn setup_negotiation_event_accepted_rpc(
         &self,
         input: &RpcNegotiationEventAcceptedMessageDto,
-    ) -> anyhow::Result<RpcNegotiationMessageDto<RpcNegotiationEventAcceptedMessageDto>>;
+    ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationEventAcceptedMessageDto>>;
     async fn setup_negotiation_event_finalized_rpc(
         &self,
         input: &RpcNegotiationEventFinalizedMessageDto,
-    ) -> anyhow::Result<RpcNegotiationMessageDto<RpcNegotiationEventFinalizedMessageDto>>;
+    ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationEventFinalizedMessageDto>>;
     async fn setup_negotiation_termination_rpc(
         &self,
         input: &RpcNegotiationTerminationMessageDto,
-    ) -> anyhow::Result<RpcNegotiationMessageDto<RpcNegotiationTerminationMessageDto>>;
+    ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationTerminationMessageDto>>;
 }

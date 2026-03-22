@@ -11,7 +11,6 @@
   "license": "ISC",
   "workspaces": [
     "admin",
-    "business",
     "shared"
   ],
   "dependencies": {

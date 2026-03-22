@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
-  title: Rainbow Catalog Agent API - Entity Management
-  description: OpenAPI specification for the Rainbow Catalog Agent Entity Management endpoints.
+  title: Eunomia DS Catalog Agent API - Entity Management
+  description: OpenAPI specification for the Eunomia DS Catalog Agent Entity Management endpoints.
   version: 1.0.0
 servers:
   - url: /v1/catalog-agent

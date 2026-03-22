@@ -1,5 +1,5 @@
 version: "3.8"
-name: "rainbow-dev"
+name: "eunomia-ds-agent-dev"
 
 # ====================================================================
 # REUSABLE TEMPLATES (DRY)
@@ -40,7 +40,7 @@ x-vault-base: &vault-base
       }
 
 x-vault-setup-base: &vault-setup-base
-  image: dwdraju/alpine-curl-jq
+  image: alpine/openssl
   volumes:
     - ./vault/vault-setup.sh:/vault-setup.sh
     - ./vault/vault-init.sh:/vault-init.sh
@@ -207,12 +207,13 @@ services:
       - ./vault/vault-init.sh:/vault-init.sh
 
   heimdall_secrets_setup:
-    image: alpine:latest
+    image: alpine/openssl
     container_name: heimdall_secrets_setup
     volumes:
       - ../static/vault/authority/secrets:/secrets
       - ./vault/secrets-gen.sh:/secrets-gen.sh
-    command: sh -c "apk add --no-cache openssl && /secrets-gen.sh /secrets authority"
+    entrypoint: [ "sh", "-c" ]
+    command: [ "/secrets-gen.sh /secrets authority" ]
 
   heimdall-db:
     <<: *postgres-base
@@ -241,6 +242,8 @@ services:
         condition: service_healthy
       heimdall-vault:
         condition: service_started
+      heimdall_vault_setup:
+        condition: service_completed_successfully
     env_file:
       - ../static/vault/authority/data/vault.env
     environment:

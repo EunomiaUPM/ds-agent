@@ -1,3 +1,0 @@
-[submodule "static/datahub_dockerized"]
-	path = static/datahub_dockerized
-	url = https://github.com/pvinualese/datahub_dockerized.git

@@ -1,0 +1,106 @@
+/*
+ * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+//! Connector instance DTOs and the instance service trait.
+//!
+//! A *connector instance* is a resolved, distribution-specific configuration
+//! derived from a connector template by binding concrete parameter values.
+//!
+//! # Lifecycle
+//!
+//! 1. A caller submits a [`ConnectorInstantiationDto`] that names the template
+//!    and supplies parameter values.
+//! 2. [`ConnectorInstanceTrait::upsert_instance`] validates the parameters,
+//!    enriches them with system defaults, resolves all `{{__PARAM__}}`
+//!    placeholders, and persists the result.
+//! 3. The resolved [`ConnectorInstanceDto`] is returned and stored in the
+//!    database for the dataplane to query at transfer time.
+
+pub mod service;
+
+use crate::entities::auth_config::AuthenticationConfig;
+use crate::entities::connector_template::ConnectorMetadata;
+use crate::entities::interaction::InteractionConfig;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use urn::Urn;
+use ymir::errors::Outcome;
+
+/// Request payload for creating or updating a connector instance.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConnectorInstantiationDto {
+    /// Name of the connector template to instantiate.
+    pub template_name: String,
+    /// Version of the connector template.
+    pub template_version: String,
+    /// Distribution this instance belongs to.
+    pub distribution_id: Urn,
+    /// User-supplied parameter values.  Missing required parameters cause a
+    /// validation error; parameters not declared in the template are silently
+    /// ignored.
+    pub parameters: HashMap<String, serde_json::Value>,
+    /// Optional display metadata.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<InstanceMetadataDto>,
+    /// When `true` the instance is fully resolved and validated but **not**
+    /// persisted.  Used for pre-flight checks.
+    #[serde(default)]
+    pub dry_run: bool,
+}
+
+/// Optional human-readable metadata attached to a connector instance.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InstanceMetadataDto {
+    pub description: Option<String>,
+    pub owner_id: Option<String>,
+}
+
+/// A fully resolved connector instance ready for use by the dataplane.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConnectorInstanceDto {
+    pub id: Urn,
+    #[serde(flatten)]
+    pub metadata: ConnectorMetadata,
+    /// Resolved authentication configuration (all placeholders substituted).
+    pub authentication_config: AuthenticationConfig,
+    /// Resolved interaction configuration (all placeholders substituted).
+    pub interaction: InteractionConfig,
+    pub distribution_id: Urn,
+}
+
+/// Service interface for connector instance operations.
+#[cfg_attr(test, mockall::automock)]
+#[async_trait::async_trait]
+pub trait ConnectorInstanceTrait: Send + Sync {
+    async fn get_instance_by_id(&self, id: &Urn) -> Outcome<Option<ConnectorInstanceDto>>;
+    async fn get_instance_by_distribution(
+        &self,
+        distribution_id: &Urn,
+    ) -> Outcome<Option<ConnectorInstanceDto>>;
+    /// Validate parameters, resolve placeholders, and persist the instance.
+    ///
+    /// Idempotent: if an instance already exists for `distribution_id` it is
+    /// updated in-place.
+    async fn upsert_instance(
+        &self,
+        instance_dto: &mut ConnectorInstantiationDto,
+    ) -> Outcome<ConnectorInstanceDto>;
+    async fn delete_instance_by_id(&self, id: &Urn) -> Outcome<()>;
+}

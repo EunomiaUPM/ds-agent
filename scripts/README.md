@@ -1,6 +1,6 @@
 # Initialization and Automation Scripts Documentation
 
-This document describes all available scripts for initializing, automating, or resetting workflows within the **Rainbow** project.
+This document describes all available scripts for initializing, automating, or resetting workflows within the **Eunomia** project.
 
 ---
 

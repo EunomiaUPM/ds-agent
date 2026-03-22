@@ -1,16 +1,16 @@
-# Rainbow 🌈🌈<br>Dataspace Protocol Agent
+# Eunomia DS-Agent 🌈🌈<br>Dataspace Protocol Agent
 
-![Rainbow front](docs_old/static/img/rainbow.png)
+![Eunomia DS-Agent front](docs_old/static/img/agent.png)
 
-## What is Rainbow
+## What is Eunomia DS-Agent
 
-Rainbow is a **Dataspace Agent** implementation. 
+Eunomia DS-Agent is a **Dataspace Agent** implementation. 
 
 This implementation has been made by the **GING** (Next Generation Internet Group) research group, part of the DIT (Department of Telematics Engineering) at the Universidad Politécnica de Madrid.
 
 ### Key Concepts
 
-Rainbow is designed with a **multi-protocol orientation** and a **dynamic stack architecture**, enabling flexible integration across different dataspace ecosystems. It provides a complete end-to-end solution covering:
+Eunomia DS-Agent is designed with a **multi-protocol orientation** and a **dynamic stack architecture**, enabling flexible integration across different dataspace ecosystems. It provides a complete end-to-end solution covering:
 
 - 🔐 **SSI Authentication** — Self-Sovereign Identity based authentication using verifiable credentials and decentralized identifiers
 - 📚 **Catalog Management** — DCAT3-compatible catalog system for dataset and data service discovery
@@ -37,36 +37,32 @@ For more information, we recommend reading the [Technical Convergence of Dataspa
 
 ## Crate Organization
 
-Rainbow is organized as a Rust workspace with multiple specialized crates:
+Eunomia DS-Agent is organized as a Rust workspace with multiple specialized crates:
 
 ### Core Crates
 
-| Crate | Description |
-|-------|-------------|
-| **rainbow-core** | Main binary that orchestrates and runs the entire agent |
-| **rainbow-common** | Shared library with common functionality, types, and utilities |
-| **rainbow-db** | Database layer with SeaORM entities, migrations, and repositories |
-| **rainbow-events** | Event system for inter-module communication |
+| Crate        | Description |
+|--------------|-------------|
+| **monolith** | Main binary that orchestrates and runs the entire agent |
+| **common**   | Shared library with common functionality, types, and utilities |
+| **events**   | Event system for inter-module communication |
 
 ### Protocol Crates
 
-| Crate | Description |
-|-------|-------------|
-| **rainbow-catalog** | DCAT3-compatible catalog system implementing the Catalog Protocol |
-| **rainbow-contracts** | Contract negotiation protocol implementation (ODRL policies) |
-| **rainbow-transfer** | Transfer Process Protocol implementation for control plane |
-| **rainbow-transfer-agent** | Agent layer for transfer orchestration with gRPC support |
-| **rainbow-dataplane** | Data plane implementations (HTTP, NGSI-LD, future: DeltaSharing, Arrow Flight) |
+| Crate                      | Description |
+|----------------------------|-------------|
+| **catalog**                | DCAT3-compatible catalog system implementing the Catalog Protocol |
+| **contracts**              | Contract negotiation protocol implementation (ODRL policies) |
+| **transfer-agent**         | Agent layer for transfer orchestration with gRPC support |
+| **dataplane**              | Data plane implementations (HTTP, NGSI-LD, future: DeltaSharing, Arrow Flight) |
 
 ### Gateway & Integration Crates
 
-| Crate | Description |
-|-------|-------------|
-| **rainbow-auth** | SSI-based authentication layer with wallet and credential management |
-| **rainbow-authority** | Authority services for trust and credential verification |
-| **rainbow-fe-gateway** | Frontend gateway for UI integration |
-| **rainbow-business-gateway** | Business logic gateway for external integrations |
-| **rainbow-datahub-catalog** | Proxy layer for external datahub catalog synchronization |
+| Crate                | Description |
+|----------------------|-------------|
+| **auth**             | SSI-based authentication layer with wallet and credential management |
+| **authority**        | Authority services for trust and credential verification |
+| **bff**              | Frontend gateway for UI integration |
 
 ---
 
@@ -118,17 +114,17 @@ cd docker-compose && docker compose up
 
 ### Docker (Standalone)
 
-You can also run Rainbow directly with Docker:
+You can also run Eunomia DS-Agent directly with Docker:
 
 ```bash
 # Pull the image
-docker pull caparicioesd/rainbow
+docker pull eunomiaupm/ds-agent
 
 # Start a provider instance
-docker run caparicioesd/rainbow:latest provider start
+docker run eunomiaupm/ds-agent:latest provider start
 
 # View available options
-docker run caparicioesd/rainbow:latest provider -h
+docker run eunomiaupm/ds-agent:latest provider -h
 ```
 
 ### Docker Compose

@@ -1,8 +1,8 @@
 {
     "openapi": "3.0.3",
     "info": {
-        "title": "Rainbow Negotiation Agent API - DSP Protocol",
-        "description": "OpenAPI specification for the Rainbow Negotiation Agent DSP Protocol and RPC endpoints.",
+        "title": "Eunomia DS-Agent Negotiation Agent API - DSP Protocol",
+        "description": "OpenAPI specification for the Eunomia DS-Agent Negotiation Agent DSP Protocol and RPC endpoints.",
         "version": "1.0.0"
     },
     "servers": [

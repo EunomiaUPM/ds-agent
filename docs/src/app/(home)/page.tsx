@@ -32,7 +32,7 @@ export default function HomePage() {
 
                     {/* Título Principal */}
                     <h1 className="text-4xl font-bold leading-tight tracking-tighter md:text-6xl lg:leading-[1.1]">
-                        Rainbow <br className="hidden md:block" />
+                        Eunomia DS-Agent <br className="hidden md:block" />
                         <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
               Dataspace Agent
             </span>
@@ -51,7 +51,7 @@ export default function HomePage() {
                             Get Started
                         </Link>
                         <Link
-                            href="https://github.com/EunomiaUPM/rainbow" // Asumo la URL basada en el contexto, ajústala si es necesario
+                            href="https://github.com/EunomiaUPM/ds-agent" // Asumo la URL basada en el contexto, ajústala si es necesario
                             target="_blank"
                             rel="noreferrer"
                             className="inline-flex h-10 items-center justify-center rounded-md border border-input bg-background px-8 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
@@ -76,7 +76,7 @@ export default function HomePage() {
                             {/* Docker example */}
                             <div className="flex gap-2">
                                 <span className="text-primary font-bold">➜</span>
-                                <span className="text-foreground">docker pull quay.io/eunomia_upm/rainbow</span>
+                                <span className="text-foreground">docker pull quay.io/eunomia_upm/ds-agent</span>
                             </div>
                             <div className="flex gap-2 mt-2 text-muted-foreground">
                                 <span>Using default tag: latest...</span>
@@ -178,10 +178,10 @@ export default function HomePage() {
                                     <Cpu className="h-5 w-5" /> Core
                                 </div>
                                 <ul className="text-sm text-muted-foreground space-y-2 list-disc pl-4">
-                                    <li>rainbow-core</li>
-                                    <li>rainbow-common</li>
-                                    <li>rainbow-db</li>
-                                    <li>rainbow-events</li>
+                                    <li>core</li>
+                                    <li>common</li>
+                                    <li>db</li>
+                                    <li>events</li>
                                 </ul>
                             </div>
 
@@ -190,10 +190,10 @@ export default function HomePage() {
                                     <GitBranch className="h-5 w-5" /> Protocol
                                 </div>
                                 <ul className="text-sm text-muted-foreground space-y-2 list-disc pl-4">
-                                    <li>rainbow-catalog</li>
-                                    <li>rainbow-contracts</li>
-                                    <li>rainbow-transfer</li>
-                                    <li>rainbow-dataplane</li>
+                                    <li>catalog</li>
+                                    <li>contracts</li>
+                                    <li>transfer</li>
+                                    <li>dataplane</li>
                                 </ul>
                             </div>
 
@@ -202,10 +202,10 @@ export default function HomePage() {
                                     <Network className="h-5 w-5" /> Gateway
                                 </div>
                                 <ul className="text-sm text-muted-foreground space-y-2 list-disc pl-4">
-                                    <li>rainbow-auth</li>
-                                    <li>rainbow-authority</li>
-                                    <li>rainbow-fe-gateway</li>
-                                    <li>rainbow-datahub</li>
+                                    <li>auth</li>
+                                    <li>authority</li>
+                                    <li>fe-gateway</li>
+                                    <li>datahub</li>
                                 </ul>
                             </div>
                         </div>

@@ -1,8 +1,8 @@
 {
     "openapi": "3.0.3",
     "info": {
-        "title": "Rainbow Negotiation Agent API",
-        "description": "OpenAPI specification for the Rainbow Negotiation Agent endpoints.",
+        "title": "Eunomia DS-Agent Negotiation Agent API",
+        "description": "OpenAPI specification for the Eunomia DS-Agent Negotiation Agent endpoints.",
         "version": "1.0.0"
     },
     "servers": [

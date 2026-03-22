@@ -54,10 +54,10 @@ const Index = () => {
       <div className="p-6 max-w-3xl">
         <div className="mb-8">
           <h1 className="text-3xl font-bold tracking-tight mb-2">
-            Welcome to Rainbow
+            Welcome to Eunomia DS-Agent
           </h1>
           <p className="text-muted-foreground text-base leading-relaxed">
-            Rainbow is a <strong>Dataspace Protocol</strong> administration
+            Eunomia DS-Agent is a <strong>Dataspace Protocol</strong> administration
             console. It gives operators full visibility and control over the{" "}
             <strong>catalog</strong>, <strong>contract negotiations</strong>,{" "}
             <strong>agreements</strong>, and <strong>data transfers</strong>{" "}

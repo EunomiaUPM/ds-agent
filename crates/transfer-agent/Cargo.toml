@@ -1,0 +1,53 @@
+[package]
+name = "transfer_agent"
+version = "0.3.8"
+edition = "2021"
+
+[lib]
+name = "transfer_agent"
+path = "src/lib.rs"
+
+[[bin]]
+name = "transfer_agent"
+path = "src/main.rs"
+
+[dependencies]
+common = { version = "0.3.8", path = "../common", default-features = false }
+events = { version = "0.3.8", path = "../events", default-features = false }
+dataplane = { version = "0.3.8", path = "../dataplane", default-features = false }
+negotiation_agent = { version = "0.3.8", path = "../negotiation-agent", default-features = false }
+catalog_agent = { version = "0.3.8", path = "../catalog-agent", default-features = false }
+connector = { version = "0.3.8", path = "../connector", default-features = false }
+
+serde = { workspace = true }
+serde_json = { workspace = true }
+clap = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+axum = { workspace = true }
+thiserror = { workspace = true }
+chrono = { workspace = true }
+urn = { workspace = true }
+log = { workspace = true }
+sea-orm = { workspace = true }
+sea-orm-migration = { workspace = true }
+mockall = { workspace = true }
+async-trait = { workspace = true }
+tokio-util = { workspace = true }
+uuid = { workspace = true }
+tower-http = { workspace = true }
+tonic = { workspace = true }
+prost = { workspace = true }
+tonic-prost = { workspace = true }
+prost-types = { workspace = true }
+tonic-reflection = { workspace = true }
+json_to_table = { workspace = true }
+ymir = { workspace = true }
+
+
+[build-dependencies]
+tonic-prost-build = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }

@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
-  title: Rainbow Well-Known API
-  description: OpenAPI specification for the Well-Known and RPC endpoints defined in `rainbow-common`.
+  title: Eunomia DS-Agent Well-Known API
+  description: OpenAPI specification for the Well-Known and RPC endpoints defined in `common`.
   version: 1.0.0
 servers:
   - url: /

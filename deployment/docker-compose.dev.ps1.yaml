@@ -1,5 +1,5 @@
 version: "3.8"
-name: "rainbow-dev"
+name: "eunomia-ds-agent-dev"
 
 # ====================================================================
 # REUSABLE TEMPLATES (DRY)
@@ -254,7 +254,7 @@ services:
       - WALLET_API_PORT=7001
       - WALLET_TYPE=email
       - WALLET_NAME=authority
-      - WALLET_EMAIL=authority@rainbow.dev
+      - WALLET_EMAIL=authority@eunomia.dev
       - WALLET_PASSWORD=authority
     volumes:
       - ../static/vault/authority:/files

@@ -1,5 +1,5 @@
 ---
-title: "Rainbow Identity System"
+title: "Eunomia DS-Agent Identity System"
 ---
 
 ## Table of Contents
@@ -13,11 +13,11 @@ title: "Rainbow Identity System"
 
 ## Overview
 
-This document provides the documentation to understand the authentication system developed for Rainbow.
+This document provides the documentation to understand the authentication system developed for Eunomia DS-Agent.
 
 ## Consumer
 
-Interacts with the rest of the "rainbow_consumer" services, as defined by Carlos.  
+Interacts with the rest of the "consumer" services, as defined by Carlos.
 It has its own database (Postgres) (currently uses the shared Consumer DB, to be migrated to its own DB later).
 
 ### Deployment
@@ -25,11 +25,11 @@ It has its own database (Postgres) (currently uses the shared Consumer DB, to be
 - **Deployment Type**
     - _Monolith_
   ```bash
-  cd rainbow-core
+  cd crates/core
   ```
     - _Individual_
   ```bash
-  cd rainbow-auth
+  cd crates/auth
   ```
 - **Initialization**
     - _Database_
@@ -49,10 +49,10 @@ It has its own database (Postgres) (currently uses the shared Consumer DB, to be
   ```
 - **Dependencies**
   ```bash
-  /rainbow-auth/ssi-auth/consumer/... # Root
-  /rainbow-auth/ssi-auth/common/...   # Common auth modules dependencies
-  /rainbow-db/auth_consumer/...       # DB dependencies
-  /rainbow-common/...                 # Project-wide common dependencies
+  /crates/auth/ssi-auth/consumer/... # Root
+  /crates/auth/ssi-auth/common/...   # Common auth modules dependencies
+  /crates/db/auth_consumer/...       # DB dependencies
+  /crates/common/...                 # Project-wide common dependencies
   ```
 - **Swagger**  
   API specification available at: [http://127.0.0.1:1100/api/v1/auth/openapi](http://127.0.0.1:1100/api/v1/auth/openapi)
@@ -65,7 +65,7 @@ It has its own database (Postgres) (currently uses the shared Consumer DB, to be
 
 ## Provider
 
-Interacts with the rest of the "rainbow_provider" services, as defined by Carlos.  
+Interacts with the rest of the "provider" services, as defined by Carlos.
 It has its own database (Postgres) (currently uses the shared Provider DB, to be migrated to its own DB later).
 
 ### Deployment
@@ -73,11 +73,11 @@ It has its own database (Postgres) (currently uses the shared Provider DB, to be
 - **Deployment Type**
     - _Monolith_
   ```bash
-  cd rainbow-core
+  cd crates/core
   ```
     - _Individual_
   ```bash
-  cd rainbow-auth
+  cd crates/auth
   ```
 - **Initialization**
     - _Database_
@@ -97,10 +97,10 @@ It has its own database (Postgres) (currently uses the shared Provider DB, to be
   ```
 - **Dependencies**
   ```bash
-  /rainbow-auth/ssi-auth/provider/... # Root
-  /rainbow-auth/ssi-auth/common/...   # Common auth modules dependencies
-  /rainbow-db/auth_provider/...       # DB dependencies
-  /rainbow-common/...                 # Project-wide common dependencies
+  /crates/auth/ssi-auth/provider/... # Root
+  /crates/auth/ssi-auth/common/...   # Common auth modules dependencies
+  /crates/db/auth_provider/...       # DB dependencies
+  /crates/common/...                 # Project-wide common dependencies
   ```
 - **Swagger**  
   API specification available at: [http://127.0.0.1:1200/api/v1/auth/openapi](http://127.0.0.1:1200/api/v1/auth/openapi)
@@ -126,7 +126,7 @@ It has its own database (Postgres) and a GUI (not yet implemented).
   ```
     - _Setup DB_
   ```bash
-  cd rainbow-authority
+  cd crates/authority
   cargo run setup --env-file ../static/envs/.env.authority
   ```
     - _Start_
@@ -137,7 +137,7 @@ It has its own database (Postgres) and a GUI (not yet implemented).
   ```
 - **Dependencies**
   ```bash
-  /rainbow-authority/...   # Root
+  /crates/authority/...   # Root
   ```
 - **Swagger**  
   API specification available at: [http://127.0.0.1:1500/api/v1/authority/openapi](http://127.0.0.1:1500/api/v1/authority/openapi)
@@ -176,15 +176,15 @@ In the folder containing all Postman files, there is a collection of all tests w
 - **Deployment Type**
     - _Monolith_
   ```bash
-  cd rainbow-core
+  cd crates/monolith
   ```
     - _Individual_
   ```bash
-  cd rainbow-auth
+  cd crates/auth
   ```
     - _Authority_
   ```bash
-  cd rainbow-authority
+  cd crates/authority
   ```
 - **Initialization**
     - _Database_

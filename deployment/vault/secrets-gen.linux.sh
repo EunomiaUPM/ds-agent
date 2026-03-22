@@ -66,14 +66,14 @@ if [ ! -f "$SECRETS_DIR/wallet.json" ]; then
         echo '{
   "type": "email",
   "name": "provider",
-  "email": "provider@rainbow.dev",
+  "email": "provider@eunomia.dev",
   "password": "provider"
 }' > "$SECRETS_DIR/wallet.json"
     elif [ "$ROLE" = "consumer" ]; then
         echo '{
   "type": "email",
   "name": "consumer",
-  "email": "consumer@rainbow.dev",
+  "email": "consumer@eunomia.dev",
   "password": "consumer"
 }' > "$SECRETS_DIR/wallet.json"
 
@@ -81,7 +81,7 @@ elif [ "$ROLE" = "authority" ]; then
         echo '{
   "type": "email",
   "name": "authority",
-  "email": "authority@rainbow.dev",
+  "email": "authority@eunomia.dev",
   "password": "authority"
 }' > "$SECRETS_DIR/wallet.json"
     fi

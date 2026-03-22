@@ -1,0 +1,40 @@
+[package]
+name = "auth"
+version = "0.3.8"
+edition = "2021"
+
+
+
+[lib]
+name = "auth"
+path = "src/lib.rs"
+
+[[bin]]
+name = "auth"
+path = "src/main.rs"
+
+[dependencies]
+common = { version = "0.3.8", path = "../common", default-features = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "full"] }
+base64 = { workspace = true }
+tracing = { workspace = true }
+axum = { workspace = true }
+reqwest = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+rand = { workspace = true }
+sea-orm = { workspace = true }
+urlencoding = { workspace = true }
+jsonwebtoken = { workspace = true }
+sha2 = { workspace = true }
+url = { workspace = true }
+clap = { workspace = true }
+sea-orm-migration = { workspace = true }
+tracing-subscriber = { workspace = true }
+tower-http = { workspace = true }
+async-trait = {workspace = true}
+rustls = {workspace = true}
+axum-server = {workspace = true}
+ymir = { workspace = true }

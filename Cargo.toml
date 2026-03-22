@@ -1,21 +1,21 @@
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [workspace]
 members = [
-    "rainbow-monolith",
-    "rainbow-dataplane",
-    "rainbow-common",
-    "rainbow-auth",
-    "rainbow-events",
-    "rainbow-fe-gateway",
-    # "rainbow-business-gateway",
-    "rainbow-catalog-agent",
-    "rainbow-negotiation-agent",
-    "rainbow-transfer-agent", "rainbow-connector",
+    "crates/monolith",
+    "crates/dataplane",
+    "crates/common",
+    "crates/auth",
+    "crates/events",
+    "crates/bff",
+    "crates/catalog-agent",
+    "crates/negotiation-agent",
+    "crates/transfer-agent",
+    "crates/connector",
 ]
 exclude = [
     "static",
     "gui",
-    "deployment"
+    "deployment",
 ]
 resolver = "2"
 
@@ -31,7 +31,6 @@ clap = { version = "4.4.9", features = [
 ] }
 base64 = "0.22.1"
 tokio = { version = "1.35.0", features = ["full"] }
-anyhow = { version = "1.0.80", features = ["backtrace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 axum = { version = "0.8.8", features = ["ws"] }
@@ -40,7 +39,7 @@ dotenvy = "0.15"
 reqwest = { version = "0.13.1", features = ["json"] }
 once_cell = "1.19.0"
 thiserror = "2.0.12"
-jsonschema = "0.40.0"
+jsonschema = "0.45.0"
 chrono = { version = "0.4.38", features = ["serde"] }
 uuid = { version = "1.8.0", features = ["serde", "default", "v4", "v5"] }
 urn = { version = "0.7.0", features = ["serde"] }
@@ -54,11 +53,34 @@ mockall = "0.14.0"
 url = { version = "2.5.4", features = ["default"] }
 urlencoding = { version = "2.1.3" }
 sha2 = "0.10.9"
-rand = "0.9.2"
+rand = "0.10.0"
 jsonwebtoken = "10.3.0"
 serde_norway = "0.9.42"
 rustls = { version = "0.23", features = ["ring"] }
 axum-server = { version = "0.8.0", features = ["tls-rustls"] }
+futures-util = "0.3.31"
+http-body = "1.0.1"
+fs_extra = { version = "1.3.0" }
+mime_guess = "2.0"
+rust-embed = "8.3"
 async-trait = "0.1.89"
+hyper = { version = "1.5.0", features = ["full"] }
+strum = { version = "0.26.1", features = ["derive"] }
+jaq-interpret = "1.5.0"
+jaq-parse = "1.0.3"
+bytes = "1.10.1"
+serde_urlencoded = "0.7.1"
+tokio-util = "0.7.17"
+tonic = "0.14.2"
+prost = "0.14.1"
+tonic-prost = "0.14.2"
+prost-types = "0.14.1"
+tonic-reflection = "0.14.2"
+convert_case = "0.11.0"
+redis = { version = "1.0.2", features = ["default", "aio", "tokio-comp", "json"] }
+regex = "1.12.2"
+tonic-prost-build = "0.14.5"
+
+
 ymir = { path = "./../ymir" }
-#ymir = {git = "https://github.com/EunomiaUPM/ymir.git", tag = "test1"}
+#ymi r = {git = "https://github.com/EunomiaUPM/ymir.git", tag = "test1"}

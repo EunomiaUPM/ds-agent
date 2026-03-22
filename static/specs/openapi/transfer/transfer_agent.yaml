@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
-  title: Rainbow Transfer Agent API
-  description: OpenAPI specification for the Rainbow Transfer Agent Entities API.
+  title: Eunomia DS Transfer Agent API
+  description: OpenAPI specification for the Eunomia DS Transfer Agent Entities API.
   version: 1.0.0
 servers:
   - url: /v1/transfer-agent

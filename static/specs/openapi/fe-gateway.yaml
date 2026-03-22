@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
-  title: Rainbow Frontend Gateway API
-  description: "OpenAPI specification for the Rainbow Frontend Gateway.
+  title: Eunomia DS Frontend Gateway API
+  description: "OpenAPI specification for the Eunomia DS-Agent Frontend Gateway.
 
     The gateway proxies requests from the GUI to backend microservices.
 

@@ -25,16 +25,6 @@ npm install
 export ENV_FILE=./../../static/envs/.env.consumer.core && npm run dev -w consumer
 ```
 
-### Business
-
-The business admin interface is setup for development using Vite. To start the development server, navigate
-to the `gui` directory and run:
-
-```bash
-cd gui
-npm install
-export ENV_FILE=./../../static/envs/.env.provider.core && npm run dev -w business
-```
 
 ### Building for Production
 

@@ -1,0 +1,30 @@
+[package]
+name = "connector"
+version = "0.3.8"
+edition = "2021"
+
+[lib]
+name = "connector"
+path = "src/lib.rs"
+
+[dependencies]
+common = { version = "0.3.8", path = "../common", default-features = false }
+
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+axum = { workspace = true }
+thiserror = { workspace = true }
+chrono = { workspace = true }
+log = { workspace = true }
+sea-orm = { workspace = true }
+sea-orm-migration = { workspace = true }
+mockall = { workspace = true }
+uuid = { workspace = true }
+async-trait = { workspace = true }
+ymir = { workspace = true }
+regex = { workspace = true }
+jaq-interpret = { workspace = true }
+jaq-parse = { workspace = true }
+urn = { workspace = true }

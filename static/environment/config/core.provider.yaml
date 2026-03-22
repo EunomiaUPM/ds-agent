@@ -42,6 +42,7 @@ common_config: &common_config
     is_local: true
     is_prod: false
     is_vault_real: false
+    has_tls_proxy: false
 
 # ==========================
 # MONOLITH
@@ -75,17 +76,21 @@ ssi_auth:
       port: "7001"
     id: null
   client_config:
-    class_id: "rainbow_provider"
+    class_id: "provider"
     display: null
   vc_config:
     vc_model: JwtVc
-    w3c_data_model: V1
+    w3c_data_model: V2
   verify_req_config:
     is_cert_allowed: false
     vcs_requested: [DataspaceParticipant]
-  gaia_config: null
+  gaia_config:
+    api:
+      protocol: "http"
+      url: "127.0.0.1"
+      port: "1500"
   did_config:
-    did: "did:jwk:eyJrdHkiOiJSU0EiLCJlIjoiQVFBQiIsIm4iOiIwLW5uempxdDNQVXZtMUVPaEVxNUNxQ05WcEVUM3I4S0Y3VWRKSDJlRFV1dDNhSFlFWGFxbG51SXZ4TUVmN0J1dkhMVnlUaW95U1BoMV9TaDF0ZnBwdF9aNXpXU1ZZUGp0ekZ0QlJsQ0pQYzNfc2YtelRIQURMMmNyYW84WmxXa1FFR2ZtX1g3Y2QtMkd5bmVuR0k0a01rLU9vRERUWEJNRmVoOVdtR1dyMGZBeHJ4Qkp3Unh4QTExODNIOWo1QkY3dlpVZ0Y3akYzV28xcVlva0Z4emJ0Q2FhWWkzTmE3aFYtWWRIYkg3QUhkYnlJa1JvTHhhVG9tb3ktRHRmb0dSSGRzTmpzNDFqZUwxTG5XczJENnVJMm43QTBFQ1hIaHJjZTlMbkt6eXNMWktRM3Ffa2hxR0UzRTZJT1djajRMT1NvNGJ4SXktZzNVT0NpeElSelJ2bFEifQ"
+    did: "did:jwk:..."
     type: Jwk
     did_web_options: null
     #    domain: "CHANGE_ME"

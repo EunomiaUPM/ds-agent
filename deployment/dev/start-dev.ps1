@@ -4,7 +4,7 @@ $ErrorActionPreference = "Stop"
 $scriptDir = $PSScriptRoot
 Set-Location $scriptDir
 
-Write-Host "=== Rainbow Dev Environment Setup ===" -ForegroundColor Cyan
+Write-Host "=== Eunomia Dev Environment Setup ===" -ForegroundColor Cyan
 
 # 1. Prepare scripts (CRLF -> LF)
 Write-Host "[1/4] Preparing Docker scripts..." -ForegroundColor Yellow

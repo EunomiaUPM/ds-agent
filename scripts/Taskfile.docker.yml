@@ -1,0 +1,144 @@
+# https://taskfile.dev
+# Docker build & push tasks — included by the root Taskfile as namespace "docker:"
+#   task docker:build:core
+#   task docker:push:all
+version: '3'
+
+vars:
+  REGISTRY: '{{.REGISTRY | default "quay.io/eunomia_upm"}}'
+  VERSION:  '{{.VERSION  | default "0.3.9"}}'
+  # -f path is relative to CWD (project root)
+  # context is the parent directory so ymir (path = "./../ymir") is accessible
+  DOCKERFILE: deployment/Dockerfile
+  CONTEXT: ..
+
+tasks:
+  # ─── build ──────────────────────────────────────────────────────────────────
+  build:core:
+    desc: "Build ds-agent-core (monolith) image"
+    cmds:
+      - docker build --progress plain
+          -t {{.REGISTRY}}/ds-agent-core:{{.VERSION}}
+          --build-arg APP_NAME=monolith
+          -f {{.DOCKERFILE}} {{.CONTEXT}}
+
+  build:catalog:
+    desc: "Build ds-agent-catalog image"
+    cmds:
+      - docker build --progress plain
+          -t {{.REGISTRY}}/ds-agent-catalog:{{.VERSION}}
+          --build-arg APP_NAME=catalog_agent
+          -f {{.DOCKERFILE}} {{.CONTEXT}}
+
+  build:contracts:
+    desc: "Build ds-agent-contracts (negotiation) image"
+    cmds:
+      - docker build --progress plain
+          -t {{.REGISTRY}}/ds-agent-contracts:{{.VERSION}}
+          --build-arg APP_NAME=negotiation_agent
+          -f {{.DOCKERFILE}} {{.CONTEXT}}
+
+  build:transfer-agent:
+    desc: "Build ds-agent-transfer-agent image"
+    cmds:
+      - docker build --progress plain
+          -t {{.REGISTRY}}/ds-agent-transfer-agent:{{.VERSION}}
+          --build-arg APP_NAME=transfer_agent
+          -f {{.DOCKERFILE}} {{.CONTEXT}}
+
+  build:dataplane:
+    desc: "Build ds-agent-dataplane image"
+    cmds:
+      - docker build --progress plain
+          -t {{.REGISTRY}}/ds-agent-dataplane:{{.VERSION}}
+          --build-arg APP_NAME=dataplane
+          -f {{.DOCKERFILE}} {{.CONTEXT}}
+
+  build:auth:
+    desc: "Build ds-agent-auth image"
+    cmds:
+      - docker build --progress plain
+          -t {{.REGISTRY}}/ds-agent-auth:{{.VERSION}}
+          --build-arg APP_NAME=auth
+          -f {{.DOCKERFILE}} {{.CONTEXT}}
+
+  build:bff:
+    desc: "Build ds-agent-bff (frontend gateway) image"
+    cmds:
+      - docker build --progress plain
+          -t {{.REGISTRY}}/ds-agent-bff:{{.VERSION}}
+          --build-arg APP_NAME=bff
+          -f {{.DOCKERFILE}} {{.CONTEXT}}
+
+  build:connector:
+    desc: "Build ds-agent-connector image"
+    cmds:
+      - docker build --progress plain
+          -t {{.REGISTRY}}/ds-agent-connector:{{.VERSION}}
+          --build-arg APP_NAME=connector
+          -f {{.DOCKERFILE}} {{.CONTEXT}}
+
+  build:all:
+    desc: "Build all images"
+    cmds:
+      - task: build:core
+      - task: build:catalog
+      - task: build:contracts
+      - task: build:transfer-agent
+      - task: build:dataplane
+      - task: build:auth
+      - task: build:bff
+      - task: build:connector
+
+  # ─── push ───────────────────────────────────────────────────────────────────
+  push:core:
+    desc: "Push ds-agent-core image"
+    cmds:
+      - docker push {{.REGISTRY}}/ds-agent-core:{{.VERSION}}
+
+  push:catalog:
+    desc: "Push ds-agent-catalog image"
+    cmds:
+      - docker push {{.REGISTRY}}/ds-agent-catalog:{{.VERSION}}
+
+  push:contracts:
+    desc: "Push ds-agent-contracts image"
+    cmds:
+      - docker push {{.REGISTRY}}/ds-agent-contracts:{{.VERSION}}
+
+  push:transfer-agent:
+    desc: "Push ds-agent-transfer-agent image"
+    cmds:
+      - docker push {{.REGISTRY}}/ds-agent-transfer-agent:{{.VERSION}}
+
+  push:dataplane:
+    desc: "Push ds-agent-dataplane image"
+    cmds:
+      - docker push {{.REGISTRY}}/ds-agent-dataplane:{{.VERSION}}
+
+  push:auth:
+    desc: "Push ds-agent-auth image"
+    cmds:
+      - docker push {{.REGISTRY}}/ds-agent-auth:{{.VERSION}}
+
+  push:bff:
+    desc: "Push ds-agent-bff image"
+    cmds:
+      - docker push {{.REGISTRY}}/ds-agent-bff:{{.VERSION}}
+
+  push:connector:
+    desc: "Push ds-agent-connector image"
+    cmds:
+      - docker push {{.REGISTRY}}/ds-agent-connector:{{.VERSION}}
+
+  push:all:
+    desc: "Push all images"
+    cmds:
+      - task: push:core
+      - task: push:catalog
+      - task: push:contracts
+      - task: push:transfer-agent
+      - task: push:dataplane
+      - task: push:auth
+      - task: push:bff
+      - task: push:connector

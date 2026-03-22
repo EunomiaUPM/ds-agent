@@ -5,7 +5,7 @@
  * Displays navigation links with icons, filtered based on catalog type.
  *
  * The sidebar adapts its menu items based on the `catalog_type` from
- * GlobalInfoContext, showing either Datahub or Rainbow catalog options.
+ * GlobalInfoContext, showing either Datahub or Eunomia DS-Agent catalog options.
  *
  * @example
  * // Used in the root layout
@@ -116,13 +116,13 @@ export function AppSidebar() {
   /**
    * Filter items based on catalog type.
    * - Datahub: Hide "Catalogs" (show Datahub Catalogs)
-   * - Rainbow: Hide "Datahub Catalogs" (show Catalogs)
+   * - Eunomia DS-Agent: Hide "Datahub Catalogs" (show Catalogs)
    */
   const itemsFiltered = items.filter((item) => {
     if (catalog_type === "datahub") {
       if (item.title === "Catalogs") return false;
     }
-    if (catalog_type === "rainbow") {
+    if (catalog_type === "agent") {
       if (item.title === "Datahub Catalogs") return false;
     }
     return true;

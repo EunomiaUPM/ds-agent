@@ -14,7 +14,7 @@ The Dataspace Connector faced a significant operational challenge due to the fra
 
 ## Decision
 
-We have decided to implement a centralized configuration subsystem within the `rainbow-common` crate. This system unifies all configuration sources into a "Base File + Environment Override" model. A canonical `config.yaml` file will act as the single source of truth for immutable parameters regarding identity, server binding, and protocol behavior. Any changes to these parameters will require a pod restart, ensuring runtime immutability.
+We have decided to implement a centralized configuration subsystem within the `common` crate. This system unifies all configuration sources into a "Base File + Environment Override" model. A canonical `config.yaml` file will act as the single source of truth for immutable parameters regarding identity, server binding, and protocol behavior. Any changes to these parameters will require a pod restart, ensuring runtime immutability.
 
 To manage the startup sequence safely, we have adopted the **Type-State Pattern** for the bootstrapping logic. Instead of a generic initialization loop, we defined a `BootstrapStep` trait. This architectural pattern forces the application to traverse a linear, compile-time checked state machine: transitioning from `Init`, to `ConfigLoaded`, to `DbReady`, and finally to `Live`. This ensures that the application cannot physically serve traffic unless the configuration has been validated and the database connection established.
 

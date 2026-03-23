@@ -110,7 +110,7 @@ impl AuthRouter {
         router.fallback(Self::fallback).layer(cors).layer(
             TraceLayer::new_for_http()
                 .make_span_with(
-                    |_req: &Request<_>| tracing::info_span!("P-Auth-request", id = %Uuid::new_v4()),
+                    |_req: &Request<_>| tracing::info_span!("Auth-request", id = %Uuid::new_v4()),
                 )
                 .on_request(|req: &Request<_>, _span: &tracing::Span| {
                     info!("{} {}", req.method(), req.uri().path());

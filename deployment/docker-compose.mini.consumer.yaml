@@ -36,7 +36,10 @@ services:
       - consumer-db
       - consumer-redis
     env_file:
-      - ./../static/environment/envs/core.consumer.env.example
+      - ./../../static/environment/config/prod/core.consumer.yaml:/app/static/environment/config/prod/core.consumer.yaml
+      - ./../../static/specs:/app/static/specs
+      - ./../../static/policy_templates:/app/static/policy_templates
+      - ./../../static/vault/consumer:/app/vault
     environment:
       CONFIG_PATH: /app/static/environment/config/core.consumer.mini.yaml
       RUST_BACKTRACE: full

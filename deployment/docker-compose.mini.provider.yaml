@@ -36,7 +36,10 @@ services:
       - provider-db
       - provider-redis
     env_file:
-      - ./../static/environment/envs/core.provider.env.example
+      - ./../static/environment/config/prod/core.provider.yaml:/app/static/environment/config/prod/core.provider.yaml
+      - ./../static/specs:/app/static/specs
+      - ./../static/policy_templates:/app/static/policy_templates
+      - ./../static/vault/provider:/app/vault
     environment:
       CONFIG_PATH: /app/static/environment/config/core.provider.mini.yaml
       RUST_BACKTRACE: full

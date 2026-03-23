@@ -9,13 +9,12 @@ services:
     cap_add:
       - IPC_LOCK
     volumes:
-      - ./../../vault/consumer/config:/vault/config
-      - ./../../vault/consumer/data:/vault/file
+      - ./../../static/vault/consumer:/vault
     environment:
       VAULT_CACERT: /vault/config/root-ca.pem
       VAULT_LOCAL_CONFIG: >
         {
-          "storage": { "file": { "path": "/vault/file" } },
+          "storage": { "file": { "path": "/vault/data" } },
           "listener": [{
             "tcp": {
               "address": "0.0.0.0:8200",
@@ -60,8 +59,10 @@ services:
     ports:
       - "1100:1100"
     volumes:
-      - ./../../static:/app/static
-      - ./../../vault/consumer:/app/vault
+      - ./../../static/environment/config/prod/core.consumer.yaml:/app/static/environment/config/prod/core.consumer.yaml
+      - ./../../static/specs:/app/static/specs
+      - ./../../static/policy_templates:/app/static/policy_templates
+      - ./../../static/vault/consumer:/app/vault
     depends_on:
       - consumer-db
       - consumer-vault

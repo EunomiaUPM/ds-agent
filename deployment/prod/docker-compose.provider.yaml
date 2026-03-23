@@ -9,13 +9,12 @@ services:
     cap_add:
       - IPC_LOCK
     volumes:
-      - ./../../vault/provider/config:/vault/config
-      - ./../../vault/provider/data:/vault/file
+      - ./../../static/vault/provider:/vault
     environment:
       VAULT_CACERT: /vault/config/root-ca.pem
       VAULT_LOCAL_CONFIG: >
         {
-          "storage": { "file": { "path": "/vault/file" } },
+          "storage": { "file": { "path": "/vault/data" } },
           "listener": [{
             "tcp": {
               "address": "0.0.0.0:8200",
@@ -60,8 +59,10 @@ services:
     ports:
       - "1200:1200"
     volumes:
-      - ./../../static:/app/static
-      - ./../../vault/provider:/app/vault
+      - ./../../static/environment/config/prod/core.provider.yaml:/app/static/environment/config/prod/core.provider.yaml
+      - ./../../static/specs:/app/static/specs
+      - ./../../static/policy_templates:/app/static/policy_templates
+      - ./../../static/vault/provider:/app/vault
     depends_on:
       - provider-db
       - provider-vault

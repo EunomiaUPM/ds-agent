@@ -13,7 +13,7 @@ services:
     deploy:
       replicas: 1
     env_file:
-      - .env.data-client
+      - ./../../static/environment/envs/data-client.env.example
     environment:
       NIFI_AUTHENTICATION_STRATEGY: "single-user"
       SINGLE_USER_CREDENTIALS_USERNAME: nifi

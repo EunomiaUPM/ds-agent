@@ -30,8 +30,7 @@ use crate::protocols::dsp::protocol_types::{
 };
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
 use std::sync::Arc;
-use urn::Urn;
-use ymir::errors::{Errors, Outcome};
+use ymir::errors::Outcome;
 // ─── CompletionStep ───────────────────────────────────────────────────────────
 
 /// Handles an inbound `TransferCompletionMessage` from the peer.
@@ -78,14 +77,10 @@ impl ProtocolStep for ProtocolCompletionStep {
 
     async fn post_hook(
         dp: &Arc<dyn DataPlaneFacadeTrait>,
-        ctx: &ProtocolContext,
+        _ctx: &ProtocolContext,
         _input: &TransferProcessMessageWrapper<TransferCompletionMessageDto>,
-        _process_id: &Urn,
+        process: &TransferProcessDto,
     ) -> Outcome<Option<DataAddressDto>> {
-        let process = &ctx
-            .process
-            .clone()
-            .ok_or(Errors::crazy("no process found", None))?;
         dp.on_transfer_completion_post(process).await?;
         Ok(None)
     }

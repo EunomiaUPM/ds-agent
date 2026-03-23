@@ -19,7 +19,7 @@ min_known_config: &min_known_config
 
 is_catalog_datahub: &is_catalog_datahub false
 
-policy_templates_folder: &policy_templates_folder "../static/policy_templates/"
+policy_templates_folder: &policy_templates_folder "../../static/policy_templates/"
 
 cache_config: &cache_config
   cache_type: Redis
@@ -36,8 +36,8 @@ common_config: &common_config
     port: "1400"
   api:
     version: *api_version
-    openapi_path: "../static/specs/openapi/merged_openapi.json"
-  keys_path: "../static/certificates/provider/"
+    openapi_path: "../../static/specs/openapi/merged_openapi.json"
+  keys_path: "../../static/certificates/provider/"
   connection:
     is_local: true
     is_prod: false

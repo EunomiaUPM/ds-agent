@@ -43,7 +43,9 @@ use ymir::errors::Outcome;
 pub(super) struct ProtocolContext {
     /// Canonical internal process identifier (URN), resolved from the peer-facing PID.
     pub process: Option<TransferProcessDto>,
-    pub connector_instance: ConnectorInstanceDto,
+    /// Only populated for the request step (resolved from agreement → distribution → connector).
+    /// `None` for all continuation steps.
+    pub connector_instance: Option<ConnectorInstanceDto>,
     pub associated_peer: String,
 }
 
@@ -109,13 +111,16 @@ pub(super) trait ProtocolStep: Send + Sync + 'static {
 
     /// Trigger the local dataplane after persisting the state transition.
     ///
+    /// `process` is the record just returned by `persist` — passed directly so
+    /// steps do not need a second database round-trip to fetch it.
+    ///
     /// Returns an optional `DataAddressDto` to embed in the ack.  Only the Start
     /// step returns a non-`None` value (the consumer's ingress URL in PULL mode).
     async fn post_hook(
         dp: &Arc<dyn DataPlaneFacadeTrait>,
         ctx: &Self::Context,
         input: &TransferProcessMessageWrapper<Self::Dto>,
-        process_id: &Urn,
+        process: &TransferProcessDto,
     ) -> Outcome<Option<DataAddressDto>>;
 }
 
@@ -152,7 +157,7 @@ pub(super) async fn continuation_prepare_context(
     Ok((
         ProtocolContext {
             process: Some(process),
-            connector_instance: ConnectorInstanceDto {},
+            connector_instance: None,
             associated_peer: "".to_string(),
         },
         None,

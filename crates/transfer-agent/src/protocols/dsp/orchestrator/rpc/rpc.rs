@@ -35,9 +35,7 @@ use crate::protocols::dsp::protocol_types::{TransferProcessAckDto, TransferProce
 use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRpcSteps;
 use common::facades::ssi_auth_facade::MatesFacadeTrait;
 use common::http_client::HttpClient;
-use std::str::FromStr;
 use std::sync::Arc;
-use urn::Urn;
 use ymir::errors::Outcome;
 // ─── Service ─────────────────────────────────────────────────────────────────
 
@@ -172,8 +170,7 @@ impl RPCOrchestratorService {
         )
         .await?;
 
-        let new_id = Urn::from_str(new_process.inner.id.as_str())?;
-        S::post_hook(&dp, &new_id).await?;
+        S::post_hook(&dp, &ctx).await?;
 
         Ok((response, new_process))
     }

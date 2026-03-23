@@ -16,6 +16,11 @@
  */
 
 pub(crate) mod dataplane_facade;
+mod strategy;
+mod consumer_pull;
+mod consumer_push;
+mod provider_pull;
+mod provider_push;
 
 use crate::entities::transfer_process::TransferProcessDto;
 use crate::protocols::dsp::protocol_types::DataAddressDto;

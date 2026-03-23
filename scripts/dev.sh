@@ -5,9 +5,12 @@ set -e
 ROLE=${1:-provider}
 CMD=${2:-setup}
 
-# Paths (Relative to project root)
-CONFIG_FILE="../../static/environment/config/core.${ROLE}.yaml"
-ENV_FILE="../../static/vault/${ROLE}/data/vault.env"
+# Paths — absolute, derived from this script's location
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
+CONFIG_FILE="$PROJECT_ROOT/static/environment/config/core.${ROLE}.yaml"
+ENV_FILE="$PROJECT_ROOT/static/vault/${ROLE}/data/vault.env"
 
 # Validations
 if [[ ! "$ROLE" =~ ^(provider|consumer)$ ]]; then
@@ -34,7 +37,7 @@ fi
 # Execution
 echo "Running [${CMD}] for [${ROLE}]..."
 
-LOCAL_ENV_FILE="../../static/vault/${ROLE}/data/local.vault.env"
+LOCAL_ENV_FILE="$PROJECT_ROOT/static/vault/${ROLE}/data/local.vault.env"
 
 set -a
 source "$ENV_FILE"
@@ -43,4 +46,5 @@ if [ -f "$LOCAL_ENV_FILE" ]; then
 fi
 set +a
 
+cd "$PROJECT_ROOT/crates/monolith"
 cargo run "$CMD" -e "$CONFIG_FILE"

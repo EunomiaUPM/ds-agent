@@ -1,0 +1,10 @@
+# https://taskfile.dev
+version: '3'
+
+includes:
+  docker:
+    taskfile: ./scripts/Taskfile.docker.yml
+    dir: .
+  env:
+    taskfile: ./scripts/Taskfile.dev.yml
+    dir: .

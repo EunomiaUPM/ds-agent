@@ -31,13 +31,8 @@ use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
 use ymir::errors::Outcome;
-// ─── Request context ──────────────────────────────────────────────────────────
 
-// ─── Continuation context ─────────────────────────────────────────────────────
-
-/// Resolved routing state for an inbound continuation message (start / suspension /
-/// completion / termination).
-///
+/// Resolved routing state for an inbound continuation message
 /// Populated by [`continuation_prepare_context`] from the peer-facing process
 /// identifier in the URL path.
 pub(super) struct ProtocolContext {

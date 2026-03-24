@@ -32,7 +32,7 @@ use common::http_client::HttpClient;
 use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
-use ymir::errors::Outcome;
+use ymir::errors::{Errors, Outcome};
 // ─── RequestStep ──────────────────────────────────────────────────────────────
 
 /// Initiates a brand-new transfer by sending a `TransferRequestMessage` to the provider.
@@ -61,7 +61,7 @@ impl TransferRpcStep for RequestStep {
     }
 
     /// Allocates a fresh process ID and reads routing fields from the input.
-    /// No database lookup is performed here; the record is created in `send_and_persist`.
+    /// No database lookup is performed here
     async fn prepare_context(
         input: &RpcTransferRequestMessageDto,
         _persistence: &Arc<dyn TransferPersistenceTrait>,
@@ -69,21 +69,29 @@ impl TransferRpcStep for RequestStep {
         let process_id = Urn::from_str(&format!("urn:transfer-process:{}", uuid::Uuid::new_v4()))?;
         Ok(RpcRequestContext {
             process_id,
+            process: None,
             provider_address: input.provider_address.clone(),
             associated_peer: input.associated_agent_peer.clone(),
             input_data_address: input.data_address.clone(),
         })
     }
 
-    /// Initialises the consumer-side dataplane session before contacting the provider.
+    /// For PUSH mode: initialises the consumer-side DP and returns the ingest URL
+    /// that must be embedded in the outgoing `TransferRequestMessage`.
     ///
-    /// For PUSH mode, returns the consumer's ingest URL to be forwarded to the provider.
+    /// For PULL mode: deferred to `post_hook` — no DP URL is needed in the message,
+    /// so we wait until the provider has acknowledged the request before allocating
+    /// the consumer session.
     async fn pre_hook(
         dp: &Arc<dyn DataPlaneFacadeTrait>,
         ctx: &RpcRequestContext,
     ) -> Outcome<Option<DataAddressDto>> {
-        dp.on_transfer_request_pre(&ctx.process_id, &ctx.input_data_address)
-            .await
+        if ctx.input_data_address.is_some() {
+            dp.on_transfer_request_pre(&ctx.process_id, &ctx.input_data_address)
+                .await
+        } else {
+            Ok(None)
+        }
     }
 
     /// Converts the RPC input into a `TransferRequestMessageDto`, generating a
@@ -92,13 +100,13 @@ impl TransferRpcStep for RequestStep {
     fn build_message(
         input: &RpcTransferRequestMessageDto,
         _ctx: &RpcRequestContext,
-        pre_addr: Option<DataAddressDto>,
+        data_address: Option<DataAddressDto>,
     ) -> Outcome<TransferRequestMessageDto> {
         let mut wrapper: TransferProcessMessageWrapper<TransferRequestMessageDto> =
             input.clone().into();
         // PUSH mode: override data_address with the auto-generated consumer ingest URL.
-        if let Some(ingest_addr) = pre_addr {
-            wrapper.dto.data_address = Some(ingest_addr);
+        if let Some(data_address) = data_address {
+            wrapper.dto.data_address = Some(data_address);
         }
         Ok(wrapper.dto)
     }
@@ -112,7 +120,7 @@ impl TransferRpcStep for RequestStep {
     async fn send_and_persist(
         http_client: &HttpClient,
         persistence: &Arc<dyn TransferPersistenceTrait>,
-        ctx: &RpcRequestContext,
+        ctx: &mut RpcRequestContext,
         payload: Arc<TransferRequestMessageDto>,
         url_suffix: &str,
     ) -> Outcome<(
@@ -144,9 +152,15 @@ impl TransferRpcStep for RequestStep {
             })
             .await?;
 
+        ctx.process = Some(process.clone());
         Ok((response, process))
     }
-
-    // post_hook: no dataplane notification needed after a transfer request is sent.
-    // The default no-op implementation from the trait is used.
+    
+    async fn post_hook(dp: &Arc<dyn DataPlaneFacadeTrait>, ctx: &Self::Context) -> Outcome<()> {
+        if ctx.input_data_address.is_none() {
+            let process = ctx.process.as_ref().ok_or(Errors::crazy("Process should be defined at this point", None))?;
+            dp.on_transfer_request_post(&process, &None, &None).await?;
+        }
+        Ok(())
+    }
 }

@@ -176,7 +176,7 @@ impl HttpClient {
             client,
             auth_token: Arc::new(RwLock::new(None)),
             limiter: Arc::new(Semaphore::new(concurrency_limit)),
-            max_retries: 3,
+            max_retries: 1,
         }
     }
 

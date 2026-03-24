@@ -15,10 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::protocols::dsp::facades::dataplane_facade::DataAddressDto;
 use crate::protocols::dsp::facades::dataplane_facade::strategy::{
-    DataPlaneStrategy, execute_command, ingress_as_data_address, to_dataplane_address,
+    execute_command, ingress_as_data_address, to_dataplane_address, DataPlaneStrategy,
 };
+use crate::protocols::dsp::facades::dataplane_facade::DataAddressDto;
 use connector::ConnectorInstanceDto;
 use dataplane::{DataplaneCommand, DataplaneInitCommandType, DataplaneManager};
 use urn::Urn;
@@ -35,25 +35,24 @@ impl DataPlaneStrategy for ConsumerPullStrategy {
         transfer_id: &Urn,
         _data_address: &Option<DataAddressDto>,
     ) -> Outcome<Option<DataAddressDto>> {
-        // Init consumer DP without a data address; the provider will send the proxy URL
-        // later in the TransferStart message.
+        dbg!("31");
+        Ok(None)
+    }
+
+    async fn on_request_post(
+        &self,
+        mgr: &DataplaneManager,
+        _proxy_base: &str,
+        transfer_id: &Urn,
+        _connector_instance: &Option<ConnectorInstanceDto>,
+        _data_address: &Option<DataAddressDto>,
+    ) -> Outcome<()> {
         execute_command(
             mgr,
             transfer_id,
             DataplaneCommand::SetInit(DataplaneInitCommandType::Consumer { data_address: None }),
         )
         .await?;
-        Ok(None)
-    }
-
-    async fn on_request_post(
-        &self,
-        _mgr: &DataplaneManager,
-        _proxy_base: &str,
-        _transfer_id: &Urn,
-        _connector_instance: &ConnectorInstanceDto,
-        _data_address: &Option<DataAddressDto>,
-    ) -> Outcome<()> {
         Ok(()) // not called for consumer
     }
 
@@ -80,7 +79,9 @@ impl DataPlaneStrategy for ConsumerPullStrategy {
                 execute_command(
                     mgr,
                     transfer_id,
-                    DataplaneCommand::SetEgress { data_address: to_dataplane_address(da) },
+                    DataplaneCommand::SetEgress {
+                        data_address: to_dataplane_address(da),
+                    },
                 )
                 .await?;
             }

@@ -120,16 +120,10 @@ impl DataplaneManager {
                     DataplaneInitCommandType::Provider {
                         connector_instance, ..
                     } => Ok(Some(connector_instance.clone())),
-                    DataplaneInitCommandType::Consumer { .. } => Err(Errors::crazy(
-                        "Consumer role shouldn't ever have a Connector instance",
-                        None,
-                    )),
+                    DataplaneInitCommandType::Consumer { .. } => Ok(None),
                 },
 
-                _ => Err(Errors::crazy(
-                    "Cannot execute command without an existing dataplane process",
-                    None,
-                )),
+                _ => Ok(None),
             },
             Some(process) => match &process.inner.connector_instance_id {
                 Some(id_str) => Ok(Some(id_str.parse::<Urn>()?)),

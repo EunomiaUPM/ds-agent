@@ -34,6 +34,7 @@ pub struct Model {
     pub state_attribute: Option<String>,
     pub associated_agent_peer: String,
     pub protocol: String,
+    pub connector_instance_id: String,
     pub transfer_direction: String,
     pub agreement_id: String,
     pub callback_address: Option<String>,
@@ -73,6 +74,7 @@ pub struct NewTransferProcessModel {
     pub(crate) state_attribute: Option<String>,
     pub(crate) associated_agent_peer: String,
     pub(crate) protocol: String,
+    pub(crate) connector_instance_id: String,
     pub(crate) transfer_direction: String,
     pub(crate) agreement_id: Urn,
     pub(crate) callback_address: Option<String>,
@@ -89,6 +91,7 @@ impl Default for NewTransferProcessModel {
             state_attribute: None,
             associated_agent_peer: "".to_owned(),
             protocol: "dsp".to_owned(), // TODO display enum
+            connector_instance_id: "".to_string(),
             transfer_direction: "push".to_owned(),
             agreement_id: Urn::from_str(format!("urn:uuid:{}", uuid::Uuid::default()).as_str())
                 .unwrap(),
@@ -114,6 +117,7 @@ impl From<NewTransferProcessModel> for ActiveModel {
             state_attribute: ActiveValue::Set(dto.state_attribute),
             associated_agent_peer: ActiveValue::Set(dto.associated_agent_peer),
             protocol: ActiveValue::Set(dto.protocol),
+            connector_instance_id: ActiveValue::Set(dto.connector_instance_id),
             transfer_direction: ActiveValue::Set(dto.transfer_direction),
             agreement_id: ActiveValue::Set(dto.agreement_id.to_string()),
             callback_address: ActiveValue::Set(dto.callback_address),

@@ -92,7 +92,7 @@ pub(super) trait DataPlaneStrategy: Send + Sync {
         mgr: &DataplaneManager,
         proxy_base: &str,
         transfer_id: &Urn,
-        connector_instance: &ConnectorInstanceDto,
+        connector_instance: &Option<ConnectorInstanceDto>,
         data_address: &Option<DataAddressDto>,
     ) -> Outcome<()>;
 
@@ -125,10 +125,11 @@ static PROVIDER_PUSH: ProviderPushStrategy = ProviderPushStrategy;
 
 /// Select strategy from `process.inner.role` × `process.inner.transfer_direction`.
 pub(super) fn strategy_for(process: &TransferProcessDto) -> &'static dyn DataPlaneStrategy {
+
     match (process.inner.role.as_str(), process.inner.transfer_direction.as_str()) {
-        ("Consumer", "pull") => &CONSUMER_PULL,
+        ("Consumer", "Pull") => &CONSUMER_PULL,
         ("Consumer", _) => &CONSUMER_PUSH,
-        ("Provider", "pull") => &PROVIDER_PULL,
+        ("Provider", "Pull") => &PROVIDER_PULL,
         _ => &PROVIDER_PUSH,
     }
 }

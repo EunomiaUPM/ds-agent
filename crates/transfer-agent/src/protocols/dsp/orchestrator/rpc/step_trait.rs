@@ -63,6 +63,8 @@ pub(super) struct RpcPeerContext {
 pub(super) struct RpcRequestContext {
     /// Pre-allocated local process identifier (URN), generated before the HTTP call.
     pub process_id: Urn,
+    // Allocated local process for post-hook
+    pub process: Option<TransferProcessDto>,
     /// Provider's base address; used to build the outgoing URL.
     pub provider_address: String,
     /// Remote peer identifier; used for auth-token lookup.
@@ -143,7 +145,7 @@ pub(super) trait TransferRpcStep: Send + Sync + 'static {
     async fn send_and_persist(
         http_client: &HttpClient,
         persistence: &Arc<dyn TransferPersistenceTrait>,
-        ctx: &Self::Context,
+        ctx: &mut Self::Context,
         payload: Arc<Self::DspMessage>,
         url_suffix: &str,
     ) -> Outcome<(
@@ -188,19 +190,20 @@ pub(super) async fn resolve_continuation_context(
     consumer_pid: &Urn,
     persistence: &Arc<dyn TransferPersistenceTrait>,
 ) -> Outcome<RpcPeerContext> {
+    // create context stuff
     let process = persistence
         .fetch_process(consumer_pid.to_string().as_str())
         .await?;
-
     let provider_pid = Urn::from_str(process.identifiers.get("providerPid").unwrap().as_str())?;
-    let consumer_pid_resolved =
-        Urn::from_str(process.identifiers.get("consumerPid").unwrap().as_str())?;
+    let consumer_pid = Urn::from_str(process.identifiers.get("consumerPid").unwrap().as_str())?;
 
     // Outgoing URL embeds the *peer's* identifier, not the local one.
+    // If role Provider, consumerPid identifier should be used, since is the peer expects consumerPid as route parameter
     let identifier_key = match process.inner.role.as_str() {
         "Provider" => "consumerPid",
         _ => "providerPid",
     };
+    // more context stuff
     let peer_url_id = process.identifiers.get(identifier_key).unwrap().clone();
     let process_id = Urn::from_str(process.inner.id.as_str())?;
     let is_restart = process.inner.state_attribute.as_deref().unwrap_or("") != "OnRequest";
@@ -209,7 +212,7 @@ pub(super) async fn resolve_continuation_context(
         process,
         process_id,
         provider_pid,
-        consumer_pid: consumer_pid_resolved,
+        consumer_pid,
         peer_url_id,
         is_restart,
     })
@@ -232,23 +235,25 @@ pub(super) async fn continuation_send_and_persist<T>(
 where
     T: TransferProcessMessageTrait + Clone + serde::Serialize + Send + Sync + 'static,
 {
+    // where is the IP, route and callback of peer
     let callback = ctx
         .process
         .inner
         .callback_address
         .clone()
         .unwrap_or_default();
+    // create rest of url, with ID (consumerPid or providerPid), and url_suffix (start, suspend, complete...)
     let peer_url = format!("{}/transfers/{}/{}", callback, ctx.peer_url_id, url_suffix);
-
+    // wrap message
     let message = TransferProcessMessageWrapper {
         context: ContextField::default(),
         _type: payload.get_message(),
         dto: payload.as_ref().clone(),
     };
-
+    // send message
     let response: TransferProcessMessageWrapper<TransferProcessAckDto> =
         http_client.post_json(peer_url.as_str(), &message).await?;
-
+    // update process in db
     let updated = persistence
         .update_process(
             ctx.process.inner.id.as_str(),
@@ -256,6 +261,6 @@ where
             serde_json::to_value(message).unwrap(),
         )
         .await?;
-
+    // bye
     Ok((response, updated))
 }

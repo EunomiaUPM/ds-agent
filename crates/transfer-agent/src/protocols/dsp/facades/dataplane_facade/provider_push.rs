@@ -15,14 +15,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::protocols::dsp::facades::dataplane_facade::DataAddressDto;
 use crate::protocols::dsp::facades::dataplane_facade::strategy::{
-    DataPlaneStrategy, execute_command, ingress_as_data_address, to_dataplane_address,
+    execute_command, ingress_as_data_address, to_dataplane_address, DataPlaneStrategy,
 };
+use crate::protocols::dsp::facades::dataplane_facade::DataAddressDto;
 use connector::ConnectorInstanceDto;
 use dataplane::{DataplaneCommand, DataplaneInitCommandType, DataplaneManager};
 use urn::Urn;
-use ymir::errors::Outcome;
+use ymir::errors::{Errors, Outcome};
 
 pub(super) struct ProviderPushStrategy;
 
@@ -43,13 +43,16 @@ impl DataPlaneStrategy for ProviderPushStrategy {
         mgr: &DataplaneManager,
         _proxy_base: &str,
         transfer_id: &Urn,
-        connector_instance: &ConnectorInstanceDto,
+        connector_instance: &Option<ConnectorInstanceDto>,
         data_address: &Option<DataAddressDto>,
     ) -> Outcome<()> {
         // Init provider DP with the connector, then immediately set egress to the
         // consumer's ingest URL (supplied in the TransferRequest DataAddress field).
         // The autonomous chain (Init→Ready) runs inside SetInit, so the process is
         // Ready before SetEgress fires.
+        let connector_instance = connector_instance
+            .as_ref()
+            .ok_or(Errors::crazy("Connector instance should be defined", None))?;
         execute_command(
             mgr,
             transfer_id,
@@ -64,7 +67,9 @@ impl DataPlaneStrategy for ProviderPushStrategy {
                 execute_command(
                     mgr,
                     transfer_id,
-                    DataplaneCommand::SetEgress { data_address: to_dataplane_address(da) },
+                    DataplaneCommand::SetEgress {
+                        data_address: to_dataplane_address(da),
+                    },
                 )
                 .await?;
             }

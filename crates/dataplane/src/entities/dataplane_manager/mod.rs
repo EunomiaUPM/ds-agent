@@ -28,6 +28,7 @@ use common::dsp_common::data_address::{DataAddress, EndpointProperty};
 use serde::{Deserialize, Serialize};
 use urn::Urn;
 
+#[derive(Debug)]
 pub struct DataplaneAddress {
     pub endpoint_type: String,
     pub endpoint: String,
@@ -88,6 +89,7 @@ impl Into<DataAddress> for DataplaneAddress {
     }
 }
 
+#[derive(Debug)]
 pub enum DataplaneCommand {
     /// Initiates dataplane. when transfer agent receives signals for creating a new TransferProcess
     /// Dataplane must be initiated
@@ -106,6 +108,7 @@ pub enum DataplaneCommand {
     },
 }
 
+#[derive(Debug)]
 pub enum DataplaneInitCommandType {
     // If Provider, must know ConnectorInstance
     Provider {
@@ -120,12 +123,14 @@ pub enum DataplaneInitCommandType {
     },
 }
 
+#[derive(Debug)]
 pub enum DataplaneResponse {
     Ok,
     OkWithDataAddress(DataplaneAddress),
     Error(Box<dyn std::error::Error + Send + Sync>),
 }
 
+#[derive(Debug)]
 pub struct DataplaneManagerInput {
     pub transfer_process_id: Urn,
     pub command: DataplaneCommand,

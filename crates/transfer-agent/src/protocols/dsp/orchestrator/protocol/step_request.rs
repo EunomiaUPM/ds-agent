@@ -144,11 +144,7 @@ impl ProtocolStep for ProtocolRequestStep {
         input: &TransferProcessMessageWrapper<TransferRequestMessageDto>,
         process: &TransferProcessDto,
     ) -> Outcome<Option<DataAddressDto>> {
-        let connector_instance = ctx
-            .connector_instance
-            .as_ref()
-            .ok_or_else(|| Errors::crazy("no connector instance in request context", None))?;
-        dp.on_transfer_request_post(process, connector_instance, &input.dto.data_address)
+        dp.on_transfer_request_post(process, &ctx.connector_instance, &input.dto.data_address)
             .await?;
         Ok(None)
     }

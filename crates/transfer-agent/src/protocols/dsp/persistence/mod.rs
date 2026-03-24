@@ -101,7 +101,7 @@ pub(crate) async fn create_process_record(
     message_svc: &Arc<dyn TransferAgentMessagesTrait>,
     id: Urn,
     protocol: &str,
-    direction: &str,
+    protocol_direction: &str,
     associated_agent_peer: &str,
     provider_pid: Option<Urn>,
     provider_address: Option<String>,
@@ -113,17 +113,28 @@ pub(crate) async fn create_process_record(
     let format = payload_dto.get_format().unwrap();
     let agreement_id = payload_dto.get_agreement_id().unwrap();
     let message_type = payload_dto.get_message();
+    let callback_address =
+        provider_address.unwrap_or_else(|| payload_dto.get_callback_address().unwrap());
 
     // The local role and providerPid assignment depend on who initiated the transfer.
     // INBOUND (Provider): we generate the providerPid ourselves.
     // OUTBOUND (Consumer): the providerPid was received from the peer.
-    let role = if direction == "INBOUND" {
+    let role = if protocol_direction == "INBOUND" {
         "Provider"
     } else {
         "Consumer"
     };
+
+    // The transfer direction based on DSP spec. If TransferRequestMessage has dataAddress defined
+    // Direction is PUSH, otherwise is PULL
+    let transfer_direction = match payload_dto.get_data_address() {
+        Some(_) => "Push",
+        None => "Pull",
+    };
+
+    // Create providerPid identifiers if INBOUND
     let mut identifiers = HashMap::new();
-    if direction == "INBOUND" {
+    if protocol_direction == "INBOUND" {
         identifiers.insert(
             "providerPid".to_string(),
             format!("urn:provider-pid:{}", uuid::Uuid::new_v4()),
@@ -131,18 +142,18 @@ pub(crate) async fn create_process_record(
     } else {
         identifiers.insert("providerPid".to_string(), provider_pid.unwrap().to_string());
     }
+    // In any case INBOUND or OUTBOUND consumerPid must be created
     identifiers.insert("consumerPid".to_string(), consumer_pid.to_string());
 
-    let callback_address =
-        provider_address.unwrap_or_else(|| payload_dto.get_callback_address().unwrap());
-
+    // Persist Process
     let mut transfer_process = process_svc
         .create_transfer_process(&NewTransferProcessDto {
             id: Some(id.clone()),
             state: TransferState::REQUESTED.to_string(),
             associated_agent_peer: associated_agent_peer.to_string(),
             protocol: protocol.to_string(),
-            transfer_direction: format,
+            connector_instance_id: format,
+            transfer_direction: transfer_direction.to_string(),
             agreement_id,
             callback_address: Some(callback_address),
             role: role.to_string(),
@@ -152,11 +163,12 @@ pub(crate) async fn create_process_record(
         })
         .await?;
 
+    // Create a message
     let message = message_svc
         .create_transfer_message(&NewTransferMessageDto {
             id: None,
             transfer_agent_process_id: id,
-            direction: direction.to_string(),
+            direction: protocol_direction.to_string(),
             protocol: protocol.to_string(),
             message_type: message_type.to_string(),
             state_transition_from: "-".to_string(),

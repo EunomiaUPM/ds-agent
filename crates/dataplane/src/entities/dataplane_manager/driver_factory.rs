@@ -24,6 +24,7 @@ use connector::{
 };
 use serde_json::{json, Value};
 use std::collections::HashMap;
+use std::fmt::Debug;
 use std::sync::Arc;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
@@ -46,6 +47,7 @@ use ymir::errors::{Errors, Outcome};
 //   {{__RUNTIME_SUB_RESPONSE_{.id}__}}         → .id from subscribe response
 //   {{__RUNTIME_SUB_RESPONSE_{.data.token}__}} → nested field from subscribe response
 
+#[derive(Debug)]
 pub struct SysRuntimeContext {
     pub transfer_id: Urn,
     pub proxy_base_url: String,
@@ -85,6 +87,7 @@ impl SysRuntimeContext {
 
 // ─── HTTP subscribe lifecycle driver ───
 
+#[derive(Debug)]
 pub struct HttpSubscribeLifecycle {
     http_client: Arc<HttpClient>,
     sys_context: SysRuntimeContext,
@@ -260,18 +263,19 @@ impl DataplaneDriverFactory {
     }
 }
 
+#[derive(Debug)]
 pub struct DataplaneDriver {
     pub auth_driver: Arc<dyn AuthActionTrait>,
     pub lifecycle_driver: Arc<dyn LifeCycleActionTrait>,
 }
 
 #[async_trait::async_trait]
-pub trait AuthActionTrait: Send + Sync {
+pub trait AuthActionTrait: Send + Sync + Debug {
     async fn perform_auth(&self, connector: Option<&ConnectorInstanceDto>) -> Outcome<()>;
 }
 
+#[derive(Debug)]
 pub struct NoOpAuth {}
-
 impl NoOpAuth {
     pub fn new() -> Self {
         Self {}
@@ -286,12 +290,13 @@ impl AuthActionTrait for NoOpAuth {
 }
 
 #[async_trait::async_trait]
-pub trait LifeCycleActionTrait: Send + Sync {
+pub trait LifeCycleActionTrait: Send + Sync + Debug {
     /// Performs subscription. Returns the response body (stored in flow_control for later use).
     async fn perform_subscribe(&self, connector: Option<&ConnectorInstanceDto>) -> Outcome<Value>;
     async fn perform_unsubscribe(&self, connector: Option<&ConnectorInstanceDto>) -> Outcome<()>;
 }
 
+#[derive(Debug)]
 pub struct NoOpLifecycle {}
 
 impl NoOpLifecycle {

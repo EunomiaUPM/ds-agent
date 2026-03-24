@@ -89,7 +89,7 @@ impl TransferRpcStep for StartStep {
     async fn send_and_persist(
         http_client: &HttpClient,
         persistence: &Arc<dyn TransferPersistenceTrait>,
-        ctx: &RpcPeerContext,
+        ctx: &mut RpcPeerContext,
         payload: Arc<TransferStartMessageDto>,
         url_suffix: &str,
     ) -> Outcome<(

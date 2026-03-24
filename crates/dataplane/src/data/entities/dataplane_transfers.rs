@@ -80,7 +80,10 @@ impl TryFrom<DataplaneInitCommandType> for TransferRole {
 impl TryFrom<&DataplaneInitCommandType> for TransferRole {
     type Error = Errors;
     fn try_from(value: &DataplaneInitCommandType) -> Result<Self, Self::Error> {
-        value.try_into()
+        match value {
+            DataplaneInitCommandType::Provider { .. } => Ok(Self::Provider),
+            DataplaneInitCommandType::Consumer { .. } => Ok(Self::Consumer),
+        }
     }
 }
 

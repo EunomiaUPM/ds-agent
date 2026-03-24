@@ -56,6 +56,11 @@ impl MigrationTrait for Migration {
                             .not_null(),
                     )
                     .col(
+                        ColumnDef::new(TransferAgentProcess::ConnectorInstanceId)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
                         ColumnDef::new(TransferAgentProcess::TransferDirection)
                             .string()
                             .not_null(),
@@ -123,6 +128,7 @@ pub enum TransferAgentProcess {
     StateAttribute,
     AssociatedAgentPeer,
     Protocol,
+    ConnectorInstanceId,
     TransferDirection,
     AgreementId,
     CallbackAddress,

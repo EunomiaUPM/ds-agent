@@ -95,7 +95,7 @@ impl TransferRpcStep for TerminationStep {
     async fn send_and_persist(
         http_client: &HttpClient,
         persistence: &Arc<dyn TransferPersistenceTrait>,
-        ctx: &RpcPeerContext,
+        ctx: &mut RpcPeerContext,
         payload: Arc<TransferTerminationMessageDto>,
         url_suffix: &str,
     ) -> Outcome<(

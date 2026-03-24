@@ -76,6 +76,9 @@ impl RPCOrchestratorService {
 
 #[async_trait::async_trait]
 impl RPCOrchestratorTrait for RPCOrchestratorService {
+    // This method is called only by consumers
+    // Resolves communication to peer and sends DSP TransferRequestMessage
+    // Once message ACK gets back, creates Dataplane Process
     async fn setup_transfer_request(
         &self,
         input: &RpcTransferRequestMessageDto,
@@ -88,6 +91,8 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         })
     }
 
+    // This method could be called by all, providers, consumers
+    // Only if process was REQUESTED, a DataAddress could be attached
     async fn setup_transfer_start(
         &self,
         input: &RpcTransferStartMessageDto,
@@ -100,6 +105,7 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         })
     }
 
+    // This method could be called by all, providers, consumers
     async fn setup_transfer_suspension(
         &self,
         input: &RpcTransferSuspensionMessageDto,
@@ -112,6 +118,7 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         })
     }
 
+    // This method could be called by all, providers, consumers
     async fn setup_transfer_completion(
         &self,
         input: &RpcTransferCompletionMessageDto,
@@ -124,6 +131,7 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         })
     }
 
+    // This method could be called by all, providers, consumers
     async fn setup_transfer_termination(
         &self,
         input: &RpcTransferTerminationMessageDto,
@@ -140,7 +148,7 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
 // ─── Template engine ──────────────────────────────────────────────────────────
 
 impl RPCOrchestratorService {
-    /// Execute any RPC lifecycle step using the [`TransferRpcStep`] template.
+    /// Execute any RPC lifecycle step using the [`TransferRpcStep`] template trait.
     ///
     /// The algorithm is always the same regardless of step type:
     /// validate → prepare context → pre-hook → build message →
@@ -152,26 +160,30 @@ impl RPCOrchestratorService {
         TransferProcessMessageWrapper<TransferProcessAckDto>,
         TransferProcessDto,
     )> {
+        // validate
         S::validate(&self.validator, input).await?;
-        let ctx = S::prepare_context(input, &self.persistence_service).await?;
-
+        // prepare context
+        let mut ctx = S::prepare_context(input, &self.persistence_service).await?;
+        // dataplane
         let dp = self.facades.get_data_plane_facade().await;
-        let pre_addr = S::pre_hook(&dp, &ctx).await?;
-
-        let message = S::build_message(input, &ctx, pre_addr)?;
-
+        // pre-hook
+        let data_address = S::pre_hook(&dp, &ctx).await?;
+        // build message to send to peer
+        let message = S::build_message(input, &ctx, data_address)?;
+        // token header
         S::apply_auth_token(&self.mates_facade, &self.http_client, S::auth_peer(&ctx)).await;
+        // send message and persist response
         let (response, new_process) = S::send_and_persist(
             &self.http_client,
             &self.persistence_service,
-            &ctx,
+            &mut ctx,
             Arc::new(message),
             S::url_suffix(),
         )
         .await?;
-
+        // pre-hook
         S::post_hook(&dp, &ctx).await?;
-
+        // bye
         Ok((response, new_process))
     }
 }

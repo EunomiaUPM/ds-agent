@@ -66,13 +66,14 @@ message CreateProcessRequest {
   string state = 2;
   string associated_agent_peer = 3;
   string protocol = 4;
-  string transfer_direction = 5;
-  string agreement_id = 6;
-  optional string state_attribute = 7;
-  optional string properties_json = 8;
-  map<string, string> identifiers = 9;
-  optional string callback_address = 10;
-  string role = 11;
+  string connector_instance_id = 5;
+  string transfer_direction = 6;
+  string agreement_id = 7;
+  optional string state_attribute = 8;
+  optional string properties_json = 9;
+  map<string, string> identifiers = 10;
+  optional string callback_address = 11;
+  string role = 12;
 }
 
 message UpdateProcessRequest {

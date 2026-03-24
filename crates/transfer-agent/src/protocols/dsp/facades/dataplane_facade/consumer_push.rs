@@ -63,7 +63,7 @@ impl DataPlaneStrategy for ConsumerPushStrategy {
         _mgr: &DataplaneManager,
         _proxy_base: &str,
         _transfer_id: &Urn,
-        _connector_instance: &ConnectorInstanceDto,
+        _connector_instance: &Option<ConnectorInstanceDto>,
         _data_address: &Option<DataAddressDto>,
     ) -> Outcome<()> {
         Ok(()) // not called for consumer

@@ -25,6 +25,7 @@ use connector::ConnectorInstanceDto;
 use urn::Urn;
 use ymir::errors::Outcome;
 
+#[derive(Debug)]
 pub(super) struct CommandContext<'a> {
     pub(super) process_id: Urn,
     state: &'a TransferState,

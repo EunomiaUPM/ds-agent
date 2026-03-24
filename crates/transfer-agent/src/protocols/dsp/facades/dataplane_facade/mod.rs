@@ -46,7 +46,7 @@ pub trait DataPlaneFacadeTrait: Send + Sync {
     async fn on_transfer_request_post(
         &self,
         transfer_process: &TransferProcessDto,
-        connector_instance: &ConnectorInstanceDto,
+        connector_instance: &Option<ConnectorInstanceDto>,
         data_address: &Option<DataAddressDto>,
     ) -> Outcome<()>;
 

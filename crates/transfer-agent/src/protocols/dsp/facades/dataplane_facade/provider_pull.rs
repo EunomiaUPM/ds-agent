@@ -22,7 +22,7 @@ use crate::protocols::dsp::facades::dataplane_facade::strategy::{
 use connector::ConnectorInstanceDto;
 use dataplane::{DataplaneCommand, DataplaneInitCommandType, DataplaneManager};
 use urn::Urn;
-use ymir::errors::Outcome;
+use ymir::errors::{Errors, Outcome};
 
 pub(super) struct ProviderPullStrategy;
 
@@ -43,11 +43,12 @@ impl DataPlaneStrategy for ProviderPullStrategy {
         mgr: &DataplaneManager,
         _proxy_base: &str,
         transfer_id: &Urn,
-        connector_instance: &ConnectorInstanceDto,
+        connector_instance: &Option<ConnectorInstanceDto>,
         _data_address: &Option<DataAddressDto>,
     ) -> Outcome<()> {
         // Init provider DP with the connector. No egress yet — the consumer will
         // send their ingest URL inside the TransferStart ack (consumer on_start_post).
+        let connector_instance = connector_instance.as_ref().ok_or(Errors::crazy("Connector instance should be defined", None))?;
         execute_command(
             mgr,
             transfer_id,

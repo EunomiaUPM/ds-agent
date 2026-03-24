@@ -63,7 +63,7 @@ impl GateKeeperTrait for GnapGateKeeperService {
         let interact = get_from_opt(payload.interact.as_ref(), "interact")?;
 
         if !&interact.start.contains(&"oidc4vp".to_string()) {
-            return Err(Errors::not_impl("Interact method not supported yet", None));
+            return Err(Errors::not_impl("Interact method not supported", None));
         }
 
         let cert = payload.client.key.cert.ok_or_else(|| {

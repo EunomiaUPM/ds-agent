@@ -67,7 +67,7 @@ fn resolves_url_template() {
     let mut template = pull_http("https://api.example.com/{{__RESOURCE__}}");
     let params = HashMap::from([("RESOURCE".to_string(), json!("items"))]);
 
-    TemplateResolverVisitor::new(&resolver(&params))
+    TemplateResolverVisitor::new(&mut resolver(&params))
         .apply(&mut template)
         .unwrap();
 
@@ -96,7 +96,7 @@ fn resolves_method_template_variant() {
     };
     let params = HashMap::from([("METHOD".to_string(), json!(["POST"]))]);
 
-    TemplateResolverVisitor::new(&resolver(&params))
+    TemplateResolverVisitor::new(&mut resolver(&params))
         .apply(&mut template)
         .unwrap();
 
@@ -125,7 +125,7 @@ fn resolves_body_template() {
     };
     let params = HashMap::from([("ID".to_string(), json!("abc123"))]);
 
-    TemplateResolverVisitor::new(&resolver(&params))
+    TemplateResolverVisitor::new(&mut resolver(&params))
         .apply(&mut template)
         .unwrap();
 
@@ -157,7 +157,7 @@ fn resolves_headers_map_value_variant() {
     };
     let params = HashMap::from([("TOKEN".to_string(), json!("secret"))]);
 
-    TemplateResolverVisitor::new(&resolver(&params))
+    TemplateResolverVisitor::new(&mut resolver(&params))
         .apply(&mut template)
         .unwrap();
 
@@ -192,7 +192,7 @@ fn resolves_kafka_topic() {
     };
     let params = HashMap::from([("TOPIC".to_string(), json!("events"))]);
 
-    TemplateResolverVisitor::new(&resolver(&params))
+    TemplateResolverVisitor::new(&mut resolver(&params))
         .apply(&mut template)
         .unwrap();
 
@@ -223,7 +223,7 @@ fn resolves_basic_auth_username() {
     };
     let params = HashMap::from([("USERNAME".to_string(), json!("alice"))]);
 
-    TemplateResolverVisitor::new(&resolver(&params))
+    TemplateResolverVisitor::new(&mut resolver(&params))
         .apply(&mut template)
         .unwrap();
 
@@ -247,7 +247,7 @@ fn resolves_api_key_name() {
     };
     let params = HashMap::from([("HEADER_NAME".to_string(), json!("X-Custom-Key"))]);
 
-    TemplateResolverVisitor::new(&resolver(&params))
+    TemplateResolverVisitor::new(&mut resolver(&params))
         .apply(&mut template)
         .unwrap();
 
@@ -279,7 +279,7 @@ fn resolves_oauth2_token_url_and_client_id() {
         ("CLIENT_ID".to_string(), json!("my-client")),
     ]);
 
-    TemplateResolverVisitor::new(&resolver(&params))
+    TemplateResolverVisitor::new(&mut resolver(&params))
         .apply(&mut template)
         .unwrap();
 
@@ -306,7 +306,7 @@ fn leaves_literal_fields_unchanged() {
     let mut template = pull_http(url);
     let params = HashMap::new();
 
-    TemplateResolverVisitor::new(&resolver(&params))
+    TemplateResolverVisitor::new(&mut resolver(&params))
         .apply(&mut template)
         .unwrap();
 
@@ -324,7 +324,7 @@ fn leaves_unresolved_placeholder_unchanged_when_param_missing() {
     let mut template = pull_http("https://api.example.com/{{__MISSING__}}");
     let params = HashMap::new();
 
-    TemplateResolverVisitor::new(&resolver(&params))
+    TemplateResolverVisitor::new(&mut resolver(&params))
         .apply(&mut template)
         .unwrap();
 
@@ -364,7 +364,7 @@ fn resolves_push_subscribe_and_unsubscribe() {
     };
     let params = HashMap::from([("ID".to_string(), json!("res-42"))]);
 
-    TemplateResolverVisitor::new(&resolver(&params))
+    TemplateResolverVisitor::new(&mut resolver(&params))
         .apply(&mut template)
         .unwrap();
 

@@ -28,6 +28,7 @@
 //! 2. `interaction` fields (pull → data_access; push → subscribe then unsubscribe)
 //!
 //! [`ConnectorTemplateDto`]: crate::entities::connector_template::ConnectorTemplateDto
+
 use crate::entities::auth_config::AuthenticationConfig;
 use crate::entities::connector_template::ConnectorTemplateDto;
 use crate::entities::interaction::{InteractionConfig, PullLifecycle, PushLifecycle};

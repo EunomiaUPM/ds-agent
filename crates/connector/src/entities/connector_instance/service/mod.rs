@@ -181,7 +181,7 @@ impl ConnectorInstanceTrait for ConnectorInstanceEntitiesService {
             ));
         }
 
-        // Phase 1 — enrich the parameter map before resolution.
+        // enrich the parameter map before resolution.
         //
         // Steps run in order; each uses entry-insert semantics so that an
         // earlier step's value is never overwritten by a later one.

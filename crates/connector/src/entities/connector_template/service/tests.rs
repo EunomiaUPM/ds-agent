@@ -20,10 +20,10 @@ use crate::data::factory_trait::MockConnectorRepoTrait;
 use crate::data::repo_traits::connector_template_repo::{
     ConnectorTemplateRepoTrait, MockConnectorTemplateRepoTrait,
 };
-use crate::entities::connector_template::connector_template::ConnectorTemplateEntitiesService;
 use crate::entities::connector_template::{ConnectorTemplateDto, ConnectorTemplateEntitiesTrait};
 use serde_json::json;
 use std::sync::Arc;
+use crate::entities::connector_template::service::ConnectorTemplateEntitiesService;
 
 /// Builds a `ConnectorTemplateEntitiesService` backed by mock repos.
 ///

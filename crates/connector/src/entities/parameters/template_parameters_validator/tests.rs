@@ -50,7 +50,7 @@ fn ok_when_found_and_defined_match_exactly() {
     ];
     let found = vec![
         make_found("HOST", FoundParameterType::String),
-        make_found("PORT", FoundParameterType::Int),
+        make_found("PORT", FoundParameterType::String),
     ];
     assert!(ParameterValidator::new(&defs, false)
         .validate(&found)
@@ -212,7 +212,7 @@ fn runtime_parameter_causes_error_when_exclude_runtime_is_false() {
 #[test]
 fn ok_when_int_parameter_used_as_complete_int_template() {
     let defs = vec![make_def("PORT", ParameterType::Int)];
-    let found = vec![make_found("PORT", FoundParameterType::Int)];
+    let found = vec![make_found("PORT", FoundParameterType::String)];
     assert!(ParameterValidator::new(&defs, false)
         .validate(&found)
         .is_ok());
@@ -260,7 +260,7 @@ fn ok_when_map_string_parameter_used_as_complete_map_template() {
 fn err_when_string_parameter_used_as_int_template() {
     // A String parameter cannot satisfy a TemplateInt::Template context.
     let defs = vec![make_def("HOST", ParameterType::String)];
-    let found = vec![make_found("HOST", FoundParameterType::Int)];
+    let found = vec![make_found("HOST", FoundParameterType::String)];
     let err = ParameterValidator::new(&defs, false)
         .validate(&found)
         .unwrap_err();
@@ -308,8 +308,8 @@ fn err_deduplicates_repeated_type_mismatch_for_same_parameter() {
     // HOST appears twice with the same incompatible type; error should appear once.
     let defs = vec![make_def("HOST", ParameterType::String)];
     let found = vec![
-        make_found("HOST", FoundParameterType::Int),
-        make_found("HOST", FoundParameterType::Int),
+        make_found("HOST", FoundParameterType::String),
+        make_found("HOST", FoundParameterType::String),
     ];
     let err = ParameterValidator::new(&defs, false)
         .validate(&found)
@@ -353,7 +353,7 @@ fn err_when_two_definitions_share_the_same_title() {
 
     let found = vec![
         make_found("HOST", FoundParameterType::String),
-        make_found("PORT", FoundParameterType::Int),
+        make_found("PORT", FoundParameterType::String),
     ];
     let err = ParameterValidator::new(&[def_a, def_b], false)
         .validate(&found)
@@ -370,7 +370,7 @@ fn err_when_two_definitions_share_the_same_title() {
 fn err_reports_name_and_type_issues_together() {
     let defs = vec![make_def("HOST", ParameterType::String)];
     let found = vec![
-        make_found("HOST", FoundParameterType::Int), // type mismatch
+        make_found("HOST", FoundParameterType::VecString), // type mismatch
         make_found("GHOST", FoundParameterType::String), // undeclared
     ];
     let err = ParameterValidator::new(&defs, false)

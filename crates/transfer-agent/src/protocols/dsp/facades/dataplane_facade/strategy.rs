@@ -77,7 +77,6 @@ pub(super) fn to_dataplane_address(da: &DataAddressDto) -> DataplaneAddress {
 /// combinations and live directly in `DspDataPlaneFacade`.
 #[async_trait::async_trait]
 pub(super) trait DataPlaneStrategy: Send + Sync {
-    /// Consumer OUTBOUND — before the process record exists.
     async fn on_request_pre(
         &self,
         mgr: &DataplaneManager,
@@ -86,7 +85,6 @@ pub(super) trait DataPlaneStrategy: Send + Sync {
         data_address: &Option<DataAddressDto>,
     ) -> Outcome<Option<DataAddressDto>>;
 
-    /// Provider INBOUND — after the process record has been persisted.
     async fn on_request_post(
         &self,
         mgr: &DataplaneManager,
@@ -96,7 +94,6 @@ pub(super) trait DataPlaneStrategy: Send + Sync {
         data_address: &Option<DataAddressDto>,
     ) -> Outcome<()>;
 
-    /// Provider OUTBOUND — before sending `TransferStartMessage`.
     async fn on_start_pre(
         &self,
         mgr: &DataplaneManager,
@@ -104,7 +101,6 @@ pub(super) trait DataPlaneStrategy: Send + Sync {
         transfer_id: &Urn,
     ) -> Outcome<Option<DataAddressDto>>;
 
-    /// Consumer INBOUND — after receiving `TransferStartMessage`.
     async fn on_start_post(
         &self,
         mgr: &DataplaneManager,
@@ -136,7 +132,7 @@ pub(super) fn strategy_for(process: &TransferProcessDto) -> &'static dyn DataPla
 
 /// Select strategy for `on_transfer_request_pre`: no process exists yet.
 /// Role is always Consumer for this hook; mode is inferred from `data_address`.
-pub(super) fn strategy_for_pre(
+pub(super) fn strategy_for_request_pre(
     data_address: &Option<DataAddressDto>,
 ) -> &'static dyn DataPlaneStrategy {
     if data_address.is_some() {

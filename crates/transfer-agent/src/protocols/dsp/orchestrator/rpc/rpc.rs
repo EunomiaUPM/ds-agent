@@ -37,6 +37,7 @@ use common::facades::ssi_auth_facade::MatesFacadeTrait;
 use common::http_client::HttpClient;
 use std::sync::Arc;
 use ymir::errors::Outcome;
+
 // ─── Service ─────────────────────────────────────────────────────────────────
 
 /// RPC orchestrator for outbound transfer operations.

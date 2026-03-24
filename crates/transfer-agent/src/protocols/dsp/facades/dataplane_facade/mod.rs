@@ -33,16 +33,12 @@ use ymir::errors::Outcome;
 #[async_trait::async_trait]
 pub trait DataPlaneFacadeTrait: Send + Sync {
     // ─── TransferRequest ───
-
-    /// Consumer OUTBOUND: init consumer DP (SetInit Consumer).
-    /// Returns DataAddress for PUSH mode (ingest URL).
     async fn on_transfer_request_pre(
         &self,
         transfer_id: &Urn,
         data_address: &Option<DataAddressDto>,
     ) -> Outcome<Option<DataAddressDto>>;
 
-    /// Provider INBOUND: init provider DP with connector (SetInit Provider).
     async fn on_transfer_request_post(
         &self,
         transfer_process: &TransferProcessDto,
@@ -52,15 +48,11 @@ pub trait DataPlaneFacadeTrait: Send + Sync {
 
     // ─── TransferStart ───
 
-    /// OUTBOUND: start local DP (SetStarted).
-    /// Returns DataAddress (proxy URL for PULL).
     async fn on_transfer_start_pre(
         &self,
         transfer_process: &TransferProcessDto,
     ) -> Outcome<Option<DataAddressDto>>;
 
-    /// INBOUND: start local DP (SetStarted).
-    /// Accepts the peer's DataAddress (PULL consumer: provider proxy URL) to set as egress.
     async fn on_transfer_start_post(
         &self,
         transfer_process: &TransferProcessDto,
@@ -73,6 +65,7 @@ pub trait DataPlaneFacadeTrait: Send + Sync {
         &self,
         transfer_process: &TransferProcessDto,
     ) -> Outcome<()>;
+
     async fn on_transfer_suspension_post(
         &self,
         transfer_process: &TransferProcessDto,
@@ -84,6 +77,7 @@ pub trait DataPlaneFacadeTrait: Send + Sync {
         &self,
         transfer_process: &TransferProcessDto,
     ) -> Outcome<()>;
+
     async fn on_transfer_completion_post(
         &self,
         transfer_process: &TransferProcessDto,
@@ -95,6 +89,7 @@ pub trait DataPlaneFacadeTrait: Send + Sync {
         &self,
         transfer_process: &TransferProcessDto,
     ) -> Outcome<()>;
+    
     async fn on_transfer_termination_post(
         &self,
         transfer_process: &TransferProcessDto,

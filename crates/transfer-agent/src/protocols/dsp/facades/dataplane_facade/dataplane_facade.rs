@@ -17,7 +17,7 @@
 
 use crate::entities::transfer_process::TransferProcessDto;
 use crate::protocols::dsp::facades::dataplane_facade::strategy::{
-    execute_command, strategy_for, strategy_for_pre,
+    execute_command, strategy_for, strategy_for_request_pre,
 };
 use crate::protocols::dsp::facades::dataplane_facade::DataPlaneFacadeTrait;
 use crate::protocols::dsp::protocol_types::DataAddressDto;
@@ -51,7 +51,7 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
         transfer_id: &Urn,
         data_address: &Option<DataAddressDto>,
     ) -> Outcome<Option<DataAddressDto>> {
-        strategy_for_pre(data_address)
+        strategy_for_request_pre(data_address)
             .on_request_pre(&self.dataplane_manager, &self.proxy_base_url, transfer_id, data_address)
             .await
     }

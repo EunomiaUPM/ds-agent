@@ -82,10 +82,7 @@ use serde_json::Value;
 use std::collections::HashMap;
 use ymir::errors::Outcome;
 
-pub(crate) mod default_parameter_enricher;
-pub(crate) mod default_parameter_injector;
 pub(crate) mod instance_parameters_validator;
-pub(crate) mod sys_parameter_enricher;
 pub(crate) mod system_parameter_extractor;
 pub(crate) mod template_parameters_extractor;
 pub mod template_parameters_resolver;
@@ -93,6 +90,9 @@ pub(crate) mod template_parameters_validator;
 pub(crate) mod template_parameters_visitor;
 pub(crate) mod template_resolver_visitor;
 pub(crate) mod template_walker;
+pub(crate) mod system_parameter_enricher;
+pub(crate) mod default_parameters_enricher;
+pub(crate) mod default_parameters_injector;
 
 /// Common interface for all pipeline steps that mutate the instance parameter
 /// map before template resolution.
@@ -108,14 +108,10 @@ pub(crate) mod template_walker;
 /// 1. [`SysParameterEnricher`] — injects `SYS_*` runtime values.
 /// 2. [`DefaultParameterEnricher`] — fills in declared default values.
 ///
-/// [`SysParameterEnricher`]: sys_parameter_enricher::SysParameterEnricher
+/// [`SysParameterEnricher`]: system_parameter_enricher::SysParameterEnricher
 /// [`DefaultParameterEnricher`]: default_parameter_enricher::DefaultParameterEnricher
 pub trait ParameterEnricher {
     /// Enrich `params` in-place.
-    ///
-    /// Implementations should use [`HashMap::entry`] semantics (insert only
-    /// when the key is absent) so that earlier pipeline steps are not
-    /// overwritten by later ones.
     fn enrich(&self, params: &mut HashMap<String, Value>) -> Outcome<()>;
 }
 

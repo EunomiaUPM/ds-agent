@@ -30,6 +30,9 @@ use crate::entities::parameters::template_parameters_visitor::ParameterExtractor
 use log::error;
 use std::sync::Arc;
 use ymir::errors::{Errors, Outcome};
+use crate::entities::parameters_ok::connector_template_walker::ConnectorTemplateWalker;
+use crate::entities::parameters_ok::template_parameters_extractor::TemplateParametersExtractor;
+use crate::entities::parameters_ok::template_parameters_validator::TemplateParametersValidator;
 
 pub struct ConnectorTemplateEntitiesService {
     repo: Arc<dyn ConnectorRepoTrait>,
@@ -159,17 +162,14 @@ impl ConnectorTemplateEntitiesTrait for ConnectorTemplateEntitiesService {
         &self,
         new_template: &mut ConnectorTemplateDto,
     ) -> Outcome<ConnectorTemplateDto> {
-        // Validation: extract all {{__NAME__}} placeholders and check that
-        // names and types match the declared parameters[]. RUNTIME_* / SYS_*
-        // names are excluded because they are resolved by the engine at runtime.
-        let mut extractor = TemplateParameterExtractor::new();
-        ParameterExtractorVisitor::new(&mut extractor).extract(new_template);
-        ParameterValidator::new(&new_template.parameters, true)
-            .validate(extractor.found_parameters())
-            .map_err(|e| {
-                error!("{}", e);
-                Errors::parse(&e.to_string(), None)
-            })?;
+        // extract parameters and validate
+        let mut extractor = TemplateParametersExtractor::new();
+        extractor.walk(new_template)?;
+        let parameters_found = extractor.found_parameters();
+        let validator = TemplateParametersValidator::new(parameters_found, &new_template.parameters)
+            .excluding_sys_parameters()
+            .excluding_runtime_parameters();
+        validator.validate()?;
 
         // persist
         let new_model: NewConnectorTemplateModel =

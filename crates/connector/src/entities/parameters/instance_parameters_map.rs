@@ -1,8 +1,7 @@
+use super::{FoundParameter, ParameterDefinition, ParameterType, SysParameterType};
 use crate::entities::connector_template::ConnectorTemplateDto;
-use crate::entities::parameters::template_parameters_extractor::FoundParameter;
-use crate::entities::parameters::{ParameterDefinition, ParameterType, SysParameterType};
-use crate::entities::parameters_ok::connector_template_walker::ConnectorTemplateWalker;
-use crate::entities::parameters_ok::template_parameters_extractor::TemplateParametersExtractor;
+use crate::entities::parameters::connector_template_walker::ConnectorTemplateWalker;
+use crate::entities::parameters::template_parameters_extractor::TemplateParametersExtractor;
 use crate::ConnectorInstanceDto;
 use serde_json::json;
 use std::collections::HashMap;
@@ -161,8 +160,9 @@ mod tests {
     use crate::entities::connector_template::{ConnectorMetadata, ConnectorTemplateDto};
     use crate::entities::interaction::{InteractionConfig, PullLifecycle};
     use crate::entities::resource::HttpSpec;
-    use crate::{AuthenticationConfig, ProtocolSpec, TemplateVecString};
+    use crate::{AuthenticationConfig, ProtocolSpec};
     use serde_json::json;
+    use super::super::TemplateVecString;
 
     const OWN_URL: &str = "http://localhost:8080";
     const OWN_URL_DOCKER: &str = "http://host.docker.internal:8080";
@@ -258,13 +258,21 @@ mod tests {
 
     #[test]
     fn defaults_inserts_vec_string_default() {
-        let defs = vec![def("TAGS", ParameterType::VecString, Some(r#"["prod","eu"]"#))];
+        let defs = vec![def(
+            "TAGS",
+            ParameterType::VecString,
+            Some(r#"["prod","eu"]"#),
+        )];
         assert_eq!(build_with_defaults(&defs)["TAGS"], json!(["prod", "eu"]));
     }
 
     #[test]
     fn defaults_inserts_map_string_default() {
-        let defs = vec![def("ENV", ParameterType::MapStringString, Some(r#"{"KEY":"val"}"#))];
+        let defs = vec![def(
+            "ENV",
+            ParameterType::MapStringString,
+            Some(r#"{"KEY":"val"}"#),
+        )];
         assert_eq!(build_with_defaults(&defs)["ENV"], json!({"KEY": "val"}));
     }
 
@@ -277,13 +285,20 @@ mod tests {
             .unwrap()
             .build()
             .inner;
-        assert_eq!(inner["REGION"], json!("eu-west-1"), "instance value must win over default");
+        assert_eq!(
+            inner["REGION"],
+            json!("eu-west-1"),
+            "instance value must win over default"
+        );
     }
 
     #[test]
     fn defaults_skips_param_without_default() {
         let defs = vec![def("HOST", ParameterType::String, None)];
-        assert!(!build_with_defaults(&defs).contains_key("HOST"), "no default → no injection");
+        assert!(
+            !build_with_defaults(&defs).contains_key("HOST"),
+            "no default → no injection"
+        );
     }
 
     #[test]
@@ -315,7 +330,11 @@ mod tests {
 
     #[test]
     fn defaults_err_on_vec_default_that_is_not_array() {
-        let defs = vec![def("TAGS", ParameterType::VecString, Some(r#""not-an-array""#))];
+        let defs = vec![def(
+            "TAGS",
+            ParameterType::VecString,
+            Some(r#""not-an-array""#),
+        )];
         assert!(InstanceParametersMapBuilder::new(OWN_URL.to_string())
             .with_default_parameters(&defs)
             .is_err());
@@ -323,7 +342,11 @@ mod tests {
 
     #[test]
     fn defaults_err_on_map_default_that_is_not_object() {
-        let defs = vec![def("ENV", ParameterType::MapStringString, Some(r#"["a","b"]"#))];
+        let defs = vec![def(
+            "ENV",
+            ParameterType::MapStringString,
+            Some(r#"["a","b"]"#),
+        )];
         assert!(InstanceParametersMapBuilder::new(OWN_URL.to_string())
             .with_default_parameters(&defs)
             .is_err());
@@ -343,21 +366,29 @@ mod tests {
     #[test]
     fn sys_injects_token_as_uuid_string() {
         let inner = build_with_sys(template_with_body("{{__SYS_TOKEN__}}"));
-        let s = inner["SYS_TOKEN"].as_str().expect("SYS_TOKEN must be a string");
+        let s = inner["SYS_TOKEN"]
+            .as_str()
+            .expect("SYS_TOKEN must be a string");
         assert_eq!(s.len(), 36, "expected UUID string (36 chars), got: {s}");
     }
 
     #[test]
     fn sys_injects_timestamp_as_integer() {
         let inner = build_with_sys(template_with_body("ts={{__SYS_TIMESTAMP__}}"));
-        let ts = inner["SYS_TIMESTAMP"].as_i64().expect("SYS_TIMESTAMP must be i64");
+        let ts = inner["SYS_TIMESTAMP"]
+            .as_i64()
+            .expect("SYS_TIMESTAMP must be i64");
         assert!(ts > 1_580_000_000, "timestamp looks wrong: {ts}");
     }
 
     #[test]
     fn sys_injects_iso8601_as_rfc3339_string() {
-        let inner = build_with_sys(template_with_url("https://api.example.com/{{__SYS_ISO8601__}}"));
-        let s = inner["SYS_ISO8601"].as_str().expect("SYS_ISO8601 must be a string");
+        let inner = build_with_sys(template_with_url(
+            "https://api.example.com/{{__SYS_ISO8601__}}",
+        ));
+        let s = inner["SYS_ISO8601"]
+            .as_str()
+            .expect("SYS_ISO8601 must be a string");
         assert!(s.contains('T'), "expected ISO8601 string, got: {s}");
     }
 
@@ -370,7 +401,10 @@ mod tests {
     #[test]
     fn sys_injects_own_url_docker_replaces_localhost() {
         let inner = build_with_sys(template_with_url("{{__SYS_OWN_URL_DOCKER__}}/webhook"));
-        assert_eq!(inner["SYS_OWN_URL_DOCKER"].as_str().unwrap(), OWN_URL_DOCKER);
+        assert_eq!(
+            inner["SYS_OWN_URL_DOCKER"].as_str().unwrap(),
+            OWN_URL_DOCKER
+        );
     }
 
     #[test]
@@ -381,8 +415,14 @@ mod tests {
             .build()
             .inner;
         let resolved = inner["SYS_OWN_URL_DOCKER"].as_str().unwrap();
-        assert!(!resolved.contains("127.0.0.1"), "127.0.0.1 must be replaced, got: {resolved}");
-        assert!(resolved.contains("host.docker.internal"), "expected host.docker.internal, got: {resolved}");
+        assert!(
+            !resolved.contains("127.0.0.1"),
+            "127.0.0.1 must be replaced, got: {resolved}"
+        );
+        assert!(
+            resolved.contains("host.docker.internal"),
+            "expected host.docker.internal, got: {resolved}"
+        );
     }
 
     #[test]
@@ -400,10 +440,13 @@ mod tests {
     fn sys_does_not_overwrite_existing_value() {
         let pre_existing = "urn:uuid:pinned".to_string();
         let inner = InstanceParametersMapBuilder::new(OWN_URL.to_string())
-            .with_instance_parameters(&HashMap::from([
-                ("SYS_URN".to_string(), json!(pre_existing.clone())),
-            ]))
-            .with_system_parameters(&mut template_with_url("https://example.com/{{__SYS_URN__}}"))
+            .with_instance_parameters(&HashMap::from([(
+                "SYS_URN".to_string(),
+                json!(pre_existing.clone()),
+            )]))
+            .with_system_parameters(&mut template_with_url(
+                "https://example.com/{{__SYS_URN__}}",
+            ))
             .unwrap()
             .build()
             .inner;
@@ -461,10 +504,13 @@ mod tests {
     fn pipeline_sys_does_not_overwrite_instance() {
         let pre_existing = "urn:uuid:pinned".to_string();
         let inner = InstanceParametersMapBuilder::new(OWN_URL.to_string())
-            .with_instance_parameters(&HashMap::from([
-                ("SYS_URN".to_string(), json!(pre_existing.clone())),
-            ]))
-            .with_system_parameters(&mut template_with_url("https://example.com/{{__SYS_URN__}}"))
+            .with_instance_parameters(&HashMap::from([(
+                "SYS_URN".to_string(),
+                json!(pre_existing.clone()),
+            )]))
+            .with_system_parameters(&mut template_with_url(
+                "https://example.com/{{__SYS_URN__}}",
+            ))
             .unwrap()
             .build()
             .inner;

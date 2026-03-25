@@ -1,10 +1,10 @@
 use super::{template_parameter_regex, template_sys_parameter_regex};
-use crate::entities::parameters::{FoundParameterType, TemplateMapString, TemplateString};
-use crate::entities::parameters_ok::connector_template_walker::ConnectorTemplateWalker;
+use super::{FoundParameterType, TemplateMapString, TemplateString};
+use crate::entities::parameters::connector_template_walker::ConnectorTemplateWalker;
 use crate::TemplateVecString;
 use std::collections::HashMap;
 use ymir::errors::Outcome;
-use crate::entities::parameters::template_parameters_extractor::FoundParameter;
+use super::FoundParameter;
 
 pub struct TemplateParametersExtractor {
     found_parameters: Vec<FoundParameter>,
@@ -79,8 +79,8 @@ mod tests {
     use crate::entities::common::secret_management::{SecretSource, SecretString};
     use crate::entities::connector_template::ConnectorTemplateDto;
     use crate::entities::parameters::{FoundParameterType, TemplateMapString};
-    use crate::entities::parameters_ok::connector_template_walker::ConnectorTemplateWalker;
-    use crate::entities::parameters_ok::template_parameters_extractor::TemplateParametersExtractor;
+    use crate::entities::parameters::connector_template_walker::ConnectorTemplateWalker;
+    use crate::entities::parameters::template_parameters_extractor::TemplateParametersExtractor;
     use crate::entities::resource::KafkaSpec;
     use crate::{
         AuthenticationConfig, ConnectorMetadata, HttpSpec, InteractionConfig, ProtocolSpec,

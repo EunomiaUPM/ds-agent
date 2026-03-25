@@ -37,8 +37,9 @@ pub use basic_auth::*;
 pub use oauth::*;
 
 use crate::entities::common::secret_management::SecretString;
-use crate::entities::parameters::{TemplateString, TemplateVecString};
 use serde::{Deserialize, Serialize};
+use crate::entities::parameters::TemplateString;
+use crate::TemplateVecString;
 
 /// The authentication strategy for a connector.
 #[derive(Debug, Clone, Serialize, Deserialize)]

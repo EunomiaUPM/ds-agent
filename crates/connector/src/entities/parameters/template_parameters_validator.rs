@@ -1,5 +1,5 @@
-use crate::entities::parameters::template_parameters_extractor::FoundParameter;
-use crate::entities::parameters::{FoundParameterType, ParameterDefinition, ParameterType};
+use super::FoundParameter;
+use super::{FoundParameterType, ParameterDefinition, ParameterType};
 use std::collections::{HashMap, HashSet};
 use ymir::errors::{Errors, Outcome};
 
@@ -179,9 +179,9 @@ impl<'a> TemplateParametersValidator<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::entities::parameters::parameters::{ParameterDefinition, ParameterType};
-    use crate::entities::parameters::template_parameters_extractor::FoundParameter;
-    use crate::entities::parameters::FoundParameterType;
+    use super::super::FoundParameter;
+    use super::super::FoundParameterType;
+    use super::super::{ParameterDefinition, ParameterType};
     use crate::entities::parameters_ok::template_parameters_validator::TemplateParametersValidator;
     use ymir::errors::Outcome;
 
@@ -265,7 +265,10 @@ mod tests {
             make_found("UNKNOWN", FoundParameterType::String),
         ];
         let msg = format!("{:?}", validate(&found, &defs, false, false).unwrap_err());
-        assert!(msg.contains("Undeclared"), "expected undeclared error, got: {msg}");
+        assert!(
+            msg.contains("Undeclared"),
+            "expected undeclared error, got: {msg}"
+        );
         assert!(msg.contains("UNKNOWN"));
     }
 
@@ -277,7 +280,10 @@ mod tests {
         ];
         let found = vec![make_found("HOST", FoundParameterType::String)];
         let msg = format!("{:?}", validate(&found, &defs, false, false).unwrap_err());
-        assert!(msg.contains("Declared parameters not found"), "expected unused error, got: {msg}");
+        assert!(
+            msg.contains("Declared parameters not found"),
+            "expected unused error, got: {msg}"
+        );
         assert!(msg.contains("UNUSED"));
     }
 
@@ -341,7 +347,10 @@ mod tests {
         ];
         let msg = format!("{:?}", validate(&found, &defs, true, false).unwrap_err());
         assert!(msg.contains("GHOST"), "expected GHOST in error: {msg}");
-        assert!(!msg.contains("RUNTIME_TIMESTAMP"), "RUNTIME_ should be excluded: {msg}");
+        assert!(
+            !msg.contains("RUNTIME_TIMESTAMP"),
+            "RUNTIME_ should be excluded: {msg}"
+        );
     }
 
     #[test]
@@ -397,7 +406,10 @@ mod tests {
         let defs = vec![make_def("HOST", ParameterType::String)];
         let found = vec![make_found("HOST", FoundParameterType::VecString)];
         let msg = format!("{:?}", validate(&found, &defs, false, false).unwrap_err());
-        assert!(msg.contains("Type mismatches"), "expected type error, got: {msg}");
+        assert!(
+            msg.contains("Type mismatches"),
+            "expected type error, got: {msg}"
+        );
         assert!(msg.contains("HOST"));
     }
 
@@ -407,7 +419,10 @@ mod tests {
         let defs = vec![make_def("TAGS", ParameterType::VecString)];
         let found = vec![make_found("TAGS", FoundParameterType::String)];
         let msg = format!("{:?}", validate(&found, &defs, false, false).unwrap_err());
-        assert!(msg.contains("Type mismatches"), "expected type error, got: {msg}");
+        assert!(
+            msg.contains("Type mismatches"),
+            "expected type error, got: {msg}"
+        );
         assert!(msg.contains("TAGS"));
     }
 
@@ -416,7 +431,10 @@ mod tests {
         let defs = vec![make_def("HEADERS", ParameterType::MapStringString)];
         let found = vec![make_found("HEADERS", FoundParameterType::String)];
         let msg = format!("{:?}", validate(&found, &defs, false, false).unwrap_err());
-        assert!(msg.contains("Type mismatches"), "expected type error, got: {msg}");
+        assert!(
+            msg.contains("Type mismatches"),
+            "expected type error, got: {msg}"
+        );
         assert!(msg.contains("HEADERS"));
     }
 
@@ -430,7 +448,11 @@ mod tests {
         ];
         let msg = format!("{:?}", validate(&found, &defs, false, false).unwrap_err());
         // "'HOST': used as" appears once means the type error was deduplicated
-        assert_eq!(msg.matches("used as VecString").count(), 1, "duplicate type error should be deduplicated");
+        assert_eq!(
+            msg.matches("used as VecString").count(),
+            1,
+            "duplicate type error should be deduplicated"
+        );
     }
 
     // =========================================================================
@@ -445,7 +467,10 @@ mod tests {
         ];
         let found = vec![make_found("HOST", FoundParameterType::String)];
         let msg = format!("{:?}", validate(&found, &defs, false, false).unwrap_err());
-        assert!(msg.contains("Duplicate parameter names"), "expected dup-name error, got: {msg}");
+        assert!(
+            msg.contains("Duplicate parameter names"),
+            "expected dup-name error, got: {msg}"
+        );
         assert!(msg.contains("HOST"));
     }
 
@@ -460,8 +485,14 @@ mod tests {
             make_found("HOST", FoundParameterType::String),
             make_found("PORT", FoundParameterType::String),
         ];
-        let msg = format!("{:?}", validate(&found, &[def_a, def_b], false, false).unwrap_err());
-        assert!(msg.contains("Duplicate parameter titles"), "expected dup-title error, got: {msg}");
+        let msg = format!(
+            "{:?}",
+            validate(&found, &[def_a, def_b], false, false).unwrap_err()
+        );
+        assert!(
+            msg.contains("Duplicate parameter titles"),
+            "expected dup-title error, got: {msg}"
+        );
         assert!(msg.contains("Hostname"));
     }
 
@@ -474,7 +505,10 @@ mod tests {
         ];
         let msg = format!("{:?}", validate(&found, &defs, false, false).unwrap_err());
         assert!(msg.contains("GHOST"), "expected undeclared GHOST: {msg}");
-        assert!(msg.contains("Type mismatches"), "expected type mismatch: {msg}");
+        assert!(
+            msg.contains("Type mismatches"),
+            "expected type mismatch: {msg}"
+        );
         assert!(msg.contains("HOST"), "expected HOST in type error: {msg}");
     }
 }

@@ -19,8 +19,7 @@ use crate::entities::dataplane_manager::config_builder::IngressConfig;
 use crate::entities::dataplane_transfers::{DataplaneTransferDto, InteractionMode, TransferRole};
 use common::http_client::HttpClient;
 use connector::{
-    ConnectorInstanceDto, InteractionConfig, ProtocolSpec, TemplateParametersResolver,
-    TemplateResolverVisitor,
+    ConnectorInstanceDto, InteractionConfig, ProtocolSpec,
 };
 use serde_json::{json, Value};
 use std::collections::HashMap;
@@ -115,8 +114,8 @@ impl LifeCycleActionTrait for HttpSubscribeLifecycle {
         // Clone subscribe spec and apply RUNTIME_* params (no SUB context yet at subscribe time).
         let mut subscribe_spec = push.subscribe.clone();
         let runtime_params = self.sys_context.to_params();
-        let mut resolver = TemplateParametersResolver::new(&runtime_params);
-        TemplateResolverVisitor::new(&mut resolver).apply_protocol(&mut subscribe_spec)?;
+        // let mut resolver = TemplateParametersResolver::new(&runtime_params);
+        // TemplateResolverVisitor::new(&mut resolver).apply_protocol(&mut subscribe_spec)?;
 
         let http_spec = match &subscribe_spec {
             ProtocolSpec::Http(spec) => spec,
@@ -167,9 +166,9 @@ impl LifeCycleActionTrait for HttpSubscribeLifecycle {
             .subscription_state
             .clone()
             .unwrap_or(Value::Null);
-        let mut resolver = TemplateParametersResolver::new(&runtime_params)
-            .with_response_context("SUB", sub_state);
-        TemplateResolverVisitor::new(&mut resolver).apply_protocol(&mut unsubscribe_spec)?;
+        // let mut resolver = TemplateParametersResolver::new(&runtime_params)
+        //     .with_response_context("SUB", sub_state);
+        // TemplateResolverVisitor::new(&mut resolver).apply_protocol(&mut unsubscribe_spec)?;
 
         let http_spec = match &unsubscribe_spec {
             ProtocolSpec::Http(spec) => spec,

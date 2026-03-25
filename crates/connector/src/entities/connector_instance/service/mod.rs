@@ -28,9 +28,9 @@ use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
-use crate::entities::parameters_ok::instance_parameters_map::InstanceParametersMapBuilder;
-use crate::entities::parameters_ok::instance_parameters_resolver::InstanceParametersResolver;
-use crate::entities::parameters_ok::instance_parameters_validator::InstanceParametersValidator;
+use crate::entities::parameters::instance_parameters_map::InstanceParametersMapBuilder;
+use crate::entities::parameters::instance_parameters_resolver::InstanceParametersResolver;
+use crate::entities::parameters::instance_parameters_validator::InstanceParametersValidator;
 
 pub struct ConnectorInstanceEntitiesService {
     repo: Arc<dyn ConnectorRepoTrait>,

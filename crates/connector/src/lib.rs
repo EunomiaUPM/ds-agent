@@ -30,9 +30,7 @@ pub use entities::connector_instance::{
     ConnectorInstanceDto, ConnectorInstanceTrait, ConnectorInstantiationDto,
 };
 pub use entities::interaction::{InteractionConfig, PullLifecycle, PushLifecycle};
-pub use entities::parameters::parameters::TemplateVecString;
-pub use entities::parameters::template_parameters_resolver::TemplateParametersResolver;
-pub use entities::parameters::template_resolver_visitor::TemplateResolverVisitor;
+pub use entities::parameters::TemplateVecString;
 pub use entities::resource::{HttpSpec, ProtocolSpec};
 pub use setup::ConnectorSetup;
 

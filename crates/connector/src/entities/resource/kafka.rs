@@ -15,8 +15,9 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::parameters::{TemplateString, TemplateVecString};
 use serde::{Deserialize, Serialize};
+use crate::entities::parameters::TemplateString;
+use crate::TemplateVecString;
 
 /// Kafka protocol specification.
 ///

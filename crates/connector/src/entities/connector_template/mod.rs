@@ -39,11 +39,11 @@ pub(crate) mod service;
 use crate::data::entities::connector_templates::NewConnectorTemplateModel;
 use crate::entities::auth_config::AuthenticationConfig;
 use crate::entities::interaction::InteractionConfig;
-use crate::entities::parameters::ParameterDefinition;
 use sea_orm::prelude::DateTimeWithTimeZone;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use ymir::errors::{Errors, Outcome};
+use crate::entities::parameters::ParameterDefinition;
 
 /// Display and versioning metadata for a connector template.
 #[derive(Debug, Clone, Serialize, Deserialize)]

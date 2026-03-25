@@ -1,8 +1,6 @@
+use super::{template_parameter_regex, TemplateMapString, TemplateString, TemplateVecString};
 use crate::entities::connector_template::ConnectorTemplateDto;
-use crate::entities::parameters::{TemplateMapString, TemplateString};
-use crate::entities::parameters_ok::connector_template_walker::ConnectorTemplateWalker;
-use crate::entities::parameters_ok::template_parameter_regex;
-use crate::TemplateVecString;
+use crate::entities::parameters::connector_template_walker::ConnectorTemplateWalker;
 use regex::Regex;
 use std::collections::HashMap;
 use ymir::errors::{Errors, Outcome};
@@ -192,15 +190,15 @@ impl<'a> ConnectorTemplateWalker for InstanceParametersResolver<'a> {
 
 #[cfg(test)]
 mod tests {
+    use super::super::TemplateMapString;
     use super::*;
     use crate::entities::auth_config::BasicAuthConfig;
     use crate::entities::auth_config::{ApiKeyLocation, OAuthGrantType};
     use crate::entities::common::secret_management::{SecretSource, SecretString};
     use crate::entities::connector_template::{ConnectorMetadata, ConnectorTemplateDto};
     use crate::entities::interaction::{InteractionConfig, PullLifecycle, PushLifecycle};
-    use crate::entities::parameters::TemplateMapString;
     use crate::entities::resource::{HttpSpec, KafkaSpec};
-    use crate::{AuthenticationConfig, ProtocolSpec, TemplateVecString};
+    use crate::{AuthenticationConfig, ProtocolSpec};
     use serde_json::json;
     use std::collections::HashMap;
 
@@ -258,7 +256,10 @@ mod tests {
         let template = pull_http("https://api.example.com/{{__RESOURCE__}}");
         let params = HashMap::from([("RESOURCE".to_string(), json!("items"))]);
         let resolved = resolve(&template, params);
-        assert_eq!(http_spec(&resolved).url_template, "https://api.example.com/items");
+        assert_eq!(
+            http_spec(&resolved).url_template,
+            "https://api.example.com/items"
+        );
     }
 
     #[test]
@@ -362,7 +363,9 @@ mod tests {
         let template = ConnectorTemplateDto {
             authentication: AuthenticationConfig::BasicAuth(BasicAuthConfig {
                 username: "{{__USERNAME__}}".to_string(),
-                password: SecretString { source: SecretSource::Plain("pass".to_string()) },
+                password: SecretString {
+                    source: SecretSource::Plain("pass".to_string()),
+                },
             }),
             ..pull_http("https://api.example.com")
         };
@@ -379,7 +382,9 @@ mod tests {
         let template = ConnectorTemplateDto {
             authentication: AuthenticationConfig::ApiKey {
                 key: "{{__HEADER_NAME__}}".to_string(),
-                value: SecretString { source: SecretSource::Plain("s3cr3t".to_string()) },
+                value: SecretString {
+                    source: SecretSource::Plain("s3cr3t".to_string()),
+                },
                 location: ApiKeyLocation::Header,
             },
             ..pull_http("https://api.example.com")
@@ -399,18 +404,27 @@ mod tests {
                 grant_type: OAuthGrantType::ClientCredentials,
                 token_url: "{{__TOKEN_URL__}}".to_string(),
                 client_id: "{{__CLIENT_ID__}}".to_string(),
-                client_secret: SecretString { source: SecretSource::Plain("s3cr3t".to_string()) },
+                client_secret: SecretString {
+                    source: SecretSource::Plain("s3cr3t".to_string()),
+                },
                 scopes: TemplateVecString::Value(vec![]),
             },
             ..pull_http("https://api.example.com")
         };
         let params = HashMap::from([
-            ("TOKEN_URL".to_string(), json!("https://auth.example.com/token")),
+            (
+                "TOKEN_URL".to_string(),
+                json!("https://auth.example.com/token"),
+            ),
             ("CLIENT_ID".to_string(), json!("my-client")),
         ]);
         let resolved = resolve(&template, params);
         match &resolved.authentication {
-            AuthenticationConfig::OAuth2 { token_url, client_id, .. } => {
+            AuthenticationConfig::OAuth2 {
+                token_url,
+                client_id,
+                ..
+            } => {
                 assert_eq!(token_url, "https://auth.example.com/token");
                 assert_eq!(client_id, "my-client");
             }
@@ -468,17 +482,15 @@ mod tests {
         match &resolved.interaction {
             InteractionConfig::Push(lc) => {
                 match &lc.subscribe {
-                    ProtocolSpec::Http(s) => assert_eq!(
-                        s.url_template,
-                        "https://api.example.com/res-42/subscribe"
-                    ),
+                    ProtocolSpec::Http(s) => {
+                        assert_eq!(s.url_template, "https://api.example.com/res-42/subscribe")
+                    }
                     _ => panic!(),
                 }
                 match lc.unsubscribe.as_ref().unwrap() {
-                    ProtocolSpec::Http(s) => assert_eq!(
-                        s.url_template,
-                        "https://api.example.com/res-42/unsubscribe"
-                    ),
+                    ProtocolSpec::Http(s) => {
+                        assert_eq!(s.url_template, "https://api.example.com/res-42/unsubscribe")
+                    }
                     _ => panic!(),
                 }
             }

@@ -1,4 +1,4 @@
-use crate::entities::parameters::{ParameterDefinition, ParameterType};
+use super::{ParameterDefinition, ParameterType};
 use std::collections::{HashMap, HashSet};
 use ymir::errors::{Errors, Outcome};
 

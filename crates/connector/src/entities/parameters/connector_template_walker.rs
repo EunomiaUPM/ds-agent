@@ -5,7 +5,7 @@ use crate::entities::interaction::{InteractionConfig, PullLifecycle, PushLifecyc
 use crate::entities::resource::{HttpSpec, KafkaSpec};
 use crate::{ProtocolSpec, TemplateVecString};
 use ymir::errors::Outcome;
-use crate::entities::parameters::{TemplateMapString, TemplateString};
+use super::{TemplateMapString, TemplateString};
 
 pub trait ConnectorTemplateWalker {
     fn on_string(&mut self, field: &mut TemplateString) -> Outcome<()>;

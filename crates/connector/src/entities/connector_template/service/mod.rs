@@ -23,13 +23,13 @@ use crate::entities::connector_template::{
     ConnectorMetadata, ConnectorTemplateDto, ConnectorTemplateEntitiesTrait,
 };
 use crate::entities::interaction::InteractionConfig;
-use crate::entities::parameters::parameters::ParameterDefinition;
 use log::error;
 use std::sync::Arc;
 use ymir::errors::{Errors, Outcome};
-use crate::entities::parameters_ok::connector_template_walker::ConnectorTemplateWalker;
-use crate::entities::parameters_ok::template_parameters_extractor::TemplateParametersExtractor;
-use crate::entities::parameters_ok::template_parameters_validator::TemplateParametersValidator;
+use crate::entities::parameters::connector_template_walker::ConnectorTemplateWalker;
+use crate::entities::parameters::ParameterDefinition;
+use crate::entities::parameters::template_parameters_extractor::TemplateParametersExtractor;
+use crate::entities::parameters::template_parameters_validator::TemplateParametersValidator;
 
 pub struct ConnectorTemplateEntitiesService {
     repo: Arc<dyn ConnectorRepoTrait>,

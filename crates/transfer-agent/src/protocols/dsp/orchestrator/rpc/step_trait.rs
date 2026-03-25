@@ -42,8 +42,10 @@ use ymir::errors::Outcome;
 /// database record identified by `consumer_pid`.
 pub(super) struct RpcPeerContext {
     /// Full process record as stored in the database.
+    #[allow(dead_code)]
     pub process: TransferProcessDto,
     /// Canonical internal process identifier (URN).
+    #[allow(dead_code)]
     pub process_id: Urn,
     /// DSP `providerPid` identifier.
     pub provider_pid: Urn,

@@ -20,7 +20,6 @@
 use std::net::SocketAddr;
 use std::sync::Arc;
 
-use axum::serve;
 use axum_server::tls_rustls::RustlsConfig;
 use common::config::types::traits::CommonConfigTrait;
 use common::config::ApplicationConfig;

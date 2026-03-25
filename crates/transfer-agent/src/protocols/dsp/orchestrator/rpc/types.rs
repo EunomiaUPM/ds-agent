@@ -36,6 +36,7 @@ use urn::Urn;
 /// Each concrete DTO (request, start, suspension, …) only carries the fields
 /// that make sense for its lifecycle step.  All other accessors return `None`,
 /// so callers can use the trait without knowing the concrete type.
+#[allow(dead_code)]
 pub trait RpcTransferProcessMessageTrait: Debug + Send + Sync {
     fn get_consumer_pid(&self) -> Option<Urn>;
     fn get_provider_pid(&self) -> Option<Urn>;

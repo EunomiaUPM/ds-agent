@@ -49,6 +49,7 @@ use ymir::errors::{Errors, Outcome};
 #[derive(Clone)]
 pub struct DspRouter {
     orchestrator: Arc<dyn OrchestratorTrait>,
+    #[allow(dead_code)]
     config: Arc<TransferConfig>,
     ssi_auth: Arc<dyn SSIAuthFacadeTrait>,
 }

@@ -37,6 +37,7 @@ use ymir::errors::Outcome;
 /// identifier in the URL path.
 pub(super) struct ProtocolContext {
     /// Canonical internal process identifier (URN), resolved from the peer-facing PID.
+    #[allow(dead_code)]
     pub process: Option<TransferProcessDto>,
     /// Only populated for the request step (resolved from agreement → distribution → connector).
     /// `None` for all continuation steps.

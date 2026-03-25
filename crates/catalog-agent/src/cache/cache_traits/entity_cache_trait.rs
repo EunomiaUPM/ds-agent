@@ -48,13 +48,13 @@ where
     D: Serialize + DeserializeOwned + Send + Sync + Clone + 'static,
 {
     async fn get_single(&self, id: &Urn) -> Outcome<Option<D>> {
-        tracing::debug!("cache: get single");
+        tracing::debug!(entity = self.get_entity_name(), id = %id, "cache: get single");
         let key = self.format_key_name_with_id(self.get_entity_name(), id);
         Self::hydrate_from_single_key(self.get_conn(), key).await
     }
 
     async fn set_single(&self, id: &Urn, model: &D) -> Outcome<()> {
-        tracing::debug!("cache: set single");
+        tracing::debug!(entity = self.get_entity_name(), id = %id, "cache: set single");
         let key = self.format_key_name_with_id(self.get_entity_name(), id);
         let json = serde_json::to_string(model)?;
         redis::pipe()
@@ -73,7 +73,7 @@ where
     }
 
     async fn delete_single(&self, id: &Urn) -> Outcome<()> {
-        tracing::debug!("cache: delete single");
+        tracing::debug!(entity = self.get_entity_name(), id = %id, "cache: delete single");
         let key = self.format_key_name_with_id(self.get_entity_name(), id);
         let _: () = redis::cmd("DEL")
             .arg(&key)
@@ -84,7 +84,7 @@ where
     }
 
     async fn get_main(&self) -> Outcome<Option<D>> {
-        tracing::debug!("cache: get main");
+        tracing::debug!(entity = self.get_entity_name(), "cache: get main");
         let main_key = self.format_key_name_main(self.get_entity_name());
         let target_key: Option<String> = redis::cmd("GET")
             .arg(main_key)
@@ -98,7 +98,7 @@ where
     }
 
     async fn set_main(&self, id: &Urn, model: &D) -> Outcome<()> {
-        tracing::debug!("cache: set main");
+        tracing::debug!(entity = self.get_entity_name(), id = %id, "cache: set main");
         let main_key = self.format_key_name_main(self.get_entity_name());
         let key = self.format_key_name_with_id(self.get_entity_name(), id);
         self.set_single(id, model).await?;
@@ -112,7 +112,7 @@ where
     }
 
     async fn get_collection(&self, limit: Option<u64>, page: Option<u64>) -> Outcome<Vec<D>> {
-        tracing::debug!("cache: get collection all");
+        tracing::debug!(entity = self.get_entity_name(), limit = ?limit, page = ?page, "cache: get collection");
         let collection_key = self.format_key_name_all(self.get_entity_name());
         let (start, stop) = self.compute_pagination_range(limit, page);
         let keys: Vec<String> = redis::cmd("ZREVRANGE")
@@ -127,7 +127,7 @@ where
     }
 
     async fn add_to_collection(&self, id: &Urn, score: f64) -> Outcome<()> {
-        tracing::debug!("cache: add to collection all");
+        tracing::debug!(entity = self.get_entity_name(), id = %id, "cache: add to collection");
         let key = self.format_key_name_with_id(self.get_entity_name(), id);
         let collection_key = self.format_key_name_all(self.get_entity_name());
         let _: () = redis::cmd("ZADD")
@@ -141,7 +141,7 @@ where
     }
 
     async fn remove_from_collection(&self, id: &Urn) -> Outcome<()> {
-        tracing::debug!("cache: remove from collection all");
+        tracing::debug!(entity = self.get_entity_name(), id = %id, "cache: remove from collection");
         let key = self.format_key_name_with_id(self.get_entity_name(), id);
         let collection_key = self.format_key_name_all(self.get_entity_name());
         let _: () = redis::cmd("ZREM")
@@ -154,7 +154,11 @@ where
     }
 
     async fn get_batch(&self, ids: &Vec<Urn>) -> Outcome<Vec<D>> {
-        tracing::debug!("cache: get batch");
+        tracing::debug!(
+            entity = self.get_entity_name(),
+            count = ids.len(),
+            "cache: get batch"
+        );
         let keys: Vec<String> = ids
             .iter()
             .map(|id| self.format_key_name_with_id(self.get_entity_name(), id))

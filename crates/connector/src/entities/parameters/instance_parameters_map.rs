@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 use super::{FoundParameter, ParameterDefinition, ParameterType, SysParameterType};
 use crate::entities::connector_template::ConnectorTemplateDto;
 use crate::entities::parameters::connector_template_walker::ConnectorTemplateWalker;
@@ -157,13 +174,13 @@ impl InstanceParametersMapBuilder {
 
 #[cfg(test)]
 mod tests {
+    use super::super::TemplateVecString;
     use super::*;
     use crate::entities::connector_template::{ConnectorMetadata, ConnectorTemplateDto};
     use crate::entities::interaction::{InteractionConfig, PullLifecycle};
     use crate::entities::resource::HttpSpec;
     use crate::{AuthenticationConfig, ProtocolSpec};
     use serde_json::json;
-    use super::super::TemplateVecString;
 
     const OWN_URL: &str = "http://localhost:8080";
     const OWN_URL_DOCKER: &str = "http://host.docker.internal:8080";

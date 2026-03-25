@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,8 +16,8 @@
  */
 
 use crate::entities::common::secret_management::SecretString;
-use serde::{Deserialize, Serialize};
 use crate::entities::parameters::TemplateString;
+use serde::{Deserialize, Serialize};
 
 /// Credentials for HTTP Basic Authentication.
 #[derive(Debug, Clone, Serialize, Deserialize)]

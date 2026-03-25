@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,14 +23,14 @@ use crate::entities::connector_instance::{
 };
 use crate::entities::connector_template::{ConnectorMetadata, ConnectorTemplateDto};
 use crate::entities::interaction::InteractionConfig;
+use crate::entities::parameters::instance_parameters_map::InstanceParametersMapBuilder;
+use crate::entities::parameters::instance_parameters_resolver::InstanceParametersResolver;
+use crate::entities::parameters::instance_parameters_validator::InstanceParametersValidator;
 use crate::facades::distribution_resolver_facade::DistributionFacadeTrait;
 use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
-use crate::entities::parameters::instance_parameters_map::InstanceParametersMapBuilder;
-use crate::entities::parameters::instance_parameters_resolver::InstanceParametersResolver;
-use crate::entities::parameters::instance_parameters_validator::InstanceParametersValidator;
 
 pub struct ConnectorInstanceEntitiesService {
     repo: Arc<dyn ConnectorRepoTrait>,
@@ -181,10 +181,9 @@ impl ConnectorInstanceTrait for ConnectorInstanceEntitiesService {
             .build()
             .collect();
 
-
         // resolve values in template
-        let connector_resolved = InstanceParametersResolver::new(&connector_template_dto, &params)
-            .resolve()?;
+        let connector_resolved =
+            InstanceParametersResolver::new(&connector_template_dto, &params).resolve()?;
 
         // prepare data
         let metadata_json = connector_resolved.metadata.clone();

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,7 +38,10 @@ impl DspDataPlaneFacade {
         dataplane_manager: Arc<DataplaneManager>,
         proxy_base_url: String,
     ) -> DspDataPlaneFacade {
-        DspDataPlaneFacade { dataplane_manager, proxy_base_url }
+        DspDataPlaneFacade {
+            dataplane_manager,
+            proxy_base_url,
+        }
     }
 }
 
@@ -52,7 +55,12 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
         data_address: &Option<DataAddressDto>,
     ) -> Outcome<Option<DataAddressDto>> {
         strategy_for_request_pre(data_address)
-            .on_request_pre(&self.dataplane_manager, &self.proxy_base_url, transfer_id, data_address)
+            .on_request_pre(
+                &self.dataplane_manager,
+                &self.proxy_base_url,
+                transfer_id,
+                data_address,
+            )
             .await
     }
 
@@ -93,7 +101,12 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
     ) -> Outcome<Option<DataAddressDto>> {
         let id = Urn::from_str(&transfer_process.inner.id)?;
         strategy_for(transfer_process)
-            .on_start_post(&self.dataplane_manager, &self.proxy_base_url, &id, data_address)
+            .on_start_post(
+                &self.dataplane_manager,
+                &self.proxy_base_url,
+                &id,
+                data_address,
+            )
             .await
     }
 

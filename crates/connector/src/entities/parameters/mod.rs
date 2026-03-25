@@ -1,14 +1,31 @@
-pub(crate) mod template_parameters_extractor;
+/*
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 pub(crate) mod connector_template_walker;
-pub(crate) mod template_parameters_validator;
-pub(crate) mod instance_parameters_validator;
 pub(crate) mod instance_parameters_map;
 pub(crate) mod instance_parameters_resolver;
+pub(crate) mod instance_parameters_validator;
+pub(crate) mod template_parameters_extractor;
+pub(crate) mod template_parameters_validator;
 
-use std::collections::HashMap;
-use std::str::FromStr;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::str::FromStr;
 use std::sync::OnceLock;
 use ymir::errors::Errors;
 
@@ -39,13 +56,20 @@ impl FromStr for SysParameterType {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "SYS_URN"        => Ok(Self::SysUrn),
-            "SYS_TOKEN"      => Ok(Self::SysToken),
-            "SYS_TIMESTAMP"  => Ok(Self::SysTimestamp),
-            "SYS_ISO8601"    => Ok(Self::SysIso8601),
-            "SYS_OWN_URL"    => Ok(Self::SysOwnUrl { host_docker_internal: false }),
-            "SYS_OWN_URL_DOCKER" => Ok(Self::SysOwnUrl { host_docker_internal: true }),
-            _ => Err(Errors::validation(format!("{} system parameter not valid", s), None)),
+            "SYS_URN" => Ok(Self::SysUrn),
+            "SYS_TOKEN" => Ok(Self::SysToken),
+            "SYS_TIMESTAMP" => Ok(Self::SysTimestamp),
+            "SYS_ISO8601" => Ok(Self::SysIso8601),
+            "SYS_OWN_URL" => Ok(Self::SysOwnUrl {
+                host_docker_internal: false,
+            }),
+            "SYS_OWN_URL_DOCKER" => Ok(Self::SysOwnUrl {
+                host_docker_internal: true,
+            }),
+            _ => Err(Errors::validation(
+                format!("{} system parameter not valid", s),
+                None,
+            )),
         }
     }
 }

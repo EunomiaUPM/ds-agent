@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,13 +23,13 @@ use crate::entities::connector_template::{
     ConnectorMetadata, ConnectorTemplateDto, ConnectorTemplateEntitiesTrait,
 };
 use crate::entities::interaction::InteractionConfig;
+use crate::entities::parameters::connector_template_walker::ConnectorTemplateWalker;
+use crate::entities::parameters::template_parameters_extractor::TemplateParametersExtractor;
+use crate::entities::parameters::template_parameters_validator::TemplateParametersValidator;
+use crate::entities::parameters::ParameterDefinition;
 use log::error;
 use std::sync::Arc;
 use ymir::errors::{Errors, Outcome};
-use crate::entities::parameters::connector_template_walker::ConnectorTemplateWalker;
-use crate::entities::parameters::ParameterDefinition;
-use crate::entities::parameters::template_parameters_extractor::TemplateParametersExtractor;
-use crate::entities::parameters::template_parameters_validator::TemplateParametersValidator;
 
 pub struct ConnectorTemplateEntitiesService {
     repo: Arc<dyn ConnectorRepoTrait>,
@@ -163,9 +163,10 @@ impl ConnectorTemplateEntitiesTrait for ConnectorTemplateEntitiesService {
         let mut extractor = TemplateParametersExtractor::new();
         extractor.walk(new_template)?;
         let parameters_found = extractor.found_parameters();
-        let validator = TemplateParametersValidator::new(parameters_found, &new_template.parameters)
-            .excluding_sys_parameters()
-            .excluding_runtime_parameters();
+        let validator =
+            TemplateParametersValidator::new(parameters_found, &new_template.parameters)
+                .excluding_sys_parameters()
+                .excluding_runtime_parameters();
         validator.validate()?;
 
         // persist

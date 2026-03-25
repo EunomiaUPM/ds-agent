@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -121,8 +121,10 @@ static PROVIDER_PUSH: ProviderPushStrategy = ProviderPushStrategy;
 
 /// Select strategy from `process.inner.role` × `process.inner.transfer_direction`.
 pub(super) fn strategy_for(process: &TransferProcessDto) -> &'static dyn DataPlaneStrategy {
-
-    match (process.inner.role.as_str(), process.inner.transfer_direction.as_str()) {
+    match (
+        process.inner.role.as_str(),
+        process.inner.transfer_direction.as_str(),
+    ) {
         ("Consumer", "Pull") => &CONSUMER_PULL,
         ("Consumer", _) => &CONSUMER_PUSH,
         ("Provider", "Pull") => &PROVIDER_PULL,

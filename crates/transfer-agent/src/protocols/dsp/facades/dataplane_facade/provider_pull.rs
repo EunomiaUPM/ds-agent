@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,10 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::protocols::dsp::facades::dataplane_facade::DataAddressDto;
 use crate::protocols::dsp::facades::dataplane_facade::strategy::{
-    DataPlaneStrategy, execute_command, ingress_as_data_address,
+    execute_command, ingress_as_data_address, DataPlaneStrategy,
 };
+use crate::protocols::dsp::facades::dataplane_facade::DataAddressDto;
 use connector::ConnectorInstanceDto;
 use dataplane::{DataplaneCommand, DataplaneInitCommandType, DataplaneManager};
 use urn::Urn;
@@ -48,7 +48,9 @@ impl DataPlaneStrategy for ProviderPullStrategy {
     ) -> Outcome<()> {
         // Init provider DP with the connector. No egress yet — the consumer will
         // send their ingest URL inside the TransferStart ack (consumer on_start_post).
-        let connector_instance = connector_instance.as_ref().ok_or(Errors::crazy("Connector instance should be defined", None))?;
+        let connector_instance = connector_instance
+            .as_ref()
+            .ok_or(Errors::crazy("Connector instance should be defined", None))?;
         execute_command(
             mgr,
             transfer_id,

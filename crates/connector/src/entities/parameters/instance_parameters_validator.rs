@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 use super::{ParameterDefinition, ParameterType};
 use std::collections::{HashMap, HashSet};
 use ymir::errors::{Errors, Outcome};
@@ -138,7 +155,10 @@ mod test {
     }
 
     fn make_optional(name: &str, param_type: ParameterType) -> ParameterDefinition {
-        ParameterDefinition { required: false, ..make_def(name, param_type) }
+        ParameterDefinition {
+            required: false,
+            ..make_def(name, param_type)
+        }
     }
 
     fn validate(
@@ -168,7 +188,8 @@ mod test {
                 ("PORT".to_string(), json!(8080)),
             ]),
             &defs,
-        ).is_ok());
+        )
+        .is_ok());
     }
 
     // =========================================================================
@@ -195,7 +216,8 @@ mod test {
         assert!(validate(
             HashMap::from([("SYS_TOKEN".to_string(), json!("whatever"))]),
             &defs,
-        ).is_ok());
+        )
+        .is_ok());
     }
 
     #[test]
@@ -238,10 +260,7 @@ mod test {
     #[test]
     fn ok_when_string_param_receives_string_value() {
         let defs = vec![make_def("NAME", ParameterType::String)];
-        assert!(validate(
-            HashMap::from([("NAME".to_string(), json!("alice"))]),
-            &defs,
-        ).is_ok());
+        assert!(validate(HashMap::from([("NAME".to_string(), json!("alice"))]), &defs,).is_ok());
     }
 
     #[test]
@@ -258,10 +277,7 @@ mod test {
     #[test]
     fn ok_when_int_param_receives_int_value() {
         let defs = vec![make_def("PORT", ParameterType::Int)];
-        assert!(validate(
-            HashMap::from([("PORT".to_string(), json!(3306))]),
-            &defs,
-        ).is_ok());
+        assert!(validate(HashMap::from([("PORT".to_string(), json!(3306))]), &defs,).is_ok());
     }
 
     #[test]
@@ -278,10 +294,7 @@ mod test {
     #[test]
     fn ok_when_boolean_param_receives_bool_value() {
         let defs = vec![make_def("ENABLED", ParameterType::Boolean)];
-        assert!(validate(
-            HashMap::from([("ENABLED".to_string(), json!(true))]),
-            &defs,
-        ).is_ok());
+        assert!(validate(HashMap::from([("ENABLED".to_string(), json!(true))]), &defs,).is_ok());
     }
 
     #[test]
@@ -302,7 +315,8 @@ mod test {
         assert!(validate(
             HashMap::from([("TAGS".to_string(), json!(["prod", "us-east"]))]),
             &defs,
-        ).is_ok());
+        )
+        .is_ok());
     }
 
     #[test]
@@ -320,9 +334,13 @@ mod test {
     fn ok_when_map_param_receives_string_string_object() {
         let defs = vec![make_def("ENV", ParameterType::MapStringString)];
         assert!(validate(
-            HashMap::from([("ENV".to_string(), json!({"KEY": "value", "REGION": "eu-west"}))]),
+            HashMap::from([(
+                "ENV".to_string(),
+                json!({"KEY": "value", "REGION": "eu-west"})
+            )]),
             &defs,
-        ).is_ok());
+        )
+        .is_ok());
     }
 
     #[test]

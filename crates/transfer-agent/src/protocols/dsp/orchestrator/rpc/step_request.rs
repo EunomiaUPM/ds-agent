@@ -1,6 +1,6 @@
 /*
  *
- *  * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
+ *  * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *  *
  *  * This program is free software: you can redistribute it and/or modify
  *  * it under the terms of the GNU General Public License as published by
@@ -156,10 +156,13 @@ impl TransferRpcStep for RequestStep {
         ctx.process = Some(process.clone());
         Ok((response, process))
     }
-    
+
     async fn post_hook(dp: &Arc<dyn DataPlaneFacadeTrait>, ctx: &Self::Context) -> Outcome<()> {
         if ctx.input_data_address.is_none() {
-            let process = ctx.process.as_ref().ok_or(Errors::crazy("Process should be defined at this point", None))?;
+            let process = ctx.process.as_ref().ok_or(Errors::crazy(
+                "Process should be defined at this point",
+                None,
+            ))?;
             dp.on_transfer_request_post(&process, &None, &None).await?;
         }
         Ok(())

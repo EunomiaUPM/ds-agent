@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,12 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod dataplane_facade;
-mod strategy;
 mod consumer_pull;
 mod consumer_push;
+pub(crate) mod dataplane_facade;
 mod provider_pull;
 mod provider_push;
+mod strategy;
 
 use crate::entities::transfer_process::TransferProcessDto;
 use crate::protocols::dsp::protocol_types::DataAddressDto;
@@ -89,7 +89,7 @@ pub trait DataPlaneFacadeTrait: Send + Sync {
         &self,
         transfer_process: &TransferProcessDto,
     ) -> Outcome<()>;
-    
+
     async fn on_transfer_termination_post(
         &self,
         transfer_process: &TransferProcessDto,

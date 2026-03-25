@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,10 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::protocols::dsp::facades::dataplane_facade::DataAddressDto;
 use crate::protocols::dsp::facades::dataplane_facade::strategy::{
-    DataPlaneStrategy, execute_command, ingress_as_data_address, to_dataplane_address,
+    execute_command, ingress_as_data_address, to_dataplane_address, DataPlaneStrategy,
 };
+use crate::protocols::dsp::facades::dataplane_facade::DataAddressDto;
 use connector::ConnectorInstanceDto;
 use dataplane::{DataplaneCommand, DataplaneInitCommandType, DataplaneManager};
 use urn::Urn;
@@ -42,7 +42,9 @@ impl DataPlaneStrategy for ConsumerPushStrategy {
         execute_command(
             mgr,
             transfer_id,
-            DataplaneCommand::SetInit(DataplaneInitCommandType::Consumer { data_address: init_da }),
+            DataplaneCommand::SetInit(DataplaneInitCommandType::Consumer {
+                data_address: init_da,
+            }),
         )
         .await?;
         if let Some(da) = data_address {
@@ -50,7 +52,9 @@ impl DataPlaneStrategy for ConsumerPushStrategy {
                 execute_command(
                     mgr,
                     transfer_id,
-                    DataplaneCommand::SetEgress { data_address: to_dataplane_address(da) },
+                    DataplaneCommand::SetEgress {
+                        data_address: to_dataplane_address(da),
+                    },
                 )
                 .await?;
             }

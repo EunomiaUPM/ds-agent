@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,9 +18,7 @@
 use crate::entities::dataplane_manager::config_builder::IngressConfig;
 use crate::entities::dataplane_transfers::{DataplaneTransferDto, InteractionMode, TransferRole};
 use common::http_client::HttpClient;
-use connector::{
-    ConnectorInstanceDto, InteractionConfig, ProtocolSpec,
-};
+use connector::{ConnectorInstanceDto, InteractionConfig, ProtocolSpec};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::fmt::Debug;

@@ -1,10 +1,27 @@
+/*
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+use super::FoundParameter;
 use super::{template_parameter_regex, template_sys_parameter_regex};
 use super::{FoundParameterType, TemplateMapString, TemplateString};
 use crate::entities::parameters::connector_template_walker::ConnectorTemplateWalker;
 use crate::TemplateVecString;
 use std::collections::HashMap;
 use ymir::errors::Outcome;
-use super::FoundParameter;
 
 pub struct TemplateParametersExtractor {
     found_parameters: Vec<FoundParameter>,
@@ -78,9 +95,9 @@ mod tests {
     use crate::entities::auth_config::{ApiKeyLocation, BasicAuthConfig, OAuthGrantType};
     use crate::entities::common::secret_management::{SecretSource, SecretString};
     use crate::entities::connector_template::ConnectorTemplateDto;
-    use crate::entities::parameters::{FoundParameterType, TemplateMapString};
     use crate::entities::parameters::connector_template_walker::ConnectorTemplateWalker;
     use crate::entities::parameters::template_parameters_extractor::TemplateParametersExtractor;
+    use crate::entities::parameters::{FoundParameterType, TemplateMapString};
     use crate::entities::resource::KafkaSpec;
     use crate::{
         AuthenticationConfig, ConnectorMetadata, HttpSpec, InteractionConfig, ProtocolSpec,

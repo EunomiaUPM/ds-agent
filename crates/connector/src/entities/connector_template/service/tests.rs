@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,10 +20,10 @@ use crate::data::factory_trait::MockConnectorRepoTrait;
 use crate::data::repo_traits::connector_template_repo::{
     ConnectorTemplateRepoTrait, MockConnectorTemplateRepoTrait,
 };
+use crate::entities::connector_template::service::ConnectorTemplateEntitiesService;
 use crate::entities::connector_template::{ConnectorTemplateDto, ConnectorTemplateEntitiesTrait};
 use serde_json::json;
 use std::sync::Arc;
-use crate::entities::connector_template::service::ConnectorTemplateEntitiesService;
 
 /// Builds a `ConnectorTemplateEntitiesService` backed by mock repos.
 ///

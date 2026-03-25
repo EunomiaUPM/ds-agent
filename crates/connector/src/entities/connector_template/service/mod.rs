@@ -24,9 +24,6 @@ use crate::entities::connector_template::{
 };
 use crate::entities::interaction::InteractionConfig;
 use crate::entities::parameters::parameters::ParameterDefinition;
-use crate::entities::parameters::template_parameters_extractor::TemplateParameterExtractor;
-use crate::entities::parameters::template_parameters_validator::ParameterValidator;
-use crate::entities::parameters::template_parameters_visitor::ParameterExtractorVisitor;
 use log::error;
 use std::sync::Arc;
 use ymir::errors::{Errors, Outcome};

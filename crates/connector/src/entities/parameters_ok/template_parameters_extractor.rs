@@ -1,4 +1,4 @@
-use super::{template_parameter_regex};
+use super::{template_parameter_regex, template_sys_parameter_regex};
 use crate::entities::parameters::{FoundParameterType, TemplateMapString, TemplateString};
 use crate::entities::parameters_ok::connector_template_walker::ConnectorTemplateWalker;
 use crate::TemplateVecString;
@@ -8,20 +8,28 @@ use crate::entities::parameters::template_parameters_extractor::FoundParameter;
 
 pub struct TemplateParametersExtractor {
     found_parameters: Vec<FoundParameter>,
+    regex_fn: fn() -> &'static regex::Regex,
 }
 
 impl TemplateParametersExtractor {
     pub fn new() -> Self {
         Self {
             found_parameters: Vec::new(),
+            regex_fn: template_parameter_regex,
         }
     }
+
+    pub fn just_system_parameters(mut self) -> Self {
+        self.regex_fn = template_sys_parameter_regex;
+        self
+    }
+
     pub fn found_parameters(&self) -> &[FoundParameter] {
         &self.found_parameters
     }
 
     fn scan_str(&mut self, value: &str, content_type: &FoundParameterType) {
-        let re = template_parameter_regex();
+        let re = (self.regex_fn)();
         for cap in re.captures_iter(value) {
             self.found_parameters.push(FoundParameter {
                 name: cap[1].to_string(),

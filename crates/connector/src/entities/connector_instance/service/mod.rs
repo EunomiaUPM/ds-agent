@@ -28,11 +28,9 @@ use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
-use crate::entities::parameters::default_parameters_enricher::DefaultParameterEnricher;
-use crate::entities::parameters::instance_parameters_validator::InstanceParametersValidator;
-use crate::entities::parameters::ParameterEnricher;
-use crate::entities::parameters::system_parameter_enricher::SysParameterEnricher;
-use crate::{TemplateParametersResolver, TemplateResolverVisitor};
+use crate::entities::parameters_ok::instance_parameters_map::InstanceParametersMapBuilder;
+use crate::entities::parameters_ok::instance_parameters_resolver::InstanceParametersResolver;
+use crate::entities::parameters_ok::instance_parameters_validator::InstanceParametersValidator;
 
 pub struct ConnectorInstanceEntitiesService {
     repo: Arc<dyn ConnectorRepoTrait>,
@@ -137,7 +135,7 @@ impl ConnectorInstanceTrait for ConnectorInstanceEntitiesService {
         instance_dto: &mut ConnectorInstantiationDto,
     ) -> Outcome<ConnectorInstanceDto> {
         // fetch template or error
-        let template = self
+        let template_opt = self
             .repo
             .get_templates_repo()
             .get_template_by_name_and_version(
@@ -146,7 +144,7 @@ impl ConnectorInstanceTrait for ConnectorInstanceEntitiesService {
             )
             .await?;
 
-        let template_model = match template {
+        let template_model = match template_opt {
             Some(t) => t,
             None => {
                 return Err(Errors::crazy(
@@ -158,6 +156,8 @@ impl ConnectorInstanceTrait for ConnectorInstanceEntitiesService {
                 ));
             }
         };
+        let mut connector_template_dto: ConnectorTemplateDto =
+            serde_json::from_value(template_model.spec.clone())?;
 
         // fetch distribution or error
         let distribution_id = instance_dto.distribution_id.to_string();
@@ -167,43 +167,30 @@ impl ConnectorInstanceTrait for ConnectorInstanceEntitiesService {
             .await?;
 
         // validate instance parameters
-        let mut template_spec: ConnectorTemplateDto =
-            serde_json::from_value(template_model.spec.clone())?;
-        let template_parameters = &template_spec.parameters;
-        let instance_parameters_validator = InstanceParametersValidator::new(template_parameters);
-        let instance_validation_errors =
-            instance_parameters_validator.validate(&instance_dto.parameters);
-        if !instance_validation_errors.is_empty() {
-            return Err(Errors::crazy(
-                format!("{}", instance_validation_errors.join(", ")),
-                None,
-            ));
-        }
+        let instance_parameters_validator = InstanceParametersValidator::new(
+            &instance_dto.parameters,
+            &connector_template_dto.parameters,
+        );
+        instance_parameters_validator.validate()?;
 
-        // enrich the parameter map before resolution.
-        //
-        // Steps run in order; each uses entry-insert semantics so that an
-        // earlier step's value is never overwritten by a later one.
-        //
-        // 1a. Inject SYS_* runtime values (URN, token, timestamps, own URL …)
-        //     for every {{__SYS_*__}} placeholder actually referenced in the template.
-        SysParameterEnricher::new(&template_spec, &self.own_url)
-            .enrich(&mut instance_dto.parameters)?;
+        // get all possible params (instance_dto + sys params + defaults)
+        let params = InstanceParametersMapBuilder::new(self.own_url.clone())
+            .with_instance_parameters(&instance_dto.parameters)
+            .with_system_parameters(&mut connector_template_dto)?
+            .with_default_parameters(&connector_template_dto.parameters)?
+            .build()
+            .collect();
 
-        // 1b. Fill in declared default values for parameters the user left unset.
-        DefaultParameterEnricher::new(&template_spec.parameters)
-            .enrich(&mut instance_dto.parameters)?;
 
-        // Phase 2 — resolve: replace {{__PARAM__}} placeholders in the template
-        // spec with the final, fully-enriched parameter map.
-        let mut resolver = TemplateParametersResolver::new(&instance_dto.parameters);
-        TemplateResolverVisitor::new(&mut resolver).apply(&mut template_spec)?;
+        // resolve values in template
+        let connector_resolved = InstanceParametersResolver::new(&connector_template_dto, &params)
+            .resolve()?;
 
         // prepare data
-        let metadata_json = template_spec.metadata.clone();
-        let params_json = template_spec.parameters.clone();
-        let authentication = template_spec.authentication.clone();
-        let interaction = template_spec.interaction.clone();
+        let metadata_json = connector_resolved.metadata.clone();
+        let params_json = connector_resolved.parameters.clone();
+        let authentication = connector_resolved.authentication.clone();
+        let interaction = connector_resolved.interaction.clone();
 
         // dry run
         if instance_dto.dry_run {

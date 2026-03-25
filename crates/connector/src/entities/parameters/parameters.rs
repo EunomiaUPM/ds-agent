@@ -58,7 +58,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-
+use ymir::errors::Errors;
 // =============================================================================
 // Parameter type declarations
 // =============================================================================
@@ -103,6 +103,22 @@ pub enum SysParameterType {
     /// `127.0.0.1` replaced with `host.docker.internal` so that it is
     /// reachable from inside a Docker container.
     SysOwnUrl { host_docker_internal: bool },
+}
+
+impl std::str::FromStr for SysParameterType {
+    type Err = Errors;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "SYS_URN"        => Ok(Self::SysUrn),
+            "SYS_TOKEN"      => Ok(Self::SysToken),
+            "SYS_TIMESTAMP"  => Ok(Self::SysTimestamp),
+            "SYS_ISO8601"    => Ok(Self::SysIso8601),
+            "SYS_OWN_URL"    => Ok(Self::SysOwnUrl { host_docker_internal: false }),
+            "SYS_OWN_URL_DOCKER" => Ok(Self::SysOwnUrl { host_docker_internal: true }),
+            _ => Err(Errors::validation(format!("{} system parameter not valid", s), None)),
+        }
+    }
 }
 
 /// Metadata for a single declared parameter in a connector template.

@@ -66,9 +66,10 @@ impl InstanceParametersMapBuilder {
         Ok(self)
     }
 
+    #[allow(dead_code)]
     pub fn with_runtime_parameters(
-        mut self,
-        connector_instance: &ConnectorInstanceDto,
+        self,
+        _connector_instance: &ConnectorInstanceDto,
     ) -> Outcome<Self> {
         Ok(self)
     }

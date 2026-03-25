@@ -114,6 +114,7 @@ pub(crate) fn template_sys_parameter_regex() -> &'static Regex {
     REGEX.get_or_init(|| Regex::new(r"\{\{\s*__(SYS.*?)__\s*\}\}").expect("Invalid Regex"))
 }
 
+#[allow(dead_code)]
 pub(crate) fn template_runtime_parameter_regex() -> &'static Regex {
     static REGEX: OnceLock<Regex> = OnceLock::new();
     // Matches: RUNTIME_{TYPE}_RESPONSE_{jq_expr}

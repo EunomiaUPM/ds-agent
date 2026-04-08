@@ -27,8 +27,8 @@ pub enum DataplaneProxyEgress {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct DataplaneProxy {
-    ingress: DataplaneProxyIngress,
-    egress: DataplaneProxyEgress,
+    pub(crate) ingress: DataplaneProxyIngress,
+    pub(crate) egress: DataplaneProxyEgress,
 }
 
 impl DataplaneProxy {

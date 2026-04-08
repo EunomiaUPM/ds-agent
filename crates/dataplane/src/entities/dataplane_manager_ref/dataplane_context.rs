@@ -3,11 +3,16 @@ use crate::entities::dataplane_manager_ref::dataplane_commands::{
     DataplaneContinuation, DataplaneInitCommandDirection, DataplaneInitCommandTypes,
 };
 use crate::entities::dataplane_manager_ref::dataplane_driver::DataplaneDriver;
-use crate::entities::dataplane_manager_ref::dataplane_proxy::DataplaneProxy;
+use crate::entities::dataplane_manager_ref::dataplane_proxy::{
+    DataplaneProxy, DataplaneProxyEgress, DataplaneProxyIngress,
+};
 use crate::entities::dataplane_transfers::{
     DataplaneTransferDto, InteractionMode, NewDataplaneTransferDto, TransferRole, TransferState,
 };
-use crate::{DataplaneAddress, DataplaneInitCommandType, DataplaneTransfersEntitiesTrait};
+use crate::{
+    DataplaneAddress, DataplaneInitCommandType, DataplaneTransfersEntitiesTrait, EgressConfig,
+    IngressConfig,
+};
 use common::config::services::TransferConfig;
 use connector::{ConnectorInstanceDto, ConnectorInstanceTrait};
 use std::str::FromStr;
@@ -105,13 +110,12 @@ impl DataplaneContext {
         config: Arc<TransferConfig>,
         continuation: DataplaneContinuation,
     ) -> Outcome<Self> {
-
         // db access
         let dataplane_process = dataplane_entity
             .get_dataplane_transfer_by_process_id(&continuation.transfer_dto_urn)
             .await?;
         if let None = dataplane_process {
-            return Err(Errors::crazy("Dataplane Process not found", None))
+            return Err(Errors::crazy("Dataplane Process not found", None));
         }
         let dataplane_process = dataplane_process.unwrap();
 
@@ -120,23 +124,32 @@ impl DataplaneContext {
         let connector = match connector_id {
             Some(connector_id) => {
                 let connector_urn = Urn::from_str(&connector_id)?;
-                connector_entity.get_instance_by_id(&connector_urn)
-                    .await?
+                connector_entity.get_instance_by_id(&connector_urn).await?
             }
-            None => None
+            None => None,
         };
 
         // driver
-        let driver = dataplane_process.clone().inner.flow_control
+        let driver = dataplane_process
+            .clone()
+            .inner
+            .flow_control
             .map(|f| serde_json::from_value::<DataplaneDriver>(f))
             .transpose()?;
+        let ingress = serde_json::from_value::<DataplaneProxyIngress>(
+            dataplane_process.clone().inner.ingress_config,
+        )?;
+        let egress = serde_json::from_value::<DataplaneProxyEgress>(
+            dataplane_process.clone().inner.egress_config,
+        )?;
+        let proxy = Some(DataplaneProxy { ingress, egress });
 
         Ok(Self {
             config,
             dataplane_process,
             connector_instance: connector,
             driver,
-            proxy: None,
+            proxy,
             forward_dataplane_address: None,
         })
     }

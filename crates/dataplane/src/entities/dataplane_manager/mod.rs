@@ -21,7 +21,6 @@ pub(crate) mod driver_factory;
 pub use config_builder::{EgressConfig, IngressConfig};
 pub(crate) mod dataplane_commands;
 pub(crate) mod dataplane_persistence;
-pub(crate) mod tests;
 
 use common::config::types::roles::RoleConfig;
 use common::dsp_common::data_address::{DataAddress, EndpointProperty};

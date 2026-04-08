@@ -28,7 +28,7 @@ use common::dsp_common::data_address::{DataAddress, EndpointProperty};
 use serde::{Deserialize, Serialize};
 use urn::Urn;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct DataplaneAddress {
     pub endpoint_type: String,
     pub endpoint: String,

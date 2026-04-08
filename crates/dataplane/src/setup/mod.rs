@@ -86,15 +86,8 @@ impl DataplaneSetup {
             cache,
         ));
 
-        // proxy base URL (used by driver to build callback URLs)
-        let http_cfg = config.common().http();
-        let proxy_base_url = match &http_cfg.port {
-            Some(port) => format!("{}://{}:{}", http_cfg.protocol, http_cfg.url, port),
-            None => format!("{}://{}", http_cfg.protocol, http_cfg.url),
-        };
-
         // driver factory
-        let driver_factory = Arc::new(DataplaneDriverFactory::new(proxy_base_url, http_client));
+        let driver_factory = Arc::new(DataplaneDriverFactory::new(config.clone()));
 
         DataplaneManager::new(dataplane_process_entity, connector_entity, driver_factory)
     }

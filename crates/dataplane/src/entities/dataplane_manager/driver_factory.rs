@@ -24,7 +24,10 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 use std::sync::Arc;
 use urn::Urn;
+use ymir::config::traits::{ConnectionConfigTrait, HostsConfigTrait, SingleHostTrait};
 use ymir::errors::{Errors, Outcome};
+use common::config::services::TransferConfig;
+use common::config::types::traits::CommonConfigTrait;
 // ─── System runtime context ───
 //
 // Computed at subscribe/unsubscribe time from the active dataplane process and node config.
@@ -202,15 +205,13 @@ impl LifeCycleActionTrait for HttpSubscribeLifecycle {
 // ─── Factory ───
 
 pub struct DataplaneDriverFactory {
-    proxy_base_url: String,
-    http_client: Arc<HttpClient>,
+    config: Arc<TransferConfig>,
 }
 
 impl DataplaneDriverFactory {
-    pub fn new(proxy_base_url: String, http_client: Arc<HttpClient>) -> Self {
+    pub fn new(config: Arc<TransferConfig>) -> Self {
         Self {
-            proxy_base_url,
-            http_client,
+            config,
         }
     }
 
@@ -230,12 +231,12 @@ impl DataplaneDriverFactory {
                 let transfer_id: Urn = process.inner.id.parse()?;
                 let sys_context = SysRuntimeContext {
                     transfer_id,
-                    proxy_base_url: self.proxy_base_url.clone(),
+                    proxy_base_url: self.config.common().http().get_host().clone(),
                     ingress_path,
                     subscription_state: process.inner.flow_control.clone(),
                 };
                 Arc::new(HttpSubscribeLifecycle::new(
-                    self.http_client.clone(),
+                    Arc::new(HttpClient::new(1, 1)),
                     sys_context,
                 ))
             }

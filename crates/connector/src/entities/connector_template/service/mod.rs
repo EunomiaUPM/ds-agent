@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,10 +23,10 @@ use crate::entities::connector_template::{
     ConnectorMetadata, ConnectorTemplateDto, ConnectorTemplateEntitiesTrait,
 };
 use crate::entities::interaction::InteractionConfig;
-use crate::entities::parameters::parameters::ParameterDefinition;
-use crate::entities::parameters::template_parameters_extractor::TemplateParameterExtractor;
-use crate::entities::parameters::template_parameters_validator::ParameterValidator;
-use crate::entities::parameters::template_parameters_visitor::ParameterExtractorVisitor;
+use crate::entities::parameters::connector_template_walker::ConnectorTemplateWalker;
+use crate::entities::parameters::template_parameters_extractor::TemplateParametersExtractor;
+use crate::entities::parameters::template_parameters_validator::TemplateParametersValidator;
+use crate::entities::parameters::ParameterDefinition;
 use log::error;
 use std::sync::Arc;
 use ymir::errors::{Errors, Outcome};
@@ -159,17 +159,15 @@ impl ConnectorTemplateEntitiesTrait for ConnectorTemplateEntitiesService {
         &self,
         new_template: &mut ConnectorTemplateDto,
     ) -> Outcome<ConnectorTemplateDto> {
-        // Validation: extract all {{__NAME__}} placeholders and check that
-        // names and types match the declared parameters[]. RUNTIME_* / SYS_*
-        // names are excluded because they are resolved by the engine at runtime.
-        let mut extractor = TemplateParameterExtractor::new();
-        ParameterExtractorVisitor::new(&mut extractor).extract(new_template);
-        ParameterValidator::new(&new_template.parameters, true)
-            .validate(extractor.found_parameters())
-            .map_err(|e| {
-                error!("{}", e);
-                Errors::parse(&e.to_string(), None)
-            })?;
+        // extract parameters and validate
+        let mut extractor = TemplateParametersExtractor::new();
+        extractor.walk(new_template)?;
+        let parameters_found = extractor.found_parameters();
+        let validator =
+            TemplateParametersValidator::new(parameters_found, &new_template.parameters)
+                .excluding_sys_parameters()
+                .excluding_runtime_parameters();
+        validator.validate()?;
 
         // persist
         let new_model: NewConnectorTemplateModel =

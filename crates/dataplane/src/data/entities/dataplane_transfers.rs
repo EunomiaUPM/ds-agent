@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -80,7 +80,10 @@ impl TryFrom<DataplaneInitCommandType> for TransferRole {
 impl TryFrom<&DataplaneInitCommandType> for TransferRole {
     type Error = Errors;
     fn try_from(value: &DataplaneInitCommandType) -> Result<Self, Self::Error> {
-        value.try_into()
+        match value {
+            DataplaneInitCommandType::Provider { .. } => Ok(Self::Provider),
+            DataplaneInitCommandType::Consumer { .. } => Ok(Self::Consumer),
+        }
     }
 }
 

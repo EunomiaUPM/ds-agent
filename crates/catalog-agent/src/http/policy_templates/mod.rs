@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -173,6 +173,16 @@ impl PolicyTemplateEntityRouter {
         };
         match state.service.create_policy_template(&input).await {
             Ok(template) => (StatusCode::OK, Json(ToCamelCase(template))).into_response(),
+            Err(Errors::DatabaseError { reason, .. })
+                if silent && reason.contains("duplicate key") =>
+            {
+                tracing::warn!(
+                    "Policy template '{}' v{} already exists, skipping (silent mode)",
+                    input.id.as_deref().unwrap_or("unknown"),
+                    input.version.as_deref().unwrap_or("unknown")
+                );
+                StatusCode::OK.into_response()
+            }
             Err(e) => return e.into_response(),
         }
     }

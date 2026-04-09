@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,15 +18,16 @@
 use crate::entities::dataplane_manager::config_builder::IngressConfig;
 use crate::entities::dataplane_transfers::{DataplaneTransferDto, InteractionMode, TransferRole};
 use common::http_client::HttpClient;
-use connector::{
-    ConnectorInstanceDto, InteractionConfig, ProtocolSpec, TemplateParametersResolver,
-    TemplateResolverVisitor,
-};
+use connector::{ConnectorInstanceDto, InteractionConfig, ProtocolSpec};
 use serde_json::{json, Value};
 use std::collections::HashMap;
+use std::fmt::Debug;
 use std::sync::Arc;
 use urn::Urn;
+use ymir::config::traits::{ConnectionConfigTrait, HostsConfigTrait, SingleHostTrait};
 use ymir::errors::{Errors, Outcome};
+use common::config::services::TransferConfig;
+use common::config::types::traits::CommonConfigTrait;
 // ─── System runtime context ───
 //
 // Computed at subscribe/unsubscribe time from the active dataplane process and node config.
@@ -46,6 +47,7 @@ use ymir::errors::{Errors, Outcome};
 //   {{__RUNTIME_SUB_RESPONSE_{.id}__}}         → .id from subscribe response
 //   {{__RUNTIME_SUB_RESPONSE_{.data.token}__}} → nested field from subscribe response
 
+#[derive(Debug)]
 pub struct SysRuntimeContext {
     pub transfer_id: Urn,
     pub proxy_base_url: String,
@@ -85,6 +87,7 @@ impl SysRuntimeContext {
 
 // ─── HTTP subscribe lifecycle driver ───
 
+#[derive(Debug)]
 pub struct HttpSubscribeLifecycle {
     http_client: Arc<HttpClient>,
     sys_context: SysRuntimeContext,
@@ -112,8 +115,8 @@ impl LifeCycleActionTrait for HttpSubscribeLifecycle {
         // Clone subscribe spec and apply RUNTIME_* params (no SUB context yet at subscribe time).
         let mut subscribe_spec = push.subscribe.clone();
         let runtime_params = self.sys_context.to_params();
-        let mut resolver = TemplateParametersResolver::new(&runtime_params);
-        TemplateResolverVisitor::new(&mut resolver).apply_protocol(&mut subscribe_spec)?;
+        // let mut resolver = TemplateParametersResolver::new(&runtime_params);
+        // TemplateResolverVisitor::new(&mut resolver).apply_protocol(&mut subscribe_spec)?;
 
         let http_spec = match &subscribe_spec {
             ProtocolSpec::Http(spec) => spec,
@@ -164,9 +167,9 @@ impl LifeCycleActionTrait for HttpSubscribeLifecycle {
             .subscription_state
             .clone()
             .unwrap_or(Value::Null);
-        let mut resolver = TemplateParametersResolver::new(&runtime_params)
-            .with_response_context("SUB", sub_state);
-        TemplateResolverVisitor::new(&mut resolver).apply_protocol(&mut unsubscribe_spec)?;
+        // let mut resolver = TemplateParametersResolver::new(&runtime_params)
+        //     .with_response_context("SUB", sub_state);
+        // TemplateResolverVisitor::new(&mut resolver).apply_protocol(&mut unsubscribe_spec)?;
 
         let http_spec = match &unsubscribe_spec {
             ProtocolSpec::Http(spec) => spec,
@@ -202,15 +205,13 @@ impl LifeCycleActionTrait for HttpSubscribeLifecycle {
 // ─── Factory ───
 
 pub struct DataplaneDriverFactory {
-    proxy_base_url: String,
-    http_client: Arc<HttpClient>,
+    config: Arc<TransferConfig>,
 }
 
 impl DataplaneDriverFactory {
-    pub fn new(proxy_base_url: String, http_client: Arc<HttpClient>) -> Self {
+    pub fn new(config: Arc<TransferConfig>) -> Self {
         Self {
-            proxy_base_url,
-            http_client,
+            config,
         }
     }
 
@@ -230,12 +231,12 @@ impl DataplaneDriverFactory {
                 let transfer_id: Urn = process.inner.id.parse()?;
                 let sys_context = SysRuntimeContext {
                     transfer_id,
-                    proxy_base_url: self.proxy_base_url.clone(),
+                    proxy_base_url: self.config.common().http().get_host().clone(),
                     ingress_path,
                     subscription_state: process.inner.flow_control.clone(),
                 };
                 Arc::new(HttpSubscribeLifecycle::new(
-                    self.http_client.clone(),
+                    Arc::new(HttpClient::new(1, 1)),
                     sys_context,
                 ))
             }
@@ -260,18 +261,19 @@ impl DataplaneDriverFactory {
     }
 }
 
+#[derive(Debug)]
 pub struct DataplaneDriver {
     pub auth_driver: Arc<dyn AuthActionTrait>,
     pub lifecycle_driver: Arc<dyn LifeCycleActionTrait>,
 }
 
 #[async_trait::async_trait]
-pub trait AuthActionTrait: Send + Sync {
+pub trait AuthActionTrait: Send + Sync + Debug {
     async fn perform_auth(&self, connector: Option<&ConnectorInstanceDto>) -> Outcome<()>;
 }
 
+#[derive(Debug)]
 pub struct NoOpAuth {}
-
 impl NoOpAuth {
     pub fn new() -> Self {
         Self {}
@@ -286,12 +288,13 @@ impl AuthActionTrait for NoOpAuth {
 }
 
 #[async_trait::async_trait]
-pub trait LifeCycleActionTrait: Send + Sync {
+pub trait LifeCycleActionTrait: Send + Sync + Debug {
     /// Performs subscription. Returns the response body (stored in flow_control for later use).
     async fn perform_subscribe(&self, connector: Option<&ConnectorInstanceDto>) -> Outcome<Value>;
     async fn perform_unsubscribe(&self, connector: Option<&ConnectorInstanceDto>) -> Outcome<()>;
 }
 
+#[derive(Debug)]
 pub struct NoOpLifecycle {}
 
 impl NoOpLifecycle {

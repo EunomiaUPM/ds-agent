@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,7 +37,8 @@ pub use basic_auth::*;
 pub use oauth::*;
 
 use crate::entities::common::secret_management::SecretString;
-use crate::entities::parameters::{TemplateString, TemplateVecString};
+use crate::entities::parameters::TemplateString;
+use crate::TemplateVecString;
 use serde::{Deserialize, Serialize};
 
 /// The authentication strategy for a connector.

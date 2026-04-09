@@ -1,6 +1,6 @@
 /*
  *
- *  * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
+ *  * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *  *
  *  * This program is free software: you can redistribute it and/or modify
  *  * it under the terms of the GNU General Public License as published by
@@ -36,6 +36,7 @@ use urn::Urn;
 /// Each concrete DTO (request, start, suspension, …) only carries the fields
 /// that make sense for its lifecycle step.  All other accessors return `None`,
 /// so callers can use the trait without knowing the concrete type.
+#[allow(dead_code)]
 pub trait RpcTransferProcessMessageTrait: Debug + Send + Sync {
     fn get_consumer_pid(&self) -> Option<Urn>;
     fn get_provider_pid(&self) -> Option<Urn>;

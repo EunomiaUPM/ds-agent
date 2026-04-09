@@ -1,6 +1,6 @@
 /*
  *
- *  * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
+ *  * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *  *
  *  * This program is free software: you can redistribute it and/or modify
  *  * it under the terms of the GNU General Public License as published by
@@ -44,6 +44,7 @@ pub struct NewTransferProcessDto {
     pub state: String,
     pub associated_agent_peer: String,
     pub protocol: String,
+    pub connector_instance_id: String,
     pub transfer_direction: String,
     pub agreement_id: Urn,
     pub callback_address: Option<String>,
@@ -72,6 +73,7 @@ impl From<NewTransferProcessDto> for NewTransferProcessModel {
             state_attribute: dto.state_attribute,
             associated_agent_peer: dto.associated_agent_peer,
             protocol: dto.protocol,
+            connector_instance_id: dto.connector_instance_id,
             transfer_direction: dto.transfer_direction,
             agreement_id: dto.agreement_id,
             callback_address: dto.callback_address,

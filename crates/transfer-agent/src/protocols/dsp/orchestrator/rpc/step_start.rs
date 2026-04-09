@@ -1,6 +1,6 @@
 /*
  *
- *  * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
+ *  * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *  *
  *  * This program is free software: you can redistribute it and/or modify
  *  * it under the terms of the GNU General Public License as published by
@@ -89,7 +89,7 @@ impl TransferRpcStep for StartStep {
     async fn send_and_persist(
         http_client: &HttpClient,
         persistence: &Arc<dyn TransferPersistenceTrait>,
-        ctx: &RpcPeerContext,
+        ctx: &mut RpcPeerContext,
         payload: Arc<TransferStartMessageDto>,
         url_suffix: &str,
     ) -> Outcome<(

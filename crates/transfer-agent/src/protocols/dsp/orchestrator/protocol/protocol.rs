@@ -1,6 +1,6 @@
 /*
  *
- *  * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
+ *  * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *  *
  *  * This program is free software: you can redistribute it and/or modify
  *  * it under the terms of the GNU General Public License as published by
@@ -32,9 +32,7 @@ use crate::protocols::dsp::protocol_types::{
     TransferTerminationMessageDto,
 };
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
-use std::str::FromStr;
 use std::sync::Arc;
-use urn::Urn;
 use ymir::errors::Outcome;
 // ─── Service ─────────────────────────────────────────────────────────────────
 
@@ -154,10 +152,9 @@ impl ProtocolOrchestratorService {
         }
 
         let process = S::persist(&self.persistence_service, id, &ctx, input).await?;
-        let process_id = Urn::from_str(process.inner.id.as_str())?;
 
         let dp = self.facades.get_data_plane_facade().await;
-        let data_addr = S::post_hook(&dp, &ctx, input, &process_id).await?;
+        let data_addr = S::post_hook(&dp, &ctx, input, &process).await?;
 
         let mut ack = TransferProcessMessageWrapper::try_from(process)?;
         ack.dto.data_address = data_addr;

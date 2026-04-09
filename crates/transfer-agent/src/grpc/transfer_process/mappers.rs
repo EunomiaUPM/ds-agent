@@ -1,6 +1,6 @@
 /*
  *
- *  * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
+ *  * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *  *
  *  * This program is free software: you can redistribute it and/or modify
  *  * it under the terms of the GNU General Public License as published by
@@ -74,6 +74,7 @@ impl TryFrom<CreateProcessRequest> for NewTransferProcessDto {
             state: proto.state,
             associated_agent_peer: proto.associated_agent_peer,
             protocol: proto.protocol,
+            connector_instance_id: proto.connector_instance_id,
             transfer_direction: proto.transfer_direction,
             agreement_id: agreement_urn,
             callback_address: None,

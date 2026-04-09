@@ -1,6 +1,6 @@
 /*
  *
- *  * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
+ *  * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *  *
  *  * This program is free software: you can redistribute it and/or modify
  *  * it under the terms of the GNU General Public License as published by
@@ -29,8 +29,7 @@ use crate::protocols::dsp::protocol_types::{
 };
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
 use std::sync::Arc;
-use urn::Urn;
-use ymir::errors::{Errors, Outcome};
+use ymir::errors::Outcome;
 // ─── StartStep ────────────────────────────────────────────────────────────────
 
 /// Handles an inbound `TransferStartMessage` from the peer.
@@ -78,15 +77,11 @@ impl ProtocolStep for ProtocolStartStep {
     /// Starts the local dataplane; returns the consumer's ingress URL for PULL mode.
     async fn post_hook(
         dp: &Arc<dyn DataPlaneFacadeTrait>,
-        ctx: &ProtocolContext,
+        _ctx: &ProtocolContext,
         input: &TransferProcessMessageWrapper<TransferStartMessageDto>,
-        _process_id: &Urn,
+        process: &TransferProcessDto,
     ) -> Outcome<Option<DataAddressDto>> {
-        let process = &ctx
-            .process
-            .clone()
-            .ok_or(Errors::crazy("no process found", None))?;
-        dp.on_transfer_start_post(&process, input.dto.data_address.clone())
+        dp.on_transfer_start_post(process, input.dto.data_address.clone())
             .await
     }
 }

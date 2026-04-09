@@ -1,6 +1,6 @@
 /*
  *
- *  * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
+ *  * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *  *
  *  * This program is free software: you can redistribute it and/or modify
  *  * it under the terms of the GNU General Public License as published by
@@ -18,19 +18,14 @@
  */
 
 use std::cmp::PartialEq;
-use std::sync::Arc;
 
-use auth::setup::cmd::AuthCliArgs;
 use clap::{Parser, Subcommand};
 use common::boot::{BootstrapInit, BootstrapStepTrait};
-use common::config::services::SsiAuthConfig;
 use common::config::types::traits::CommonConfigTrait;
 use common::config::ApplicationConfig;
-use common::utils::show_table;
 use tracing::{debug, info};
-use ymir::config::traits::{ConnectionConfigTrait, HostsConfigTrait};
-use ymir::config::types::HostType;
-use ymir::errors::{Errors, Outcome};
+use ymir::config::traits::ConnectionConfigTrait;
+use ymir::errors::Outcome;
 use ymir::services::vault::fake_vault::FakeVaultService;
 use ymir::services::vault::global::VaultService;
 use ymir::services::vault::vault_rs::RealVaultService;

@@ -67,7 +67,7 @@ impl BusinessTrait for BasicBusinessService {
             id: id.clone(),
             state: payload.auth_request_id.clone(),
             nonce,
-            vc_type: "DataspaceParticipant".to_string(),
+            vc_type: vec!["DataspaceParticipant".to_string()],
             audience,
             holder: None,
             vpt: None,

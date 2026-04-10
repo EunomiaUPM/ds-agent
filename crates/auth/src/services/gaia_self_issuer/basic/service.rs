@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -25,6 +25,7 @@ use common::config::types::traits::{EntityClientTrait, GaiaConfigTrait};
 use jsonwebtoken::{Algorithm, Header};
 use serde_json::{json, Value};
 use tracing::info;
+use uuid::Uuid;
 use ymir::config::traits::HostsConfigTrait;
 use ymir::config::types::HostType;
 use ymir::data::entities::issuing;
@@ -99,8 +100,8 @@ impl GaiaOwnIssuerTrait for BasicGaiaSelfIssuer {
     async fn issue_cred(&self, did: &str, vc_type: &VcType, code: &str) -> Outcome<Value> {
         info!("Issuing cred");
 
-        let legal_id = uuid::Uuid::new_v4().to_string();
-        let terms_id = uuid::Uuid::new_v4().to_string();
+        let legal_id = format!("urn:uuid:{}", uuid::Uuid::new_v4().to_string());
+        let terms_id = format!("urn:uuid:{}", uuid::Uuid::new_v4().to_string());
 
         let legal_subj =
             parse_to_value(&LegalPersonCredentialSubject::new4gaia(did, vc_type, code)?)?;
@@ -179,6 +180,9 @@ impl GaiaOwnIssuerTrait for BasicGaiaSelfIssuer {
 
         let mut header = Header::new(Algorithm::RS256);
         header.kid = Some(did.to_string());
+        let mut iss = HashMap::new();
+        iss.insert("iss".to_string(), did.to_string());
+        header.extras = iss;
         let priv_key = expect_from_env("VAULT_APP_PRIV_KEY");
         let priv_key: StringHelper = self.vault.read(None, &priv_key).await?;
 
@@ -228,7 +232,11 @@ impl GaiaOwnIssuerTrait for BasicGaiaSelfIssuer {
     async fn send_req(&self, body: &str) -> Outcome<String> {
         info!("Sending request to retrieve Gaia-x Compliance vc");
 
-        let url = self.config.get_gaia_api_host();
+        let url = format!(
+            "{}?urn:uuid:{}",
+            self.config.get_gaia_api_host(),
+            Uuid::new_v4().to_string()
+        );
 
         let mut headers = HeaderMap::new();
         headers.insert(CONTENT_TYPE, HeaderValue::from_static("text/plain"));

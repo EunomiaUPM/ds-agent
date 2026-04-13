@@ -1,6 +1,6 @@
-mod dataplane_context;
+pub(super) mod dataplane_context;
 mod dataplane_proxy;
-mod dataplane_driver;
+mod dataplane_driver_factory;
 mod dataplane_commands;
 mod dataplane_manager;
 mod dataplane_handlers_strategy;

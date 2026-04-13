@@ -25,3 +25,4 @@ pub mod facades;
 pub mod http_client;
 pub mod utils;
 pub mod well_known;
+pub mod test_utils;

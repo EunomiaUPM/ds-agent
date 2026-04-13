@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub enum DataplaneProxyIngress {
     NoOp,
     HttpListener {
@@ -10,7 +10,7 @@ pub enum DataplaneProxyIngress {
     },
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub enum DataplaneProxyEgress {
     NoOp,
     HttpProxy {
@@ -25,7 +25,7 @@ pub enum DataplaneProxyEgress {
     },
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct DataplaneProxy {
     pub(crate) ingress: DataplaneProxyIngress,
     pub(crate) egress: DataplaneProxyEgress,

@@ -1,12 +1,16 @@
+use crate::entities::dataplane_drivers::DriverPubSubTrait;
 use crate::entities::dataplane_manager_ref::dataplane_context::DataplaneContext;
+use crate::entities::dataplane_manager_ref::dataplane_driver_factory::{
+    DataplaneDriverFactory, DataplaneDriverFactoryTrait,
+};
 use crate::entities::dataplane_transfers::{EditDataplaneTransferDto, TransferState};
 use crate::{DataplaneAddress, DataplaneTransfersEntitiesTrait};
+use common::config::services::TransferConfig;
 use connector::{ConnectorInstanceDto, ConnectorInstanceTrait};
 use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
 use ymir::errors::Outcome;
-use common::config::services::TransferConfig;
 
 #[derive(Clone)]
 pub enum DataplaneCommand {
@@ -21,7 +25,7 @@ pub enum DataplaneCommand {
     SetTerminating(DataplaneContinuation),
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum DataplaneInitCommandTypes {
     AsProvider {
         transfer_process_id: Urn,
@@ -34,9 +38,9 @@ pub enum DataplaneInitCommandTypes {
     },
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum DataplaneInitCommandDirection {
-    Pull,
+    Pull { data_address: DataplaneAddress },
     Push { data_address: DataplaneAddress },
 }
 
@@ -72,21 +76,47 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
     fn dataplane_entity(&self) -> Arc<dyn DataplaneTransfersEntitiesTrait>;
     fn connector_entity(&self) -> Arc<dyn ConnectorInstanceTrait>;
     fn transfer_config(&self) -> Arc<TransferConfig>;
-    async fn set_init(&self, command: DataplaneInitCommandTypes) -> Outcome<DataplaneContext> {
-        let context = DataplaneContext::from_init(
-            self.dataplane_entity().clone(),
-            self.connector_entity().clone(),
-            self.transfer_config().clone(),
-            command,
-        )
-            .await?;
-        Ok(context)
+    async fn set_init(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
+        let new_context = self.set_configuring(context).await?;
+        Ok(new_context)
     }
     async fn set_configuring(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
-        Ok(context)
+        let driver = DataplaneDriverFactory.get_or_create_driver(&context)?;
+        let mut context = driver.proxy_configurator.configure_proxy(&context).await?;
+        let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
+        let new_state = TransferState::Configuring;
+        let dataplane_process = self
+            .dataplane_entity()
+            .put_dataplane_transfer_by_id(
+                &dataplane_urn,
+                &EditDataplaneTransferDto {
+                    state: Some(new_state),
+                    ..EditDataplaneTransferDto::default()
+                },
+            )
+            .await?;
+        context.set_dataplane_process(dataplane_process);
+        let new_context = self.set_auth(context).await?;
+        Ok(new_context)
     }
-    async fn set_auth(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
-        Ok(context)
+    async fn set_auth(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
+        let driver = DataplaneDriverFactory.get_or_create_driver(&context)?;
+        let ctx = driver.authenticator.authenticate(&context).await?;
+        let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
+        let new_state = TransferState::Auth;
+        let dataplane_process = self
+            .dataplane_entity()
+            .put_dataplane_transfer_by_id(
+                &dataplane_urn,
+                &EditDataplaneTransferDto {
+                    state: Some(new_state),
+                    ..EditDataplaneTransferDto::default()
+                },
+            )
+            .await?;
+        context.set_dataplane_process(dataplane_process);
+        let new_context = self.set_ready(context).await?;
+        Ok(new_context)
     }
     async fn set_ready(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
         let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
@@ -124,11 +154,55 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
         context.set_dataplane_process(dataplane_process);
         Ok(context)
     }
-    async fn set_subscribing(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
-        Ok(context)
+    async fn set_subscribing(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
+        match context.driver().and_then(|d| d.subscriber.clone()) {
+            None => Ok(context),
+            Some(subscriber) => {
+                let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
+                // state
+                let new_state = TransferState::Subscribing;
+                // driver.auth
+                let dataplane_process = self
+                    .dataplane_entity()
+                    .put_dataplane_transfer_by_id(
+                        &dataplane_urn,
+                        &EditDataplaneTransferDto {
+                            state: Some(new_state),
+                            ..EditDataplaneTransferDto::default()
+                        },
+                    )
+                    .await?;
+                context.set_dataplane_process(dataplane_process);
+                let ctx = subscriber.subscribe(&context).await?;
+                let new_context = self.set_started(ctx).await?;
+                Ok(new_context)
+            }
+        }
     }
-    async fn set_unsubscribing(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
-        Ok(context)
+    async fn set_unsubscribing(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
+        match context.driver().and_then(|d| d.subscriber.clone()) {
+            None => Ok(context),
+            Some(subscriber) => {
+                let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
+                // state
+                let new_state = TransferState::Unsubscribing;
+                // driver.auth
+                let dataplane_process = self
+                    .dataplane_entity()
+                    .put_dataplane_transfer_by_id(
+                        &dataplane_urn,
+                        &EditDataplaneTransferDto {
+                            state: Some(new_state),
+                            ..EditDataplaneTransferDto::default()
+                        },
+                    )
+                    .await?;
+                context.set_dataplane_process(dataplane_process);
+                let ctx = subscriber.subscribe(&context).await?;
+                let new_context = self.set_stopped(ctx).await?;
+                Ok(new_context)
+            }
+        }
     }
     async fn set_stopped(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
         let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;

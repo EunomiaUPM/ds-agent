@@ -2,7 +2,7 @@ use crate::data::entities::dataplane_transfers::Model;
 use crate::entities::dataplane_manager_ref::dataplane_commands::{
     DataplaneContinuation, DataplaneInitCommandDirection, DataplaneInitCommandTypes,
 };
-use crate::entities::dataplane_manager_ref::dataplane_driver::DataplaneDriver;
+use crate::entities::dataplane_manager_ref::dataplane_driver_factory::DataplaneDriverFactoryTrait;
 use crate::entities::dataplane_manager_ref::dataplane_proxy::{
     DataplaneProxy, DataplaneProxyEgress, DataplaneProxyIngress,
 };
@@ -19,8 +19,9 @@ use std::str::FromStr;
 use std::sync::Arc;
 use urn::{Urn, UrnBuilder};
 use ymir::errors::{Errors, Outcome};
+use crate::entities::dataplane_drivers::DataplaneDriver;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct DataplaneContext {
     config: Arc<TransferConfig>,
     dataplane_process: DataplaneTransferDto,
@@ -54,11 +55,11 @@ impl DataplaneContext {
         };
         let interaction_mode = match &init {
             DataplaneInitCommandTypes::AsProvider { direction, .. } => match direction {
-                DataplaneInitCommandDirection::Pull => InteractionMode::Pull,
+                DataplaneInitCommandDirection::Pull { .. } => InteractionMode::Pull,
                 DataplaneInitCommandDirection::Push { .. } => InteractionMode::Push,
             },
             DataplaneInitCommandTypes::AsConsumer { direction, .. } => match direction {
-                DataplaneInitCommandDirection::Pull => InteractionMode::Pull,
+                DataplaneInitCommandDirection::Pull { .. } => InteractionMode::Pull,
                 DataplaneInitCommandDirection::Push { .. } => InteractionMode::Push,
             },
         };
@@ -70,11 +71,11 @@ impl DataplaneContext {
         };
         let data_plane_address = match &init {
             DataplaneInitCommandTypes::AsProvider { direction, .. } => match direction {
-                DataplaneInitCommandDirection::Pull => None,
+                DataplaneInitCommandDirection::Pull { data_address } => Some(data_address),
                 DataplaneInitCommandDirection::Push { data_address } => Some(data_address),
             },
             DataplaneInitCommandTypes::AsConsumer { direction, .. } => match direction {
-                DataplaneInitCommandDirection::Pull => None,
+                DataplaneInitCommandDirection::Pull { data_address } => Some(data_address),
                 DataplaneInitCommandDirection::Push { data_address } => Some(data_address),
             },
         };
@@ -107,6 +108,7 @@ impl DataplaneContext {
     pub async fn from_continuation(
         dataplane_entity: Arc<dyn DataplaneTransfersEntitiesTrait>,
         connector_entity: Arc<dyn ConnectorInstanceTrait>,
+        driver_factory: Arc<dyn DataplaneDriverFactoryTrait>,
         config: Arc<TransferConfig>,
         continuation: DataplaneContinuation,
     ) -> Outcome<Self> {
@@ -129,29 +131,32 @@ impl DataplaneContext {
             None => None,
         };
 
-        // driver
-        let driver = dataplane_process
-            .clone()
-            .inner
-            .flow_control
-            .map(|f| serde_json::from_value::<DataplaneDriver>(f))
-            .transpose()?;
+        // context
+        let mut context = Self {
+            config,
+            dataplane_process: dataplane_process.clone(),
+            connector_instance: connector.clone(),
+            driver: None,
+            proxy: None,
+            forward_dataplane_address: None,
+        };
+
+        // driver to context
+        context.driver = match &connector {
+            Some(conn) => Some(driver_factory.get_or_create_driver(&context)?),
+            None => None, // Consumer no tiene driver
+        };
+
+        // proxy to context
         let ingress = serde_json::from_value::<DataplaneProxyIngress>(
             dataplane_process.clone().inner.ingress_config,
         )?;
         let egress = serde_json::from_value::<DataplaneProxyEgress>(
             dataplane_process.clone().inner.egress_config,
         )?;
-        let proxy = Some(DataplaneProxy { ingress, egress });
+        context.proxy = Some(DataplaneProxy { ingress, egress });
 
-        Ok(Self {
-            config,
-            dataplane_process,
-            connector_instance: connector,
-            driver,
-            proxy,
-            forward_dataplane_address: None,
-        })
+        Ok(context)
     }
 
     pub fn set_dataplane_process(&mut self, dataplane_process: DataplaneTransferDto) -> &mut Self {

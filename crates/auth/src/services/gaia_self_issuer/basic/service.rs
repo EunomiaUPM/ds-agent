@@ -14,6 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -72,7 +73,7 @@ impl BasicGaiaSelfIssuer {
 impl GaiaOwnIssuerTrait for BasicGaiaSelfIssuer {
     fn start_basic_vcs(&self) -> issuing::NewModel {
         info!("Starting retrieving basic gaia vcs");
-        let id = uuid::Uuid::new_v4().to_string();
+        let id = Uuid::new_v4().to_string();
         let host = self.config.get_host(HostType::Http);
         let aud = match self.config.is_local() {
             true => host.replace("127.0.0.1", "host.docker.internal"),
@@ -100,12 +101,12 @@ impl GaiaOwnIssuerTrait for BasicGaiaSelfIssuer {
     async fn issue_cred(&self, did: &str, vc_type: &VcType, code: &str) -> Outcome<Value> {
         info!("Issuing cred");
 
-        let legal_id = format!("urn:uuid:{}", uuid::Uuid::new_v4().to_string());
-        let terms_id = format!("urn:uuid:{}", uuid::Uuid::new_v4().to_string());
+        let legal_id = format!("urn:uuid:{}", Uuid::new_v4().to_string());
+        let terms_id = format!("urn:uuid:{}", Uuid::new_v4().to_string());
 
         let legal_subj =
             parse_to_value(&LegalPersonCredentialSubject::new4gaia(did, vc_type, code)?)?;
-        let terms_subj = parse_to_value(&TermsAndConditionsCredSub::random())?;
+        let terms_subj = parse_to_value(&TermsAndConditionsCredSub::random(did))?;
 
         let person_vc = self.build_vc(did, &legal_id, &VcType::LegalPerson, legal_subj)?;
         let terms_vc = self.build_vc(did, &terms_id, &VcType::TermsAndConditions, terms_subj)?;
@@ -270,8 +271,8 @@ impl GaiaOwnIssuerTrait for BasicGaiaSelfIssuer {
         let data_model = self.config.get_data_model_version();
         let mut vpds: Vec<VPDef> = Vec::new();
         for vc_type in vc_types {
-            let id = uuid::Uuid::new_v4().to_string();
-            vpds.push(VPDef::new(&id, &vc_type.to_string(), data_model))
+            let id = Uuid::new_v4().to_string();
+            vpds.push(VPDef::new(&id, &[&vc_type.to_string()], data_model))
         }
         vpds
     }

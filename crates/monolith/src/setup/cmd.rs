@@ -83,7 +83,7 @@ impl CoreCommands {
                     VaultService::Fake(FakeVaultService::new())
                 };
                 let table =
-                    json_to_table::json_to_table(&serde_json::to_value(&config.monolith())?)
+                    json_to_table::json_to_table(&serde_json::to_value(&config)?)
                         .collapse()
                         .to_string();
                 info!("Current Config:\n{}", &table);

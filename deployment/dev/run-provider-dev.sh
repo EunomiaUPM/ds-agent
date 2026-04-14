@@ -29,9 +29,27 @@ cd ../../gui
 npm install
 npm run build -w admin
 
+# Ruta real del build
+DIST_PATH="./admin/dist"
+
+if [ ! -d "$DIST_PATH" ]; then
+    echo -e "\033[0;31mERROR: no existe admin/dist\033[0m"
+    exit 1
+fi
+
+# =========================
+# 5. COPIAR AL BACKEND
+# =========================
+echo -e "\033[0;36mCopiando build al backend...\033[0m"
+
 cd ../crates/bff
 
-echo -e "\033[0;32mFrontend compilado correctamente\033[0m"
+rm -rf ./src/static/admin/*
+mkdir -p ./src/static/admin/dist
+
+cp -r ../../gui/admin/dist/* ./src/static/admin/dist/
+
+echo -e "\033[0;32mFrontend compilado y copiado correctamente\033[0m"
 
 # 5. Setup backend
 echo -e "\033[0;36mEjecutando setup...\033[0m"

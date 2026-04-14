@@ -48,7 +48,7 @@ impl BootstrapServiceTrait for CoreBoot {
     type Config = ApplicationConfig;
     async fn load_config(env_file: String) -> Outcome<Self::Config> {
         let config = Self::Config::load(&env_file)?;
-        let config_value = serde_json::to_value(&config.monolith())?;
+        let config_value = serde_json::to_value(&config)?;
         let table = json_to_table::json_to_table(&config_value)
             .collapse()
             .into_table();

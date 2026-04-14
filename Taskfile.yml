@@ -1,0 +1,16 @@
+# https://taskfile.dev
+version: '3'
+
+includes:
+  docker:
+    taskfile: ./scripts/Taskfile.docker.yml
+    dir: .
+  env:
+    taskfile: ./scripts/Taskfile.dev.yml
+    dir: .
+
+tasks:
+  banner:
+    desc: Add license header to all source files
+    cmds:
+      - bash ./scripts/add_license.sh .

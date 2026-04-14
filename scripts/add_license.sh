@@ -7,7 +7,7 @@ set -euo pipefail
 ROOT="${1:-$(dirname "$(realpath "$0")")}"
 
 BANNER='/*
- * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@ added=0
 skipped=0
 
 while IFS= read -r -d '' file; do
-    if head -n 5 "$file" | grep -q "Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM"; then
+    if head -n 5 "$file" | grep -q "Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM"; then
         skipped=$((skipped + 1))
     else
         tmp=$(mktemp)

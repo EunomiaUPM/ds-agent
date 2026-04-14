@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -67,7 +67,7 @@ impl BusinessTrait for BasicBusinessService {
             id: id.clone(),
             state: payload.auth_request_id.clone(),
             nonce,
-            vc_type: "DataspaceParticipant".to_string(),
+            vc_type: vec!["DataspaceParticipant".to_string()],
             audience,
             holder: None,
             vpt: None,

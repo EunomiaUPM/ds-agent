@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
 
 use crate::connector_instance::service::ConnectorInstanceEntitiesService;
 use crate::data::entities::{connector_distro_relation, connector_instances, connector_templates};
-use crate::data::factory_trait::{ConnectorRepoTrait, MockConnectorRepoTrait};
+use crate::data::factory_trait::MockConnectorRepoTrait;
 use crate::data::repo_traits::connector_distro_relation_repo::{
     ConnectorDistroRelationRepoTrait, MockConnectorDistroRelationRepoTrait,
 };
@@ -26,7 +26,7 @@ use crate::data::repo_traits::connector_template_repo::{
     ConnectorTemplateRepoTrait, MockConnectorTemplateRepoTrait,
 };
 use crate::entities::connector_template::ConnectorTemplateDto;
-use crate::facades::distribution_resolver_facade::{Distribution, MockDistributionFacadeTrait};
+use crate::facades::distribution_resolver_facade::MockDistributionFacadeTrait;
 use crate::{ConnectorInstanceRepoTrait, ConnectorInstanceTrait, ConnectorInstantiationDto};
 use serde_json::json;
 use std::collections::HashMap;
@@ -157,21 +157,10 @@ fn mock_service() -> ConnectorInstanceEntitiesService {
         .expect_resolve_distribution_by_id()
         .once()
         .with(mockall::predicate::always())
-        .returning(|_| {
-            Ok(Distribution {
-                id: "urn:distribution:faked".to_string(),
-                dct_issued: chrono::Utc::now().into(),
-                dct_modified: Some(chrono::Utc::now().into()),
-                dct_title: Some("distribution_title".to_string()),
-                dct_description: Some("distribution_title".to_string()),
-                dcat_access_service: "urn:data-service:faked".to_string(),
-                dataset_id: "urn:dataset:faked".to_string(),
-                dct_format: Some("format_iri".to_string()),
-            })
-        });
+        .returning(|_| Ok(()));
     let distribution_facade = Arc::new(distribution_facade);
 
-    let mut conector_instance = ConnectorInstanceEntitiesService::new(
+    let conector_instance = ConnectorInstanceEntitiesService::new(
         connector_repo,
         distribution_facade,
         "http://localhost:8080".to_string(),
@@ -201,5 +190,4 @@ async fn test_upsert_instance() {
         })
         .await;
     assert!(result.is_ok());
-    let instance = result.unwrap();
 }

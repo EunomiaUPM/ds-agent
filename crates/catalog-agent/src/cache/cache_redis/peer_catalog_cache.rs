@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,13 +41,13 @@ impl DcatCatalogCacheForRedis {
 #[async_trait::async_trait]
 impl PeerCatalogCacheTrait for DcatCatalogCacheForRedis {
     async fn get_catalog(&self, participant_id: &String) -> Outcome<Option<Catalog>> {
-        tracing::debug!("cache: get peer catalog");
+        tracing::debug!(participant_id = %participant_id, "cache: get peer catalog");
         let key = self.format_key_name_with_string(self.get_entity_name(), participant_id);
         Self::hydrate_from_single_key(self.get_conn(), key).await
     }
 
     async fn set_catalog(&self, participant_id: &String, catalog: &Catalog) -> Outcome<()> {
-        tracing::debug!("cache: set peer catalog");
+        tracing::debug!(participant_id = %participant_id, "cache: set peer catalog");
         let key = self.format_key_name_with_string(self.get_entity_name(), participant_id);
         let json = serde_json::to_string(catalog)?;
         redis::pipe()

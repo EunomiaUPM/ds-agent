@@ -1,6 +1,6 @@
 /*
  *
- *  * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
+ *  * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *  *
  *  * This program is free software: you can redistribute it and/or modify
  *  * it under the terms of the GNU General Public License as published by
@@ -48,8 +48,10 @@ impl BootstrapServiceTrait for CoreBoot {
     type Config = ApplicationConfig;
     async fn load_config(env_file: String) -> Outcome<Self::Config> {
         let config = Self::Config::load(&env_file)?;
-        let config_value = serde_json::to_value(&config)?;
-        let table = json_to_table::json_to_table(&config_value);
+        let config_value = serde_json::to_value(&config.monolith())?;
+        let table = json_to_table::json_to_table(&config_value)
+            .collapse()
+            .into_table();
         info!("Current Monolith Dataspace Agent Config:\n{}", table);
         Ok(config)
     }
@@ -212,7 +214,7 @@ impl BootstrapServiceTrait for CoreBoot {
             tokio::select! {
                 // Caso 1: Recibimos la señal de apagado externa (ej. desde el Main)
                 // Usamos un match porque recv() devuelve un Result
-                msg = shutdown_rx.recv() => {
+                _msg = shutdown_rx.recv() => {
                     info!("Shutdown command received from Main Pipeline.");
                 }
 

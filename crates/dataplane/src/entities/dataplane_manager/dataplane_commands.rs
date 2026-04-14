@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@ use connector::ConnectorInstanceDto;
 use urn::Urn;
 use ymir::errors::Outcome;
 
+#[derive(Debug)]
 pub(super) struct CommandContext<'a> {
     pub(super) process_id: Urn,
     state: &'a TransferState,

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,7 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+mod consumer_pull;
+mod consumer_push;
 pub(crate) mod dataplane_facade;
+mod provider_pull;
+mod provider_push;
+mod strategy;
 
 use crate::entities::transfer_process::TransferProcessDto;
 use crate::protocols::dsp::protocol_types::DataAddressDto;
@@ -28,34 +33,26 @@ use ymir::errors::Outcome;
 #[async_trait::async_trait]
 pub trait DataPlaneFacadeTrait: Send + Sync {
     // ─── TransferRequest ───
-
-    /// Consumer OUTBOUND: init consumer DP (SetInit Consumer).
-    /// Returns DataAddress for PUSH mode (ingest URL).
     async fn on_transfer_request_pre(
         &self,
         transfer_id: &Urn,
         data_address: &Option<DataAddressDto>,
     ) -> Outcome<Option<DataAddressDto>>;
 
-    /// Provider INBOUND: init provider DP with connector (SetInit Provider).
     async fn on_transfer_request_post(
         &self,
         transfer_process: &TransferProcessDto,
-        connector_instance: &ConnectorInstanceDto,
+        connector_instance: &Option<ConnectorInstanceDto>,
         data_address: &Option<DataAddressDto>,
     ) -> Outcome<()>;
 
     // ─── TransferStart ───
 
-    /// OUTBOUND: start local DP (SetStarted).
-    /// Returns DataAddress (proxy URL for PULL).
     async fn on_transfer_start_pre(
         &self,
         transfer_process: &TransferProcessDto,
     ) -> Outcome<Option<DataAddressDto>>;
 
-    /// INBOUND: start local DP (SetStarted).
-    /// Accepts the peer's DataAddress (PULL consumer: provider proxy URL) to set as egress.
     async fn on_transfer_start_post(
         &self,
         transfer_process: &TransferProcessDto,
@@ -68,6 +65,7 @@ pub trait DataPlaneFacadeTrait: Send + Sync {
         &self,
         transfer_process: &TransferProcessDto,
     ) -> Outcome<()>;
+
     async fn on_transfer_suspension_post(
         &self,
         transfer_process: &TransferProcessDto,
@@ -79,6 +77,7 @@ pub trait DataPlaneFacadeTrait: Send + Sync {
         &self,
         transfer_process: &TransferProcessDto,
     ) -> Outcome<()>;
+
     async fn on_transfer_completion_post(
         &self,
         transfer_process: &TransferProcessDto,
@@ -90,6 +89,7 @@ pub trait DataPlaneFacadeTrait: Send + Sync {
         &self,
         transfer_process: &TransferProcessDto,
     ) -> Outcome<()>;
+
     async fn on_transfer_termination_post(
         &self,
         transfer_process: &TransferProcessDto,

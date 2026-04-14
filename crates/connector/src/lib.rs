@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,9 +30,7 @@ pub use entities::connector_instance::{
     ConnectorInstanceDto, ConnectorInstanceTrait, ConnectorInstantiationDto,
 };
 pub use entities::interaction::{InteractionConfig, PullLifecycle, PushLifecycle};
-pub use entities::parameters::parameters::TemplateVecString;
-pub use entities::parameters::template_parameters_resolver::TemplateParametersResolver;
-pub use entities::parameters::template_resolver_visitor::TemplateResolverVisitor;
+pub use entities::parameters::TemplateVecString;
 pub use entities::resource::{HttpSpec, ProtocolSpec};
 pub use setup::ConnectorSetup;
 

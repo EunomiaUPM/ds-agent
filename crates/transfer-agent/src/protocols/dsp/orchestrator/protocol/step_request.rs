@@ -1,6 +1,6 @@
 /*
  *
- *  * Copyright (C) 2025 - Universidad Politécnica de Madrid - UPM
+ *  * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *  *
  *  * This program is free software: you can redistribute it and/or modify
  *  * it under the terms of the GNU General Public License as published by
@@ -20,9 +20,7 @@
 use crate::entities::transfer_process::TransferProcessDto;
 use crate::protocols::dsp::facades::dataplane_facade::DataPlaneFacadeTrait;
 use crate::protocols::dsp::facades::FacadeTrait;
-use crate::protocols::dsp::orchestrator::protocol::step_trait::{
-    resolve_process, ProtocolContext, ProtocolStep,
-};
+use crate::protocols::dsp::orchestrator::protocol::step_trait::{ProtocolContext, ProtocolStep};
 use crate::protocols::dsp::persistence::{CreateProcessInput, TransferPersistenceTrait};
 use crate::protocols::dsp::protocol_types::{
     DataAddressDto, TransferProcessAckDto, TransferProcessMessageTrait,
@@ -31,7 +29,6 @@ use crate::protocols::dsp::protocol_types::{
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
 use connector::InteractionConfig;
 use std::sync::Arc;
-use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 // ─── ProtocolRequestStep ──────────────────────────────────────────────────────
 
@@ -98,7 +95,7 @@ impl ProtocolStep for ProtocolRequestStep {
 
         let ctx = ProtocolContext {
             process: None,
-            connector_instance,
+            connector_instance: Some(connector_instance),
             associated_peer: peer.to_string(),
         };
 
@@ -145,10 +142,9 @@ impl ProtocolStep for ProtocolRequestStep {
         dp: &Arc<dyn DataPlaneFacadeTrait>,
         ctx: &ProtocolContext,
         input: &TransferProcessMessageWrapper<TransferRequestMessageDto>,
-        process_id: &Urn,
+        process: &TransferProcessDto,
     ) -> Outcome<Option<DataAddressDto>> {
-        let process = resolve_process(&process_id.to_string(), ctx).await?;
-        dp.on_transfer_request_post(&process, &ctx.connector_instance, &input.dto.data_address)
+        dp.on_transfer_request_post(process, &ctx.connector_instance, &input.dto.data_address)
             .await?;
         Ok(None)
     }

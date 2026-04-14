@@ -2,7 +2,7 @@
 version: '3'
 
 vars:
-  SCRIPTS_DIR: scripts/bash
+  SCRIPTS_DIR: scripts
 
 # ─────────────────────────────────────────────────────────────────────────────
 # SETUP — initialise databases and run migrations

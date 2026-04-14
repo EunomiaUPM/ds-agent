@@ -22,8 +22,16 @@ done
 echo -e "\033[0;32mDB lista\033[0m"
 
 # 4. Setup
+echo -e "\033[0;36mCompilando React...\033[0m"
+cd ../../crates/bff
+cargo run build -e ../../static/environment/config/dev/dev.consumer.yaml
+if [ $? -ne 0 ]; then
+    echo -e "\033[0;31mCompilado de react fallido, abortando\033[0m"
+    exit 1
+fi
+
 echo -e "\033[0;36mEjecutando setup...\033[0m"
-cd ../../crates/monolith
+cd ../monolith
 cargo run setup -e ../../static/environment/config/dev/dev.consumer.yaml
 if [ $? -ne 0 ]; then
     echo -e "\033[0;31mSetup fallido, abortando\033[0m"

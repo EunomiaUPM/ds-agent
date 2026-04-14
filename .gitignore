@@ -27,6 +27,8 @@ test_command_stub.sh
 venv
 .ipynb_checkpoints
 
+crates/bff/src/static/admin/dist
+
 
 # VAULT
 vault/**

@@ -53,6 +53,7 @@ const badgeVariants = cva(
         infoLighter: "font-mono uppercase bg-white/10 text-secondary-400 border-white/10",
         role: "text-white uppercase border-white/10",
         status: "bg-opacity-30 border-white/10 text-foreground-300",
+        detail: "text-xs bg-brand-sky/20 !px-1 !py-0 max-w-[140px] !whitespace-normal"
       },
 
       /**

@@ -46,6 +46,7 @@ const features = [
     description:
       "Self-Sovereign Identity layer. Issue credentials, manage wallets, and control access through verifiable identity.",
   },
+
 ];
 
 const Index = () => {

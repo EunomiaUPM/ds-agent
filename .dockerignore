@@ -4,3 +4,8 @@
 ./docs
 ./docs_old
 ./target
+.git
+gui/node_modules
+gui/admin/dist
+gui/shared/dist
+gui/.cache

@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 # ----------------------------
 # Configuración de URLs
@@ -13,89 +13,67 @@ DOCKER_CONSUMER_URL="${DOCKER_CONSUMER_URL:-http://127.0.0.1:1100}"
 DOCKER_PROVIDER_URL="${DOCKER_PROVIDER_URL:-http://127.0.0.1:1200}"
 
 # ----------------------------
-# Helpers de logging
+# Logging (solo stderr)
 # ----------------------------
-log_step()    { echo -e "\n\033[36m$1\033[0m"; }
-log_success() { echo -e "\033[32m$1\033[0m"; }
-log_error()   { echo -e "\033[31m$1\033[0m"; exit 1; }
-log_info()    { echo -e "\033[33m$1\033[0m"; }
+log_step()    { echo -e "\n\033[36m$1\033[0m" >&2; }
+log_success() { echo -e "\033[32m$1\033[0m" >&2; }
+log_error()   { echo -e "\033[31m$1\033[0m" >&2; exit 1; }
+log_info()    { echo -e "\033[33m$1\033[0m" >&2; }
 
 # ----------------------------
-# Helper HTTP
+# CURL RAW (SIEMPRE JSON LIMPIO)
 # ----------------------------
-invoke_curl_json() {
+curl_raw() {
     local method=${1:-GET}
     local url=$2
-    local body=$3
-    local parse_json=${4:-true}
-
-    local response
+    local body=${3:-}
 
     if [ -n "$body" ]; then
-        response=$(curl -s -w "%{http_code}" -X "$method" "$url" \
+        curl -s -X "$method" "$url" \
             -H "Content-Type: application/json" \
-            -d "$body")
+            -d "$body"
     else
-        response=$(curl -s -w "%{http_code}" -X "$method" "$url" \
-            -H "Content-Type: application/json")
-    fi
-
-    http_code="${response: -3}"
-    content="${response::-3}"
-
-    if [[ "$http_code" =~ ^2 ]]; then
-        log_success "SUCCESS: $method $url -> $http_code"
-    else
-        log_error "ERROR: $method $url -> $http_code"
-    fi
-
-    if [ "$parse_json" = true ] && [ -n "$content" ]; then
-        echo "$content" | jq .
-    else
-        echo "$content"
+        curl -s -X "$method" "$url" \
+            -H "Content-Type: application/json"
     fi
 }
 
+# ----------------------------
+# HEADER
+# ----------------------------
 echo -e "\n======================================"
 echo "      AUTO ONBOARDING SCRIPT"
 echo "======================================"
 
 # ----------------------------
-# STEP 1 - Link Authority Wallet
+# STEP 1 - Link wallets
 # ----------------------------
 log_step "STEP 1 - Linking Authority wallet"
-invoke_curl_json POST "$AUTHORITY_URL/api/v1/wallet/link" "" false
+curl_raw POST "$AUTHORITY_URL/api/v1/wallet/link" >/dev/null
 
-# ----------------------------
-# STEP 2 - Link Consumer Wallet
-# ----------------------------
 log_step "STEP 2 - Linking Consumer wallet"
-invoke_curl_json POST "$CONSUMER_URL/api/v1/wallet/link" "" false
+curl_raw POST "$CONSUMER_URL/api/v1/wallet/link" >/dev/null
 
-# ----------------------------
-# STEP 3 - Link Provider Wallet
-# ----------------------------
 log_step "STEP 3 - Linking Provider wallet"
-invoke_curl_json POST "$PROVIDER_URL/api/v1/wallet/link" "" false
+curl_raw POST "$PROVIDER_URL/api/v1/wallet/link" >/dev/null
 
 # ----------------------------
-# STEP 4 - Retrieve DIDs
+# STEP 4 - DIDs (FIXED jq)
 # ----------------------------
 log_step "STEP 4 - Retrieving DIDs"
 
-AUTH_DID=$(invoke_curl_json GET "$AUTHORITY_URL/.well-known/did.json" | jq -r '.id')
+AUTH_DID=$(curl_raw GET "$AUTHORITY_URL/.well-known/did.json" | jq -r '.id')
+CONSUMER_DID=$(curl_raw GET "$CONSUMER_URL/.well-known/did.json" | jq -r '.id')
+PROVIDER_DID=$(curl_raw GET "$PROVIDER_URL/.well-known/did.json" | jq -r '.id')
+
 log_success "Authority DID: $AUTH_DID"
-
-CONSUMER_DID=$(invoke_curl_json GET "$CONSUMER_URL/.well-known/did.json" | jq -r '.id')
 log_success "Consumer DID: $CONSUMER_DID"
-
-PROVIDER_DID=$(invoke_curl_json GET "$PROVIDER_URL/.well-known/did.json" | jq -r '.id')
 log_success "Provider DID: $PROVIDER_DID"
 
 # ----------------------------
-# STEP 5 - Consumer requests credential
+# STEP 5 - Consumer request credential
 # ----------------------------
-log_step "STEP 5 - Consumer requests credential from Authority"
+log_step "STEP 5 - Consumer requests credential"
 
 C_BEG_BODY=$(jq -n \
     --arg url "$DOCKER_AUTHORITY_URL/api/v1/gate/access" \
@@ -103,61 +81,74 @@ C_BEG_BODY=$(jq -n \
     --arg slug "authority" \
     --arg vc_type "DataspaceParticipant_jwt_vc_json" \
     --arg method "cert" \
-    '{url: $url, id: $id, slug: $slug, vc_type: $vc_type, method: $method}')
+    '{url:$url,id:$id,slug:$slug,vc_type:$vc_type,method:$method}')
 
-invoke_curl_json POST "$CONSUMER_URL/api/v1/vc-request/beg" "$C_BEG_BODY" false
-log_success "Consumer credential request sent"
+curl_raw POST "$CONSUMER_URL/api/v1/vc-request/beg" "$C_BEG_BODY" >/dev/null
+log_success "Credential request sent"
 
 # ----------------------------
-# STEP 6 - Authority retrieves requests
+# STEP 6 - Approver requests
 # ----------------------------
-log_step "STEP 6 - Authority retrieving pending requests"
-ALL_REQUESTS=$(invoke_curl_json GET "$AUTHORITY_URL/api/v1/approver/all")
+log_step "STEP 6 - Authority retrieving requests"
+
+ALL_REQUESTS=$(curl_raw GET "$AUTHORITY_URL/api/v1/approver/all")
 PETITION_ID=$(echo "$ALL_REQUESTS" | jq -r '.[-1].id')
+
 log_info "Petition ID: $PETITION_ID"
 
 # ----------------------------
-# STEP 7 - Authority approves request
+# STEP 7 - Approve
 # ----------------------------
-log_step "STEP 7 - Authority approving request"
+log_step "STEP 7 - Approving request"
+
 APPROVE_BODY='{"approve": true}'
-invoke_curl_json POST "$AUTHORITY_URL/api/v1/approver/$PETITION_ID" "$APPROVE_BODY" false
+curl_raw POST "$AUTHORITY_URL/api/v1/approver/$PETITION_ID" "$APPROVE_BODY" >/dev/null
+
 log_success "Request approved"
 
 # ----------------------------
-# STEP 8 - Consumer retrieves credential URI
+# STEP 8 - OIDC4VCI URI
 # ----------------------------
-log_step "STEP 8 - Consumer retrieving OIDC4VCI URI"
-ALL_AUTHORITY=$(invoke_curl_json GET "$CONSUMER_URL/api/v1/vc-request/all")
+log_step "STEP 8 - Retrieving OIDC4VCI URI"
+
+ALL_AUTHORITY=$(curl_raw GET "$CONSUMER_URL/api/v1/vc-request/all")
 OIDC4VCI_URI=$(echo "$ALL_AUTHORITY" | jq -r '.[-1].vc_uri')
+
 log_info "OIDC4VCI URI: $OIDC4VCI_URI"
 
 # ----------------------------
-# STEP 9 - Consumer processes OIDC4VCI
+# STEP 9 - Process credential
 # ----------------------------
-log_step "STEP 9 - Consumer processing credential"
-invoke_curl_json POST "$CONSUMER_URL/api/v1/wallet/oidc4vci" "{\"uri\":\"$OIDC4VCI_URI\"}" false
+log_step "STEP 9 - Processing credential"
+
+curl_raw POST "$CONSUMER_URL/api/v1/wallet/oidc4vci" \
+"{\"uri\":\"$OIDC4VCI_URI\"}" >/dev/null
+
 log_success "OIDC4VCI processed"
 
 # ----------------------------
-# STEP 10 - Consumer requests Provider access
+# STEP 10 - Provider access
 # ----------------------------
-log_step "STEP 10 - Consumer requesting Provider access"
+log_step "STEP 10 - Provider request"
 
 OIDC4VP_BODY=$(jq -n \
     --arg url "$DOCKER_PROVIDER_URL/api/v1/gate/access" \
     --arg id "$PROVIDER_DID" \
     --arg slug "provider" \
-    '{url: $url, id: $id, slug: $slug, actions:["talk"]}')
+    '{url:$url,id:$id,slug:$slug,actions:["talk"]}')
 
-OIDC4VP_URI=$(invoke_curl_json POST "$CONSUMER_URL/api/v1/onboard/provider" "$OIDC4VP_BODY" false)
+OIDC4VP_URI=$(curl_raw POST "$CONSUMER_URL/api/v1/onboard/provider" "$OIDC4VP_BODY")
+
 log_info "OIDC4VP URI: $OIDC4VP_URI"
 
 # ----------------------------
-# STEP 11 - Consumer processes OIDC4VP
+# STEP 11 - Process VP
 # ----------------------------
-log_step "STEP 11 - Consumer processing OIDC4VP"
-invoke_curl_json POST "$CONSUMER_URL/api/v1/wallet/oidc4vp" "{\"uri\":\"$OIDC4VP_URI\"}" false
+log_step "STEP 11 - Processing OIDC4VP"
+
+curl_raw POST "$CONSUMER_URL/api/v1/wallet/oidc4vp" \
+"{\"uri\":\"$OIDC4VP_URI\"}" >/dev/null
+
 log_success "OIDC4VP processed"
 
 echo -e "\n======================================"

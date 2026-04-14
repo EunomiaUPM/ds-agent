@@ -27,7 +27,7 @@ cache_config: &cache_config
   url: '127.0.0.1'
   port: '6379'
   user: 'default'
-  password: 'ds_core_consumer_redis'
+  password: 'ds_core_provider_redis'
 
 common_config: &common_config
   hosts: *hosts_default

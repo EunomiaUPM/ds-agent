@@ -1,4 +1,5 @@
 use crate::data::entities::dataplane_transfers::Model;
+use crate::entities::dataplane_drivers::DataplaneDriver;
 use crate::entities::dataplane_manager_ref::dataplane_commands::{
     DataplaneContinuation, DataplaneInitCommandDirection, DataplaneInitCommandTypes,
 };
@@ -17,9 +18,10 @@ use common::config::services::TransferConfig;
 use connector::{ConnectorInstanceDto, ConnectorInstanceTrait};
 use std::str::FromStr;
 use std::sync::Arc;
+use serde_json::json;
+use tokio::runtime::Runtime;
 use urn::{Urn, UrnBuilder};
 use ymir::errors::{Errors, Outcome};
-use crate::entities::dataplane_drivers::DataplaneDriver;
 
 #[derive(Clone, Debug)]
 pub struct DataplaneContext {
@@ -27,6 +29,7 @@ pub struct DataplaneContext {
     dataplane_process: DataplaneTransferDto,
     connector_instance: Option<ConnectorInstanceDto>,
     driver: Option<DataplaneDriver>,
+    runtime: Option<serde_json::Value>,
     proxy: Option<DataplaneProxy>,
     forward_dataplane_address: Option<DataplaneAddress>,
 }
@@ -89,8 +92,8 @@ impl DataplaneContext {
                 interaction_mode,
                 state: TransferState::Init,
                 connector_instance_id: connector_instance.as_ref().map(|c| c.id.clone()),
-                ingress_config: Default::default(),
-                egress_config: Default::default(),
+                ingress_config: json!({}),
+                egress_config: json!({}),
             })
             .await?;
 
@@ -100,6 +103,7 @@ impl DataplaneContext {
             dataplane_process,
             connector_instance,
             driver: None,
+            runtime: None,
             proxy: None,
             forward_dataplane_address: data_plane_address.map(|addr| addr.clone()),
         })
@@ -137,6 +141,7 @@ impl DataplaneContext {
             dataplane_process: dataplane_process.clone(),
             connector_instance: connector.clone(),
             driver: None,
+            runtime: dataplane_process.clone().inner.flow_control,
             proxy: None,
             forward_dataplane_address: None,
         };
@@ -177,6 +182,11 @@ impl DataplaneContext {
         self
     }
 
+    pub fn set_runtime(&mut self, runtime: serde_json::Value) -> &mut Self {
+        self.runtime = Some(runtime);
+        self
+    }
+
     pub fn set_proxy(&mut self, proxy: DataplaneProxy) -> &mut Self {
         self.proxy = Some(proxy);
         self
@@ -208,6 +218,9 @@ impl DataplaneContext {
 
     pub fn driver(&self) -> Option<&DataplaneDriver> {
         self.driver.as_ref()
+    }
+    pub fn runtime(&self) -> Option<&serde_json::Value> {
+        self.runtime.as_ref()
     }
 
     pub fn proxy(&self) -> Option<&DataplaneProxy> {

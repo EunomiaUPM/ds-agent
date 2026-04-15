@@ -1,0 +1,41 @@
+# https://taskfile.dev
+version: '3'
+
+vars:
+  SCRIPTS_DIR: scripts
+  DEPLOYMENT_DIR: deployment
+
+# ─────────────────────────────────────────────────────────────────────────────
+# MINI — launch full Consumer/Provider stacks (db + redis + setup + service)
+# Usage:
+#   task mini:consumer
+#   task mini:provider
+# ─────────────────────────────────────────────────────────────────────────────
+tasks:
+  mini:consumer:
+    desc: "Start Consumer mini stack (db + redis + setup + service)"
+    cmds:
+      - docker compose -f {{.DEPLOYMENT_DIR}}/docker-compose.mini.consumer.yaml up
+
+  mini:provider:
+    desc: "Start Provider mini stack (db + redis + setup + service)"
+    cmds:
+      - docker compose -f {{.DEPLOYMENT_DIR}}/docker-compose.mini.provider.yaml up
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # DEV — launch infra only (db + redis) for local development
+  # Usage:
+  #   task dev:consumer
+  #   task dev:provider
+  # ─────────────────────────────────────────────────────────────────────────
+  dev:consumer:
+    desc: "Start Consumer dev infra (db + redis) for local development"
+    dir: "{{.DEPLOYMENT_DIR}}/dev"
+    cmds:
+      - bash run-consumer-dev.sh
+
+  dev:provider:
+    desc: "Start Provider dev infra (db + redis) for local development"
+    dir: "{{.DEPLOYMENT_DIR}}/dev"
+    cmds:
+      - bash run-provider-dev.sh

@@ -69,10 +69,14 @@ tasks:
   # Usage:
   #   task onboard
   # ─────────────────────────────────────────────────────────────────────────
-  onboard:
+  onboard:mini:
     desc: "Run the full onboarding sequence (Authority → Consumer → Provider)"
     cmds:
-      - bash {{.SCRIPTS_DIR}}/auto-onboarding.sh
+      - bash {{.SCRIPTS_DIR}}/auto-onboarding-mini.sh
+  onboard:dev:
+    desc: "Run the full onboarding sequence (Authority → Consumer → Provider) but for dev purposes"
+    cmds:
+      - bash {{.SCRIPTS_DIR}}/auto-onboarding-dev.sh
 
   # ─────────────────────────────────────────────────────────────────────────
   # POPULATE — seed mock data into a running environment

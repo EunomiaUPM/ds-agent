@@ -8,6 +8,9 @@ includes:
   env:
     taskfile: ./scripts/Taskfile.dev.yml
     dir: .
+  deployment:
+    taskfile: ./deployment/Taskfile.deployment.yml
+    dir: .
 
 tasks:
   banner:

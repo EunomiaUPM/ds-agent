@@ -2,7 +2,7 @@
 set -e
 
 # =========================
-# 1. Variables de entorno
+# 1. Environment variables
 # =========================
 export VAULT_PATH="./../../static/vault/consumer/secrets"
 export VAULT_APP_DB="db.json.example"
@@ -11,44 +11,51 @@ export VAULT_APP_PRIV_KEY="private_key.json.example"
 export VAULT_APP_PUB_PKEY="public_key.json.example"
 export VAULT_APP_CERT="cert.json.example"
 export RUST_BACKTRACE="1"
+export VITE_GATEWAY_PORT=1100
+
+cleanup() {
+    if [ -n "$FRONTEND_PID" ]; then
+        echo -e "\n\033[0;33mStopping Vite front-end dev server (PID: $FRONTEND_PID)...\033[0m"
+        kill $FRONTEND_PID 2>/dev/null || true
+    fi
+}
+# fire cleanup
+trap cleanup EXIT INT TERM
+
 
 # =========================
-# 2. Levantar dependencias
+# 2. Start dependencies
 # =========================
-echo -e "\033[0;36mLevantando dependencias (consumer)...\033[0m"
+echo -e "\033[0;36mStarting dependencies (consumer)...\033[0m"
 docker compose -f docker-compose.mini.dev.consumer.yaml up -d
 
 # =========================
-# 3. Esperar DB
+# 3. Wait for DB
 # =========================
-echo -e "\033[0;36mEsperando a que la DB esté lista...\033[0m"
+echo -e "\033[0;36mWaiting for DB to be ready...\033[0m"
 until docker exec consumer-db pg_isready -U postgres > /dev/null 2>&1; do
     sleep 2
 done
-echo -e "\033[0;32mDB lista\033[0m"
+echo -e "\033[0;32mDB ready\033[0m"
+
 
 # =========================
-# 4. BUILD FRONTEND
+# 4. Build frontend
 # =========================
-echo -e "\033[0;36mConstruyendo frontend React (externo)...\033[0m"
+echo -e "\033[0;36mStarting React frontend in DEV mode...\033[0m"
 
 cd ../../gui
 
 npm install
-npm run build -w admin
+npm run dev -w admin &
+FRONTEND_PID=$!
 
-# Ruta real del build
-DIST_PATH="./admin/dist"
-
-if [ ! -d "$DIST_PATH" ]; then
-    echo -e "\033[0;31mERROR: no existe admin/dist\033[0m"
-    exit 1
-fi
+echo -e "\033[0;32mFrontend dev server spawned\033[0m"
 
 # =========================
-# 5. COPIAR AL BACKEND
+# 5. Copy to backend
 # =========================
-echo -e "\033[0;36mCopiando build al backend...\033[0m"
+echo -e "\033[0;36mCopying build to backend...\033[0m"
 
 cd ../crates/bff
 
@@ -57,21 +64,21 @@ mkdir -p ./src/static/admin/dist
 
 cp -r ../../gui/admin/dist/* ./src/static/admin/dist/
 
-echo -e "\033[0;32mFrontend compilado y copiado correctamente\033[0m"
+echo -e "\033[0;32mFrontend built and copied successfully\033[0m"
 
 # =========================
-# 6. SETUP BACKEND
+# 6. Backend setup
 # =========================
-echo -e "\033[0;36mEjecutando setup...\033[0m"
+echo -e "\033[0;36mRunning setup...\033[0m"
 
 cd ../monolith
 
 cargo run setup -e ../../static/environment/config/dev/dev.consumer.yaml
 
 # =========================
-# 7. START SERVER
+# 7. Start server
 # =========================
-echo -e "\033[0;36mArrancando consumer...\033[0m"
+echo -e "\033[0;36mStarting consumer...\033[0m"
 
 cargo watch \
   -x "run start -e ../../static/environment/config/dev/dev.consumer.yaml"

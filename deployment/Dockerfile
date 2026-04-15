@@ -1,58 +1,68 @@
 # syntax=docker/dockerfile:1
-# Build context must be the PARENT directory of ds-protocol (to include ymir):
-#   docker build -f ds-protocol/deployment/Dockerfile --build-arg APP_NAME=... ..
+# Build context must be the ds-agent root directory:
+#   docker build -f deployment/Dockerfile .
 
 ARG RUST_VERSION=1.88.0
-ARG APP_NAME=monolith
 
-# --- builder ---
-FROM rust:${RUST_VERSION}-slim-bookworm AS builder
-ARG APP_NAME
+# =========================
+# Stage 1: Build Frontend
+# =========================
+FROM node:20-slim AS frontend-builder
 
 WORKDIR /app
 
-# system dependencies
+# Install dependencies (package files only for cache efficiency)
+COPY gui/package*.json ./gui/
+COPY gui/admin/package*.json ./gui/admin/
+COPY gui/shared/package*.json ./gui/shared/
+
+WORKDIR /app/gui
+RUN npm install
+
+# Copy source and build
+COPY gui/admin ./admin
+COPY gui/shared ./shared
+
+RUN npm run build -w admin
+
+# =========================
+# Stage 2: Build Backend
+# =========================
+FROM rust:${RUST_VERSION}-slim-bookworm AS builder
+
+WORKDIR /app
+
+# System dependencies
 RUN apt-get update && \
     apt-get install -y pkg-config libssl-dev curl protobuf-compiler && \
     rm -rf /var/lib/apt/lists/*
 
-# app building
-# https://docs.docker.com/guides/rust/develop/
-# source paths are relative to the build context (parent of ds-protocol)
-RUN --mount=type=bind,source=ds-protocol/Cargo.toml,target=/app/Cargo.toml \
-    --mount=type=bind,source=ds-protocol/Cargo.lock,target=/app/Cargo.lock \
-    --mount=type=bind,source=ds-protocol/crates/monolith,target=/app/crates/monolith \
-    --mount=type=bind,source=ds-protocol/crates/catalog-agent,target=/app/crates/catalog-agent \
-    --mount=type=bind,source=ds-protocol/crates/negotiation-agent,target=/app/crates/negotiation-agent \
-    --mount=type=bind,source=ds-protocol/crates/transfer-agent,target=/app/crates/transfer-agent \
-    --mount=type=bind,source=ds-protocol/crates/dataplane,target=/app/crates/dataplane \
-    --mount=type=bind,source=ds-protocol/crates/common,target=/app/crates/common \
-    --mount=type=bind,source=ds-protocol/crates/auth,target=/app/crates/auth \
-    --mount=type=bind,source=ds-protocol/crates/events,target=/app/crates/events \
-    --mount=type=bind,source=ds-protocol/crates/bff,target=/app/crates/bff \
-    --mount=type=bind,source=ds-protocol/crates/connector,target=/app/crates/connector \
-    --mount=type=bind,source=ds-protocol/static,target=/app/static \
-    --mount=type=bind,source=ymir,target=/ymir \
-    --mount=type=cache,target=/app/target/ \
+# Copy Rust workspace manifests
+COPY Cargo.toml Cargo.lock ./
+
+# Copy all crates
+COPY crates/ ./crates/
+
+# Inject frontend build into the bff crate's static dir (rust-embed picks it up at compile time)
+COPY --from=frontend-builder /app/gui/admin/dist ./crates/bff/src/static/admin/dist/
+
+# Build the monolith binary (with layer caches for registry and target)
+RUN --mount=type=cache,target=/app/target/ \
     --mount=type=cache,target=/usr/local/cargo/registry/ \
-    /bin/sh -c "\
     set -e; \
-    cargo build --locked --release -p ${APP_NAME}; \
-    cp ./target/release/${APP_NAME} /bin/${APP_NAME}; \
-"
+    cargo build --locked --release -p monolith; \
+    cp ./target/release/monolith /bin/monolith
 
-# --- image ---
+# =========================
+# Stage 3: Runtime image
+# =========================
 FROM debian:bookworm-slim AS final
-ARG APP_NAME
-ENV APP_NAME=${APP_NAME}
 
-
-# update on image
 RUN apt-get update && \
     apt-get install -y libssl3 ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
-# not privileged user
+# Non-privileged user
 ARG UID=10001
 RUN adduser \
     --disabled-password \
@@ -63,12 +73,11 @@ RUN adduser \
     --uid "${UID}" \
     appuser
 
-# binary copy
-COPY --from=builder /bin/${APP_NAME} /usr/local/bin/
+# Copy binary
+COPY --from=builder /bin/monolith /usr/local/bin/monolith
+RUN chmod +x /usr/local/bin/monolith
 
-# user permission
-RUN chmod +x /usr/local/bin/${APP_NAME}
 USER appuser
 
-# entrypoint
-ENTRYPOINT ["/usr/local/bin/${APP_NAME}"]
+# Entrypoint: subcommand (setup / start) and -e <config> are passed by docker-compose
+ENTRYPOINT ["/usr/local/bin/monolith"]

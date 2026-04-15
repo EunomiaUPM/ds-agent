@@ -5,17 +5,16 @@ services:
     image: hashicorp/vault:1.21
     container_name: consumer-vault
     ports:
-      - "8201:8200"
+      - "8200:8200"
     cap_add:
       - IPC_LOCK
     volumes:
-      - ./../../vault/consumer/config:/vault/config
-      - ./../../vault/consumer/data:/vault/file
+      - ./../../static/vault/consumer:/vault
     environment:
       VAULT_CACERT: /vault/config/root-ca.pem
       VAULT_LOCAL_CONFIG: >
         {
-          "storage": { "file": { "path": "/vault/file" } },
+          "storage": { "file": { "path": "/vault/data" } },
           "listener": [{
             "tcp": {
               "address": "0.0.0.0:8200",
@@ -47,27 +46,56 @@ services:
     ports:
       - "6380:6379"
     command: >
-      redis-server 
+      redis-server
       --requirepass ds_core_consumer_redis
       --user admin on >ds_core_consumer_redis ~* +@all
 
-  consumer:
-    container_name: consumer
-    image: rmenendez8/rainbow:v1.1.1
-    # build:
-    #   context: ../..
-    #   dockerfile: deployment/prod/Dockerfile
-    ports:
-      - "1100:1100"
+  # =========================
+  # Setup job (one-shot)
+  # =========================
+  consumer-setup:
+    container_name: consumer-setup
+    image: rmenendez8/rainbow:v1.2.6
+    command: ["setup", "-e", "/app/static/environment/config/prod/core.consumer.yaml"]
     volumes:
-      - ./../../static:/app/static
-      - ./../../vault/consumer:/app/vault
+      - ./../../static/environment/config/prod/core.consumer.yaml:/app/static/environment/config/prod/core.consumer.yaml
+      - ./../../static/specs:/app/static/specs
+      - ./../../static/policy_templates:/app/static/policy_templates
+      - ./../../static/vault/consumer:/app/vault
     depends_on:
       - consumer-db
       - consumer-vault
       - consumer-redis
     env_file:
-      - ./../../static/environment/envs/consumer.env
+      - ./../../static/environment/envs/core.consumer.env
+    restart: "no"
+
+  # =========================
+  # Main service
+  # =========================
+  consumer:
+    container_name: consumer
+    build:
+      context: ../..
+      dockerfile: deployment/Dockerfile
+    command: ["start", "-e", "/app/static/environment/config/prod/core.consumer.yaml"]
+    ports:
+      - "1100:1100"
+    volumes:
+      - ./../../static/environment/config/prod/core.consumer.yaml:/app/static/environment/config/prod/core.consumer.yaml
+      - ./../../static/specs:/app/static/specs
+      - ./../../static/policy_templates:/app/static/policy_templates
+      - ./../../static/vault/consumer:/app/vault
+    depends_on:
+      consumer-setup:
+        condition: service_completed_successfully
+      consumer-db:
+        condition: service_started
+      consumer-vault:
+        condition: service_started
+      consumer-redis:
+        condition: service_started
+    env_file:
+      - ./../../static/environment/envs/core.consumer.env
     environment:
-      CONFIG_PATH: /app/static/environment/config/prod/core.consumer.yaml
       RUST_BACKTRACE: full

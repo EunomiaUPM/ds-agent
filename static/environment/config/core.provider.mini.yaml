@@ -41,6 +41,7 @@ common_config: &common_config
     is_local: true
     is_prod: false
     is_vault_real: false
+    has_tls_proxy: false
 
 # ==========================
 # MONOLITH

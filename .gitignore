@@ -27,6 +27,8 @@ test_command_stub.sh
 venv
 .ipynb_checkpoints
 
+crates/bff/src/static/admin/dist
+
 
 # VAULT
 vault/**
@@ -37,6 +39,11 @@ static/vault/**
 !static/vault/**/
 !static/vault/**/*.example
 !static/vault/**/*.gitkeep
+
+cert.json.example
+private_key.json.example
+public_key.json.example
+*.ps1
 
 # ENVIRONMENT
 static/environment/envs/**

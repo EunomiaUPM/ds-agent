@@ -2,6 +2,7 @@
 import { useContext } from "react";
 import { SSIAuthContext } from "shared/src/context/SSIAuthContext";
 import { WalletOnboardForm } from "../forms/WalletOnboardForm";
+import Heading from "../../../../../shared/src/components/ui/heading.tsx";
 
 export function WalletStep() {
   const ssiAuthContext = useContext(SSIAuthContext);
@@ -29,6 +30,7 @@ export function WalletStep() {
           )}
         </div>
       </div>
+      
     </div>
   );
 }

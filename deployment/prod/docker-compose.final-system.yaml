@@ -16,7 +16,7 @@ services:
     ports:
       - "8081:8081"
     env_file:
-      - .env.final-system
+      - ./../../static/environment/envs/final-system.env.example
     command: "serve"
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -27,7 +27,7 @@ services:
   static-api-setup:
     image: quay.io/eunomia_upm/ecostars-provider
     env_file:
-      - .env.final-system
+      - ./../../static/environment/envs/final-system.env.example
     command: "fake"
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -39,7 +39,7 @@ services:
     ports:
       - "8082:8082"
     env_file:
-      - .env.final-system
+      - ./../../static/environment/envs/final-system.env.example
     command: ["metrics"]
     extra_hosts:
       - "host.docker.internal:host-gateway"

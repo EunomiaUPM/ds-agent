@@ -21,22 +21,43 @@ services:
       --requirepass ds_core_consumer_redis
       --user admin on >ds_core_consumer_redis ~* +@all
 
-  consumer:
-    container_name: consumer
-    # image: rmenendez8/rainbow:v1.2.2
-    build:
-      context: ./..
-      dockerfile: deployment/prod/Dockerfile.test
-    ports:
-      - "1100:1100"
+  # =========================
+  # Setup job (one-shot)
+  # =========================
+  consumer-setup:
+    container_name: consumer-setup
+    image: rmenendez8/rainbow:v1.2.6
+    command: ["setup", "-e", "/app/static/environment/config/core.consumer.mini.yaml"]
     volumes:
       - ./../static/:/app/static
-      - ./../vault/consumer:/app/vault
+      - ./../static/vault/consumer:/app/vault
     depends_on:
       - consumer-db
       - consumer-redis
     env_file:
       - ./../static/environment/envs/core.consumer.env.example
+    restart: "no"
+
+  # =========================
+  # Main service
+  # =========================
+  consumer:
+    container_name: consumer
+    image: rmenendez8/rainbow:v1.2.6
+    command: ["start", "-e", "/app/static/environment/config/core.consumer.mini.yaml"]
+    ports:
+      - "1100:1100"
+    volumes:
+      - ./../static/:/app/static
+      - ./../static/vault/consumer:/app/vault
+    depends_on:
+      consumer-setup:
+        condition: service_completed_successfully
+      consumer-db:
+        condition: service_started
+      consumer-redis:
+        condition: service_started
+    env_file:
+      - ./../static/environment/envs/core.consumer.env.example
     environment:
-      CONFIG_PATH: /app/static/environment/config/core.consumer.mini.yaml
       RUST_BACKTRACE: full

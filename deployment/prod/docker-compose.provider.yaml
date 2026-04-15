@@ -5,17 +5,16 @@ services:
     image: hashicorp/vault:1.21
     container_name: provider-vault
     ports:
-      - "8202:8200"
+      - "8200:8200"
     cap_add:
       - IPC_LOCK
     volumes:
-      - ./../../vault/provider/config:/vault/config
-      - ./../../vault/provider/data:/vault/file
+      - ./../../static/vault/provider:/vault
     environment:
       VAULT_CACERT: /vault/config/root-ca.pem
       VAULT_LOCAL_CONFIG: >
         {
-          "storage": { "file": { "path": "/vault/file" } },
+          "storage": { "file": { "path": "/vault/data" } },
           "listener": [{
             "tcp": {
               "address": "0.0.0.0:8200",
@@ -47,27 +46,56 @@ services:
     ports:
       - "6379:6379"
     command: >
-      redis-server 
+      redis-server
       --requirepass ds_core_provider_redis
       --user admin on >ds_core_provider_redis ~* +@all
 
-  provider:
-    container_name: provider
-    image: rmenendez8/rainbow:v1.1.1
-    # build:
-    #   context: ../..
-    #   dockerfile: deployment/prod/Dockerfile
-    ports:
-      - "1200:1200"
+  # =========================
+  # Setup job (one-shot)
+  # =========================
+  provider-setup:
+    container_name: provider-setup
+    image: rmenendez8/rainbow:v1.2.6
+    command: ["setup", "-e", "/app/static/environment/config/prod/core.provider.yaml"]
     volumes:
-      - ./../../static:/app/static
-      - ./../../vault/provider:/app/vault
+      - ./../../static/environment/config/prod/core.provider.yaml:/app/static/environment/config/prod/core.provider.yaml
+      - ./../../static/specs:/app/static/specs
+      - ./../../static/policy_templates:/app/static/policy_templates
+      - ./../../static/vault/provider:/app/vault
     depends_on:
       - provider-db
       - provider-vault
       - provider-redis
     env_file:
-      - ./../../static/environment/envs/provider.env
+      - ./../../static/environment/envs/core.provider.env.example
+    restart: "no"
+
+  # =========================
+  # Main service
+  # =========================
+  provider:
+    container_name: provider
+    build:
+      context: ../..
+      dockerfile: deployment/Dockerfile
+    command: ["start", "-e", "/app/static/environment/config/prod/core.provider.yaml"]
+    ports:
+      - "1200:1200"
+    volumes:
+      - ./../../static/environment/config/prod/core.provider.yaml:/app/static/environment/config/prod/core.provider.yaml
+      - ./../../static/specs:/app/static/specs
+      - ./../../static/policy_templates:/app/static/policy_templates
+      - ./../../static/vault/provider:/app/vault
+    depends_on:
+      provider-setup:
+        condition: service_completed_successfully
+      provider-db:
+        condition: service_started
+      provider-vault:
+        condition: service_started
+      provider-redis:
+        condition: service_started
+    env_file:
+      - ./../../static/environment/envs/core.provider.env.example
     environment:
-      CONFIG_PATH: /app/static/environment/config/prod/core.provider.yaml
       RUST_BACKTRACE: full

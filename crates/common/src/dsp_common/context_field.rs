@@ -22,6 +22,12 @@ use ymir::errors::{BadFormat, Errors, Outcome};
 
 pub static CONTEXT: &str = "https://w3id.org/dspace/2025/1/context.jsonld";
 
+/// All context URLs that this implementation will accept on incoming messages.
+const ACCEPTED_CONTEXTS: &[&str] = &[
+    "https://w3id.org/dspace/2024/1/context.json",
+    "https://w3id.org/dspace/2025/1/context.jsonld",
+];
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(untagged)]
 pub enum ContextField {
@@ -31,29 +37,18 @@ pub enum ContextField {
 
 impl ContextField {
     pub fn validate(&self) -> Outcome<()> {
-        match self {
-            ContextField::Single(s) => {
-                if s == CONTEXT {
-                    Ok(())
-                } else {
-                    Err(Errors::format(
-                        BadFormat::Received,
-                        "Invalid @context value",
-                        None,
-                    ))
-                }
-            }
-            ContextField::Multiple(v) => {
-                if v.iter().any(|s| s == CONTEXT) {
-                    Ok(())
-                } else {
-                    Err(Errors::format(
-                        BadFormat::Received,
-                        "Invalid @context value",
-                        None,
-                    ))
-                }
-            }
+        let is_valid = match self {
+            ContextField::Single(s) => ACCEPTED_CONTEXTS.contains(&s.as_str()),
+            ContextField::Multiple(v) => v.iter().any(|s| ACCEPTED_CONTEXTS.contains(&s.as_str())),
+        };
+        if is_valid {
+            Ok(())
+        } else {
+            Err(Errors::format(
+                BadFormat::Received,
+                "Invalid @context value",
+                None,
+            ))
         }
     }
 }

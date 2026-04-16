@@ -37,6 +37,8 @@ services:
     env_file:
       - ./../static/environment/envs/core.consumer.env.example
     restart: "no"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   # =========================
   # Main service
@@ -61,3 +63,5 @@ services:
       - ./../static/environment/envs/core.consumer.env.example
     environment:
       RUST_BACKTRACE: full
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

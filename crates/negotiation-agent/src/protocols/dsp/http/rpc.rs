@@ -33,13 +33,19 @@ use axum::{
     Json, Router,
     extract::{FromRef, State, rejection::JsonRejection},
     http::StatusCode,
-    response::IntoResponse,
+    response::{IntoResponse, Response},
     routing::post,
 };
+use common::config::services::traits::ContractsConfigTrait;
 use common::config::services::ContractsConfig;
 use common::dsp_common::context_field::ContextField;
-use serde::Serialize;
+use common::dsp_common::odrl::{ContractRequestMessageOfferOfferId, ContractRequestMessageOfferTypes};
+use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 use std::sync::Arc;
+use urn::Urn;
+use ymir::config::traits::HostsConfigTrait;
+use ymir::config::types::HostType;
 use ymir::errors::Errors;
 
 #[derive(Clone)]
@@ -100,6 +106,7 @@ impl RpcRouter {
                 "/rpc/setup-termination",
                 post(Self::negotiation_termination_rpc),
             )
+            .route("/tck/negotiations/requests", post(Self::tck_initiate_negotiation))
             .with_state(self)
     }
 
@@ -267,4 +274,55 @@ impl RpcRouter {
         })
         .await
     }
+
+    // ── TCK bridge ────────────────────────────────────────────────────────────
+    // Accepts the format the Eclipse DSP TCK POSTs to initiate a consumer-role
+    // negotiation and translates it to the internal RPC call.
+    async fn tck_initiate_negotiation(
+        State(state): State<RpcRouter>,
+        input: Result<Json<TckNegotiationInitiateRequest>, JsonRejection>,
+    ) -> Response {
+        let input = match extract_payload_error(input) {
+            Ok(v) => v,
+            Err(e) => {
+                let error_dto: NegotiationProcessMessageWrapper<NegotiationErrorMessageDto> =
+                    e.into();
+                return (StatusCode::BAD_REQUEST, Json(error_dto)).into_response();
+            }
+        };
+        let offer_id_urn = match Urn::from_str(&input.offer_id) {
+            Ok(u) => u,
+            Err(_) => {
+                return (StatusCode::BAD_REQUEST, "invalid offerId: must be a URN").into_response();
+            }
+        };
+        let callback_base = state.config.ssi_auth().hosts.get_host(HostType::Http);
+        let callback_address = format!("{}/dsp/current/negotiations", callback_base);
+        let rpc_dto = RpcNegotiationRequestInitMessageDto::new(
+            input.provider_id,
+            input.connector_address,
+            callback_address,
+            ContractRequestMessageOfferTypes::OfferId(ContractRequestMessageOfferOfferId {
+                id: offer_id_urn,
+            }),
+        );
+        Self::process_request(Ok(Json(rpc_dto)), StatusCode::CREATED, |data| async move {
+            state
+                .orchestrator
+                .get_rpc_service()
+                .setup_negotiation_request_init_rpc(&data)
+                .await
+        })
+        .await
+        .into_response()
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct TckNegotiationInitiateRequest {
+    pub dataset_id: String,
+    pub offer_id: String,
+    pub provider_id: String,
+    pub connector_address: String,
 }

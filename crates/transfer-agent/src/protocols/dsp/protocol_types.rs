@@ -58,6 +58,7 @@ pub trait TransferProcessMessageTrait: Debug + Send + Sync {
 pub struct TransferRequestMessageDto {
     pub agreement_id: Urn,
     pub format: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub data_address: Option<DataAddressDto>,
     pub callback_address: String,
     pub consumer_pid: Urn,
@@ -107,6 +108,7 @@ impl TransferProcessMessageTrait for TransferRequestMessageDto {
 pub struct TransferStartMessageDto {
     pub provider_pid: Urn,
     pub consumer_pid: Urn,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub data_address: Option<DataAddressDto>,
 }
 
@@ -154,7 +156,9 @@ impl TransferProcessMessageTrait for TransferStartMessageDto {
 pub struct TransferSuspensionMessageDto {
     pub provider_pid: Urn,
     pub consumer_pid: Urn,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub code: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub reason: Option<Vec<String>>,
 }
 
@@ -248,7 +252,9 @@ impl TransferProcessMessageTrait for TransferCompletionMessageDto {
 pub struct TransferTerminationMessageDto {
     pub provider_pid: Urn,
     pub consumer_pid: Urn,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub code: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub reason: Option<Vec<String>>,
 }
 

@@ -25,7 +25,7 @@ use urn::Urn;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
-#[serde(deny_unknown_fields)]
+
 pub struct CatalogMessageWrapper<T>
 where
     T: CatalogDspTraitDefinition,
@@ -42,9 +42,10 @@ pub trait CatalogMessageTrait: Debug + Send + Sync {}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
-#[serde(deny_unknown_fields)]
+
 pub struct CatalogRequestMessageDto {
-    pub filter: serde_json::Value,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub filter: Option<serde_json::Value>,
 }
 
 impl CatalogMessageTrait for CatalogRequestMessageDto {}
@@ -53,7 +54,7 @@ impl CatalogDspTraitDefinition for CatalogRequestMessageDto {}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
-#[serde(deny_unknown_fields)]
+
 pub struct DatasetRequestMessage {
     pub dataset: Urn,
 }
@@ -64,7 +65,7 @@ impl CatalogDspTraitDefinition for DatasetRequestMessage {}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
-#[serde(deny_unknown_fields)]
+
 pub struct CatalogErrorDto {
     pub code: Option<String>,
     pub reason: Option<Vec<String>>,

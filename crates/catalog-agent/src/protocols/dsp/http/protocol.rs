@@ -117,11 +117,20 @@ impl DspRouter {
         State(state): State<DspRouter>,
         Path(id): Path<String>,
         Extension(_mate): Extension<Mates>,
-        input: Result<Json<CatalogMessageWrapper<DatasetRequestMessage>>, JsonRejection>,
     ) -> impl IntoResponse {
-        let input = match input {
-            Ok(input) => input.0,
-            Err(e) => return (StatusCode::BAD_REQUEST, e.body_text()).into_response(),
+        let dataset_id = match Urn::from_str(&id) {
+            Ok(urn) => urn,
+            Err(_) => {
+                return (StatusCode::BAD_REQUEST, format!("Invalid dataset ID: {}", id))
+                    .into_response()
+            }
+        };
+        let request_msg = CatalogMessageWrapper {
+            context: ContextField::default(),
+            _type: CatalogMessageType::DatasetRequestMessage,
+            dto: DatasetRequestMessage {
+                dataset: dataset_id,
+            },
         };
         match state
             .orchestrator

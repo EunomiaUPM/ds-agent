@@ -207,7 +207,7 @@ impl ProtocolPluginTrait for TransferDSP {
         ));
         let dsp_router =
             DspRouter::new(orchestrator_service.clone(), self.config.clone(), ssi_auth);
-        let rcp_router = RpcRouter::new(orchestrator_service.clone());
+        let rcp_router = RpcRouter::new(orchestrator_service.clone(), self.config.clone());
 
         Ok(Router::new()
             .merge(dsp_router.router())

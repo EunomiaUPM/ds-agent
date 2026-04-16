@@ -50,7 +50,7 @@ create_process() {
         '{
         "state": $st,
         "associatedAgentPeer": $peer,
-        "protocol": "dataspace-protocol-http",
+        "protocol": "DSP",
         "role": "PROVIDER",
         "identifiers": {
             "localId": ("urn:uuid:" + (now|tostring)),

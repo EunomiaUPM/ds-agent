@@ -24,15 +24,13 @@ const RouteComponent = () => {
   if (!mainCatalog?.data || mainCatalog.status !== 200) return null;
   return (
     <PageLayout>
-      <PageHeader
-        title="Main Catalog with id"
-        badge={
-          <Badge variant="info" size="lg">
-            {formatUrn(mainCatalog.data.id)}
-          </Badge>
-        }
-      />
-      <InfoGrid>
+        <div className="bg-violet-800 flex justify-center items-center h-1/4">
+                <Heading level="h2">
+                    Browse catalogs from your participants' connections
+                </Heading>
+            </div>
+    
+      {/* <InfoGrid>
         <PageSection title="Main Catalog info: ">
           <InfoList
             items={[
@@ -49,7 +47,7 @@ const RouteComponent = () => {
             ]}
           />
         </PageSection>
-      </InfoGrid>
+      </InfoGrid> */}
 
       <PageSection title="Catalogs">
         <DataTable

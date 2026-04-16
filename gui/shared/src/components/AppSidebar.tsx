@@ -89,7 +89,7 @@ export function AppSidebar() {
     title: "General",
     items: [
       {
-        title: "Catalog",
+        title: "Catalog Browser",
         url: "/admin/catalog",
         icon: Search,
       },

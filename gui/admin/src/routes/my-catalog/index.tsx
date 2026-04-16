@@ -12,11 +12,7 @@ export const Route = createFileRoute('/my-catalog/')({
 function RouteComponent() {
     return (
         <div>
-            <div className="bg-violet-800 flex justify-center items-center h-1/4">
-                <Heading level="h2">
-                    Browse catalogs from your participants' connections
-                </Heading>
-            </div>
+          
             {/* <Separator orientation='vertical'></Separator> */}
             <div className="h-5"></div>
             <div className="grid grid-cols-3 gap-3">

@@ -33,6 +33,10 @@ impl DataplaneHandlerConsumerPull {
 
 #[async_trait::async_trait]
 impl DataplaneCommandStateMachine for DataplaneHandlerConsumerPull {
+    fn handler_name(&self) -> &'static str {
+        "ConsumerPull"
+    }
+
     fn dataplane_entity(&self) -> Arc<dyn DataplaneTransfersEntitiesTrait> {
         self.dataplane_entity.clone()
     }
@@ -63,8 +67,10 @@ mod tests {
     use mockall::mock;
     use std::str::FromStr;
     use std::sync::Arc;
+    use serde_json::json;
     use urn::Urn;
     use ymir::errors::Outcome;
+    use crate::entities::dataplane_manager_ref::dataplane_proxy::{DataplaneProxyEgress, DataplaneProxyIngress};
 
     mock! {
         pub ConnectorInstance {}
@@ -98,9 +104,9 @@ mod tests {
                 interaction_mode: InteractionMode::Pull,
                 state,
                 connector_instance_id: None,
-                ingress_config: serde_json::json!("NoOp"),
-                egress_config: serde_json::json!("NoOp"),
-                flow_control: None,
+                ingress_config: json!({}),
+                egress_config: json!({}),
+                flow_control: Some(json!({})),
                 created_at: chrono::Utc::now().into(),
                 updated_at: None,
             },
@@ -151,13 +157,11 @@ mod tests {
             .returning(move |_, _| Ok(dto(expected.clone())));
     }
 
-    // ── set_configuring ───────────────────────────────────────────────────────
-
-    // set_configuring drives the full sub-chain: configure proxy → put(Configuring)
+    // set_init drives the full sub-chain: configure proxy → put(Configuring)
     // → set_auth → put(Auth) → set_ready → put(Ready).
     // The provider address set at init must survive all three hops intact.
     #[tokio::test]
-    async fn test_set_configuring_reaches_ready_and_preserves_address() {
+    async fn test_set_init_reaches_ready_and_preserves_address() {
         let mut mock = MockDataplaneTransfersEntitiesTrait::new();
         expect_create(&mut mock);
         expect_put(&mut mock, TransferState::Configuring);
@@ -166,7 +170,7 @@ mod tests {
 
         let entity: Arc<dyn crate::DataplaneTransfersEntitiesTrait> = Arc::new(mock);
         let context = init_context(entity.clone()).await;
-        let result = handler(entity).set_configuring(context).await;
+        let result = handler(entity).set_init(context).await;
 
         assert!(result.is_ok());
         let ctx = result.unwrap();
@@ -181,25 +185,53 @@ mod tests {
         assert!(ctx.connector_instance().is_none());
     }
 
-    // ── set_auth ──────────────────────────────────────────────────────────────
+    // ── set_configuring ───────────────────────────────────────────────────────
 
-    // set_auth runs NoOp authentication (no connector on the consumer side),
-    // persists the Auth state, then delegates to set_ready → put(Ready).
+    // set_configuring is atomic: configure proxy → put(Configuring).
+    // It does NOT proceed to auth or ready.
     #[tokio::test]
-    async fn test_set_auth_authenticates_and_reaches_ready() {
+    async fn test_set_configuring_builds_driver_and_proxy() {
         let mut mock = MockDataplaneTransfersEntitiesTrait::new();
         expect_create(&mut mock);
-        expect_put(&mut mock, TransferState::Auth);
-        expect_put(&mut mock, TransferState::Ready);
+        expect_put(&mut mock, TransferState::Configuring);
 
         let entity: Arc<dyn crate::DataplaneTransfersEntitiesTrait> = Arc::new(mock);
         let context = init_context(entity.clone()).await;
-
-        let result = handler(entity).set_auth(context).await;
+        let result = handler(entity.clone()).set_configuring(context).await;
 
         assert!(result.is_ok());
         let ctx = result.unwrap();
-        assert_eq!(ctx.dataplane_process().inner.state, TransferState::Ready);
+        assert_eq!(ctx.dataplane_process().inner.state, TransferState::Configuring);
+        assert!(ctx.driver().is_some(), "driver must be set after configuring");
+        assert!(ctx.proxy().is_some(), "proxy must be built after configuring");
+        // provider address must be preserved
+        let addr = ctx
+            .forward_dataplane_address()
+            .expect("provider address must be preserved");
+        assert_eq!(addr.endpoint, "http://provider-endpoint.com/data");
+        assert_eq!(addr.authorization_type.as_deref(), Some("Bearer"));
+        assert!(ctx.connector_instance().is_none());
+    }
+
+    // ── set_auth ──────────────────────────────────────────────────────────────
+
+    // set_auth is atomic: NoOp authentication → put(Auth). Does NOT proceed to ready.
+    #[tokio::test]
+    async fn test_set_auth_persists_auth_state() {
+        let mut mock = MockDataplaneTransfersEntitiesTrait::new();
+        expect_create(&mut mock);
+        expect_put(&mut mock, TransferState::Configuring);
+        expect_put(&mut mock, TransferState::Auth);
+
+        let entity: Arc<dyn crate::DataplaneTransfersEntitiesTrait> = Arc::new(mock);
+        let context = init_context(entity.clone()).await;
+        let context = handler(entity.clone()).set_configuring(context).await.unwrap();
+
+        let result = handler(entity.clone()).set_auth(context).await;
+        assert!(result.is_ok());
+        let ctx = result.unwrap();
+        assert_eq!(ctx.dataplane_process().inner.state, TransferState::Auth);
+        assert!(ctx.connector_instance().is_none());
         assert!(ctx.forward_dataplane_address().is_some());
     }
 
@@ -210,13 +242,16 @@ mod tests {
     async fn test_set_ready_persists_state() {
         let mut mock = MockDataplaneTransfersEntitiesTrait::new();
         expect_create(&mut mock);
+        expect_put(&mut mock, TransferState::Configuring);
+        expect_put(&mut mock, TransferState::Auth);
         expect_put(&mut mock, TransferState::Ready);
 
         let entity: Arc<dyn crate::DataplaneTransfersEntitiesTrait> = Arc::new(mock);
         let context = init_context(entity.clone()).await;
+        let context = handler(entity.clone()).set_configuring(context).await.unwrap();
+        let context = handler(entity.clone()).set_auth(context).await.unwrap();
 
-        let result = handler(entity).set_ready(context).await;
-
+        let result = handler(entity.clone()).set_ready(context).await;
         assert!(result.is_ok());
         assert_eq!(
             result.unwrap().dataplane_process().inner.state,

@@ -1,5 +1,5 @@
 pub(super) mod dataplane_context;
-mod dataplane_proxy;
+pub(super) mod dataplane_proxy;
 mod dataplane_driver_factory;
 mod dataplane_commands;
 mod dataplane_manager;

@@ -40,8 +40,8 @@ impl MateRouter {
     pub fn router(self) -> Router {
         Router::new()
             .route("/all", get(Self::get_all))
-            .route("/{id}", get(Self::get_by_id))
             .route("/myself", get(Self::get_me))
+            .route("/{id}", get(Self::get_by_id))
             .route("/batch", post(Self::get_batch))
             .route("/token", post(Self::get_by_token))
             .with_state(self.mater)

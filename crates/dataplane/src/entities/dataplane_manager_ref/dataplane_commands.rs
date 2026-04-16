@@ -7,6 +7,7 @@ use crate::entities::dataplane_transfers::{EditDataplaneTransferDto, TransferSta
 use crate::{DataplaneAddress, DataplaneTransfersEntitiesTrait};
 use common::config::services::TransferConfig;
 use connector::{ConnectorInstanceDto, ConnectorInstanceTrait};
+use serde_json::json;
 use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
@@ -73,16 +74,28 @@ impl std::fmt::Display for DataplaneCommand {
 
 #[async_trait::async_trait]
 pub trait DataplaneCommandStateMachine: Send + Sync {
+    fn handler_name(&self) -> &'static str;
     fn dataplane_entity(&self) -> Arc<dyn DataplaneTransfersEntitiesTrait>;
     fn connector_entity(&self) -> Arc<dyn ConnectorInstanceTrait>;
     fn transfer_config(&self) -> Arc<TransferConfig>;
     async fn set_init(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
-        let new_context = self.set_configuring(context).await?;
-        Ok(new_context)
+        dbg!(&context);
+        let ctx = self.set_configuring(context).await?;
+        dbg!(&ctx);
+        let ctx = self.set_auth(ctx).await?;
+        dbg!(&ctx);
+        let ctx = self.set_ready(ctx).await?;
+        dbg!(&ctx);
+        Ok(ctx)
     }
     async fn set_configuring(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
+        // driver
         let driver = DataplaneDriverFactory.get_or_create_driver(&context)?;
+        // proxy
         let mut context = driver.proxy_configurator.configure_proxy(&context).await?;
+        context.set_driver(driver);
+        context.set_runtime(json!({}));
+        // dataplane
         let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
         let new_state = TransferState::Configuring;
         let dataplane_process = self
@@ -91,17 +104,17 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
                 &dataplane_urn,
                 &EditDataplaneTransferDto {
                     state: Some(new_state),
+                    // METER INGRESS
                     ..EditDataplaneTransferDto::default()
                 },
             )
             .await?;
         context.set_dataplane_process(dataplane_process);
-        let new_context = self.set_auth(context).await?;
-        Ok(new_context)
+        Ok(context)
     }
     async fn set_auth(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
         let driver = DataplaneDriverFactory.get_or_create_driver(&context)?;
-        let ctx = driver.authenticator.authenticate(&context).await?;
+        driver.authenticator.authenticate(&context).await?;
         let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
         let new_state = TransferState::Auth;
         let dataplane_process = self
@@ -115,8 +128,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
             )
             .await?;
         context.set_dataplane_process(dataplane_process);
-        let new_context = self.set_ready(context).await?;
-        Ok(new_context)
+        Ok(context)
     }
     async fn set_ready(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
         let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;

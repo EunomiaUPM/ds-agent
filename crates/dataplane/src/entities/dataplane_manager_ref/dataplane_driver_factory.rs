@@ -1,5 +1,8 @@
 use crate::entities::dataplane_drivers::authentication::no_op::NoOpAuthenticator;
 use crate::entities::dataplane_drivers::configuration::http_consumer_pull::HttpConsumerPullConfigurator;
+use crate::entities::dataplane_drivers::configuration::http_consumer_push::HttpConsumerPushConfigurator;
+use crate::entities::dataplane_drivers::configuration::http_provider_pull::HttpProviderPullConfigurator;
+use crate::entities::dataplane_drivers::configuration::http_provider_push::HttpProviderPushConfigurator;
 use crate::entities::dataplane_drivers::configuration::no_op::NoOpProxyConfigurator;
 use crate::entities::dataplane_drivers::pubsub::no_op::NoOpPubSubscriber;
 use crate::entities::dataplane_drivers::{
@@ -10,6 +13,7 @@ use crate::entities::dataplane_transfers::{InteractionMode, TransferRole};
 use connector::{AuthenticationConfig, ConnectorInstanceDto, InteractionConfig, ProtocolSpec};
 use std::sync::Arc;
 use ymir::errors::{Errors, Outcome};
+use crate::entities::dataplane_drivers::authentication::no_auth::NoAuthAuthenticator;
 
 pub struct DataplaneDriverFactory;
 
@@ -38,7 +42,7 @@ impl DataplaneDriverFactory {
     ) -> Outcome<Arc<dyn DriverAuthenticatorTrait>> {
         if let Some(connector_instance) = context.connector_instance() {
             match connector_instance.authentication_config {
-                AuthenticationConfig::NoAuth => Ok(Arc::new(NoOpAuthenticator)),
+                AuthenticationConfig::NoAuth => Ok(Arc::new(NoAuthAuthenticator)),
                 AuthenticationConfig::BasicAuth(_) => Ok(Arc::new(NoOpAuthenticator)),
                 AuthenticationConfig::BearerToken { .. } => Ok(Arc::new(NoOpAuthenticator)),
                 AuthenticationConfig::ApiKey { .. } => Ok(Arc::new(NoOpAuthenticator)),
@@ -66,10 +70,10 @@ impl DataplaneDriverFactory {
 
             match (protocol_spec, role, interaction_mode) {
                 (ProtocolSpec::Http(_), TransferRole::Provider, InteractionMode::Pull) => {
-                    Ok(Arc::new(NoOpProxyConfigurator))
+                    Ok(Arc::new(HttpProviderPullConfigurator))
                 }
                 (ProtocolSpec::Http(_), TransferRole::Provider, InteractionMode::Push) => {
-                    Ok(Arc::new(NoOpProxyConfigurator))
+                    Ok(Arc::new(HttpProviderPushConfigurator))
                 }
                 (_, _, _) => Err(Errors::crazy("Connector drivers not available", None)),
             }
@@ -82,7 +86,7 @@ impl DataplaneDriverFactory {
                     Ok(Arc::new(HttpConsumerPullConfigurator))
                 }
                 (TransferRole::Consumer, InteractionMode::Push) => {
-                    Ok(Arc::new(NoOpProxyConfigurator))
+                    Ok(Arc::new(HttpConsumerPushConfigurator))
                 }
                 _ => Err(Errors::crazy("Connector instance not available", None)),
             }

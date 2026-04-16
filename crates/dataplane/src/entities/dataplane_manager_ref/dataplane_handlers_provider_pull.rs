@@ -35,6 +35,10 @@ impl DataplaneHandlerProviderPull {
 
 #[async_trait::async_trait]
 impl DataplaneCommandStateMachine for DataplaneHandlerProviderPull {
+    fn handler_name(&self) -> &'static str {
+        "ProviderPull"
+    }
+
     fn dataplane_entity(&self) -> Arc<dyn DataplaneTransfersEntitiesTrait> {
         self.dataplane_entity.clone()
     }
@@ -187,16 +191,13 @@ mod tests {
 
     // ── set_configuring ───────────────────────────────────────────────────────
 
-    // set_configuring drives the full sub-chain: configure proxy (NoOp for provider pull)
-    // → put(Configuring) → authenticate (NoAuth → NoOp) → put(Auth) → put(Ready).
-    // The connector_instance and proxy address must be preserved throughout.
+    // set_configuring is atomic: configure proxy (NoOp) → put(Configuring).
+    // Does NOT proceed to auth or ready.
     #[tokio::test]
-    async fn test_set_configuring_reaches_ready_and_preserves_connector() {
+    async fn test_set_configuring_persists_configuring_state_and_preserves_connector() {
         let mut mock = MockDataplaneTransfersEntitiesTrait::new();
         expect_create(&mut mock);
         expect_put(&mut mock, TransferState::Configuring);
-        expect_put(&mut mock, TransferState::Auth);
-        expect_put(&mut mock, TransferState::Ready);
 
         let entity: Arc<dyn crate::DataplaneTransfersEntitiesTrait> = Arc::new(mock);
         let context = init_context(entity.clone()).await;
@@ -205,13 +206,13 @@ mod tests {
 
         assert!(result.is_ok());
         let ctx = result.unwrap();
-        assert_eq!(ctx.dataplane_process().inner.state, TransferState::Ready);
-        // connector must survive the full chain — it describes the provider's data source
+        assert_eq!(ctx.dataplane_process().inner.state, TransferState::Configuring);
+        assert!(ctx.driver().is_some());
+        // connector must survive configuring — it describes the provider's data source
         let conn = ctx
             .connector_instance()
             .expect("connector instance must be preserved");
         assert_eq!(conn.id, Urn::from_str(CONNECTOR_URN).unwrap());
-        // proxy address (where consumers pull from) must also survive
         let addr = ctx
             .forward_dataplane_address()
             .expect("proxy address must be preserved");
@@ -220,14 +221,12 @@ mod tests {
 
     // ── set_auth ──────────────────────────────────────────────────────────────
 
-    // set_auth resolves authentication via the connector config (NoAuth → NoOp),
-    // persists Auth state, then delegates to set_ready → put(Ready).
+    // set_auth is atomic: NoAuth → NoOp authentication → put(Auth). Does NOT proceed to ready.
     #[tokio::test]
-    async fn test_set_auth_authenticates_and_reaches_ready() {
+    async fn test_set_auth_persists_auth_state() {
         let mut mock = MockDataplaneTransfersEntitiesTrait::new();
         expect_create(&mut mock);
         expect_put(&mut mock, TransferState::Auth);
-        expect_put(&mut mock, TransferState::Ready);
 
         let entity: Arc<dyn crate::DataplaneTransfersEntitiesTrait> = Arc::new(mock);
         let context = init_context(entity.clone()).await;
@@ -236,7 +235,7 @@ mod tests {
 
         assert!(result.is_ok());
         let ctx = result.unwrap();
-        assert_eq!(ctx.dataplane_process().inner.state, TransferState::Ready);
+        assert_eq!(ctx.dataplane_process().inner.state, TransferState::Auth);
         assert!(ctx.connector_instance().is_some());
     }
 

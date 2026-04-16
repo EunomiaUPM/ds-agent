@@ -30,6 +30,10 @@ impl DataplaneHandlerConsumerPush {
 
 #[async_trait::async_trait]
 impl DataplaneCommandStateMachine for DataplaneHandlerConsumerPush {
+    fn handler_name(&self) -> &'static str {
+        "ConsumerPush"
+    }
+
     fn dataplane_entity(&self) -> Arc<dyn DataplaneTransfersEntitiesTrait> {
         self.dataplane_entity.clone()
     }
@@ -163,15 +167,13 @@ mod tests {
 
     // ── set_configuring ───────────────────────────────────────────────────────
 
-    // set_configuring: configure proxy (NoOp) → put(Configuring) → authenticate (NoOp)
-    // → put(Auth) → put(Ready). No connector instance on consumer push.
+    // set_configuring is atomic: configure proxy (NoOp) → put(Configuring).
+    // Does NOT proceed to auth or ready.
     #[tokio::test]
-    async fn test_set_configuring_reaches_ready() {
+    async fn test_set_configuring_persists_configuring_state() {
         let mut mock = MockDataplaneTransfersEntitiesTrait::new();
         expect_create(&mut mock);
         expect_put(&mut mock, TransferState::Configuring);
-        expect_put(&mut mock, TransferState::Auth);
-        expect_put(&mut mock, TransferState::Ready);
 
         let entity: Arc<dyn crate::DataplaneTransfersEntitiesTrait> = Arc::new(mock);
         let context = init_context(entity.clone()).await;
@@ -180,22 +182,21 @@ mod tests {
 
         assert!(result.is_ok());
         let ctx = result.unwrap();
-        assert_eq!(ctx.dataplane_process().inner.state, TransferState::Ready);
+        assert_eq!(ctx.dataplane_process().inner.state, TransferState::Configuring);
+        assert!(ctx.driver().is_some());
         assert!(ctx.connector_instance().is_none());
-        // push endpoint survives the full chain
         let addr = ctx.forward_dataplane_address().expect("push endpoint must be preserved");
         assert_eq!(addr.endpoint, "http://consumer-endpoint.com/receive");
     }
 
     // ── set_auth ──────────────────────────────────────────────────────────────
 
-    // set_auth: NoOp authentication → put(Auth) → set_ready → put(Ready).
+    // set_auth is atomic: NoOp authentication → put(Auth). Does NOT proceed to ready.
     #[tokio::test]
-    async fn test_set_auth_authenticates_and_reaches_ready() {
+    async fn test_set_auth_persists_auth_state() {
         let mut mock = MockDataplaneTransfersEntitiesTrait::new();
         expect_create(&mut mock);
         expect_put(&mut mock, TransferState::Auth);
-        expect_put(&mut mock, TransferState::Ready);
 
         let entity: Arc<dyn crate::DataplaneTransfersEntitiesTrait> = Arc::new(mock);
         let context = init_context(entity.clone()).await;
@@ -203,7 +204,7 @@ mod tests {
         let result = handler(entity).set_auth(context).await;
 
         assert!(result.is_ok());
-        assert_eq!(result.unwrap().dataplane_process().inner.state, TransferState::Ready);
+        assert_eq!(result.unwrap().dataplane_process().inner.state, TransferState::Auth);
     }
 
     // ── set_ready ─────────────────────────────────────────────────────────────

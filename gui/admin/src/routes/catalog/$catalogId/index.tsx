@@ -51,7 +51,7 @@ const RouteComponent = () => {
     return (
         <PageLayout>
             <PageHeader
-                title="Catalog info"
+                title="My Catalog"
                 badge={
                     <Badge variant="info" size="lg">
                         {formatUrn(catalogId)}

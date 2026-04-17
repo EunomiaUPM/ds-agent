@@ -166,7 +166,7 @@ export function AppSidebar() {
               className="h-11 mt-2 mb-4 mr-auto ml-1 flex justify-start object-contain"
               alt="Eunomia Logo"
             />
-            {console.log(itemsFiltered, "itemsFiltered")}
+         
           </Link>
          {navGroups.map((group) => (
         <SidebarGroup>

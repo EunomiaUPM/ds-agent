@@ -50,6 +50,8 @@ function RouteComponent() {
 
   const catalog = data?.status === 200 ? data.data : undefined;
 
+  {console.log(catalog?.response?.title, "catalog title")};
+
   if (!catalog) return null;
 
   return (

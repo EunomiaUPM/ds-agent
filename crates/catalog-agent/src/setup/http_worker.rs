@@ -202,7 +202,7 @@ pub async fn create_root_http_router(
         policy_engine_service.clone(),
         config.clone(),
     );
-    let peer_catalog_service = Arc::new(PeerCatalogEntities::new(catalog_agent_cache.clone()));
+    let peer_catalog_service = Arc::new(PeerCatalogEntities::new(catalog_agent_cache.clone(), mates_facade.clone()));
     let peer_catalog_router = PeerCatalogEntityRouter::new(peer_catalog_service.clone());
 
     // connector module

@@ -22,7 +22,7 @@ use json_value_merge::Merge;
 use serde::{Deserialize, Deserializer};
 use common::batch_requests::BatchRequests;
 use common::facades::VerifyTokenRequest;
-use ymir::data::entities::mates::Model;
+use ymir::data::entities::mates::{Model, NewModel};
 use ymir::errors::Outcome;
 
 #[derive(Debug, PartialEq)]
@@ -91,5 +91,9 @@ pub trait CoreMateTrait: Send + Sync + 'static {
         merged_extra_fields.merge(&extra_fields);
         mate.extra_fields = merged_extra_fields;
         self.repo().mates().update(mate).await
+    }
+
+    async fn create_mate(&self, payload: &NewModel) -> Outcome<Model> {
+        self.repo().mates().create(payload.clone()).await
     }
 }

@@ -110,3 +110,8 @@ tasks:
       AGREEMENT_ID: '{{.AGREEMENT_ID | default ""}}'
     cmds:
       - bash {{.SCRIPTS_DIR}}/populate_mock_transfers.sh {{.AGREEMENT_ID}}
+
+  populate:mates:
+    desc: "Seed mock mates (agents and authorities)"
+    cmds:
+      - bash {{.SCRIPTS_DIR}}/populate_mock_mates.sh

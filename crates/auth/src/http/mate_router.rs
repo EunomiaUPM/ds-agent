@@ -25,7 +25,7 @@ use axum::{Json, Router};
 use serde::Deserialize;
 use common::batch_requests::BatchRequests;
 use common::facades::VerifyTokenRequest;
-use ymir::data::entities::mates::Model;
+use ymir::data::entities::mates::{Model, NewModel};
 use ymir::errors::AppResult;
 use ymir::utils::extract_payload;
 
@@ -56,6 +56,7 @@ impl MateRouter {
             .route("/batch", post(Self::get_batch))
             .route("/token", post(Self::get_by_token))
             .route("/{id}", put(Self::update_by_id))
+            .route("/", post(Self::create))
             .with_state(self.mater)
     }
 
@@ -99,5 +100,12 @@ impl MateRouter {
     ) -> AppResult<Json<Model>> {
         let payload = extract_payload(payload)?;
         Ok(Json(mater.update_extra_fields_by_id(id, payload).await?))
+    }
+    async fn create(
+        State(mater): State<Arc<dyn CoreMateTrait>>,
+        payload: Result<Json<NewModel>, JsonRejection>,
+    ) -> AppResult<Json<Model>> {
+        let payload = extract_payload(payload)?;
+        Ok(Json(mater.create_mate(&payload).await?))
     }
 }

@@ -157,9 +157,9 @@ mod tests {
             .returning(move |_, _| Ok(dto(expected.clone())));
     }
 
-    // set_init drives the full sub-chain: configure proxy → put(Configuring)
-    // → set_auth → put(Auth) → set_ready → put(Ready).
+    // set_init drives the full sub-chain
     // The provider address set at init must survive all three hops intact.
+    // Just testing here the state machine and not the contents
     #[tokio::test]
     async fn test_set_init_reaches_ready_and_preserves_address() {
         let mut mock = MockDataplaneTransfersEntitiesTrait::new();

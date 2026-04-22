@@ -1,7 +1,8 @@
-pub(super) mod dataplane_context;
-pub(super) mod dataplane_proxy;
+pub(crate) mod dataplane_context;
+pub(crate) mod dataplane_proxy;
+pub(crate) mod dataplane_runtime;
+pub(crate) mod dataplane_commands;
 mod dataplane_driver_factory;
-mod dataplane_commands;
 mod dataplane_manager;
 mod dataplane_handlers_strategy;
 mod dataplane_handlers_consumer_pull;

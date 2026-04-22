@@ -28,6 +28,7 @@
 //! [`SecretString::resolve`] is a placeholder for vault / base64 / env-var
 //! resolution.  It is not yet implemented.
 
+use base64::{engine::general_purpose::STANDARD, Engine};
 use serde::{Deserialize, Serialize};
 use ymir::errors::{Errors, Outcome};
 
@@ -59,15 +60,29 @@ pub struct SecretString {
 impl SecretString {
     /// Resolve the secret to a plaintext string.
     ///
-    /// # Not yet implemented
-    ///
-    /// Full resolution (Vault lookup, base64 decode, env-var read) is pending.
-    /// For now this always returns an error.  Callers that genuinely need the
-    /// resolved value must wait for the implementation to be completed.
+    /// Supported sources: `Plain`, `Base64`, `EnvVar`.
+    /// `VaultRef` resolution requires a vault client and is not yet implemented.
     pub async fn resolve(&self) -> Outcome<String> {
-        Err(Errors::parse(
-            "SecretString::resolve is not yet implemented",
-            None,
-        ))
+        match &self.source {
+            SecretSource::Plain(value) => Ok(value.clone()),
+            SecretSource::Base64(encoded) => {
+                let bytes = STANDARD.decode(encoded).map_err(|e| {
+                    Errors::parse("Failed to decode Base64 secret", Some(Box::new(e)))
+                })?;
+                String::from_utf8(bytes).map_err(|e| {
+                    Errors::parse("Base64 secret is not valid UTF-8", Some(Box::new(e)))
+                })
+            }
+            SecretSource::EnvVar(name) => std::env::var(name).map_err(|_| {
+                Errors::parse(
+                    &format!("Environment variable '{}' not found", name),
+                    None,
+                )
+            }),
+            SecretSource::VaultRef { .. } => Err(Errors::parse(
+                "VaultRef resolution requires a vault client and is not yet implemented",
+                None,
+            )),
+        }
     }
 }

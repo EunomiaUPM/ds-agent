@@ -37,20 +37,15 @@ use crate::protocols::dsp::orchestrator::OrchestratorTrait;
 use crate::protocols::dsp::protocol_types::{
     TransferErrorDto, TransferProcessMessageType, TransferProcessMessageWrapper,
 };
-use common::config::services::traits::TransferConfigTrait;
-use common::config::services::TransferConfig;
 use common::dsp_common::context_field::ContextField;
 use serde::Deserialize;
 use std::str::FromStr;
 use urn::Urn;
-use ymir::config::traits::HostsConfigTrait;
-use ymir::config::types::HostType;
 use ymir::errors::Outcome;
 
 #[derive(Clone)]
 pub struct RpcRouter {
     orchestrator: Arc<dyn OrchestratorTrait>,
-    config: Arc<TransferConfig>,
 }
 
 impl FromRef<RpcRouter> for Arc<dyn OrchestratorTrait> {
@@ -229,7 +224,8 @@ impl RpcRouter {
                     .into_response();
             }
         };
-        let callback_base = state.config.ssi_auth().hosts.get_host(HostType::Http);
+        //let callback_base = state.config.ssi_auth().hosts.get_host(HostType::Http);
+        let callback_base = "http://localhost:5000/"; // TODO change here
         let callback_address = format!("{}/dsp/current/transfers", callback_base);
         let rpc_dto = RpcTransferRequestMessageDto {
             associated_agent_peer: input.provider_id,

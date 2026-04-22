@@ -54,8 +54,6 @@ pub trait CoreMateTrait: Send + Sync + 'static {
         let filtered_in_mates = mates.into_iter()
             .filter(|mate| !*exclude || !mate.is_me)
             .filter(|mate| {
-                dbg!(&mate);
-                dbg!(&query_type);
                 match query_type {
                     MateRouterGetAllQueryParamsType::Authorities => {
                         mate.participant_type == "Authority".to_string()

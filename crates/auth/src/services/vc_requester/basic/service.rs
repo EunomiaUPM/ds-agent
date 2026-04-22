@@ -228,6 +228,7 @@ impl VcRequesterTrait for VCReqService {
             participant_type: "Authority".to_string(),
             base_url,
             token: None,
+            extra_fields: None,
             is_me: false,
         };
 

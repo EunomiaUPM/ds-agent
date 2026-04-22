@@ -20,7 +20,7 @@ use std::sync::Arc;
 use crate::core::traits::CoreMateTrait;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{Path, State};
-use axum::routing::{get, post};
+use axum::routing::{get, post, put};
 use axum::{Json, Router};
 use common::batch_requests::BatchRequests;
 use common::facades::VerifyTokenRequest;
@@ -44,6 +44,7 @@ impl MateRouter {
             .route("/{id}", get(Self::get_by_id))
             .route("/batch", post(Self::get_batch))
             .route("/token", post(Self::get_by_token))
+            .route("/{id}", put(Self::update_by_id))
             .with_state(self.mater)
     }
 
@@ -75,5 +76,13 @@ impl MateRouter {
     ) -> AppResult<Json<Model>> {
         let payload = extract_payload(payload)?;
         Ok(Json(mater.get_by_token(payload).await?))
+    }
+    async fn update_by_id(
+        State(mater): State<Arc<dyn CoreMateTrait>>,
+        Path(id): Path<String>,
+        payload: Result<Json<serde_json::Value>, JsonRejection>,
+    ) -> AppResult<Json<Model>> {
+        let payload = extract_payload(payload)?;
+        Ok(Json(mater.update_extra_fields_by_id(id, payload).await?))
     }
 }

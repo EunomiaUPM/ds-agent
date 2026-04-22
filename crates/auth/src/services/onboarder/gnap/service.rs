@@ -259,6 +259,7 @@ impl OnboarderTrait for GnapOnboarderService {
             participant_type: "Agent".to_string(),
             base_url,
             token: req_model.token.clone(),
+            extra_fields: None,
             is_me: false,
         };
         Ok(mates)

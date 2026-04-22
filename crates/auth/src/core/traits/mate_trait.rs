@@ -19,6 +19,7 @@ use std::sync::Arc;
 
 use crate::services::repo::repo_trait::AuthRepoTrait;
 use async_trait::async_trait;
+use json_value_merge::Merge;
 use common::batch_requests::BatchRequests;
 use common::facades::VerifyTokenRequest;
 use ymir::data::entities::mates::Model;
@@ -46,5 +47,12 @@ pub trait CoreMateTrait: Send + Sync + 'static {
 
     async fn get_by_token(&self, payload: VerifyTokenRequest) -> Outcome<Model> {
         self.repo().mates().get_by_token(&payload.token).await
+    }
+    async fn update_extra_fields_by_id(&self, id: String, extra_fields: serde_json::Value) -> Outcome<Model> {
+        let mut mate = self.repo().mates().get_by_id(&id).await?;
+        let mut merged_extra_fields = mate.extra_fields.clone();
+        merged_extra_fields.merge(&extra_fields);
+        mate.extra_fields = merged_extra_fields;
+        self.repo().mates().update(mate).await
     }
 }

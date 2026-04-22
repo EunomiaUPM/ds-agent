@@ -263,6 +263,25 @@ paths:
         - Mates
       summary: Get all mates
       operationId: getAllMates
+      parameters:
+        - name: type
+          in: query
+          required: false
+          description: Filter mates by participant type. Defaults to `all`.
+          schema:
+            type: string
+            enum:
+              - agents
+              - authorities
+              - all
+            default: all
+        - name: exclude
+          in: query
+          required: false
+          description: When `true`, excludes the own identity (is_me) from the results.
+          schema:
+            type: boolean
+            default: false
       responses:
         "200":
           description: List of mates
@@ -271,7 +290,7 @@ paths:
               schema:
                 type: array
                 items:
-                   type: object
+                  type: object
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -362,6 +381,34 @@ paths:
           $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalServerError"
+    put:
+      tags:
+        - Mates
+      summary: Update extra_fields by ID
+      operationId: putMateById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Mate details
+          content:
+            application/json:
+              schema:
+                type: object
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
 
   # --- Onboarder Router ---
   /onboard/provider:

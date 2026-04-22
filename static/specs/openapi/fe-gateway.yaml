@@ -4671,6 +4671,25 @@ paths:
       summary: List all participants
       tags:
         - Participants
+      parameters:
+        - name: type
+          in: query
+          required: false
+          description: Filter mates by participant type. Defaults to `all`.
+          schema:
+            type: string
+            enum:
+              - agents
+              - authorities
+              - all
+            default: all
+        - name: exclude
+          in: query
+          required: false
+          description: When `true`, excludes the own identity (is_me) from the results.
+          schema:
+            type: boolean
+            default: false
       responses:
         "200":
           description: OK
@@ -4786,6 +4805,37 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorInfo"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorInfo"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorInfo"
+    put:
+      tags:
+        - Mates
+      summary: Update extra_fields by ID
+      operationId: putMateById
+      parameters:
+        - $ref: "#/components/parameters/participantId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Mate details
+          content:
+            application/json:
+              schema:
+                type: object
         "404":
           description: Not Found
           content:

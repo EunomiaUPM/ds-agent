@@ -17,11 +17,12 @@
 
 use std::sync::Arc;
 
-use crate::core::traits::CoreMateTrait;
+use crate::core::traits::{CoreMateTrait, MateRouterGetAllQueryParamsType};
 use axum::extract::rejection::JsonRejection;
-use axum::extract::{Path, State};
+use axum::extract::{Path, Query, State};
 use axum::routing::{get, post, put};
 use axum::{Json, Router};
+use serde::Deserialize;
 use common::batch_requests::BatchRequests;
 use common::facades::VerifyTokenRequest;
 use ymir::data::entities::mates::Model;
@@ -31,6 +32,16 @@ use ymir::utils::extract_payload;
 pub struct MateRouter {
     mater: Arc<dyn CoreMateTrait>,
 }
+
+#[derive(Debug, Deserialize)]
+pub struct MateRouterGetAllQueryParams {
+    #[serde(rename="type")]
+    _type: Option<MateRouterGetAllQueryParamsType>,
+    #[serde(default)]
+    exclude_myself: Option<bool>,
+}
+
+
 
 impl MateRouter {
     pub fn new(mater: Arc<dyn CoreMateTrait>) -> MateRouter {
@@ -48,8 +59,12 @@ impl MateRouter {
             .with_state(self.mater)
     }
 
-    async fn get_all(State(mater): State<Arc<dyn CoreMateTrait>>) -> AppResult<Json<Vec<Model>>> {
-        Ok(Json(mater.get_all().await?))
+    async fn get_all(
+        State(mater): State<Arc<dyn CoreMateTrait>>,
+        query: Query<MateRouterGetAllQueryParams>) -> AppResult<Json<Vec<Model>>> {
+        let _type = query._type.as_ref().unwrap_or(&MateRouterGetAllQueryParamsType::All);
+        let exclude_myself = query.exclude_myself.unwrap_or(false);
+        Ok(Json(mater.get_all(_type, &exclude_myself).await?))
     }
     async fn get_by_id(
         State(mater): State<Arc<dyn CoreMateTrait>>,

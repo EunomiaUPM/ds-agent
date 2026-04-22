@@ -31,6 +31,7 @@ pub struct Mates {
     pub token_actions: Option<String>,
     pub saved_at: chrono::NaiveDateTime,
     pub last_interaction: chrono::NaiveDateTime,
+    pub extra_fields: Option<serde_json::Value>,
     pub is_me: bool,
 }
 
@@ -54,6 +55,7 @@ impl Mates {
             token_actions,
             saved_at: chrono::Utc::now().naive_utc(),
             last_interaction: chrono::Utc::now().naive_utc(),
+            extra_fields: None,
             is_me,
         }
     }
@@ -77,6 +79,7 @@ impl Mates {
             token_actions,
             saved_at: chrono::Utc::now().naive_utc(),
             last_interaction: chrono::Utc::now().naive_utc(),
+            extra_fields: None,
             is_me,
         }
     }

@@ -13,13 +13,19 @@ import { PageLayout } from "shared/src/components/layout/PageLayout";
 import { PageHeader } from "shared/src/components/layout/PageHeader";
 import { PageSection } from "shared/src/components/layout/PageSection";
 import { InfoGrid } from "shared/src/components/layout/InfoGrid";
-import { useGetCatalogs, useGetMainCatalogs } from "shared/data/orval/catalogs/catalogs";
+import {
+  useGetCatalogs,
+  useGetMainCatalogs,
+} from "shared/data/orval/catalogs/catalogs";
 import { useGetAllParticipants } from "shared/data/orval/participants/participants";
+import { useGetAllPeerCatalog } from "shared/data/orval/peer-catalogs/peer-catalogs.ts";
 
 const RouteComponent = () => {
   const { data: mainCatalog } = useGetMainCatalogs();
   const { data: catalogs } = useGetCatalogs();
   const { data: participants } = useGetAllParticipants();
+  const { data: peerCatalogs } = useGetAllPeerCatalog();
+  console.log(peerCatalogs);
 
   if (!mainCatalog?.data || mainCatalog.status !== 200) return null;
   return (
@@ -44,7 +50,10 @@ const RouteComponent = () => {
               { label: "Catalog homepage", value: mainCatalog.data.foafHomePage },
               {
                 label: "Catalog creation date",
-                value: { type: "custom", content: <FormatDate date={mainCatalog.data.dctIssued} /> },
+                value: {
+                  type: "custom",
+                  content: <FormatDate date={mainCatalog.data.dctIssued} />,
+                },
               },
             ]}
           />
@@ -92,7 +101,11 @@ const RouteComponent = () => {
       <PageSection title="Catalogs from other participants">
         <DataTable
           className="text-sm"
-          data={Array.isArray(participants?.data) ? participants.data.filter(p => !p.is_me && p.participant_type === "Agent") : []}
+          data={
+            Array.isArray(participants?.data)
+              ? participants.data.filter((p) => !p.is_me && p.participant_type === "Agent")
+              : []
+          }
           keyExtractor={(c) => c.participant_id!}
           columns={[
             {
@@ -114,7 +127,10 @@ const RouteComponent = () => {
             {
               header: "Link",
               cell: (p) => (
-                <Link to="/catalog/participant/$participantId" params={{ participantId: p.participant_id }}>
+                <Link
+                  to="/catalog/participant/$participantId"
+                  params={{ participantId: p.participant_id }}
+                >
                   <Button variant="link">
                     Fetch catalog
                     <ArrowRight />

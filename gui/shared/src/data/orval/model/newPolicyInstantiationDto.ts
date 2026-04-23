@@ -9,8 +9,8 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { NewPolicyInstantiationDtoEntityType } from './newPolicyInstantiationDtoEntityType';
-import type { NewPolicyInstantiationDtoParameters } from './newPolicyInstantiationDtoParameters';
+import type { NewPolicyInstantiationDtoEntityType } from "./newPolicyInstantiationDtoEntityType";
+import type { NewPolicyInstantiationDtoParameters } from "./newPolicyInstantiationDtoParameters";
 
 export interface NewPolicyInstantiationDto {
   id: string;

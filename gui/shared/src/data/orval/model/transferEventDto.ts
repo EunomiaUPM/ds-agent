@@ -9,8 +9,8 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { LogLevel } from './logLevel';
-import type { TransferEventDtoData } from './transferEventDtoData';
+import type { LogLevel } from "./logLevel";
+import type { TransferEventDtoData } from "./transferEventDtoData";
 
 export interface TransferEventDto {
   id?: string;

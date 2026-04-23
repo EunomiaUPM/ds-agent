@@ -7,15 +7,19 @@ const tableWidthClasses =
 /**
  * Table component for displaying tabular data.
  */
-const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement> & { containerClassName?: string }>(
-  ({ className, containerClassName, ...props }, ref) => (
-    <div
-      className={cn("relative w-full overflow-auto bg-white/5 border border-foreground/15 rounded-md", containerClassName)}
-    >
-      <table ref={ref} className={cn("w-full caption-bottom text-sm", className)} {...props} />
-    </div>
-  ),
-);
+const Table = React.forwardRef<
+  HTMLTableElement,
+  React.HTMLAttributes<HTMLTableElement> & { containerClassName?: string }
+>(({ className, containerClassName, ...props }, ref) => (
+  <div
+    className={cn(
+      "relative w-full overflow-auto bg-white/5 border border-foreground/15 rounded-md",
+      containerClassName,
+    )}
+  >
+    <table ref={ref} className={cn("w-full caption-bottom text-sm", className)} {...props} />
+  </div>
+));
 Table.displayName = "Table";
 
 const TableHeader = React.forwardRef<

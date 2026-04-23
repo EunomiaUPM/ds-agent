@@ -9,7 +9,7 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { NewNegotiationMessageDtoPayload } from './newNegotiationMessageDtoPayload';
+import type { NewNegotiationMessageDtoPayload } from "./newNegotiationMessageDtoPayload";
 
 export interface NewNegotiationMessageDto {
   id?: string;

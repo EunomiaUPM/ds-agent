@@ -9,10 +9,10 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { AuthenticationConfig } from './authenticationConfig';
-import type { ConnectorMetadata } from './connectorMetadata';
-import type { InteractionConfig } from './interactionConfig';
-import type { ParameterDefinition } from './parameterDefinition';
+import type { AuthenticationConfig } from "./authenticationConfig";
+import type { ConnectorMetadata } from "./connectorMetadata";
+import type { InteractionConfig } from "./interactionConfig";
+import type { ParameterDefinition } from "./parameterDefinition";
 
 export type ConnectorTemplateDto = ConnectorMetadata & {
   authentication: AuthenticationConfig;

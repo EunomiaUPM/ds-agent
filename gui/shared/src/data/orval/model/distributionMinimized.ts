@@ -11,6 +11,6 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  */
 
 export interface DistributionMinimized {
-  '@type'?: string;
-  '@id'?: string;
+  "@type"?: string;
+  "@id"?: string;
 }

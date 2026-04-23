@@ -18,25 +18,23 @@ export const Route = createFileRoute(
 
 function RouteComponent() {
   const { transferMessageId, transferProcessId } = Route.useParams();
-  const { data: transferMessageResponse, isLoading: isTransferMessageLoading } = useGetTransferMessageById(transferMessageId);
-
+  const { data: transferMessageResponse, isLoading: isTransferMessageLoading } =
+    useGetTransferMessageById(transferMessageId);
 
   if (isTransferMessageLoading) {
     return (
       <PageLayout>
-        <PageHeader
-          title="Transfer Message"
-          badge={<Skeleton className="h-8 w-48" />}
-        />
+        <PageHeader title="Transfer Message" badge={<Skeleton className="h-8 w-48" />} />
         <div>Loading...</div>
       </PageLayout>
     );
   }
 
-
   // handle error
   if (!transferMessageResponse || transferMessageResponse.status !== 200) {
-    return <GeneralErrorComponent error={new Error("Transfer message not found")} reset={() => { }} />;
+    return (
+      <GeneralErrorComponent error={new Error("Transfer message not found")} reset={() => {}} />
+    );
   }
 
   return (
@@ -47,18 +45,26 @@ function RouteComponent() {
         <InfoList
           items={[
             { label: "Transfer Message Id", value: transferMessageResponse.data.id },
-            { label: "Transfer Process id", value: transferMessageResponse.data.transferAgentProcessId },
+            {
+              label: "Transfer Process id",
+              value: transferMessageResponse.data.transferAgentProcessId,
+            },
             { label: "Message type", value: transferMessageResponse.data.messageType },
             {
               label: "Created at",
-              value: { type: "custom", content: <FormatDate date={transferMessageResponse.data.createdAt} /> },
+              value: {
+                type: "custom",
+                content: <FormatDate date={transferMessageResponse.data.createdAt} />,
+              },
             },
             { label: "From", value: transferMessageResponse.data.stateTransitionFrom },
             { label: "To", value: transferMessageResponse.data.stateTransitionTo },
           ]}
         />
       </div>
-      <pre className="whitespace-pre-wrap">{JSON.stringify(transferMessageResponse.data.payload)}</pre>
+      <pre className="whitespace-pre-wrap">
+        {JSON.stringify(transferMessageResponse.data.payload)}
+      </pre>
     </div>
   );
 }

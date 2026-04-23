@@ -10,10 +10,9 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  * OpenAPI spec version: 1.0.0
  */
 
-export type OdrlOfferType = typeof OdrlOfferType[keyof typeof OdrlOfferType];
-
+export type OdrlOfferType = (typeof OdrlOfferType)[keyof typeof OdrlOfferType];
 
 export const OdrlOfferType = {
-  Offer: 'Offer',
-  Agreement: 'Agreement',
+  Offer: "Offer",
+  Agreement: "Agreement",
 } as const;

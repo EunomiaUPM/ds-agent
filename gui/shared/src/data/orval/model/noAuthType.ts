@@ -10,9 +10,8 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  * OpenAPI spec version: 1.0.0
  */
 
-export type NoAuthType = typeof NoAuthType[keyof typeof NoAuthType];
-
+export type NoAuthType = (typeof NoAuthType)[keyof typeof NoAuthType];
 
 export const NoAuthType = {
-  NO_AUTH: 'NO_AUTH',
+  NO_AUTH: "NO_AUTH",
 } as const;

@@ -10,9 +10,8 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  * OpenAPI spec version: 1.0.0
  */
 
-export type BasicAuthConfigType = typeof BasicAuthConfigType[keyof typeof BasicAuthConfigType];
-
+export type BasicAuthConfigType = (typeof BasicAuthConfigType)[keyof typeof BasicAuthConfigType];
 
 export const BasicAuthConfigType = {
-  BASIC_AUTH: 'BASIC_AUTH',
+  BASIC_AUTH: "BASIC_AUTH",
 } as const;

@@ -11,10 +11,17 @@ import { BaseProcessDialog, mapTransferProcessToInfoItems } from "./base";
 import { TransferProcessDto } from "../../data/orval/model";
 import { useSetupTransferTermination } from "../../data/orval/transfer-rp-c/transfer-rp-c";
 import { useRouter } from "@tanstack/react-router";
-import { useGetTransferProcesses, useGetTransferProcessById } from "../../data/orval/transfers/transfers";
+import {
+  useGetTransferProcesses,
+  useGetTransferProcessById,
+} from "../../data/orval/transfers/transfers";
 
-export const TransferProcessTerminationDialog = ({ process, onClose }: {
-  process: TransferProcessDto; onClose?: () => void;
+export const TransferProcessTerminationDialog = ({
+  process,
+  onClose,
+}: {
+  process: TransferProcessDto;
+  onClose?: () => void;
 }) => {
   const { mutateAsync: terminateAsync } = useSetupTransferTermination();
   const { refetch } = useGetTransferProcesses();
@@ -36,8 +43,8 @@ export const TransferProcessTerminationDialog = ({ process, onClose }: {
         providerPid: process.identifiers.providerPid,
         code: "TERMINATED",
         reason: ["Terminated from GUI"],
-      }
-    })
+      },
+    });
 
     await refetch();
     await refetchDetail();

@@ -9,18 +9,18 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { CatalogExtraFields } from './catalogExtraFields';
-import type { CatalogMinimized } from './catalogMinimized';
-import type { DataService } from './dataService';
-import type { DataServiceMinimized } from './dataServiceMinimized';
-import type { Dataset } from './dataset';
-import type { DatasetMinimized } from './datasetMinimized';
-import type { OdrlOffer } from './odrlOffer';
+import type { CatalogExtraFields } from "./catalogExtraFields";
+import type { CatalogMinimized } from "./catalogMinimized";
+import type { DataService } from "./dataService";
+import type { DataServiceMinimized } from "./dataServiceMinimized";
+import type { Dataset } from "./dataset";
+import type { DatasetMinimized } from "./datasetMinimized";
+import type { OdrlOffer } from "./odrlOffer";
 
 export interface Catalog {
-  '@context'?: string | string[];
-  '@type'?: string;
-  '@id'?: string;
+  "@context"?: string | string[];
+  "@type"?: string;
+  "@id"?: string;
   homepage?: string;
   theme?: string;
   keyword?: string;

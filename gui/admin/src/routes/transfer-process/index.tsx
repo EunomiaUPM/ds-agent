@@ -23,8 +23,10 @@ export const Route = createFileRoute("/transfer-process/")({
 });
 
 function RouteComponent() {
-  const { data: transferProcessesResponse, isLoading: isTransferProcessesLoading } = useGetTransferProcesses();
-  const transferProcesses = transferProcessesResponse?.status === 200 ? transferProcessesResponse.data : undefined;
+  const { data: transferProcessesResponse, isLoading: isTransferProcessesLoading } =
+    useGetTransferProcesses();
+  const transferProcesses =
+    transferProcessesResponse?.status === 200 ? transferProcessesResponse.data : undefined;
   const transferProcessesSorted = useMemo(() => {
     if (!transferProcesses) return [];
     return [...transferProcesses].sort((a, b) => {
@@ -35,10 +37,7 @@ function RouteComponent() {
   if (isTransferProcessesLoading) {
     return (
       <PageLayout>
-        <PageHeader
-          title="Transfer Processes"
-          badge={<Skeleton className="h-8 w-48" />}
-        />
+        <PageHeader title="Transfer Processes" badge={<Skeleton className="h-8 w-48" />} />
         <div>Loading...</div>
       </PageLayout>
     );

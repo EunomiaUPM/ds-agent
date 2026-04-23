@@ -23,7 +23,7 @@ function RouteComponent() {
       data: {
         associatedAgentPeer: participantId,
         filter: [],
-          noCache: true
+        noCache: true,
       },
     });
   }, [participantId, mutate]);
@@ -31,10 +31,7 @@ function RouteComponent() {
   if (isPending) {
     return (
       <PageLayout>
-        <PageHeader
-          title="Transfer Process"
-          badge={<Skeleton className="h-8 w-48" />}
-        />
+        <PageHeader title="Transfer Process" badge={<Skeleton className="h-8 w-48" />} />
         <div>Loading...</div>
       </PageLayout>
     );

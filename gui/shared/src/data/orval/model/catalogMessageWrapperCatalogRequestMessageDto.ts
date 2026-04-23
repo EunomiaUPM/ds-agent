@@ -9,11 +9,11 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { CatalogMessageWrapperCatalogRequestMessageDtoFilter } from './catalogMessageWrapperCatalogRequestMessageDtoFilter';
+import type { CatalogMessageWrapperCatalogRequestMessageDtoFilter } from "./catalogMessageWrapperCatalogRequestMessageDtoFilter";
 
 export interface CatalogMessageWrapperCatalogRequestMessageDto {
-  '@context'?: string | string[];
-  '@type': string;
+  "@context"?: string | string[];
+  "@type": string;
   /** Filter criteria for catalog request */
   filter?: CatalogMessageWrapperCatalogRequestMessageDtoFilter;
 }

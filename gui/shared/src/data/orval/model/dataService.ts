@@ -11,9 +11,9 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  */
 
 export interface DataService {
-  '@context'?: string | string[];
-  '@type'?: string;
-  '@id'?: string;
+  "@context"?: string | string[];
+  "@type"?: string;
+  "@id"?: string;
   endpointURL?: string;
   endpointDescription?: string;
 }

@@ -9,9 +9,9 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { AgreementDto } from './agreementDto';
-import type { NegotiationMessageDtoPayload } from './negotiationMessageDtoPayload';
-import type { OfferDto } from './offerDto';
+import type { AgreementDto } from "./agreementDto";
+import type { NegotiationMessageDtoPayload } from "./negotiationMessageDtoPayload";
+import type { OfferDto } from "./offerDto";
 
 export interface NegotiationMessageDto {
   id: string;

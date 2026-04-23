@@ -9,6 +9,6 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { ParameterDefinition } from './parameterDefinition';
+import type { ParameterDefinition } from "./parameterDefinition";
 
-export type PolicyTemplateDtoParameters = {[key: string]: ParameterDefinition};
+export type PolicyTemplateDtoParameters = { [key: string]: ParameterDefinition };

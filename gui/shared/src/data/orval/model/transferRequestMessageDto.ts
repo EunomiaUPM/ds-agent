@@ -9,11 +9,11 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { DataAddressDto } from './dataAddressDto';
+import type { DataAddressDto } from "./dataAddressDto";
 
 export interface TransferRequestMessageDto {
-  '@context': string;
-  '@type': string;
+  "@context": string;
+  "@type": string;
   agreementId: string;
   format: string;
   dataAddress?: DataAddressDto;

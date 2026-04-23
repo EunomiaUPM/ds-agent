@@ -10,12 +10,12 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  * OpenAPI spec version: 1.0.0
  */
 
-export type ParameterDefinitionAutoFilledType = typeof ParameterDefinitionAutoFilledType[keyof typeof ParameterDefinitionAutoFilledType];
-
+export type ParameterDefinitionAutoFilledType =
+  (typeof ParameterDefinitionAutoFilledType)[keyof typeof ParameterDefinitionAutoFilledType];
 
 export const ParameterDefinitionAutoFilledType = {
-  SYS_URN: 'SYS_URN',
-  SYS_TOKEN: 'SYS_TOKEN',
-  SYS_TIMESTAMP: 'SYS_TIMESTAMP',
-  SYS_ISO8601: 'SYS_ISO8601',
+  SYS_URN: "SYS_URN",
+  SYS_TOKEN: "SYS_TOKEN",
+  SYS_TIMESTAMP: "SYS_TIMESTAMP",
+  SYS_ISO8601: "SYS_ISO8601",
 } as const;

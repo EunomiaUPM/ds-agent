@@ -9,10 +9,7 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import {
-  useInfiniteQuery,
-  useQuery
-} from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import type {
   DataTag,
   DefinedInitialDataOptions,
@@ -26,860 +23,1301 @@ import type {
   UseInfiniteQueryOptions,
   UseInfiniteQueryResult,
   UseQueryOptions,
-  UseQueryResult
-} from '@tanstack/react-query';
+  UseQueryResult,
+} from "@tanstack/react-query";
 
-import type {
-  ErrorInfo,
-  GetSubscriptionsParams,
-  NotificationSub,
-  Subscription
-} from '.././model';
+import type { ErrorInfo, GetSubscriptionsParams, NotificationSub, Subscription } from ".././model";
 
-import { customInstance } from '../../orval-mutator';
-import type { ErrorType } from '../../orval-mutator';
-
+import { customInstance } from "../../orval-mutator";
+import type { ErrorType } from "../../orval-mutator";
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
-
-
 
 /**
  * @summary List subscriptions
  */
 export type getSubscriptionsResponse200 = {
-  data: Subscription[]
-  status: 200
-}
+  data: Subscription[];
+  status: 200;
+};
 
 export type getSubscriptionsResponse400 = {
-  data: ErrorInfo
-  status: 400
-}
+  data: ErrorInfo;
+  status: 400;
+};
 
 export type getSubscriptionsResponse401 = {
-  data: ErrorInfo
-  status: 401
-}
+  data: ErrorInfo;
+  status: 401;
+};
 
 export type getSubscriptionsResponse403 = {
-  data: ErrorInfo
-  status: 403
-}
+  data: ErrorInfo;
+  status: 403;
+};
 
 export type getSubscriptionsResponse404 = {
-  data: ErrorInfo
-  status: 404
-}
+  data: ErrorInfo;
+  status: 404;
+};
 
 export type getSubscriptionsResponse500 = {
-  data: ErrorInfo
-  status: 500
-}
-    
-export type getSubscriptionsResponseSuccess = (getSubscriptionsResponse200) & {
+  data: ErrorInfo;
+  status: 500;
+};
+
+export type getSubscriptionsResponseSuccess = getSubscriptionsResponse200 & {
   headers: Headers;
 };
-export type getSubscriptionsResponseError = (getSubscriptionsResponse400 | getSubscriptionsResponse401 | getSubscriptionsResponse403 | getSubscriptionsResponse404 | getSubscriptionsResponse500) & {
+export type getSubscriptionsResponseError = (
+  | getSubscriptionsResponse400
+  | getSubscriptionsResponse401
+  | getSubscriptionsResponse403
+  | getSubscriptionsResponse404
+  | getSubscriptionsResponse500
+) & {
   headers: Headers;
 };
 
-export type getSubscriptionsResponse = (getSubscriptionsResponseSuccess | getSubscriptionsResponseError)
+export type getSubscriptionsResponse =
+  | getSubscriptionsResponseSuccess
+  | getSubscriptionsResponseError;
 
-export const getGetSubscriptionsUrl = (params?: GetSubscriptionsParams,) => {
+export const getGetSubscriptionsUrl = (params?: GetSubscriptionsParams) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
-    
     if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString())
+      normalizedParams.append(key, value === null ? "null" : value.toString());
     }
   });
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/subscriptions?${stringifiedParams}` : `/subscriptions`
-}
+  return stringifiedParams.length > 0 ? `/subscriptions?${stringifiedParams}` : `/subscriptions`;
+};
 
-export const getSubscriptions = async (params?: GetSubscriptionsParams, options?: RequestInit): Promise<getSubscriptionsResponse> => {
-  
-  return customInstance<getSubscriptionsResponse>(getGetSubscriptionsUrl(params),
-  {      
+export const getSubscriptions = async (
+  params?: GetSubscriptionsParams,
+  options?: RequestInit,
+): Promise<getSubscriptionsResponse> => {
+  return customInstance<getSubscriptionsResponse>(getGetSubscriptionsUrl(params), {
     ...options,
-    method: 'GET'
-    
-    
-  }
-);}
+    method: "GET",
+  });
+};
 
+export const getGetSubscriptionsInfiniteQueryKey = (params?: GetSubscriptionsParams) => {
+  return ["infinite", `/subscriptions`, ...(params ? [params] : [])] as const;
+};
 
+export const getGetSubscriptionsQueryKey = (params?: GetSubscriptionsParams) => {
+  return [`/subscriptions`, ...(params ? [params] : [])] as const;
+};
 
-
-
-export const getGetSubscriptionsInfiniteQueryKey = (params?: GetSubscriptionsParams,) => {
-    return [
-    'infinite', `/subscriptions`, ...(params ? [params] : [])
-    ] as const;
-    }
-
-export const getGetSubscriptionsQueryKey = (params?: GetSubscriptionsParams,) => {
-    return [
-    `/subscriptions`, ...(params ? [params] : [])
-    ] as const;
-    }
-
-    
-export const getGetSubscriptionsInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof getSubscriptions>>>, TError = ErrorType<ErrorInfo>>(params?: GetSubscriptionsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getSubscriptions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getGetSubscriptionsInfiniteQueryOptions = <
+  TData = InfiniteData<Awaited<ReturnType<typeof getSubscriptions>>>,
+  TError = ErrorType<ErrorInfo>,
+>(
+  params?: GetSubscriptionsParams,
+  options?: {
+    query?: Partial<
+      UseInfiniteQueryOptions<Awaited<ReturnType<typeof getSubscriptions>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
 ) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-const {query: queryOptions, request: requestOptions} = options ?? {};
+  const queryKey = queryOptions?.queryKey ?? getGetSubscriptionsInfiniteQueryKey(params);
 
-  const queryKey =  queryOptions?.queryKey ?? getGetSubscriptionsInfiniteQueryKey(params);
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getSubscriptions>>> = ({ signal }) =>
+    getSubscriptions(params, { signal, ...requestOptions });
 
-  
+  return { queryKey, queryFn, ...queryOptions } as UseInfiniteQueryOptions<
+    Awaited<ReturnType<typeof getSubscriptions>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData> };
+};
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSubscriptions>>> = ({ signal }) => getSubscriptions(params, { signal, ...requestOptions });
+export type GetSubscriptionsInfiniteQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSubscriptions>>
+>;
+export type GetSubscriptionsInfiniteQueryError = ErrorType<ErrorInfo>;
 
-      
-
-      
-
-   return  { queryKey, queryFn,   ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof getSubscriptions>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
-}
-
-export type GetSubscriptionsInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getSubscriptions>>>
-export type GetSubscriptionsInfiniteQueryError = ErrorType<ErrorInfo>
-
-
-export function useGetSubscriptionsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getSubscriptions>>>, TError = ErrorType<ErrorInfo>>(
- params: undefined |  GetSubscriptionsParams, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getSubscriptions>>, TError, TData>> & Pick<
+export function useGetSubscriptionsInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getSubscriptions>>>,
+  TError = ErrorType<ErrorInfo>,
+>(
+  params: undefined | GetSubscriptionsParams,
+  options: {
+    query: Partial<
+      UseInfiniteQueryOptions<Awaited<ReturnType<typeof getSubscriptions>>, TError, TData>
+    > &
+      Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getSubscriptions>>,
           TError,
           Awaited<ReturnType<typeof getSubscriptions>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
-export function useGetSubscriptionsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getSubscriptions>>>, TError = ErrorType<ErrorInfo>>(
- params?: GetSubscriptionsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getSubscriptions>>, TError, TData>> & Pick<
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+export function useGetSubscriptionsInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getSubscriptions>>>,
+  TError = ErrorType<ErrorInfo>,
+>(
+  params?: GetSubscriptionsParams,
+  options?: {
+    query?: Partial<
+      UseInfiniteQueryOptions<Awaited<ReturnType<typeof getSubscriptions>>, TError, TData>
+    > &
+      Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getSubscriptions>>,
           TError,
           Awaited<ReturnType<typeof getSubscriptions>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
-export function useGetSubscriptionsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getSubscriptions>>>, TError = ErrorType<ErrorInfo>>(
- params?: GetSubscriptionsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getSubscriptions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+export function useGetSubscriptionsInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getSubscriptions>>>,
+  TError = ErrorType<ErrorInfo>,
+>(
+  params?: GetSubscriptionsParams,
+  options?: {
+    query?: Partial<
+      UseInfiniteQueryOptions<Awaited<ReturnType<typeof getSubscriptions>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
 /**
  * @summary List subscriptions
  */
 
-export function useGetSubscriptionsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getSubscriptions>>>, TError = ErrorType<ErrorInfo>>(
- params?: GetSubscriptionsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getSubscriptions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient 
- ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+export function useGetSubscriptionsInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getSubscriptions>>>,
+  TError = ErrorType<ErrorInfo>,
+>(
+  params?: GetSubscriptionsParams,
+  options?: {
+    query?: Partial<
+      UseInfiniteQueryOptions<Awaited<ReturnType<typeof getSubscriptions>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+  const queryOptions = getGetSubscriptionsInfiniteQueryOptions(params, options);
 
-  const queryOptions = getGetSubscriptionsInfiniteQueryOptions(params,options)
-
-  const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+  const query = useInfiniteQuery(queryOptions, queryClient) as UseInfiniteQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-
-
-
-export const getGetSubscriptionsQueryOptions = <TData = Awaited<ReturnType<typeof getSubscriptions>>, TError = ErrorType<ErrorInfo>>(params?: GetSubscriptionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSubscriptions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getGetSubscriptionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSubscriptions>>,
+  TError = ErrorType<ErrorInfo>,
+>(
+  params?: GetSubscriptionsParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getSubscriptions>>, TError, TData>>;
+    request?: SecondParameter<typeof customInstance>;
+  },
 ) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-const {query: queryOptions, request: requestOptions} = options ?? {};
+  const queryKey = queryOptions?.queryKey ?? getGetSubscriptionsQueryKey(params);
 
-  const queryKey =  queryOptions?.queryKey ?? getGetSubscriptionsQueryKey(params);
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getSubscriptions>>> = ({ signal }) =>
+    getSubscriptions(params, { signal, ...requestOptions });
 
-  
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSubscriptions>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData> };
+};
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSubscriptions>>> = ({ signal }) => getSubscriptions(params, { signal, ...requestOptions });
+export type GetSubscriptionsQueryResult = NonNullable<Awaited<ReturnType<typeof getSubscriptions>>>;
+export type GetSubscriptionsQueryError = ErrorType<ErrorInfo>;
 
-      
-
-      
-
-   return  { queryKey, queryFn,   ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSubscriptions>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
-}
-
-export type GetSubscriptionsQueryResult = NonNullable<Awaited<ReturnType<typeof getSubscriptions>>>
-export type GetSubscriptionsQueryError = ErrorType<ErrorInfo>
-
-
-export function useGetSubscriptions<TData = Awaited<ReturnType<typeof getSubscriptions>>, TError = ErrorType<ErrorInfo>>(
- params: undefined |  GetSubscriptionsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSubscriptions>>, TError, TData>> & Pick<
+export function useGetSubscriptions<
+  TData = Awaited<ReturnType<typeof getSubscriptions>>,
+  TError = ErrorType<ErrorInfo>,
+>(
+  params: undefined | GetSubscriptionsParams,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getSubscriptions>>, TError, TData>> &
+      Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getSubscriptions>>,
           TError,
           Awaited<ReturnType<typeof getSubscriptions>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
-export function useGetSubscriptions<TData = Awaited<ReturnType<typeof getSubscriptions>>, TError = ErrorType<ErrorInfo>>(
- params?: GetSubscriptionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSubscriptions>>, TError, TData>> & Pick<
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+export function useGetSubscriptions<
+  TData = Awaited<ReturnType<typeof getSubscriptions>>,
+  TError = ErrorType<ErrorInfo>,
+>(
+  params?: GetSubscriptionsParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getSubscriptions>>, TError, TData>> &
+      Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getSubscriptions>>,
           TError,
           Awaited<ReturnType<typeof getSubscriptions>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
-export function useGetSubscriptions<TData = Awaited<ReturnType<typeof getSubscriptions>>, TError = ErrorType<ErrorInfo>>(
- params?: GetSubscriptionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSubscriptions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+export function useGetSubscriptions<
+  TData = Awaited<ReturnType<typeof getSubscriptions>>,
+  TError = ErrorType<ErrorInfo>,
+>(
+  params?: GetSubscriptionsParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getSubscriptions>>, TError, TData>>;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
 /**
  * @summary List subscriptions
  */
 
-export function useGetSubscriptions<TData = Awaited<ReturnType<typeof getSubscriptions>>, TError = ErrorType<ErrorInfo>>(
- params?: GetSubscriptionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSubscriptions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient 
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+export function useGetSubscriptions<
+  TData = Awaited<ReturnType<typeof getSubscriptions>>,
+  TError = ErrorType<ErrorInfo>,
+>(
+  params?: GetSubscriptionsParams,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getSubscriptions>>, TError, TData>>;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+  const queryOptions = getGetSubscriptionsQueryOptions(params, options);
 
-  const queryOptions = getGetSubscriptionsQueryOptions(params,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData>;
+  };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
-
-
-
 
 /**
  * @summary Get subscription by ID
  */
 export type getSubscriptionByIdResponse200 = {
-  data: Subscription
-  status: 200
-}
+  data: Subscription;
+  status: 200;
+};
 
 export type getSubscriptionByIdResponse400 = {
-  data: ErrorInfo
-  status: 400
-}
+  data: ErrorInfo;
+  status: 400;
+};
 
 export type getSubscriptionByIdResponse401 = {
-  data: ErrorInfo
-  status: 401
-}
+  data: ErrorInfo;
+  status: 401;
+};
 
 export type getSubscriptionByIdResponse403 = {
-  data: ErrorInfo
-  status: 403
-}
+  data: ErrorInfo;
+  status: 403;
+};
 
 export type getSubscriptionByIdResponse404 = {
-  data: ErrorInfo
-  status: 404
-}
+  data: ErrorInfo;
+  status: 404;
+};
 
 export type getSubscriptionByIdResponse500 = {
-  data: ErrorInfo
-  status: 500
-}
-    
-export type getSubscriptionByIdResponseSuccess = (getSubscriptionByIdResponse200) & {
-  headers: Headers;
-};
-export type getSubscriptionByIdResponseError = (getSubscriptionByIdResponse400 | getSubscriptionByIdResponse401 | getSubscriptionByIdResponse403 | getSubscriptionByIdResponse404 | getSubscriptionByIdResponse500) & {
-  headers: Headers;
+  data: ErrorInfo;
+  status: 500;
 };
 
-export type getSubscriptionByIdResponse = (getSubscriptionByIdResponseSuccess | getSubscriptionByIdResponseError)
+export type getSubscriptionByIdResponseSuccess = getSubscriptionByIdResponse200 & {
+  headers: Headers;
+};
+export type getSubscriptionByIdResponseError = (
+  | getSubscriptionByIdResponse400
+  | getSubscriptionByIdResponse401
+  | getSubscriptionByIdResponse403
+  | getSubscriptionByIdResponse404
+  | getSubscriptionByIdResponse500
+) & {
+  headers: Headers;
+};
 
-export const getGetSubscriptionByIdUrl = (subscriptionId: string,) => {
+export type getSubscriptionByIdResponse =
+  | getSubscriptionByIdResponseSuccess
+  | getSubscriptionByIdResponseError;
 
+export const getGetSubscriptionByIdUrl = (subscriptionId: string) => {
+  return `/subscriptions/${subscriptionId}`;
+};
 
-  
-
-  return `/subscriptions/${subscriptionId}`
-}
-
-export const getSubscriptionById = async (subscriptionId: string, options?: RequestInit): Promise<getSubscriptionByIdResponse> => {
-  
-  return customInstance<getSubscriptionByIdResponse>(getGetSubscriptionByIdUrl(subscriptionId),
-  {      
+export const getSubscriptionById = async (
+  subscriptionId: string,
+  options?: RequestInit,
+): Promise<getSubscriptionByIdResponse> => {
+  return customInstance<getSubscriptionByIdResponse>(getGetSubscriptionByIdUrl(subscriptionId), {
     ...options,
-    method: 'GET'
-    
-    
-  }
-);}
+    method: "GET",
+  });
+};
 
+export const getGetSubscriptionByIdInfiniteQueryKey = (subscriptionId: string) => {
+  return ["infinite", `/subscriptions/${subscriptionId}`] as const;
+};
 
+export const getGetSubscriptionByIdQueryKey = (subscriptionId: string) => {
+  return [`/subscriptions/${subscriptionId}`] as const;
+};
 
-
-
-export const getGetSubscriptionByIdInfiniteQueryKey = (subscriptionId: string,) => {
-    return [
-    'infinite', `/subscriptions/${subscriptionId}`
-    ] as const;
-    }
-
-export const getGetSubscriptionByIdQueryKey = (subscriptionId: string,) => {
-    return [
-    `/subscriptions/${subscriptionId}`
-    ] as const;
-    }
-
-    
-export const getGetSubscriptionByIdInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof getSubscriptionById>>>, TError = ErrorType<ErrorInfo>>(subscriptionId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getSubscriptionById>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getGetSubscriptionByIdInfiniteQueryOptions = <
+  TData = InfiniteData<Awaited<ReturnType<typeof getSubscriptionById>>>,
+  TError = ErrorType<ErrorInfo>,
+>(
+  subscriptionId: string,
+  options?: {
+    query?: Partial<
+      UseInfiniteQueryOptions<Awaited<ReturnType<typeof getSubscriptionById>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
 ) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-const {query: queryOptions, request: requestOptions} = options ?? {};
+  const queryKey = queryOptions?.queryKey ?? getGetSubscriptionByIdInfiniteQueryKey(subscriptionId);
 
-  const queryKey =  queryOptions?.queryKey ?? getGetSubscriptionByIdInfiniteQueryKey(subscriptionId);
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getSubscriptionById>>> = ({ signal }) =>
+    getSubscriptionById(subscriptionId, { signal, ...requestOptions });
 
-  
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!subscriptionId,
+    ...queryOptions,
+  } as UseInfiniteQueryOptions<Awaited<ReturnType<typeof getSubscriptionById>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData>;
+  };
+};
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSubscriptionById>>> = ({ signal }) => getSubscriptionById(subscriptionId, { signal, ...requestOptions });
+export type GetSubscriptionByIdInfiniteQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSubscriptionById>>
+>;
+export type GetSubscriptionByIdInfiniteQueryError = ErrorType<ErrorInfo>;
 
-      
-
-      
-
-   return  { queryKey, queryFn, enabled: !!(subscriptionId),  ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof getSubscriptionById>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
-}
-
-export type GetSubscriptionByIdInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getSubscriptionById>>>
-export type GetSubscriptionByIdInfiniteQueryError = ErrorType<ErrorInfo>
-
-
-export function useGetSubscriptionByIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getSubscriptionById>>>, TError = ErrorType<ErrorInfo>>(
- subscriptionId: string, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getSubscriptionById>>, TError, TData>> & Pick<
+export function useGetSubscriptionByIdInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getSubscriptionById>>>,
+  TError = ErrorType<ErrorInfo>,
+>(
+  subscriptionId: string,
+  options: {
+    query: Partial<
+      UseInfiniteQueryOptions<Awaited<ReturnType<typeof getSubscriptionById>>, TError, TData>
+    > &
+      Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getSubscriptionById>>,
           TError,
           Awaited<ReturnType<typeof getSubscriptionById>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
-export function useGetSubscriptionByIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getSubscriptionById>>>, TError = ErrorType<ErrorInfo>>(
- subscriptionId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getSubscriptionById>>, TError, TData>> & Pick<
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+export function useGetSubscriptionByIdInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getSubscriptionById>>>,
+  TError = ErrorType<ErrorInfo>,
+>(
+  subscriptionId: string,
+  options?: {
+    query?: Partial<
+      UseInfiniteQueryOptions<Awaited<ReturnType<typeof getSubscriptionById>>, TError, TData>
+    > &
+      Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getSubscriptionById>>,
           TError,
           Awaited<ReturnType<typeof getSubscriptionById>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
-export function useGetSubscriptionByIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getSubscriptionById>>>, TError = ErrorType<ErrorInfo>>(
- subscriptionId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getSubscriptionById>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+export function useGetSubscriptionByIdInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getSubscriptionById>>>,
+  TError = ErrorType<ErrorInfo>,
+>(
+  subscriptionId: string,
+  options?: {
+    query?: Partial<
+      UseInfiniteQueryOptions<Awaited<ReturnType<typeof getSubscriptionById>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
 /**
  * @summary Get subscription by ID
  */
 
-export function useGetSubscriptionByIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getSubscriptionById>>>, TError = ErrorType<ErrorInfo>>(
- subscriptionId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getSubscriptionById>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient 
- ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+export function useGetSubscriptionByIdInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getSubscriptionById>>>,
+  TError = ErrorType<ErrorInfo>,
+>(
+  subscriptionId: string,
+  options?: {
+    query?: Partial<
+      UseInfiniteQueryOptions<Awaited<ReturnType<typeof getSubscriptionById>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+  const queryOptions = getGetSubscriptionByIdInfiniteQueryOptions(subscriptionId, options);
 
-  const queryOptions = getGetSubscriptionByIdInfiniteQueryOptions(subscriptionId,options)
-
-  const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+  const query = useInfiniteQuery(queryOptions, queryClient) as UseInfiniteQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-
-
-
-export const getGetSubscriptionByIdQueryOptions = <TData = Awaited<ReturnType<typeof getSubscriptionById>>, TError = ErrorType<ErrorInfo>>(subscriptionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSubscriptionById>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getGetSubscriptionByIdQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSubscriptionById>>,
+  TError = ErrorType<ErrorInfo>,
+>(
+  subscriptionId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getSubscriptionById>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
 ) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-const {query: queryOptions, request: requestOptions} = options ?? {};
+  const queryKey = queryOptions?.queryKey ?? getGetSubscriptionByIdQueryKey(subscriptionId);
 
-  const queryKey =  queryOptions?.queryKey ?? getGetSubscriptionByIdQueryKey(subscriptionId);
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getSubscriptionById>>> = ({ signal }) =>
+    getSubscriptionById(subscriptionId, { signal, ...requestOptions });
 
-  
+  return { queryKey, queryFn, enabled: !!subscriptionId, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSubscriptionById>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData> };
+};
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSubscriptionById>>> = ({ signal }) => getSubscriptionById(subscriptionId, { signal, ...requestOptions });
+export type GetSubscriptionByIdQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSubscriptionById>>
+>;
+export type GetSubscriptionByIdQueryError = ErrorType<ErrorInfo>;
 
-      
-
-      
-
-   return  { queryKey, queryFn, enabled: !!(subscriptionId),  ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSubscriptionById>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
-}
-
-export type GetSubscriptionByIdQueryResult = NonNullable<Awaited<ReturnType<typeof getSubscriptionById>>>
-export type GetSubscriptionByIdQueryError = ErrorType<ErrorInfo>
-
-
-export function useGetSubscriptionById<TData = Awaited<ReturnType<typeof getSubscriptionById>>, TError = ErrorType<ErrorInfo>>(
- subscriptionId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSubscriptionById>>, TError, TData>> & Pick<
+export function useGetSubscriptionById<
+  TData = Awaited<ReturnType<typeof getSubscriptionById>>,
+  TError = ErrorType<ErrorInfo>,
+>(
+  subscriptionId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getSubscriptionById>>, TError, TData>
+    > &
+      Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getSubscriptionById>>,
           TError,
           Awaited<ReturnType<typeof getSubscriptionById>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
-export function useGetSubscriptionById<TData = Awaited<ReturnType<typeof getSubscriptionById>>, TError = ErrorType<ErrorInfo>>(
- subscriptionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSubscriptionById>>, TError, TData>> & Pick<
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+export function useGetSubscriptionById<
+  TData = Awaited<ReturnType<typeof getSubscriptionById>>,
+  TError = ErrorType<ErrorInfo>,
+>(
+  subscriptionId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getSubscriptionById>>, TError, TData>
+    > &
+      Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getSubscriptionById>>,
           TError,
           Awaited<ReturnType<typeof getSubscriptionById>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
-export function useGetSubscriptionById<TData = Awaited<ReturnType<typeof getSubscriptionById>>, TError = ErrorType<ErrorInfo>>(
- subscriptionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSubscriptionById>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+export function useGetSubscriptionById<
+  TData = Awaited<ReturnType<typeof getSubscriptionById>>,
+  TError = ErrorType<ErrorInfo>,
+>(
+  subscriptionId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getSubscriptionById>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
 /**
  * @summary Get subscription by ID
  */
 
-export function useGetSubscriptionById<TData = Awaited<ReturnType<typeof getSubscriptionById>>, TError = ErrorType<ErrorInfo>>(
- subscriptionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSubscriptionById>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient 
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+export function useGetSubscriptionById<
+  TData = Awaited<ReturnType<typeof getSubscriptionById>>,
+  TError = ErrorType<ErrorInfo>,
+>(
+  subscriptionId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getSubscriptionById>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+  const queryOptions = getGetSubscriptionByIdQueryOptions(subscriptionId, options);
 
-  const queryOptions = getGetSubscriptionByIdQueryOptions(subscriptionId,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData>;
+  };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
-
-
-
 
 /**
  * @summary Get notifications for a subscription
  */
 export type getNotificationsBySubscriptionIdResponse200 = {
-  data: NotificationSub[]
-  status: 200
-}
+  data: NotificationSub[];
+  status: 200;
+};
 
 export type getNotificationsBySubscriptionIdResponse400 = {
-  data: ErrorInfo
-  status: 400
-}
+  data: ErrorInfo;
+  status: 400;
+};
 
 export type getNotificationsBySubscriptionIdResponse401 = {
-  data: ErrorInfo
-  status: 401
-}
+  data: ErrorInfo;
+  status: 401;
+};
 
 export type getNotificationsBySubscriptionIdResponse403 = {
-  data: ErrorInfo
-  status: 403
-}
+  data: ErrorInfo;
+  status: 403;
+};
 
 export type getNotificationsBySubscriptionIdResponse404 = {
-  data: ErrorInfo
-  status: 404
-}
+  data: ErrorInfo;
+  status: 404;
+};
 
 export type getNotificationsBySubscriptionIdResponse500 = {
-  data: ErrorInfo
-  status: 500
-}
-    
-export type getNotificationsBySubscriptionIdResponseSuccess = (getNotificationsBySubscriptionIdResponse200) & {
-  headers: Headers;
-};
-export type getNotificationsBySubscriptionIdResponseError = (getNotificationsBySubscriptionIdResponse400 | getNotificationsBySubscriptionIdResponse401 | getNotificationsBySubscriptionIdResponse403 | getNotificationsBySubscriptionIdResponse404 | getNotificationsBySubscriptionIdResponse500) & {
-  headers: Headers;
+  data: ErrorInfo;
+  status: 500;
 };
 
-export type getNotificationsBySubscriptionIdResponse = (getNotificationsBySubscriptionIdResponseSuccess | getNotificationsBySubscriptionIdResponseError)
+export type getNotificationsBySubscriptionIdResponseSuccess =
+  getNotificationsBySubscriptionIdResponse200 & {
+    headers: Headers;
+  };
+export type getNotificationsBySubscriptionIdResponseError = (
+  | getNotificationsBySubscriptionIdResponse400
+  | getNotificationsBySubscriptionIdResponse401
+  | getNotificationsBySubscriptionIdResponse403
+  | getNotificationsBySubscriptionIdResponse404
+  | getNotificationsBySubscriptionIdResponse500
+) & {
+  headers: Headers;
+};
 
-export const getGetNotificationsBySubscriptionIdUrl = (subscriptionId: string,) => {
+export type getNotificationsBySubscriptionIdResponse =
+  | getNotificationsBySubscriptionIdResponseSuccess
+  | getNotificationsBySubscriptionIdResponseError;
 
+export const getGetNotificationsBySubscriptionIdUrl = (subscriptionId: string) => {
+  return `/subscriptions/${subscriptionId}/notifications`;
+};
 
-  
+export const getNotificationsBySubscriptionId = async (
+  subscriptionId: string,
+  options?: RequestInit,
+): Promise<getNotificationsBySubscriptionIdResponse> => {
+  return customInstance<getNotificationsBySubscriptionIdResponse>(
+    getGetNotificationsBySubscriptionIdUrl(subscriptionId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
 
-  return `/subscriptions/${subscriptionId}/notifications`
-}
+export const getGetNotificationsBySubscriptionIdInfiniteQueryKey = (subscriptionId: string) => {
+  return ["infinite", `/subscriptions/${subscriptionId}/notifications`] as const;
+};
 
-export const getNotificationsBySubscriptionId = async (subscriptionId: string, options?: RequestInit): Promise<getNotificationsBySubscriptionIdResponse> => {
-  
-  return customInstance<getNotificationsBySubscriptionIdResponse>(getGetNotificationsBySubscriptionIdUrl(subscriptionId),
-  {      
-    ...options,
-    method: 'GET'
-    
-    
-  }
-);}
+export const getGetNotificationsBySubscriptionIdQueryKey = (subscriptionId: string) => {
+  return [`/subscriptions/${subscriptionId}/notifications`] as const;
+};
 
-
-
-
-
-export const getGetNotificationsBySubscriptionIdInfiniteQueryKey = (subscriptionId: string,) => {
-    return [
-    'infinite', `/subscriptions/${subscriptionId}/notifications`
-    ] as const;
-    }
-
-export const getGetNotificationsBySubscriptionIdQueryKey = (subscriptionId: string,) => {
-    return [
-    `/subscriptions/${subscriptionId}/notifications`
-    ] as const;
-    }
-
-    
-export const getGetNotificationsBySubscriptionIdInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>>, TError = ErrorType<ErrorInfo>>(subscriptionId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getGetNotificationsBySubscriptionIdInfiniteQueryOptions = <
+  TData = InfiniteData<Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>>,
+  TError = ErrorType<ErrorInfo>,
+>(
+  subscriptionId: string,
+  options?: {
+    query?: Partial<
+      UseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
 ) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-const {query: queryOptions, request: requestOptions} = options ?? {};
+  const queryKey =
+    queryOptions?.queryKey ?? getGetNotificationsBySubscriptionIdInfiniteQueryKey(subscriptionId);
 
-  const queryKey =  queryOptions?.queryKey ?? getGetNotificationsBySubscriptionIdInfiniteQueryKey(subscriptionId);
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>> = ({
+    signal,
+  }) => getNotificationsBySubscriptionId(subscriptionId, { signal, ...requestOptions });
 
-  
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!subscriptionId,
+    ...queryOptions,
+  } as UseInfiniteQueryOptions<
+    Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData> };
+};
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>> = ({ signal }) => getNotificationsBySubscriptionId(subscriptionId, { signal, ...requestOptions });
+export type GetNotificationsBySubscriptionIdInfiniteQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>
+>;
+export type GetNotificationsBySubscriptionIdInfiniteQueryError = ErrorType<ErrorInfo>;
 
-      
-
-      
-
-   return  { queryKey, queryFn, enabled: !!(subscriptionId),  ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
-}
-
-export type GetNotificationsBySubscriptionIdInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>>
-export type GetNotificationsBySubscriptionIdInfiniteQueryError = ErrorType<ErrorInfo>
-
-
-export function useGetNotificationsBySubscriptionIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>>, TError = ErrorType<ErrorInfo>>(
- subscriptionId: string, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>, TError, TData>> & Pick<
+export function useGetNotificationsBySubscriptionIdInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>>,
+  TError = ErrorType<ErrorInfo>,
+>(
+  subscriptionId: string,
+  options: {
+    query: Partial<
+      UseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>,
           TError,
           Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
-export function useGetNotificationsBySubscriptionIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>>, TError = ErrorType<ErrorInfo>>(
- subscriptionId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>, TError, TData>> & Pick<
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+export function useGetNotificationsBySubscriptionIdInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>>,
+  TError = ErrorType<ErrorInfo>,
+>(
+  subscriptionId: string,
+  options?: {
+    query?: Partial<
+      UseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>,
           TError,
           Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
-export function useGetNotificationsBySubscriptionIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>>, TError = ErrorType<ErrorInfo>>(
- subscriptionId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+export function useGetNotificationsBySubscriptionIdInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>>,
+  TError = ErrorType<ErrorInfo>,
+>(
+  subscriptionId: string,
+  options?: {
+    query?: Partial<
+      UseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
 /**
  * @summary Get notifications for a subscription
  */
 
-export function useGetNotificationsBySubscriptionIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>>, TError = ErrorType<ErrorInfo>>(
- subscriptionId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient 
- ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+export function useGetNotificationsBySubscriptionIdInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>>,
+  TError = ErrorType<ErrorInfo>,
+>(
+  subscriptionId: string,
+  options?: {
+    query?: Partial<
+      UseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+  const queryOptions = getGetNotificationsBySubscriptionIdInfiniteQueryOptions(
+    subscriptionId,
+    options,
+  );
 
-  const queryOptions = getGetNotificationsBySubscriptionIdInfiniteQueryOptions(subscriptionId,options)
-
-  const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+  const query = useInfiniteQuery(queryOptions, queryClient) as UseInfiniteQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-
-
-
-export const getGetNotificationsBySubscriptionIdQueryOptions = <TData = Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>, TError = ErrorType<ErrorInfo>>(subscriptionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getGetNotificationsBySubscriptionIdQueryOptions = <
+  TData = Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>,
+  TError = ErrorType<ErrorInfo>,
+>(
+  subscriptionId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
 ) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-const {query: queryOptions, request: requestOptions} = options ?? {};
+  const queryKey =
+    queryOptions?.queryKey ?? getGetNotificationsBySubscriptionIdQueryKey(subscriptionId);
 
-  const queryKey =  queryOptions?.queryKey ?? getGetNotificationsBySubscriptionIdQueryKey(subscriptionId);
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>> = ({
+    signal,
+  }) => getNotificationsBySubscriptionId(subscriptionId, { signal, ...requestOptions });
 
-  
+  return { queryKey, queryFn, enabled: !!subscriptionId, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData> };
+};
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>> = ({ signal }) => getNotificationsBySubscriptionId(subscriptionId, { signal, ...requestOptions });
+export type GetNotificationsBySubscriptionIdQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>
+>;
+export type GetNotificationsBySubscriptionIdQueryError = ErrorType<ErrorInfo>;
 
-      
-
-      
-
-   return  { queryKey, queryFn, enabled: !!(subscriptionId),  ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
-}
-
-export type GetNotificationsBySubscriptionIdQueryResult = NonNullable<Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>>
-export type GetNotificationsBySubscriptionIdQueryError = ErrorType<ErrorInfo>
-
-
-export function useGetNotificationsBySubscriptionId<TData = Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>, TError = ErrorType<ErrorInfo>>(
- subscriptionId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>, TError, TData>> & Pick<
+export function useGetNotificationsBySubscriptionId<
+  TData = Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>,
+  TError = ErrorType<ErrorInfo>,
+>(
+  subscriptionId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>, TError, TData>
+    > &
+      Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>,
           TError,
           Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
-export function useGetNotificationsBySubscriptionId<TData = Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>, TError = ErrorType<ErrorInfo>>(
- subscriptionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>, TError, TData>> & Pick<
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+export function useGetNotificationsBySubscriptionId<
+  TData = Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>,
+  TError = ErrorType<ErrorInfo>,
+>(
+  subscriptionId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>, TError, TData>
+    > &
+      Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>,
           TError,
           Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
-export function useGetNotificationsBySubscriptionId<TData = Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>, TError = ErrorType<ErrorInfo>>(
- subscriptionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+export function useGetNotificationsBySubscriptionId<
+  TData = Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>,
+  TError = ErrorType<ErrorInfo>,
+>(
+  subscriptionId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
 /**
  * @summary Get notifications for a subscription
  */
 
-export function useGetNotificationsBySubscriptionId<TData = Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>, TError = ErrorType<ErrorInfo>>(
- subscriptionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient 
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+export function useGetNotificationsBySubscriptionId<
+  TData = Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>,
+  TError = ErrorType<ErrorInfo>,
+>(
+  subscriptionId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getNotificationsBySubscriptionId>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+  const queryOptions = getGetNotificationsBySubscriptionIdQueryOptions(subscriptionId, options);
 
-  const queryOptions = getGetNotificationsBySubscriptionIdQueryOptions(subscriptionId,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData>;
+  };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
-
-
-
 
 /**
  * @summary Get pending notifications for a subscription
  */
 export type getPendingNotificationsBySubscriptionIdResponse200 = {
-  data: NotificationSub[]
-  status: 200
-}
+  data: NotificationSub[];
+  status: 200;
+};
 
 export type getPendingNotificationsBySubscriptionIdResponse400 = {
-  data: ErrorInfo
-  status: 400
-}
+  data: ErrorInfo;
+  status: 400;
+};
 
 export type getPendingNotificationsBySubscriptionIdResponse401 = {
-  data: ErrorInfo
-  status: 401
-}
+  data: ErrorInfo;
+  status: 401;
+};
 
 export type getPendingNotificationsBySubscriptionIdResponse403 = {
-  data: ErrorInfo
-  status: 403
-}
+  data: ErrorInfo;
+  status: 403;
+};
 
 export type getPendingNotificationsBySubscriptionIdResponse404 = {
-  data: ErrorInfo
-  status: 404
-}
+  data: ErrorInfo;
+  status: 404;
+};
 
 export type getPendingNotificationsBySubscriptionIdResponse500 = {
-  data: ErrorInfo
-  status: 500
-}
-    
-export type getPendingNotificationsBySubscriptionIdResponseSuccess = (getPendingNotificationsBySubscriptionIdResponse200) & {
-  headers: Headers;
-};
-export type getPendingNotificationsBySubscriptionIdResponseError = (getPendingNotificationsBySubscriptionIdResponse400 | getPendingNotificationsBySubscriptionIdResponse401 | getPendingNotificationsBySubscriptionIdResponse403 | getPendingNotificationsBySubscriptionIdResponse404 | getPendingNotificationsBySubscriptionIdResponse500) & {
-  headers: Headers;
+  data: ErrorInfo;
+  status: 500;
 };
 
-export type getPendingNotificationsBySubscriptionIdResponse = (getPendingNotificationsBySubscriptionIdResponseSuccess | getPendingNotificationsBySubscriptionIdResponseError)
+export type getPendingNotificationsBySubscriptionIdResponseSuccess =
+  getPendingNotificationsBySubscriptionIdResponse200 & {
+    headers: Headers;
+  };
+export type getPendingNotificationsBySubscriptionIdResponseError = (
+  | getPendingNotificationsBySubscriptionIdResponse400
+  | getPendingNotificationsBySubscriptionIdResponse401
+  | getPendingNotificationsBySubscriptionIdResponse403
+  | getPendingNotificationsBySubscriptionIdResponse404
+  | getPendingNotificationsBySubscriptionIdResponse500
+) & {
+  headers: Headers;
+};
 
-export const getGetPendingNotificationsBySubscriptionIdUrl = (subscriptionId: string,) => {
+export type getPendingNotificationsBySubscriptionIdResponse =
+  | getPendingNotificationsBySubscriptionIdResponseSuccess
+  | getPendingNotificationsBySubscriptionIdResponseError;
 
+export const getGetPendingNotificationsBySubscriptionIdUrl = (subscriptionId: string) => {
+  return `/subscriptions/${subscriptionId}/notifications-pending`;
+};
 
-  
+export const getPendingNotificationsBySubscriptionId = async (
+  subscriptionId: string,
+  options?: RequestInit,
+): Promise<getPendingNotificationsBySubscriptionIdResponse> => {
+  return customInstance<getPendingNotificationsBySubscriptionIdResponse>(
+    getGetPendingNotificationsBySubscriptionIdUrl(subscriptionId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
 
-  return `/subscriptions/${subscriptionId}/notifications-pending`
-}
-
-export const getPendingNotificationsBySubscriptionId = async (subscriptionId: string, options?: RequestInit): Promise<getPendingNotificationsBySubscriptionIdResponse> => {
-  
-  return customInstance<getPendingNotificationsBySubscriptionIdResponse>(getGetPendingNotificationsBySubscriptionIdUrl(subscriptionId),
-  {      
-    ...options,
-    method: 'GET'
-    
-    
-  }
-);}
-
-
-
-
-
-export const getGetPendingNotificationsBySubscriptionIdInfiniteQueryKey = (subscriptionId: string,) => {
-    return [
-    'infinite', `/subscriptions/${subscriptionId}/notifications-pending`
-    ] as const;
-    }
-
-export const getGetPendingNotificationsBySubscriptionIdQueryKey = (subscriptionId: string,) => {
-    return [
-    `/subscriptions/${subscriptionId}/notifications-pending`
-    ] as const;
-    }
-
-    
-export const getGetPendingNotificationsBySubscriptionIdInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>>, TError = ErrorType<ErrorInfo>>(subscriptionId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getGetPendingNotificationsBySubscriptionIdInfiniteQueryKey = (
+  subscriptionId: string,
 ) => {
+  return ["infinite", `/subscriptions/${subscriptionId}/notifications-pending`] as const;
+};
 
-const {query: queryOptions, request: requestOptions} = options ?? {};
+export const getGetPendingNotificationsBySubscriptionIdQueryKey = (subscriptionId: string) => {
+  return [`/subscriptions/${subscriptionId}/notifications-pending`] as const;
+};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetPendingNotificationsBySubscriptionIdInfiniteQueryKey(subscriptionId);
+export const getGetPendingNotificationsBySubscriptionIdInfiniteQueryOptions = <
+  TData = InfiniteData<Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>>,
+  TError = ErrorType<ErrorInfo>,
+>(
+  subscriptionId: string,
+  options?: {
+    query?: Partial<
+      UseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  
+  const queryKey =
+    queryOptions?.queryKey ??
+    getGetPendingNotificationsBySubscriptionIdInfiniteQueryKey(subscriptionId);
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>> = ({ signal }) => getPendingNotificationsBySubscriptionId(subscriptionId, { signal, ...requestOptions });
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>
+  > = ({ signal }) =>
+    getPendingNotificationsBySubscriptionId(subscriptionId, { signal, ...requestOptions });
 
-      
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!subscriptionId,
+    ...queryOptions,
+  } as UseInfiniteQueryOptions<
+    Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData> };
+};
 
-      
+export type GetPendingNotificationsBySubscriptionIdInfiniteQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>
+>;
+export type GetPendingNotificationsBySubscriptionIdInfiniteQueryError = ErrorType<ErrorInfo>;
 
-   return  { queryKey, queryFn, enabled: !!(subscriptionId),  ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
-}
-
-export type GetPendingNotificationsBySubscriptionIdInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>>
-export type GetPendingNotificationsBySubscriptionIdInfiniteQueryError = ErrorType<ErrorInfo>
-
-
-export function useGetPendingNotificationsBySubscriptionIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>>, TError = ErrorType<ErrorInfo>>(
- subscriptionId: string, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>, TError, TData>> & Pick<
+export function useGetPendingNotificationsBySubscriptionIdInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>>,
+  TError = ErrorType<ErrorInfo>,
+>(
+  subscriptionId: string,
+  options: {
+    query: Partial<
+      UseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>,
           TError,
           Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
-export function useGetPendingNotificationsBySubscriptionIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>>, TError = ErrorType<ErrorInfo>>(
- subscriptionId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>, TError, TData>> & Pick<
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+export function useGetPendingNotificationsBySubscriptionIdInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>>,
+  TError = ErrorType<ErrorInfo>,
+>(
+  subscriptionId: string,
+  options?: {
+    query?: Partial<
+      UseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>,
           TError,
           Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
-export function useGetPendingNotificationsBySubscriptionIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>>, TError = ErrorType<ErrorInfo>>(
- subscriptionId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+export function useGetPendingNotificationsBySubscriptionIdInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>>,
+  TError = ErrorType<ErrorInfo>,
+>(
+  subscriptionId: string,
+  options?: {
+    query?: Partial<
+      UseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
 /**
  * @summary Get pending notifications for a subscription
  */
 
-export function useGetPendingNotificationsBySubscriptionIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>>, TError = ErrorType<ErrorInfo>>(
- subscriptionId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient 
- ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+export function useGetPendingNotificationsBySubscriptionIdInfinite<
+  TData = InfiniteData<Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>>,
+  TError = ErrorType<ErrorInfo>,
+>(
+  subscriptionId: string,
+  options?: {
+    query?: Partial<
+      UseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+  const queryOptions = getGetPendingNotificationsBySubscriptionIdInfiniteQueryOptions(
+    subscriptionId,
+    options,
+  );
 
-  const queryOptions = getGetPendingNotificationsBySubscriptionIdInfiniteQueryOptions(subscriptionId,options)
-
-  const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+  const query = useInfiniteQuery(queryOptions, queryClient) as UseInfiniteQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-
-
-
-export const getGetPendingNotificationsBySubscriptionIdQueryOptions = <TData = Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>, TError = ErrorType<ErrorInfo>>(subscriptionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getGetPendingNotificationsBySubscriptionIdQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>,
+  TError = ErrorType<ErrorInfo>,
+>(
+  subscriptionId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
 ) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-const {query: queryOptions, request: requestOptions} = options ?? {};
+  const queryKey =
+    queryOptions?.queryKey ?? getGetPendingNotificationsBySubscriptionIdQueryKey(subscriptionId);
 
-  const queryKey =  queryOptions?.queryKey ?? getGetPendingNotificationsBySubscriptionIdQueryKey(subscriptionId);
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>
+  > = ({ signal }) =>
+    getPendingNotificationsBySubscriptionId(subscriptionId, { signal, ...requestOptions });
 
-  
+  return { queryKey, queryFn, enabled: !!subscriptionId, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData> };
+};
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>> = ({ signal }) => getPendingNotificationsBySubscriptionId(subscriptionId, { signal, ...requestOptions });
+export type GetPendingNotificationsBySubscriptionIdQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>
+>;
+export type GetPendingNotificationsBySubscriptionIdQueryError = ErrorType<ErrorInfo>;
 
-      
-
-      
-
-   return  { queryKey, queryFn, enabled: !!(subscriptionId),  ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
-}
-
-export type GetPendingNotificationsBySubscriptionIdQueryResult = NonNullable<Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>>
-export type GetPendingNotificationsBySubscriptionIdQueryError = ErrorType<ErrorInfo>
-
-
-export function useGetPendingNotificationsBySubscriptionId<TData = Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>, TError = ErrorType<ErrorInfo>>(
- subscriptionId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>, TError, TData>> & Pick<
+export function useGetPendingNotificationsBySubscriptionId<
+  TData = Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>,
+  TError = ErrorType<ErrorInfo>,
+>(
+  subscriptionId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>,
           TError,
           Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
-export function useGetPendingNotificationsBySubscriptionId<TData = Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>, TError = ErrorType<ErrorInfo>>(
- subscriptionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>, TError, TData>> & Pick<
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+export function useGetPendingNotificationsBySubscriptionId<
+  TData = Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>,
+  TError = ErrorType<ErrorInfo>,
+>(
+  subscriptionId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>,
           TError,
           Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
-export function useGetPendingNotificationsBySubscriptionId<TData = Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>, TError = ErrorType<ErrorInfo>>(
- subscriptionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+export function useGetPendingNotificationsBySubscriptionId<
+  TData = Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>,
+  TError = ErrorType<ErrorInfo>,
+>(
+  subscriptionId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
 /**
  * @summary Get pending notifications for a subscription
  */
 
-export function useGetPendingNotificationsBySubscriptionId<TData = Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>, TError = ErrorType<ErrorInfo>>(
- subscriptionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient 
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+export function useGetPendingNotificationsBySubscriptionId<
+  TData = Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>,
+  TError = ErrorType<ErrorInfo>,
+>(
+  subscriptionId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof getPendingNotificationsBySubscriptionId>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+  const queryOptions = getGetPendingNotificationsBySubscriptionIdQueryOptions(
+    subscriptionId,
+    options,
+  );
 
-  const queryOptions = getGetPendingNotificationsBySubscriptionIdQueryOptions(subscriptionId,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData>;
+  };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
-
-
-
-

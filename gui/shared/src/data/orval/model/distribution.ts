@@ -9,10 +9,10 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { DataService } from './dataService';
+import type { DataService } from "./dataService";
 
 export interface Distribution {
-  '@type'?: string;
-  '@id'?: string;
+  "@type"?: string;
+  "@id"?: string;
   accessService?: DataService[];
 }

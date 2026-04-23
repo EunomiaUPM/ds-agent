@@ -11,5 +11,5 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  */
 
 export type GetSubscriptionsParams = {
-callback_address?: string;
+  callback_address?: string;
 };

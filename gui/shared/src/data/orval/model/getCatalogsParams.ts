@@ -11,5 +11,5 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  */
 
 export type GetCatalogsParams = {
-with_main_catalog?: boolean;
+  with_main_catalog?: boolean;
 };

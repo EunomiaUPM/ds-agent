@@ -25,7 +25,6 @@ npm install
 export ENV_FILE=./../../static/envs/.env.consumer.core && npm run dev -w consumer
 ```
 
-
 ### Building for Production
 
 To build the GUI for production, you can run the following commands from the `gui` directory

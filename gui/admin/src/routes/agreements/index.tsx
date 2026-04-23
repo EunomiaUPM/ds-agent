@@ -10,7 +10,7 @@ import { ArrowRight } from "lucide-react";
 import { PageLayout } from "shared/src/components/layout/PageLayout";
 import { PageHeader } from "shared/src/components/layout/PageHeader";
 import { PageSection } from "shared/src/components/layout/PageSection";
-import { AgreementActions } from "shared/src/components/actions/AgreementActions"
+import { AgreementActions } from "shared/src/components/actions/AgreementActions";
 
 /**
  * Route for listing all agreements.

@@ -9,7 +9,7 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { PullLifecycle } from './pullLifecycle';
-import type { PushLifecycle } from './pushLifecycle';
+import type { PullLifecycle } from "./pullLifecycle";
+import type { PushLifecycle } from "./pushLifecycle";
 
 export type InteractionConfig = PullLifecycle | PushLifecycle;

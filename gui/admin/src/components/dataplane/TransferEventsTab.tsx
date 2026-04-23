@@ -31,8 +31,7 @@ function useEventsChartData(events: TransferEventDto[]) {
     const byMinuteMs = new Map<number, number>();
     events.forEach((event) => {
       if (!event.created_at) return;
-      const ms =
-        Math.floor(new Date(event.created_at).getTime() / 60_000) * 60_000;
+      const ms = Math.floor(new Date(event.created_at).getTime() / 60_000) * 60_000;
       byMinuteMs.set(ms, (byMinuteMs.get(ms) ?? 0) + 1);
     });
 
@@ -67,10 +66,7 @@ export function TransferEventsTab({ events }: { events: TransferEventDto[] }) {
         </div>
         {chartData.length > 0 ? (
           <ChartContainer config={chartConfig} className="h-[200px] w-full">
-            <BarChart
-              data={chartData}
-              margin={{ top: 8, right: 16, left: 0, bottom: 0 }}
-            >
+            <BarChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
               <CartesianGrid vertical={false} strokeDasharray="3 3" />
               <XAxis
                 dataKey="time"
@@ -88,12 +84,7 @@ export function TransferEventsTab({ events }: { events: TransferEventDto[] }) {
                 width={28}
               />
               <ChartTooltip content={<ChartTooltipContent />} />
-              <Bar
-                dataKey="count"
-                fill="var(--color-count)"
-                radius={[4, 4, 0, 0]}
-                barSize={10}
-              />
+              <Bar dataKey="count" fill="var(--color-count)" radius={[4, 4, 0, 0]} barSize={10} />
             </BarChart>
           </ChartContainer>
         ) : (
@@ -147,9 +138,7 @@ export function TransferEventsTab({ events }: { events: TransferEventDto[] }) {
                     </span>
                   </TableCell>
                   <TableCell className="text-xs max-w-[200px]">
-                    {event.message ?? (
-                      <span className="italic text-muted-foreground">—</span>
-                    )}
+                    {event.message ?? <span className="italic text-muted-foreground">—</span>}
                   </TableCell>
                   <TableCell>
                     {event.data &&
@@ -157,9 +146,7 @@ export function TransferEventsTab({ events }: { events: TransferEventDto[] }) {
                     Object.keys(event.data).length > 0 ? (
                       <EventData data={event.data as Record<string, unknown>} />
                     ) : (
-                      <span className="text-muted-foreground italic text-xs">
-                        —
-                      </span>
+                      <span className="text-muted-foreground italic text-xs">—</span>
                     )}
                   </TableCell>
                 </TableRow>

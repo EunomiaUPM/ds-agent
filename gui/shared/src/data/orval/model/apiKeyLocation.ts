@@ -10,10 +10,9 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  * OpenAPI spec version: 1.0.0
  */
 
-export type ApiKeyLocation = typeof ApiKeyLocation[keyof typeof ApiKeyLocation];
-
+export type ApiKeyLocation = (typeof ApiKeyLocation)[keyof typeof ApiKeyLocation];
 
 export const ApiKeyLocation = {
-  HEADER: 'HEADER',
-  QUERY: 'QUERY',
+  HEADER: "HEADER",
+  QUERY: "QUERY",
 } as const;

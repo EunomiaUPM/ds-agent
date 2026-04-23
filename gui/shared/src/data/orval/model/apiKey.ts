@@ -9,8 +9,8 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { ApiKeyLocation } from './apiKeyLocation';
-import type { ApiKeyType } from './apiKeyType';
+import type { ApiKeyLocation } from "./apiKeyLocation";
+import type { ApiKeyType } from "./apiKeyType";
 
 export interface ApiKey {
   type: ApiKeyType;

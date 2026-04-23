@@ -9,6 +9,8 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { PolicyTemplateAllowedDefaultValues } from './policyTemplateAllowedDefaultValues';
+import type { PolicyTemplateAllowedDefaultValues } from "./policyTemplateAllowedDefaultValues";
 
-export type NewPolicyInstantiationDtoParameters = {[key: string]: PolicyTemplateAllowedDefaultValues};
+export type NewPolicyInstantiationDtoParameters = {
+  [key: string]: PolicyTemplateAllowedDefaultValues;
+};

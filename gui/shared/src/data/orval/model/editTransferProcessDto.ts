@@ -9,9 +9,9 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { EditTransferProcessDtoErrorDetails } from './editTransferProcessDtoErrorDetails';
-import type { EditTransferProcessDtoIdentifiers } from './editTransferProcessDtoIdentifiers';
-import type { EditTransferProcessDtoProperties } from './editTransferProcessDtoProperties';
+import type { EditTransferProcessDtoErrorDetails } from "./editTransferProcessDtoErrorDetails";
+import type { EditTransferProcessDtoIdentifiers } from "./editTransferProcessDtoIdentifiers";
+import type { EditTransferProcessDtoProperties } from "./editTransferProcessDtoProperties";
 
 export interface EditTransferProcessDto {
   /** @nullable */

@@ -10,10 +10,9 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  * OpenAPI spec version: 1.0.0
  */
 
-export type TransferRole = typeof TransferRole[keyof typeof TransferRole];
-
+export type TransferRole = (typeof TransferRole)[keyof typeof TransferRole];
 
 export const TransferRole = {
-  PROVIDER: 'PROVIDER',
-  CONSUMER: 'CONSUMER',
+  PROVIDER: "PROVIDER",
+  CONSUMER: "CONSUMER",
 } as const;

@@ -54,16 +54,14 @@ function RouteComponent() {
     return (
       <PageLayout>
         <PageHeader title="Participants" />
-        <div className="space-y-6">
-          Loading...
-        </div>
+        <div className="space-y-6">Loading...</div>
       </PageLayout>
     );
   }
 
   if (isError || !participants || participants.status !== 200) {
     const finalError = error instanceof Error ? error : new Error("Participants not found");
-    return <GeneralErrorComponent error={finalError} reset={() => { }} />;
+    return <GeneralErrorComponent error={finalError} reset={() => {}} />;
   }
 
   // ---------------------------------------------------------------------------

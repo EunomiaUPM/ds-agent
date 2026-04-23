@@ -9,13 +9,13 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { ContextField } from './contextField';
-import type { NegotiationProcessMessageWrapperNegotiationAgreementMessageDtoType } from './negotiationProcessMessageWrapperNegotiationAgreementMessageDtoType';
-import type { OdrlOffer } from './odrlOffer';
+import type { ContextField } from "./contextField";
+import type { NegotiationProcessMessageWrapperNegotiationAgreementMessageDtoType } from "./negotiationProcessMessageWrapperNegotiationAgreementMessageDtoType";
+import type { OdrlOffer } from "./odrlOffer";
 
 export interface NegotiationProcessMessageWrapperNegotiationAgreementMessageDto {
-  '@context'?: ContextField;
-  '@type': NegotiationProcessMessageWrapperNegotiationAgreementMessageDtoType;
+  "@context"?: ContextField;
+  "@type": NegotiationProcessMessageWrapperNegotiationAgreementMessageDtoType;
   consumerPid: string;
   providerPid: string;
   agreement: OdrlOffer;

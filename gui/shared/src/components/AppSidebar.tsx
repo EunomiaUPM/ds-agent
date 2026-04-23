@@ -28,7 +28,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarGroupLabel
+  SidebarGroupLabel,
 } from "./ui/sidebar";
 import logoImg from "./../img/eunomia_logo_lg_light.svg";
 import { GlobalInfoContext, GlobalInfoContextType } from "shared/src/context/GlobalInfoContext";
@@ -86,55 +86,55 @@ export function AppSidebar() {
    */
   const navGroups: NavGroup[] = [
     {
-    title: "General",
-    items: [
-      {
-        title: "Catalog",
-        url: "/admin/catalog",
-        icon: Search,
-      },
-      {
-        title: "Datahub Catalogs",
-        url: "/admin/datahub-catalog",
-        icon: Archive,
-      },
-      {
-        title: "Contract Negotiation",
-        url: "/admin/contract-negotiation",
-        icon: Feather,
-      },
-      {
-        title: "Agreements",
-        url: "/admin/agreements",
-        icon: Handshake,
-      },
-      {
-        title: "Transferences",
-        url: "/admin/transfer-process",
-        icon: ArrowLeftRight,
-      },
-      {
-        title: "Participants",
-        url: "/admin/participants",
-        icon: Users,
-      },
-      {
-        title: "SSI Auth",
-        url: "/admin/ssi-auth",
-        icon: Lock,
-      },
-    ],
-  },
-  {
-    title: "My area",
-    items: [
+      title: "General",
+      items: [
         {
-        title: "My Catalog",
-        url: "/admin/my-catalog",
-        icon: Archive,
-      },
-    ]
-  }
+          title: "Catalog",
+          url: "/admin/catalog",
+          icon: Search,
+        },
+        {
+          title: "Datahub Catalogs",
+          url: "/admin/datahub-catalog",
+          icon: Archive,
+        },
+        {
+          title: "Contract Negotiation",
+          url: "/admin/contract-negotiation",
+          icon: Feather,
+        },
+        {
+          title: "Agreements",
+          url: "/admin/agreements",
+          icon: Handshake,
+        },
+        {
+          title: "Transferences",
+          url: "/admin/transfer-process",
+          icon: ArrowLeftRight,
+        },
+        {
+          title: "Participants",
+          url: "/admin/participants",
+          icon: Users,
+        },
+        {
+          title: "SSI Auth",
+          url: "/admin/ssi-auth",
+          icon: Lock,
+        },
+      ],
+    },
+    {
+      title: "My area",
+      items: [
+        {
+          title: "My Catalog",
+          url: "/admin/my-catalog",
+          icon: Archive,
+        },
+      ],
+    },
   ];
 
   /**
@@ -159,58 +159,59 @@ export function AppSidebar() {
   return (
     <Sidebar className="bg-base-sidebar">
       <SidebarContent>
-           {/* Logo */}
-          <Link to="/admin/">
-            <img
-              src={logoImg}
-              className="h-11 mt-2 mb-4 mr-auto ml-1 flex justify-start object-contain"
-              alt="Eunomia Logo"
-            />
-            {console.log(itemsFiltered, "itemsFiltered")}
-          </Link>
-         {navGroups.map((group) => (
-        <SidebarGroup>
-          {/* Navigation Menu */}
-          <SidebarGroupContent>
-            <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
-            <SidebarMenu>
-              {(navGroups[0].title !== group.title) ? (group.items.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <Link
-                      to={item.url}
-                      className={
-                        routerState.location.pathname === item.url ? "bg-white/10 text-white" : ""
-                      }
-                    >
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )))
-               : 
-              (itemsFiltered.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <Link
-                      to={item.url}
-                      className={
-                        routerState.location.pathname === item.url ? "bg-white/10 text-white" : ""
-                      }
-                    >
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )
-            ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-         )
-        )}
+        {/* Logo */}
+        <Link to="/admin/">
+          <img
+            src={logoImg}
+            className="h-11 mt-2 mb-4 mr-auto ml-1 flex justify-start object-contain"
+            alt="Eunomia Logo"
+          />
+        </Link>
+        {navGroups.map((group) => (
+          <SidebarGroup>
+            {/* Navigation Menu */}
+            <SidebarGroupContent>
+              <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
+              <SidebarMenu>
+                {navGroups[0].title !== group.title
+                  ? group.items.map((item) => (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton asChild>
+                          <Link
+                            to={item.url}
+                            className={
+                              routerState.location.pathname === item.url
+                                ? "bg-white/10 text-white"
+                                : ""
+                            }
+                          >
+                            <item.icon />
+                            <span>{item.title}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))
+                  : itemsFiltered.map((item) => (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton asChild>
+                          <Link
+                            to={item.url}
+                            className={
+                              routerState.location.pathname === item.url
+                                ? "bg-white/10 text-white"
+                                : ""
+                            }
+                          >
+                            <item.icon />
+                            <span>{item.title}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
     </Sidebar>
   );

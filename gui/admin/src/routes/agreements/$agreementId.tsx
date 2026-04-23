@@ -1,5 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useGetAgreementByIdS, getGetAgreementByIdSQueryOptions } from "shared/src/data/orval/negotiations/negotiations";
+import {
+  useGetAgreementByIdS,
+  getGetAgreementByIdSQueryOptions,
+} from "shared/src/data/orval/negotiations/negotiations";
 import { InfoList } from "shared/src/components/ui/info-list";
 import { FormatDate } from "shared/src/components/ui/format-date";
 import { Badge } from "shared/src/components/ui/badge.tsx";

@@ -9,8 +9,8 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { OAuth2GrantType } from './oAuth2GrantType';
-import type { OAuth2Type } from './oAuth2Type';
+import type { OAuth2GrantType } from "./oAuth2GrantType";
+import type { OAuth2Type } from "./oAuth2Type";
 
 export interface OAuth2 {
   type: OAuth2Type;

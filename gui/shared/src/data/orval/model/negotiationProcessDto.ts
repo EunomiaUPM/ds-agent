@@ -9,12 +9,12 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { AgreementDto } from './agreementDto';
-import type { NegotiationMessageDto } from './negotiationMessageDto';
-import type { NegotiationProcessDtoErrorDetails } from './negotiationProcessDtoErrorDetails';
-import type { NegotiationProcessDtoIdentifiers } from './negotiationProcessDtoIdentifiers';
-import type { NegotiationProcessDtoProperties } from './negotiationProcessDtoProperties';
-import type { OfferDto } from './offerDto';
+import type { AgreementDto } from "./agreementDto";
+import type { NegotiationMessageDto } from "./negotiationMessageDto";
+import type { NegotiationProcessDtoErrorDetails } from "./negotiationProcessDtoErrorDetails";
+import type { NegotiationProcessDtoIdentifiers } from "./negotiationProcessDtoIdentifiers";
+import type { NegotiationProcessDtoProperties } from "./negotiationProcessDtoProperties";
+import type { OfferDto } from "./offerDto";
 
 export interface NegotiationProcessDto {
   id: string;

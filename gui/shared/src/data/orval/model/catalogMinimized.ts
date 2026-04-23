@@ -11,7 +11,7 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  */
 
 export interface CatalogMinimized {
-  '@type'?: string;
-  '@id'?: string;
+  "@type"?: string;
+  "@id"?: string;
   homepage?: string;
 }

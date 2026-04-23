@@ -43,7 +43,9 @@ export const AuthContextProvider = ({ children }: { children: ReactNode }) => {
   /**
    * State
    */
-  const [participant, setParticipant] = useState<ParticipantDto | null>(initialAuthData.participant);
+  const [participant, setParticipant] = useState<ParticipantDto | null>(
+    initialAuthData.participant,
+  );
   const [clientToken, setClientToken] = useState<string | null>(initialAuthData.clientToken);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
     !!initialAuthData.participant && !!initialAuthData.clientToken,

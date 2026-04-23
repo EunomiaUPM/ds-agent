@@ -9,9 +9,9 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { OdrlInfoProfile } from './odrlInfoProfile';
-import type { OdrlObligation } from './odrlObligation';
-import type { OdrlPermission } from './odrlPermission';
+import type { OdrlInfoProfile } from "./odrlInfoProfile";
+import type { OdrlObligation } from "./odrlObligation";
+import type { OdrlPermission } from "./odrlPermission";
 
 export interface OdrlInfo {
   profile?: OdrlInfoProfile;

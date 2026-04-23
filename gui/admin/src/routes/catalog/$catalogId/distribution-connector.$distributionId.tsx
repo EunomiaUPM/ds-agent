@@ -24,19 +24,19 @@ import { CopyButton } from "@/components/dataplane/CopyButton";
 // =============================================================================
 
 const METHOD_COLORS: Record<string, string> = {
-  GET:    "text-success-300 border-success-500/40",
-  POST:   "text-sky-300 border-sky-500/40",
-  PUT:    "text-warn-300 border-warn-500/40",
-  PATCH:  "text-warn-300 border-warn-500/40",
+  GET: "text-success-300 border-success-500/40",
+  POST: "text-sky-300 border-sky-500/40",
+  PUT: "text-warn-300 border-warn-500/40",
+  PATCH: "text-warn-300 border-warn-500/40",
   DELETE: "text-danger-300 border-danger-500/40",
 };
 
 const AUTH_LABELS: Record<string, string> = {
-  NO_AUTH:            "No Auth",
-  BASIC:              "Basic Auth",
-  BEARER:             "Bearer Token",
-  API_KEY:            "API Key",
-  OAUTH2:             "OAuth 2.0",
+  NO_AUTH: "No Auth",
+  BASIC: "Basic Auth",
+  BEARER: "Bearer Token",
+  API_KEY: "API Key",
+  OAUTH2: "OAuth 2.0",
   OAUTH2_CLIENT_CRED: "OAuth 2.0 Client Credentials",
 };
 
@@ -50,11 +50,11 @@ function MethodBadge({ method }: { method?: string | string[] }) {
   const methods = Array.isArray(method) ? method : [method];
 
   return (
-      <>
-        {methods.map((m) => (
-            <span key={m}>{m.toUpperCase()}</span>
-        ))}
-      </>
+    <>
+      {methods.map((m) => (
+        <span key={m}>{m.toUpperCase()}</span>
+      ))}
+    </>
   );
 }
 
@@ -64,13 +64,13 @@ function ProtocolBadge({ protocol }: { protocol?: string | string[] }) {
   const protocols = Array.isArray(protocol) ? protocol : [protocol];
 
   return (
-      <>
-        {protocols.map((p) => (
-            <Badge key={p} variant="info" className="text-primary-300 border-primary-500/40">
-              {p}
-            </Badge>
-        ))}
-      </>
+    <>
+      {protocols.map((p) => (
+        <Badge key={p} variant="info" className="text-primary-300 border-primary-500/40">
+          {p}
+        </Badge>
+      ))}
+    </>
   );
 }
 
@@ -158,7 +158,9 @@ function RequestStep({ label, step }: { label: string; step: Record<string, unkn
             {Object.entries(rest).map(([k, v]) => (
               <div key={k} className="flex gap-2 font-mono text-xs">
                 <span className="text-muted-foreground shrink-0 min-w-[120px]">{k}</span>
-                <span className="break-all">{typeof v === "object" ? JSON.stringify(v) : String(v ?? "—")}</span>
+                <span className="break-all">
+                  {typeof v === "object" ? JSON.stringify(v) : String(v ?? "—")}
+                </span>
               </div>
             ))}
           </div>
@@ -178,10 +180,13 @@ function RouteComponent() {
   const { data: connectorData } = useGetConnectorInstanceByDistribution(distributionId);
 
   const distribution = distributionData?.status === 200 ? distributionData.data : undefined;
-  const connector = connectorData?.status === 200 ? (connectorData.data as ConnectorInstanceDto) : undefined;
+  const connector =
+    connectorData?.status === 200 ? (connectorData.data as ConnectorInstanceDto) : undefined;
 
   const auth = connector?.authenticationConfig as { type?: string } | undefined;
-  const interaction = connector?.interaction as (PushLifecycle & Record<string, unknown>) | undefined;
+  const interaction = connector?.interaction as
+    | (PushLifecycle & Record<string, unknown>)
+    | undefined;
   const isPush = interaction?.mode === "PUSH";
 
   return (
@@ -270,9 +275,7 @@ function RouteComponent() {
             <PageSection title="Authentication">
               <div className="flex items-center gap-2 py-1">
                 <span className="text-xs text-muted-foreground">Type</span>
-                <Badge variant="info">
-                  {AUTH_LABELS[auth.type ?? ""] ?? auth.type ?? "—"}
-                </Badge>
+                <Badge variant="info">{AUTH_LABELS[auth.type ?? ""] ?? auth.type ?? "—"}</Badge>
               </div>
 
               {/* Extra auth fields (e.g. username for basic, token hint, etc.) */}
@@ -320,7 +323,9 @@ function RouteComponent() {
                 {!isPush && Boolean((interaction as Record<string, unknown>).dataAccess) && (
                   <RequestStep
                     label="Data Access"
-                    step={(interaction as Record<string, unknown>).dataAccess as Record<string, unknown>}
+                    step={
+                      (interaction as Record<string, unknown>).dataAccess as Record<string, unknown>
+                    }
                   />
                 )}
               </div>
@@ -335,15 +340,11 @@ function RouteComponent() {
 /**
  * Route for displaying distribution connector details.
  */
-export const Route = createFileRoute(
-  "/catalog/$catalogId/distribution-connector/$distributionId",
-)({
+export const Route = createFileRoute("/catalog/$catalogId/distribution-connector/$distributionId")({
   component: RouteComponent,
   pendingComponent: () => <div>Loading...</div>,
   loader: async ({ context: { queryClient }, params: { distributionId } }) => {
-    await queryClient.ensureQueryData(
-      getGetDistributionByIdQueryOptions(distributionId),
-    );
+    await queryClient.ensureQueryData(getGetDistributionByIdQueryOptions(distributionId));
     return queryClient.ensureQueryData(
       getGetConnectorInstanceByDistributionQueryOptions(distributionId),
     );

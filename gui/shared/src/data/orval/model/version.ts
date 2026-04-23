@@ -9,10 +9,10 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { Auth } from './auth';
-import type { VersionBinding } from './versionBinding';
-import type { VersionIdentifierType } from './versionIdentifierType';
-import type { VersionVersion } from './versionVersion';
+import type { Auth } from "./auth";
+import type { VersionBinding } from "./versionBinding";
+import type { VersionIdentifierType } from "./versionIdentifierType";
+import type { VersionVersion } from "./versionVersion";
 
 export interface Version {
   binding: VersionBinding;

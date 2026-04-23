@@ -10,10 +10,9 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  * OpenAPI spec version: 1.0.0
  */
 
-export type OAuth2GrantType = typeof OAuth2GrantType[keyof typeof OAuth2GrantType];
-
+export type OAuth2GrantType = (typeof OAuth2GrantType)[keyof typeof OAuth2GrantType];
 
 export const OAuth2GrantType = {
-  ClientCredentials: 'ClientCredentials',
-  AuthorizationCode: 'AuthorizationCode',
+  ClientCredentials: "ClientCredentials",
+  AuthorizationCode: "AuthorizationCode",
 } as const;

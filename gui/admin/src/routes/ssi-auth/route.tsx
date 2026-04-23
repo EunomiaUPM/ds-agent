@@ -1,5 +1,5 @@
-import { createFileRoute, Outlet, useRouterState } from '@tanstack/react-router'
-import Heading from 'shared/src/components/ui/heading'
+import { createFileRoute, Outlet, useRouterState } from "@tanstack/react-router";
+import Heading from "shared/src/components/ui/heading";
 
 const NotFound = () => {
   return <div>not found</div>;
@@ -27,4 +27,3 @@ export const Route = createFileRoute("/ssi-auth")({
   component: RouteComponent,
   notFoundComponent: NotFound,
 });
-

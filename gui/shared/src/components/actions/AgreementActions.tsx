@@ -21,7 +21,8 @@ export const AgreementActions: FC<{
   const { data: negotiationProcessResponse } = useGetNegotiationProcessById(
     process.negotiationAgentProcessId,
   );
-  const negotiationProcess = negotiationProcessResponse?.status === 200 ? negotiationProcessResponse.data : undefined;
+  const negotiationProcess =
+    negotiationProcessResponse?.status === 200 ? negotiationProcessResponse.data : undefined;
 
   // Define container class name with variants
   const containerClassName = cva("", {
@@ -42,7 +43,7 @@ export const AgreementActions: FC<{
           label: "Terminate",
           variant: "destructive",
           Component: TransferProcessTerminationDialog,
-        }
+        },
       ];
     }
     if (negotiationProcess?.role === "Consumer") {
@@ -56,7 +57,7 @@ export const AgreementActions: FC<{
           label: "Transfer Request",
           variant: "default",
           Component: TransferProcessRequestDialog,
-        }
+        },
       ];
     }
     return [];

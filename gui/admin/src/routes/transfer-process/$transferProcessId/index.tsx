@@ -19,8 +19,7 @@ export const Route = createFileRoute("/transfer-process/$transferProcessId/")({
 
 function RouteComponent() {
   const { transferProcessId } = Route.useParams();
-  const { isLoading, tp, dp, info, logs, events } =
-    useTransferProcessDetail(transferProcessId);
+  const { isLoading, tp, dp, info, logs, events } = useTransferProcessDetail(transferProcessId);
 
   if (isLoading) {
     return (
@@ -33,10 +32,7 @@ function RouteComponent() {
 
   if (!tp) {
     return (
-      <GeneralErrorComponent
-        error={new Error("Transfer process not found")}
-        reset={() => {}}
-      />
+      <GeneralErrorComponent error={new Error("Transfer process not found")} reset={() => {}} />
     );
   }
 

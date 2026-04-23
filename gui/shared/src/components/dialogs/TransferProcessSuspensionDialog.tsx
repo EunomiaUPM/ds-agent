@@ -10,10 +10,19 @@ import { GlobalInfoContext, GlobalInfoContextType } from "../../context/GlobalIn
 import { BaseProcessDialog, mapTransferProcessToInfoItems } from "./base";
 import { TransferProcessDto } from "../../data/orval/model";
 import { useSetupTransferSuspension } from "../../data/orval/transfer-rp-c/transfer-rp-c";
-import { useGetTransferProcesses, useGetTransferProcessById } from "../../data/orval/transfers/transfers";
+import {
+  useGetTransferProcesses,
+  useGetTransferProcessById,
+} from "../../data/orval/transfers/transfers";
 import { useRouter } from "@tanstack/react-router";
 
-export const TransferProcessSuspensionDialog = ({ process, onClose }: { process: TransferProcessDto; onClose?: () => void }) => {
+export const TransferProcessSuspensionDialog = ({
+  process,
+  onClose,
+}: {
+  process: TransferProcessDto;
+  onClose?: () => void;
+}) => {
   const { api_gateway, dsrole } = useContext<GlobalInfoContextType | null>(GlobalInfoContext)!;
   const { mutateAsync: suspendAsync } = useSetupTransferSuspension();
   const { refetch } = useGetTransferProcesses();
@@ -33,8 +42,8 @@ export const TransferProcessSuspensionDialog = ({ process, onClose }: { process:
         providerPid: process.identifiers.providerPid,
         code: "SUSPENDED",
         reason: ["Suspended from GUI"],
-      }
-    })
+      },
+    });
     await refetch();
     await refetchDetail();
     router.invalidate();

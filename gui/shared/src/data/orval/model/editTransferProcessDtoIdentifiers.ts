@@ -13,4 +13,4 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 /**
  * @nullable
  */
-export type EditTransferProcessDtoIdentifiers = {[key: string]: string} | null;
+export type EditTransferProcessDtoIdentifiers = { [key: string]: string } | null;

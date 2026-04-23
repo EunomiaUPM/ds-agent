@@ -9,10 +9,10 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { ApiKey } from './apiKey';
-import type { BasicAuthConfig } from './basicAuthConfig';
-import type { BearerToken } from './bearerToken';
-import type { NoAuth } from './noAuth';
-import type { OAuth2 } from './oAuth2';
+import type { ApiKey } from "./apiKey";
+import type { BasicAuthConfig } from "./basicAuthConfig";
+import type { BearerToken } from "./bearerToken";
+import type { NoAuth } from "./noAuth";
+import type { OAuth2 } from "./oAuth2";
 
 export type AuthenticationConfig = NoAuth | BasicAuthConfig | BearerToken | ApiKey | OAuth2;

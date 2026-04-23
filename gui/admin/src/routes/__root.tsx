@@ -1,5 +1,10 @@
 import { QueryClient } from "@tanstack/react-query";
-import { createRootRouteWithContext, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
+import {
+  createRootRouteWithContext,
+  Outlet,
+  useLocation,
+  useNavigate,
+} from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/router-devtools";
 import { SidebarInset, SidebarProvider } from "../../../shared/src/components/ui/sidebar";
 import React, { useEffect, useState } from "react";
@@ -12,7 +17,7 @@ import { Button } from "shared/src/components/ui/button";
 import { Eye, EyeOff } from "lucide-react";
 import { clearSession, isSessionActive, setSession } from "../lib/session";
 import eunomiaLogo from "shared/src/img/eunomia_logo_lg_light.svg";
-import {DevMode} from "shared/src/components/DevMode"
+import { DevMode } from "shared/src/components/DevMode";
 
 export const Route = createRootRouteWithContext<{
   queryClient: QueryClient;
@@ -46,7 +51,12 @@ function RootComponent() {
         <DevMode />
         <AppSidebar />
         <SidebarInset>
-          <Header onSignOut={() => { clearSession(); setAuthed(false); }} />
+          <Header
+            onSignOut={() => {
+              clearSession();
+              setAuthed(false);
+            }}
+          />
           <div className="flex flex-1 flex-col gap-4 p-8 items-start justify-start w-full h-full min-w-0">
             <Outlet />
           </div>
@@ -107,7 +117,10 @@ function LoginForm({ onSuccess }: { onSuccess: () => void }) {
                 type="text"
                 autoComplete="username"
                 value={username}
-                onChange={(e) => { setUsername(e.target.value); setError(null); }}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  setError(null);
+                }}
                 placeholder="agent"
               />
             </div>
@@ -122,7 +135,10 @@ function LoginForm({ onSuccess }: { onSuccess: () => void }) {
                   type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   value={password}
-                  onChange={(e) => { setPassword(e.target.value); setError(null); }}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setError(null);
+                  }}
                   placeholder="••••••••"
                   className="pr-10"
                 />
@@ -137,9 +153,7 @@ function LoginForm({ onSuccess }: { onSuccess: () => void }) {
               </div>
             </div>
 
-            {error && (
-              <p className="text-sm text-destructive">{error}</p>
-            )}
+            {error && <p className="text-sm text-destructive">{error}</p>}
 
             <Button type="submit" className="w-full">
               Sign in

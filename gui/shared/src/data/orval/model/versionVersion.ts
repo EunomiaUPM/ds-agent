@@ -10,10 +10,9 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  * OpenAPI spec version: 1.0.0
  */
 
-export type VersionVersion = typeof VersionVersion[keyof typeof VersionVersion];
-
+export type VersionVersion = (typeof VersionVersion)[keyof typeof VersionVersion];
 
 export const VersionVersion = {
-  '2024-1': '2024-1',
-  '2025-1': '2025-1',
+  "2024-1": "2024-1",
+  "2025-1": "2025-1",
 } as const;

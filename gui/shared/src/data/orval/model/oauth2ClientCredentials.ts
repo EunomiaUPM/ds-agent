@@ -9,7 +9,7 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { Oauth2ClientCredentialsType } from './oauth2ClientCredentialsType';
+import type { Oauth2ClientCredentialsType } from "./oauth2ClientCredentialsType";
 
 export interface Oauth2ClientCredentials {
   type?: Oauth2ClientCredentialsType;

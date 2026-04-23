@@ -9,9 +9,9 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { OdrlPolicyDtoEntityType } from './odrlPolicyDtoEntityType';
-import type { OdrlPolicyDtoInstantiationParameters } from './odrlPolicyDtoInstantiationParameters';
-import type { OdrlPolicyInfo } from './odrlPolicyInfo';
+import type { OdrlPolicyDtoEntityType } from "./odrlPolicyDtoEntityType";
+import type { OdrlPolicyDtoInstantiationParameters } from "./odrlPolicyDtoInstantiationParameters";
+import type { OdrlPolicyInfo } from "./odrlPolicyInfo";
 
 export interface OdrlPolicyDto {
   id?: string;

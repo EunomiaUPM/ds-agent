@@ -2288,6 +2288,31 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '500':
           $ref: '#/components/responses/InternalServerError'
+
+  /peer-catalogs:
+    get:
+      tags:
+        - Peer Catalogs
+      summary: Get all remote peer catalog
+      operationId: getAllPeerCatalog
+      responses:
+        "200":
+          description: Peer Catalogs found
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: array
+                  prefixItems:
+                    - $ref: "#/components/schemas/Mates"
+                    - $ref: "#/components/schemas/Catalog"
+                  minItems: 2
+                  maxItems: 2
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
   /peer-catalogs/{peer_id}:
     parameters:
     - name: peer_id
@@ -6602,6 +6627,43 @@ components:
       required:
       - protocol
       - version
+    Mates:
+      type: object
+      required:
+        - participant_id
+        - participant_slug
+        - participant_type
+        - saved_at
+        - last_interaction
+        - is_me
+      properties:
+        participant_id:
+          type: string
+        participant_slug:
+          type: string
+        participant_type:
+          type: string
+        base_url:
+          type: string
+          nullable: true
+        token:
+          type: string
+          nullable: true
+        token_actions:
+          type: string
+          nullable: true
+        saved_at:
+          type: string
+          format: date-time
+          description: Formato NaiveDateTime de chrono
+        last_interaction:
+          type: string
+          format: date-time
+        extra_fields:
+          nullable: true
+          description: Valor JSON arbitrario
+        is_me:
+          type: boolean
   responses:
     BadRequest:
       description: Bad Request
@@ -6684,3 +6746,4 @@ components:
       scheme: bearer
       bearerFormat: JWT
   requestBodies: {}
+

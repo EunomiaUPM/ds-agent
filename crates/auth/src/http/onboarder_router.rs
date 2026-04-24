@@ -23,8 +23,7 @@ use axum::extract::{Path, Query, State};
 use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::{Json, Router};
-use ymir::data::entities::mates;
-use ymir::data::entities::req_request::Model;
+use ymir::data::entities::{mates, req_request};
 use ymir::errors::AppResult;
 use ymir::types::gnap::{ApprovedCallbackBody, CallbackBody};
 use ymir::utils::{extract_payload, extract_query_param};
@@ -92,20 +91,14 @@ impl OnboarderRouter {
 
     async fn get_all(
         State(onboarder): State<Arc<dyn CoreOnboarderTrait>>,
-    ) -> AppResult {
-        Ok(match onboarder.get_all().await {
-            Ok(models) => Json(models).into_response(),
-            Err(e) => e.into_response()
-        })
+    ) -> AppResult<Json<Vec<req_request::Model>>> {
+        Ok(Json(onboarder.get_all().await?))
     }
 
     async fn get_one(
         State(onboarder): State<Arc<dyn CoreOnboarderTrait>>,
         Path(id): Path<String>,
-    ) -> AppResult {
-        Ok(match onboarder.get_by_id(id).await {
-            Ok(model) => Json(model).into_response(),
-            Err(e) => e.into_response()
-        })
+    ) -> AppResult<Json<req_request::Model>> {
+        Ok(Json(onboarder.get_by_id(id).await?))
     }
 }

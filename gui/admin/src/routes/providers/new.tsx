@@ -21,6 +21,12 @@ const schema = z.object({
   actions: z.array(z.string()).min(1, "Select at least one action"),
 });
 
+interface DidService {
+  id?: string;
+  type: string;
+  serviceEndpoint: string;
+}
+
 type FormValues = z.infer<typeof schema>;
 
 // @ts-ignore
@@ -31,7 +37,7 @@ export const Route = createFileRoute("/providers/new")({
 function NewProviderOnboard() {
   const navigate = useNavigate();
   const [isDiscovering, setIsDiscovering] = useState(false);
-  const [discoveredId, setDiscoveredId] = useState<string | null>(null);
+  const [discoveredInfo, setDiscoveredInfo] = useState<{ id: string; services: DidService[] } | null>(null);
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
 
   const form = useForm<FormValues>({
@@ -54,13 +60,13 @@ function NewProviderOnboard() {
     try {
       const cleanUrl = url.replace(/\/$/, "");
       
-      // Fetch DID from .well-known/did.json
-      const didResponse = await fetch(`${cleanUrl}/.well-known/did.json`);
+       const didResponse = await fetch(`${cleanUrl}/.well-known/did.json`);
       if (!didResponse.ok) throw new Error("Failed to fetch DID document");
       const didJson = await didResponse.json();
       const id = didJson.id;
+      const services = (didJson.service || []) as DidService[];
 
-      setDiscoveredId(id);
+      setDiscoveredInfo({ id, services });
     } catch (err: any) {
       console.error(err);
       setDiscoveryError(err.message || "Could not discover provider info");
@@ -70,14 +76,18 @@ function NewProviderOnboard() {
   };
 
   const onSubmit = async (values: FormValues) => {
-    if (!discoveredId) return;
+    if (!discoveredInfo) return;
 
     try {
+      const authService = discoveredInfo.services.find(s => s.type === "AuthorizationServer");
+      const targetUrl = authService?.serviceEndpoint || values.url;
+
       await customInstance(`/onboard/provider`, {
         method: "POST",
         data: {
           ...values,
-          id: discoveredId,
+          id: discoveredInfo.id,
+          url: targetUrl,
         },
       });
 
@@ -226,7 +236,7 @@ function NewProviderOnboard() {
                       )}
                     />
 
-                    <Button type="submit" className="w-full" disabled={!discoveredId}>
+                    <Button type="submit" className="w-full" disabled={!discoveredInfo}>
                       Initiate Onboarding
                     </Button>
                   </form>
@@ -251,13 +261,27 @@ function NewProviderOnboard() {
                   </div>
                 )}
                 
-                {discoveredId ? (
+                {discoveredInfo ? (
                   <div className="space-y-4">
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Provider DID</p>
                       <Badge variant="infoLighter" className="font-mono text-[10px] break-all p-2">
-                        {discoveredId}
+                        {discoveredInfo.id}
                       </Badge>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Services</p>
+                      <div className="space-y-2 pt-1">
+                        {discoveredInfo.services.map((s, idx) => (
+                          <div key={idx} className="p-2 border rounded bg-background-200/50 text-[10px] space-y-1">
+                            <p className="font-bold text-primary">{s.type}</p>
+                            <p className="break-all opacity-70">{s.serviceEndpoint}</p>
+                          </div>
+                        ))}
+                        {discoveredInfo.services.length === 0 && (
+                          <p className="text-[10px] italic opacity-50">No services found</p>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-green-500 font-medium pt-2">
                       <CheckCircle2 className="h-4 w-4" />

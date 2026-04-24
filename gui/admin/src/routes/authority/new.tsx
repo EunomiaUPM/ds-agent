@@ -23,6 +23,12 @@ const schema = z.object({
   auto: z.boolean().default(true),
 });
 
+interface DidService {
+  id?: string;
+  type: string;
+  serviceEndpoint: string;
+}
+
 type FormValues = z.infer<typeof schema>;
 
 // @ts-ignore
@@ -33,7 +39,7 @@ export const Route = createFileRoute("/authority/new")({
 function NewAuthorityRequest() {
   const navigate = useNavigate();
   const [isDiscovering, setIsDiscovering] = useState(false);
-  const [discoveredInfo, setDiscoveredInfo] = useState<{ id: string; vc_types: string[] } | null>(null);
+  const [discoveredInfo, setDiscoveredInfo] = useState<{ id: string; vc_types: string[]; services: DidService[] } | null>(null);
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
 
   const form = useForm<FormValues>({
@@ -67,8 +73,9 @@ function NewAuthorityRequest() {
       const issuerJson = await issuerResponse.json();
       
       const vcTypes = Object.keys(issuerJson.credential_configurations_supported || {});
+      const services = (didJson.service || []) as DidService[];
 
-      setDiscoveredInfo({ id, vc_types: vcTypes });
+      setDiscoveredInfo({ id, vc_types: vcTypes, services });
     } catch (err: any) {
       console.error(err);
       setDiscoveryError(err.message || "Could not discover authority info");
@@ -83,12 +90,15 @@ function NewAuthorityRequest() {
     }
 
     try {
-      // Fix: customInstance expects (url, options)
+      const issuerService = discoveredInfo.services.find(s => s.type === "CredentialIssuer");
+      const targetUrl = issuerService?.serviceEndpoint || values.url;
+
       await customInstance(`/vc-request/beg`, {
         method: "POST",
         data: {
           ...values,
           id: discoveredInfo.id,
+          url: targetUrl,
         },
       });
 
@@ -275,6 +285,20 @@ function NewAuthorityRequest() {
                         {discoveredInfo.vc_types.map(t => (
                           <Badge key={t} variant="info" className="text-[10px]">{t}</Badge>
                         ))}
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Services</p>
+                      <div className="space-y-2 pt-1">
+                        {discoveredInfo.services.map((s, idx) => (
+                          <div key={idx} className="p-2 border rounded bg-background-200/50 text-[10px] space-y-1">
+                            <p className="font-bold text-primary">{s.type}</p>
+                            <p className="break-all opacity-70">{s.serviceEndpoint}</p>
+                          </div>
+                        ))}
+                        {discoveredInfo.services.length === 0 && (
+                          <p className="text-[10px] italic opacity-50">No services found</p>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-green-500 font-medium pt-2">

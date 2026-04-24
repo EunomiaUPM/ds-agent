@@ -146,7 +146,7 @@ const RouteComponent = () => {
                 </div>
 
             </div>
-
+{/* 
             <InfoGrid>
                 <PageSection title="Catalog details:">
                     <InfoList
@@ -245,7 +245,7 @@ const RouteComponent = () => {
                         },
                     ]}
                 />
-            </PageSection>
+            </PageSection> */}
         </PageLayout>
     );
 };

@@ -156,7 +156,7 @@ if (isPending) {
 
           <div className="h-4" />
     
-        <DataTable
+        {/* <DataTable
           className="text-sm opacity-20"
           data={Array.isArray(participants?.data) ? participants.data.filter(p => !p.is_me && p.participant_type === "Agent") : []}
           keyExtractor={(c) => c.participant_id!}
@@ -189,7 +189,7 @@ if (isPending) {
               ),
             },
           ]}
-        />
+        /> */}
       {/* </PageSection> */}
     </PageLayout>
   );

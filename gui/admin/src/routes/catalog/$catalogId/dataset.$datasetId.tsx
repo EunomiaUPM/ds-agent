@@ -181,7 +181,7 @@ function RouteComponent() {
                 </PageSection>
             </InfoGrid> */}
 
-            <PageSection title="Distributions">
+            {/* <PageSection title="Distributions">
                 <DataTable
                     className="text-sm"
                     data={distributions ?? []}
@@ -244,7 +244,7 @@ function RouteComponent() {
                         },
                     ]}
                 />
-            </PageSection>
+            </PageSection> */}
 
             {/* <PageSection
                 title="ODRL Policies"

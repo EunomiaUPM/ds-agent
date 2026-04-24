@@ -149,7 +149,7 @@ function RouteComponent() {
           </div>
         </div>
       </div>
-      <InfoGrid>
+      {/* <InfoGrid>
         <PageSection>
           <InfoList
             items={[
@@ -233,7 +233,7 @@ function RouteComponent() {
             ]}
           />
         </PageSection>
-      </InfoGrid> 
+      </InfoGrid>  */}
     </PageLayout>
   );
 

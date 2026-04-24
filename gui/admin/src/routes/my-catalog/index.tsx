@@ -31,7 +31,7 @@ function RouteComponent() {
     const { data: participants } = useGetAllParticipants();
 
 
-     const myAgent = Array.isArray(participants?.data)
+    const myAgent = Array.isArray(participants?.data)
         ? participants.data.find(
             (p) => p.is_me && p.participant_type === "Agent"
         )
@@ -40,37 +40,37 @@ function RouteComponent() {
     const myAgentId =
         myAgent?.participant_id || "Unknown Participant ID";
 
-       
-      const { mutate, data, isPending, error } = useRpcSetupCatalogRequest();
-        useEffect(() => {
-          mutate({
+
+    const { mutate, data, isPending, error } = useRpcSetupCatalogRequest();
+    useEffect(() => {
+        mutate({
             data: {
-              associatedAgentPeer: myAgentId,
-              filter: [],
+                associatedAgentPeer: myAgentId,
+                filter: [],
                 noCache: true
             },
-          });
-        }, [myAgentId, mutate]);
-      const catalog = data?.status === 200 ? data.data : undefined;
+        });
+    }, [myAgentId, mutate]);
+    const catalog = data?.status === 200 ? data.data : undefined;
 
-        {console.log(catalog?.response?.['@id'], "id catalog details")}
-      if (!catalog) return null;
+    { console.log(catalog?.response?.['@id'], "id catalog details") }
+    if (!catalog) return null;
 
     if (isPending) {
         return (
-          <PageLayout>
+            <PageLayout>
 
-            <div>Loading...</div>
-          </PageLayout>
+                <div>Loading...</div>
+            </PageLayout>
         );
-      }
-      if (error) {
+    }
+    if (error) {
         return (
-          <div className="flex items-center justify-center h-full text-red-500">
-            Error loading catalog: {error.message}
-          </div>
+            <div className="flex items-center justify-center h-full text-red-500">
+                Error loading catalog: {error.message}
+            </div>
         );
-      }
+    }
 
     if (!mainCatalog?.data || mainCatalog.status !== 200) return null;
     return (
@@ -121,8 +121,8 @@ function RouteComponent() {
                 <CatalogItem></CatalogItem>
                 <CatalogItem></CatalogItem> */}
             </div>
-            <div className="wrapper opacity-15">
-                <div className="h-5"></div>
+           {/* <div className="wrapper opacity-0">
+                 <div className="h-5"></div>
                 <div className="card-organization-container flex-col bg-brand-sky/15 border rounded-md border-white/20 flex flex-col px-3 pt-2 pb-3 max-w-[250px]">
                     <p className="text-xs uppercase">Organization</p>
                     <div className="h-2"></div>
@@ -152,7 +152,7 @@ function RouteComponent() {
                     <DistributionItem />
                     <DistributionItem />
                 </div>
-            </div>
+            </div> */}
         </div>
     )
 }

@@ -4,8 +4,8 @@ import { Link } from "@tanstack/react-router";
 
 const CatalogItem = ({ date, datasetNumber, organizationName, id }) => {
   return (
-    <Link to="/catalog/participant/$participantId" params={{ participantId: id}}>
-        <div className="catalog-card bg-background-200/15  hover:bg-background-200/50 transition-all border rounded-md border-white/20 flex flex-col p-4 gap-3 max-w-md">
+   
+        <div className="catalog-card bg-background-200/15  hover:bg-background-200/30 transition-all border rounded-md border-white/10 flex flex-col p-4 gap-3 max-w-md">
         <div className="catalog-dates-container flex gap-3 text-sm tracking-wide">
           <div className="catalog-dates-created flex gap-1">
             <p>Created at:</p>
@@ -18,9 +18,10 @@ const CatalogItem = ({ date, datasetNumber, organizationName, id }) => {
           </div> */}
         </div>
         <div className="catalog-text-container">
-           
+            <Link to="/catalog/participant/$participantId" params={{ participantId: id}}>
           <Heading level="h3" className="mb-3 underline-offset-2 hover:underline">Participant catalog </Heading>
           
+          </Link>
           <p className="mb-2 ">This is the catalog of <span className='capitalize'>{organizationName}</span>, who is also part of this dataspace. 
             Click on the catalog name to see the datasets and dataservice they offer.
           </p>
@@ -34,7 +35,7 @@ const CatalogItem = ({ date, datasetNumber, organizationName, id }) => {
           <p> {datasetNumber} Datasets </p>
         </div>
       </div>
-   </Link>
+
   );
 };
 

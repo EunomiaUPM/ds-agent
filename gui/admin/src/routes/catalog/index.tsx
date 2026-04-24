@@ -27,44 +27,35 @@ const RouteComponent = () => {
 
   // For fetching catalogs from other participants
   // This is only useful for testing with one participant I think
-  // 1. Get the participant of the other participant (not me) && with participant type Agent
-  const otherParticipantForId = Array.isArray(participants?.data) ? participants.data.filter(p => !p.is_me && p.participant_type === "Agent") : [];
   
-  // 2. Get the participant Id of this other participant
-  const { participantId } = otherParticipantForId.map((p) => ({ participantId: p.participant_id }))[0] || {};
-
-  // No sé si este paso es necesario 
-  const participant = Array.isArray(participants?.data)  
-  ? participants.data.find((p) => p.participant_id === participantId)
+const otherParticipant = Array.isArray(participants?.data)
+  ? participants.data.find(
+      (p) => !p.is_me && p.participant_type === "Agent"
+    )
   : undefined;
 
-  // 3. Get the participant slug and turn to string
-  const otherParticipantSlug = participant?.participant_slug?.toString() || "Unknown Participant";
+const otherParticipantSlug =
+  otherParticipant?.participant_slug?.toString() || "Unknown Participant";
 
-  // 4. Get participant id for URL
-  const otherParticipantId = participant?.participant_id || "Unknown Participant ID";
-  
-  console.log(otherParticipantForId, "otherParticipantForId. 11");
-  console.log(participant, "participant.  22");
-  console.log(otherParticipantSlug, "otherParticipantSlug");
+const otherParticipantId =
+  otherParticipant?.participant_id || "Unknown Participant ID";
 
-  console.log(catalogs, "catalogs")
-
+ 
 
 
   const { mutate, data, isPending, error } = useRpcSetupCatalogRequest();
     useEffect(() => {
       mutate({
         data: {
-          associatedAgentPeer: participantId,
+          associatedAgentPeer: otherParticipantId,
           filter: [],
             noCache: true
         },
       });
-    }, [participantId, mutate]);
+    }, [otherParticipantId, mutate]);
+ 
   const catalog = data?.status === 200 ? data.data : undefined;
 
-    {console.log(catalog, "others catalogs")}
   if (!catalog) return null;
 
 

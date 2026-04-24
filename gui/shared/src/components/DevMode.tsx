@@ -26,7 +26,7 @@ const STORAGE_KEY = "dev_mode_gateway_colors";
 type ThemeType = { border: string; bg: string };
 
 export const DevMode = () => {
-    const {api_gateway} = useContext<GlobalInfoContextType>(GlobalInfoContext);
+    const {api_gateway} = useContext(GlobalInfoContext) as GlobalInfoContextType;
     const [theme, setTheme] = useState<ThemeType | null>(null);
 
 

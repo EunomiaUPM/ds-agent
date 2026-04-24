@@ -2,7 +2,14 @@ import React from 'react';
 import Heading from 'shared/src/components/ui/heading';
 import { Link } from "@tanstack/react-router";
 
-const CatalogItem = ({ date, datasetNumber, organizationName, id }) => {
+interface CatalogItemProps {
+  date?: string;
+  datasetNumber?: number;
+  organizationName?: string;
+  id?: string;
+}
+
+const CatalogItem = ({ date = "N/A", datasetNumber = 0, organizationName = "Unknown", id = "" }: CatalogItemProps) => {
   return (
     <Link to="/catalog/participant/$participantId" params={{ participantId: id}}>
         <div className="catalog-card bg-background-200/15  hover:bg-background-200/50 transition-all border rounded-md border-white/20 flex flex-col p-4 gap-3 max-w-md">

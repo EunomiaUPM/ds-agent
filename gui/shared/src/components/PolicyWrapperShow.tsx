@@ -22,20 +22,20 @@
  */
 
 import React from "react";
-import {formatUrn} from "shared/src/lib/utils";
-import {InfoList} from "shared/src/components/ui/info-list";
+import { formatUrn } from "shared/src/lib/utils";
+import { InfoList } from "shared/src/components/ui/info-list";
 import Heading from "shared/src/components/ui/heading";
-import {Badge} from "shared/src/components/ui/badge";
+import { Badge } from "shared/src/components/ui/badge";
 import PolicyComponent from "shared/src/components/PolicyComponent";
-import {Trash} from "lucide-react";
-import {Button} from "./ui/button";
-import {useRouterState} from "@tanstack/react-router";
-import {BusinessRemovePolicyDialog} from "./dialogs/BusinessRemovePolicyDialog";
-import {Dialog, DialogTrigger} from "shared/src/components/ui/dialog";
-import {ContractNegotiationNewRequestDialog} from "./dialogs/ContractNegotiationNewRequestDialog";
-import {OdrlOffer, OdrlPolicyDto} from "../data/orval/model";
-import {ContractNegotiationNewOfferDialog} from "./dialogs/ContractNegotiationNewOfferDialog";
-import {Accordion, AccordionContent, AccordionItem, AccordionTrigger} from "shared/src/components/ui/accordion";
+import { Trash } from "lucide-react";
+import { Button } from "./ui/button";
+import { useRouterState } from "@tanstack/react-router";
+import { BusinessRemovePolicyDialog } from "./dialogs/BusinessRemovePolicyDialog";
+import { Dialog, DialogTrigger } from "shared/src/components/ui/dialog";
+import { ContractNegotiationNewRequestDialog } from "./dialogs/ContractNegotiationNewRequestDialog";
+import { OdrlOffer, OdrlPolicyDto } from "../data/orval/model";
+import { ContractNegotiationNewOfferDialog } from "./dialogs/ContractNegotiationNewOfferDialog";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "shared/src/components/ui/accordion";
 
 // =============================================================================
 // TYPES
@@ -84,15 +84,15 @@ export interface PolicyWrapperShowProps {
  * @returns A styled policy display card
  */
 export const PolicyWrapperShow = ({
-                                      policy,
-                                      datasetId,
-                                      catalogId,
-                                      datasetName,
-                                      showRequestAccess = false,
-                                      showOfferAccess = false,
-                                      participant,
-                                      showOfferHidden = true,
-                                  }: PolicyWrapperShowProps) => {
+    policy,
+    datasetId,
+    catalogId,
+    datasetName,
+    showRequestAccess = false,
+    showOfferAccess = false,
+    participant,
+    showOfferHidden = true,
+}: PolicyWrapperShowProps) => {
     const routerState = useRouterState();
 
     // ---------------------------------------------------------------------------
@@ -115,15 +115,17 @@ export const PolicyWrapperShow = ({
     // Render
     // ---------------------------------------------------------------------------
 
+    console.log(policy, "policy in policy wrapper show")
+
     return (
         <div className="w-full">
             <div className="flex flex-col items-start justify-start border border-white/10 bg-white/5 p-3 rounded-md">
                 {/* Header: Policy ID and actions */}
                 <div className="flex justify-between items-center w-full mb-3">
                     <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              Policy ID
-            </span>
+                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            Policy ID
+                        </span>
                         <Badge variant="info" className="font-mono text-[10px]">
                             {formatUrn(policyId || "")}
                         </Badge>
@@ -138,7 +140,7 @@ export const PolicyWrapperShow = ({
                                     size="icon"
                                     className="h-6 w-6 text-muted-foreground hover:text-destructive transition-colors"
                                 >
-                                    <Trash className="h-4 w-4"/>
+                                    <Trash className="h-4 w-4" />
                                 </Button>
                             </DialogTrigger>
                             <BusinessRemovePolicyDialog
@@ -151,10 +153,10 @@ export const PolicyWrapperShow = ({
                 </div>
 
                 {/* Policy metadata */}
-                <InfoList
+                {/* <InfoList
                     className="w-full mb-3"
                     items={[
-                        {label: "Policy Target", value: entityType || "Offer"},
+                        { label: "Policy Target", value: entityType || "Offer" },
                         {
                             label: "Target",
                             value: entity ? formatUrn(entity) : "",
@@ -166,7 +168,8 @@ export const PolicyWrapperShow = ({
                             }
                         }] : []),
                     ]}
-                />
+                /> */}  
+                <p className="text-sm mb-4"> {description ? description : "Policy Description"} </p>
 
                 {/* ODRL Content section */}
                 {showOfferHidden ? (
@@ -240,7 +243,7 @@ export const PolicyWrapperShow = ({
                         <Dialog>
                             <DialogTrigger asChild>
                                 <Button size="sm" variant="default" className="w-full sm:w-auto">
-                                    Offer Access
+                                    Offer Access to dataset
                                 </Button>
                             </DialogTrigger>
                             <ContractNegotiationNewOfferDialog

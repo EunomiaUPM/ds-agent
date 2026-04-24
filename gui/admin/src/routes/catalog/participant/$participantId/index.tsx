@@ -20,7 +20,7 @@ function RouteComponent() {
   const { participantId } = Route.useParams();
   const { mutate, data, isPending, error } = useRpcSetupCatalogRequest();
 
-  
+{console.log(participantId, "participant id in participant catalog route")}
 
   useEffect(() => {
     mutate({
@@ -31,6 +31,7 @@ function RouteComponent() {
       },
     });
   }, [participantId, mutate]);
+  
 
   if (isPending) {
     return (
@@ -70,16 +71,12 @@ function RouteComponent() {
       /> */}
       <div className="grid grid-cols-3 gap-12">
         <div className="rounded-md border border-background-200/60 bg-background-200/5 p-4 ">
-
           <div>
             <Heading level="h2"> {catalog.response?.title ? catalog.response?.title : "Participant Catalog"}</Heading>
             <p className="text-sm mb-2">Description of the catalog. </p>
             <InfoList
               items={[
-                { label: "Catalog title", value: (catalog.response?.title ? catalog.response?.title : "Participant Catalog") },
-
-                // aqui tendria que ir un link?
-                // { label: "Catalog homepage", value: catalog.foafHomePage },
+             
                 {
                   label: "Catalog creation date",
                   value: {
@@ -92,6 +89,10 @@ function RouteComponent() {
 
             />
           </div>
+                {/* <div className="catalog-participant-container flex gap-2 justify-start">
+                        <img className="rounded-full bg-violet-600 h-6 aspect-square"></img>
+                        <Heading level="h4" className='capitalize'> {myAgentSlug} </Heading>
+                    </div> */}
           <div className="h-3"></div>
           <div className="border-t border-white/10"></div>
           <div className="h-4">

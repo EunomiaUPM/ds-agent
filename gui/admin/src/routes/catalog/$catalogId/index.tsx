@@ -39,12 +39,14 @@ import {
 import DatasetItem from "shared/components/ui/dataset-item";
 
 
+
 const RouteComponent = () => {
     const { catalogId } = Route.useParams();
     const { data: catalogData } = useGetCatalogById(catalogId);
     const { data: datasetsData } = useGetDatasetsByCatalogId(catalogId);
     const { data: dataservicesData } = useGetDataServicesByCatalogId(catalogId);
 
+    
     const catalog = catalogData?.status === 200 ? catalogData.data : undefined;
     const datasets = datasetsData?.status === 200 ? datasetsData.data : [];
     const dataservices = dataservicesData?.status === 200 ? dataservicesData.data : [];
@@ -52,6 +54,7 @@ const RouteComponent = () => {
     if (!catalog) return null;
     const { data: participants } = useGetAllParticipants();
 
+    console.log(datasets, "datasets")
 
     const myAgent = Array.isArray(participants?.data)
         ? participants.data.find(
@@ -76,7 +79,7 @@ const RouteComponent = () => {
             /> */}
             <div className="grid grid-cols-3 gap-12">
 
-                <div className="rounded-md border border-background-200/60 bg-background-200/5 p-4 ">
+                <div className="rounded-md border border-background-200/60 bg-background-200/5 p-4 max-h-[60vh] ">
                     <Heading level="h2"> My catalog</Heading>
                     <p className="text-sm mb-2">Description of the catalog. This is the catalog of {myAgentSlug}</p>
                     <InfoList

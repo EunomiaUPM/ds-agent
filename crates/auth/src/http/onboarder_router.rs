@@ -23,7 +23,8 @@ use axum::extract::{Path, Query, State};
 use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::{Json, Router};
-use ymir::data::entities::mates::Model;
+use ymir::data::entities::mates;
+use ymir::data::entities::req_request::Model;
 use ymir::errors::AppResult;
 use ymir::types::gnap::{ApprovedCallbackBody, CallbackBody};
 use ymir::utils::{extract_payload, extract_query_param};
@@ -45,6 +46,8 @@ impl OnboarderRouter {
             .route("/provider", post(Self::onboard))
             .route("/callback/{id}", get(Self::get_callback))
             .route("/callback/{id}", post(Self::post_callback))
+            .route("/request/all", get(Self::get_all))
+            .route("/request/{id}", get(Self::get_one))
             .with_state(self.onboarder)
     }
 
@@ -64,7 +67,7 @@ impl OnboarderRouter {
         State(onboarder): State<Arc<dyn CoreOnboarderTrait>>,
         Path(id): Path<String>,
         Query(params): Query<HashMap<String, String>>,
-    ) -> AppResult<Json<Model>> {
+    ) -> AppResult<Json<mates::Model>> {
         let hash = extract_query_param(&params, "hash")?;
         let interact_ref = extract_query_param(&params, "interact_ref")?;
         let payload = ApprovedCallbackBody { interact_ref, hash };
@@ -84,6 +87,25 @@ impl OnboarderRouter {
                 .map(Json)
                 .into_response(),
             CallbackBody::Rejected(_) => onboarder.manage_rejection(id).await.into_response(),
+        })
+    }
+
+    async fn get_all(
+        State(onboarder): State<Arc<dyn CoreOnboarderTrait>>,
+    ) -> AppResult {
+        Ok(match onboarder.get_all().await {
+            Ok(models) => Json(models).into_response(),
+            Err(e) => e.into_response()
+        })
+    }
+
+    async fn get_one(
+        State(onboarder): State<Arc<dyn CoreOnboarderTrait>>,
+        Path(id): Path<String>,
+    ) -> AppResult {
+        Ok(match onboarder.get_by_id(id).await {
+            Ok(model) => Json(model).into_response(),
+            Err(e) => e.into_response()
         })
     }
 }

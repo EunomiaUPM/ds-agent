@@ -27,8 +27,6 @@ const RouteComponent = () => {
   const { data: mainCatalog } = useGetMainCatalogs();
   const { data: catalogs } = useGetCatalogs();
   const { data: participants } = useGetAllParticipants();
-  const { data: peerCatalogs } = useGetAllPeerCatalog();
-  console.log(peerCatalogs);
 
   // For fetching catalogs from other participants
   // This is only useful for testing with one participant I think

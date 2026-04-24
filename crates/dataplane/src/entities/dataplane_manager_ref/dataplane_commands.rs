@@ -3,11 +3,11 @@ use crate::entities::dataplane_manager_ref::dataplane_context::DataplaneContext;
 use crate::entities::dataplane_manager_ref::dataplane_driver_factory::{
     DataplaneDriverFactory, DataplaneDriverFactoryTrait,
 };
+use crate::entities::dataplane_manager_ref::dataplane_runtime::DataplaneRuntime;
 use crate::entities::dataplane_transfers::{EditDataplaneTransferDto, TransferState};
 use crate::{DataplaneAddress, DataplaneTransfersEntitiesTrait};
 use common::config::services::TransferConfig;
 use connector::{ConnectorInstanceDto, ConnectorInstanceTrait};
-use serde_json::json;
 use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
@@ -94,7 +94,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
         // proxy
         let mut context = driver.proxy_configurator.configure_proxy(&context).await?;
         context.set_driver(driver);
-        context.set_runtime(json!({}));
+        context.set_runtime(DataplaneRuntime::default());
         // dataplane
         let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
         let new_state = TransferState::Configuring;
@@ -112,17 +112,22 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
         context.set_dataplane_process(dataplane_process);
         Ok(context)
     }
-    async fn set_auth(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
+    async fn set_auth(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
         let driver = DataplaneDriverFactory.get_or_create_driver(&context)?;
-        driver.authenticator.authenticate(&context).await?;
+        // Use the context returned by authenticate — it carries the resolved runtime.
+        let mut context = driver.authenticator.authenticate(&context).await?;
         let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
         let new_state = TransferState::Auth;
+        let flow_control = context
+            .runtime()
+            .and_then(|r| serde_json::to_value(r).ok());
         let dataplane_process = self
             .dataplane_entity()
             .put_dataplane_transfer_by_id(
                 &dataplane_urn,
                 &EditDataplaneTransferDto {
                     state: Some(new_state),
+                    flow_control,
                     ..EditDataplaneTransferDto::default()
                 },
             )

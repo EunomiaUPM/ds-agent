@@ -26,6 +26,8 @@ pub(crate) mod facades;
 pub mod http;
 pub mod setup;
 pub mod testing_proxy;
+#[cfg(test)]
+pub(crate) mod test_fixtures;
 
 pub use data::migrations::get_dataplane_migrations;
 pub use entities::dataplane_manager::dataplane_manager::*;

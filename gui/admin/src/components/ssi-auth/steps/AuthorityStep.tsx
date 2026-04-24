@@ -1,4 +1,3 @@
-
 import { useContext } from "react";
 import { SSIAuthContext } from "shared/src/context/SSIAuthContext";
 import { AuthorityConnectorForm } from "../forms/AuthorityConnectorForm";
@@ -6,7 +5,7 @@ import { VCRequestForm } from "../forms/VCRequestForm";
 import { VCAcceptForm } from "../forms/VCAcceptForm";
 import { DataTable, Column } from "shared/src/components/DataTable";
 import { Loader2, Circle } from "lucide-react";
-import {AuthorityConnectorFormForDemo} from "@/components/ssi-auth/forms/AuthorityConnectorFormForDemo.tsx";
+import { AuthorityConnectorFormForDemo } from "@/components/ssi-auth/forms/AuthorityConnectorFormForDemo.tsx";
 
 export function AuthorityStep() {
   const ssiAuthContext = useContext(SSIAuthContext);
@@ -37,9 +36,7 @@ export function AuthorityStep() {
           <div>
             {ssiAuthContext.authDid.did ? (
               <div className="text-sm font-mono p-3 bg-muted rounded break-all border">
-                <span className="font-semibold select-none mr-2">
-                  Authority DID:
-                </span>
+                <span className="font-semibold select-none mr-2">Authority DID:</span>
                 {ssiAuthContext.authDid.did}
               </div>
             ) : (
@@ -72,11 +69,7 @@ export function AuthorityStep() {
             <div className="rounded-md border">
               <DataTable
                 columns={vcRequestColumns}
-                data={
-                  Array.isArray(ssiAuthContext.authRequests)
-                    ? ssiAuthContext.authRequests
-                    : []
-                }
+                data={Array.isArray(ssiAuthContext.authRequests) ? ssiAuthContext.authRequests : []}
                 keyExtractor={(item) => item.id}
               />
             </div>
@@ -85,9 +78,7 @@ export function AuthorityStep() {
           {ssiAuthContext.oidc4vciRequestUri && (
             <div className="w-full space-y-2">
               <div className="text-sm font-mono p-3 bg-muted rounded break-all border">
-                <span className="font-semibold select-none block mb-1">
-                  Credential Offer URI:
-                </span>
+                <span className="font-semibold select-none block mb-1">Credential Offer URI:</span>
                 {ssiAuthContext.oidc4vciRequestUri}
               </div>
 

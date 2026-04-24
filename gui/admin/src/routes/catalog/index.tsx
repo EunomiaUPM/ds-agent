@@ -15,7 +15,10 @@ import { PageHeader } from "shared/src/components/layout/PageHeader";
 import { PageSection } from "shared/src/components/layout/PageSection";
 import { Skeleton } from "shared/src/components/ui/skeleton";
 import { InfoGrid } from "shared/src/components/layout/InfoGrid";
-import { useGetCatalogs, useGetMainCatalogs } from "shared/data/orval/catalogs/catalogs";
+import {
+  useGetCatalogs,
+  useGetMainCatalogs,
+} from "shared/data/orval/catalogs/catalogs";
 import { useGetAllParticipants } from "shared/data/orval/participants/participants";
 import { useRpcSetupCatalogRequest } from "shared/src/data/orval/catalog-rp-c/catalog-rp-c";
 import { useEffect } from "react";
@@ -24,6 +27,8 @@ const RouteComponent = () => {
   const { data: mainCatalog } = useGetMainCatalogs();
   const { data: catalogs } = useGetCatalogs();
   const { data: participants } = useGetAllParticipants();
+  const { data: peerCatalogs } = useGetAllPeerCatalog();
+  console.log(peerCatalogs);
 
   // For fetching catalogs from other participants
   // This is only useful for testing with one participant I think
@@ -108,7 +113,10 @@ if (isPending) {
               { label: "Catalog homepage", value: mainCatalog.data.foafHomePage },
               {
                 label: "Catalog creation date",
-                value: { type: "custom", content: <FormatDate date={mainCatalog.data.dctIssued} /> },
+                value: {
+                  type: "custom",
+                  content: <FormatDate date={mainCatalog.data.dctIssued} />,
+                },
               },
             ]}
           />
@@ -189,7 +197,10 @@ if (isPending) {
             {
               header: "Link",
               cell: (p) => (
-                <Link to="/catalog/participant/$participantId" params={{ participantId: p.participant_id }}>
+                <Link
+                  to="/catalog/participant/$participantId"
+                  params={{ participantId: p.participant_id }}
+                >
                   <Button variant="link">
                     Fetch catalog
                     <ArrowRight />

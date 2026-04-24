@@ -30,5 +30,6 @@ pub use core_trait::AuthCoreTrait;
 pub use core_verifier::CoreVerifierTrait;
 pub use gaia_self_issuer_trait::CoreGaiaSelfIssuerTrait;
 pub use mate_trait::CoreMateTrait;
+pub use mate_trait::MateRouterGetAllQueryParamsType;
 pub use onboarder_trait::CoreOnboarderTrait;
 pub use vc_requester::CoreVcRequesterTrait;

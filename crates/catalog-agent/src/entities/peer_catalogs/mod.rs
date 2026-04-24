@@ -19,9 +19,11 @@ pub(crate) mod peer_catalogs;
 
 use crate::protocols::dsp::types::catalog_definition::Catalog;
 use ymir::errors::Outcome;
+use common::facades::Mates;
 
 #[async_trait::async_trait]
 pub trait PeerCatalogTrait: Send + Sync {
+    async fn get_all_peer_catalogs(&self) -> Outcome<Vec<(Mates, Catalog)>>;
     async fn get_peer_catalog(&self, peer_id: &String) -> Outcome<Option<Catalog>>;
     async fn set_peer_catalog(&self, peer_id: &String, catalog: &Catalog) -> Outcome<()>;
 }

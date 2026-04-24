@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import {
   getGetMainCatalogsQueryOptions,
-  getGetCatalogsQueryOptions
+  getGetCatalogsQueryOptions,
 } from "shared/src/data/orval/catalogs/catalogs";
 
 const NotFound = () => {
@@ -23,12 +23,8 @@ export const Route = createFileRoute("/catalog")({
   component: RouteComponent,
   notFoundComponent: NotFound,
   loader: async ({ context: { queryClient } }) => {
-    await queryClient.ensureQueryData(
-      getGetMainCatalogsQueryOptions()
-    );
+    await queryClient.ensureQueryData(getGetMainCatalogsQueryOptions());
 
-    return queryClient.ensureQueryData(
-      getGetCatalogsQueryOptions()
-    );
+    return queryClient.ensureQueryData(getGetCatalogsQueryOptions());
   },
 });

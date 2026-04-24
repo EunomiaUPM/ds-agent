@@ -1,9 +1,13 @@
+use crate::entities::dataplane_drivers::authentication::api_key::ApiKeyAuthenticator;
+use crate::entities::dataplane_drivers::authentication::basic_config::BasicConfigAuthenticator;
+use crate::entities::dataplane_drivers::authentication::bearer_token::BearerTokenAuthenticator;
+use crate::entities::dataplane_drivers::authentication::no_auth::NoAuthAuthenticator;
 use crate::entities::dataplane_drivers::authentication::no_op::NoOpAuthenticator;
+use crate::entities::dataplane_drivers::authentication::oauth::OauthAuthenticator;
 use crate::entities::dataplane_drivers::configuration::http_consumer_pull::HttpConsumerPullConfigurator;
 use crate::entities::dataplane_drivers::configuration::http_consumer_push::HttpConsumerPushConfigurator;
 use crate::entities::dataplane_drivers::configuration::http_provider_pull::HttpProviderPullConfigurator;
 use crate::entities::dataplane_drivers::configuration::http_provider_push::HttpProviderPushConfigurator;
-use crate::entities::dataplane_drivers::configuration::no_op::NoOpProxyConfigurator;
 use crate::entities::dataplane_drivers::pubsub::no_op::NoOpPubSubscriber;
 use crate::entities::dataplane_drivers::{
     DataplaneDriver, DriverAuthenticatorTrait, DriverProxyConfiguratorTrait, DriverPubSubTrait,
@@ -13,8 +17,8 @@ use crate::entities::dataplane_transfers::{InteractionMode, TransferRole};
 use connector::{AuthenticationConfig, ConnectorInstanceDto, InteractionConfig, ProtocolSpec};
 use std::sync::Arc;
 use ymir::errors::{Errors, Outcome};
-use crate::entities::dataplane_drivers::authentication::no_auth::NoAuthAuthenticator;
 
+/// Unit-of-work factory — stateless, constructed on demand from the context.
 pub struct DataplaneDriverFactory;
 
 #[cfg_attr(test, mockall::automock)]
@@ -43,10 +47,10 @@ impl DataplaneDriverFactory {
         if let Some(connector_instance) = context.connector_instance() {
             match connector_instance.authentication_config {
                 AuthenticationConfig::NoAuth => Ok(Arc::new(NoAuthAuthenticator)),
-                AuthenticationConfig::BasicAuth(_) => Ok(Arc::new(NoOpAuthenticator)),
-                AuthenticationConfig::BearerToken { .. } => Ok(Arc::new(NoOpAuthenticator)),
-                AuthenticationConfig::ApiKey { .. } => Ok(Arc::new(NoOpAuthenticator)),
-                AuthenticationConfig::OAuth2 { .. } => Ok(Arc::new(NoOpAuthenticator)),
+                AuthenticationConfig::BasicAuth(_) => Ok(Arc::new(BasicConfigAuthenticator)),
+                AuthenticationConfig::BearerToken { .. } => Ok(Arc::new(BearerTokenAuthenticator)),
+                AuthenticationConfig::ApiKey { .. } => Ok(Arc::new(ApiKeyAuthenticator)),
+                AuthenticationConfig::OAuth2 { .. } => Ok(Arc::new(OauthAuthenticator)),
             }
         } else {
             match context.dataplane_process_role() {

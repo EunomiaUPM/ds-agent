@@ -25,8 +25,8 @@ import { GeneralErrorComponent } from "@/components/GeneralErrorComponent.tsx";
 
 const RouteComponent = () => {
   const { cnProcess } = Route.useParams();
-  const { data: process, isLoading: isNegotiationProcessLoading } = useGetNegotiationProcessById(cnProcess);
-
+  const { data: process, isLoading: isNegotiationProcessLoading } =
+    useGetNegotiationProcessById(cnProcess);
 
   if (isNegotiationProcessLoading) {
     return (
@@ -42,9 +42,13 @@ const RouteComponent = () => {
 
   // handle error
   if (!process || process.status !== 200) {
-    return <GeneralErrorComponent error={new Error("Contract negotiation process not found")} reset={() => { }} />;
+    return (
+      <GeneralErrorComponent
+        error={new Error("Contract negotiation process not found")}
+        reset={() => {}}
+      />
+    );
   }
-
 
   return (
     <PageLayout>

@@ -183,7 +183,9 @@ export const PolicyWrapperEdit = ({ policy, onChange }: PolicyWrapperEditProps) 
         const updated = [...(prev[componentType] || [])];
         updated[componentIndex] = {
           ...updated[componentIndex],
-          constraint: (updated[componentIndex].constraint || []).filter((_: OdrlConstraint, i: number) => i !== constraintIndex),
+          constraint: (updated[componentIndex].constraint || []).filter(
+            (_: OdrlConstraint, i: number) => i !== constraintIndex,
+          ),
         };
         return { ...prev, [componentType]: updated };
       });

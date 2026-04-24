@@ -34,8 +34,6 @@ export const Route = createFileRoute("/transfer-process/$transferProcessId")({
   component: RouteComponent,
   notFoundComponent: NotFound,
   loader: ({ context: { queryClient }, params: { transferProcessId } }) => {
-    return queryClient.ensureQueryData(
-      getGetTransferProcessByIdQueryOptions(transferProcessId),
-    );
+    return queryClient.ensureQueryData(getGetTransferProcessByIdQueryOptions(transferProcessId));
   },
 });

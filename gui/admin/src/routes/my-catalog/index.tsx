@@ -1,8 +1,8 @@
-import { createFileRoute } from '@tanstack/react-router';
-import Heading from 'shared/src/components/ui/heading';
+import { createFileRoute } from "@tanstack/react-router";
+import Heading from "shared/src/components/ui/heading";
 import CatalogItem from "shared/src/components/ui/catalog-item";
 import DatasetItem from "shared/src/components/ui/dataset-item";
-import DistributionItem from "shared/src/components/ui/distribution-item"
+import DistributionItem from "shared/src/components/ui/distribution-item";
 import { Separator } from "shared/src/components/ui/separator";
 import { PageLayout } from "shared/src/components/layout/PageLayout";
 import { PageHeader } from "shared/src/components/layout/PageHeader";
@@ -18,9 +18,9 @@ import { Link } from "@tanstack/react-router";
 import { Button } from "shared/src/components/ui/button.tsx";
 import { ArrowRight } from "lucide-react";
 
-export const Route = createFileRoute('/my-catalog/')({
-    component: RouteComponent,
-})
+export const Route = createFileRoute("/my-catalog/")({
+  component: RouteComponent,
+});
 
 function RouteComponent() {
       const { data: mainCatalog } = useGetMainCatalogs();

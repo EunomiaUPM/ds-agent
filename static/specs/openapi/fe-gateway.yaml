@@ -708,6 +708,36 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorInfo"
+
+
+  /peer-catalogs:
+    get:
+      tags:
+        - Peer Catalogs
+      summary: Get all remote peer catalog
+      operationId: getAllPeerCatalog
+      responses:
+        "200":
+          description: Peer Catalogs found
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PeerCatalogEntry"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorInfo"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorInfo"
+
   /peer-catalogs/{peerId}:
     get:
       operationId: getPeerCatalog
@@ -4671,6 +4701,25 @@ paths:
       summary: List all participants
       tags:
         - Participants
+      parameters:
+        - name: type
+          in: query
+          required: false
+          description: Filter mates by participant type. Defaults to `all`.
+          schema:
+            type: string
+            enum:
+              - agents
+              - authorities
+              - all
+            default: all
+        - name: exclude
+          in: query
+          required: false
+          description: When `true`, excludes the own identity (is_me) from the results.
+          schema:
+            type: boolean
+            default: false
       responses:
         "200":
           description: OK
@@ -4786,6 +4835,37 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorInfo"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorInfo"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorInfo"
+    put:
+      tags:
+        - Mates
+      summary: Update extra_fields by ID
+      operationId: putMateById
+      parameters:
+        - $ref: "#/components/parameters/participantId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Mate details
+          content:
+            application/json:
+              schema:
+                type: object
         "404":
           description: Not Found
           content:
@@ -6569,6 +6649,13 @@ components:
           type: string
         is_me:
           type: boolean
+    PeerCatalogEntry:
+      type: object
+      properties:
+        participant:
+          $ref: "#/components/schemas/ParticipantDto"
+        catalog:
+          $ref: "#/components/schemas/Catalog"
     VersionResponse:
       type: object
       required:

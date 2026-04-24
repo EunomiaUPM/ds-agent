@@ -20,7 +20,7 @@
 use axum::{
     extract::{rejection::JsonRejection, FromRef, State},
     http::StatusCode,
-    response::IntoResponse,
+    response::{IntoResponse, Response},
     routing::post,
     Json, Router,
 };
@@ -38,6 +38,9 @@ use crate::protocols::dsp::protocol_types::{
     TransferErrorDto, TransferProcessMessageType, TransferProcessMessageWrapper,
 };
 use common::dsp_common::context_field::ContextField;
+use serde::Deserialize;
+use std::str::FromStr;
+use urn::Urn;
 use ymir::errors::Outcome;
 
 #[derive(Clone)]
@@ -77,6 +80,7 @@ impl RpcRouter {
                 "/rpc/setup-suspension",
                 post(Self::handle_transfer_suspension_rpc),
             )
+            .route("/tck/transfers/requests", post(Self::tck_initiate_transfer))
             .with_state(self)
     }
 
@@ -201,4 +205,53 @@ impl RpcRouter {
         })
         .await
     }
+
+    // ── TCK bridge ────────────────────────────────────────────────────────────
+    // Accepts the format the Eclipse DSP TCK POSTs to initiate a consumer-role
+    // transfer and translates it to the internal RPC call.
+    async fn tck_initiate_transfer(
+        State(state): State<RpcRouter>,
+        input: Result<Json<TckTransferInitiateRequest>, JsonRejection>,
+    ) -> Response {
+        let input = match extract_payload(input) {
+            Ok(v) => v,
+            Err(e) => return e,
+        };
+        let agreement_id_urn = match Urn::from_str(&input.agreement_id) {
+            Ok(u) => u,
+            Err(_) => {
+                return (StatusCode::BAD_REQUEST, "invalid agreementId: must be a URN")
+                    .into_response();
+            }
+        };
+        //let callback_base = state.config.ssi_auth().hosts.get_host(HostType::Http);
+        let callback_base = "http://localhost:5000/"; // TODO change here
+        let callback_address = format!("{}/dsp/current/transfers", callback_base);
+        let rpc_dto = RpcTransferRequestMessageDto {
+            associated_agent_peer: input.provider_id,
+            agreement_id: agreement_id_urn,
+            format: input.format,
+            data_address: None,
+            provider_address: input.connector_address,
+            callback_address,
+        };
+        Self::process_request(Ok(Json(rpc_dto)), StatusCode::CREATED, |data| async move {
+            state
+                .orchestrator
+                .get_rpc_service()
+                .setup_transfer_request(&data)
+                .await
+        })
+        .await
+        .into_response()
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct TckTransferInitiateRequest {
+    pub agreement_id: String,
+    pub format: String,
+    pub provider_id: String,
+    pub connector_address: String,
 }

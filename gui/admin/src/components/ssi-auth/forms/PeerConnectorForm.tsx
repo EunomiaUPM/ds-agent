@@ -1,4 +1,3 @@
-
 import { useContext } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -46,10 +45,7 @@ export function PeerConnectorForm() {
                 <FormControl>
                   <Input placeholder="http://host.docker.internal:2000" {...field} />
                 </FormControl>
-                <Button
-                  type="submit"
-                  isLoading={ssiAuthContext.isLoading.fetchPeerDid}
-                >
+                <Button type="submit" isLoading={ssiAuthContext.isLoading.fetchPeerDid}>
                   Fetch Peer DID
                 </Button>
               </div>

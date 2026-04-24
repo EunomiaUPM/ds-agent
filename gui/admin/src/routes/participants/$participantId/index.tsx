@@ -28,13 +28,13 @@ function RouteComponent() {
     data: participant,
     isLoading: isParticipantLoading,
     isError: isParticipantError,
-    error: participantError
+    error: participantError,
   } = useGetParticipantById(participantId);
   const {
     data: agreements,
     isLoading: isAgreementsLoading,
     isError: isAgreementsError,
-    error: agreementsError
+    error: agreementsError,
   } = useGetAgreementsByParticipantId(participantId);
 
   const scopedListItemKeyClasses = "basis-[28%]";
@@ -42,23 +42,22 @@ function RouteComponent() {
   if (isParticipantLoading || isAgreementsLoading) {
     return (
       <PageLayout>
-        <PageHeader
-          title="Participant with id"
-          badge={<Skeleton className="h-8 w-48" />}
-        />
+        <PageHeader title="Participant with id" badge={<Skeleton className="h-8 w-48" />} />
         <div>Loading...</div>
       </PageLayout>
     );
   }
 
   if (isParticipantError || !participant || participant.status !== 200) {
-    const error = participantError instanceof Error ? participantError : new Error("Participant not found");
-    return <GeneralErrorComponent error={error} reset={() => { }} />;
+    const error =
+      participantError instanceof Error ? participantError : new Error("Participant not found");
+    return <GeneralErrorComponent error={error} reset={() => {}} />;
   }
 
   if (isAgreementsError || !agreements || agreements.status !== 200) {
-    const error = agreementsError instanceof Error ? agreementsError : new Error("Agreements not found");
-    return <GeneralErrorComponent error={error} reset={() => { }} />;
+    const error =
+      agreementsError instanceof Error ? agreementsError : new Error("Agreements not found");
+    return <GeneralErrorComponent error={error} reset={() => {}} />;
   }
 
   return (
@@ -101,9 +100,7 @@ function RouteComponent() {
         {/* Div Agreements Info */}
         <div>
           <Heading level="h5">Agreements to be done...</Heading>
-          <div>
-            {JSON.stringify(agreements.data)}
-          </div>
+          <div>{JSON.stringify(agreements.data)}</div>
         </div>
       </div>
     </PageLayout>

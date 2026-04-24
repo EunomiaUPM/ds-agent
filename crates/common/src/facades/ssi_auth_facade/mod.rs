@@ -34,4 +34,5 @@ pub trait MatesFacadeTrait: Send + Sync {
     async fn get_mate_by_id(&self, mate_id: String) -> Outcome<Mates>;
     async fn get_mate_by_slug(&self, mate_slug: String) -> Outcome<Mates>;
     async fn get_me_mate(&self) -> Outcome<Mates>;
+    async fn get_all_mates(&self) -> Outcome<Vec<Mates>>;
 }

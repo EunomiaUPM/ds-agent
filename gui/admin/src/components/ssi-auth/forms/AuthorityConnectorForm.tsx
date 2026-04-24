@@ -1,4 +1,3 @@
-
 import { useContext } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -46,10 +45,7 @@ export function AuthorityConnectorForm() {
                 <FormControl>
                   <Input placeholder="http://host.docker.internal:1500" {...field} />
                 </FormControl>
-                <Button
-                  type="submit"
-                  isLoading={ssiAuthContext.isLoading.fetchAuthDid}
-                >
+                <Button type="submit" isLoading={ssiAuthContext.isLoading.fetchAuthDid}>
                   Fetch DID
                 </Button>
               </div>

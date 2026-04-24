@@ -7,6 +7,7 @@ use crate::entities::dataplane_manager_ref::dataplane_driver_factory::DataplaneD
 use crate::entities::dataplane_manager_ref::dataplane_proxy::{
     DataplaneProxy, DataplaneProxyEgress, DataplaneProxyIngress,
 };
+use crate::entities::dataplane_manager_ref::dataplane_runtime::DataplaneRuntime;
 use crate::entities::dataplane_transfers::{
     DataplaneTransferDto, InteractionMode, NewDataplaneTransferDto, TransferRole, TransferState,
 };
@@ -29,7 +30,7 @@ pub struct DataplaneContext {
     dataplane_process: DataplaneTransferDto,
     connector_instance: Option<ConnectorInstanceDto>,
     driver: Option<DataplaneDriver>,
-    runtime: Option<serde_json::Value>,
+    runtime: Option<DataplaneRuntime>,
     proxy: Option<DataplaneProxy>,
     forward_dataplane_address: Option<DataplaneAddress>,
 }
@@ -136,12 +137,17 @@ impl DataplaneContext {
         };
 
         // context
+        let runtime = dataplane_process
+            .clone()
+            .inner
+            .flow_control
+            .and_then(|v| serde_json::from_value(v).ok());
         let mut context = Self {
             config,
             dataplane_process: dataplane_process.clone(),
             connector_instance: connector.clone(),
             driver: None,
-            runtime: dataplane_process.clone().inner.flow_control,
+            runtime,
             proxy: None,
             forward_dataplane_address: None,
         };
@@ -182,7 +188,7 @@ impl DataplaneContext {
         self
     }
 
-    pub fn set_runtime(&mut self, runtime: serde_json::Value) -> &mut Self {
+    pub fn set_runtime(&mut self, runtime: DataplaneRuntime) -> &mut Self {
         self.runtime = Some(runtime);
         self
     }
@@ -219,7 +225,7 @@ impl DataplaneContext {
     pub fn driver(&self) -> Option<&DataplaneDriver> {
         self.driver.as_ref()
     }
-    pub fn runtime(&self) -> Option<&serde_json::Value> {
+    pub fn runtime(&self) -> Option<&DataplaneRuntime> {
         self.runtime.as_ref()
     }
 

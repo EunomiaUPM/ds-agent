@@ -17,20 +17,31 @@
 
 use std::sync::Arc;
 
-use crate::core::traits::CoreMateTrait;
+use crate::core::traits::{CoreMateTrait, MateRouterGetAllQueryParamsType};
 use axum::extract::rejection::JsonRejection;
-use axum::extract::{Path, State};
-use axum::routing::{get, post};
+use axum::extract::{Path, Query, State};
+use axum::routing::{get, post, put};
 use axum::{Json, Router};
+use serde::Deserialize;
 use common::batch_requests::BatchRequests;
 use common::facades::VerifyTokenRequest;
-use ymir::data::entities::mates::Model;
+use ymir::data::entities::mates::{Model, NewModel};
 use ymir::errors::AppResult;
 use ymir::utils::extract_payload;
 
 pub struct MateRouter {
     mater: Arc<dyn CoreMateTrait>,
 }
+
+#[derive(Debug, Deserialize)]
+pub struct MateRouterGetAllQueryParams {
+    #[serde(rename="type")]
+    _type: Option<MateRouterGetAllQueryParamsType>,
+    #[serde(default)]
+    exclude_myself: Option<bool>,
+}
+
+
 
 impl MateRouter {
     pub fn new(mater: Arc<dyn CoreMateTrait>) -> MateRouter {
@@ -44,11 +55,17 @@ impl MateRouter {
             .route("/{id}", get(Self::get_by_id))
             .route("/batch", post(Self::get_batch))
             .route("/token", post(Self::get_by_token))
+            .route("/{id}", put(Self::update_by_id))
+            .route("/", post(Self::create))
             .with_state(self.mater)
     }
 
-    async fn get_all(State(mater): State<Arc<dyn CoreMateTrait>>) -> AppResult<Json<Vec<Model>>> {
-        Ok(Json(mater.get_all().await?))
+    async fn get_all(
+        State(mater): State<Arc<dyn CoreMateTrait>>,
+        query: Query<MateRouterGetAllQueryParams>) -> AppResult<Json<Vec<Model>>> {
+        let _type = query._type.as_ref().unwrap_or(&MateRouterGetAllQueryParamsType::All);
+        let exclude_myself = query.exclude_myself.unwrap_or(false);
+        Ok(Json(mater.get_all(_type, &exclude_myself).await?))
     }
     async fn get_by_id(
         State(mater): State<Arc<dyn CoreMateTrait>>,
@@ -75,5 +92,20 @@ impl MateRouter {
     ) -> AppResult<Json<Model>> {
         let payload = extract_payload(payload)?;
         Ok(Json(mater.get_by_token(payload).await?))
+    }
+    async fn update_by_id(
+        State(mater): State<Arc<dyn CoreMateTrait>>,
+        Path(id): Path<String>,
+        payload: Result<Json<serde_json::Value>, JsonRejection>,
+    ) -> AppResult<Json<Model>> {
+        let payload = extract_payload(payload)?;
+        Ok(Json(mater.update_extra_fields_by_id(id, payload).await?))
+    }
+    async fn create(
+        State(mater): State<Arc<dyn CoreMateTrait>>,
+        payload: Result<Json<NewModel>, JsonRejection>,
+    ) -> AppResult<Json<Model>> {
+        let payload = extract_payload(payload)?;
+        Ok(Json(mater.create_mate(&payload).await?))
     }
 }

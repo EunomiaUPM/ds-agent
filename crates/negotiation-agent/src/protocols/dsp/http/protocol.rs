@@ -36,6 +36,7 @@ use axum::{
 };
 use common::config::services::ContractsConfig;
 use common::dsp_common::context_field::ContextField;
+use common::dsp_common::normalizer::dsp_namespace_normalizer;
 use common::facades::Mates;
 use common::facades::ssi_auth_facade::SSIAuthFacadeTrait;
 use serde::Serialize;
@@ -115,6 +116,7 @@ impl DspRouter {
                 self.clone(),
                 Self::auth_middleware,
             ))
+            .layer(middleware::from_fn(dsp_namespace_normalizer))
             .with_state(self)
     }
 

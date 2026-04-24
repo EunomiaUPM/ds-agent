@@ -5,10 +5,7 @@ import { FormatDate } from "shared/src/components/ui/format-date";
 import { Badge } from "shared/components/ui/badge";
 import { PageSection } from "shared/src/components/layout/PageSection";
 import { InfoGrid } from "shared/src/components/layout/InfoGrid";
-import {
-  DataplaneInfoResponse,
-  DataplaneTransferDto,
-} from "shared/src/data/orval/model";
+import { DataplaneInfoResponse, DataplaneTransferDto } from "shared/src/data/orval/model";
 import { dataplaneStateVariant, roleLabel } from "./utils/dataplaneState";
 import { ConfigGrid } from "./ConfigGrid";
 import { CopyButton } from "./CopyButton";
@@ -50,10 +47,7 @@ export function DataPlaneTab({ dp, info }: DataPlaneTabProps) {
                   value: {
                     type: "custom",
                     content: (
-                      <Badge
-                        variant="status"
-                        state={dataplaneStateVariant(dp.state)}
-                      >
+                      <Badge variant="status" state={dataplaneStateVariant(dp.state)}>
                         {dp.state ?? "—"}
                       </Badge>
                     ),
@@ -116,11 +110,7 @@ export function DataPlaneTab({ dp, info }: DataPlaneTabProps) {
                       label: key,
                       value: {
                         type: "custom" as const,
-                        content: (
-                          <span className="font-mono text-xs break-all">
-                            {value}
-                          </span>
-                        ),
+                        content: <span className="font-mono text-xs break-all">{value}</span>,
                       },
                     }))
                   : []),
@@ -180,41 +170,33 @@ export function DataPlaneTab({ dp, info }: DataPlaneTabProps) {
           {(dp.ingressConfig || dp.egressConfig || dp.flowControl) && (
             <PageSection title="Transfer Config">
               <div className="space-y-4">
-                {dp.ingressConfig &&
-                  Object.keys(dp.ingressConfig).length > 0 && (
-                    <div>
-                      <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                        Ingress Config
-                      </div>
-                      <div className="rounded-md border border-white/10 bg-muted/30 px-3 py-1">
-                        <ConfigGrid
-                          data={dp.ingressConfig as Record<string, unknown>}
-                        />
-                      </div>
+                {dp.ingressConfig && Object.keys(dp.ingressConfig).length > 0 && (
+                  <div>
+                    <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                      Ingress Config
                     </div>
-                  )}
-                {dp.egressConfig &&
-                  Object.keys(dp.egressConfig).length > 0 && (
-                    <div>
-                      <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                        Egress Config
-                      </div>
-                      <div className="rounded-md border border-white/10 bg-muted/30 px-3 py-1">
-                        <ConfigGrid
-                          data={dp.egressConfig as Record<string, unknown>}
-                        />
-                      </div>
+                    <div className="rounded-md border border-white/10 bg-muted/30 px-3 py-1">
+                      <ConfigGrid data={dp.ingressConfig as Record<string, unknown>} />
                     </div>
-                  )}
+                  </div>
+                )}
+                {dp.egressConfig && Object.keys(dp.egressConfig).length > 0 && (
+                  <div>
+                    <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                      Egress Config
+                    </div>
+                    <div className="rounded-md border border-white/10 bg-muted/30 px-3 py-1">
+                      <ConfigGrid data={dp.egressConfig as Record<string, unknown>} />
+                    </div>
+                  </div>
+                )}
                 {dp.flowControl && (
                   <div>
                     <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
                       Flow Control
                     </div>
                     <div className="rounded-md border border-white/10 bg-muted/30 px-3 py-1">
-                      <ConfigGrid
-                        data={dp.flowControl as Record<string, unknown>}
-                      />
+                      <ConfigGrid data={dp.flowControl as Record<string, unknown>} />
                     </div>
                   </div>
                 )}

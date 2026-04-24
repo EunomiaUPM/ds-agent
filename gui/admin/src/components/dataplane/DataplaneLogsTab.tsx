@@ -49,9 +49,7 @@ export function DataplaneLogsTab({ logs }: { logs: DataplaneTransferLogDto[] }) 
                           {log.previous_state}
                         </Badge>
                       ) : (
-                        <span className="text-muted-foreground text-xs italic">
-                          initial
-                        </span>
+                        <span className="text-muted-foreground text-xs italic">initial</span>
                       )}
                       <span className="text-muted-foreground text-xs">→</span>
                       <Badge

@@ -35,7 +35,7 @@ export const ContractNegotiationFinalizationDialog = ({
       data: {
         consumerPid: process.identifiers!.consumerPid,
         providerPid: process.identifiers!.providerPid,
-      }
+      },
     });
     await refetch();
     router.invalidate();

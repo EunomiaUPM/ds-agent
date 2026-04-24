@@ -38,3 +38,4 @@ async-trait = {workspace = true}
 rustls = {workspace = true}
 axum-server = {workspace = true}
 ymir = { workspace = true }
+json_value_merge = {workspace = true}

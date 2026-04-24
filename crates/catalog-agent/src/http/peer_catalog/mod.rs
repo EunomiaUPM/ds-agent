@@ -29,6 +29,7 @@ use common::errors::CommonErrors;
 use reqwest::StatusCode;
 use serde::Deserialize;
 use std::sync::Arc;
+use ymir::errors::Outcome;
 
 #[derive(Clone)]
 pub struct PeerCatalogEntityRouter {
@@ -48,8 +49,18 @@ impl PeerCatalogEntityRouter {
 
     pub fn router(self) -> Router {
         Router::new()
+            .route("/", get(Self::handle_get_all_catalog_by_peer_id))
             .route("/{peer_id}", get(Self::handle_get_catalog_by_peer_id))
             .with_state(self)
+    }
+
+    async fn handle_get_all_catalog_by_peer_id(
+        State(state): State<PeerCatalogEntityRouter>,
+    ) -> impl IntoResponse {
+        match state.service.get_all_peer_catalogs().await {
+            Ok(data) => (StatusCode::OK, Json(data)).into_response(),
+            Err(e) => return e.into_response(),
+        }
     }
 
     async fn handle_get_catalog_by_peer_id(

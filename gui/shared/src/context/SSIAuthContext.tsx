@@ -1,12 +1,20 @@
-import React, { createContext, ReactNode, useState } from "react"
+import React, { createContext, ReactNode, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useGetWalletDid, useOidc4vciRequest, useOidc4vpRequest, useOnboardWallet, getGetWalletDidQueryKey } from "../data/orval/wallet/wallet";
-import { useGetAllVCRequests, useRequestVCtoAuthorityCrossUser } from "../data/orval/vc-request/vc-request";
+import {
+  useGetWalletDid,
+  useOidc4vciRequest,
+  useOidc4vpRequest,
+  useOnboardWallet,
+  getGetWalletDidQueryKey,
+} from "../data/orval/wallet/wallet";
+import {
+  useGetAllVCRequests,
+  useRequestVCtoAuthorityCrossUser,
+} from "../data/orval/vc-request/vc-request";
 import { VCRequestDto } from "../data/orval/model";
 import { useOnboardProvider } from "../data/orval/onboard/onboard";
 import { getDidFromUrl } from "../data/orval/did/did";
 import { useEffect } from "react";
-
 
 export interface SSIAuthContextType {
   // Is Wallet onboarded
@@ -18,13 +26,13 @@ export interface SSIAuthContextType {
     url: string | null;
     did: string | null;
     didDocument: Object | null;
-  }
+  };
   // Auth DID
   authDid: {
     url: string | null;
     did: string | null;
     didDocument: Object | null;
-  }
+  };
   // Auth Requests
   authRequests: VCRequestDto[];
   authRequestsPollInterval: number;
@@ -90,28 +98,28 @@ export const SSIAuthContext = createContext<SSIAuthContextType>({
     oidc4vp: false,
     oidc4vci: false,
   },
-  onboardInWallet: async () => { },
-  fetchAuthDid: async (url: string) => { },
-  fetchPeerDid: async (url: string) => { },
-  requestVCtoAuthority: async () => { },
-  fetchAuthRequests: async () => { },
-  pollAuthRequests: async () => { },
-  setOidc4VciRequestUri: async () => { },
-  saveOidc4VciRequestUri: () => { },
-  setOidc4VpRequestUri: () => { },
-  presentVPtoPeer: () => { },
-})
+  onboardInWallet: async () => {},
+  fetchAuthDid: async (url: string) => {},
+  fetchPeerDid: async (url: string) => {},
+  requestVCtoAuthority: async () => {},
+  fetchAuthRequests: async () => {},
+  pollAuthRequests: async () => {},
+  setOidc4VciRequestUri: async () => {},
+  saveOidc4VciRequestUri: () => {},
+  setOidc4VpRequestUri: () => {},
+  presentVPtoPeer: () => {},
+});
 
 export const SSIAuthContextProvider = ({ children }: { children: ReactNode }) => {
   const queryClient = useQueryClient();
   // State
   const [isContextWorking, setIsContextWorking] = useState<boolean>(false);
-  const [tempPeer, setTempPeer] = useState<SSIAuthContextType['tempPeer']>({
+  const [tempPeer, setTempPeer] = useState<SSIAuthContextType["tempPeer"]>({
     url: null,
     did: null,
     didDocument: null,
   });
-  const [authDid, setAuthDid] = useState<SSIAuthContextType['authDid']>({
+  const [authDid, setAuthDid] = useState<SSIAuthContextType["authDid"]>({
     url: null,
     did: null,
     didDocument: null,
@@ -131,27 +139,25 @@ export const SSIAuthContextProvider = ({ children }: { children: ReactNode }) =>
   const [isFetchingAuthRequests, setIsFetchingAuthRequests] = useState(false);
   const [isRequestingVP, setIsRequestingVP] = useState(false);
 
-
   // Data access
-  const { mutateAsync: onboardWallet, isPending: isOnboardingWallet } = useOnboardWallet()
-  const { data: didResponse } = useGetWalletDid()
-  const ownDid = didResponse?.status === 200 ? didResponse.data.id : null
-  const ownWalletOnboarded = didResponse?.status === 200
-  const { mutateAsync: oidc4vciRequest, isPending: isOidc4vciRequesting } = useOidc4vciRequest()
-  const { mutateAsync: oidc4vpRequest, isPending: isOidc4vpRequesting } = useOidc4vpRequest()
-  const { mutateAsync: requestVCtoAuthorityCrossUser } = useRequestVCtoAuthorityCrossUser()
-  const { data: vcRequestsResponse, refetch: refetchAuthRequestsQuery } = useGetAllVCRequests()
-  const vcRequests = vcRequestsResponse?.status === 200 ? vcRequestsResponse.data : []
-  const { mutateAsync: onboardProvider } = useOnboardProvider()
-
+  const { mutateAsync: onboardWallet, isPending: isOnboardingWallet } = useOnboardWallet();
+  const { data: didResponse } = useGetWalletDid();
+  const ownDid = didResponse?.status === 200 ? didResponse.data.id : null;
+  const ownWalletOnboarded = didResponse?.status === 200;
+  const { mutateAsync: oidc4vciRequest, isPending: isOidc4vciRequesting } = useOidc4vciRequest();
+  const { mutateAsync: oidc4vpRequest, isPending: isOidc4vpRequesting } = useOidc4vpRequest();
+  const { mutateAsync: requestVCtoAuthorityCrossUser } = useRequestVCtoAuthorityCrossUser();
+  const { data: vcRequestsResponse, refetch: refetchAuthRequestsQuery } = useGetAllVCRequests();
+  const vcRequests = vcRequestsResponse?.status === 200 ? vcRequestsResponse.data : [];
+  const { mutateAsync: onboardProvider } = useOnboardProvider();
 
   // Actions
   const onboardInWallet = async () => {
     try {
-      await onboardWallet()
-      await queryClient.invalidateQueries({ queryKey: getGetWalletDidQueryKey() })
+      await onboardWallet();
+      await queryClient.invalidateQueries({ queryKey: getGetWalletDidQueryKey() });
     } catch (error) {
-      console.error(error)
+      console.error(error);
     }
   };
 
@@ -203,12 +209,14 @@ export const SSIAuthContextProvider = ({ children }: { children: ReactNode }) =>
         if (requests.length === 0) return;
 
         // Sort safely by creating a copy
-        const requestsSorted = [...requests].sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+        const requestsSorted = [...requests].sort(
+          (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime(),
+        );
         const latest = requestsSorted[0];
 
         setAuthRequestsLastPoll(new Date());
 
-        if (latest && latest.status === 'Approved') {
+        if (latest && latest.status === "Approved") {
           setAuthRequestsPollInterval(0);
           if (latest.vc_uri) {
             setOidc4vciRequestUriState(latest.vc_uri);
@@ -233,7 +241,7 @@ export const SSIAuthContextProvider = ({ children }: { children: ReactNode }) =>
           id: authDid.did,
           slug: "authority",
           vc_type: "DataspaceParticipant",
-        }
+        },
       });
       setAuthRequestsPollInterval(500);
     } catch (error) {
@@ -266,7 +274,9 @@ export const SSIAuthContextProvider = ({ children }: { children: ReactNode }) =>
       }
       const { data } = await refetchAuthRequestsQuery();
       const requests = data?.status === 200 ? data.data : [];
-      const requestsSorted = requests.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+      const requestsSorted = requests.sort(
+        (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime(),
+      );
       const latest = requestsSorted.at(0);
       if (!latest) {
         throw new Error("No Auth Request found");
@@ -286,14 +296,16 @@ export const SSIAuthContextProvider = ({ children }: { children: ReactNode }) =>
       if (requests.length === 0) throw new Error("No requests found");
 
       // Sort safely by creating a copy
-      const requestsSorted = [...requests].sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+      const requestsSorted = [...requests].sort(
+        (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime(),
+      );
       const latest = requestsSorted[0];
 
       if (!latest) {
         throw new Error("No Auth Request found");
       }
 
-      if (latest.status !== 'Approved') {
+      if (latest.status !== "Approved") {
         throw new Error("Latest request is not approved yet");
       }
 
@@ -307,7 +319,7 @@ export const SSIAuthContextProvider = ({ children }: { children: ReactNode }) =>
       await oidc4vciRequest({
         data: {
           uri: latest.vc_uri,
-        }
+        },
       });
     } catch (error) {
       console.error(error);
@@ -328,19 +340,18 @@ export const SSIAuthContextProvider = ({ children }: { children: ReactNode }) =>
           id: tempPeer.did,
           slug: "bro",
           actions: "talk",
-        }
+        },
       });
       if (response.status === 200) {
         // response.data is now guaranteed to be the string content (URI) or a JSON object
         const responseData = response.data as any;
-        const uri = typeof responseData === 'string'
-          ? responseData
-          : responseData?.uri || responseData?.url;
+        const uri =
+          typeof responseData === "string" ? responseData : responseData?.uri || responseData?.url;
 
         if (uri) {
           setOidc4vpRequestUriState(uri);
         } else {
-          console.warn('Unexpected Onboard Provider response format:', responseData);
+          console.warn("Unexpected Onboard Provider response format:", responseData);
         }
       }
     } catch (error) {
@@ -359,7 +370,7 @@ export const SSIAuthContextProvider = ({ children }: { children: ReactNode }) =>
       await oidc4vpRequest({
         data: {
           uri: oidc4vpRequestUri,
-        }
+        },
       });
       setOidc4vpSuccess(true);
     } catch (error) {
@@ -406,5 +417,5 @@ export const SSIAuthContextProvider = ({ children }: { children: ReactNode }) =>
     >
       {children}
     </SSIAuthContext.Provider>
-  )
-}
+  );
+};

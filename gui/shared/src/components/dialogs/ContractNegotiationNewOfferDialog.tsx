@@ -10,8 +10,14 @@
 
 import React, { useContext, useMemo, useState } from "react";
 import { GlobalInfoContext, GlobalInfoContextType } from "shared/src/context/GlobalInfoContext";
-import { useRpcSetupOffer, useRpcSetupOfferInit } from "shared/src/data/orval/negotiation-rp-c/negotiation-rp-c";
-import { useGetNegotiationProcesses, useGetOffersByProcessId } from "shared/src/data/orval/negotiations/negotiations";
+import {
+  useRpcSetupOffer,
+  useRpcSetupOfferInit,
+} from "shared/src/data/orval/negotiation-rp-c/negotiation-rp-c";
+import {
+  useGetNegotiationProcesses,
+  useGetOffersByProcessId,
+} from "shared/src/data/orval/negotiations/negotiations";
 import { NegotiationProcessDto } from "shared/src/data/orval/model/negotiationProcessDto";
 import { OdrlOffer } from "shared/src/data/orval/model/odrlOffer";
 import { OdrlInfo } from "shared/src/data/orval/model/odrlInfo";
@@ -119,8 +125,8 @@ export const ContractNegotiationNewOfferDialog = ({
         providerAddress: resolvedPath || "", // Use resolved path
         callbackAddress: myDspPath || "",
         offer: {
-          "@id": policy.id
-        }
+          "@id": policy.id,
+        },
       },
     });
     if (res.status === 201) {
@@ -129,7 +135,6 @@ export const ContractNegotiationNewOfferDialog = ({
         to: "/contract-negotiation",
       });
     }
-
   };
 
   // ---------------------------------------------------------------------------
@@ -139,7 +144,6 @@ export const ContractNegotiationNewOfferDialog = ({
   const loadParticipants = async () => {
     await refetchParticipants();
   };
-
 
   const handleParticipantChange = (value: string) => {
     if (participants && Array.isArray(participants.data)) {
@@ -160,19 +164,28 @@ export const ContractNegotiationNewOfferDialog = ({
         <Heading level="h6" className="mb-2">
           Select an authenticated peer to send the offer to.
         </Heading>
-        <Select onValueChange={handleParticipantChange} value={selectedParticipant?.participant_id} onOpenChange={loadParticipants}>
+        <Select
+          onValueChange={handleParticipantChange}
+          value={selectedParticipant?.participant_id}
+          onOpenChange={loadParticipants}
+        >
           <SelectTrigger>
             <SelectValue placeholder="Select a peer" />
           </SelectTrigger>
           <SelectContent>
-            {Array.isArray(participants?.data) && participants.data
-              .filter((participant) => participant.participant_id !== "Agent")
-              .filter((participant) => !participant.is_me)
-              .map((participant) => (
-                <SelectItem key={participant.participant_id} value={participant.participant_id || ""}>
-                  {participant.participant_slug || participant.participant_id} - {participant.base_url}
-                </SelectItem>
-              ))}
+            {Array.isArray(participants?.data) &&
+              participants.data
+                .filter((participant) => participant.participant_id !== "Agent")
+                .filter((participant) => !participant.is_me)
+                .map((participant) => (
+                  <SelectItem
+                    key={participant.participant_id}
+                    value={participant.participant_id || ""}
+                  >
+                    {participant.participant_slug || participant.participant_id} -{" "}
+                    {participant.base_url}
+                  </SelectItem>
+                ))}
           </SelectContent>
         </Select>
       </div>
@@ -209,4 +222,3 @@ export const ContractNegotiationNewOfferDialog = ({
     />
   );
 };
-

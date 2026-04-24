@@ -34,6 +34,7 @@ use crate::protocols::dsp::protocol_types::{
     TransferSuspensionMessageDto, TransferTerminationMessageDto,
 };
 use common::dsp_common::context_field::ContextField;
+use common::dsp_common::normalizer::dsp_namespace_normalizer;
 
 use crate::http::common::extract_payload;
 use axum::{
@@ -106,6 +107,7 @@ impl DspRouter {
                 self.clone(),
                 Self::auth_middleware,
             ))
+            .layer(middleware::from_fn(dsp_namespace_normalizer))
             .with_state(self)
     }
 
@@ -166,19 +168,69 @@ impl DspRouter {
         )
     }
 
+    // async fn handle_transfer_request(
+    //     State(state): State<DspRouter>,
+    //     Extension(mate): Extension<Mates>,
+    //     input: Result<
+    //         Json<TransferProcessMessageWrapper<TransferRequestMessageDto>>,
+    //         JsonRejection,
+    //     >,
+    // ) -> impl IntoResponse {
+    //     tracing::info!("algo cae aquí: \n{:?}\n", &input);
+    //     let payload = match extract_payload(input) {
+    //         Ok(v) => v,
+    //         Err(e) => return e,
+    //     };
+    //
+    //     let result = state
+    //         .orchestrator
+    //         .get_protocol_service()
+    //         .on_transfer_request(&payload, &mate.participant_id)
+    //         .await;
+    //
+    //     match result {
+    //         Ok((data, already_exists)) => {
+    //             let status = if already_exists {
+    //                 StatusCode::OK
+    //             } else {
+    //                 StatusCode::CREATED
+    //             };
+    //             (status, Json(data)).into_response()
+    //         }
+    //         Err(err) => Self::map_service_error(err).into_response(),
+    //     }
+    // }
+
+
     async fn handle_transfer_request(
         State(state): State<DspRouter>,
         Extension(mate): Extension<Mates>,
-        input: Result<
-            Json<TransferProcessMessageWrapper<TransferRequestMessageDto>>,
-            JsonRejection,
-        >,
+        // 1. En lugar de pedir Json<...>, pedimos el cuerpo completo como String
+        raw_body: String,
     ) -> impl IntoResponse {
-        let payload = match extract_payload(input) {
-            Ok(v) => v,
-            Err(e) => return e,
+
+        // 2. Imprimimos el payload exacto que nos envía el cliente
+        tracing::info!(">>> 🚀 PAYLOAD ORIGINAL CRUDO:\n{}", raw_body);
+
+        // 3. Intentamos parsearlo a mano a tus estructuras
+        let payload_result: Result<TransferProcessMessageWrapper<TransferRequestMessageDto>, _> =
+            serde_json::from_str(&raw_body);
+
+        // 4. Evaluamos el resultado del parseo (reemplazando tu extract_payload)
+        let payload = match payload_result {
+            Ok(v) => {
+                tracing::debug!(">>> ✅ Parseo exitoso");
+                v
+            }
+            Err(e) => {
+                // Si el problema es el "invalid urn scheme", caerá aquí.
+                // Pero como ya hemos impreso `raw_body` arriba, podrás ver exactamente qué mandaron.
+                tracing::error!(">>> ❌ Error al parsear JSON: {}", e);
+                return StatusCode::BAD_REQUEST.into_response();
+            }
         };
 
+        // 5. A partir de aquí, tu lógica de negocio sigue exactamente igual
         let result = state
             .orchestrator
             .get_protocol_service()
@@ -197,6 +249,7 @@ impl DspRouter {
             Err(err) => Self::map_service_error(err).into_response(),
         }
     }
+
 
     async fn handle_transfer_start(
         State(state): State<DspRouter>,

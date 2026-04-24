@@ -11,11 +11,17 @@ import { BaseProcessDialog, mapTransferProcessToInfoItems } from "./base";
 import { TransferProcessDto } from "../../data/orval/model";
 import { useSetupTransferCompletion } from "../../data/orval/transfer-rp-c/transfer-rp-c";
 import { useRouter } from "@tanstack/react-router";
-import { useGetTransferProcesses, useGetTransferProcessById } from "../../data/orval/transfers/transfers";
+import {
+  useGetTransferProcesses,
+  useGetTransferProcessById,
+} from "../../data/orval/transfers/transfers";
 
-
-export const TransferProcessCompletionDialog = ({ process, onClose }: {
-  process: TransferProcessDto; onClose?: () => void;
+export const TransferProcessCompletionDialog = ({
+  process,
+  onClose,
+}: {
+  process: TransferProcessDto;
+  onClose?: () => void;
 }) => {
   const { mutateAsync: completeAsync } = useSetupTransferCompletion();
   const { refetch } = useGetTransferProcesses();
@@ -35,8 +41,8 @@ export const TransferProcessCompletionDialog = ({ process, onClose }: {
       data: {
         consumerPid: process.identifiers.consumerPid,
         providerPid: process.identifiers.providerPid,
-      }
-    })
+      },
+    });
 
     await refetch();
     await refetchDetail();

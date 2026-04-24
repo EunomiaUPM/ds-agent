@@ -23,33 +23,28 @@ export interface TransferProcessDetail {
 }
 
 export function useTransferProcessDetail(transferProcessId: string): TransferProcessDetail {
-  const { data: transferProcess, isLoading } =
-    useGetTransferProcessById(transferProcessId);
+  const { data: transferProcess, isLoading } = useGetTransferProcessById(transferProcessId);
 
-  const { data: dataplaneTransfer } = useGetDataplaneTransferByProcessId(
-    transferProcessId,
-    { query: { retry: false } },
-  );
+  const { data: dataplaneTransfer } = useGetDataplaneTransferByProcessId(transferProcessId, {
+    query: { retry: false },
+  });
 
   const dataplaneProcessId =
     dataplaneTransfer?.data && "id" in dataplaneTransfer.data
       ? (dataplaneTransfer.data as DataplaneTransferDto).id
       : undefined;
 
-  const { data: dataplaneLogs } = useGetDataplaneTransferLogs(
-    dataplaneProcessId!,
-    { query: { enabled: !!dataplaneProcessId } },
-  );
+  const { data: dataplaneLogs } = useGetDataplaneTransferLogs(dataplaneProcessId!, {
+    query: { enabled: !!dataplaneProcessId },
+  });
 
-  const { data: transferEvents } = useGetTransferEventsByDataplaneProcessId(
-    dataplaneProcessId!,
-    { query: { enabled: !!dataplaneProcessId } },
-  );
+  const { data: transferEvents } = useGetTransferEventsByDataplaneProcessId(dataplaneProcessId!, {
+    query: { enabled: !!dataplaneProcessId },
+  });
 
-  const { data: dataplaneInfo } = useGetDataplaneTransferInfo(
-    dataplaneProcessId!,
-    { query: { enabled: !!dataplaneProcessId } },
-  );
+  const { data: dataplaneInfo } = useGetDataplaneTransferInfo(dataplaneProcessId!, {
+    query: { enabled: !!dataplaneProcessId },
+  });
 
   const tp = transferProcess?.status === 200 ? transferProcess.data : null;
 
@@ -64,14 +59,10 @@ export function useTransferProcessDetail(transferProcessId: string): TransferPro
       : null;
 
   const logs: DataplaneTransferLogDto[] =
-    dataplaneLogs?.data && Array.isArray(dataplaneLogs.data)
-      ? dataplaneLogs.data
-      : [];
+    dataplaneLogs?.data && Array.isArray(dataplaneLogs.data) ? dataplaneLogs.data : [];
 
   const events: TransferEventDto[] =
-    transferEvents?.data && Array.isArray(transferEvents.data)
-      ? transferEvents.data
-      : [];
+    transferEvents?.data && Array.isArray(transferEvents.data) ? transferEvents.data : [];
 
   return { isLoading, tp, dp, info, logs, events };
 }

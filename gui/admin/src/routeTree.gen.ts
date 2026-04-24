@@ -38,6 +38,8 @@ import { Route as WalletOidc4vciImport } from './routes/wallet/oidc4vci'
 import { Route as WalletInfoImport } from './routes/wallet/info'
 import { Route as WalletDidImport } from './routes/wallet/did'
 import { Route as WalletCredentialsImport } from './routes/wallet/credentials'
+import { Route as AuthorityRequestDetailsImport } from './routes/authority/request-details'
+import { Route as AuthorityNewImport } from './routes/authority/new'
 import { Route as AgreementsAgreementIdImport } from './routes/agreements/$agreementId'
 import { Route as TransferProcessTransferProcessIdRouteImport } from './routes/transfer-process/$transferProcessId/route'
 import { Route as ParticipantsParticipantIdRouteImport } from './routes/participants/$participantId/route'
@@ -217,6 +219,18 @@ const WalletCredentialsRoute = WalletCredentialsImport.update({
   id: '/credentials',
   path: '/credentials',
   getParentRoute: () => WalletRouteRoute,
+} as any)
+
+const AuthorityRequestDetailsRoute = AuthorityRequestDetailsImport.update({
+  id: '/request-details',
+  path: '/request-details',
+  getParentRoute: () => AuthorityRouteRoute,
+} as any)
+
+const AuthorityNewRoute = AuthorityNewImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AuthorityRouteRoute,
 } as any)
 
 const AgreementsAgreementIdRoute = AgreementsAgreementIdImport.update({
@@ -452,6 +466,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AgreementsAgreementIdImport
       parentRoute: typeof AgreementsRouteImport
     }
+    '/authority/new': {
+      id: '/authority/new'
+      path: '/new'
+      fullPath: '/authority/new'
+      preLoaderRoute: typeof AuthorityNewImport
+      parentRoute: typeof AuthorityRouteImport
+    }
+    '/authority/request-details': {
+      id: '/authority/request-details'
+      path: '/request-details'
+      fullPath: '/authority/request-details'
+      preLoaderRoute: typeof AuthorityRequestDetailsImport
+      parentRoute: typeof AuthorityRouteImport
+    }
     '/wallet/credentials': {
       id: '/wallet/credentials'
       path: '/credentials'
@@ -654,10 +682,14 @@ const AgreementsRouteRouteWithChildren = AgreementsRouteRoute._addFileChildren(
 )
 
 interface AuthorityRouteRouteChildren {
+  AuthorityNewRoute: typeof AuthorityNewRoute
+  AuthorityRequestDetailsRoute: typeof AuthorityRequestDetailsRoute
   AuthorityIndexRoute: typeof AuthorityIndexRoute
 }
 
 const AuthorityRouteRouteChildren: AuthorityRouteRouteChildren = {
+  AuthorityNewRoute: AuthorityNewRoute,
+  AuthorityRequestDetailsRoute: AuthorityRequestDetailsRoute,
   AuthorityIndexRoute: AuthorityIndexRoute,
 }
 
@@ -887,6 +919,8 @@ export interface FileRoutesByFullPath {
   '/participants/$participantId': typeof ParticipantsParticipantIdRouteRouteWithChildren
   '/transfer-process/$transferProcessId': typeof TransferProcessTransferProcessIdRouteRouteWithChildren
   '/agreements/$agreementId': typeof AgreementsAgreementIdRoute
+  '/authority/new': typeof AuthorityNewRoute
+  '/authority/request-details': typeof AuthorityRequestDetailsRoute
   '/wallet/credentials': typeof WalletCredentialsRoute
   '/wallet/did': typeof WalletDidRoute
   '/wallet/info': typeof WalletInfoRoute
@@ -919,6 +953,8 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/catalog/participant': typeof CatalogParticipantRouteRouteWithChildren
   '/agreements/$agreementId': typeof AgreementsAgreementIdRoute
+  '/authority/new': typeof AuthorityNewRoute
+  '/authority/request-details': typeof AuthorityRequestDetailsRoute
   '/wallet/credentials': typeof WalletCredentialsRoute
   '/wallet/did': typeof WalletDidRoute
   '/wallet/info': typeof WalletInfoRoute
@@ -966,6 +1002,8 @@ export interface FileRoutesById {
   '/participants/$participantId': typeof ParticipantsParticipantIdRouteRouteWithChildren
   '/transfer-process/$transferProcessId': typeof TransferProcessTransferProcessIdRouteRouteWithChildren
   '/agreements/$agreementId': typeof AgreementsAgreementIdRoute
+  '/authority/new': typeof AuthorityNewRoute
+  '/authority/request-details': typeof AuthorityRequestDetailsRoute
   '/wallet/credentials': typeof WalletCredentialsRoute
   '/wallet/did': typeof WalletDidRoute
   '/wallet/info': typeof WalletInfoRoute
@@ -1014,6 +1052,8 @@ export interface FileRouteTypes {
     | '/participants/$participantId'
     | '/transfer-process/$transferProcessId'
     | '/agreements/$agreementId'
+    | '/authority/new'
+    | '/authority/request-details'
     | '/wallet/credentials'
     | '/wallet/did'
     | '/wallet/info'
@@ -1045,6 +1085,8 @@ export interface FileRouteTypes {
     | '/'
     | '/catalog/participant'
     | '/agreements/$agreementId'
+    | '/authority/new'
+    | '/authority/request-details'
     | '/wallet/credentials'
     | '/wallet/did'
     | '/wallet/info'
@@ -1090,6 +1132,8 @@ export interface FileRouteTypes {
     | '/participants/$participantId'
     | '/transfer-process/$transferProcessId'
     | '/agreements/$agreementId'
+    | '/authority/new'
+    | '/authority/request-details'
     | '/wallet/credentials'
     | '/wallet/did'
     | '/wallet/info'
@@ -1186,6 +1230,8 @@ export const routeTree = rootRoute
     "/authority": {
       "filePath": "authority/route.tsx",
       "children": [
+        "/authority/new",
+        "/authority/request-details",
         "/authority/"
       ]
     },
@@ -1290,6 +1336,14 @@ export const routeTree = rootRoute
     "/agreements/$agreementId": {
       "filePath": "agreements/$agreementId.tsx",
       "parent": "/agreements"
+    },
+    "/authority/new": {
+      "filePath": "authority/new.tsx",
+      "parent": "/authority"
+    },
+    "/authority/request-details": {
+      "filePath": "authority/request-details.tsx",
+      "parent": "/authority"
     },
     "/wallet/credentials": {
       "filePath": "wallet/credentials.tsx",

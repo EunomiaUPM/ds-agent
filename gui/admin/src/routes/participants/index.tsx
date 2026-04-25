@@ -28,6 +28,21 @@ import { PageSection } from "shared/src/components/layout/PageSection";
 import { useGetAllParticipants } from "shared/data/orval/participants/participants";
 import { GeneralErrorComponent } from "@/components/GeneralErrorComponent";
 import { ParticipantDto } from "shared/data/orval/model/participantDto";
+import dayjs from "dayjs";
+import { Card, CardContent, CardHeader, CardTitle } from "shared/src/components/ui/card";
+import { Skeleton } from "shared/src/components/ui/skeleton";
+
+interface Participant extends ParticipantDto {
+  last_interaction?: string;
+  saved_at?: string;
+  extra_fields?: any;
+}
+
+const truncateId = (id?: string) => {
+  if (!id) return "N/A";
+  if (id.length <= 40) return id;
+  return `${id.slice(0, 20)}...${id.slice(-15)}`;
+};
 
 // =============================================================================
 // ROUTE
@@ -40,21 +55,19 @@ export const Route = createFileRoute("/participants/")({
   component: RouteComponent,
 });
 
-// =============================================================================
-// COMPONENT
-// =============================================================================
-
-import { Skeleton } from "shared/src/components/ui/skeleton";
-
 function RouteComponent() {
   const { data: participants, isLoading, isError, error } = useGetAllParticipants();
-  const { api_gateway } = useContext<GlobalInfoContextType | null>(GlobalInfoContext)!;
 
   if (isLoading) {
     return (
       <PageLayout>
         <PageHeader title="Participants" />
-        <div className="space-y-6">Loading...</div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-32 w-full rounded-xl" />
+          ))}
+        </div>
+        <Skeleton className="h-64 w-full rounded-xl" />
       </PageLayout>
     );
   }
@@ -64,140 +77,127 @@ function RouteComponent() {
     return <GeneralErrorComponent error={finalError} reset={() => {}} />;
   }
 
-  // ---------------------------------------------------------------------------
-  // Computed: Categorize participants
-  // ---------------------------------------------------------------------------
-  /** My agent (Agent + isMe=true) */
-  const myAgent = useMemo(() => {
-    return participants.data.find((p) => p.participant_type === "Agent" && p.is_me === true);
-  }, [participants]);
-
-  /** Other agents (Agent + isMe=false) */
-  const otherAgents = useMemo(() => {
-    return participants.data.filter((p) => p.participant_type === "Agent" && p.is_me !== true);
-  }, [participants]);
-
-  /** Authorities */
-  const authorities = useMemo(() => {
-    return participants.data.filter((p) => p.participant_type === "Authority");
-  }, [participants]);
-
-  // ---------------------------------------------------------------------------
-  // Handlers
-  // ---------------------------------------------------------------------------
-
-  const handleOnboard = async () => {
-    // await onboardAsync({ api_gateway });
-  };
-
-  // ---------------------------------------------------------------------------
-  // Render: InfoList for a single participant
-  // ---------------------------------------------------------------------------
-
-  const renderParticipantInfoList = (participant: ParticipantDto, title: string) => (
-    <PageSection title={title}>
-      <div className="max-w-screen-md">
-        <InfoList
-          items={[
-            { label: "Participant ID", value: { type: "urn", value: participant.participant_id } },
-            { label: "Identity Token", value: { type: "urn", value: participant.token } },
-            {
-              label: "Participant Type",
-              value: { type: "role", value: participant.participant_type! },
-            },
-            { label: "Base URL", value: { type: "urn", value: participant.base_url } },
-          ]}
-        />
-      </div>
-    </PageSection>
-  );
-
-  // ---------------------------------------------------------------------------
-  // Render: Table for agents
-  // ---------------------------------------------------------------------------
-
-  const renderAgentsTable = (agents: ParticipantDto[]) => (
-    <PageSection title="Other Agents">
-      <DataTable
-        className="text-sm"
-        data={agents}
-        keyExtractor={(p) => p.participant_id!}
-        columns={[
-          {
-            header: "Participant ID",
-            cell: (p) => <Badge variant={"info"}>{formatUrn(p.participant_id)}</Badge>,
-          },
-          {
-            header: "Identity Token",
-            cell: (p) => <Badge variant={"info"}>{formatUrn(p.token)}</Badge>,
-          },
-          {
-            header: "Participant Type",
-            cell: (p) => (
-              <Badge variant={"role"} dsrole={p.participant_type as BadgeRole}>
-                {p.participant_type}
-              </Badge>
-            ),
-          },
-          {
-            header: "Base URL",
-            cell: (p) => <Badge variant={"info"}>{p.base_url}</Badge>,
-          },
-          {
-            header: "Link",
-            cell: (p) => (
-              <Link to="/participants/$participantId" params={{ participantId: p.participant_id }}>
-                <Button variant="link">
-                  See details
-                  <ArrowRight />
-                </Button>
-              </Link>
-            ),
-          },
-        ]}
-      />
-    </PageSection>
-  );
-
-  // ---------------------------------------------------------------------------
-  // Render
-  // ---------------------------------------------------------------------------
+  const allParticipants = (participants.data || []) as Participant[];
+  const myAgent = allParticipants.find(p => p.is_me);
 
   return (
     <PageLayout>
-      {/* NO WALLET - Onboarding prompt */}
-      {!myAgent && (
-        <div className="p-8 py-6 mx-auto w-fit max-w-[70ch] bg-brand-sky/5 border border-stroke rounded-md">
-          <Heading level="h3">Missing wallet...</Heading>
-          <Heading level="h5">
-            Your wallet is not yet connected as Provider. <br /> Please complete the onboarding
-            process to get started.
-          </Heading>
-          <Button size={"lg"} className="w-full mt-4" onClick={handleOnboard}>
-            Onboard wallet
-          </Button>
+      <PageHeader
+        title="Participants"
+        badge={
+          <Badge variant="info" size="lg">
+            {allParticipants.length} total
+          </Badge>
+        }
+      />
+
+      {/* Quick Stats / My Agent info */}
+      {myAgent && (
+        <div className="mb-8">
+          <Card className="bg-gradient-to-br from-brand-sky/10 to-brand-violet/10 border-brand-sky/20 overflow-hidden relative">
+            <div className="absolute top-0 right-0 p-4 opacity-10">
+               <div className="w-24 h-24 rounded-full bg-brand-sky blur-3xl" />
+            </div>
+            <CardHeader className="pb-2">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-xs font-semibold text-brand-sky uppercase tracking-wider mb-1">My Local Agent</p>
+                  <CardTitle className="text-2xl">{myAgent.participant_slug || "Unnamed Agent"}</CardTitle>
+                </div>
+                <Badge variant="info" className="animate-pulse">Active</Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-2">
+                <div className="space-y-1">
+                  <p className="text-[10px] text-muted-foreground uppercase">DID Identifier</p>
+                  <p className="text-xs font-mono truncate" title={myAgent.participant_id}>{truncateId(myAgent.participant_id)}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] text-muted-foreground uppercase">System Role</p>
+                  <div className="flex pt-1">
+                    <Badge variant="role" dsrole={myAgent.participant_type as BadgeRole}>{myAgent.participant_type}</Badge>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] text-muted-foreground uppercase">Base URL</p>
+                  <p className="text-xs font-mono">{myAgent.base_url}</p>
+                </div>
+                <div className="flex items-end justify-end">
+                  <Link to="/participants/$participantId" params={{ participantId: myAgent.participant_id! }}>
+                    <Button variant="secondary" size="sm" className="bg-white/50 hover:bg-white/80">
+                      View My Profile
+                      <ArrowRight className="ml-2 h-3 w-3" />
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 
-      {/* WALLET OK */}
-      {myAgent && (
-        <>
-          <PageHeader title="Participants" />
-
-          {/* My Agent (Agent + isMe=true) → InfoList */}
-          {renderParticipantInfoList(myAgent, "My Agent")}
-
-          {/* Other Agents (Agent + isMe=false) → Table */}
-          {otherAgents.length > 0 && renderAgentsTable(otherAgents)}
-
-          {/* Authority → InfoList for each */}
-          {authorities.map((authority) => (
-            <div key={authority.participant_id}>
-              {renderParticipantInfoList(authority, `Authority`)}
-            </div>
-          ))}
-        </>
-      )}
+      <PageSection title="Network Participants">
+        <DataTable
+          className="text-sm"
+          data={allParticipants}
+          keyExtractor={(p) => p.participant_id!}
+          columns={[
+            {
+              header: "Name",
+              accessorKey: "participant_slug",
+              cell: (p) => (
+                <div className="flex items-center gap-3">
+                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs ${p.is_me ? 'bg-brand-sky text-white' : 'bg-background-200 text-muted-foreground'}`}>
+                      {(p.participant_slug || 'U').charAt(0).toUpperCase()}
+                   </div>
+                   <div className="flex flex-col">
+                      <span className="font-medium text-14">{p.participant_slug || "Unknown"}</span>
+                      {p.is_me && <span className="text-[10px] text-brand-sky font-bold">IT'S ME</span>}
+                   </div>
+                </div>
+              )
+            },
+            {
+              header: "Type",
+              accessorKey: "participant_type",
+              cell: (p) => (
+                <Badge variant="role" dsrole={p.participant_type as BadgeRole}>
+                  {p.participant_type}
+                </Badge>
+              )
+            },
+            {
+              header: "DID / ID",
+              accessorKey: "participant_id",
+              cell: (p) => (
+                <div className="font-mono text-[11px] opacity-70" title={p.participant_id}>
+                  {truncateId(p.participant_id)}
+                </div>
+              )
+            },
+            {
+              header: "Last Active",
+              accessorKey: "last_interaction",
+              cell: (p) => (
+                <div className="text-[11px] opacity-60">
+                  {p.last_interaction ? dayjs(p.last_interaction).format("MMM d, HH:mm") : "Never"}
+                </div>
+              )
+            },
+            {
+              header: "Actions",
+              cell: (p) => (
+                <Link to="/participants/$participantId" params={{ participantId: p.participant_id! }}>
+                  <Button variant="ghost" size="icon" className="hover:text-brand-sky hover:bg-brand-sky/10">
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </Link>
+              )
+            },
+          ]}
+        />
+      </PageSection>
     </PageLayout>
   );
 }

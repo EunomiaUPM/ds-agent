@@ -48,7 +48,7 @@ function NewAuthorityRequest() {
       url: "",
       slug: "",
       vc_type: "",
-      method: "oidc4vp",
+      method: "cert",
       auto: true,
     },
   });
@@ -110,7 +110,7 @@ function NewAuthorityRequest() {
 
   return (
     <PageLayout>
-      <PageHeader title="New Authority Request" />
+      <PageHeader title="Request New Credential" />
       <PageSection>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
@@ -201,20 +201,43 @@ function NewAuthorityRequest() {
                       <FormField
                         control={form.control as any}
                         name="method"
-                      render={({ field }: { field: any }) => (
+                        render={({ field }: { field: any }) => (
                           <FormItem>
-                            <FormLabel>Verification Method</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select method" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="oidc4vp">Verifiable Credential (OIDC4VP)</SelectItem>
-                                <SelectItem value="cert">Certificate</SelectItem>
-                              </SelectContent>
-                            </Select>
+                            <FormLabel>Identity Proof</FormLabel>
+                            <FormControl>
+                              <div className="relative flex p-1 bg-muted/50 border border-primary/40 rounded-lg w-full">
+                                {/* Sliding pill */}
+                                <div 
+                                  className={`absolute top-1 bottom-1 w-[calc(50%-0.25rem)] bg-primary rounded-md transition-transform duration-300 ease-in-out shadow-sm ${
+                                    field.value === 'cert' ? 'translate-x-0' : 'translate-x-[calc(100%+0.25rem)]'
+                                  }`}
+                                />
+                                
+                                <button
+                                  type="button"
+                                  className={`relative z-10 w-1/2 py-2 px-3 text-xs md:text-sm font-semibold transition-colors duration-300 rounded-md ${
+                                    field.value === 'cert' 
+                                      ? 'text-primary-foreground' 
+                                      : 'text-foreground/70 hover:text-foreground'
+                                  }`}
+                                  onClick={() => field.onChange('cert')}
+                                >
+                                  Certificate
+                                </button>
+                                
+                                <button
+                                  type="button"
+                                  className={`relative z-10 w-1/2 py-2 px-3 text-xs md:text-sm font-semibold transition-colors duration-300 rounded-md ${
+                                    field.value === 'oidc4vp' 
+                                      ? 'text-primary-foreground' 
+                                      : 'text-foreground/70 hover:text-foreground'
+                                  }`}
+                                  onClick={() => field.onChange('oidc4vp')}
+                                >
+                                  Verifiable Credential
+                                </button>
+                              </div>
+                            </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}

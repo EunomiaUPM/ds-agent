@@ -17,6 +17,7 @@ import { useContext, useMemo } from "react";
 import { Button } from "shared/src/components/ui/button.tsx";
 import { Badge, BadgeRole } from "shared/src/components/ui/badge";
 import Heading from "shared/src/components/ui/heading";
+import { buttonVariants } from "shared/src/components/ui/button";
 import { InfoList } from "shared/src/components/ui/info-list";
 
 // Icons
@@ -124,11 +125,13 @@ function RouteComponent() {
                   <p className="text-xs font-mono">{myAgent.base_url}</p>
                 </div>
                 <div className="flex items-end justify-end">
-                  <Link to="/participants/$participantId" params={{ participantId: myAgent.participant_id! }}>
-                    <Button variant="secondary" size="sm" className="bg-white/50 hover:bg-white/80">
-                      View My Profile
-                      <ArrowRight className="ml-2 h-3 w-3" />
-                    </Button>
+                  <Link 
+                    to="/participants/$participantId" 
+                    params={{ participantId: myAgent.participant_id! }}
+                    className={buttonVariants({ variant: "secondary", size: "sm", className: "relative z-10 bg-white/50 hover:bg-white/80 text-black" })}
+                  >
+                    View My Profile
+                    <ArrowRight className="ml-2 h-3 w-3" />
                   </Link>
                 </div>
               </div>
@@ -188,11 +191,13 @@ function RouteComponent() {
             {
               header: "Actions",
               cell: (p) => (
-                <Link to="/participants/$participantId" params={{ participantId: p.participant_id! }}>
-                  <Button variant="ghost" size="icon" className="hover:text-brand-sky hover:bg-brand-sky/10">
+                  <Link 
+                    to="/participants/$participantId" 
+                    params={{ participantId: p.participant_id! }}
+                    className={buttonVariants({ variant: "ghost", size: "icon", className: "hover:text-brand-sky hover:bg-brand-sky/10" })}
+                  >
                     <ArrowRight className="h-4 w-4" />
-                  </Button>
-                </Link>
+                  </Link>
               )
             },
           ]}

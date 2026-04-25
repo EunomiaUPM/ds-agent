@@ -124,7 +124,7 @@ export function AppSidebar() {
           icon: Wallet,
         },
         {
-          title: "Authority",
+          title: "Request Credential",
           url: "/admin/authority",
           icon: ShieldCheck,
         },

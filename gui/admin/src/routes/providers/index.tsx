@@ -5,11 +5,18 @@ import { DataTable } from "shared/src/components/DataTable";
 import { FormatDate } from "shared/src/components/ui/format-date";
 import { Button } from "shared/src/components/ui/button";
 import { Badge } from "shared/src/components/ui/badge";
-import { ArrowRight, Plus } from "lucide-react";
+import { ArrowRight, Plus, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { useState, useMemo } from "react";
 import { PageLayout } from "shared/src/components/layout/PageLayout";
 import { PageHeader } from "shared/src/components/layout/PageHeader";
 import { PageSection } from "shared/src/components/layout/PageSection";
 import { formatUrn } from "shared/src/lib/utils";
+
+const truncateId = (id?: string) => {
+  if (!id) return "N/A";
+  if (id.length <= 40) return id;
+  return `${id.slice(0, 20)}...${id.slice(-15)}`;
+};
 
 /**
  * Onboard request model from backend.
@@ -41,16 +48,66 @@ function ProvidersPage() {
       customInstance<{ status: number; data: OnboardRequest[] }>("/onboard/request/all", { method: "GET" })
   });
 
-  const requests = response?.data || [];
+  const [sortConfig, setSortConfig] = useState<{ key: keyof OnboardRequest; direction: 'asc' | 'desc' } | null>(null);
+
+  const requests = useMemo(() => {
+    let sortableRequests = [...(response?.data || [])];
+    if (sortConfig !== null) {
+      sortableRequests.sort((a, b) => {
+        const aVal = a[sortConfig.key];
+        const bVal = b[sortConfig.key];
+        
+        if (aVal === bVal) return 0;
+        
+        if (aVal === null || aVal === undefined) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (bVal === null || bVal === undefined) return sortConfig.direction === 'asc' ? 1 : -1;
+
+        const aString = String(aVal).toLowerCase();
+        const bString = String(bVal).toLowerCase();
+
+        if (aString < bString) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aString > bString) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return sortableRequests;
+  }, [response?.data, sortConfig]);
+
+  const handleSort = (key: keyof OnboardRequest) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIcon = (key: keyof OnboardRequest) => {
+    if (!sortConfig || sortConfig.key !== key) return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />;
+    return sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-4 w-4" /> : <ArrowDown className="ml-2 h-4 w-4" />;
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'processing': return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
+      case 'pending': return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
+      case 'approved': return 'bg-green-500/10 text-green-500 border-green-500/20';
+      case 'finalized': return 'bg-purple-500/10 text-purple-500 border-purple-500/20';
+      default: return 'bg-gray-500/10 text-gray-500 border-gray-500/20';
+    }
+  };
 
   return (
     <PageLayout>
-      <PageHeader title="Provider Onboarding">
+      <PageHeader title="Provider Sessions">
         <div className="flex justify-end mb-4">
           <Link to="/providers/new">
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              New Provider
+              New Session
             </Button>
           </Link>
         </div>
@@ -62,42 +119,51 @@ function ProvidersPage() {
           keyExtractor={(r) => r.id}
           columns={[
             {
-              header: "Request ID",
+              header: (
+                <Button variant="ghost" onClick={() => handleSort('id')} className="p-0 h-auto font-semibold">
+                  Request ID {getSortIcon('id')}
+                </Button>
+              ),
               cell: (r) => <Badge variant={"info"}>{formatUrn(r.id)}</Badge>,
             },
             {
-              header: "Provider DID",
+              header: (
+                <Button variant="ghost" onClick={() => handleSort('provider_id')} className="p-0 h-auto font-semibold">
+                  Provider DID {getSortIcon('provider_id')}
+                </Button>
+              ),
               cell: (r) => (
                 <div className="flex flex-col gap-1">
-                  <Badge variant={"info"}>{formatUrn(r.provider_id)}</Badge>
+                  <Badge variant={"infoLighter"} className="font-mono">{truncateId(r.provider_id)}</Badge>
                 </div>
               ),
             },
             {
-              header: "Provider Name",
+              header: (
+                <Button variant="ghost" onClick={() => handleSort('provider_slug')} className="p-0 h-auto font-semibold">
+                  Provider Name {getSortIcon('provider_slug')}
+                </Button>
+              ),
               cell: (r) => r.provider_slug || "-",
             },
             {
-              header: "Endpoint",
-              cell: (r) => (
-                <span className="text-xs font-mono text-muted-foreground truncate max-w-[200px] block">
-                  {r.grant_endpoint}
-                </span>
+              header: (
+                <Button variant="ghost" onClick={() => handleSort('status')} className="p-0 h-auto font-semibold">
+                  Status {getSortIcon('status')}
+                </Button>
               ),
-            },
-            {
-              header: "Status",
               cell: (r) => (
-                <Badge 
-                  variant={"status"} 
-                  state={r.status === "Approved" || r.status === "Finalized" ? "ACTIVE" : "PAUSE"}
-                >
+                <Badge className={`border ${getStatusColor(r.status)}`}>
                   {r.status || "-"}
                 </Badge>
               ),
             },
             {
-              header: "Created at",
+              header: (
+                <Button variant="ghost" onClick={() => handleSort('created_at')} className="p-0 h-auto font-semibold">
+                  Created at {getSortIcon('created_at')}
+                </Button>
+              ),
               cell: (r) => (r.created_at ? <FormatDate date={r.created_at} /> : "-"),
             },
             {

@@ -129,7 +129,7 @@ export function AppSidebar() {
           icon: ShieldCheck,
         },
         {
-          title: "Providers",
+          title: "Providers Sessions",
           url: "/admin/providers",
           icon: Users,
         },

@@ -7,7 +7,8 @@ import { PageSection } from "shared/src/components/layout/PageSection";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "shared/src/components/ui/card";
 import { Badge } from "shared/src/components/ui/badge";
 import { Button } from "shared/src/components/ui/button";
-import { ArrowLeft, ExternalLink, Calendar, Shield, Hash, Key } from "lucide-react";
+import { ArrowLeft, ExternalLink, Calendar, Shield, Hash, Key, Eye, EyeOff } from "lucide-react";
+import { useState } from "react";
 import { FormatDate } from "shared/src/components/ui/format-date";
 import * as z from "zod";
 import { OnboardRequest } from "./index";
@@ -33,6 +34,17 @@ function ProviderRequestDetails() {
   });
 
   const request = response?.data;
+  const [showSecrets, setShowSecrets] = useState(false);
+
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'processing': return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
+      case 'pending': return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
+      case 'approved': return 'bg-green-500/10 text-green-500 border-green-500/20';
+      case 'finalized': return 'bg-purple-500/10 text-purple-500 border-purple-500/20';
+      default: return 'bg-gray-500/10 text-gray-500 border-gray-500/20';
+    }
+  };
 
   if (isLoading) {
     return (
@@ -76,10 +88,7 @@ function ProviderRequestDetails() {
               Back
             </Button>
           </Link>
-          <Badge 
-            variant={"status"} 
-            state={request.status === "Approved" || request.status === "Finalized" ? "ACTIVE" : "PAUSE"}
-          >
+          <Badge className={`border ${getStatusColor(request.status)}`}>
             {request.status}
           </Badge>
         </div>
@@ -137,29 +146,36 @@ function ProviderRequestDetails() {
             </Card>
 
             {(request.assigned_id || request.token) && (
-              <Card className="border-primary/20 bg-primary/5">
+              <Card className="border-stroke bg-background shadow-sm">
                 <CardHeader>
-                  <div className="flex justify-between items-start">
+                  <div className="flex justify-between items-center">
                     <div>
-                      <CardTitle className="text-primary">Response Data</CardTitle>
+                      <CardTitle className="flex items-center gap-2">
+                        <Key className="h-5 w-5 text-brand-sky" />
+                        Response Data
+                      </CardTitle>
                       <CardDescription>Credentials received from the provider.</CardDescription>
                     </div>
-                    <Key className="h-5 w-5 text-primary" />
+                    <Button variant="outline" size="sm" onClick={() => setShowSecrets(!showSecrets)}>
+                      {showSecrets ? <><EyeOff className="h-4 w-4 mr-2"/> Hide</> : <><Eye className="h-4 w-4 mr-2"/> Show</>}
+                    </Button>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   {request.assigned_id && (
                     <div className="space-y-1">
-                      <p className="text-xs font-medium text-primary/70 uppercase">Assigned ID</p>
-                      <p className="text-sm font-mono bg-white/50 p-2 rounded border border-primary/10">{request.assigned_id}</p>
+                      <p className="text-xs font-medium text-muted-foreground uppercase">Assigned ID</p>
+                      <p className="text-sm font-mono bg-muted/50 p-2 rounded border border-stroke">
+                        {showSecrets ? request.assigned_id : "••••••••••••••••••••••••••••••••"}
+                      </p>
                     </div>
                   )}
                   {request.token && (
                     <div className="space-y-1">
-                      <p className="text-xs font-medium text-primary/70 uppercase">Access Token</p>
+                      <p className="text-xs font-medium text-muted-foreground uppercase">Access Token</p>
                       <div className="relative">
-                        <p className="text-sm font-mono bg-white/50 p-3 rounded border border-primary/10 break-all select-all">
-                          {request.token}
+                        <p className={`text-sm font-mono bg-muted/50 p-3 rounded border border-stroke break-all ${showSecrets ? 'select-all' : 'select-none'}`}>
+                          {showSecrets ? request.token : "••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••"}
                         </p>
                       </div>
                     </div>
@@ -202,7 +218,7 @@ function ProviderRequestDetails() {
                 <div className="pt-4 border-t space-y-4">
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-muted-foreground">Current Status:</span>
-                    <Badge variant="info">{request.status}</Badge>
+                    <Badge className={`border ${getStatusColor(request.status)}`}>{request.status}</Badge>
                   </div>
                 </div>
               </CardContent>

@@ -13,6 +13,7 @@ import { Button } from "shared/src/components/ui/button";
 import { Search, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { Badge } from "shared/src/components/ui/badge";
 import { customInstance } from "shared/src/data/orval-mutator";
+import { useGetAllParticipants } from "shared/src/data/orval/participants/participants";
 
 const schema = z.object({
   url: z.string().url("Please enter a valid URL"),
@@ -39,6 +40,13 @@ function NewProviderOnboard() {
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [discoveredInfo, setDiscoveredInfo] = useState<{ id: string; services: DidService[] } | null>(null);
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
+
+  const { data: participantsResponse } = useGetAllParticipants();
+  const knownProviders = participantsResponse?.status === 200
+    ? participantsResponse.data.filter(
+        (p) => p.participant_type === "Agent" && !p.is_me
+      )
+    : [];
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema) as any,
@@ -121,8 +129,19 @@ function NewProviderOnboard() {
                           <FormLabel>Provider URL</FormLabel>
                           <div className="flex gap-2">
                             <FormControl>
-                              <Input placeholder="https://provider.example.com" {...field} />
+                              <Input 
+                                placeholder="https://provider.example.com" 
+                                list="known-providers"
+                                {...field} 
+                              />
                             </FormControl>
+                            <datalist id="known-providers">
+                              {knownProviders.map((provider) => (
+                                <option key={provider.participant_id} value={provider.base_url}>
+                                  {provider.participant_slug || provider.participant_id}
+                                </option>
+                              ))}
+                            </datalist>
                             <Button 
                               type="button" 
                               variant="secondary" 

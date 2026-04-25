@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "s
 import { Search, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { Badge } from "shared/src/components/ui/badge";
 import { customInstance } from "shared/src/data/orval-mutator";
+import { useGetAllParticipants } from "shared/src/data/orval/participants/participants";
 
 const schema = z.object({
   url: z.string().url("Please enter a valid URL"),
@@ -41,6 +42,13 @@ function NewAuthorityRequest() {
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [discoveredInfo, setDiscoveredInfo] = useState<{ id: string; vc_types: string[]; services: DidService[] } | null>(null);
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
+
+  const { data: participantsResponse } = useGetAllParticipants();
+  const knownAuthorities = participantsResponse?.status === 200
+    ? participantsResponse.data.filter(
+        (p) => p.participant_type === "Authority"
+      )
+    : [];
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema) as any,
@@ -132,8 +140,19 @@ function NewAuthorityRequest() {
                           <FormLabel>Authority URL</FormLabel>
                           <div className="flex gap-2">
                             <FormControl>
-                              <Input placeholder="https://authority.example.com" {...field} />
+                              <Input 
+                                placeholder="https://authority.example.com" 
+                                list="known-authorities"
+                                {...field} 
+                              />
                             </FormControl>
+                            <datalist id="known-authorities">
+                              {knownAuthorities.map((authority) => (
+                                <option key={authority.participant_id} value={authority.base_url}>
+                                  {authority.participant_slug || authority.participant_id}
+                                </option>
+                              ))}
+                            </datalist>
                             <Button 
                               type="button" 
                               variant="secondary" 

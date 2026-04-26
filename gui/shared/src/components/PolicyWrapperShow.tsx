@@ -115,7 +115,6 @@ export const PolicyWrapperShow = ({
     // Render
     // ---------------------------------------------------------------------------
 
-    console.log(policy, "policy in policy wrapper show")
 
     return (
         <div className="w-full">
@@ -176,7 +175,7 @@ export const PolicyWrapperShow = ({
                     <Accordion type="single" collapsible className="w-full">
                         <AccordionItem value="odrl-content" className="border border-white/10 rounded-md">
                             <AccordionTrigger className="px-3 text-xs text-muted-foreground/70 uppercase tracking-wider">
-                                ODRL Content
+                                Permissions, Obligations & Prohibitions
                             </AccordionTrigger>
                             <AccordionContent>
                                 <div className="flex flex-col gap-2 w-full">
@@ -199,7 +198,7 @@ export const PolicyWrapperShow = ({
                 ) : (
                     <div className="w-full space-y-2">
                         <Heading level="h6" className="text-muted-foreground/70 mb-1">
-                            ODRL Content
+                                Permissions, Obligations & Prohibitions
                         </Heading>
                         <div className="flex flex-col gap-2 w-full">
                             <PolicyComponent

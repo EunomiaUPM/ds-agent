@@ -4,8 +4,31 @@ import Heading from 'shared/src/components/ui/heading';
 import { Badge } from './badge';
 import { FormatDate } from './format-date';
 import { Link } from '@tanstack/react-router';
+import {
+    useGetDistributionsByDatasetId,
+}from "shared/src/data/orval/distributions/distributions";
+import { useGetPoliciesByEntityId } from '../../data/orval/odrl-policies/odrl-policies';
 
-const DatasetItem = ({ date, title, description, prevRoute, datasetId, ownDataset }) => {
+
+const DatasetItem = ({ date, title, description, prevRoute, datasetId, ownDataset, dataset }) => {
+    //for own catalog
+    const { data: distributionsData } = useGetDistributionsByDatasetId(datasetId);
+    const { data: policiesData, refetch: refetchPolicies } = useGetPoliciesByEntityId(datasetId);
+
+console.log(dataset.distributions, "dataset in dataset item component")
+    // if dataset is from participant, it will have attribute "distributions". If it's from 
+    // own catalog, we need to fetch distributions with useGetDistributionsByDatasetId
+    const distributions = dataset?.distribution ? dataset.distribution :
+        distributionsData?.status === 200 ? distributionsData.data : [];
+
+    // if dataset is from participant, it will have attribute "haspolicy". If it's from 
+    // own catalog, we need to fetch policies with useGetPoliciesByEntityId
+    const policies = dataset?.hasPolicy ? dataset.hasPolicy :
+        policiesData?.status === 200 ? policiesData.data : [];
+
+    //for participant catalog the "dataset" object contains policies and distributions
+    
+
     const [showMore, setShowMore] = useState(false);
     const toggleDdatasetDetails = () => {
         setShowMore((prevState) => !prevState); // Alterna entre true y false,
@@ -32,13 +55,24 @@ const DatasetItem = ({ date, title, description, prevRoute, datasetId, ownDatase
             <div className="dataset-item-policies flex flex-col gap-2">
                 <div className="dataset-item-details-summary flex gap-6 items-start ">
                     <div className="policies-summary-container flex flex-col gap-2 text-xs uppercase">
-                        <span>3 policies </span>
-                        <Badge variant="detail" className={"text-2xs " + (showMore ? `flex` : `hidden`)} > Policy title</Badge>
-                        <Badge variant="detail" className={"text-2xs " + (showMore ? `flex` : `hidden`)} > Research Juner Trial Access (large title)</Badge>
+                        
+                        <span>{policies.length} policies </span>
+                        {policies.length > 0 && policies.map((p) => ( 
+                            <Badge variant="detail" className={"text-2xs " + (showMore ? `flex` : `hidden`)} >
+                                {p.description ? p.description : "Policy description"}
+                            </Badge>
+                        ))}
                     </div>
                     <div className="distributions-summary-container flex flex-col gap-2 text-xs uppercase">
-                        <span>2 distributions </span>
-                        <Badge variant="detail" className={"text-2xs " + (showMore ? `flex` : `hidden`)} > Distribution title</Badge>
+                        <span>{distributions.length} distributions </span>
+                        {/* Depending whether the dataset is from own catalog or participant catalog, 
+                        distributions have attribute "dctTitle (own catalog) or "title" (participant catalog), so we check both and show the one that exists. */}
+                         {distributions.length > 0 && distributions.map((d) => ( 
+                            <Badge variant="detail" className={"text-2xs " + (showMore ? `flex` : `hidden`)} >
+                                {d.dctTitle ? d.dctTitle : (d.title ? d.title : "Distribution title")}
+                            </Badge>
+                        ))}
+                      
                     </div>
                     <button className="font-bold text-2xs underline underline-offset-2" onClick={toggleDdatasetDetails}>{(showMore ? "Show less" : "Show more")} </button>
                 </div>

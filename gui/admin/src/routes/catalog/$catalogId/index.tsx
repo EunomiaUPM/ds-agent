@@ -51,6 +51,8 @@ const RouteComponent = () => {
     const datasets = datasetsData?.status === 200 ? datasetsData.data : [];
     const dataservices = dataservicesData?.status === 200 ? dataservicesData.data : [];
 
+console.log(datasets, "datasets in own catalog route")
+
     if (!catalog) return null;
     const { data: participants } = useGetAllParticipants();
 
@@ -91,16 +93,24 @@ const RouteComponent = () => {
                                 label: "Catalog creation date",
                                 value: { type: "custom", content: <FormatDate date={catalog.dctIssued} /> },
                             },
-
-                        ]}
-                    />
-                    <div className="catalog-participant-container flex gap-2 justify-start">
+ {
+                  label: "Organization",
+                  value: {
+                    type: "custom",
+                    content: (
+                        <div className="catalog-participant-container flex gap-2 justify-start">
                         <img className="rounded-full bg-violet-600 h-6 aspect-square"></img>
                         <Heading level="h4" className='capitalize'> {myAgentSlug} </Heading>
                     </div>
-                    <div className="h-3"></div>
+                    )
+                  }
+                }
+                        ]}
+                    />
+               
+                    <div className="h-1"></div>
                     <div className="border-t border-white/10"></div>
-                    <div className="h-4"></div>
+                    <div className="h-2"></div>
                     {dataservices.map((ds) => (
                         <>
                             <Heading level="h4" className="text-left">
@@ -140,6 +150,7 @@ const RouteComponent = () => {
                                 prevRoute={catalog.id!}
                                 datasetId={dataset.id!}
                                 ownDataset={true}
+                                dataset={dataset}
                             />
                         )) : <p className="text-muted-foreground italic text-sm">No datasets to show</p>}
                     </div>

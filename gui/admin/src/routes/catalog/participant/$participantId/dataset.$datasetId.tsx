@@ -25,6 +25,8 @@ function RouteComponent() {
         return dataset as Dataset
     }, [data]);
 
+    console.log("current dataset in participant dataset route", currentDataset);
+
     useEffect(() => {
         mutate({
             data: {

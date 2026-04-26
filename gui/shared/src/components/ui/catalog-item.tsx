@@ -1,6 +1,7 @@
 import React from 'react';
 import Heading from 'shared/src/components/ui/heading';
 import { Link } from "@tanstack/react-router";
+import { FormatDate } from "shared/src/components/ui/format-date";
 
 const CatalogItem = ({ date, datasetNumber, organizationName, id }) => {
   return (
@@ -9,7 +10,9 @@ const CatalogItem = ({ date, datasetNumber, organizationName, id }) => {
         <div className="catalog-dates-container flex gap-3 text-sm tracking-wide">
           <div className="catalog-dates-created flex gap-1">
             <p>Created at:</p>
-            <p>{date}</p>
+            <p>
+              <FormatDate date={date} />
+            </p>
           </div>
           {/* <p> | </p>
            <div className="catalog-dates-updated flex gap-1">

@@ -15,10 +15,24 @@ import { Button } from "shared/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import Heading from "shared/src/components/ui/heading";
 import DatasetItem from "shared/src/components/ui/dataset-item";
+import { useGetAllParticipants } from "shared/data/orval/participants/participants";
 
 function RouteComponent() {
   const { participantId } = Route.useParams();
+  const { data: participants } = useGetAllParticipants();
   const { mutate, data, isPending, error } = useRpcSetupCatalogRequest();
+
+    
+const otherParticipant = Array.isArray(participants?.data)
+  ? participants.data.find(
+      (p) => !p.is_me && p.participant_type === "Agent"
+    )
+  : undefined;
+
+const otherParticipantSlug =
+  otherParticipant?.participant_slug?.toString() || "Unknown Participant";
+
+
 
 {console.log(participantId, "participant id in participant catalog route")}
 
@@ -56,7 +70,7 @@ function RouteComponent() {
   const catalog = data?.status === 200 ? data.data : undefined;
 
   if (!catalog) return null;
-{console.log(catalog?.response?.dataset, "catalog datasets")}
+{console.log(catalog?.response?.dataset, " datasets in participant")}
 {console.log(catalog?.response?.dataset?.map((d: any) => d["@id"]), "catalog datasets ids in participant")}
 
   return (
@@ -84,19 +98,27 @@ function RouteComponent() {
                     content: <FormatDate date={catalog.response?.issued} />
                   },
                 },
+                {
+                  label: "Organization",
+                  value: {
+                    type: "custom",
+                    content: (
+                        <div className="catalog-participant-container flex gap-2 justify-start">
+                        <img className="rounded-full bg-violet-600 h-6 aspect-square"></img>
+                        <Heading level="h4" className='capitalize'> {otherParticipantSlug} </Heading>
+                    </div>
+                    )
+                  }
+                }
 
               ]}
 
             />
           </div>
-                {/* <div className="catalog-participant-container flex gap-2 justify-start">
-                        <img className="rounded-full bg-violet-600 h-6 aspect-square"></img>
-                        <Heading level="h4" className='capitalize'> {myAgentSlug} </Heading>
-                    </div> */}
+                
           <div className="h-3"></div>
           <div className="border-t border-white/10"></div>
           <div className="h-4">
-
           </div>
 
           {catalog.response?.service ? (
@@ -143,6 +165,7 @@ function RouteComponent() {
                 prevRoute={participantId}
                 datasetId={dataset["@id"]!}
                 ownDataset={false}
+                dataset={dataset}
 
               />
             )) : <p className="text-muted-foreground italic text-sm">No datasets to show</p>}

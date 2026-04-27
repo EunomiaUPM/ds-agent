@@ -30,8 +30,8 @@ use ymir::types::gnap::{ApprovedCallbackBody, CallbackBody};
 use ymir::utils::{extract_payload, extract_query_param};
 
 use crate::core::traits::CoreVcRequesterTrait;
-use crate::types::wallet_helper::{ProcessUriOid4VCI, ProcessUriOid4VP};
 use crate::types::entities::ReachAuthority;
+use crate::types::wallet_helper::{ProcessUriOid4VCI, ProcessUriOid4VP};
 
 pub struct VcRequesterRouter {
     requester: Arc<dyn CoreVcRequesterTrait>,

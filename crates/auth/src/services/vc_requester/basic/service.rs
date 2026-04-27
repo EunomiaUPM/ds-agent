@@ -166,7 +166,7 @@ impl VcRequesterTrait for VCReqService {
             None => {
                 let res_interact = get_from_opt(res.interact.as_ref(), "interact")?;
                 let cont_data = get_from_opt(res.r#continue.as_ref(), "continue")?;
-                
+
                 vc_model.status = "Pending".to_string();
                 vc_model.assigned_id = res.instance_id;
                 vc_model.verification_uri = res_interact.oidc4vp.clone();

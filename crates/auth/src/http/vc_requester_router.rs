@@ -30,6 +30,7 @@ use ymir::types::gnap::{ApprovedCallbackBody, CallbackBody};
 use ymir::utils::{extract_payload, extract_query_param};
 
 use crate::core::traits::CoreVcRequesterTrait;
+use crate::types::wallet_helper::{ProcessUriOid4VCI, ProcessUriOid4VP};
 use crate::types::entities::ReachAuthority;
 
 pub struct VcRequesterRouter {
@@ -48,6 +49,8 @@ impl VcRequesterRouter {
             .route("/{id}", get(Self::get_one))
             .route("/callback/{id}", get(Self::get_callback))
             .route("/callback/{id}", post(Self::post_callback))
+            .route("/oidc4vci", post(Self::oidc4vci))
+            .route("/oidc4vp", post(Self::oidc4vp))
             .with_state(self.requester)
     }
 
@@ -100,5 +103,19 @@ impl VcRequesterRouter {
                 .into_response(),
             CallbackBody::Rejected(_) => requester.manage_rejection(id).await.into_response(),
         })
+    }
+    async fn oidc4vci(
+        State(requester): State<Arc<dyn CoreVcRequesterTrait>>,
+        payload: Result<Json<ProcessUriOid4VCI>, JsonRejection>,
+    ) -> AppResult {
+        let payload = extract_payload(payload)?;
+        Ok(requester.process_oid4vci(&payload).await?.into_response())
+    }
+    async fn oidc4vp(
+        State(requester): State<Arc<dyn CoreVcRequesterTrait>>,
+        payload: Result<Json<ProcessUriOid4VP>, JsonRejection>,
+    ) -> AppResult {
+        let payload = extract_payload(payload)?;
+        Ok(requester.process_oid4vp(&payload).await?.into_response())
     }
 }

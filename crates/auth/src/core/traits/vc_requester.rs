@@ -14,13 +14,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
+use std::str::FromStr;
 use std::sync::Arc;
 
 use crate::services::callback::CallbackTrait;
 use crate::services::repo::repo_trait::AuthRepoTrait;
 use crate::services::vc_requester::VcRequesterTrait;
-use crate::types::entities::ReachAuthority;
+use crate::types::entities::{ReachAuthority, WhoEntity};
+use crate::types::wallet_helper::{ProcessUriOid4VCI, ProcessUriOid4VP};
 use async_trait::async_trait;
 use ymir::data::entities::{mates, req_vc};
 use ymir::errors::{Errors, Outcome};
@@ -90,13 +91,6 @@ pub trait CoreVcRequesterTrait: Send + Sync + 'static {
         }
     }
 
-    async fn get_all(&self) -> Outcome<Vec<req_vc::Model>> {
-        self.repo().vc_req().get_all(None, None).await
-    }
-
-    async fn get_by_id(&self, id: String) -> Outcome<req_vc::Model> {
-        self.repo().vc_req().get_by_id(&id).await
-    }
     async fn continue_req(
         &self,
         id: String,
@@ -132,6 +126,69 @@ pub trait CoreVcRequesterTrait: Send + Sync + 'static {
         let mut vc_req_model = self.repo().vc_req().get_by_id(&id).await?;
         self.vc_req().manage_rejection(&mut vc_req_model).await?;
         self.repo().vc_req().update(vc_req_model).await?;
+        Ok(())
+    }
+    async fn get_all(&self) -> Outcome<Vec<req_vc::Model>> {
+        self.repo().vc_req().get_all(None, None).await
+    }
+
+    async fn get_by_id(&self, id: String) -> Outcome<req_vc::Model> {
+        self.repo().vc_req().get_by_id(&id).await
+    }
+    async fn process_oid4vci(&self, payload: &ProcessUriOid4VCI) -> Outcome<()> {
+        let mut model = self.repo().vc_req().get_by_id(&payload.id).await?;
+        match self.wallet() {
+            Some(wallet) => {
+                wallet.process_oidc4vci(&payload.uri).await?;
+                model.status = "Finalized".to_string();
+                let model = self.repo().vc_req().update(model).await?;
+                let base_url = trim_4_base(&model.grant_endpoint);
+                let mate = mates::NewModel {
+                    participant_id: model.authority_id.clone(),
+                    participant_slug: model.authority_slug.clone(),
+                    participant_type: "Authority".to_string(),
+                    base_url,
+                    token: None,
+                    extra_fields: None,
+                    is_me: false,
+                };
+                self.repo().mates().force_create(mate).await?;
+            }
+            None => {
+                return Err(Errors::not_active(
+                    "Unable to execute this action without a wallet",
+                    None,
+                ))
+            }
+        }
+        Ok(())
+    }
+    async fn process_oid4vp(&self, payload: &ProcessUriOid4VP) -> Outcome<()> {
+        match self.wallet() {
+            Some(wallet) => {
+                wallet.process_oidc4vp(&payload.uri).await?;
+
+                let entity = WhoEntity::from_str(&payload.entity)?;
+                match entity {
+                    WhoEntity::Authority => {
+                        let mut model = self.repo().vc_req().get_by_id(&payload.id).await?;
+                        model.status = "Approved".to_string();
+                        self.repo().vc_req().update(model).await?;
+                    }
+                    WhoEntity::Provider => {
+                        let mut model = self.repo().request_req().get_by_id(&payload.id).await?;
+                        model.status = "Approved".to_string();
+                        self.repo().request_req().update(model).await?;
+                    }
+                };
+            }
+            None => {
+                return Err(Errors::not_active(
+                    "Unable to execute this action without a wallet",
+                    None,
+                ))
+            }
+        }
         Ok(())
     }
 }

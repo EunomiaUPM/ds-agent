@@ -30,6 +30,8 @@ export interface OnboardRequest {
   assigned_id?: string | null;
   token?: string | null;
   status: string;
+  vc_uri?: string | null;
+  verification_uri?: string | null;
   created_at: string;
   ended_at?: string | null;
 }

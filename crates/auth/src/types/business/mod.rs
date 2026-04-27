@@ -23,3 +23,4 @@ pub struct BusinessResponse {
     pub token: String,
     pub mate: Model,
 }
+

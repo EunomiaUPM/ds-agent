@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { customInstance } from "shared/src/data/orval-mutator";
 import { PageLayout } from "shared/src/components/layout/PageLayout";
 import { PageHeader } from "shared/src/components/layout/PageHeader";
@@ -7,10 +7,11 @@ import { PageSection } from "shared/src/components/layout/PageSection";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "shared/src/components/ui/card";
 import { Badge } from "shared/src/components/ui/badge";
 import { Button } from "shared/src/components/ui/button";
-import { ArrowLeft, ExternalLink, Calendar, Shield, Hash, Key, Eye, EyeOff } from "lucide-react";
+import * as z from "zod";
+import QRCode from "react-qr-code";
 import { useState } from "react";
 import { FormatDate } from "shared/src/components/ui/format-date";
-import * as z from "zod";
+import { Copy, Check, Loader2, Key, Shield, Hash, ExternalLink, Calendar, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { OnboardRequest } from "./index";
 
 const searchSchema = z.object({
@@ -33,6 +34,7 @@ function ProviderRequestDetails() {
     enabled: !!requestId,
   });
 
+  const queryClient = useQueryClient();
   const request = response?.data;
   const [showSecrets, setShowSecrets] = useState(false);
 
@@ -44,6 +46,38 @@ function ProviderRequestDetails() {
       case 'finalized': return 'bg-purple-500/10 text-purple-500 border-purple-500/20';
       case 'rejected': return 'bg-red-500/10 text-red-500 border-red-500/20';
       default: return 'bg-gray-500/10 text-gray-500 border-gray-500/20';
+    }
+  };
+
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleAction = async (endpoint: string, uri: string) => {
+    if (!request) return;
+    
+    setIsProcessing(true);
+    try {
+      const data: any = {
+        id: request.id,
+        uri: uri,
+      };
+
+      if (endpoint.includes('oidc4vp')) {
+        data.entity = "provider";
+      }
+
+      await customInstance(endpoint, {
+        method: "POST",
+        data,
+      });
+      // Refresh the page on success
+      window.location.reload();
+      
+      // Optional: Add success toast or notification here
+    } catch (err) {
+      console.error(err);
+      // Optional: Add error toast here
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -176,11 +210,69 @@ function ProviderRequestDetails() {
                       <p className="text-xs font-medium text-muted-foreground uppercase">Access Token</p>
                       <div className="relative">
                         <p className={`text-sm font-mono bg-muted/50 p-3 rounded border border-stroke break-all ${showSecrets ? 'select-all' : 'select-none'}`}>
-                          {showSecrets ? request.token : "••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••"}
+                          {showSecrets ? request.token : "••••••••••••••••••••••••••••••••••••••••••••••••••••••"}
                         </p>
                       </div>
                     </div>
                   )}
+                </CardContent>
+              </Card>
+            )}
+
+            {(request.vc_uri || request.verification_uri) && request.status?.toLowerCase() !== 'finalized' && !request.token && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Credential Claiming / Authentication</CardTitle>
+                  <CardDescription>Scan QR or use Agent actions to process this request.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {request.vc_uri ? (
+                    <div className="space-y-3">
+                      <DetailItem label="VC URI (Claiming)" labelClassName="text-green-500">
+                        <div className="mt-2 flex flex-col sm:flex-row gap-6 items-start">
+                          <div className="p-3 bg-white rounded-lg shadow-sm border border-stroke flex-shrink-0">
+                            <QRCode value={request.vc_uri} size={120} />
+                          </div>
+                          <div className="flex-1 w-full space-y-3">
+                             <p className="text-xs text-muted-foreground italic">Scan this QR to claim your Verifiable Credential directly in your wallet.</p>
+                             <UriDisplay uri={request.vc_uri} />
+                             <Button 
+                               className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white" 
+                               size="sm"
+                               onClick={() => handleAction('/vc-request/oidc4vci', request.vc_uri!)}
+                               disabled={isProcessing}
+                             >
+                               {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Shield className="mr-2 h-4 w-4" />}
+                               Claim in Agent
+                             </Button>
+                          </div>
+                        </div>
+                      </DetailItem>
+                    </div>
+                  ) : request.verification_uri ? (
+                    <div className="space-y-3">
+                      <DetailItem label="Verification URI (Authentication)" labelClassName="text-amber-500">
+                        <div className="mt-2 flex flex-col sm:flex-row gap-6 items-start">
+                          <div className="p-3 bg-white rounded-lg shadow-sm border border-stroke flex-shrink-0">
+                            <QRCode value={request.verification_uri} size={120} />
+                          </div>
+                          <div className="flex-1 w-full space-y-3">
+                             <p className="text-xs text-muted-foreground italic">Use this QR if you need to authenticate with the provider before receiving the VC.</p>
+                             <UriDisplay uri={request.verification_uri} />
+                             <Button 
+                               className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white" 
+                               size="sm"
+                               onClick={() => handleAction('/vc-request/oidc4vp', request.verification_uri!)}
+                               disabled={isProcessing}
+                             >
+                               {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Key className="mr-2 h-4 w-4" />}
+                               Present in Agent
+                             </Button>
+                          </div>
+                        </div>
+                      </DetailItem>
+                    </div>
+                  ) : null}
                 </CardContent>
               </Card>
             )}
@@ -228,5 +320,44 @@ function ProviderRequestDetails() {
         </div>
       </PageSection>
     </PageLayout>
+  );
+}
+function UriDisplay({ uri }: { uri: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(uri);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const truncatedUri = uri.length > 50 ? `${uri.substring(0, 25)}...${uri.substring(uri.length - 20)}` : uri;
+
+  return (
+    <div className="flex items-center gap-2 p-2 bg-muted/50 rounded border border-stroke overflow-hidden">
+      <span className="font-mono text-[10px] truncate flex-1">{truncatedUri}</span>
+      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleCopy}>
+        {copied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+      </Button>
+    </div>
+  );
+}
+
+function DetailItem({ 
+  label, 
+  children, 
+  labelClassName 
+}: { 
+  label: string; 
+  children: React.ReactNode; 
+  labelClassName?: string;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className={`text-xs font-semibold uppercase tracking-wider ${labelClassName || 'text-muted-foreground'}`}>
+        {label}
+      </span>
+      <div className="text-sm font-medium">{children}</div>
+    </div>
   );
 }

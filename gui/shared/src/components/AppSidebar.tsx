@@ -135,7 +135,7 @@ export function AppSidebar() {
       items: [
         {
           title: "My Wallet",
-          url: "/admin/wallet",
+          url: "/admin/wallet/info",
           icon: Wallet,
         },
         {

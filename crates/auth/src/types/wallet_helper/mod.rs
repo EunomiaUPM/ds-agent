@@ -15,8 +15,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-mod reacher;
-mod who;
+use serde::{Deserialize, Serialize};
 
-pub use reacher::*;
-pub use who::*;
+#[derive(Deserialize, Serialize, Debug)]
+pub struct ProcessUriOid4VCI {
+    pub id: String,
+    pub uri: String,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct ProcessUriOid4VP {
+    pub entity: String,
+    pub id: String,
+    pub uri: String,
+}

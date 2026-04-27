@@ -30,6 +30,7 @@ impl DriverAuthenticatorTrait for BasicConfigAuthenticator {
                 username: basic.username,
                 password,
             },
+            ..Default::default()
         });
         Ok(ctx)
     }

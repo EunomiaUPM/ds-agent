@@ -21,6 +21,7 @@ pub(crate) mod instance_parameters_resolver;
 pub(crate) mod instance_parameters_validator;
 pub(crate) mod template_parameters_extractor;
 pub(crate) mod template_parameters_validator;
+pub(crate) mod runtime_parameters_resolver;
 
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -138,13 +139,12 @@ pub(crate) fn template_sys_parameter_regex() -> &'static Regex {
     REGEX.get_or_init(|| Regex::new(r"\{\{\s*__(SYS.*?)__\s*\}\}").expect("Invalid Regex"))
 }
 
-#[allow(dead_code)]
-pub(crate) fn template_runtime_parameter_regex() -> &'static Regex {
+
+/// Matches `{{__RUNTIME_JSON_{<jq_path>}__}}` and captures the jq path.
+/// Example: `{{__RUNTIME_JSON_{subscribe.data.ID}__}}` → capture group 1 = `subscribe.data.ID`
+pub(crate) fn template_runtime_json_regex() -> &'static Regex {
     static REGEX: OnceLock<Regex> = OnceLock::new();
-    // Matches: RUNTIME_{TYPE}_RESPONSE_{jq_expr}
-    // Example: RUNTIME_SUB_RESPONSE_{.id}
-    //          RUNTIME_AUTH_RESPONSE_{.access_token}
     REGEX.get_or_init(|| {
-        Regex::new(r"^RUNTIME_([A-Z_]+)_RESPONSE_\{(.+)\}$").expect("Invalid response key regex")
+        Regex::new(r"\{\{\s*__RUNTIME_JSON_\{(.+?)}__\s*}}").expect("Invalid RUNTIME_JSON regex")
     })
 }

@@ -29,6 +29,7 @@ impl DriverAuthenticatorTrait for BearerTokenAuthenticator {
         let mut ctx = context.clone();
         ctx.set_runtime(DataplaneRuntime {
             auth: ResolvedAuthCredentials::BearerToken { token: resolved },
+            ..Default::default()
         });
         Ok(ctx)
     }

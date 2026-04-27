@@ -33,6 +33,7 @@ impl DriverAuthenticatorTrait for ApiKeyAuthenticator {
                 value: resolved_value,
                 location,
             },
+            ..Default::default()
         });
         Ok(ctx)
     }

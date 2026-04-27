@@ -79,13 +79,9 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
     fn connector_entity(&self) -> Arc<dyn ConnectorInstanceTrait>;
     fn transfer_config(&self) -> Arc<TransferConfig>;
     async fn set_init(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
-        dbg!(&context);
         let ctx = self.set_configuring(context).await?;
-        dbg!(&ctx);
         let ctx = self.set_auth(ctx).await?;
-        dbg!(&ctx);
         let ctx = self.set_ready(ctx).await?;
-        dbg!(&ctx);
         Ok(ctx)
     }
     async fn set_configuring(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
@@ -93,8 +89,11 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
         let driver = DataplaneDriverFactory.get_or_create_driver(&context)?;
         // proxy
         let mut context = driver.proxy_configurator.configure_proxy(&context).await?;
+        // runtime
+        let runtime = DataplaneRuntime::default();
+        // setters
         context.set_driver(driver);
-        context.set_runtime(DataplaneRuntime::default());
+        context.set_runtime(runtime);
         // dataplane
         let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
         let new_state = TransferState::Configuring;

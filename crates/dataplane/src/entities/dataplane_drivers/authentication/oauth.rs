@@ -117,6 +117,7 @@ impl DriverAuthenticatorTrait for OauthAuthenticator {
                 token_type: response.token_type,
                 expires_at,
             },
+            ..Default::default()
         });
         Ok(ctx)
     }

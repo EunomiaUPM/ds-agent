@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
 pub struct DataplaneRuntime {
     pub auth: ResolvedAuthCredentials,
+    pub subscription: serde_json::Value,
+    pub unsubscription: serde_json::Value,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]

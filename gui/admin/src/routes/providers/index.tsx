@@ -10,7 +10,7 @@ import { useState, useMemo } from "react";
 import { PageLayout } from "shared/src/components/layout/PageLayout";
 import { PageHeader } from "shared/src/components/layout/PageHeader";
 import { PageSection } from "shared/src/components/layout/PageSection";
-import { formatUrn } from "shared/src/lib/utils";
+import { formatIdentifier } from "shared/src/lib/utils";
 
 const truncateId = (id?: string) => {
   if (!id) return "N/A";
@@ -44,11 +44,16 @@ export const Route = createFileRoute("/providers/")({
 function ProvidersPage() {
   const { data: response, isLoading } = useQuery({
     queryKey: ["onboard-requests"],
-    queryFn: () => 
-      customInstance<{ status: number; data: OnboardRequest[] }>("/onboard/request/all", { method: "GET" })
+    queryFn: () =>
+      customInstance<{ status: number; data: OnboardRequest[] }>("/onboard/request/all", {
+        method: "GET",
+      }),
   });
 
-  const [sortConfig, setSortConfig] = useState<{ key: keyof OnboardRequest; direction: 'asc' | 'desc' } | null>(null);
+  const [sortConfig, setSortConfig] = useState<{
+    key: keyof OnboardRequest;
+    direction: "asc" | "desc";
+  } | null>(null);
 
   const requests = useMemo(() => {
     let sortableRequests = [...(response?.data || [])];
@@ -56,20 +61,20 @@ function ProvidersPage() {
       sortableRequests.sort((a, b) => {
         const aVal = a[sortConfig.key];
         const bVal = b[sortConfig.key];
-        
+
         if (aVal === bVal) return 0;
-        
-        if (aVal === null || aVal === undefined) return sortConfig.direction === 'asc' ? -1 : 1;
-        if (bVal === null || bVal === undefined) return sortConfig.direction === 'asc' ? 1 : -1;
+
+        if (aVal === null || aVal === undefined) return sortConfig.direction === "asc" ? -1 : 1;
+        if (bVal === null || bVal === undefined) return sortConfig.direction === "asc" ? 1 : -1;
 
         const aString = String(aVal).toLowerCase();
         const bString = String(bVal).toLowerCase();
 
         if (aString < bString) {
-          return sortConfig.direction === 'asc' ? -1 : 1;
+          return sortConfig.direction === "asc" ? -1 : 1;
         }
         if (aString > bString) {
-          return sortConfig.direction === 'asc' ? 1 : -1;
+          return sortConfig.direction === "asc" ? 1 : -1;
         }
         return 0;
       });
@@ -78,26 +83,21 @@ function ProvidersPage() {
   }, [response?.data, sortConfig]);
 
   const handleSort = (key: keyof OnboardRequest) => {
-    let direction: 'asc' | 'desc' = 'asc';
-    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc';
+    let direction: "asc" | "desc" = "asc";
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === "asc") {
+      direction = "desc";
     }
     setSortConfig({ key, direction });
   };
 
   const getSortIcon = (key: keyof OnboardRequest) => {
-    if (!sortConfig || sortConfig.key !== key) return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />;
-    return sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-4 w-4" /> : <ArrowDown className="ml-2 h-4 w-4" />;
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'processing': return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
-      case 'pending': return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
-      case 'approved': return 'bg-green-500/10 text-green-500 border-green-500/20';
-      case 'finalized': return 'bg-purple-500/10 text-purple-500 border-purple-500/20';
-      default: return 'bg-gray-500/10 text-gray-500 border-gray-500/20';
-    }
+    if (!sortConfig || sortConfig.key !== key)
+      return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />;
+    return sortConfig.direction === "asc" ? (
+      <ArrowUp className="ml-2 h-4 w-4" />
+    ) : (
+      <ArrowDown className="ml-2 h-4 w-4" />
+    );
   };
 
   return (
@@ -119,51 +119,72 @@ function ProvidersPage() {
           keyExtractor={(r) => r.id}
           columns={[
             {
-              header: (
-                <Button variant="ghost" onClick={() => handleSort('id')} className="p-0 h-auto font-semibold">
-                  Request ID {getSortIcon('id')}
+              header:
+                /* (
+                <Button
+                  variant="ghost"
+                  onClick={() => handleSort("provider_slug")}
+                  className="p-0 h-auto font-semibold"
+                >
+                  Provider Name {getSortIcon("provider_slug")}
                 </Button>
-              ),
-              cell: (r) => <Badge variant={"info"}>{formatUrn(r.id)}</Badge>,
+              ), */ "Provider Name",
+              cell: (r) => r.provider_slug || "-",
             },
             {
-              header: (
-                <Button variant="ghost" onClick={() => handleSort('provider_id')} className="p-0 h-auto font-semibold">
-                  Provider DID {getSortIcon('provider_id')}
+              header:
+                /* (
+                <Button
+                  variant="ghost"
+                  onClick={() => handleSort("id")}
+                  className="p-0 h-auto font-semibold"
+                >
+                  Request ID {getSortIcon("id")}
                 </Button>
-              ),
+              ), */ "Request ID",
+              cell: (r) => <Badge variant={"info"}>{formatIdentifier(r.id)}</Badge>,
+            },
+            {
+              header:
+                /* (
+                <Button
+                  variant="ghost"
+                  onClick={() => handleSort("provider_id")}
+                  className="p-0 h-auto font-semibold"
+                >
+                  Provider DID {getSortIcon("provider_id")}
+                </Button>
+              ), */ "Provider DID",
               cell: (r) => (
                 <div className="flex flex-col gap-1">
-                  <Badge variant={"infoLighter"} className="font-mono">{truncateId(r.provider_id)}</Badge>
+                  <Badge variant={"info"}>{formatIdentifier(r.provider_id)}</Badge>
                 </div>
               ),
             },
             {
-              header: (
-                <Button variant="ghost" onClick={() => handleSort('provider_slug')} className="p-0 h-auto font-semibold">
-                  Provider Name {getSortIcon('provider_slug')}
-                </Button>
-              ),
-              cell: (r) => r.provider_slug || "-",
-            },
-            {
-              header: (
+              header:
+                /* (
                 <Button variant="ghost" onClick={() => handleSort('status')} className="p-0 h-auto font-semibold">
                   Status {getSortIcon('status')}
                 </Button>
-              ),
+              ), */ "Status",
               cell: (r) => (
-                <Badge className={`border ${getStatusColor(r.status)}`}>
+                <Badge variant={"status"} state={r.status}>
                   {r.status || "-"}
                 </Badge>
               ),
             },
             {
-              header: (
-                <Button variant="ghost" onClick={() => handleSort('created_at')} className="p-0 h-auto font-semibold">
-                  Created at {getSortIcon('created_at')}
+              header:
+                /* (
+                <Button
+                  variant="ghost"
+                  onClick={() => handleSort("created_at")}
+                  className="p-0 h-auto font-semibold"
+                >
+                  Created at {getSortIcon("created_at")}
                 </Button>
-              ),
+              ), */ "Created at",
               cell: (r) => (r.created_at ? <FormatDate date={r.created_at} /> : "-"),
             },
             {
@@ -171,9 +192,9 @@ function ProvidersPage() {
               cell: (r) => (
                 // @ts-ignore
                 <Link to="/providers/request-details" search={{ requestId: r.id }}>
-                  <Button variant="link">
+                  <Button variant="link" size={"sm"}>
                     Details
-                    <ArrowRight className="ml-2 h-4 w-4" />
+                    <ArrowRight />
                   </Button>
                 </Link>
               ),

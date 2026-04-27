@@ -17,7 +17,16 @@
  * </SidebarProvider>
  */
 
-import { Archive, ArrowLeftRight, Feather, Handshake, Users, Search, Wallet, ShieldCheck } from "lucide-react";
+import {
+  Archive,
+  ArrowLeftRight,
+  Feather,
+  Handshake,
+  Users,
+  Search,
+  Wallet,
+  ShieldCheck,
+} from "lucide-react";
 import React, { useContext } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
@@ -119,11 +128,6 @@ export function AppSidebar() {
           icon: Users,
         },
         {
-          title: "Wallet",
-          url: "/admin/wallet",
-          icon: Wallet,
-        },
-        {
           title: "Request Credential",
           url: "/admin/authority",
           icon: ShieldCheck,
@@ -142,6 +146,11 @@ export function AppSidebar() {
           title: "My Catalog",
           url: "/admin/my-catalog",
           icon: Archive,
+        },
+        {
+          title: "Wallet",
+          url: "/admin/wallet",
+          icon: Wallet,
         },
       ],
     },
@@ -178,7 +187,7 @@ export function AppSidebar() {
           />
         </Link>
         {navGroups.map((group) => (
-          <SidebarGroup>
+          <SidebarGroup key={group.title}>
             {/* Navigation Menu */}
             <SidebarGroupContent>
               <SidebarGroupLabel>{group.title}</SidebarGroupLabel>

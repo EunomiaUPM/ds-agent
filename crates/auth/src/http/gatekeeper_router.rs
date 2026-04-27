@@ -44,8 +44,6 @@ impl GateKeeperRouter {
             .with_state(self.gatekeeper)
     }
 
-    
-
     async fn manage_req(
         State(gatekeeper): State<Arc<dyn CoreGateKeeperTrait>>,
         headers: HeaderMap,

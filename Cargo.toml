@@ -81,5 +81,5 @@ convert_case = "0.11.0"
 redis = { version = "1.0.2", features = ["default", "aio", "tokio-comp", "json"] }
 regex = "1.12.2"
 tonic-prost-build = "0.14.5"
-ymir = {git = "https://github.com/EunomiaUPM/ymir.git", tag = "v0.6.6"}
-#ymir = { path = "./../ymir" }
+#ymir = {git = "https://github.com/EunomiaUPM/ymir.git", tag = "v0.6.6"}
+ymir = { path = "./../ymir" }

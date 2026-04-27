@@ -25,7 +25,7 @@ use ymir::types::wallet::MatchingVCs;
 
 #[async_trait]
 pub trait GaiaOwnIssuerTrait: Send + Sync + 'static {
-    fn start_basic_vcs(&self) -> issuing::NewModel;
+    fn start_basic_vcs(&self, id: &str, uri: &str) -> issuing::NewModel;
     fn get_token(&self) -> IssuingToken;
     fn get_did(&self) -> String;
     async fn issue_cred(&self, did: &str, vc_type: &VcType, code: &str) -> Outcome<Value>;

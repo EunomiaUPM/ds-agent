@@ -38,7 +38,7 @@ pub trait CoreVcRequesterTrait: Send + Sync + 'static {
         let (vc_model, int_model) = self.vc_req().start(&payload)?;
         let mut vc_model = self.repo().vc_req().create(vc_model).await?;
         let mut int_model = self.repo().interaction_req().create(int_model).await?;
-        let uri = self
+        let (approved, uri) = self
             .vc_req()
             .send_req(&mut vc_model, &mut int_model)
             .await?;
@@ -46,16 +46,27 @@ pub trait CoreVcRequesterTrait: Send + Sync + 'static {
         let int_model = self.repo().interaction_req().update(int_model).await?;
         match uri {
             Some(uri) => {
-                let ver_model = self.vc_req().save_ver_data(&uri, &int_model.id)?;
-                let _ver_model = self.repo().verification_req().create(ver_model).await?;
-
-                if vc_model.auto {
-                    if let Some(wallet) = self.wallet() {
-                        wallet.process_oidc4vp(&uri).await?;
-                        return Ok(None);
+                if approved {
+                    if vc_model.auto {
+                        if let Some(wallet) = self.wallet() {
+                            wallet.process_oidc4vci(&uri).await?;
+                            return Ok(None);
+                        }
                     }
+                    Ok(Some(uri))
+                } else {
+                    let ver_model = self.vc_req().save_ver_data(&uri, &int_model.id)?;
+                    let _ver_model = self.repo().verification_req().create(ver_model).await?;
+
+                    if vc_model.auto {
+                        if let Some(wallet) = self.wallet() {
+                            wallet.process_oidc4vp(&uri).await?;
+                            return Ok(None);
+                        }
+                    }
+                    Ok(Some(uri))
                 }
-                Ok(Some(uri))
+
             }
             None => Ok(None),
         }

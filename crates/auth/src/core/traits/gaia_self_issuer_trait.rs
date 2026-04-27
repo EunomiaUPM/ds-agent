@@ -20,6 +20,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use serde_json::Value;
+use uuid::Uuid;
 use ymir::errors::{BadFormat, Errors, MissingAction, Outcome};
 use ymir::services::issuer::IssuerTrait;
 use ymir::services::wallet::WalletTrait;
@@ -41,9 +42,10 @@ pub trait CoreGaiaSelfIssuerTrait: Send + Sync + 'static {
     fn wallet(&self) -> Option<Arc<dyn WalletTrait>>;
     fn repo(&self) -> Arc<dyn AuthRepoTrait>;
     async fn generate_gaia_vcs(&self) -> Outcome<Option<String>> {
-        let model = self.gaia().start_basic_vcs();
-        let model = self.repo().issuing().create(model).await?;
-        let uri = self.issuer().generate_issuing_uri(&model.id, Some("gaia"));
+        let id = Uuid::new_v4().to_string();
+        let uri = self.issuer().generate_issuing_uri(&id, Some("gaia"));
+        let model = self.gaia().start_basic_vcs(&id, &uri);
+        let _model = self.repo().issuing().create(model).await?;
 
         match self.wallet() {
             Some(wallet) => {

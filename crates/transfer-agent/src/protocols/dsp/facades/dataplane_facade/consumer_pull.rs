@@ -15,14 +15,15 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::protocols::dsp::facades::dataplane_facade::strategy::{
-    execute_command, ingress_as_data_address, to_dataplane_address, DataPlaneStrategy,
-};
+use crate::protocols::dsp::facades::dataplane_facade::strategy::DataPlaneStrategy;
 use crate::protocols::dsp::facades::dataplane_facade::DataAddressDto;
 use connector::ConnectorInstanceDto;
-use dataplane::{DataplaneCommand, DataplaneInitCommandType, DataplaneManager};
+use dataplane::{
+    DataplaneAddress, DataplaneCommand, DataplaneContinuation, DataplaneInitCommandDirection,
+    DataplaneInitCommandTypes, DataplaneManager,
+};
 use urn::Urn;
-use ymir::errors::Outcome;
+use ymir::errors::{Errors, Outcome};
 
 pub(super) struct ConsumerPullStrategy;
 
@@ -35,7 +36,6 @@ impl DataPlaneStrategy for ConsumerPullStrategy {
         transfer_id: &Urn,
         _data_address: &Option<DataAddressDto>,
     ) -> Outcome<Option<DataAddressDto>> {
-        dbg!("31");
         Ok(None)
     }
 
@@ -45,14 +45,17 @@ impl DataPlaneStrategy for ConsumerPullStrategy {
         _proxy_base: &str,
         transfer_id: &Urn,
         _connector_instance: &Option<ConnectorInstanceDto>,
-        _data_address: &Option<DataAddressDto>,
+        data_address: &Option<DataAddressDto>,
     ) -> Outcome<()> {
-        execute_command(
-            mgr,
-            transfer_id,
-            DataplaneCommand::SetInit(DataplaneInitCommandType::Consumer { data_address: None }),
-        )
-        .await?;
+        if let None = data_address {
+            return Err(Errors::crazy("Data address not found.", None));
+        }
+        let data_address: DataplaneAddress = data_address.unwrap().into();
+        let cmd = DataplaneCommand::SetInit(DataplaneInitCommandTypes::AsConsumer {
+            transfer_process_id: transfer_id.clone(),
+            direction: DataplaneInitCommandDirection::Pull { data_address },
+        });
+        let _ = mgr.execute_command(cmd).await?;
         Ok(()) // not called for consumer
     }
 
@@ -72,21 +75,58 @@ impl DataPlaneStrategy for ConsumerPullStrategy {
         transfer_id: &Urn,
         data_address: Option<DataAddressDto>,
     ) -> Outcome<Option<DataAddressDto>> {
-        // Set egress to the provider's proxy URL received in TransferStartMessage,
-        // then activate the DP session.
-        if let Some(ref da) = data_address {
-            if da.endpoint.is_some() {
-                execute_command(
-                    mgr,
-                    transfer_id,
-                    DataplaneCommand::SetEgress {
-                        data_address: to_dataplane_address(da),
-                    },
-                )
-                .await?;
-            }
-        }
-        execute_command(mgr, transfer_id, DataplaneCommand::SetStarted).await?;
-        ingress_as_data_address(mgr, proxy_base, transfer_id).await
+        let cmd = DataplaneCommand::SetStarted(DataplaneContinuation {
+            transfer_dto_urn: transfer_id.clone(),
+        });
+        let _ = mgr.execute_command(cmd).await?;
+        Ok(None)
+    }
+
+    async fn on_suspend_pre(&self, mgr: &DataplaneManager, transfer_id: &Urn) -> Outcome<()> {
+        let cmd = DataplaneCommand::SetStopped(DataplaneContinuation {
+            transfer_dto_urn: transfer_id.clone(),
+        });
+        let _ = mgr.execute_command(cmd).await?;
+        Ok(())
+    }
+
+    async fn on_suspend_post(&self, mgr: &DataplaneManager, transfer_id: &Urn) -> Outcome<()> {
+        let cmd = DataplaneCommand::SetStopped(DataplaneContinuation {
+            transfer_dto_urn: transfer_id.clone(),
+        });
+        let _ = mgr.execute_command(cmd).await?;
+        Ok(())
+    }
+
+    async fn on_complete_pre(&self, mgr: &DataplaneManager, transfer_id: &Urn) -> Outcome<()> {
+        let cmd = DataplaneCommand::SetStopped(DataplaneContinuation {
+            transfer_dto_urn: transfer_id.clone(),
+        });
+        let _ = mgr.execute_command(cmd).await?;
+        Ok(())
+    }
+
+    async fn on_complete_post(&self, mgr: &DataplaneManager, transfer_id: &Urn) -> Outcome<()> {
+        let cmd = DataplaneCommand::SetStopped(DataplaneContinuation {
+            transfer_dto_urn: transfer_id.clone(),
+        });
+        let _ = mgr.execute_command(cmd).await?;
+        Ok(())
+    }
+
+    async fn on_terminate_pre(&self, mgr: &DataplaneManager, transfer_id: &Urn) -> Outcome<()> {
+        let cmd = DataplaneCommand::SetTerminating(DataplaneContinuation {
+            transfer_dto_urn: transfer_id.clone(),
+        });
+        let _ = mgr.execute_command(cmd).await?;
+        Ok(())
+    }
+
+    async fn on_terminate_post(&self, mgr: &DataplaneManager, transfer_id: &Urn) -> Outcome<()> {
+        let cmd = DataplaneCommand::SetTerminating(DataplaneContinuation {
+            transfer_dto_urn: transfer_id.clone(),
+        });
+        let _ = mgr.execute_command(cmd).await?;
+        Ok(())
     }
 }

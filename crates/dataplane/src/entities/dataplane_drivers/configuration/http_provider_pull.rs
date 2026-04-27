@@ -1,6 +1,6 @@
 use crate::entities::dataplane_drivers::{DriverAuthenticatorTrait, DriverProxyConfiguratorTrait};
-use crate::entities::dataplane_manager_ref::dataplane_context::DataplaneContext;
-use crate::entities::dataplane_manager_ref::dataplane_proxy::{
+use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;
+use crate::entities::dataplane_manager::dataplane_proxy::{
     DataplaneProxy, DataplaneProxyEgress, DataplaneProxyIngress, HTTP_LISTENER_PATH,
 };
 use connector::{InteractionConfig, ProtocolSpec};

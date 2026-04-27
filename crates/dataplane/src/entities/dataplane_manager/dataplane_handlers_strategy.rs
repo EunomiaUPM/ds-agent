@@ -1,11 +1,11 @@
-use crate::entities::dataplane_manager_ref::dataplane_commands::{
+use crate::entities::dataplane_manager::dataplane_commands::{
     DataplaneCommandStateMachine, DataplaneInitCommandTypes,
 };
-use crate::entities::dataplane_manager_ref::dataplane_context::DataplaneContext;
-use crate::entities::dataplane_manager_ref::dataplane_handlers_consumer_pull::DataplaneHandlerConsumerPull;
-use crate::entities::dataplane_manager_ref::dataplane_handlers_consumer_push::DataplaneHandlerConsumerPush;
-use crate::entities::dataplane_manager_ref::dataplane_handlers_provider_pull::DataplaneHandlerProviderPull;
-use crate::entities::dataplane_manager_ref::dataplane_handlers_provider_push::DataplaneHandlerProviderPush;
+use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;
+use crate::entities::dataplane_manager::dataplane_handlers_consumer_pull::DataplaneHandlerConsumerPull;
+use crate::entities::dataplane_manager::dataplane_handlers_consumer_push::DataplaneHandlerConsumerPush;
+use crate::entities::dataplane_manager::dataplane_handlers_provider_pull::DataplaneHandlerProviderPull;
+use crate::entities::dataplane_manager::dataplane_handlers_provider_push::DataplaneHandlerProviderPush;
 use crate::entities::dataplane_transfers::{InteractionMode, TransferRole};
 use crate::DataplaneTransfersEntitiesTrait;
 use common::config::services::TransferConfig;
@@ -72,11 +72,11 @@ impl DataplaneStrategyFactory {
 #[cfg(test)]
 mod tests {
     use crate::data::entities::dataplane_transfers;
-    use crate::entities::dataplane_manager_ref::dataplane_commands::{
+    use crate::entities::dataplane_manager::dataplane_commands::{
         DataplaneCommandStateMachine, DataplaneInitCommandDirection, DataplaneInitCommandTypes,
     };
-    use crate::entities::dataplane_manager_ref::dataplane_context::DataplaneContext;
-    use crate::entities::dataplane_manager_ref::dataplane_handlers_strategy::DataplaneStrategyFactory;
+    use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;
+    use crate::entities::dataplane_manager::dataplane_handlers_strategy::DataplaneStrategyFactory;
     use crate::entities::dataplane_transfers::{
         DataplaneTransferDto, MockDataplaneTransfersEntitiesTrait, TransferState,
     };

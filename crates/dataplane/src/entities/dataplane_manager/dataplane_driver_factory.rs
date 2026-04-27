@@ -12,7 +12,7 @@ use crate::entities::dataplane_drivers::pubsub::no_op::NoOpPubSubscriber;
 use crate::entities::dataplane_drivers::{
     DataplaneDriver, DriverAuthenticatorTrait, DriverProxyConfiguratorTrait, DriverPubSubTrait,
 };
-use crate::entities::dataplane_manager_ref::dataplane_context::DataplaneContext;
+use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;
 use crate::entities::dataplane_transfers::{InteractionMode, TransferRole};
 use connector::{AuthenticationConfig, ConnectorInstanceDto, InteractionConfig, ProtocolSpec};
 use std::sync::Arc;

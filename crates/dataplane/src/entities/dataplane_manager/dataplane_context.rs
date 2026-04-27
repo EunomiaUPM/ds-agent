@@ -1,20 +1,17 @@
 use crate::data::entities::dataplane_transfers::Model;
 use crate::entities::dataplane_drivers::DataplaneDriver;
-use crate::entities::dataplane_manager_ref::dataplane_commands::{
+use crate::entities::dataplane_manager::dataplane_commands::{
     DataplaneContinuation, DataplaneInitCommandDirection, DataplaneInitCommandTypes,
 };
-use crate::entities::dataplane_manager_ref::dataplane_driver_factory::DataplaneDriverFactoryTrait;
-use crate::entities::dataplane_manager_ref::dataplane_proxy::{
+use crate::entities::dataplane_manager::dataplane_driver_factory::DataplaneDriverFactoryTrait;
+use crate::entities::dataplane_manager::dataplane_proxy::{
     DataplaneProxy, DataplaneProxyEgress, DataplaneProxyIngress,
 };
-use crate::entities::dataplane_manager_ref::dataplane_runtime::DataplaneRuntime;
+use crate::entities::dataplane_manager::dataplane_runtime::DataplaneRuntime;
 use crate::entities::dataplane_transfers::{
     DataplaneTransferDto, InteractionMode, NewDataplaneTransferDto, TransferRole, TransferState,
 };
-use crate::{
-    DataplaneAddress, DataplaneInitCommandType, DataplaneTransfersEntitiesTrait, EgressConfig,
-    IngressConfig,
-};
+
 use common::config::services::TransferConfig;
 use connector::{ConnectorInstanceDto, ConnectorInstanceTrait};
 use std::str::FromStr;
@@ -23,6 +20,7 @@ use serde_json::json;
 use tokio::runtime::Runtime;
 use urn::{Urn, UrnBuilder};
 use ymir::errors::{Errors, Outcome};
+use crate::{DataplaneAddress, DataplaneTransfersEntitiesTrait};
 
 #[derive(Clone, Debug)]
 pub struct DataplaneContext {

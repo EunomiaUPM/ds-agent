@@ -3,7 +3,7 @@ pub(super) mod configuration;
 pub(super) mod pubsub;
 
 use std::fmt::Debug;
-use crate::entities::dataplane_manager_ref::dataplane_context::DataplaneContext;
+use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use ymir::errors::Outcome;

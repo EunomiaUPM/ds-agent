@@ -4,10 +4,10 @@
 /// so that individual authenticator tests can focus on behaviour rather than
 /// setup boilerplate.
 use crate::data::entities::dataplane_transfers;
-use crate::entities::dataplane_manager_ref::dataplane_commands::{
+use crate::entities::dataplane_manager::dataplane_commands::{
     DataplaneInitCommandDirection, DataplaneInitCommandTypes,
 };
-use crate::entities::dataplane_manager_ref::dataplane_context::DataplaneContext;
+use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;
 use crate::entities::dataplane_transfers::{
     DataplaneTransferDto, InteractionMode, MockDataplaneTransfersEntitiesTrait, TransferRole,
     TransferState,

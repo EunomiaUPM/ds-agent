@@ -22,10 +22,59 @@ use crate::protocols::dsp::facades::dataplane_facade::{
     provider_pull::ProviderPullStrategy, provider_push::ProviderPushStrategy,
 };
 use connector::ConnectorInstanceDto;
-use dataplane::DataplaneManager;
+use dataplane::{DataplaneAddress};
 use urn::Urn;
 use ymir::errors::Outcome;
 
+// ─── Shared free helpers ──────────────────────────────────────────────────────
+
+pub(super) async fn execute_command(
+    mgr: &DataplaneManager,
+    transfer_id: &Urn,
+    command: DataplaneCommand,
+) -> Outcome<()> {
+    mgr.execute_command(&DataplaneManagerInput {
+        transfer_process_id: transfer_id.clone(),
+        command,
+    })
+    .await?;
+    Ok(())
+}
+
+pub(super) async fn ingress_as_data_address(
+    mgr: &DataplaneManager,
+    proxy_base: &str,
+    transfer_id: &Urn,
+) -> Outcome<Option<DataAddressDto>> {
+    if let Some(addr) = mgr.get_ingress_address(transfer_id).await? {
+        return Ok(Some(DataAddressDto {
+            endpoint_type: addr.endpoint_type,
+            endpoint: Some(format!("{}{}", proxy_base, addr.endpoint)),
+            endpoint_properties: None,
+        }));
+    }
+    Ok(None)
+}
+
+pub(super) fn to_dataplane_address(da: &DataAddressDto) -> DataplaneAddress {
+    DataplaneAddress {
+        endpoint_type: da.endpoint_type.clone(),
+        endpoint: da.endpoint.clone().unwrap_or_default(),
+        authorization_type: None,
+        authorization: None,
+    }
+}
+
+// ─── Strategy trait ───────────────────────────────────────────────────────────
+
+/// Encapsulates the dataplane interactions for one (role × mode) combination.
+///
+/// Four implementations cover the matrix:
+/// [`ConsumerPullStrategy`], [`ConsumerPushStrategy`],
+/// [`ProviderPullStrategy`], [`ProviderPushStrategy`].
+///
+/// Suspension, completion, and termination are identical across all
+/// combinations and live directly in `DspDataPlaneFacade`.
 #[async_trait::async_trait]
 pub(super) trait DataPlaneStrategy: Send + Sync {
     async fn on_request_pre(
@@ -50,7 +99,7 @@ pub(super) trait DataPlaneStrategy: Send + Sync {
         mgr: &DataplaneManager,
         proxy_base: &str,
         transfer_id: &Urn,
-    ) -> Outcome<()>;
+    ) -> Outcome<Option<DataAddressDto>>;
 
     async fn on_start_post(
         &self,
@@ -58,19 +107,7 @@ pub(super) trait DataPlaneStrategy: Send + Sync {
         proxy_base: &str,
         transfer_id: &Urn,
         data_address: Option<DataAddressDto>,
-    ) -> Outcome<()>;
-
-    async fn on_suspend_pre(&self, mgr: &DataplaneManager, transfer_id: &Urn) -> Outcome<()>;
-
-    async fn on_suspend_post(&self, mgr: &DataplaneManager, transfer_id: &Urn) -> Outcome<()>;
-
-    async fn on_complete_pre(&self, mgr: &DataplaneManager, transfer_id: &Urn) -> Outcome<()>;
-
-    async fn on_complete_post(&self, mgr: &DataplaneManager, transfer_id: &Urn) -> Outcome<()>;
-
-    async fn on_terminate_pre(&self, mgr: &DataplaneManager, transfer_id: &Urn) -> Outcome<()>;
-
-    async fn on_terminate_post(&self, mgr: &DataplaneManager, transfer_id: &Urn) -> Outcome<()>;
+    ) -> Outcome<Option<DataAddressDto>>;
 }
 
 // ─── Static singletons ────────────────────────────────────────────────────────

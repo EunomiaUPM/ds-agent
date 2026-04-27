@@ -1,7 +1,7 @@
 use crate::entities::dataplane_drivers::{
     DriverAuthenticatorTrait, DriverProxyConfiguratorTrait, DriverPubSubTrait,
 };
-use crate::entities::dataplane_manager_ref::dataplane_context::DataplaneContext;
+use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;
 use ymir::errors::Outcome;
 
 #[derive(Debug)]

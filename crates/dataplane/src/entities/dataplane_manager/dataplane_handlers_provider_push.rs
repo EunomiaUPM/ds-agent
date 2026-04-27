@@ -1,7 +1,7 @@
-use crate::entities::dataplane_manager_ref::dataplane_commands::{
+use crate::entities::dataplane_manager::dataplane_commands::{
     DataplaneCommandStateMachine, DataplaneInitCommandTypes,
 };
-use crate::entities::dataplane_manager_ref::dataplane_context::DataplaneContext;
+use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;
 use crate::DataplaneTransfersEntitiesTrait;
 use common::config::services::TransferConfig;
 use connector::ConnectorInstanceTrait;
@@ -54,10 +54,10 @@ mod tests {
     use crate::entities::dataplane_drivers::configuration::no_op::NoOpProxyConfigurator;
     use crate::entities::dataplane_drivers::pubsub::no_op::NoOpPubSubscriber;
     use crate::entities::dataplane_drivers::DataplaneDriver;
-    use crate::entities::dataplane_manager_ref::dataplane_commands::{
+    use crate::entities::dataplane_manager::dataplane_commands::{
         DataplaneCommandStateMachine, DataplaneInitCommandDirection, DataplaneInitCommandTypes,
     };
-    use crate::entities::dataplane_manager_ref::dataplane_context::DataplaneContext;
+    use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;
     use crate::entities::dataplane_transfers::{
         DataplaneTransferDto, InteractionMode, MockDataplaneTransfersEntitiesTrait, TransferRole,
         TransferState,

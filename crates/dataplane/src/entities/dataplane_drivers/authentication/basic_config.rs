@@ -1,6 +1,6 @@
 use crate::entities::dataplane_drivers::DriverAuthenticatorTrait;
-use crate::entities::dataplane_manager_ref::dataplane_context::DataplaneContext;
-use crate::entities::dataplane_manager_ref::dataplane_runtime::{
+use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;
+use crate::entities::dataplane_manager::dataplane_runtime::{
     DataplaneRuntime, ResolvedAuthCredentials,
 };
 use connector::AuthenticationConfig;
@@ -39,7 +39,7 @@ impl DriverAuthenticatorTrait for BasicConfigAuthenticator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::entities::dataplane_manager_ref::dataplane_runtime::ResolvedAuthCredentials;
+    use crate::entities::dataplane_manager::dataplane_runtime::ResolvedAuthCredentials;
     use crate::test_fixtures::{basic_auth_context, bearer_context, consumer_context};
 
     #[tokio::test]

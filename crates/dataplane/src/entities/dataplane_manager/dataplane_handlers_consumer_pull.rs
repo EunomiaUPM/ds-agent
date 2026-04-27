@@ -1,25 +1,23 @@
-use crate::entities::dataplane_manager_ref::dataplane_commands::{
+use crate::entities::dataplane_manager::dataplane_commands::{
     DataplaneCommandStateMachine, DataplaneInitCommandTypes,
 };
-use crate::entities::dataplane_manager_ref::dataplane_context::DataplaneContext;
-use crate::entities::dataplane_manager_ref::dataplane_proxy::DataplaneProxy;
-use crate::entities::dataplane_transfers::{EditDataplaneTransferDto, TransferState};
+use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;
+use crate::entities::dataplane_manager::dataplane_driver_factory::{
+    DataplaneDriverFactory, DataplaneDriverFactoryTrait,
+};
 use crate::DataplaneTransfersEntitiesTrait;
 use common::config::services::TransferConfig;
 use connector::ConnectorInstanceTrait;
-use std::str::FromStr;
 use std::sync::Arc;
-use urn::Urn;
-use ymir::errors::{Errors, Outcome};
-use crate::entities::dataplane_manager_ref::dataplane_driver_factory::DataplaneDriverFactory;
+use ymir::errors::Outcome;
 
-pub struct DataplaneHandlerProviderPull {
+pub struct DataplaneHandlerConsumerPull {
     pub(super) dataplane_entity: Arc<dyn DataplaneTransfersEntitiesTrait>,
     pub(super) connector_entity: Arc<dyn ConnectorInstanceTrait>,
     config: Arc<TransferConfig>,
 }
 
-impl DataplaneHandlerProviderPull {
+impl DataplaneHandlerConsumerPull {
     pub fn new(
         dataplane_entity: Arc<dyn DataplaneTransfersEntitiesTrait>,
         connector_entity: Arc<dyn ConnectorInstanceTrait>,
@@ -34,15 +32,14 @@ impl DataplaneHandlerProviderPull {
 }
 
 #[async_trait::async_trait]
-impl DataplaneCommandStateMachine for DataplaneHandlerProviderPull {
+impl DataplaneCommandStateMachine for DataplaneHandlerConsumerPull {
     fn handler_name(&self) -> &'static str {
-        "ProviderPull"
+        "ConsumerPull"
     }
 
     fn dataplane_entity(&self) -> Arc<dyn DataplaneTransfersEntitiesTrait> {
         self.dataplane_entity.clone()
     }
-
     fn connector_entity(&self) -> Arc<dyn ConnectorInstanceTrait> {
         self.connector_entity.clone()
     }
@@ -54,33 +51,31 @@ impl DataplaneCommandStateMachine for DataplaneHandlerProviderPull {
 
 #[cfg(test)]
 mod tests {
-    use super::DataplaneHandlerProviderPull;
+    use super::DataplaneHandlerConsumerPull;
     use crate::data::entities::dataplane_transfers;
-    use crate::entities::dataplane_manager_ref::dataplane_commands::{
+    use crate::entities::dataplane_manager::dataplane_commands::{
         DataplaneCommandStateMachine, DataplaneInitCommandDirection, DataplaneInitCommandTypes,
     };
-    use crate::entities::dataplane_manager_ref::dataplane_context::DataplaneContext;
+    use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;
     use crate::entities::dataplane_transfers::{
         DataplaneTransferDto, InteractionMode, MockDataplaneTransfersEntitiesTrait, TransferRole,
         TransferState,
     };
     use crate::DataplaneAddress;
     use common::test_utils::config_fixtures::transfer_config_fixture;
-    use connector::{
-        AuthenticationConfig, ConnectorInstanceDto, ConnectorInstanceTrait,
-        ConnectorInstantiationDto, ConnectorMetadata, HttpSpec, InteractionConfig, ProtocolSpec,
-        PullLifecycle, TemplateVecString,
-    };
+    use connector::{ConnectorInstanceDto, ConnectorInstanceTrait, ConnectorInstantiationDto};
     use mockall::mock;
     use std::str::FromStr;
     use std::sync::Arc;
+    use serde_json::json;
     use urn::Urn;
     use ymir::errors::Outcome;
+    use crate::entities::dataplane_manager::dataplane_proxy::{DataplaneProxyEgress, DataplaneProxyIngress};
 
     mock! {
-        pub ConnectorMock {}
+        pub ConnectorInstance {}
         #[async_trait::async_trait]
-        impl ConnectorInstanceTrait for ConnectorMock {
+        impl ConnectorInstanceTrait for ConnectorInstance {
             async fn get_instance_by_id(&self, id: &Urn) -> Outcome<Option<ConnectorInstanceDto>>;
             async fn get_instance_by_distribution(&self, distribution_id: &Urn) -> Outcome<Option<ConnectorInstanceDto>>;
             async fn upsert_instance(&self, dto: &mut ConnectorInstantiationDto) -> Outcome<ConnectorInstanceDto>;
@@ -90,39 +85,13 @@ mod tests {
 
     const DP_URN: &str = "urn:dataplane-transfer:1";
     const TP_URN: &str = "urn:transfer-process:1";
-    const CONNECTOR_URN: &str = "urn:connector-instance:1";
 
-    // A provider-pull connector: NoAuth + HTTP data access.
-    fn connector_fixture() -> ConnectorInstanceDto {
-        ConnectorInstanceDto {
-            id: Urn::from_str(CONNECTOR_URN).unwrap(),
-            metadata: ConnectorMetadata {
-                name: None,
-                author: None,
-                description: None,
-                version: None,
-                created_at: None,
-            },
-            authentication_config: AuthenticationConfig::NoAuth,
-            interaction: InteractionConfig::Pull(PullLifecycle {
-                data_access: ProtocolSpec::Http(HttpSpec {
-                    url_template: "http://data-source.internal/api".to_string(),
-                    method: TemplateVecString::Value(vec!["GET".to_string()]),
-                    headers: None,
-                    body_template: None,
-                }),
-            }),
-            distribution_id: Urn::from_str("urn:distribution:1").unwrap(),
-        }
-    }
-
-    // The proxy address the consumer will use to pull data from this provider.
-    fn proxy_address_fixture() -> DataplaneAddress {
+    fn forward_address_fixture() -> DataplaneAddress {
         DataplaneAddress {
             endpoint_type: "HTTP".to_string(),
-            endpoint: "http://dataplane.example.com/proxy/transfer".to_string(),
+            endpoint: "http://provider-endpoint.com/data".to_string(),
             authorization_type: Some("Bearer".to_string()),
-            authorization: Some("proxy-token-xyz".to_string()),
+            authorization: Some("token-abc".to_string()),
         }
     }
 
@@ -131,13 +100,13 @@ mod tests {
             inner: dataplane_transfers::Model {
                 id: DP_URN.to_string(),
                 transfer_process_id: TP_URN.to_string(),
-                role: TransferRole::Provider,
+                role: TransferRole::Consumer,
                 interaction_mode: InteractionMode::Pull,
                 state,
-                connector_instance_id: Some(CONNECTOR_URN.to_string()),
-                ingress_config: serde_json::json!("NoOp"),
-                egress_config: serde_json::json!("NoOp"),
-                flow_control: None,
+                connector_instance_id: None,
+                ingress_config: json!({}),
+                egress_config: json!({}),
+                flow_control: Some(json!({})),
                 created_at: chrono::Utc::now().into(),
                 updated_at: None,
             },
@@ -148,10 +117,10 @@ mod tests {
 
     fn handler(
         entity: Arc<dyn crate::DataplaneTransfersEntitiesTrait>,
-    ) -> DataplaneHandlerProviderPull {
-        DataplaneHandlerProviderPull::new(
+    ) -> DataplaneHandlerConsumerPull {
+        DataplaneHandlerConsumerPull::new(
             entity,
-            Arc::new(MockConnectorMock::new()),
+            Arc::new(MockConnectorInstance::new()),
             transfer_config_fixture(),
         )
     }
@@ -161,13 +130,12 @@ mod tests {
     ) -> DataplaneContext {
         DataplaneContext::from_init(
             entity,
-            Arc::new(MockConnectorMock::new()),
+            Arc::new(MockConnectorInstance::new()),
             transfer_config_fixture(),
-            DataplaneInitCommandTypes::AsProvider {
+            DataplaneInitCommandTypes::AsConsumer {
                 transfer_process_id: Urn::from_str(TP_URN).unwrap(),
-                connector_instance: connector_fixture(),
                 direction: DataplaneInitCommandDirection::Pull {
-                    data_address: proxy_address_fixture(),
+                    data_address: forward_address_fixture(),
                 },
             },
         )
@@ -189,54 +157,82 @@ mod tests {
             .returning(move |_, _| Ok(dto(expected.clone())));
     }
 
+    // set_init drives the full sub-chain
+    // The provider address set at init must survive all three hops intact.
+    // Just testing here the state machine and not the contents
+    #[tokio::test]
+    async fn test_set_init_reaches_ready_and_preserves_address() {
+        let mut mock = MockDataplaneTransfersEntitiesTrait::new();
+        expect_create(&mut mock);
+        expect_put(&mut mock, TransferState::Configuring);
+        expect_put(&mut mock, TransferState::Auth);
+        expect_put(&mut mock, TransferState::Ready);
+
+        let entity: Arc<dyn crate::DataplaneTransfersEntitiesTrait> = Arc::new(mock);
+        let context = init_context(entity.clone()).await;
+        let result = handler(entity).set_init(context).await;
+
+        assert!(result.is_ok());
+        let ctx = result.unwrap();
+        assert_eq!(ctx.dataplane_process().inner.state, TransferState::Ready);
+        // provider address must survive the full configure → auth → ready chain
+        let addr = ctx
+            .forward_dataplane_address()
+            .expect("provider address must be preserved");
+        assert_eq!(addr.endpoint, "http://provider-endpoint.com/data");
+        assert_eq!(addr.authorization_type.as_deref(), Some("Bearer"));
+        // consumer pull never has a connector instance
+        assert!(ctx.connector_instance().is_none());
+    }
+
     // ── set_configuring ───────────────────────────────────────────────────────
 
-    // set_configuring is atomic: configure proxy (NoOp) → put(Configuring).
-    // Does NOT proceed to auth or ready.
+    // set_configuring is atomic: configure proxy → put(Configuring).
+    // It does NOT proceed to auth or ready.
     #[tokio::test]
-    async fn test_set_configuring_persists_configuring_state_and_preserves_connector() {
+    async fn test_set_configuring_builds_driver_and_proxy() {
         let mut mock = MockDataplaneTransfersEntitiesTrait::new();
         expect_create(&mut mock);
         expect_put(&mut mock, TransferState::Configuring);
 
         let entity: Arc<dyn crate::DataplaneTransfersEntitiesTrait> = Arc::new(mock);
         let context = init_context(entity.clone()).await;
-
-        let result = handler(entity).set_configuring(context).await;
+        let result = handler(entity.clone()).set_configuring(context).await;
 
         assert!(result.is_ok());
         let ctx = result.unwrap();
         assert_eq!(ctx.dataplane_process().inner.state, TransferState::Configuring);
-        assert!(ctx.driver().is_some());
-        // connector must survive configuring — it describes the provider's data source
-        let conn = ctx
-            .connector_instance()
-            .expect("connector instance must be preserved");
-        assert_eq!(conn.id, Urn::from_str(CONNECTOR_URN).unwrap());
+        assert!(ctx.driver().is_some(), "driver must be set after configuring");
+        assert!(ctx.proxy().is_some(), "proxy must be built after configuring");
+        // provider address must be preserved
         let addr = ctx
             .forward_dataplane_address()
-            .expect("proxy address must be preserved");
-        assert_eq!(addr.endpoint, "http://dataplane.example.com/proxy/transfer");
+            .expect("provider address must be preserved");
+        assert_eq!(addr.endpoint, "http://provider-endpoint.com/data");
+        assert_eq!(addr.authorization_type.as_deref(), Some("Bearer"));
+        assert!(ctx.connector_instance().is_none());
     }
 
     // ── set_auth ──────────────────────────────────────────────────────────────
 
-    // set_auth is atomic: NoAuth → NoOp authentication → put(Auth). Does NOT proceed to ready.
+    // set_auth is atomic: NoOp authentication → put(Auth). Does NOT proceed to ready.
     #[tokio::test]
     async fn test_set_auth_persists_auth_state() {
         let mut mock = MockDataplaneTransfersEntitiesTrait::new();
         expect_create(&mut mock);
+        expect_put(&mut mock, TransferState::Configuring);
         expect_put(&mut mock, TransferState::Auth);
 
         let entity: Arc<dyn crate::DataplaneTransfersEntitiesTrait> = Arc::new(mock);
         let context = init_context(entity.clone()).await;
+        let context = handler(entity.clone()).set_configuring(context).await.unwrap();
 
-        let result = handler(entity).set_auth(context).await;
-
+        let result = handler(entity.clone()).set_auth(context).await;
         assert!(result.is_ok());
         let ctx = result.unwrap();
         assert_eq!(ctx.dataplane_process().inner.state, TransferState::Auth);
-        assert!(ctx.connector_instance().is_some());
+        assert!(ctx.connector_instance().is_none());
+        assert!(ctx.forward_dataplane_address().is_some());
     }
 
     // ── set_ready ─────────────────────────────────────────────────────────────
@@ -246,13 +242,16 @@ mod tests {
     async fn test_set_ready_persists_state() {
         let mut mock = MockDataplaneTransfersEntitiesTrait::new();
         expect_create(&mut mock);
+        expect_put(&mut mock, TransferState::Configuring);
+        expect_put(&mut mock, TransferState::Auth);
         expect_put(&mut mock, TransferState::Ready);
 
         let entity: Arc<dyn crate::DataplaneTransfersEntitiesTrait> = Arc::new(mock);
         let context = init_context(entity.clone()).await;
+        let context = handler(entity.clone()).set_configuring(context).await.unwrap();
+        let context = handler(entity.clone()).set_auth(context).await.unwrap();
 
-        let result = handler(entity).set_ready(context).await;
-
+        let result = handler(entity.clone()).set_ready(context).await;
         assert!(result.is_ok());
         assert_eq!(
             result.unwrap().dataplane_process().inner.state,
@@ -326,9 +325,9 @@ mod tests {
     // ── set_subscribing / set_unsubscribing ───────────────────────────────────
 
     // Pull mode has no subscriber: set_subscribing must be a no-op — no put is called
-    // and the context is returned unchanged. (driver is None when built from from_init)
+    // and the context is returned unchanged.
     #[tokio::test]
-    async fn test_set_subscribing_is_noop_for_pull() {
+    async fn test_set_subscribing_is_noop_for_pull_and_reaches_started() {
         let mut mock = MockDataplaneTransfersEntitiesTrait::new();
         expect_create(&mut mock);
         // no expect_put — any unexpected call makes the mock panic
@@ -339,6 +338,7 @@ mod tests {
         let result = handler(entity).set_subscribing(context).await;
 
         assert!(result.is_ok());
+        // context comes back untouched: state is still Init as returned by create
         assert_eq!(
             result.unwrap().dataplane_process().inner.state,
             TransferState::Init
@@ -350,6 +350,7 @@ mod tests {
     async fn test_set_unsubscribing_is_noop_for_pull() {
         let mut mock = MockDataplaneTransfersEntitiesTrait::new();
         expect_create(&mut mock);
+        // no expect_put — any unexpected call makes the mock panic
 
         let entity: Arc<dyn crate::DataplaneTransfersEntitiesTrait> = Arc::new(mock);
         let context = init_context(entity.clone()).await;
@@ -357,6 +358,7 @@ mod tests {
         let result = handler(entity).set_unsubscribing(context).await;
 
         assert!(result.is_ok());
+        // context comes back untouched: state is still Init as returned by create
         assert_eq!(
             result.unwrap().dataplane_process().inner.state,
             TransferState::Init

@@ -64,34 +64,43 @@ pub trait DataPlaneFacadeTrait: Send + Sync {
     async fn on_transfer_suspension_pre(
         &self,
         transfer_process: &TransferProcessDto,
-    ) -> Outcome<Option<DataAddressDto>>;
+    ) -> Outcome<()>;
 
     async fn on_transfer_suspension_post(
         &self,
         transfer_process: &TransferProcessDto,
-    ) -> Outcome<Option<DataAddressDto>>;
+    ) -> Outcome<()>;
 
     // ─── TransferCompletion ───
 
     async fn on_transfer_completion_pre(
         &self,
         transfer_process: &TransferProcessDto,
-    ) -> Outcome<Option<DataAddressDto>>;
+    ) -> Outcome<()>;
 
     async fn on_transfer_completion_post(
         &self,
         transfer_process: &TransferProcessDto,
-    ) -> Outcome<Option<DataAddressDto>>;
+    ) -> Outcome<()>;
 
     // ─── TransferTermination ───
 
     async fn on_transfer_termination_pre(
         &self,
         transfer_process: &TransferProcessDto,
-    ) -> Outcome<Option<DataAddressDto>>;
+    ) -> Outcome<()>;
 
     async fn on_transfer_termination_post(
         &self,
         transfer_process: &TransferProcessDto,
-    ) -> Outcome<Option<DataAddressDto>>;
+    ) -> Outcome<()>;
+
+    // ─── Config updates ───
+
+    /// Update the egress config for a transfer (e.g. after receiving peer's DataAddress)
+    async fn set_egress(
+        &self,
+        transfer_process: &TransferProcessDto,
+        data_address: DataplaneAddress,
+    ) -> Outcome<()>;
 }

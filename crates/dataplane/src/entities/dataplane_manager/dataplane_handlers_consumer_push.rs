@@ -1,23 +1,20 @@
-use crate::entities::dataplane_manager_ref::dataplane_commands::{
+use std::sync::Arc;
+use crate::entities::dataplane_manager::dataplane_commands::{
     DataplaneCommandStateMachine, DataplaneInitCommandTypes,
 };
-use crate::entities::dataplane_manager_ref::dataplane_context::DataplaneContext;
-use crate::entities::dataplane_manager_ref::dataplane_driver_factory::{
-    DataplaneDriverFactory, DataplaneDriverFactoryTrait,
-};
-use crate::DataplaneTransfersEntitiesTrait;
+use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;
+use ymir::errors::Outcome;
 use common::config::services::TransferConfig;
 use connector::ConnectorInstanceTrait;
-use std::sync::Arc;
-use ymir::errors::Outcome;
+use crate::DataplaneTransfersEntitiesTrait;
 
-pub struct DataplaneHandlerConsumerPull {
+pub struct DataplaneHandlerConsumerPush {
     pub(super) dataplane_entity: Arc<dyn DataplaneTransfersEntitiesTrait>,
     pub(super) connector_entity: Arc<dyn ConnectorInstanceTrait>,
     config: Arc<TransferConfig>,
 }
 
-impl DataplaneHandlerConsumerPull {
+impl DataplaneHandlerConsumerPush {
     pub fn new(
         dataplane_entity: Arc<dyn DataplaneTransfersEntitiesTrait>,
         connector_entity: Arc<dyn ConnectorInstanceTrait>,
@@ -32,9 +29,9 @@ impl DataplaneHandlerConsumerPull {
 }
 
 #[async_trait::async_trait]
-impl DataplaneCommandStateMachine for DataplaneHandlerConsumerPull {
+impl DataplaneCommandStateMachine for DataplaneHandlerConsumerPush {
     fn handler_name(&self) -> &'static str {
-        "ConsumerPull"
+        "ConsumerPush"
     }
 
     fn dataplane_entity(&self) -> Arc<dyn DataplaneTransfersEntitiesTrait> {
@@ -51,12 +48,16 @@ impl DataplaneCommandStateMachine for DataplaneHandlerConsumerPull {
 
 #[cfg(test)]
 mod tests {
-    use super::DataplaneHandlerConsumerPull;
+    use super::DataplaneHandlerConsumerPush;
     use crate::data::entities::dataplane_transfers;
-    use crate::entities::dataplane_manager_ref::dataplane_commands::{
+    use crate::entities::dataplane_drivers::authentication::no_op::NoOpAuthenticator;
+    use crate::entities::dataplane_drivers::configuration::no_op::NoOpProxyConfigurator;
+    use crate::entities::dataplane_drivers::pubsub::no_op::NoOpPubSubscriber;
+    use crate::entities::dataplane_drivers::DataplaneDriver;
+    use crate::entities::dataplane_manager::dataplane_commands::{
         DataplaneCommandStateMachine, DataplaneInitCommandDirection, DataplaneInitCommandTypes,
     };
-    use crate::entities::dataplane_manager_ref::dataplane_context::DataplaneContext;
+    use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;
     use crate::entities::dataplane_transfers::{
         DataplaneTransferDto, InteractionMode, MockDataplaneTransfersEntitiesTrait, TransferRole,
         TransferState,
@@ -67,15 +68,13 @@ mod tests {
     use mockall::mock;
     use std::str::FromStr;
     use std::sync::Arc;
-    use serde_json::json;
     use urn::Urn;
     use ymir::errors::Outcome;
-    use crate::entities::dataplane_manager_ref::dataplane_proxy::{DataplaneProxyEgress, DataplaneProxyIngress};
 
     mock! {
-        pub ConnectorInstance {}
+        pub ConnectorMock {}
         #[async_trait::async_trait]
-        impl ConnectorInstanceTrait for ConnectorInstance {
+        impl ConnectorInstanceTrait for ConnectorMock {
             async fn get_instance_by_id(&self, id: &Urn) -> Outcome<Option<ConnectorInstanceDto>>;
             async fn get_instance_by_distribution(&self, distribution_id: &Urn) -> Outcome<Option<ConnectorInstanceDto>>;
             async fn upsert_instance(&self, dto: &mut ConnectorInstantiationDto) -> Outcome<ConnectorInstanceDto>;
@@ -86,12 +85,13 @@ mod tests {
     const DP_URN: &str = "urn:dataplane-transfer:1";
     const TP_URN: &str = "urn:transfer-process:1";
 
-    fn forward_address_fixture() -> DataplaneAddress {
+    // The address where this consumer will receive pushed data.
+    fn push_endpoint_fixture() -> DataplaneAddress {
         DataplaneAddress {
             endpoint_type: "HTTP".to_string(),
-            endpoint: "http://provider-endpoint.com/data".to_string(),
+            endpoint: "http://consumer-endpoint.com/receive".to_string(),
             authorization_type: Some("Bearer".to_string()),
-            authorization: Some("token-abc".to_string()),
+            authorization: Some("consumer-token".to_string()),
         }
     }
 
@@ -101,12 +101,12 @@ mod tests {
                 id: DP_URN.to_string(),
                 transfer_process_id: TP_URN.to_string(),
                 role: TransferRole::Consumer,
-                interaction_mode: InteractionMode::Pull,
+                interaction_mode: InteractionMode::Push,
                 state,
                 connector_instance_id: None,
-                ingress_config: json!({}),
-                egress_config: json!({}),
-                flow_control: Some(json!({})),
+                ingress_config: serde_json::json!("NoOp"),
+                egress_config: serde_json::json!("NoOp"),
+                flow_control: None,
                 created_at: chrono::Utc::now().into(),
                 updated_at: None,
             },
@@ -117,10 +117,10 @@ mod tests {
 
     fn handler(
         entity: Arc<dyn crate::DataplaneTransfersEntitiesTrait>,
-    ) -> DataplaneHandlerConsumerPull {
-        DataplaneHandlerConsumerPull::new(
+    ) -> DataplaneHandlerConsumerPush {
+        DataplaneHandlerConsumerPush::new(
             entity,
-            Arc::new(MockConnectorInstance::new()),
+            Arc::new(MockConnectorMock::new()),
             transfer_config_fixture(),
         )
     }
@@ -130,17 +130,25 @@ mod tests {
     ) -> DataplaneContext {
         DataplaneContext::from_init(
             entity,
-            Arc::new(MockConnectorInstance::new()),
+            Arc::new(MockConnectorMock::new()),
             transfer_config_fixture(),
             DataplaneInitCommandTypes::AsConsumer {
                 transfer_process_id: Urn::from_str(TP_URN).unwrap(),
-                direction: DataplaneInitCommandDirection::Pull {
-                    data_address: forward_address_fixture(),
+                direction: DataplaneInitCommandDirection::Push {
+                    data_address: push_endpoint_fixture(),
                 },
             },
         )
         .await
         .unwrap()
+    }
+
+    fn driver_with_subscriber() -> DataplaneDriver {
+        DataplaneDriver {
+            authenticator: Arc::new(NoOpAuthenticator),
+            proxy_configurator: Arc::new(NoOpProxyConfigurator),
+            subscriber: Some(Arc::new(NoOpPubSubscriber)),
+        }
     }
 
     fn expect_create(mock: &mut MockDataplaneTransfersEntitiesTrait) {
@@ -157,60 +165,28 @@ mod tests {
             .returning(move |_, _| Ok(dto(expected.clone())));
     }
 
-    // set_init drives the full sub-chain
-    // The provider address set at init must survive all three hops intact.
-    // Just testing here the state machine and not the contents
-    #[tokio::test]
-    async fn test_set_init_reaches_ready_and_preserves_address() {
-        let mut mock = MockDataplaneTransfersEntitiesTrait::new();
-        expect_create(&mut mock);
-        expect_put(&mut mock, TransferState::Configuring);
-        expect_put(&mut mock, TransferState::Auth);
-        expect_put(&mut mock, TransferState::Ready);
-
-        let entity: Arc<dyn crate::DataplaneTransfersEntitiesTrait> = Arc::new(mock);
-        let context = init_context(entity.clone()).await;
-        let result = handler(entity).set_init(context).await;
-
-        assert!(result.is_ok());
-        let ctx = result.unwrap();
-        assert_eq!(ctx.dataplane_process().inner.state, TransferState::Ready);
-        // provider address must survive the full configure → auth → ready chain
-        let addr = ctx
-            .forward_dataplane_address()
-            .expect("provider address must be preserved");
-        assert_eq!(addr.endpoint, "http://provider-endpoint.com/data");
-        assert_eq!(addr.authorization_type.as_deref(), Some("Bearer"));
-        // consumer pull never has a connector instance
-        assert!(ctx.connector_instance().is_none());
-    }
-
     // ── set_configuring ───────────────────────────────────────────────────────
 
-    // set_configuring is atomic: configure proxy → put(Configuring).
-    // It does NOT proceed to auth or ready.
+    // set_configuring is atomic: configure proxy (NoOp) → put(Configuring).
+    // Does NOT proceed to auth or ready.
     #[tokio::test]
-    async fn test_set_configuring_builds_driver_and_proxy() {
+    async fn test_set_configuring_persists_configuring_state() {
         let mut mock = MockDataplaneTransfersEntitiesTrait::new();
         expect_create(&mut mock);
         expect_put(&mut mock, TransferState::Configuring);
 
         let entity: Arc<dyn crate::DataplaneTransfersEntitiesTrait> = Arc::new(mock);
         let context = init_context(entity.clone()).await;
-        let result = handler(entity.clone()).set_configuring(context).await;
+
+        let result = handler(entity).set_configuring(context).await;
 
         assert!(result.is_ok());
         let ctx = result.unwrap();
         assert_eq!(ctx.dataplane_process().inner.state, TransferState::Configuring);
-        assert!(ctx.driver().is_some(), "driver must be set after configuring");
-        assert!(ctx.proxy().is_some(), "proxy must be built after configuring");
-        // provider address must be preserved
-        let addr = ctx
-            .forward_dataplane_address()
-            .expect("provider address must be preserved");
-        assert_eq!(addr.endpoint, "http://provider-endpoint.com/data");
-        assert_eq!(addr.authorization_type.as_deref(), Some("Bearer"));
+        assert!(ctx.driver().is_some());
         assert!(ctx.connector_instance().is_none());
+        let addr = ctx.forward_dataplane_address().expect("push endpoint must be preserved");
+        assert_eq!(addr.endpoint, "http://consumer-endpoint.com/receive");
     }
 
     // ── set_auth ──────────────────────────────────────────────────────────────
@@ -220,48 +196,36 @@ mod tests {
     async fn test_set_auth_persists_auth_state() {
         let mut mock = MockDataplaneTransfersEntitiesTrait::new();
         expect_create(&mut mock);
-        expect_put(&mut mock, TransferState::Configuring);
         expect_put(&mut mock, TransferState::Auth);
 
         let entity: Arc<dyn crate::DataplaneTransfersEntitiesTrait> = Arc::new(mock);
         let context = init_context(entity.clone()).await;
-        let context = handler(entity.clone()).set_configuring(context).await.unwrap();
 
-        let result = handler(entity.clone()).set_auth(context).await;
+        let result = handler(entity).set_auth(context).await;
+
         assert!(result.is_ok());
-        let ctx = result.unwrap();
-        assert_eq!(ctx.dataplane_process().inner.state, TransferState::Auth);
-        assert!(ctx.connector_instance().is_none());
-        assert!(ctx.forward_dataplane_address().is_some());
+        assert_eq!(result.unwrap().dataplane_process().inner.state, TransferState::Auth);
     }
 
     // ── set_ready ─────────────────────────────────────────────────────────────
 
-    // set_ready must call put exactly once with state=Ready and return the updated context.
     #[tokio::test]
     async fn test_set_ready_persists_state() {
         let mut mock = MockDataplaneTransfersEntitiesTrait::new();
         expect_create(&mut mock);
-        expect_put(&mut mock, TransferState::Configuring);
-        expect_put(&mut mock, TransferState::Auth);
         expect_put(&mut mock, TransferState::Ready);
 
         let entity: Arc<dyn crate::DataplaneTransfersEntitiesTrait> = Arc::new(mock);
         let context = init_context(entity.clone()).await;
-        let context = handler(entity.clone()).set_configuring(context).await.unwrap();
-        let context = handler(entity.clone()).set_auth(context).await.unwrap();
 
-        let result = handler(entity.clone()).set_ready(context).await;
+        let result = handler(entity).set_ready(context).await;
+
         assert!(result.is_ok());
-        assert_eq!(
-            result.unwrap().dataplane_process().inner.state,
-            TransferState::Ready
-        );
+        assert_eq!(result.unwrap().dataplane_process().inner.state, TransferState::Ready);
     }
 
     // ── set_started ───────────────────────────────────────────────────────────
 
-    // set_started must call put exactly once with state=Started and return the updated context.
     #[tokio::test]
     async fn test_set_started_persists_state() {
         let mut mock = MockDataplaneTransfersEntitiesTrait::new();
@@ -274,15 +238,11 @@ mod tests {
         let result = handler(entity).set_started(context).await;
 
         assert!(result.is_ok());
-        assert_eq!(
-            result.unwrap().dataplane_process().inner.state,
-            TransferState::Started
-        );
+        assert_eq!(result.unwrap().dataplane_process().inner.state, TransferState::Started);
     }
 
     // ── set_stopped ───────────────────────────────────────────────────────────
 
-    // set_stopped must call put exactly once with state=Stopped and return the updated context.
     #[tokio::test]
     async fn test_set_stopped_persists_state() {
         let mut mock = MockDataplaneTransfersEntitiesTrait::new();
@@ -295,15 +255,11 @@ mod tests {
         let result = handler(entity).set_stopped(context).await;
 
         assert!(result.is_ok());
-        assert_eq!(
-            result.unwrap().dataplane_process().inner.state,
-            TransferState::Stopped
-        );
+        assert_eq!(result.unwrap().dataplane_process().inner.state, TransferState::Stopped);
     }
 
     // ── set_terminating ───────────────────────────────────────────────────────
 
-    // set_terminating must call put exactly once with state=Terminated and return the updated context.
     #[tokio::test]
     async fn test_set_terminating_persists_state() {
         let mut mock = MockDataplaneTransfersEntitiesTrait::new();
@@ -316,21 +272,35 @@ mod tests {
         let result = handler(entity).set_terminating(context).await;
 
         assert!(result.is_ok());
-        assert_eq!(
-            result.unwrap().dataplane_process().inner.state,
-            TransferState::Terminated
-        );
+        assert_eq!(result.unwrap().dataplane_process().inner.state, TransferState::Terminated);
     }
 
-    // ── set_subscribing / set_unsubscribing ───────────────────────────────────
+    // ── set_subscribing ───────────────────────────────────────────────────────
 
-    // Pull mode has no subscriber: set_subscribing must be a no-op — no put is called
-    // and the context is returned unchanged.
+    // With a driver carrying a subscriber: put(Subscribing) → subscribe → set_started → put(Started).
     #[tokio::test]
-    async fn test_set_subscribing_is_noop_for_pull_and_reaches_started() {
+    async fn test_set_subscribing_with_driver_activates_push() {
         let mut mock = MockDataplaneTransfersEntitiesTrait::new();
         expect_create(&mut mock);
-        // no expect_put — any unexpected call makes the mock panic
+        expect_put(&mut mock, TransferState::Subscribing);
+        expect_put(&mut mock, TransferState::Started);
+
+        let entity: Arc<dyn crate::DataplaneTransfersEntitiesTrait> = Arc::new(mock);
+        let mut context = init_context(entity.clone()).await;
+        context.set_driver(driver_with_subscriber());
+
+        let result = handler(entity).set_subscribing(context).await;
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().dataplane_process().inner.state, TransferState::Started);
+    }
+
+    // Without a driver (init context default): set_subscribing is a no-op.
+    #[tokio::test]
+    async fn test_set_subscribing_without_driver_is_noop() {
+        let mut mock = MockDataplaneTransfersEntitiesTrait::new();
+        expect_create(&mut mock);
+        // no expect_put — unexpected calls panic
 
         let entity: Arc<dyn crate::DataplaneTransfersEntitiesTrait> = Arc::new(mock);
         let context = init_context(entity.clone()).await;
@@ -338,19 +308,34 @@ mod tests {
         let result = handler(entity).set_subscribing(context).await;
 
         assert!(result.is_ok());
-        // context comes back untouched: state is still Init as returned by create
-        assert_eq!(
-            result.unwrap().dataplane_process().inner.state,
-            TransferState::Init
-        );
+        assert_eq!(result.unwrap().dataplane_process().inner.state, TransferState::Init);
     }
 
-    // Pull mode has no subscriber: set_unsubscribing must also be a no-op.
+    // ── set_unsubscribing ─────────────────────────────────────────────────────
+
+    // With a driver carrying a subscriber: put(Unsubscribing) → unsubscribe → set_stopped → put(Stopped).
     #[tokio::test]
-    async fn test_set_unsubscribing_is_noop_for_pull() {
+    async fn test_set_unsubscribing_with_driver_deactivates_push() {
         let mut mock = MockDataplaneTransfersEntitiesTrait::new();
         expect_create(&mut mock);
-        // no expect_put — any unexpected call makes the mock panic
+        expect_put(&mut mock, TransferState::Unsubscribing);
+        expect_put(&mut mock, TransferState::Stopped);
+
+        let entity: Arc<dyn crate::DataplaneTransfersEntitiesTrait> = Arc::new(mock);
+        let mut context = init_context(entity.clone()).await;
+        context.set_driver(driver_with_subscriber());
+
+        let result = handler(entity).set_unsubscribing(context).await;
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().dataplane_process().inner.state, TransferState::Stopped);
+    }
+
+    // Without a driver: set_unsubscribing is a no-op.
+    #[tokio::test]
+    async fn test_set_unsubscribing_without_driver_is_noop() {
+        let mut mock = MockDataplaneTransfersEntitiesTrait::new();
+        expect_create(&mut mock);
 
         let entity: Arc<dyn crate::DataplaneTransfersEntitiesTrait> = Arc::new(mock);
         let context = init_context(entity.clone()).await;
@@ -358,10 +343,6 @@ mod tests {
         let result = handler(entity).set_unsubscribing(context).await;
 
         assert!(result.is_ok());
-        // context comes back untouched: state is still Init as returned by create
-        assert_eq!(
-            result.unwrap().dataplane_process().inner.state,
-            TransferState::Init
-        );
+        assert_eq!(result.unwrap().dataplane_process().inner.state, TransferState::Init);
     }
 }

@@ -18,7 +18,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use ymir::data::entities::mates;
+use ymir::data::entities::{mates, req_request};
 use ymir::errors::Outcome;
 use ymir::services::wallet::WalletTrait;
 use ymir::types::gnap::ApprovedCallbackBody;
@@ -78,5 +78,13 @@ pub trait CoreOnboarderTrait: Send + Sync + 'static {
         self.onboarder().manage_rejection(&mut req_model).await?;
         self.repo().request_req().update(req_model).await?;
         Ok(())
+    }
+
+    async fn get_all(&self) -> Outcome<Vec<req_request::Model>> {
+        self.repo().request_req().get_all(None, None).await
+    }
+
+    async fn get_by_id(&self, id: String) -> Outcome<req_request::Model> {
+        self.repo().request_req().get_by_id(&id).await
     }
 }

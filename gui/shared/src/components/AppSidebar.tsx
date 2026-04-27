@@ -119,11 +119,6 @@ export function AppSidebar() {
           icon: Users,
         },
         {
-          title: "Wallet",
-          url: "/admin/wallet",
-          icon: Wallet,
-        },
-        {
           title: "Request Credential",
           url: "/admin/authority",
           icon: ShieldCheck,
@@ -138,6 +133,11 @@ export function AppSidebar() {
     {
       title: "My area",
       items: [
+        {
+          title: "My Wallet",
+          url: "/admin/wallet",
+          icon: Wallet,
+        },
         {
           title: "My Catalog",
           url: "/admin/my-catalog",

@@ -15,7 +15,8 @@ import { Skeleton } from "shared/src/components/ui/skeleton";
 import dayjs from "dayjs";
 import { Card, CardContent, CardHeader, CardTitle } from "shared/src/components/ui/card";
 import { Separator } from "shared/src/components/ui/separator";
-import { History, Shield, Globe, Cpu, Key, Calendar, Activity } from "lucide-react";
+import { History, Shield, Globe, Cpu, Key, Calendar, Activity, Eye, EyeOff } from "lucide-react";
+import { useState } from "react";
 
 import { Button } from "shared/src/components/ui/button.tsx";
 import { ParticipantDto } from "shared/data/orval/model/participantDto";
@@ -35,6 +36,7 @@ export const Route = createFileRoute("/participants/$participantId/")({
 
 function RouteComponent() {
   const { participantId } = Route.useParams();
+  const [showSecrets, setShowSecrets] = useState(false);
   const {
     data: participant,
     isLoading: isParticipantLoading,
@@ -117,8 +119,18 @@ function RouteComponent() {
                     value: {
                       type: "custom",
                       content: (
-                        <div className="font-mono text-[10px] opacity-60 truncate max-w-[300px]">
-                          {p.token || "No token assigned"}
+                        <div className="flex flex-col gap-2">
+                          <div className="font-mono text-[10px] opacity-60 truncate max-w-[300px] bg-background-200 p-2 rounded border border-white/10">
+                            {showSecrets ? (p.token || "No token assigned") : "••••••••••••••••••••••••••••••••"}
+                          </div>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-7 px-2 text-[10px] w-fit" 
+                            onClick={() => setShowSecrets(!showSecrets)}
+                          >
+                            {showSecrets ? <><EyeOff className="h-3 w-3 mr-1"/> Hide</> : <><Eye className="h-3 w-3 mr-1"/> Show</>}
+                          </Button>
                         </div>
                       )
                     } 

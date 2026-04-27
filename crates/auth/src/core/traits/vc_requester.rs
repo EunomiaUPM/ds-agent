@@ -22,7 +22,7 @@ use ymir::data::entities::{mates, req_vc};
 use ymir::errors::{Errors, Outcome};
 use ymir::services::wallet::WalletTrait;
 use ymir::types::gnap::ApprovedCallbackBody;
-
+use ymir::utils::trim_4_base;
 use crate::services::callback::CallbackTrait;
 use crate::services::repo::repo_trait::AuthRepoTrait;
 use crate::services::vc_requester::VcRequesterTrait;
@@ -42,13 +42,27 @@ pub trait CoreVcRequesterTrait: Send + Sync + 'static {
             .vc_req()
             .send_req(&mut vc_model, &mut int_model)
             .await?;
-        let vc_model = self.repo().vc_req().update(vc_model).await?;
+        let mut vc_model = self.repo().vc_req().update(vc_model).await?;
         let int_model = self.repo().interaction_req().update(int_model).await?;
         match uri {
             Some(uri) => {
                 if approved {
                     if vc_model.auto {
                         if let Some(wallet) = self.wallet() {
+                            vc_model.vc_uri = Some(uri.clone());
+                            vc_model.status = "Approved".to_string();
+
+                            let base_url = trim_4_base(&vc_model.grant_endpoint);
+                            let mate = mates::NewModel {
+                                participant_id: vc_model.authority_id.clone(),
+                                participant_slug: vc_model.authority_slug.clone(),
+                                participant_type: "Authority".to_string(),
+                                base_url,
+                                token: None,
+                                extra_fields: None,
+                                is_me: false,
+                            };
+                            self.repo().mates().force_create(mate).await?;
                             wallet.process_oidc4vci(&uri).await?;
                             return Ok(None);
                         }

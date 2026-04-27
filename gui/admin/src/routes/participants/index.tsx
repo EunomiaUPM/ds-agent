@@ -13,7 +13,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { formatUrn } from "shared/src/lib/utils";
 import { DataTable } from "shared/src/components/DataTable";
-import { useContext, useMemo } from "react";
+import { useContext, useMemo, useState } from "react";
 import { Button } from "shared/src/components/ui/button.tsx";
 import { Badge, BadgeRole } from "shared/src/components/ui/badge";
 import Heading from "shared/src/components/ui/heading";
@@ -21,7 +21,7 @@ import { buttonVariants } from "shared/src/components/ui/button";
 import { InfoList } from "shared/src/components/ui/info-list";
 
 // Icons
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { GlobalInfoContext, GlobalInfoContextType } from "shared/src/context/GlobalInfoContext.tsx";
 import { PageLayout } from "shared/src/components/layout/PageLayout";
 import { PageHeader } from "shared/src/components/layout/PageHeader";
@@ -58,6 +58,49 @@ export const Route = createFileRoute("/participants/")({
 
 function RouteComponent() {
   const { data: participants, isLoading, isError, error } = useGetAllParticipants();
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
+
+  const rawParticipants = (participants?.data || []) as Participant[];
+
+  const allParticipants = useMemo(() => {
+    let sortableParticipants = [...(rawParticipants || [])];
+    if (sortConfig !== null) {
+      sortableParticipants.sort((a: any, b: any) => {
+        const aVal = a[sortConfig.key];
+        const bVal = b[sortConfig.key];
+        
+        if (aVal === bVal) return 0;
+        
+        if (aVal === null || aVal === undefined) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (bVal === null || bVal === undefined) return sortConfig.direction === 'asc' ? 1 : -1;
+
+        const aString = String(aVal).toLowerCase();
+        const bString = String(bVal).toLowerCase();
+
+        if (aString < bString) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aString > bString) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return sortableParticipants;
+  }, [rawParticipants, sortConfig]);
+
+  const handleSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIcon = (key: string) => {
+    if (!sortConfig || sortConfig.key !== key) return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />;
+    return sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-4 w-4" /> : <ArrowDown className="ml-2 h-4 w-4" />;
+  };
 
   if (isLoading) {
     return (
@@ -78,7 +121,6 @@ function RouteComponent() {
     return <GeneralErrorComponent error={finalError} reset={() => {}} />;
   }
 
-  const allParticipants = (participants.data || []) as Participant[];
   const myAgent = allParticipants.find(p => p.is_me);
 
   return (
@@ -147,7 +189,11 @@ function RouteComponent() {
           keyExtractor={(p) => p.participant_id!}
           columns={[
             {
-              header: "Name",
+              header: (
+                <Button variant="ghost" onClick={() => handleSort('participant_slug')} className="p-0 h-auto font-semibold">
+                  Name {getSortIcon('participant_slug')}
+                </Button>
+              ),
               accessorKey: "participant_slug",
               cell: (p) => (
                 <div className="flex items-center gap-3">
@@ -162,7 +208,11 @@ function RouteComponent() {
               )
             },
             {
-              header: "Type",
+              header: (
+                <Button variant="ghost" onClick={() => handleSort('participant_type')} className="p-0 h-auto font-semibold">
+                  Type {getSortIcon('participant_type')}
+                </Button>
+              ),
               accessorKey: "participant_type",
               cell: (p) => (
                 <Badge variant="role" dsrole={p.participant_type as BadgeRole}>
@@ -171,7 +221,11 @@ function RouteComponent() {
               )
             },
             {
-              header: "DID / ID",
+              header: (
+                <Button variant="ghost" onClick={() => handleSort('participant_id')} className="p-0 h-auto font-semibold">
+                  DID / ID {getSortIcon('participant_id')}
+                </Button>
+              ),
               accessorKey: "participant_id",
               cell: (p) => (
                 <div className="font-mono text-[11px] opacity-70" title={p.participant_id}>
@@ -180,7 +234,11 @@ function RouteComponent() {
               )
             },
             {
-              header: "Last Active",
+              header: (
+                <Button variant="ghost" onClick={() => handleSort('last_interaction')} className="p-0 h-auto font-semibold">
+                  Last Active {getSortIcon('last_interaction')}
+                </Button>
+              ),
               accessorKey: "last_interaction",
               cell: (p) => (
                 <div className="text-[11px] opacity-60">

@@ -29,6 +29,44 @@ use dataplane::DataplaneAddress;
 use urn::Urn;
 use ymir::errors::Outcome;
 
+impl From<DataAddressDto> for DataplaneAddress {
+    fn from(dto: DataAddressDto) -> Self {
+        DataplaneAddress {
+            endpoint_type: dto.endpoint_type,
+            endpoint: dto.endpoint.unwrap_or_default(),
+            authorization_type: dto
+                .endpoint_properties
+                .as_deref()
+                .and_then(|ps| ps.iter().find(|p| p.name == "authType"))
+                .map(|p| p.value.clone()),
+            authorization: dto
+                .endpoint_properties
+                .as_deref()
+                .and_then(|ps| ps.iter().find(|p| p.name == "authorization"))
+                .map(|p| p.value.clone()),
+        }
+    }
+}
+
+impl From<&DataAddressDto> for DataplaneAddress {
+    fn from(dto: &DataAddressDto) -> Self {
+        DataplaneAddress {
+            endpoint_type: dto.endpoint_type.clone(),
+            endpoint: dto.endpoint.clone().unwrap_or_default(),
+            authorization_type: dto
+                .endpoint_properties
+                .as_deref()
+                .and_then(|ps| ps.iter().find(|p| p.name == "authType"))
+                .map(|p| p.value.clone()),
+            authorization: dto
+                .endpoint_properties
+                .as_deref()
+                .and_then(|ps| ps.iter().find(|p| p.name == "authorization"))
+                .map(|p| p.value.clone()),
+        }
+    }
+}
+
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait DataPlaneFacadeTrait: Send + Sync {
@@ -44,7 +82,7 @@ pub trait DataPlaneFacadeTrait: Send + Sync {
         transfer_process: &TransferProcessDto,
         connector_instance: &Option<ConnectorInstanceDto>,
         data_address: &Option<DataAddressDto>,
-    ) -> Outcome<()>;
+    ) -> Outcome<Option<DataAddressDto>>;
 
     // ─── TransferStart ───
 

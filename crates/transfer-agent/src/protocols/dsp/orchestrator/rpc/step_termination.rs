@@ -106,6 +106,7 @@ impl TransferRpcStep for TerminationStep {
     }
 
     async fn post_hook(dp: &Arc<dyn DataPlaneFacadeTrait>, ctx: &RpcPeerContext) -> Outcome<()> {
-        dp.on_transfer_termination_post(&ctx.process).await
+        dp.on_transfer_termination_post(&ctx.process).await?;
+        Ok(())
     }
 }

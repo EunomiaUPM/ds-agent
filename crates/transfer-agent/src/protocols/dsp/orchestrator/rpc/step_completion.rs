@@ -104,6 +104,7 @@ impl TransferRpcStep for CompletionStep {
     }
 
     async fn post_hook(dp: &Arc<dyn DataPlaneFacadeTrait>, ctx: &RpcPeerContext) -> Outcome<()> {
-        dp.on_transfer_completion_post(&ctx.process).await
+        dp.on_transfer_completion_post(&ctx.process).await?;
+        Ok(())
     }
 }

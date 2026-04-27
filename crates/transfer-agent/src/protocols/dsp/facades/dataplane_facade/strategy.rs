@@ -50,7 +50,7 @@ pub(super) trait DataPlaneStrategy: Send + Sync {
         mgr: &DataplaneManager,
         proxy_base: &str,
         transfer_id: &Urn,
-    ) -> Outcome<()>;
+    ) -> Outcome<Option<DataAddressDto>>;
 
     async fn on_start_post(
         &self,
@@ -58,7 +58,7 @@ pub(super) trait DataPlaneStrategy: Send + Sync {
         proxy_base: &str,
         transfer_id: &Urn,
         data_address: Option<DataAddressDto>,
-    ) -> Outcome<()>;
+    ) -> Outcome<Option<DataAddressDto>>;
 
     async fn on_suspend_pre(&self, mgr: &DataplaneManager, transfer_id: &Urn) -> Outcome<()>;
 

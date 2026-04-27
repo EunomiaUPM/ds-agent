@@ -15,14 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::protocols::dsp::facades::dataplane_facade::strategy::{
-    execute_command, ingress_as_data_address, DataPlaneStrategy,
-};
+use crate::protocols::dsp::facades::dataplane_facade::strategy::DataPlaneStrategy;
 use crate::protocols::dsp::facades::dataplane_facade::DataAddressDto;
 use connector::ConnectorInstanceDto;
 use dataplane::{
     DataplaneAddress, DataplaneCommand, DataplaneContinuation, DataplaneInitCommandDirection,
-    DataplaneInitCommandType, DataplaneInitCommandTypes, DataplaneManager,
+    DataplaneInitCommandTypes, DataplaneManager,
 };
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
@@ -73,12 +71,12 @@ impl DataPlaneStrategy for ProviderPullStrategy {
         mgr: &DataplaneManager,
         proxy_base: &str,
         transfer_id: &Urn,
-    ) -> Outcome<()> {
+    ) -> Outcome<Option<DataAddressDto>> {
         let cmd = DataplaneCommand::SetStarted(DataplaneContinuation {
             transfer_dto_urn: transfer_id.clone(),
         });
         let _ = mgr.execute_command(cmd).await?;
-        Ok(())
+        Ok(None)
     }
 
     async fn on_start_post(
@@ -87,8 +85,8 @@ impl DataPlaneStrategy for ProviderPullStrategy {
         _proxy_base: &str,
         _transfer_id: &Urn,
         _data_address: Option<DataAddressDto>,
-    ) -> Outcome<()> {
-        Ok(())
+    ) -> Outcome<Option<DataAddressDto>> {
+        Ok(None)
     }
 
     async fn on_suspend_pre(&self, mgr: &DataplaneManager, transfer_id: &Urn) -> Outcome<()> {

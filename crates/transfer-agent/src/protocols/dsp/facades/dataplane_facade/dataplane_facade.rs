@@ -17,7 +17,7 @@
 
 use crate::entities::transfer_process::TransferProcessDto;
 use crate::protocols::dsp::facades::dataplane_facade::strategy::{
-    execute_command, strategy_for, strategy_for_request_pre,
+    strategy_for, strategy_for_request_pre,
 };
 use crate::protocols::dsp::facades::dataplane_facade::DataPlaneFacadeTrait;
 use crate::protocols::dsp::protocol_types::DataAddressDto;
@@ -69,7 +69,7 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
         transfer_process: &TransferProcessDto,
         connector_instance: &Option<ConnectorInstanceDto>,
         data_address: &Option<DataAddressDto>,
-    ) -> Outcome<()> {
+    ) -> Outcome<Option<DataAddressDto>> {
         let id = Urn::from_str(&transfer_process.inner.id)?;
         strategy_for(transfer_process)
             .on_request_post(
@@ -79,7 +79,8 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
                 connector_instance,
                 data_address,
             )
-            .await
+            .await;
+        Ok(None)
     }
 
     // ─── TransferStart ───
@@ -115,33 +116,23 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
     async fn on_transfer_suspension_pre(
         &self,
         transfer_process: &TransferProcessDto,
-    ) -> Outcome<()> {
+    ) -> Outcome<Option<DataAddressDto>> {
         let id = Urn::from_str(&transfer_process.inner.id)?;
         strategy_for(transfer_process)
-            .on_request_post(
-                &self.dataplane_manager,
-                &self.proxy_base_url,
-                &id,
-                connector_instance,
-                data_address,
-            )
-            .await
+            .on_suspend_pre(&self.dataplane_manager, &id)
+            .await;
+        Ok(None)
     }
 
     async fn on_transfer_suspension_post(
         &self,
         transfer_process: &TransferProcessDto,
-    ) -> Outcome<()> {
+    ) -> Outcome<Option<DataAddressDto>> {
         let id = Urn::from_str(&transfer_process.inner.id)?;
         strategy_for(transfer_process)
-            .on_request_post(
-                &self.dataplane_manager,
-                &self.proxy_base_url,
-                &id,
-                connector_instance,
-                data_address,
-            )
-            .await
+            .on_suspend_post(&self.dataplane_manager, &id)
+            .await;
+        Ok(None)
     }
 
     // ─── TransferCompletion → SetTerminated ───
@@ -149,29 +140,23 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
     async fn on_transfer_completion_pre(
         &self,
         transfer_process: &TransferProcessDto,
-    ) -> Outcome<()> {
+    ) -> Outcome<Option<DataAddressDto>> {
         let id = Urn::from_str(&transfer_process.inner.id)?;
         strategy_for(transfer_process)
-            .on_request_post(
-                &self.dataplane_manager,
-                &self.proxy_base_url,
-                &id,
-                connector_instance,
-                data_address,
-            )
-            .await
+            .on_complete_pre(&self.dataplane_manager, &id)
+            .await;
+        Ok(None)
     }
 
     async fn on_transfer_completion_post(
         &self,
         transfer_process: &TransferProcessDto,
-    ) -> Outcome<()> {
-        let urn = Urn::from_str(&transfer_process.inner.id)?;
-        let cmd = DataplaneCommand::SetStopped(DataplaneContinuation {
-            transfer_dto_urn: urn,
-        });
-        let _ = &self.dataplane_manager.execute_command(cmd).await?;
-        Ok(())
+    ) -> Outcome<Option<DataAddressDto>> {
+        let id = Urn::from_str(&transfer_process.inner.id)?;
+        strategy_for(transfer_process)
+            .on_complete_post(&self.dataplane_manager, &id)
+            .await;
+        Ok(None)
     }
 
     // ─── TransferTermination → SetTerminated ───
@@ -179,39 +164,22 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
     async fn on_transfer_termination_pre(
         &self,
         transfer_process: &TransferProcessDto,
-    ) -> Outcome<()> {
-        let urn = Urn::from_str(&transfer_process.inner.id)?;
-        let cmd = DataplaneCommand::SetTerminating(DataplaneContinuation {
-            transfer_dto_urn: urn,
-        });
-        let _ = &self.dataplane_manager.execute_command(cmd).await?;
-        Ok(())
+    ) -> Outcome<Option<DataAddressDto>> {
+        let id = Urn::from_str(&transfer_process.inner.id)?;
+        strategy_for(transfer_process)
+            .on_terminate_pre(&self.dataplane_manager, &id)
+            .await;
+        Ok(None)
     }
 
     async fn on_transfer_termination_post(
         &self,
         transfer_process: &TransferProcessDto,
-    ) -> Outcome<()> {
-        let urn = Urn::from_str(&transfer_process.inner.id)?;
-        let cmd = DataplaneCommand::SetTerminating(DataplaneContinuation {
-            transfer_dto_urn: urn,
-        });
-        let _ = &self.dataplane_manager.execute_command(cmd).await?;
-        Ok(())
-    }
-
-    // ─── Config updates ───
-
-    async fn set_egress(
-        &self,
-        transfer_process: &TransferProcessDto,
-        data_address: DataplaneAddress,
-    ) -> Outcome<()> {
-        let urn = Urn::from_str(&transfer_process.inner.id)?;
-        let cmd = DataplaneCommand::SetTerminating(DataplaneContinuation {
-            transfer_dto_urn: urn,
-        });
-        let _ = &self.dataplane_manager.execute_command(cmd).await?;
-        Ok(())
+    ) -> Outcome<Option<DataAddressDto>> {
+        let id = Urn::from_str(&transfer_process.inner.id)?;
+        strategy_for(transfer_process)
+            .on_terminate_post(&self.dataplane_manager, &id)
+            .await;
+        Ok(None)
     }
 }

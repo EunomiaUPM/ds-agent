@@ -105,6 +105,7 @@ impl TransferRpcStep for SuspensionStep {
     }
 
     async fn post_hook(dp: &Arc<dyn DataPlaneFacadeTrait>, ctx: &RpcPeerContext) -> Outcome<()> {
-        dp.on_transfer_suspension_post(&ctx.process).await
+        dp.on_transfer_suspension_post(&ctx.process).await?;
+        Ok(())
     }
 }

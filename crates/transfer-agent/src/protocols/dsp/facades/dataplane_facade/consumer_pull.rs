@@ -50,7 +50,7 @@ impl DataPlaneStrategy for ConsumerPullStrategy {
         if let None = data_address {
             return Err(Errors::crazy("Data address not found.", None));
         }
-        let data_address: DataplaneAddress = data_address.unwrap().into();
+        let data_address: DataplaneAddress = data_address.as_ref().unwrap().into();
         let cmd = DataplaneCommand::SetInit(DataplaneInitCommandTypes::AsConsumer {
             transfer_process_id: transfer_id.clone(),
             direction: DataplaneInitCommandDirection::Pull { data_address },

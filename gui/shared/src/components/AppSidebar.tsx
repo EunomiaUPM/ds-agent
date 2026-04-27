@@ -168,7 +168,7 @@ export function AppSidebar() {
           />
         </Link>
         {navGroups.map((group) => (
-          <SidebarGroup>
+          <SidebarGroup key={group.title}>
             {/* Navigation Menu */}
             <SidebarGroupContent>
               <SidebarGroupLabel>{group.title}</SidebarGroupLabel>

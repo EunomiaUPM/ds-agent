@@ -46,29 +46,39 @@ const RouteComponent = () => {
     const { data: datasetsData } = useGetDatasetsByCatalogId(catalogId);
     const { data: dataservicesData } = useGetDataServicesByCatalogId(catalogId);
 
-    
     const catalog = catalogData?.status === 200 ? catalogData.data : undefined;
     const datasets = datasetsData?.status === 200 ? datasetsData.data : [];
     const dataservices = dataservicesData?.status === 200 ? dataservicesData.data : [];
 
-console.log(datasets, "datasets in own catalog route")
 
     if (!catalog) return null;
     const { data: participants } = useGetAllParticipants();
 
-    console.log(datasets, "datasets")
+    console.log(catalog, "catalog in own catalog route")
 
-    const myAgent = Array.isArray(participants?.data)
+
+        // this only returns "Myself", we need to know their actual
+        // slug (provider / consumer)
+
+        //  const myAgent = Array.isArray(participants?.data)
+        // ? participants.data.find(
+        //     (p) => p.is_me && p.participant_type === "Agent"
+        // )
+        // : undefined;
+        // const myAgentSlug =
+        //     myAgent?.participant_slug?.toString() || "Unknown Participant";
+
+        // if the slug from the other participant is provider, then own slug is consumer
+       
+         const otherParticipant = Array.isArray(participants?.data)
         ? participants.data.find(
-            (p) => p.is_me && p.participant_type === "Agent"
+            (p) => !p.is_me && p.participant_type === "Agent"
         )
         : undefined;
-
-    const myAgentSlug =
-        myAgent?.participant_slug?.toString() || "Unknown Participant";
-
-        {console.log(datasets.map((d: any) => d.id), "datasets ids in catalog")}
-
+       
+        const myAgentSlug = otherParticipant?.participant_slug === "provider" 
+       ? "consumer" : "provider";
+    
     return (
         <PageLayout>
             {/* <PageHeader
@@ -82,8 +92,14 @@ console.log(datasets, "datasets in own catalog route")
             <div className="grid grid-cols-3 gap-12">
 
                 <div className="rounded-md border border-background-200/60 bg-background-200/5 p-4 max-h-[60vh] ">
-                    <Heading level="h2"> My catalog</Heading>
-                    <p className="text-sm mb-2">Description of the catalog. This is the catalog of {myAgentSlug}</p>
+                    <Heading level="h2" className="capitalize"> {catalog.dctTitle ? catalog.dctTitle : `${myAgentSlug}'s Catalog for Demo` }</Heading>
+                   
+                   <Badge variant=
+                    "detail" size="lg"
+                    className="uppercase text-blue-300 font-semibold mb-3"> 
+                       My own catalog 
+                    </Badge>
+                    <p className="text-sm mb-2">Description of the catalog. This is the catalog of <span className="capitalize">{myAgentSlug}</span></p>
                     <InfoList
                         items={[
                             { label: "Catalog title", value: catalog.dctTitle },
@@ -93,25 +109,26 @@ console.log(datasets, "datasets in own catalog route")
                                 label: "Catalog creation date",
                                 value: { type: "custom", content: <FormatDate date={catalog.dctIssued} /> },
                             },
- {
-                  label: "Organization",
-                  value: {
-                    type: "custom",
-                    content: (
-                        <div className="catalog-participant-container flex gap-2 justify-start">
-                        <img className="rounded-full bg-violet-600 h-6 aspect-square"></img>
-                        <Heading level="h4" className='capitalize'> {myAgentSlug} </Heading>
-                    </div>
-                    )
-                  }
-                }
+                            {
+                                label: "Organization",
+                                value: {
+                                    type: "custom",
+                                    content: (
+                                        <div className={`catalog-participant-container flex gap-2 justify-start `}>
+                                            <img className={`rounded-full h-6 aspect-square ${myAgentSlug === "provider" ? " bg-violet-700" : " bg-orange-500"}`}></img>
+                                            <Heading level="h4" className='capitalize'> {myAgentSlug} </Heading>
+                                       
+                                        </div>
+                                    )
+                                }
+                            }
                         ]}
                     />
-               
+
                     <div className="h-1"></div>
                     <div className="border-t border-white/10"></div>
                     <div className="h-2"></div>
-                    {dataservices.map((ds) => (
+                    {/* {dataservices.map((ds) => (
                         <>
                             <Heading level="h4" className="text-left">
                                 Dataservice
@@ -134,7 +151,31 @@ console.log(datasets, "datasets in own catalog route")
                                 ]}
                             />
                         </>
-                    ))}
+                    ))} */}
+                   
+                        <>
+                            <Heading level="h4" className="text-left">
+                                Dataservice
+                            </Heading>
+                            <InfoList
+                                items={[
+                                    {
+                                        label: "Dataservice ID",
+                                        value: { type: "urn", value: dataservices[0].id! },
+                                    },
+
+                                    {
+                                        label: "Dataservice creation date",
+                                        value: { type: "custom", content: <FormatDate date={dataservices[0].dctIssued} /> },
+                                    },
+                                    {
+                                        label: "Endpoint",
+                                        value: "Dataservice URL",
+                                    },
+                                ]}
+                            />
+                        </>
+               
                 </div>
                 <div className="col-span-2">
                     <Heading level="h4" className="text-left">
@@ -157,7 +198,7 @@ console.log(datasets, "datasets in own catalog route")
                 </div>
 
             </div>
-{/* 
+            {/* 
             <InfoGrid>
                 <PageSection title="Catalog details:">
                     <InfoList

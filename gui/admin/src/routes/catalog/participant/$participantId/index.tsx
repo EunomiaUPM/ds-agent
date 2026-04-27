@@ -16,25 +16,27 @@ import { ArrowRight } from "lucide-react";
 import Heading from "shared/src/components/ui/heading";
 import DatasetItem from "shared/src/components/ui/dataset-item";
 import { useGetAllParticipants } from "shared/data/orval/participants/participants";
+import { useGetCatalogById } from "shared/data/orval/catalogs/catalogs";
 
 function RouteComponent() {
   const { participantId } = Route.useParams();
+  const { data: catalogData } = useGetCatalogById(participantId);
   const { data: participants } = useGetAllParticipants();
   const { mutate, data, isPending, error } = useRpcSetupCatalogRequest();
 
-    
-const otherParticipant = Array.isArray(participants?.data)
-  ? participants.data.find(
+
+  const otherParticipant = Array.isArray(participants?.data)
+    ? participants.data.find(
       (p) => !p.is_me && p.participant_type === "Agent"
     )
-  : undefined;
+    : undefined;
 
-const otherParticipantSlug =
-  otherParticipant?.participant_slug?.toString() || "Unknown Participant";
+  const otherParticipantSlug =
+    otherParticipant?.participant_slug?.toString() || "Unknown Participant";
 
 
 
-{console.log(participantId, "participant id in participant catalog route")}
+  { console.log(otherParticipant, "participant in participant catalog route") }
 
   useEffect(() => {
     mutate({
@@ -45,7 +47,7 @@ const otherParticipantSlug =
       },
     });
   }, [participantId, mutate]);
-  
+
 
   if (isPending) {
     return (
@@ -68,10 +70,14 @@ const otherParticipantSlug =
   }
 
   const catalog = data?.status === 200 ? data.data : undefined;
+  const dataCatalog = catalogData?.status === 200 ? catalogData.data : undefined;
 
   if (!catalog) return null;
-{console.log(catalog?.response?.dataset, " datasets in participant")}
-{console.log(catalog?.response?.dataset?.map((d: any) => d["@id"]), "catalog datasets ids in participant")}
+  { console.log(dataCatalog, "data catalog") }
+  { console.log(catalog, "catalog ") }
+  { console.log(catalog?.response, "catalog response in participant") }
+  { console.log(catalog?.response?.dataset, " datasets in participant") }
+  { console.log(catalog?.response?.dataset?.map((d: any) => d["@id"]), "catalog datasets ids in participant") }
 
   return (
     <PageLayout>
@@ -86,11 +92,11 @@ const otherParticipantSlug =
       <div className="grid grid-cols-3 gap-12">
         <div className="rounded-md border border-background-200/60 bg-background-200/5 p-4 ">
           <div>
-            <Heading level="h2"> {catalog.response?.title ? catalog.response?.title : "Participant Catalog"}</Heading>
+            <Heading level="h2" className="capitalize"> {catalog.response?.title ? catalog.response?.title : `${otherParticipantSlug}'s Catalog for Demo `}</Heading>
             <p className="text-sm mb-2">Description of the catalog. </p>
             <InfoList
               items={[
-             
+
                 {
                   label: "Catalog creation date",
                   value: {
@@ -103,10 +109,10 @@ const otherParticipantSlug =
                   value: {
                     type: "custom",
                     content: (
-                        <div className="catalog-participant-container flex gap-2 justify-start">
-                        <img className="rounded-full bg-violet-600 h-6 aspect-square"></img>
+                      <div className="catalog-participant-container flex gap-2 justify-start">
+                        <img className={`rounded-full h-6 aspect-square ${otherParticipantSlug === "provider" ? "bg-violet-700" : "bg-orange-500"}`}></img>
                         <Heading level="h4" className='capitalize'> {otherParticipantSlug} </Heading>
-                    </div>
+                      </div>
                     )
                   }
                 }
@@ -115,7 +121,7 @@ const otherParticipantSlug =
 
             />
           </div>
-                
+
           <div className="h-3"></div>
           <div className="border-t border-white/10"></div>
           <div className="h-4">

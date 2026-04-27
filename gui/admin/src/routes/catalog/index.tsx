@@ -40,8 +40,6 @@ const otherParticipantSlug =
 const otherParticipantId =
   otherParticipant?.participant_id || "Unknown Participant ID";
 
- 
-
 
   const { mutate, data, isPending, error } = useRpcSetupCatalogRequest();
     useEffect(() => {
@@ -58,12 +56,15 @@ const otherParticipantId =
 
   if (!catalog) return null;
 
+  console.log(mainCatalog, "main catalog in catalog route");
+  console.log(catalog, "catalog in catalog route"); 
+
 
 if (isPending) {
     return (
       <PageLayout>
         <PageHeader
-          title="Transfer Process"
+          title="Participant Catalog"
           badge={<Skeleton className="h-8 w-48" />}
         />
         <div>Loading...</div>
@@ -81,9 +82,9 @@ if (isPending) {
   if (!mainCatalog?.data || mainCatalog.status !== 200) return null;
   return (
     <PageLayout>
-        <div className="bg-violet-900 flex justify-center items-center h-48">
+        <div className="bg-violet-700/40 flex justify-center items-center h-48">
                 <Heading level="h2">
-                    Browse catalogs from your participants' connections
+                    Browse catalogs from your connections
                 </Heading>
             </div>
     
@@ -146,14 +147,36 @@ if (isPending) {
 
       {/* <PageSection title="Catalogs from other participants"> */}
         <div className="h-4" />
+        <div className="grid grid-cols-3 gap-5">
         <CatalogItem 
           date={catalog?.response?.issued}
           datasetNumber={catalog?.response?.dataset?.length}
           organizationName={otherParticipantSlug}
           id={otherParticipantId}
-
+          title={null}
        />
-
+        <CatalogItem 
+          date={catalog?.response?.issued}
+          datasetNumber={17}
+          organizationName={"Another participant"}
+          id={null}
+          title={"Meteorology Stations in Madrid Catalog"}
+       />
+        <CatalogItem 
+          date={catalog?.response?.issued}
+          datasetNumber={23}
+          organizationName={"Another participant"}
+          id={null}
+          title={"Parking Ocupation in Ávila Catalog"}
+       />
+        <CatalogItem 
+          date={catalog?.response?.issued}
+          datasetNumber={31}
+          organizationName={"Another participant"}
+          id={null}
+          title={"Population Growth in Spain 2026 Catalog"}
+       />
+</div>
           <div className="h-4" />
     
         {/* <DataTable

@@ -1,25 +1,21 @@
-use std::sync::Arc;
-use serde_json::{json, Value};
-use ymir::errors::{Errors, Outcome};
-use common::http_client::HttpClient;
-use connector::{InteractionConfig, ProtocolSpec, RuntimeParametersResolver, TemplateVecString};
 use crate::entities::dataplane_drivers::DriverPubSubTrait;
 use crate::entities::dataplane_manager_ref::dataplane_context::DataplaneContext;
 use crate::entities::dataplane_manager_ref::dataplane_runtime::DataplaneRuntime;
+use common::http_client::HttpClient;
+use connector::{InteractionConfig, ProtocolSpec, RuntimeParametersResolver, TemplateVecString};
+use serde_json::{json, Value};
+use std::sync::Arc;
+use ymir::errors::{Errors, Outcome};
 
 #[derive(Debug)]
 pub struct HttpPubSubscriber {
     http_client: HttpClient,
-    runtime: Arc<DataplaneRuntime>
 }
 
 impl HttpPubSubscriber {
-    pub fn new(runtime: Arc<DataplaneRuntime>) -> Self {
+    pub fn new() -> Self {
         let http_client = HttpClient::new(1, 1);
-        Self {
-            http_client,
-            runtime,
-        }
+        Self { http_client }
     }
 }
 
@@ -47,10 +43,9 @@ impl DriverPubSubTrait for HttpPubSubscriber {
         let url = http_spec.url_template.clone();
         let response: Value = {
             let b = body.unwrap_or(json!({}));
-            self.http_client
-                .post_json(&url, &b)
-                .await
-                .map_err(|e| Errors::crazy(format!("Subscribe POST failed: {}", e), Some(Box::new(e))))?
+            self.http_client.post_json(&url, &b).await.map_err(|e| {
+                Errors::crazy(format!("Subscribe POST failed: {}", e), Some(Box::new(e)))
+            })?
         };
 
         // store subscription info in context
@@ -77,12 +72,18 @@ impl DriverPubSubTrait for HttpPubSubscriber {
 
         // resolve RUNTIME_JSON_{*} placeholders against current runtime state
         let runtime_value = serde_json::to_value(context.runtime().cloned().unwrap_or_default())?;
-        let current_instance = RuntimeParametersResolver::new(connector, &runtime_value).resolve()?;
+        let current_instance =
+            RuntimeParametersResolver::new(connector, &runtime_value).resolve()?;
 
         // re-extract the resolved unsubscribe spec
         let resolved_push = match &current_instance.interaction {
             InteractionConfig::Push(p) => p,
-            _ => return Err(Errors::crazy("Resolved connector interaction is not PUSH", None)),
+            _ => {
+                return Err(Errors::crazy(
+                    "Resolved connector interaction is not PUSH",
+                    None,
+                ))
+            }
         };
         let resolved_http = match &resolved_push.unsubscribe {
             Some(ProtocolSpec::Http(s)) => s,
@@ -91,7 +92,10 @@ impl DriverPubSubTrait for HttpPubSubscriber {
 
         let url = resolved_http.url_template.clone();
         let method = match &resolved_http.method {
-            TemplateVecString::Value(v) => v.first().map(|s| s.to_uppercase()).unwrap_or_else(|| "DELETE".to_string()),
+            TemplateVecString::Value(v) => v
+                .first()
+                .map(|s| s.to_uppercase())
+                .unwrap_or_else(|| "DELETE".to_string()),
             TemplateVecString::Template(_) => "DELETE".to_string(),
         };
         let body: Option<Value> = resolved_http
@@ -103,31 +107,34 @@ impl DriverPubSubTrait for HttpPubSubscriber {
         let response: Value = match method.as_str() {
             "DELETE" => {
                 self.http_client.delete::<()>(&url).await.map_err(|e| {
-                    Errors::crazy(format!("Unsubscribe DELETE failed: {}", e), Some(Box::new(e)))
+                    Errors::crazy(
+                        format!("Unsubscribe DELETE failed: {}", e),
+                        Some(Box::new(e)),
+                    )
                 })?;
                 Value::Null
             }
             "POST" => {
                 let b = body.unwrap_or(json!({}));
-                self.http_client
-                    .post_json(&url, &b)
-                    .await
-                    .map_err(|e| Errors::crazy(format!("Unsubscribe POST failed: {}", e), Some(Box::new(e))))?
+                self.http_client.post_json(&url, &b).await.map_err(|e| {
+                    Errors::crazy(format!("Unsubscribe POST failed: {}", e), Some(Box::new(e)))
+                })?
             }
             "PUT" => {
                 let b = body.unwrap_or(json!({}));
-                self.http_client
-                    .put_json(&url, &b)
-                    .await
-                    .map_err(|e| Errors::crazy(format!("Unsubscribe PUT failed: {}", e), Some(Box::new(e))))?
+                self.http_client.put_json(&url, &b).await.map_err(|e| {
+                    Errors::crazy(format!("Unsubscribe PUT failed: {}", e), Some(Box::new(e)))
+                })?
             }
-            "GET" => {
-                self.http_client
-                    .get_json(&url)
-                    .await
-                    .map_err(|e| Errors::crazy(format!("Unsubscribe GET failed: {}", e), Some(Box::new(e))))?
+            "GET" => self.http_client.get_json(&url).await.map_err(|e| {
+                Errors::crazy(format!("Unsubscribe GET failed: {}", e), Some(Box::new(e)))
+            })?,
+            other => {
+                return Err(Errors::crazy(
+                    format!("Unsupported unsubscribe HTTP method: {}", other),
+                    None,
+                ))
             }
-            other => return Err(Errors::crazy(format!("Unsupported unsubscribe HTTP method: {}", other), None)),
         };
 
         // store unsubscription info in context

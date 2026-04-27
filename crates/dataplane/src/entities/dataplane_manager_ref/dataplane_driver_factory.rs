@@ -17,6 +17,7 @@ use crate::entities::dataplane_transfers::{InteractionMode, TransferRole};
 use connector::{AuthenticationConfig, ConnectorInstanceDto, InteractionConfig, ProtocolSpec};
 use std::sync::Arc;
 use ymir::errors::{Errors, Outcome};
+use crate::entities::dataplane_drivers::pubsub::http::HttpPubSubscriber;
 
 /// Unit-of-work factory — stateless, constructed on demand from the context.
 pub struct DataplaneDriverFactory;
@@ -106,7 +107,7 @@ impl DataplaneDriverFactory {
             match interaction_mode {
                 InteractionMode::Pull => Ok(None),
                 InteractionMode::Push => match Self::extract_protocol(&connector_instance) {
-                    ProtocolSpec::Http(_) => Ok(Some(Arc::new(NoOpPubSubscriber))),
+                    ProtocolSpec::Http(_) => Ok(Some(Arc::new(HttpPubSubscriber::new()))),
                     ProtocolSpec::Kafka(_) => {
                         todo!("not implemented yet")
                     }

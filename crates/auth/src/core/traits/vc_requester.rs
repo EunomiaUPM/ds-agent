@@ -17,16 +17,16 @@
 
 use std::sync::Arc;
 
+use crate::services::callback::CallbackTrait;
+use crate::services::repo::repo_trait::AuthRepoTrait;
+use crate::services::vc_requester::VcRequesterTrait;
+use crate::types::entities::ReachAuthority;
 use async_trait::async_trait;
 use ymir::data::entities::{mates, req_vc};
 use ymir::errors::{Errors, Outcome};
 use ymir::services::wallet::WalletTrait;
 use ymir::types::gnap::ApprovedCallbackBody;
 use ymir::utils::trim_4_base;
-use crate::services::callback::CallbackTrait;
-use crate::services::repo::repo_trait::AuthRepoTrait;
-use crate::services::vc_requester::VcRequesterTrait;
-use crate::types::entities::ReachAuthority;
 
 #[async_trait]
 pub trait CoreVcRequesterTrait: Send + Sync + 'static {
@@ -50,7 +50,7 @@ pub trait CoreVcRequesterTrait: Send + Sync + 'static {
                     if vc_model.auto {
                         if let Some(wallet) = self.wallet() {
                             vc_model.vc_uri = Some(uri.clone());
-                            vc_model.status = "Approved".to_string();
+                            vc_model.status = "Finalized".to_string();
 
                             let base_url = trim_4_base(&vc_model.grant_endpoint);
                             let mate = mates::NewModel {
@@ -64,8 +64,13 @@ pub trait CoreVcRequesterTrait: Send + Sync + 'static {
                             };
                             self.repo().mates().force_create(mate).await?;
                             wallet.process_oidc4vci(&uri).await?;
+                            self.repo().vc_req().update(vc_model).await?;
                             return Ok(None);
                         }
+                    } else {
+                        vc_model.vc_uri = Some(uri.clone());
+                        vc_model.status = "Approved".to_string();
+                        self.repo().vc_req().update(vc_model).await?;
                     }
                     Ok(Some(uri))
                 } else {
@@ -80,7 +85,6 @@ pub trait CoreVcRequesterTrait: Send + Sync + 'static {
                     }
                     Ok(Some(uri))
                 }
-
             }
             None => Ok(None),
         }
@@ -108,7 +112,7 @@ pub trait CoreVcRequesterTrait: Send + Sync + 'static {
             .vc_req()
             .manage_res(&mut vc_req_model, response)
             .await?;
-        let vc_req_model = self.repo().vc_req().update(vc_req_model).await?;
+        let mut vc_req_model = self.repo().vc_req().update(vc_req_model).await?;
         let mate = self.repo().mates().force_create(mate).await?;
 
         if vc_req_model.auto {
@@ -117,6 +121,8 @@ pub trait CoreVcRequesterTrait: Send + Sync + 'static {
                     Errors::crazy("Something crazy with auto wallet happened", None)
                 })?;
                 wallet.process_oidc4vci(uri).await?;
+                vc_req_model.status = "Finalized".to_string();
+                self.repo().vc_req().update(vc_req_model).await?;
             }
         }
 

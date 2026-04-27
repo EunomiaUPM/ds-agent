@@ -70,6 +70,7 @@ function AuthorityRequestsPage() {
       case 'pending': return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
       case 'approved': return 'bg-green-500/10 text-green-500 border-green-500/20';
       case 'finalized': return 'bg-purple-500/10 text-purple-500 border-purple-500/20';
+      case 'rejected': return 'bg-red-500/10 text-red-500 border-red-500/20';
       default: return 'bg-gray-500/10 text-gray-500 border-gray-500/20';
     }
   };

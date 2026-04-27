@@ -38,6 +38,7 @@ export const Route = createFileRoute("/providers/new")({
 function NewProviderOnboard() {
   const navigate = useNavigate();
   const [isDiscovering, setIsDiscovering] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [discoveredInfo, setDiscoveredInfo] = useState<{ id: string; services: DidService[] } | null>(null);
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
 
@@ -86,6 +87,7 @@ function NewProviderOnboard() {
   const onSubmit = async (values: FormValues) => {
     if (!discoveredInfo) return;
 
+    setIsSubmitting(true);
     try {
       const authService = discoveredInfo.services.find(s => s.type === "AuthorizationServer");
       const targetUrl = authService?.serviceEndpoint || values.url;
@@ -102,6 +104,8 @@ function NewProviderOnboard() {
       (navigate as any)({ to: "/providers" });
     } catch (err) {
       console.error(err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -255,8 +259,15 @@ function NewProviderOnboard() {
                       )}
                     />
 
-                    <Button type="submit" className="w-full" disabled={!discoveredInfo}>
-                      Initiate Onboarding
+                    <Button type="submit" className="w-full" disabled={!discoveredInfo || isSubmitting}>
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Onboarding...
+                        </>
+                      ) : (
+                        "Initiate Onboarding"
+                      )}
                     </Button>
                   </form>
                 </Form>

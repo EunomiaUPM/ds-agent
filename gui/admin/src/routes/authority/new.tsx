@@ -40,6 +40,7 @@ export const Route = createFileRoute("/authority/new")({
 function NewAuthorityRequest() {
   const navigate = useNavigate();
   const [isDiscovering, setIsDiscovering] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [discoveredInfo, setDiscoveredInfo] = useState<{ id: string; vc_types: string[]; services: DidService[] } | null>(null);
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
 
@@ -97,6 +98,7 @@ function NewAuthorityRequest() {
       return;
     }
 
+    setIsSubmitting(true);
     try {
       const issuerService = discoveredInfo.services.find(s => s.type === "CredentialIssuer");
       const targetUrl = issuerService?.serviceEndpoint || values.url;
@@ -113,6 +115,8 @@ function NewAuthorityRequest() {
       (navigate as any)({ to: "/authority" });
     } catch (err) {
       console.error(err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -288,8 +292,15 @@ function NewAuthorityRequest() {
                       />
                     </div>
 
-                    <Button type="submit" className="w-full" disabled={!discoveredInfo}>
-                      Submit Request
+                    <Button type="submit" className="w-full" disabled={!discoveredInfo || isSubmitting}>
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Submitting...
+                        </>
+                      ) : (
+                        "Submit Request"
+                      )}
                     </Button>
                   </form>
                 </Form>

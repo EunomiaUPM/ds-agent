@@ -7,8 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "share
 import { Badge } from "shared/src/components/ui/badge";
 import { FormatDate } from "shared/src/components/ui/format-date";
 import { formatUrn } from "shared/src/lib/utils";
-import { Shield, Clock, CheckCircle2, AlertCircle, Info, ExternalLink } from "lucide-react";
+import { Button } from "shared/src/components/ui/button";
+import { Shield, Clock, CheckCircle2, AlertCircle, Info, ExternalLink, Copy, Check } from "lucide-react";
 import { z } from "zod";
+import QRCode from "react-qr-code";
+import { useState } from "react";
 
 const searchSchema = z.object({
   requestId: z.string().optional(),
@@ -37,6 +40,7 @@ function RequestDetailsPage() {
       case 'pending': return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
       case 'approved': return 'bg-green-500/10 text-green-500 border-green-500/20';
       case 'finalized': return 'bg-purple-500/10 text-purple-500 border-purple-500/20';
+      case 'rejected': return 'bg-red-500/10 text-red-500 border-red-500/20';
       default: return 'bg-gray-500/10 text-gray-500 border-gray-500/20';
     }
   };
@@ -120,13 +124,39 @@ function RequestDetailsPage() {
                 </DetailItem>
               </div>
 
-              {request.vc_uri && (
-                <div className="pt-4 border-t">
-                  <DetailItem label="VC URI (QR Link)">
-                    <div className="mt-2 p-3 bg-muted rounded-md break-all font-mono text-[10px]">
-                      {request.vc_uri}
+              {(request.vc_uri || (request as any).verification_uri) && (
+                <div className="pt-4 border-t space-y-6">
+                  {request.vc_uri && (
+                    <div className="space-y-3">
+                      <DetailItem label="VC URI (Claiming)">
+                        <div className="mt-2 flex flex-col sm:flex-row gap-6 items-start">
+                          <div className="p-3 bg-white rounded-lg shadow-sm border border-stroke flex-shrink-0">
+                            <QRCode value={request.vc_uri} size={120} />
+                          </div>
+                          <div className="flex-1 w-full space-y-2">
+                             <p className="text-xs text-muted-foreground italic mb-2">Scan this QR to claim your Verifiable Credential directly in your wallet.</p>
+                             <UriDisplay uri={request.vc_uri} />
+                          </div>
+                        </div>
+                      </DetailItem>
                     </div>
-                  </DetailItem>
+                  )}
+
+                  {(request as any).verification_uri && (
+                    <div className="space-y-3 border-t pt-4">
+                      <DetailItem label="Verification URI (Authentication)">
+                        <div className="mt-2 flex flex-col sm:flex-row gap-6 items-start">
+                          <div className="p-3 bg-white rounded-lg shadow-sm border border-stroke flex-shrink-0">
+                            <QRCode value={(request as any).verification_uri} size={120} />
+                          </div>
+                          <div className="flex-1 w-full space-y-2">
+                             <p className="text-xs text-muted-foreground italic mb-2">Use this QR if you need to authenticate with the authority before receiving the VC.</p>
+                             <UriDisplay uri={(request as any).verification_uri} />
+                          </div>
+                        </div>
+                      </DetailItem>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -163,6 +193,27 @@ function RequestDetailsPage() {
         </div>
       </PageSection>
     </PageLayout>
+  );
+}
+
+function UriDisplay({ uri }: { uri: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(uri);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const truncatedUri = uri.length > 50 ? `${uri.substring(0, 25)}...${uri.substring(uri.length - 20)}` : uri;
+
+  return (
+    <div className="flex items-center gap-2 p-2 bg-muted/50 rounded border border-stroke overflow-hidden">
+      <span className="font-mono text-[10px] truncate flex-1">{truncatedUri}</span>
+      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleCopy}>
+        {copied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+      </Button>
+    </div>
   );
 }
 

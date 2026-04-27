@@ -51,14 +51,14 @@ const RouteComponent = () => {
                 </Badge>
               ),
             },
-            {
-              header: "State Attribute",
-              cell: (p) => (
-                <Badge variant={"status"} state={p.stateAttribute as BadgeState}>
-                  {p.state.replace("dspace:", "")}
-                </Badge>
-              ),
-            },
+            // {
+            //   header: "State Attribute",
+            //   cell: (p) => (
+            //     <Badge variant={"status"} state={p.stateAttribute as BadgeState}>
+            //       {p.state.replace("dspace:", "")}
+            //     </Badge>
+            //   ),
+            // },
             {
               header: "Peer",
               cell: (p) => <p className="">{formatUrn(p.associatedAgentPeer)}</p>,

@@ -18,10 +18,10 @@ use std::sync::Arc;
 
 use crate::services::repo::repo_trait::AuthRepoTrait;
 use async_trait::async_trait;
-use json_value_merge::Merge;
-use serde::{Deserialize, Deserializer};
 use common::batch_requests::BatchRequests;
 use common::facades::VerifyTokenRequest;
+use json_value_merge::Merge;
+use serde::{Deserialize, Deserializer};
 use ymir::data::entities::mates::{Model, NewModel};
 use ymir::errors::Outcome;
 
@@ -49,20 +49,23 @@ impl<'de> Deserialize<'de> for MateRouterGetAllQueryParamsType {
 pub trait CoreMateTrait: Send + Sync + 'static {
     fn repo(&self) -> Arc<dyn AuthRepoTrait>;
 
-    async fn get_all(&self, query_type: &MateRouterGetAllQueryParamsType, exclude: &bool) -> Outcome<Vec<Model>> {
+    async fn get_all(
+        &self,
+        query_type: &MateRouterGetAllQueryParamsType,
+        exclude: &bool,
+    ) -> Outcome<Vec<Model>> {
         let mates = self.repo().mates().get_all(None, None).await?;
-        let filtered_in_mates = mates.into_iter()
+        let filtered_in_mates = mates
+            .into_iter()
             .filter(|mate| !*exclude || !mate.is_me)
-            .filter(|mate| {
-                match query_type {
-                    MateRouterGetAllQueryParamsType::Authorities => {
-                        mate.participant_type == "Authority".to_string()
-                    }
-                    MateRouterGetAllQueryParamsType::Agents => {
-                        mate.participant_type == "Agent".to_string()
-                    }
-                    _ => true
+            .filter(|mate| match query_type {
+                MateRouterGetAllQueryParamsType::Authorities => {
+                    mate.participant_type == "Authority".to_string()
                 }
+                MateRouterGetAllQueryParamsType::Agents => {
+                    mate.participant_type == "Agent".to_string()
+                }
+                _ => true,
             })
             .collect();
         Ok(filtered_in_mates)
@@ -83,7 +86,11 @@ pub trait CoreMateTrait: Send + Sync + 'static {
     async fn get_by_token(&self, payload: VerifyTokenRequest) -> Outcome<Model> {
         self.repo().mates().get_by_token(&payload.token).await
     }
-    async fn update_extra_fields_by_id(&self, id: String, extra_fields: serde_json::Value) -> Outcome<Model> {
+    async fn update_extra_fields_by_id(
+        &self,
+        id: String,
+        extra_fields: serde_json::Value,
+    ) -> Outcome<Model> {
         let mut mate = self.repo().mates().get_by_id(&id).await?;
         let mut merged_extra_fields = mate.extra_fields.clone();
         merged_extra_fields.merge(&extra_fields);

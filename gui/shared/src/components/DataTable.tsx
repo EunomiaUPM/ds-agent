@@ -36,8 +36,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
  * @template T - The type of data items in the table
  */
 export interface Column<T> {
-  /** Header text displayed in the table header */
-  header: string;
+  /** Header text or component displayed in the table header */
+  header: React.ReactNode | string;
 
   /**
    * Key to access the value from the data item.

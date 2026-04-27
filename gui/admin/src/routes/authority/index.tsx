@@ -149,13 +149,13 @@ function AuthorityRequestsPage() {
               cell: (a: any) => (a.created_at ? <FormatDate date={a.created_at} /> : "-"),
             },
             {
-              header: "Link",
+              header: "Details",
               cell: (a) => (
                 // @ts-ignore
                 <Link to="/authority/request-details" search={{ requestId: a.id }}>
                   <Button variant="link">
                     See details
-                    <ArrowRight />
+                    <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
               ),

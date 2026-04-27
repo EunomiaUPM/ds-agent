@@ -61,13 +61,14 @@ function NewProviderOnboard() {
 
   const url = form.watch("url");
 
-  const handleDiscovery = async () => {
-    if (!url || !url.startsWith("http")) return;
+  const handleDiscovery = async (optionalUrl?: string) => {
+    const targetUrl = typeof optionalUrl === 'string' ? optionalUrl : url;
+    if (!targetUrl || !targetUrl.startsWith("http")) return;
 
     setIsDiscovering(true);
     setDiscoveryError(null);
     try {
-      const cleanUrl = url.replace(/\/$/, "");
+      const cleanUrl = targetUrl.replace(/\/$/, "");
       
        const didResponse = await fetch(`${cleanUrl}/.well-known/did.json`);
       if (!didResponse.ok) throw new Error("Failed to fetch DID document");
@@ -137,6 +138,17 @@ function NewProviderOnboard() {
                                 placeholder="https://provider.example.com" 
                                 list="known-providers"
                                 {...field} 
+                                onChange={(e) => {
+                                  field.onChange(e);
+                                  const val = e.target.value;
+                                  const known = knownProviders.find(a => a.base_url === val);
+                                  if (known) {
+                                    if (known.participant_slug) {
+                                      form.setValue("slug", known.participant_slug);
+                                    }
+                                    handleDiscovery(val);
+                                  }
+                                }}
                               />
                             </FormControl>
                             <datalist id="known-providers">
@@ -149,7 +161,7 @@ function NewProviderOnboard() {
                             <Button 
                               type="button" 
                               variant="secondary" 
-                              onClick={handleDiscovery}
+                              onClick={() => handleDiscovery()}
                               disabled={isDiscovering || !url}
                             >
                               {isDiscovering ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <Search className="h-4 w-4 mr-2" />}

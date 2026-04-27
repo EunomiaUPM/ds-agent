@@ -175,7 +175,7 @@ function ProvidersPage() {
                 // @ts-ignore
                 <Link to="/providers/request-details" search={{ requestId: r.id }}>
                   <Button variant="link">
-                    Details
+                    See details
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>

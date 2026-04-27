@@ -49,6 +49,47 @@ function ProviderRequestDetails() {
     }
   };
 
+  const getTimelineData = (req: any) => {
+    const status = req.status?.toLowerCase() || '';
+    const pastEvents: { id: string; title: string; date?: string | null }[] = [
+      { id: 'created', title: 'Request Created', date: req.created_at }
+    ];
+
+    if (status === 'pending') {
+      pastEvents.push({ id: 'processing', title: 'Processing' });
+    } else if (status === 'approved') {
+      pastEvents.push({ id: 'processing', title: 'Processing' });
+      pastEvents.push({ id: 'pending', title: 'Pending' });
+    } else if (status === 'finalized') {
+      pastEvents.push({ id: 'processing', title: 'Processing' });
+      pastEvents.push({ id: 'pending', title: 'Pending' });
+      pastEvents.push({ id: 'approved', title: 'Approved' });
+    }
+
+    let instruction = "";
+    switch (status) {
+      case 'processing':
+        instruction = "The Authorization Server (AS) has not yet evaluated the request.";
+        break;
+      case 'pending':
+        instruction = "Authentication required. Please authenticate to proceed.";
+        break;
+      case 'approved':
+        instruction = "You have successfully authenticated. An access token is available for use.";
+        break;
+      case 'finalized':
+        instruction = "The access token has expired and no further interactions can be made with this request.";
+        break;
+      default:
+        instruction = "Unknown state.";
+        break;
+    }
+
+    return { pastEvents, instruction };
+  };
+
+  const timelineData = request ? getTimelineData(request) : null;
+
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handleAction = async (endpoint: string, uri: string) => {
@@ -284,36 +325,44 @@ function ProviderRequestDetails() {
                 <CardTitle>Timeline</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="relative pl-6 border-l-2 border-muted space-y-8">
-                  <div className="relative">
-                    <span className="absolute -left-[31px] top-1 h-4 w-4 rounded-full bg-primary border-4 border-background" />
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium">Request Created</p>
-                      <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        <FormatDate date={request.created_at} />
-                      </p>
-                    </div>
+                {timelineData && timelineData.pastEvents.length > 0 && (
+                  <div className="relative pl-6 border-l-2 border-muted space-y-6 ml-2">
+                    {timelineData.pastEvents.map((event) => (
+                      <div key={event.id} className="relative">
+                        <span className="absolute -left-[29px] top-1.5 h-3.5 w-3.5 rounded-full bg-muted-foreground/30 border-4 border-background" />
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium text-muted-foreground">{event.title}</p>
+                          {event.date && (
+                            <p className="text-[10px] text-muted-foreground/60 flex items-center gap-1 font-mono">
+                              <Calendar className="h-3 w-3" />
+                              <FormatDate date={event.date} />
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
+                )}
 
-                  <div className="relative">
-                    <span className={`absolute -left-[31px] top-1 h-4 w-4 rounded-full border-4 border-background ${request.ended_at ? 'bg-primary' : 'bg-muted'}`} />
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium">Request Processed</p>
-                      <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        {request.ended_at ? <FormatDate date={request.ended_at} /> : "In progress..."}
-                      </p>
+                {timelineData && (
+                  <div className="pt-4 border-t border-stroke space-y-4">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-muted-foreground font-semibold uppercase tracking-wider text-xs">Current State:</span>
+                      <Badge className={`border ${getStatusColor(request.status || '')}`}>
+                        {request.status}
+                      </Badge>
                     </div>
+                    <div className="p-4 rounded-lg bg-muted/30 border border-stroke text-sm text-foreground/90 leading-relaxed">
+                      {timelineData.instruction}
+                    </div>
+                    {request.ended_at && (request.status?.toLowerCase() === 'finalized' || request.status?.toLowerCase() === 'approved') && (
+                      <p className="text-[10px] text-muted-foreground/60 flex items-center gap-1 font-mono justify-end mt-2">
+                        <Calendar className="h-3 w-3" />
+                        Updated on: <FormatDate date={request.ended_at} />
+                      </p>
+                    )}
                   </div>
-                </div>
-
-                <div className="pt-4 border-t space-y-4">
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground">Current Status:</span>
-                    <Badge className={`border ${getStatusColor(request.status)}`}>{request.status}</Badge>
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           </div>

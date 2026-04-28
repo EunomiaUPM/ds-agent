@@ -66,7 +66,12 @@ impl RpcNegotiationRequestInitMessageDto {
         callback_address: String,
         offer: ContractRequestMessageOfferTypes,
     ) -> Self {
-        Self { associated_agent_peer, provider_address, callback_address, offer }
+        Self {
+            associated_agent_peer,
+            provider_address,
+            callback_address,
+            offer,
+        }
     }
 }
 

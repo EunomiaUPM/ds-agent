@@ -33,7 +33,6 @@ use std::sync::Arc;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 
-
 /// Persistence service for the inbound DSP protocol path.
 ///
 /// Used when the local agent acts as **Provider**, receiving transfer messages

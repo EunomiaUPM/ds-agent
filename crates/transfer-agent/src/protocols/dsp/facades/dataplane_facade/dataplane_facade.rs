@@ -97,10 +97,9 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
         &self,
         ctx: &DspTransferContext,
     ) -> Outcome<Option<DataAddressDto>> {
-        let process = ctx
-            .process
-            .as_ref()
-            .ok_or_else(|| Errors::crazy("process required for on_transfer_suspension_pre", None))?;
+        let process = ctx.process.as_ref().ok_or_else(|| {
+            Errors::crazy("process required for on_transfer_suspension_pre", None)
+        })?;
         strategy_for(process)
             .on_suspend_pre(ctx, &self.dataplane_manager)
             .await;
@@ -111,10 +110,9 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
         &self,
         ctx: &DspTransferContext,
     ) -> Outcome<Option<DataAddressDto>> {
-        let process = ctx
-            .process
-            .as_ref()
-            .ok_or_else(|| Errors::crazy("process required for on_transfer_suspension_post", None))?;
+        let process = ctx.process.as_ref().ok_or_else(|| {
+            Errors::crazy("process required for on_transfer_suspension_post", None)
+        })?;
         strategy_for(process)
             .on_suspend_post(ctx, &self.dataplane_manager)
             .await;
@@ -125,10 +123,9 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
         &self,
         ctx: &DspTransferContext,
     ) -> Outcome<Option<DataAddressDto>> {
-        let process = ctx
-            .process
-            .as_ref()
-            .ok_or_else(|| Errors::crazy("process required for on_transfer_completion_pre", None))?;
+        let process = ctx.process.as_ref().ok_or_else(|| {
+            Errors::crazy("process required for on_transfer_completion_pre", None)
+        })?;
         strategy_for(process)
             .on_complete_pre(ctx, &self.dataplane_manager)
             .await;
@@ -139,10 +136,9 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
         &self,
         ctx: &DspTransferContext,
     ) -> Outcome<Option<DataAddressDto>> {
-        let process = ctx
-            .process
-            .as_ref()
-            .ok_or_else(|| Errors::crazy("process required for on_transfer_completion_post", None))?;
+        let process = ctx.process.as_ref().ok_or_else(|| {
+            Errors::crazy("process required for on_transfer_completion_post", None)
+        })?;
         strategy_for(process)
             .on_complete_post(ctx, &self.dataplane_manager)
             .await;
@@ -153,10 +149,9 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
         &self,
         ctx: &DspTransferContext,
     ) -> Outcome<Option<DataAddressDto>> {
-        let process = ctx
-            .process
-            .as_ref()
-            .ok_or_else(|| Errors::crazy("process required for on_transfer_termination_pre", None))?;
+        let process = ctx.process.as_ref().ok_or_else(|| {
+            Errors::crazy("process required for on_transfer_termination_pre", None)
+        })?;
         strategy_for(process)
             .on_terminate_pre(ctx, &self.dataplane_manager)
             .await;
@@ -167,10 +162,9 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
         &self,
         ctx: &DspTransferContext,
     ) -> Outcome<Option<DataAddressDto>> {
-        let process = ctx
-            .process
-            .as_ref()
-            .ok_or_else(|| Errors::crazy("process required for on_transfer_termination_post", None))?;
+        let process = ctx.process.as_ref().ok_or_else(|| {
+            Errors::crazy("process required for on_transfer_termination_post", None)
+        })?;
         strategy_for(process)
             .on_terminate_post(ctx, &self.dataplane_manager)
             .await;

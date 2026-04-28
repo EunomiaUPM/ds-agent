@@ -74,10 +74,7 @@ impl SecretString {
                 })
             }
             SecretSource::EnvVar(name) => std::env::var(name).map_err(|_| {
-                Errors::parse(
-                    &format!("Environment variable '{}' not found", name),
-                    None,
-                )
+                Errors::parse(&format!("Environment variable '{}' not found", name), None)
             }),
             SecretSource::VaultRef { .. } => Err(Errors::parse(
                 "VaultRef resolution requires a vault client and is not yet implemented",

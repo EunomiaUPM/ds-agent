@@ -1,4 +1,9 @@
 use crate::entities::dataplane_drivers::DriverPubSubTrait;
+use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;
+use crate::entities::dataplane_manager::dataplane_driver_factory::{
+    DataplaneDriverFactory, DataplaneDriverFactoryTrait,
+};
+use crate::entities::dataplane_manager::dataplane_runtime::DataplaneRuntime;
 use crate::entities::dataplane_transfers::{EditDataplaneTransferDto, TransferState};
 use crate::{DataplaneAddress, DataplaneTransfersEntitiesTrait};
 use common::config::services::TransferConfig;
@@ -7,9 +12,6 @@ use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
 use ymir::errors::Outcome;
-use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;
-use crate::entities::dataplane_manager::dataplane_driver_factory::{DataplaneDriverFactory, DataplaneDriverFactoryTrait};
-use crate::entities::dataplane_manager::dataplane_runtime::DataplaneRuntime;
 
 #[derive(Clone)]
 pub enum DataplaneCommand {
@@ -115,9 +117,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
         let mut context = driver.authenticator.authenticate(&context).await?;
         let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
         let new_state = TransferState::Auth;
-        let flow_control = context
-            .runtime()
-            .and_then(|r| serde_json::to_value(r).ok());
+        let flow_control = context.runtime().and_then(|r| serde_json::to_value(r).ok());
         let dataplane_process = self
             .dataplane_entity()
             .put_dataplane_transfer_by_id(

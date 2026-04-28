@@ -33,7 +33,6 @@ use std::sync::Arc;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 
-
 /// Persistence service for the outbound RPC path.
 ///
 /// Used when the local agent acts as **Consumer**, sending transfer messages to a
@@ -175,7 +174,6 @@ impl TransferPersistenceTrait for TransferPersistenceForRpcService {
         Ok(updated)
     }
 }
-
 
 fn resolve_outbound_state_attribute(
     message_type: &TransferProcessMessageType,

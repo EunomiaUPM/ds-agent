@@ -2,6 +2,7 @@ use crate::entities::dataplane_manager::dataplane_commands::{
     DataplaneCommandStateMachine, DataplaneInitCommandTypes,
 };
 use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;
+use crate::entities::dataplane_manager::dataplane_driver_factory::DataplaneDriverFactory;
 use crate::entities::dataplane_manager::dataplane_proxy::DataplaneProxy;
 use crate::entities::dataplane_transfers::{EditDataplaneTransferDto, TransferState};
 use crate::DataplaneTransfersEntitiesTrait;
@@ -11,7 +12,6 @@ use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
-use crate::entities::dataplane_manager::dataplane_driver_factory::DataplaneDriverFactory;
 
 pub struct DataplaneHandlerProviderPull {
     pub(super) dataplane_entity: Arc<dyn DataplaneTransfersEntitiesTrait>,
@@ -206,7 +206,10 @@ mod tests {
 
         assert!(result.is_ok());
         let ctx = result.unwrap();
-        assert_eq!(ctx.dataplane_process().inner.state, TransferState::Configuring);
+        assert_eq!(
+            ctx.dataplane_process().inner.state,
+            TransferState::Configuring
+        );
         assert!(ctx.driver().is_some());
         // connector must survive configuring — it describes the provider's data source
         let conn = ctx

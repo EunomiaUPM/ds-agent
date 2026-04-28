@@ -126,7 +126,10 @@ impl DspRouter {
         let dataset_id = match Urn::from_str(&id) {
             Ok(urn) => urn,
             Err(_) => {
-                return (StatusCode::BAD_REQUEST, format!("Invalid dataset ID: {}", id))
+                return (
+                    StatusCode::BAD_REQUEST,
+                    format!("Invalid dataset ID: {}", id),
+                )
                     .into_response()
             }
         };

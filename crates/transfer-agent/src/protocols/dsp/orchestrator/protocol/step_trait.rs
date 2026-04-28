@@ -58,7 +58,6 @@ pub(super) trait ProtocolStep: Send + Sync + 'static {
     ) -> Outcome<()>;
 }
 
-
 pub(super) async fn continuation_prepare_context(
     ctx: &mut DspTransferContext,
     persistence: &Arc<dyn TransferPersistenceTrait>,

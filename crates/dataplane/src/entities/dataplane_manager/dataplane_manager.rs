@@ -1,12 +1,16 @@
+use crate::entities::dataplane_manager::dataplane_commands::{
+    DataplaneCommand, DataplaneCommandResponse,
+};
+use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;
+use crate::entities::dataplane_manager::dataplane_driver_factory::{
+    DataplaneDriverFactory, DataplaneDriverFactoryTrait,
+};
+use crate::entities::dataplane_manager::dataplane_handlers_strategy::DataplaneStrategyFactory;
 use crate::DataplaneTransfersEntitiesTrait;
 use common::config::services::TransferConfig;
 use connector::ConnectorInstanceTrait;
 use std::sync::Arc;
 use ymir::errors::{Errors, Outcome};
-use crate::entities::dataplane_manager::dataplane_commands::{DataplaneCommand, DataplaneCommandResponse};
-use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;
-use crate::entities::dataplane_manager::dataplane_driver_factory::{DataplaneDriverFactory, DataplaneDriverFactoryTrait};
-use crate::entities::dataplane_manager::dataplane_handlers_strategy::DataplaneStrategyFactory;
 
 pub struct DataplaneManager {
     pub(super) dataplane_entity: Arc<dyn DataplaneTransfersEntitiesTrait>,
@@ -125,6 +129,7 @@ mod tests {
         DataplaneDriver, DriverAuthenticatorTrait, DriverProxyConfiguratorTrait, DriverPubSubTrait,
         MockDriverPubSubTrait,
     };
+    use crate::entities::dataplane_manager::dataplane_commands::DataplaneCommand;
     use crate::entities::dataplane_manager::dataplane_commands::{
         DataplaneCommand, DataplaneCommandResponse, DataplaneContinuation,
         DataplaneInitCommandDirection, DataplaneInitCommandTypes,
@@ -138,6 +143,7 @@ mod tests {
         NewDataplaneTransferDto, TransferRole, TransferState,
     };
     use crate::{DataplaneAddress, DataplaneTransfersEntitiesTrait};
+    use common::test_utils::config_fixtures::transfer_config_fixture;
     use connector::{
         AuthenticationConfig, ConnectorInstanceDto, ConnectorInstanceTrait,
         ConnectorInstantiationDto, ConnectorMetadata, HttpSpec, InteractionConfig, ProtocolSpec,
@@ -149,8 +155,6 @@ mod tests {
     use urn::Urn;
     use ymir::errors::Outcome as MockOutcome;
     use ymir::errors::Outcome;
-    use common::test_utils::config_fixtures::transfer_config_fixture;
-    use crate::entities::dataplane_manager::dataplane_commands::DataplaneCommand;
 
     mock! {
         pub ConnectorMock {}
@@ -355,14 +359,17 @@ mod tests {
             DataplaneInitCommandTypes::AsConsumer {
                 transfer_process_id,
                 direction: DataplaneInitCommandDirection::Pull {
-                    data_address: dummy_dataplane_forward_address()
+                    data_address: dummy_dataplane_forward_address(),
                 },
             },
         ))
         .await;
 
         assert!(result.is_ok());
-        assert!(matches!(result.unwrap(), DataplaneCommandResponse::OkWithAddress(_)));
+        assert!(matches!(
+            result.unwrap(),
+            DataplaneCommandResponse::OkWithAddress(_)
+        ));
     }
 
     #[tokio::test]
@@ -389,7 +396,11 @@ mod tests {
                 ))
             });
 
-        for state in [TransferState::Configuring, TransferState::Auth, TransferState::Ready] {
+        for state in [
+            TransferState::Configuring,
+            TransferState::Auth,
+            TransferState::Ready,
+        ] {
             let s = state.clone();
             mock_entity
                 .expect_put_dataplane_transfer_by_id()
@@ -513,7 +524,7 @@ mod tests {
                 transfer_process_id: tp_id,
                 connector_instance: connector,
                 direction: DataplaneInitCommandDirection::Pull {
-                    data_address: dummy_dataplane_forward_address()
+                    data_address: dummy_dataplane_forward_address(),
                 },
             },
         ))

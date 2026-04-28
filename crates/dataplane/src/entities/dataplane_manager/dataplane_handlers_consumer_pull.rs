@@ -57,6 +57,9 @@ mod tests {
         DataplaneCommandStateMachine, DataplaneInitCommandDirection, DataplaneInitCommandTypes,
     };
     use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;
+    use crate::entities::dataplane_manager::dataplane_proxy::{
+        DataplaneProxyEgress, DataplaneProxyIngress,
+    };
     use crate::entities::dataplane_transfers::{
         DataplaneTransferDto, InteractionMode, MockDataplaneTransfersEntitiesTrait, TransferRole,
         TransferState,
@@ -65,12 +68,11 @@ mod tests {
     use common::test_utils::config_fixtures::transfer_config_fixture;
     use connector::{ConnectorInstanceDto, ConnectorInstanceTrait, ConnectorInstantiationDto};
     use mockall::mock;
+    use serde_json::json;
     use std::str::FromStr;
     use std::sync::Arc;
-    use serde_json::json;
     use urn::Urn;
     use ymir::errors::Outcome;
-    use crate::entities::dataplane_manager::dataplane_proxy::{DataplaneProxyEgress, DataplaneProxyIngress};
 
     mock! {
         pub ConnectorInstance {}
@@ -201,9 +203,18 @@ mod tests {
 
         assert!(result.is_ok());
         let ctx = result.unwrap();
-        assert_eq!(ctx.dataplane_process().inner.state, TransferState::Configuring);
-        assert!(ctx.driver().is_some(), "driver must be set after configuring");
-        assert!(ctx.proxy().is_some(), "proxy must be built after configuring");
+        assert_eq!(
+            ctx.dataplane_process().inner.state,
+            TransferState::Configuring
+        );
+        assert!(
+            ctx.driver().is_some(),
+            "driver must be set after configuring"
+        );
+        assert!(
+            ctx.proxy().is_some(),
+            "proxy must be built after configuring"
+        );
         // provider address must be preserved
         let addr = ctx
             .forward_dataplane_address()
@@ -225,7 +236,10 @@ mod tests {
 
         let entity: Arc<dyn crate::DataplaneTransfersEntitiesTrait> = Arc::new(mock);
         let context = init_context(entity.clone()).await;
-        let context = handler(entity.clone()).set_configuring(context).await.unwrap();
+        let context = handler(entity.clone())
+            .set_configuring(context)
+            .await
+            .unwrap();
 
         let result = handler(entity.clone()).set_auth(context).await;
         assert!(result.is_ok());
@@ -248,7 +262,10 @@ mod tests {
 
         let entity: Arc<dyn crate::DataplaneTransfersEntitiesTrait> = Arc::new(mock);
         let context = init_context(entity.clone()).await;
-        let context = handler(entity.clone()).set_configuring(context).await.unwrap();
+        let context = handler(entity.clone())
+            .set_configuring(context)
+            .await
+            .unwrap();
         let context = handler(entity.clone()).set_auth(context).await.unwrap();
 
         let result = handler(entity.clone()).set_ready(context).await;

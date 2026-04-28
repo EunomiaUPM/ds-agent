@@ -19,9 +19,9 @@ pub(crate) mod connector_template_walker;
 pub(crate) mod instance_parameters_map;
 pub(crate) mod instance_parameters_resolver;
 pub(crate) mod instance_parameters_validator;
+pub(crate) mod runtime_parameters_resolver;
 pub(crate) mod template_parameters_extractor;
 pub(crate) mod template_parameters_validator;
-pub(crate) mod runtime_parameters_resolver;
 
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -138,7 +138,6 @@ pub(crate) fn template_sys_parameter_regex() -> &'static Regex {
     static REGEX: OnceLock<Regex> = OnceLock::new();
     REGEX.get_or_init(|| Regex::new(r"\{\{\s*__(SYS.*?)__\s*\}\}").expect("Invalid Regex"))
 }
-
 
 /// Matches `{{__RUNTIME_JSON_{<jq_path>}__}}` and captures the jq path.
 /// Example: `{{__RUNTIME_JSON_{subscribe.data.ID}__}}` → capture group 1 = `subscribe.data.ID`

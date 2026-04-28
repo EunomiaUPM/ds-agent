@@ -1,16 +1,12 @@
 use axum::{
-    body::{Body, to_bytes},
+    body::{to_bytes, Body},
+    extract::Request as ExtractRequest,
     http::Request,
     middleware::Next,
     response::{IntoResponse, Response},
-    extract::Request as ExtractRequest,
-
 };
 use http::StatusCode;
 use tracing;
-
-
-
 
 pub async fn log_raw_body(req: ExtractRequest, next: Next) -> Response {
     // 1. Separamos la request en sus partes (cabeceras, uri, etc) y el cuerpo
@@ -42,12 +38,7 @@ pub async fn log_raw_body(req: ExtractRequest, next: Next) -> Response {
     next.run(req).await
 }
 
-
-
-pub async fn log_body_middleware(
-    req: Request<Body>,
-    next: Next,
-) -> Response {
+pub async fn log_body_middleware(req: Request<Body>, next: Next) -> Response {
     let (parts, body) = req.into_parts();
 
     // 1. Definimos un límite de tamaño para leer el body (ej: 2 MB)
@@ -75,4 +66,3 @@ pub async fn log_body_middleware(
     // 5. Pasamos la request al siguiente middleware o handler
     next.run(req).await
 }
-

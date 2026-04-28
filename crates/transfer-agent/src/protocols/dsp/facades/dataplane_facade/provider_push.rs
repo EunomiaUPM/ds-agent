@@ -86,7 +86,11 @@ impl DataPlaneStrategy for ProviderPushStrategy {
         Ok(None)
     }
 
-    async fn on_suspend_pre(&self, ctx: &DspTransferContext, mgr: &DataplaneManager) -> Outcome<()> {
+    async fn on_suspend_pre(
+        &self,
+        ctx: &DspTransferContext,
+        mgr: &DataplaneManager,
+    ) -> Outcome<()> {
         mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
             transfer_dto_urn: process_urn(ctx, "provider push suspend_pre")?,
         }))
@@ -94,7 +98,11 @@ impl DataPlaneStrategy for ProviderPushStrategy {
         Ok(())
     }
 
-    async fn on_suspend_post(&self, ctx: &DspTransferContext, mgr: &DataplaneManager) -> Outcome<()> {
+    async fn on_suspend_post(
+        &self,
+        ctx: &DspTransferContext,
+        mgr: &DataplaneManager,
+    ) -> Outcome<()> {
         mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
             transfer_dto_urn: process_urn(ctx, "provider push suspend_post")?,
         }))
@@ -102,7 +110,11 @@ impl DataPlaneStrategy for ProviderPushStrategy {
         Ok(())
     }
 
-    async fn on_complete_pre(&self, ctx: &DspTransferContext, mgr: &DataplaneManager) -> Outcome<()> {
+    async fn on_complete_pre(
+        &self,
+        ctx: &DspTransferContext,
+        mgr: &DataplaneManager,
+    ) -> Outcome<()> {
         mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
             transfer_dto_urn: process_urn(ctx, "provider push complete_pre")?,
         }))
@@ -110,7 +122,11 @@ impl DataPlaneStrategy for ProviderPushStrategy {
         Ok(())
     }
 
-    async fn on_complete_post(&self, ctx: &DspTransferContext, mgr: &DataplaneManager) -> Outcome<()> {
+    async fn on_complete_post(
+        &self,
+        ctx: &DspTransferContext,
+        mgr: &DataplaneManager,
+    ) -> Outcome<()> {
         mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
             transfer_dto_urn: process_urn(ctx, "provider push complete_post")?,
         }))
@@ -118,7 +134,11 @@ impl DataPlaneStrategy for ProviderPushStrategy {
         Ok(())
     }
 
-    async fn on_terminate_pre(&self, ctx: &DspTransferContext, mgr: &DataplaneManager) -> Outcome<()> {
+    async fn on_terminate_pre(
+        &self,
+        ctx: &DspTransferContext,
+        mgr: &DataplaneManager,
+    ) -> Outcome<()> {
         mgr.execute_command(DataplaneCommand::SetTerminating(DataplaneContinuation {
             transfer_dto_urn: process_urn(ctx, "provider push terminate_pre")?,
         }))
@@ -126,7 +146,11 @@ impl DataPlaneStrategy for ProviderPushStrategy {
         Ok(())
     }
 
-    async fn on_terminate_post(&self, ctx: &DspTransferContext, mgr: &DataplaneManager) -> Outcome<()> {
+    async fn on_terminate_post(
+        &self,
+        ctx: &DspTransferContext,
+        mgr: &DataplaneManager,
+    ) -> Outcome<()> {
         mgr.execute_command(DataplaneCommand::SetTerminating(DataplaneContinuation {
             transfer_dto_urn: process_urn(ctx, "provider push terminate_post")?,
         }))

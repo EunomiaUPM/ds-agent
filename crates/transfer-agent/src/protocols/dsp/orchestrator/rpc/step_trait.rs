@@ -98,10 +98,8 @@ pub(super) async fn populate_continuation_context(
         .fetch_process(consumer_pid.to_string().as_str())
         .await?;
 
-    let provider_pid =
-        Urn::from_str(process.identifiers.get("providerPid").unwrap().as_str())?;
-    let consumer_pid_urn =
-        Urn::from_str(process.identifiers.get("consumerPid").unwrap().as_str())?;
+    let provider_pid = Urn::from_str(process.identifiers.get("providerPid").unwrap().as_str())?;
+    let consumer_pid_urn = Urn::from_str(process.identifiers.get("consumerPid").unwrap().as_str())?;
 
     // The outgoing URL embeds the *peer's* identifier.
     let identifier_key = match process.inner.role.as_str() {

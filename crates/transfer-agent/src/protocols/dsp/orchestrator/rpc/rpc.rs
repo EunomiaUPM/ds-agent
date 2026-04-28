@@ -77,7 +77,12 @@ impl RPCOrchestratorService {
         let dp = self.facades.get_data_plane_facade().await;
         S::pre_hook(&dp, ctx).await?;
         let message = S::build_message(ctx, input)?;
-        S::apply_auth_token(&self.mates_facade, &self.http_client, &ctx.associated_peer_id).await;
+        S::apply_auth_token(
+            &self.mates_facade,
+            &self.http_client,
+            &ctx.associated_peer_id,
+        )
+        .await;
         let response = S::send_and_persist(
             &self.http_client,
             &self.persistence_service,

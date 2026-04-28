@@ -108,29 +108,28 @@ mod tests {
     // reflecting back the role and mode from the NewDataplaneTransferDto it receives.
     fn entity_for_init() -> Arc<dyn DataplaneTransfersEntitiesTrait> {
         let mut mock = MockDataplaneTransfersEntitiesTrait::new();
-        mock.expect_create_dataplane_transfer()
-            .returning(|dto| {
-                Ok(DataplaneTransferDto {
-                    inner: dataplane_transfers::Model {
-                        id: "urn:dataplane-transfer:test".to_string(),
-                        transfer_process_id: dto.transfer_process_id.clone(),
-                        role: dto.role.clone(),
-                        interaction_mode: dto.interaction_mode.clone(),
-                        state: TransferState::Init,
-                        connector_instance_id: dto
-                            .connector_instance_id
-                            .as_ref()
-                            .map(|u| u.to_string()),
-                        ingress_config: serde_json::json!("NoOp"),
-                        egress_config: serde_json::json!("NoOp"),
-                        flow_control: None,
-                        created_at: chrono::Utc::now().into(),
-                        updated_at: None,
-                    },
-                    fields: Default::default(),
-                    logs: vec![],
-                })
-            });
+        mock.expect_create_dataplane_transfer().returning(|dto| {
+            Ok(DataplaneTransferDto {
+                inner: dataplane_transfers::Model {
+                    id: "urn:dataplane-transfer:test".to_string(),
+                    transfer_process_id: dto.transfer_process_id.clone(),
+                    role: dto.role.clone(),
+                    interaction_mode: dto.interaction_mode.clone(),
+                    state: TransferState::Init,
+                    connector_instance_id: dto
+                        .connector_instance_id
+                        .as_ref()
+                        .map(|u| u.to_string()),
+                    ingress_config: serde_json::json!("NoOp"),
+                    egress_config: serde_json::json!("NoOp"),
+                    flow_control: None,
+                    created_at: chrono::Utc::now().into(),
+                    updated_at: None,
+                },
+                fields: Default::default(),
+                logs: vec![],
+            })
+        });
         Arc::new(mock)
     }
 

@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-
 pub const HTTP_LISTENER_PATH: &str = "/dataplane/proxy/";
 
 #[derive(Clone, Serialize, Deserialize, Debug)]

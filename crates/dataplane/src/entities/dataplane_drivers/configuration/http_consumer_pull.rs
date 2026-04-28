@@ -41,6 +41,6 @@ impl DriverProxyConfiguratorTrait for HttpConsumerPullConfigurator {
         proxy.set_ingress(ingress);
         proxy.set_egress(egress);
         context.set_proxy(proxy);
-         Ok(context.clone())
+        Ok(context.clone())
     }
 }

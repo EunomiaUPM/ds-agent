@@ -22,9 +22,9 @@ use sea_orm::ActiveValue;
 use serde::{Deserialize, Serialize};
 use urn::{Urn, UrnBuilder};
 
+use crate::entities::dataplane_manager::dataplane_commands::DataplaneInitCommandTypes;
 use strum::Display;
 use ymir::errors::Errors;
-use crate::entities::dataplane_manager::dataplane_commands::DataplaneInitCommandTypes;
 
 #[derive(
     Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, Display,
@@ -72,7 +72,7 @@ impl TryFrom<DataplaneInitCommandTypes> for TransferRole {
     fn try_from(value: DataplaneInitCommandTypes) -> Result<Self, Self::Error> {
         match value {
             DataplaneInitCommandTypes::AsProvider { .. } => Ok(Self::Provider),
-            DataplaneInitCommandTypes::AsConsumer { .. } => Ok(Self::Consumer)
+            DataplaneInitCommandTypes::AsConsumer { .. } => Ok(Self::Consumer),
         }
     }
 }

@@ -31,7 +31,6 @@ use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDs
 use std::sync::Arc;
 use ymir::errors::Outcome;
 
-
 pub(super) struct ProtocolTerminationStep;
 
 #[async_trait::async_trait]

@@ -218,7 +218,10 @@ mod tests {
 
         assert!(result.is_ok());
         let ctx = result.unwrap();
-        assert_eq!(ctx.dataplane_process().inner.state, TransferState::Configuring);
+        assert_eq!(
+            ctx.dataplane_process().inner.state,
+            TransferState::Configuring
+        );
         assert!(ctx.driver().is_some());
         let conn = ctx
             .connector_instance()

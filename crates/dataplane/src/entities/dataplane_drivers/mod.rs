@@ -2,13 +2,11 @@ pub(super) mod authentication;
 pub(super) mod configuration;
 pub(super) mod pubsub;
 
-use std::fmt::Debug;
 use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;
 use serde::{Deserialize, Serialize};
+use std::fmt::Debug;
 use std::sync::Arc;
 use ymir::errors::Outcome;
-
-
 
 #[derive(Clone, Debug)]
 pub struct DataplaneDriver {
@@ -25,7 +23,7 @@ pub trait DriverAuthenticatorTrait: Send + Sync + Debug {
 
 #[cfg_attr(test, mockall::automock)]
 #[async_trait::async_trait]
-pub trait DriverProxyConfiguratorTrait: Send + Sync +  Debug {
+pub trait DriverProxyConfiguratorTrait: Send + Sync + Debug {
     async fn configure_proxy(&self, context: &DataplaneContext) -> Outcome<DataplaneContext>;
 }
 

@@ -34,7 +34,6 @@ use common::http_client::HttpClient;
 use std::sync::Arc;
 use ymir::errors::{Errors, Outcome};
 
-
 pub(super) struct SuspensionStep;
 
 #[async_trait::async_trait]

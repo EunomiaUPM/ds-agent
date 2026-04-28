@@ -130,7 +130,11 @@ impl RpcRouter {
             data.data_address.clone(),
         );
         Self::map_service_result(
-            state.orchestrator.get_rpc_service().setup_transfer_request(ctx, &data).await,
+            state
+                .orchestrator
+                .get_rpc_service()
+                .setup_transfer_request(ctx, &data)
+                .await,
             StatusCode::CREATED,
             data,
         )
@@ -147,7 +151,11 @@ impl RpcRouter {
         };
         let ctx = DspTransferContext::outbound_continuation();
         Self::map_service_result(
-            state.orchestrator.get_rpc_service().setup_transfer_start(ctx, &data).await,
+            state
+                .orchestrator
+                .get_rpc_service()
+                .setup_transfer_start(ctx, &data)
+                .await,
             StatusCode::ACCEPTED,
             data,
         )
@@ -164,7 +172,11 @@ impl RpcRouter {
         };
         let ctx = DspTransferContext::outbound_continuation();
         Self::map_service_result(
-            state.orchestrator.get_rpc_service().setup_transfer_completion(ctx, &data).await,
+            state
+                .orchestrator
+                .get_rpc_service()
+                .setup_transfer_completion(ctx, &data)
+                .await,
             StatusCode::ACCEPTED,
             data,
         )
@@ -181,7 +193,11 @@ impl RpcRouter {
         };
         let ctx = DspTransferContext::outbound_continuation();
         Self::map_service_result(
-            state.orchestrator.get_rpc_service().setup_transfer_termination(ctx, &data).await,
+            state
+                .orchestrator
+                .get_rpc_service()
+                .setup_transfer_termination(ctx, &data)
+                .await,
             StatusCode::ACCEPTED,
             data,
         )
@@ -198,7 +214,11 @@ impl RpcRouter {
         };
         let ctx = DspTransferContext::outbound_continuation();
         Self::map_service_result(
-            state.orchestrator.get_rpc_service().setup_transfer_suspension(ctx, &data).await,
+            state
+                .orchestrator
+                .get_rpc_service()
+                .setup_transfer_suspension(ctx, &data)
+                .await,
             StatusCode::ACCEPTED,
             data,
         )
@@ -216,7 +236,10 @@ impl RpcRouter {
         let agreement_id_urn = match Urn::from_str(&input.agreement_id) {
             Ok(u) => u,
             Err(_) => {
-                return (StatusCode::BAD_REQUEST, "invalid agreementId: must be a URN")
+                return (
+                    StatusCode::BAD_REQUEST,
+                    "invalid agreementId: must be a URN",
+                )
                     .into_response();
             }
         };
@@ -236,7 +259,11 @@ impl RpcRouter {
             rpc_dto.data_address.clone(),
         );
         Self::map_service_result(
-            state.orchestrator.get_rpc_service().setup_transfer_request(ctx, &rpc_dto).await,
+            state
+                .orchestrator
+                .get_rpc_service()
+                .setup_transfer_request(ctx, &rpc_dto)
+                .await,
             StatusCode::CREATED,
             rpc_dto,
         )

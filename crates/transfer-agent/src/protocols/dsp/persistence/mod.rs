@@ -56,7 +56,6 @@ pub trait TransferPersistenceTrait: Send + Sync {
     ) -> Outcome<TransferProcessDto>;
 }
 
-
 pub(crate) async fn create_process_record(
     process_svc: &Arc<dyn TransferAgentProcessesTrait>,
     message_svc: &Arc<dyn TransferAgentMessagesTrait>,

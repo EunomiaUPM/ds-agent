@@ -15,9 +15,10 @@ use crate::entities::dataplane_transfers::{
 use crate::DataplaneAddress;
 use common::test_utils::config_fixtures::transfer_config_fixture;
 use connector::{
-    ApiKeyLocation, AuthenticationConfig, BasicAuthConfig, ConnectorInstanceDto, ConnectorMetadata,
-    ConnectorInstanceTrait, ConnectorInstantiationDto, HttpSpec, InteractionConfig,
-    OAuthGrantType, ProtocolSpec, PullLifecycle, SecretSource, SecretString, TemplateVecString,
+    ApiKeyLocation, AuthenticationConfig, BasicAuthConfig, ConnectorInstanceDto,
+    ConnectorInstanceTrait, ConnectorInstantiationDto, ConnectorMetadata, HttpSpec,
+    InteractionConfig, OAuthGrantType, ProtocolSpec, PullLifecycle, SecretSource, SecretString,
+    TemplateVecString,
 };
 use mockall::mock;
 use serde_json::json;
@@ -157,11 +158,7 @@ pub async fn bearer_context(token: &str) -> DataplaneContext {
 }
 
 /// Provider context with a plain-text API key.
-pub async fn api_key_context(
-    key: &str,
-    value: &str,
-    location: ApiKeyLocation,
-) -> DataplaneContext {
+pub async fn api_key_context(key: &str, value: &str, location: ApiKeyLocation) -> DataplaneContext {
     provider_context(AuthenticationConfig::ApiKey {
         key: key.to_string(),
         value: plain_secret(value),

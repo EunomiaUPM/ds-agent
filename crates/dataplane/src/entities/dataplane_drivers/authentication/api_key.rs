@@ -16,8 +16,11 @@ impl DriverAuthenticatorTrait for ApiKeyAuthenticator {
             .connector_instance()
             .ok_or_else(|| Errors::crazy("Connector not available", None))?;
 
-        let AuthenticationConfig::ApiKey { key, value, location } =
-            connector.authentication_config.clone()
+        let AuthenticationConfig::ApiKey {
+            key,
+            value,
+            location,
+        } = connector.authentication_config.clone()
         else {
             return Err(Errors::crazy(
                 "Connector auth config should be type API_KEY",
@@ -54,7 +57,11 @@ mod tests {
         let updated = result.unwrap();
         let runtime = updated.runtime().expect("runtime must be set");
         match &runtime.auth {
-            ResolvedAuthCredentials::ApiKey { key, value, location } => {
+            ResolvedAuthCredentials::ApiKey {
+                key,
+                value,
+                location,
+            } => {
                 assert_eq!(key, "X-Api-Key");
                 assert_eq!(value, "my-key-value");
                 assert!(matches!(location, ApiKeyLocation::Header));

@@ -8,6 +8,7 @@ use crate::entities::dataplane_drivers::configuration::http_consumer_pull::HttpC
 use crate::entities::dataplane_drivers::configuration::http_consumer_push::HttpConsumerPushConfigurator;
 use crate::entities::dataplane_drivers::configuration::http_provider_pull::HttpProviderPullConfigurator;
 use crate::entities::dataplane_drivers::configuration::http_provider_push::HttpProviderPushConfigurator;
+use crate::entities::dataplane_drivers::pubsub::http::HttpPubSubscriber;
 use crate::entities::dataplane_drivers::pubsub::no_op::NoOpPubSubscriber;
 use crate::entities::dataplane_drivers::{
     DataplaneDriver, DriverAuthenticatorTrait, DriverProxyConfiguratorTrait, DriverPubSubTrait,
@@ -17,7 +18,6 @@ use crate::entities::dataplane_transfers::{InteractionMode, TransferRole};
 use connector::{AuthenticationConfig, ConnectorInstanceDto, InteractionConfig, ProtocolSpec};
 use std::sync::Arc;
 use ymir::errors::{Errors, Outcome};
-use crate::entities::dataplane_drivers::pubsub::http::HttpPubSubscriber;
 
 /// Unit-of-work factory — stateless, constructed on demand from the context.
 pub struct DataplaneDriverFactory;

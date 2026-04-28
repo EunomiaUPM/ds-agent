@@ -16,8 +16,7 @@ impl DriverAuthenticatorTrait for BearerTokenAuthenticator {
             .connector_instance()
             .ok_or_else(|| Errors::crazy("Connector not available", None))?;
 
-        let AuthenticationConfig::BearerToken { token } =
-            connector.authentication_config.clone()
+        let AuthenticationConfig::BearerToken { token } = connector.authentication_config.clone()
         else {
             return Err(Errors::crazy(
                 "Connector auth config should be type BEARER_TOKEN",

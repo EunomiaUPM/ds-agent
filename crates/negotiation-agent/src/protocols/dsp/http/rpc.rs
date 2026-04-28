@@ -36,10 +36,12 @@ use axum::{
     response::{IntoResponse, Response},
     routing::post,
 };
-use common::config::services::traits::ContractsConfigTrait;
 use common::config::services::ContractsConfig;
+use common::config::services::traits::ContractsConfigTrait;
 use common::dsp_common::context_field::ContextField;
-use common::dsp_common::odrl::{ContractRequestMessageOfferOfferId, ContractRequestMessageOfferTypes};
+use common::dsp_common::odrl::{
+    ContractRequestMessageOfferOfferId, ContractRequestMessageOfferTypes,
+};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use std::sync::Arc;
@@ -106,7 +108,10 @@ impl RpcRouter {
                 "/rpc/setup-termination",
                 post(Self::negotiation_termination_rpc),
             )
-            .route("/tck/negotiations/requests", post(Self::tck_initiate_negotiation))
+            .route(
+                "/tck/negotiations/requests",
+                post(Self::tck_initiate_negotiation),
+            )
             .with_state(self)
     }
 

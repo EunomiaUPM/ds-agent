@@ -199,8 +199,8 @@ mod tests {
     use super::super::FoundParameter;
     use super::super::FoundParameterType;
     use super::super::{ParameterDefinition, ParameterType};
-    use ymir::errors::Outcome;
     use crate::entities::parameters::template_parameters_validator::TemplateParametersValidator;
+    use ymir::errors::Outcome;
     // =========================================================================
     // Helpers
     // =========================================================================

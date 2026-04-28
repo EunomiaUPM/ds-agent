@@ -17,6 +17,7 @@
  *
  */
 
+use crate::entities::transfer_messages::{NewTransferMessageDto, TransferAgentMessagesTrait};
 use axum::{
     extract::{rejection::JsonRejection, FromRef, Path, Query, State},
     http::StatusCode,
@@ -24,11 +25,10 @@ use axum::{
     routing::get,
     Json, Router,
 };
+use common::config::services::TransferConfig;
 use serde::Deserialize;
 use std::sync::Arc;
 use ymir::utils::{extract_path_urn, extract_payload};
-use crate::entities::transfer_messages::{NewTransferMessageDto, TransferAgentMessagesTrait};
-use common::config::services::TransferConfig;
 
 #[derive(Clone)]
 pub struct TransferAgentMessagesRouter {

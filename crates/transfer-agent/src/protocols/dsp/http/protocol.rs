@@ -17,15 +17,6 @@
  *
  */
 
-use axum::{
-    extract::{rejection::JsonRejection, FromRef, Path, State},
-    http::StatusCode,
-    response::IntoResponse,
-    routing::{get, post},
-    Json, Router,
-};
-use serde::Serialize;
-use std::sync::Arc;
 use crate::protocols::dsp::context::DspTransferContext;
 use crate::protocols::dsp::orchestrator::OrchestratorTrait;
 use crate::protocols::dsp::protocol_types::{
@@ -33,8 +24,17 @@ use crate::protocols::dsp::protocol_types::{
     TransferProcessMessageWrapper, TransferRequestMessageDto, TransferStartMessageDto,
     TransferSuspensionMessageDto, TransferTerminationMessageDto,
 };
+use axum::{
+    extract::{rejection::JsonRejection, FromRef, Path, State},
+    http::StatusCode,
+    response::IntoResponse,
+    routing::{get, post},
+    Json, Router,
+};
 use common::dsp_common::context_field::ContextField;
 use common::dsp_common::normalizer::dsp_namespace_normalizer;
+use serde::Serialize;
+use std::sync::Arc;
 
 use axum::{
     extract::Request,
@@ -111,7 +111,10 @@ impl DspRouter {
             .with_state(self)
     }
 
-    fn map_service_result<R>(result: ymir::errors::Outcome<R>, success_code: StatusCode) -> impl IntoResponse
+    fn map_service_result<R>(
+        result: ymir::errors::Outcome<R>,
+        success_code: StatusCode,
+    ) -> impl IntoResponse
     where
         R: Serialize,
     {
@@ -153,7 +156,10 @@ impl DspRouter {
     async fn handle_transfer_request(
         State(state): State<DspRouter>,
         Extension(mate): Extension<Mates>,
-        input: Result<Json<TransferProcessMessageWrapper<TransferRequestMessageDto>>, JsonRejection>,
+        input: Result<
+            Json<TransferProcessMessageWrapper<TransferRequestMessageDto>>,
+            JsonRejection,
+        >,
     ) -> impl IntoResponse {
         let data = match extract_payload(input) {
             Ok(v) => v,

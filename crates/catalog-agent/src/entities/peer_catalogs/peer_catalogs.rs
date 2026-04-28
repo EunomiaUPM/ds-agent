@@ -43,7 +43,6 @@ impl PeerCatalogEntities {
 
 #[async_trait::async_trait]
 impl PeerCatalogTrait for PeerCatalogEntities {
-
     async fn get_all_peer_catalogs(&self) -> Outcome<Vec<(Mates, Catalog)>> {
         let mates = self.mates_facade.get_all_mates().await?;
         let peer_catalog_cache = self.cache.get_peer_catalog_cache();

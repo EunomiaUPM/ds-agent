@@ -135,8 +135,6 @@ impl<'a> RuntimeParametersResolver<'a> {
     }
 }
 
-
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -175,7 +173,8 @@ mod tests {
                     })
                 }),
             }),
-            distribution_id: Urn::from_str("urn:uuid:00000000-0000-0000-0000-000000000002").unwrap(),
+            distribution_id: Urn::from_str("urn:uuid:00000000-0000-0000-0000-000000000002")
+                .unwrap(),
         }
     }
 
@@ -203,7 +202,10 @@ mod tests {
         );
         let params = json!({ "subscribe": { "id": "abc-123" } });
         let result = resolve(&instance, params);
-        assert_eq!(subscribe_url(&result), "https://api.example.com/abc-123/hook");
+        assert_eq!(
+            subscribe_url(&result),
+            "https://api.example.com/abc-123/hook"
+        );
     }
 
     #[test]

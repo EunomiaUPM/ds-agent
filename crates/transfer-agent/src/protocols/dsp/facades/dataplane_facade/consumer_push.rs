@@ -35,10 +35,12 @@ impl DataPlaneStrategy for ConsumerPushStrategy {
         ctx: &DspTransferContext,
         mgr: &DataplaneManager,
     ) -> Outcome<Option<DataAddressDto>> {
-        let transfer_id = ctx
-            .local_process_id
-            .as_ref()
-            .ok_or_else(|| Errors::crazy("local_process_id required for consumer push request_pre", None))?;
+        let transfer_id = ctx.local_process_id.as_ref().ok_or_else(|| {
+            Errors::crazy(
+                "local_process_id required for consumer push request_pre",
+                None,
+            )
+        })?;
         let data_address = ctx
             .input_data_address
             .as_ref()
@@ -84,7 +86,11 @@ impl DataPlaneStrategy for ConsumerPushStrategy {
         Ok(None)
     }
 
-    async fn on_suspend_pre(&self, ctx: &DspTransferContext, mgr: &DataplaneManager) -> Outcome<()> {
+    async fn on_suspend_pre(
+        &self,
+        ctx: &DspTransferContext,
+        mgr: &DataplaneManager,
+    ) -> Outcome<()> {
         mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
             transfer_dto_urn: process_urn(ctx, "consumer push suspend_pre")?,
         }))
@@ -92,7 +98,11 @@ impl DataPlaneStrategy for ConsumerPushStrategy {
         Ok(())
     }
 
-    async fn on_suspend_post(&self, ctx: &DspTransferContext, mgr: &DataplaneManager) -> Outcome<()> {
+    async fn on_suspend_post(
+        &self,
+        ctx: &DspTransferContext,
+        mgr: &DataplaneManager,
+    ) -> Outcome<()> {
         mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
             transfer_dto_urn: process_urn(ctx, "consumer push suspend_post")?,
         }))
@@ -100,7 +110,11 @@ impl DataPlaneStrategy for ConsumerPushStrategy {
         Ok(())
     }
 
-    async fn on_complete_pre(&self, ctx: &DspTransferContext, mgr: &DataplaneManager) -> Outcome<()> {
+    async fn on_complete_pre(
+        &self,
+        ctx: &DspTransferContext,
+        mgr: &DataplaneManager,
+    ) -> Outcome<()> {
         mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
             transfer_dto_urn: process_urn(ctx, "consumer push complete_pre")?,
         }))
@@ -108,7 +122,11 @@ impl DataPlaneStrategy for ConsumerPushStrategy {
         Ok(())
     }
 
-    async fn on_complete_post(&self, ctx: &DspTransferContext, mgr: &DataplaneManager) -> Outcome<()> {
+    async fn on_complete_post(
+        &self,
+        ctx: &DspTransferContext,
+        mgr: &DataplaneManager,
+    ) -> Outcome<()> {
         mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
             transfer_dto_urn: process_urn(ctx, "consumer push complete_post")?,
         }))
@@ -116,7 +134,11 @@ impl DataPlaneStrategy for ConsumerPushStrategy {
         Ok(())
     }
 
-    async fn on_terminate_pre(&self, ctx: &DspTransferContext, mgr: &DataplaneManager) -> Outcome<()> {
+    async fn on_terminate_pre(
+        &self,
+        ctx: &DspTransferContext,
+        mgr: &DataplaneManager,
+    ) -> Outcome<()> {
         mgr.execute_command(DataplaneCommand::SetTerminating(DataplaneContinuation {
             transfer_dto_urn: process_urn(ctx, "consumer push terminate_pre")?,
         }))
@@ -124,7 +146,11 @@ impl DataPlaneStrategy for ConsumerPushStrategy {
         Ok(())
     }
 
-    async fn on_terminate_post(&self, ctx: &DspTransferContext, mgr: &DataplaneManager) -> Outcome<()> {
+    async fn on_terminate_post(
+        &self,
+        ctx: &DspTransferContext,
+        mgr: &DataplaneManager,
+    ) -> Outcome<()> {
         mgr.execute_command(DataplaneCommand::SetTerminating(DataplaneContinuation {
             transfer_dto_urn: process_urn(ctx, "consumer push terminate_post")?,
         }))

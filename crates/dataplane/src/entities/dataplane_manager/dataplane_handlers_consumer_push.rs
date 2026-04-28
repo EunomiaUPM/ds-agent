@@ -1,12 +1,12 @@
-use std::sync::Arc;
 use crate::entities::dataplane_manager::dataplane_commands::{
     DataplaneCommandStateMachine, DataplaneInitCommandTypes,
 };
 use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;
-use ymir::errors::Outcome;
+use crate::DataplaneTransfersEntitiesTrait;
 use common::config::services::TransferConfig;
 use connector::ConnectorInstanceTrait;
-use crate::DataplaneTransfersEntitiesTrait;
+use std::sync::Arc;
+use ymir::errors::Outcome;
 
 pub struct DataplaneHandlerConsumerPush {
     pub(super) dataplane_entity: Arc<dyn DataplaneTransfersEntitiesTrait>,
@@ -182,10 +182,15 @@ mod tests {
 
         assert!(result.is_ok());
         let ctx = result.unwrap();
-        assert_eq!(ctx.dataplane_process().inner.state, TransferState::Configuring);
+        assert_eq!(
+            ctx.dataplane_process().inner.state,
+            TransferState::Configuring
+        );
         assert!(ctx.driver().is_some());
         assert!(ctx.connector_instance().is_none());
-        let addr = ctx.forward_dataplane_address().expect("push endpoint must be preserved");
+        let addr = ctx
+            .forward_dataplane_address()
+            .expect("push endpoint must be preserved");
         assert_eq!(addr.endpoint, "http://consumer-endpoint.com/receive");
     }
 
@@ -204,7 +209,10 @@ mod tests {
         let result = handler(entity).set_auth(context).await;
 
         assert!(result.is_ok());
-        assert_eq!(result.unwrap().dataplane_process().inner.state, TransferState::Auth);
+        assert_eq!(
+            result.unwrap().dataplane_process().inner.state,
+            TransferState::Auth
+        );
     }
 
     // ── set_ready ─────────────────────────────────────────────────────────────
@@ -221,7 +229,10 @@ mod tests {
         let result = handler(entity).set_ready(context).await;
 
         assert!(result.is_ok());
-        assert_eq!(result.unwrap().dataplane_process().inner.state, TransferState::Ready);
+        assert_eq!(
+            result.unwrap().dataplane_process().inner.state,
+            TransferState::Ready
+        );
     }
 
     // ── set_started ───────────────────────────────────────────────────────────
@@ -238,7 +249,10 @@ mod tests {
         let result = handler(entity).set_started(context).await;
 
         assert!(result.is_ok());
-        assert_eq!(result.unwrap().dataplane_process().inner.state, TransferState::Started);
+        assert_eq!(
+            result.unwrap().dataplane_process().inner.state,
+            TransferState::Started
+        );
     }
 
     // ── set_stopped ───────────────────────────────────────────────────────────
@@ -255,7 +269,10 @@ mod tests {
         let result = handler(entity).set_stopped(context).await;
 
         assert!(result.is_ok());
-        assert_eq!(result.unwrap().dataplane_process().inner.state, TransferState::Stopped);
+        assert_eq!(
+            result.unwrap().dataplane_process().inner.state,
+            TransferState::Stopped
+        );
     }
 
     // ── set_terminating ───────────────────────────────────────────────────────
@@ -272,7 +289,10 @@ mod tests {
         let result = handler(entity).set_terminating(context).await;
 
         assert!(result.is_ok());
-        assert_eq!(result.unwrap().dataplane_process().inner.state, TransferState::Terminated);
+        assert_eq!(
+            result.unwrap().dataplane_process().inner.state,
+            TransferState::Terminated
+        );
     }
 
     // ── set_subscribing ───────────────────────────────────────────────────────
@@ -292,7 +312,10 @@ mod tests {
         let result = handler(entity).set_subscribing(context).await;
 
         assert!(result.is_ok());
-        assert_eq!(result.unwrap().dataplane_process().inner.state, TransferState::Started);
+        assert_eq!(
+            result.unwrap().dataplane_process().inner.state,
+            TransferState::Started
+        );
     }
 
     // Without a driver (init context default): set_subscribing is a no-op.
@@ -308,7 +331,10 @@ mod tests {
         let result = handler(entity).set_subscribing(context).await;
 
         assert!(result.is_ok());
-        assert_eq!(result.unwrap().dataplane_process().inner.state, TransferState::Init);
+        assert_eq!(
+            result.unwrap().dataplane_process().inner.state,
+            TransferState::Init
+        );
     }
 
     // ── set_unsubscribing ─────────────────────────────────────────────────────
@@ -328,7 +354,10 @@ mod tests {
         let result = handler(entity).set_unsubscribing(context).await;
 
         assert!(result.is_ok());
-        assert_eq!(result.unwrap().dataplane_process().inner.state, TransferState::Stopped);
+        assert_eq!(
+            result.unwrap().dataplane_process().inner.state,
+            TransferState::Stopped
+        );
     }
 
     // Without a driver: set_unsubscribing is a no-op.
@@ -343,6 +372,9 @@ mod tests {
         let result = handler(entity).set_unsubscribing(context).await;
 
         assert!(result.is_ok());
-        assert_eq!(result.unwrap().dataplane_process().inner.state, TransferState::Init);
+        assert_eq!(
+            result.unwrap().dataplane_process().inner.state,
+            TransferState::Init
+        );
     }
 }

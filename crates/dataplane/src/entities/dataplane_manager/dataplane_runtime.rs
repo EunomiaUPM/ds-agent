@@ -14,13 +14,18 @@ pub struct DataplaneRuntime {
 pub enum ResolvedAuthCredentials {
     #[default]
     NoAuth,
-    BearerToken { token: String },
+    BearerToken {
+        token: String,
+    },
     ApiKey {
         key: String,
         value: String,
         location: ApiKeyLocation,
     },
-    BasicAuth { username: String, password: String },
+    BasicAuth {
+        username: String,
+        password: String,
+    },
     OAuth2 {
         access_token: String,
         token_type: String,

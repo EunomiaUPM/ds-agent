@@ -25,9 +25,9 @@ use axum::{
     Json, Router,
 };
 use serde::Serialize;
-use std::future::Future;
 use std::sync::Arc;
 
+use crate::protocols::dsp::context::DspTransferContext;
 use crate::protocols::dsp::orchestrator::rpc::types::{
     RpcTransferCompletionMessageDto, RpcTransferErrorDto, RpcTransferRequestMessageDto,
     RpcTransferStartMessageDto, RpcTransferSuspensionMessageDto, RpcTransferTerminationMessageDto,
@@ -84,25 +84,6 @@ impl RpcRouter {
             .with_state(self)
     }
 
-    async fn process_request<T, R, F, Fut>(
-        input: Result<Json<T>, JsonRejection>,
-        success_code: StatusCode,
-        action: F,
-    ) -> impl IntoResponse
-    where
-        T: Send + Serialize + Clone + 'static,
-        R: Serialize,
-        F: FnOnce(T) -> Fut,
-        Fut: Future<Output = Outcome<R>> + Send,
-    {
-        let payload = match extract_payload(input) {
-            Ok(v) => v,
-            Err(e) => return e.into_response(),
-        };
-        Self::map_service_result(action(payload.clone()).await, success_code, payload)
-            .into_response()
-    }
-
     fn map_service_result<R, T>(
         result: Outcome<R>,
         success_code: StatusCode,
@@ -130,7 +111,6 @@ impl RpcRouter {
                     request: original_request,
                     error: error_wrapper,
                 };
-
                 (StatusCode::BAD_REQUEST, Json(rpc_error_dto)).into_response()
             }
         }
@@ -140,75 +120,91 @@ impl RpcRouter {
         State(state): State<RpcRouter>,
         input: Result<Json<RpcTransferRequestMessageDto>, JsonRejection>,
     ) -> impl IntoResponse {
-        Self::process_request(input, StatusCode::CREATED, |data| async move {
-            state
-                .orchestrator
-                .get_rpc_service()
-                .setup_transfer_request(&data)
-                .await
-        })
-        .await
+        let data = match extract_payload(input) {
+            Ok(v) => v,
+            Err(e) => return e.into_response(),
+        };
+        let ctx = DspTransferContext::outbound_request(
+            data.associated_agent_peer.clone(),
+            data.provider_address.clone(),
+            data.data_address.clone(),
+        );
+        Self::map_service_result(
+            state.orchestrator.get_rpc_service().setup_transfer_request(ctx, &data).await,
+            StatusCode::CREATED,
+            data,
+        )
+        .into_response()
     }
 
     async fn handle_transfer_start_rpc(
         State(state): State<RpcRouter>,
         input: Result<Json<RpcTransferStartMessageDto>, JsonRejection>,
     ) -> impl IntoResponse {
-        Self::process_request(input, StatusCode::ACCEPTED, |data| async move {
-            state
-                .orchestrator
-                .get_rpc_service()
-                .setup_transfer_start(&data)
-                .await
-        })
-        .await
+        let data = match extract_payload(input) {
+            Ok(v) => v,
+            Err(e) => return e.into_response(),
+        };
+        let ctx = DspTransferContext::outbound_continuation();
+        Self::map_service_result(
+            state.orchestrator.get_rpc_service().setup_transfer_start(ctx, &data).await,
+            StatusCode::ACCEPTED,
+            data,
+        )
+        .into_response()
     }
 
     async fn handle_transfer_completion_rpc(
         State(state): State<RpcRouter>,
         input: Result<Json<RpcTransferCompletionMessageDto>, JsonRejection>,
     ) -> impl IntoResponse {
-        Self::process_request(input, StatusCode::ACCEPTED, |data| async move {
-            state
-                .orchestrator
-                .get_rpc_service()
-                .setup_transfer_completion(&data)
-                .await
-        })
-        .await
+        let data = match extract_payload(input) {
+            Ok(v) => v,
+            Err(e) => return e.into_response(),
+        };
+        let ctx = DspTransferContext::outbound_continuation();
+        Self::map_service_result(
+            state.orchestrator.get_rpc_service().setup_transfer_completion(ctx, &data).await,
+            StatusCode::ACCEPTED,
+            data,
+        )
+        .into_response()
     }
 
     async fn handle_transfer_termination_rpc(
         State(state): State<RpcRouter>,
         input: Result<Json<RpcTransferTerminationMessageDto>, JsonRejection>,
     ) -> impl IntoResponse {
-        Self::process_request(input, StatusCode::ACCEPTED, |data| async move {
-            state
-                .orchestrator
-                .get_rpc_service()
-                .setup_transfer_termination(&data)
-                .await
-        })
-        .await
+        let data = match extract_payload(input) {
+            Ok(v) => v,
+            Err(e) => return e.into_response(),
+        };
+        let ctx = DspTransferContext::outbound_continuation();
+        Self::map_service_result(
+            state.orchestrator.get_rpc_service().setup_transfer_termination(ctx, &data).await,
+            StatusCode::ACCEPTED,
+            data,
+        )
+        .into_response()
     }
 
     async fn handle_transfer_suspension_rpc(
         State(state): State<RpcRouter>,
         input: Result<Json<RpcTransferSuspensionMessageDto>, JsonRejection>,
     ) -> impl IntoResponse {
-        Self::process_request(input, StatusCode::ACCEPTED, |data| async move {
-            state
-                .orchestrator
-                .get_rpc_service()
-                .setup_transfer_suspension(&data)
-                .await
-        })
-        .await
+        let data = match extract_payload(input) {
+            Ok(v) => v,
+            Err(e) => return e.into_response(),
+        };
+        let ctx = DspTransferContext::outbound_continuation();
+        Self::map_service_result(
+            state.orchestrator.get_rpc_service().setup_transfer_suspension(ctx, &data).await,
+            StatusCode::ACCEPTED,
+            data,
+        )
+        .into_response()
     }
 
-    // ── TCK bridge ────────────────────────────────────────────────────────────
-    // Accepts the format the Eclipse DSP TCK POSTs to initiate a consumer-role
-    // transfer and translates it to the internal RPC call.
     async fn tck_initiate_transfer(
         State(state): State<RpcRouter>,
         input: Result<Json<TckTransferInitiateRequest>, JsonRejection>,
@@ -224,7 +220,6 @@ impl RpcRouter {
                     .into_response();
             }
         };
-        //let callback_base = state.config.ssi_auth().hosts.get_host(HostType::Http);
         let callback_base = "http://localhost:5000/"; // TODO change here
         let callback_address = format!("{}/dsp/current/transfers", callback_base);
         let rpc_dto = RpcTransferRequestMessageDto {
@@ -235,14 +230,16 @@ impl RpcRouter {
             provider_address: input.connector_address,
             callback_address,
         };
-        Self::process_request(Ok(Json(rpc_dto)), StatusCode::CREATED, |data| async move {
-            state
-                .orchestrator
-                .get_rpc_service()
-                .setup_transfer_request(&data)
-                .await
-        })
-        .await
+        let ctx = DspTransferContext::outbound_request(
+            rpc_dto.associated_agent_peer.clone(),
+            rpc_dto.provider_address.clone(),
+            rpc_dto.data_address.clone(),
+        );
+        Self::map_service_result(
+            state.orchestrator.get_rpc_service().setup_transfer_request(ctx, &rpc_dto).await,
+            StatusCode::CREATED,
+            rpc_dto,
+        )
         .into_response()
     }
 }

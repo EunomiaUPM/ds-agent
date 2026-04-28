@@ -19,6 +19,7 @@
 
 use crate::entities::transfer_process::TransferProcessDto;
 use crate::protocols::dsp::protocol_types::DataAddressDto;
+use common::facades::Mates;
 use connector::ConnectorInstanceDto;
 use urn::Urn;
 
@@ -32,10 +33,15 @@ pub struct DspTransferContext {
     /// `Some` for all continuation steps (inbound protocol path).
     pub peer_pid: Option<Urn>,
 
-    /// Identifier of the remote agent.
+    /// Participant ID of the remote agent.
     /// Inbound: from the `Mates` auth extension.
     /// Outbound: from `associated_agent_peer` in the RPC input.
-    pub associated_peer: String,
+    pub associated_peer_id: String,
+
+    /// Full `Mates` record for the remote agent.
+    /// `Some` on the inbound path (available from auth middleware).
+    /// `None` on the outbound RPC path.
+    pub associated_peer: Option<Mates>,
 
     // ── Populated in prepare_context ─────────────────────────────────────────
 
@@ -85,7 +91,8 @@ impl Default for DspTransferContext {
     fn default() -> Self {
         Self {
             peer_pid: None,
-            associated_peer: String::new(),
+            associated_peer_id: String::new(),
+            associated_peer: None,
             process: None,
             consumer_pid: None,
             provider_pid: None,
@@ -102,22 +109,23 @@ impl Default for DspTransferContext {
 
 impl DspTransferContext {
     /// Create the initial context for an **inbound** DSP message.
-    pub fn inbound(peer_pid: Option<Urn>, associated_peer: String) -> Self {
+    pub fn inbound(peer_pid: Option<Urn>, associated_peer_id: String, associated_peer: Mates) -> Self {
         Self {
             peer_pid,
-            associated_peer,
+            associated_peer_id,
+            associated_peer: Some(associated_peer),
             ..Default::default()
         }
     }
 
     /// Create the initial context for an **outbound** RPC transfer request.
     pub fn outbound_request(
-        associated_peer: String,
+        associated_peer_id: String,
         provider_address: String,
         input_data_address: Option<DataAddressDto>,
     ) -> Self {
         Self {
-            associated_peer,
+            associated_peer_id,
             provider_address: Some(provider_address),
             input_data_address,
             ..Default::default()

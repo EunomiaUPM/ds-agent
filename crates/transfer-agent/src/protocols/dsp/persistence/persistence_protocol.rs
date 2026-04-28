@@ -89,7 +89,7 @@ impl TransferPersistenceTrait for TransferPersistenceForProtocolService {
             id,
             "DSP",
             "INBOUND",
-            &ctx.associated_peer,
+            &ctx.associated_peer_id,
             ctx.provider_pid.clone(),
             ctx.provider_address.clone(),
             payload_dto,

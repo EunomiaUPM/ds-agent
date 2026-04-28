@@ -26,8 +26,6 @@ use axum::{
 };
 use serde::Serialize;
 use std::sync::Arc;
-
-use crate::http::common::{extract_payload, parse_urn};
 use crate::protocols::dsp::context::DspTransferContext;
 use crate::protocols::dsp::orchestrator::OrchestratorTrait;
 use crate::protocols::dsp::protocol_types::{
@@ -161,7 +159,7 @@ impl DspRouter {
             Ok(v) => v,
             Err(e) => return e.into_response(),
         };
-        let ctx = DspTransferContext::inbound(None, mate.participant_id);
+        let ctx = DspTransferContext::inbound(None, mate.participant_id.clone(), mate);
         let result = state
             .orchestrator
             .get_protocol_service()
@@ -191,11 +189,11 @@ impl DspRouter {
             Ok(v) => v,
             Err(e) => return e.into_response(),
         };
-        let peer_pid = match extract_path_urn(&id) {
+        let process_id = match extract_path_urn(&id) {
             Ok(u) => u,
             Err(e) => return e.into_response(),
         };
-        let ctx = DspTransferContext::inbound(Some(peer_pid), mate.participant_id);
+        let ctx = DspTransferContext::inbound(Some(process_id), mate.participant_id.clone(), mate);
         Self::map_service_result(
             state
                 .orchestrator
@@ -220,11 +218,11 @@ impl DspRouter {
             Ok(v) => v,
             Err(e) => return e.into_response(),
         };
-        let peer_pid = match extract_path_urn(&id) {
+        let process_id = match extract_path_urn(&id) {
             Ok(u) => u,
             Err(e) => return e.into_response(),
         };
-        let ctx = DspTransferContext::inbound(Some(peer_pid), mate.participant_id);
+        let ctx = DspTransferContext::inbound(Some(process_id), mate.participant_id.clone(), mate);
         Self::map_service_result(
             state
                 .orchestrator
@@ -249,11 +247,11 @@ impl DspRouter {
             Ok(v) => v,
             Err(e) => return e.into_response(),
         };
-        let peer_pid = match extract_path_urn(&id) {
+        let process_id = match extract_path_urn(&id) {
             Ok(u) => u,
             Err(e) => return e.into_response(),
         };
-        let ctx = DspTransferContext::inbound(Some(peer_pid), mate.participant_id);
+        let ctx = DspTransferContext::inbound(Some(process_id), mate.participant_id.clone(), mate);
         Self::map_service_result(
             state
                 .orchestrator
@@ -278,11 +276,11 @@ impl DspRouter {
             Ok(v) => v,
             Err(e) => return e.into_response(),
         };
-        let peer_pid = match extract_path_urn(&id) {
+        let process_id = match extract_path_urn(&id) {
             Ok(u) => u,
             Err(e) => return e.into_response(),
         };
-        let ctx = DspTransferContext::inbound(Some(peer_pid), mate.participant_id);
+        let ctx = DspTransferContext::inbound(Some(process_id), mate.participant_id.clone(), mate);
         Self::map_service_result(
             state
                 .orchestrator

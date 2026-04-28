@@ -77,7 +77,7 @@ impl RPCOrchestratorService {
         let dp = self.facades.get_data_plane_facade().await;
         S::pre_hook(&dp, ctx).await?;
         let message = S::build_message(ctx, input)?;
-        S::apply_auth_token(&self.mates_facade, &self.http_client, &ctx.associated_peer).await;
+        S::apply_auth_token(&self.mates_facade, &self.http_client, &ctx.associated_peer_id).await;
         let response = S::send_and_persist(
             &self.http_client,
             &self.persistence_service,
@@ -98,13 +98,10 @@ impl RPCOrchestratorService {
 impl RPCOrchestratorTrait for RPCOrchestratorService {
     async fn setup_transfer_request(
         &self,
+        ctx: DspTransferContext,
         input: &RpcTransferRequestMessageDto,
     ) -> Outcome<RpcTransferMessageDto<RpcTransferRequestMessageDto>> {
-        let mut ctx = DspTransferContext::outbound_request(
-            input.associated_agent_peer.clone(),
-            input.provider_address.clone(),
-            input.data_address.clone(),
-        );
+        let mut ctx = ctx;
         let (response, process) = self.run_lifecycle::<RequestStep>(&mut ctx, input).await?;
         Ok(RpcTransferMessageDto {
             request: input.clone(),
@@ -115,9 +112,10 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
 
     async fn setup_transfer_start(
         &self,
+        ctx: DspTransferContext,
         input: &RpcTransferStartMessageDto,
     ) -> Outcome<RpcTransferMessageDto<RpcTransferStartMessageDto>> {
-        let mut ctx = DspTransferContext::outbound_continuation();
+        let mut ctx = ctx;
         let (response, process) = self.run_lifecycle::<StartStep>(&mut ctx, input).await?;
         Ok(RpcTransferMessageDto {
             request: input.clone(),
@@ -128,9 +126,10 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
 
     async fn setup_transfer_suspension(
         &self,
+        ctx: DspTransferContext,
         input: &RpcTransferSuspensionMessageDto,
     ) -> Outcome<RpcTransferMessageDto<RpcTransferSuspensionMessageDto>> {
-        let mut ctx = DspTransferContext::outbound_continuation();
+        let mut ctx = ctx;
         let (response, process) = self
             .run_lifecycle::<SuspensionStep>(&mut ctx, input)
             .await?;
@@ -143,9 +142,10 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
 
     async fn setup_transfer_completion(
         &self,
+        ctx: DspTransferContext,
         input: &RpcTransferCompletionMessageDto,
     ) -> Outcome<RpcTransferMessageDto<RpcTransferCompletionMessageDto>> {
-        let mut ctx = DspTransferContext::outbound_continuation();
+        let mut ctx = ctx;
         let (response, process) = self
             .run_lifecycle::<CompletionStep>(&mut ctx, input)
             .await?;
@@ -158,9 +158,10 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
 
     async fn setup_transfer_termination(
         &self,
+        ctx: DspTransferContext,
         input: &RpcTransferTerminationMessageDto,
     ) -> Outcome<RpcTransferMessageDto<RpcTransferTerminationMessageDto>> {
-        let mut ctx = DspTransferContext::outbound_continuation();
+        let mut ctx = ctx;
         let (response, process) = self
             .run_lifecycle::<TerminationStep>(&mut ctx, input)
             .await?;

@@ -26,6 +26,7 @@ pub(crate) mod step_termination;
 pub(crate) mod step_trait;
 pub(crate) mod types;
 
+use crate::protocols::dsp::context::DspTransferContext;
 use crate::protocols::dsp::orchestrator::rpc::types::{
     RpcTransferCompletionMessageDto, RpcTransferMessageDto, RpcTransferRequestMessageDto,
     RpcTransferStartMessageDto, RpcTransferSuspensionMessageDto, RpcTransferTerminationMessageDto,
@@ -36,22 +37,27 @@ use ymir::errors::Outcome;
 pub trait RPCOrchestratorTrait: Send + Sync + 'static {
     async fn setup_transfer_request(
         &self,
+        ctx: DspTransferContext,
         input: &RpcTransferRequestMessageDto,
     ) -> Outcome<RpcTransferMessageDto<RpcTransferRequestMessageDto>>;
     async fn setup_transfer_start(
         &self,
+        ctx: DspTransferContext,
         input: &RpcTransferStartMessageDto,
     ) -> Outcome<RpcTransferMessageDto<RpcTransferStartMessageDto>>;
     async fn setup_transfer_suspension(
         &self,
+        ctx: DspTransferContext,
         input: &RpcTransferSuspensionMessageDto,
     ) -> Outcome<RpcTransferMessageDto<RpcTransferSuspensionMessageDto>>;
     async fn setup_transfer_completion(
         &self,
+        ctx: DspTransferContext,
         input: &RpcTransferCompletionMessageDto,
     ) -> Outcome<RpcTransferMessageDto<RpcTransferCompletionMessageDto>>;
     async fn setup_transfer_termination(
         &self,
+        ctx: DspTransferContext,
         input: &RpcTransferTerminationMessageDto,
     ) -> Outcome<RpcTransferMessageDto<RpcTransferTerminationMessageDto>>;
 }

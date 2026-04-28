@@ -111,7 +111,7 @@ pub(super) async fn populate_continuation_context(
     let peer_url_id = process.identifiers.get(identifier_key).unwrap().clone();
     let is_restart = process.inner.state_attribute.as_deref().unwrap_or("") != "OnRequest";
 
-    ctx.associated_peer = process.inner.associated_agent_peer.clone();
+    ctx.associated_peer_id = process.inner.associated_agent_peer.clone();
     ctx.provider_address = process.inner.callback_address.clone();
     ctx.provider_pid = Some(provider_pid);
     ctx.consumer_pid = Some(consumer_pid_urn);

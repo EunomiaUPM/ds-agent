@@ -161,7 +161,6 @@ mod test_catalog_complete {
         // Remove from single storage
         cache.delete_single(&id).await.unwrap();
         let check = cache.get_single(&id).await.unwrap();
-        dbg!(&check);
         assert!(check.is_none());
 
         // Pointer remains in ZSET until explicitly removed (or index repair)

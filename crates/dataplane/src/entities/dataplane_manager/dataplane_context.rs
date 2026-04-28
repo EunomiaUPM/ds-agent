@@ -117,9 +117,6 @@ impl DataplaneContext {
         continuation: DataplaneContinuation,
         dataplane_address: Option<DataplaneAddress>,
     ) -> Outcome<Self> {
-        dbg!("1. petas por aqui...");
-
-
         // db access
         let dataplane_process = dataplane_entity
             .get_dataplane_transfer_by_process_id(&continuation.transfer_dto_urn)
@@ -128,7 +125,6 @@ impl DataplaneContext {
             return Err(Errors::crazy("Dataplane Process not found", None));
         }
         let dataplane_process = dataplane_process.unwrap();
-        dbg!("2. petas por aqui...");
         // connector
         let connector_id = &dataplane_process.inner.connector_instance_id;
         let connector = match connector_id {
@@ -170,7 +166,6 @@ impl DataplaneContext {
             dataplane_process.clone().inner.egress_config,
         )?;
         context.proxy = Some(DataplaneProxy { ingress, egress });
-        dbg!("3. petas por aqui...");
         Ok(context)
     }
 

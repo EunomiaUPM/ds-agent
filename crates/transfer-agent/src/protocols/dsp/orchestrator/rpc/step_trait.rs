@@ -139,7 +139,6 @@ where
         _type: payload.get_message(),
         dto: payload.as_ref().clone(),
     };
-    dbg!("5.", &message);
 
     let response: TransferProcessMessageWrapper<TransferProcessAckDto> =
         http_client.post_json(&peer_url, &message).await?;

@@ -42,7 +42,6 @@ impl ProtocolStep for ProtocolStartStep {
         validator: &Arc<dyn ValidationDspSteps>,
         input: &TransferProcessMessageWrapper<TransferStartMessageDto>,
     ) -> Outcome<()> {
-        dbg!("1.", &ctx);
         validator.on_transfer_start(ctx, input).await
     }
 
@@ -52,7 +51,6 @@ impl ProtocolStep for ProtocolStartStep {
         persistence: &Arc<dyn TransferPersistenceTrait>,
         _facades: &Arc<dyn FacadeTrait>,
     ) -> Outcome<Option<TransferProcessMessageWrapper<TransferProcessAckDto>>> {
-        dbg!("2.", &ctx);
         continuation_prepare_context(ctx, persistence).await
     }
 
@@ -61,7 +59,6 @@ impl ProtocolStep for ProtocolStartStep {
         persistence: &Arc<dyn TransferPersistenceTrait>,
         input: &TransferProcessMessageWrapper<TransferStartMessageDto>,
     ) -> Outcome<()> {
-        dbg!("3.", &ctx);
         continuation_persist(ctx, persistence, input).await
     }
 
@@ -70,7 +67,6 @@ impl ProtocolStep for ProtocolStartStep {
         dp: &Arc<dyn DataPlaneFacadeTrait>,
         input: &TransferProcessMessageWrapper<TransferStartMessageDto>,
     ) -> Outcome<()> {
-        dbg!("4.", &ctx);
         // The data address from the inbound StartMessage is the provider's proxy URL.
         ctx.input_data_address = input.dto.data_address.clone();
         let addr = dp.on_transfer_start_post(ctx).await?;

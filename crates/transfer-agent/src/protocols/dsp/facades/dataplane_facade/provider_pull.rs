@@ -78,7 +78,6 @@ impl DataPlaneStrategy for ProviderPullStrategy {
                 None,
             ))
             .await?;
-        dbg!("res", &res);
 
         if let DataplaneCommandResponse::OkWithAddress(address) = res {
             Ok(Some(address.into()))

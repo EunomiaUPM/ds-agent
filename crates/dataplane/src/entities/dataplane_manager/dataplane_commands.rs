@@ -181,7 +181,6 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
             )
             .await?;
         ctx.set_dataplane_process(dataplane_process);
-        dbg!("2. petas por mucho mas aqui...");
         ctx.set_forward_dataplane_address_from_ingress();
         Ok(ctx)
     }

@@ -49,7 +49,6 @@ impl TransferRpcStep for StartStep {
         input: &RpcTransferStartMessageDto,
         persistence: &Arc<dyn TransferPersistenceTrait>,
     ) -> Outcome<()> {
-        dbg!("1.", &ctx);
         let pid = input
             .get_consumer_pid()
             .ok_or_else(|| Errors::crazy("StartStep: missing consumer PID", None))?;
@@ -60,7 +59,6 @@ impl TransferRpcStep for StartStep {
         dp: &Arc<dyn DataPlaneFacadeTrait>,
         ctx: &mut DspTransferContext,
     ) -> Outcome<()> {
-        dbg!("2.", &ctx);
         let addr = dp.on_transfer_start_pre(ctx).await?;
         ctx.resolved_data_address = addr;
         Ok(())
@@ -70,7 +68,6 @@ impl TransferRpcStep for StartStep {
         ctx: &DspTransferContext,
         _input: &RpcTransferStartMessageDto,
     ) -> Outcome<TransferStartMessageDto> {
-        dbg!("3.", &ctx);
         let data_address = if ctx.is_restart {
             None
         } else {
@@ -95,7 +92,6 @@ impl TransferRpcStep for StartStep {
         ctx: &mut DspTransferContext,
         payload: Arc<TransferStartMessageDto>,
     ) -> Outcome<TransferProcessMessageWrapper<TransferProcessAckDto>> {
-        dbg!("4.", &ctx);
         continuation_send_and_persist(http_client, persistence, ctx, payload, Self::url_suffix())
             .await
     }
@@ -104,7 +100,6 @@ impl TransferRpcStep for StartStep {
         dp: &Arc<dyn DataPlaneFacadeTrait>,
         ctx: &mut DspTransferContext,
     ) -> Outcome<()> {
-        dbg!("5.", &ctx);
         dp.on_transfer_start_post(ctx).await?;
         Ok(())
     }

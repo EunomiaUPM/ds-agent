@@ -41,7 +41,7 @@ import { cn } from "shared/src/lib/utils";
  */
 const badgeVariants = cva(
   // Base styles applied to all badges
-  "px-1.5 py-0.5 w-fit inline-flex justify-start items-center bg-white/5 font-medium rounded-[4px] border border-white/10 whitespace-nowrap shrink-0 gap-1 transition-all",
+  "!leading-0 px-1.5 py-0.5 w-fit inline-flex justify-start items-center bg-white/5 font-medium rounded-[4px] border border-white/10 whitespace-nowrap shrink-0 gap-1 transition-all",
   {
     variants: {
       /**
@@ -52,7 +52,7 @@ const badgeVariants = cva(
         info: "font-mono uppercase bg-background-800 text-secondary-400 border-white/10",
         infoLighter: "font-mono uppercase bg-white/10 text-secondary-400 border-white/10",
         role: "text-white uppercase border-white/10",
-        status: "bg-opacity-30 border-white/10 text-foreground-300",
+        status: "bg-opacity-30 border-white/10 text-foreground-300 uppercase",
         detail: "text-xs bg-brand-sky/20 !px-1 !py-0 max-w-[140px] !whitespace-normal",
       },
 
@@ -73,10 +73,13 @@ const badgeVariants = cva(
         // Pending states
         OFFERED: "bg-warn text-warn-300 [&>span]:bg-warn-400",
         REQUESTED: "bg-warn text-warn-300 [&>span]:bg-warn-400",
+        Pending: "bg-warn text-warn-300 [&>span]:bg-warn-400",
+        Processing: "bg-warn text-warn-300 [&>span]:bg-warn-400",
         AGREED: "bg-process text-process-300 [&>span]:bg-process-400",
         // Success states
         FINALIZED: "bg-success text-success-300 [&>span]:bg-success-400",
         COMPLETED: "bg-success text-success-300 [&>span]:bg-success-400",
+        Approved: "bg-success text-success-300 [&>span]:bg-success-400",
         // Paused states
         SUSPENDED: "bg-pause text-pause-300 [&>span]:bg-pause-400",
         PAUSE: "bg-pause text-pause-300 [&>span]:bg-pause-400",

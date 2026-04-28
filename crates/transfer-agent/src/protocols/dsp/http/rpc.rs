@@ -104,7 +104,12 @@ impl RpcRouter {
                             consumer_pid: None,
                             provider_pid: None,
                             code: Some("5000".to_string()),
-                            reason: Some(vec![err.to_string()]),
+                            reason: Some(vec![
+                                err.to_string(),
+                                err.reason().to_string(),
+                                err.path().to_string(),
+                                err.context()
+                            ]),
                         },
                     };
                 let rpc_error_dto: RpcTransferErrorDto<T> = RpcTransferErrorDto {

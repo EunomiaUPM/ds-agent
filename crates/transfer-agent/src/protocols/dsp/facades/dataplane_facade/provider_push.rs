@@ -71,11 +71,10 @@ impl DataPlaneStrategy for ProviderPushStrategy {
         mgr: &DataplaneManager,
     ) -> Outcome<Option<DataAddressDto>> {
         let id = process_urn(ctx, "provider push start_pre")?;
-        mgr.execute_command(DataplaneCommand::SetStarted(
+        mgr.execute_command(DataplaneCommand::SetSubscribing(
             DataplaneContinuation {
                 transfer_dto_urn: id,
             },
-            None
         ))
         .await?;
         Ok(None)
@@ -94,7 +93,7 @@ impl DataPlaneStrategy for ProviderPushStrategy {
         ctx: &DspTransferContext,
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
-        mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
+        mgr.execute_command(DataplaneCommand::SetUnsubscribing(DataplaneContinuation {
             transfer_dto_urn: process_urn(ctx, "provider push suspend_pre")?,
         }))
         .await?;
@@ -106,7 +105,7 @@ impl DataPlaneStrategy for ProviderPushStrategy {
         ctx: &DspTransferContext,
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
-        mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
+        mgr.execute_command(DataplaneCommand::SetUnsubscribing(DataplaneContinuation {
             transfer_dto_urn: process_urn(ctx, "provider push suspend_post")?,
         }))
         .await?;
@@ -118,7 +117,7 @@ impl DataPlaneStrategy for ProviderPushStrategy {
         ctx: &DspTransferContext,
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
-        mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
+        mgr.execute_command(DataplaneCommand::SetUnsubscribing(DataplaneContinuation {
             transfer_dto_urn: process_urn(ctx, "provider push complete_pre")?,
         }))
         .await?;
@@ -130,7 +129,7 @@ impl DataPlaneStrategy for ProviderPushStrategy {
         ctx: &DspTransferContext,
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
-        mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
+        mgr.execute_command(DataplaneCommand::SetUnsubscribing(DataplaneContinuation {
             transfer_dto_urn: process_urn(ctx, "provider push complete_post")?,
         }))
         .await?;
@@ -142,7 +141,7 @@ impl DataPlaneStrategy for ProviderPushStrategy {
         ctx: &DspTransferContext,
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
-        mgr.execute_command(DataplaneCommand::SetTerminating(DataplaneContinuation {
+        mgr.execute_command(DataplaneCommand::SetUnsubscribing(DataplaneContinuation {
             transfer_dto_urn: process_urn(ctx, "provider push terminate_pre")?,
         }))
         .await?;
@@ -154,7 +153,7 @@ impl DataPlaneStrategy for ProviderPushStrategy {
         ctx: &DspTransferContext,
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
-        mgr.execute_command(DataplaneCommand::SetTerminating(DataplaneContinuation {
+        mgr.execute_command(DataplaneCommand::SetUnsubscribing(DataplaneContinuation {
             transfer_dto_urn: process_urn(ctx, "provider push terminate_post")?,
         }))
         .await?;

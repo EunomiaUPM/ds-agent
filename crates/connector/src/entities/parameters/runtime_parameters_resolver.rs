@@ -54,6 +54,7 @@ fn run_jq(expr: &str, value: serde_json::Value) -> Option<serde_json::Value> {
 pub struct RuntimeParametersResolver<'a> {
     connector_instance: &'a ConnectorInstanceDto,
     runtime_params: &'a serde_json::Value,
+    ingress_url: Option<String>,
 }
 
 impl<'a> RuntimeParametersResolver<'a> {
@@ -64,7 +65,13 @@ impl<'a> RuntimeParametersResolver<'a> {
         Self {
             connector_instance,
             runtime_params,
+            ingress_url: None,
         }
+    }
+
+    pub fn with_ingress(mut self, url: Option<impl Into<String>>) -> Self {
+        self.ingress_url = url.map(Into::into);
+        self
     }
 
     pub fn resolve(&self) -> Outcome<ConnectorInstanceDto> {
@@ -104,34 +111,50 @@ impl<'a> RuntimeParametersResolver<'a> {
         }
     }
 
-    /// Returns `Some` only when the string contains at least one `{{__RUNTIME_JSON_{...}__}}`.
-    /// - Exact match  → runs jq and returns the raw output (preserves JSON type).
-    /// - Interpolated → runs jq for each placeholder and replaces with its string form.
     fn resolve_string(&self, raw: &str) -> Option<serde_json::Value> {
+        const INGRESS_PLACEHOLDER: &str = "{{__RUNTIME_INGRESS__}}";
+
+        // Step 1: substitute {{__RUNTIME_INGRESS__}}.
+        let after_ingress;
+        let (current, ingress_changed) = if raw.contains(INGRESS_PLACEHOLDER) {
+            let url = self.ingress_url.as_deref().unwrap_or("");
+            after_ingress = raw.replace(INGRESS_PLACEHOLDER, url);
+            (after_ingress.as_str(), true)
+        } else {
+            (raw, false)
+        };
+
+        // Step 2: substitute {{__RUNTIME_JSON_{...}__}}.
         let re = template_runtime_json_regex();
-        let captures = re.captures(raw)?;
-
-        // Exact match: the whole string is a single placeholder → preserve JSON type.
-        // null is treated as "not found" so the placeholder is left unchanged.
-        if captures.get(0)?.as_str() == raw {
-            let expr = &captures[1];
-            return run_jq(expr, self.runtime_params.clone()).filter(|v| !v.is_null());
-        }
-
-        // Interpolation: one or more placeholders embedded in text.
-        let mut result = raw.to_string();
-        for caps in re.captures_iter(raw) {
-            let full_match = &caps[0];
-            let expr = &caps[1];
-            if let Some(val) = run_jq(expr, self.runtime_params.clone()) {
-                let s = match &val {
-                    serde_json::Value::String(s) => s.clone(),
-                    other => other.to_string(),
-                };
-                result = result.replace(full_match, &s);
+        if let Some(captures) = re.captures(current) {
+            // Exact match, preserve JSON type.
+            if captures.get(0).map(|m| m.as_str()) == Some(current) {
+                let expr = &captures[1];
+                return run_jq(expr, self.runtime_params.clone()).filter(|v| !v.is_null());
             }
+
+            // Interpolation, stringify each match.
+            let mut result = current.to_string();
+            for caps in re.captures_iter(current) {
+                let full_match = &caps[0];
+                let expr = &caps[1];
+                if let Some(val) = run_jq(expr, self.runtime_params.clone()) {
+                    let s = match &val {
+                        serde_json::Value::String(s) => s.clone(),
+                        other => other.to_string(),
+                    };
+                    result = result.replace(full_match, &s);
+                }
+            }
+            return Some(serde_json::Value::String(result));
         }
-        Some(serde_json::Value::String(result))
+
+        // No RUNTIME_JSON patterns; return only if ingress substitution changed something.
+        if ingress_changed {
+            Some(serde_json::Value::String(current.to_string()))
+        } else {
+            None
+        }
     }
 }
 

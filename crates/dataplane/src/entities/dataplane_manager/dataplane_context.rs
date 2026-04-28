@@ -165,7 +165,9 @@ impl DataplaneContext {
         let egress = serde_json::from_value::<DataplaneProxyEgress>(
             dataplane_process.clone().inner.egress_config,
         )?;
+        context.forward_dataplane_address = Some(egress.clone().into());
         context.proxy = Some(DataplaneProxy { ingress, egress });
+
         Ok(context)
     }
 

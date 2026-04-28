@@ -176,6 +176,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
                 &dataplane_urn,
                 &EditDataplaneTransferDto {
                     state: Some(new_state),
+                    flow_control: ctx.runtime().and_then(|r| serde_json::to_value(r).ok()),
                     ..EditDataplaneTransferDto::default()
                 },
             )
@@ -189,23 +190,27 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
             None => Ok(context),
             Some(subscriber) => {
                 let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
-                // state
-                let new_state = TransferState::Subscribing;
-                // driver.auth
                 let dataplane_process = self
                     .dataplane_entity()
                     .put_dataplane_transfer_by_id(
                         &dataplane_urn,
                         &EditDataplaneTransferDto {
-                            state: Some(new_state),
+                            state: Some(TransferState::Subscribing),
                             ..EditDataplaneTransferDto::default()
                         },
                     )
                     .await?;
                 context.set_dataplane_process(dataplane_process);
-                let ctx = subscriber.subscribe(&context).await?;
-                let new_context = self.set_started(ctx).await?;
-                Ok(new_context)
+                match subscriber.subscribe(&context).await {
+                    Ok(ctx) => {
+                        let new_context = self.set_started(ctx).await?;
+                        Ok(new_context)
+                    }
+                    Err(e) => {
+                        let _ = self.set_terminating(context).await;
+                        Err(e)
+                    }
+                }
             }
         }
     }
@@ -214,23 +219,27 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
             None => Ok(context),
             Some(subscriber) => {
                 let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
-                // state
-                let new_state = TransferState::Unsubscribing;
-                // driver.auth
                 let dataplane_process = self
                     .dataplane_entity()
                     .put_dataplane_transfer_by_id(
                         &dataplane_urn,
                         &EditDataplaneTransferDto {
-                            state: Some(new_state),
+                            state: Some(TransferState::Unsubscribing),
                             ..EditDataplaneTransferDto::default()
                         },
                     )
                     .await?;
                 context.set_dataplane_process(dataplane_process);
-                let ctx = subscriber.subscribe(&context).await?;
-                let new_context = self.set_stopped(ctx).await?;
-                Ok(new_context)
+                match subscriber.unsubscribe(&context).await {
+                    Ok(ctx) => {
+                        let new_context = self.set_stopped(ctx).await?;
+                        Ok(new_context)
+                    }
+                    Err(e) => {
+                        let _ = self.set_terminating(context).await;
+                        Err(e)
+                    }
+                }
             }
         }
     }

@@ -140,7 +140,6 @@ mod tests {
         DataplaneDriver, DriverAuthenticatorTrait, DriverProxyConfiguratorTrait, DriverPubSubTrait,
         MockDriverPubSubTrait,
     };
-    use crate::entities::dataplane_manager::dataplane_commands::DataplaneCommand;
     use crate::entities::dataplane_manager::dataplane_commands::{
         DataplaneCommand, DataplaneCommandResponse, DataplaneContinuation,
         DataplaneInitCommandDirection, DataplaneInitCommandTypes,
@@ -567,6 +566,22 @@ mod tests {
                 )))
             });
 
+        // set_started calls set_configuring first when state == Ready
+        mock_entity
+            .expect_put_dataplane_transfer_by_id()
+            .withf(|_, dto| dto.state == Some(TransferState::Configuring))
+            .times(1)
+            .returning(|id, _| {
+                Ok(dummy_dataplane_transfer_dto(
+                    &id.to_string(),
+                    "urn:transfer-process:10",
+                    TransferRole::Consumer,
+                    InteractionMode::Pull,
+                    TransferState::Configuring,
+                    None,
+                ))
+            });
+
         mock_entity
             .expect_put_dataplane_transfer_by_id()
             .withf(|_, dto| dto.state == Some(TransferState::Started))
@@ -587,9 +602,12 @@ mod tests {
             Arc::new(mock_connector),
             transfer_config_fixture(),
         )
-        .execute_command(DataplaneCommand::SetStarted(DataplaneContinuation {
-            transfer_dto_urn: tp_id,
-        }))
+        .execute_command(DataplaneCommand::SetStarted(
+            DataplaneContinuation {
+                transfer_dto_urn: tp_id,
+            },
+            None,
+        ))
         .await;
 
         assert!(result.is_ok());
@@ -799,9 +817,12 @@ mod tests {
             Arc::new(mock_connector),
             transfer_config_fixture(),
         )
-        .execute_command(DataplaneCommand::SetStarted(DataplaneContinuation {
-            transfer_dto_urn: Urn::from_str("urn:transfer-process:99").unwrap(),
-        }))
+        .execute_command(DataplaneCommand::SetStarted(
+            DataplaneContinuation {
+                transfer_dto_urn: Urn::from_str("urn:transfer-process:99").unwrap(),
+            },
+            None,
+        ))
         .await;
 
         assert!(result.is_err());
@@ -837,10 +858,27 @@ mod tests {
             .times(1)
             .returning(move |_| Ok(Some(dummy_pull_connector(&connector_urn))));
 
+        // mock_factory is used by from_continuation; set_configuring uses the real DataplaneDriverFactory
         mock_factory
             .expect_get_or_create_driver()
             .times(1)
             .returning(|_| Ok(dummy_driver()));
+
+        // set_started calls set_configuring first when state == Ready
+        mock_entity
+            .expect_put_dataplane_transfer_by_id()
+            .withf(|_, dto| dto.state == Some(TransferState::Configuring))
+            .times(1)
+            .returning(|id, _| {
+                Ok(dummy_dataplane_transfer_dto(
+                    &id.to_string(),
+                    "urn:transfer-process:20",
+                    TransferRole::Provider,
+                    InteractionMode::Pull,
+                    TransferState::Configuring,
+                    Some(Urn::from_str("urn:connector-instance:20").unwrap()),
+                ))
+            });
 
         mock_entity
             .expect_put_dataplane_transfer_by_id()
@@ -863,9 +901,12 @@ mod tests {
             transfer_config_fixture(),
             Arc::new(mock_factory),
         )
-        .execute_command(DataplaneCommand::SetStarted(DataplaneContinuation {
-            transfer_dto_urn: tp_id,
-        }))
+        .execute_command(DataplaneCommand::SetStarted(
+            DataplaneContinuation {
+                transfer_dto_urn: tp_id,
+            },
+            None,
+        ))
         .await;
 
         assert!(result.is_ok());

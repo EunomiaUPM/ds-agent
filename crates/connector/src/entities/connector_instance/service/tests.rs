@@ -76,20 +76,6 @@ fn get_template_fixture_model() -> connector_templates::Model {
     }
 }
 
-fn get_instance_fixture_model() -> connector_instances::Model {
-    connector_instances::Model {
-        id: "urn:connector-instance:fake".to_string(),
-        template_name: "".to_string(),
-        template_version: "".to_string(),
-        distribution_id: "".to_string(),
-        created_at: Default::default(),
-        metadata: Default::default(),
-        configuration_parameters: Default::default(),
-        authentication: Default::default(),
-        interaction: Default::default(),
-    }
-}
-
 fn mock_service() -> ConnectorInstanceEntitiesService {
     // at some point i'd like to call the template repo
     let mut connector_template_repo = MockConnectorTemplateRepoTrait::new();

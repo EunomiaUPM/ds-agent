@@ -159,11 +159,11 @@ mod tests {
             .returning(move |_, _| Ok(dto(expected.clone())));
     }
 
-    // set_init drives the full sub-chain
-    // The provider address set at init must survive all three hops intact.
-    // Just testing here the state machine and not the contents
+    // set_init drives the full sub-chain: configuring → auth → ready.
+    // After set_ready the forward address is replaced by the local ingress proxy URL
+    // (the address the consumer advertises to the provider).
     #[tokio::test]
-    async fn test_set_init_reaches_ready_and_preserves_address() {
+    async fn test_set_init_reaches_ready_and_exposes_proxy_address() {
         let mut mock = MockDataplaneTransfersEntitiesTrait::new();
         expect_create(&mut mock);
         expect_put(&mut mock, TransferState::Configuring);
@@ -177,12 +177,15 @@ mod tests {
         assert!(result.is_ok());
         let ctx = result.unwrap();
         assert_eq!(ctx.dataplane_process().inner.state, TransferState::Ready);
-        // provider address must survive the full configure → auth → ready chain
+        // after set_ready the address is the local proxy ingress URL built from the DP id
         let addr = ctx
             .forward_dataplane_address()
-            .expect("provider address must be preserved");
-        assert_eq!(addr.endpoint, "http://provider-endpoint.com/data");
-        assert_eq!(addr.authorization_type.as_deref(), Some("Bearer"));
+            .expect("proxy ingress address must be set after set_ready");
+        assert!(
+            addr.endpoint.contains("/dataplane/proxy/"),
+            "expected proxy ingress path, got: {}",
+            addr.endpoint
+        );
         // consumer pull never has a connector instance
         assert!(ctx.connector_instance().is_none());
     }

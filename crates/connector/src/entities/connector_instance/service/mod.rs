@@ -254,5 +254,4 @@ impl ConnectorInstanceTrait for ConnectorInstanceEntitiesService {
 }
 
 #[cfg(test)]
-#[cfg(test)]
 mod tests;

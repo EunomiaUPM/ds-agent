@@ -106,7 +106,7 @@ function RouteComponent() {
                   { 
                     label: "Identifier (DID)", 
                     value: {
-                      type: "custom",
+                      type: "custom" as const,
                       content: (
                         <div className="font-mono text-xs break-all bg-background-200 p-2 rounded border border-white/10">
                           {p.participant_id}
@@ -114,14 +114,14 @@ function RouteComponent() {
                       )
                     } 
                   },
-                  { 
+                  ...(p.token ? [{ 
                     label: "Identity Token", 
                     value: {
-                      type: "custom",
+                      type: "custom" as const,
                       content: (
                         <div className="flex flex-col gap-2">
                           <div className="font-mono text-[10px] opacity-60 truncate max-w-[300px] bg-background-200 p-2 rounded border border-white/10">
-                            {showSecrets ? (p.token || "No token assigned") : "••••••••••••••••••••••••••••••••"}
+                            {showSecrets ? p.token : "••••••••••••••••••••••••••••••••"}
                           </div>
                           <Button 
                             variant="ghost" 
@@ -134,11 +134,11 @@ function RouteComponent() {
                         </div>
                       )
                     } 
-                  },
+                  }] : []),
                   { 
                     label: "Base URL", 
                     value: {
-                      type: "custom",
+                      type: "custom" as const,
                       content: (
                         <a href={p.base_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-brand-sky hover:underline">
                           <Globe className="h-3 w-3" />

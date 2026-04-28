@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useGetAllVCRequests } from "shared/src/data/orval/vc-request/vc-request";
+import { useGetAllVCRequests, getGetAllVCRequestsQueryKey } from "shared/src/data/orval/vc-request/vc-request";
 import { PageLayout } from "shared/src/components/layout/PageLayout";
 import { PageHeader } from "shared/src/components/layout/PageHeader";
 import { PageSection } from "shared/src/components/layout/PageSection";
@@ -118,8 +118,8 @@ function RequestDetailsPage() {
         method: "POST",
         data,
       });
-      // Refresh the page on success
-      window.location.reload();
+      // Invalidate query to refetch data instead of full page reload
+      queryClient.invalidateQueries({ queryKey: getGetAllVCRequestsQueryKey() });
       
       // Optional: Add success toast or notification here
     } catch (err) {
@@ -269,10 +269,10 @@ function RequestDetailsPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               {timelineData && timelineData.pastEvents.length > 0 && (
-                <div className="relative pl-6 border-l-2 border-muted space-y-6 ml-2">
+                <div className="relative pl-8 border-l-[3px] border-primary/10 space-y-8 ml-2">
                   {timelineData.pastEvents.map((event) => (
                     <div key={event.id} className="relative">
-                      <span className="absolute -left-[29px] top-1.5 h-3.5 w-3.5 rounded-full bg-muted-foreground/30 border-4 border-background" />
+                      <span className="absolute -left-[43.5px] top-1 h-5 w-5 rounded-full bg-primary border-[5px] border-background shadow-sm" />
                       <div className="space-y-1">
                         <p className="text-sm font-medium text-muted-foreground">{event.title}</p>
                         {event.date && (

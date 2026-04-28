@@ -110,8 +110,8 @@ function ProviderRequestDetails() {
         method: "POST",
         data,
       });
-      // Refresh the page on success
-      window.location.reload();
+      // Invalidate query to refetch data instead of full page reload
+      queryClient.invalidateQueries({ queryKey: ["onboard-request", requestId] });
       
       // Optional: Add success toast or notification here
     } catch (err) {
@@ -278,10 +278,10 @@ function ProviderRequestDetails() {
                              <p className="text-xs text-muted-foreground italic">Scan this QR to claim your Verifiable Credential directly in your wallet.</p>
                              <UriDisplay uri={request.vc_uri} />
                              <Button 
-                               className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white" 
-                               size="sm"
-                               onClick={() => handleAction('/vc-request/oidc4vci', request.vc_uri!)}
-                               disabled={isProcessing}
+                                className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white" 
+                                size="sm"
+                                onClick={() => handleAction('/vc-request/oidc4vci', request.vc_uri!)}
+                                disabled={isProcessing}
                              >
                                {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Shield className="mr-2 h-4 w-4" />}
                                Claim in Agent
@@ -301,10 +301,10 @@ function ProviderRequestDetails() {
                              <p className="text-xs text-muted-foreground italic">Use this QR if you need to authenticate with the provider before receiving the VC.</p>
                              <UriDisplay uri={request.verification_uri} />
                              <Button 
-                               className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white" 
-                               size="sm"
-                               onClick={() => handleAction('/vc-request/oidc4vp', request.verification_uri!)}
-                               disabled={isProcessing}
+                                className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white" 
+                                size="sm"
+                                onClick={() => handleAction('/vc-request/oidc4vp', request.verification_uri!)}
+                                disabled={isProcessing}
                              >
                                {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Key className="mr-2 h-4 w-4" />}
                                Present in Agent
@@ -326,10 +326,10 @@ function ProviderRequestDetails() {
               </CardHeader>
               <CardContent className="space-y-6">
                 {timelineData && timelineData.pastEvents.length > 0 && (
-                  <div className="relative pl-6 border-l-2 border-muted space-y-6 ml-2">
+                  <div className="relative pl-8 border-l-[3px] border-primary/10 space-y-8 ml-2">
                     {timelineData.pastEvents.map((event) => (
                       <div key={event.id} className="relative">
-                        <span className="absolute -left-[29px] top-1.5 h-3.5 w-3.5 rounded-full bg-muted-foreground/30 border-4 border-background" />
+                        <span className="absolute -left-[43.5px] top-1 h-5 w-5 rounded-full bg-primary border-[5px] border-background shadow-sm" />
                         <div className="space-y-1">
                           <p className="text-sm font-medium text-muted-foreground">{event.title}</p>
                           {event.date && (
@@ -371,6 +371,7 @@ function ProviderRequestDetails() {
     </PageLayout>
   );
 }
+
 function UriDisplay({ uri }: { uri: string }) {
   const [copied, setCopied] = useState(false);
 

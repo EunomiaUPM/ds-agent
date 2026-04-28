@@ -14,7 +14,6 @@ impl DriverPubSubTrait for NoOpPubSubscriber {
     }
 
     async fn unsubscribe(&self, context: &DataplaneContext) -> Outcome<DataplaneContext> {
-        dbg!("{:}", &context);
         Ok(context.clone())
     }
 }

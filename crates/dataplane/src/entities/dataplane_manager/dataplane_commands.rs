@@ -13,7 +13,7 @@ use std::sync::Arc;
 use urn::Urn;
 use ymir::errors::Outcome;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum DataplaneCommand {
     SetInit(DataplaneInitCommandTypes),
     SetConfiguring,
@@ -39,13 +39,15 @@ pub enum DataplaneInitCommandTypes {
     },
 }
 
+
+
 #[derive(Clone, Debug)]
 pub enum DataplaneInitCommandDirection {
     Pull { data_address: DataplaneAddress },
     Push { data_address: DataplaneAddress },
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct DataplaneContinuation {
     pub transfer_dto_urn: Urn,
 }
@@ -103,7 +105,14 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
                 &dataplane_urn,
                 &EditDataplaneTransferDto {
                     state: Some(new_state),
-                    // METER INGRESS
+                    ingress_config: context
+                        .proxy()
+                        .map(|p| p.ingress().clone())
+                        .and_then(|p| serde_json::to_value(p).ok()),
+                    egress_config: context
+                        .proxy()
+                        .map(|p| p.egress().clone())
+                        .and_then(|p| serde_json::to_value(p).ok()),
                     ..EditDataplaneTransferDto::default()
                 },
             )

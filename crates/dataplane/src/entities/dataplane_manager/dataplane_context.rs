@@ -14,7 +14,7 @@ use crate::entities::dataplane_transfers::{
 
 use crate::{DataplaneAddress, DataplaneTransfersEntitiesTrait};
 use common::config::services::TransferConfig;
-use connector::{ConnectorInstanceDto, ConnectorInstanceTrait};
+use connector::{ConnectorInstanceDto, ConnectorInstanceTrait, InteractionConfig, ProtocolSpec};
 use serde_json::json;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -140,6 +140,7 @@ impl DataplaneContext {
             .inner
             .flow_control
             .and_then(|v| serde_json::from_value(v).ok());
+
         let mut context = Self {
             config,
             dataplane_process: dataplane_process.clone(),
@@ -150,11 +151,13 @@ impl DataplaneContext {
             forward_dataplane_address: None,
         };
 
+
         // driver to context
         context.driver = match &connector {
             Some(conn) => Some(driver_factory.get_or_create_driver(&context)?),
             None => None, // Consumer no tiene driver
         };
+
 
         // proxy to context
         let ingress = serde_json::from_value::<DataplaneProxyIngress>(
@@ -164,7 +167,6 @@ impl DataplaneContext {
             dataplane_process.clone().inner.egress_config,
         )?;
         context.proxy = Some(DataplaneProxy { ingress, egress });
-
         Ok(context)
     }
 

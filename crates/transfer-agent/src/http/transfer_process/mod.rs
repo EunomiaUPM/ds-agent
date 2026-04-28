@@ -115,7 +115,7 @@ impl TransferAgentProcessesRouter {
     ) -> impl IntoResponse {
         let input = match extract_payload(input) {
             Ok(v) => v,
-            Err(e) => return e,
+            Err(e) => return e.into_response(),
         };
         match state.service.get_batch_transfer_processes(&input.ids).await {
             Ok(processes) => (StatusCode::OK, Json(processes)).into_response(),

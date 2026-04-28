@@ -18,10 +18,7 @@
 use crate::protocols::dsp::context::DspTransferContext;
 use crate::protocols::dsp::facades::dataplane_facade::strategy::DataPlaneStrategy;
 use crate::protocols::dsp::facades::dataplane_facade::DataAddressDto;
-use dataplane::{
-    DataplaneCommand, DataplaneContinuation, DataplaneInitCommandDirection,
-    DataplaneInitCommandTypes, DataplaneManager,
-};
+use dataplane::{DataplaneAddress, DataplaneCommand, DataplaneContinuation, DataplaneInitCommandDirection, DataplaneInitCommandTypes, DataplaneManager};
 use std::str::FromStr;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
@@ -49,14 +46,15 @@ impl DataPlaneStrategy for ConsumerPullStrategy {
                 None,
             )
         })?;
-        let data_address = ctx
-            .input_data_address
-            .as_ref()
-            .ok_or_else(|| Errors::crazy("Data address not found.", None))?;
         let cmd = DataplaneCommand::SetInit(DataplaneInitCommandTypes::AsConsumer {
             transfer_process_id: transfer_id.clone(),
             direction: DataplaneInitCommandDirection::Pull {
-                data_address: data_address.into(),
+                data_address: DataplaneAddress { // TODO - Optional...
+                    endpoint_type: "".to_string(),
+                    endpoint: "".to_string(),
+                    authorization_type: None,
+                    authorization: None,
+                },
             },
         });
         mgr.execute_command(cmd).await?;

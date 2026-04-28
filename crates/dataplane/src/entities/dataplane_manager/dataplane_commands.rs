@@ -161,7 +161,12 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
         Ok(context)
     }
     async fn set_started(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
-        let mut ctx = self.set_configuring(context).await?;
+        // only configuring if egress needs to be set. it happens in Ready
+        let mut ctx = if context.dataplane_process_state() == TransferState::Ready {
+            self.set_configuring(context).await?
+        } else {
+            context
+        };
         let dataplane_urn = Urn::from_str(&*ctx.dataplane_process().inner.id)?;
         let new_state = TransferState::Started;
         let dataplane_process = self
@@ -175,6 +180,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
             )
             .await?;
         ctx.set_dataplane_process(dataplane_process);
+        dbg!("2. petas por mucho mas aqui...");
         ctx.set_forward_dataplane_address_from_ingress();
         Ok(ctx)
     }

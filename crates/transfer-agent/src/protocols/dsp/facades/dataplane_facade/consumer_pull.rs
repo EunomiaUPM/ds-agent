@@ -83,7 +83,7 @@ impl DataPlaneStrategy for ConsumerPullStrategy {
             DataplaneContinuation {
                 transfer_dto_urn: id,
             },
-            ctx.input_data_address.clone().map(|addr| addr.into()),
+            ctx.input_data_address.clone().map(|addr| addr.into()), // set egress
         );
         mgr.execute_command(cmd).await?;
         Ok(None)

@@ -119,8 +119,8 @@ function ProvidersPage() {
           keyExtractor={(r) => r.id}
           columns={[
             {
-              header:
-                /* (
+              header: "Provider Name",
+              /* (
                 <Button
                   variant="ghost"
                   onClick={() => handleSort("provider_slug")}
@@ -128,12 +128,12 @@ function ProvidersPage() {
                 >
                   Provider Name {getSortIcon("provider_slug")}
                 </Button>
-              ), */ "Provider Name",
+              ), */
               cell: (r) => r.provider_slug || "-",
             },
             {
-              header:
-                /* (
+              header: "Request ID",
+              /* (
                 <Button
                   variant="ghost"
                   onClick={() => handleSort("id")}
@@ -141,33 +141,33 @@ function ProvidersPage() {
                 >
                   Request ID {getSortIcon("id")}
                 </Button>
-              ), */ "Request ID",
+              ), */
               cell: (r) => <Badge variant={"info"}>{formatIdentifier(r.id)}</Badge>,
             },
+            // {
+            //   header: "Provider DID",
+            //     /* (
+            //     <Button
+            //       variant="ghost"
+            //       onClick={() => handleSort("provider_id")}
+            //       className="p-0 h-auto font-semibold"
+            //     >
+            //       Provider DID {getSortIcon("provider_id")}
+            //     </Button>
+            //   ), */
+            //   cell: (r) => (
+            //     <div className="flex flex-col gap-1">
+            //       <Badge variant={"info"}>{formatIdentifier(r.provider_id)}</Badge>
+            //     </div>
+            //   ),
+            // },
             {
-              header:
-                /* (
-                <Button
-                  variant="ghost"
-                  onClick={() => handleSort("provider_id")}
-                  className="p-0 h-auto font-semibold"
-                >
-                  Provider DID {getSortIcon("provider_id")}
-                </Button>
-              ), */ "Provider DID",
-              cell: (r) => (
-                <div className="flex flex-col gap-1">
-                  <Badge variant={"info"}>{formatIdentifier(r.provider_id)}</Badge>
-                </div>
-              ),
-            },
-            {
-              header:
-                /* (
+              header: "Status",
+              /* (
                 <Button variant="ghost" onClick={() => handleSort('status')} className="p-0 h-auto font-semibold">
                   Status {getSortIcon('status')}
                 </Button>
-              ), */ "Status",
+              ), */
               cell: (r) => (
                 <Badge variant={"status"} state={r.status}>
                   {r.status || "-"}
@@ -175,8 +175,8 @@ function ProvidersPage() {
               ),
             },
             {
-              header:
-                /* (
+              header: "Created at",
+              /* (
                 <Button
                   variant="ghost"
                   onClick={() => handleSort("created_at")}
@@ -184,7 +184,7 @@ function ProvidersPage() {
                 >
                   Created at {getSortIcon("created_at")}
                 </Button>
-              ), */ "Created at",
+              ), */
               cell: (r) => (r.created_at ? <FormatDate date={r.created_at} /> : "-"),
             },
             {
@@ -193,7 +193,7 @@ function ProvidersPage() {
                 // @ts-ignore
                 <Link to="/providers/request-details" search={{ requestId: r.id }}>
                   <Button variant="link" size={"sm"}>
-                    Details
+                    See details
                     <ArrowRight />
                   </Button>
                 </Link>

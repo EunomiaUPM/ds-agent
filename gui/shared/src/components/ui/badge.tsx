@@ -74,10 +74,12 @@ const badgeVariants = cva(
         OFFERED: "bg-warn text-warn-300 [&>span]:bg-warn-400",
         REQUESTED: "bg-warn text-warn-300 [&>span]:bg-warn-400",
         Pending: "bg-warn text-warn-300 [&>span]:bg-warn-400",
+        Processing: "bg-warn text-warn-300 [&>span]:bg-warn-400",
         AGREED: "bg-process text-process-300 [&>span]:bg-process-400",
         // Success states
         FINALIZED: "bg-success text-success-300 [&>span]:bg-success-400",
         COMPLETED: "bg-success text-success-300 [&>span]:bg-success-400",
+        Approved: "bg-success text-success-300 [&>span]:bg-success-400",
         // Paused states
         SUSPENDED: "bg-pause text-pause-300 [&>span]:bg-pause-400",
         PAUSE: "bg-pause text-pause-300 [&>span]:bg-pause-400",

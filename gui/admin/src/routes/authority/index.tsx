@@ -71,20 +71,6 @@ function AuthorityRequestsPage() {
     );
   };
 
-  const getStatusColor = (status?: string) => {
-    switch ((status ?? "").toLowerCase()) {
-      case "processing":
-        return "bg-blue-500/10 text-blue-500 border-blue-500/20";
-      case "pending":
-        return "bg-amber-500/10 text-amber-500 border-amber-500/20";
-      case "approved":
-        return "bg-green-500/10 text-green-500 border-green-500/20";
-      case "finalized":
-        return "bg-purple-500/10 text-purple-500 border-purple-500/20";
-      default:
-        return "bg-gray-500/10 text-gray-500 border-gray-500/20";
-    }
-  };
   return (
     <PageLayout>
       <PageHeader title="Request Credential">
@@ -129,21 +115,21 @@ function AuthorityRequestsPage() {
               ), */
               cell: (a: any) => <Badge variant={"info"}>{formatIdentifier(a.id)}</Badge>,
             },
-            {
-              header: "Authority ID",
-              /* (
-                <Button variant="ghost" onClick={() => handleSort("authority_id")}>
-                  Authority ID {getSortIcon("authority_id")}
-                </Button>
-              ), */
-              cell: (a: any) => (
-                <div className="flex flex-col gap-1">
-                  <Badge variant={"info"}>
-                    {a.authority_id ? formatIdentifier(a.authority_id) : "-"}
-                  </Badge>
-                </div>
-              ),
-            },
+            // {
+            //   header: "Authority ID",
+            //   /* (
+            //     <Button variant="ghost" onClick={() => handleSort("authority_id")}>
+            //       Authority ID {getSortIcon("authority_id")}
+            //     </Button>
+            //   ), */
+            //   cell: (a: any) => (
+            //     <div className="flex flex-col gap-1">
+            //       <Badge variant={"info"}>
+            //         {a.authority_id ? formatIdentifier(a.authority_id) : "-"}
+            //       </Badge>
+            //     </div>
+            //   ),
+            // },
             {
               header: "VC Type",
               /* (
@@ -167,10 +153,12 @@ function AuthorityRequestsPage() {
                 >
                   Status {getSortIcon("status")}
                 </Button>
-              ),
-              cell: (a: any) => (
-                <Badge className={`border ${getStatusColor(a.status)}`}>{a.status || "-"}</Badge>
               ), */
+              cell: (a: any) => (
+                <Badge variant={"status"} state={a.status}>
+                  {a.status || "-"}
+                </Badge>
+              ),
             },
             {
               header: "Created at",

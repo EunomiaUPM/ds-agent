@@ -1,3 +1,8 @@
+use std::sync::Arc;
+use ymir::config::traits::HostsConfigTrait;
+use ymir::config::types::HostType;
+use common::config::services::TransferConfig;
+use common::config::types::traits::CommonConfigTrait;
 use common::dsp_common::data_address::{DataAddress, EndpointProperty};
 
 pub(crate) mod dataplane_commands;
@@ -71,4 +76,9 @@ impl Into<DataAddress> for DataplaneAddress {
             endpoint_properties,
         }
     }
+}
+
+pub(crate) fn conform_dataplane_forward_url(config: Arc<TransferConfig>, url: String) -> String {
+    let base = config.common().get_host(HostType::Http);
+    format!("{}{}", base, url)
 }

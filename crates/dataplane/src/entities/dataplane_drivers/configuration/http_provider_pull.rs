@@ -50,12 +50,14 @@ impl HttpProviderPullConfigurator {
 
 #[async_trait::async_trait]
 impl DriverProxyConfiguratorTrait for HttpProviderPullConfigurator {
-    async fn configure_proxy(&self, context: &DataplaneContext) -> Outcome<DataplaneContext> {
+    async fn configure_proxy(&self, mut context: &DataplaneContext) -> Outcome<DataplaneContext> {
         let mut proxy = DataplaneProxy::new();
         let ingress = self.configure_ingress(context)?;
         let egress = self.configure_egress(context)?;
         proxy.set_ingress(ingress);
         proxy.set_egress(egress);
-        Ok(context.clone())
+        let mut new_context = context.clone();
+        new_context.set_proxy(proxy);
+        Ok(new_context)
     }
 }

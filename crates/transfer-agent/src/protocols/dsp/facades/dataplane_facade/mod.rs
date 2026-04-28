@@ -23,7 +23,7 @@ mod provider_push;
 mod strategy;
 
 use crate::protocols::dsp::context::DspTransferContext;
-use crate::protocols::dsp::protocol_types::DataAddressDto;
+use crate::protocols::dsp::protocol_types::{DataAddressDto, EndpointPropertyDto};
 use dataplane::DataplaneAddress;
 use ymir::errors::Outcome;
 
@@ -61,6 +61,23 @@ impl From<&DataAddressDto> for DataplaneAddress {
                 .as_deref()
                 .and_then(|ps| ps.iter().find(|p| p.name == "authorization"))
                 .map(|p| p.value.clone()),
+        }
+    }
+}
+
+impl From<DataplaneAddress> for DataAddressDto {
+    fn from(addr: DataplaneAddress) -> Self {
+        let mut props: Vec<EndpointPropertyDto> = Vec::new();
+        if let Some(auth_type) = addr.authorization_type {
+            props.push(EndpointPropertyDto { name: "authType".to_string(), value: auth_type });
+        }
+        if let Some(authorization) = addr.authorization {
+            props.push(EndpointPropertyDto { name: "authorization".to_string(), value: authorization });
+        }
+        DataAddressDto {
+            endpoint_type: addr.endpoint_type,
+            endpoint: Some(addr.endpoint),
+            endpoint_properties: if props.is_empty() { None } else { Some(props) },
         }
     }
 }

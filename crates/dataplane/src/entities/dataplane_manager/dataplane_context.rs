@@ -12,6 +12,7 @@ use crate::entities::dataplane_transfers::{
     DataplaneTransferDto, InteractionMode, NewDataplaneTransferDto, TransferRole, TransferState,
 };
 
+use crate::entities::dataplane_manager::conform_dataplane_forward_url;
 use crate::{DataplaneAddress, DataplaneTransfersEntitiesTrait};
 use common::config::services::TransferConfig;
 use connector::{ConnectorInstanceDto, ConnectorInstanceTrait, InteractionConfig, ProtocolSpec};
@@ -114,6 +115,7 @@ impl DataplaneContext {
         driver_factory: Arc<dyn DataplaneDriverFactoryTrait>,
         config: Arc<TransferConfig>,
         continuation: DataplaneContinuation,
+        dataplane_address: Option<DataplaneAddress>,
     ) -> Outcome<Self> {
         // db access
         let dataplane_process = dataplane_entity
@@ -148,16 +150,14 @@ impl DataplaneContext {
             driver: None,
             runtime,
             proxy: None,
-            forward_dataplane_address: None,
+            forward_dataplane_address: dataplane_address,
         };
-
 
         // driver to context
         context.driver = match &connector {
             Some(conn) => Some(driver_factory.get_or_create_driver(&context)?),
             None => None, // Consumer no tiene driver
         };
-
 
         // proxy to context
         let ingress = serde_json::from_value::<DataplaneProxyIngress>(
@@ -195,6 +195,26 @@ impl DataplaneContext {
 
     pub fn set_proxy(&mut self, proxy: DataplaneProxy) -> &mut Self {
         self.proxy = Some(proxy);
+        self
+    }
+
+    pub fn set_forward_dataplane_address_from_ingress(&mut self) -> &mut Self {
+        self.forward_dataplane_address = match &self.proxy {
+            Some(proxy) => match proxy.ingress() {
+                DataplaneProxyIngress::NoOp => None,
+                DataplaneProxyIngress::HttpListener {
+                    path,
+                    token_type,
+                    token,
+                } => Some(DataplaneAddress {
+                    endpoint_type: "HTTP".to_string(),
+                    endpoint: conform_dataplane_forward_url(self.config.clone(), path.to_string()),
+                    authorization_type: token_type.clone(),
+                    authorization: token.clone(),
+                }),
+            },
+            None => None,
+        };
         self
     }
 

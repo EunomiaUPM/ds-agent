@@ -81,7 +81,7 @@ impl DataPlaneStrategy for ConsumerPushStrategy {
         let id = process_urn(ctx, "consumer push start_post")?;
         mgr.execute_command(DataplaneCommand::SetStarted(DataplaneContinuation {
             transfer_dto_urn: id,
-        }))
+        }, None))
         .await?;
         Ok(None)
     }

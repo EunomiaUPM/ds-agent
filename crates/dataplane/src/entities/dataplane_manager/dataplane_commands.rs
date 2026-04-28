@@ -19,7 +19,7 @@ pub enum DataplaneCommand {
     SetConfiguring,
     SetAuth,
     SetReady,
-    SetStarted(DataplaneContinuation),
+    SetStarted(DataplaneContinuation, Option<DataplaneAddress>),
     SetSubscribing(DataplaneContinuation),
     SetUnsubscribing(DataplaneContinuation),
     SetStopped(DataplaneContinuation),
@@ -52,6 +52,7 @@ pub struct DataplaneContinuation {
     pub transfer_dto_urn: Urn,
 }
 
+#[derive(Debug)]
 pub enum DataplaneCommandResponse {
     Ok,
     OkWithAddress(DataplaneAddress),
@@ -65,7 +66,7 @@ impl std::fmt::Display for DataplaneCommand {
             DataplaneCommand::SetConfiguring => write!(f, "SetConfiguring"),
             DataplaneCommand::SetAuth => write!(f, "SetAuth"),
             DataplaneCommand::SetReady => write!(f, "SetReady"),
-            DataplaneCommand::SetStarted(_) => write!(f, "SetStarted"),
+            DataplaneCommand::SetStarted(_, _) => write!(f, "SetStarted"),
             DataplaneCommand::SetSubscribing(_) => write!(f, "SetSubscribing"),
             DataplaneCommand::SetUnsubscribing(_) => write!(f, "SetUnsubscribing"),
             DataplaneCommand::SetStopped(_) => write!(f, "SetStopped"),
@@ -159,11 +160,10 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
         context.set_dataplane_process(dataplane_process);
         Ok(context)
     }
-    async fn set_started(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
-        let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
-        // state
+    async fn set_started(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
+        let mut ctx = self.set_configuring(context).await?;
+        let dataplane_urn = Urn::from_str(&*ctx.dataplane_process().inner.id)?;
         let new_state = TransferState::Started;
-        // driver.auth
         let dataplane_process = self
             .dataplane_entity()
             .put_dataplane_transfer_by_id(
@@ -174,8 +174,9 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
                 },
             )
             .await?;
-        context.set_dataplane_process(dataplane_process);
-        Ok(context)
+        ctx.set_dataplane_process(dataplane_process);
+        ctx.set_forward_dataplane_address_from_ingress();
+        Ok(ctx)
     }
     async fn set_subscribing(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
         match context.driver().and_then(|d| d.subscriber.clone()) {

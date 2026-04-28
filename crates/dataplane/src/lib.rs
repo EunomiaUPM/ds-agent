@@ -30,7 +30,7 @@ pub mod testing_proxy;
 pub use data::migrations::get_dataplane_migrations;
 pub use entities::dataplane_manager::dataplane_commands::{
     DataplaneCommand, DataplaneContinuation, DataplaneInitCommandDirection,
-    DataplaneInitCommandTypes,
+    DataplaneInitCommandTypes, DataplaneCommandResponse
 };
 pub use entities::dataplane_manager::dataplane_manager::DataplaneManager;
 pub use entities::dataplane_manager::DataplaneAddress;

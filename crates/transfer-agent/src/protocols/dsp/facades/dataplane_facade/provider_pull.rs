@@ -19,8 +19,8 @@ use crate::protocols::dsp::context::DspTransferContext;
 use crate::protocols::dsp::facades::dataplane_facade::strategy::DataPlaneStrategy;
 use crate::protocols::dsp::facades::dataplane_facade::DataAddressDto;
 use dataplane::{
-    DataplaneAddress, DataplaneCommand, DataplaneContinuation, DataplaneInitCommandDirection,
-    DataplaneInitCommandTypes, DataplaneManager,
+    DataplaneAddress, DataplaneCommand, DataplaneCommandResponse, DataplaneContinuation,
+    DataplaneInitCommandDirection, DataplaneInitCommandTypes, DataplaneManager,
 };
 use std::str::FromStr;
 use urn::Urn;
@@ -70,11 +70,21 @@ impl DataPlaneStrategy for ProviderPullStrategy {
         mgr: &DataplaneManager,
     ) -> Outcome<Option<DataAddressDto>> {
         let id = process_urn(ctx, "provider pull start_pre")?;
-        mgr.execute_command(DataplaneCommand::SetStarted(DataplaneContinuation {
-            transfer_dto_urn: id,
-        }))
-        .await?;
-        Ok(None)
+        let res = mgr
+            .execute_command(DataplaneCommand::SetStarted(
+                DataplaneContinuation {
+                    transfer_dto_urn: id,
+                },
+                None,
+            ))
+            .await?;
+        dbg!("res", &res);
+
+        if let DataplaneCommandResponse::OkWithAddress(address) = res {
+            Ok(Some(address.into()))
+        } else {
+            Ok(None)
+        }
     }
 
     async fn on_start_post(

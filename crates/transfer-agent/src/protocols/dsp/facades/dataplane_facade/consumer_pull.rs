@@ -18,7 +18,10 @@
 use crate::protocols::dsp::context::DspTransferContext;
 use crate::protocols::dsp::facades::dataplane_facade::strategy::DataPlaneStrategy;
 use crate::protocols::dsp::facades::dataplane_facade::DataAddressDto;
-use dataplane::{DataplaneAddress, DataplaneCommand, DataplaneContinuation, DataplaneInitCommandDirection, DataplaneInitCommandTypes, DataplaneManager};
+use dataplane::{
+    DataplaneAddress, DataplaneCommand, DataplaneContinuation, DataplaneInitCommandDirection,
+    DataplaneInitCommandTypes, DataplaneManager,
+};
 use std::str::FromStr;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
@@ -49,7 +52,8 @@ impl DataPlaneStrategy for ConsumerPullStrategy {
         let cmd = DataplaneCommand::SetInit(DataplaneInitCommandTypes::AsConsumer {
             transfer_process_id: transfer_id.clone(),
             direction: DataplaneInitCommandDirection::Pull {
-                data_address: DataplaneAddress { // TODO - Optional...
+                data_address: DataplaneAddress {
+                    // TODO - Optional...
                     endpoint_type: "".to_string(),
                     endpoint: "".to_string(),
                     authorization_type: None,
@@ -75,9 +79,12 @@ impl DataPlaneStrategy for ConsumerPullStrategy {
         mgr: &DataplaneManager,
     ) -> Outcome<Option<DataAddressDto>> {
         let id = process_urn(ctx, "consumer pull start_post")?;
-        let cmd = DataplaneCommand::SetStarted(DataplaneContinuation {
-            transfer_dto_urn: id,
-        });
+        let cmd = DataplaneCommand::SetStarted(
+            DataplaneContinuation {
+                transfer_dto_urn: id,
+            },
+            ctx.input_data_address.clone().map(|addr| addr.into()),
+        );
         mgr.execute_command(cmd).await?;
         Ok(None)
     }

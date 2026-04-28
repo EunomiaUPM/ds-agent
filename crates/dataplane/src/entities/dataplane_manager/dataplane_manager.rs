@@ -61,8 +61,18 @@ impl DataplaneManager {
                 )
                 .await?
             }
-            DataplaneCommand::SetStarted(continuation)
-            | DataplaneCommand::SetSubscribing(continuation)
+            DataplaneCommand::SetStarted(continuation, data_address) => {
+                DataplaneContext::from_continuation(
+                    self.dataplane_entity.clone(),
+                    self.connector_entity.clone(),
+                    self.driver_factory.clone(),
+                    self.config.clone(),
+                    continuation,
+                    data_address,
+                )
+                .await?
+            }
+            DataplaneCommand::SetSubscribing(continuation)
             | DataplaneCommand::SetUnsubscribing(continuation)
             | DataplaneCommand::SetStopped(continuation)
             | DataplaneCommand::SetTerminating(continuation) => {
@@ -72,6 +82,7 @@ impl DataplaneManager {
                     self.driver_factory.clone(),
                     self.config.clone(),
                     continuation,
+                    None,
                 )
                 .await?
             }
@@ -94,7 +105,7 @@ impl DataplaneManager {
         // Dispatch to the appropriate handler method
         let new_context = match command {
             DataplaneCommand::SetInit(_) => handler_strategy.set_init(context),
-            DataplaneCommand::SetStarted(_) => handler_strategy.set_started(context),
+            DataplaneCommand::SetStarted(_,_) => handler_strategy.set_started(context),
             DataplaneCommand::SetSubscribing(_) => handler_strategy.set_subscribing(context),
             DataplaneCommand::SetUnsubscribing(_) => handler_strategy.set_unsubscribing(context),
             DataplaneCommand::SetStopped(_) => handler_strategy.set_stopped(context),

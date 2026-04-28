@@ -19,7 +19,7 @@ use crate::protocols::dsp::context::DspTransferContext;
 use crate::protocols::dsp::facades::dataplane_facade::strategy::DataPlaneStrategy;
 use crate::protocols::dsp::facades::dataplane_facade::DataAddressDto;
 use dataplane::{
-    DataplaneCommand, DataplaneContinuation, DataplaneInitCommandDirection,
+    DataplaneAddress, DataplaneCommand, DataplaneContinuation, DataplaneInitCommandDirection,
     DataplaneInitCommandTypes, DataplaneManager,
 };
 use std::str::FromStr;
@@ -71,9 +71,12 @@ impl DataPlaneStrategy for ProviderPushStrategy {
         mgr: &DataplaneManager,
     ) -> Outcome<Option<DataAddressDto>> {
         let id = process_urn(ctx, "provider push start_pre")?;
-        mgr.execute_command(DataplaneCommand::SetStarted(DataplaneContinuation {
-            transfer_dto_urn: id,
-        }))
+        mgr.execute_command(DataplaneCommand::SetStarted(
+            DataplaneContinuation {
+                transfer_dto_urn: id,
+            },
+            None
+        ))
         .await?;
         Ok(None)
     }

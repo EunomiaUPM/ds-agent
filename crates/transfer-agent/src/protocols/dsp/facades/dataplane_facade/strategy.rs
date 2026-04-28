@@ -16,69 +16,79 @@
  */
 
 use crate::entities::transfer_process::TransferProcessDto;
-use crate::protocols::dsp::facades::dataplane_facade::DataAddressDto;
+use crate::protocols::dsp::context::DspTransferContext;
 use crate::protocols::dsp::facades::dataplane_facade::{
     consumer_pull::ConsumerPullStrategy, consumer_push::ConsumerPushStrategy,
     provider_pull::ProviderPullStrategy, provider_push::ProviderPushStrategy,
+    DataAddressDto,
 };
-use connector::ConnectorInstanceDto;
 use dataplane::DataplaneManager;
-use urn::Urn;
 use ymir::errors::Outcome;
 
 #[async_trait::async_trait]
 pub(super) trait DataPlaneStrategy: Send + Sync {
     async fn on_request_pre(
         &self,
+        ctx: &DspTransferContext,
         mgr: &DataplaneManager,
-        proxy_base: &str,
-        transfer_id: &Urn,
-        data_address: &Option<DataAddressDto>,
     ) -> Outcome<Option<DataAddressDto>>;
 
     async fn on_request_post(
         &self,
+        ctx: &DspTransferContext,
         mgr: &DataplaneManager,
-        proxy_base: &str,
-        transfer_id: &Urn,
-        connector_instance: &Option<ConnectorInstanceDto>,
-        data_address: &Option<DataAddressDto>,
     ) -> Outcome<()>;
 
     async fn on_start_pre(
         &self,
+        ctx: &DspTransferContext,
         mgr: &DataplaneManager,
-        proxy_base: &str,
-        transfer_id: &Urn,
     ) -> Outcome<Option<DataAddressDto>>;
 
     async fn on_start_post(
         &self,
+        ctx: &DspTransferContext,
         mgr: &DataplaneManager,
-        proxy_base: &str,
-        transfer_id: &Urn,
-        data_address: Option<DataAddressDto>,
     ) -> Outcome<Option<DataAddressDto>>;
 
-    async fn on_suspend_pre(&self, mgr: &DataplaneManager, transfer_id: &Urn) -> Outcome<()>;
+    async fn on_suspend_pre(&self, ctx: &DspTransferContext, mgr: &DataplaneManager)
+        -> Outcome<()>;
 
-    async fn on_suspend_post(&self, mgr: &DataplaneManager, transfer_id: &Urn) -> Outcome<()>;
+    async fn on_suspend_post(
+        &self,
+        ctx: &DspTransferContext,
+        mgr: &DataplaneManager,
+    ) -> Outcome<()>;
 
-    async fn on_complete_pre(&self, mgr: &DataplaneManager, transfer_id: &Urn) -> Outcome<()>;
+    async fn on_complete_pre(
+        &self,
+        ctx: &DspTransferContext,
+        mgr: &DataplaneManager,
+    ) -> Outcome<()>;
 
-    async fn on_complete_post(&self, mgr: &DataplaneManager, transfer_id: &Urn) -> Outcome<()>;
+    async fn on_complete_post(
+        &self,
+        ctx: &DspTransferContext,
+        mgr: &DataplaneManager,
+    ) -> Outcome<()>;
 
-    async fn on_terminate_pre(&self, mgr: &DataplaneManager, transfer_id: &Urn) -> Outcome<()>;
+    async fn on_terminate_pre(
+        &self,
+        ctx: &DspTransferContext,
+        mgr: &DataplaneManager,
+    ) -> Outcome<()>;
 
-    async fn on_terminate_post(&self, mgr: &DataplaneManager, transfer_id: &Urn) -> Outcome<()>;
+    async fn on_terminate_post(
+        &self,
+        ctx: &DspTransferContext,
+        mgr: &DataplaneManager,
+    ) -> Outcome<()>;
 }
-
 
 static CONSUMER_PULL: ConsumerPullStrategy = ConsumerPullStrategy;
 static CONSUMER_PUSH: ConsumerPushStrategy = ConsumerPushStrategy;
 static PROVIDER_PULL: ProviderPullStrategy = ProviderPullStrategy;
 static PROVIDER_PUSH: ProviderPushStrategy = ProviderPushStrategy;
-
 
 pub(super) fn strategy_for(process: &TransferProcessDto) -> &'static dyn DataPlaneStrategy {
     match (
@@ -91,7 +101,6 @@ pub(super) fn strategy_for(process: &TransferProcessDto) -> &'static dyn DataPla
         _ => &PROVIDER_PUSH,
     }
 }
-
 
 pub(super) fn strategy_for_request_pre(
     data_address: &Option<DataAddressDto>,

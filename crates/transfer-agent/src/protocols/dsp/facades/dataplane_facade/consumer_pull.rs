@@ -15,13 +15,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::protocols::dsp::context::DspTransferContext;
 use crate::protocols::dsp::facades::dataplane_facade::strategy::DataPlaneStrategy;
 use crate::protocols::dsp::facades::dataplane_facade::DataAddressDto;
-use connector::ConnectorInstanceDto;
 use dataplane::{
-    DataplaneAddress, DataplaneCommand, DataplaneContinuation, DataplaneInitCommandDirection,
+    DataplaneCommand, DataplaneContinuation, DataplaneInitCommandDirection,
     DataplaneInitCommandTypes, DataplaneManager,
 };
+use std::str::FromStr;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 
@@ -31,102 +32,111 @@ pub(super) struct ConsumerPullStrategy;
 impl DataPlaneStrategy for ConsumerPullStrategy {
     async fn on_request_pre(
         &self,
-        mgr: &DataplaneManager,
-        _proxy_base: &str,
-        transfer_id: &Urn,
-        _data_address: &Option<DataAddressDto>,
+        _ctx: &DspTransferContext,
+        _mgr: &DataplaneManager,
     ) -> Outcome<Option<DataAddressDto>> {
         Ok(None)
     }
 
     async fn on_request_post(
         &self,
+        ctx: &DspTransferContext,
         mgr: &DataplaneManager,
-        _proxy_base: &str,
-        transfer_id: &Urn,
-        _connector_instance: &Option<ConnectorInstanceDto>,
-        data_address: &Option<DataAddressDto>,
     ) -> Outcome<()> {
-        if let None = data_address {
-            return Err(Errors::crazy("Data address not found.", None));
-        }
-        let data_address: DataplaneAddress = data_address.as_ref().unwrap().into();
+        let transfer_id = ctx
+            .local_process_id
+            .as_ref()
+            .ok_or_else(|| Errors::crazy("local_process_id required for consumer pull request_post", None))?;
+        let data_address = ctx
+            .input_data_address
+            .as_ref()
+            .ok_or_else(|| Errors::crazy("Data address not found.", None))?;
         let cmd = DataplaneCommand::SetInit(DataplaneInitCommandTypes::AsConsumer {
             transfer_process_id: transfer_id.clone(),
-            direction: DataplaneInitCommandDirection::Pull { data_address },
+            direction: DataplaneInitCommandDirection::Pull {
+                data_address: data_address.into(),
+            },
         });
-        let _ = mgr.execute_command(cmd).await?;
-        Ok(()) // not called for consumer
+        mgr.execute_command(cmd).await?;
+        Ok(())
     }
 
     async fn on_start_pre(
         &self,
+        _ctx: &DspTransferContext,
         _mgr: &DataplaneManager,
-        _proxy_base: &str,
-        _transfer_id: &Urn,
     ) -> Outcome<Option<DataAddressDto>> {
-        Ok(None) // not called for consumer
+        Ok(None)
     }
 
     async fn on_start_post(
         &self,
+        ctx: &DspTransferContext,
         mgr: &DataplaneManager,
-        proxy_base: &str,
-        transfer_id: &Urn,
-        data_address: Option<DataAddressDto>,
     ) -> Outcome<Option<DataAddressDto>> {
+        let id = process_urn(ctx, "consumer pull start_post")?;
         let cmd = DataplaneCommand::SetStarted(DataplaneContinuation {
-            transfer_dto_urn: transfer_id.clone(),
+            transfer_dto_urn: id,
         });
-        let _ = mgr.execute_command(cmd).await?;
+        mgr.execute_command(cmd).await?;
         Ok(None)
     }
 
-    async fn on_suspend_pre(&self, mgr: &DataplaneManager, transfer_id: &Urn) -> Outcome<()> {
-        let cmd = DataplaneCommand::SetStopped(DataplaneContinuation {
-            transfer_dto_urn: transfer_id.clone(),
-        });
-        let _ = mgr.execute_command(cmd).await?;
+    async fn on_suspend_pre(&self, ctx: &DspTransferContext, mgr: &DataplaneManager) -> Outcome<()> {
+        mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
+            transfer_dto_urn: process_urn(ctx, "consumer pull suspend_pre")?,
+        }))
+        .await?;
         Ok(())
     }
 
-    async fn on_suspend_post(&self, mgr: &DataplaneManager, transfer_id: &Urn) -> Outcome<()> {
-        let cmd = DataplaneCommand::SetStopped(DataplaneContinuation {
-            transfer_dto_urn: transfer_id.clone(),
-        });
-        let _ = mgr.execute_command(cmd).await?;
+    async fn on_suspend_post(&self, ctx: &DspTransferContext, mgr: &DataplaneManager) -> Outcome<()> {
+        mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
+            transfer_dto_urn: process_urn(ctx, "consumer pull suspend_post")?,
+        }))
+        .await?;
         Ok(())
     }
 
-    async fn on_complete_pre(&self, mgr: &DataplaneManager, transfer_id: &Urn) -> Outcome<()> {
-        let cmd = DataplaneCommand::SetStopped(DataplaneContinuation {
-            transfer_dto_urn: transfer_id.clone(),
-        });
-        let _ = mgr.execute_command(cmd).await?;
+    async fn on_complete_pre(&self, ctx: &DspTransferContext, mgr: &DataplaneManager) -> Outcome<()> {
+        mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
+            transfer_dto_urn: process_urn(ctx, "consumer pull complete_pre")?,
+        }))
+        .await?;
         Ok(())
     }
 
-    async fn on_complete_post(&self, mgr: &DataplaneManager, transfer_id: &Urn) -> Outcome<()> {
-        let cmd = DataplaneCommand::SetStopped(DataplaneContinuation {
-            transfer_dto_urn: transfer_id.clone(),
-        });
-        let _ = mgr.execute_command(cmd).await?;
+    async fn on_complete_post(&self, ctx: &DspTransferContext, mgr: &DataplaneManager) -> Outcome<()> {
+        mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
+            transfer_dto_urn: process_urn(ctx, "consumer pull complete_post")?,
+        }))
+        .await?;
         Ok(())
     }
 
-    async fn on_terminate_pre(&self, mgr: &DataplaneManager, transfer_id: &Urn) -> Outcome<()> {
-        let cmd = DataplaneCommand::SetTerminating(DataplaneContinuation {
-            transfer_dto_urn: transfer_id.clone(),
-        });
-        let _ = mgr.execute_command(cmd).await?;
+    async fn on_terminate_pre(&self, ctx: &DspTransferContext, mgr: &DataplaneManager) -> Outcome<()> {
+        mgr.execute_command(DataplaneCommand::SetTerminating(DataplaneContinuation {
+            transfer_dto_urn: process_urn(ctx, "consumer pull terminate_pre")?,
+        }))
+        .await?;
         Ok(())
     }
 
-    async fn on_terminate_post(&self, mgr: &DataplaneManager, transfer_id: &Urn) -> Outcome<()> {
-        let cmd = DataplaneCommand::SetTerminating(DataplaneContinuation {
-            transfer_dto_urn: transfer_id.clone(),
-        });
-        let _ = mgr.execute_command(cmd).await?;
+    async fn on_terminate_post(&self, ctx: &DspTransferContext, mgr: &DataplaneManager) -> Outcome<()> {
+        mgr.execute_command(DataplaneCommand::SetTerminating(DataplaneContinuation {
+            transfer_dto_urn: process_urn(ctx, "consumer pull terminate_post")?,
+        }))
+        .await?;
         Ok(())
     }
+}
+
+fn process_urn(ctx: &DspTransferContext, location: &str) -> Outcome<Urn> {
+    let id = &ctx
+        .process
+        .as_ref()
+        .ok_or_else(|| Errors::crazy(format!("process required for {location}"), None))?
+        .inner
+        .id;
+    Ok(Urn::from_str(id)?)
 }

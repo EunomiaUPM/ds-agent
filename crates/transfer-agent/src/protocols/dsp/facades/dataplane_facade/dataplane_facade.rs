@@ -22,9 +22,7 @@ use crate::protocols::dsp::facades::dataplane_facade::strategy::{
 use crate::protocols::dsp::facades::dataplane_facade::DataPlaneFacadeTrait;
 use crate::protocols::dsp::protocol_types::DataAddressDto;
 use dataplane::DataplaneManager;
-use std::str::FromStr;
 use std::sync::Arc;
-use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 
 pub struct DspDataPlaneFacade {
@@ -46,23 +44,12 @@ impl DspDataPlaneFacade {
 
 #[async_trait::async_trait]
 impl DataPlaneFacadeTrait for DspDataPlaneFacade {
-    // ─── TransferRequest ───
-
     async fn on_transfer_request_pre(
         &self,
         ctx: &DspTransferContext,
     ) -> Outcome<Option<DataAddressDto>> {
-        let transfer_id = ctx
-            .local_process_id
-            .as_ref()
-            .ok_or_else(|| Errors::crazy("local_process_id required for on_transfer_request_pre", None))?;
         strategy_for_request_pre(&ctx.input_data_address)
-            .on_request_pre(
-                &self.dataplane_manager,
-                &self.proxy_base_url,
-                transfer_id,
-                &ctx.input_data_address,
-            )
+            .on_request_pre(ctx, &self.dataplane_manager)
             .await
     }
 
@@ -74,20 +61,11 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
             .process
             .as_ref()
             .ok_or_else(|| Errors::crazy("process required for on_transfer_request_post", None))?;
-        let id = Urn::from_str(&process.inner.id)?;
         strategy_for(process)
-            .on_request_post(
-                &self.dataplane_manager,
-                &self.proxy_base_url,
-                &id,
-                &ctx.connector_instance,
-                &ctx.input_data_address,
-            )
-            .await;
+            .on_request_post(ctx, &self.dataplane_manager)
+            .await?;
         Ok(None)
     }
-
-    // ─── TransferStart ───
 
     async fn on_transfer_start_pre(
         &self,
@@ -97,9 +75,8 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
             .process
             .as_ref()
             .ok_or_else(|| Errors::crazy("process required for on_transfer_start_pre", None))?;
-        let id = Urn::from_str(&process.inner.id)?;
         strategy_for(process)
-            .on_start_pre(&self.dataplane_manager, &self.proxy_base_url, &id)
+            .on_start_pre(ctx, &self.dataplane_manager)
             .await
     }
 
@@ -111,18 +88,10 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
             .process
             .as_ref()
             .ok_or_else(|| Errors::crazy("process required for on_transfer_start_post", None))?;
-        let id = Urn::from_str(&process.inner.id)?;
         strategy_for(process)
-            .on_start_post(
-                &self.dataplane_manager,
-                &self.proxy_base_url,
-                &id,
-                ctx.input_data_address.clone(),
-            )
+            .on_start_post(ctx, &self.dataplane_manager)
             .await
     }
-
-    // ─── TransferSuspension → SetStopped ───
 
     async fn on_transfer_suspension_pre(
         &self,
@@ -132,9 +101,8 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
             .process
             .as_ref()
             .ok_or_else(|| Errors::crazy("process required for on_transfer_suspension_pre", None))?;
-        let id = Urn::from_str(&process.inner.id)?;
         strategy_for(process)
-            .on_suspend_pre(&self.dataplane_manager, &id)
+            .on_suspend_pre(ctx, &self.dataplane_manager)
             .await;
         Ok(None)
     }
@@ -147,14 +115,11 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
             .process
             .as_ref()
             .ok_or_else(|| Errors::crazy("process required for on_transfer_suspension_post", None))?;
-        let id = Urn::from_str(&process.inner.id)?;
         strategy_for(process)
-            .on_suspend_post(&self.dataplane_manager, &id)
+            .on_suspend_post(ctx, &self.dataplane_manager)
             .await;
         Ok(None)
     }
-
-    // ─── TransferCompletion → SetTerminated ───
 
     async fn on_transfer_completion_pre(
         &self,
@@ -164,9 +129,8 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
             .process
             .as_ref()
             .ok_or_else(|| Errors::crazy("process required for on_transfer_completion_pre", None))?;
-        let id = Urn::from_str(&process.inner.id)?;
         strategy_for(process)
-            .on_complete_pre(&self.dataplane_manager, &id)
+            .on_complete_pre(ctx, &self.dataplane_manager)
             .await;
         Ok(None)
     }
@@ -179,14 +143,11 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
             .process
             .as_ref()
             .ok_or_else(|| Errors::crazy("process required for on_transfer_completion_post", None))?;
-        let id = Urn::from_str(&process.inner.id)?;
         strategy_for(process)
-            .on_complete_post(&self.dataplane_manager, &id)
+            .on_complete_post(ctx, &self.dataplane_manager)
             .await;
         Ok(None)
     }
-
-    // ─── TransferTermination → SetTerminated ───
 
     async fn on_transfer_termination_pre(
         &self,
@@ -196,9 +157,8 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
             .process
             .as_ref()
             .ok_or_else(|| Errors::crazy("process required for on_transfer_termination_pre", None))?;
-        let id = Urn::from_str(&process.inner.id)?;
         strategy_for(process)
-            .on_terminate_pre(&self.dataplane_manager, &id)
+            .on_terminate_pre(ctx, &self.dataplane_manager)
             .await;
         Ok(None)
     }
@@ -211,9 +171,8 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
             .process
             .as_ref()
             .ok_or_else(|| Errors::crazy("process required for on_transfer_termination_post", None))?;
-        let id = Urn::from_str(&process.inner.id)?;
         strategy_for(process)
-            .on_terminate_post(&self.dataplane_manager, &id)
+            .on_terminate_post(ctx, &self.dataplane_manager)
             .await;
         Ok(None)
     }

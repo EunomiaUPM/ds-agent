@@ -71,11 +71,9 @@ impl DataPlaneStrategy for ProviderPushStrategy {
         mgr: &DataplaneManager,
     ) -> Outcome<Option<DataAddressDto>> {
         let id = process_urn(ctx, "provider push start_pre")?;
-        mgr.execute_command(DataplaneCommand::SetSubscribing(
-            DataplaneContinuation {
-                transfer_dto_urn: id,
-            },
-        ))
+        mgr.execute_command(DataplaneCommand::SetSubscribing(DataplaneContinuation {
+            transfer_dto_urn: id,
+        }))
         .await?;
         Ok(None)
     }

@@ -108,7 +108,7 @@ impl RpcRouter {
                                 err.to_string(),
                                 err.reason().to_string(),
                                 err.path().to_string(),
-                                err.context()
+                                err.context(),
                             ]),
                         },
                     };

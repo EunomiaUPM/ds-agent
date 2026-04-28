@@ -105,7 +105,7 @@ impl DataplaneManager {
         // Dispatch to the appropriate handler method
         let new_context = match command {
             DataplaneCommand::SetInit(_) => handler_strategy.set_init(context),
-            DataplaneCommand::SetStarted(_,_) => handler_strategy.set_started(context),
+            DataplaneCommand::SetStarted(_, _) => handler_strategy.set_started(context),
             DataplaneCommand::SetSubscribing(_) => handler_strategy.set_subscribing(context),
             DataplaneCommand::SetUnsubscribing(_) => handler_strategy.set_unsubscribing(context),
             DataplaneCommand::SetStopped(_) => handler_strategy.set_stopped(context),

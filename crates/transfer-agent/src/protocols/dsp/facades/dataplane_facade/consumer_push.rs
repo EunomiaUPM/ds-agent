@@ -18,7 +18,10 @@
 use crate::protocols::dsp::context::DspTransferContext;
 use crate::protocols::dsp::facades::dataplane_facade::strategy::DataPlaneStrategy;
 use crate::protocols::dsp::facades::dataplane_facade::DataAddressDto;
-use dataplane::{DataplaneCommand, DataplaneCommandResponse, DataplaneContinuation, DataplaneInitCommandDirection, DataplaneInitCommandTypes, DataplaneManager};
+use dataplane::{
+    DataplaneCommand, DataplaneCommandResponse, DataplaneContinuation,
+    DataplaneInitCommandDirection, DataplaneInitCommandTypes, DataplaneManager,
+};
 use std::str::FromStr;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
@@ -42,15 +45,16 @@ impl DataPlaneStrategy for ConsumerPushStrategy {
             .input_data_address
             .as_ref()
             .ok_or_else(|| Errors::crazy("Data address instance should be defined", None))?;
-        let res = mgr.execute_command(DataplaneCommand::SetInit(
-            DataplaneInitCommandTypes::AsConsumer {
-                transfer_process_id: transfer_id.clone(),
-                direction: DataplaneInitCommandDirection::Push {
-                    data_address: data_address.into(),
+        let res = mgr
+            .execute_command(DataplaneCommand::SetInit(
+                DataplaneInitCommandTypes::AsConsumer {
+                    transfer_process_id: transfer_id.clone(),
+                    direction: DataplaneInitCommandDirection::Push {
+                        data_address: data_address.into(),
+                    },
                 },
-            },
-        ))
-        .await?;
+            ))
+            .await?;
 
         if let DataplaneCommandResponse::OkWithAddress(address) = res {
             Ok(Some(address.into()))
@@ -81,9 +85,12 @@ impl DataPlaneStrategy for ConsumerPushStrategy {
         mgr: &DataplaneManager,
     ) -> Outcome<Option<DataAddressDto>> {
         let id = process_urn(ctx, "consumer push start_post")?;
-        mgr.execute_command(DataplaneCommand::SetStarted(DataplaneContinuation {
-            transfer_dto_urn: id,
-        }, None))
+        mgr.execute_command(DataplaneCommand::SetStarted(
+            DataplaneContinuation {
+                transfer_dto_urn: id,
+            },
+            None,
+        ))
         .await?;
         Ok(None)
     }

@@ -69,10 +69,16 @@ impl From<DataplaneAddress> for DataAddressDto {
     fn from(addr: DataplaneAddress) -> Self {
         let mut props: Vec<EndpointPropertyDto> = Vec::new();
         if let Some(auth_type) = addr.authorization_type {
-            props.push(EndpointPropertyDto { name: "authType".to_string(), value: auth_type });
+            props.push(EndpointPropertyDto {
+                name: "authType".to_string(),
+                value: auth_type,
+            });
         }
         if let Some(authorization) = addr.authorization {
-            props.push(EndpointPropertyDto { name: "authorization".to_string(), value: authorization });
+            props.push(EndpointPropertyDto {
+                name: "authorization".to_string(),
+                value: authorization,
+            });
         }
         DataAddressDto {
             endpoint_type: addr.endpoint_type,

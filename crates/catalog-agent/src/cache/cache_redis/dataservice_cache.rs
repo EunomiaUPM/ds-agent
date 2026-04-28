@@ -93,7 +93,6 @@ mod test_dataservice {
         let ds_single_key = cache.format_key_name_with_id("data-services", &ds_id);
         let lookup_key = cache.format_key_name_lookup("data-services", "catalogs", &catalog_id);
 
-
         // 1. Persist the single DataService
         cache.set_single(&ds_id, &ds_dto).await.unwrap();
 

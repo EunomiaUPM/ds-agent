@@ -39,8 +39,6 @@ pub enum DataplaneInitCommandTypes {
     },
 }
 
-
-
 #[derive(Clone, Debug)]
 pub enum DataplaneInitCommandDirection {
     Pull { data_address: DataplaneAddress },

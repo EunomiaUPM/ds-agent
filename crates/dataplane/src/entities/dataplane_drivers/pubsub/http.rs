@@ -1,11 +1,11 @@
 use crate::entities::dataplane_drivers::DriverPubSubTrait;
 use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;
+use crate::entities::dataplane_manager::dataplane_proxy::HTTP_LISTENER_PATH;
 use common::http_client::HttpClient;
 use connector::{InteractionConfig, ProtocolSpec, RuntimeParametersResolver, TemplateVecString};
 use serde_json::{json, Value};
 use std::sync::Arc;
 use ymir::errors::{Errors, Outcome};
-use crate::entities::dataplane_manager::dataplane_proxy::HTTP_LISTENER_PATH;
 
 #[derive(Debug)]
 pub struct HttpPubSubscriber {
@@ -30,13 +30,17 @@ impl DriverPubSubTrait for HttpPubSubscriber {
         let dp = &context.dataplane_process().inner.id;
         let ingress_url = format!("{}{}", HTTP_LISTENER_PATH, dp);
         let runtime_value = serde_json::to_value(context.runtime().cloned().unwrap_or_default())?;
-        let resolved_connector =
-            RuntimeParametersResolver::new(connector, &runtime_value)
-                .with_ingress(Some(ingress_url))
-                .resolve()?;
+        let resolved_connector = RuntimeParametersResolver::new(connector, &runtime_value)
+            .with_ingress(Some(ingress_url))
+            .resolve()?;
         let push_lifecycle = match &resolved_connector.interaction {
             InteractionConfig::Push(p) => p,
-            _ => return Err(Errors::crazy("Resolved connector interaction is not PUSH", None)),
+            _ => {
+                return Err(Errors::crazy(
+                    "Resolved connector interaction is not PUSH",
+                    None,
+                ))
+            }
         };
         let http_spec = match &push_lifecycle.subscribe {
             ProtocolSpec::Http(spec) => spec,
@@ -74,12 +78,13 @@ impl DriverPubSubTrait for HttpPubSubscriber {
         };
 
         // resolve placeholders against current runtime state and ingress address
-        let ingress_url = context.forward_dataplane_address().map(|a| a.endpoint.as_str());
+        let ingress_url = context
+            .forward_dataplane_address()
+            .map(|a| a.endpoint.as_str());
         let runtime_value = serde_json::to_value(context.runtime().cloned().unwrap_or_default())?;
-        let current_instance =
-            RuntimeParametersResolver::new(connector, &runtime_value)
-                .with_ingress(ingress_url)
-                .resolve()?;
+        let current_instance = RuntimeParametersResolver::new(connector, &runtime_value)
+            .with_ingress(ingress_url)
+            .resolve()?;
 
         // re-extract the resolved unsubscribe spec
         let resolved_push = match &current_instance.interaction {

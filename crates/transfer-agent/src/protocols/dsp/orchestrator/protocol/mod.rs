@@ -25,6 +25,7 @@ pub(crate) mod step_suspension;
 pub(crate) mod step_termination;
 pub(crate) mod step_trait;
 
+use crate::protocols::dsp::context::DspTransferContext;
 use crate::protocols::dsp::protocol_types::{
     TransferCompletionMessageDto, TransferProcessAckDto, TransferProcessMessageWrapper,
     TransferRequestMessageDto, TransferStartMessageDto, TransferSuspensionMessageDto,
@@ -38,29 +39,34 @@ pub trait ProtocolOrchestratorTrait: Send + Sync + 'static {
         &self,
         id: &String,
     ) -> Outcome<TransferProcessMessageWrapper<TransferProcessAckDto>>;
+
     async fn on_transfer_request(
         &self,
+        ctx: DspTransferContext,
         input: &TransferProcessMessageWrapper<TransferRequestMessageDto>,
-        associated_agent_peer: &str,
     ) -> Outcome<(TransferProcessMessageWrapper<TransferProcessAckDto>, bool)>;
+
     async fn on_transfer_start(
         &self,
-        id: &String,
+        ctx: DspTransferContext,
         input: &TransferProcessMessageWrapper<TransferStartMessageDto>,
     ) -> Outcome<TransferProcessMessageWrapper<TransferProcessAckDto>>;
+
     async fn on_transfer_suspension(
         &self,
-        id: &String,
+        ctx: DspTransferContext,
         input: &TransferProcessMessageWrapper<TransferSuspensionMessageDto>,
     ) -> Outcome<TransferProcessMessageWrapper<TransferProcessAckDto>>;
+
     async fn on_transfer_completion(
         &self,
-        id: &String,
+        ctx: DspTransferContext,
         input: &TransferProcessMessageWrapper<TransferCompletionMessageDto>,
     ) -> Outcome<TransferProcessMessageWrapper<TransferProcessAckDto>>;
+
     async fn on_transfer_termination(
         &self,
-        id: &String,
+        ctx: DspTransferContext,
         input: &TransferProcessMessageWrapper<TransferTerminationMessageDto>,
     ) -> Outcome<TransferProcessMessageWrapper<TransferProcessAckDto>>;
 }

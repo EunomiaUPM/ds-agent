@@ -16,6 +16,7 @@
  *  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
+use crate::protocols::dsp::context::DspTransferContext;
 use crate::protocols::dsp::protocol_types::{
     TransferCompletionMessageDto, TransferProcessMessageWrapper, TransferRequestMessageDto,
     TransferStartMessageDto, TransferSuspensionMessageDto, TransferTerminationMessageDto,
@@ -30,22 +31,22 @@ pub trait ValidationDspSteps: Send + Sync + 'static {
     ) -> Outcome<()>;
     async fn on_transfer_start(
         &self,
-        uri_id: &String,
+        ctx: &DspTransferContext,
         input: &TransferProcessMessageWrapper<TransferStartMessageDto>,
     ) -> Outcome<()>;
     async fn on_transfer_completion(
         &self,
-        uri_id: &String,
+        ctx: &DspTransferContext,
         input: &TransferProcessMessageWrapper<TransferCompletionMessageDto>,
     ) -> Outcome<()>;
     async fn on_transfer_suspension(
         &self,
-        uri_id: &String,
+        ctx: &DspTransferContext,
         input: &TransferProcessMessageWrapper<TransferSuspensionMessageDto>,
     ) -> Outcome<()>;
     async fn on_transfer_termination(
         &self,
-        uri_id: &String,
+        ctx: &DspTransferContext,
         input: &TransferProcessMessageWrapper<TransferTerminationMessageDto>,
     ) -> Outcome<()>;
 }

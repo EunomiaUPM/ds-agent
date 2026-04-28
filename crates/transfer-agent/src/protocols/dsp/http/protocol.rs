@@ -16,6 +16,7 @@
  *  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
+
 use axum::{
     extract::{rejection::JsonRejection, FromRef, Path, State},
     http::StatusCode,
@@ -24,9 +25,10 @@ use axum::{
     Json, Router,
 };
 use serde::Serialize;
-use std::future::Future;
 use std::sync::Arc;
 
+use crate::http::common::{extract_payload, parse_urn};
+use crate::protocols::dsp::context::DspTransferContext;
 use crate::protocols::dsp::orchestrator::OrchestratorTrait;
 use crate::protocols::dsp::protocol_types::{
     TransferCompletionMessageDto, TransferErrorDto, TransferProcessMessageType,
@@ -36,7 +38,6 @@ use crate::protocols::dsp::protocol_types::{
 use common::dsp_common::context_field::ContextField;
 use common::dsp_common::normalizer::dsp_namespace_normalizer;
 
-use crate::http::common::extract_payload;
 use axum::{
     extract::Request,
     middleware::{self, Next},
@@ -45,7 +46,8 @@ use axum::{
 use common::config::services::TransferConfig;
 use common::facades::ssi_auth_facade::SSIAuthFacadeTrait;
 use common::facades::Mates;
-use ymir::errors::{Errors, Outcome};
+use ymir::errors::Errors;
+use ymir::utils::{extract_path_urn, extract_payload};
 
 #[derive(Clone)]
 pub struct DspRouter {
@@ -111,25 +113,7 @@ impl DspRouter {
             .with_state(self)
     }
 
-    async fn process_request<T, R, F, Fut>(
-        input: Result<Json<T>, JsonRejection>,
-        success_code: StatusCode,
-        action: F,
-    ) -> impl IntoResponse
-    where
-        T: Send,
-        R: Serialize,
-        F: FnOnce(T) -> Fut,
-        Fut: Future<Output = Outcome<R>> + Send,
-    {
-        let payload = match extract_payload(input) {
-            Ok(v) => v,
-            Err(e) => return e,
-        };
-        Self::map_service_result(action(payload).await, success_code).into_response()
-    }
-
-    fn map_service_result<R>(result: Outcome<R>, success_code: StatusCode) -> impl IntoResponse
+    fn map_service_result<R>(result: ymir::errors::Outcome<R>, success_code: StatusCode) -> impl IntoResponse
     where
         R: Serialize,
     {
@@ -168,73 +152,20 @@ impl DspRouter {
         )
     }
 
-    // async fn handle_transfer_request(
-    //     State(state): State<DspRouter>,
-    //     Extension(mate): Extension<Mates>,
-    //     input: Result<
-    //         Json<TransferProcessMessageWrapper<TransferRequestMessageDto>>,
-    //         JsonRejection,
-    //     >,
-    // ) -> impl IntoResponse {
-    //     tracing::info!("algo cae aquí: \n{:?}\n", &input);
-    //     let payload = match extract_payload(input) {
-    //         Ok(v) => v,
-    //         Err(e) => return e,
-    //     };
-    //
-    //     let result = state
-    //         .orchestrator
-    //         .get_protocol_service()
-    //         .on_transfer_request(&payload, &mate.participant_id)
-    //         .await;
-    //
-    //     match result {
-    //         Ok((data, already_exists)) => {
-    //             let status = if already_exists {
-    //                 StatusCode::OK
-    //             } else {
-    //                 StatusCode::CREATED
-    //             };
-    //             (status, Json(data)).into_response()
-    //         }
-    //         Err(err) => Self::map_service_error(err).into_response(),
-    //     }
-    // }
-
-
     async fn handle_transfer_request(
         State(state): State<DspRouter>,
         Extension(mate): Extension<Mates>,
-        // 1. En lugar de pedir Json<...>, pedimos el cuerpo completo como String
-        raw_body: String,
+        input: Result<Json<TransferProcessMessageWrapper<TransferRequestMessageDto>>, JsonRejection>,
     ) -> impl IntoResponse {
-
-        // 2. Imprimimos el payload exacto que nos envía el cliente
-        tracing::info!(">>> 🚀 PAYLOAD ORIGINAL CRUDO:\n{}", raw_body);
-
-        // 3. Intentamos parsearlo a mano a tus estructuras
-        let payload_result: Result<TransferProcessMessageWrapper<TransferRequestMessageDto>, _> =
-            serde_json::from_str(&raw_body);
-
-        // 4. Evaluamos el resultado del parseo (reemplazando tu extract_payload)
-        let payload = match payload_result {
-            Ok(v) => {
-                tracing::debug!(">>> ✅ Parseo exitoso");
-                v
-            }
-            Err(e) => {
-                // Si el problema es el "invalid urn scheme", caerá aquí.
-                // Pero como ya hemos impreso `raw_body` arriba, podrás ver exactamente qué mandaron.
-                tracing::error!(">>> ❌ Error al parsear JSON: {}", e);
-                return StatusCode::BAD_REQUEST.into_response();
-            }
+        let data = match extract_payload(input) {
+            Ok(v) => v,
+            Err(e) => return e.into_response(),
         };
-
-        // 5. A partir de aquí, tu lógica de negocio sigue exactamente igual
+        let ctx = DspTransferContext::inbound(None, mate.participant_id);
         let result = state
             .orchestrator
             .get_protocol_service()
-            .on_transfer_request(&payload, &mate.participant_id)
+            .on_transfer_request(ctx, &data)
             .await;
 
         match result {
@@ -250,77 +181,116 @@ impl DspRouter {
         }
     }
 
-
     async fn handle_transfer_start(
         State(state): State<DspRouter>,
         Path(id): Path<String>,
-        Extension(_mate): Extension<Mates>,
+        Extension(mate): Extension<Mates>,
         input: Result<Json<TransferProcessMessageWrapper<TransferStartMessageDto>>, JsonRejection>,
     ) -> impl IntoResponse {
-        Self::process_request(input, StatusCode::OK, |data| async move {
+        let data = match extract_payload(input) {
+            Ok(v) => v,
+            Err(e) => return e.into_response(),
+        };
+        let peer_pid = match extract_path_urn(&id) {
+            Ok(u) => u,
+            Err(e) => return e.into_response(),
+        };
+        let ctx = DspTransferContext::inbound(Some(peer_pid), mate.participant_id);
+        Self::map_service_result(
             state
                 .orchestrator
                 .get_protocol_service()
-                .on_transfer_start(&id, &data)
-                .await
-        })
-        .await
+                .on_transfer_start(ctx, &data)
+                .await,
+            StatusCode::OK,
+        )
+        .into_response()
     }
 
     async fn handle_transfer_completion(
         State(state): State<DspRouter>,
         Path(id): Path<String>,
-        Extension(_mate): Extension<Mates>,
+        Extension(mate): Extension<Mates>,
         input: Result<
             Json<TransferProcessMessageWrapper<TransferCompletionMessageDto>>,
             JsonRejection,
         >,
     ) -> impl IntoResponse {
-        Self::process_request(input, StatusCode::OK, |data| async move {
+        let data = match extract_payload(input) {
+            Ok(v) => v,
+            Err(e) => return e.into_response(),
+        };
+        let peer_pid = match extract_path_urn(&id) {
+            Ok(u) => u,
+            Err(e) => return e.into_response(),
+        };
+        let ctx = DspTransferContext::inbound(Some(peer_pid), mate.participant_id);
+        Self::map_service_result(
             state
                 .orchestrator
                 .get_protocol_service()
-                .on_transfer_completion(&id, &data)
-                .await
-        })
-        .await
+                .on_transfer_completion(ctx, &data)
+                .await,
+            StatusCode::OK,
+        )
+        .into_response()
     }
 
     async fn handle_transfer_termination(
         State(state): State<DspRouter>,
         Path(id): Path<String>,
-        Extension(_mate): Extension<Mates>,
+        Extension(mate): Extension<Mates>,
         input: Result<
             Json<TransferProcessMessageWrapper<TransferTerminationMessageDto>>,
             JsonRejection,
         >,
     ) -> impl IntoResponse {
-        Self::process_request(input, StatusCode::OK, |data| async move {
+        let data = match extract_payload(input) {
+            Ok(v) => v,
+            Err(e) => return e.into_response(),
+        };
+        let peer_pid = match extract_path_urn(&id) {
+            Ok(u) => u,
+            Err(e) => return e.into_response(),
+        };
+        let ctx = DspTransferContext::inbound(Some(peer_pid), mate.participant_id);
+        Self::map_service_result(
             state
                 .orchestrator
                 .get_protocol_service()
-                .on_transfer_termination(&id, &data)
-                .await
-        })
-        .await
+                .on_transfer_termination(ctx, &data)
+                .await,
+            StatusCode::OK,
+        )
+        .into_response()
     }
 
     async fn handle_transfer_suspension(
         State(state): State<DspRouter>,
         Path(id): Path<String>,
-        Extension(_mate): Extension<Mates>,
+        Extension(mate): Extension<Mates>,
         input: Result<
             Json<TransferProcessMessageWrapper<TransferSuspensionMessageDto>>,
             JsonRejection,
         >,
     ) -> impl IntoResponse {
-        Self::process_request(input, StatusCode::OK, |data| async move {
+        let data = match extract_payload(input) {
+            Ok(v) => v,
+            Err(e) => return e.into_response(),
+        };
+        let peer_pid = match extract_path_urn(&id) {
+            Ok(u) => u,
+            Err(e) => return e.into_response(),
+        };
+        let ctx = DspTransferContext::inbound(Some(peer_pid), mate.participant_id);
+        Self::map_service_result(
             state
                 .orchestrator
                 .get_protocol_service()
-                .on_transfer_suspension(&id, &data)
-                .await
-        })
-        .await
+                .on_transfer_suspension(ctx, &data)
+                .await,
+            StatusCode::OK,
+        )
+        .into_response()
     }
 }

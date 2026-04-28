@@ -28,7 +28,6 @@ use serde::Serialize;
 use std::future::Future;
 use std::sync::Arc;
 
-use crate::http::common::extract_payload;
 use crate::protocols::dsp::orchestrator::rpc::types::{
     RpcTransferCompletionMessageDto, RpcTransferErrorDto, RpcTransferRequestMessageDto,
     RpcTransferStartMessageDto, RpcTransferSuspensionMessageDto, RpcTransferTerminationMessageDto,
@@ -42,6 +41,7 @@ use serde::Deserialize;
 use std::str::FromStr;
 use urn::Urn;
 use ymir::errors::Outcome;
+use ymir::utils::extract_payload;
 
 #[derive(Clone)]
 pub struct RpcRouter {
@@ -97,7 +97,7 @@ impl RpcRouter {
     {
         let payload = match extract_payload(input) {
             Ok(v) => v,
-            Err(e) => return e,
+            Err(e) => return e.into_response(),
         };
         Self::map_service_result(action(payload.clone()).await, success_code, payload)
             .into_response()
@@ -215,7 +215,7 @@ impl RpcRouter {
     ) -> Response {
         let input = match extract_payload(input) {
             Ok(v) => v,
-            Err(e) => return e,
+            Err(e) => return e.into_response(),
         };
         let agreement_id_urn = match Urn::from_str(&input.agreement_id) {
             Ok(u) => u,

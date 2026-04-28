@@ -73,16 +73,13 @@ pub(super) trait DataPlaneStrategy: Send + Sync {
     async fn on_terminate_post(&self, mgr: &DataplaneManager, transfer_id: &Urn) -> Outcome<()>;
 }
 
-// ─── Static singletons ────────────────────────────────────────────────────────
 
 static CONSUMER_PULL: ConsumerPullStrategy = ConsumerPullStrategy;
 static CONSUMER_PUSH: ConsumerPushStrategy = ConsumerPushStrategy;
 static PROVIDER_PULL: ProviderPullStrategy = ProviderPullStrategy;
 static PROVIDER_PUSH: ProviderPushStrategy = ProviderPushStrategy;
 
-// ─── Dispatch ─────────────────────────────────────────────────────────────────
 
-/// Select strategy from `process.inner.role` × `process.inner.transfer_direction`.
 pub(super) fn strategy_for(process: &TransferProcessDto) -> &'static dyn DataPlaneStrategy {
     match (
         process.inner.role.as_str(),
@@ -95,8 +92,7 @@ pub(super) fn strategy_for(process: &TransferProcessDto) -> &'static dyn DataPla
     }
 }
 
-/// Select strategy for `on_transfer_request_pre`: no process exists yet.
-/// Role is always Consumer for this hook; mode is inferred from `data_address`.
+
 pub(super) fn strategy_for_request_pre(
     data_address: &Option<DataAddressDto>,
 ) -> &'static dyn DataPlaneStrategy {

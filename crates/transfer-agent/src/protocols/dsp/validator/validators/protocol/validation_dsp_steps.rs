@@ -17,6 +17,7 @@
  *
  */
 
+use crate::protocols::dsp::context::DspTransferContext;
 use crate::protocols::dsp::protocol_types::{
     TransferCompletionMessageDto, TransferProcessMessageWrapper, TransferRequestMessageDto,
     TransferStartMessageDto, TransferSuspensionMessageDto, TransferTerminationMessageDto,
@@ -60,15 +61,19 @@ impl ValidationDspSteps for ValidationDspStepsService {
             .validate_identifiers_as_urn(&input.dto)
             .await?;
         self.payload_validator.validate_auth(&input.dto).await?;
-        //self.payload_validator.validate_format_data_address(&input.dto).await?;
         Ok(())
     }
 
     async fn on_transfer_start(
         &self,
-        uri_id: &String,
+        ctx: &DspTransferContext,
         input: &TransferProcessMessageWrapper<TransferStartMessageDto>,
     ) -> Outcome<()> {
+        let uri_id = ctx
+            .peer_pid
+            .as_ref()
+            .map(|u| u.to_string())
+            .unwrap_or_default();
         let dto = self
             .helpers
             .get_current_dto_from_payload(&input.dto)
@@ -81,13 +86,10 @@ impl ValidationDspSteps for ValidationDspStepsService {
             .validate_with_json_schema(&input.dto)
             .await?;
         self.payload_validator
-            .validate_uri_id_as_urn(uri_id)
-            .await?;
-        self.payload_validator
             .validate_identifiers_as_urn(&input.dto)
             .await?;
         self.payload_validator
-            .validate_uri_and_pid(uri_id, &input.dto, &role)
+            .validate_uri_and_pid(&uri_id, &input.dto, &role)
             .await?;
         self.payload_validator
             .validate_correlation(&input.dto, &dto)
@@ -115,9 +117,14 @@ impl ValidationDspSteps for ValidationDspStepsService {
 
     async fn on_transfer_completion(
         &self,
-        uri_id: &String,
+        ctx: &DspTransferContext,
         input: &TransferProcessMessageWrapper<TransferCompletionMessageDto>,
     ) -> Outcome<()> {
+        let uri_id = ctx
+            .peer_pid
+            .as_ref()
+            .map(|u| u.to_string())
+            .unwrap_or_default();
         let dto = self
             .helpers
             .get_current_dto_from_payload(&input.dto)
@@ -130,13 +137,10 @@ impl ValidationDspSteps for ValidationDspStepsService {
             .validate_with_json_schema(&input.dto)
             .await?;
         self.payload_validator
-            .validate_uri_id_as_urn(uri_id)
-            .await?;
-        self.payload_validator
             .validate_identifiers_as_urn(&input.dto)
             .await?;
         self.payload_validator
-            .validate_uri_and_pid(uri_id, &input.dto, &role)
+            .validate_uri_and_pid(&uri_id, &input.dto, &role)
             .await?;
         self.payload_validator
             .validate_correlation(&input.dto, &dto)
@@ -161,9 +165,14 @@ impl ValidationDspSteps for ValidationDspStepsService {
 
     async fn on_transfer_suspension(
         &self,
-        uri_id: &String,
+        ctx: &DspTransferContext,
         input: &TransferProcessMessageWrapper<TransferSuspensionMessageDto>,
     ) -> Outcome<()> {
+        let uri_id = ctx
+            .peer_pid
+            .as_ref()
+            .map(|u| u.to_string())
+            .unwrap_or_default();
         let dto = self
             .helpers
             .get_current_dto_from_payload(&input.dto)
@@ -176,13 +185,10 @@ impl ValidationDspSteps for ValidationDspStepsService {
             .validate_with_json_schema(&input.dto)
             .await?;
         self.payload_validator
-            .validate_uri_id_as_urn(uri_id)
-            .await?;
-        self.payload_validator
             .validate_identifiers_as_urn(&input.dto)
             .await?;
         self.payload_validator
-            .validate_uri_and_pid(uri_id, &input.dto, &role)
+            .validate_uri_and_pid(&uri_id, &input.dto, &role)
             .await?;
         self.payload_validator
             .validate_correlation(&input.dto, &dto)
@@ -207,9 +213,14 @@ impl ValidationDspSteps for ValidationDspStepsService {
 
     async fn on_transfer_termination(
         &self,
-        uri_id: &String,
+        ctx: &DspTransferContext,
         input: &TransferProcessMessageWrapper<TransferTerminationMessageDto>,
     ) -> Outcome<()> {
+        let uri_id = ctx
+            .peer_pid
+            .as_ref()
+            .map(|u| u.to_string())
+            .unwrap_or_default();
         let dto = self
             .helpers
             .get_current_dto_from_payload(&input.dto)
@@ -222,13 +233,10 @@ impl ValidationDspSteps for ValidationDspStepsService {
             .validate_with_json_schema(&input.dto)
             .await?;
         self.payload_validator
-            .validate_uri_id_as_urn(uri_id)
-            .await?;
-        self.payload_validator
             .validate_identifiers_as_urn(&input.dto)
             .await?;
         self.payload_validator
-            .validate_uri_and_pid(uri_id, &input.dto, &role)
+            .validate_uri_and_pid(&uri_id, &input.dto, &role)
             .await?;
         self.payload_validator
             .validate_correlation(&input.dto, &dto)

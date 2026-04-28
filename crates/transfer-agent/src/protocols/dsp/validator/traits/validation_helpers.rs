@@ -17,7 +17,6 @@
  *
  */
 
-#![allow(unused)]
 use crate::entities::transfer_process::TransferProcessDto;
 use crate::protocols::dsp::protocol_types::{
     TransferProcessMessageTrait, TransferProcessState, TransferStateAttribute,

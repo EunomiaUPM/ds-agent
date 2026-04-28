@@ -35,7 +35,24 @@ impl ValidatedStateTransitionServiceForRcp {
     pub fn new(helpers: Arc<dyn ValidationHelpers>) -> Self {
         Self { _helpers: helpers }
     }
+    fn validate_state_transition_error_helper(
+        &self,
+        current_state: &TransferProcessState,
+        message_type: &TransferProcessMessageType,
+    ) -> Outcome<()> {
+        let err = CommonErrors::parse_new(
+            format!(
+                "TransferProcessMessageType {} is not allowed here. Current state is {}",
+                message_type.to_string(),
+                current_state.to_string()
+            )
+            .as_str(),
+        );
+        error!("{}", err.log());
+        Err(Errors::parse(err.to_string(), None))
+    }
 }
+
 #[async_trait::async_trait]
 impl ValidateStateTransition for ValidatedStateTransitionServiceForRcp {
     async fn validate_role_for_message(
@@ -74,13 +91,13 @@ impl ValidateStateTransition for ValidatedStateTransitionServiceForRcp {
                 match current_state {
                     TransferProcessState::Requested => {}
                     TransferProcessState::Started => {
-                        validate_state_transition_error_helper(&current_state, message_type)?;
+                        self.validate_state_transition_error_helper(&current_state, message_type)?;
                     }
                     TransferProcessState::Terminated => {
-                        validate_state_transition_error_helper(&current_state, message_type)?;
+                        self.validate_state_transition_error_helper(&current_state, message_type)?;
                     }
                     TransferProcessState::Completed => {
-                        validate_state_transition_error_helper(&current_state, message_type)?;
+                        self.validate_state_transition_error_helper(&current_state, message_type)?;
                     }
                     TransferProcessState::Suspended => {
                         // TODO check if startable if was suspended by same role
@@ -89,33 +106,33 @@ impl ValidateStateTransition for ValidatedStateTransitionServiceForRcp {
             }
             TransferProcessMessageType::TransferCompletionMessage => match current_state {
                 TransferProcessState::Requested => {
-                    validate_state_transition_error_helper(&current_state, message_type)?;
+                    self.validate_state_transition_error_helper(&current_state, message_type)?;
                 }
                 TransferProcessState::Started => {}
                 TransferProcessState::Terminated => {
-                    validate_state_transition_error_helper(&current_state, message_type)?;
+                    self.validate_state_transition_error_helper(&current_state, message_type)?;
                 }
                 TransferProcessState::Completed => {
-                    validate_state_transition_error_helper(&current_state, message_type)?;
+                    self.validate_state_transition_error_helper(&current_state, message_type)?;
                 }
                 TransferProcessState::Suspended => {}
             },
             TransferProcessMessageType::TransferSuspensionMessage => {
                 match current_state {
                     TransferProcessState::Requested => {
-                        validate_state_transition_error_helper(&current_state, message_type)?;
+                        self.validate_state_transition_error_helper(&current_state, message_type)?;
                     }
                     TransferProcessState::Started => {
                         // TODO check if suspendable if was started by same role
                     }
                     TransferProcessState::Terminated => {
-                        validate_state_transition_error_helper(&current_state, message_type)?;
+                        self.validate_state_transition_error_helper(&current_state, message_type)?;
                     }
                     TransferProcessState::Completed => {
-                        validate_state_transition_error_helper(&current_state, message_type)?;
+                        self.validate_state_transition_error_helper(&current_state, message_type)?;
                     }
                     TransferProcessState::Suspended => {
-                        validate_state_transition_error_helper(&current_state, message_type)?;
+                        self.validate_state_transition_error_helper(&current_state, message_type)?;
                     }
                 }
             }
@@ -123,10 +140,10 @@ impl ValidateStateTransition for ValidatedStateTransitionServiceForRcp {
                 TransferProcessState::Requested => {}
                 TransferProcessState::Started => {}
                 TransferProcessState::Terminated => {
-                    validate_state_transition_error_helper(&current_state, message_type)?;
+                    self.validate_state_transition_error_helper(&current_state, message_type)?;
                 }
                 TransferProcessState::Completed => {
-                    validate_state_transition_error_helper(&current_state, message_type)?;
+                    self.validate_state_transition_error_helper(&current_state, message_type)?;
                 }
                 TransferProcessState::Suspended => {}
             },
@@ -180,20 +197,4 @@ impl ValidateStateTransition for ValidatedStateTransitionServiceForRcp {
         };
         Ok(())
     }
-}
-
-fn validate_state_transition_error_helper(
-    current_state: &TransferProcessState,
-    message_type: &TransferProcessMessageType,
-) -> Outcome<()> {
-    let err = CommonErrors::parse_new(
-        format!(
-            "TransferProcessMessageType {} is not allowed here. Current state is {}",
-            message_type.to_string(),
-            current_state.to_string()
-        )
-        .as_str(),
-    );
-    error!("{}", err.log());
-    Err(Errors::parse(err.to_string(), None))
 }

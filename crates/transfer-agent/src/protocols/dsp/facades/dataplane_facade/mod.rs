@@ -22,11 +22,9 @@ mod provider_pull;
 mod provider_push;
 mod strategy;
 
-use crate::entities::transfer_process::TransferProcessDto;
+use crate::protocols::dsp::context::DspTransferContext;
 use crate::protocols::dsp::protocol_types::DataAddressDto;
-use connector::ConnectorInstanceDto;
 use dataplane::DataplaneAddress;
-use urn::Urn;
 use ymir::errors::Outcome;
 
 impl From<DataAddressDto> for DataplaneAddress {
@@ -73,63 +71,59 @@ pub trait DataPlaneFacadeTrait: Send + Sync {
     // ─── TransferRequest ───
     async fn on_transfer_request_pre(
         &self,
-        transfer_id: &Urn,
-        data_address: &Option<DataAddressDto>,
+        ctx: &DspTransferContext,
     ) -> Outcome<Option<DataAddressDto>>;
 
     async fn on_transfer_request_post(
         &self,
-        transfer_process: &TransferProcessDto,
-        connector_instance: &Option<ConnectorInstanceDto>,
-        data_address: &Option<DataAddressDto>,
+        ctx: &DspTransferContext,
     ) -> Outcome<Option<DataAddressDto>>;
 
     // ─── TransferStart ───
 
     async fn on_transfer_start_pre(
         &self,
-        transfer_process: &TransferProcessDto,
+        ctx: &DspTransferContext,
     ) -> Outcome<Option<DataAddressDto>>;
 
     async fn on_transfer_start_post(
         &self,
-        transfer_process: &TransferProcessDto,
-        data_address: Option<DataAddressDto>,
+        ctx: &DspTransferContext,
     ) -> Outcome<Option<DataAddressDto>>;
 
     // ─── TransferSuspension ───
 
     async fn on_transfer_suspension_pre(
         &self,
-        transfer_process: &TransferProcessDto,
+        ctx: &DspTransferContext,
     ) -> Outcome<Option<DataAddressDto>>;
 
     async fn on_transfer_suspension_post(
         &self,
-        transfer_process: &TransferProcessDto,
+        ctx: &DspTransferContext,
     ) -> Outcome<Option<DataAddressDto>>;
 
     // ─── TransferCompletion ───
 
     async fn on_transfer_completion_pre(
         &self,
-        transfer_process: &TransferProcessDto,
+        ctx: &DspTransferContext,
     ) -> Outcome<Option<DataAddressDto>>;
 
     async fn on_transfer_completion_post(
         &self,
-        transfer_process: &TransferProcessDto,
+        ctx: &DspTransferContext,
     ) -> Outcome<Option<DataAddressDto>>;
 
     // ─── TransferTermination ───
 
     async fn on_transfer_termination_pre(
         &self,
-        transfer_process: &TransferProcessDto,
+        ctx: &DspTransferContext,
     ) -> Outcome<Option<DataAddressDto>>;
 
     async fn on_transfer_termination_post(
         &self,
-        transfer_process: &TransferProcessDto,
+        ctx: &DspTransferContext,
     ) -> Outcome<Option<DataAddressDto>>;
 }

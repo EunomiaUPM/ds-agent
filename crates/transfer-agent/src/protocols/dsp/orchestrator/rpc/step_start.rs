@@ -17,91 +17,90 @@
  *
  */
 
-use crate::entities::transfer_process::TransferProcessDto;
+use crate::protocols::dsp::context::DspTransferContext;
 use crate::protocols::dsp::facades::dataplane_facade::DataPlaneFacadeTrait;
 use crate::protocols::dsp::orchestrator::rpc::step_trait::{
-    continuation_send_and_persist, resolve_continuation_context, RpcPeerContext, TransferRpcStep,
+    continuation_send_and_persist, populate_continuation_context, TransferRpcStep,
 };
 use crate::protocols::dsp::orchestrator::rpc::types::{
     RpcTransferProcessMessageTrait, RpcTransferStartMessageDto,
 };
 use crate::protocols::dsp::persistence::TransferPersistenceTrait;
 use crate::protocols::dsp::protocol_types::{
-    DataAddressDto, TransferProcessAckDto, TransferProcessMessageWrapper, TransferStartMessageDto,
+    TransferProcessAckDto, TransferProcessMessageWrapper, TransferStartMessageDto,
 };
 use common::http_client::HttpClient;
 use std::sync::Arc;
 use ymir::errors::{Errors, Outcome};
-// ─── StartStep ────────────────────────────────────────────────────────────────
 
-/// Activates the local dataplane and signals the peer to start the transfer.
-///
-/// In PULL mode the `pre_hook` returns a proxy URL that is forwarded to the
-/// peer as the provider's `DataAddress`.  For restarts the data address is
-/// withheld to avoid re-initiating the dataplane session.
 pub(super) struct StartStep;
 
 #[async_trait::async_trait]
 impl TransferRpcStep for StartStep {
     type Input = RpcTransferStartMessageDto;
     type DspMessage = TransferStartMessageDto;
-    type Context = RpcPeerContext;
 
     fn url_suffix() -> &'static str {
         "start"
     }
 
     async fn prepare_context(
+        ctx: &mut DspTransferContext,
         input: &RpcTransferStartMessageDto,
         persistence: &Arc<dyn TransferPersistenceTrait>,
-    ) -> Outcome<RpcPeerContext> {
+    ) -> Outcome<()> {
         let pid = input
             .get_consumer_pid()
             .ok_or_else(|| Errors::crazy("StartStep: missing consumer PID", None))?;
-        resolve_continuation_context(&pid, persistence).await
+        populate_continuation_context(ctx, &pid, persistence).await
     }
 
     async fn pre_hook(
         dp: &Arc<dyn DataPlaneFacadeTrait>,
-        ctx: &RpcPeerContext,
-    ) -> Outcome<Option<DataAddressDto>> {
-        dp.on_transfer_start_pre(&ctx.process).await
+        ctx: &mut DspTransferContext,
+    ) -> Outcome<()> {
+        let addr = dp.on_transfer_start_pre(ctx).await?;
+        ctx.resolved_data_address = addr;
+        Ok(())
     }
 
     fn build_message(
+        ctx: &DspTransferContext,
         _input: &RpcTransferStartMessageDto,
-        ctx: &RpcPeerContext,
-        pre_addr: Option<DataAddressDto>,
     ) -> Outcome<TransferStartMessageDto> {
-        // For restarts, omit the data address to avoid re-initiating the dataplane.
-        let data_address = if ctx.is_restart { None } else { pre_addr };
+        let data_address = if ctx.is_restart {
+            None
+        } else {
+            ctx.resolved_data_address.clone()
+        };
         Ok(TransferStartMessageDto {
-            provider_pid: ctx.provider_pid.clone(),
-            consumer_pid: ctx.consumer_pid.clone(),
+            provider_pid: ctx
+                .provider_pid
+                .clone()
+                .ok_or_else(|| Errors::crazy("StartStep: provider_pid missing in ctx", None))?,
+            consumer_pid: ctx
+                .consumer_pid
+                .clone()
+                .ok_or_else(|| Errors::crazy("StartStep: consumer_pid missing in ctx", None))?,
             data_address,
         })
-    }
-
-    fn auth_peer(ctx: &RpcPeerContext) -> &str {
-        &ctx.process.inner.associated_agent_peer
     }
 
     async fn send_and_persist(
         http_client: &HttpClient,
         persistence: &Arc<dyn TransferPersistenceTrait>,
-        ctx: &mut RpcPeerContext,
+        ctx: &mut DspTransferContext,
         payload: Arc<TransferStartMessageDto>,
-        url_suffix: &str,
-    ) -> Outcome<(
-        TransferProcessMessageWrapper<TransferProcessAckDto>,
-        TransferProcessDto,
-    )> {
-        continuation_send_and_persist(http_client, persistence, ctx, payload, url_suffix).await
+    ) -> Outcome<TransferProcessMessageWrapper<TransferProcessAckDto>> {
+        continuation_send_and_persist(http_client, persistence, ctx, payload, Self::url_suffix())
+            .await
     }
 
-    async fn post_hook(dp: &Arc<dyn DataPlaneFacadeTrait>, ctx: &Self::Context) -> Outcome<()> {
-        // Outbound sender: no incoming DataAddress to apply, so pass None.
-        dp.on_transfer_start_post(&ctx.process, None).await?;
+    async fn post_hook(
+        dp: &Arc<dyn DataPlaneFacadeTrait>,
+        ctx: &mut DspTransferContext,
+    ) -> Outcome<()> {
+        dp.on_transfer_start_post(ctx).await?;
         Ok(())
     }
 }

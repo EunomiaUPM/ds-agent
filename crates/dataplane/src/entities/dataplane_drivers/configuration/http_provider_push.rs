@@ -40,6 +40,8 @@ impl DriverProxyConfiguratorTrait for HttpProviderPushConfigurator {
         let egress = self.configure_egress(context)?;
         proxy.set_ingress(ingress);
         proxy.set_egress(egress);
-        Ok(context.clone())
+        let mut new_context = context.clone();
+        new_context.set_proxy(proxy);
+        Ok(new_context)
     }
 }

@@ -158,6 +158,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
             )
             .await?;
         context.set_dataplane_process(dataplane_process);
+        context.set_forward_dataplane_address_from_ingress();
         Ok(context)
     }
     async fn set_started(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {

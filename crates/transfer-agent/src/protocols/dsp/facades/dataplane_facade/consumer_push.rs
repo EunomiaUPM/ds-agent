@@ -18,10 +18,7 @@
 use crate::protocols::dsp::context::DspTransferContext;
 use crate::protocols::dsp::facades::dataplane_facade::strategy::DataPlaneStrategy;
 use crate::protocols::dsp::facades::dataplane_facade::DataAddressDto;
-use dataplane::{
-    DataplaneCommand, DataplaneContinuation, DataplaneInitCommandDirection,
-    DataplaneInitCommandTypes, DataplaneManager,
-};
+use dataplane::{DataplaneCommand, DataplaneCommandResponse, DataplaneContinuation, DataplaneInitCommandDirection, DataplaneInitCommandTypes, DataplaneManager};
 use std::str::FromStr;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
@@ -45,7 +42,7 @@ impl DataPlaneStrategy for ConsumerPushStrategy {
             .input_data_address
             .as_ref()
             .ok_or_else(|| Errors::crazy("Data address instance should be defined", None))?;
-        mgr.execute_command(DataplaneCommand::SetInit(
+        let res = mgr.execute_command(DataplaneCommand::SetInit(
             DataplaneInitCommandTypes::AsConsumer {
                 transfer_process_id: transfer_id.clone(),
                 direction: DataplaneInitCommandDirection::Push {
@@ -54,7 +51,12 @@ impl DataPlaneStrategy for ConsumerPushStrategy {
             },
         ))
         .await?;
-        Ok(None)
+
+        if let DataplaneCommandResponse::OkWithAddress(address) = res {
+            Ok(Some(address.into()))
+        } else {
+            Ok(None)
+        }
     }
 
     async fn on_request_post(

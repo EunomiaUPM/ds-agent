@@ -148,12 +148,11 @@ const RouteComponent = () => {
       <div className="grid grid-cols-3 gap-5">
         {Array.isArray(otherParticipants)
           ? otherParticipants?.map((p) => (
-              <CatalogItem
-                date={catalog?.response?.issued}
-                datasetNumber={catalog?.response?.dataset?.length}
-                organizationName={p.participant_slug}
-                id={p.participant_id}
-                title={null}
+            <CatalogItem
+                date={catalog?.response?.issued ?? ""}
+                datasetNumber={catalog?.response?.dataset?.length ?? 0}
+                organizationName={p.participant_slug ?? "Unknown"}
+                id={p.participant_id ?? null}
               />
             ))
           : null}
@@ -165,21 +164,21 @@ const RouteComponent = () => {
           title={null}
        /> */}
         <CatalogItem
-          date={catalog?.response?.issued}
+          date={catalog?.response?.issued ?? ""}
           datasetNumber={17}
           organizationName={"Another participant"}
           id={null}
           title={"Meteorology Stations in Madrid Catalog"}
         />
         <CatalogItem
-          date={catalog?.response?.issued}
+          date={catalog?.response?.issued ?? ""}
           datasetNumber={23}
           organizationName={"Another participant"}
           id={null}
           title={"Parking Ocupation in Ávila Catalog"}
         />
         <CatalogItem
-          date={catalog?.response?.issued}
+          date={catalog?.response?.issued ?? ""}
           datasetNumber={31}
           organizationName={"Another participant"}
           id={null}

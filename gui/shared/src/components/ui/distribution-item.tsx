@@ -1,15 +1,22 @@
 import React from "react";
-import { useState } from "react";
 import Heading from "shared/src/components/ui/heading";
-import { Badge } from "./badge";
 import { ExternalLink } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
-const DistributionItem = ({
+interface DistributionItemProps {
+  title?: string;
+  ownDataset?: boolean;
+  description?: string;
+  date?: string;
+  prevRoute?: string;
+  distribuionId?: string;
+  dataserviceId?: string;
+}
+
+const DistributionItem: React.FC<DistributionItemProps> = ({
   title,
   ownDataset,
   description,
-  date,
   prevRoute,
   distribuionId,
   dataserviceId,

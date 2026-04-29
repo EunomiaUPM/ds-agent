@@ -143,14 +143,14 @@ export function AppSidebar() {
       title: "My area",
       items: [
         {
+          title: "My Wallet",
+          url: "/admin/wallet/info",
+          icon: Wallet,
+        },
+        {
           title: "My Catalog",
           url: "/admin/my-catalog",
           icon: Archive,
-        },
-        {
-          title: "Wallet",
-          url: "/admin/wallet",
-          icon: Wallet,
         },
       ],
     },

@@ -6,7 +6,7 @@ import { DataTable } from "shared/src/components/DataTable";
 import { Skeleton } from "shared/src/components/ui/skeleton";
 import { Badge } from "shared/src/components/ui/badge";
 import { InfoList } from "shared/src/components/ui/info-list";
-import { ChevronRight, ChevronDown } from "lucide-react";
+import { ChevronRight, ChevronDown, FileJson, Copy, Check } from "lucide-react";
 import { useState } from "react";
 import { cn } from "shared/src/lib/utils";
 
@@ -110,24 +110,58 @@ const WalletInfoPage = () => {
 
 const DidDocItem = ({ did }: { did: any }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  
+  let formattedDoc = did.document;
+  try {
+    const parsed = typeof did.document === 'string' ? JSON.parse(did.document) : did.document;
+    formattedDoc = JSON.stringify(parsed, null, 2);
+  } catch (e) {
+    // leave as is if not JSON
+  }
+
+  const handleCopy = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(formattedDoc);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
-    <div className="group border border-white/10 rounded-lg overflow-hidden bg-black/10 transition-all hover:bg-black/20">
+    <div className="group border border-white/10 rounded-xl overflow-hidden bg-white/[0.02] transition-all hover:bg-white/[0.04]">
       <button 
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between p-4 text-left transition-colors"
       >
         <div className="flex items-center gap-3">
-           <div className={cn("transition-transform duration-200", isOpen ? "rotate-90" : "")}>
-             <ChevronRight className="h-4 w-4 text-muted-foreground" />
+           <div className={cn("transition-transform duration-200", isOpen ? "rotate-90 text-primary" : "text-muted-foreground")}>
+             <ChevronRight className="h-5 w-5" />
            </div>
-           <span className="text-sm font-medium">{did.alias}</span>
+           <span className="text-sm font-semibold">{did.alias}</span>
            <span className="text-xs text-muted-foreground/60 font-mono truncate max-w-[200px] md:max-w-md">{did.did}</span>
         </div>
       </button>
       {isOpen && (
         <div className="p-4 pt-0">
-          <div className="bg-black/40 rounded p-4 font-mono text-[10px] text-muted-foreground/80 overflow-x-auto border border-white/5 whitespace-pre">
-            {did.document}
+          <div className="bg-black/40 rounded-xl border border-white/5 overflow-hidden">
+             <div className="flex items-center justify-between px-4 py-2 border-b border-white/5 bg-white/[0.02]">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-primary/60 flex items-center gap-2">
+                  <FileJson className="h-3 w-3" />
+                  JSON Document
+                </span>
+                <button 
+                  onClick={handleCopy}
+                  className="flex items-center gap-1.5 text-[10px] font-mono text-muted-foreground hover:text-primary transition-colors"
+                >
+                  {copied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+                  {copied ? "Copied!" : "Copy"}
+                </button>
+             </div>
+             <div className="p-4 overflow-x-auto">
+               <pre className="font-mono text-[11px] text-muted-foreground/90 whitespace-pre-wrap break-all leading-relaxed">
+                 {formattedDoc}
+               </pre>
+             </div>
           </div>
         </div>
       )}

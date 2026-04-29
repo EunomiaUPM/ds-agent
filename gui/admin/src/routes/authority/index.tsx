@@ -1,15 +1,16 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useGetAllVCRequests } from "shared/src/data/orval/vc-request/vc-request";
-import { DataTable } from "shared/src/components/DataTable";
-import { FormatDate } from "shared/src/components/ui/format-date";
-import { Button } from "shared/src/components/ui/button";
-import { Badge } from "shared/src/components/ui/badge";
-import { ArrowRight, Plus, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
-import { useState, useMemo } from "react";
-import { PageLayout } from "shared/src/components/layout/PageLayout";
-import { PageHeader } from "shared/src/components/layout/PageHeader";
-import { PageSection } from "shared/src/components/layout/PageSection";
-import { formatIdentifier, formatUrn } from "shared/src/lib/utils";
+import { ArrowDown, ArrowRight, ArrowUp, ArrowUpDown, Plus } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { DataTable } from 'shared/src/components/DataTable';
+import { PageHeader } from 'shared/src/components/layout/PageHeader';
+import { PageLayout } from 'shared/src/components/layout/PageLayout';
+import { PageSection } from 'shared/src/components/layout/PageSection';
+import { Badge } from 'shared/src/components/ui/badge';
+import { Button } from 'shared/src/components/ui/button';
+import { FormatDate } from 'shared/src/components/ui/format-date';
+import { useGetAllVCRequests } from 'shared/src/data/orval/vc-request/vc-request';
+import { formatUrn } from 'shared/src/lib/utils';
+
+import { createFileRoute, Link } from '@tanstack/react-router';
 
 /**
  * Route for listing all VC requests to an authority.
@@ -71,6 +72,17 @@ function AuthorityRequestsPage() {
     );
   };
 
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'processing': return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
+      case 'pending': return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
+      case 'approved': return 'bg-green-500/10 text-green-500 border-green-500/20';
+      case 'finalized': return 'bg-purple-500/10 text-purple-500 border-purple-500/20';
+      case 'rejected': return 'bg-red-500/10 text-red-500 border-red-500/20';
+      default: return 'bg-gray-500/10 text-gray-500 border-gray-500/20';
+    }
+  };
+
   return (
     <PageLayout>
       <PageHeader title="Request Credential">
@@ -90,21 +102,19 @@ function AuthorityRequestsPage() {
           keyExtractor={(a) => a.id}
           columns={[
             {
-              header: "Authority Name",
-              /* (
+              header: (
                 <Button
                   variant="ghost"
-                  // onClick={() => handleSort("authority_slug")}
+                  onClick={() => handleSort("authority_slug")}
                   className="p-0 h-auto font-semibold"
                 >
                   Authority Name {getSortIcon("authority_slug")}
                 </Button>
-              ), */
+              ),
               cell: (a: any) => a.authority_slug || "-",
             },
             {
-              header: "Request ID",
-              /* (
+              header: (
                 <Button
                   variant="ghost"
                   onClick={() => handleSort("id")}
@@ -112,27 +122,11 @@ function AuthorityRequestsPage() {
                 >
                   Request ID {getSortIcon("id")}
                 </Button>
-              ), */
-              cell: (a: any) => <Badge variant={"info"}>{formatIdentifier(a.id)}</Badge>,
+              ),
+              cell: (a: any) => <Badge variant={"info"}>{formatUrn(a.id)}</Badge>,
             },
-            // {
-            //   header: "Authority ID",
-            //   /* (
-            //     <Button variant="ghost" onClick={() => handleSort("authority_id")}>
-            //       Authority ID {getSortIcon("authority_id")}
-            //     </Button>
-            //   ), */
-            //   cell: (a: any) => (
-            //     <div className="flex flex-col gap-1">
-            //       <Badge variant={"info"}>
-            //         {a.authority_id ? formatIdentifier(a.authority_id) : "-"}
-            //       </Badge>
-            //     </div>
-            //   ),
-            // },
             {
-              header: "VC Type",
-              /* (
+              header: (
                 <Button
                   variant="ghost"
                   onClick={() => handleSort("vc_type")}
@@ -140,12 +134,11 @@ function AuthorityRequestsPage() {
                 >
                   VC Type {getSortIcon("vc_type")}
                 </Button>
-              ), */
+              ),
               cell: (a: any) => <Badge variant="role">{a.vc_type}</Badge>,
             },
             {
-              header: "Status",
-              /* (
+              header: (
                 <Button
                   variant="ghost"
                   onClick={() => handleSort("status")}
@@ -153,16 +146,15 @@ function AuthorityRequestsPage() {
                 >
                   Status {getSortIcon("status")}
                 </Button>
-              ), */
+              ),
               cell: (a: any) => (
-                <Badge variant={"status"} state={a.status}>
+                <Badge className={`border ${getStatusColor(a.status)}`}>
                   {a.status || "-"}
                 </Badge>
               ),
             },
             {
-              header: "Created at",
-              /* (
+              header: (
                 <Button
                   variant="ghost"
                   onClick={() => handleSort("created_at")}
@@ -170,17 +162,17 @@ function AuthorityRequestsPage() {
                 >
                   Created at {getSortIcon("created_at")}
                 </Button>
-              ), */
+              ),
               cell: (a: any) => (a.created_at ? <FormatDate date={a.created_at} /> : "-"),
             },
             {
-              header: "Link",
+              header: "Details",
               cell: (a) => (
                 // @ts-ignore
                 <Link to="/authority/request-details" search={{ requestId: a.id }}>
                   <Button variant="link" size={"sm"}>
                     See details
-                    <ArrowRight />
+                    <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
               ),

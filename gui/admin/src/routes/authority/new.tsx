@@ -40,6 +40,7 @@ export const Route = createFileRoute("/authority/new")({
 function NewAuthorityRequest() {
   const navigate = useNavigate();
   const [isDiscovering, setIsDiscovering] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [discoveredInfo, setDiscoveredInfo] = useState<{ id: string; vc_types: string[]; services: DidService[] } | null>(null);
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
 
@@ -63,13 +64,14 @@ function NewAuthorityRequest() {
 
   const url = form.watch("url");
 
-  const handleDiscovery = async () => {
-    if (!url || !url.startsWith("http")) return;
+  const handleDiscovery = async (optionalUrl?: string) => {
+    const targetUrl = typeof optionalUrl === 'string' ? optionalUrl : url;
+    if (!targetUrl || !targetUrl.startsWith("http")) return;
 
     setIsDiscovering(true);
     setDiscoveryError(null);
     try {
-      const cleanUrl = url.replace(/\/$/, "");
+      const cleanUrl = targetUrl.replace(/\/$/, "");
       
       const didResponse = await fetch(`${cleanUrl}/.well-known/did.json`);
       if (!didResponse.ok) throw new Error("Failed to fetch DID document");
@@ -97,6 +99,7 @@ function NewAuthorityRequest() {
       return;
     }
 
+    setIsSubmitting(true);
     try {
       const issuerService = discoveredInfo.services.find(s => s.type === "CredentialIssuer");
       const targetUrl = issuerService?.serviceEndpoint || values.url;
@@ -113,6 +116,8 @@ function NewAuthorityRequest() {
       (navigate as any)({ to: "/authority" });
     } catch (err) {
       console.error(err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -144,6 +149,17 @@ function NewAuthorityRequest() {
                                 placeholder="https://authority.example.com" 
                                 list="known-authorities"
                                 {...field} 
+                                onChange={(e) => {
+                                  field.onChange(e);
+                                  const val = e.target.value;
+                                  const known = knownAuthorities.find(a => a.base_url === val);
+                                  if (known) {
+                                    if (known.participant_slug) {
+                                      form.setValue("slug", known.participant_slug);
+                                    }
+                                    handleDiscovery(val);
+                                  }
+                                }}
                               />
                             </FormControl>
                             <datalist id="known-authorities">
@@ -156,7 +172,7 @@ function NewAuthorityRequest() {
                             <Button 
                               type="button" 
                               variant="secondary" 
-                              onClick={handleDiscovery}
+                              onClick={() => handleDiscovery()}
                               disabled={isDiscovering || !url}
                             >
                               {isDiscovering ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <Search className="h-4 w-4 mr-2" />}
@@ -288,8 +304,15 @@ function NewAuthorityRequest() {
                       />
                     </div>
 
-                    <Button type="submit" className="w-full" disabled={!discoveredInfo}>
-                      Submit Request
+                    <Button type="submit" className="w-full" disabled={!discoveredInfo || isSubmitting}>
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Submitting...
+                        </>
+                      ) : (
+                        "Submit Request"
+                      )}
                     </Button>
                   </form>
                 </Form>

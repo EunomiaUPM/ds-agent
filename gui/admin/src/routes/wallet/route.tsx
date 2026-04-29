@@ -17,8 +17,8 @@ const WalletLayout = () => {
   const pathname = routerState.location.pathname;
 
   const tabs = [
-    { label: "DID", to: "/wallet/did" },
     { label: "Info", to: "/wallet/info" },
+    { label: "DID", to: "/wallet/did" },
     { label: "Credentials", to: "/wallet/credentials" },
     { label: "OIDC4VP", to: "/wallet/oidc4vp" },
     { label: "OIDC4VCI", to: "/wallet/oidc4vci" },

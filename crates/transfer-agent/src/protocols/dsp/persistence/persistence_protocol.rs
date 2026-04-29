@@ -21,9 +21,8 @@ use crate::entities::transfer_messages::{NewTransferMessageDto, TransferAgentMes
 use crate::entities::transfer_process::{
     EditTransferProcessDto, TransferAgentProcessesTrait, TransferProcessDto,
 };
-use crate::protocols::dsp::persistence::{
-    create_process_record, CreateProcessInput, TransferPersistenceTrait,
-};
+use crate::protocols::dsp::context::DspTransferContext;
+use crate::protocols::dsp::persistence::{create_process_record, TransferPersistenceTrait};
 use crate::protocols::dsp::protocol_types::{
     TransferProcessMessageTrait, TransferProcessMessageType, TransferProcessState,
     TransferStateAttribute,
@@ -33,7 +32,6 @@ use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
-// ─── Service ─────────────────────────────────────────────────────────────────
 
 /// Persistence service for the inbound DSP protocol path.
 ///
@@ -75,21 +73,26 @@ impl TransferPersistenceTrait for TransferPersistenceForProtocolService {
             .await
     }
 
-    async fn create_process(&self, input: CreateProcessInput) -> Outcome<TransferProcessDto> {
-        let id = input.id.unwrap_or_else(|| {
+    async fn create_process(
+        &self,
+        ctx: &DspTransferContext,
+        payload_dto: Arc<dyn TransferProcessMessageTrait>,
+        payload_value: serde_json::Value,
+    ) -> Outcome<TransferProcessDto> {
+        let id = ctx.local_process_id.clone().unwrap_or_else(|| {
             Urn::from_str(&format!("urn:transfer-process:{}", uuid::Uuid::new_v4())).unwrap()
         });
         create_process_record(
             &self.transfer_process_service,
             &self.transfer_message_service,
             id,
-            input.protocol,
-            input.direction,
-            &input.associated_agent_peer,
-            input.provider_pid,
-            input.provider_address,
-            input.payload_dto,
-            input.payload_value,
+            "DSP",
+            "INBOUND",
+            &ctx.associated_peer_id,
+            ctx.provider_pid.clone(),
+            ctx.provider_address.clone(),
+            payload_dto,
+            payload_value,
         )
         .await
     }
@@ -98,19 +101,24 @@ impl TransferPersistenceTrait for TransferPersistenceForProtocolService {
     ///
     /// The state attribute is attributed to the *peer* party: a Provider receives
     /// actions initiated `ByConsumer`, and vice versa.
+    /// Resolves the process by `ctx.peer_pid` (the URL path identifier).
     async fn update_process(
         &self,
-        id: &str,
+        ctx: &DspTransferContext,
         payload_dto: Arc<dyn TransferProcessMessageTrait>,
         payload_value: serde_json::Value,
     ) -> Outcome<TransferProcessDto> {
-        let urn_id = Urn::from_str(id).expect("Failed to parse process URN");
+        let urn_id = ctx
+            .peer_pid
+            .as_ref()
+            .ok_or_else(|| Errors::crazy("peer_pid required for protocol update_process", None))?;
+
         let message_type = payload_dto.get_message();
         let new_state = TransferProcessState::from(message_type.clone());
 
         let process = self
             .transfer_process_service
-            .get_transfer_process_by_key_value(&urn_id)
+            .get_transfer_process_by_key_value(urn_id)
             .await?;
         let process_urn = Urn::from_str(process.inner.id.as_str())?;
 
@@ -169,12 +177,6 @@ impl TransferPersistenceTrait for TransferPersistenceForProtocolService {
 // ─── State attribute helpers ──────────────────────────────────────────────────
 
 /// Derives the new state attribute for a message **received** from the peer.
-///
-/// For inbound messages the initiator is always the remote side, so the attribute
-/// reflects the *opposite* of the local role.
-///
-/// Exception: a Start message arriving while still in the `OnRequest` phase keeps
-/// the `OnRequest` attribute — the transfer has not yet left its initial state.
 fn resolve_inbound_state_attribute(
     message_type: &TransferProcessMessageType,
     current: &TransferStateAttribute,
@@ -189,7 +191,6 @@ fn resolve_inbound_state_attribute(
     }
 }
 
-/// Returns the state attribute that represents the *peer* of the given local role.
 fn peer_attribute(local_role: &RoleConfig) -> Outcome<TransferStateAttribute> {
     match local_role {
         RoleConfig::Provider => Ok(TransferStateAttribute::ByConsumer),

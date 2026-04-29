@@ -10,7 +10,7 @@ vars:
   # -f path is relative to CWD (project root)
   # context is the parent directory so ymir (path = "./../ymir") is accessible
   DOCKERFILE: deployment/Dockerfile
-  CONTEXT: ..
+  CONTEXT: .
 
 tasks:
   # ─── build ──────────────────────────────────────────────────────────────────

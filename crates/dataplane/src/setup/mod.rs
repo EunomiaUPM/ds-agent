@@ -18,8 +18,8 @@
 use crate::cache::cache_redis::dataplane_transfer_cache::DataplaneTransferCacheForRedis;
 use crate::data::factory_sql::DataplaneRepoForSql;
 use crate::data::factory_trait::DataplaneRepoTrait;
+use crate::entities::dataplane_manager::dataplane_driver_factory::DataplaneDriverFactory;
 use crate::entities::dataplane_manager::dataplane_manager::DataplaneManager;
-use crate::entities::dataplane_manager::driver_factory::DataplaneDriverFactory;
 use crate::entities::dataplane_transfer_logs::dataplane_transfer_logs_entity::DataplaneTransferLogsEntityService;
 use crate::entities::dataplane_transfers::dataplane_transfers_entity::DataplaneTransfersEntityService;
 use crate::entities::transfer_events::transfer_event_entity::TransferEventEntityService;
@@ -86,10 +86,7 @@ impl DataplaneSetup {
             cache,
         ));
 
-        // driver factory
-        let driver_factory = Arc::new(DataplaneDriverFactory::new(config.clone()));
-
-        DataplaneManager::new(dataplane_process_entity, connector_entity, driver_factory)
+        DataplaneManager::new(dataplane_process_entity, connector_entity, config.clone())
     }
 
     pub async fn build_control_router(

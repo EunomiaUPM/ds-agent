@@ -18,6 +18,7 @@
  */
 
 use crate::entities::transfer_process::TransferProcessDto;
+use crate::protocols::dsp::context::DspTransferContext;
 use crate::protocols::dsp::facades::FacadeTrait;
 use crate::protocols::dsp::orchestrator::rpc::step_completion::CompletionStep;
 use crate::protocols::dsp::orchestrator::rpc::step_request::RequestStep;
@@ -36,17 +37,8 @@ use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRp
 use common::facades::ssi_auth_facade::MatesFacadeTrait;
 use common::http_client::HttpClient;
 use std::sync::Arc;
-use ymir::errors::Outcome;
+use ymir::errors::{Errors, Outcome};
 
-// ─── Service ─────────────────────────────────────────────────────────────────
-
-/// RPC orchestrator for outbound transfer operations.
-///
-/// Translates internal RPC requests into DSP protocol messages, sends them to
-/// the remote peer over HTTP, and persists the resulting state transitions.
-/// All five operations (request + four lifecycle steps) are driven by the
-/// [`TransferRpcStep`] template; `run_lifecycle` encodes the algorithm once.
-#[allow(unused)]
 pub struct RPCOrchestratorService {
     validator: Arc<dyn ValidationRpcSteps>,
     persistence_service: Arc<dyn TransferPersistenceTrait>,
@@ -71,120 +63,117 @@ impl RPCOrchestratorService {
             mates_facade,
         }
     }
-}
 
-// ─── Trait implementation ─────────────────────────────────────────────────────
-
-#[async_trait::async_trait]
-impl RPCOrchestratorTrait for RPCOrchestratorService {
-    // This method is called only by consumers
-    // Resolves communication to peer and sends DSP TransferRequestMessage
-    // Once message ACK gets back, creates Dataplane Process
-    async fn setup_transfer_request(
-        &self,
-        input: &RpcTransferRequestMessageDto,
-    ) -> Outcome<RpcTransferMessageDto<RpcTransferRequestMessageDto>> {
-        let (response, process) = self.run_lifecycle::<RequestStep>(input).await?;
-        Ok(RpcTransferMessageDto {
-            request: input.clone(),
-            response,
-            transfer_agent_model: process,
-        })
-    }
-
-    // This method could be called by all, providers, consumers
-    // Only if process was REQUESTED, a DataAddress could be attached
-    async fn setup_transfer_start(
-        &self,
-        input: &RpcTransferStartMessageDto,
-    ) -> Outcome<RpcTransferMessageDto<RpcTransferStartMessageDto>> {
-        let (response, process) = self.run_lifecycle::<StartStep>(input).await?;
-        Ok(RpcTransferMessageDto {
-            request: input.clone(),
-            response,
-            transfer_agent_model: process,
-        })
-    }
-
-    // This method could be called by all, providers, consumers
-    async fn setup_transfer_suspension(
-        &self,
-        input: &RpcTransferSuspensionMessageDto,
-    ) -> Outcome<RpcTransferMessageDto<RpcTransferSuspensionMessageDto>> {
-        let (response, process) = self.run_lifecycle::<SuspensionStep>(input).await?;
-        Ok(RpcTransferMessageDto {
-            request: input.clone(),
-            response,
-            transfer_agent_model: process,
-        })
-    }
-
-    // This method could be called by all, providers, consumers
-    async fn setup_transfer_completion(
-        &self,
-        input: &RpcTransferCompletionMessageDto,
-    ) -> Outcome<RpcTransferMessageDto<RpcTransferCompletionMessageDto>> {
-        let (response, process) = self.run_lifecycle::<CompletionStep>(input).await?;
-        Ok(RpcTransferMessageDto {
-            request: input.clone(),
-            response,
-            transfer_agent_model: process,
-        })
-    }
-
-    // This method could be called by all, providers, consumers
-    async fn setup_transfer_termination(
-        &self,
-        input: &RpcTransferTerminationMessageDto,
-    ) -> Outcome<RpcTransferMessageDto<RpcTransferTerminationMessageDto>> {
-        let (response, process) = self.run_lifecycle::<TerminationStep>(input).await?;
-        Ok(RpcTransferMessageDto {
-            request: input.clone(),
-            response,
-            transfer_agent_model: process,
-        })
-    }
-}
-
-// ─── Template engine ──────────────────────────────────────────────────────────
-
-impl RPCOrchestratorService {
-    /// Execute any RPC lifecycle step using the [`TransferRpcStep`] template trait.
-    ///
-    /// The algorithm is always the same regardless of step type:
-    /// validate → prepare context → pre-hook → build message →
-    /// auth → send+persist → post-hook.
     async fn run_lifecycle<S: TransferRpcStep>(
         &self,
+        ctx: &mut DspTransferContext,
         input: &S::Input,
     ) -> Outcome<(
         TransferProcessMessageWrapper<TransferProcessAckDto>,
         TransferProcessDto,
     )> {
-        // validate
         S::validate(&self.validator, input).await?;
-        // prepare context
-        let mut ctx = S::prepare_context(input, &self.persistence_service).await?;
-        // dataplane
+        S::prepare_context(ctx, input, &self.persistence_service).await?;
         let dp = self.facades.get_data_plane_facade().await;
-        // pre-hook
-        let data_address = S::pre_hook(&dp, &ctx).await?;
-        // build message to send to peer
-        let message = S::build_message(input, &ctx, data_address)?;
-        // token header
-        S::apply_auth_token(&self.mates_facade, &self.http_client, S::auth_peer(&ctx)).await;
-        // send message and persist response
-        let (response, new_process) = S::send_and_persist(
+        S::pre_hook(&dp, ctx).await?;
+        let message = S::build_message(ctx, input)?;
+        S::apply_auth_token(
+            &self.mates_facade,
+            &self.http_client,
+            &ctx.associated_peer_id,
+        )
+        .await;
+        let response = S::send_and_persist(
             &self.http_client,
             &self.persistence_service,
-            &mut ctx,
+            ctx,
             Arc::new(message),
-            S::url_suffix(),
         )
         .await?;
-        // pre-hook
-        S::post_hook(&dp, &ctx).await?;
-        // bye
-        Ok((response, new_process))
+        S::post_hook(&dp, ctx).await?;
+        let process = ctx
+            .process
+            .clone()
+            .ok_or_else(|| Errors::crazy("process missing after send_and_persist", None))?;
+        Ok((response, process))
+    }
+}
+
+#[async_trait::async_trait]
+impl RPCOrchestratorTrait for RPCOrchestratorService {
+    async fn setup_transfer_request(
+        &self,
+        ctx: DspTransferContext,
+        input: &RpcTransferRequestMessageDto,
+    ) -> Outcome<RpcTransferMessageDto<RpcTransferRequestMessageDto>> {
+        let mut ctx = ctx;
+        let (response, process) = self.run_lifecycle::<RequestStep>(&mut ctx, input).await?;
+        Ok(RpcTransferMessageDto {
+            request: input.clone(),
+            response,
+            transfer_agent_model: process,
+        })
+    }
+
+    async fn setup_transfer_start(
+        &self,
+        ctx: DspTransferContext,
+        input: &RpcTransferStartMessageDto,
+    ) -> Outcome<RpcTransferMessageDto<RpcTransferStartMessageDto>> {
+        let mut ctx = ctx;
+        let (response, process) = self.run_lifecycle::<StartStep>(&mut ctx, input).await?;
+        Ok(RpcTransferMessageDto {
+            request: input.clone(),
+            response,
+            transfer_agent_model: process,
+        })
+    }
+
+    async fn setup_transfer_suspension(
+        &self,
+        ctx: DspTransferContext,
+        input: &RpcTransferSuspensionMessageDto,
+    ) -> Outcome<RpcTransferMessageDto<RpcTransferSuspensionMessageDto>> {
+        let mut ctx = ctx;
+        let (response, process) = self
+            .run_lifecycle::<SuspensionStep>(&mut ctx, input)
+            .await?;
+        Ok(RpcTransferMessageDto {
+            request: input.clone(),
+            response,
+            transfer_agent_model: process,
+        })
+    }
+
+    async fn setup_transfer_completion(
+        &self,
+        ctx: DspTransferContext,
+        input: &RpcTransferCompletionMessageDto,
+    ) -> Outcome<RpcTransferMessageDto<RpcTransferCompletionMessageDto>> {
+        let mut ctx = ctx;
+        let (response, process) = self
+            .run_lifecycle::<CompletionStep>(&mut ctx, input)
+            .await?;
+        Ok(RpcTransferMessageDto {
+            request: input.clone(),
+            response,
+            transfer_agent_model: process,
+        })
+    }
+
+    async fn setup_transfer_termination(
+        &self,
+        ctx: DspTransferContext,
+        input: &RpcTransferTerminationMessageDto,
+    ) -> Outcome<RpcTransferMessageDto<RpcTransferTerminationMessageDto>> {
+        let mut ctx = ctx;
+        let (response, process) = self
+            .run_lifecycle::<TerminationStep>(&mut ctx, input)
+            .await?;
+        Ok(RpcTransferMessageDto {
+            request: input.clone(),
+            response,
+            transfer_agent_model: process,
+        })
     }
 }

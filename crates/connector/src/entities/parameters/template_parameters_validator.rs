@@ -199,8 +199,8 @@ mod tests {
     use super::super::FoundParameter;
     use super::super::FoundParameterType;
     use super::super::{ParameterDefinition, ParameterType};
-    use ymir::errors::Outcome;
     use crate::entities::parameters::template_parameters_validator::TemplateParametersValidator;
+    use ymir::errors::Outcome;
     // =========================================================================
     // Helpers
     // =========================================================================
@@ -462,7 +462,7 @@ mod tests {
             make_found("HOST", FoundParameterType::VecString),
             make_found("HOST", FoundParameterType::VecString),
         ];
-        let msg = format!("{:?}", validate(&found, &defs, false, false).unwrap_err());
+        let msg = format!("{:#}", validate(&found, &defs, false, false).unwrap_err());
         // "'HOST': used as" appears once means the type error was deduplicated
         assert_eq!(
             msg.matches("used as VecString").count(),

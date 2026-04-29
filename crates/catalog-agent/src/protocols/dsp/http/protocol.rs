@@ -19,7 +19,7 @@
 
 use crate::protocols::dsp::orchestrator::OrchestratorTrait;
 use crate::protocols::dsp::protocol_types::{
-    CatalogMessageWrapper, CatalogRequestMessageDto, DatasetRequestMessage,
+    CatalogMessageType, CatalogMessageWrapper, CatalogRequestMessageDto, DatasetRequestMessage,
 };
 use axum::{
     extract::{rejection::JsonRejection, FromRef, Path, Request, State},
@@ -30,10 +30,14 @@ use axum::{
     Extension, Json, Router,
 };
 use common::config::services::CatalogConfig;
+use common::dsp_common::context_field::ContextField;
+use common::dsp_common::normalizer::dsp_namespace_normalizer;
 use common::facades::ssi_auth_facade::SSIAuthFacadeTrait;
 use common::facades::Mates;
 use reqwest::StatusCode;
+use std::str::FromStr;
 use std::sync::Arc;
+use urn::Urn;
 
 #[derive(Clone)]
 pub struct DspRouter {
@@ -90,6 +94,7 @@ impl DspRouter {
                 self.clone(),
                 Self::auth_middleware,
             ))
+            .layer(middleware::from_fn(dsp_namespace_normalizer))
             .with_state(self)
     }
 
@@ -117,16 +122,28 @@ impl DspRouter {
         State(state): State<DspRouter>,
         Path(id): Path<String>,
         Extension(_mate): Extension<Mates>,
-        input: Result<Json<CatalogMessageWrapper<DatasetRequestMessage>>, JsonRejection>,
     ) -> impl IntoResponse {
-        let input = match input {
-            Ok(input) => input.0,
-            Err(e) => return (StatusCode::BAD_REQUEST, e.body_text()).into_response(),
+        let dataset_id = match Urn::from_str(&id) {
+            Ok(urn) => urn,
+            Err(_) => {
+                return (
+                    StatusCode::BAD_REQUEST,
+                    format!("Invalid dataset ID: {}", id),
+                )
+                    .into_response()
+            }
+        };
+        let request_msg = CatalogMessageWrapper {
+            context: ContextField::default(),
+            _type: CatalogMessageType::DatasetRequestMessage,
+            dto: DatasetRequestMessage {
+                dataset: dataset_id,
+            },
         };
         match state
             .orchestrator
             .get_protocol_service()
-            .on_dataset_request(&input)
+            .on_dataset_request(&request_msg)
             .await
         {
             Ok(dataset) => (StatusCode::OK, Json(dataset)).into_response(),

@@ -17,7 +17,16 @@
  * </SidebarProvider>
  */
 
-import { Archive, ArrowLeftRight, Feather, Handshake, Users, Lock, Search } from "lucide-react";
+import {
+  Archive,
+  ArrowLeftRight,
+  Feather,
+  Handshake,
+  Users,
+  Search,
+  Wallet,
+  ShieldCheck,
+} from "lucide-react";
 import React, { useContext } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
@@ -119,15 +128,25 @@ export function AppSidebar() {
           icon: Users,
         },
         {
-          title: "SSI Auth",
-          url: "/admin/ssi-auth",
-          icon: Lock,
+          title: "Request Credential",
+          url: "/admin/authority",
+          icon: ShieldCheck,
+        },
+        {
+          title: "Providers Sessions",
+          url: "/admin/providers",
+          icon: Users,
         },
       ],
     },
     {
       title: "My area",
       items: [
+        {
+          title: "My Wallet",
+          url: "/admin/wallet/info",
+          icon: Wallet,
+        },
         {
           title: "My Catalog",
           url: "/admin/my-catalog",

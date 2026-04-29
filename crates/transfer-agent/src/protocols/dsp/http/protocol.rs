@@ -16,6 +16,14 @@
  *  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
+
+use crate::protocols::dsp::context::DspTransferContext;
+use crate::protocols::dsp::orchestrator::OrchestratorTrait;
+use crate::protocols::dsp::protocol_types::{
+    TransferCompletionMessageDto, TransferErrorDto, TransferProcessMessageType,
+    TransferProcessMessageWrapper, TransferRequestMessageDto, TransferStartMessageDto,
+    TransferSuspensionMessageDto, TransferTerminationMessageDto,
+};
 use axum::{
     extract::{rejection::JsonRejection, FromRef, Path, State},
     http::StatusCode,
@@ -23,19 +31,11 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+use common::dsp_common::context_field::ContextField;
+use common::dsp_common::normalizer::dsp_namespace_normalizer;
 use serde::Serialize;
-use std::future::Future;
 use std::sync::Arc;
 
-use crate::protocols::dsp::orchestrator::OrchestratorTrait;
-use crate::protocols::dsp::protocol_types::{
-    TransferCompletionMessageDto, TransferErrorDto, TransferProcessMessageType,
-    TransferProcessMessageWrapper, TransferRequestMessageDto, TransferStartMessageDto,
-    TransferSuspensionMessageDto, TransferTerminationMessageDto,
-};
-use common::dsp_common::context_field::ContextField;
-
-use crate::http::common::extract_payload;
 use axum::{
     extract::Request,
     middleware::{self, Next},
@@ -44,7 +44,8 @@ use axum::{
 use common::config::services::TransferConfig;
 use common::facades::ssi_auth_facade::SSIAuthFacadeTrait;
 use common::facades::Mates;
-use ymir::errors::{Errors, Outcome};
+use ymir::errors::Errors;
+use ymir::utils::{extract_path_urn, extract_payload};
 
 #[derive(Clone)]
 pub struct DspRouter {
@@ -106,28 +107,14 @@ impl DspRouter {
                 self.clone(),
                 Self::auth_middleware,
             ))
+            .layer(middleware::from_fn(dsp_namespace_normalizer))
             .with_state(self)
     }
 
-    async fn process_request<T, R, F, Fut>(
-        input: Result<Json<T>, JsonRejection>,
+    fn map_service_result<R>(
+        result: ymir::errors::Outcome<R>,
         success_code: StatusCode,
-        action: F,
     ) -> impl IntoResponse
-    where
-        T: Send,
-        R: Serialize,
-        F: FnOnce(T) -> Fut,
-        Fut: Future<Output = Outcome<R>> + Send,
-    {
-        let payload = match extract_payload(input) {
-            Ok(v) => v,
-            Err(e) => return e,
-        };
-        Self::map_service_result(action(payload).await, success_code).into_response()
-    }
-
-    fn map_service_result<R>(result: Outcome<R>, success_code: StatusCode) -> impl IntoResponse
     where
         R: Serialize,
     {
@@ -146,7 +133,12 @@ impl DspRouter {
                     consumer_pid: None,
                     provider_pid: None,
                     code: Some("5000".to_string()),
-                    reason: Some(vec![err.to_string()]),
+                    reason: Some(vec![
+                        err.to_string(),
+                        err.reason().to_string(),
+                        err.path().to_string(),
+                        err.context(),
+                    ]),
                 },
             };
         (StatusCode::BAD_REQUEST, Json(error_dto)).into_response()
@@ -174,15 +166,15 @@ impl DspRouter {
             JsonRejection,
         >,
     ) -> impl IntoResponse {
-        let payload = match extract_payload(input) {
+        let data = match extract_payload(input) {
             Ok(v) => v,
-            Err(e) => return e,
+            Err(e) => return e.into_response(),
         };
-
+        let ctx = DspTransferContext::inbound(None, mate.participant_id.clone(), mate);
         let result = state
             .orchestrator
             .get_protocol_service()
-            .on_transfer_request(&payload, &mate.participant_id)
+            .on_transfer_request(ctx, &data)
             .await;
 
         match result {
@@ -201,73 +193,113 @@ impl DspRouter {
     async fn handle_transfer_start(
         State(state): State<DspRouter>,
         Path(id): Path<String>,
-        Extension(_mate): Extension<Mates>,
+        Extension(mate): Extension<Mates>,
         input: Result<Json<TransferProcessMessageWrapper<TransferStartMessageDto>>, JsonRejection>,
     ) -> impl IntoResponse {
-        Self::process_request(input, StatusCode::OK, |data| async move {
+        let data = match extract_payload(input) {
+            Ok(v) => v,
+            Err(e) => return e.into_response(),
+        };
+        let process_id = match extract_path_urn(&id) {
+            Ok(u) => u,
+            Err(e) => return e.into_response(),
+        };
+        let ctx = DspTransferContext::inbound(Some(process_id), mate.participant_id.clone(), mate);
+        Self::map_service_result(
             state
                 .orchestrator
                 .get_protocol_service()
-                .on_transfer_start(&id, &data)
-                .await
-        })
-        .await
+                .on_transfer_start(ctx, &data)
+                .await,
+            StatusCode::OK,
+        )
+        .into_response()
     }
 
     async fn handle_transfer_completion(
         State(state): State<DspRouter>,
         Path(id): Path<String>,
-        Extension(_mate): Extension<Mates>,
+        Extension(mate): Extension<Mates>,
         input: Result<
             Json<TransferProcessMessageWrapper<TransferCompletionMessageDto>>,
             JsonRejection,
         >,
     ) -> impl IntoResponse {
-        Self::process_request(input, StatusCode::OK, |data| async move {
+        let data = match extract_payload(input) {
+            Ok(v) => v,
+            Err(e) => return e.into_response(),
+        };
+        let process_id = match extract_path_urn(&id) {
+            Ok(u) => u,
+            Err(e) => return e.into_response(),
+        };
+        let ctx = DspTransferContext::inbound(Some(process_id), mate.participant_id.clone(), mate);
+        Self::map_service_result(
             state
                 .orchestrator
                 .get_protocol_service()
-                .on_transfer_completion(&id, &data)
-                .await
-        })
-        .await
+                .on_transfer_completion(ctx, &data)
+                .await,
+            StatusCode::OK,
+        )
+        .into_response()
     }
 
     async fn handle_transfer_termination(
         State(state): State<DspRouter>,
         Path(id): Path<String>,
-        Extension(_mate): Extension<Mates>,
+        Extension(mate): Extension<Mates>,
         input: Result<
             Json<TransferProcessMessageWrapper<TransferTerminationMessageDto>>,
             JsonRejection,
         >,
     ) -> impl IntoResponse {
-        Self::process_request(input, StatusCode::OK, |data| async move {
+        let data = match extract_payload(input) {
+            Ok(v) => v,
+            Err(e) => return e.into_response(),
+        };
+        let process_id = match extract_path_urn(&id) {
+            Ok(u) => u,
+            Err(e) => return e.into_response(),
+        };
+        let ctx = DspTransferContext::inbound(Some(process_id), mate.participant_id.clone(), mate);
+        Self::map_service_result(
             state
                 .orchestrator
                 .get_protocol_service()
-                .on_transfer_termination(&id, &data)
-                .await
-        })
-        .await
+                .on_transfer_termination(ctx, &data)
+                .await,
+            StatusCode::OK,
+        )
+        .into_response()
     }
 
     async fn handle_transfer_suspension(
         State(state): State<DspRouter>,
         Path(id): Path<String>,
-        Extension(_mate): Extension<Mates>,
+        Extension(mate): Extension<Mates>,
         input: Result<
             Json<TransferProcessMessageWrapper<TransferSuspensionMessageDto>>,
             JsonRejection,
         >,
     ) -> impl IntoResponse {
-        Self::process_request(input, StatusCode::OK, |data| async move {
+        let data = match extract_payload(input) {
+            Ok(v) => v,
+            Err(e) => return e.into_response(),
+        };
+        let process_id = match extract_path_urn(&id) {
+            Ok(u) => u,
+            Err(e) => return e.into_response(),
+        };
+        let ctx = DspTransferContext::inbound(Some(process_id), mate.participant_id.clone(), mate);
+        Self::map_service_result(
             state
                 .orchestrator
                 .get_protocol_service()
-                .on_transfer_suspension(&id, &data)
-                .await
-        })
-        .await
+                .on_transfer_suspension(ctx, &data)
+                .await,
+            StatusCode::OK,
+        )
+        .into_response()
     }
 }

@@ -18,6 +18,9 @@
  */
 use crate::data::entities::transfer_event::{LogLevel, NewTransferEvent};
 use crate::data::factory_trait::DataplaneRepoTrait;
+use crate::entities::dataplane_manager::dataplane_proxy::{
+    DataplaneProxyEgress, DataplaneProxyIngress,
+};
 use crate::entities::dataplane_transfers::DataplaneTransfersEntitiesTrait;
 use crate::entities::dataplane_transfers::{InteractionMode, TransferState};
 use axum::body::{to_bytes, Body};
@@ -135,8 +138,7 @@ impl TestingHTTPProxy {
         }
 
         // Read egress config from the dataplane process
-        use crate::entities::dataplane_manager::config_builder::EgressConfig;
-        let egress: EgressConfig =
+        let egress: DataplaneProxyEgress =
             match serde_json::from_value(dataplane.inner.egress_config.clone()) {
                 Ok(e) => e,
                 Err(_) => {
@@ -149,9 +151,12 @@ impl TestingHTTPProxy {
             };
 
         let mut next_hop = match &egress {
-            EgressConfig::HttpProxy { url } => url.clone(),
-            EgressConfig::DataAddress { endpoint, .. } => endpoint.clone(),
-            EgressConfig::Connector { .. } => {
+            DataplaneProxyEgress::HttpProxy {
+                path,
+                token,
+                token_type,
+            } => path.clone(),
+            _ => {
                 return (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     "Connector egress not handled by HTTP proxy",
@@ -191,25 +196,17 @@ impl TestingHTTPProxy {
         let role = dataplane.inner.role;
         let mode = dataplane.inner.interaction_mode;
 
-        let ingress_type = match serde_json::from_value::<
-            crate::entities::dataplane_manager::config_builder::IngressConfig,
-        >(dataplane.inner.ingress_config.clone())
-        {
-            Ok(
-                crate::entities::dataplane_manager::config_builder::IngressConfig::HttpListener {
-                    ..
-                },
-            ) => "HttpListener",
-            Ok(crate::entities::dataplane_manager::config_builder::IngressConfig::Connector {
-                ..
-            }) => "Connector",
+        let ingress_type = match serde_json::from_value::<DataplaneProxyIngress>(
+            dataplane.inner.ingress_config.clone(),
+        ) {
+            Ok(DataplaneProxyIngress::HttpListener { .. }) => "HttpListener",
+            Ok(DataplaneProxyIngress::NoOp { .. }) => "NoOp",
             Err(_) => "Unknown",
         };
 
         let egress_type = match &egress {
-            EgressConfig::HttpProxy { .. } => "HttpProxy",
-            EgressConfig::DataAddress { .. } => "DataAddress",
-            EgressConfig::Connector { .. } => "Connector",
+            DataplaneProxyEgress::HttpProxy { .. } => "HttpProxy",
+            _ => "Unknown",
         };
 
         // Log Transfer Event

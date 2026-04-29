@@ -17,6 +17,7 @@
  *
  */
 
+use crate::entities::transfer_messages::{NewTransferMessageDto, TransferAgentMessagesTrait};
 use axum::{
     extract::{rejection::JsonRejection, FromRef, Path, Query, State},
     http::StatusCode,
@@ -24,12 +25,10 @@ use axum::{
     routing::get,
     Json, Router,
 };
+use common::config::services::TransferConfig;
 use serde::Deserialize;
 use std::sync::Arc;
-
-use crate::entities::transfer_messages::{NewTransferMessageDto, TransferAgentMessagesTrait};
-use crate::http::common::{extract_payload, parse_urn};
-use common::config::services::TransferConfig;
+use ymir::utils::{extract_path_urn, extract_payload};
 
 #[derive(Clone)]
 pub struct TransferAgentMessagesRouter {
@@ -97,7 +96,7 @@ impl TransferAgentMessagesRouter {
     ) -> impl IntoResponse {
         let input = match extract_payload(input) {
             Ok(v) => v,
-            Err(e) => return e,
+            Err(e) => return e.into_response(),
         };
         match state.service.create_transfer_message(&input).await {
             Ok(created) => (StatusCode::CREATED, Json(created)).into_response(),
@@ -109,9 +108,9 @@ impl TransferAgentMessagesRouter {
         State(state): State<TransferAgentMessagesRouter>,
         Path(id): Path<String>,
     ) -> impl IntoResponse {
-        let id_urn = match parse_urn(&id) {
+        let id_urn = match extract_path_urn(&id) {
             Ok(urn) => urn,
-            Err(resp) => return resp,
+            Err(err) => return err.into_response(),
         };
         match state.service.get_transfer_message_by_id(&id_urn).await {
             Ok(message) => (StatusCode::OK, Json(message)).into_response(),
@@ -123,9 +122,9 @@ impl TransferAgentMessagesRouter {
         State(state): State<TransferAgentMessagesRouter>,
         Path(id): Path<String>,
     ) -> impl IntoResponse {
-        let id_urn = match parse_urn(&id) {
+        let id_urn = match extract_path_urn(&id) {
             Ok(urn) => urn,
-            Err(resp) => return resp,
+            Err(err) => return err.into_response(),
         };
         match state.service.delete_transfer_message(&id_urn).await {
             Ok(_) => (StatusCode::NO_CONTENT).into_response(),
@@ -137,9 +136,9 @@ impl TransferAgentMessagesRouter {
         State(state): State<TransferAgentMessagesRouter>,
         Path(process_id): Path<String>,
     ) -> impl IntoResponse {
-        let process_urn = match parse_urn(&process_id) {
+        let process_urn = match extract_path_urn(&process_id) {
             Ok(urn) => urn,
-            Err(resp) => return resp,
+            Err(err) => return err.into_response(),
         };
         match state.service.get_messages_by_process_id(&process_urn).await {
             Ok(messages) => (StatusCode::OK, Json(messages)).into_response(),

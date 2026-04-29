@@ -63,6 +63,7 @@ pub trait NegotiationProcessMessageTrait: Debug + Send + Sync {
 pub struct NegotiationRequestInitMessageDto {
     pub consumer_pid: Urn,
     pub offer: ContractRequestMessageOfferTypes,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub callback_address: Option<String>,
 }
 
@@ -172,6 +173,7 @@ impl NegotiationProcessMessageTrait for NegotiationRequestMessageDto {
 pub struct NegotiationOfferInitMessageDto {
     pub provider_pid: Urn,
     pub offer: ContractRequestMessageOfferTypes,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub callback_address: Option<String>,
 }
 
@@ -227,6 +229,7 @@ pub struct NegotiationOfferMessageDto {
     pub consumer_pid: Urn,
     pub provider_pid: Urn,
     pub offer: ContractRequestMessageOfferTypes,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub callback_address: Option<String>,
 }
 
@@ -442,7 +445,9 @@ impl NegotiationProcessMessageTrait for NegotiationEventMessageDto {
 pub struct NegotiationTerminationMessageDto {
     pub consumer_pid: Urn,
     pub provider_pid: Urn,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub code: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub reason: Option<Vec<String>>,
 }
 

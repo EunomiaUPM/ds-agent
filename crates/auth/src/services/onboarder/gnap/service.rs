@@ -189,6 +189,8 @@ impl OnboarderTrait for GnapOnboarderService {
         let interact = get_from_opt(res.interact.as_ref(), "interact")?;
         let cont_data = get_from_opt(res.r#continue.as_ref(), "continue")?;
 
+        req_model.verification_uri = interact.oidc4vp.clone();
+
         int_model.as_nonce = interact.finish;
         int_model.oidc_vp_uri = interact.oidc4vp;
         int_model.continue_token = Some(cont_data.access_token.value);
@@ -259,6 +261,7 @@ impl OnboarderTrait for GnapOnboarderService {
             participant_type: "Agent".to_string(),
             base_url,
             token: req_model.token.clone(),
+            extra_fields: None,
             is_me: false,
         };
         Ok(mates)

@@ -71,9 +71,8 @@ impl BasicGaiaSelfIssuer {
 
 #[async_trait]
 impl GaiaOwnIssuerTrait for BasicGaiaSelfIssuer {
-    fn start_basic_vcs(&self) -> issuing::NewModel {
+    fn start_basic_vcs(&self, id: &str, uri: &str) -> issuing::NewModel {
         info!("Starting retrieving basic gaia vcs");
-        let id = Uuid::new_v4().to_string();
         let host = self.config.get_host(HostType::Http);
         let aud = match self.config.is_local() {
             true => host.replace("127.0.0.1", "host.docker.internal"),
@@ -82,10 +81,11 @@ impl GaiaOwnIssuerTrait for BasicGaiaSelfIssuer {
 
         let vc_type = format!("{}&{}", VcType::LegalPerson, VcType::TermsAndConditions);
         issuing::NewModel {
-            id,
+            id: id.to_string(),
             name: self.config.get_clas_id().to_string(),
             vc_type,
             aud,
+            uri: uri.to_string(),
         }
     }
 

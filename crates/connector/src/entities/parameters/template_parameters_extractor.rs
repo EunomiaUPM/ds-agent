@@ -229,6 +229,7 @@ mod tests {
     // Extract ConnectorTemplateDtos
     // =========================================================================
 
+    #[test]
     fn no_auth_extracts_no_parameters() {
         // NoAuth has no fields to scan, the auth step should contribute nothing.
         let dto = ConnectorTemplateDto {

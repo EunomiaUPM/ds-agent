@@ -17,71 +17,60 @@
  *
  */
 
-use crate::entities::transfer_process::TransferProcessDto;
+use crate::protocols::dsp::context::DspTransferContext;
 use crate::protocols::dsp::facades::dataplane_facade::DataPlaneFacadeTrait;
 use crate::protocols::dsp::facades::FacadeTrait;
 use crate::protocols::dsp::orchestrator::protocol::step_trait::{
-    continuation_persist, continuation_prepare_context, ProtocolContext, ProtocolStep,
+    continuation_persist, continuation_prepare_context, ProtocolStep,
 };
 use crate::protocols::dsp::persistence::TransferPersistenceTrait;
 use crate::protocols::dsp::protocol_types::{
-    DataAddressDto, TransferProcessAckDto, TransferProcessMessageWrapper, TransferStartMessageDto,
+    TransferProcessAckDto, TransferProcessMessageWrapper, TransferStartMessageDto,
 };
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
 use std::sync::Arc;
 use ymir::errors::Outcome;
-// ─── StartStep ────────────────────────────────────────────────────────────────
 
-/// Handles an inbound `TransferStartMessage` from the peer.
-///
-/// Starts the local dataplane session.  In PULL mode the dataplane returns a
-/// consumer ingress URL which is embedded in the acknowledgement so the provider
-/// knows where to push data.
 pub(super) struct ProtocolStartStep;
 
 #[async_trait::async_trait]
 impl ProtocolStep for ProtocolStartStep {
     type Dto = TransferStartMessageDto;
-    type Context = ProtocolContext;
 
     async fn validate(
+        ctx: &DspTransferContext,
         validator: &Arc<dyn ValidationDspSteps>,
-        id: &str,
         input: &TransferProcessMessageWrapper<TransferStartMessageDto>,
     ) -> Outcome<()> {
-        validator.on_transfer_start(&id.to_string(), input).await
+        validator.on_transfer_start(ctx, input).await
     }
 
     async fn prepare_context(
-        id: &str,
-        _peer: &str,
+        ctx: &mut DspTransferContext,
         _input: &TransferProcessMessageWrapper<TransferStartMessageDto>,
         persistence: &Arc<dyn TransferPersistenceTrait>,
         _facades: &Arc<dyn FacadeTrait>,
-    ) -> Outcome<(
-        ProtocolContext,
-        Option<TransferProcessMessageWrapper<TransferProcessAckDto>>,
-    )> {
-        continuation_prepare_context(id, persistence).await
+    ) -> Outcome<Option<TransferProcessMessageWrapper<TransferProcessAckDto>>> {
+        continuation_prepare_context(ctx, persistence).await
     }
 
     async fn persist(
+        ctx: &mut DspTransferContext,
         persistence: &Arc<dyn TransferPersistenceTrait>,
-        id: &str,
-        _ctx: &ProtocolContext,
         input: &TransferProcessMessageWrapper<TransferStartMessageDto>,
-    ) -> Outcome<TransferProcessDto> {
-        continuation_persist(persistence, id, input).await
+    ) -> Outcome<()> {
+        continuation_persist(ctx, persistence, input).await
     }
 
-    /// Starts the local dataplane; returns the consumer's ingress URL for PULL mode.
     async fn post_hook(
+        ctx: &mut DspTransferContext,
         dp: &Arc<dyn DataPlaneFacadeTrait>,
-        _ctx: &ProtocolContext,
         input: &TransferProcessMessageWrapper<TransferStartMessageDto>,
-        process: &TransferProcessDto,
-    ) -> Outcome<Option<DataAddressDto>> {
-        dp.on_transfer_start_post(process, input.dto.data_address.clone())
-            .await
+    ) -> Outcome<()> {
+        // The data address from the inbound StartMessage is the provider's proxy URL.
+        ctx.input_data_address = input.dto.data_address.clone();
+        let addr = dp.on_transfer_start_post(ctx).await?;
+        ctx.resolved_data_address = addr;
+        Ok(())
     }
 }

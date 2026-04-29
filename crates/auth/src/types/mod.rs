@@ -17,3 +17,4 @@
 
 pub mod business;
 pub mod entities;
+pub mod wallet_helper;

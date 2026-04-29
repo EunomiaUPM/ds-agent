@@ -34,7 +34,12 @@ pub use entities::parameters::TemplateVecString;
 pub use entities::resource::{HttpSpec, ProtocolSpec};
 pub use setup::ConnectorSetup;
 
-pub use entities::auth_config::AuthenticationConfig;
+pub use entities::auth_config::{
+    ApiKeyLocation, AuthenticationConfig, BasicAuthConfig, OAuthGrantType,
+};
+pub use entities::common::secret_management::{SecretSource, SecretString};
+pub use entities::parameters::runtime_parameters_resolver::RuntimeParametersResolver;
+
 #[cfg(test)]
 pub use entities::connector_instance::MockConnectorInstanceTrait;
 pub use entities::connector_template::ConnectorMetadata;

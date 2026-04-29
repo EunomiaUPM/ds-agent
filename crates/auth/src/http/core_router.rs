@@ -26,8 +26,10 @@ use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::{DefaultOnResponse, TraceLayer};
 use tracing::{error, info, Level};
 use uuid::Uuid;
-use ymir::config::traits::ApiConfigTrait;
+use ymir::config::traits::{ApiConfigTrait, HostsConfigTrait};
+use ymir::config::types::HostType;
 use ymir::http::{HealthRouter, OpenapiRouter, WalletRouter};
+use ymir::types::dids::{DidService, DidServiceType};
 
 use crate::core::traits::AuthCoreTrait;
 use crate::core::AuthCore;
@@ -99,9 +101,17 @@ impl AuthRouter {
 
         let router = match self.core.is_wallet_active() {
             true => {
+                let services = vec![DidService::basic(
+                    DidServiceType::AuthorizationServer,
+                    format!(
+                        "{}{}/gate/access",
+                        self.core.config().common().get_host(HostType::Http),
+                        api_path
+                    ),
+                )];
                 let wallet = WalletRouter::new(self.core.clone());
                 router
-                    .merge(wallet.well_known())
+                    .merge(wallet.well_known(Some(services)))
                     .nest(&format!("{}/wallet", api_path), wallet.router())
             }
             false => router,

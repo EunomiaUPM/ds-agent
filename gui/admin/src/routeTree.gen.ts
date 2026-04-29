@@ -11,24 +11,37 @@
 // Import Routes
 
 import { Route as rootRoute } from './routes/__root'
+import { Route as WalletRouteImport } from './routes/wallet/route'
 import { Route as TransferProcessRouteImport } from './routes/transfer-process/route'
 import { Route as SubscriptionsRouteImport } from './routes/subscriptions/route'
-import { Route as SsiAuthRouteImport } from './routes/ssi-auth/route'
+import { Route as ProvidersRouteImport } from './routes/providers/route'
 import { Route as ParticipantsRouteImport } from './routes/participants/route'
 import { Route as MyCatalogRouteImport } from './routes/my-catalog/route'
 import { Route as ContractNegotiationRouteImport } from './routes/contract-negotiation/route'
 import { Route as CatalogRouteImport } from './routes/catalog/route'
+import { Route as AuthorityRouteImport } from './routes/authority/route'
 import { Route as AgreementsRouteImport } from './routes/agreements/route'
 import { Route as IndexImport } from './routes/index'
+import { Route as WalletIndexImport } from './routes/wallet/index'
 import { Route as TransferProcessIndexImport } from './routes/transfer-process/index'
 import { Route as SubscriptionsIndexImport } from './routes/subscriptions/index'
-import { Route as SsiAuthIndexImport } from './routes/ssi-auth/index'
+import { Route as ProvidersIndexImport } from './routes/providers/index'
 import { Route as ParticipantsIndexImport } from './routes/participants/index'
 import { Route as MyCatalogIndexImport } from './routes/my-catalog/index'
 import { Route as LoginIndexImport } from './routes/login/index'
 import { Route as ContractNegotiationIndexImport } from './routes/contract-negotiation/index'
 import { Route as CatalogIndexImport } from './routes/catalog/index'
+import { Route as AuthorityIndexImport } from './routes/authority/index'
 import { Route as AgreementsIndexImport } from './routes/agreements/index'
+import { Route as WalletOidc4vpImport } from './routes/wallet/oidc4vp'
+import { Route as WalletOidc4vciImport } from './routes/wallet/oidc4vci'
+import { Route as WalletInfoImport } from './routes/wallet/info'
+import { Route as WalletDidImport } from './routes/wallet/did'
+import { Route as WalletCredentialsImport } from './routes/wallet/credentials'
+import { Route as ProvidersRequestDetailsImport } from './routes/providers/request-details'
+import { Route as ProvidersNewImport } from './routes/providers/new'
+import { Route as AuthorityRequestDetailsImport } from './routes/authority/request-details'
+import { Route as AuthorityNewImport } from './routes/authority/new'
 import { Route as AgreementsAgreementIdImport } from './routes/agreements/$agreementId'
 import { Route as TransferProcessTransferProcessIdRouteImport } from './routes/transfer-process/$transferProcessId/route'
 import { Route as ParticipantsParticipantIdRouteImport } from './routes/participants/$participantId/route'
@@ -48,227 +61,299 @@ import { Route as CatalogParticipantParticipantIdDatasetDatasetIdImport } from '
 
 // Create/Update Routes
 
-const TransferProcessRouteRoute = TransferProcessRouteImport.update({
-  id: '/transfer-process',
-  path: '/transfer-process',
+const WalletRouteRoute = WalletRouteImport.update({
+  id: '/wallet',
+  path: '/wallet',
   getParentRoute: () => rootRoute,
 } as any)
+
+const TransferProcessRouteRoute = TransferProcessRouteImport.update({
+  id: "/transfer-process",
+  path: "/transfer-process",
+  getParentRoute: () => rootRoute,
+} as any);
 
 const SubscriptionsRouteRoute = SubscriptionsRouteImport.update({
-  id: '/subscriptions',
-  path: '/subscriptions',
+  id: "/subscriptions",
+  path: "/subscriptions",
   getParentRoute: () => rootRoute,
-} as any)
+} as any);
 
-const SsiAuthRouteRoute = SsiAuthRouteImport.update({
-  id: '/ssi-auth',
-  path: '/ssi-auth',
+const ProvidersRouteRoute = ProvidersRouteImport.update({
+  id: '/providers',
+  path: '/providers',
   getParentRoute: () => rootRoute,
-} as any)
+} as any);
 
 const ParticipantsRouteRoute = ParticipantsRouteImport.update({
-  id: '/participants',
-  path: '/participants',
+  id: "/participants",
+  path: "/participants",
   getParentRoute: () => rootRoute,
-} as any)
+} as any);
 
 const MyCatalogRouteRoute = MyCatalogRouteImport.update({
-  id: '/my-catalog',
-  path: '/my-catalog',
+  id: "/my-catalog",
+  path: "/my-catalog",
   getParentRoute: () => rootRoute,
-} as any)
+} as any);
 
 const ContractNegotiationRouteRoute = ContractNegotiationRouteImport.update({
-  id: '/contract-negotiation',
-  path: '/contract-negotiation',
+  id: "/contract-negotiation",
+  path: "/contract-negotiation",
   getParentRoute: () => rootRoute,
-} as any)
+} as any);
 
 const CatalogRouteRoute = CatalogRouteImport.update({
-  id: '/catalog',
-  path: '/catalog',
+  id: "/catalog",
+  path: "/catalog",
+  getParentRoute: () => rootRoute,
+} as any);
+
+const AuthorityRouteRoute = AuthorityRouteImport.update({
+  id: '/authority',
+  path: '/authority',
   getParentRoute: () => rootRoute,
 } as any)
 
 const AgreementsRouteRoute = AgreementsRouteImport.update({
-  id: '/agreements',
-  path: '/agreements',
+  id: "/agreements",
+  path: "/agreements",
   getParentRoute: () => rootRoute,
-} as any)
+} as any);
 
 const IndexRoute = IndexImport.update({
+  id: "/",
+  path: "/",
+  getParentRoute: () => rootRoute,
+} as any);
+
+const WalletIndexRoute = WalletIndexImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => WalletRouteRoute,
 } as any)
 
 const TransferProcessIndexRoute = TransferProcessIndexImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
   getParentRoute: () => TransferProcessRouteRoute,
-} as any)
+} as any);
 
 const SubscriptionsIndexRoute = SubscriptionsIndexImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
   getParentRoute: () => SubscriptionsRouteRoute,
-} as any)
+} as any);
 
-const SsiAuthIndexRoute = SsiAuthIndexImport.update({
+const ProvidersIndexRoute = ProvidersIndexImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => SsiAuthRouteRoute,
+  getParentRoute: () => ProvidersRouteRoute,
 } as any)
 
 const ParticipantsIndexRoute = ParticipantsIndexImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
   getParentRoute: () => ParticipantsRouteRoute,
-} as any)
+} as any);
 
 const MyCatalogIndexRoute = MyCatalogIndexImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
   getParentRoute: () => MyCatalogRouteRoute,
-} as any)
+} as any);
 
 const LoginIndexRoute = LoginIndexImport.update({
-  id: '/login/',
-  path: '/login/',
+  id: "/login/",
+  path: "/login/",
   getParentRoute: () => rootRoute,
-} as any)
+} as any);
 
 const ContractNegotiationIndexRoute = ContractNegotiationIndexImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
   getParentRoute: () => ContractNegotiationRouteRoute,
-} as any)
+} as any);
 
 const CatalogIndexRoute = CatalogIndexImport.update({
+  id: "/",
+  path: "/",
+  getParentRoute: () => CatalogRouteRoute,
+} as any);
+
+const AuthorityIndexRoute = AuthorityIndexImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => CatalogRouteRoute,
+  getParentRoute: () => AuthorityRouteRoute,
 } as any)
 
 const AgreementsIndexRoute = AgreementsIndexImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
   getParentRoute: () => AgreementsRouteRoute,
+} as any);
+
+const WalletOidc4vpRoute = WalletOidc4vpImport.update({
+  id: '/oidc4vp',
+  path: '/oidc4vp',
+  getParentRoute: () => WalletRouteRoute,
+} as any)
+
+const WalletOidc4vciRoute = WalletOidc4vciImport.update({
+  id: '/oidc4vci',
+  path: '/oidc4vci',
+  getParentRoute: () => WalletRouteRoute,
+} as any)
+
+const WalletInfoRoute = WalletInfoImport.update({
+  id: '/info',
+  path: '/info',
+  getParentRoute: () => WalletRouteRoute,
+} as any)
+
+const WalletDidRoute = WalletDidImport.update({
+  id: '/did',
+  path: '/did',
+  getParentRoute: () => WalletRouteRoute,
+} as any)
+
+const WalletCredentialsRoute = WalletCredentialsImport.update({
+  id: '/credentials',
+  path: '/credentials',
+  getParentRoute: () => WalletRouteRoute,
+} as any)
+
+const ProvidersRequestDetailsRoute = ProvidersRequestDetailsImport.update({
+  id: '/request-details',
+  path: '/request-details',
+  getParentRoute: () => ProvidersRouteRoute,
+} as any)
+
+const ProvidersNewRoute = ProvidersNewImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => ProvidersRouteRoute,
+} as any)
+
+const AuthorityRequestDetailsRoute = AuthorityRequestDetailsImport.update({
+  id: '/request-details',
+  path: '/request-details',
+  getParentRoute: () => AuthorityRouteRoute,
+} as any)
+
+const AuthorityNewRoute = AuthorityNewImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AuthorityRouteRoute,
 } as any)
 
 const AgreementsAgreementIdRoute = AgreementsAgreementIdImport.update({
-  id: '/$agreementId',
-  path: '/$agreementId',
+  id: "/$agreementId",
+  path: "/$agreementId",
   getParentRoute: () => AgreementsRouteRoute,
-} as any)
+} as any);
 
 const TransferProcessTransferProcessIdRouteRoute =
   TransferProcessTransferProcessIdRouteImport.update({
-    id: '/$transferProcessId',
-    path: '/$transferProcessId',
+    id: "/$transferProcessId",
+    path: "/$transferProcessId",
     getParentRoute: () => TransferProcessRouteRoute,
-  } as any)
+  } as any);
 
-const ParticipantsParticipantIdRouteRoute =
-  ParticipantsParticipantIdRouteImport.update({
-    id: '/$participantId',
-    path: '/$participantId',
-    getParentRoute: () => ParticipantsRouteRoute,
-  } as any)
+const ParticipantsParticipantIdRouteRoute = ParticipantsParticipantIdRouteImport.update({
+  id: "/$participantId",
+  path: "/$participantId",
+  getParentRoute: () => ParticipantsRouteRoute,
+} as any);
 
-const ContractNegotiationCnProcessRouteRoute =
-  ContractNegotiationCnProcessRouteImport.update({
-    id: '/$cnProcess',
-    path: '/$cnProcess',
-    getParentRoute: () => ContractNegotiationRouteRoute,
-  } as any)
+const ContractNegotiationCnProcessRouteRoute = ContractNegotiationCnProcessRouteImport.update({
+  id: "/$cnProcess",
+  path: "/$cnProcess",
+  getParentRoute: () => ContractNegotiationRouteRoute,
+} as any);
 
 const CatalogParticipantRouteRoute = CatalogParticipantRouteImport.update({
-  id: '/participant',
-  path: '/participant',
+  id: "/participant",
+  path: "/participant",
   getParentRoute: () => CatalogRouteRoute,
-} as any)
+} as any);
 
 const CatalogCatalogIdRouteRoute = CatalogCatalogIdRouteImport.update({
-  id: '/$catalogId',
-  path: '/$catalogId',
+  id: "/$catalogId",
+  path: "/$catalogId",
   getParentRoute: () => CatalogRouteRoute,
-} as any)
+} as any);
 
 const TransferProcessTransferProcessIdIndexRoute =
   TransferProcessTransferProcessIdIndexImport.update({
-    id: '/',
-    path: '/',
+    id: "/",
+    path: "/",
     getParentRoute: () => TransferProcessTransferProcessIdRouteRoute,
-  } as any)
+  } as any);
 
-const ParticipantsParticipantIdIndexRoute =
-  ParticipantsParticipantIdIndexImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => ParticipantsParticipantIdRouteRoute,
-  } as any)
+const ParticipantsParticipantIdIndexRoute = ParticipantsParticipantIdIndexImport.update({
+  id: "/",
+  path: "/",
+  getParentRoute: () => ParticipantsParticipantIdRouteRoute,
+} as any);
 
-const ContractNegotiationCnProcessIndexRoute =
-  ContractNegotiationCnProcessIndexImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => ContractNegotiationCnProcessRouteRoute,
-  } as any)
+const ContractNegotiationCnProcessIndexRoute = ContractNegotiationCnProcessIndexImport.update({
+  id: "/",
+  path: "/",
+  getParentRoute: () => ContractNegotiationCnProcessRouteRoute,
+} as any);
 
 const CatalogCatalogIdIndexRoute = CatalogCatalogIdIndexImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
   getParentRoute: () => CatalogCatalogIdRouteRoute,
-} as any)
+} as any);
 
-const CatalogParticipantParticipantIdIndexRoute =
-  CatalogParticipantParticipantIdIndexImport.update({
-    id: '/$participantId/',
-    path: '/$participantId/',
+const CatalogParticipantParticipantIdIndexRoute = CatalogParticipantParticipantIdIndexImport.update(
+  {
+    id: "/$participantId/",
+    path: "/$participantId/",
     getParentRoute: () => CatalogParticipantRouteRoute,
-  } as any)
+  } as any,
+);
 
 const TransferProcessTransferProcessIdTransferMessageTransferMessageIdRoute =
-  TransferProcessTransferProcessIdTransferMessageTransferMessageIdImport.update(
-    {
-      id: '/transfer-message/$transferMessageId',
-      path: '/transfer-message/$transferMessageId',
-      getParentRoute: () => TransferProcessTransferProcessIdRouteRoute,
-    } as any,
-  )
+  TransferProcessTransferProcessIdTransferMessageTransferMessageIdImport.update({
+    id: "/transfer-message/$transferMessageId",
+    path: "/transfer-message/$transferMessageId",
+    getParentRoute: () => TransferProcessTransferProcessIdRouteRoute,
+  } as any);
 
 const CatalogCatalogIdDistributionConnectorDistributionIdRoute =
   CatalogCatalogIdDistributionConnectorDistributionIdImport.update({
-    id: '/distribution-connector/$distributionId',
-    path: '/distribution-connector/$distributionId',
+    id: "/distribution-connector/$distributionId",
+    path: "/distribution-connector/$distributionId",
     getParentRoute: () => CatalogCatalogIdRouteRoute,
-  } as any)
+  } as any);
 
-const CatalogCatalogIdDatasetDatasetIdRoute =
-  CatalogCatalogIdDatasetDatasetIdImport.update({
-    id: '/dataset/$datasetId',
-    path: '/dataset/$datasetId',
-    getParentRoute: () => CatalogCatalogIdRouteRoute,
-  } as any)
+const CatalogCatalogIdDatasetDatasetIdRoute = CatalogCatalogIdDatasetDatasetIdImport.update({
+  id: "/dataset/$datasetId",
+  path: "/dataset/$datasetId",
+  getParentRoute: () => CatalogCatalogIdRouteRoute,
+} as any);
 
 const CatalogCatalogIdDataServiceDataServiceIdRoute =
   CatalogCatalogIdDataServiceDataServiceIdImport.update({
-    id: '/data-service/$dataServiceId',
-    path: '/data-service/$dataServiceId',
+    id: "/data-service/$dataServiceId",
+    path: "/data-service/$dataServiceId",
     getParentRoute: () => CatalogCatalogIdRouteRoute,
-  } as any)
+  } as any);
 
 const CatalogParticipantParticipantIdDatasetDatasetIdRoute =
   CatalogParticipantParticipantIdDatasetDatasetIdImport.update({
-    id: '/$participantId/dataset/$datasetId',
-    path: '/$participantId/dataset/$datasetId',
+    id: "/$participantId/dataset/$datasetId",
+    path: "/$participantId/dataset/$datasetId",
     getParentRoute: () => CatalogParticipantRouteRoute,
-  } as any)
+  } as any);
 
 // Populate the FileRoutesByPath interface
 
-declare module '@tanstack/react-router' {
+declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
     '/': {
       id: '/'
@@ -282,6 +367,13 @@ declare module '@tanstack/react-router' {
       path: '/agreements'
       fullPath: '/agreements'
       preLoaderRoute: typeof AgreementsRouteImport
+      parentRoute: typeof rootRoute
+    }
+    '/authority': {
+      id: '/authority'
+      path: '/authority'
+      fullPath: '/authority'
+      preLoaderRoute: typeof AuthorityRouteImport
       parentRoute: typeof rootRoute
     }
     '/catalog': {
@@ -312,11 +404,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ParticipantsRouteImport
       parentRoute: typeof rootRoute
     }
-    '/ssi-auth': {
-      id: '/ssi-auth'
-      path: '/ssi-auth'
-      fullPath: '/ssi-auth'
-      preLoaderRoute: typeof SsiAuthRouteImport
+    '/providers': {
+      id: '/providers'
+      path: '/providers'
+      fullPath: '/providers'
+      preLoaderRoute: typeof ProvidersRouteImport
       parentRoute: typeof rootRoute
     }
     '/subscriptions': {
@@ -331,6 +423,13 @@ declare module '@tanstack/react-router' {
       path: '/transfer-process'
       fullPath: '/transfer-process'
       preLoaderRoute: typeof TransferProcessRouteImport
+      parentRoute: typeof rootRoute
+    }
+    '/wallet': {
+      id: '/wallet'
+      path: '/wallet'
+      fullPath: '/wallet'
+      preLoaderRoute: typeof WalletRouteImport
       parentRoute: typeof rootRoute
     }
     '/catalog/$catalogId': {
@@ -375,12 +474,82 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AgreementsAgreementIdImport
       parentRoute: typeof AgreementsRouteImport
     }
+    '/authority/new': {
+      id: '/authority/new'
+      path: '/new'
+      fullPath: '/authority/new'
+      preLoaderRoute: typeof AuthorityNewImport
+      parentRoute: typeof AuthorityRouteImport
+    }
+    '/authority/request-details': {
+      id: '/authority/request-details'
+      path: '/request-details'
+      fullPath: '/authority/request-details'
+      preLoaderRoute: typeof AuthorityRequestDetailsImport
+      parentRoute: typeof AuthorityRouteImport
+    }
+    '/providers/new': {
+      id: '/providers/new'
+      path: '/new'
+      fullPath: '/providers/new'
+      preLoaderRoute: typeof ProvidersNewImport
+      parentRoute: typeof ProvidersRouteImport
+    }
+    '/providers/request-details': {
+      id: '/providers/request-details'
+      path: '/request-details'
+      fullPath: '/providers/request-details'
+      preLoaderRoute: typeof ProvidersRequestDetailsImport
+      parentRoute: typeof ProvidersRouteImport
+    }
+    '/wallet/credentials': {
+      id: '/wallet/credentials'
+      path: '/credentials'
+      fullPath: '/wallet/credentials'
+      preLoaderRoute: typeof WalletCredentialsImport
+      parentRoute: typeof WalletRouteImport
+    }
+    '/wallet/did': {
+      id: '/wallet/did'
+      path: '/did'
+      fullPath: '/wallet/did'
+      preLoaderRoute: typeof WalletDidImport
+      parentRoute: typeof WalletRouteImport
+    }
+    '/wallet/info': {
+      id: '/wallet/info'
+      path: '/info'
+      fullPath: '/wallet/info'
+      preLoaderRoute: typeof WalletInfoImport
+      parentRoute: typeof WalletRouteImport
+    }
+    '/wallet/oidc4vci': {
+      id: '/wallet/oidc4vci'
+      path: '/oidc4vci'
+      fullPath: '/wallet/oidc4vci'
+      preLoaderRoute: typeof WalletOidc4vciImport
+      parentRoute: typeof WalletRouteImport
+    }
+    '/wallet/oidc4vp': {
+      id: '/wallet/oidc4vp'
+      path: '/oidc4vp'
+      fullPath: '/wallet/oidc4vp'
+      preLoaderRoute: typeof WalletOidc4vpImport
+      parentRoute: typeof WalletRouteImport
+    }
     '/agreements/': {
       id: '/agreements/'
       path: '/'
       fullPath: '/agreements/'
       preLoaderRoute: typeof AgreementsIndexImport
       parentRoute: typeof AgreementsRouteImport
+    }
+    '/authority/': {
+      id: '/authority/'
+      path: '/'
+      fullPath: '/authority/'
+      preLoaderRoute: typeof AuthorityIndexImport
+      parentRoute: typeof AuthorityRouteImport
     }
     '/catalog/': {
       id: '/catalog/'
@@ -417,12 +586,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ParticipantsIndexImport
       parentRoute: typeof ParticipantsRouteImport
     }
-    '/ssi-auth/': {
-      id: '/ssi-auth/'
+    '/providers/': {
+      id: '/providers/'
       path: '/'
-      fullPath: '/ssi-auth/'
-      preLoaderRoute: typeof SsiAuthIndexImport
-      parentRoute: typeof SsiAuthRouteImport
+      fullPath: '/providers/'
+      preLoaderRoute: typeof ProvidersIndexImport
+      parentRoute: typeof ProvidersRouteImport
     }
     '/subscriptions/': {
       id: '/subscriptions/'
@@ -437,6 +606,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/transfer-process/'
       preLoaderRoute: typeof TransferProcessIndexImport
       parentRoute: typeof TransferProcessRouteImport
+    }
+    '/wallet/': {
+      id: '/wallet/'
+      path: '/'
+      fullPath: '/wallet/'
+      preLoaderRoute: typeof WalletIndexImport
+      parentRoute: typeof WalletRouteImport
     }
     '/catalog/$catalogId/': {
       id: '/catalog/$catalogId/'
@@ -514,226 +690,268 @@ declare module '@tanstack/react-router' {
 // Create and export the route tree
 
 interface AgreementsRouteRouteChildren {
-  AgreementsAgreementIdRoute: typeof AgreementsAgreementIdRoute
-  AgreementsIndexRoute: typeof AgreementsIndexRoute
+  AgreementsAgreementIdRoute: typeof AgreementsAgreementIdRoute;
+  AgreementsIndexRoute: typeof AgreementsIndexRoute;
 }
 
 const AgreementsRouteRouteChildren: AgreementsRouteRouteChildren = {
   AgreementsAgreementIdRoute: AgreementsAgreementIdRoute,
   AgreementsIndexRoute: AgreementsIndexRoute,
-}
+};
 
 const AgreementsRouteRouteWithChildren = AgreementsRouteRoute._addFileChildren(
   AgreementsRouteRouteChildren,
+);
+
+interface AuthorityRouteRouteChildren {
+  AuthorityNewRoute: typeof AuthorityNewRoute
+  AuthorityRequestDetailsRoute: typeof AuthorityRequestDetailsRoute
+  AuthorityIndexRoute: typeof AuthorityIndexRoute
+}
+
+const AuthorityRouteRouteChildren: AuthorityRouteRouteChildren = {
+  AuthorityNewRoute: AuthorityNewRoute,
+  AuthorityRequestDetailsRoute: AuthorityRequestDetailsRoute,
+  AuthorityIndexRoute: AuthorityIndexRoute,
+}
+
+const AuthorityRouteRouteWithChildren = AuthorityRouteRoute._addFileChildren(
+  AuthorityRouteRouteChildren,
 )
 
 interface CatalogCatalogIdRouteRouteChildren {
-  CatalogCatalogIdIndexRoute: typeof CatalogCatalogIdIndexRoute
-  CatalogCatalogIdDataServiceDataServiceIdRoute: typeof CatalogCatalogIdDataServiceDataServiceIdRoute
-  CatalogCatalogIdDatasetDatasetIdRoute: typeof CatalogCatalogIdDatasetDatasetIdRoute
-  CatalogCatalogIdDistributionConnectorDistributionIdRoute: typeof CatalogCatalogIdDistributionConnectorDistributionIdRoute
+  CatalogCatalogIdIndexRoute: typeof CatalogCatalogIdIndexRoute;
+  CatalogCatalogIdDataServiceDataServiceIdRoute: typeof CatalogCatalogIdDataServiceDataServiceIdRoute;
+  CatalogCatalogIdDatasetDatasetIdRoute: typeof CatalogCatalogIdDatasetDatasetIdRoute;
+  CatalogCatalogIdDistributionConnectorDistributionIdRoute: typeof CatalogCatalogIdDistributionConnectorDistributionIdRoute;
 }
 
 const CatalogCatalogIdRouteRouteChildren: CatalogCatalogIdRouteRouteChildren = {
   CatalogCatalogIdIndexRoute: CatalogCatalogIdIndexRoute,
-  CatalogCatalogIdDataServiceDataServiceIdRoute:
-    CatalogCatalogIdDataServiceDataServiceIdRoute,
+  CatalogCatalogIdDataServiceDataServiceIdRoute: CatalogCatalogIdDataServiceDataServiceIdRoute,
   CatalogCatalogIdDatasetDatasetIdRoute: CatalogCatalogIdDatasetDatasetIdRoute,
   CatalogCatalogIdDistributionConnectorDistributionIdRoute:
     CatalogCatalogIdDistributionConnectorDistributionIdRoute,
-}
+};
 
-const CatalogCatalogIdRouteRouteWithChildren =
-  CatalogCatalogIdRouteRoute._addFileChildren(
-    CatalogCatalogIdRouteRouteChildren,
-  )
+const CatalogCatalogIdRouteRouteWithChildren = CatalogCatalogIdRouteRoute._addFileChildren(
+  CatalogCatalogIdRouteRouteChildren,
+);
 
 interface CatalogParticipantRouteRouteChildren {
-  CatalogParticipantParticipantIdIndexRoute: typeof CatalogParticipantParticipantIdIndexRoute
-  CatalogParticipantParticipantIdDatasetDatasetIdRoute: typeof CatalogParticipantParticipantIdDatasetDatasetIdRoute
+  CatalogParticipantParticipantIdIndexRoute: typeof CatalogParticipantParticipantIdIndexRoute;
+  CatalogParticipantParticipantIdDatasetDatasetIdRoute: typeof CatalogParticipantParticipantIdDatasetDatasetIdRoute;
 }
 
-const CatalogParticipantRouteRouteChildren: CatalogParticipantRouteRouteChildren =
-  {
-    CatalogParticipantParticipantIdIndexRoute:
-      CatalogParticipantParticipantIdIndexRoute,
-    CatalogParticipantParticipantIdDatasetDatasetIdRoute:
-      CatalogParticipantParticipantIdDatasetDatasetIdRoute,
-  }
+const CatalogParticipantRouteRouteChildren: CatalogParticipantRouteRouteChildren = {
+  CatalogParticipantParticipantIdIndexRoute: CatalogParticipantParticipantIdIndexRoute,
+  CatalogParticipantParticipantIdDatasetDatasetIdRoute:
+    CatalogParticipantParticipantIdDatasetDatasetIdRoute,
+};
 
-const CatalogParticipantRouteRouteWithChildren =
-  CatalogParticipantRouteRoute._addFileChildren(
-    CatalogParticipantRouteRouteChildren,
-  )
+const CatalogParticipantRouteRouteWithChildren = CatalogParticipantRouteRoute._addFileChildren(
+  CatalogParticipantRouteRouteChildren,
+);
 
 interface CatalogRouteRouteChildren {
-  CatalogCatalogIdRouteRoute: typeof CatalogCatalogIdRouteRouteWithChildren
-  CatalogParticipantRouteRoute: typeof CatalogParticipantRouteRouteWithChildren
-  CatalogIndexRoute: typeof CatalogIndexRoute
+  CatalogCatalogIdRouteRoute: typeof CatalogCatalogIdRouteRouteWithChildren;
+  CatalogParticipantRouteRoute: typeof CatalogParticipantRouteRouteWithChildren;
+  CatalogIndexRoute: typeof CatalogIndexRoute;
 }
 
 const CatalogRouteRouteChildren: CatalogRouteRouteChildren = {
   CatalogCatalogIdRouteRoute: CatalogCatalogIdRouteRouteWithChildren,
   CatalogParticipantRouteRoute: CatalogParticipantRouteRouteWithChildren,
   CatalogIndexRoute: CatalogIndexRoute,
-}
+};
 
-const CatalogRouteRouteWithChildren = CatalogRouteRoute._addFileChildren(
-  CatalogRouteRouteChildren,
-)
+const CatalogRouteRouteWithChildren = CatalogRouteRoute._addFileChildren(CatalogRouteRouteChildren);
 
 interface ContractNegotiationCnProcessRouteRouteChildren {
-  ContractNegotiationCnProcessIndexRoute: typeof ContractNegotiationCnProcessIndexRoute
+  ContractNegotiationCnProcessIndexRoute: typeof ContractNegotiationCnProcessIndexRoute;
 }
 
 const ContractNegotiationCnProcessRouteRouteChildren: ContractNegotiationCnProcessRouteRouteChildren =
   {
-    ContractNegotiationCnProcessIndexRoute:
-      ContractNegotiationCnProcessIndexRoute,
-  }
+    ContractNegotiationCnProcessIndexRoute: ContractNegotiationCnProcessIndexRoute,
+  };
 
 const ContractNegotiationCnProcessRouteRouteWithChildren =
   ContractNegotiationCnProcessRouteRoute._addFileChildren(
     ContractNegotiationCnProcessRouteRouteChildren,
-  )
+  );
 
 interface ContractNegotiationRouteRouteChildren {
-  ContractNegotiationCnProcessRouteRoute: typeof ContractNegotiationCnProcessRouteRouteWithChildren
-  ContractNegotiationIndexRoute: typeof ContractNegotiationIndexRoute
+  ContractNegotiationCnProcessRouteRoute: typeof ContractNegotiationCnProcessRouteRouteWithChildren;
+  ContractNegotiationIndexRoute: typeof ContractNegotiationIndexRoute;
 }
 
-const ContractNegotiationRouteRouteChildren: ContractNegotiationRouteRouteChildren =
-  {
-    ContractNegotiationCnProcessRouteRoute:
-      ContractNegotiationCnProcessRouteRouteWithChildren,
-    ContractNegotiationIndexRoute: ContractNegotiationIndexRoute,
-  }
+const ContractNegotiationRouteRouteChildren: ContractNegotiationRouteRouteChildren = {
+  ContractNegotiationCnProcessRouteRoute: ContractNegotiationCnProcessRouteRouteWithChildren,
+  ContractNegotiationIndexRoute: ContractNegotiationIndexRoute,
+};
 
-const ContractNegotiationRouteRouteWithChildren =
-  ContractNegotiationRouteRoute._addFileChildren(
-    ContractNegotiationRouteRouteChildren,
-  )
+const ContractNegotiationRouteRouteWithChildren = ContractNegotiationRouteRoute._addFileChildren(
+  ContractNegotiationRouteRouteChildren,
+);
 
 interface MyCatalogRouteRouteChildren {
-  MyCatalogIndexRoute: typeof MyCatalogIndexRoute
+  MyCatalogIndexRoute: typeof MyCatalogIndexRoute;
 }
 
 const MyCatalogRouteRouteChildren: MyCatalogRouteRouteChildren = {
   MyCatalogIndexRoute: MyCatalogIndexRoute,
-}
+};
 
 const MyCatalogRouteRouteWithChildren = MyCatalogRouteRoute._addFileChildren(
   MyCatalogRouteRouteChildren,
-)
+);
 
 interface ParticipantsParticipantIdRouteRouteChildren {
-  ParticipantsParticipantIdIndexRoute: typeof ParticipantsParticipantIdIndexRoute
+  ParticipantsParticipantIdIndexRoute: typeof ParticipantsParticipantIdIndexRoute;
 }
 
-const ParticipantsParticipantIdRouteRouteChildren: ParticipantsParticipantIdRouteRouteChildren =
-  {
-    ParticipantsParticipantIdIndexRoute: ParticipantsParticipantIdIndexRoute,
-  }
+const ParticipantsParticipantIdRouteRouteChildren: ParticipantsParticipantIdRouteRouteChildren = {
+  ParticipantsParticipantIdIndexRoute: ParticipantsParticipantIdIndexRoute,
+};
 
 const ParticipantsParticipantIdRouteRouteWithChildren =
-  ParticipantsParticipantIdRouteRoute._addFileChildren(
-    ParticipantsParticipantIdRouteRouteChildren,
-  )
+  ParticipantsParticipantIdRouteRoute._addFileChildren(ParticipantsParticipantIdRouteRouteChildren);
 
 interface ParticipantsRouteRouteChildren {
-  ParticipantsParticipantIdRouteRoute: typeof ParticipantsParticipantIdRouteRouteWithChildren
-  ParticipantsIndexRoute: typeof ParticipantsIndexRoute
+  ParticipantsParticipantIdRouteRoute: typeof ParticipantsParticipantIdRouteRouteWithChildren;
+  ParticipantsIndexRoute: typeof ParticipantsIndexRoute;
 }
 
 const ParticipantsRouteRouteChildren: ParticipantsRouteRouteChildren = {
-  ParticipantsParticipantIdRouteRoute:
-    ParticipantsParticipantIdRouteRouteWithChildren,
+  ParticipantsParticipantIdRouteRoute: ParticipantsParticipantIdRouteRouteWithChildren,
   ParticipantsIndexRoute: ParticipantsIndexRoute,
+};
+
+const ParticipantsRouteRouteWithChildren = ParticipantsRouteRoute._addFileChildren(
+  ParticipantsRouteRouteChildren,
+);
+
+interface ProvidersRouteRouteChildren {
+  ProvidersNewRoute: typeof ProvidersNewRoute
+  ProvidersRequestDetailsRoute: typeof ProvidersRequestDetailsRoute
+  ProvidersIndexRoute: typeof ProvidersIndexRoute
 }
 
-const ParticipantsRouteRouteWithChildren =
-  ParticipantsRouteRoute._addFileChildren(ParticipantsRouteRouteChildren)
-
-interface SsiAuthRouteRouteChildren {
-  SsiAuthIndexRoute: typeof SsiAuthIndexRoute
+const ProvidersRouteRouteChildren: ProvidersRouteRouteChildren = {
+  ProvidersNewRoute: ProvidersNewRoute,
+  ProvidersRequestDetailsRoute: ProvidersRequestDetailsRoute,
+  ProvidersIndexRoute: ProvidersIndexRoute,
 }
 
-const SsiAuthRouteRouteChildren: SsiAuthRouteRouteChildren = {
-  SsiAuthIndexRoute: SsiAuthIndexRoute,
-}
-
-const SsiAuthRouteRouteWithChildren = SsiAuthRouteRoute._addFileChildren(
-  SsiAuthRouteRouteChildren,
+const ProvidersRouteRouteWithChildren = ProvidersRouteRoute._addFileChildren(
+  ProvidersRouteRouteChildren,
 )
 
 interface SubscriptionsRouteRouteChildren {
-  SubscriptionsIndexRoute: typeof SubscriptionsIndexRoute
+  SubscriptionsIndexRoute: typeof SubscriptionsIndexRoute;
 }
 
 const SubscriptionsRouteRouteChildren: SubscriptionsRouteRouteChildren = {
   SubscriptionsIndexRoute: SubscriptionsIndexRoute,
-}
+};
 
-const SubscriptionsRouteRouteWithChildren =
-  SubscriptionsRouteRoute._addFileChildren(SubscriptionsRouteRouteChildren)
+const SubscriptionsRouteRouteWithChildren = SubscriptionsRouteRoute._addFileChildren(
+  SubscriptionsRouteRouteChildren,
+);
 
 interface TransferProcessTransferProcessIdRouteRouteChildren {
-  TransferProcessTransferProcessIdIndexRoute: typeof TransferProcessTransferProcessIdIndexRoute
-  TransferProcessTransferProcessIdTransferMessageTransferMessageIdRoute: typeof TransferProcessTransferProcessIdTransferMessageTransferMessageIdRoute
+  TransferProcessTransferProcessIdIndexRoute: typeof TransferProcessTransferProcessIdIndexRoute;
+  TransferProcessTransferProcessIdTransferMessageTransferMessageIdRoute: typeof TransferProcessTransferProcessIdTransferMessageTransferMessageIdRoute;
 }
 
 const TransferProcessTransferProcessIdRouteRouteChildren: TransferProcessTransferProcessIdRouteRouteChildren =
   {
-    TransferProcessTransferProcessIdIndexRoute:
-      TransferProcessTransferProcessIdIndexRoute,
+    TransferProcessTransferProcessIdIndexRoute: TransferProcessTransferProcessIdIndexRoute,
     TransferProcessTransferProcessIdTransferMessageTransferMessageIdRoute:
       TransferProcessTransferProcessIdTransferMessageTransferMessageIdRoute,
-  }
+  };
 
 const TransferProcessTransferProcessIdRouteRouteWithChildren =
   TransferProcessTransferProcessIdRouteRoute._addFileChildren(
     TransferProcessTransferProcessIdRouteRouteChildren,
-  )
+  );
 
 interface TransferProcessRouteRouteChildren {
-  TransferProcessTransferProcessIdRouteRoute: typeof TransferProcessTransferProcessIdRouteRouteWithChildren
-  TransferProcessIndexRoute: typeof TransferProcessIndexRoute
+  TransferProcessTransferProcessIdRouteRoute: typeof TransferProcessTransferProcessIdRouteRouteWithChildren;
+  TransferProcessIndexRoute: typeof TransferProcessIndexRoute;
 }
 
 const TransferProcessRouteRouteChildren: TransferProcessRouteRouteChildren = {
   TransferProcessTransferProcessIdRouteRoute:
     TransferProcessTransferProcessIdRouteRouteWithChildren,
   TransferProcessIndexRoute: TransferProcessIndexRoute,
+};
+
+const TransferProcessRouteRouteWithChildren = TransferProcessRouteRoute._addFileChildren(
+  TransferProcessRouteRouteChildren,
+);
+
+interface WalletRouteRouteChildren {
+  WalletCredentialsRoute: typeof WalletCredentialsRoute
+  WalletDidRoute: typeof WalletDidRoute
+  WalletInfoRoute: typeof WalletInfoRoute
+  WalletOidc4vciRoute: typeof WalletOidc4vciRoute
+  WalletOidc4vpRoute: typeof WalletOidc4vpRoute
+  WalletIndexRoute: typeof WalletIndexRoute
 }
 
-const TransferProcessRouteRouteWithChildren =
-  TransferProcessRouteRoute._addFileChildren(TransferProcessRouteRouteChildren)
+const WalletRouteRouteChildren: WalletRouteRouteChildren = {
+  WalletCredentialsRoute: WalletCredentialsRoute,
+  WalletDidRoute: WalletDidRoute,
+  WalletInfoRoute: WalletInfoRoute,
+  WalletOidc4vciRoute: WalletOidc4vciRoute,
+  WalletOidc4vpRoute: WalletOidc4vpRoute,
+  WalletIndexRoute: WalletIndexRoute,
+}
+
+const WalletRouteRouteWithChildren = WalletRouteRoute._addFileChildren(
+  WalletRouteRouteChildren,
+)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/agreements': typeof AgreementsRouteRouteWithChildren
+  '/authority': typeof AuthorityRouteRouteWithChildren
   '/catalog': typeof CatalogRouteRouteWithChildren
   '/contract-negotiation': typeof ContractNegotiationRouteRouteWithChildren
   '/my-catalog': typeof MyCatalogRouteRouteWithChildren
   '/participants': typeof ParticipantsRouteRouteWithChildren
-  '/ssi-auth': typeof SsiAuthRouteRouteWithChildren
+  '/providers': typeof ProvidersRouteRouteWithChildren
   '/subscriptions': typeof SubscriptionsRouteRouteWithChildren
   '/transfer-process': typeof TransferProcessRouteRouteWithChildren
+  '/wallet': typeof WalletRouteRouteWithChildren
   '/catalog/$catalogId': typeof CatalogCatalogIdRouteRouteWithChildren
   '/catalog/participant': typeof CatalogParticipantRouteRouteWithChildren
   '/contract-negotiation/$cnProcess': typeof ContractNegotiationCnProcessRouteRouteWithChildren
   '/participants/$participantId': typeof ParticipantsParticipantIdRouteRouteWithChildren
   '/transfer-process/$transferProcessId': typeof TransferProcessTransferProcessIdRouteRouteWithChildren
   '/agreements/$agreementId': typeof AgreementsAgreementIdRoute
+  '/authority/new': typeof AuthorityNewRoute
+  '/authority/request-details': typeof AuthorityRequestDetailsRoute
+  '/providers/new': typeof ProvidersNewRoute
+  '/providers/request-details': typeof ProvidersRequestDetailsRoute
+  '/wallet/credentials': typeof WalletCredentialsRoute
+  '/wallet/did': typeof WalletDidRoute
+  '/wallet/info': typeof WalletInfoRoute
+  '/wallet/oidc4vci': typeof WalletOidc4vciRoute
+  '/wallet/oidc4vp': typeof WalletOidc4vpRoute
   '/agreements/': typeof AgreementsIndexRoute
+  '/authority/': typeof AuthorityIndexRoute
   '/catalog/': typeof CatalogIndexRoute
   '/contract-negotiation/': typeof ContractNegotiationIndexRoute
   '/login': typeof LoginIndexRoute
   '/my-catalog/': typeof MyCatalogIndexRoute
   '/participants/': typeof ParticipantsIndexRoute
-  '/ssi-auth/': typeof SsiAuthIndexRoute
+  '/providers/': typeof ProvidersIndexRoute
   '/subscriptions/': typeof SubscriptionsIndexRoute
   '/transfer-process/': typeof TransferProcessIndexRoute
+  '/wallet/': typeof WalletIndexRoute
   '/catalog/$catalogId/': typeof CatalogCatalogIdIndexRoute
   '/contract-negotiation/$cnProcess/': typeof ContractNegotiationCnProcessIndexRoute
   '/participants/$participantId/': typeof ParticipantsParticipantIdIndexRoute
@@ -750,15 +968,26 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/catalog/participant': typeof CatalogParticipantRouteRouteWithChildren
   '/agreements/$agreementId': typeof AgreementsAgreementIdRoute
+  '/authority/new': typeof AuthorityNewRoute
+  '/authority/request-details': typeof AuthorityRequestDetailsRoute
+  '/providers/new': typeof ProvidersNewRoute
+  '/providers/request-details': typeof ProvidersRequestDetailsRoute
+  '/wallet/credentials': typeof WalletCredentialsRoute
+  '/wallet/did': typeof WalletDidRoute
+  '/wallet/info': typeof WalletInfoRoute
+  '/wallet/oidc4vci': typeof WalletOidc4vciRoute
+  '/wallet/oidc4vp': typeof WalletOidc4vpRoute
   '/agreements': typeof AgreementsIndexRoute
+  '/authority': typeof AuthorityIndexRoute
   '/catalog': typeof CatalogIndexRoute
   '/contract-negotiation': typeof ContractNegotiationIndexRoute
   '/login': typeof LoginIndexRoute
   '/my-catalog': typeof MyCatalogIndexRoute
   '/participants': typeof ParticipantsIndexRoute
-  '/ssi-auth': typeof SsiAuthIndexRoute
+  '/providers': typeof ProvidersIndexRoute
   '/subscriptions': typeof SubscriptionsIndexRoute
   '/transfer-process': typeof TransferProcessIndexRoute
+  '/wallet': typeof WalletIndexRoute
   '/catalog/$catalogId': typeof CatalogCatalogIdIndexRoute
   '/contract-negotiation/$cnProcess': typeof ContractNegotiationCnProcessIndexRoute
   '/participants/$participantId': typeof ParticipantsParticipantIdIndexRoute
@@ -775,28 +1004,41 @@ export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
   '/agreements': typeof AgreementsRouteRouteWithChildren
+  '/authority': typeof AuthorityRouteRouteWithChildren
   '/catalog': typeof CatalogRouteRouteWithChildren
   '/contract-negotiation': typeof ContractNegotiationRouteRouteWithChildren
   '/my-catalog': typeof MyCatalogRouteRouteWithChildren
   '/participants': typeof ParticipantsRouteRouteWithChildren
-  '/ssi-auth': typeof SsiAuthRouteRouteWithChildren
+  '/providers': typeof ProvidersRouteRouteWithChildren
   '/subscriptions': typeof SubscriptionsRouteRouteWithChildren
   '/transfer-process': typeof TransferProcessRouteRouteWithChildren
+  '/wallet': typeof WalletRouteRouteWithChildren
   '/catalog/$catalogId': typeof CatalogCatalogIdRouteRouteWithChildren
   '/catalog/participant': typeof CatalogParticipantRouteRouteWithChildren
   '/contract-negotiation/$cnProcess': typeof ContractNegotiationCnProcessRouteRouteWithChildren
   '/participants/$participantId': typeof ParticipantsParticipantIdRouteRouteWithChildren
   '/transfer-process/$transferProcessId': typeof TransferProcessTransferProcessIdRouteRouteWithChildren
   '/agreements/$agreementId': typeof AgreementsAgreementIdRoute
+  '/authority/new': typeof AuthorityNewRoute
+  '/authority/request-details': typeof AuthorityRequestDetailsRoute
+  '/providers/new': typeof ProvidersNewRoute
+  '/providers/request-details': typeof ProvidersRequestDetailsRoute
+  '/wallet/credentials': typeof WalletCredentialsRoute
+  '/wallet/did': typeof WalletDidRoute
+  '/wallet/info': typeof WalletInfoRoute
+  '/wallet/oidc4vci': typeof WalletOidc4vciRoute
+  '/wallet/oidc4vp': typeof WalletOidc4vpRoute
   '/agreements/': typeof AgreementsIndexRoute
+  '/authority/': typeof AuthorityIndexRoute
   '/catalog/': typeof CatalogIndexRoute
   '/contract-negotiation/': typeof ContractNegotiationIndexRoute
   '/login/': typeof LoginIndexRoute
   '/my-catalog/': typeof MyCatalogIndexRoute
   '/participants/': typeof ParticipantsIndexRoute
-  '/ssi-auth/': typeof SsiAuthIndexRoute
+  '/providers/': typeof ProvidersIndexRoute
   '/subscriptions/': typeof SubscriptionsIndexRoute
   '/transfer-process/': typeof TransferProcessIndexRoute
+  '/wallet/': typeof WalletIndexRoute
   '/catalog/$catalogId/': typeof CatalogCatalogIdIndexRoute
   '/contract-negotiation/$cnProcess/': typeof ContractNegotiationCnProcessIndexRoute
   '/participants/$participantId/': typeof ParticipantsParticipantIdIndexRoute
@@ -810,32 +1052,45 @@ export interface FileRoutesById {
 }
 
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
+  fileRoutesByFullPath: FileRoutesByFullPath;
   fullPaths:
     | '/'
     | '/agreements'
+    | '/authority'
     | '/catalog'
     | '/contract-negotiation'
     | '/my-catalog'
     | '/participants'
-    | '/ssi-auth'
+    | '/providers'
     | '/subscriptions'
     | '/transfer-process'
+    | '/wallet'
     | '/catalog/$catalogId'
     | '/catalog/participant'
     | '/contract-negotiation/$cnProcess'
     | '/participants/$participantId'
     | '/transfer-process/$transferProcessId'
     | '/agreements/$agreementId'
+    | '/authority/new'
+    | '/authority/request-details'
+    | '/providers/new'
+    | '/providers/request-details'
+    | '/wallet/credentials'
+    | '/wallet/did'
+    | '/wallet/info'
+    | '/wallet/oidc4vci'
+    | '/wallet/oidc4vp'
     | '/agreements/'
+    | '/authority/'
     | '/catalog/'
     | '/contract-negotiation/'
     | '/login'
     | '/my-catalog/'
     | '/participants/'
-    | '/ssi-auth/'
+    | '/providers/'
     | '/subscriptions/'
     | '/transfer-process/'
+    | '/wallet/'
     | '/catalog/$catalogId/'
     | '/contract-negotiation/$cnProcess/'
     | '/participants/$participantId/'
@@ -851,15 +1106,26 @@ export interface FileRouteTypes {
     | '/'
     | '/catalog/participant'
     | '/agreements/$agreementId'
+    | '/authority/new'
+    | '/authority/request-details'
+    | '/providers/new'
+    | '/providers/request-details'
+    | '/wallet/credentials'
+    | '/wallet/did'
+    | '/wallet/info'
+    | '/wallet/oidc4vci'
+    | '/wallet/oidc4vp'
     | '/agreements'
+    | '/authority'
     | '/catalog'
     | '/contract-negotiation'
     | '/login'
     | '/my-catalog'
     | '/participants'
-    | '/ssi-auth'
+    | '/providers'
     | '/subscriptions'
     | '/transfer-process'
+    | '/wallet'
     | '/catalog/$catalogId'
     | '/contract-negotiation/$cnProcess'
     | '/participants/$participantId'
@@ -874,28 +1140,41 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/agreements'
+    | '/authority'
     | '/catalog'
     | '/contract-negotiation'
     | '/my-catalog'
     | '/participants'
-    | '/ssi-auth'
+    | '/providers'
     | '/subscriptions'
     | '/transfer-process'
+    | '/wallet'
     | '/catalog/$catalogId'
     | '/catalog/participant'
     | '/contract-negotiation/$cnProcess'
     | '/participants/$participantId'
     | '/transfer-process/$transferProcessId'
     | '/agreements/$agreementId'
+    | '/authority/new'
+    | '/authority/request-details'
+    | '/providers/new'
+    | '/providers/request-details'
+    | '/wallet/credentials'
+    | '/wallet/did'
+    | '/wallet/info'
+    | '/wallet/oidc4vci'
+    | '/wallet/oidc4vp'
     | '/agreements/'
+    | '/authority/'
     | '/catalog/'
     | '/contract-negotiation/'
     | '/login/'
     | '/my-catalog/'
     | '/participants/'
-    | '/ssi-auth/'
+    | '/providers/'
     | '/subscriptions/'
     | '/transfer-process/'
+    | '/wallet/'
     | '/catalog/$catalogId/'
     | '/contract-negotiation/$cnProcess/'
     | '/participants/$participantId/'
@@ -912,32 +1191,36 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AgreementsRouteRoute: typeof AgreementsRouteRouteWithChildren
+  AuthorityRouteRoute: typeof AuthorityRouteRouteWithChildren
   CatalogRouteRoute: typeof CatalogRouteRouteWithChildren
   ContractNegotiationRouteRoute: typeof ContractNegotiationRouteRouteWithChildren
   MyCatalogRouteRoute: typeof MyCatalogRouteRouteWithChildren
   ParticipantsRouteRoute: typeof ParticipantsRouteRouteWithChildren
-  SsiAuthRouteRoute: typeof SsiAuthRouteRouteWithChildren
+  ProvidersRouteRoute: typeof ProvidersRouteRouteWithChildren
   SubscriptionsRouteRoute: typeof SubscriptionsRouteRouteWithChildren
   TransferProcessRouteRoute: typeof TransferProcessRouteRouteWithChildren
+  WalletRouteRoute: typeof WalletRouteRouteWithChildren
   LoginIndexRoute: typeof LoginIndexRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AgreementsRouteRoute: AgreementsRouteRouteWithChildren,
+  AuthorityRouteRoute: AuthorityRouteRouteWithChildren,
   CatalogRouteRoute: CatalogRouteRouteWithChildren,
   ContractNegotiationRouteRoute: ContractNegotiationRouteRouteWithChildren,
   MyCatalogRouteRoute: MyCatalogRouteRouteWithChildren,
   ParticipantsRouteRoute: ParticipantsRouteRouteWithChildren,
-  SsiAuthRouteRoute: SsiAuthRouteRouteWithChildren,
+  ProvidersRouteRoute: ProvidersRouteRouteWithChildren,
   SubscriptionsRouteRoute: SubscriptionsRouteRouteWithChildren,
   TransferProcessRouteRoute: TransferProcessRouteRouteWithChildren,
+  WalletRouteRoute: WalletRouteRouteWithChildren,
   LoginIndexRoute: LoginIndexRoute,
-}
+};
 
 export const routeTree = rootRoute
   ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>()
+  ._addFileTypes<FileRouteTypes>();
 
 /* ROUTE_MANIFEST_START
 {
@@ -947,13 +1230,15 @@ export const routeTree = rootRoute
       "children": [
         "/",
         "/agreements",
+        "/authority",
         "/catalog",
         "/contract-negotiation",
         "/my-catalog",
         "/participants",
-        "/ssi-auth",
+        "/providers",
         "/subscriptions",
         "/transfer-process",
+        "/wallet",
         "/login/"
       ]
     },
@@ -965,6 +1250,14 @@ export const routeTree = rootRoute
       "children": [
         "/agreements/$agreementId",
         "/agreements/"
+      ]
+    },
+    "/authority": {
+      "filePath": "authority/route.tsx",
+      "children": [
+        "/authority/new",
+        "/authority/request-details",
+        "/authority/"
       ]
     },
     "/catalog": {
@@ -995,10 +1288,12 @@ export const routeTree = rootRoute
         "/participants/"
       ]
     },
-    "/ssi-auth": {
-      "filePath": "ssi-auth/route.tsx",
+    "/providers": {
+      "filePath": "providers/route.tsx",
       "children": [
-        "/ssi-auth/"
+        "/providers/new",
+        "/providers/request-details",
+        "/providers/"
       ]
     },
     "/subscriptions": {
@@ -1012,6 +1307,17 @@ export const routeTree = rootRoute
       "children": [
         "/transfer-process/$transferProcessId",
         "/transfer-process/"
+      ]
+    },
+    "/wallet": {
+      "filePath": "wallet/route.tsx",
+      "children": [
+        "/wallet/credentials",
+        "/wallet/did",
+        "/wallet/info",
+        "/wallet/oidc4vci",
+        "/wallet/oidc4vp",
+        "/wallet/"
       ]
     },
     "/catalog/$catalogId": {
@@ -1058,9 +1364,49 @@ export const routeTree = rootRoute
       "filePath": "agreements/$agreementId.tsx",
       "parent": "/agreements"
     },
+    "/authority/new": {
+      "filePath": "authority/new.tsx",
+      "parent": "/authority"
+    },
+    "/authority/request-details": {
+      "filePath": "authority/request-details.tsx",
+      "parent": "/authority"
+    },
+    "/providers/new": {
+      "filePath": "providers/new.tsx",
+      "parent": "/providers"
+    },
+    "/providers/request-details": {
+      "filePath": "providers/request-details.tsx",
+      "parent": "/providers"
+    },
+    "/wallet/credentials": {
+      "filePath": "wallet/credentials.tsx",
+      "parent": "/wallet"
+    },
+    "/wallet/did": {
+      "filePath": "wallet/did.tsx",
+      "parent": "/wallet"
+    },
+    "/wallet/info": {
+      "filePath": "wallet/info.tsx",
+      "parent": "/wallet"
+    },
+    "/wallet/oidc4vci": {
+      "filePath": "wallet/oidc4vci.tsx",
+      "parent": "/wallet"
+    },
+    "/wallet/oidc4vp": {
+      "filePath": "wallet/oidc4vp.tsx",
+      "parent": "/wallet"
+    },
     "/agreements/": {
       "filePath": "agreements/index.tsx",
       "parent": "/agreements"
+    },
+    "/authority/": {
+      "filePath": "authority/index.tsx",
+      "parent": "/authority"
     },
     "/catalog/": {
       "filePath": "catalog/index.tsx",
@@ -1081,9 +1427,9 @@ export const routeTree = rootRoute
       "filePath": "participants/index.tsx",
       "parent": "/participants"
     },
-    "/ssi-auth/": {
-      "filePath": "ssi-auth/index.tsx",
-      "parent": "/ssi-auth"
+    "/providers/": {
+      "filePath": "providers/index.tsx",
+      "parent": "/providers"
     },
     "/subscriptions/": {
       "filePath": "subscriptions/index.tsx",
@@ -1092,6 +1438,10 @@ export const routeTree = rootRoute
     "/transfer-process/": {
       "filePath": "transfer-process/index.tsx",
       "parent": "/transfer-process"
+    },
+    "/wallet/": {
+      "filePath": "wallet/index.tsx",
+      "parent": "/wallet"
     },
     "/catalog/$catalogId/": {
       "filePath": "catalog/$catalogId/index.tsx",

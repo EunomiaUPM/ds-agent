@@ -108,7 +108,7 @@ impl VcRequesterTrait for VCReqService {
         &self,
         vc_model: &mut req_vc::Model,
         int_model: &mut req_interaction::Model,
-    ) -> Outcome<Option<String>> {
+    ) -> Outcome<(bool, Option<String>)> {
         info!("Sending grant request request to authority");
         let vc_type = VcType::from_str(&vc_model.vc_type)?;
 
@@ -156,18 +156,29 @@ impl VcRequesterTrait for VCReqService {
             ));
         };
 
-        vc_model.status = "Pending".to_string();
-        vc_model.assigned_id = res.instance_id;
+        match res.credential_response {
+            Some(data) => {
+                vc_model.status = "Approved".to_string();
+                vc_model.assigned_id = res.instance_id;
 
-        let res_interact = get_from_opt(res.interact.as_ref(), "interact")?;
-        let cont_data = get_from_opt(res.r#continue.as_ref(), "continue")?;
+                Ok((true, Some(data.credential_uri)))
+            }
+            None => {
+                let res_interact = get_from_opt(res.interact.as_ref(), "interact")?;
+                let cont_data = get_from_opt(res.r#continue.as_ref(), "continue")?;
 
-        int_model.as_nonce = res_interact.finish;
-        int_model.continue_token = Some(cont_data.access_token.value);
-        int_model.continue_endpoint = Some(cont_data.uri);
-        int_model.continue_wait = cont_data.wait;
+                vc_model.status = "Pending".to_string();
+                vc_model.assigned_id = res.instance_id;
+                vc_model.verification_uri = res_interact.oidc4vp.clone();
 
-        Ok(res_interact.oidc4vp)
+                int_model.as_nonce = res_interact.finish;
+                int_model.continue_token = Some(cont_data.access_token.value);
+                int_model.continue_endpoint = Some(cont_data.uri);
+                int_model.continue_wait = cont_data.wait;
+
+                Ok((false, res_interact.oidc4vp))
+            }
+        }
     }
 
     fn save_ver_data(&self, uri: &str, id: &str) -> Outcome<req_verification::NewModel> {
@@ -228,6 +239,7 @@ impl VcRequesterTrait for VCReqService {
             participant_type: "Authority".to_string(),
             base_url,
             token: None,
+            extra_fields: None,
             is_me: false,
         };
 

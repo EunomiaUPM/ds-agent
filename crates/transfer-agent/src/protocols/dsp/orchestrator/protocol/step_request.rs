@@ -17,40 +17,29 @@
  *
  */
 
-use crate::entities::transfer_process::TransferProcessDto;
+use crate::protocols::dsp::context::DspTransferContext;
 use crate::protocols::dsp::facades::dataplane_facade::DataPlaneFacadeTrait;
 use crate::protocols::dsp::facades::FacadeTrait;
-use crate::protocols::dsp::orchestrator::protocol::step_trait::{ProtocolContext, ProtocolStep};
-use crate::protocols::dsp::persistence::{CreateProcessInput, TransferPersistenceTrait};
+use crate::protocols::dsp::orchestrator::protocol::step_trait::ProtocolStep;
+use crate::protocols::dsp::persistence::TransferPersistenceTrait;
 use crate::protocols::dsp::protocol_types::{
-    DataAddressDto, TransferProcessAckDto, TransferProcessMessageTrait,
-    TransferProcessMessageWrapper, TransferRequestMessageDto,
+    TransferProcessAckDto, TransferProcessMessageTrait, TransferProcessMessageWrapper,
+    TransferRequestMessageDto,
 };
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
 use connector::InteractionConfig;
 use std::sync::Arc;
 use ymir::errors::{Errors, Outcome};
-// ─── ProtocolRequestStep ──────────────────────────────────────────────────────
 
-/// Handles an inbound `TransferRequestMessage` from a Consumer.
-///
-/// This is the only inbound step that creates a new process record.  The
-/// algorithm is:
-/// 1. Validate the message.
-/// 2. Resolve the connector for the referenced agreement and enforce PUSH constraints.
-/// 3. Check idempotency: return the existing ack if the consumerPid is already known.
-/// 4. Persist the new process.
-/// 5. Register the provider-side dataplane session.
 pub(super) struct ProtocolRequestStep;
 
 #[async_trait::async_trait]
 impl ProtocolStep for ProtocolRequestStep {
     type Dto = TransferRequestMessageDto;
-    type Context = ProtocolContext;
 
     async fn validate(
+        _ctx: &DspTransferContext,
         validator: &Arc<dyn ValidationDspSteps>,
-        _id: &str,
         input: &TransferProcessMessageWrapper<TransferRequestMessageDto>,
     ) -> Outcome<()> {
         validator
@@ -58,21 +47,12 @@ impl ProtocolStep for ProtocolRequestStep {
             .await
     }
 
-    /// Resolves the connector and checks PUSH constraints.
-    ///
-    /// Returns `(ctx, Some(ack))` if the consumerPid is already stored
-    /// (idempotent re-delivery); `(ctx, None)` otherwise.
     async fn prepare_context(
-        _id: &str,
-        peer: &str,
+        ctx: &mut DspTransferContext,
         input: &TransferProcessMessageWrapper<TransferRequestMessageDto>,
         persistence: &Arc<dyn TransferPersistenceTrait>,
         facades: &Arc<dyn FacadeTrait>,
-    ) -> Outcome<(
-        ProtocolContext,
-        Option<TransferProcessMessageWrapper<TransferProcessAckDto>>,
-    )> {
-        // Resolve connector: agreement → dataset → distribution → connector instance.
+    ) -> Outcome<Option<TransferProcessMessageWrapper<TransferProcessAckDto>>> {
         let agreement_id = input
             .dto
             .get_agreement_id()
@@ -83,7 +63,6 @@ impl ProtocolStep for ProtocolRequestStep {
             .resolve_connector_by_agreement_id(&agreement_id, Option::from(&input.dto.format))
             .await?;
 
-        // PUSH connector requires the Consumer to supply a DataAddress.
         if matches!(connector_instance.interaction, InteractionConfig::Push(_))
             && input.dto.data_address.is_none()
         {
@@ -93,11 +72,8 @@ impl ProtocolStep for ProtocolRequestStep {
             ));
         }
 
-        let ctx = ProtocolContext {
-            process: None,
-            connector_instance: Some(connector_instance),
-            associated_peer: peer.to_string(),
-        };
+        ctx.connector_instance = Some(connector_instance);
+        ctx.input_data_address = input.dto.data_address.clone();
 
         // Idempotency: return the existing ack if the consumerPid is already known.
         let consumer_pid = input
@@ -110,42 +86,34 @@ impl ProtocolStep for ProtocolRequestStep {
             .get_transfer_process_by_key_id("consumerPid", &consumer_pid)
             .await;
         if let Ok(process) = existing {
-            return Ok((ctx, Some(TransferProcessMessageWrapper::try_from(process)?)));
+            return Ok(Some(TransferProcessMessageWrapper::try_from(process)?));
         }
 
-        Ok((ctx, None))
-    }
-
-    /// Creates the new process record for this transfer request.
-    async fn persist(
-        persistence: &Arc<dyn TransferPersistenceTrait>,
-        _id: &str,
-        ctx: &ProtocolContext,
-        input: &TransferProcessMessageWrapper<TransferRequestMessageDto>,
-    ) -> Outcome<TransferProcessDto> {
-        persistence
-            .create_process(CreateProcessInput {
-                id: None,
-                protocol: "DSP",
-                direction: "INBOUND",
-                associated_agent_peer: ctx.associated_peer.clone(),
-                provider_pid: None,
-                provider_address: None,
-                payload_dto: Arc::new(input.dto.clone()),
-                payload_value: serde_json::to_value(input).unwrap(),
-            })
-            .await
-    }
-
-    /// Registers the provider-side dataplane session for this transfer.
-    async fn post_hook(
-        dp: &Arc<dyn DataPlaneFacadeTrait>,
-        ctx: &ProtocolContext,
-        input: &TransferProcessMessageWrapper<TransferRequestMessageDto>,
-        process: &TransferProcessDto,
-    ) -> Outcome<Option<DataAddressDto>> {
-        dp.on_transfer_request_post(process, &ctx.connector_instance, &input.dto.data_address)
-            .await?;
         Ok(None)
+    }
+
+    async fn persist(
+        ctx: &mut DspTransferContext,
+        persistence: &Arc<dyn TransferPersistenceTrait>,
+        input: &TransferProcessMessageWrapper<TransferRequestMessageDto>,
+    ) -> Outcome<()> {
+        let process = persistence
+            .create_process(
+                ctx,
+                Arc::new(input.dto.clone()),
+                serde_json::to_value(input).unwrap(),
+            )
+            .await?;
+        ctx.process = Some(process);
+        Ok(())
+    }
+
+    async fn post_hook(
+        ctx: &mut DspTransferContext,
+        dp: &Arc<dyn DataPlaneFacadeTrait>,
+        _input: &TransferProcessMessageWrapper<TransferRequestMessageDto>,
+    ) -> Outcome<()> {
+        dp.on_transfer_request_post(ctx).await?;
+        Ok(())
     }
 }

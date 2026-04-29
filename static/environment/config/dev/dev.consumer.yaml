@@ -76,13 +76,14 @@ ssi_auth:
       port: '7001'
     id: null
   client_config:
-    class_id: 'consumer'
+    class_id: 'Consumer'
     display: null
   vc_config:
     vc_model: JwtVc
     w3c_data_model: V2
   verify_req_config:
     is_cert_allowed: false
+    auto_approve_cert: false
     vcs_requested: [DataspaceParticipant]
   gaia_config:
     api:

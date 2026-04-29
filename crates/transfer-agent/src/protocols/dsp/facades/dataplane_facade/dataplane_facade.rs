@@ -15,18 +15,15 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::transfer_process::TransferProcessDto;
+use crate::protocols::dsp::context::DspTransferContext;
 use crate::protocols::dsp::facades::dataplane_facade::strategy::{
-    execute_command, strategy_for, strategy_for_request_pre,
+    strategy_for, strategy_for_request_pre,
 };
 use crate::protocols::dsp::facades::dataplane_facade::DataPlaneFacadeTrait;
 use crate::protocols::dsp::protocol_types::DataAddressDto;
-use connector::ConnectorInstanceDto;
-use dataplane::{DataplaneAddress, DataplaneCommand, DataplaneManager};
-use std::str::FromStr;
+use dataplane::DataplaneManager;
 use std::sync::Arc;
-use urn::Urn;
-use ymir::errors::Outcome;
+use ymir::errors::{Errors, Outcome};
 
 pub struct DspDataPlaneFacade {
     dataplane_manager: Arc<DataplaneManager>,
@@ -47,159 +44,130 @@ impl DspDataPlaneFacade {
 
 #[async_trait::async_trait]
 impl DataPlaneFacadeTrait for DspDataPlaneFacade {
-    // ─── TransferRequest ───
-
     async fn on_transfer_request_pre(
         &self,
-        transfer_id: &Urn,
-        data_address: &Option<DataAddressDto>,
+        ctx: &DspTransferContext,
     ) -> Outcome<Option<DataAddressDto>> {
-        strategy_for_request_pre(data_address)
-            .on_request_pre(
-                &self.dataplane_manager,
-                &self.proxy_base_url,
-                transfer_id,
-                data_address,
-            )
+        strategy_for_request_pre(&ctx.input_data_address)
+            .on_request_pre(ctx, &self.dataplane_manager)
             .await
     }
 
     async fn on_transfer_request_post(
         &self,
-        transfer_process: &TransferProcessDto,
-        connector_instance: &Option<ConnectorInstanceDto>,
-        data_address: &Option<DataAddressDto>,
-    ) -> Outcome<()> {
-        let id = Urn::from_str(&transfer_process.inner.id)?;
-        strategy_for(transfer_process)
-            .on_request_post(
-                &self.dataplane_manager,
-                &self.proxy_base_url,
-                &id,
-                connector_instance,
-                data_address,
-            )
-            .await
+        ctx: &DspTransferContext,
+    ) -> Outcome<Option<DataAddressDto>> {
+        let process = ctx
+            .process
+            .as_ref()
+            .ok_or_else(|| Errors::crazy("process required for on_transfer_request_post", None))?;
+        strategy_for(process)
+            .on_request_post(ctx, &self.dataplane_manager)
+            .await?;
+        Ok(None)
     }
-
-    // ─── TransferStart ───
 
     async fn on_transfer_start_pre(
         &self,
-        transfer_process: &TransferProcessDto,
+        ctx: &DspTransferContext,
     ) -> Outcome<Option<DataAddressDto>> {
-        let id = Urn::from_str(&transfer_process.inner.id)?;
-        strategy_for(transfer_process)
-            .on_start_pre(&self.dataplane_manager, &self.proxy_base_url, &id)
+        let process = ctx
+            .process
+            .as_ref()
+            .ok_or_else(|| Errors::crazy("process required for on_transfer_start_pre", None))?;
+        strategy_for(process)
+            .on_start_pre(ctx, &self.dataplane_manager)
             .await
     }
 
     async fn on_transfer_start_post(
         &self,
-        transfer_process: &TransferProcessDto,
-        data_address: Option<DataAddressDto>,
+        ctx: &DspTransferContext,
     ) -> Outcome<Option<DataAddressDto>> {
-        let id = Urn::from_str(&transfer_process.inner.id)?;
-        strategy_for(transfer_process)
-            .on_start_post(
-                &self.dataplane_manager,
-                &self.proxy_base_url,
-                &id,
-                data_address,
-            )
+        let process = ctx
+            .process
+            .as_ref()
+            .ok_or_else(|| Errors::crazy("process required for on_transfer_start_post", None))?;
+        strategy_for(process)
+            .on_start_post(ctx, &self.dataplane_manager)
             .await
     }
 
-    // ─── TransferSuspension → SetStopped ───
-
     async fn on_transfer_suspension_pre(
         &self,
-        transfer_process: &TransferProcessDto,
-    ) -> Outcome<()> {
-        execute_command(
-            &self.dataplane_manager,
-            &Urn::from_str(&transfer_process.inner.id)?,
-            DataplaneCommand::SetStopped,
-        )
-        .await
+        ctx: &DspTransferContext,
+    ) -> Outcome<Option<DataAddressDto>> {
+        let process = ctx.process.as_ref().ok_or_else(|| {
+            Errors::crazy("process required for on_transfer_suspension_pre", None)
+        })?;
+        strategy_for(process)
+            .on_suspend_pre(ctx, &self.dataplane_manager)
+            .await;
+        Ok(None)
     }
 
     async fn on_transfer_suspension_post(
         &self,
-        transfer_process: &TransferProcessDto,
-    ) -> Outcome<()> {
-        execute_command(
-            &self.dataplane_manager,
-            &Urn::from_str(&transfer_process.inner.id)?,
-            DataplaneCommand::SetStopped,
-        )
-        .await
+        ctx: &DspTransferContext,
+    ) -> Outcome<Option<DataAddressDto>> {
+        let process = ctx.process.as_ref().ok_or_else(|| {
+            Errors::crazy("process required for on_transfer_suspension_post", None)
+        })?;
+        strategy_for(process)
+            .on_suspend_post(ctx, &self.dataplane_manager)
+            .await;
+        Ok(None)
     }
-
-    // ─── TransferCompletion → SetTerminated ───
 
     async fn on_transfer_completion_pre(
         &self,
-        transfer_process: &TransferProcessDto,
-    ) -> Outcome<()> {
-        execute_command(
-            &self.dataplane_manager,
-            &Urn::from_str(&transfer_process.inner.id)?,
-            DataplaneCommand::SetTerminated,
-        )
-        .await
+        ctx: &DspTransferContext,
+    ) -> Outcome<Option<DataAddressDto>> {
+        let process = ctx.process.as_ref().ok_or_else(|| {
+            Errors::crazy("process required for on_transfer_completion_pre", None)
+        })?;
+        strategy_for(process)
+            .on_complete_pre(ctx, &self.dataplane_manager)
+            .await;
+        Ok(None)
     }
 
     async fn on_transfer_completion_post(
         &self,
-        transfer_process: &TransferProcessDto,
-    ) -> Outcome<()> {
-        execute_command(
-            &self.dataplane_manager,
-            &Urn::from_str(&transfer_process.inner.id)?,
-            DataplaneCommand::SetTerminated,
-        )
-        .await
+        ctx: &DspTransferContext,
+    ) -> Outcome<Option<DataAddressDto>> {
+        let process = ctx.process.as_ref().ok_or_else(|| {
+            Errors::crazy("process required for on_transfer_completion_post", None)
+        })?;
+        strategy_for(process)
+            .on_complete_post(ctx, &self.dataplane_manager)
+            .await;
+        Ok(None)
     }
-
-    // ─── TransferTermination → SetTerminated ───
 
     async fn on_transfer_termination_pre(
         &self,
-        transfer_process: &TransferProcessDto,
-    ) -> Outcome<()> {
-        execute_command(
-            &self.dataplane_manager,
-            &Urn::from_str(&transfer_process.inner.id)?,
-            DataplaneCommand::SetTerminated,
-        )
-        .await
+        ctx: &DspTransferContext,
+    ) -> Outcome<Option<DataAddressDto>> {
+        let process = ctx.process.as_ref().ok_or_else(|| {
+            Errors::crazy("process required for on_transfer_termination_pre", None)
+        })?;
+        strategy_for(process)
+            .on_terminate_pre(ctx, &self.dataplane_manager)
+            .await;
+        Ok(None)
     }
 
     async fn on_transfer_termination_post(
         &self,
-        transfer_process: &TransferProcessDto,
-    ) -> Outcome<()> {
-        execute_command(
-            &self.dataplane_manager,
-            &Urn::from_str(&transfer_process.inner.id)?,
-            DataplaneCommand::SetTerminated,
-        )
-        .await
-    }
-
-    // ─── Config updates ───
-
-    async fn set_egress(
-        &self,
-        transfer_process: &TransferProcessDto,
-        data_address: DataplaneAddress,
-    ) -> Outcome<()> {
-        execute_command(
-            &self.dataplane_manager,
-            &Urn::from_str(&transfer_process.inner.id)?,
-            DataplaneCommand::SetEgress { data_address },
-        )
-        .await
+        ctx: &DspTransferContext,
+    ) -> Outcome<Option<DataAddressDto>> {
+        let process = ctx.process.as_ref().ok_or_else(|| {
+            Errors::crazy("process required for on_transfer_termination_post", None)
+        })?;
+        strategy_for(process)
+            .on_terminate_post(ctx, &self.dataplane_manager)
+            .await;
+        Ok(None)
     }
 }

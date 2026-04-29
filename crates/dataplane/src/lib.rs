@@ -28,6 +28,13 @@ pub mod setup;
 pub mod testing_proxy;
 
 pub use data::migrations::get_dataplane_migrations;
-pub use entities::dataplane_manager::dataplane_manager::*;
-pub use entities::dataplane_manager::*;
+pub use entities::dataplane_manager::dataplane_commands::{
+    DataplaneCommand, DataplaneCommandResponse, DataplaneContinuation,
+    DataplaneInitCommandDirection, DataplaneInitCommandTypes,
+};
+pub use entities::dataplane_manager::dataplane_manager::DataplaneManager;
+pub use entities::dataplane_manager::DataplaneAddress;
 pub use entities::dataplane_transfers::DataplaneTransfersEntitiesTrait;
+
+#[cfg(test)]
+pub(crate) mod test_fixtures;

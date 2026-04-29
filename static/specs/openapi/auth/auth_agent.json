@@ -1,8 +1,8 @@
 {
     "openapi": "3.0.3",
     "info": {
-        "title": "Eunomia DS-Agent Auth Agent API",
-        "description": "OpenAPI specification for the Eunomia DS-Agent Auth Agent, managing SSI interactions, detailed verifiable credential logic, and authorization flow.",
+        "title": "Eunomia DS Auth Agent API",
+        "description": "OpenAPI specification for the Eunomia DS Auth Agent, managing SSI interactions, detailed verifiable credential logic, and authorization flow.",
         "version": "1.0.0"
     },
     "servers": [
@@ -406,6 +406,33 @@
                 ],
                 "summary": "Get all mates",
                 "operationId": "getAllMates",
+                "parameters": [
+                    {
+                        "name": "type",
+                        "in": "query",
+                        "required": false,
+                        "description": "Filter mates by participant type. Defaults to `all`.",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "agents",
+                                "authorities",
+                                "all"
+                            ],
+                            "default": "all"
+                        }
+                    },
+                    {
+                        "name": "exclude",
+                        "in": "query",
+                        "required": false,
+                        "description": "When `true`, excludes the own identity (is_me) from the results.",
+                        "schema": {
+                            "type": "boolean",
+                            "default": false
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "List of mates",
@@ -542,6 +569,50 @@
                         }
                     }
                 ],
+                "responses": {
+                    "200": {
+                        "description": "Mate details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/InternalServerError"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Mates"
+                ],
+                "summary": "Update extra_fields by ID",
+                "operationId": "putMateById",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
                         "description": "Mate details",

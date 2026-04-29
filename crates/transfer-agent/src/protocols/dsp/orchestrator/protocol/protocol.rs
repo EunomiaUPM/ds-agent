@@ -17,6 +17,7 @@
  *
  */
 
+use crate::protocols::dsp::context::DspTransferContext;
 use crate::protocols::dsp::facades::FacadeTrait;
 use crate::protocols::dsp::orchestrator::protocol::step_completion::ProtocolCompletionStep;
 use crate::protocols::dsp::orchestrator::protocol::step_request::ProtocolRequestStep;
@@ -33,14 +34,8 @@ use crate::protocols::dsp::protocol_types::{
 };
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
 use std::sync::Arc;
-use ymir::errors::Outcome;
-// ─── Service ─────────────────────────────────────────────────────────────────
+use ymir::errors::{Errors, Outcome};
 
-/// DSP protocol orchestrator for inbound transfer operations.
-///
-/// Handles messages arriving on the DSP HTTP endpoints.  All five operations
-/// (request + four lifecycle steps) are driven by the [`ProtocolStep`] template;
-/// `run_lifecycle` encodes the algorithm once.
 pub struct ProtocolOrchestratorService {
     facades: Arc<dyn FacadeTrait>,
     validator: Arc<dyn ValidationDspSteps>,
@@ -59,9 +54,37 @@ impl ProtocolOrchestratorService {
             facades,
         }
     }
-}
 
-// ─── Trait implementation ─────────────────────────────────────────────────────
+    /// Template instantiation for protocol DSP
+    async fn run_lifecycle<S: ProtocolStep>(
+        &self,
+        ctx: DspTransferContext,
+        input: &TransferProcessMessageWrapper<S::Dto>,
+    ) -> Outcome<(TransferProcessMessageWrapper<TransferProcessAckDto>, bool)> {
+        // validation
+        S::validate(&ctx, &self.validator, input).await?;
+        // create context
+        let mut ctx = ctx;
+        if let Some(early_ack) =
+            S::prepare_context(&mut ctx, input, &self.persistence_service, &self.facades).await?
+        {
+            return Ok((early_ack, true));
+        }
+        // persist
+        S::persist(&mut ctx, &self.persistence_service, input).await?;
+        // dataplane
+        let dp = self.facades.get_data_plane_facade().await;
+        S::post_hook(&mut ctx, &dp, input).await?;
+        // prepare return
+        let data_address = ctx.resolved_data_address;
+        let process = ctx
+            .process
+            .ok_or_else(|| Errors::crazy("process missing after persist", None))?;
+        let mut ack = TransferProcessMessageWrapper::try_from(process)?;
+        ack.dto.data_address = data_address;
+        Ok((ack, false))
+    }
+}
 
 #[async_trait::async_trait]
 impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
@@ -75,89 +98,51 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
 
     async fn on_transfer_request(
         &self,
+        ctx: DspTransferContext,
         input: &TransferProcessMessageWrapper<TransferRequestMessageDto>,
-        associated_agent_peer: &str,
     ) -> Outcome<(TransferProcessMessageWrapper<TransferProcessAckDto>, bool)> {
-        self.run_lifecycle::<ProtocolRequestStep>("", associated_agent_peer, input)
-            .await
+        self.run_lifecycle::<ProtocolRequestStep>(ctx, input).await
     }
 
     async fn on_transfer_start(
         &self,
-        id: &String,
+        ctx: DspTransferContext,
         input: &TransferProcessMessageWrapper<TransferStartMessageDto>,
     ) -> Outcome<TransferProcessMessageWrapper<TransferProcessAckDto>> {
-        let (ack, _) = self
-            .run_lifecycle::<ProtocolStartStep>(id, "", input)
-            .await?;
+        let (ack, _) = self.run_lifecycle::<ProtocolStartStep>(ctx, input).await?;
         Ok(ack)
     }
 
     async fn on_transfer_suspension(
         &self,
-        id: &String,
+        ctx: DspTransferContext,
         input: &TransferProcessMessageWrapper<TransferSuspensionMessageDto>,
     ) -> Outcome<TransferProcessMessageWrapper<TransferProcessAckDto>> {
         let (ack, _) = self
-            .run_lifecycle::<ProtocolSuspensionStep>(id, "", input)
+            .run_lifecycle::<ProtocolSuspensionStep>(ctx, input)
             .await?;
         Ok(ack)
     }
 
     async fn on_transfer_completion(
         &self,
-        id: &String,
+        ctx: DspTransferContext,
         input: &TransferProcessMessageWrapper<TransferCompletionMessageDto>,
     ) -> Outcome<TransferProcessMessageWrapper<TransferProcessAckDto>> {
         let (ack, _) = self
-            .run_lifecycle::<ProtocolCompletionStep>(id, "", input)
+            .run_lifecycle::<ProtocolCompletionStep>(ctx, input)
             .await?;
         Ok(ack)
     }
 
     async fn on_transfer_termination(
         &self,
-        id: &String,
+        ctx: DspTransferContext,
         input: &TransferProcessMessageWrapper<TransferTerminationMessageDto>,
     ) -> Outcome<TransferProcessMessageWrapper<TransferProcessAckDto>> {
         let (ack, _) = self
-            .run_lifecycle::<ProtocolTerminationStep>(id, "", input)
+            .run_lifecycle::<ProtocolTerminationStep>(ctx, input)
             .await?;
         Ok(ack)
-    }
-}
-
-// ─── Template engine ──────────────────────────────────────────────────────────
-
-impl ProtocolOrchestratorService {
-    /// Execute any inbound DSP lifecycle step using the [`ProtocolStep`] template.
-    ///
-    /// The algorithm is always the same regardless of step type:
-    /// validate → prepare context (with optional early ack) → persist → post-hook.
-    ///
-    /// `id` is the peer-facing process identifier (continuation steps; pass `""` for request).
-    /// `peer` is the calling agent identifier (request step; pass `""` for continuation).
-    async fn run_lifecycle<S: ProtocolStep>(
-        &self,
-        id: &str,
-        peer: &str,
-        input: &TransferProcessMessageWrapper<S::Dto>,
-    ) -> Outcome<(TransferProcessMessageWrapper<TransferProcessAckDto>, bool)> {
-        S::validate(&self.validator, id, input).await?;
-
-        let (ctx, early) =
-            S::prepare_context(id, peer, input, &self.persistence_service, &self.facades).await?;
-        if let Some(early_ack) = early {
-            return Ok((early_ack, true));
-        }
-
-        let process = S::persist(&self.persistence_service, id, &ctx, input).await?;
-
-        let dp = self.facades.get_data_plane_facade().await;
-        let data_addr = S::post_hook(&dp, &ctx, input, &process).await?;
-
-        let mut ack = TransferProcessMessageWrapper::try_from(process)?;
-        ack.dto.data_address = data_addr;
-        Ok((ack, false))
     }
 }

@@ -15,12 +15,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::protocols::dsp::facades::dataplane_facade::strategy::{
-    execute_command, ingress_as_data_address, DataPlaneStrategy,
-};
+use crate::protocols::dsp::context::DspTransferContext;
+use crate::protocols::dsp::facades::dataplane_facade::strategy::DataPlaneStrategy;
 use crate::protocols::dsp::facades::dataplane_facade::DataAddressDto;
-use connector::ConnectorInstanceDto;
-use dataplane::{DataplaneCommand, DataplaneInitCommandType, DataplaneManager};
+use dataplane::{
+    DataplaneAddress, DataplaneCommand, DataplaneCommandResponse, DataplaneContinuation,
+    DataplaneInitCommandDirection, DataplaneInitCommandTypes, DataplaneManager,
+};
+use std::str::FromStr;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 
@@ -30,57 +32,147 @@ pub(super) struct ProviderPullStrategy;
 impl DataPlaneStrategy for ProviderPullStrategy {
     async fn on_request_pre(
         &self,
+        _ctx: &DspTransferContext,
         _mgr: &DataplaneManager,
-        _proxy_base: &str,
-        _transfer_id: &Urn,
-        _data_address: &Option<DataAddressDto>,
     ) -> Outcome<Option<DataAddressDto>> {
-        Ok(None) // not called for provider
+        Ok(None)
     }
 
     async fn on_request_post(
         &self,
+        ctx: &DspTransferContext,
         mgr: &DataplaneManager,
-        _proxy_base: &str,
-        transfer_id: &Urn,
-        connector_instance: &Option<ConnectorInstanceDto>,
-        _data_address: &Option<DataAddressDto>,
     ) -> Outcome<()> {
-        // Init provider DP with the connector. No egress yet — the consumer will
-        // send their ingest URL inside the TransferStart ack (consumer on_start_post).
-        let connector_instance = connector_instance
+        let id = process_urn(ctx, "provider pull request_post")?;
+        let connector_instance = ctx
+            .connector_instance
             .as_ref()
-            .ok_or(Errors::crazy("Connector instance should be defined", None))?;
-        execute_command(
-            mgr,
-            transfer_id,
-            DataplaneCommand::SetInit(DataplaneInitCommandType::Provider {
-                connector_instance: connector_instance.id.clone(),
-                data_address: None,
-            }),
-        )
-        .await
+            .ok_or_else(|| Errors::crazy("Connector instance should be defined", None))?;
+        let cmd = DataplaneCommand::SetInit(DataplaneInitCommandTypes::AsProvider {
+            transfer_process_id: id,
+            connector_instance: connector_instance.clone(),
+            direction: DataplaneInitCommandDirection::Pull {
+                data_address: DataplaneAddress {
+                    endpoint_type: "".to_string(),
+                    endpoint: "".to_string(),
+                    authorization_type: None,
+                    authorization: None,
+                },
+            },
+        });
+        mgr.execute_command(cmd).await?;
+        Ok(())
     }
 
     async fn on_start_pre(
         &self,
+        ctx: &DspTransferContext,
         mgr: &DataplaneManager,
-        proxy_base: &str,
-        transfer_id: &Urn,
     ) -> Outcome<Option<DataAddressDto>> {
-        // Activate the DP and return the proxy listener URL to embed in
-        // TransferStartMessage so the consumer knows where to fetch data from.
-        execute_command(mgr, transfer_id, DataplaneCommand::SetStarted).await?;
-        ingress_as_data_address(mgr, proxy_base, transfer_id).await
+        let id = process_urn(ctx, "provider pull start_pre")?;
+        let res = mgr
+            .execute_command(DataplaneCommand::SetStarted(
+                DataplaneContinuation {
+                    transfer_dto_urn: id,
+                },
+                None,
+            ))
+            .await?;
+
+        if let DataplaneCommandResponse::OkWithAddress(address) = res {
+            Ok(Some(address.into()))
+        } else {
+            Ok(None)
+        }
     }
 
     async fn on_start_post(
         &self,
+        _ctx: &DspTransferContext,
         _mgr: &DataplaneManager,
-        _proxy_base: &str,
-        _transfer_id: &Urn,
-        _data_address: Option<DataAddressDto>,
     ) -> Outcome<Option<DataAddressDto>> {
-        Ok(None) // not called for provider
+        Ok(None)
     }
+
+    async fn on_suspend_pre(
+        &self,
+        ctx: &DspTransferContext,
+        mgr: &DataplaneManager,
+    ) -> Outcome<()> {
+        mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
+            transfer_dto_urn: process_urn(ctx, "provider pull suspend_pre")?,
+        }))
+        .await?;
+        Ok(())
+    }
+
+    async fn on_suspend_post(
+        &self,
+        ctx: &DspTransferContext,
+        mgr: &DataplaneManager,
+    ) -> Outcome<()> {
+        mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
+            transfer_dto_urn: process_urn(ctx, "provider pull suspend_post")?,
+        }))
+        .await?;
+        Ok(())
+    }
+
+    async fn on_complete_pre(
+        &self,
+        ctx: &DspTransferContext,
+        mgr: &DataplaneManager,
+    ) -> Outcome<()> {
+        mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
+            transfer_dto_urn: process_urn(ctx, "provider pull complete_pre")?,
+        }))
+        .await?;
+        Ok(())
+    }
+
+    async fn on_complete_post(
+        &self,
+        ctx: &DspTransferContext,
+        mgr: &DataplaneManager,
+    ) -> Outcome<()> {
+        mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
+            transfer_dto_urn: process_urn(ctx, "provider pull complete_post")?,
+        }))
+        .await?;
+        Ok(())
+    }
+
+    async fn on_terminate_pre(
+        &self,
+        ctx: &DspTransferContext,
+        mgr: &DataplaneManager,
+    ) -> Outcome<()> {
+        mgr.execute_command(DataplaneCommand::SetTerminating(DataplaneContinuation {
+            transfer_dto_urn: process_urn(ctx, "provider pull terminate_pre")?,
+        }))
+        .await?;
+        Ok(())
+    }
+
+    async fn on_terminate_post(
+        &self,
+        ctx: &DspTransferContext,
+        mgr: &DataplaneManager,
+    ) -> Outcome<()> {
+        mgr.execute_command(DataplaneCommand::SetTerminating(DataplaneContinuation {
+            transfer_dto_urn: process_urn(ctx, "provider pull terminate_post")?,
+        }))
+        .await?;
+        Ok(())
+    }
+}
+
+fn process_urn(ctx: &DspTransferContext, location: &str) -> Outcome<Urn> {
+    let id = &ctx
+        .process
+        .as_ref()
+        .ok_or_else(|| Errors::crazy(format!("process required for {location}"), None))?
+        .inner
+        .id;
+    Ok(Urn::from_str(id)?)
 }

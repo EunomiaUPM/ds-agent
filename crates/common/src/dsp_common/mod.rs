@@ -19,6 +19,7 @@ use serde_json::Value;
 
 pub mod context_field;
 pub mod data_address;
+pub mod normalizer;
 pub mod odrl;
 pub mod well_known_types;
 

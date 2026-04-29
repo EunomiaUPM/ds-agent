@@ -59,6 +59,22 @@ pub struct RpcNegotiationRequestInitMessageDto {
     offer: ContractRequestMessageOfferTypes,
 }
 
+impl RpcNegotiationRequestInitMessageDto {
+    pub fn new(
+        associated_agent_peer: String,
+        provider_address: String,
+        callback_address: String,
+        offer: ContractRequestMessageOfferTypes,
+    ) -> Self {
+        Self {
+            associated_agent_peer,
+            provider_address,
+            callback_address,
+            offer,
+        }
+    }
+}
+
 impl Into<NegotiationProcessMessageWrapper<NegotiationRequestInitMessageDto>>
     for RpcNegotiationRequestInitMessageDto
 {

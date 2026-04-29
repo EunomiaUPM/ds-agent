@@ -108,6 +108,8 @@ impl GatewayServiceTrait for GatewayService {
             "onboard" => self.config.ssi_auth().get_host(HostType::Http),
             "subscriptions" => self.config.transfer().get_host(HostType::Http),
             "notifications" => self.config.transfer().get_host(HostType::Http),
+            "peer-catalogs" => self.config.catalog().get_host(HostType::Http),
+            "gaia" => self.config.ssi_auth().get_host(HostType::Http),
             "well-known" => self.config.common().hosts.http.get_host(),
             _ => return (StatusCode::NOT_FOUND, "prefix not found").into_response(),
         };
@@ -129,6 +131,8 @@ impl GatewayServiceTrait for GatewayService {
             "onboard" => "api/v1/onboard",
             "notifications" => "api/v1/contract-negotiation/notifications",
             "subscriptions" => "api/v1/contract-negotiation/subscriptions",
+            "peer-catalogs" => "api/v1/catalog-agent/peer-catalogs",
+            "gaia" => "api/v1/gaia",
             "well-known" => ".well-known",
             _ => {
                 return (StatusCode::NOT_FOUND, "prefix not found in microservice").into_response()

@@ -15,14 +15,16 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::protocols::dsp::facades::dataplane_facade::strategy::{
-    execute_command, ingress_as_data_address, to_dataplane_address, DataPlaneStrategy,
-};
+use crate::protocols::dsp::context::DspTransferContext;
+use crate::protocols::dsp::facades::dataplane_facade::strategy::DataPlaneStrategy;
 use crate::protocols::dsp::facades::dataplane_facade::DataAddressDto;
-use connector::ConnectorInstanceDto;
-use dataplane::{DataplaneCommand, DataplaneInitCommandType, DataplaneManager};
+use dataplane::{
+    DataplaneCommand, DataplaneCommandResponse, DataplaneContinuation,
+    DataplaneInitCommandDirection, DataplaneInitCommandTypes, DataplaneManager,
+};
+use std::str::FromStr;
 use urn::Urn;
-use ymir::errors::Outcome;
+use ymir::errors::{Errors, Outcome};
 
 pub(super) struct ConsumerPushStrategy;
 
@@ -30,67 +32,148 @@ pub(super) struct ConsumerPushStrategy;
 impl DataPlaneStrategy for ConsumerPushStrategy {
     async fn on_request_pre(
         &self,
+        ctx: &DspTransferContext,
         mgr: &DataplaneManager,
-        proxy_base: &str,
-        transfer_id: &Urn,
-        data_address: &Option<DataAddressDto>,
     ) -> Outcome<Option<DataAddressDto>> {
-        // Init consumer DP signalling PUSH mode; set egress to the data client's
-        // original destination; return the auto-generated ingest URL to replace the
-        // outgoing DataAddress field so the provider knows where to push data.
-        let init_da = data_address.as_ref().map(to_dataplane_address);
-        execute_command(
-            mgr,
-            transfer_id,
-            DataplaneCommand::SetInit(DataplaneInitCommandType::Consumer {
-                data_address: init_da,
-            }),
-        )
-        .await?;
-        if let Some(da) = data_address {
-            if da.endpoint.is_some() {
-                execute_command(
-                    mgr,
-                    transfer_id,
-                    DataplaneCommand::SetEgress {
-                        data_address: to_dataplane_address(da),
+        let transfer_id = ctx.local_process_id.as_ref().ok_or_else(|| {
+            Errors::crazy(
+                "local_process_id required for consumer push request_pre",
+                None,
+            )
+        })?;
+        let data_address = ctx
+            .input_data_address
+            .as_ref()
+            .ok_or_else(|| Errors::crazy("Data address instance should be defined", None))?;
+        let res = mgr
+            .execute_command(DataplaneCommand::SetInit(
+                DataplaneInitCommandTypes::AsConsumer {
+                    transfer_process_id: transfer_id.clone(),
+                    direction: DataplaneInitCommandDirection::Push {
+                        data_address: data_address.into(),
                     },
-                )
-                .await?;
-            }
+                },
+            ))
+            .await?;
+
+        if let DataplaneCommandResponse::OkWithAddress(address) = res {
+            Ok(Some(address.into()))
+        } else {
+            Ok(None)
         }
-        ingress_as_data_address(mgr, proxy_base, transfer_id).await
     }
 
     async fn on_request_post(
         &self,
+        _ctx: &DspTransferContext,
         _mgr: &DataplaneManager,
-        _proxy_base: &str,
-        _transfer_id: &Urn,
-        _connector_instance: &Option<ConnectorInstanceDto>,
-        _data_address: &Option<DataAddressDto>,
     ) -> Outcome<()> {
-        Ok(()) // not called for consumer
+        Ok(())
     }
 
     async fn on_start_pre(
         &self,
+        _ctx: &DspTransferContext,
         _mgr: &DataplaneManager,
-        _proxy_base: &str,
-        _transfer_id: &Urn,
     ) -> Outcome<Option<DataAddressDto>> {
-        Ok(None) // not called for consumer
+        Ok(None)
     }
 
     async fn on_start_post(
         &self,
+        ctx: &DspTransferContext,
         mgr: &DataplaneManager,
-        proxy_base: &str,
-        transfer_id: &Urn,
-        _data_address: Option<DataAddressDto>,
     ) -> Outcome<Option<DataAddressDto>> {
-        // Egress was already set to the client destination in on_request_pre; just activate.
-        execute_command(mgr, transfer_id, DataplaneCommand::SetStarted).await?;
-        ingress_as_data_address(mgr, proxy_base, transfer_id).await
+        let id = process_urn(ctx, "consumer push start_post")?;
+        mgr.execute_command(DataplaneCommand::SetStarted(
+            DataplaneContinuation {
+                transfer_dto_urn: id,
+            },
+            None,
+        ))
+        .await?;
+        Ok(None)
     }
+
+    async fn on_suspend_pre(
+        &self,
+        ctx: &DspTransferContext,
+        mgr: &DataplaneManager,
+    ) -> Outcome<()> {
+        mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
+            transfer_dto_urn: process_urn(ctx, "consumer push suspend_pre")?,
+        }))
+        .await?;
+        Ok(())
+    }
+
+    async fn on_suspend_post(
+        &self,
+        ctx: &DspTransferContext,
+        mgr: &DataplaneManager,
+    ) -> Outcome<()> {
+        mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
+            transfer_dto_urn: process_urn(ctx, "consumer push suspend_post")?,
+        }))
+        .await?;
+        Ok(())
+    }
+
+    async fn on_complete_pre(
+        &self,
+        ctx: &DspTransferContext,
+        mgr: &DataplaneManager,
+    ) -> Outcome<()> {
+        mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
+            transfer_dto_urn: process_urn(ctx, "consumer push complete_pre")?,
+        }))
+        .await?;
+        Ok(())
+    }
+
+    async fn on_complete_post(
+        &self,
+        ctx: &DspTransferContext,
+        mgr: &DataplaneManager,
+    ) -> Outcome<()> {
+        mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
+            transfer_dto_urn: process_urn(ctx, "consumer push complete_post")?,
+        }))
+        .await?;
+        Ok(())
+    }
+
+    async fn on_terminate_pre(
+        &self,
+        ctx: &DspTransferContext,
+        mgr: &DataplaneManager,
+    ) -> Outcome<()> {
+        mgr.execute_command(DataplaneCommand::SetTerminating(DataplaneContinuation {
+            transfer_dto_urn: process_urn(ctx, "consumer push terminate_pre")?,
+        }))
+        .await?;
+        Ok(())
+    }
+
+    async fn on_terminate_post(
+        &self,
+        ctx: &DspTransferContext,
+        mgr: &DataplaneManager,
+    ) -> Outcome<()> {
+        mgr.execute_command(DataplaneCommand::SetTerminating(DataplaneContinuation {
+            transfer_dto_urn: process_urn(ctx, "consumer push terminate_post")?,
+        }))
+        .await?;
+        Ok(())
+    }
+}
+
+fn process_urn(ctx: &DspTransferContext, location: &str) -> Outcome<Urn> {
+    let id = &ctx
+        .process
+        .as_ref()
+        .ok_or_else(|| Errors::crazy(format!("process required for {location}"), None))?
+        .inner
+        .id;
+    Ok(Urn::from_str(id)?)
 }

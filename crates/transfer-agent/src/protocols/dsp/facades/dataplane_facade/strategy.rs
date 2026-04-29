@@ -16,110 +16,79 @@
  */
 
 use crate::entities::transfer_process::TransferProcessDto;
-use crate::protocols::dsp::facades::dataplane_facade::DataAddressDto;
+use crate::protocols::dsp::context::DspTransferContext;
 use crate::protocols::dsp::facades::dataplane_facade::{
     consumer_pull::ConsumerPullStrategy, consumer_push::ConsumerPushStrategy,
-    provider_pull::ProviderPullStrategy, provider_push::ProviderPushStrategy,
+    provider_pull::ProviderPullStrategy, provider_push::ProviderPushStrategy, DataAddressDto,
 };
-use connector::ConnectorInstanceDto;
-use dataplane::{DataplaneAddress, DataplaneCommand, DataplaneManager, DataplaneManagerInput};
-use urn::Urn;
+use dataplane::DataplaneManager;
 use ymir::errors::Outcome;
 
-// ─── Shared free helpers ──────────────────────────────────────────────────────
-
-pub(super) async fn execute_command(
-    mgr: &DataplaneManager,
-    transfer_id: &Urn,
-    command: DataplaneCommand,
-) -> Outcome<()> {
-    mgr.execute_command(&DataplaneManagerInput {
-        transfer_process_id: transfer_id.clone(),
-        command,
-    })
-    .await?;
-    Ok(())
-}
-
-pub(super) async fn ingress_as_data_address(
-    mgr: &DataplaneManager,
-    proxy_base: &str,
-    transfer_id: &Urn,
-) -> Outcome<Option<DataAddressDto>> {
-    if let Some(addr) = mgr.get_ingress_address(transfer_id).await? {
-        return Ok(Some(DataAddressDto {
-            endpoint_type: addr.endpoint_type,
-            endpoint: Some(format!("{}{}", proxy_base, addr.endpoint)),
-            endpoint_properties: None,
-        }));
-    }
-    Ok(None)
-}
-
-pub(super) fn to_dataplane_address(da: &DataAddressDto) -> DataplaneAddress {
-    DataplaneAddress {
-        endpoint_type: da.endpoint_type.clone(),
-        endpoint: da.endpoint.clone().unwrap_or_default(),
-        authorization_type: None,
-        authorization: None,
-    }
-}
-
-// ─── Strategy trait ───────────────────────────────────────────────────────────
-
-/// Encapsulates the dataplane interactions for one (role × mode) combination.
-///
-/// Four implementations cover the matrix:
-/// [`ConsumerPullStrategy`], [`ConsumerPushStrategy`],
-/// [`ProviderPullStrategy`], [`ProviderPushStrategy`].
-///
-/// Suspension, completion, and termination are identical across all
-/// combinations and live directly in `DspDataPlaneFacade`.
 #[async_trait::async_trait]
 pub(super) trait DataPlaneStrategy: Send + Sync {
     async fn on_request_pre(
         &self,
+        ctx: &DspTransferContext,
         mgr: &DataplaneManager,
-        proxy_base: &str,
-        transfer_id: &Urn,
-        data_address: &Option<DataAddressDto>,
     ) -> Outcome<Option<DataAddressDto>>;
 
     async fn on_request_post(
         &self,
+        ctx: &DspTransferContext,
         mgr: &DataplaneManager,
-        proxy_base: &str,
-        transfer_id: &Urn,
-        connector_instance: &Option<ConnectorInstanceDto>,
-        data_address: &Option<DataAddressDto>,
     ) -> Outcome<()>;
 
     async fn on_start_pre(
         &self,
+        ctx: &DspTransferContext,
         mgr: &DataplaneManager,
-        proxy_base: &str,
-        transfer_id: &Urn,
     ) -> Outcome<Option<DataAddressDto>>;
 
     async fn on_start_post(
         &self,
+        ctx: &DspTransferContext,
         mgr: &DataplaneManager,
-        proxy_base: &str,
-        transfer_id: &Urn,
-        data_address: Option<DataAddressDto>,
     ) -> Outcome<Option<DataAddressDto>>;
-}
 
-// ─── Static singletons ────────────────────────────────────────────────────────
+    async fn on_suspend_pre(&self, ctx: &DspTransferContext, mgr: &DataplaneManager)
+        -> Outcome<()>;
+
+    async fn on_suspend_post(
+        &self,
+        ctx: &DspTransferContext,
+        mgr: &DataplaneManager,
+    ) -> Outcome<()>;
+
+    async fn on_complete_pre(
+        &self,
+        ctx: &DspTransferContext,
+        mgr: &DataplaneManager,
+    ) -> Outcome<()>;
+
+    async fn on_complete_post(
+        &self,
+        ctx: &DspTransferContext,
+        mgr: &DataplaneManager,
+    ) -> Outcome<()>;
+
+    async fn on_terminate_pre(
+        &self,
+        ctx: &DspTransferContext,
+        mgr: &DataplaneManager,
+    ) -> Outcome<()>;
+
+    async fn on_terminate_post(
+        &self,
+        ctx: &DspTransferContext,
+        mgr: &DataplaneManager,
+    ) -> Outcome<()>;
+}
 
 static CONSUMER_PULL: ConsumerPullStrategy = ConsumerPullStrategy;
 static CONSUMER_PUSH: ConsumerPushStrategy = ConsumerPushStrategy;
 static PROVIDER_PULL: ProviderPullStrategy = ProviderPullStrategy;
 static PROVIDER_PUSH: ProviderPushStrategy = ProviderPushStrategy;
 
-// ─── Dispatch ─────────────────────────────────────────────────────────────────
-
-/// Select strategy from `process.inner.role` × `process.inner.transfer_direction`.
 pub(super) fn strategy_for(process: &TransferProcessDto) -> &'static dyn DataPlaneStrategy {
     match (
         process.inner.role.as_str(),
@@ -132,8 +101,6 @@ pub(super) fn strategy_for(process: &TransferProcessDto) -> &'static dyn DataPla
     }
 }
 
-/// Select strategy for `on_transfer_request_pre`: no process exists yet.
-/// Role is always Consumer for this hook; mode is inferred from `data_address`.
 pub(super) fn strategy_for_request_pre(
     data_address: &Option<DataAddressDto>,
 ) -> &'static dyn DataPlaneStrategy {

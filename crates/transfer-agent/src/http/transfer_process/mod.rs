@@ -20,7 +20,6 @@
 use crate::entities::transfer_process::{
     EditTransferProcessDto, NewTransferProcessDto, TransferAgentProcessesTrait,
 };
-use crate::http::common::{extract_payload, parse_urn};
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{FromRef, Path, Query, State};
 use axum::http::StatusCode;
@@ -31,6 +30,7 @@ use common::batch_requests::BatchRequests;
 use common::config::services::TransferConfig;
 use serde::Deserialize;
 use std::sync::Arc;
+use ymir::utils::{extract_path_urn, extract_payload};
 
 #[derive(Clone)]
 pub struct TransferAgentProcessesRouter {
@@ -101,7 +101,7 @@ impl TransferAgentProcessesRouter {
     ) -> impl IntoResponse {
         let input = match extract_payload(input) {
             Ok(v) => v,
-            Err(e) => return e,
+            Err(e) => return e.into_response(),
         };
         match state.service.create_transfer_process(&input).await {
             Ok(created_process) => (StatusCode::CREATED, Json(created_process)).into_response(),
@@ -115,7 +115,7 @@ impl TransferAgentProcessesRouter {
     ) -> impl IntoResponse {
         let input = match extract_payload(input) {
             Ok(v) => v,
-            Err(e) => return e,
+            Err(e) => return e.into_response(),
         };
         match state.service.get_batch_transfer_processes(&input.ids).await {
             Ok(processes) => (StatusCode::OK, Json(processes)).into_response(),
@@ -127,9 +127,9 @@ impl TransferAgentProcessesRouter {
         State(state): State<TransferAgentProcessesRouter>,
         Path(id): Path<String>,
     ) -> impl IntoResponse {
-        let id_urn = match parse_urn(&id) {
+        let id_urn = match extract_path_urn(&id) {
             Ok(urn) => urn,
-            Err(resp) => return resp,
+            Err(err) => return err.into_response(),
         };
         match state.service.get_transfer_process_by_id(&id_urn).await {
             Ok(process) => (StatusCode::OK, Json(process)).into_response(),
@@ -142,13 +142,13 @@ impl TransferAgentProcessesRouter {
         Path(id): Path<String>,
         input: Result<Json<EditTransferProcessDto>, JsonRejection>,
     ) -> impl IntoResponse {
-        let id_urn = match parse_urn(&id) {
+        let id_urn = match extract_path_urn(&id) {
             Ok(urn) => urn,
-            Err(resp) => return resp,
+            Err(err) => return err.into_response(),
         };
         let input = match extract_payload(input) {
             Ok(v) => v,
-            Err(e) => return e,
+            Err(e) => return e.into_response(),
         };
         match state.service.put_transfer_process(&id_urn, &input).await {
             Ok(updated_process) => (StatusCode::OK, Json(updated_process)).into_response(),
@@ -160,9 +160,9 @@ impl TransferAgentProcessesRouter {
         State(state): State<TransferAgentProcessesRouter>,
         Path(id): Path<String>,
     ) -> impl IntoResponse {
-        let id_urn = match parse_urn(&id) {
+        let id_urn = match extract_path_urn(&id) {
             Ok(urn) => urn,
-            Err(resp) => return resp,
+            Err(err) => return err.into_response(),
         };
         match state.service.delete_transfer_process(&id_urn).await {
             Ok(_) => (StatusCode::NO_CONTENT).into_response(),
@@ -174,9 +174,9 @@ impl TransferAgentProcessesRouter {
         State(state): State<TransferAgentProcessesRouter>,
         Path((id, key_id)): Path<(String, String)>,
     ) -> impl IntoResponse {
-        let id_urn = match parse_urn(&id) {
+        let id_urn = match extract_path_urn(&id) {
             Ok(urn) => urn,
-            Err(resp) => return resp,
+            Err(err) => return err.into_response(),
         };
         match state
             .service

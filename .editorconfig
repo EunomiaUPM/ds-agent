@@ -1,0 +1,27 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# TypeScript / JavaScript / JSON / CSS / HTML
+[*.{ts,tsx,js,jsx,mjs,cjs,json,jsonc,css,scss,html,yaml,yml,md}]
+indent_style = space
+indent_size = 2
+
+# Rust — matches rustfmt defaults
+[*.rs]
+indent_style = space
+indent_size = 4
+
+# TOML (Cargo.toml, etc.)
+[*.toml]
+indent_style = space
+indent_size = 4
+
+# Shell scripts
+[*.sh]
+indent_style = space
+indent_size = 4

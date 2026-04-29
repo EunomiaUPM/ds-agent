@@ -22,7 +22,7 @@ use sea_orm::ActiveValue;
 use serde::{Deserialize, Serialize};
 use urn::{Urn, UrnBuilder};
 
-use crate::DataplaneInitCommandType;
+use crate::entities::dataplane_manager::dataplane_commands::DataplaneInitCommandTypes;
 use strum::Display;
 use ymir::errors::Errors;
 
@@ -67,22 +67,22 @@ impl TryFrom<&RoleConfig> for TransferRole {
     }
 }
 
-impl TryFrom<DataplaneInitCommandType> for TransferRole {
+impl TryFrom<DataplaneInitCommandTypes> for TransferRole {
     type Error = Errors;
-    fn try_from(value: DataplaneInitCommandType) -> Result<Self, Self::Error> {
+    fn try_from(value: DataplaneInitCommandTypes) -> Result<Self, Self::Error> {
         match value {
-            DataplaneInitCommandType::Provider { .. } => Ok(Self::Provider),
-            DataplaneInitCommandType::Consumer { .. } => Ok(Self::Consumer),
+            DataplaneInitCommandTypes::AsProvider { .. } => Ok(Self::Provider),
+            DataplaneInitCommandTypes::AsConsumer { .. } => Ok(Self::Consumer),
         }
     }
 }
 
-impl TryFrom<&DataplaneInitCommandType> for TransferRole {
+impl TryFrom<&DataplaneInitCommandTypes> for TransferRole {
     type Error = Errors;
-    fn try_from(value: &DataplaneInitCommandType) -> Result<Self, Self::Error> {
+    fn try_from(value: &DataplaneInitCommandTypes) -> Result<Self, Self::Error> {
         match value {
-            DataplaneInitCommandType::Provider { .. } => Ok(Self::Provider),
-            DataplaneInitCommandType::Consumer { .. } => Ok(Self::Consumer),
+            DataplaneInitCommandTypes::AsProvider { .. } => Ok(Self::Provider),
+            DataplaneInitCommandTypes::AsConsumer { .. } => Ok(Self::Consumer),
         }
     }
 }

@@ -207,5 +207,4 @@ impl ConnectorTemplateEntitiesTrait for ConnectorTemplateEntitiesService {
 }
 
 #[cfg(test)]
-#[cfg(test)]
 mod tests;

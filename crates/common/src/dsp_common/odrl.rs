@@ -39,14 +39,14 @@ pub enum ContractRequestMessageOfferTypes {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-#[serde(deny_unknown_fields)]
+
 pub struct ContractRequestMessageOfferOfferId {
     #[serde(rename = "@id")]
     pub id: Urn,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(deny_unknown_fields)]
+
 pub struct OdrlMessageOffer {
     // PolicyClass
     #[serde(rename = "@id")]
@@ -91,7 +91,7 @@ impl Default for OdrlMessageOffer {
 
 /// Offer is PolicyClass + MessageOffer - Offer
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(deny_unknown_fields)]
+
 pub struct OdrlOffer {
     // PolicyClass
     #[serde(rename = "@id")]
@@ -136,7 +136,7 @@ impl Default for OdrlOffer {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(deny_unknown_fields)]
+
 pub struct OdrlAgreement {
     // PolicyClass
     #[serde(rename = "@id")]
@@ -197,7 +197,7 @@ pub enum OdrlProfile {
 
 /// OdrlPermission
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(deny_unknown_fields)]
+
 pub struct OdrlPermission {
     #[serde(rename = "action")]
     pub action: OdrlAction,
@@ -211,7 +211,7 @@ pub struct OdrlPermission {
 
 /// OdrlDuty
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(deny_unknown_fields)]
+
 pub struct OdrlDuty {
     #[serde(rename = "action")]
     pub action: OdrlAction,
@@ -236,7 +236,7 @@ pub enum OdrlConstraint {
 /// LogicalConstraint permite una de las siguientes propiedades: "and", "andSequence", "or" o "xone".
 /// Se usan Option para cada una;
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(deny_unknown_fields)]
+
 pub struct OdrlLogicalConstraint {
     #[serde(rename = "and")]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -277,7 +277,7 @@ impl OdrlLogicalConstraint {
 
 // AtomicConstraint defines the three required fields: rightOperand, leftOperand and operator.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(deny_unknown_fields)]
+
 pub struct OdrlAtomicConstraint {
     #[serde(rename = "rightOperand")]
     pub right_operand: OdrlRightOperand,
@@ -289,7 +289,7 @@ pub struct OdrlAtomicConstraint {
 
 // Operator is defined as an enum with allowed values.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(deny_unknown_fields)]
+
 pub enum Operator {
     #[serde(rename = "eq")]
     Eq,
@@ -333,7 +333,7 @@ pub enum OdrlRightOperand {
 pub type OdrlLeftOperand = String;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(deny_unknown_fields)]
+
 pub struct OdrlPolicyInfo {
     #[serde(rename = "profile")]
     #[serde(skip_serializing_if = "Option::is_none")]

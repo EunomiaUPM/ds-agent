@@ -32,7 +32,7 @@ pub trait VcRequesterTrait: Send + Sync + 'static {
         &self,
         vc_model: &mut req_vc::Model,
         int_model: &mut req_interaction::Model,
-    ) -> Outcome<Option<String>>;
+    ) -> Outcome<(bool, Option<String>)>;
     fn save_ver_data(&self, uri: &str, id: &str) -> Outcome<req_verification::NewModel>;
     async fn manage_res(
         &self,

@@ -60,4 +60,14 @@ impl MatesFacadeTrait for MatesFacadeService {
         let mates = self.client.get_json::<Mates>(mates_url.as_str()).await?;
         Ok(mates)
     }
+
+    async fn get_all_mates(&self) -> Outcome<Vec<Mates>> {
+        let ssi_auth_url = self.config.get_host(HostType::Http);
+        let mates_url = format!("{}/api/v1/mates/all", ssi_auth_url);
+        let mates = self
+            .client
+            .get_json::<Vec<Mates>>(mates_url.as_str())
+            .await?;
+        Ok(mates)
+    }
 }

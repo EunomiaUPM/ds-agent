@@ -1,254 +1,281 @@
-/*
- * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <https://www.gnu.org/licenses/>.
- */
-
-use crate::config_builder::DataplaneConfigBuilder;
-use crate::entities::dataplane_manager::driver_factory::DataplaneDriver;
-use crate::entities::dataplane_transfers::{
-    DataplaneTransferDto, EditDataplaneTransferDto, InteractionMode, TransferState,
+use crate::entities::dataplane_drivers::DriverPubSubTrait;
+use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;
+use crate::entities::dataplane_manager::dataplane_driver_factory::{
+    DataplaneDriverFactory, DataplaneDriverFactoryTrait,
 };
-use crate::{DataplaneManager, DataplaneResponse};
-use connector::ConnectorInstanceDto;
+use crate::entities::dataplane_manager::dataplane_runtime::DataplaneRuntime;
+use crate::entities::dataplane_transfers::{EditDataplaneTransferDto, TransferState};
+use crate::{DataplaneAddress, DataplaneTransfersEntitiesTrait};
+use common::config::services::TransferConfig;
+use connector::{ConnectorInstanceDto, ConnectorInstanceTrait};
+use std::str::FromStr;
+use std::sync::Arc;
 use urn::Urn;
 use ymir::errors::Outcome;
 
+#[derive(Clone, Debug)]
+pub enum DataplaneCommand {
+    SetInit(DataplaneInitCommandTypes),
+    SetConfiguring,
+    SetAuth,
+    SetReady,
+    SetStarted(DataplaneContinuation, Option<DataplaneAddress>),
+    SetSubscribing(DataplaneContinuation),
+    SetUnsubscribing(DataplaneContinuation),
+    SetStopped(DataplaneContinuation),
+    SetTerminating(DataplaneContinuation),
+}
+
+#[derive(Clone, Debug)]
+pub enum DataplaneInitCommandTypes {
+    AsProvider {
+        transfer_process_id: Urn,
+        connector_instance: ConnectorInstanceDto,
+        direction: DataplaneInitCommandDirection,
+    },
+    AsConsumer {
+        transfer_process_id: Urn,
+        direction: DataplaneInitCommandDirection,
+    },
+}
+
+#[derive(Clone, Debug)]
+pub enum DataplaneInitCommandDirection {
+    Pull { data_address: DataplaneAddress },
+    Push { data_address: DataplaneAddress },
+}
+
+#[derive(Clone, Debug)]
+pub struct DataplaneContinuation {
+    pub transfer_dto_urn: Urn,
+}
+
 #[derive(Debug)]
-pub(super) struct CommandContext<'a> {
-    pub(super) process_id: Urn,
-    state: &'a TransferState,
-    mode: &'a InteractionMode,
-    driver: &'a DataplaneDriver,
-    connector: Option<&'a ConnectorInstanceDto>,
+pub enum DataplaneCommandResponse {
+    Ok,
+    OkWithAddress(DataplaneAddress),
+    Err(Box<dyn std::error::Error + Sync + Send + 'static>),
 }
 
-impl<'a> CommandContext<'a> {
-    pub(super) fn from_connector(
-        process: &'a DataplaneTransferDto,
-        driver: &'a DataplaneDriver,
-        connector: Option<&'a ConnectorInstanceDto>,
-    ) -> Outcome<Self> {
-        Ok(Self {
-            process_id: process.inner.id.parse()?,
-            state: &process.inner.state,
-            mode: &process.inner.interaction_mode,
-            driver,
-            connector,
-        })
-    }
-
-    fn is_state(&self, expected: TransferState) -> bool {
-        *self.state == expected
-    }
-
-    fn is_push(&self) -> bool {
-        *self.mode == InteractionMode::Push
+impl std::fmt::Display for DataplaneCommand {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DataplaneCommand::SetInit(_) => write!(f, "SetInit"),
+            DataplaneCommand::SetConfiguring => write!(f, "SetConfiguring"),
+            DataplaneCommand::SetAuth => write!(f, "SetAuth"),
+            DataplaneCommand::SetReady => write!(f, "SetReady"),
+            DataplaneCommand::SetStarted(_, _) => write!(f, "SetStarted"),
+            DataplaneCommand::SetSubscribing(_) => write!(f, "SetSubscribing"),
+            DataplaneCommand::SetUnsubscribing(_) => write!(f, "SetUnsubscribing"),
+            DataplaneCommand::SetStopped(_) => write!(f, "SetStopped"),
+            DataplaneCommand::SetTerminating(_) => write!(f, "SetTerminating"),
+        }
     }
 }
 
-impl DataplaneManager {
-    // ─── Individual command handlers ───
-
-    /// INIT → CONFIGURING: freeze initial ingress/egress config from connector
-    pub(super) async fn cmd_init(
-        &self,
-        process: &DataplaneTransferDto,
-        ctx: &CommandContext<'_>,
-    ) -> Outcome<DataplaneResponse> {
-        if ctx.is_state(TransferState::Init) {
-            // Config was already computed in handle_creation, just persist and transition
-            let builder = DataplaneConfigBuilder::from_process(process);
-            self.update_state_and_config(
-                &ctx.process_id,
-                TransferState::Configuring,
-                Some(builder.ingress),
-                Some(builder.egress),
+#[async_trait::async_trait]
+pub trait DataplaneCommandStateMachine: Send + Sync {
+    fn handler_name(&self) -> &'static str;
+    fn dataplane_entity(&self) -> Arc<dyn DataplaneTransfersEntitiesTrait>;
+    fn connector_entity(&self) -> Arc<dyn ConnectorInstanceTrait>;
+    fn transfer_config(&self) -> Arc<TransferConfig>;
+    async fn set_init(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
+        let ctx = self.set_configuring(context).await?;
+        let ctx = self.set_auth(ctx).await?;
+        let ctx = self.set_ready(ctx).await?;
+        Ok(ctx)
+    }
+    async fn set_configuring(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
+        // driver
+        let driver = DataplaneDriverFactory.get_or_create_driver(&context)?;
+        // proxy
+        let mut context = driver.proxy_configurator.configure_proxy(&context).await?;
+        // runtime
+        let runtime = DataplaneRuntime::default();
+        // setters
+        context.set_driver(driver);
+        context.set_runtime(runtime);
+        // dataplane
+        let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
+        let new_state = TransferState::Configuring;
+        let dataplane_process = self
+            .dataplane_entity()
+            .put_dataplane_transfer_by_id(
+                &dataplane_urn,
+                &EditDataplaneTransferDto {
+                    state: Some(new_state),
+                    ingress_config: context
+                        .proxy()
+                        .map(|p| p.ingress().clone())
+                        .and_then(|p| serde_json::to_value(p).ok()),
+                    egress_config: context
+                        .proxy()
+                        .map(|p| p.egress().clone())
+                        .and_then(|p| serde_json::to_value(p).ok()),
+                    ..EditDataplaneTransferDto::default()
+                },
             )
             .await?;
-        }
-        Ok(DataplaneResponse::Ok)
+        context.set_dataplane_process(dataplane_process);
+        Ok(context)
     }
-
-    /// CONFIGURING → AUTH: driver authenticates
-    pub(super) async fn cmd_auth(&self, ctx: &CommandContext<'_>) -> Outcome<DataplaneResponse> {
-        if ctx.is_state(TransferState::Configuring) {
-            ctx.driver.auth_driver.perform_auth(ctx.connector).await?;
-            self.update_state(&ctx.process_id, TransferState::Auth)
-                .await?;
-        }
-        Ok(DataplaneResponse::Ok)
-    }
-
-    /// AUTH → READY
-    pub(super) async fn cmd_ready(&self, ctx: &CommandContext<'_>) -> Outcome<DataplaneResponse> {
-        if ctx.is_state(TransferState::Auth) {
-            self.update_state(&ctx.process_id, TransferState::Ready)
-                .await?;
-        }
-        Ok(DataplaneResponse::Ok)
-    }
-
-    /// READY → SUBSCRIBING (PUSH only): driver subscribes to upstream
-    pub(super) async fn cmd_subscribing(
-        &self,
-        ctx: &CommandContext<'_>,
-    ) -> Outcome<DataplaneResponse> {
-        if ctx.is_state(TransferState::Ready) && ctx.is_push() {
-            self.subscribe_or_terminate(ctx).await?;
-            self.update_state(&ctx.process_id, TransferState::Subscribing)
-                .await?;
-        }
-        Ok(DataplaneResponse::Ok)
-    }
-
-    /// READY or STOPPED → STARTED (PULL: direct) or via SUBSCRIBING (PUSH: autonomous)
-    pub(super) async fn cmd_started(&self, ctx: &CommandContext<'_>) -> Outcome<DataplaneResponse> {
-        match (ctx.mode, ctx.state) {
-            // PULL: Ready → Started directly
-            (InteractionMode::Pull, &TransferState::Ready) => {
-                self.update_state(&ctx.process_id, TransferState::Started)
-                    .await?;
-            }
-            // PULL: Stopped → Started (resume after suspension)
-            (InteractionMode::Pull, &TransferState::Stopped) => {
-                self.update_state(&ctx.process_id, TransferState::Started)
-                    .await?;
-            }
-            // PUSH: Ready → subscribe → Subscribing (autonomous will chain to Started)
-            (InteractionMode::Push, &TransferState::Ready) => {
-                self.subscribe_or_terminate(ctx).await?;
-                self.update_state(&ctx.process_id, TransferState::Subscribing)
-                    .await?;
-            }
-            // PUSH: Stopped → re-subscribe → Subscribing (resume after suspension)
-            (InteractionMode::Push, &TransferState::Stopped) => {
-                self.subscribe_or_terminate(ctx).await?;
-                self.update_state(&ctx.process_id, TransferState::Subscribing)
-                    .await?;
-            }
-            // PUSH: Subscribing → Started (autonomous transition target)
-            (InteractionMode::Push, &TransferState::Subscribing) => {
-                self.update_state(&ctx.process_id, TransferState::Started)
-                    .await?;
-            }
-            _ => {}
-        }
-        Ok(DataplaneResponse::Ok)
-    }
-
-    /// STARTED → UNSUBSCRIBING (PUSH only): driver unsubscribes
-    pub(super) async fn cmd_unsubscribing(
-        &self,
-        ctx: &CommandContext<'_>,
-    ) -> Outcome<DataplaneResponse> {
-        if ctx.is_state(TransferState::Started) && ctx.is_push() {
-            self.unsubscribe_or_terminate(ctx).await?;
-            self.update_state(&ctx.process_id, TransferState::Unsubscribing)
-                .await?;
-        }
-        Ok(DataplaneResponse::Ok)
-    }
-
-    /// STARTED → STOPPED (PULL: direct) or STARTED → UNSUBSCRIBING → STOPPED (PUSH: via autonomous)
-    pub(super) async fn cmd_stopped(&self, ctx: &CommandContext<'_>) -> Outcome<DataplaneResponse> {
-        match (ctx.mode, ctx.state) {
-            // PULL: Started → Stopped directly
-            (InteractionMode::Pull, &TransferState::Started) => {
-                self.update_state(&ctx.process_id, TransferState::Stopped)
-                    .await?;
-            }
-            // PUSH: Started → unsubscribe → Unsubscribing (autonomous will chain to Stopped)
-            (InteractionMode::Push, &TransferState::Started) => {
-                self.unsubscribe_or_terminate(ctx).await?;
-                self.update_state(&ctx.process_id, TransferState::Unsubscribing)
-                    .await?;
-            }
-            // PUSH: Unsubscribing → Stopped (autonomous transition target)
-            (InteractionMode::Push, &TransferState::Unsubscribing) => {
-                self.update_state(&ctx.process_id, TransferState::Stopped)
-                    .await?;
-            }
-            _ => {}
-        }
-        Ok(DataplaneResponse::Ok)
-    }
-
-    /// Calls `perform_subscribe`; stores response in flow_control, or persists TERMINATED on failure.
-    async fn subscribe_or_terminate(&self, ctx: &CommandContext<'_>) -> Outcome<()> {
-        match ctx
-            .driver
-            .lifecycle_driver
-            .perform_subscribe(ctx.connector)
-            .await
-        {
-            Ok(response) => {
-                if !response.is_null() {
-                    self.dataplane_entity
-                        .put_dataplane_transfer_by_id(
-                            &ctx.process_id,
-                            &EditDataplaneTransferDto {
-                                flow_control: Some(response),
-                                ..Default::default()
-                            },
-                        )
-                        .await?;
-                }
-                Ok(())
-            }
-            Err(e) => {
-                self.update_state(&ctx.process_id, TransferState::Terminated)
-                    .await?;
-                Err(e)
-            }
-        }
-    }
-
-    /// Calls `perform_unsubscribe`; on failure persists TERMINATED state before returning the error.
-    async fn unsubscribe_or_terminate(&self, ctx: &CommandContext<'_>) -> Outcome<()> {
-        if let Err(e) = ctx
-            .driver
-            .lifecycle_driver
-            .perform_unsubscribe(ctx.connector)
-            .await
-        {
-            self.update_state(&ctx.process_id, TransferState::Terminated)
-                .await?;
-            return Err(e);
-        }
-        Ok(())
-    }
-
-    /// ANY → TERMINATED: cleanup (emergency unsubscribe if PUSH active)
-    pub(super) async fn cmd_terminated(
-        &self,
-        ctx: &CommandContext<'_>,
-    ) -> Outcome<DataplaneResponse> {
-        if ctx.is_push() {
-            match ctx.state {
-                TransferState::Started | TransferState::Subscribing => {
-                    let _ = ctx
-                        .driver
-                        .lifecycle_driver
-                        .perform_unsubscribe(ctx.connector)
-                        .await;
-                }
-                _ => {}
-            }
-        }
-        self.update_state(&ctx.process_id, TransferState::Terminated)
+    async fn set_auth(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
+        let driver = DataplaneDriverFactory.get_or_create_driver(&context)?;
+        // Use the context returned by authenticate — it carries the resolved runtime.
+        let mut context = driver.authenticator.authenticate(&context).await?;
+        let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
+        let new_state = TransferState::Auth;
+        let flow_control = context.runtime().and_then(|r| serde_json::to_value(r).ok());
+        let dataplane_process = self
+            .dataplane_entity()
+            .put_dataplane_transfer_by_id(
+                &dataplane_urn,
+                &EditDataplaneTransferDto {
+                    state: Some(new_state),
+                    flow_control,
+                    ..EditDataplaneTransferDto::default()
+                },
+            )
             .await?;
-        Ok(DataplaneResponse::Ok)
+        context.set_dataplane_process(dataplane_process);
+        Ok(context)
+    }
+    async fn set_ready(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
+        let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
+        // state
+        let new_state = TransferState::Ready;
+        // driver.auth
+        let dataplane_process = self
+            .dataplane_entity()
+            .put_dataplane_transfer_by_id(
+                &dataplane_urn,
+                &EditDataplaneTransferDto {
+                    state: Some(new_state),
+                    ..EditDataplaneTransferDto::default()
+                },
+            )
+            .await?;
+        context.set_dataplane_process(dataplane_process);
+        context.set_forward_dataplane_address_from_ingress();
+        Ok(context)
+    }
+    async fn set_started(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
+        // only configuring if egress needs to be set. it happens in Ready
+        let mut ctx = if context.dataplane_process_state() == TransferState::Ready {
+            self.set_configuring(context).await?
+        } else {
+            context
+        };
+        let dataplane_urn = Urn::from_str(&*ctx.dataplane_process().inner.id)?;
+        let new_state = TransferState::Started;
+        let dataplane_process = self
+            .dataplane_entity()
+            .put_dataplane_transfer_by_id(
+                &dataplane_urn,
+                &EditDataplaneTransferDto {
+                    state: Some(new_state),
+                    flow_control: ctx.runtime().and_then(|r| serde_json::to_value(r).ok()),
+                    ..EditDataplaneTransferDto::default()
+                },
+            )
+            .await?;
+        ctx.set_dataplane_process(dataplane_process);
+        ctx.set_forward_dataplane_address_from_ingress();
+        Ok(ctx)
+    }
+    async fn set_subscribing(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
+        match context.driver().and_then(|d| d.subscriber.clone()) {
+            None => Ok(context),
+            Some(subscriber) => {
+                let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
+                let dataplane_process = self
+                    .dataplane_entity()
+                    .put_dataplane_transfer_by_id(
+                        &dataplane_urn,
+                        &EditDataplaneTransferDto {
+                            state: Some(TransferState::Subscribing),
+                            ..EditDataplaneTransferDto::default()
+                        },
+                    )
+                    .await?;
+                context.set_dataplane_process(dataplane_process);
+                match subscriber.subscribe(&context).await {
+                    Ok(ctx) => {
+                        let new_context = self.set_started(ctx).await?;
+                        Ok(new_context)
+                    }
+                    Err(e) => {
+                        let _ = self.set_terminating(context).await;
+                        Err(e)
+                    }
+                }
+            }
+        }
+    }
+    async fn set_unsubscribing(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
+        match context.driver().and_then(|d| d.subscriber.clone()) {
+            None => Ok(context),
+            Some(subscriber) => {
+                let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
+                let dataplane_process = self
+                    .dataplane_entity()
+                    .put_dataplane_transfer_by_id(
+                        &dataplane_urn,
+                        &EditDataplaneTransferDto {
+                            state: Some(TransferState::Unsubscribing),
+                            ..EditDataplaneTransferDto::default()
+                        },
+                    )
+                    .await?;
+                context.set_dataplane_process(dataplane_process);
+                match subscriber.unsubscribe(&context).await {
+                    Ok(ctx) => {
+                        let new_context = self.set_stopped(ctx).await?;
+                        Ok(new_context)
+                    }
+                    Err(e) => {
+                        let _ = self.set_terminating(context).await;
+                        Err(e)
+                    }
+                }
+            }
+        }
+    }
+    async fn set_stopped(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
+        let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
+        // state
+        let new_state = TransferState::Stopped;
+        // driver.auth
+        let dataplane_process = self
+            .dataplane_entity()
+            .put_dataplane_transfer_by_id(
+                &dataplane_urn,
+                &EditDataplaneTransferDto {
+                    state: Some(new_state),
+                    ..EditDataplaneTransferDto::default()
+                },
+            )
+            .await?;
+        context.set_dataplane_process(dataplane_process);
+        Ok(context)
+    }
+
+    async fn set_terminating(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
+        let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
+        // state
+        let new_state = TransferState::Terminated;
+        // driver.auth
+        let dataplane_process = self
+            .dataplane_entity()
+            .put_dataplane_transfer_by_id(
+                &dataplane_urn,
+                &EditDataplaneTransferDto {
+                    state: Some(new_state),
+                    ..EditDataplaneTransferDto::default()
+                },
+            )
+            .await?;
+        context.set_dataplane_process(dataplane_process);
+        Ok(context)
     }
 }

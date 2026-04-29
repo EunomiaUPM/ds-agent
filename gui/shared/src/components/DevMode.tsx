@@ -26,7 +26,7 @@ const STORAGE_KEY = "dev_mode_gateway_colors";
 type ThemeType = { border: string; bg: string };
 
 export const DevMode = () => {
-  const { api_gateway } = useContext<GlobalInfoContextType>(GlobalInfoContext);
+  const { api_gateway } = useContext<GlobalInfoContextType | null>(GlobalInfoContext)!;
   const [theme, setTheme] = useState<ThemeType | null>(null);
 
   useEffect(() => {
@@ -54,13 +54,17 @@ export const DevMode = () => {
   if (!theme) return null;
 
   return (
-    <div
-      className={`fixed w-full h-full border-b-[4px] ${theme.border} top-0 left-0 z-[10000] pointer-events-none`}
-    >
-      <div className={`absolute bottom-[0px] right-[0px] ${theme.bg} text-black text-xs p-2`}>
-        GUI Dev mode ON. <br />
-        API gateway: {api_gateway}
-      </div>
-    </div>
+    <>
+      {!import.meta.env.PROD && (
+        <div
+          className={`fixed w-full h-full border-b-[4px] ${theme.border} top-0 left-0 z-[10000] pointer-events-none`}
+        >
+          <div className={`absolute bottom-[0px] right-[0px] ${theme.bg} text-black text-xs p-2`}>
+            GUI Dev mode ON. <br />
+            API gateway: {api_gateway}
+          </div>
+        </div>
+      )}
+    </>
   );
 };

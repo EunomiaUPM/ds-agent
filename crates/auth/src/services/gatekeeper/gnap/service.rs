@@ -264,6 +264,7 @@ impl GateKeeperTrait for GnapGateKeeperService {
             participant_type: "Agent".to_string(),
             base_url,
             token: Some(token.clone()),
+            extra_fields: None,
             is_me: false,
         };
 

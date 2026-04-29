@@ -22,12 +22,71 @@ mod provider_pull;
 mod provider_push;
 mod strategy;
 
-use crate::entities::transfer_process::TransferProcessDto;
-use crate::protocols::dsp::protocol_types::DataAddressDto;
-use connector::ConnectorInstanceDto;
+use crate::protocols::dsp::context::DspTransferContext;
+use crate::protocols::dsp::protocol_types::{DataAddressDto, EndpointPropertyDto};
 use dataplane::DataplaneAddress;
-use urn::Urn;
 use ymir::errors::Outcome;
+
+impl From<DataAddressDto> for DataplaneAddress {
+    fn from(dto: DataAddressDto) -> Self {
+        DataplaneAddress {
+            endpoint_type: dto.endpoint_type,
+            endpoint: dto.endpoint.unwrap_or_default(),
+            authorization_type: dto
+                .endpoint_properties
+                .as_deref()
+                .and_then(|ps| ps.iter().find(|p| p.name == "authType"))
+                .map(|p| p.value.clone()),
+            authorization: dto
+                .endpoint_properties
+                .as_deref()
+                .and_then(|ps| ps.iter().find(|p| p.name == "authorization"))
+                .map(|p| p.value.clone()),
+        }
+    }
+}
+
+impl From<&DataAddressDto> for DataplaneAddress {
+    fn from(dto: &DataAddressDto) -> Self {
+        DataplaneAddress {
+            endpoint_type: dto.endpoint_type.clone(),
+            endpoint: dto.endpoint.clone().unwrap_or_default(),
+            authorization_type: dto
+                .endpoint_properties
+                .as_deref()
+                .and_then(|ps| ps.iter().find(|p| p.name == "authType"))
+                .map(|p| p.value.clone()),
+            authorization: dto
+                .endpoint_properties
+                .as_deref()
+                .and_then(|ps| ps.iter().find(|p| p.name == "authorization"))
+                .map(|p| p.value.clone()),
+        }
+    }
+}
+
+impl From<DataplaneAddress> for DataAddressDto {
+    fn from(addr: DataplaneAddress) -> Self {
+        let mut props: Vec<EndpointPropertyDto> = Vec::new();
+        if let Some(auth_type) = addr.authorization_type {
+            props.push(EndpointPropertyDto {
+                name: "authType".to_string(),
+                value: auth_type,
+            });
+        }
+        if let Some(authorization) = addr.authorization {
+            props.push(EndpointPropertyDto {
+                name: "authorization".to_string(),
+                value: authorization,
+            });
+        }
+        DataAddressDto {
+            endpoint_type: addr.endpoint_type,
+            endpoint: Some(addr.endpoint),
+            endpoint_properties: if props.is_empty() { None } else { Some(props) },
+        }
+    }
+}
 
 #[mockall::automock]
 #[async_trait::async_trait]
@@ -35,72 +94,59 @@ pub trait DataPlaneFacadeTrait: Send + Sync {
     // ─── TransferRequest ───
     async fn on_transfer_request_pre(
         &self,
-        transfer_id: &Urn,
-        data_address: &Option<DataAddressDto>,
+        ctx: &DspTransferContext,
     ) -> Outcome<Option<DataAddressDto>>;
 
     async fn on_transfer_request_post(
         &self,
-        transfer_process: &TransferProcessDto,
-        connector_instance: &Option<ConnectorInstanceDto>,
-        data_address: &Option<DataAddressDto>,
-    ) -> Outcome<()>;
+        ctx: &DspTransferContext,
+    ) -> Outcome<Option<DataAddressDto>>;
 
     // ─── TransferStart ───
 
     async fn on_transfer_start_pre(
         &self,
-        transfer_process: &TransferProcessDto,
+        ctx: &DspTransferContext,
     ) -> Outcome<Option<DataAddressDto>>;
 
     async fn on_transfer_start_post(
         &self,
-        transfer_process: &TransferProcessDto,
-        data_address: Option<DataAddressDto>,
+        ctx: &DspTransferContext,
     ) -> Outcome<Option<DataAddressDto>>;
 
     // ─── TransferSuspension ───
 
     async fn on_transfer_suspension_pre(
         &self,
-        transfer_process: &TransferProcessDto,
-    ) -> Outcome<()>;
+        ctx: &DspTransferContext,
+    ) -> Outcome<Option<DataAddressDto>>;
 
     async fn on_transfer_suspension_post(
         &self,
-        transfer_process: &TransferProcessDto,
-    ) -> Outcome<()>;
+        ctx: &DspTransferContext,
+    ) -> Outcome<Option<DataAddressDto>>;
 
     // ─── TransferCompletion ───
 
     async fn on_transfer_completion_pre(
         &self,
-        transfer_process: &TransferProcessDto,
-    ) -> Outcome<()>;
+        ctx: &DspTransferContext,
+    ) -> Outcome<Option<DataAddressDto>>;
 
     async fn on_transfer_completion_post(
         &self,
-        transfer_process: &TransferProcessDto,
-    ) -> Outcome<()>;
+        ctx: &DspTransferContext,
+    ) -> Outcome<Option<DataAddressDto>>;
 
     // ─── TransferTermination ───
 
     async fn on_transfer_termination_pre(
         &self,
-        transfer_process: &TransferProcessDto,
-    ) -> Outcome<()>;
+        ctx: &DspTransferContext,
+    ) -> Outcome<Option<DataAddressDto>>;
 
     async fn on_transfer_termination_post(
         &self,
-        transfer_process: &TransferProcessDto,
-    ) -> Outcome<()>;
-
-    // ─── Config updates ───
-
-    /// Update the egress config for a transfer (e.g. after receiving peer's DataAddress)
-    async fn set_egress(
-        &self,
-        transfer_process: &TransferProcessDto,
-        data_address: DataplaneAddress,
-    ) -> Outcome<()>;
+        ctx: &DspTransferContext,
+    ) -> Outcome<Option<DataAddressDto>>;
 }

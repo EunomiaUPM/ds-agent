@@ -49,7 +49,7 @@ impl Into<CatalogMessageWrapper<CatalogRequestMessageDto>> for RpcCatalogRequest
             context: ContextField::default(),
             _type: CatalogMessageType::CatalogRequestMessage,
             dto: CatalogRequestMessageDto {
-                filter: self.filter,
+                filter: Option::from(self.filter),
             },
         }
     }

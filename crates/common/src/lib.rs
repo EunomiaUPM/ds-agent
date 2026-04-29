@@ -23,6 +23,7 @@ pub mod dsp_common;
 pub mod errors;
 pub mod facades;
 pub mod http_client;
+pub mod middleware;
+pub mod test_utils;
 pub mod utils;
 pub mod well_known;
-pub mod test_utils;

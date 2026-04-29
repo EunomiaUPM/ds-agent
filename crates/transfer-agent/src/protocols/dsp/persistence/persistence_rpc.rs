@@ -21,10 +21,8 @@ use crate::entities::transfer_messages::{NewTransferMessageDto, TransferAgentMes
 use crate::entities::transfer_process::{
     EditTransferProcessDto, TransferAgentProcessesTrait, TransferProcessDto,
 };
-use crate::http::common::parse_urn;
-use crate::protocols::dsp::persistence::{
-    create_process_record, CreateProcessInput, TransferPersistenceTrait,
-};
+use crate::protocols::dsp::context::DspTransferContext;
+use crate::protocols::dsp::persistence::{create_process_record, TransferPersistenceTrait};
 use crate::protocols::dsp::protocol_types::{
     TransferProcessMessageTrait, TransferProcessMessageType, TransferProcessState,
     TransferStateAttribute,
@@ -34,7 +32,6 @@ use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
-// ─── Service ─────────────────────────────────────────────────────────────────
 
 /// Persistence service for the outbound RPC path.
 ///
@@ -69,43 +66,53 @@ impl TransferPersistenceTrait for TransferPersistenceForRpcService {
     }
 
     async fn fetch_process(&self, id: &str) -> Outcome<TransferProcessDto> {
-        let urn = parse_urn(id).unwrap();
+        let urn = Urn::from_str(id)?;
         // RPC clients send the consumerPid; resolve by any key value in the identifiers map.
         self.transfer_process_service
             .get_transfer_process_by_key_value(&urn)
             .await
     }
 
-    async fn create_process(&self, input: CreateProcessInput) -> Outcome<TransferProcessDto> {
-        let id = input.id.unwrap_or_else(|| {
+    async fn create_process(
+        &self,
+        ctx: &DspTransferContext,
+        payload_dto: Arc<dyn TransferProcessMessageTrait>,
+        payload_value: serde_json::Value,
+    ) -> Outcome<TransferProcessDto> {
+        let id = ctx.local_process_id.clone().unwrap_or_else(|| {
             Urn::from_str(&format!("urn:transfer-process:{}", uuid::Uuid::new_v4())).unwrap()
         });
         create_process_record(
             &self.transfer_process_service,
             &self.transfer_message_service,
             id,
-            input.protocol,
-            input.direction,
-            &input.associated_agent_peer,
-            input.provider_pid,
-            input.provider_address,
-            input.payload_dto,
-            input.payload_value,
+            "DSP",
+            "OUTBOUND",
+            &ctx.associated_peer_id,
+            ctx.provider_pid.clone(),
+            ctx.provider_address.clone(),
+            payload_dto,
+            payload_value,
         )
         .await
     }
 
     /// Records an outbound state transition (message sent by the local agent).
     ///
-    /// The state attribute is attributed to the *local* party: a Consumer records
-    /// actions as `ByConsumer`, and a Provider as `ByProvider`.
+    /// The state attribute is attributed to the *local* party.
+    /// Resolves the process by primary key (`ctx.process.inner.id`).
     async fn update_process(
         &self,
-        id: &str,
+        ctx: &DspTransferContext,
         payload_dto: Arc<dyn TransferProcessMessageTrait>,
         payload_value: serde_json::Value,
     ) -> Outcome<TransferProcessDto> {
-        let urn_id = Urn::from_str(id).expect("Failed to parse process URN");
+        let process = ctx
+            .process
+            .as_ref()
+            .ok_or_else(|| Errors::crazy("process required for rpc update_process", None))?;
+        let urn_id = Urn::from_str(&process.inner.id)?;
+
         let message_type = payload_dto.get_message();
         let new_state = TransferProcessState::from(message_type.clone());
 
@@ -168,15 +175,6 @@ impl TransferPersistenceTrait for TransferPersistenceForRpcService {
     }
 }
 
-// ─── State attribute helpers ──────────────────────────────────────────────────
-
-/// Derives the new state attribute for a message **sent** by the local agent.
-///
-/// For outbound messages the local agent is the initiator, so the attribute
-/// reflects the *same* party as the local role.
-///
-/// Exception: mirroring the inbound case, a Start message while still in
-/// `OnRequest` phase retains the `OnRequest` attribute.
 fn resolve_outbound_state_attribute(
     message_type: &TransferProcessMessageType,
     current: &TransferStateAttribute,
@@ -191,16 +189,13 @@ fn resolve_outbound_state_attribute(
     }
 }
 
-/// Returns the state attribute that represents the *local* role itself.
 fn own_attribute(local_role: &RoleConfig) -> Outcome<TransferStateAttribute> {
     match local_role {
         RoleConfig::Provider => Ok(TransferStateAttribute::ByProvider),
         RoleConfig::Consumer => Ok(TransferStateAttribute::ByConsumer),
-        _ => {
-            return Err(Errors::crazy(
-                "Unknown role when resolving state attribute",
-                None,
-            ));
-        }
+        _ => Err(Errors::crazy(
+            "Unknown role when resolving state attribute",
+            None,
+        )),
     }
 }

@@ -1,6 +1,6 @@
 use crate::entities::dataplane_drivers::{DriverAuthenticatorTrait, DriverProxyConfiguratorTrait};
-use crate::entities::dataplane_manager_ref::dataplane_context::DataplaneContext;
-use crate::entities::dataplane_manager_ref::dataplane_proxy::{
+use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;
+use crate::entities::dataplane_manager::dataplane_proxy::{
     DataplaneProxy, DataplaneProxyEgress, DataplaneProxyIngress, HTTP_LISTENER_PATH,
 };
 use connector::{InteractionConfig, ProtocolSpec};
@@ -40,6 +40,8 @@ impl DriverProxyConfiguratorTrait for HttpProviderPushConfigurator {
         let egress = self.configure_egress(context)?;
         proxy.set_ingress(ingress);
         proxy.set_egress(egress);
-        Ok(context.clone())
+        let mut new_context = context.clone();
+        new_context.set_proxy(proxy);
+        Ok(new_context)
     }
 }

@@ -58,6 +58,11 @@ export const formatUrn = (urn: string | undefined, truncate: boolean = true): st
 
   if (!truncate) return urn;
 
+  const isDid = urn.startsWith("did:");
+
+  // If it's a DID and short enough, show it full
+  if (isDid && urn.length < 40) return urn;
+
   if (urn.startsWith("urn:")) {
     const parts = urn.split(":");
     if (parts.length >= 3) {
@@ -70,7 +75,7 @@ export const formatUrn = (urn: string | undefined, truncate: boolean = true): st
     }
   }
 
-  // Fallback for non-URN strings (preserve old behavior or just standard truncate)
+  // Aggressive truncation for IDs that are not DIDs or are too long
   if (urn.length > 20) {
     return urn.slice(0, 13) + "[...]";
   }

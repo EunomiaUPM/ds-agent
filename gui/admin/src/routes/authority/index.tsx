@@ -105,18 +105,6 @@ function AuthorityRequestsPage() {
               header: (
                 <Button
                   variant="ghost"
-                  onClick={() => handleSort("authority_slug")}
-                  className="p-0 h-auto font-semibold"
-                >
-                  Authority Name {getSortIcon("authority_slug")}
-                </Button>
-              ),
-              cell: (a: any) => a.authority_slug || "-",
-            },
-            {
-              header: (
-                <Button
-                  variant="ghost"
                   onClick={() => handleSort("id")}
                   className="p-0 h-auto font-semibold"
                 >
@@ -124,6 +112,18 @@ function AuthorityRequestsPage() {
                 </Button>
               ),
               cell: (a: any) => <Badge variant={"info"}>{formatUrn(a.id)}</Badge>,
+            },
+            {
+              header: (
+                <Button
+                  variant="ghost"
+                  onClick={() => handleSort("authority_slug")}
+                  className="p-0 h-auto font-semibold"
+                >
+                  Authority Name {getSortIcon("authority_slug")}
+                </Button>
+              ),
+              cell: (a: any) => a.authority_slug || "-",
             },
             {
               header: (

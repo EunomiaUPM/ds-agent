@@ -14,8 +14,10 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 
 const truncateId = (id?: string) => {
   if (!id) return "N/A";
-  if (id.length <= 40) return id;
-  return `${id.slice(0, 20)}...${id.slice(-15)}`;
+  // Only apply the 40-char rule if it looks like a DID
+  if (id.startsWith("did:") && id.length < 40) return id;
+  // Otherwise truncate aggressively for the table
+  return `${id.slice(0, 10)}...${id.slice(-8)}`;
 };
 
 /**
@@ -130,18 +132,6 @@ function ProvidersPage() {
               header: (
                 <Button
                   variant="ghost"
-                  onClick={() => handleSort("provider_slug")}
-                  className="p-0 h-auto font-semibold"
-                >
-                  Provider Name {getSortIcon("provider_slug")}
-                </Button>
-              ),
-              cell: (r) => r.provider_slug || "-",
-            },
-            {
-              header: (
-                <Button
-                  variant="ghost"
                   onClick={() => handleSort("id")}
                   className="p-0 h-auto font-semibold"
                 >
@@ -149,6 +139,18 @@ function ProvidersPage() {
                 </Button>
               ),
               cell: (r) => <Badge variant={"info"}>{truncateId(r.id)}</Badge>,
+            },
+            {
+              header: (
+                <Button
+                  variant="ghost"
+                  onClick={() => handleSort("provider_slug")}
+                  className="p-0 h-auto font-semibold"
+                >
+                  Provider Name {getSortIcon("provider_slug")}
+                </Button>
+              ),
+              cell: (r) => r.provider_slug || "-",
             },
             {
               header: (

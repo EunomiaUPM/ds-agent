@@ -30,13 +30,20 @@ const Oidc4vciPage = () => {
       <PageSection title="Credential Issuance (OIDC4VCI)">
         <div className="bg-white/5 border border-white/10 rounded-2xl p-10 backdrop-blur-md shadow-2xl space-y-8">
           <div className="text-center space-y-2">
-             <FileText className="h-12 w-12 text-primary mx-auto mb-2" />
-             <p className="text-sm text-muted-foreground">Paste a Credential Offer URI to receive new verifiable credentials.</p>
+            <FileText className="h-12 w-12 text-primary mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">
+              Paste a Credential Offer URI to receive new verifiable credentials.
+            </p>
           </div>
 
           <form onSubmit={handleProcess} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="oidc4vci-uri" className="text-xs uppercase tracking-widest text-muted-foreground/60 font-bold">Credential Offer URI</Label>
+              <Label
+                htmlFor="oidc4vci-uri"
+                className="text-xs uppercase tracking-widest text-muted-foreground/60 font-bold"
+              >
+                Credential Offer URI
+              </Label>
               <Input
                 id="oidc4vci-uri"
                 placeholder="openid-credential-offer://..."
@@ -46,9 +53,9 @@ const Oidc4vciPage = () => {
               />
             </div>
 
-            <Button 
-              type="submit" 
-              disabled={isPending || !uri} 
+            <Button
+              type="submit"
+              disabled={isPending || !uri}
               className="w-full h-12 text-base font-bold shadow-lg shadow-primary/10 transition-all active:scale-[0.98]"
             >
               {isPending ? (
@@ -64,13 +71,13 @@ const Oidc4vciPage = () => {
 
           {isSuccess && (
             <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-sm text-center font-medium animate-in fade-in zoom-in duration-300">
-               ✓ Credential issuance completed successfully
+              ✓ Credential issuance completed successfully
             </div>
           )}
 
           {!!error && (
             <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm text-center font-mono">
-               Error: Failed to process credential offer
+              Error: Failed to process credential offer
             </div>
           )}
         </div>

@@ -83,3 +83,56 @@ export const formatUrn = (urn: string | undefined, truncate: boolean = true): st
   return urn;
 };
 
+/**
+ * Utility function to convert technical VC type names into friendly readable names.
+ * Rules:
+ * - gx_ prefix -> Gaia-X
+ * - CamelCase/PascalCase -> Split with spaces
+ * - Add "Credential" if not present (unless it's a Participant type)
+ * - jwt -> (JWT) suffix
+ *
+ * @example
+ * gx_VatId_jwt_vc_json -> Gaia-X Vat Id Credential (JWT)
+ */
+export const getFriendlyVCType = (type: string): string => {
+  if (!type) return "";
+
+  let friendly = type;
+
+  // 1. Identify JWT suffix before cleaning
+  const isJwt = type.toLowerCase().includes("jwt");
+
+  // 2. Remove common suffixes/technical parts
+  friendly = friendly.replace(/(_jwt|_vc|_json)/g, "");
+
+  // 3. Handle gx_ prefix
+  let isGaiaX = false;
+  if (friendly.startsWith("gx_")) {
+    isGaiaX = true;
+    friendly = friendly.replace(/^gx_/, "");
+  }
+
+  // 4. Split by underscores and CamelCase
+  friendly = friendly.replace(/_/g, " ");
+  // Match a lowercase letter or digit followed by an uppercase letter
+  friendly = friendly.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
+
+  // 5. Add "Credential" if not already present
+  // Based on user feedback: DataspaceParticipant doesn't get "Credential"
+  if (!/credential/i.test(friendly) && !/participant/i.test(friendly)) {
+    friendly = `${friendly} Credential`;
+  }
+
+  // 6. Final assembly
+  friendly = friendly.trim();
+
+  if (isGaiaX) {
+    friendly = `Gaia-X ${friendly}`;
+  }
+
+  if (isJwt) {
+    friendly = `${friendly} (JWT)`;
+  }
+
+  return friendly;
+};

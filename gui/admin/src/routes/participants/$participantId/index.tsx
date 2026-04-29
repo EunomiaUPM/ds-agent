@@ -83,9 +83,7 @@ function RouteComponent() {
             <Badge variant="role" dsrole={p.participant_type as BadgeRole}>
               {p.participant_type}
             </Badge>
-            {p.is_me && (
-              <Badge variant="info">Local Agent</Badge>
-            )}
+            {p.is_me && <Badge variant="info">Local Agent</Badge>}
           </div>
         }
       />
@@ -103,49 +101,66 @@ function RouteComponent() {
             <CardContent>
               <InfoList
                 items={[
-                  { 
-                    label: "Identifier (DID)", 
+                  {
+                    label: "Identifier (DID)",
                     value: {
                       type: "custom" as const,
                       content: (
                         <div className="font-mono text-xs break-all bg-background-200 p-2 rounded border border-white/10">
                           {p.participant_id}
                         </div>
-                      )
-                    } 
+                      ),
+                    },
                   },
-                  ...(p.token ? [{ 
-                    label: "Identity Token", 
+                  ...(p.token
+                    ? [
+                        {
+                          label: "Identity Token",
+                          value: {
+                            type: "custom" as const,
+                            content: (
+                              <div className="flex flex-col gap-2">
+                                <div className="font-mono text-[10px] opacity-60 truncate max-w-[300px] bg-background-200 p-2 rounded border border-white/10">
+                                  {showSecrets ? p.token : "••••••••••••••••••••••••••••••••"}
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 px-2 text-[10px] w-fit"
+                                  onClick={() => setShowSecrets(!showSecrets)}
+                                >
+                                  {showSecrets ? (
+                                    <>
+                                      <EyeOff className="h-3 w-3 mr-1" /> Hide
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Eye className="h-3 w-3 mr-1" /> Show
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+                            ),
+                          },
+                        },
+                      ]
+                    : []),
+                  {
+                    label: "Base URL",
                     value: {
                       type: "custom" as const,
                       content: (
-                        <div className="flex flex-col gap-2">
-                          <div className="font-mono text-[10px] opacity-60 truncate max-w-[300px] bg-background-200 p-2 rounded border border-white/10">
-                            {showSecrets ? p.token : "••••••••••••••••••••••••••••••••"}
-                          </div>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-7 px-2 text-[10px] w-fit" 
-                            onClick={() => setShowSecrets(!showSecrets)}
-                          >
-                            {showSecrets ? <><EyeOff className="h-3 w-3 mr-1"/> Hide</> : <><Eye className="h-3 w-3 mr-1"/> Show</>}
-                          </Button>
-                        </div>
-                      )
-                    } 
-                  }] : []),
-                  { 
-                    label: "Base URL", 
-                    value: {
-                      type: "custom" as const,
-                      content: (
-                        <a href={p.base_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-brand-sky hover:underline">
+                        <a
+                          href={p.base_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center gap-1 text-brand-sky hover:underline"
+                        >
                           <Globe className="h-3 w-3" />
                           {p.base_url}
                         </a>
-                      )
-                    } 
+                      ),
+                    },
                   },
                 ]}
               />
@@ -161,22 +176,29 @@ function RouteComponent() {
             </CardHeader>
             <CardContent>
               {Array.isArray(agreementList) && agreementList.length > 0 ? (
-                 <div className="space-y-4">
-                    {agreementList.map((agreement: any, idx: number) => (
-                      <div key={idx} className="p-3 border rounded-md bg-background-200/30 flex justify-between items-center">
-                        <div className="flex gap-3 items-center">
-                           <div className="p-2 bg-brand-sky/20 rounded-full">
-                              <Shield className="h-4 w-4 text-brand-sky" />
-                           </div>
-                           <div>
-                              <p className="text-sm font-medium">Agreement {agreement.id || idx}</p>
-                              <p className="text-xs text-muted-foreground">Status: {agreement.status || 'Active'}</p>
-                           </div>
+                <div className="space-y-4">
+                  {agreementList.map((agreement: any, idx: number) => (
+                    <div
+                      key={idx}
+                      className="p-3 border rounded-md bg-background-200/30 flex justify-between items-center"
+                    >
+                      <div className="flex gap-3 items-center">
+                        <div className="p-2 bg-brand-sky/20 rounded-full">
+                          <Shield className="h-4 w-4 text-brand-sky" />
                         </div>
-                        <Button variant="ghost" size="sm">Details</Button>
+                        <div>
+                          <p className="text-sm font-medium">Agreement {agreement.id || idx}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Status: {agreement.status || "Active"}
+                          </p>
+                        </div>
                       </div>
-                    ))}
-                 </div>
+                      <Button variant="ghost" size="sm">
+                        Details
+                      </Button>
+                    </div>
+                  ))}
+                </div>
               ) : (
                 <div className="text-center py-10 opacity-50 border-2 border-dashed rounded-lg">
                   <p className="text-sm italic">No active agreements with this participant</p>
@@ -198,7 +220,7 @@ function RouteComponent() {
             <CardContent className="space-y-4">
               <div className="flex justify-between items-center text-sm">
                 <span className="text-muted-foreground flex items-center gap-2">
-                   <Key className="h-3 w-3" /> First Registered
+                  <Key className="h-3 w-3" /> First Registered
                 </span>
                 <span className="font-medium">
                   {p.saved_at ? dayjs(p.saved_at).format("MMM D, YYYY") : "N/A"}
@@ -207,7 +229,7 @@ function RouteComponent() {
               <Separator />
               <div className="flex justify-between items-center text-sm">
                 <span className="text-muted-foreground flex items-center gap-2">
-                   <Activity className="h-3 w-3" /> Last Interaction
+                  <Activity className="h-3 w-3" /> Last Interaction
                 </span>
                 <span className="font-medium">
                   {p.last_interaction ? dayjs(p.last_interaction).format("MMM d, HH:mm") : "None"}

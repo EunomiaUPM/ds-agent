@@ -6,8 +6,22 @@ import * as z from "zod";
 import { PageLayout } from "shared/src/components/layout/PageLayout";
 import { PageHeader } from "shared/src/components/layout/PageHeader";
 import { PageSection } from "shared/src/components/layout/PageSection";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "shared/src/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "shared/src/components/ui/form";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "shared/src/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  FormDescription,
+} from "shared/src/components/ui/form";
 import { Input } from "shared/src/components/ui/input";
 import { Button } from "shared/src/components/ui/button";
 import { Search, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
@@ -39,15 +53,17 @@ function NewProviderOnboard() {
   const navigate = useNavigate();
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [discoveredInfo, setDiscoveredInfo] = useState<{ id: string; services: DidService[] } | null>(null);
+  const [discoveredInfo, setDiscoveredInfo] = useState<{
+    id: string;
+    services: DidService[];
+  } | null>(null);
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
 
   const { data: participantsResponse } = useGetAllParticipants();
-  const knownProviders = participantsResponse?.status === 200
-    ? participantsResponse.data.filter(
-        (p) => p.participant_type === "Agent" && !p.is_me
-      )
-    : [];
+  const knownProviders =
+    participantsResponse?.status === 200
+      ? participantsResponse.data.filter((p) => p.participant_type === "Agent" && !p.is_me)
+      : [];
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema) as any,
@@ -62,15 +78,15 @@ function NewProviderOnboard() {
   const url = form.watch("url");
 
   const handleDiscovery = async (optionalUrl?: string) => {
-    const targetUrl = typeof optionalUrl === 'string' ? optionalUrl : url;
+    const targetUrl = typeof optionalUrl === "string" ? optionalUrl : url;
     if (!targetUrl || !targetUrl.startsWith("http")) return;
 
     setIsDiscovering(true);
     setDiscoveryError(null);
     try {
       const cleanUrl = targetUrl.replace(/\/$/, "");
-      
-       const didResponse = await fetch(`${cleanUrl}/.well-known/did.json`);
+
+      const didResponse = await fetch(`${cleanUrl}/.well-known/did.json`);
       if (!didResponse.ok) throw new Error("Failed to fetch DID document");
       const didJson = await didResponse.json();
       const id = didJson.id;
@@ -90,7 +106,7 @@ function NewProviderOnboard() {
 
     setIsSubmitting(true);
     try {
-      const authService = discoveredInfo.services.find(s => s.type === "AuthorizationServer");
+      const authService = discoveredInfo.services.find((s) => s.type === "AuthorizationServer");
       const targetUrl = authService?.serviceEndpoint || values.url;
 
       await customInstance(`/onboard/provider`, {
@@ -134,14 +150,14 @@ function NewProviderOnboard() {
                           <FormLabel>Provider URL</FormLabel>
                           <div className="flex gap-2">
                             <FormControl>
-                              <Input 
-                                placeholder="https://provider.example.com" 
+                              <Input
+                                placeholder="https://provider.example.com"
                                 list="known-providers"
-                                {...field} 
+                                {...field}
                                 onChange={(e) => {
                                   field.onChange(e);
                                   const val = e.target.value;
-                                  const known = knownProviders.find(a => a.base_url === val);
+                                  const known = knownProviders.find((a) => a.base_url === val);
                                   if (known) {
                                     if (known.participant_slug) {
                                       form.setValue("slug", known.participant_slug);
@@ -158,13 +174,17 @@ function NewProviderOnboard() {
                                 </option>
                               ))}
                             </datalist>
-                            <Button 
-                              type="button" 
-                              variant="secondary" 
+                            <Button
+                              type="button"
+                              variant="secondary"
                               onClick={() => handleDiscovery()}
                               disabled={isDiscovering || !url}
                             >
-                              {isDiscovering ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <Search className="h-4 w-4 mr-2" />}
+                              {isDiscovering ? (
+                                <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                              ) : (
+                                <Search className="h-4 w-4 mr-2" />
+                              )}
                               Discover
                             </Button>
                           </div>
@@ -205,9 +225,7 @@ function NewProviderOnboard() {
                               />
                             </FormControl>
                             <div className="space-y-1 leading-none">
-                              <FormLabel>
-                                Automatic Authentication
-                              </FormLabel>
+                              <FormLabel>Automatic Authentication</FormLabel>
                               <FormDescription>
                                 Automatically handle the authentication flow.
                               </FormDescription>
@@ -217,6 +235,7 @@ function NewProviderOnboard() {
                       />
                     </div>
 
+                    {/* 
                     <FormField
                       control={form.control as any}
                       name="actions"
@@ -270,8 +289,13 @@ function NewProviderOnboard() {
                         </FormItem>
                       )}
                     />
+                    */}
 
-                    <Button type="submit" className="w-full" disabled={!discoveredInfo || isSubmitting}>
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={!discoveredInfo || isSubmitting}
+                    >
                       {isSubmitting ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -291,9 +315,7 @@ function NewProviderOnboard() {
             <Card>
               <CardHeader>
                 <CardTitle>Discovery Info</CardTitle>
-                <CardDescription>
-                  Details retrieved from the provider.
-                </CardDescription>
+                <CardDescription>Details retrieved from the provider.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {discoveryError && (
@@ -302,20 +324,27 @@ function NewProviderOnboard() {
                     <span>{discoveryError}</span>
                   </div>
                 )}
-                
+
                 {discoveredInfo ? (
                   <div className="space-y-4">
                     <div className="space-y-1">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Provider DID</p>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Provider DID
+                      </p>
                       <Badge variant="infoLighter" className="font-mono text-[10px] break-all p-2">
                         {discoveredInfo.id}
                       </Badge>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Services</p>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Services
+                      </p>
                       <div className="space-y-2 pt-1">
                         {discoveredInfo.services.map((s, idx) => (
-                          <div key={idx} className="p-2 border rounded bg-background-200/50 text-[10px] space-y-1">
+                          <div
+                            key={idx}
+                            className="p-2 border rounded bg-background-200/50 text-[10px] space-y-1"
+                          >
                             <p className="font-bold text-primary">{s.type}</p>
                             <p className="break-all opacity-70">{s.serviceEndpoint}</p>
                           </div>

@@ -42,34 +42,34 @@ const RouteComponent = () => {
 
   if (!catalog) return null;
 
-    return (
-        <PageLayout>
-            <PageHeader
-                title="My Catalog"
-                badge={
-                    <Badge variant="info" size="lg">
-                        {formatUrn(catalogId)}
-                    </Badge>
-                }
-            />
-            <InfoGrid>
-                <PageSection title="Catalog details:">
-                    <InfoList
-                        items={[
-                            {label: "Catalog title", value: catalog.dctTitle},
-                            {
-                                label: "Catalog participant ID",
-                                value: {type: "urn", value: catalog.dspaceParticipantId},
-                            },
-                            {label: "Catalog homepage", value: catalog.foafHomePage},
-                            {
-                                label: "Catalog creation date",
-                                value: {type: "custom", content: <FormatDate date={catalog.dctIssued}/>},
-                            },
-                        ]}
-                    />
-                </PageSection>
-            </InfoGrid>
+  return (
+    <PageLayout>
+      <PageHeader
+        title="My Catalog"
+        badge={
+          <Badge variant="info" size="lg">
+            {formatUrn(catalogId)}
+          </Badge>
+        }
+      />
+      <InfoGrid>
+        <PageSection title="Catalog details:">
+          <InfoList
+            items={[
+              { label: "Catalog title", value: catalog.dctTitle },
+              {
+                label: "Catalog participant ID",
+                value: { type: "urn", value: catalog.dspaceParticipantId },
+              },
+              { label: "Catalog homepage", value: catalog.foafHomePage },
+              {
+                label: "Catalog creation date",
+                value: { type: "custom", content: <FormatDate date={catalog.dctIssued} /> },
+              },
+            ]}
+          />
+        </PageSection>
+      </InfoGrid>
 
       <PageSection title="Datasets">
         <DataTable

@@ -6,7 +6,16 @@ import { Button } from "shared/src/components/ui/button";
 import { Badge } from "shared/src/components/ui/badge";
 import { useState } from "react";
 import { cn } from "shared/src/lib/utils";
-import { FileJson, Fingerprint, Key, Link2, Copy, Check, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  FileJson,
+  Fingerprint,
+  Key,
+  Link2,
+  Copy,
+  Check,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 
 const WalletDID = () => {
   const { data: response, isLoading, error } = useGetWalletDid();
@@ -40,17 +49,23 @@ const WalletDID = () => {
         <div className="p-6 border-b border-white/10 flex flex-col md:flex-row md:items-start justify-between gap-6">
           <div className="flex items-start gap-4">
             <div className="p-3 rounded-xl bg-primary/20 text-primary">
-               <Fingerprint className="h-8 w-8" />
+              <Fingerprint className="h-8 w-8" />
             </div>
             <div className="space-y-2">
               <h3 className="font-semibold text-lg flex items-center gap-2">
                 Decentralized Identifier
-                <Badge variant="info" className="text-[10px] h-5 py-0">Active</Badge>
+                <Badge variant="info" className="text-[10px] h-5 py-0">
+                  Active
+                </Badge>
               </h3>
               <div className="flex items-center gap-2 bg-black/30 px-3 py-2 rounded-lg border border-white/5">
                 <span className="font-mono text-sm text-foreground/90 break-all">{didDoc.id}</span>
                 <Button variant="ghost" size="icon" className="h-6 w-6 ml-2" onClick={handleCopyId}>
-                  {copiedId ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+                  {copiedId ? (
+                    <Check className="h-3 w-3 text-green-500" />
+                  ) : (
+                    <Copy className="h-3 w-3" />
+                  )}
                 </Button>
               </div>
             </div>
@@ -59,7 +74,6 @@ const WalletDID = () => {
 
         {/* Content sections */}
         <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-white/10">
-          
           {/* Verification Methods (Keys) */}
           <div className="p-6 space-y-4">
             <h4 className="text-xs uppercase tracking-widest text-muted-foreground/60 font-bold flex items-center gap-2">
@@ -69,7 +83,10 @@ const WalletDID = () => {
             {didDoc.verificationMethod && didDoc.verificationMethod.length > 0 ? (
               <div className="space-y-3">
                 {didDoc.verificationMethod.map((vm: any, idx: number) => (
-                  <div key={vm.id || idx} className="bg-white/5 rounded-lg p-3 border border-white/5 text-xs">
+                  <div
+                    key={vm.id || idx}
+                    className="bg-white/5 rounded-lg p-3 border border-white/5 text-xs"
+                  >
                     <div className="font-mono text-foreground/80 mb-1 truncate">{vm.id}</div>
                     <div className="flex justify-between items-center text-muted-foreground/60 mt-2">
                       <span>Type: {vm.type}</span>
@@ -78,7 +95,9 @@ const WalletDID = () => {
                 ))}
               </div>
             ) : (
-              <div className="text-sm text-muted-foreground italic">No verification methods defined</div>
+              <div className="text-sm text-muted-foreground italic">
+                No verification methods defined
+              </div>
             )}
           </div>
 
@@ -91,9 +110,14 @@ const WalletDID = () => {
             {didDoc.service && didDoc.service.length > 0 ? (
               <div className="space-y-3">
                 {didDoc.service.map((svc: any, idx: number) => (
-                  <div key={svc.id || idx} className="bg-white/5 rounded-lg p-3 border border-white/5 text-xs space-y-1">
+                  <div
+                    key={svc.id || idx}
+                    className="bg-white/5 rounded-lg p-3 border border-white/5 text-xs space-y-1"
+                  >
                     <div className="font-semibold text-white/90 truncate">{svc.type}</div>
-                    <div className="font-mono text-foreground/70 truncate break-all opacity-80">{svc.serviceEndpoint}</div>
+                    <div className="font-mono text-foreground/70 truncate break-all opacity-80">
+                      {svc.serviceEndpoint}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -105,7 +129,7 @@ const WalletDID = () => {
 
         {/* Expandable JSON */}
         <div className="border-t border-white/10">
-          <div 
+          <div
             onClick={() => setIsJsonExpanded(!isJsonExpanded)}
             className="cursor-pointer p-4 flex items-center justify-between hover:bg-white/5 transition-colors"
           >
@@ -114,14 +138,20 @@ const WalletDID = () => {
               Raw DID Document
             </span>
             <div className="text-muted-foreground/40">
-              {isJsonExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              {isJsonExpanded ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
             </div>
           </div>
-          
-          <div className={cn(
-            "grid transition-all duration-300 ease-in-out",
-            isJsonExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
-          )}>
+
+          <div
+            className={cn(
+              "grid transition-all duration-300 ease-in-out",
+              isJsonExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+            )}
+          >
             <div className="overflow-hidden">
               <div className="p-4 bg-black/40 border-t border-white/5 shadow-inner">
                 <pre className="text-[11px] font-mono text-muted-foreground/80 whitespace-pre-wrap break-all leading-relaxed">
@@ -131,7 +161,6 @@ const WalletDID = () => {
             </div>
           </div>
         </div>
-
       </div>
     </PageSection>
   );

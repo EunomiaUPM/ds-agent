@@ -30,13 +30,20 @@ const Oidc4vpPage = () => {
       <PageSection title="Verification Presentation (OIDC4VP)">
         <div className="bg-white/5 border border-white/10 rounded-2xl p-10 backdrop-blur-md shadow-2xl space-y-8">
           <div className="text-center space-y-2">
-             <ShieldCheck className="h-12 w-12 text-primary mx-auto mb-2" />
-             <p className="text-sm text-muted-foreground">Enter an OIDC4VP request URI to present your identity credentials.</p>
+            <ShieldCheck className="h-12 w-12 text-primary mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">
+              Enter an OIDC4VP request URI to present your identity credentials.
+            </p>
           </div>
 
           <form onSubmit={handleProcess} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="oidc4vp-uri" className="text-xs uppercase tracking-widest text-muted-foreground/60 font-bold">Request URI</Label>
+              <Label
+                htmlFor="oidc4vp-uri"
+                className="text-xs uppercase tracking-widest text-muted-foreground/60 font-bold"
+              >
+                Request URI
+              </Label>
               <Input
                 id="oidc4vp-uri"
                 placeholder="openid-vc://..."
@@ -46,9 +53,9 @@ const Oidc4vpPage = () => {
               />
             </div>
 
-            <Button 
-              type="submit" 
-              disabled={isPending || !uri} 
+            <Button
+              type="submit"
+              disabled={isPending || !uri}
               className="w-full h-12 text-base font-bold shadow-lg shadow-primary/10 transition-all active:scale-[0.98]"
             >
               {isPending ? (
@@ -64,13 +71,13 @@ const Oidc4vpPage = () => {
 
           {isSuccess && (
             <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-sm text-center font-medium animate-in fade-in zoom-in duration-300">
-               ✓ Authentication process completed successfully
+              ✓ Authentication process completed successfully
             </div>
           )}
 
           {!!error && (
             <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm text-center font-mono">
-               Error: Failed to process presentation request
+              Error: Failed to process presentation request
             </div>
           )}
         </div>

@@ -39,20 +39,22 @@ const WalletLayout = () => {
             {isLoading.onboard
               ? "Linking..."
               : ownWalletOnboarded
-              ? "Re-Link Wallet"
-              : "Link Wallet"}
+                ? "Re-Link Wallet"
+                : "Link Wallet"}
           </Button>
         </div>
       </PageHeader>
 
       {!ownWalletOnboarded ? (
         <div className="flex flex-col items-center justify-center min-h-[400px] border border-dashed border-white/10 rounded-xl bg-white/5 p-12">
-           <Wallet className="h-12 w-12 text-muted-foreground/40 mb-4" />
-           <p className="text-muted-foreground font-medium text-lg">Wallet not linked</p>
-           <p className="text-muted-foreground/60 text-sm mt-1 mb-6">Link your wallet to start managing your identity.</p>
-           <Button onClick={onboardInWallet} isLoading={isLoading.onboard}>
-              Link Wallet Now
-           </Button>
+          <Wallet className="h-12 w-12 text-muted-foreground/40 mb-4" />
+          <p className="text-muted-foreground font-medium text-lg">Wallet not linked</p>
+          <p className="text-muted-foreground/60 text-sm mt-1 mb-6">
+            Link your wallet to start managing your identity.
+          </p>
+          <Button onClick={onboardInWallet} isLoading={isLoading.onboard}>
+            Link Wallet Now
+          </Button>
         </div>
       ) : (
         <>
@@ -67,7 +69,7 @@ const WalletLayout = () => {
                     "px-4 py-2 text-sm font-medium border-b-2 transition-all",
                     isActive
                       ? "border-primary text-primary"
-                      : "border-transparent text-muted-foreground hover:text-foreground"
+                      : "border-transparent text-muted-foreground hover:text-foreground",
                   )}
                 >
                   {tab.label}

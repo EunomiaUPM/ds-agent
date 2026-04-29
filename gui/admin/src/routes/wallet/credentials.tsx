@@ -5,7 +5,20 @@ import { PageSection } from "shared/src/components/layout/PageSection";
 import { Skeleton } from "shared/src/components/ui/skeleton";
 import { Button } from "shared/src/components/ui/button";
 import { Badge } from "shared/src/components/ui/badge";
-import { ShieldAlert, ShieldCheck, ChevronDown, ChevronUp, FileJson, Fingerprint, Calendar, Building2, Loader2, Info, Trash2, Check } from "lucide-react";
+import {
+  ShieldAlert,
+  ShieldCheck,
+  ChevronDown,
+  ChevronUp,
+  FileJson,
+  Fingerprint,
+  Calendar,
+  Building2,
+  Loader2,
+  Info,
+  Trash2,
+  Check,
+} from "lucide-react";
 import { useState } from "react";
 import { cn } from "shared/src/lib/utils";
 
@@ -15,20 +28,24 @@ interface VcsResponse {
 }
 
 const COMPLIANCE_TYPES = [
-  "gx:Eori", 
-  "gx:Euid", 
-  "gx:LeiCode", 
-  "gx:LocalRegistrationNumber", 
-  "gx:TaxId", 
+  "gx:Eori",
+  "gx:Euid",
+  "gx:LeiCode",
+  "gx:LocalRegistrationNumber",
+  "gx:TaxId",
   "gx:VatId",
   "Eori",
   "TaxId",
-  "VatId"
+  "VatId",
 ];
 
 const WalletCredentials = () => {
   const queryClient = useQueryClient();
-  const { data: response, isLoading, error } = useQuery({
+  const {
+    data: response,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["wallet-vcs-custom"],
     queryFn: () => customInstance<VcsResponse>("/wallet/vcs", { method: "GET" }),
   });
@@ -97,34 +114,46 @@ const WalletCredentials = () => {
     <div className="space-y-8 pb-20">
       {/* Gaia-X Compliance Section */}
       <PageSection title="Gaia-X Compliance">
-        <div className={cn(
-          "relative overflow-hidden p-6 rounded-2xl border transition-all duration-300",
-          hasGaiaLabel ? "bg-green-500/10 border-green-500/20 shadow-lg" : 
-          hasRegistrationVC 
-            ? "bg-primary/5 border-primary/20 shadow-lg shadow-primary/5" 
-            : "bg-white/2 border-white/5 opacity-80"
-        )}>
+        <div
+          className={cn(
+            "relative overflow-hidden p-6 rounded-2xl border transition-all duration-300",
+            hasGaiaLabel
+              ? "bg-green-500/10 border-green-500/20 shadow-lg"
+              : hasRegistrationVC
+                ? "bg-primary/5 border-primary/20 shadow-lg shadow-primary/5"
+                : "bg-white/2 border-white/5 opacity-80",
+          )}
+        >
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <ShieldCheck className={cn("h-5 w-5", hasGaiaLabel ? "text-green-500" : hasRegistrationVC ? "text-primary" : "text-muted-foreground")} />
+                <ShieldCheck
+                  className={cn(
+                    "h-5 w-5",
+                    hasGaiaLabel
+                      ? "text-green-500"
+                      : hasRegistrationVC
+                        ? "text-primary"
+                        : "text-muted-foreground",
+                  )}
+                />
                 <h3 className="font-semibold text-lg">Gaia-X Framework Setup</h3>
               </div>
               <p className="text-sm text-muted-foreground max-w-xl">
-                {hasGaiaLabel ? 
-                  "Your wallet is already Gaia-X compliant. You possess a valid LabelCredential." :
-                  "Generate the necessary Gaia-X compliant credentials based on your registration information. This will enable your participation in Gaia-X ecosystems."
-                }
+                {hasGaiaLabel
+                  ? "Your wallet is already Gaia-X compliant. You possess a valid LabelCredential."
+                  : "Generate the necessary Gaia-X compliant credentials based on your registration information. This will enable your participation in Gaia-X ecosystems."}
               </p>
               {generateSuccess && !hasGaiaLabel && (
                 <div className="flex items-center gap-2 text-xs font-medium text-green-500 animate-in fade-in slide-in-from-left-2">
-                   <Info className="h-3 w-3" />
-                   Gaia-X credentials generated successfully. You can now request your LabelCredential.
+                  <Info className="h-3 w-3" />
+                  Gaia-X credentials generated successfully. You can now request your
+                  LabelCredential.
                 </div>
               )}
             </div>
 
-            <Button 
+            <Button
               disabled={hasGaiaLabel || !hasRegistrationVC || isGenerating}
               onClick={handleGenerateGaia}
               className="md:min-w-[200px]"
@@ -145,11 +174,12 @@ const WalletCredentials = () => {
               )}
             </Button>
           </div>
-          
+
           {!hasRegistrationVC && !hasGaiaLabel && (
             <div className="mt-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[10px] text-amber-500 flex items-center gap-2 font-mono">
               <ShieldAlert className="h-3 w-3" />
-              REQUIREMENT: You need an EORI, TaxID, or VAT registration credential to enable this action.
+              REQUIREMENT: You need an EORI, TaxID, or VAT registration credential to enable this
+              action.
             </div>
           )}
         </div>
@@ -159,9 +189,9 @@ const WalletCredentials = () => {
       <PageSection title="Verifiable Credentials">
         {credentials.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-muted-foreground border border-dashed border-white/10 rounded-2xl bg-white/2">
-             <ShieldAlert className="h-12 w-12 opacity-10 mb-4" />
-             <p className="text-sm font-medium">No credentials found in this wallet.</p>
-             <p className="text-xs opacity-60">Your claimed credentials will appear here.</p>
+            <ShieldAlert className="h-12 w-12 opacity-10 mb-4" />
+            <p className="text-sm font-medium">No credentials found in this wallet.</p>
+            <p className="text-xs opacity-60">Your claimed credentials will appear here.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-6">
@@ -182,7 +212,7 @@ const CredentialCard = ({ vc, onDelete }: { vc: any; onDelete: (id: string) => P
   const issuerName = parsed.issuer?.name || parsed.issuer?.id || "Unknown Issuer";
   const types = (parsed.type || []).filter((t: string) => t !== "VerifiableCredential");
   const displayType = types.length > 0 ? types[types.length - 1] : "Credential";
-  
+
   // Format dates
   const addedDate = vc.addedOn ? new Date(vc.addedOn).toLocaleDateString() : "N/A";
   const validUntil = parsed.validUntil ? new Date(parsed.validUntil).toLocaleDateString() : "Never";
@@ -195,27 +225,33 @@ const CredentialCard = ({ vc, onDelete }: { vc: any; onDelete: (id: string) => P
   };
 
   return (
-    <div className={cn(
-      "group relative overflow-hidden bg-white/[0.03] border border-white/10 rounded-2xl transition-all duration-300",
-      isExpanded ? "border-primary/40 bg-white/[0.06] ring-1 ring-primary/20" : "hover:border-white/20 hover:bg-white/[0.05]"
-    )}>
+    <div
+      className={cn(
+        "group relative overflow-hidden bg-white/[0.03] border border-white/10 rounded-2xl transition-all duration-300",
+        isExpanded
+          ? "border-primary/40 bg-white/[0.06] ring-1 ring-primary/20"
+          : "hover:border-white/20 hover:bg-white/[0.05]",
+      )}
+    >
       {/* Card Header Area */}
-      <div 
+      <div
         onClick={() => setIsExpanded(!isExpanded)}
         className="cursor-pointer p-6 flex flex-col md:flex-row md:items-center justify-between gap-4"
       >
         <div className="flex items-start gap-4">
-          <div className={cn(
-            "p-3 rounded-xl transition-colors duration-300",
-            isExpanded ? "bg-primary/20 text-primary" : "bg-white/5 text-muted-foreground group-hover:bg-white/10"
-          )}>
+          <div
+            className={cn(
+              "p-3 rounded-xl transition-colors duration-300",
+              isExpanded
+                ? "bg-primary/20 text-primary"
+                : "bg-white/5 text-muted-foreground group-hover:bg-white/10",
+            )}
+          >
             <Fingerprint className="h-6 w-6" />
           </div>
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <h4 className="font-bold text-lg tracking-tight">
-                {displayType}
-              </h4>
+              <h4 className="font-bold text-lg tracking-tight">{displayType}</h4>
               {types.length > 1 && (
                 <Badge variant="info" className="text-[10px] h-4 py-0 font-mono opacity-60">
                   +{types.length - 1} more
@@ -237,14 +273,18 @@ const CredentialCard = ({ vc, onDelete }: { vc: any; onDelete: (id: string) => P
         <div className="flex items-center justify-between md:justify-end gap-6 border-t md:border-t-0 pt-4 md:pt-0 border-white/5">
           <div className="flex items-center gap-4 text-xs text-muted-foreground/60">
             <div className="flex flex-col items-end">
-              <span className="uppercase text-[9px] font-bold tracking-widest opacity-40">Added</span>
+              <span className="uppercase text-[9px] font-bold tracking-widest opacity-40">
+                Added
+              </span>
               <span className="flex items-center gap-1 mt-0.5">
                 <Calendar className="h-3 w-3" />
                 {addedDate}
               </span>
             </div>
             <div className="flex flex-col items-end">
-              <span className="uppercase text-[9px] font-bold tracking-widest opacity-40">Expires</span>
+              <span className="uppercase text-[9px] font-bold tracking-widest opacity-40">
+                Expires
+              </span>
               <span className="flex items-center gap-1 mt-0.5">
                 <ShieldCheck className="h-3 w-3" />
                 {validUntil}
@@ -258,10 +298,12 @@ const CredentialCard = ({ vc, onDelete }: { vc: any; onDelete: (id: string) => P
       </div>
 
       {/* Card Content Area (JSON) */}
-      <div className={cn(
-        "grid transition-all duration-500 ease-in-out",
-        isExpanded ? "grid-rows-[1fr] border-t border-white/10" : "grid-rows-[0fr]"
-      )}>
+      <div
+        className={cn(
+          "grid transition-all duration-500 ease-in-out",
+          isExpanded ? "grid-rows-[1fr] border-t border-white/10" : "grid-rows-[0fr]",
+        )}
+      >
         <div className="overflow-hidden">
           <div className="p-6 space-y-4">
             <div className="flex items-center justify-between">
@@ -270,19 +312,23 @@ const CredentialCard = ({ vc, onDelete }: { vc: any; onDelete: (id: string) => P
                 Raw Credential Document
               </span>
               <div className="flex items-center gap-2">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   className="h-7 text-[10px] font-mono hover:bg-destructive/10 hover:text-destructive"
                   onClick={handleDelete}
                   disabled={isDeleting}
                 >
-                  {isDeleting ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Trash2 className="h-3 w-3 mr-1" />}
+                  {isDeleting ? (
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-3 w-3 mr-1" />
+                  )}
                   Delete
                 </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   className="h-7 text-[10px] font-mono hover:bg-primary/10 hover:text-primary"
                   onClick={(e) => {
                     e.stopPropagation();

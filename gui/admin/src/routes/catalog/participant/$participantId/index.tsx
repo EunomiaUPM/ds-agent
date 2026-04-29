@@ -73,9 +73,9 @@ function RouteComponent() {
   const dataCatalog = catalogData?.status === 200 ? catalogData.data : undefined;
 
   if (!catalog) return null;
-  { console.log(dataCatalog, "data catalog") }
-  { console.log(catalog, "catalog ") }
-  { console.log(catalog?.response, "catalog response in participant") }
+  // { console.log(dataCatalog, "data catalog") }
+  // { console.log(catalog, "catalog ") }
+  // { console.log(catalog?.response, "catalog response in participant") }
   { console.log(catalog?.response?.dataset, " datasets in participant") }
   { console.log(catalog?.response?.dataset?.map((d: any) => d["@id"]), "catalog datasets ids in participant") }
 

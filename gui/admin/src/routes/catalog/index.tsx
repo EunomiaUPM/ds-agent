@@ -34,6 +34,15 @@ const otherParticipant = Array.isArray(participants?.data)
     )
   : undefined;
 
+  // List of other participants (for when we have more than one other participant)
+  // we filter out the participant "myself"
+
+const otherParticipants = Array.isArray(participants?.data)
+  ? participants.data.filter(
+      (p) => !p.is_me && p.participant_type === "Agent"
+    )
+  : undefined;
+
 const otherParticipantSlug =
   otherParticipant?.participant_slug?.toString() || "Unknown Participant";
 
@@ -56,8 +65,9 @@ const otherParticipantId =
 
   if (!catalog) return null;
 
-  console.log(mainCatalog, "main catalog in catalog route");
-  console.log(catalog, "catalog in catalog route"); 
+  console.log(otherParticipants, "other participants data in catalog route");
+  console.log(otherParticipant, "other participant data in catalog route");
+  console.log(catalog, "catalog data in catalog route");
 
 
 if (isPending) {
@@ -148,13 +158,22 @@ if (isPending) {
       {/* <PageSection title="Catalogs from other participants"> */}
         <div className="h-4" />
         <div className="grid grid-cols-3 gap-5">
-        <CatalogItem 
+          {(Array.isArray(otherParticipants) ? otherParticipants?.map((p) => (
+         <CatalogItem 
+          date={catalog?.response?.issued}
+          datasetNumber={catalog?.response?.dataset?.length}
+          organizationName={p.participant_slug}
+          id={p.participant_id}
+          title={null}
+       />
+          )) : null)}
+        {/* <CatalogItem 
           date={catalog?.response?.issued}
           datasetNumber={catalog?.response?.dataset?.length}
           organizationName={otherParticipantSlug}
           id={otherParticipantId}
           title={null}
-       />
+       /> */}
         <CatalogItem 
           date={catalog?.response?.issued}
           datasetNumber={17}

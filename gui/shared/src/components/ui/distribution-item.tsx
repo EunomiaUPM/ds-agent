@@ -27,7 +27,7 @@ const DistributionItem = ({ title, ownDataset, description, date, prevRoute, dis
                             }}
                         >
                             <span className="underline-offset-2 hover:underline flex gap-2">
-                                Connector title <ExternalLink className="h-4 w-4" />
+                                Connector Distribution <ExternalLink className="h-4 w-4" />
                             </span>
 
                         </Link>
@@ -45,7 +45,7 @@ const DistributionItem = ({ title, ownDataset, description, date, prevRoute, dis
                                 dataserviceId: dataserviceId!,
                             }}
                         >
-                            <span className="underline-offset-2 hover:underline flex gap-2">Dataservice title <ExternalLink className="h-4 w-4" /></span>
+                            <span className="underline-offset-2 hover:underline flex gap-2">Dataservice <ExternalLink className="h-4 w-4" /></span>
                         </Link>
                     </div>
                 </div>

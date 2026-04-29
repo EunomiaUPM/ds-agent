@@ -148,7 +148,7 @@ const RouteComponent = () => {
       <div className="grid grid-cols-3 gap-5">
         {Array.isArray(otherParticipants)
           ? otherParticipants?.map((p) => (
-            <CatalogItem
+              <CatalogItem
                 date={catalog?.response?.issued ?? ""}
                 datasetNumber={catalog?.response?.dataset?.length ?? 0}
                 organizationName={p.participant_slug ?? "Unknown"}

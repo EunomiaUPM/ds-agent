@@ -154,7 +154,9 @@ function AuthorityRequestsPage() {
                 </Button>
               ),
               cell: (a: any) => (
-                <Badge className={`border ${getStatusColor(a.status || "")}`}>{a.status || "-"}</Badge>
+                <Badge className={`border ${getStatusColor(a.status || "")}`}>
+                  {a.status || "-"}
+                </Badge>
               ),
             },
             {

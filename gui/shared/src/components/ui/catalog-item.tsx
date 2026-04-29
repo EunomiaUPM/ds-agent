@@ -11,12 +11,12 @@ interface CatalogItemProps {
   title?: string;
 }
 
-const CatalogItem: React.FC<CatalogItemProps> = ({ 
-  date, 
-  datasetNumber, 
-  organizationName, 
-  id, 
-  title 
+const CatalogItem: React.FC<CatalogItemProps> = ({
+  date,
+  datasetNumber,
+  organizationName,
+  id,
+  title,
 }) => {
   const conditionalCatalogClasses =
     id === null ? "opacity-65 grayscale cursor-not-allowed" : "cursor-pointer";

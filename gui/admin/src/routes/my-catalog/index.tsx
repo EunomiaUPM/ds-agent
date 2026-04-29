@@ -1,125 +1,124 @@
-import {createFileRoute} from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import Heading from "shared/src/components/ui/heading";
 import CatalogItem from "shared/src/components/ui/catalog-item";
 import DatasetItem from "shared/src/components/ui/dataset-item";
 import DistributionItem from "shared/src/components/ui/distribution-item";
-import {Separator} from "shared/src/components/ui/separator";
-import {PageLayout} from "shared/src/components/layout/PageLayout";
-import {PageHeader} from "shared/src/components/layout/PageHeader";
-import {PageSection} from "shared/src/components/layout/PageSection";
-import {Skeleton} from "shared/src/components/ui/skeleton";
+import { Separator } from "shared/src/components/ui/separator";
+import { PageLayout } from "shared/src/components/layout/PageLayout";
+import { PageHeader } from "shared/src/components/layout/PageHeader";
+import { PageSection } from "shared/src/components/layout/PageSection";
+import { Skeleton } from "shared/src/components/ui/skeleton";
 
-import {useGetCatalogs, useGetMainCatalogs} from "shared/data/orval/catalogs/catalogs";
-import {useGetAllParticipants} from "shared/data/orval/participants/participants";
-import {useRpcSetupCatalogRequest} from "shared/src/data/orval/catalog-rp-c/catalog-rp-c";
-import {useEffect} from "react";
-import {formatUrn} from "shared/src/lib/utils";
-import {DataTable} from "shared/src/components/DataTable";
-import {FormatDate} from "shared/src/components/ui/format-date";
-import {Badge} from "shared/src/components/ui/badge";
-import {Link} from "@tanstack/react-router";
-import {Button} from "shared/src/components/ui/button.tsx";
-import {ArrowRight} from "lucide-react";
+import { useGetCatalogs, useGetMainCatalogs } from "shared/data/orval/catalogs/catalogs";
+import { useGetAllParticipants } from "shared/data/orval/participants/participants";
+import { useRpcSetupCatalogRequest } from "shared/src/data/orval/catalog-rp-c/catalog-rp-c";
+import { useEffect } from "react";
+import { formatUrn } from "shared/src/lib/utils";
+import { DataTable } from "shared/src/components/DataTable";
+import { FormatDate } from "shared/src/components/ui/format-date";
+import { Badge } from "shared/src/components/ui/badge";
+import { Link } from "@tanstack/react-router";
+import { Button } from "shared/src/components/ui/button.tsx";
+import { ArrowRight } from "lucide-react";
 
 export const Route = createFileRoute("/my-catalog/")({
-    component: RouteComponent,
+  component: RouteComponent,
 });
 
 function RouteComponent() {
-    const {data: mainCatalogData} = useGetMainCatalogs();
-    //const {data: catalogs} = useGetCatalogs();
-    const {data: participants} = useGetAllParticipants();
-    //const {mutate, data, isPending, error} = useRpcSetupCatalogRequest();
-    const mainCatalog = mainCatalogData?.status === 200 ? mainCatalogData.data : undefined;
+  const { data: mainCatalogData } = useGetMainCatalogs();
+  //const {data: catalogs} = useGetCatalogs();
+  const { data: participants } = useGetAllParticipants();
+  //const {mutate, data, isPending, error} = useRpcSetupCatalogRequest();
+  const mainCatalog = mainCatalogData?.status === 200 ? mainCatalogData.data : undefined;
 
-    const myAgent = Array.isArray(participants?.data)
-        ? participants.data.find((p) => p.is_me && p.participant_type === "Agent")
-        : undefined;
+  const myAgent = Array.isArray(participants?.data)
+    ? participants.data.find((p) => p.is_me && p.participant_type === "Agent")
+    : undefined;
 
-    const myAgentId = myAgent?.participant_id;
+  const myAgentId = myAgent?.participant_id;
 
+  // useEffect(() => {
+  //     if (!myAgentId) return;
+  //     mutate({
+  //         data: {
+  //             associatedAgentPeer: myAgentId,
+  //             filter: [],
+  //             noCache: true,
+  //         },
+  //     });
+  // }, [myAgentId, mutate]);
+  // if (!myAgentId) return null;
+  // const catalog = data?.status === 200 ? data.data : undefined;
+  //
+  // if (!catalog) return null;
+  //
+  // if (isPending) {
+  //     return (
+  //         <PageLayout>
+  //             <div>Loading...</div>
+  //         </PageLayout>
+  //     );
+  // }
+  // if (error) {
+  //     return (
+  //         <div className="flex items-center justify-center h-full text-red-500">
+  //             Error loading catalog: {error.message}
+  //         </div>
+  //     );
+  // }
 
-    // useEffect(() => {
-    //     if (!myAgentId) return;
-    //     mutate({
-    //         data: {
-    //             associatedAgentPeer: myAgentId,
-    //             filter: [],
-    //             noCache: true,
-    //         },
-    //     });
-    // }, [myAgentId, mutate]);
-    // if (!myAgentId) return null;
-    // const catalog = data?.status === 200 ? data.data : undefined;
-    //
-    // if (!catalog) return null;
-    //
-    // if (isPending) {
-    //     return (
-    //         <PageLayout>
-    //             <div>Loading...</div>
-    //         </PageLayout>
-    //     );
-    // }
-    // if (error) {
-    //     return (
-    //         <div className="flex items-center justify-center h-full text-red-500">
-    //             Error loading catalog: {error.message}
-    //         </div>
-    //     );
-    // }
-
-    return (
-        <div>
-            <Heading level="h2" className="mb-4">
-                My Catalog
-            </Heading>
-            {/* <Separator orientation='vertical'></Separator> */}
-            <PageSection title="My catalog">
-                <DataTable
-                    className="text-sm"
-                    data={[{...mainCatalog}]}
-                    keyExtractor={(c) => c.id!}
-                    columns={[
-                        {
-                            header: "Title",
-                            accessorKey: "dctTitle",
-                            cell: (c) => <p className="text-18">{c.dctTitle}</p>,
-                        },
-                        {
-                            header: "Created at",
-                            cell: (c) => <FormatDate date={c.dctIssued}/>,
-                        },
-                        {
-                            header: "Catalog ID",
-                            cell: (c) => <Badge variant="info">{formatUrn(c.id)}</Badge>,
-                        },
-                        {
-                            header: "Provider ID",
-                            cell: (c) => <Badge variant="info">{formatUrn(c.dspaceParticipantId)}</Badge>,
-                        },
-                        {
-                            header: "Link",
-                            cell: (c) => (
-                                <Link to="/catalog/$catalogId" params={{catalogId: c.id}}>
-                                    <Button variant={"link"}>
-                                        See catalog
-                                        <ArrowRight/>
-                                    </Button>
-                                </Link>
-                            ),
-                        },
-                    ]}
-                />
-            </PageSection>
-            <div className="h-5"></div>
-            <div className="grid grid-cols-3 gap-3">
-                {/* <CatalogItem ></CatalogItem>
+  return (
+    <div>
+      <Heading level="h2" className="mb-4">
+        My Catalog
+      </Heading>
+      {/* <Separator orientation='vertical'></Separator> */}
+      <PageSection title="My catalog">
+        <DataTable
+          className="text-sm"
+          data={[{ ...mainCatalog }]}
+          keyExtractor={(c) => c.id!}
+          columns={[
+            {
+              header: "Title",
+              accessorKey: "dctTitle",
+              cell: (c) => <p className="text-18">{c.dctTitle}</p>,
+            },
+            {
+              header: "Created at",
+              cell: (c) => <FormatDate date={c.dctIssued} />,
+            },
+            {
+              header: "Catalog ID",
+              cell: (c) => <Badge variant="info">{formatUrn(c.id)}</Badge>,
+            },
+            {
+              header: "Provider ID",
+              cell: (c) => <Badge variant="info">{formatUrn(c.dspaceParticipantId)}</Badge>,
+            },
+            {
+              header: "Link",
+              cell: (c) => (
+                <Link to="/catalog/$catalogId" params={{ catalogId: c.id }}>
+                  <Button variant={"link"}>
+                    See catalog
+                    <ArrowRight />
+                  </Button>
+                </Link>
+              ),
+            },
+          ]}
+        />
+      </PageSection>
+      <div className="h-5"></div>
+      <div className="grid grid-cols-3 gap-3">
+        {/* <CatalogItem ></CatalogItem>
                 <CatalogItem></CatalogItem>
                 <CatalogItem></CatalogItem>
                 <CatalogItem></CatalogItem> */}
-            </div>
-            {/* <div className="wrapper opacity-0">
+      </div>
+      {/* <div className="wrapper opacity-0">
                  <div className="h-5"></div>
                 <div className="card-organization-container flex-col bg-brand-sky/15 border rounded-md border-white/20 flex flex-col px-3 pt-2 pb-3 max-w-[250px]">
                     <p className="text-xs uppercase">Organization</p>
@@ -151,6 +150,6 @@ function RouteComponent() {
                     <DistributionItem />
                 </div>
             </div> */}
-        </div>
-    );
+    </div>
+  );
 }

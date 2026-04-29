@@ -17,14 +17,14 @@ interface DatasetItemProps {
   dataset: any;
 }
 
-const DatasetItem: React.FC<DatasetItemProps> = ({ 
-  date, 
-  title, 
-  description, 
-  prevRoute, 
-  datasetId, 
-  ownDataset, 
-  dataset 
+const DatasetItem: React.FC<DatasetItemProps> = ({
+  date,
+  title,
+  description,
+  prevRoute,
+  datasetId,
+  ownDataset,
+  dataset,
 }) => {
   //for own catalog
   const { data: distributionsData } = useGetDistributionsByDatasetId(datasetId);
@@ -50,7 +50,7 @@ const DatasetItem: React.FC<DatasetItemProps> = ({
   const toggleDdatasetDetails = () => {
     setShowMore((prevState) => !prevState);
   };
-  
+
   return (
     <div className="h-full dataset-item-container bg-background-200/15 hover:bg-background-200/40 border rounded-md border-white/10 flex flex-col p-3 gap-1">
       <Link
@@ -80,7 +80,11 @@ const DatasetItem: React.FC<DatasetItemProps> = ({
             <span>{policies.length} policies </span>
             {policies.length > 0 &&
               policies.map((p: any, idx: number) => (
-                <Badge key={idx} variant="detail" className={"text-2xs " + (showMore ? `flex` : `hidden`)}>
+                <Badge
+                  key={idx}
+                  variant="detail"
+                  className={"text-2xs " + (showMore ? `flex` : `hidden`)}
+                >
                   {p.description ? p.description : "Policy description"}
                 </Badge>
               ))}
@@ -89,7 +93,11 @@ const DatasetItem: React.FC<DatasetItemProps> = ({
             <span>{distributions.length} distributions </span>
             {distributions.length > 0 &&
               distributions.map((d: any, idx: number) => (
-                <Badge key={idx} variant="detail" className={"text-2xs " + (showMore ? `flex` : `hidden`)}>
+                <Badge
+                  key={idx}
+                  variant="detail"
+                  className={"text-2xs " + (showMore ? `flex` : `hidden`)}
+                >
                   {d.dctTitle ? d.dctTitle : d.title ? d.title : "Distribution title"}
                 </Badge>
               ))}

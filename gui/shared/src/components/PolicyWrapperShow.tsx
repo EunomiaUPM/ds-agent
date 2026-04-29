@@ -160,34 +160,30 @@ export const PolicyWrapperShow = ({
         </div>
 
         {/* Policy metadata */}
-        <InfoList
-          className="w-full mb-3"
-          items={[
-            { label: "Policy Target", value: entityType || "Offer" },
-            {
-              label: "Target",
-              value: entity ? formatUrn(entity) : "",
-            },
-            ...(description
-              ? [
-                  {
-                    label: "Description",
-                    value: {
-                      type: "string",
-                      content: description,
-                    },
-                  },
-                ]
-              : []),
-          ]}
-        />
+        {/* <InfoList
+                    className="w-full mb-3"
+                    items={[
+                        { label: "Policy Target", value: entityType || "Offer" },
+                        {
+                            label: "Target",
+                            value: entity ? formatUrn(entity) : "",
+                        },
+                        ...(description ? [{
+                            label: "Description", value: {
+                                type: "string",
+                                content: description
+                            }
+                        }] : []),
+                    ]}
+                /> */}
+        <p className="text-sm mb-4"> {description ? description : "Policy Description"} </p>
 
         {/* ODRL Content section */}
         {showOfferHidden ? (
           <Accordion type="single" collapsible className="w-full">
             <AccordionItem value="odrl-content" className="border border-white/10 rounded-md">
               <AccordionTrigger className="px-3 text-xs text-muted-foreground/70 uppercase tracking-wider">
-                ODRL Content
+                Permissions, Obligations & Prohibitions
               </AccordionTrigger>
               <AccordionContent>
                 <div className="flex flex-col gap-2 w-full">
@@ -210,7 +206,7 @@ export const PolicyWrapperShow = ({
         ) : (
           <div className="w-full space-y-2">
             <Heading level="h6" className="text-muted-foreground/70 mb-1">
-              ODRL Content
+              Permissions, Obligations & Prohibitions
             </Heading>
             <div className="flex flex-col gap-2 w-full">
               <PolicyComponent
@@ -254,7 +250,7 @@ export const PolicyWrapperShow = ({
             <Dialog>
               <DialogTrigger asChild>
                 <Button size="sm" variant="default" className="w-full sm:w-auto">
-                  Offer Access
+                  Offer Access to dataset
                 </Button>
               </DialogTrigger>
               <ContractNegotiationNewOfferDialog

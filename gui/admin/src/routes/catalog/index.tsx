@@ -27,53 +27,46 @@ const RouteComponent = () => {
 
   // For fetching catalogs from other participants
   // This is only useful for testing with one participant I think
-  // 1. Get the participant of the other participant (not me) && with participant type Agent
-  const otherParticipantForId = Array.isArray(participants?.data)
-    ? participants.data.filter((p) => !p.is_me && p.participant_type === "Agent")
-    : [];
 
-  // 2. Get the participant Id of this other participant
-  const { participantId } =
-    otherParticipantForId.map((p) => ({ participantId: p.participant_id }))[0] || {};
-
-  // No sé si este paso es necesario
-  const participant = Array.isArray(participants?.data)
-    ? participants.data.find((p) => p.participant_id === participantId)
+  const otherParticipant = Array.isArray(participants?.data)
+    ? participants.data.find((p) => !p.is_me && p.participant_type === "Agent")
     : undefined;
 
-  // 3. Get the participant slug and turn to string
-  const otherParticipantSlug = participant?.participant_slug?.toString() || "Unknown Participant";
+  // List of other participants (for when we have more than one other participant)
+  // we filter out the participant "myself"
 
-  // 4. Get participant id for URL
-  const otherParticipantId = participant?.participant_id || "Unknown Participant ID";
+  const otherParticipants = Array.isArray(participants?.data)
+    ? participants.data.filter((p) => !p.is_me && p.participant_type === "Agent")
+    : undefined;
 
-  console.log(otherParticipantForId, "otherParticipantForId. 11");
-  console.log(participant, "participant.  22");
-  console.log(otherParticipantSlug, "otherParticipantSlug");
+  const otherParticipantSlug =
+    otherParticipant?.participant_slug?.toString() || "Unknown Participant";
 
-  console.log(catalogs, "catalogs");
+  const otherParticipantId = otherParticipant?.participant_id || "Unknown Participant ID";
 
   const { mutate, data, isPending, error } = useRpcSetupCatalogRequest();
   useEffect(() => {
     mutate({
       data: {
-        associatedAgentPeer: participantId,
+        associatedAgentPeer: otherParticipantId,
         filter: [],
         noCache: true,
       },
     });
-  }, [participantId, mutate]);
+  }, [otherParticipantId, mutate]);
+
   const catalog = data?.status === 200 ? data.data : undefined;
 
-  {
-    console.log(catalog, "others catalogs");
-  }
   if (!catalog) return null;
+
+  console.log(otherParticipants, "other participants data in catalog route");
+  console.log(otherParticipant, "other participant data in catalog route");
+  console.log(catalog, "catalog data in catalog route");
 
   if (isPending) {
     return (
       <PageLayout>
-        <PageHeader title="Transfer Process" badge={<Skeleton className="h-8 w-48" />} />
+        <PageHeader title="Participant Catalog" badge={<Skeleton className="h-8 w-48" />} />
         <div>Loading...</div>
       </PageLayout>
     );
@@ -89,8 +82,8 @@ const RouteComponent = () => {
   if (!mainCatalog?.data || mainCatalog.status !== 200) return null;
   return (
     <PageLayout>
-      <div className="bg-violet-900 flex justify-center items-center h-48">
-        <Heading level="h2">Browse catalogs from your participants' connections</Heading>
+      <div className="bg-violet-700/40 flex justify-center items-center h-48">
+        <Heading level="h2">Browse catalogs from your connections</Heading>
       </div>
 
       {/* <InfoGrid>
@@ -105,10 +98,7 @@ const RouteComponent = () => {
               { label: "Catalog homepage", value: mainCatalog.data.foafHomePage },
               {
                 label: "Catalog creation date",
-                value: {
-                  type: "custom",
-                  content: <FormatDate date={mainCatalog.data.dctIssued} />,
-                },
+                value: { type: "custom", content: <FormatDate date={mainCatalog.data.dctIssued} /> },
               },
             ]}
           />
@@ -155,56 +145,82 @@ const RouteComponent = () => {
 
       {/* <PageSection title="Catalogs from other participants"> */}
       <div className="h-4" />
-      <CatalogItem
-        date={catalog?.response?.issued}
-        datasetNumber={catalog?.response?.dataset?.length}
-        organizationName={otherParticipantSlug}
-        id={otherParticipantId}
-      />
-
+      <div className="grid grid-cols-3 gap-5">
+        {Array.isArray(otherParticipants)
+          ? otherParticipants?.map((p) => (
+            <CatalogItem
+                date={catalog?.response?.issued ?? ""}
+                datasetNumber={catalog?.response?.dataset?.length ?? 0}
+                organizationName={p.participant_slug ?? "Unknown"}
+                id={p.participant_id ?? null}
+              />
+            ))
+          : null}
+        {/* <CatalogItem 
+          date={catalog?.response?.issued}
+          datasetNumber={catalog?.response?.dataset?.length}
+          organizationName={otherParticipantSlug}
+          id={otherParticipantId}
+          title={null}
+       /> */}
+        <CatalogItem
+          date={catalog?.response?.issued ?? ""}
+          datasetNumber={17}
+          organizationName={"Another participant"}
+          id={null}
+          title={"Meteorology Stations in Madrid Catalog"}
+        />
+        <CatalogItem
+          date={catalog?.response?.issued ?? ""}
+          datasetNumber={23}
+          organizationName={"Another participant"}
+          id={null}
+          title={"Parking Ocupation in Ávila Catalog"}
+        />
+        <CatalogItem
+          date={catalog?.response?.issued ?? ""}
+          datasetNumber={31}
+          organizationName={"Another participant"}
+          id={null}
+          title={"Population Growth in Spain 2026 Catalog"}
+        />
+      </div>
       <div className="h-4" />
 
-      <DataTable
-        className="text-sm opacity-20"
-        data={
-          Array.isArray(participants?.data)
-            ? participants.data.filter((p) => !p.is_me && p.participant_type === "Agent")
-            : []
-        }
-        keyExtractor={(c) => c.participant_id!}
-        columns={[
-          {
-            header: "Participant ID",
-            cell: (p) => <Badge variant={"info"}>{formatUrn(p.participant_id)}</Badge>,
-          },
-          {
-            header: "Participant Type",
-            cell: (p) => (
-              <Badge variant={"role"} dsrole={p.participant_type as BadgeRole}>
-                {p.participant_type}
-              </Badge>
-            ),
-          },
-          {
-            header: "Base URL",
-            cell: (p) => <Badge variant={"info"}>{p.base_url}</Badge>,
-          },
-          {
-            header: "Link",
-            cell: (p) => (
-              <Link
-                to="/catalog/participant/$participantId"
-                params={{ participantId: p.participant_id }}
-              >
-                <Button variant="link">
-                  Fetch catalog
-                  <ArrowRight />
-                </Button>
-              </Link>
-            ),
-          },
-        ]}
-      />
+      {/* <DataTable
+          className="text-sm opacity-20"
+          data={Array.isArray(participants?.data) ? participants.data.filter(p => !p.is_me && p.participant_type === "Agent") : []}
+          keyExtractor={(c) => c.participant_id!}
+          columns={[
+            {
+              header: "Participant ID",
+              cell: (p) => <Badge variant={"info"}>{formatUrn(p.participant_id)}</Badge>,
+            },
+            {
+              header: "Participant Type",
+              cell: (p) => (
+                <Badge variant={"role"} dsrole={p.participant_type as BadgeRole}>
+                  {p.participant_type}
+                </Badge>
+              ),
+            },
+            {
+              header: "Base URL",
+              cell: (p) => <Badge variant={"info"}>{p.base_url}</Badge>,
+            },
+            {
+              header: "Link",
+              cell: (p) => (
+                <Link to="/catalog/participant/$participantId" params={{ participantId: p.participant_id }}>
+                  <Button variant="link">
+                    Fetch catalog
+                    <ArrowRight />
+                  </Button>
+                </Link>
+              ),
+            },
+          ]}
+        /> */}
       {/* </PageSection> */}
     </PageLayout>
   );

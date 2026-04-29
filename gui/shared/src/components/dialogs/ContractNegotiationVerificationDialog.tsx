@@ -66,7 +66,13 @@ export const ContractNegotiationVerificationDialog = ({
       afterInfoContent={
         <div className="pt-4">
           <PolicyWrapperShow
-            policy={process.agreement?.agreementContent || { permission: [], prohibition: [], obligation: [] }}
+            policy={
+              process.agreement?.agreementContent || {
+                permission: [],
+                prohibition: [],
+                obligation: [],
+              }
+            }
             datasetId={process.identifiers?.datasetId}
             catalogId={process.identifiers?.catalogId}
           />

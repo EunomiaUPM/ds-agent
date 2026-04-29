@@ -46,7 +46,6 @@ const features = [
     description:
       "Self-Sovereign Identity layer. Issue credentials, manage wallets, and control access through verifiable identity.",
   },
-
 ];
 
 const Index = () => {
@@ -54,22 +53,17 @@ const Index = () => {
     <div className="flex flex-1 flex-col gap-4 p-8 pt-6 overflow-hidden items-start justify-start w-full h-full">
       <div className="p-6 max-w-3xl">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight mb-2">
-            Welcome to Eunomia DS-Agent
-          </h1>
+          <h1 className="text-3xl font-bold tracking-tight mb-2">Welcome to Eunomia DS-Agent</h1>
           <p className="text-muted-foreground text-base leading-relaxed">
-            Eunomia DS-Agent is a <strong>Dataspace Protocol</strong> administration
-            console. It gives operators full visibility and control over the{" "}
-            <strong>catalog</strong>, <strong>contract negotiations</strong>,{" "}
-            <strong>agreements</strong>, and <strong>data transfers</strong>{" "}
-            that flow through the dataspace — alongside identity management
-            powered by <strong>Self-Sovereign Identity (SSI)</strong>.
+            Eunomia DS-Agent is a <strong>Dataspace Protocol</strong> administration console. It
+            gives operators full visibility and control over the <strong>catalog</strong>,{" "}
+            <strong>contract negotiations</strong>, <strong>agreements</strong>, and{" "}
+            <strong>data transfers</strong> that flow through the dataspace — alongside identity
+            management powered by <strong>Self-Sovereign Identity (SSI)</strong>.
           </p>
         </div>
 
-        <h2 className="text-lg font-semibold mb-4 text-foreground/80">
-          What you can do
-        </h2>
+        <h2 className="text-lg font-semibold mb-4 text-foreground/80">What you can do</h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {features.map(({ icon: Icon, title, description }) => (
@@ -82,9 +76,7 @@ const Index = () => {
               </div>
               <div>
                 <p className="font-semibold text-sm mb-1">{title}</p>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  {description}
-                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
               </div>
             </div>
           ))}

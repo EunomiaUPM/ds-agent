@@ -27,10 +27,18 @@ import { NegotiationProcessDto } from "shared/src/data/orval/model/negotiationPr
  * Maps a Contract Negotiation process to InfoList items for provider-facing dialogs.
  * Use this when the current user role is "provider".
  */
-export function mapCNProcessToInfoItemsForProvider(process: NegotiationProcessDto): InfoItemProps[] {
+export function mapCNProcessToInfoItemsForProvider(
+  process: NegotiationProcessDto,
+): InfoItemProps[] {
   const items: (InfoItemProps | undefined)[] = [
-    { label: "Provider ID", value: { type: "urn" as const, value: process.identifiers?.providerPid || "" } },
-    { label: "Consumer ID", value: { type: "urn" as const, value: process.identifiers?.consumerPid || "" } },
+    {
+      label: "Provider ID",
+      value: { type: "urn" as const, value: process.identifiers?.providerPid || "" },
+    },
+    {
+      label: "Consumer ID",
+      value: { type: "urn" as const, value: process.identifiers?.consumerPid || "" },
+    },
     {
       label: "Associated Consumer",
       value: { type: "urn" as const, value: process.associatedAgentPeer || "" },
@@ -49,10 +57,18 @@ export function mapCNProcessToInfoItemsForProvider(process: NegotiationProcessDt
  * Maps a Contract Negotiation process to InfoList items for consumer-facing dialogs.
  * Use this when the current user role is "consumer".
  */
-export function mapCNProcessToInfoItemsForConsumer(process: NegotiationProcessDto): InfoItemProps[] {
+export function mapCNProcessToInfoItemsForConsumer(
+  process: NegotiationProcessDto,
+): InfoItemProps[] {
   const items: (InfoItemProps | undefined)[] = [
-    { label: "Provider ID", value: { type: "urn" as const, value: process.identifiers?.providerPid || "" } },
-    { label: "Consumer ID", value: { type: "urn" as const, value: process.identifiers?.consumerPid || "" } },
+    {
+      label: "Provider ID",
+      value: { type: "urn" as const, value: process.identifiers?.providerPid || "" },
+    },
+    {
+      label: "Consumer ID",
+      value: { type: "urn" as const, value: process.identifiers?.consumerPid || "" },
+    },
     {
       label: "Associated Provider",
       value: { type: "urn" as const, value: process.associatedAgentPeer || "" },
@@ -125,8 +141,14 @@ export function mapTransferProcessToInfoItemsForProvider(
   process: TransferProcessDto,
 ): InfoItemProps[] {
   const items: (InfoItemProps | undefined)[] = [
-    { label: "Provider PID", value: { type: "urn" as const, value: process.identifiers?.providerPid || "" } },
-    { label: "Consumer PID", value: { type: "urn" as const, value: process.identifiers?.consumerPid || "" } },
+    {
+      label: "Provider PID",
+      value: { type: "urn" as const, value: process.identifiers?.providerPid || "" },
+    },
+    {
+      label: "Consumer PID",
+      value: { type: "urn" as const, value: process.identifiers?.consumerPid || "" },
+    },
     {
       label: "Associated Consumer",
       value: { type: "urn" as const, value: process.associatedAgentPeer || "" },
@@ -153,8 +175,14 @@ export function mapTransferProcessToInfoItemsForConsumer(
   process: TransferProcessDto,
 ): InfoItemProps[] {
   const items: (InfoItemProps | undefined)[] = [
-    { label: "Provider PID", value: { type: "urn" as const, value: process.identifiers?.providerPid || "" } },
-    { label: "Consumer ID", value: { type: "urn" as const, value: process.identifiers?.consumerPid || "" } },
+    {
+      label: "Provider PID",
+      value: { type: "urn" as const, value: process.identifiers?.providerPid || "" },
+    },
+    {
+      label: "Consumer ID",
+      value: { type: "urn" as const, value: process.identifiers?.consumerPid || "" },
+    },
     {
       label: "Associated Provider",
       value: { type: "urn" as const, value: process.associatedAgentPeer || "" },
@@ -177,9 +205,7 @@ export function mapTransferProcessToInfoItemsForConsumer(
 /**
  * Dynamic mapper that selects the appropriate Transfer process info items based on role.
  */
-export function mapTransferProcessToInfoItems(
-  process: TransferProcessDto,
-): InfoItemProps[] {
+export function mapTransferProcessToInfoItems(process: TransferProcessDto): InfoItemProps[] {
   const normalizedRole = (process.role || "consumer").toLowerCase() as "provider" | "consumer";
   return normalizedRole === "provider"
     ? mapTransferProcessToInfoItemsForProvider(process)

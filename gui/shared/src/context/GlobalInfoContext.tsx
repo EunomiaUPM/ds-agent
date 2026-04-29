@@ -52,7 +52,12 @@ export const GlobalInfoContextProvider = ({ children }: { children: ReactNode })
             setApiGatewayBase("/");
             setDspBase(data.gateway_base ?? "");
             setConfigRole(data.config_role ?? "");
-            console.log("Prod Config Loaded. Role:", data.config_role, "DSP Base:", data.gateway_base);
+            console.log(
+              "Prod Config Loaded. Role:",
+              data.config_role,
+              "DSP Base:",
+              data.gateway_base,
+            );
           } else {
             console.error("Error cargando config en prod:", res.status);
           }
@@ -72,7 +77,6 @@ export const GlobalInfoContextProvider = ({ children }: { children: ReactNode })
 
     initConfig();
   }, []);
-
 
   /**
    * Memoized context value

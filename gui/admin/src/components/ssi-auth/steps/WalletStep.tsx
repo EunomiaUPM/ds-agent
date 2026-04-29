@@ -1,4 +1,3 @@
-
 import { useContext } from "react";
 import { SSIAuthContext } from "shared/src/context/SSIAuthContext";
 import { WalletOnboardForm } from "../forms/WalletOnboardForm";
@@ -30,7 +29,6 @@ export function WalletStep() {
           )}
         </div>
       </div>
-      
     </div>
   );
 }

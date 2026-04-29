@@ -159,7 +159,9 @@ function RequestStep({ label, step }: { label: string; step: Record<string, unkn
             {Object.entries(rest).map(([k, v]) => (
               <div key={k} className="flex gap-2 font-mono text-xs">
                 <span className="text-muted-foreground shrink-0 min-w-[120px]">{k}</span>
-                <span className="break-all">{typeof v === "object" ? JSON.stringify(v) : String(v ?? "—")}</span>
+                <span className="break-all">
+                  {typeof v === "object" ? JSON.stringify(v) : String(v ?? "—")}
+                </span>
               </div>
             ))}
           </div>
@@ -179,19 +181,18 @@ function RouteComponent() {
   const { data: connectorData } = useGetConnectorInstanceByDistribution(distributionId);
 
   const distribution = distributionData?.status === 200 ? distributionData.data : undefined;
-  const connector = connectorData?.status === 200 ? (connectorData.data as ConnectorInstanceDto) : undefined;
-
-
+  const connector =
+    connectorData?.status === 200 ? (connectorData.data as ConnectorInstanceDto) : undefined;
 
   // Only to test styles with other parameters
   const altConnector = {
     authenticationConfig: {
-         type: "BEARER",
+      type: "BEARER",
       username: "example_user",
-   
+
       tokenType: "VAULT REF",
       path: "/path/to/token",
-      key: "bearer_token"
+      key: "bearer_token",
     },
     interaction: {
       mode: "PUSH",
@@ -214,27 +215,31 @@ function RouteComponent() {
         bodyTemplate: JSON.stringify({ datasetId: "example-dataset" }),
       },
     },
-  }
-
+  };
 
   const auth = connector?.authenticationConfig as { type?: string } | undefined;
 
   // the Record object accepts all the other attributes that aren't "type"
-  const altAuth = altConnector?.authenticationConfig as ({ type?: string } & Record<string, any>) | undefined;;
+  const altAuth = altConnector?.authenticationConfig as
+    | ({ type?: string } & Record<string, any>)
+    | undefined;
 
-  console.log(auth?.type,  "what is it")
+  console.log(auth?.type, "what is it");
 
-  const interaction = connector?.interaction as (PushLifecycle & Record<string, unknown>) | undefined;
-  const altInteraction = altConnector?.interaction as (PushLifecycle & Record<string, unknown>) | undefined;
+  const interaction = connector?.interaction as
+    | (PushLifecycle & Record<string, unknown>)
+    | undefined;
+  const altInteraction = altConnector?.interaction as
+    | (PushLifecycle & Record<string, unknown>)
+    | undefined;
 
   const isPush = interaction?.mode === "PUSH";
   const isPushAlt = altInteraction?.mode === "PUSH";
 
   console.log(distribution, "distribution in connector instance route");
   console.log(connector, "connector instance in connector instance route");
-  console.log(altAuth, "alt auth")
-    console.log(altAuth?.username, "alt auth")
-
+  console.log(altAuth, "alt auth");
+  console.log(altAuth?.username, "alt auth");
 
   return (
     <PageLayout>
@@ -306,7 +311,9 @@ function RouteComponent() {
                   />
                 </InfoGrid>
               </PageSection>
-            ) : (<p className="italic">Connector not found</p>)}
+            ) : (
+              <p className="italic">Connector not found</p>
+            )}
           </div>
         </div>
 
@@ -384,35 +391,36 @@ function RouteComponent() {
                 <Heading level="h6" className="text-base font-semibold mb-2">
                   Authentication
                 </Heading>
-                { auth.type === "NO_AUTH" && 
-                <InfoList
-                  items={[
-                    {
-                      label: "Type",
-                      value: {
-                        type: "custom",
-                        content: (
-
-                          <Badge variant="info" key={auth.type} className="text-yellow-300 border-yellow-500/40">
-                            {AUTH_LABELS[auth.type ?? ""] ?? auth.type ?? "None"}
-                          </Badge>
-                        )
+                {auth.type === "NO_AUTH" && (
+                  <InfoList
+                    items={[
+                      {
+                        label: "Type",
+                        value: {
+                          type: "custom",
+                          content: (
+                            <Badge
+                              variant="info"
+                              key={auth.type}
+                              className="text-yellow-300 border-yellow-500/40"
+                            >
+                              {AUTH_LABELS[auth.type ?? ""] ?? auth.type ?? "None"}
+                            </Badge>
+                          ),
+                        },
                       },
-                    },
-                  ]}           
-                />
-                }
-                
-
+                    ]}
+                  />
+                )}
               </>
             )}
-
           </div>
           <div className="grid-span-1  border-r border-white/10 p-4">
-
             {interaction && (
               <>
-                <Heading level="h6" className="text-base font-semibold mb-2">Interaction</Heading>
+                <Heading level="h6" className="text-base font-semibold mb-2">
+                  Interaction
+                </Heading>
                 <div className="flex items-center gap-2 mb-4">
                   <span className="text-xs text-muted-foreground">Mode</span>
                   <Badge
@@ -443,7 +451,12 @@ function RouteComponent() {
                   {!isPush && Boolean((interaction as Record<string, unknown>).dataAccess) && (
                     <RequestStep
                       label="Data Access"
-                      step={(interaction as Record<string, unknown>).dataAccess as Record<string, unknown>}
+                      step={
+                        (interaction as Record<string, unknown>).dataAccess as Record<
+                          string,
+                          unknown
+                        >
+                      }
                     />
                   )}
                 </div>
@@ -460,18 +473,14 @@ function RouteComponent() {
                   label: "Target Host",
                   value: {
                     type: "custom",
-                    content: (
-                      <p>api.example.com</p>
-                    )
+                    content: <p>api.example.com</p>,
                   },
                 },
                 {
                   label: "Target Port",
                   value: {
                     type: "custom",
-                    content: (
-                      <p>8080</p>
-                    )
+                    content: <p>8080</p>,
                   },
                 },
               ]}
@@ -481,13 +490,12 @@ function RouteComponent() {
       )}
       {altConnector && (
         <div className="bg-background-400/5 rounded-md border border-white/15  mt-6 grid grid-cols-3">
-            
           <div className="grid-span-1 border-r border-white/10 p-4">
             {altAuth && (
               <>
-                <Heading level="h6" className="text-base font-semibold">Authentication</Heading>
-
-            
+                <Heading level="h6" className="text-base font-semibold">
+                  Authentication
+                </Heading>
 
                 {/* Extra auth fields (e.g. username for basic, token hint, etc.) */}
                 {/* {Object.entries(altAuth)
@@ -500,76 +508,65 @@ function RouteComponent() {
                   ))} */}
               </>
             )}
-            { altAuth?.type === "BEARER" && (
-                  <>
-                  <InfoList
+            {altAuth?.type === "BEARER" && (
+              <>
+                <InfoList
                   items={[
                     {
                       label: "Type",
                       value: {
                         type: "custom",
                         content: (
-
-                          <Badge variant="info" key={altAuth.type} className="text-yellow-300 border-yellow-500/40">
+                          <Badge
+                            variant="info"
+                            key={altAuth.type}
+                            className="text-yellow-300 border-yellow-500/40"
+                          >
                             {AUTH_LABELS[altAuth.type ?? ""] ?? altAuth.type ?? "None"}
                           </Badge>
-                        )
+                        ),
                       },
                     },
-                     {
+                    {
                       label: "Token Type",
                       value: {
                         type: "custom",
-                        content: (
-                          <p>{altAuth.tokenType}</p>
-                        
-                        )
+                        content: <p>{altAuth.tokenType}</p>,
                       },
                     },
-                     {
+                    {
                       label: "Username",
                       value: {
                         type: "custom",
-                        content: (
-                          <p>{altAuth.username}</p>
-                        
-                        )
+                        content: <p>{altAuth.username}</p>,
                       },
                     },
-                     {
+                    {
                       label: "Path",
                       value: {
                         type: "custom",
-                        content: (
-                          <p>{altAuth.path}</p>
-                        
-                        )
+                        content: <p>{altAuth.path}</p>,
                       },
                     },
-                     {
+                    {
                       label: "Key",
                       value: {
                         type: "custom",
-                        content: (
-                          <p>{altAuth.key}</p>
-                        
-                        )
+                        content: <p>{altAuth.key}</p>,
                       },
                     },
-                  ]}           
+                  ]}
                 />
                 {/* Extra auth fields (e.g. username for basic, token hint, etc.) */}
-             
-                  </>
-                )}
-            
-
+              </>
+            )}
           </div>
           <div className="grid-span-1  border-r border-white/10 p-4">
-
             {altInteraction && (
               <>
-                <Heading level="h6" className="text-base font-semibold mb-2">Interaction</Heading>
+                <Heading level="h6" className="text-base font-semibold mb-2">
+                  Interaction
+                </Heading>
                 <div className="flex items-center gap-2 mb-4">
                   <span className="text-xs text-muted-foreground">Mode</span>
                   <Badge
@@ -594,39 +591,45 @@ function RouteComponent() {
                   {isPushAlt && (altInteraction as PushLifecycle).unsubscribe && (
                     <RequestStep
                       label="Unsubscribe"
-                      step={(altInteraction as PushLifecycle).unsubscribe as Record<string, unknown>}
+                      step={
+                        (altInteraction as PushLifecycle).unsubscribe as Record<string, unknown>
+                      }
                     />
                   )}
-                  {!isPushAlt && Boolean((altInteraction as Record<string, unknown>).dataAccess) && (
-                    <RequestStep
-                      label="Data Access"
-                      step={(altInteraction as Record<string, unknown>).dataAccess as Record<string, unknown>}
-                    />
-                  )}
+                  {!isPushAlt &&
+                    Boolean((altInteraction as Record<string, unknown>).dataAccess) && (
+                      <RequestStep
+                        label="Data Access"
+                        step={
+                          (altInteraction as Record<string, unknown>).dataAccess as Record<
+                            string,
+                            unknown
+                          >
+                        }
+                      />
+                    )}
                 </div>
               </>
             )}
           </div>
           <div className="grid-span-1 p-4">
-            <Heading level="h6" className="text-base font-semibold mb-2">Parameters</Heading>
+            <Heading level="h6" className="text-base font-semibold mb-2">
+              Parameters
+            </Heading>
             <InfoList
               items={[
                 {
                   label: "Target Host",
                   value: {
                     type: "custom",
-                    content: (
-                      <p>api.example.com</p>
-                    )
+                    content: <p>api.example.com</p>,
                   },
                 },
                 {
                   label: "Target Port",
                   value: {
                     type: "custom",
-                    content: (
-                      <p>8080</p>
-                    )
+                    content: <p>8080</p>,
                   },
                 },
               ]}
@@ -641,15 +644,11 @@ function RouteComponent() {
 /**
  * Route for displaying distribution connector details.
  */
-export const Route = createFileRoute(
-  "/catalog/$catalogId/distribution-connector/$distributionId",
-)({
+export const Route = createFileRoute("/catalog/$catalogId/distribution-connector/$distributionId")({
   component: RouteComponent,
   pendingComponent: () => <div>Loading...</div>,
   loader: async ({ context: { queryClient }, params: { distributionId } }) => {
-    await queryClient.ensureQueryData(
-      getGetDistributionByIdQueryOptions(distributionId),
-    );
+    await queryClient.ensureQueryData(getGetDistributionByIdQueryOptions(distributionId));
     return queryClient.ensureQueryData(
       getGetConnectorInstanceByDistributionQueryOptions(distributionId),
     );

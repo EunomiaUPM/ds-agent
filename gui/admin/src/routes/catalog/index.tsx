@@ -27,40 +27,34 @@ const RouteComponent = () => {
 
   // For fetching catalogs from other participants
   // This is only useful for testing with one participant I think
-  
-const otherParticipant = Array.isArray(participants?.data)
-  ? participants.data.find(
-      (p) => !p.is_me && p.participant_type === "Agent"
-    )
-  : undefined;
+
+  const otherParticipant = Array.isArray(participants?.data)
+    ? participants.data.find((p) => !p.is_me && p.participant_type === "Agent")
+    : undefined;
 
   // List of other participants (for when we have more than one other participant)
   // we filter out the participant "myself"
 
-const otherParticipants = Array.isArray(participants?.data)
-  ? participants.data.filter(
-      (p) => !p.is_me && p.participant_type === "Agent"
-    )
-  : undefined;
+  const otherParticipants = Array.isArray(participants?.data)
+    ? participants.data.filter((p) => !p.is_me && p.participant_type === "Agent")
+    : undefined;
 
-const otherParticipantSlug =
-  otherParticipant?.participant_slug?.toString() || "Unknown Participant";
+  const otherParticipantSlug =
+    otherParticipant?.participant_slug?.toString() || "Unknown Participant";
 
-const otherParticipantId =
-  otherParticipant?.participant_id || "Unknown Participant ID";
-
+  const otherParticipantId = otherParticipant?.participant_id || "Unknown Participant ID";
 
   const { mutate, data, isPending, error } = useRpcSetupCatalogRequest();
-    useEffect(() => {
-      mutate({
-        data: {
-          associatedAgentPeer: otherParticipantId,
-          filter: [],
-            noCache: true
-        },
-      });
-    }, [otherParticipantId, mutate]);
- 
+  useEffect(() => {
+    mutate({
+      data: {
+        associatedAgentPeer: otherParticipantId,
+        filter: [],
+        noCache: true,
+      },
+    });
+  }, [otherParticipantId, mutate]);
+
   const catalog = data?.status === 200 ? data.data : undefined;
 
   if (!catalog) return null;
@@ -69,14 +63,10 @@ const otherParticipantId =
   console.log(otherParticipant, "other participant data in catalog route");
   console.log(catalog, "catalog data in catalog route");
 
-
-if (isPending) {
+  if (isPending) {
     return (
       <PageLayout>
-        <PageHeader
-          title="Participant Catalog"
-          badge={<Skeleton className="h-8 w-48" />}
-        />
+        <PageHeader title="Participant Catalog" badge={<Skeleton className="h-8 w-48" />} />
         <div>Loading...</div>
       </PageLayout>
     );
@@ -88,16 +78,14 @@ if (isPending) {
       </div>
     );
   }
-  
+
   if (!mainCatalog?.data || mainCatalog.status !== 200) return null;
   return (
     <PageLayout>
-        <div className="bg-violet-700/40 flex justify-center items-center h-48">
-                <Heading level="h2">
-                    Browse catalogs from your connections
-                </Heading>
-            </div>
-    
+      <div className="bg-violet-700/40 flex justify-center items-center h-48">
+        <Heading level="h2">Browse catalogs from your connections</Heading>
+      </div>
+
       {/* <InfoGrid>
         <PageSection title="Main Catalog info: ">
           <InfoList
@@ -156,17 +144,19 @@ if (isPending) {
       </PageSection> */}
 
       {/* <PageSection title="Catalogs from other participants"> */}
-        <div className="h-4" />
-        <div className="grid grid-cols-3 gap-5">
-          {(Array.isArray(otherParticipants) ? otherParticipants?.map((p) => (
-         <CatalogItem 
-          date={catalog?.response?.issued}
-          datasetNumber={catalog?.response?.dataset?.length}
-          organizationName={p.participant_slug}
-          id={p.participant_id}
-          title={null}
-       />
-          )) : null)}
+      <div className="h-4" />
+      <div className="grid grid-cols-3 gap-5">
+        {Array.isArray(otherParticipants)
+          ? otherParticipants?.map((p) => (
+              <CatalogItem
+                date={catalog?.response?.issued}
+                datasetNumber={catalog?.response?.dataset?.length}
+                organizationName={p.participant_slug}
+                id={p.participant_id}
+                title={null}
+              />
+            ))
+          : null}
         {/* <CatalogItem 
           date={catalog?.response?.issued}
           datasetNumber={catalog?.response?.dataset?.length}
@@ -174,31 +164,31 @@ if (isPending) {
           id={otherParticipantId}
           title={null}
        /> */}
-        <CatalogItem 
+        <CatalogItem
           date={catalog?.response?.issued}
           datasetNumber={17}
           organizationName={"Another participant"}
           id={null}
           title={"Meteorology Stations in Madrid Catalog"}
-       />
-        <CatalogItem 
+        />
+        <CatalogItem
           date={catalog?.response?.issued}
           datasetNumber={23}
           organizationName={"Another participant"}
           id={null}
           title={"Parking Ocupation in Ávila Catalog"}
-       />
-        <CatalogItem 
+        />
+        <CatalogItem
           date={catalog?.response?.issued}
           datasetNumber={31}
           organizationName={"Another participant"}
           id={null}
           title={"Population Growth in Spain 2026 Catalog"}
-       />
-</div>
-          <div className="h-4" />
-    
-        {/* <DataTable
+        />
+      </div>
+      <div className="h-4" />
+
+      {/* <DataTable
           className="text-sm opacity-20"
           data={Array.isArray(participants?.data) ? participants.data.filter(p => !p.is_me && p.participant_type === "Agent") : []}
           keyExtractor={(c) => c.participant_id!}

@@ -35,11 +35,7 @@ export const Route = createFileRoute("/contract-negotiation/$cnProcess")({
   component: RouteComponent,
   notFoundComponent: NotFound,
   loader: async ({ context: { queryClient }, params: { cnProcess } }) => {
-    await queryClient.ensureQueryData(
-      getGetNegotiationProcessByIdQueryOptions(cnProcess),
-    );
-    return queryClient.ensureQueryData(
-      getGetNegotiationMessagesByProcessIdQueryOptions(cnProcess),
-    );
+    await queryClient.ensureQueryData(getGetNegotiationProcessByIdQueryOptions(cnProcess));
+    return queryClient.ensureQueryData(getGetNegotiationMessagesByProcessIdQueryOptions(cnProcess));
   },
 });

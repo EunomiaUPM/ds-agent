@@ -1,11 +1,10 @@
-
 import { useContext } from "react";
 import { Circle } from "lucide-react";
 import { SSIAuthContext } from "shared/src/context/SSIAuthContext";
 import { PeerConnectorForm } from "../forms/PeerConnectorForm";
 import { GrantRequestForm } from "../forms/GrantRequestForm";
 import { VPPresentationForm } from "../forms/VPPresentationForm";
-import {PeerConnectorFormForDemo} from "@/components/ssi-auth/forms/PeerConnectorFormForDemo.tsx";
+import { PeerConnectorFormForDemo } from "@/components/ssi-auth/forms/PeerConnectorFormForDemo.tsx";
 
 export function PeerStep() {
   const ssiAuthContext = useContext(SSIAuthContext);
@@ -28,9 +27,7 @@ export function PeerStep() {
                 {ssiAuthContext.tempPeer.did}
               </div>
             ) : (
-              <div className="text-sm text-muted-foreground italic">
-                Fetch peer DID to proceed.
-              </div>
+              <div className="text-sm text-muted-foreground italic">Fetch peer DID to proceed.</div>
             )}
           </div>
         </div>
@@ -43,9 +40,7 @@ export function PeerStep() {
 
         <div className="border rounded-lg p-4 space-y-4">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">
-              Step A: Request Authentication Grant
-            </span>
+            <span className="text-sm font-medium">Step A: Request Authentication Grant</span>
             <GrantRequestForm />
           </div>
 
@@ -59,9 +54,7 @@ export function PeerStep() {
               </div>
 
               <div className="flex items-center justify-between bg-secondary/20 p-4 rounded-lg">
-                <span className="text-sm font-medium">
-                  Step B: Present Verified Presentation
-                </span>
+                <span className="text-sm font-medium">Step B: Present Verified Presentation</span>
                 <VPPresentationForm />
               </div>
             </div>
@@ -73,8 +66,8 @@ export function PeerStep() {
               <div>
                 <h4 className="font-semibold">Authentication Successful!</h4>
                 <p className="text-sm">
-                  You can now proceed to Participant List, fetch the Peer Catalog,
-                  and start transfers.
+                  You can now proceed to Participant List, fetch the Peer Catalog, and start
+                  transfers.
                 </p>
               </div>
             </div>

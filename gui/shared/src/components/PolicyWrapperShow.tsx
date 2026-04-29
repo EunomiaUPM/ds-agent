@@ -35,7 +35,12 @@ import { Dialog, DialogTrigger } from "shared/src/components/ui/dialog";
 import { ContractNegotiationNewRequestDialog } from "./dialogs/ContractNegotiationNewRequestDialog";
 import { OdrlOffer, OdrlPolicyDto } from "../data/orval/model";
 import { ContractNegotiationNewOfferDialog } from "./dialogs/ContractNegotiationNewOfferDialog";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "shared/src/components/ui/accordion";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "shared/src/components/ui/accordion";
 
 // =============================================================================
 // TYPES
@@ -45,29 +50,29 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "sh
  * Props for the PolicyWrapperShow component.
  */
 export interface PolicyWrapperShowProps {
-    /** The ODRL policy offer to display */
-    policy: OdrlOffer | OdrlPolicyDto;
+  /** The ODRL policy offer to display */
+  policy: OdrlOffer | OdrlPolicyDto;
 
-    /** ID of the parent dataset (for actions) */
-    datasetId?: string;
+  /** ID of the parent dataset (for actions) */
+  datasetId?: string;
 
-    /** ID of the parent catalog (for actions) */
-    catalogId?: string;
+  /** ID of the parent catalog (for actions) */
+  catalogId?: string;
 
-    /** Name of the dataset (for display in dialogs) */
-    datasetName?: string;
+  /** Name of the dataset (for display in dialogs) */
+  datasetName?: string;
 
-    /** Whether to show the Request Access button (default: false) */
-    showRequestAccess?: boolean;
+  /** Whether to show the Request Access button (default: false) */
+  showRequestAccess?: boolean;
 
-    /** Whether to show the Offer Access button (default: false) */
-    showOfferAccess?: boolean;
+  /** Whether to show the Offer Access button (default: false) */
+  showOfferAccess?: boolean;
 
-    /** The participant ID of the provider (for negotiation request) */
-    participant?: string;
+  /** The participant ID of the provider (for negotiation request) */
+  participant?: string;
 
-    /** Whether to collapse the ODRL Content section inside an accordion (default: true) */
-    showOfferHidden?: boolean;
+  /** Whether to collapse the ODRL Content section inside an accordion (default: true) */
+  showOfferHidden?: boolean;
 }
 
 // =============================================================================
@@ -84,75 +89,78 @@ export interface PolicyWrapperShowProps {
  * @returns A styled policy display card
  */
 export const PolicyWrapperShow = ({
-    policy,
-    datasetId,
-    catalogId,
-    datasetName,
-    showRequestAccess = false,
-    showOfferAccess = false,
-    participant,
-    showOfferHidden = true,
+  policy,
+  datasetId,
+  catalogId,
+  datasetName,
+  showRequestAccess = false,
+  showOfferAccess = false,
+  participant,
+  showOfferHidden = true,
 }: PolicyWrapperShowProps) => {
-    const routerState = useRouterState();
+  const routerState = useRouterState();
 
-    // ---------------------------------------------------------------------------
-    // Computed Values
-    // ---------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // Computed Values
+  // ---------------------------------------------------------------------------
 
-    /** Whether we're viewing a dataset in the datahub catalog */
-    const isDatahubDatasetView =
-        routerState.location.pathname.includes("datahub-catalog") &&
-        routerState.location.pathname.includes("dataset");
+  /** Whether we're viewing a dataset in the datahub catalog */
+  const isDatahubDatasetView =
+    routerState.location.pathname.includes("datahub-catalog") &&
+    routerState.location.pathname.includes("dataset");
 
-    // @ts-ignore
-    const policyId = "id" in policy ? policy.id : policy["@id"];
-    const odrlOffer = "odrlOffer" in policy ? policy.odrlOffer : (policy as OdrlOffer);
-    const entityType = "entityType" in policy ? policy.entityType : (policy as any).entityType; // Fallback for flexibility
-    const entity = ("entity" in policy ? policy.entity : (policy as any).entity || (policy as any).target) ?? datasetId;
-    const description = (("description" in policy ? (policy as any).description : undefined) as string | undefined);
+  // @ts-ignore
+  const policyId = "id" in policy ? policy.id : policy["@id"];
+  const odrlOffer = "odrlOffer" in policy ? policy.odrlOffer : (policy as OdrlOffer);
+  const entityType = "entityType" in policy ? policy.entityType : (policy as any).entityType; // Fallback for flexibility
+  const entity =
+    ("entity" in policy ? policy.entity : (policy as any).entity || (policy as any).target) ??
+    datasetId;
+  const description = ("description" in policy ? (policy as any).description : undefined) as
+    | string
+    | undefined;
 
-    // ---------------------------------------------------------------------------
-    // Render
-    // ---------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // Render
+  // ---------------------------------------------------------------------------
 
+  return (
+    <div className="w-full">
+      <div className="flex flex-col items-start justify-start border border-white/10 bg-white/5 p-3 rounded-md">
+        {/* Header: Policy ID and actions */}
+        <div className="flex justify-between items-center w-full mb-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Policy ID
+            </span>
+            <Badge variant="info" className="font-mono text-[10px]">
+              {formatUrn(policyId || "")}
+            </Badge>
+          </div>
 
-    return (
-        <div className="w-full">
-            <div className="flex flex-col items-start justify-start border border-white/10 bg-white/5 p-3 rounded-md">
-                {/* Header: Policy ID and actions */}
-                <div className="flex justify-between items-center w-full mb-3">
-                    <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                            Policy ID
-                        </span>
-                        <Badge variant="info" className="font-mono text-[10px]">
-                            {formatUrn(policyId || "")}
-                        </Badge>
-                    </div>
+          {/* Provider action: Delete policy */}
+          {isDatahubDatasetView && (
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 text-muted-foreground hover:text-destructive transition-colors"
+                >
+                  <Trash className="h-4 w-4" />
+                </Button>
+              </DialogTrigger>
+              <BusinessRemovePolicyDialog
+                policy={policy as any} // Cast as any for now, or ensure compatibility
+                catalogId={catalogId}
+                datasetId={datasetId}
+              />
+            </Dialog>
+          )}
+        </div>
 
-                    {/* Provider action: Delete policy */}
-                    {isDatahubDatasetView && (
-                        <Dialog>
-                            <DialogTrigger asChild>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-6 w-6 text-muted-foreground hover:text-destructive transition-colors"
-                                >
-                                    <Trash className="h-4 w-4" />
-                                </Button>
-                            </DialogTrigger>
-                            <BusinessRemovePolicyDialog
-                                policy={policy as any} // Cast as any for now, or ensure compatibility
-                                catalogId={catalogId}
-                                datasetId={datasetId}
-                            />
-                        </Dialog>
-                    )}
-                </div>
-
-                {/* Policy metadata */}
-                {/* <InfoList
+        {/* Policy metadata */}
+        {/* <InfoList
                     className="w-full mb-3"
                     items={[
                         { label: "Policy Target", value: entityType || "Offer" },
@@ -167,93 +175,93 @@ export const PolicyWrapperShow = ({
                             }
                         }] : []),
                     ]}
-                /> */}  
-                <p className="text-sm mb-4"> {description ? description : "Policy Description"} </p>
+                /> */}
+        <p className="text-sm mb-4"> {description ? description : "Policy Description"} </p>
 
-                {/* ODRL Content section */}
-                {showOfferHidden ? (
-                    <Accordion type="single" collapsible className="w-full">
-                        <AccordionItem value="odrl-content" className="border border-white/10 rounded-md">
-                            <AccordionTrigger className="px-3 text-xs text-muted-foreground/70 uppercase tracking-wider">
-                                Permissions, Obligations & Prohibitions
-                            </AccordionTrigger>
-                            <AccordionContent>
-                                <div className="flex flex-col gap-2 w-full">
-                                    <PolicyComponent
-                                        policyItem={odrlOffer?.permission || (policy as any).permission}
-                                        variant="permission"
-                                    />
-                                    <PolicyComponent
-                                        policyItem={odrlOffer?.prohibition || (policy as any).prohibition}
-                                        variant="prohibition"
-                                    />
-                                    <PolicyComponent
-                                        policyItem={odrlOffer?.obligation || (policy as any).obligation}
-                                        variant="obligation"
-                                    />
-                                </div>
-                            </AccordionContent>
-                        </AccordionItem>
-                    </Accordion>
-                ) : (
-                    <div className="w-full space-y-2">
-                        <Heading level="h6" className="text-muted-foreground/70 mb-1">
-                                Permissions, Obligations & Prohibitions
-                        </Heading>
-                        <div className="flex flex-col gap-2 w-full">
-                            <PolicyComponent
-                                policyItem={odrlOffer?.permission || (policy as any).permission}
-                                variant="permission"
-                            />
-                            <PolicyComponent
-                                policyItem={odrlOffer?.prohibition || (policy as any).prohibition}
-                                variant="prohibition"
-                            />
-                            <PolicyComponent
-                                policyItem={odrlOffer?.obligation || (policy as any).obligation}
-                                variant="obligation"
-                            />
-                        </div>
-                    </div>
-                )}
-
-                {/* Consumer action: Request access */}
-                {showRequestAccess && odrlOffer && (
-                    <div className="mt-4 w-full flex justify-end">
-                        <Dialog>
-                            <DialogTrigger asChild>
-                                <Button size="sm" variant="default" className="w-full sm:w-auto">
-                                    Request Access
-                                </Button>
-                            </DialogTrigger>
-                            <ContractNegotiationNewRequestDialog
-                                policy={odrlOffer}
-                                catalogId={catalogId || ""}
-                                datasetId={datasetId || ""}
-                                participantId={participant || ""}
-                            />
-                        </Dialog>
-                    </div>
-                )}
-
-                {/* Consumer action: Request access */}
-                {showOfferAccess && odrlOffer && (
-                    <div className="mt-4 w-full flex justify-end">
-                        <Dialog>
-                            <DialogTrigger asChild>
-                                <Button size="sm" variant="default" className="w-full sm:w-auto">
-                                    Offer Access to dataset
-                                </Button>
-                            </DialogTrigger>
-                            <ContractNegotiationNewOfferDialog
-                                policy={policy as OdrlPolicyDto}
-                                catalogId={catalogId || ""}
-                                datasetId={datasetId || ""}
-                            />
-                        </Dialog>
-                    </div>
-                )}
+        {/* ODRL Content section */}
+        {showOfferHidden ? (
+          <Accordion type="single" collapsible className="w-full">
+            <AccordionItem value="odrl-content" className="border border-white/10 rounded-md">
+              <AccordionTrigger className="px-3 text-xs text-muted-foreground/70 uppercase tracking-wider">
+                Permissions, Obligations & Prohibitions
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="flex flex-col gap-2 w-full">
+                  <PolicyComponent
+                    policyItem={odrlOffer?.permission || (policy as any).permission}
+                    variant="permission"
+                  />
+                  <PolicyComponent
+                    policyItem={odrlOffer?.prohibition || (policy as any).prohibition}
+                    variant="prohibition"
+                  />
+                  <PolicyComponent
+                    policyItem={odrlOffer?.obligation || (policy as any).obligation}
+                    variant="obligation"
+                  />
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        ) : (
+          <div className="w-full space-y-2">
+            <Heading level="h6" className="text-muted-foreground/70 mb-1">
+              Permissions, Obligations & Prohibitions
+            </Heading>
+            <div className="flex flex-col gap-2 w-full">
+              <PolicyComponent
+                policyItem={odrlOffer?.permission || (policy as any).permission}
+                variant="permission"
+              />
+              <PolicyComponent
+                policyItem={odrlOffer?.prohibition || (policy as any).prohibition}
+                variant="prohibition"
+              />
+              <PolicyComponent
+                policyItem={odrlOffer?.obligation || (policy as any).obligation}
+                variant="obligation"
+              />
             </div>
-        </div>
-    );
+          </div>
+        )}
+
+        {/* Consumer action: Request access */}
+        {showRequestAccess && odrlOffer && (
+          <div className="mt-4 w-full flex justify-end">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="default" className="w-full sm:w-auto">
+                  Request Access
+                </Button>
+              </DialogTrigger>
+              <ContractNegotiationNewRequestDialog
+                policy={odrlOffer}
+                catalogId={catalogId || ""}
+                datasetId={datasetId || ""}
+                participantId={participant || ""}
+              />
+            </Dialog>
+          </div>
+        )}
+
+        {/* Consumer action: Request access */}
+        {showOfferAccess && odrlOffer && (
+          <div className="mt-4 w-full flex justify-end">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="default" className="w-full sm:w-auto">
+                  Offer Access to dataset
+                </Button>
+              </DialogTrigger>
+              <ContractNegotiationNewOfferDialog
+                policy={policy as OdrlPolicyDto}
+                catalogId={catalogId || ""}
+                datasetId={datasetId || ""}
+              />
+            </Dialog>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 };

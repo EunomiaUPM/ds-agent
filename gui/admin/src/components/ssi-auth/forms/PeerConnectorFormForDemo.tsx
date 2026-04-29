@@ -1,4 +1,3 @@
-
 import { useContext } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -37,7 +36,6 @@ export function PeerConnectorFormForDemo() {
   const isProduction = globalInfoContext?.api_gateway_base === "";
   const peerUrl = isProduction ? PROD_URL : DEV_URL;
 
-
   const form = useForm<z.infer<typeof peerDidSchema>>({
     resolver: zodResolver(peerDidSchema),
     defaultValues: {
@@ -69,10 +67,7 @@ export function PeerConnectorFormForDemo() {
                     <SelectItem value={peerUrl}>{peerUrl}</SelectItem>
                   </SelectContent>
                 </Select>
-                <Button
-                  type="submit"
-                  isLoading={ssiAuthContext.isLoading.fetchPeerDid}
-                >
+                <Button type="submit" isLoading={ssiAuthContext.isLoading.fetchPeerDid}>
                   Fetch Peer DID
                 </Button>
               </div>

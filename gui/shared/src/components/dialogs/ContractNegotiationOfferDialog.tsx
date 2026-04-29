@@ -11,7 +11,10 @@
 import React, { useContext, useMemo, useState } from "react";
 import { GlobalInfoContext, GlobalInfoContextType } from "shared/src/context/GlobalInfoContext";
 import { useRpcSetupOffer } from "shared/src/data/orval/negotiation-rp-c/negotiation-rp-c";
-import { useGetNegotiationProcesses, useGetOffersByProcessId } from "shared/src/data/orval/negotiations/negotiations";
+import {
+  useGetNegotiationProcesses,
+  useGetOffersByProcessId,
+} from "shared/src/data/orval/negotiations/negotiations";
 import { NegotiationProcessDto } from "shared/src/data/orval/model/negotiationProcessDto";
 import { OdrlOffer } from "shared/src/data/orval/model/odrlOffer";
 import { OdrlInfo } from "shared/src/data/orval/model/odrlInfo";
@@ -86,9 +89,9 @@ export const ContractNegotiationOfferDialog = ({
         processId: process.id,
         offer: {
           "@id": (lastOffer.offerContent["@id"] as string) ?? "urn:uuid:placeholder",
-          "@type": (lastOffer.offerContent["@type"] as any),
+          "@type": lastOffer.offerContent["@type"] as any,
           target: (lastOffer.offerContent.target as string) ?? "",
-          ...currentPolicy
+          ...currentPolicy,
         },
       },
     });
@@ -103,22 +106,23 @@ export const ContractNegotiationOfferDialog = ({
   // After Info Content (Policy Editor)
   // ---------------------------------------------------------------------------
 
-  const policyEditorContent = lastOffer && lastOffer.offerContent ? (
-    <div className="pt-4 flex gap-2">
-      <div className="w-1/2">
-        <Heading level="h6" className="mb-2">
-          Current Policy
-        </Heading>
-        <PolicyWrapperShow policy={lastOffer.offerContent} />
+  const policyEditorContent =
+    lastOffer && lastOffer.offerContent ? (
+      <div className="pt-4 flex gap-2">
+        <div className="w-1/2">
+          <Heading level="h6" className="mb-2">
+            Current Policy
+          </Heading>
+          <PolicyWrapperShow policy={lastOffer.offerContent} />
+        </div>
+        <div className="w-1/2">
+          <Heading level="h6" className="mb-2">
+            New Policy Request
+          </Heading>
+          <PolicyWrapperEdit policy={lastOffer.offerContent} onChange={setCurrentPolicy} />
+        </div>
       </div>
-      <div className="w-1/2">
-        <Heading level="h6" className="mb-2">
-          New Policy Request
-        </Heading>
-        <PolicyWrapperEdit policy={lastOffer.offerContent} onChange={setCurrentPolicy} />
-      </div>
-    </div>
-  ) : null;
+    ) : null;
 
   // ---------------------------------------------------------------------------
   // Render

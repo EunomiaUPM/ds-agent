@@ -48,9 +48,7 @@ export const AgreementTerminationDialog = ({
       submitVariant="destructive"
       onSubmit={handleSubmit}
       scrollable={true}
-      afterInfoContent={
-        "Still to be implemented"
-      }
+      afterInfoContent={"Still to be implemented"}
     />
   );
 };

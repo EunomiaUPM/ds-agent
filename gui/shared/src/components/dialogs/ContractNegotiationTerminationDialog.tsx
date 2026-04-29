@@ -5,11 +5,13 @@
  * Uses the base dialog component for consistent structure.
  */
 
-
 import { GlobalInfoContext, GlobalInfoContextType } from "../../context/GlobalInfoContext";
 import { BaseProcessDialog, mapCNProcessToFullInfoItems } from "./base";
 import { NegotiationProcessDto } from "../../data/orval/model";
-import { useRpcSetupFinalization, useRpcSetupTermination } from "../../data/orval/negotiation-rp-c/negotiation-rp-c";
+import {
+  useRpcSetupFinalization,
+  useRpcSetupTermination,
+} from "../../data/orval/negotiation-rp-c/negotiation-rp-c";
 import { useRouter } from "@tanstack/react-router";
 import React, { useContext } from "react";
 import { useGetNegotiationProcesses } from "../../data/orval/negotiations/negotiations";
@@ -62,7 +64,6 @@ export const ContractNegotiationTerminationDialog = ({
       infoItems={mapCNProcessToFullInfoItems(process)}
       submitLabel="Terminate"
       submitVariant="destructive"
-
       onSubmit={handleSubmit}
     />
   );

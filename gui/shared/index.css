@@ -40,8 +40,8 @@
   h4 {
     @apply text-brand-sky;
     font-family:
-      "Ubuntu", "Lucida Sans", "Lucida Sans Regular", "Lucida Grande",
-      "Lucida Sans Unicode", Geneva, Verdana, sans-serif;
+      "Ubuntu", "Lucida Sans", "Lucida Sans Regular", "Lucida Grande", "Lucida Sans Unicode",
+      Geneva, Verdana, sans-serif;
   }
 
   h5,

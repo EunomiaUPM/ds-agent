@@ -39,10 +39,7 @@ export function ControlPlaneTab({ tp }: { tp: TransferProcessDto }) {
                           ) as BadgeState
                         }
                       >
-                        {mergeStateAndAttribute(
-                          tp.state ?? "",
-                          tp.stateAttribute ?? "",
-                        )}
+                        {mergeStateAndAttribute(tp.state ?? "", tp.stateAttribute ?? "")}
                       </Badge>
                     ),
                   },
@@ -70,10 +67,7 @@ export function ControlPlaneTab({ tp }: { tp: TransferProcessDto }) {
           {tp.messages && tp.messages.length > 0 ? (
             <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
               {tp.messages.map((message) => (
-                <TransferProcessMessageComponent
-                  key={message.id}
-                  message={message}
-                />
+                <TransferProcessMessageComponent key={message.id} message={message} />
               ))}
             </div>
           ) : (

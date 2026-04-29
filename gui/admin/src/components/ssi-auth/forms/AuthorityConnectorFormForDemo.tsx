@@ -1,4 +1,3 @@
-
 import { useContext } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -68,10 +67,7 @@ export function AuthorityConnectorFormForDemo() {
                     <SelectItem value={authorityUrl}>{authorityUrl}</SelectItem>
                   </SelectContent>
                 </Select>
-                <Button
-                  type="submit"
-                  isLoading={ssiAuthContext.isLoading.fetchAuthDid}
-                >
+                <Button type="submit" isLoading={ssiAuthContext.isLoading.fetchAuthDid}>
                   Fetch DID
                 </Button>
               </div>

@@ -17,11 +17,7 @@ export function CopyButton({ text }: { text: string }) {
       title="Copy to clipboard"
       className="shrink-0 ml-1 p-0.5 rounded text-muted-foreground hover:text-foreground transition-colors"
     >
-      {copied ? (
-        <Check className="h-3 w-3 text-success-400" />
-      ) : (
-        <Copy className="h-3 w-3" />
-      )}
+      {copied ? <Check className="h-3 w-3 text-success-400" /> : <Copy className="h-3 w-3" />}
     </button>
   );
 }

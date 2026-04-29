@@ -151,8 +151,8 @@ export const ContractNegotiationActions = ({
       <div
         className={
           process.state === "OFFERED" ||
-            process.state === "ACCEPTED" ||
-            process.state === "VERIFIED"
+          process.state === "ACCEPTED" ||
+          process.state === "VERIFIED"
             ? "flex justify-end flex-row-reverse gap-2"
             : process.state === "REQUESTED"
               ? "space-x-2 min-w-[260px]"
@@ -172,7 +172,9 @@ export const ContractNegotiationActions = ({
         {showNoFurtherActions() && <NoFurtherActions />}
         {showGoToAgreement() && (
           <Link to="/agreements/$agreementId" params={{ agreementId: process.agreement!.id }}>
-            <Button variant="link">See agreement <ArrowRight /></Button>
+            <Button variant="link">
+              See agreement <ArrowRight />
+            </Button>
           </Link>
         )}
       </div>

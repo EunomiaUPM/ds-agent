@@ -33,50 +33,40 @@ import { cn } from "shared/src/lib/utils";
 // STYLE VARIANTS
 // =============================================================================
 
-const stateBadgeCommon = {
-  process: "bg-process text-process-300 [&>span]:bg-process-400",
-  warn: "bg-warn text-warn-300 [&>span]:bg-warn-400",
-  success: "bg-success text-success-300 [&>span]:bg-success-400",
-  pause: "bg-pause text-pause-300 [&>span]:bg-pause-400",
-  danger: "bg-danger text-danger-300 [&>span]:bg-danger-400",
-};
-
-const getStateBadgeStyle = (state: string): BadgeState => {
-  switch (state) {
-    /** Active states: proceso en curso, no necesita acciones del usuario */
-    case "ACTIVE":
-    case "ACCEPTED":
-    case "VERIFIED":
-    case "STARTED":
-    case "Approved":
-    case "AGREED":
+const normalizeStatus = (status?: string): BadgeState => {
+  switch ((status || "").toLowerCase()) {
+    case "active":
+    case "accepted":
+    case "verified":
+    case "started":
+    case "approved":
+    case "agreed":
       return "process";
-    /** Warn or pending states: proceso en espera o necesita acciones del usuario ??*/
-    case "OFFERED":
-    case "REQUESTED":
-    case "Pending":
-    case "Processing":
+
+    case "offered":
+    case "requested":
+    case "pending":
+    case "processing":
       return "warn";
-    /** Success states: proceso completado o finalizado con éxito */
-    case "FINALIZED":
-    case "COMPLETED":
-    case "Finalized":
+
+    case "finalized":
+    case "completed":
       return "success";
-    /** Pause or inactive states: proceso pausado o inactivo */
-    case "INACTIVE":
-    case "SUSPENDED":
-    case "PAUSE":
-    case "BY_PROVIDER":
-    case "BY_CONSUMER":
-    case "ON_REQUEST":
-    case "STOP":
-    case "STOPPED":
+
+    case "inactive":
+    case "suspended":
+    case "pause":
+    case "by_provider":
+    case "by_consumer":
+    case "on_request":
+    case "stop":
+    case "stopped":
       return "pause";
-    /** Danger states: proceso terminado o rechazado */
-    case "TERMINATED":
-    case "Rejected":
+
+    case "terminated":
+    case "rejected":
       return "danger";
-    /** Default state */
+
     default:
       return "default";
   }
@@ -162,8 +152,9 @@ export type BadgeRole = VariantProps<typeof badgeVariants>["dsrole"];
  */
 export interface BadgeProps
   extends React.ComponentProps<"span">,
-    VariantProps<typeof badgeVariants> {
-  /** Render as a different element using Radix Slot */
+    Omit<VariantProps<typeof badgeVariants>, "state"> {
+  /** Accept API status directly */
+  state?: string;
   asChild?: boolean;
 }
 
@@ -198,8 +189,7 @@ function Badge({
 
   // Status badges show a colored dot indicator
   const showDot = variant === "status";
-
-  const stateStyle = getStateBadgeStyle(state ?? "default");
+  const stateStyle = normalizeStatus(state);
 
   return (
     <Comp

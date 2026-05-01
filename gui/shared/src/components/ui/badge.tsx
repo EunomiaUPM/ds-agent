@@ -33,6 +33,55 @@ import { cn } from "shared/src/lib/utils";
 // STYLE VARIANTS
 // =============================================================================
 
+const stateBadgeCommon = {
+  process: "bg-process text-process-300 [&>span]:bg-process-400",
+  warn: "bg-warn text-warn-300 [&>span]:bg-warn-400",
+  success: "bg-success text-success-300 [&>span]:bg-success-400",
+  pause: "bg-pause text-pause-300 [&>span]:bg-pause-400",
+  danger: "bg-danger text-danger-300 [&>span]:bg-danger-400",
+};
+
+const getStateBadgeStyle = (state: string): BadgeState => {
+  switch (state) {
+    /** Active states: proceso en curso, no necesita acciones del usuario */
+    case "ACTIVE":
+    case "ACCEPTED":
+    case "VERIFIED":
+    case "STARTED":
+    case "Approved":
+    case "AGREED":
+      return "process";
+    /** Warn or pending states: proceso en espera o necesita acciones del usuario ??*/
+    case "OFFERED":
+    case "REQUESTED":
+    case "Pending":
+    case "Processing":
+      return "warn";
+    /** Success states: proceso completado o finalizado con éxito */
+    case "FINALIZED":
+    case "COMPLETED":
+    case "Finalized":
+      return "success";
+    /** Pause or inactive states: proceso pausado o inactivo */
+    case "INACTIVE":
+    case "SUSPENDED":
+    case "PAUSE":
+    case "BY_PROVIDER":
+    case "BY_CONSUMER":
+    case "ON_REQUEST":
+    case "STOP":
+    case "STOPPED":
+      return "pause";
+    /** Danger states: proceso terminado o rechazado */
+    case "TERMINATED":
+    case "Rejected":
+      return "danger";
+    /** Default state */
+    default:
+      return "default";
+  }
+};
+
 /**
  * Badge style variants using class-variance-authority.
  *
@@ -41,7 +90,7 @@ import { cn } from "shared/src/lib/utils";
  */
 const badgeVariants = cva(
   // Base styles applied to all badges
-  "px-1.5 py-0.5 w-fit inline-flex justify-start items-center bg-white/5 font-medium rounded-[4px] border border-white/10 whitespace-nowrap shrink-0 gap-1 transition-all",
+  "uppercase px-1.5 py-0.5 w-fit inline-flex justify-start items-center bg-white/5 font-medium rounded-[4px] border border-white/10 whitespace-nowrap shrink-0 gap-1 transition-all",
   {
     variants: {
       /**
@@ -62,32 +111,11 @@ const badgeVariants = cva(
        */
       state: {
         default: "",
-        danger: "",
-        warn: "",
-        // Active/processing states
-        ACTIVE: "bg-process text-process-300 [&>span]:bg-process-400",
-        INACTIVE: "bg-paused text-paused-300 [&>span]:bg-paused-400",
-        ACCEPTED: "bg-process text-process-300 [&>span]:bg-process-400",
-        VERIFIED: "bg-process text-process-300 [&>span]:bg-process-400",
-        STARTED: "bg-process text-process-300 [&>span]:bg-process-400",
-        // Pending states
-        OFFERED: "bg-warn text-warn-300 [&>span]:bg-warn-400",
-        REQUESTED: "bg-warn text-warn-300 [&>span]:bg-warn-400",
-        Pending: "bg-warn text-warn-300 [&>span]:bg-warn-400",
-        AGREED: "bg-process text-process-300 [&>span]:bg-process-400",
-        // Success states
-        FINALIZED: "bg-success text-success-300 [&>span]:bg-success-400",
-        COMPLETED: "bg-success text-success-300 [&>span]:bg-success-400",
-        // Paused states
-        SUSPENDED: "bg-pause text-pause-300 [&>span]:bg-pause-400",
-        PAUSE: "bg-pause text-pause-300 [&>span]:bg-pause-400",
-        BY_PROVIDER: "bg-pause text-pause-300 [&>span]:bg-pause-400",
-        BY_CONSUMER: "bg-pause text-pause-300 [&>span]:bg-pause-400",
-        ON_REQUEST: "bg-pause text-pause-300 [&>span]:bg-pause-400",
-        STOP: "bg-pause text-pause-300 [&>span]:bg-pause-400",
-        STOPPED: "bg-pause text-pause-300 [&>span]:bg-pause-400",
-        // Error state
-        TERMINATED: "bg-danger text-danger-300 [&>span]:bg-danger-400",
+        process: "bg-process text-process-300 [&>span]:bg-process-400",
+        warn: "bg-warn text-warn-300 [&>span]:bg-warn-400",
+        success: "bg-success text-success-300 [&>span]:bg-success-400",
+        pause: "bg-pause text-pause-300 [&>span]:bg-pause-400",
+        danger: "bg-danger text-danger-300 [&>span]:bg-danger-400",
       },
 
       /**
@@ -171,10 +199,12 @@ function Badge({
   // Status badges show a colored dot indicator
   const showDot = variant === "status";
 
+  const stateStyle = getStateBadgeStyle(state ?? "default");
+
   return (
     <Comp
       data-slot="badge"
-      className={cn(badgeVariants({ variant, size, state, dsrole }), className)}
+      className={cn(badgeVariants({ variant, size, state: stateStyle, dsrole }), className)}
       {...props}
     >
       {/* Status dot indicator */}

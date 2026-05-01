@@ -90,7 +90,7 @@ const RouteComponent = () => {
             <DrawerBody>
               {/* New message subcomponent */}
               {process.data.messages?.map((message) => (
-                <CnProcessMessageComponent message={message} />
+                <CnProcessMessageComponent key={message.id} message={message} />
               ))}
               {/* / New message subcomponent */}
             </DrawerBody>

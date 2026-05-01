@@ -35,7 +35,7 @@ import { Search, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { Badge } from "shared/src/components/ui/badge";
 import { customInstance } from "shared/src/data/orval-mutator";
 import { useGetAllParticipants } from "shared/src/data/orval/participants/participants";
-import { getFriendlyVCType } from "shared/src/lib/utils";
+import { formatIdentifier, getFriendlyVCType } from "shared/src/lib/utils";
 
 const schema = z.object({
   url: z.string().url("Please enter a valid URL"),
@@ -154,7 +154,7 @@ function NewAuthorityRequest() {
             <Card>
               <CardHeader>
                 <CardTitle>Authority Connection</CardTitle>
-                <CardDescription>
+                <CardDescription className="">
                   Enter the authority base URL to discover its profile and available credentials.
                 </CardDescription>
               </CardHeader>
@@ -167,8 +167,8 @@ function NewAuthorityRequest() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Authority URL</FormLabel>
-                          <div className="flex gap-2">
-                            <FormControl>
+                          <div className="flex items-center gap-2">
+                            <FormControl className="flex-1">
                               <Input
                                 placeholder="https://authority.example.com"
                                 list="known-authorities"
@@ -196,15 +196,16 @@ function NewAuthorityRequest() {
                             <Button
                               type="button"
                               variant="secondary"
+                              size={"sm"}
                               onClick={() => handleDiscovery()}
                               disabled={isDiscovering || !url}
                             >
                               {isDiscovering ? (
                                 <Loader2 className="animate-spin h-4 w-4 mr-2" />
                               ) : (
-                                <Search className="h-4 w-4 mr-2" />
+                                <Search />
                               )}
-                              Discover
+                              Find authority∫
                             </Button>
                           </div>
                           <FormMessage />
@@ -215,126 +216,122 @@ function NewAuthorityRequest() {
                       )}
                     />
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control as any}
-                        name="slug"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Friendly Name (Slug)</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Heimdall" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                    <FormField
+                      control={form.control as any}
+                      name="slug"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Friendly Name (Slug)</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Heimdall" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                      <FormField
-                        control={form.control as any}
-                        name="vc_type"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>VC Type</FormLabel>
-                            <Select
-                              onValueChange={field.onChange}
-                              defaultValue={field.value}
-                              disabled={!discoveredInfo}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue
-                                    placeholder={
-                                      discoveredInfo ? "Select VC type" : "Discover first..."
-                                    }
-                                  />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {discoveredInfo?.vc_types.map((type) => (
-                                  <SelectItem key={type} value={type}>
-                                    {getFriendlyVCType(type)}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control as any}
-                        name="method"
-                        render={({ field }: { field: any }) => (
-                          <FormItem>
-                            <FormLabel>Identity Proof</FormLabel>
+                    <FormField
+                      control={form.control as any}
+                      name="vc_type"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>VC Type</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                            disabled={!discoveredInfo}
+                          >
                             <FormControl>
-                              <div className="relative flex p-1 bg-muted/50 border border-primary/40 rounded-lg w-full">
-                                {/* Sliding pill */}
-                                <div
-                                  className={`absolute top-1 bottom-1 w-[calc(50%-0.25rem)] bg-primary rounded-md transition-transform duration-300 ease-in-out shadow-sm ${
-                                    field.value === "cert"
-                                      ? "translate-x-0"
-                                      : "translate-x-[calc(100%+0.25rem)]"
-                                  }`}
+                              <SelectTrigger>
+                                <SelectValue
+                                  placeholder={
+                                    discoveredInfo ? "Select VC type" : "Discover first..."
+                                  }
                                 />
-
-                                <button
-                                  type="button"
-                                  className={`relative z-10 w-1/2 py-2 px-3 text-xs md:text-sm font-semibold transition-colors duration-300 rounded-md ${
-                                    field.value === "cert"
-                                      ? "text-primary-foreground"
-                                      : "text-foreground/70 hover:text-foreground"
-                                  }`}
-                                  onClick={() => field.onChange("cert")}
-                                >
-                                  Certificate
-                                </button>
-
-                                <button
-                                  type="button"
-                                  className={`relative z-10 w-1/2 py-2 px-3 text-xs md:text-sm font-semibold transition-colors duration-300 rounded-md ${
-                                    field.value === "oidc4vp"
-                                      ? "text-primary-foreground"
-                                      : "text-foreground/70 hover:text-foreground"
-                                  }`}
-                                  onClick={() => field.onChange("oidc4vp")}
-                                >
-                                  Verifiable Credential
-                                </button>
-                              </div>
+                              </SelectTrigger>
                             </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                            <SelectContent>
+                              {discoveredInfo?.vc_types.map((type) => (
+                                <SelectItem key={type} value={type}>
+                                  {getFriendlyVCType(type)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                      <FormField
-                        control={form.control as any}
-                        name="auto"
-                        render={({ field }: { field: any }) => (
-                          <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                            <FormControl>
-                              <input
-                                type="checkbox"
-                                checked={field.value}
-                                onChange={field.onChange}
-                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    <FormField
+                      control={form.control as any}
+                      name="method"
+                      render={({ field }: { field: any }) => (
+                        <FormItem>
+                          <FormLabel>Identity Proof</FormLabel>
+                          <FormControl>
+                            <div className="relative flex p-1 bg-muted/50 border border-primary/40 rounded-lg w-full">
+                              {/* Sliding pill */}
+                              <div
+                                className={`absolute top-1 bottom-1 w-[calc(50%-0.25rem)] bg-primary rounded-md transition-transform duration-300 ease-in-out shadow-sm ${
+                                  field.value === "cert"
+                                    ? "translate-x-0"
+                                    : "translate-x-[calc(100%+0.25rem)]"
+                                }`}
                               />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel>Automatic Acceptance</FormLabel>
-                              <FormDescription>
-                                Automatically claim the VC once the request is approved.
-                              </FormDescription>
+
+                              <button
+                                type="button"
+                                className={`relative z-10 w-1/2 py-2 px-3 text-xs md:text-sm font-semibold transition-colors duration-300 rounded-md ${
+                                  field.value === "cert"
+                                    ? "text-primary-foreground"
+                                    : "text-foreground/70 hover:text-foreground"
+                                }`}
+                                onClick={() => field.onChange("cert")}
+                              >
+                                Certificate
+                              </button>
+
+                              <button
+                                type="button"
+                                className={`relative z-10 w-1/2 py-2 px-3 text-xs md:text-sm font-semibold transition-colors duration-300 rounded-md ${
+                                  field.value === "oidc4vp"
+                                    ? "text-primary-foreground"
+                                    : "text-foreground/70 hover:text-foreground"
+                                }`}
+                                onClick={() => field.onChange("oidc4vp")}
+                              >
+                                Verifiable Credential
+                              </button>
                             </div>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control as any}
+                      name="auto"
+                      render={({ field }: { field: any }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                          <FormControl>
+                            <input
+                              type="checkbox"
+                              checked={field.value}
+                              onChange={field.onChange}
+                              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel>Automatic Acceptance</FormLabel>
+                            <FormDescription>
+                              Automatically claim the VC once the request is approved.
+                            </FormDescription>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
 
                     <Button
                       type="submit"
@@ -376,8 +373,8 @@ function NewAuthorityRequest() {
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                         Authority DID
                       </p>
-                      <Badge variant="infoLighter" className="font-mono text-[10px] break-all p-2">
-                        {discoveredInfo.id}
+                      <Badge variant="infoLighter" className=" break-all">
+                        {formatIdentifier(discoveredInfo.id)}
                       </Badge>
                     </div>
                     <div className="space-y-1">
@@ -386,7 +383,7 @@ function NewAuthorityRequest() {
                       </p>
                       <div className="flex flex-wrap gap-2 pt-1">
                         {discoveredInfo.vc_types.map((t) => (
-                          <Badge key={t} variant="info" className="text-[10px]">
+                          <Badge key={t} variant="info">
                             {t}
                           </Badge>
                         ))}
@@ -400,10 +397,10 @@ function NewAuthorityRequest() {
                         {discoveredInfo.services.map((s, idx) => (
                           <div
                             key={idx}
-                            className="p-2 border rounded bg-background-200/50 text-[10px] space-y-1"
+                            className="p-2 border rounded bg-background-200/30 text-sm space-y-1"
                           >
-                            <p className="font-bold text-primary">{s.type}</p>
-                            <p className="break-all opacity-70">{s.serviceEndpoint}</p>
+                            <p className="font-medium text-brand-sky">{s.type}</p>
+                            <p className="break-all text-white/70">{s.serviceEndpoint}</p>
                           </div>
                         ))}
                         {discoveredInfo.services.length === 0 && (
@@ -411,7 +408,7 @@ function NewAuthorityRequest() {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-green-500 font-medium pt-2">
+                    <div className="flex items-center gap-2 text-sm text-success-400 font-medium pt-2">
                       <CheckCircle2 className="h-4 w-4" />
                       Authority verified
                     </div>

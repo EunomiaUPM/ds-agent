@@ -32,7 +32,6 @@ function RouteComponent() {
   const { agreementId } = Route.useParams();
   const { data: response } = useGetAgreementByIdS(agreementId);
   const agreement = response?.status === 200 ? response.data : undefined;
-  console.log(agreement);
 
   if (!agreement) return null; // Handle loading/error state if needed
   return (

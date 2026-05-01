@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { formatUrn } from "shared/src/lib/utils";
+import { formatIdentifier } from "shared/src/lib/utils";
 import { DataTable } from "shared/src/components/DataTable";
 import { FormatDate } from "shared/src/components/ui/format-date";
 import { Button } from "shared/src/components/ui/button.tsx";
@@ -17,7 +17,6 @@ const RouteComponent = () => {
   const { data: cnProcessesData } = useGetNegotiationProcesses();
 
   const cnProcesses = cnProcessesData?.status === 200 ? cnProcessesData.data : [];
-
   const cnProcessesSorted = useMemo(() => {
     if (!cnProcesses) return [];
     return [...cnProcesses].sort((a, b) => {
@@ -36,35 +35,35 @@ const RouteComponent = () => {
           keyExtractor={(p) => p.id}
           columns={[
             {
-              header: "id",
-              cell: (p) => <Badge variant={"info"}>{formatUrn(p.id)}</Badge>,
+              header: "Process id",
+              cell: (p) => <Badge variant={"info"}>{formatIdentifier(p.id)}</Badge>,
             },
+            // {
+            //   header: "Your Role",
+            //   cell: (p) => <Badge variant={"info"}>{p.role}</Badge>,
+            // },
             {
-              header: "Role",
-              cell: (p) => <Badge variant={"info"}>{p.role}</Badge>,
+              header: "Peer",
+              cell: (p) => (
+                <p className="flex gap-2 items-baseline">
+                  <span className="capitalize min-w-fit">
+                    {formatIdentifier(p.associatedAgentPeer, 3)}
+                  </span>
+                  <span className="text-white/70">as</span>
+                  <Badge className="h-fit">{p.role == "provider" ? "Provider" : "Consumer"}</Badge>
+                </p>
+              ),
             },
             {
               header: "State",
               cell: (p) => (
-                <Badge variant={"status"} state={p.state as BadgeState}>
+                <Badge variant={"status"} state={p.state}>
                   {p.state.replace("dspace:", "")}
                 </Badge>
               ),
             },
-            // {
-            //   header: "State Attribute",
-            //   cell: (p) => (
-            //     <Badge variant={"status"} state={p.stateAttribute as BadgeState}>
-            //       {p.state.replace("dspace:", "")}
-            //     </Badge>
-            //   ),
-            // },
             {
-              header: "Peer",
-              cell: (p) => <p className="">{formatUrn(p.associatedAgentPeer)}</p>,
-            },
-            {
-              header: "CreatedAt",
+              header: "Created At",
               cell: (p) => <FormatDate date={p.createdAt} />,
             },
             {

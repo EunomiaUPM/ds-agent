@@ -80,7 +80,7 @@ const normalizeStatus = (status?: string): BadgeState => {
  */
 const badgeVariants = cva(
   // Base styles applied to all badges
-  "uppercase px-1.5 py-0.5 w-fit inline-flex justify-start items-center bg-white/5 font-medium rounded-[4px] border border-white/10 whitespace-nowrap shrink-0 gap-1 transition-all",
+  "px-1.5 py-0.5 w-fit inline-flex justify-start items-center bg-white/5 font-medium rounded-[4px] border border-white/10 whitespace-nowrap shrink-0 gap-1 transition-all",
   {
     variants: {
       /**
@@ -91,7 +91,7 @@ const badgeVariants = cva(
         info: "font-mono uppercase bg-background-800 text-secondary-400 border-white/10",
         infoLighter: "font-mono uppercase bg-white/10 text-secondary-400 border-white/10",
         role: "text-white uppercase border-white/10",
-        status: "bg-opacity-30 border-white/10 text-foreground-300",
+        status: "bg-opacity-30 border-white/10 text-foreground-300 uppercase",
         detail: "text-xs bg-brand-sky/20 !px-1 !py-0 max-w-[140px] !whitespace-normal",
       },
 

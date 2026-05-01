@@ -7,18 +7,11 @@ import { PageSection } from "shared/src/components/layout/PageSection";
 import { Badge } from "shared/src/components/ui/badge";
 import { Button } from "shared/src/components/ui/button";
 import { FormatDate } from "shared/src/components/ui/format-date";
+import { formatUrn } from "shared/src/lib/utils";
 import { customInstance } from "shared/src/data/orval-mutator";
 
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-
-const truncateId = (id?: string) => {
-  if (!id) return "N/A";
-  // Only apply the 40-char rule if it looks like a DID
-  if (id.startsWith("did:") && id.length < 40) return id;
-  // Otherwise truncate aggressively for the table
-  return `${id.slice(0, 10)}...${id.slice(-8)}`;
-};
 
 /**
  * Onboard request model from backend.
@@ -116,46 +109,55 @@ function ProvidersPage() {
           </Link>
         </div>
       </PageHeader>
+      {/* <PageSection>
+
+
+
+              */}
+
       <PageSection>
         <DataTable
-          className="text-sm"
+          className="text-sm text-white"
           data={requests}
           keyExtractor={(r) => r.id}
           columns={[
             {
-              header: (
-                <Button
-                  variant="ghost"
-                  onClick={() => handleSort("id")}
-                  className="p-0 h-auto font-semibold"
-                >
-                  Request ID {getSortIcon("id")}
-                </Button>
-              ),
-              cell: (r) => <Badge variant={"info"}>{truncateId(r.id)}</Badge>,
-            },
-            {
-              header: (
-                <Button
-                  variant="ghost"
-                  onClick={() => handleSort("provider_slug")}
-                  className="p-0 h-auto font-semibold"
-                >
-                  Provider Name {getSortIcon("provider_slug")}
-                </Button>
-              ),
+              header: "Provider Name",
+              // (
+              //   <Button
+              //     variant="ghost"
+              //     onClick={() => handleSort("provider_slug")}
+              //     className="p-0 h-auto font-semibold"
+              //   >
+              //     Provider Name {getSortIcon("provider_slug")}
+              //   </Button>
+              // ),
               cell: (r) => r.provider_slug || "-",
             },
             {
-              header: (
-                <Button
-                  variant="ghost"
-                  onClick={() => handleSort("status")}
-                  className="p-0 h-auto font-semibold"
-                >
-                  Status {getSortIcon("status")}
-                </Button>
-              ),
+              header: "Request ID",
+              // (
+              //   <Button
+              //     variant="ghost"
+              //     onClick={() => handleSort("id")}
+              //     className="p-0 h-auto font-semibold"
+              //   >
+              //     Request ID {getSortIcon("id")}
+              //   </Button>
+              // ),
+              cell: (r) => <Badge variant={"info"}>{formatUrn(r.id)}</Badge>,
+            },
+            {
+              header: "Status",
+              // (
+              //   <Button
+              //     variant="ghost"
+              //     onClick={() => handleSort("status")}
+              //     className="p-0 h-auto font-semibold"
+              //   >
+              //     Status {getSortIcon("status")}
+              //   </Button>
+              // ),
               cell: (r) => (
                 <Badge variant={"status"} state={r.status}>
                   {r.status || "-"}
@@ -163,15 +165,16 @@ function ProvidersPage() {
               ),
             },
             {
-              header: (
-                <Button
-                  variant="ghost"
-                  onClick={() => handleSort("created_at")}
-                  className="p-0 h-auto font-semibold"
-                >
-                  Created at {getSortIcon("created_at")}
-                </Button>
-              ),
+              header: "Created at",
+              // (
+              //   <Button
+              //     variant="ghost"
+              //     onClick={() => handleSort("created_at")}
+              //     className="p-0 h-auto font-semibold"
+              //   >
+              //     Created at {getSortIcon("created_at")}
+              //   </Button>
+              // ),
               cell: (r) => (r.created_at ? <FormatDate date={r.created_at} /> : "-"),
             },
             {
@@ -179,9 +182,9 @@ function ProvidersPage() {
               cell: (r) => (
                 // @ts-ignore
                 <Link to="/providers/request-details" search={{ requestId: r.id }}>
-                  <Button variant="link" size="sm">
+                  <Button variant="link">
                     Details
-                    <ArrowRight className="ml-2 h-4 w-4" />
+                    <ArrowRight />
                   </Button>
                 </Link>
               ),

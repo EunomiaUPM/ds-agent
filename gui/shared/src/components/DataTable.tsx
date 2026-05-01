@@ -102,9 +102,9 @@ export function DataTable<T>({
   className,
 }: DataTableProps<T>) {
   return (
-    <Table className={className} containerClassName="overflow-visible">
+    <Table className={className} containerClassName="">
       {/* Table header */}
-      <TableHeader className="sticky top-[4.8rem] z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 rounded-t-2xl overflow-hidden">
+      <TableHeader className="sticky top-0 z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 rounded-t-2xl overflow-hidden">
         <TableRow>
           {columns.map((col, index) => (
             <TableHead key={index} className={col.className}>
@@ -123,7 +123,7 @@ export function DataTable<T>({
             className={onRowClick ? "cursor-pointer hover:bg-muted/50" : ""}
           >
             {columns.map((col, index) => (
-              <TableCell key={index} className={col.className}>
+              <TableCell key={index} className={col.className + " text-white [&>p]:text-white"}>
                 {/* Use custom cell renderer if provided, otherwise use accessorKey */}
                 {col.cell ? col.cell(item) : (item[col.accessorKey!] as React.ReactNode)}
               </TableCell>

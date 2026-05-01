@@ -8,7 +8,7 @@ import { Badge } from "shared/src/components/ui/badge";
 import { Button } from "shared/src/components/ui/button";
 import { FormatDate } from "shared/src/components/ui/format-date";
 import { useGetAllVCRequests } from "shared/src/data/orval/vc-request/vc-request";
-import { formatUrn, getFriendlyVCType } from "shared/src/lib/utils";
+import { formatIdentifier, getFriendlyVCType } from "shared/src/lib/utils";
 
 import { createFileRoute, Link } from "@tanstack/react-router";
 
@@ -84,6 +84,7 @@ function AuthorityRequestsPage() {
           </Link>
         </div>
       </PageHeader>
+
       <PageSection>
         <DataTable
           className="text-sm"
@@ -91,51 +92,55 @@ function AuthorityRequestsPage() {
           keyExtractor={(a) => a.id}
           columns={[
             {
-              header: (
-                <Button
-                  variant="ghost"
-                  onClick={() => handleSort("id")}
-                  className="p-0 h-auto font-semibold"
-                >
-                  Request ID {getSortIcon("id")}
-                </Button>
-              ),
-              cell: (a: any) => <Badge variant={"info"}>{formatUrn(a.id)}</Badge>,
-            },
-            {
-              header: (
-                <Button
-                  variant="ghost"
-                  onClick={() => handleSort("authority_slug")}
-                  className="p-0 h-auto font-semibold"
-                >
-                  Authority Name {getSortIcon("authority_slug")}
-                </Button>
-              ),
+              header: "Authority Name",
+              // (
+              //   <Button
+              //     variant="ghost"
+              //     onClick={() => handleSort("authority_slug")}
+              //     className="p-0 h-auto font-semibold"
+              //   >
+              //     Authority Name {getSortIcon("authority_slug")}
+              //   </Button>
+              // ),
               cell: (a: any) => a.authority_slug || "-",
             },
             {
-              header: (
-                <Button
-                  variant="ghost"
-                  onClick={() => handleSort("vc_type")}
-                  className="p-0 h-auto font-semibold"
-                >
-                  VC Type {getSortIcon("vc_type")}
-                </Button>
-              ),
+              header: "Request ID",
+              // (
+              //   <Button
+              //     variant="ghost"
+              //     onClick={() => handleSort("id")}
+              //     className="p-0 h-auto font-semibold"
+              //   >
+              //     Request ID {getSortIcon("id")}
+              //   </Button>
+              // ),
+              cell: (a: any) => <Badge variant={"info"}>{formatIdentifier(a.id)}</Badge>,
+            },
+            {
+              header: "Credential Type",
+              // (
+              //   <Button
+              //     variant="ghost"
+              //     onClick={() => handleSort("vc_type")}
+              //     className="p-0 h-auto font-semibold"
+              //   >
+              //     Credential Type {getSortIcon("vc_type")}
+              //   </Button>
+              // ),
               cell: (a: any) => <Badge variant="role">{getFriendlyVCType(a.vc_type)}</Badge>,
             },
             {
-              header: (
-                <Button
-                  variant="ghost"
-                  onClick={() => handleSort("status")}
-                  className="p-0 h-auto font-semibold"
-                >
-                  Status {getSortIcon("status")}
-                </Button>
-              ),
+              header: "Status",
+              // (
+              //   <Button
+              //     variant="ghost"
+              //     onClick={() => handleSort("status")}
+              //     className="p-0 h-auto font-semibold"
+              //   >
+              //     Status {getSortIcon("status")}
+              //   </Button>
+              // ),
               cell: (a: any) => (
                 <Badge variant={"status"} state={a.status}>
                   {a.status || "-"}
@@ -143,15 +148,16 @@ function AuthorityRequestsPage() {
               ),
             },
             {
-              header: (
-                <Button
-                  variant="ghost"
-                  onClick={() => handleSort("created_at")}
-                  className="p-0 h-auto font-semibold"
-                >
-                  Created at {getSortIcon("created_at")}
-                </Button>
-              ),
+              header: "Created at",
+              // (
+              //   <Button
+              //     variant="ghost"
+              //     onClick={() => handleSort("created_at")}
+              //     className="p-0 h-auto font-semibold"
+              //   >
+              //     Created at {getSortIcon("created_at")}
+              //   </Button>
+              // ),
               cell: (a: any) => (a.created_at ? <FormatDate date={a.created_at} /> : "-"),
             },
             {
@@ -159,9 +165,9 @@ function AuthorityRequestsPage() {
               cell: (a) => (
                 // @ts-ignore
                 <Link to="/authority/request-details" search={{ requestId: a.id }}>
-                  <Button variant="link" size={"sm"}>
+                  <Button variant="link">
                     See details
-                    <ArrowRight className="ml-2 h-4 w-4" />
+                    <ArrowRight />
                   </Button>
                 </Link>
               ),

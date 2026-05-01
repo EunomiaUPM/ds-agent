@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { formatUrn } from "shared/src/lib/utils";
+import { formatIdentifier } from "shared/src/lib/utils";
 import { DataTable } from "shared/src/components/DataTable";
 import { FormatDate } from "shared/src/components/ui/format-date";
 import { Button } from "shared/src/components/ui/button.tsx";
@@ -49,17 +49,17 @@ function RouteComponent() {
       <PageSection>
         <DataTable
           className="text-sm"
-          data={transferProcessesSorted ?? []}
+          data={transferProcesses ?? []}
           keyExtractor={(tp) => tp.id!}
           columns={[
             {
               header: "Provider pid",
-              cell: (tp) => <Badge variant={"info"}>{formatUrn(tp.id)}</Badge>,
+              cell: (tp) => <Badge variant={"info"}>{formatIdentifier(tp.id)}</Badge>,
             },
             {
               header: "State",
               cell: (tp) => (
-                <Badge variant={"status"} state={tp.state as BadgeState}>
+                <Badge variant={"status"} state={tp.state}>
                   {mergeStateAndAttribute(tp.state ?? "", tp.stateAttribute ?? "")}
                 </Badge>
               ),

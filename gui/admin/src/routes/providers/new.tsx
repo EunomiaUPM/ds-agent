@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -27,7 +27,7 @@ import { Button } from "shared/src/components/ui/button";
 import { Search, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { Badge } from "shared/src/components/ui/badge";
 import { customInstance } from "shared/src/data/orval-mutator";
-import { useGetAllParticipants } from "shared/src/data/orval/participants/participants";
+import { useFederatedCatalog } from "shared/src/data/useFederatedCatalog";
 
 const schema = z.object({
   url: z.string().url("Please enter a valid URL"),
@@ -44,9 +44,18 @@ interface DidService {
 
 type FormValues = z.infer<typeof schema>;
 
+interface NewProviderSearch {
+  url?: string;
+  slug?: string;
+}
+
 // @ts-ignore
 export const Route = createFileRoute("/providers/new")({
   component: NewProviderOnboard,
+  validateSearch: (search: Record<string, unknown>): NewProviderSearch => ({
+    url: typeof search.url === "string" ? search.url : undefined,
+    slug: typeof search.slug === "string" ? search.slug : undefined,
+  }),
 });
 
 function NewProviderOnboard() {
@@ -59,17 +68,16 @@ function NewProviderOnboard() {
   } | null>(null);
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
 
-  const { data: participantsResponse } = useGetAllParticipants();
-  const knownProviders =
-    participantsResponse?.status === 200
-      ? participantsResponse.data.filter((p) => p.participant_type === "Agent" && !p.is_me)
-      : [];
+  const federated = useFederatedCatalog();
+  const knownProviders = federated.state === "ok" ? federated.agents : [];
+
+  const search = Route.useSearch();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema) as any,
     defaultValues: {
-      url: "",
-      slug: "",
+      url: search.url ?? "",
+      slug: search.slug ?? "",
       auto: true,
       actions: ["talk"],
     },
@@ -100,6 +108,15 @@ function NewProviderOnboard() {
       setIsDiscovering(false);
     }
   };
+
+  const [didPrefill, setDidPrefill] = useState(false);
+  useEffect(() => {
+    if (didPrefill || !search.url) return;
+    form.setValue("url", search.url);
+    if (search.slug) form.setValue("slug", search.slug);
+    handleDiscovery(search.url);
+    setDidPrefill(true);
+  }, [search.url, search.slug, didPrefill]);
 
   const onSubmit = async (values: FormValues) => {
     if (!discoveredInfo) return;

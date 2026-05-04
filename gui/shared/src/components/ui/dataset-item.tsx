@@ -66,7 +66,7 @@ const DatasetItem: React.FC<DatasetItemProps> = ({
       >
         <div className="dataset-header flex justify-between items-center">
           <Heading level="h5" className="!mb-0 font-bold underline-offset-2 hover:underline">
-            {title} Dataset
+            {title}
           </Heading>
         </div>
       </Link>

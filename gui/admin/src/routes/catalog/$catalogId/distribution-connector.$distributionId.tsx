@@ -52,9 +52,15 @@ function MethodBadge({ method }: { method?: string | string[] }) {
 
   return (
     <>
-      {methods.map((m) => (
-        <span key={m}>{m.toUpperCase()}</span>
-      ))}
+      {methods.map((m) => {
+        const key = String(m).toUpperCase();
+        const classes = METHOD_COLORS[key] ?? "text-foreground/80 border-white/10";
+        return (
+          <Badge key={key} variant="info" className={`${classes} mr-2`}>
+            {key}
+          </Badge>
+        );
+      })}
     </>
   );
 }
@@ -111,6 +117,11 @@ function RequestStep({ label, step }: { label: string; step: Record<string, unkn
         </div>
 
         {/* URL Template */}
+        <div className="flex items-center gap-2 px-3 py-2">
+          <span className={"text-[10px] uppercase tracking-wide text-white/50 font-medium mb-1"}>
+            holax
+          </span>
+        </div>
         {urlTemplate && (
           <div className="px-3 py-2">
             <div className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">
@@ -318,69 +329,7 @@ function RouteComponent() {
         </div>
 
         {/* ── RIGHT COLUMN ────────────────────────────────────────────────── */}
-        <div className="space-y-4">
-          {/* Authentication */}
-          {/* {auth && (
-            <PageSection title="Authentication">
-              <div className="flex items-center gap-2 py-1">
-                <span className="text-xs text-muted-foreground">Type</span>
-                <Badge variant="info">
-                  {AUTH_LABELS[auth.type ?? ""] ?? auth.type ?? "—"}
-                </Badge>
-              </div> */}
-
-          {/* Extra auth fields (e.g. username for basic, token hint, etc.) */}
-          {/* {Object.entries(auth)
-                .filter(([k]) => k !== "type")
-                .map(([k, v]) => (
-                  <div key={k} className="flex gap-2 font-mono text-xs mt-1">
-                    <span className="text-muted-foreground shrink-0 min-w-[120px]">{k}</span>
-                    <span className="break-all">{String(v ?? "—")}</span>
-                  </div>
-                ))}
-            </PageSection>
-          )} */}
-
-          {/* Interaction
-          {interaction && (
-            <PageSection title="Interaction">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="text-xs text-muted-foreground">Mode</span>
-                <Badge
-                  variant="info"
-                  className={
-                    isPush
-                      ? "text-orange-300 border-orange-500/40"
-                      : "text-sky-300 border-sky-500/40"
-                  }
-                >
-                  {interaction.mode as string}
-                </Badge>
-              </div>
-
-              <div className="space-y-4">
-                {isPush && (interaction as PushLifecycle).subscribe && (
-                  <RequestStep
-                    label="Subscribe"
-                    step={(interaction as PushLifecycle).subscribe as Record<string, unknown>}
-                  />
-                )}
-                {isPush && (interaction as PushLifecycle).unsubscribe && (
-                  <RequestStep
-                    label="Unsubscribe"
-                    step={(interaction as PushLifecycle).unsubscribe as Record<string, unknown>}
-                  />
-                )}
-                {!isPush && Boolean((interaction as Record<string, unknown>).dataAccess) && (
-                  <RequestStep
-                    label="Data Access"
-                    step={(interaction as Record<string, unknown>).dataAccess as Record<string, unknown>}
-                  />
-                )}
-              </div>
-            </PageSection> 
-          )}*/}
-        </div>
+        <div className="space-y-4"></div>
       </div>
       <div className="h-3"></div>
       {connector && (
@@ -415,24 +364,35 @@ function RouteComponent() {
               </>
             )}
           </div>
-          <div className="grid-span-1  border-r border-white/10 p-4">
+          <div className="grid-span-1  border-r border-white/10 px-4">
             {interaction && (
               <>
                 <Heading level="h6" className="text-base font-semibold mb-2">
                   Interaction
                 </Heading>
                 <div className="flex items-center gap-2 mb-4">
-                  <span className="text-xs text-muted-foreground">Mode</span>
-                  <Badge
-                    variant="info"
-                    className={
-                      isPush
-                        ? "text-orange-300 border-orange-500/40"
-                        : "text-sky-300 border-sky-500/40"
-                    }
-                  >
-                    {interaction.mode as string}
-                  </Badge>
+                  <InfoList
+                    items={[
+                      {
+                        label: "Mode",
+                        value: {
+                          type: "custom",
+                          content: (
+                            <Badge
+                              variant="info"
+                              className={
+                                isPushAlt
+                                  ? "text-orange-300 border-orange-500/40"
+                                  : "text-sky-300 border-sky-500/40"
+                              }
+                            >
+                              {interaction.mode as string}
+                            </Badge>
+                          ),
+                        },
+                      },
+                    ]}
+                  />
                 </div>
 
                 <div className="space-y-4">
@@ -463,7 +423,7 @@ function RouteComponent() {
               </>
             )}
           </div>
-          <div className="grid-span-1 p-4">
+          <div className="grid-span-1 px-4">
             <Heading level="h6" className="text-base font-semibold mb-2">
               Parameters
             </Heading>
@@ -568,19 +528,29 @@ function RouteComponent() {
                   Interaction
                 </Heading>
                 <div className="flex items-center gap-2 mb-4">
-                  <span className="text-xs text-muted-foreground">Mode</span>
-                  <Badge
-                    variant="info"
-                    className={
-                      isPushAlt
-                        ? "text-orange-300 border-orange-500/40"
-                        : "text-sky-300 border-sky-500/40"
-                    }
-                  >
-                    {altInteraction.mode as string}
-                  </Badge>
+                  <InfoList
+                    items={[
+                      {
+                        label: "Mode",
+                        value: {
+                          type: "custom",
+                          content: (
+                            <Badge
+                              variant="info"
+                              className={
+                                isPush
+                                  ? "text-orange-300 border-orange-500/40"
+                                  : "text-sky-300 border-sky-500/40"
+                              }
+                            >
+                              {altInteraction.mode as string}
+                            </Badge>
+                          ),
+                        },
+                      },
+                    ]}
+                  />
                 </div>
-
                 <div className="space-y-4">
                   {isPushAlt && (altInteraction as PushLifecycle).subscribe && (
                     <RequestStep

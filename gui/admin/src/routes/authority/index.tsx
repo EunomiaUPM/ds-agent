@@ -11,6 +11,9 @@ import { useGetAllVCRequests } from "shared/src/data/orval/vc-request/vc-request
 import { formatIdentifier, getFriendlyVCType } from "shared/src/lib/utils";
 
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { useGetAllParticipants } from "shared/src/data/orval/participants/participants";
+import WizardEndDialog from "shared/src/components/WizardEndDialog";
 
 /**
  * Route for listing all VC requests to an authority.
@@ -21,6 +24,23 @@ export const Route = createFileRoute("/authority/")({
 
 function AuthorityRequestsPage() {
   const { data: response } = useGetAllVCRequests();
+  const { data: participantsResponse } = useGetAllParticipants();
+  const participants = participantsResponse?.status === 200 ? participantsResponse.data : [];
+
+  const [showCongrats, setShowCongrats] = useState(false);
+
+  useEffect(() => {
+    try {
+      const justJoined = sessionStorage.getItem("justJoinedDataspace");
+      const authorities = participants.filter((p: any) => p.participant_type === "Authority");
+      if (justJoined === "true" && authorities.length === 1) {
+        setShowCongrats(true);
+        sessionStorage.removeItem("justJoinedDataspace");
+      }
+    } catch (e) {
+      // ignore storage errors
+    }
+  }, [participantsResponse]);
   const rawRequests = response?.status === 200 ? response.data : [];
 
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(
@@ -54,6 +74,8 @@ function AuthorityRequestsPage() {
     return sortableRequests;
   }, [rawRequests, sortConfig]);
 
+
+
   const handleSort = (key: string) => {
     let direction: "asc" | "desc" = "asc";
     if (sortConfig && sortConfig.key === key && sortConfig.direction === "asc") {
@@ -74,6 +96,18 @@ function AuthorityRequestsPage() {
 
   return (
     <PageLayout>
+      <WizardEndDialog
+        open={showCongrats}
+        onClose={() => setShowCongrats(false)}
+        title={"Congratulations"}
+        content={<>
+        Congratulations, you are part now of the Dataspace of Heimdall
+        <br/>
+        You can now browse the catalogs in the dataspace.
+          </>}
+        actionHref={"/catalog/"}
+        actionLabel={"See dataspace"}
+      />
       <PageHeader title="Request Credential">
         <div className="flex justify-end mb-4">
           <Link to="/authority/new">

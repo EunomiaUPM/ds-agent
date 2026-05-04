@@ -1,8 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import Heading from "shared/src/components/ui/heading";
 import { Link } from "@tanstack/react-router";
 import { FormatDate } from "shared/src/components/ui/format-date";
 import { CheckCircle2, Lock } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "shared/src/components/ui/dialog";
+import { Button } from "shared/src/components/ui/button";
 
 interface CatalogItemProps {
   date: string;
@@ -23,8 +25,10 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
   isAuthenticated,
   unauthRedirect,
 }) => {
-  const conditionalCatalogClasses =
+  const unavailableCatalogClasses =
     id === null ? "opacity-65 grayscale cursor-not-allowed" : "cursor-pointer";
+
+  const highlightRingClasses = !isAuthenticated ? "ring-2 ring-secondary-400 shadow-md animate-pulse" : ""
 
   const headingText = title ? title : `${organizationName}'s Catalog for Demo`;
   const headingNode = (
@@ -34,14 +38,34 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
   );
 
   let headingLink: React.ReactNode;
+  const [openDialog, setOpenDialog] = useState(false);
+
   if (unauthRedirect) {
     headingLink = (
-      <Link
-        to="/providers/new"
-        search={{ url: unauthRedirect.url, slug: unauthRedirect.slug }}
-      >
-        {headingNode}
-      </Link>
+      <>
+        <button type="button" onClick={() => setOpenDialog(true)} className="p-0 m-0 text-left w-full">
+          {headingNode}
+        </button>
+
+        <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Access required</DialogTitle>
+              <DialogDescription>
+                You don't have permission to access this catalog. <br/> First, you need to connect with <strong>{organizationName}</strong>.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="ghost" onClick={() => setOpenDialog(false)}>Keep browsing</Button>
+              </DialogClose>
+              <Link to="/providers/new" search={{ url: unauthRedirect.url, slug: unauthRedirect.slug }}>
+                <Button>Request connection</Button>
+              </Link>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </>
     );
   } else if (id !== null) {
     headingLink = (
@@ -55,7 +79,7 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
 
   return (
     <div
-      className={`catalog-card bg-background-200/15  hover:bg-background-200/30 transition-all border rounded-md flex flex-col p-4 gap-3 max-w-lg ${conditionalCatalogClasses} ${isAuthenticated ? "border-emerald-500/40" : "border-white/10"}`}
+      className={`catalog-card bg-background-200/15  hover:bg-background-200/30 transition-all border rounded-md flex flex-col p-4 gap-3 max-w-lg ${unavailableCatalogClasses} ${isAuthenticated ? "border-emerald-500/40" : "border-white/10"} `}
     >
       <div className="catalog-dates-container flex gap-3 text-sm tracking-wide items-center justify-between">
         <div className="catalog-dates-created flex gap-1">

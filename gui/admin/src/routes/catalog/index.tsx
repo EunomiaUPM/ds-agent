@@ -13,6 +13,8 @@ const RouteComponent = () => {
   const localParticipants =
     participantsResponse?.status === 200 ? participantsResponse.data : [];
 
+
+
   if (federated.state === "loading") {
     return (
       <PageLayout>
@@ -51,15 +53,18 @@ const RouteComponent = () => {
   }
 
   const { agents } = federated;
+  console.log(localParticipants, "localparticipants")
+  console.log(agents, "agents")
 
   return (
     <PageLayout>
       <div className="bg-violet-700/40 flex justify-center items-center h-48">
-        <Heading level="h2">Browse catalogs from your connections</Heading>
+        <Heading level="h2">Browse public catalogs and your connections' catalogs </Heading>
       </div>
 
       <div className="h-4" />
       <div className="grid grid-cols-3 gap-5">
+     
         {agents.map((p) => {
           const isOnboarded = localParticipants.some(
             (lp) => lp.participant_id === p.participant_id && !lp.is_me,
@@ -76,6 +81,7 @@ const RouteComponent = () => {
               id={p.participant_id ?? null}
               isAuthenticated={isOnboarded}
               unauthRedirect={unauthRedirect}
+          
             />
           );
         })}

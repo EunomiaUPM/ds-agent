@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -33,9 +33,11 @@ import {
 } from "shared/src/components/ui/select";
 import { Search, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { Badge } from "shared/src/components/ui/badge";
+import WizardDialog from "shared/src/components/WizardDialog";
 import { customInstance } from "shared/src/data/orval-mutator";
 import { useGetAllParticipants } from "shared/src/data/orval/participants/participants";
 import { formatIdentifier, getFriendlyVCType } from "shared/src/lib/utils";
+import { useFederatedCatalog } from "shared/src/data/useFederatedCatalog";
 
 const schema = z.object({
   url: z.string().url("Please enter a valid URL"),
@@ -68,12 +70,22 @@ function NewAuthorityRequest() {
     services: DidService[];
   } | null>(null);
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
+  const federated = useFederatedCatalog();
+
+  // first wizard state
+  const [wizardURLOpen, setWizardURLOpen] = useState(true);
+
+  // second wizard: show guidance over the VC Type field after discovery
+  const [vcWizardOpen, setVcWizardOpen] = useState(false);
+  const vcTypeLabelRef = useRef<HTMLElement | null>(null);
 
   const { data: participantsResponse } = useGetAllParticipants();
   const knownAuthorities =
     participantsResponse?.status === 200
       ? participantsResponse.data.filter((p) => p.participant_type === "Authority")
       : [];
+
+  console.log(knownAuthorities, "know Authorities")
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema) as any,
@@ -87,6 +99,64 @@ function NewAuthorityRequest() {
   });
 
   const url = form.watch("url");
+  const slug = form.watch("slug");
+  // refs for positioning the tooltip over the "Authority URL" label
+  const labelRef = useRef<HTMLElement | null>(null);
+  const tooltipRef = useRef<HTMLDivElement | null>(null);
+  const [tooltipPos, setTooltipPos] = useState({ left: 0, top: 0, tailLeft: 24, width: 0 });
+  const vcType = form.watch("vc_type");
+
+  console.log(vcType, "vc type")
+
+  useEffect(() => {
+    function updatePosition() {
+      if (!labelRef.current || !tooltipRef.current) return;
+      const labelRect = labelRef.current.getBoundingClientRect();
+      const tooltipRect = tooltipRef.current.getBoundingClientRect();
+      const vw = window.innerWidth;
+      const maxWidth = Math.min(720, vw - 32);
+      const tooltipWidth = Math.min(tooltipRect.width || maxWidth, maxWidth);
+
+      let left = labelRect.left + labelRect.width / 2 - tooltipWidth / 2;
+      left = Math.max(8, Math.min(left, vw - tooltipWidth - 8));
+
+      // position tooltip a little above the label
+      const top = Math.max(8, labelRect.top - tooltipRect.height - 12);
+
+      // tail should point to label center relative to tooltip left
+      const tailLeft = Math.max(12, Math.min(labelRect.left + labelRect.width / 2 - left - 12, tooltipWidth - 24));
+
+      setTooltipPos({ left, top, tailLeft, width: tooltipWidth });
+    }
+
+    if (!url) {
+      // update now and on resize/scroll
+      updatePosition();
+      window.addEventListener("resize", updatePosition);
+      window.addEventListener("scroll", updatePosition, true);
+      return () => {
+        window.removeEventListener("resize", updatePosition);
+        window.removeEventListener("scroll", updatePosition, true);
+      };
+    }
+  }, [url]);
+
+  // open VC-type wizard when discovery succeeds
+  useEffect(() => {
+    if (discoveredInfo) {
+      // close the initial wizard and open the VC type wizard
+      setWizardURLOpen(false);
+      setVcWizardOpen(true);
+    }
+  }, [discoveredInfo]);
+
+  // 
+  useEffect(() => 
+  {
+    if (vcType) {
+      setVcWizardOpen(false)
+    }
+  })
 
   const handleDiscovery = async (optionalUrl?: string) => {
     const targetUrl = typeof optionalUrl === "string" ? optionalUrl : url;
@@ -118,6 +188,7 @@ function NewAuthorityRequest() {
     }
   };
 
+
   const onSubmit = async (values: FormValues) => {
     if (!discoveredInfo) {
       return;
@@ -137,6 +208,13 @@ function NewAuthorityRequest() {
         },
       });
 
+      // mark that the user just authenticated via the new-authority flow
+      try {
+        sessionStorage.setItem("justJoinedDataspace", "true");
+      } catch (e) {
+        /* ignore if unavailable */
+      }
+
       (navigate as any)({ to: "/authority" });
     } catch (err) {
       console.error(err);
@@ -145,9 +223,52 @@ function NewAuthorityRequest() {
     }
   };
 
+  let hasAuthority;
+
+  federated.state === "no-authority" ? hasAuthority = false : hasAuthority = true;
+
+  let highlightRingClasses = knownAuthorities.length === 0 ? "ring-2 ring-secondary-400 shadow-md animate-pulse" : ""
+  let highlightButtonClasses = knownAuthorities.length === 0 ? "animate-pulse bg-secondary-600 hover:bg-secondary-500 ring-2 ring-secondary-400" : ""
+  
+
   return (
     <PageLayout>
       <PageHeader title="Request New Credential" />
+      {knownAuthorities.length === 0 ? 
+      <>
+      <WizardDialog
+        open={wizardURLOpen}
+        onClose={() => setWizardURLOpen(false)}
+        anchorRef={labelRef}
+        align="left"
+        title="Guide through Dataspace authentication"
+        content={
+          <>
+            Here you will have to introduce the URL of the authority of the dataspace where you want to be.
+            <br />
+            Load the following URL: <span className="font-mono text-xs text-sky-600">http://localhost:1500</span>
+
+          </>}
+      >  
+
+      </WizardDialog> 
+        <WizardDialog
+                            open={vcWizardOpen}
+                            onClose={() => setVcWizardOpen(false)}
+                            anchorRef={vcTypeLabelRef}
+                            align="left"
+                            title="Choose a credential type"
+                            content={
+                              <>
+                                Select which Verifiable Credential type you want to request from the authority.
+                                <br />
+                                If none are available, try a different authority or contact the provider.
+                              </>
+                            }
+                          />
+         </> 
+    : ""  
+    }
       <PageSection>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
@@ -166,13 +287,14 @@ function NewAuthorityRequest() {
                       name="url"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Authority URL</FormLabel>
+                          <FormLabel ref={(el) => (labelRef.current = el as any)}>Authority URL</FormLabel>
                           <div className="flex items-center gap-2">
                             <FormControl className="flex-1">
                               <Input
                                 placeholder="https://authority.example.com"
                                 list="known-authorities"
                                 {...field}
+                                className={`${!url ? highlightRingClasses : ""}`}
                                 onChange={(e) => {
                                   field.onChange(e);
                                   const val = e.target.value;
@@ -235,18 +357,21 @@ function NewAuthorityRequest() {
                       name="vc_type"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>VC Type</FormLabel>
+                          <FormLabel ref={(el) => (vcTypeLabelRef.current = el as any)}>VC Type</FormLabel>
+                        
                           <Select
                             onValueChange={field.onChange}
                             defaultValue={field.value}
                             disabled={!discoveredInfo}
                           >
                             <FormControl>
-                              <SelectTrigger>
+                              <SelectTrigger
+                                className={discoveredInfo && !vcType ? highlightRingClasses : ""}>
                                 <SelectValue
                                   placeholder={
                                     discoveredInfo ? "Select VC type" : "Discover first..."
                                   }
+                                  
                                 />
                               </SelectTrigger>
                             </FormControl>
@@ -273,20 +398,18 @@ function NewAuthorityRequest() {
                             <div className="relative flex p-1 bg-muted/50 border border-primary/40 rounded-lg w-full">
                               {/* Sliding pill */}
                               <div
-                                className={`absolute top-1 bottom-1 w-[calc(50%-0.25rem)] bg-primary rounded-md transition-transform duration-300 ease-in-out shadow-sm ${
-                                  field.value === "cert"
-                                    ? "translate-x-0"
-                                    : "translate-x-[calc(100%+0.25rem)]"
-                                }`}
+                                className={`absolute top-1 bottom-1 w-[calc(50%-0.25rem)] bg-primary rounded-md transition-transform duration-300 ease-in-out shadow-sm ${field.value === "cert"
+                                  ? "translate-x-0"
+                                  : "translate-x-[calc(100%+0.25rem)]"
+                                  }`}
                               />
 
                               <button
                                 type="button"
-                                className={`relative z-10 w-1/2 py-2 px-3 text-xs md:text-sm font-semibold transition-colors duration-300 rounded-md ${
-                                  field.value === "cert"
-                                    ? "text-primary-foreground"
-                                    : "text-foreground/70 hover:text-foreground"
-                                }`}
+                                className={`relative z-10 w-1/2 py-2 px-3 text-xs md:text-sm font-semibold transition-colors duration-300 rounded-md ${field.value === "cert"
+                                  ? "text-primary-foreground"
+                                  : "text-foreground/70 hover:text-foreground"
+                                  }`}
                                 onClick={() => field.onChange("cert")}
                               >
                                 Certificate
@@ -294,11 +417,10 @@ function NewAuthorityRequest() {
 
                               <button
                                 type="button"
-                                className={`relative z-10 w-1/2 py-2 px-3 text-xs md:text-sm font-semibold transition-colors duration-300 rounded-md ${
-                                  field.value === "oidc4vp"
-                                    ? "text-primary-foreground"
-                                    : "text-foreground/70 hover:text-foreground"
-                                }`}
+                                className={`relative z-10 w-1/2 py-2 px-3 text-xs md:text-sm font-semibold transition-colors duration-300 rounded-md ${field.value === "oidc4vp"
+                                  ? "text-primary-foreground"
+                                  : "text-foreground/70 hover:text-foreground"
+                                  }`}
                                 onClick={() => field.onChange("oidc4vp")}
                               >
                                 Verifiable Credential
@@ -335,7 +457,7 @@ function NewAuthorityRequest() {
 
                     <Button
                       type="submit"
-                      className="w-full"
+                      className={`w-full ${vcType ? highlightButtonClasses : ""}`}
                       disabled={!discoveredInfo || isSubmitting}
                     >
                       {isSubmitting ? (

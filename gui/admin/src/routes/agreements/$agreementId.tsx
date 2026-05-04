@@ -7,7 +7,7 @@ import { InfoList } from "shared/src/components/ui/info-list";
 import { FormatDate } from "shared/src/components/ui/format-date";
 import { Badge } from "shared/src/components/ui/badge.tsx";
 import PolicyComponent from "shared/src/components/PolicyComponent.tsx";
-import { formatUrn } from "shared/src/lib/utils.ts";
+import { formatIdentifier, formatUrn } from "shared/src/lib/utils.ts";
 import { PageLayout } from "shared/src/components/layout/PageLayout";
 import { PageHeader } from "shared/src/components/layout/PageHeader";
 import { PageSection } from "shared/src/components/layout/PageSection";
@@ -48,18 +48,37 @@ function RouteComponent() {
         <PageSection title="Agreement info">
           <InfoList
             items={[
-              { label: "Agreement Id", value: { type: "urn", value: agreement.id } },
+              {
+                label: "Agreement Id",
+                value: { type: "urn", value: formatIdentifier(agreement.id) },
+              },
               {
                 label: "Related Message",
-                value: { type: "urn", value: agreement.negotiationAgentMessageId },
+                value: {
+                  type: "urn",
+                  value: formatIdentifier(agreement.negotiationAgentMessageId),
+                },
               },
               {
-                label: "Consumer Participant Id",
-                value: { type: "urn", value: agreement.consumerParticipantId },
+                label: "Target Dataset",
+                value: {
+                  type: "text",
+                  value: formatIdentifier(agreement.target),
+                },
               },
               {
-                label: "Provider Participant Id",
-                value: { type: "urn", value: agreement.providerParticipantId },
+                label: "Consumer Participant",
+                value: {
+                  type: "text",
+                  value: formatIdentifier(agreement.consumerParticipantId, 3),
+                },
+              },
+              {
+                label: "Provider Participant",
+                value: {
+                  type: "text",
+                  value: formatIdentifier(agreement.providerParticipantId, 3),
+                },
               },
               {
                 label: "Status",

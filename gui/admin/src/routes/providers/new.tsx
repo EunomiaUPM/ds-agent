@@ -28,6 +28,7 @@ import { Search, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { Badge } from "shared/src/components/ui/badge";
 import { customInstance } from "shared/src/data/orval-mutator";
 import { useGetAllParticipants } from "shared/src/data/orval/participants/participants";
+import { formatIdentifier } from "shared/lib/utils";
 
 const schema = z.object({
   url: z.string().url("Please enter a valid URL"),
@@ -148,8 +149,8 @@ function NewProviderOnboard() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Provider URL</FormLabel>
-                          <div className="flex gap-2">
-                            <FormControl>
+                          <div className="flex items-center gap-2">
+                            <FormControl className="flex-1">
                               <Input
                                 placeholder="https://provider.example.com"
                                 list="known-providers"
@@ -177,15 +178,16 @@ function NewProviderOnboard() {
                             <Button
                               type="button"
                               variant="secondary"
+                              size="sm"
                               onClick={() => handleDiscovery()}
                               disabled={isDiscovering || !url}
                             >
                               {isDiscovering ? (
                                 <Loader2 className="animate-spin h-4 w-4 mr-2" />
                               ) : (
-                                <Search className="h-4 w-4 mr-2" />
+                                <Search />
                               )}
-                              Discover
+                              Find provider
                             </Button>
                           </div>
                           <FormMessage />
@@ -196,44 +198,42 @@ function NewProviderOnboard() {
                       )}
                     />
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control as any}
-                        name="slug"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Friendly Name (Slug)</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Acme Provider" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                    <FormField
+                      control={form.control as any}
+                      name="slug"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Friendly Name (Slug)</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Acme Provider" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                      <FormField
-                        control={form.control as any}
-                        name="auto"
-                        render={({ field }: { field: any }) => (
-                          <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                            <FormControl>
-                              <input
-                                type="checkbox"
-                                checked={field.value}
-                                onChange={field.onChange}
-                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                              />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel>Automatic Authentication</FormLabel>
-                              <FormDescription>
-                                Automatically handle the authentication flow.
-                              </FormDescription>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
+                    <FormField
+                      control={form.control as any}
+                      name="auto"
+                      render={({ field }: { field: any }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                          <FormControl>
+                            <input
+                              type="checkbox"
+                              checked={field.value}
+                              onChange={field.onChange}
+                              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel>Automatic Authentication</FormLabel>
+                            <FormDescription>
+                              Automatically handle the authentication flow.
+                            </FormDescription>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
 
                     {/* 
                     <FormField
@@ -331,9 +331,7 @@ function NewProviderOnboard() {
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                         Provider DID
                       </p>
-                      <Badge variant="infoLighter" className="font-mono text-[10px] break-all p-2">
-                        {discoveredInfo.id}
-                      </Badge>
+                      <Badge variant="infoLighter">{formatIdentifier(discoveredInfo.id)}</Badge>
                     </div>
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -343,10 +341,10 @@ function NewProviderOnboard() {
                         {discoveredInfo.services.map((s, idx) => (
                           <div
                             key={idx}
-                            className="p-2 border rounded bg-background-200/50 text-[10px] space-y-1"
+                            className="p-2 border rounded bg-background-200/30 text-sm space-y-1"
                           >
-                            <p className="font-bold text-primary">{s.type}</p>
-                            <p className="break-all opacity-70">{s.serviceEndpoint}</p>
+                            <p className="font-medium text-brand-sky">{s.type}</p>
+                            <p className="break-all text-white/70">{s.serviceEndpoint}</p>
                           </div>
                         ))}
                         {discoveredInfo.services.length === 0 && (
@@ -354,7 +352,7 @@ function NewProviderOnboard() {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-green-500 font-medium pt-2">
+                    <div className="flex items-center gap-2 text-sm text-success-400 font-medium pt-2">
                       <CheckCircle2 className="h-4 w-4" />
                       Provider verified
                     </div>

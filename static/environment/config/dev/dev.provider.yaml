@@ -84,7 +84,7 @@ ssi_auth:
   verify_req_config:
     is_cert_allowed: false
     auto_approve_cert: false
-    vcs_requested: [DataspaceParticipant]
+    vcs_requested: [DataSpaceParticipant]
   gaia_config:
     api:
       protocol: 'http'

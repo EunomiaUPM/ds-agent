@@ -99,12 +99,12 @@ function ProvidersPage() {
 
   return (
     <PageLayout>
-      <PageHeader title="Provider Sessions">
+      <PageHeader title="My Connections">
         <div className="flex justify-end mb-4">
           <Link to="/providers/new">
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              New Session
+              New connection
             </Button>
           </Link>
         </div>

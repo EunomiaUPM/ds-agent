@@ -12,9 +12,11 @@ import { ArrowRight } from "lucide-react";
 import { PageLayout } from "shared/src/components/layout/PageLayout";
 import { PageHeader } from "shared/src/components/layout/PageHeader";
 import { PageSection } from "shared/src/components/layout/PageSection";
+import { useGetAllParticipants } from "shared/data/orval/participants/participants";
 
 const RouteComponent = () => {
   const { data: cnProcessesData } = useGetNegotiationProcesses();
+  const { data: participants } = useGetAllParticipants();
 
   const cnProcesses = cnProcessesData?.status === 200 ? cnProcessesData.data : [];
   const cnProcessesSorted = useMemo(() => {
@@ -24,6 +26,9 @@ const RouteComponent = () => {
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
   }, [cnProcesses]);
+
+  console.log(cnProcessesSorted, " cnProcessesSorted")
+  console.log(participants, "participants cn page")
 
   return (
     <PageLayout>

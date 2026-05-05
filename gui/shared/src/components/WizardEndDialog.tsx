@@ -1,4 +1,5 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import { Button } from "shared/src/components/ui/button";
 import { Link } from "@tanstack/react-router";
 import Heading from "shared/src/components/ui/Heading";
@@ -22,9 +23,10 @@ export default function WizardEndDialog({
   actionLabel = "See catalog",
 }: Props) {
   if (!open) return null;
+  const portalRoot = typeof window !== "undefined" ? document.body : null;
 
-  return (
-    <div className="fixed left-1/2 top-16 z-50 w-full max-w-lg -translate-x-1/2 transform">
+  const portalContent = (
+    <div className="fixed left-1/2 top-16 z-[9999] w-full max-w-lg -translate-x-1/2 transform">
       <div className="relative bg-background-300 border border-secondary-800 text-white p-3 rounded-md shadow-lg pointer-events-auto">
         <button
           onClick={onClose}
@@ -39,15 +41,16 @@ export default function WizardEndDialog({
 
         <div className="flex justify-end gap-2">
           <Link to={actionHref}>
-            <Button
-            className="animate-pulse bg-secondary-500 hover:bg-secondary-600 text-white"
-            >
-              
+            <Button className="animate-pulse bg-secondary-500 hover:bg-secondary-600 text-white">
               {actionLabel}
-               <ArrowRight /></Button>
+              <ArrowRight />
+            </Button>
           </Link>
         </div>
       </div>
     </div>
   );
+
+  if (portalRoot) return createPortal(portalContent, portalRoot);
+  return portalContent;
 }

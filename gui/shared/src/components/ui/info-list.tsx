@@ -107,7 +107,7 @@ export const InfoList = ({ items, className }: InfoListProps) => {
  * Single info list item component.
  * Renders a label and automatically formats the value based on its type.
  */
-const InfoListItem = ({ label, value, className, keyClassName }: InfoItemProps) => {
+export const InfoListItem = ({ label, value, className, keyClassName }: InfoItemProps) => {
   // Don't render if no value
   if (value === undefined || value === null) return null;
 
@@ -173,3 +173,5 @@ const InfoListItem = ({ label, value, className, keyClassName }: InfoItemProps) 
     </div>
   );
 };
+
+

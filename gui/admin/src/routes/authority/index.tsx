@@ -108,7 +108,7 @@ function AuthorityRequestsPage() {
         actionHref={"/catalog/"}
         actionLabel={"See dataspace"}
       />
-      <PageHeader title="Request Credential">
+      <PageHeader title="Credential Requests">
         <div className="flex justify-end mb-4">
           <Link to="/authority/new">
             <Button>

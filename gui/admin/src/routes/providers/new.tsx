@@ -8,10 +8,10 @@ import { PageSection } from 'shared/src/components/layout/PageSection';
 import { Badge } from 'shared/src/components/ui/badge';
 import { Button } from 'shared/src/components/ui/button';
 import {
-    Card, CardContent, CardDescription, CardHeader, CardTitle
+  Card, CardContent, CardDescription, CardHeader, CardTitle
 } from 'shared/src/components/ui/card';
 import {
-    Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage
+  Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage
 } from 'shared/src/components/ui/form';
 import { Input } from 'shared/src/components/ui/input';
 import { customInstance } from 'shared/src/data/orval-mutator';
@@ -20,6 +20,8 @@ import * as z from 'zod';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { useGetAllParticipants } from "shared/src/data/orval/participants/participants";
+import WizardDialog from "shared/src/components/WizardDialog";
 
 const schema = z.object({
   url: z.string().url("Please enter a valid URL"),
@@ -59,9 +61,20 @@ function NewProviderOnboard() {
     services: DidService[];
   } | null>(null);
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
-
+  const { data: participantsResponse } = useGetAllParticipants();
+  const localParticipants =
+    participantsResponse?.status === 200 ? participantsResponse.data : [];
+   
   const federated = useFederatedCatalog();
   const knownProviders = federated.state === "ok" ? federated.agents : [];
+
+  console.log(knownProviders, " knownProviders")
+
+  //  if (!Array.isArray(localParticipants) || !Array.isArray(knownProviders)) 
+  //   return undefined; 
+    const localParticiapntsIds = new Set(localParticipants?.map((p) => p.participant_id));
+    const providerAuth = knownProviders.find((prov) => localParticiapntsIds?.has(prov.participant_id));
+
 
   const search = Route.useSearch();
 
@@ -134,6 +147,8 @@ function NewProviderOnboard() {
       setIsSubmitting(false);
     }
   };
+
+
 
   return (
     <PageLayout>

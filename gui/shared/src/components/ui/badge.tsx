@@ -93,6 +93,7 @@ const badgeVariants = cva(
         role: "text-white uppercase border-white/10",
         status: "bg-opacity-30 border-white/10 text-foreground-300 uppercase",
         detail: "text-xs bg-brand-sky/20 !px-1 !py-0 max-w-[140px] !whitespace-normal",
+      code: "bg-gray-900 border border-gray-800 rounded-sm font-mono text-red-500 !py-0"
       },
 
       /**

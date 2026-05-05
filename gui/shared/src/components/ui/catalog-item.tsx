@@ -5,6 +5,8 @@ import { FormatDate } from "shared/src/components/ui/format-date";
 import { CheckCircle2, Lock } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "shared/src/components/ui/dialog";
 import { Button } from "shared/src/components/ui/button";
+import WizardDialog from "shared/src/components/WizardDialog";
+import { useRef } from "react";
 
 interface CatalogItemProps {
   date: string;
@@ -28,7 +30,11 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
   const unavailableCatalogClasses =
     id === null ? "opacity-65 grayscale cursor-not-allowed" : "cursor-pointer";
 
-  const highlightRingClasses = !isAuthenticated ? "ring-2 ring-secondary-400 shadow-md animate-pulse" : ""
+  const highlightButtonClasses = unauthRedirect ? "animate-pulse bg-secondary-600 hover:bg-secondary-500 ring-2 ring-secondary-400" : ""
+
+  const labelConnectRef = useRef<HTMLElement | null>(null);
+  // first wizard URL state - start closed; open after dialog mounts
+  const [wizardConnectOpen, setWizardConnectOpen] = useState(false);
 
   const headingText = title ? title : `${organizationName}'s Catalog for Demo`;
   const headingNode = (
@@ -39,6 +45,17 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
 
   let headingLink: React.ReactNode;
   const [openDialog, setOpenDialog] = useState(false);
+  // open the wizard only after the dialog has been opened and the title anchor is mounted
+  React.useEffect(() => {
+    let t: any;
+    if (openDialog) {
+      // schedule on next tick so the Dialog content mounts and labelConnectRef is set
+      t = setTimeout(() => setWizardConnectOpen(true), 50);
+    } else {
+      setWizardConnectOpen(false);
+    }
+    return () => clearTimeout(t);
+  }, [openDialog]);
 
   if (unauthRedirect) {
     headingLink = (
@@ -50,9 +67,21 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
         <Dialog open={openDialog} onOpenChange={setOpenDialog}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Access required</DialogTitle>
+              <DialogTitle ref={(el) => (labelConnectRef.current = el as any)}>Access required</DialogTitle>
               <DialogDescription>
-                You don't have permission to access this catalog. <br/> First, you need to connect with <strong>{organizationName}</strong>.
+                  <WizardDialog
+                    open={wizardConnectOpen}
+                    onClose={() => setWizardConnectOpen(false)}
+                    anchorRef={labelConnectRef}
+                    align="left"
+                    title="Connection with Dataspace Participant required"
+                    content={
+                      <>
+                       You can only access the catalog of a participant if you
+                      are connected to them. Click on the button <strong>"Request connection"</strong> to connect with the owner of the catalog.
+                      </>}
+                  />
+                You don't have permission to access this catalog. <br /> First, you need to connect with <strong>{organizationName}</strong>.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
@@ -60,11 +89,12 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
                 <Button variant="ghost" onClick={() => setOpenDialog(false)}>Keep browsing</Button>
               </DialogClose>
               <Link to="/providers/new" search={{ url: unauthRedirect.url, slug: unauthRedirect.slug }}>
-                <Button>Request connection</Button>
+                <Button className={highlightButtonClasses}>Request connection</Button>
               </Link>
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
       </>
     );
   } else if (id !== null) {
@@ -79,7 +109,7 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
 
   return (
     <div
-      className={`catalog-card bg-background-200/15  hover:bg-background-200/30 transition-all border rounded-md flex flex-col p-4 gap-3 max-w-lg ${unavailableCatalogClasses} ${isAuthenticated ? "border-emerald-500/40" : "border-white/10"} `}
+      className={`catalog-card bg-background-200/15  hover:bg-background-200/30 transition-all border rounded-md flex flex-col p-4 gap-3 max-w-lg ${unavailableCatalogClasses} ${isAuthenticated ? "border-emerald-500/40" : "border-white/10"}`}
     >
       <div className="catalog-dates-container flex gap-3 text-sm tracking-wide items-center justify-between">
         <div className="catalog-dates-created flex gap-1">
@@ -92,7 +122,7 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
             Authenticated
           </span>
         ) : id !== null ? (
-          <span className="flex items-center gap-1 text-xs text-muted-foreground font-medium">
+          <span className="flex items-center gap-1 text-xs text-muted-foreground font-medium text-red-400">
             <Lock className="h-3.5 w-3.5" />
             Auth required
           </span>

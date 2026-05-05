@@ -72,7 +72,7 @@ function NewAuthorityRequest() {
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
   const federated = useFederatedCatalog();
 
-  // first wizard state
+  // first wizard URL state
   const [wizardURLOpen, setWizardURLOpen] = useState(true);
 
   // second wizard: show guidance over the VC Type field after discovery
@@ -85,7 +85,7 @@ function NewAuthorityRequest() {
       ? participantsResponse.data.filter((p) => p.participant_type === "Authority")
       : [];
 
-  console.log(knownAuthorities, "know Authorities")
+
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema) as any,
@@ -101,45 +101,10 @@ function NewAuthorityRequest() {
   const url = form.watch("url");
   const slug = form.watch("slug");
   // refs for positioning the tooltip over the "Authority URL" label
-  const labelRef = useRef<HTMLElement | null>(null);
-  const tooltipRef = useRef<HTMLDivElement | null>(null);
-  const [tooltipPos, setTooltipPos] = useState({ left: 0, top: 0, tailLeft: 24, width: 0 });
+  const labelURLRef = useRef<HTMLElement | null>(null);
   const vcType = form.watch("vc_type");
 
-  console.log(vcType, "vc type")
 
-  useEffect(() => {
-    function updatePosition() {
-      if (!labelRef.current || !tooltipRef.current) return;
-      const labelRect = labelRef.current.getBoundingClientRect();
-      const tooltipRect = tooltipRef.current.getBoundingClientRect();
-      const vw = window.innerWidth;
-      const maxWidth = Math.min(720, vw - 32);
-      const tooltipWidth = Math.min(tooltipRect.width || maxWidth, maxWidth);
-
-      let left = labelRect.left + labelRect.width / 2 - tooltipWidth / 2;
-      left = Math.max(8, Math.min(left, vw - tooltipWidth - 8));
-
-      // position tooltip a little above the label
-      const top = Math.max(8, labelRect.top - tooltipRect.height - 12);
-
-      // tail should point to label center relative to tooltip left
-      const tailLeft = Math.max(12, Math.min(labelRect.left + labelRect.width / 2 - left - 12, tooltipWidth - 24));
-
-      setTooltipPos({ left, top, tailLeft, width: tooltipWidth });
-    }
-
-    if (!url) {
-      // update now and on resize/scroll
-      updatePosition();
-      window.addEventListener("resize", updatePosition);
-      window.addEventListener("scroll", updatePosition, true);
-      return () => {
-        window.removeEventListener("resize", updatePosition);
-        window.removeEventListener("scroll", updatePosition, true);
-      };
-    }
-  }, [url]);
 
   // open VC-type wizard when discovery succeeds
   useEffect(() => {
@@ -150,13 +115,10 @@ function NewAuthorityRequest() {
     }
   }, [discoveredInfo]);
 
-  // 
-  useEffect(() => 
-  {
-    if (vcType) {
-      setVcWizardOpen(false)
-    }
-  })
+  // close the VC-type helper when a VC type is selected
+  useEffect(() => {
+    if (vcType) setVcWizardOpen(false);
+  }, [vcType]);
 
   const handleDiscovery = async (optionalUrl?: string) => {
     const targetUrl = typeof optionalUrl === "string" ? optionalUrl : url;
@@ -223,52 +185,49 @@ function NewAuthorityRequest() {
     }
   };
 
-  let hasAuthority;
+  // federated presence check (kept for clarity)
 
-  federated.state === "no-authority" ? hasAuthority = false : hasAuthority = true;
+  let highlightRingClasses = knownAuthorities.length === 0 ? "ring-2 ring-secondary-400 shadow-md animate-pulse" : "";
+  let highlightButtonClasses = knownAuthorities.length === 0 ? "animate-pulse bg-secondary-600 hover:bg-secondary-500 ring-2 ring-secondary-400" : "";
 
-  let highlightRingClasses = knownAuthorities.length === 0 ? "ring-2 ring-secondary-400 shadow-md animate-pulse" : ""
-  let highlightButtonClasses = knownAuthorities.length === 0 ? "animate-pulse bg-secondary-600 hover:bg-secondary-500 ring-2 ring-secondary-400" : ""
-  
 
   return (
     <PageLayout>
       <PageHeader title="Request New Credential" />
-      {knownAuthorities.length === 0 ? 
-      <>
-      <WizardDialog
-        open={wizardURLOpen}
-        onClose={() => setWizardURLOpen(false)}
-        anchorRef={labelRef}
-        align="left"
-        title="Guide through Dataspace authentication"
-        content={
-          <>
-            Here you will have to introduce the URL of the authority of the dataspace where you want to be.
-            <br />
-            Load the following URL: <span className="font-mono text-xs text-sky-600">http://localhost:1500</span>
+      {knownAuthorities.length === 0 ?
+        <>
+          <WizardDialog
+            open={wizardURLOpen}
+            onClose={() => setWizardURLOpen(false)}
+            anchorRef={labelURLRef}
+            align="left"
+            title="Guide through Dataspace authentication"
+            content={
+              <>
+                Here you will have to introduce the URL of the authority of the dataspace where you want to be.
+                <br />
+                Load the following URL: <span className="font-mono text-xs text-sky-600">http://localhost:1500</span>
+              </>}
+          >
 
-          </>}
-      >  
-
-      </WizardDialog> 
-        <WizardDialog
-                            open={vcWizardOpen}
-                            onClose={() => setVcWizardOpen(false)}
-                            anchorRef={vcTypeLabelRef}
-                            align="left"
-                            title="Choose a credential type"
-                            content={
-                              <>
-                                Select which Verifiable Credential type you want to request from the authority.
-                                <br />
-                                If none are available, try a different authority or contact the provider.
-                              </>
-                            }
-                          />
-         </> 
-    : ""  
-    }
+          </WizardDialog>
+          <WizardDialog
+            open={vcWizardOpen}
+            onClose={() => setVcWizardOpen(false)}
+            anchorRef={vcTypeLabelRef}
+            align="left"
+            title="Choose a credential type"
+            content={
+              <>
+                Select which Verifiable Credential type you want to request from the authority.
+                <br />
+                If none are available, try a different authority or contact the provider.
+              </>
+            }
+          />
+        </>
+        : ""
+      }
       <PageSection>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
@@ -287,7 +246,7 @@ function NewAuthorityRequest() {
                       name="url"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel ref={(el) => (labelRef.current = el as any)}>Authority URL</FormLabel>
+                          <FormLabel ref={(el) => (labelURLRef.current = el as any)}>Authority URL</FormLabel>
                           <div className="flex items-center gap-2">
                             <FormControl className="flex-1">
                               <Input
@@ -358,7 +317,7 @@ function NewAuthorityRequest() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel ref={(el) => (vcTypeLabelRef.current = el as any)}>VC Type</FormLabel>
-                        
+
                           <Select
                             onValueChange={field.onChange}
                             defaultValue={field.value}
@@ -371,7 +330,7 @@ function NewAuthorityRequest() {
                                   placeholder={
                                     discoveredInfo ? "Select VC type" : "Discover first..."
                                   }
-                                  
+
                                 />
                               </SelectTrigger>
                             </FormControl>

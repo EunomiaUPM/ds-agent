@@ -160,7 +160,7 @@ function NewProviderOnboard() {
     }
   };
 
- let highlightButtonClasses = !onboardedWithKnownProvider ? "animate-pulse bg-secondary-600 hover:bg-secondary-500 ring-2 ring-secondary-400" : "";
+ let highlightButtonClasses = !onboardedWithKnownProvider ? " animate-pulse bg-secondary-600 hover:bg-secondary-500 ring-2 ring-secondary-400" : "";
 
 
 
@@ -345,7 +345,7 @@ function NewProviderOnboard() {
 
                     <Button
                       type="submit"
-                      className={`w-full ${highlightButtonClasses}`}
+                      className={`w-full   ${highlightButtonClasses}`}
                       disabled={!discoveredInfo || isSubmitting}
                     >
                       {isSubmitting ? (

@@ -3,6 +3,7 @@ import { formatUrn } from "shared/src/lib/utils";
 import dayjs from "dayjs";
 import { Badge } from "shared/src/components/ui/badge";
 import Heading from "shared/src/components/ui/heading";
+
 import { PageLayout } from "shared/src/components/layout/PageLayout";
 import { PageHeader } from "shared/src/components/layout/PageHeader";
 import { PageSection } from "shared/src/components/layout/PageSection";
@@ -31,6 +32,7 @@ import {
   DrawerTrigger,
 } from "shared/src/components/ui/drawer";
 import DatasetItem from "shared/components/ui/dataset-item";
+import AvatarImg from "shared/components/ui/avatar-img";
 
 const RouteComponent = () => {
   const { catalogId } = Route.useParams();
@@ -101,20 +103,18 @@ const RouteComponent = () => {
               },
               {
                 label: "Organization",
-                value: {
-                  type: "custom",
-                  content: (
-                    <div className={`catalog-participant-container flex gap-2 justify-start `}>
-                      <img
-                        className={`rounded-full h-6 aspect-square ${myAgentSlug === "provider" ? " bg-violet-700" : " bg-orange-500"}`}
-                      ></img>
-                      <Heading level="h4" className="capitalize">
-                        {" "}
-                        {myAgentSlug}{" "}
-                      </Heading>
-                    </div>
-                  ),
-                },
+                  value: {
+                    type: "custom",
+                    content: (
+                      <div className={`catalog-participant-container flex gap-2 justify-start `}>
+                        <AvatarImg  sizeClass="h-7" />
+                        <Heading level="h4" className="capitalize">
+                          {" "}
+                          {myAgentSlug}{" "}
+                        </Heading>
+                      </div>
+                    ),
+                  },
               },
             ]}
           />

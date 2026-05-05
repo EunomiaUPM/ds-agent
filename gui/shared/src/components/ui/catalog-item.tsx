@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import avatarImg from "../../../public/avatar.png";
+import Avatar from "./avatar-img";
 import Heading from "shared/src/components/ui/heading";
 import { Link } from "@tanstack/react-router";
 import { FormatDate } from "shared/src/components/ui/format-date";
@@ -33,12 +35,11 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
   const highlightButtonClasses = unauthRedirect ? "animate-pulse bg-secondary-600 hover:bg-secondary-500 ring-2 ring-secondary-400" : ""
 
   const labelConnectRef = useRef<HTMLElement | null>(null);
-  // first wizard URL state - start closed; open after dialog mounts
   const [wizardConnectOpen, setWizardConnectOpen] = useState(false);
 
   const headingText = title ? title : `${organizationName}'s Catalog for Demo`;
   const headingNode = (
-    <Heading level="h3" className="capitalize mb-3 underline-offset-2 hover:underline">
+    <Heading level="h4" className="capitalize mb-3 underline-offset-2 hover:underline">
       {headingText}
     </Heading>
   );
@@ -67,25 +68,25 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
         <Dialog open={openDialog} onOpenChange={setOpenDialog}>
           <DialogContent>
             <DialogHeader>
-                <DialogTitle ref={(el) => (labelConnectRef.current = el as any)}
+              <DialogTitle ref={(el) => (labelConnectRef.current = el as any)}
                 className="flex gap-2 items-center"
-                >
-                <Lock  className="h-5 w-5" ></Lock>
-               <Heading level="h4" className="!mb-0">Access required</Heading> 
-                </DialogTitle>
+              >
+                <Lock className="h-5 w-5" ></Lock>
+                <Heading level="h4" className="!mb-0">Access required</Heading>
+              </DialogTitle>
               <DialogDescription>
-                  <WizardDialog
-                    open={wizardConnectOpen}
-                    onClose={() => setWizardConnectOpen(false)}
-                    anchorRef={labelConnectRef}
-                    align="left"
-                    title="Connection with Dataspace Participant required"
-                    content={
-                      <>
-                       You can only access the catalog of a participant if you
+                <WizardDialog
+                  open={wizardConnectOpen}
+                  onClose={() => setWizardConnectOpen(false)}
+                  anchorRef={labelConnectRef}
+                  align="left"
+                  title="Connection with Dataspace Participant required"
+                  content={
+                    <>
+                      You can only access the catalog of a participant if you
                       are connected to them. Click on the button <strong>"Request connection"</strong> to connect with the owner of the catalog.
-                      </>}
-                  />
+                    </>}
+                />
                 You don't have permission to access this catalog. <br /> First, you need to connect with <strong>{organizationName}</strong>.
               </DialogDescription>
             </DialogHeader>
@@ -114,11 +115,11 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
 
   return (
     <div
-      className={`catalog-card bg-background-200/15  hover:bg-background-200/30 transition-all border rounded-md flex flex-col p-4 gap-3 max-w-lg ${unavailableCatalogClasses} ${isAuthenticated ? "border-emerald-500/40" : "border-white/10"}`}
+      className={`catalog-card h-full bg-background-200/15  hover:bg-background-200/30 transition-all border rounded-md flex flex-col p-4 gap-3 justify-between max-w-lg ${unavailableCatalogClasses} ${isAuthenticated ? "border-emerald-500/40" : "border-white/10"}`}
     >
       <div className="catalog-dates-container flex gap-3 text-sm tracking-wide items-center justify-between">
         <div className="catalog-dates-created flex gap-1">
-          <p>Created at:</p>
+          <p className="text-sm">Created at:</p>
           <FormatDate date={date} />
         </div>
         {isAuthenticated ? (
@@ -135,17 +136,15 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
       </div>
       <div className="catalog-text-container">
         {headingLink}
-        <p className="mb-2 ">
+        <p className="mb-2 line-clamp-3 text-sm">
           This is the catalog of <span className="capitalize">{organizationName}</span>, who is also
           part of this dataspace. Click on the catalog name to see the datasets and dataservice they
           offer.
         </p>
       </div>
-      <div className="catalog-participant-container flex gap-2 justify-start">
-        <div
-          className={`rounded-full h-6 aspect-square ${organizationName === "provider" ? "bg-violet-700" : "bg-orange-500"}`}
-        />
-        <Heading level="h4" className="capitalize">
+      <div className="catalog-participant-container flex gap-2 justify-start items-center">
+        <Avatar src={avatarImg}  />
+        <Heading level="h5" className="capitalize !mb-0">
           {organizationName}
         </Heading>
       </div>

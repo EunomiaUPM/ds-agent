@@ -26,7 +26,7 @@ impl HttpConsumerPullConfigurator {
                 token: dataplane_address.authorization.clone(),
             })
         } else {
-            Err(Errors::crazy("Forward dataplane's address not found", None))
+            Ok(DataplaneProxyEgress::NoOp)
         }
     }
 }

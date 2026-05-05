@@ -61,6 +61,7 @@ impl TransferRpcStep for StartStep {
     ) -> Outcome<()> {
         let addr = dp.on_transfer_start_pre(ctx).await?;
         ctx.resolved_data_address = addr;
+        dbg!(&ctx);
         Ok(())
     }
 
@@ -92,6 +93,7 @@ impl TransferRpcStep for StartStep {
         ctx: &mut DspTransferContext,
         payload: Arc<TransferStartMessageDto>,
     ) -> Outcome<TransferProcessMessageWrapper<TransferProcessAckDto>> {
+        dbg!(&payload);
         continuation_send_and_persist(http_client, persistence, ctx, payload, Self::url_suffix())
             .await
     }

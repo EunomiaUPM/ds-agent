@@ -15,11 +15,12 @@ use ymir::errors::Outcome;
 
 #[derive(Clone, Debug)]
 pub enum DataplaneCommand {
+    GetAssociated(DataplaneContinuation),
     SetInit(DataplaneInitCommandTypes),
-    SetConfiguring,
+    SetConfiguring(Option<(DataplaneContinuation, DataplaneAddress)>), // just in case egress is configured from outside
     SetAuth,
     SetReady,
-    SetStarted(DataplaneContinuation, Option<DataplaneAddress>),
+    SetStarted(DataplaneContinuation),
     SetSubscribing(DataplaneContinuation),
     SetUnsubscribing(DataplaneContinuation),
     SetStopped(DataplaneContinuation),
@@ -41,8 +42,12 @@ pub enum DataplaneInitCommandTypes {
 
 #[derive(Clone, Debug)]
 pub enum DataplaneInitCommandDirection {
-    Pull { data_address: DataplaneAddress },
-    Push { data_address: DataplaneAddress },
+    Pull {
+        data_address: Option<DataplaneAddress>,
+    },
+    Push {
+        data_address: Option<DataplaneAddress>,
+    },
 }
 
 #[derive(Clone, Debug)]
@@ -60,11 +65,12 @@ pub enum DataplaneCommandResponse {
 impl std::fmt::Display for DataplaneCommand {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            DataplaneCommand::GetAssociated(_) => write!(f, "GetAssociated"),
             DataplaneCommand::SetInit(_) => write!(f, "SetInit"),
-            DataplaneCommand::SetConfiguring => write!(f, "SetConfiguring"),
+            DataplaneCommand::SetConfiguring(_) => write!(f, "SetConfiguring"),
             DataplaneCommand::SetAuth => write!(f, "SetAuth"),
             DataplaneCommand::SetReady => write!(f, "SetReady"),
-            DataplaneCommand::SetStarted(_, _) => write!(f, "SetStarted"),
+            DataplaneCommand::SetStarted(_) => write!(f, "SetStarted"),
             DataplaneCommand::SetSubscribing(_) => write!(f, "SetSubscribing"),
             DataplaneCommand::SetUnsubscribing(_) => write!(f, "SetUnsubscribing"),
             DataplaneCommand::SetStopped(_) => write!(f, "SetStopped"),
@@ -79,6 +85,12 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
     fn dataplane_entity(&self) -> Arc<dyn DataplaneTransfersEntitiesTrait>;
     fn connector_entity(&self) -> Arc<dyn ConnectorInstanceTrait>;
     fn transfer_config(&self) -> Arc<TransferConfig>;
+
+    async fn get_associated(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
+        context.set_forward_dataplane_address_from_ingress();
+        Ok(context)
+    }
+
     async fn set_init(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
         let ctx = self.set_configuring(context).await?;
         let ctx = self.set_auth(ctx).await?;
@@ -86,38 +98,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
         Ok(ctx)
     }
     async fn set_configuring(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
-        // driver
-        let driver = DataplaneDriverFactory.get_or_create_driver(&context)?;
-        // proxy
-        let mut context = driver.proxy_configurator.configure_proxy(&context).await?;
-        // runtime
-        let runtime = DataplaneRuntime::default();
-        // setters
-        context.set_driver(driver);
-        context.set_runtime(runtime);
-        // dataplane
-        let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
-        let new_state = TransferState::Configuring;
-        let dataplane_process = self
-            .dataplane_entity()
-            .put_dataplane_transfer_by_id(
-                &dataplane_urn,
-                &EditDataplaneTransferDto {
-                    state: Some(new_state),
-                    ingress_config: context
-                        .proxy()
-                        .map(|p| p.ingress().clone())
-                        .and_then(|p| serde_json::to_value(p).ok()),
-                    egress_config: context
-                        .proxy()
-                        .map(|p| p.egress().clone())
-                        .and_then(|p| serde_json::to_value(p).ok()),
-                    ..EditDataplaneTransferDto::default()
-                },
-            )
-            .await?;
-        context.set_dataplane_process(dataplane_process);
-        Ok(context)
+        set_configuring_helper(self.dataplane_entity(), context).await
     }
     async fn set_auth(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
         let driver = DataplaneDriverFactory.get_or_create_driver(&context)?;
@@ -159,14 +140,8 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
         context.set_forward_dataplane_address_from_ingress();
         Ok(context)
     }
-    async fn set_started(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
-        // only configuring if egress needs to be set. it happens in Ready
-        let mut ctx = if context.dataplane_process_state() == TransferState::Ready {
-            self.set_configuring(context).await?
-        } else {
-            context
-        };
-        let dataplane_urn = Urn::from_str(&*ctx.dataplane_process().inner.id)?;
+    async fn set_started(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
+        let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
         let new_state = TransferState::Started;
         let dataplane_process = self
             .dataplane_entity()
@@ -174,14 +149,14 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
                 &dataplane_urn,
                 &EditDataplaneTransferDto {
                     state: Some(new_state),
-                    flow_control: ctx.runtime().and_then(|r| serde_json::to_value(r).ok()),
+                    flow_control: context.runtime().and_then(|r| serde_json::to_value(r).ok()),
                     ..EditDataplaneTransferDto::default()
                 },
             )
             .await?;
-        ctx.set_dataplane_process(dataplane_process);
-        ctx.set_forward_dataplane_address_from_ingress();
-        Ok(ctx)
+        context.set_dataplane_process(dataplane_process);
+        context.set_forward_dataplane_address_from_ingress();
+        Ok(context)
     }
     async fn set_subscribing(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
         match context.driver().and_then(|d| d.subscriber.clone()) {
@@ -278,4 +253,41 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
         context.set_dataplane_process(dataplane_process);
         Ok(context)
     }
+}
+
+pub(crate) async fn set_configuring_helper(
+    dp_trait: Arc<dyn DataplaneTransfersEntitiesTrait>,
+    context: DataplaneContext,
+) -> Outcome<DataplaneContext> {
+    // driver
+    let driver = DataplaneDriverFactory.get_or_create_driver(&context)?;
+    // proxy
+    let mut context = driver.proxy_configurator.configure_proxy(&context).await?;
+    // runtime
+    let runtime = DataplaneRuntime::default();
+    // setters
+    context.set_driver(driver);
+    context.set_runtime(runtime);
+    // dataplane
+    let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
+    let new_state = TransferState::Configuring;
+    let dataplane_process = dp_trait
+        .put_dataplane_transfer_by_id(
+            &dataplane_urn,
+            &EditDataplaneTransferDto {
+                state: Some(new_state),
+                ingress_config: context
+                    .proxy()
+                    .map(|p| p.ingress().clone())
+                    .and_then(|p| serde_json::to_value(p).ok()),
+                egress_config: context
+                    .proxy()
+                    .map(|p| p.egress().clone())
+                    .and_then(|p| serde_json::to_value(p).ok()),
+                ..EditDataplaneTransferDto::default()
+            },
+        )
+        .await?;
+    context.set_dataplane_process(dataplane_process);
+    Ok(context)
 }

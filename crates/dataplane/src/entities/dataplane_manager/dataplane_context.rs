@@ -74,12 +74,12 @@ impl DataplaneContext {
         };
         let data_plane_address = match &init {
             DataplaneInitCommandTypes::AsProvider { direction, .. } => match direction {
-                DataplaneInitCommandDirection::Pull { data_address } => Some(data_address),
-                DataplaneInitCommandDirection::Push { data_address } => Some(data_address),
+                DataplaneInitCommandDirection::Pull { data_address } => data_address,
+                DataplaneInitCommandDirection::Push { data_address } => data_address,
             },
             DataplaneInitCommandTypes::AsConsumer { direction, .. } => match direction {
-                DataplaneInitCommandDirection::Pull { data_address } => Some(data_address),
-                DataplaneInitCommandDirection::Push { data_address } => Some(data_address),
+                DataplaneInitCommandDirection::Pull { data_address } => data_address,
+                DataplaneInitCommandDirection::Push { data_address } => data_address,
             },
         };
 
@@ -105,7 +105,7 @@ impl DataplaneContext {
             driver: None,
             runtime: None,
             proxy: None,
-            forward_dataplane_address: data_plane_address.map(|addr| addr.clone()),
+            forward_dataplane_address: data_plane_address.clone(),
         })
     }
 
@@ -124,6 +124,7 @@ impl DataplaneContext {
         if let None = dataplane_process {
             return Err(Errors::crazy("Dataplane Process not found", None));
         }
+
         let dataplane_process = dataplane_process.unwrap();
         // connector
         let connector_id = &dataplane_process.inner.connector_instance_id;
@@ -155,18 +156,20 @@ impl DataplaneContext {
         // driver to context
         context.driver = match &connector {
             Some(conn) => Some(driver_factory.get_or_create_driver(&context)?),
-            None => None, // Consumer no tiene driver
+            None => None, // Consumer has no driver
         };
 
         // proxy to context
         let ingress = serde_json::from_value::<DataplaneProxyIngress>(
-            dataplane_process.clone().inner.ingress_config,
-        )?;
+            dataplane_process.inner.ingress_config.clone(),
+        );
         let egress = serde_json::from_value::<DataplaneProxyEgress>(
-            dataplane_process.clone().inner.egress_config,
-        )?;
-        context.forward_dataplane_address = Some(egress.clone().into());
-        context.proxy = Some(DataplaneProxy { ingress, egress });
+            dataplane_process.inner.egress_config.clone(),
+        );
+        if let (Ok(ingress), Ok(egress)) = (ingress, egress) {
+            context.forward_dataplane_address = Some(egress.clone().into());
+            context.proxy = Some(DataplaneProxy { ingress, egress });
+        }
 
         Ok(context)
     }

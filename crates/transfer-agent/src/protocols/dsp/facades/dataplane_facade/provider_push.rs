@@ -35,6 +35,7 @@ impl DataPlaneStrategy for ProviderPushStrategy {
         _ctx: &DspTransferContext,
         _mgr: &DataplaneManager,
     ) -> Outcome<Option<DataAddressDto>> {
+        // noop
         Ok(None)
     }
 
@@ -48,28 +49,40 @@ impl DataPlaneStrategy for ProviderPushStrategy {
             .connector_instance
             .as_ref()
             .ok_or_else(|| Errors::crazy("Connector instance should be defined", None))?;
-        let data_address = ctx
+        let data_address_dto = ctx
             .input_data_address
             .as_ref()
             .ok_or_else(|| Errors::crazy("Data address instance should be defined", None))?;
-        mgr.execute_command(DataplaneCommand::SetInit(
-            DataplaneInitCommandTypes::AsProvider {
-                transfer_process_id: id,
-                connector_instance: connector_instance.clone(),
-                direction: DataplaneInitCommandDirection::Push {
-                    data_address: data_address.clone().into(),
+        let data_address: DataplaneAddress = data_address_dto.into();
+        let _res = mgr
+            .execute_command(DataplaneCommand::SetInit(
+                DataplaneInitCommandTypes::AsProvider {
+                    transfer_process_id: id,
+                    connector_instance: connector_instance.clone(),
+                    direction: DataplaneInitCommandDirection::Push {
+                        data_address: Some(data_address),
+                    },
                 },
-            },
-        ))
-        .await?;
+            ))
+            .await?;
+        // _res comes with dataaddress also, but not used in implementation
         Ok(())
     }
 
     async fn on_start_pre(
         &self,
+        _ctx: &DspTransferContext,
+        _mgr: &DataplaneManager,
+    ) -> Outcome<Option<DataAddressDto>> {
+        Ok(None)
+    }
+
+    async fn on_start_post(
+        &self,
         ctx: &DspTransferContext,
         mgr: &DataplaneManager,
     ) -> Outcome<Option<DataAddressDto>> {
+        // in this case restart works same
         let id = process_urn(ctx, "provider push start_pre")?;
         mgr.execute_command(DataplaneCommand::SetSubscribing(DataplaneContinuation {
             transfer_dto_urn: id,
@@ -78,23 +91,12 @@ impl DataPlaneStrategy for ProviderPushStrategy {
         Ok(None)
     }
 
-    async fn on_start_post(
-        &self,
-        _ctx: &DspTransferContext,
-        _mgr: &DataplaneManager,
-    ) -> Outcome<Option<DataAddressDto>> {
-        Ok(None)
-    }
-
     async fn on_suspend_pre(
         &self,
         ctx: &DspTransferContext,
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
-        mgr.execute_command(DataplaneCommand::SetUnsubscribing(DataplaneContinuation {
-            transfer_dto_urn: process_urn(ctx, "provider push suspend_pre")?,
-        }))
-        .await?;
+        // noop
         Ok(())
     }
 
@@ -103,8 +105,9 @@ impl DataPlaneStrategy for ProviderPushStrategy {
         ctx: &DspTransferContext,
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
+        let id = process_urn(ctx, "provider push suspend_post")?;
         mgr.execute_command(DataplaneCommand::SetUnsubscribing(DataplaneContinuation {
-            transfer_dto_urn: process_urn(ctx, "provider push suspend_post")?,
+            transfer_dto_urn: id,
         }))
         .await?;
         Ok(())
@@ -115,10 +118,6 @@ impl DataPlaneStrategy for ProviderPushStrategy {
         ctx: &DspTransferContext,
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
-        mgr.execute_command(DataplaneCommand::SetUnsubscribing(DataplaneContinuation {
-            transfer_dto_urn: process_urn(ctx, "provider push complete_pre")?,
-        }))
-        .await?;
         Ok(())
     }
 
@@ -139,10 +138,6 @@ impl DataPlaneStrategy for ProviderPushStrategy {
         ctx: &DspTransferContext,
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
-        mgr.execute_command(DataplaneCommand::SetUnsubscribing(DataplaneContinuation {
-            transfer_dto_urn: process_urn(ctx, "provider push terminate_pre")?,
-        }))
-        .await?;
         Ok(())
     }
 

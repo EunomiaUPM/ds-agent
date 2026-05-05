@@ -1,5 +1,5 @@
 use crate::entities::dataplane_manager::dataplane_commands::{
-    DataplaneCommandStateMachine, DataplaneInitCommandTypes,
+    set_configuring_helper, DataplaneCommandStateMachine, DataplaneInitCommandTypes,
 };
 use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;
 use crate::entities::dataplane_manager::dataplane_driver_factory::{
@@ -46,6 +46,16 @@ impl DataplaneCommandStateMachine for DataplaneHandlerConsumerPull {
 
     fn transfer_config(&self) -> Arc<TransferConfig> {
         self.config.clone()
+    }
+    async fn set_init(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
+        Ok(context)
+    }
+    async fn set_configuring(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
+        let ctx = set_configuring_helper(self.dataplane_entity(), context).await?;
+        let ctx = self.set_auth(ctx).await?;
+        let ctx = self.set_ready(ctx).await?;
+        let ctx = self.set_started(ctx).await?;
+        Ok(ctx)
     }
 }
 

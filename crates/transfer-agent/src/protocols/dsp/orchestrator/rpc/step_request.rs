@@ -68,10 +68,8 @@ impl TransferRpcStep for RequestStep {
         dp: &Arc<dyn DataPlaneFacadeTrait>,
         ctx: &mut DspTransferContext,
     ) -> Outcome<()> {
-        if ctx.input_data_address.is_some() {
-            let addr = dp.on_transfer_request_pre(ctx).await?;
-            ctx.resolved_data_address = addr;
-        }
+        let addr = dp.on_transfer_request_pre(ctx).await?;
+        ctx.resolved_data_address = addr;
         Ok(())
     }
 

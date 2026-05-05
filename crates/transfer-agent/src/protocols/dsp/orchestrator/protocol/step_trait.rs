@@ -24,6 +24,7 @@ use crate::protocols::dsp::persistence::TransferPersistenceTrait;
 use crate::protocols::dsp::protocol_types::{
     TransferProcessAckDto, TransferProcessMessageTrait, TransferProcessMessageWrapper,
 };
+use crate::protocols::dsp::transfer_types::TransferState;
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
 use std::sync::Arc;
 use ymir::errors::{Errors, Outcome};
@@ -62,6 +63,7 @@ pub(super) async fn continuation_prepare_context(
     ctx: &mut DspTransferContext,
     persistence: &Arc<dyn TransferPersistenceTrait>,
 ) -> Outcome<Option<TransferProcessMessageWrapper<TransferProcessAckDto>>> {
+    // process
     let peer_pid_str = ctx
         .peer_pid
         .as_ref()
@@ -69,6 +71,13 @@ pub(super) async fn continuation_prepare_context(
         .to_string();
     let process = persistence.fetch_process(&peer_pid_str).await?;
     ctx.process = Some(process);
+    // is restart
+    if let Some(process_model) = &ctx.process {
+        let state = process_model.inner.state.parse::<TransferState>()?;
+        if let TransferState::SUSPENDED = state {
+            ctx.is_restart = true;
+        }
+    }
     Ok(None)
 }
 

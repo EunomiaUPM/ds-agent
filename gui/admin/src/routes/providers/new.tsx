@@ -173,6 +173,8 @@ function NewProviderOnboard() {
         onClose={() => setWizardURLOpen(false)}
         anchorRef={labelURLRef}
         align="left"
+        sectionTitle={"Connection with Participant Tutorial"}
+        step="3 of 3"
         title="New Connection with catalog owner"
         content={
           <>

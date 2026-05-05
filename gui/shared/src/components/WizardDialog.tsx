@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { Button } from "./ui/button";
 import Heading from "./ui/heading"
+import { Badge } from "./ui/badge";
 
 type Props = {
     open: boolean;
@@ -12,10 +13,12 @@ type Props = {
     align?: "center" | "left";
     children?: React.ReactNode;
     content: React.ReactNode;
-    title: String
+    title: String;
+    sectionTitle: String;
+    step?: String;
 };
 
-export default function WizardDialog({ open, onClose, anchorRef, width = 460, align = "center", content, title, children }: Props) {
+export default function WizardDialog({ open, step, onClose, anchorRef, width = 460, align = "center", content, title, sectionTitle, children }: Props) {
     const ref = useRef<HTMLDivElement | null>(null);
     const [pos, setPos] = useState({ left: 0, top: 0, tailLeft: 24, w: typeof width === "number" ? width : 560 });
     const [measured, setMeasured] = useState(false);
@@ -64,18 +67,24 @@ export default function WizardDialog({ open, onClose, anchorRef, width = 460, al
 
     const portalRoot = typeof window !== "undefined" ? document.body : null;
 
-        // render portal always so the element mounts (needed for measurement),
-        // but keep it visually hidden/offscreen until we've computed pos
-        const portalContent = (
-            <div
-                ref={ref}
-                className="fixed z-[9999] pointer-events-none"
-                style={ measured ? { left: pos.left, top: pos.top, width: pos.w } : { left: -9999, top: -9999, width: pos.w, opacity: 0 }}
-            >
-                <div className={`relative mx-4 bg-background-300 border border-secondary-800 text-white p-3 rounded-md shadow-lg pointer-events-auto transition-opacity transition-transform duration-200 ${measured ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'}`}>
+    // render portal always so the element mounts (needed for measurement),
+    // but keep it visually hidden/offscreen until we've computed pos
+    const portalContent = (
+        <div
+            ref={ref}
+            className="fixed z-[9999] pointer-events-none"
+            style={measured ? { left: pos.left, top: pos.top, width: pos.w } : { left: -9999, top: -9999, width: pos.w, opacity: 0 }}
+        >
+            <div className={`relative mx-4 bg-background-300 border border-secondary-800 text-white p-3 pt-1.5 rounded-md shadow-lg pointer-events-auto transition-opacity transition-transform duration-200 ${measured ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'}`}>
                 <div className="flex items-start gap-3">
                     <div className="flex-1 text-sm leading-snug">
-                        <Heading level="h5">{title}</Heading>
+                        <div className="flex justify-between mb-0 items-center">
+                            <p className="text-xs uppercase font-bold tracking-wider text-secondary-400 mb-1">
+                                Step {step}
+                            </p>
+                            <Badge variant="wizard" className="mb-2">{sectionTitle}</Badge>
+                        </div>
+                        <Heading level="h5" className="!mb-2">{title}</Heading>
                         <p className="text-sm">{content}</p>
                         {children}</div>
                     {/* <div className="shrink-0">

@@ -188,15 +188,14 @@ function NewAuthorityRequest() {
         <>
           <WizardDialog
             open={wizardStep === 1}
+            step={"1 of 3"}
             onClose={() => setWizardStep(0)}
             anchorRef={labelURLRef}
             align="left"
             title="Connect to a Dataspace"
+            sectionTitle="Dataspace Sign Up Tutorial"
             content={
               <>
-                <p className="text-xs uppercase tracking-wider text-secondary-400 mb-1">
-                  Step 1 of 3
-                </p>
                 Introduce the URL of the authority of the dataspace you want to join.
               </>
             }
@@ -218,15 +217,14 @@ function NewAuthorityRequest() {
 
           <WizardDialog
             open={wizardStep === 2}
+            step={"2 of 3"}
             onClose={() => setWizardStep(0)}
             anchorRef={discoverButtonRef as React.RefObject<HTMLElement>}
             align="left"
             title="Discover the authority"
+             sectionTitle="Dataspace Sign Up Tutorial"
             content={
               <>
-                <p className="text-xs uppercase tracking-wider text-secondary-400 mb-1">
-                  Step 2 of 3
-                </p>
                 Click <strong>Find authority</strong> to fetch the authority's DID document and the
                 list of credentials it can issue.
                 <br />
@@ -238,15 +236,14 @@ function NewAuthorityRequest() {
 
           <WizardDialog
             open={wizardStep === 3}
+            sectionTitle="Dataspace Sign Up Tutorial"
             onClose={() => setWizardStep(0)}
             anchorRef={vcTypeLabelRef}
             align="left"
+            step={"3 of 3"}
             title="Choose a credential type"
             content={
               <>
-                <p className="text-xs uppercase tracking-wider text-secondary-400 mb-1">
-                  Step 3 of 3
-                </p>
                 Select which Verifiable Credential type you want to request. For the demo, pick{" "}
                 <span className="font-mono text-sky-600">{DEMO_VC_TYPE_LABEL}</span>.
                 <br />

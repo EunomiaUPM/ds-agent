@@ -81,6 +81,8 @@ const RouteComponent = () => {
         onClose={() => setWizardCatalogOpen(false)}
         anchorRef={labelCatalogRef}
         align="left"
+        step={"1 3"}
+        sectionTitle="Connection with Participant Tutorial"
         title="Catalog browser"
         content={
           <>

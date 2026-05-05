@@ -79,6 +79,8 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
                   open={wizardConnectOpen}
                   onClose={() => setWizardConnectOpen(false)}
                   anchorRef={labelConnectRef}
+                  sectionTitle="Connection with Participant Tutorial"
+                  step="2 of 3"
                   align="left"
                   title="Connection with Dataspace Participant required"
                   content={

@@ -1,43 +1,30 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, useRef, useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { PageLayout } from "shared/src/components/layout/PageLayout";
-import { PageHeader } from "shared/src/components/layout/PageHeader";
-import { PageSection } from "shared/src/components/layout/PageSection";
+import { AlertCircle, CheckCircle2, Loader2, Search } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { PageHeader } from 'shared/src/components/layout/PageHeader';
+import { PageLayout } from 'shared/src/components/layout/PageLayout';
+import { PageSection } from 'shared/src/components/layout/PageSection';
+import { Badge } from 'shared/src/components/ui/badge';
+import { Button } from 'shared/src/components/ui/button';
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "shared/src/components/ui/card";
+    Card, CardContent, CardDescription, CardHeader, CardTitle
+} from 'shared/src/components/ui/card';
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-  FormDescription,
-} from "shared/src/components/ui/form";
-import { Input } from "shared/src/components/ui/input";
-import { Button } from "shared/src/components/ui/button";
+    Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage
+} from 'shared/src/components/ui/form';
+import { Input } from 'shared/src/components/ui/input';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "shared/src/components/ui/select";
-import { Search, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
-import { Badge } from "shared/src/components/ui/badge";
-import WizardDialog from "shared/src/components/WizardDialog";
-import { customInstance } from "shared/src/data/orval-mutator";
-import { useGetAllParticipants } from "shared/src/data/orval/participants/participants";
-import { formatIdentifier, getFriendlyVCType } from "shared/src/lib/utils";
-import { useFederatedCatalog } from "shared/src/data/useFederatedCatalog";
+    Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+} from 'shared/src/components/ui/select';
+import WizardDialog from 'shared/src/components/WizardDialog';
+import { customInstance } from 'shared/src/data/orval-mutator';
+import { useGetAllParticipants } from 'shared/src/data/orval/participants/participants';
+import { useFederatedCatalog } from 'shared/src/data/useFederatedCatalog';
+import { formatIdentifier, getFriendlyVCType } from 'shared/src/lib/utils';
+import * as z from 'zod';
+
+import { zodResolver } from '@hookform/resolvers/zod';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 
 const schema = z.object({
   url: z.string().url("Please enter a valid URL"),
@@ -52,6 +39,11 @@ interface DidService {
   type: string;
   serviceEndpoint: string;
 }
+
+const DEMO_AUTHORITY_URL = "https://dev-dataspaces.dit.upm.es";
+const DEMO_AUTHORITY_NICK = "Heimdall";
+const DEMO_VC_TYPE_ID = "DataSpaceParticipant_jwt_vc_json";
+const DEMO_VC_TYPE_LABEL = "Data Space Participant (JWT)";
 
 type FormValues = z.infer<typeof schema>;
 
@@ -72,12 +64,10 @@ function NewAuthorityRequest() {
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
   const federated = useFederatedCatalog();
 
-  // first wizard URL state
-  const [wizardURLOpen, setWizardURLOpen] = useState(true);
-
-  // second wizard: show guidance over the VC Type field after discovery
-  const [vcWizardOpen, setVcWizardOpen] = useState(false);
+  // wizard state: 0 = closed, 1 = URL/Nickname, 2 = Discover, 3 = VC type
+  const [wizardStep, setWizardStep] = useState<0 | 1 | 2 | 3>(1);
   const vcTypeLabelRef = useRef<HTMLElement | null>(null);
+  const discoverButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const { data: participantsResponse } = useGetAllParticipants();
   const knownAuthorities =
@@ -106,19 +96,19 @@ function NewAuthorityRequest() {
 
 
 
-  // open VC-type wizard when discovery succeeds
+  // advance wizard from "Discover" step to "VC type" step when discovery succeeds
   useEffect(() => {
-    if (discoveredInfo) {
-      // close the initial wizard and open the VC type wizard
-      setWizardURLOpen(false);
-      setVcWizardOpen(true);
+    if (discoveredInfo && wizardStep === 2) {
+      setWizardStep(3);
     }
-  }, [discoveredInfo]);
+  }, [discoveredInfo, wizardStep]);
 
-  // close the VC-type helper when a VC type is selected
+  // close wizard once user picks a VC type
   useEffect(() => {
-    if (vcType) setVcWizardOpen(false);
-  }, [vcType]);
+    if (vcType && wizardStep === 3) {
+      setWizardStep(0);
+    }
+  }, [vcType, wizardStep]);
 
   const handleDiscovery = async (optionalUrl?: string) => {
     const targetUrl = typeof optionalUrl === "string" ? optionalUrl : url;
@@ -194,40 +184,78 @@ function NewAuthorityRequest() {
   return (
     <PageLayout>
       <PageHeader title="Request New Credential" />
-      {knownAuthorities.length === 0 ?
+      {knownAuthorities.length === 0 ? (
         <>
           <WizardDialog
-            open={wizardURLOpen}
-            onClose={() => setWizardURLOpen(false)}
+            open={wizardStep === 1}
+            onClose={() => setWizardStep(0)}
             anchorRef={labelURLRef}
             align="left"
-            title="Guide through Dataspace authentication"
+            title="Connect to a Dataspace"
             content={
               <>
-                Here you will have to introduce the URL of the authority of the dataspace where you want to be.
-                <br />
-                Load the following URL: <span className="font-mono text-xs text-sky-600">http://localhost:1500</span>
-              </>}
+                <p className="text-xs uppercase tracking-wider text-secondary-400 mb-1">
+                  Step 1 of 3
+                </p>
+                Introduce the URL of the authority of the dataspace you want to join.
+              </>
+            }
           >
-
+            <div className="flex justify-end mt-3">
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => {
+                  form.setValue("url", DEMO_AUTHORITY_URL);
+                  form.setValue("slug", DEMO_AUTHORITY_NICK);
+                  setWizardStep(2);
+                }}
+              >
+                Insert predefined data
+              </Button>
+            </div>
           </WizardDialog>
+
           <WizardDialog
-            open={vcWizardOpen}
-            onClose={() => setVcWizardOpen(false)}
+            open={wizardStep === 2}
+            onClose={() => setWizardStep(0)}
+            anchorRef={discoverButtonRef as React.RefObject<HTMLElement>}
+            align="left"
+            title="Discover the authority"
+            content={
+              <>
+                <p className="text-xs uppercase tracking-wider text-secondary-400 mb-1">
+                  Step 2 of 3
+                </p>
+                Click <strong>Find authority</strong> to fetch the authority's DID document and the
+                list of credentials it can issue.
+                <br />
+                Once it succeeds, the panel on the right will show the authority's <strong>DID</strong>,
+                its <strong>available VC types</strong> and its <strong>services</strong>.
+              </>
+            }
+          />
+
+          <WizardDialog
+            open={wizardStep === 3}
+            onClose={() => setWizardStep(0)}
             anchorRef={vcTypeLabelRef}
             align="left"
             title="Choose a credential type"
             content={
               <>
-                Select which Verifiable Credential type you want to request from the authority.
+                <p className="text-xs uppercase tracking-wider text-secondary-400 mb-1">
+                  Step 3 of 3
+                </p>
+                Select which Verifiable Credential type you want to request. For the demo, pick{" "}
+                <span className="font-mono text-sky-600">{DEMO_VC_TYPE_LABEL}</span>.
                 <br />
                 If none are available, try a different authority or contact the provider.
               </>
             }
           />
         </>
-        : ""
-      }
+      ) : null}
       <PageSection>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
@@ -275,6 +303,7 @@ function NewAuthorityRequest() {
                               ))}
                             </datalist>
                             <Button
+                              ref={discoverButtonRef as any}
                               type="button"
                               variant="secondary"
                               size={"sm"}
@@ -286,7 +315,7 @@ function NewAuthorityRequest() {
                               ) : (
                                 <Search />
                               )}
-                              Find authority∫
+                              Find authority
                             </Button>
                           </div>
                           <FormMessage />
@@ -302,7 +331,7 @@ function NewAuthorityRequest() {
                       name="slug"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Friendly Name (Slug)</FormLabel>
+                          <FormLabel>Nickname</FormLabel>
                           <FormControl>
                             <Input placeholder="Heimdall" {...field} />
                           </FormControl>
@@ -316,7 +345,7 @@ function NewAuthorityRequest() {
                       name="vc_type"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel ref={(el) => (vcTypeLabelRef.current = el as any)}>VC Type</FormLabel>
+                          <FormLabel ref={(el) => (vcTypeLabelRef.current = el as any)}>Verifiable Credential Type</FormLabel>
 
                           <Select
                             onValueChange={field.onChange}
@@ -335,11 +364,29 @@ function NewAuthorityRequest() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {discoveredInfo?.vc_types.map((type) => (
-                                <SelectItem key={type} value={type}>
-                                  {getFriendlyVCType(type)}
-                                </SelectItem>
-                              ))}
+                              {discoveredInfo?.vc_types.map((type) => {
+                                const isRecommended = type === DEMO_VC_TYPE_ID;
+                                return (
+                                  <SelectItem
+                                    key={type}
+                                    value={type}
+                                    className={
+                                      isRecommended
+                                        ? "bg-secondary-700/30 ring-1 ring-secondary-400 my-1"
+                                        : ""
+                                    }
+                                  >
+                                    <span className="flex items-center gap-2">
+                                      {getFriendlyVCType(type)}
+                                      {isRecommended && (
+                                        <Badge variant="info" className="text-[10px]">
+                                          Recommended
+                                        </Badge>
+                                      )}
+                                    </span>
+                                  </SelectItem>
+                                );
+                              })}
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -480,7 +527,9 @@ function NewAuthorityRequest() {
                             key={idx}
                             className="p-2 border rounded bg-background-200/30 text-sm space-y-1"
                           >
-                            <p className="font-medium text-brand-sky">{s.type}</p>
+                            <p className="font-medium text-brand-sky">
+                              {s.type.replace(/([a-z])([A-Z])/g, "$1 $2")}
+                            </p>
                             <p className="break-all text-white/70">{s.serviceEndpoint}</p>
                           </div>
                         ))}

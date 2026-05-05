@@ -1,7 +1,5 @@
-import { BadgeState } from "shared/components/ui/badge";
-
 /** Maps dataplane state values (both Pascal and UPPER) to badge state keys */
-export function dataplaneStateVariant(state?: string | null): BadgeState {
+export function dataplaneStateVariant(state?: string | null): string {
   switch (state?.toLowerCase()) {
     case "init":
       return "REQUESTED";

@@ -67,7 +67,12 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
         <Dialog open={openDialog} onOpenChange={setOpenDialog}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle ref={(el) => (labelConnectRef.current = el as any)}>Access required</DialogTitle>
+                <DialogTitle ref={(el) => (labelConnectRef.current = el as any)}
+                className="flex gap-2 items-center"
+                >
+                <Lock  className="h-5 w-5" ></Lock>
+               <Heading level="h4" className="!mb-0">Access required</Heading> 
+                </DialogTitle>
               <DialogDescription>
                   <WizardDialog
                     open={wizardConnectOpen}

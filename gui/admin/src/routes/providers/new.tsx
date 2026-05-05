@@ -1,5 +1,5 @@
 import { AlertCircle, CheckCircle2, Loader2, Search } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { formatIdentifier } from 'shared/lib/utils';
 import { PageHeader } from 'shared/src/components/layout/PageHeader';
@@ -68,12 +68,17 @@ function NewProviderOnboard() {
   const federated = useFederatedCatalog();
   const knownProviders = federated.state === "ok" ? federated.agents : [];
 
-  console.log(knownProviders, " knownProviders")
+
+    const labelURLRef = useRef<HTMLElement | null>(null);
+    // first wizard URL state
+  const [wizardURLOpen, setWizardURLOpen] = useState(true);
+
+
 
   //  if (!Array.isArray(localParticipants) || !Array.isArray(knownProviders)) 
   //   return undefined; 
     const localParticiapntsIds = new Set(localParticipants?.map((p) => p.participant_id));
-    const providerAuth = knownProviders.find((prov) => localParticiapntsIds?.has(prov.participant_id));
+    const onboardedWithKnownProvider = knownProviders.find((prov) => localParticiapntsIds?.has(prov.participant_id));
 
 
   const search = Route.useSearch();
@@ -140,6 +145,13 @@ function NewProviderOnboard() {
         },
       });
 
+      // mark that the user just authenticated/was onboarded via the new-provider flow
+      try {
+        sessionStorage.setItem("JustAuthenticatedProvider", "true");
+      } catch (e) {
+        /* ignore if unavailable */
+      }
+
       (navigate as any)({ to: "/providers" });
     } catch (err) {
       console.error(err);
@@ -148,19 +160,36 @@ function NewProviderOnboard() {
     }
   };
 
+ let highlightButtonClasses = !onboardedWithKnownProvider ? "animate-pulse bg-secondary-600 hover:bg-secondary-500 ring-2 ring-secondary-400" : "";
+
 
 
   return (
     <PageLayout>
-      <PageHeader title="New Provider Onboarding" />
+      <PageHeader title="New Connection" />
+      {!onboardedWithKnownProvider && 
+      <WizardDialog 
+        open={wizardURLOpen}
+        onClose={() => setWizardURLOpen(false)}
+        anchorRef={labelURLRef}
+        align="left"
+        title="New Connection with catalog owner"
+        content={
+          <>
+            The URL of the participant has already been filled, so you can send the participant a connection request.
+            <br />
+
+          </>}
+      />
+      }
       <PageSection>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Provider Connection</CardTitle>
+                <CardTitle>Participant Connection</CardTitle>
                 <CardDescription>
-                  Enter the provider base URL to discover its DID and initiate onboarding.
+                  Enter the participant base URL to discover its DID and initiate onboarding.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -171,7 +200,7 @@ function NewProviderOnboard() {
                       name="url"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Provider URL</FormLabel>
+                          <FormLabel ref={(el) => (labelURLRef.current = el as any) }>Participant URL</FormLabel>
                           <div className="flex items-center gap-2">
                             <FormControl className="flex-1">
                               <Input
@@ -316,7 +345,7 @@ function NewProviderOnboard() {
 
                     <Button
                       type="submit"
-                      className="w-full"
+                      className={`w-full ${highlightButtonClasses}`}
                       disabled={!discoveredInfo || isSubmitting}
                     >
                       {isSubmitting ? (

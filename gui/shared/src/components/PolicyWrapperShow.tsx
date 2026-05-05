@@ -233,7 +233,7 @@ export const PolicyWrapperShow = ({
             <Dialog>
               <DialogTrigger asChild>
                 <Button size="sm" variant="default" className="w-full sm:w-auto">
-                  Request Access
+                  Request Dataset Access
                 </Button>
               </DialogTrigger>
               <ContractNegotiationNewRequestDialog

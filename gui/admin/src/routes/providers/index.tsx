@@ -1,5 +1,6 @@
 import { ArrowDown, ArrowRight, ArrowUp, ArrowUpDown, Plus } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import WizardEndDialog from "shared/src/components/WizardEndDialog";
 import { DataTable } from "shared/src/components/DataTable";
 import { PageHeader } from "shared/src/components/layout/PageHeader";
 import { PageLayout } from "shared/src/components/layout/PageLayout";
@@ -51,6 +52,21 @@ function ProvidersPage() {
     key: keyof OnboardRequest;
     direction: "asc" | "desc";
   } | null>(null);
+
+  const [showCongrats, setShowCongrats] = useState(false);
+
+  useEffect(() => {
+    try {
+      const justJoined = sessionStorage.getItem("JustAuthenticatedProvider");
+      const onboardRequests = response?.data || [];
+      if (justJoined === "true" && onboardRequests.length === 1) {
+        setShowCongrats(true);
+        sessionStorage.removeItem("JustAuthenticatedProvider");
+      }
+    } catch (e) {
+      // ignore storage errors
+    }
+  }, [response]);
 
   const requests = useMemo(() => {
     let sortableRequests = [...(response?.data || [])];
@@ -109,6 +125,16 @@ function ProvidersPage() {
           </Link>
         </div>
       </PageHeader>
+      <WizardEndDialog
+        open={showCongrats}
+        onClose={() => setShowCongrats(false)}
+        title={"Congratulations"}
+        content={<>Congratulations — you are now connected to a new participant.<br/>
+        Now you can explore their catalog and datasets.
+        </>}
+        actionHref={'/catalog'}
+        actionLabel={'See catalog'}
+      />
       {/* <PageSection>
 
 

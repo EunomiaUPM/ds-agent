@@ -61,21 +61,21 @@ const RouteComponent = () => {
   const { agents } = federated;
   console.log(localParticipants, "localparticipants")
   console.log(agents, "agents")
-  agents.map((p) => {
-    const isOnboarded = localParticipants.some(
-      (lp) => lp.participant_id === p.participant_id && !lp.is_me,
-    );
-    const unauthRedirect = isOnboarded
-      ? null
-      : { url: p.base_url, slug: p.participant_slug };
-  })
 
+  //variable that tells if user is onboarded with any provider or not.
+  // true = they are / false = they're not
+  const onboardedWithKnownProvider = agents.some((prov) =>
+  localParticipants.some(
+    (lp) => lp.participant_id === prov.participant_id && !lp.is_me && lp.participant_type !== "Authority"
+  )
+);
 
   return (
     <PageLayout>
       <div className="bg-violet-700/40 flex justify-center items-center h-48">
         <Heading level="h2">Browse public catalogs and your connections' catalogs </Heading>
       </div>
+   {!onboardedWithKnownProvider &&
       <WizardDialog
         open={wizardCatalogOpen}
         onClose={() => setWizardCatalogOpen(false)}
@@ -89,6 +89,7 @@ const RouteComponent = () => {
 
           </>}
       />
+        }
         <div ref={(el) => (labelCatalogRef.current = el as any) }className="h-4" />
         <div className="grid grid-cols-3 gap-5">
 

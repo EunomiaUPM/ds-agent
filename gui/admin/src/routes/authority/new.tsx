@@ -193,7 +193,7 @@ function NewAuthorityRequest() {
             anchorRef={labelURLRef}
             align="left"
             title="Connect to a Dataspace"
-            sectionTitle="Dataspace Sign Up Tutorial"
+            sectionTitle="Dataspace Sign Up Tutorial Completed"
             content={
               <>
                 Introduce the URL of the authority of the dataspace you want to join.

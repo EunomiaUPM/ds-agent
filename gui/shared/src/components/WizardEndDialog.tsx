@@ -38,7 +38,7 @@ export default function WizardEndDialog({
         >
           ✕
         </button> */}
-<Badge variant="wizard" className="mb-2">{sectionTitle}</Badge>
+        <Badge variant="wizardSuccess" className="mb-2">{sectionTitle}</Badge>
         <Heading level="h5" className="mb-2 text-xl font-semibold">{title}</Heading>
         <p className="mb-4 text-sm text-muted-foreground">{content}</p>
 

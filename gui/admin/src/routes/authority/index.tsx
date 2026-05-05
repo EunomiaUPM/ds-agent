@@ -98,7 +98,7 @@ function AuthorityRequestsPage() {
     <PageLayout>
       <WizardEndDialog
         open={showCongrats}
-        sectionTitle="Dataspace Sign Up Tutorial"
+        sectionTitle="Dataspace Sign Up Tutorial Completed"
         onClose={() => setShowCongrats(false)}
         title={"Congratulations"}
         content={<>

@@ -129,7 +129,7 @@ function ProvidersPage() {
         open={showCongrats}
         onClose={() => setShowCongrats(false)}
         title={"Congratulations"}
-        sectionTitle="Connection with Participant Tutorial"
+        sectionTitle="Connection with Participant Tutorial Completed"
         content={<>Congratulations — you are now connected to a new participant.<br/>
         Now you can explore their catalog and datasets.
         </>}

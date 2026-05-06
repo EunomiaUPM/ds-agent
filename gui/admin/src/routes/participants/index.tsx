@@ -155,7 +155,9 @@ function RouteComponent() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-2">
                 <div className="space-y-1">
                   <p className="text-[10px] text-muted-foreground uppercase">DID Identifier</p>
-                  <Badge variant="info">{formatIdentifier(myAgent.participant_id)}</Badge>
+                  <Badge variant="info">
+                    {formatIdentifier(myAgent.participant_id, 0, true, 40)}
+                  </Badge>
                 </div>
                 <div className="space-y-1">
                   <p className="text-[10px] text-muted-foreground uppercase">System Role</p>
@@ -250,7 +252,9 @@ function RouteComponent() {
               //   </Button>
               // ),
               accessorKey: "participant_id",
-              cell: (p) => <Badge variant="info">{formatIdentifier(p.participant_id)}</Badge>,
+              cell: (p) => (
+                <Badge variant="info">{formatIdentifier(p.participant_id, 0, true, 40)}</Badge>
+              ),
             },
             {
               header: "Last interaction",

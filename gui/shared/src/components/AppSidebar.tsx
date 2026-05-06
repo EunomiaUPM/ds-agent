@@ -128,7 +128,7 @@ export function AppSidebar() {
           icon: Users,
         },
         {
-          title: "Credential Requests",
+          title: "VC Requests",
           url: "/admin/authority",
           icon: ShieldCheck,
         },

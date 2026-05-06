@@ -33,6 +33,45 @@ import { cn } from "shared/src/lib/utils";
 // STYLE VARIANTS
 // =============================================================================
 
+const normalizeStatus = (status?: string): BadgeState => {
+  switch ((status || "").toLowerCase()) {
+    case "active":
+    case "accepted":
+    case "verified":
+    case "started":
+    case "approved":
+    case "agreed":
+      return "process";
+
+    case "offered":
+    case "requested":
+    case "pending":
+    case "processing":
+      return "warn";
+
+    case "finalized":
+    case "completed":
+      return "success";
+
+    case "inactive":
+    case "suspended":
+    case "pause":
+    case "by_provider":
+    case "by_consumer":
+    case "on_request":
+    case "stop":
+    case "stopped":
+      return "pause";
+
+    case "terminated":
+    case "rejected":
+      return "danger";
+
+    default:
+      return "default";
+  }
+};
+
 /**
  * Badge style variants using class-variance-authority.
  *
@@ -52,9 +91,12 @@ const badgeVariants = cva(
         info: "font-mono uppercase bg-background-800 text-secondary-400 border-white/10",
         infoLighter: "font-mono uppercase bg-white/10 text-secondary-400 border-white/10",
         role: "text-white uppercase border-white/10",
-        status: "bg-opacity-30 border-white/10 text-foreground-300",
+        status: "bg-opacity-30 border-white/10 text-foreground-300 uppercase",
         detail: "text-xs bg-brand-sky/20 !px-1 !py-0 max-w-[140px] !whitespace-normal",
-      },
+       code: "bg-gray-900 border border-gray-800 rounded-sm font-mono text-red-500 !py-0",
+      wizard: "bg-violet-800 border border-violet-600 text-violet-200 uppercase tracking-wide !py-0 !pt-0.5 px-3" ,
+        wizardSuccess:"bg-success-800  border border-success-700 text-success-200 [&>span]:bg-success-800 uppercase tracking-wide !py-0 !pt-0.5 px-3",
+    },
 
       /**
        * Process state for status badges.
@@ -62,32 +104,11 @@ const badgeVariants = cva(
        */
       state: {
         default: "",
-        danger: "",
-        warn: "",
-        // Active/processing states
-        ACTIVE: "bg-process text-process-300 [&>span]:bg-process-400",
-        INACTIVE: "bg-paused text-paused-300 [&>span]:bg-paused-400",
-        ACCEPTED: "bg-process text-process-300 [&>span]:bg-process-400",
-        VERIFIED: "bg-process text-process-300 [&>span]:bg-process-400",
-        STARTED: "bg-process text-process-300 [&>span]:bg-process-400",
-        // Pending states
-        OFFERED: "bg-warn text-warn-300 [&>span]:bg-warn-400",
-        REQUESTED: "bg-warn text-warn-300 [&>span]:bg-warn-400",
-        Pending: "bg-warn text-warn-300 [&>span]:bg-warn-400",
-        AGREED: "bg-process text-process-300 [&>span]:bg-process-400",
-        // Success states
-        FINALIZED: "bg-success text-success-300 [&>span]:bg-success-400",
-        COMPLETED: "bg-success text-success-300 [&>span]:bg-success-400",
-        // Paused states
-        SUSPENDED: "bg-pause text-pause-300 [&>span]:bg-pause-400",
-        PAUSE: "bg-pause text-pause-300 [&>span]:bg-pause-400",
-        BY_PROVIDER: "bg-pause text-pause-300 [&>span]:bg-pause-400",
-        BY_CONSUMER: "bg-pause text-pause-300 [&>span]:bg-pause-400",
-        ON_REQUEST: "bg-pause text-pause-300 [&>span]:bg-pause-400",
-        STOP: "bg-pause text-pause-300 [&>span]:bg-pause-400",
-        STOPPED: "bg-pause text-pause-300 [&>span]:bg-pause-400",
-        // Error state
-        TERMINATED: "bg-danger text-danger-300 [&>span]:bg-danger-400",
+        process: "bg-process text-process-300 [&>span]:bg-process-400",
+        warn: "bg-warn text-warn-300 [&>span]:bg-warn-400",
+        success: "bg-success text-success-300 [&>span]:bg-success-400",
+        pause: "bg-pause text-pause-300 [&>span]:bg-pause-400",
+        danger: "bg-danger text-danger-300 [&>span]:bg-danger-400",
       },
 
       /**
@@ -134,8 +155,9 @@ export type BadgeRole = VariantProps<typeof badgeVariants>["dsrole"];
  */
 export interface BadgeProps
   extends React.ComponentProps<"span">,
-    VariantProps<typeof badgeVariants> {
-  /** Render as a different element using Radix Slot */
+    Omit<VariantProps<typeof badgeVariants>, "state"> {
+  /** Accept API status directly */
+  state?: string;
   asChild?: boolean;
 }
 
@@ -170,11 +192,12 @@ function Badge({
 
   // Status badges show a colored dot indicator
   const showDot = variant === "status";
+  const stateStyle = normalizeStatus(state);
 
   return (
     <Comp
       data-slot="badge"
-      className={cn(badgeVariants({ variant, size, state, dsrole }), className)}
+      className={cn(badgeVariants({ variant, size, state: stateStyle, dsrole }), className)}
       {...props}
     >
       {/* Status dot indicator */}

@@ -128,12 +128,12 @@ export function AppSidebar() {
           icon: Users,
         },
         {
-          title: "Request Credential",
+          title: "Credential Requests",
           url: "/admin/authority",
           icon: ShieldCheck,
         },
         {
-          title: "Providers Sessions",
+          title: "My Connections",
           url: "/admin/providers",
           icon: Users,
         },

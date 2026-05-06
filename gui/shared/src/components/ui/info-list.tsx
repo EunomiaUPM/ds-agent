@@ -49,6 +49,7 @@ export type InfoItemValue =
   | { type: "status"; value: string }
   | { type: "role"; value: string }
   | { type: "urn"; value: string | undefined }
+  | { type: "text"; value: string | undefined }
   | { type: "custom"; content: React.ReactNode };
 
 /**
@@ -106,7 +107,7 @@ export const InfoList = ({ items, className }: InfoListProps) => {
  * Single info list item component.
  * Renders a label and automatically formats the value based on its type.
  */
-const InfoListItem = ({ label, value, className, keyClassName }: InfoItemProps) => {
+export const InfoListItem = ({ label, value, className, keyClassName }: InfoItemProps) => {
   // Don't render if no value
   if (value === undefined || value === null) return null;
 
@@ -131,7 +132,7 @@ const InfoListItem = ({ label, value, className, keyClassName }: InfoItemProps) 
 
         case "status":
           return (
-            <Badge variant="status" state={value.value as BadgeState}>
+            <Badge variant="status" state={value.value}>
               {value.value}
             </Badge>
           );
@@ -145,6 +146,9 @@ const InfoListItem = ({ label, value, className, keyClassName }: InfoItemProps) 
 
         case "urn":
           return <Badge variant="info">{formatUrn(value.value)}</Badge>;
+
+        case "text":
+          return <p className="text-sm font-medium text-white/90 capitalize">{value.value}</p>;
 
         default:
           return null;
@@ -169,3 +173,5 @@ const InfoListItem = ({ label, value, className, keyClassName }: InfoItemProps) 
     </div>
   );
 };
+
+

@@ -80,6 +80,10 @@ impl GatewayHttpRouter {
             )
             .route("/api/did-json/{url}", get(Self::fetch_did_json))
             .route(
+                "/api/federated-catalog/{url}",
+                get(Self::fetch_federated_catalog),
+            )
+            .route(
                 "/api/{service_prefix}",
                 any(Self::proxy_handler_without_extra),
             )
@@ -229,6 +233,28 @@ impl GatewayHttpRouter {
 
     async fn fetch_did_json(Path(url): Path<String>) -> impl IntoResponse {
         let target_url = format!("{}/api/v1/wallet/did.json", url.trim_end_matches('/'));
+        match reqwest::get(&target_url).await {
+            Ok(resp) => match resp.json::<Value>().await {
+                Ok(json) => (StatusCode::OK, Json(json)).into_response(),
+                Err(e) => (
+                    StatusCode::BAD_GATEWAY,
+                    format!("Failed to parse JSON from {}: {}", target_url, e),
+                )
+                    .into_response(),
+            },
+            Err(e) => (
+                StatusCode::BAD_GATEWAY,
+                format!("Failed to fetch from {}: {}", target_url, e),
+            )
+                .into_response(),
+        }
+    }
+
+    async fn fetch_federated_catalog(Path(url): Path<String>) -> impl IntoResponse {
+        let target_url = format!(
+            "{}/.well-known/federated-catalog",
+            url.trim_end_matches('/')
+        );
         match reqwest::get(&target_url).await {
             Ok(resp) => match resp.json::<Value>().await {
                 Ok(json) => (StatusCode::OK, Json(json)).into_response(),

@@ -20,6 +20,7 @@ import { Dataset, RpcCatalogResponseMessageDto } from "shared/data/orval/model";
 import Heading from "shared/components/ui/heading";
 import { useGetAllParticipants } from "shared/data/orval/participants/participants";
 import DistributionItem from "shared/components/ui/distribution-item";
+import Avatar from "shared/components/ui/avatar-img";
 
 function RouteComponent() {
   const { participantId, datasetId } = Route.useParams();
@@ -93,9 +94,7 @@ function RouteComponent() {
                   type: "custom",
                   content: (
                     <div className="catalog-participant-container flex gap-2 justify-start">
-                      <img
-                        className={`rounded-full h-6 aspect-square ${otherParticipantSlug === "provider" ? " bg-violet-700" : " bg-orange-500"}`}
-                      ></img>
+                  <Avatar />
                       <Heading level="h4" className="capitalize">
                         {" "}
                         {otherParticipantSlug}{" "}

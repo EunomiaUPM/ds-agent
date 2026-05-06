@@ -22,6 +22,7 @@ import { useGetNegotiationProcessById } from "shared/data/orval/negotiations/neg
 import { PageHeader } from "shared/components/layout/PageHeader.tsx";
 import { Skeleton } from "shared/components/ui/skeleton.tsx";
 import { GeneralErrorComponent } from "@/components/GeneralErrorComponent.tsx";
+import { formatIdentifier } from "shared/lib/utils.ts";
 
 const RouteComponent = () => {
   const { cnProcess } = Route.useParams();
@@ -56,7 +57,13 @@ const RouteComponent = () => {
         <PageSection title="Contract negotiation info">
           <InfoList
             items={[
-              { label: "ProviderPid", value: { type: "urn", value: process.data.id } },
+              {
+                label: "ProviderPid",
+                value: {
+                  type: "urn",
+                  value: formatIdentifier(process.data.id),
+                },
+              },
               { label: "State", value: { type: "status", value: process.data.state } },
               {
                 label: "Created at",
@@ -83,7 +90,7 @@ const RouteComponent = () => {
             <DrawerBody>
               {/* New message subcomponent */}
               {process.data.messages?.map((message) => (
-                <CnProcessMessageComponent message={message} />
+                <CnProcessMessageComponent key={message.id} message={message} />
               ))}
               {/* / New message subcomponent */}
             </DrawerBody>

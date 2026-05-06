@@ -133,9 +133,11 @@ export const PolicyWrapperShow = ({
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Policy ID
             </span>
-            <Badge variant="info" className="font-mono text-[10px]">
-              {formatUrn(policyId || "")}
-            </Badge>
+            {policyId && (
+              <Badge variant="info" className="font-mono text-[10px]">
+                {formatUrn(policyId || "")}
+              </Badge>
+            )}
           </div>
 
           {/* Provider action: Delete policy */}
@@ -231,7 +233,7 @@ export const PolicyWrapperShow = ({
             <Dialog>
               <DialogTrigger asChild>
                 <Button size="sm" variant="default" className="w-full sm:w-auto">
-                  Request Access
+                  Request Dataset Access
                 </Button>
               </DialogTrigger>
               <ContractNegotiationNewRequestDialog

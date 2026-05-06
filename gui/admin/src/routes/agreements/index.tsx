@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { formatUrn } from "shared/src/lib/utils";
+import { formatUrn, formatIdentifier } from "shared/src/lib/utils";
 import { useGetAgreements } from "shared/src/data/orval/negotiations/negotiations";
 import { DataTable } from "shared/src/components/DataTable";
 import { FormatDate } from "shared/src/components/ui/format-date";
@@ -33,24 +33,20 @@ function RouteComponent() {
           keyExtractor={(a) => a.id}
           columns={[
             {
+              header: "Provider",
+              cell: (a: any) => (
+                <p className="capitalize">{formatIdentifier(a.providerParticipantId, 3)}</p>
+              ),
+            },
+            {
+              header: "Consumer",
+              cell: (a: any) => (
+                <p className="capitalize">{formatIdentifier(a.consumerParticipantId, 3)}</p>
+              ),
+            },
+            {
               header: "Agreement Id",
-              cell: (a) => <Badge variant={"info"}>{formatUrn(a.id)}</Badge>,
-            },
-            {
-              header: "Provider Participant Id",
-              cell: (a) => (
-                <div className="flex flex-col gap-1">
-                  <Badge variant={"info"}>{formatUrn(a.providerParticipantId)}</Badge>
-                </div>
-              ),
-            },
-            {
-              header: "Consumer Participant Id",
-              cell: (a) => (
-                <div className="flex flex-col gap-1">
-                  <Badge variant={"info"}>{formatUrn(a.consumerParticipantId)}</Badge>
-                </div>
-              ),
+              cell: (a) => <Badge variant={"info"}>{formatIdentifier(a.id)}</Badge>,
             },
             {
               header: "Status",

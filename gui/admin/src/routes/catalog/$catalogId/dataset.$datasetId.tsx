@@ -39,6 +39,7 @@ import Heading from "shared/src/components/ui/heading";
 import DistributionItem from "shared/components/ui/distribution-item";
 import { useGetAllParticipants } from "shared/data/orval/participants/participants";
 import { useGetCatalogById } from "shared/src/data/orval/catalogs/catalogs";
+import Avatar from "shared/components/ui/avatar-img";
 
 function RouteComponent() {
   const { catalogId, datasetId } = Route.useParams();
@@ -106,9 +107,7 @@ function RouteComponent() {
                   type: "custom",
                   content: (
                     <div className="catalog-participant-container flex gap-2 justify-start">
-                      <img
-                        className={`rounded-full h-6 aspect-square ${myAgentSlug === "provider" ? " bg-violet-700" : " bg-orange-500"}`}
-                      ></img>
+                     <Avatar />
                       <Heading level="h4" className="capitalize">
                         {" "}
                         {myAgentSlug}{" "}
@@ -129,7 +128,7 @@ function RouteComponent() {
                           className="capitalize !mb-0 underline-offset-2 hover:underline"
                         >
                           {" "}
-                          {catalog?.dctTitle || "My catalog"}{" "}
+                          {catalog?.dctTitle || `${myAgentSlug}'s Catalog for Demo`}
                         </Heading>
                       </Link>
                       <p className="text-xs text-muted-foreground">

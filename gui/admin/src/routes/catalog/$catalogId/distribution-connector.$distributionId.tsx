@@ -1,7 +1,7 @@
 import React from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { FormatDate } from "shared/src/components/ui/format-date";
-import { InfoList } from "shared/src/components/ui/info-list";
+import { InfoList, InfoListItem } from "shared/src/components/ui/info-list";
 import { Badge } from "shared/src/components/ui/badge";
 import { PageLayout } from "shared/src/components/layout/PageLayout";
 import { PageHeader } from "shared/src/components/layout/PageHeader";
@@ -52,9 +52,15 @@ function MethodBadge({ method }: { method?: string | string[] }) {
 
   return (
     <>
-      {methods.map((m) => (
-        <span key={m}>{m.toUpperCase()}</span>
-      ))}
+      {methods.map((m) => {
+        const key = String(m).toUpperCase();
+        const classes = METHOD_COLORS[key] ?? "text-foreground/80 border-white/10";
+        return (
+          <Badge key={key} variant="info" className={`${classes} mr-2`}>
+            {key}
+          </Badge>
+        );
+      })}
     </>
   );
 }
@@ -105,53 +111,91 @@ function RequestStep({ label, step }: { label: string; step: Record<string, unkn
       </div>
       <div className="rounded-md border border-white/10 bg-muted/20 divide-y divide-white/5">
         {/* Protocol + Method */}
-        <div className="flex items-center gap-2 px-3 py-2">
-          {protocol && <ProtocolBadge protocol={protocol} />}
-          {method && <MethodBadge method={method} />}
+        <div className="flex items-center gap-5 px-3 py-2">
+
+          <InfoListItem
+            label="protocol"
+            value={
+              protocol ?
+                { type: "custom", content: <ProtocolBadge protocol={protocol} /> }
+                : undefined
+            }
+          />
+
+          <InfoListItem
+            label="method/s"
+            value={
+              protocol ?
+                { type: "custom", content: <MethodBadge method={method} /> }
+                : undefined
+            }
+          />
         </div>
 
         {/* URL Template */}
         {urlTemplate && (
-          <div className="px-3 py-2">
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">
-              URL Template
-            </div>
-            <UrlRow url={urlTemplate} />
+          <div className="flex items-center gap-5 px-3 py-2">
+            <InfoListItem
+              label="URL Template"
+              value={
+                urlTemplate ?
+                  {
+                    type: "custom",
+                    content: <UrlRow url={urlTemplate} />
+                  } : undefined
+              }
+            />
           </div>
         )}
 
         {/* Body Template */}
         {bodyTemplate && (
           <div className="px-3 py-2">
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">
-              Body Template
-            </div>
-            <pre className="font-mono text-xs text-foreground/80 whitespace-pre-wrap break-all bg-muted/40 rounded p-2 mt-1">
-              {(() => {
-                try {
-                  return JSON.stringify(JSON.parse(String(bodyTemplate)), null, 2);
-                } catch {
-                  return String(bodyTemplate);
-                }
-              })()}
-            </pre>
+            <InfoListItem
+              label="Body Template"
+              value={
+                urlTemplate ?
+                  {
+                    type: "custom",
+                    content: <pre className="font-mono text-xs bg-gray-800/60 text-foreground/60 border border-secondary-600/20 whitespace-pre-wrap break-all  rounded p-2 mt-1">
+                      {(() => {
+                        try {
+                          return JSON.stringify(JSON.parse(String(bodyTemplate)), null, 2);
+                        } catch {
+                          return String(bodyTemplate);
+                        }
+                      })()}
+                    </pre>
+                  } : undefined
+              }
+            />
+
+
           </div>
         )}
 
         {/* Headers */}
         {headers && typeof headers === "object" && Object.keys(headers).length > 0 && (
           <div className="px-3 py-2">
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">
-              Headers
-            </div>
-            {Object.entries(headers as Record<string, unknown>).map(([k, v]) => (
-              <div key={k} className="flex gap-2 font-mono text-xs">
-                <span className="text-muted-foreground shrink-0">{k}:</span>
-                <span className="break-all">{String(v)}</span>
-              </div>
-            ))}
+            <InfoListItem
+              label="Headers"
+              value={{
+                type: "custom",
+                content: (
+                  <>
+                    {Object.entries(headers as Record<string, unknown>).map(([k, v]) => (
+                      <div key={k} className="flex gap-2 font-mono text-xs">
+                        <span className="text-foreground/80 shrink-0 mt-0.5">{k}:</span>
+                        <Badge variant="code">{String(v)}</Badge>
+                      </div>
+                    ))}
+                  </>
+                ),
+              }}
+            />
           </div>
         )}
+
 
         {/* Extra fields */}
         {Object.keys(rest).length > 0 && (
@@ -184,62 +228,59 @@ function RouteComponent() {
   const connector =
     connectorData?.status === 200 ? (connectorData.data as ConnectorInstanceDto) : undefined;
 
-  // Only to test styles with other parameters
-  const altConnector = {
-    authenticationConfig: {
-      type: "BEARER",
-      username: "example_user",
+  // // Only to test styles with other parameters
+  // const altConnector = {
+  //   authenticationConfig: {
+  //     type: "BEARER",
+  //     username: "example_user",
 
-      tokenType: "VAULT REF",
-      path: "/path/to/token",
-      key: "bearer_token",
-    },
-    interaction: {
-      mode: "PUSH",
-      subscribe: {
-        protocol: "HTTPS",
-        method: "POST",
-        urlTemplate: "https://example.com/subscribe",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        bodyTemplate: JSON.stringify({ datasetId: "example-dataset" }),
-      },
-      unsubscribe: {
-        protocol: "HTTPS",
-        method: "POST",
-        urlTemplate: "https://example.com/unsubscribe",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        bodyTemplate: JSON.stringify({ datasetId: "example-dataset" }),
-      },
-    },
-  };
+  //     tokenType: "VAULT REF",
+  //     path: "/path/to/token",
+  //     key: "bearer_token",
+  //   },
+  //   interaction: {
+  //     mode: "PUSH",
+  //     subscribe: {
+  //       protocol: "HTTPS",
+  //       method: "POST",
+  //       urlTemplate: "https://example.com/subscribe",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       bodyTemplate: JSON.stringify({ datasetId: "example-dataset" }),
+  //     },
+  //     unsubscribe: {
+  //       protocol: "HTTPS",
+  //       method: "POST",
+  //       urlTemplate: "https://example.com/unsubscribe",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       bodyTemplate: JSON.stringify({ datasetId: "example-dataset" }),
+  //     },
+  //   },
+  // };
 
   const auth = connector?.authenticationConfig as { type?: string } | undefined;
 
   // the Record object accepts all the other attributes that aren't "type"
-  const altAuth = altConnector?.authenticationConfig as
-    | ({ type?: string } & Record<string, any>)
-    | undefined;
+  // const altAuth = altConnector?.authenticationConfig as
+  //   | ({ type?: string } & Record<string, any>)
+  //   | undefined;
+  // const altInteraction = altConnector?.interaction as
+  //   | (PushLifecycle & Record<string, unknown>)
+  //   | undefined;
+  //  const isPushAlt = altInteraction?.mode === "PUSH";
 
-  console.log(auth?.type, "what is it");
 
   const interaction = connector?.interaction as
     | (PushLifecycle & Record<string, unknown>)
     | undefined;
-  const altInteraction = altConnector?.interaction as
-    | (PushLifecycle & Record<string, unknown>)
-    | undefined;
+
 
   const isPush = interaction?.mode === "PUSH";
-  const isPushAlt = altInteraction?.mode === "PUSH";
 
-  console.log(distribution, "distribution in connector instance route");
-  console.log(connector, "connector instance in connector instance route");
-  console.log(altAuth, "alt auth");
-  console.log(altAuth?.username, "alt auth");
+
 
   return (
     <PageLayout>
@@ -318,69 +359,7 @@ function RouteComponent() {
         </div>
 
         {/* ── RIGHT COLUMN ────────────────────────────────────────────────── */}
-        <div className="space-y-4">
-          {/* Authentication */}
-          {/* {auth && (
-            <PageSection title="Authentication">
-              <div className="flex items-center gap-2 py-1">
-                <span className="text-xs text-muted-foreground">Type</span>
-                <Badge variant="info">
-                  {AUTH_LABELS[auth.type ?? ""] ?? auth.type ?? "—"}
-                </Badge>
-              </div> */}
-
-          {/* Extra auth fields (e.g. username for basic, token hint, etc.) */}
-          {/* {Object.entries(auth)
-                .filter(([k]) => k !== "type")
-                .map(([k, v]) => (
-                  <div key={k} className="flex gap-2 font-mono text-xs mt-1">
-                    <span className="text-muted-foreground shrink-0 min-w-[120px]">{k}</span>
-                    <span className="break-all">{String(v ?? "—")}</span>
-                  </div>
-                ))}
-            </PageSection>
-          )} */}
-
-          {/* Interaction
-          {interaction && (
-            <PageSection title="Interaction">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="text-xs text-muted-foreground">Mode</span>
-                <Badge
-                  variant="info"
-                  className={
-                    isPush
-                      ? "text-orange-300 border-orange-500/40"
-                      : "text-sky-300 border-sky-500/40"
-                  }
-                >
-                  {interaction.mode as string}
-                </Badge>
-              </div>
-
-              <div className="space-y-4">
-                {isPush && (interaction as PushLifecycle).subscribe && (
-                  <RequestStep
-                    label="Subscribe"
-                    step={(interaction as PushLifecycle).subscribe as Record<string, unknown>}
-                  />
-                )}
-                {isPush && (interaction as PushLifecycle).unsubscribe && (
-                  <RequestStep
-                    label="Unsubscribe"
-                    step={(interaction as PushLifecycle).unsubscribe as Record<string, unknown>}
-                  />
-                )}
-                {!isPush && Boolean((interaction as Record<string, unknown>).dataAccess) && (
-                  <RequestStep
-                    label="Data Access"
-                    step={(interaction as Record<string, unknown>).dataAccess as Record<string, unknown>}
-                  />
-                )}
-              </div>
-            </PageSection> 
-          )}*/}
-        </div>
+        <div className="space-y-4"></div>
       </div>
       <div className="h-3"></div>
       {connector && (
@@ -415,24 +394,35 @@ function RouteComponent() {
               </>
             )}
           </div>
-          <div className="grid-span-1  border-r border-white/10 p-4">
+          <div className="grid-span-1  border-r border-white/10 px-4">
             {interaction && (
               <>
                 <Heading level="h6" className="text-base font-semibold mb-2">
                   Interaction
                 </Heading>
                 <div className="flex items-center gap-2 mb-4">
-                  <span className="text-xs text-muted-foreground">Mode</span>
-                  <Badge
-                    variant="info"
-                    className={
-                      isPush
-                        ? "text-orange-300 border-orange-500/40"
-                        : "text-sky-300 border-sky-500/40"
-                    }
-                  >
-                    {interaction.mode as string}
-                  </Badge>
+                  <InfoList
+                    items={[
+                      {
+                        label: "Mode",
+                        value: {
+                          type: "custom",
+                          content: (
+                            <Badge
+                              variant="info"
+                              className={
+                                isPush
+                                  ? "text-orange-300 border-orange-500/40"
+                                  : "text-sky-300 border-sky-500/40"
+                              }
+                            >
+                              {interaction.mode as string}
+                            </Badge>
+                          ),
+                        },
+                      },
+                    ]}
+                  />
                 </div>
 
                 <div className="space-y-4">
@@ -463,7 +453,7 @@ function RouteComponent() {
               </>
             )}
           </div>
-          <div className="grid-span-1 p-4">
+          <div className="grid-span-1 px-4">
             <Heading level="h6" className="text-base font-semibold mb-2">
               Parameters
             </Heading>
@@ -488,7 +478,7 @@ function RouteComponent() {
           </div>
         </div>
       )}
-      {altConnector && (
+      {/* {altConnector && (
         <div className="bg-background-400/5 rounded-md border border-white/15  mt-6 grid grid-cols-3">
           <div className="grid-span-1 border-r border-white/10 p-4">
             {altAuth && (
@@ -496,16 +486,14 @@ function RouteComponent() {
                 <Heading level="h6" className="text-base font-semibold">
                   Authentication
                 </Heading>
-
-                {/* Extra auth fields (e.g. username for basic, token hint, etc.) */}
-                {/* {Object.entries(altAuth)
+                {Object.entries(altAuth)
                   .filter(([k]) => k !== "type")
                   .map(([k, v]) => (
                     <div key={k} className="flex gap-2 font-mono text-xs mt-1p x-4">
                       <span className="text-muted-foreground shrink-0 min-w-[120px]">{k}</span>
                       <span className="break-all">{String(v ?? "None")}</span>
                     </div>
-                  ))} */}
+                  ))}
               </>
             )}
             {altAuth?.type === "BEARER" && (
@@ -557,7 +545,6 @@ function RouteComponent() {
                     },
                   ]}
                 />
-                {/* Extra auth fields (e.g. username for basic, token hint, etc.) */}
               </>
             )}
           </div>
@@ -568,19 +555,29 @@ function RouteComponent() {
                   Interaction
                 </Heading>
                 <div className="flex items-center gap-2 mb-4">
-                  <span className="text-xs text-muted-foreground">Mode</span>
-                  <Badge
-                    variant="info"
-                    className={
-                      isPushAlt
-                        ? "text-orange-300 border-orange-500/40"
-                        : "text-sky-300 border-sky-500/40"
-                    }
-                  >
-                    {altInteraction.mode as string}
-                  </Badge>
+                  <InfoList
+                    items={[
+                      {
+                        label: "Mode",
+                        value: {
+                          type: "custom",
+                          content: (
+                            <Badge
+                              variant="info"
+                              className={
+                                isPush
+                                  ? "text-orange-300 border-orange-500/40"
+                                  : "text-sky-300 border-sky-500/40"
+                              }
+                            >
+                              {altInteraction.mode as string}
+                            </Badge>
+                          ),
+                        },
+                      },
+                    ]}
+                  />
                 </div>
-
                 <div className="space-y-4">
                   {isPushAlt && (altInteraction as PushLifecycle).subscribe && (
                     <RequestStep
@@ -636,7 +633,7 @@ function RouteComponent() {
             />
           </div>
         </div>
-      )}
+      )} */}
     </PageLayout>
   );
 }

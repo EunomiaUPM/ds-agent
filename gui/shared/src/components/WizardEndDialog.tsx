@@ -2,7 +2,7 @@ import React from "react";
 import { createPortal } from "react-dom";
 import { Button } from "shared/src/components/ui/button";
 import { Link } from "@tanstack/react-router";
-import Heading from "shared/src/components/ui/Heading";
+import Heading from "shared/src/components/ui/heading";
 import { ArrowRight } from "lucide-react";
 import { Badge } from "./ui/badge";
 

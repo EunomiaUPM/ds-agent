@@ -33,9 +33,17 @@ import {
 } from "shared/src/components/ui/drawer";
 import DatasetItem from "shared/components/ui/dataset-item";
 import AvatarImg from "shared/components/ui/avatar-img";
+import { useGetMainCatalogs } from "shared/data/orval/catalogs/catalogs";
 
 const RouteComponent = () => {
-  const { catalogId } = Route.useParams();
+
+  const { data: mainCatalogData } = useGetMainCatalogs();
+  const mainCatalog = mainCatalogData?.status === 200 ? mainCatalogData.data : undefined;
+
+  console.log(mainCatalog, "maincatalog")
+  console.log(mainCatalog?.id, "maincatalog ID")
+
+  const catalogId = mainCatalog?.id || ""
   const { data: catalogData } = useGetCatalogById(catalogId);
   const { data: datasetsData } = useGetDatasetsByCatalogId(catalogId);
   const { data: dataservicesData } = useGetDataServicesByCatalogId(catalogId);
@@ -47,39 +55,18 @@ const RouteComponent = () => {
   if (!catalog) return null;
   const { data: participants } = useGetAllParticipants();
 
-  console.log(catalog, "catalog in own catalog route");
-
-  // this only returns "Myself", we need to know their actual
-  // slug (provider / consumer)
-
-  //  const myAgent = Array.isArray(participants?.data)
-  // ? participants.data.find(
-  //     (p) => p.is_me && p.participant_type === "Agent"
-  // )
-  // : undefined;
-  // const myAgentSlug =
-  //     myAgent?.participant_slug?.toString() || "Unknown Participant";
-
-  // if the slug from the other participant is provider, then own slug is consumer
-
-  const otherParticipant = Array.isArray(participants?.data)
-    ? participants.data.find((p) => !p.is_me && p.participant_type === "Agent")
+  const myAgent = Array.isArray(participants?.data)
+    ? participants.data.find((p) => p.is_me && p.participant_type === "Agent")
     : undefined;
 
-  const myAgentSlug = otherParticipant?.participant_slug === "provider" ? "consumer" : "provider";
-
+    console.log(myAgent, "myAgent id")
+ const myAgentSlug = myAgent?.participant_slug
+ 
   return (
     <PageLayout>
-      {/* <PageHeader
-                title="My Catalog"
-                badge={
-                    <Badge variant="info" size="lg">
-                        {formatUrn(catalogId)}
-                    </Badge>
-                }
-            /> */}
+    
       <div className="grid grid-cols-3 gap-12">
-        <div className="rounded-md border border-background-200/60 bg-background-200/5 p-4 max-h-[60vh] ">
+        <div className="rounded-md border border-background-200/60 bg-background-200/5 p-4 max-h-[70vh] ">
           <Heading level="h2" className="capitalize">
             {" "}
             {catalog.dctTitle ? catalog.dctTitle : `${myAgentSlug}'s Catalog for Demo`}
@@ -122,31 +109,7 @@ const RouteComponent = () => {
           <div className="h-1"></div>
           <div className="border-t border-white/10"></div>
           <div className="h-2"></div>
-          {/* {dataservices.map((ds) => (
-                        <>
-                            <Heading level="h4" className="text-left">
-                                Dataservice
-                            </Heading>
-                            <InfoList
-                                items={[
-                                    {
-                                        label: "Dataservice ID",
-                                        value: { type: "urn", value: ds.id! },
-                                    },
-
-                                    {
-                                        label: "Dataservice creation date",
-                                        value: { type: "custom", content: <FormatDate date={ds.dctIssued} /> },
-                                    },
-                                    {
-                                        label: "Endpoint",
-                                        value: "Dataservice URL",
-                                    },
-                                ]}
-                            />
-                        </>
-                    ))} */}
-
+      
           <>
             <Heading level="h4" className="text-left">
               Dataservice
@@ -197,107 +160,8 @@ const RouteComponent = () => {
           </div>
         </div>
       </div>
-      {/* 
-            <InfoGrid>
-                <PageSection title="Catalog details:">
-                    <InfoList
-                        items={[
-                            { label: "Catalog title", value: catalog.dctTitle },
-                            {
-                                label: "Catalog participant ID",
-                                value: { type: "urn", value: catalog.dspaceParticipantId },
-                            },
-                            { label: "Catalog homepage", value: catalog.foafHomePage },
-                            {
-                                label: "Catalog creation date",
-                                value: { type: "custom", content: <FormatDate date={catalog.dctIssued} /> },
-                            },
-                        ]}
-                    />
-                </PageSection>
-            </InfoGrid>
-
-            <PageSection title="Datasets">
-                <DataTable
-                    className="text-sm"
-                    data={datasets ?? []}
-                    keyExtractor={(d) => d.id!}
-                    columns={[
-                        {
-                            header: "Dataset ID",
-                            cell: (d) => <Badge variant="info">{formatUrn(d.id!)}</Badge>,
-                        },
-                        {
-                            header: "Title",
-                            accessorKey: "dctTitle",
-                        },
-                        {
-                            header: "Description",
-                            accessorKey: "dctDescription",
-                        },
-                        {
-                            header: "Provider ID",
-                            cell: (d) => <Badge variant="info">{formatUrn(catalog.dspaceParticipantId!)}</Badge>,
-                        },
-                        {
-                            header: "Created at",
-                            cell: (d) => <FormatDate date={d.dctIssued!} />,
-                        },
-                        {
-                            header: "Link",
-                            cell: (d) => (
-                                <Link
-                                    to="/catalog/$catalogId/dataset/$datasetId"
-                                    params={{
-                                        catalogId: catalog.id!,
-                                        datasetId: d.id!,
-                                    }}
-                                >
-                                    <Button variant="link">
-                                        See dataset
-                                        <ArrowRight />
-                                    </Button>
-                                </Link>
-                            ),
-                        },
-                    ]}
-                />
-            </PageSection>
-            <PageSection title="Dataservices">
-                <DataTable
-                    className="text-sm"
-                    data={dataservices ?? []}
-                    keyExtractor={(ds) => ds.id!}
-                    columns={[
-                        {
-                            header: "Dataservice Id",
-                            cell: (ds) => <Badge variant="info">{formatUrn(ds.id!)}</Badge>,
-                        },
-                        {
-                            header: "Created at",
-                            cell: (ds) => <FormatDate date={ds.dctIssued!} />,
-                        },
-                        {
-                            header: "Link",
-                            cell: (ds) => (
-                                <Link
-                                    to="/catalog/$catalogId/data-service/$dataserviceId"
-                                    params={{
-                                        catalogId: catalog.id!,
-                                        dataserviceId: ds.id!,
-                                    }}
-                                >
-                                    <Button variant="link">
-                                        See dataservice
-                                        <ArrowRight />
-                                    </Button>
-                                </Link>
-                            ),
-                        },
-                    ]}
-                />
-            </PageSection> */}
-    </PageLayout>
+    
+   </PageLayout>
   );
 };
 

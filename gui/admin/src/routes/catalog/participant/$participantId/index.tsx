@@ -68,7 +68,7 @@ function RouteComponent() {
 
   if (!catalog) return null;
   // { console.log(dataCatalog, "data catalog") }
-  // { console.log(catalog, "catalog ") }
+   { console.log(catalog, "catalog participant") }
   // { console.log(catalog?.response, "catalog response in participant") }
   {
     console.log(catalog?.response?.dataset, " datasets in participant");

@@ -31,8 +31,8 @@ const DistributionItem: React.FC<DistributionItemProps> = ({
       </div>
       {ownDataset ? (
         <div className="distribution-table text-sm">
-          <div className="grid grid-cols-2 border-y border-white/10 py-2 gap-x-5 ">
-            <span className="font-bold">Associated Connector:</span>
+          <div className="grid grid-cols-5 border-y border-white/10 py-2 gap-x-5 ">
+            <span className="font-bold col-span-2">Associated Connector:</span>
             <Link
               target="_blank"
               to={"/catalog/$prevRoute/distribution-connector/$distributionId"}
@@ -40,14 +40,15 @@ const DistributionItem: React.FC<DistributionItemProps> = ({
                 prevRoute: prevRoute!,
                 distributionId: distribuionId!,
               }}
+              className="col-span-3"
             >
-              <span className="underline-offset-2 hover:underline flex gap-2">
+              <span className="underline-offset-2 hover:underline flex gap-2 ">
                 Connector Distribution <ExternalLink className="h-4 w-4" />
               </span>
             </Link>
           </div>
-          <div className="grid grid-cols-2 border-b border-white/10 py-2 gap-x-5">
-            <span className="font-bold">Associated Dataservice:</span>
+          <div className="grid grid-cols-5 border-b border-white/10 py-2 gap-x-5">
+            <span className="font-bold col-span-2">Associated Dataservice:</span>
             <Link
               target="_blank"
               to={
@@ -59,6 +60,7 @@ const DistributionItem: React.FC<DistributionItemProps> = ({
                 prevRoute: prevRoute!,
                 dataserviceId: dataserviceId!,
               }}
+               className="col-span-3"
             >
               <span className="underline-offset-2 hover:underline flex gap-2">
                 Dataservice <ExternalLink className="h-4 w-4" />

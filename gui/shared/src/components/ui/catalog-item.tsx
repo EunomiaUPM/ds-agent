@@ -119,8 +119,9 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
     <div
       className={`catalog-card h-full bg-background-200/15  hover:bg-background-200/30 transition-all border rounded-md flex flex-col p-4 gap-3 justify-between max-w-lg ${unavailableCatalogClasses} ${isAuthenticated ? "border-emerald-500/40" : "border-white/10"}`}
     >
-      <div className="catalog-dates-container flex gap-3 text-sm tracking-wide items-center justify-between">
-        <div className="catalog-dates-created flex gap-1">
+      <div className="catalog-top">
+      <div className="catalog-dates-container flex gap-3 text-sm tracking-wide items-start justify-between">
+        <div className="catalog-dates-created flex gap-1 mb-2">
           <p className="text-sm">Created at:</p>
           <FormatDate date={date} />
         </div>
@@ -144,7 +145,9 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
           offer.
         </p>
       </div>
-      <div className="catalog-participant-container flex gap-2 justify-start items-center">
+      </div>
+       <div className="catalog-bottom">
+      <div className="catalog-participant-container flex gap-2 justify-start items-center mb-2">
         <Avatar src={avatarImg}  />
         <Heading level="h5" className="capitalize !mb-0">
           {organizationName}
@@ -153,6 +156,7 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
       <div className="catalog-items-container flex justify-end gap-2 text-sm italic">
         <p> 1 Dataservice </p>
         <p> {datasetNumber} Datasets </p>
+      </div>
       </div>
     </div>
   );

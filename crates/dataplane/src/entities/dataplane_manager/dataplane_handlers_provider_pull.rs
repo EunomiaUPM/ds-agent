@@ -50,6 +50,12 @@ impl DataplaneCommandStateMachine for DataplaneHandlerProviderPull {
     fn transfer_config(&self) -> Arc<TransferConfig> {
         self.config.clone()
     }
+    async fn set_init(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
+        let ctx = set_configuring_helper(self.dataplane_entity(), context).await?;
+        let ctx = self.set_auth(ctx).await?;
+        let ctx = self.set_ready(ctx).await?;
+        Ok(ctx)
+    }
     async fn set_configuring(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
         let ctx = set_configuring_helper(self.dataplane_entity(), context).await?;
         let ctx = self.set_auth(ctx).await?;

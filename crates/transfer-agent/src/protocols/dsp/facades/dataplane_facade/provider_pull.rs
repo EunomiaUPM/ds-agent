@@ -110,9 +110,7 @@ impl DataPlaneStrategy for ProviderPullStrategy {
                         None,
                     )
                 })?;
-            let cmd = DataplaneCommand::SetConfiguring(
-                Some((continuation, dataplane)), // set egress
-            );
+            let cmd = DataplaneCommand::SetStarted(continuation);
             let res = mgr.execute_command(cmd).await?;
             return Ok(None);
         }

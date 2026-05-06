@@ -1,4 +1,4 @@
-import { AlertCircle, CheckCircle2, Loader2, Search } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Info, Loader2, Search } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { PageHeader } from 'shared/src/components/layout/PageHeader';
@@ -16,6 +16,9 @@ import { Input } from 'shared/src/components/ui/input';
 import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from 'shared/src/components/ui/select';
+import {
+    Tooltip, TooltipContent, TooltipProvider, TooltipTrigger
+} from 'shared/src/components/ui/tooltip';
 import WizardDialog from 'shared/src/components/WizardDialog';
 import { customInstance } from 'shared/src/data/orval-mutator';
 import { useGetAllParticipants } from 'shared/src/data/orval/participants/participants';
@@ -46,6 +49,33 @@ const DEMO_VC_TYPE_ID = "DataSpaceParticipant_jwt_vc_json";
 const DEMO_VC_TYPE_LABEL = "Data Space Participant (JWT)";
 
 type FormValues = z.infer<typeof schema>;
+
+function LabelWithInfo({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <FormLabel>{label}</FormLabel>
+      <TooltipProvider delayDuration={150}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+              aria-label={`What is ${label}?`}
+            >
+              <Info className="h-3.5 w-3.5" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent
+            side="top"
+            className="max-w-xs bg-background-300 border border-secondary-800 text-white text-xs leading-relaxed p-3"
+          >
+            {children}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    </div>
+  );
+}
 
 // @ts-ignore
 export const Route = createFileRoute("/authority/new")({
@@ -251,6 +281,7 @@ function NewAuthorityRequest() {
               </>
             }
           />
+
         </>
       ) : null}
       <PageSection>
@@ -396,7 +427,13 @@ function NewAuthorityRequest() {
                       name="method"
                       render={({ field }: { field: any }) => (
                         <FormItem>
-                          <FormLabel>Identity Proof</FormLabel>
+                          <LabelWithInfo label="Identity Proof">
+                            The authority needs to verify who you are before issuing a credential.
+                            <br />
+                            Use a <strong>Certificate</strong> if this is your first onboarding
+                            (a pre-issued X.509). Switch to <strong>Verifiable Credential</strong>{" "}
+                            later, once your wallet holds something the authority can check.
+                          </LabelWithInfo>
                           <FormControl>
                             <div className="relative flex p-1 bg-muted/50 border border-primary/40 rounded-lg w-full">
                               {/* Sliding pill */}
@@ -449,7 +486,11 @@ function NewAuthorityRequest() {
                             />
                           </FormControl>
                           <div className="space-y-1 leading-none">
-                            <FormLabel>Automatic Acceptance</FormLabel>
+                            <LabelWithInfo label="Automatic Acceptance">
+                              When the authority approves the request, the credential is{" "}
+                              <strong>claimed into your wallet automatically</strong>. No follow-up
+                              needed.
+                            </LabelWithInfo>
                             <FormDescription>
                               Automatically claim the VC once the request is approved.
                             </FormDescription>

@@ -152,24 +152,24 @@ function RouteComponent() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-2">
+              <div className="flex justify-between flex-wrap gap-8 mt-2">
                 <div className="space-y-1">
                   <p className="text-[10px] text-muted-foreground uppercase">DID Identifier</p>
-                  <Badge variant="info">{formatIdentifier(myAgent.participant_id)}</Badge>
+                  <Badge variant="info">
+                    {formatIdentifier(myAgent.participant_id, 0, true, 40)}
+                  </Badge>
                 </div>
                 <div className="space-y-1">
                   <p className="text-[10px] text-muted-foreground uppercase">System Role</p>
-                  <div className="flex pt-1">
-                    <Badge variant="role" dsrole={myAgent.participant_type as BadgeRole}>
-                      {myAgent.participant_type}
-                    </Badge>
-                  </div>
+                  <Badge variant="role" dsrole={myAgent.participant_type as BadgeRole}>
+                    {myAgent.participant_type}
+                  </Badge>
                 </div>
                 <div className="space-y-1">
                   <p className="text-[10px] text-muted-foreground uppercase">Base URL</p>
                   <Badge variant="info">{myAgent.base_url}</Badge>
                 </div>
-                <div className="flex items-end justify-end">
+                <div className="flex-1 flex items-end justify-end">
                   <Link
                     to="/participants/$participantId"
                     params={{ participantId: myAgent.participant_id! }}
@@ -250,7 +250,9 @@ function RouteComponent() {
               //   </Button>
               // ),
               accessorKey: "participant_id",
-              cell: (p) => <Badge variant="info">{formatIdentifier(p.participant_id)}</Badge>,
+              cell: (p) => (
+                <Badge variant="info">{formatIdentifier(p.participant_id, 0, true, 40)}</Badge>
+              ),
             },
             {
               header: "Last interaction",

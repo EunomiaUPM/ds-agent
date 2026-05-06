@@ -1,33 +1,50 @@
-import { AlertCircle, CheckCircle2, Info, Loader2, Search } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { PageHeader } from 'shared/src/components/layout/PageHeader';
-import { PageLayout } from 'shared/src/components/layout/PageLayout';
-import { PageSection } from 'shared/src/components/layout/PageSection';
-import { Badge } from 'shared/src/components/ui/badge';
-import { Button } from 'shared/src/components/ui/button';
+import { AlertCircle, CheckCircle2, Info, Loader2, Search } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { useForm } from "react-hook-form";
+import { PageHeader } from "shared/src/components/layout/PageHeader";
+import { PageLayout } from "shared/src/components/layout/PageLayout";
+import { PageSection } from "shared/src/components/layout/PageSection";
+import { Badge } from "shared/src/components/ui/badge";
+import { Button } from "shared/src/components/ui/button";
 import {
-    Card, CardContent, CardDescription, CardHeader, CardTitle
-} from 'shared/src/components/ui/card';
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "shared/src/components/ui/card";
 import {
-    Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage
-} from 'shared/src/components/ui/form';
-import { Input } from 'shared/src/components/ui/input';
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "shared/src/components/ui/form";
+import { Input } from "shared/src/components/ui/input";
 import {
-    Select, SelectContent, SelectItem, SelectTrigger, SelectValue
-} from 'shared/src/components/ui/select';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "shared/src/components/ui/select";
 import {
-    Tooltip, TooltipContent, TooltipProvider, TooltipTrigger
-} from 'shared/src/components/ui/tooltip';
-import WizardDialog from 'shared/src/components/WizardDialog';
-import { customInstance } from 'shared/src/data/orval-mutator';
-import { useGetAllParticipants } from 'shared/src/data/orval/participants/participants';
-import { useFederatedCatalog } from 'shared/src/data/useFederatedCatalog';
-import { formatIdentifier, getFriendlyVCType } from 'shared/src/lib/utils';
-import * as z from 'zod';
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "shared/src/components/ui/tooltip";
+import WizardDialog from "shared/src/components/WizardDialog";
+import { customInstance } from "shared/src/data/orval-mutator";
+import { useGetAllParticipants } from "shared/src/data/orval/participants/participants";
+import { useFederatedCatalog } from "shared/src/data/useFederatedCatalog";
+import { formatIdentifier, getFriendlyVCType } from "shared/src/lib/utils";
+import * as z from "zod";
 
-import { zodResolver } from '@hookform/resolvers/zod';
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { zodResolver } from "@hookform/resolvers/zod";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 
 const schema = z.object({
   url: z.string().url("Please enter a valid URL"),
@@ -105,8 +122,6 @@ function NewAuthorityRequest() {
       ? participantsResponse.data.filter((p) => p.participant_type === "Authority")
       : [];
 
-
-
   const form = useForm<FormValues>({
     resolver: zodResolver(schema) as any,
     defaultValues: {
@@ -123,8 +138,6 @@ function NewAuthorityRequest() {
   // refs for positioning the tooltip over the "Authority URL" label
   const labelURLRef = useRef<HTMLElement | null>(null);
   const vcType = form.watch("vc_type");
-
-
 
   // advance wizard from "Discover" step to "VC type" step when discovery succeeds
   useEffect(() => {
@@ -170,7 +183,6 @@ function NewAuthorityRequest() {
     }
   };
 
-
   const onSubmit = async (values: FormValues) => {
     if (!discoveredInfo) {
       return;
@@ -207,9 +219,12 @@ function NewAuthorityRequest() {
 
   // federated presence check (kept for clarity)
 
-  let highlightRingClasses = knownAuthorities.length === 0 ? "ring-2 ring-secondary-400 shadow-md animate-pulse" : "";
-  let highlightButtonClasses = knownAuthorities.length === 0 ? "animate-pulse bg-secondary-600 hover:bg-secondary-500 ring-2 ring-secondary-400" : "";
-
+  let highlightRingClasses =
+    knownAuthorities.length === 0 ? "ring-2 ring-secondary-400 shadow-md animate-pulse" : "";
+  let highlightButtonClasses =
+    knownAuthorities.length === 0
+      ? "animate-pulse bg-secondary-600 hover:bg-secondary-500 ring-2 ring-secondary-400"
+      : "";
 
   return (
     <PageLayout>
@@ -224,11 +239,7 @@ function NewAuthorityRequest() {
             align="left"
             title="Connect to a Dataspace"
             sectionTitle="Dataspace Sign Up Tutorial"
-            content={
-              <>
-                Introduce the URL of the authority of the dataspace you want to join.
-              </>
-            }
+            content={<>Introduce the URL of the authority of the dataspace you want to join.</>}
           >
             <div className="flex justify-end mt-3">
               <Button
@@ -252,14 +263,15 @@ function NewAuthorityRequest() {
             anchorRef={discoverButtonRef as React.RefObject<HTMLElement>}
             align="left"
             title="Discover the authority"
-             sectionTitle="Dataspace Sign Up Tutorial"
+            sectionTitle="Dataspace Sign Up Tutorial"
             content={
               <>
                 Click <strong>Find authority</strong> to fetch the authority's DID document and the
                 list of credentials it can issue.
                 <br />
-                Once it succeeds, the panel on the right will show the authority's <strong>DID</strong>,
-                its <strong>available VC types</strong> and its <strong>services</strong>.
+                Once it succeeds, the panel on the right will show the authority's{" "}
+                <strong>DID</strong>, its <strong>available VC types</strong> and its{" "}
+                <strong>services</strong>.
               </>
             }
           />
@@ -281,7 +293,6 @@ function NewAuthorityRequest() {
               </>
             }
           />
-
         </>
       ) : null}
       <PageSection>
@@ -302,7 +313,9 @@ function NewAuthorityRequest() {
                       name="url"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel ref={(el) => (labelURLRef.current = el as any)}>Authority URL</FormLabel>
+                          <FormLabel ref={(el) => (labelURLRef.current = el as any)}>
+                            Authority URL
+                          </FormLabel>
                           <div className="flex items-center gap-2">
                             <FormControl className="flex-1">
                               <Input
@@ -373,7 +386,9 @@ function NewAuthorityRequest() {
                       name="vc_type"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel ref={(el) => (vcTypeLabelRef.current = el as any)}>Verifiable Credential Type</FormLabel>
+                          <FormLabel ref={(el) => (vcTypeLabelRef.current = el as any)}>
+                            Verifiable Credential Type
+                          </FormLabel>
 
                           <Select
                             onValueChange={field.onChange}
@@ -382,12 +397,12 @@ function NewAuthorityRequest() {
                           >
                             <FormControl>
                               <SelectTrigger
-                                className={discoveredInfo && !vcType ? highlightRingClasses : ""}>
+                                className={discoveredInfo && !vcType ? highlightRingClasses : ""}
+                              >
                                 <SelectValue
                                   placeholder={
                                     discoveredInfo ? "Select VC type" : "Discover first..."
                                   }
-
                                 />
                               </SelectTrigger>
                             </FormControl>
@@ -430,26 +445,28 @@ function NewAuthorityRequest() {
                           <LabelWithInfo label="Identity Proof">
                             The authority needs to verify who you are before issuing a credential.
                             <br />
-                            Use a <strong>Certificate</strong> if this is your first onboarding
-                            (a pre-issued X.509). Switch to <strong>Verifiable Credential</strong>{" "}
+                            Use a <strong>Certificate</strong> if this is your first onboarding (a
+                            pre-issued X.509). Switch to <strong>Verifiable Credential</strong>{" "}
                             later, once your wallet holds something the authority can check.
                           </LabelWithInfo>
                           <FormControl>
                             <div className="relative flex p-1 bg-muted/50 border border-primary/40 rounded-lg w-full">
                               {/* Sliding pill */}
                               <div
-                                className={`absolute top-1 bottom-1 w-[calc(50%-0.25rem)] bg-primary rounded-md transition-transform duration-300 ease-in-out shadow-sm ${field.value === "cert"
-                                  ? "translate-x-0"
-                                  : "translate-x-[calc(100%+0.25rem)]"
-                                  }`}
+                                className={`absolute top-1 bottom-1 w-[calc(50%-0.25rem)] bg-primary rounded-md transition-transform duration-300 ease-in-out shadow-sm ${
+                                  field.value === "cert"
+                                    ? "translate-x-0"
+                                    : "translate-x-[calc(100%+0.25rem)]"
+                                }`}
                               />
 
                               <button
                                 type="button"
-                                className={`relative z-10 w-1/2 py-2 px-3 text-xs md:text-sm font-semibold transition-colors duration-300 rounded-md ${field.value === "cert"
-                                  ? "text-primary-foreground"
-                                  : "text-foreground/70 hover:text-foreground"
-                                  }`}
+                                className={`relative z-10 w-1/2 py-2 px-3 text-xs md:text-sm font-semibold transition-colors duration-300 rounded-md ${
+                                  field.value === "cert"
+                                    ? "text-primary-foreground"
+                                    : "text-foreground/70 hover:text-foreground"
+                                }`}
                                 onClick={() => field.onChange("cert")}
                               >
                                 Certificate
@@ -457,10 +474,11 @@ function NewAuthorityRequest() {
 
                               <button
                                 type="button"
-                                className={`relative z-10 w-1/2 py-2 px-3 text-xs md:text-sm font-semibold transition-colors duration-300 rounded-md ${field.value === "oidc4vp"
-                                  ? "text-primary-foreground"
-                                  : "text-foreground/70 hover:text-foreground"
-                                  }`}
+                                className={`relative z-10 w-1/2 py-2 px-3 text-xs md:text-sm font-semibold transition-colors duration-300 rounded-md ${
+                                  field.value === "oidc4vp"
+                                    ? "text-primary-foreground"
+                                    : "text-foreground/70 hover:text-foreground"
+                                }`}
                                 onClick={() => field.onChange("oidc4vp")}
                               >
                                 Verifiable Credential

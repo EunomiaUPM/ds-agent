@@ -9,14 +9,14 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { OdrlObligation } from "./odrlObligation";
-import type { OdrlOfferType } from "./odrlOfferType";
-import type { OdrlPermission } from "./odrlPermission";
-import type { OdrlProhibition } from "./odrlProhibition";
+import type { OdrlObligation } from './odrlObligation';
+import type { OdrlOfferType } from './odrlOfferType';
+import type { OdrlPermission } from './odrlPermission';
+import type { OdrlProhibition } from './odrlProhibition';
 
 export interface OdrlOffer {
-  "@type"?: OdrlOfferType;
-  "@id"?: string;
+  '@type'?: OdrlOfferType;
+  '@id'?: string;
   target?: string;
   permission?: OdrlPermission[];
   prohibition?: OdrlProhibition[];

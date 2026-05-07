@@ -9,11 +9,11 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { InteractionMode } from "./interactionMode";
-import type { NewDataplaneTransferDtoEgressConfig } from "./newDataplaneTransferDtoEgressConfig";
-import type { NewDataplaneTransferDtoIngressConfig } from "./newDataplaneTransferDtoIngressConfig";
-import type { TransferRole } from "./transferRole";
-import type { TransferState } from "./transferState";
+import type { InteractionMode } from './interactionMode';
+import type { NewDataplaneTransferDtoEgressConfig } from './newDataplaneTransferDtoEgressConfig';
+import type { NewDataplaneTransferDtoIngressConfig } from './newDataplaneTransferDtoIngressConfig';
+import type { TransferRole } from './transferRole';
+import type { TransferState } from './transferState';
 
 export interface NewDataplaneTransferDto {
   /** @nullable */

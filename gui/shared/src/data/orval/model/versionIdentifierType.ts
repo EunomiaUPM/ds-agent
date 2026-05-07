@@ -10,12 +10,12 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  * OpenAPI spec version: 1.0.0
  */
 
-export type VersionIdentifierType =
-  (typeof VersionIdentifierType)[keyof typeof VersionIdentifierType];
+export type VersionIdentifierType = typeof VersionIdentifierType[keyof typeof VersionIdentifierType];
+
 
 export const VersionIdentifierType = {
-  "did:web": "did:web",
-  "did:jwk": "did:jwk",
-  url: "url",
-  "D-U-N-S": "D-U-N-S",
+  'did:web': 'did:web',
+  'did:jwk': 'did:jwk',
+  url: 'url',
+  'D-U-N-S': 'D-U-N-S',
 } as const;

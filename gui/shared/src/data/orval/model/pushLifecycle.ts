@@ -9,9 +9,9 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { PushLifecycleMode } from "./pushLifecycleMode";
-import type { PushLifecycleSubscribe } from "./pushLifecycleSubscribe";
-import type { PushLifecycleUnsubscribe } from "./pushLifecycleUnsubscribe";
+import type { PushLifecycleMode } from './pushLifecycleMode';
+import type { PushLifecycleSubscribe } from './pushLifecycleSubscribe';
+import type { PushLifecycleUnsubscribe } from './pushLifecycleUnsubscribe';
 
 export interface PushLifecycle {
   mode: PushLifecycleMode;

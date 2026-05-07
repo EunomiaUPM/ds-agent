@@ -9,7 +9,7 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { Version } from "./version";
+import type { Version } from './version';
 
 export interface VersionResponse {
   protocolVersions: Version[];

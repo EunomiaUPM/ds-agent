@@ -9,7 +9,7 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { NoAuthType } from "./noAuthType";
+import type { NoAuthType } from './noAuthType';
 
 export interface NoAuth {
   type: NoAuthType;

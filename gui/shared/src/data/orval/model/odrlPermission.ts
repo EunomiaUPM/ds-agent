@@ -9,8 +9,8 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { OdrlConstraint } from "./odrlConstraint";
-import type { OdrlDuty } from "./odrlDuty";
+import type { OdrlConstraint } from './odrlConstraint';
+import type { OdrlDuty } from './odrlDuty';
 
 export interface OdrlPermission {
   action: string;

@@ -10,21 +10,21 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  * OpenAPI spec version: 1.0.0
  */
 
-export type OdrlAtomicConstraintOperator =
-  (typeof OdrlAtomicConstraintOperator)[keyof typeof OdrlAtomicConstraintOperator];
+export type OdrlAtomicConstraintOperator = typeof OdrlAtomicConstraintOperator[keyof typeof OdrlAtomicConstraintOperator];
+
 
 export const OdrlAtomicConstraintOperator = {
-  eq: "eq",
-  gt: "gt",
-  gteq: "gteq",
-  lteq: "lteq",
-  hasPart: "hasPart",
-  isA: "isA",
-  isAllOf: "isAllOf",
-  isAnyOf: "isAnyOf",
-  isNoneOf: "isNoneOf",
-  isPartOf: "isPartOf",
-  lt: "lt",
-  termLteq: "termLteq",
-  neq: "neq",
+  eq: 'eq',
+  gt: 'gt',
+  gteq: 'gteq',
+  lteq: 'lteq',
+  hasPart: 'hasPart',
+  isA: 'isA',
+  isAllOf: 'isAllOf',
+  isAnyOf: 'isAnyOf',
+  isNoneOf: 'isNoneOf',
+  isPartOf: 'isPartOf',
+  lt: 'lt',
+  termLteq: 'termLteq',
+  neq: 'neq',
 } as const;

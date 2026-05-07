@@ -10,8 +10,9 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  * OpenAPI spec version: 1.0.0
  */
 
-export type BearerTokenType = (typeof BearerTokenType)[keyof typeof BearerTokenType];
+export type BearerTokenType = typeof BearerTokenType[keyof typeof BearerTokenType];
+
 
 export const BearerTokenType = {
-  BEARER_TOKEN: "BEARER_TOKEN",
+  BEARER_TOKEN: 'BEARER_TOKEN',
 } as const;

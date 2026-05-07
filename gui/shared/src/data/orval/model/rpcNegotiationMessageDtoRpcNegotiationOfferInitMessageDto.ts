@@ -9,9 +9,9 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { NegotiationProcessMessageWrapperNegotiationAckMessageDto } from "./negotiationProcessMessageWrapperNegotiationAckMessageDto";
-import type { RpcNegotiationMessageDtoRpcNegotiationOfferInitMessageDtoNegotiationAgentModel } from "./rpcNegotiationMessageDtoRpcNegotiationOfferInitMessageDtoNegotiationAgentModel";
-import type { RpcNegotiationOfferInitMessageDto } from "./rpcNegotiationOfferInitMessageDto";
+import type { NegotiationProcessMessageWrapperNegotiationAckMessageDto } from './negotiationProcessMessageWrapperNegotiationAckMessageDto';
+import type { RpcNegotiationMessageDtoRpcNegotiationOfferInitMessageDtoNegotiationAgentModel } from './rpcNegotiationMessageDtoRpcNegotiationOfferInitMessageDtoNegotiationAgentModel';
+import type { RpcNegotiationOfferInitMessageDto } from './rpcNegotiationOfferInitMessageDto';
 
 export interface RpcNegotiationMessageDtoRpcNegotiationOfferInitMessageDto {
   request?: RpcNegotiationOfferInitMessageDto;

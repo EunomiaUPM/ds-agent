@@ -9,13 +9,15 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import { useMutation } from "@tanstack/react-query";
+import {
+  useMutation
+} from '@tanstack/react-query';
 import type {
   MutationFunction,
   QueryClient,
   UseMutationOptions,
-  UseMutationResult,
-} from "@tanstack/react-query";
+  UseMutationResult
+} from '@tanstack/react-query';
 
 import type {
   ErrorInfo,
@@ -29,1175 +31,1541 @@ import type {
   NegotiationRPCVerificationBody,
   RPCResponse,
   RpcNegotiationOfferInitMessageDto,
-  RpcNegotiationRequestInitMessageDto,
-} from ".././model";
+  RpcNegotiationRequestInitMessageDto
+} from '.././model';
 
-import { customInstance } from "../../orval-mutator";
-import type { ErrorType, BodyType } from "../../orval-mutator";
+import { customInstance } from '../../orval-mutator';
+import type { ErrorType , BodyType } from '../../orval-mutator';
+
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+
 
 /**
  * @summary Initiate a negotiation request (consumer)
  */
 export type rpcSetupRequestInitResponse201 = {
-  data: NegotiationProcessDto;
-  status: 201;
-};
+  data: NegotiationProcessDto
+  status: 201
+}
 
 export type rpcSetupRequestInitResponse400 = {
-  data: ErrorInfo;
-  status: 400;
-};
+  data: ErrorInfo
+  status: 400
+}
 
 export type rpcSetupRequestInitResponse401 = {
-  data: ErrorInfo;
-  status: 401;
-};
+  data: ErrorInfo
+  status: 401
+}
 
 export type rpcSetupRequestInitResponse403 = {
-  data: ErrorInfo;
-  status: 403;
-};
+  data: ErrorInfo
+  status: 403
+}
 
 export type rpcSetupRequestInitResponse404 = {
-  data: ErrorInfo;
-  status: 404;
-};
+  data: ErrorInfo
+  status: 404
+}
 
 export type rpcSetupRequestInitResponse500 = {
-  data: ErrorInfo;
-  status: 500;
-};
-
-export type rpcSetupRequestInitResponseSuccess = rpcSetupRequestInitResponse201 & {
+  data: ErrorInfo
+  status: 500
+}
+    
+export type rpcSetupRequestInitResponseSuccess = (rpcSetupRequestInitResponse201) & {
   headers: Headers;
 };
-export type rpcSetupRequestInitResponseError = (
-  | rpcSetupRequestInitResponse400
-  | rpcSetupRequestInitResponse401
-  | rpcSetupRequestInitResponse403
-  | rpcSetupRequestInitResponse404
-  | rpcSetupRequestInitResponse500
-) & {
+export type rpcSetupRequestInitResponseError = (rpcSetupRequestInitResponse400 | rpcSetupRequestInitResponse401 | rpcSetupRequestInitResponse403 | rpcSetupRequestInitResponse404 | rpcSetupRequestInitResponse500) & {
   headers: Headers;
 };
 
-export type rpcSetupRequestInitResponse =
-  | rpcSetupRequestInitResponseSuccess
-  | rpcSetupRequestInitResponseError;
+export type rpcSetupRequestInitResponse = (rpcSetupRequestInitResponseSuccess | rpcSetupRequestInitResponseError)
 
 export const getRpcSetupRequestInitUrl = () => {
-  return `/dsp/current/negotiations/rpc/setup-request-init`;
-};
 
-export const rpcSetupRequestInit = async (
-  rpcNegotiationRequestInitMessageDto: RpcNegotiationRequestInitMessageDto,
-  options?: RequestInit,
-): Promise<rpcSetupRequestInitResponse> => {
-  return customInstance<rpcSetupRequestInitResponse>(getRpcSetupRequestInitUrl(), {
+
+  
+
+  return `/dsp/current/negotiations/rpc/setup-request-init`
+}
+
+export const rpcSetupRequestInit = async (rpcNegotiationRequestInitMessageDto: RpcNegotiationRequestInitMessageDto, options?: RequestInit): Promise<rpcSetupRequestInitResponse> => {
+  
+  return customInstance<rpcSetupRequestInitResponse>(getRpcSetupRequestInitUrl(),
+  {      
     ...options,
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(rpcNegotiationRequestInitMessageDto),
-  });
-};
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      rpcNegotiationRequestInitMessageDto,)
+  }
+);}
 
-export const getRpcSetupRequestInitMutationOptions = <
-  TError = ErrorType<ErrorInfo>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof rpcSetupRequestInit>>,
-    TError,
-    { data: BodyType<RpcNegotiationRequestInitMessageDto> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customInstance>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof rpcSetupRequestInit>>,
-  TError,
-  { data: BodyType<RpcNegotiationRequestInitMessageDto> },
-  TContext
-> => {
-  const mutationKey = ["rpcSetupRequestInit"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof rpcSetupRequestInit>>,
-    { data: BodyType<RpcNegotiationRequestInitMessageDto> }
-  > = (props) => {
-    const { data } = props ?? {};
 
-    return rpcSetupRequestInit(data, requestOptions);
-  };
 
-  return { mutationFn, ...mutationOptions };
-};
+export const getRpcSetupRequestInitMutationOptions = <TError = ErrorType<ErrorInfo>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupRequestInit>>, TError,{data: BodyType<RpcNegotiationRequestInitMessageDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof rpcSetupRequestInit>>, TError,{data: BodyType<RpcNegotiationRequestInitMessageDto>}, TContext> => {
 
-export type RpcSetupRequestInitMutationResult = NonNullable<
-  Awaited<ReturnType<typeof rpcSetupRequestInit>>
->;
-export type RpcSetupRequestInitMutationBody = BodyType<RpcNegotiationRequestInitMessageDto>;
-export type RpcSetupRequestInitMutationError = ErrorType<ErrorInfo>;
+const mutationKey = ['rpcSetupRequestInit'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
 
-/**
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rpcSetupRequestInit>>, {data: BodyType<RpcNegotiationRequestInitMessageDto>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  rpcSetupRequestInit(data,requestOptions)
+        }
+
+
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RpcSetupRequestInitMutationResult = NonNullable<Awaited<ReturnType<typeof rpcSetupRequestInit>>>
+    export type RpcSetupRequestInitMutationBody = BodyType<RpcNegotiationRequestInitMessageDto>
+    export type RpcSetupRequestInitMutationError = ErrorType<ErrorInfo>
+
+    /**
  * @summary Initiate a negotiation request (consumer)
  */
-export const useRpcSetupRequestInit = <TError = ErrorType<ErrorInfo>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof rpcSetupRequestInit>>,
-      TError,
-      { data: BodyType<RpcNegotiationRequestInitMessageDto> },
-      TContext
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof rpcSetupRequestInit>>,
-  TError,
-  { data: BodyType<RpcNegotiationRequestInitMessageDto> },
-  TContext
-> => {
-  return useMutation(getRpcSetupRequestInitMutationOptions(options), queryClient);
-};
-/**
+export const useRpcSetupRequestInit = <TError = ErrorType<ErrorInfo>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupRequestInit>>, TError,{data: BodyType<RpcNegotiationRequestInitMessageDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof rpcSetupRequestInit>>,
+        TError,
+        {data: BodyType<RpcNegotiationRequestInitMessageDto>},
+        TContext
+      > => {
+      return useMutation(getRpcSetupRequestInitMutationOptions(options), queryClient);
+    }
+    /**
  * @summary Initiate a negotiation offer (provider)
  */
 export type rpcSetupOfferInitResponse201 = {
-  data: NegotiationProcessDto;
-  status: 201;
-};
+  data: NegotiationProcessDto
+  status: 201
+}
 
 export type rpcSetupOfferInitResponse400 = {
-  data: ErrorInfo;
-  status: 400;
-};
+  data: ErrorInfo
+  status: 400
+}
 
 export type rpcSetupOfferInitResponse401 = {
-  data: ErrorInfo;
-  status: 401;
-};
+  data: ErrorInfo
+  status: 401
+}
 
 export type rpcSetupOfferInitResponse403 = {
-  data: ErrorInfo;
-  status: 403;
-};
+  data: ErrorInfo
+  status: 403
+}
 
 export type rpcSetupOfferInitResponse404 = {
-  data: ErrorInfo;
-  status: 404;
-};
+  data: ErrorInfo
+  status: 404
+}
 
 export type rpcSetupOfferInitResponse500 = {
-  data: ErrorInfo;
-  status: 500;
-};
-
-export type rpcSetupOfferInitResponseSuccess = rpcSetupOfferInitResponse201 & {
+  data: ErrorInfo
+  status: 500
+}
+    
+export type rpcSetupOfferInitResponseSuccess = (rpcSetupOfferInitResponse201) & {
   headers: Headers;
 };
-export type rpcSetupOfferInitResponseError = (
-  | rpcSetupOfferInitResponse400
-  | rpcSetupOfferInitResponse401
-  | rpcSetupOfferInitResponse403
-  | rpcSetupOfferInitResponse404
-  | rpcSetupOfferInitResponse500
-) & {
+export type rpcSetupOfferInitResponseError = (rpcSetupOfferInitResponse400 | rpcSetupOfferInitResponse401 | rpcSetupOfferInitResponse403 | rpcSetupOfferInitResponse404 | rpcSetupOfferInitResponse500) & {
   headers: Headers;
 };
 
-export type rpcSetupOfferInitResponse =
-  | rpcSetupOfferInitResponseSuccess
-  | rpcSetupOfferInitResponseError;
+export type rpcSetupOfferInitResponse = (rpcSetupOfferInitResponseSuccess | rpcSetupOfferInitResponseError)
 
 export const getRpcSetupOfferInitUrl = () => {
-  return `/dsp/current/negotiations/rpc/setup-offer-init`;
-};
 
-export const rpcSetupOfferInit = async (
-  rpcNegotiationOfferInitMessageDto: RpcNegotiationOfferInitMessageDto,
-  options?: RequestInit,
-): Promise<rpcSetupOfferInitResponse> => {
-  return customInstance<rpcSetupOfferInitResponse>(getRpcSetupOfferInitUrl(), {
+
+  
+
+  return `/dsp/current/negotiations/rpc/setup-offer-init`
+}
+
+export const rpcSetupOfferInit = async (rpcNegotiationOfferInitMessageDto: RpcNegotiationOfferInitMessageDto, options?: RequestInit): Promise<rpcSetupOfferInitResponse> => {
+  
+  return customInstance<rpcSetupOfferInitResponse>(getRpcSetupOfferInitUrl(),
+  {      
     ...options,
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(rpcNegotiationOfferInitMessageDto),
-  });
-};
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      rpcNegotiationOfferInitMessageDto,)
+  }
+);}
 
-export const getRpcSetupOfferInitMutationOptions = <
-  TError = ErrorType<ErrorInfo>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof rpcSetupOfferInit>>,
-    TError,
-    { data: BodyType<RpcNegotiationOfferInitMessageDto> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customInstance>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof rpcSetupOfferInit>>,
-  TError,
-  { data: BodyType<RpcNegotiationOfferInitMessageDto> },
-  TContext
-> => {
-  const mutationKey = ["rpcSetupOfferInit"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof rpcSetupOfferInit>>,
-    { data: BodyType<RpcNegotiationOfferInitMessageDto> }
-  > = (props) => {
-    const { data } = props ?? {};
 
-    return rpcSetupOfferInit(data, requestOptions);
-  };
 
-  return { mutationFn, ...mutationOptions };
-};
+export const getRpcSetupOfferInitMutationOptions = <TError = ErrorType<ErrorInfo>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupOfferInit>>, TError,{data: BodyType<RpcNegotiationOfferInitMessageDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof rpcSetupOfferInit>>, TError,{data: BodyType<RpcNegotiationOfferInitMessageDto>}, TContext> => {
 
-export type RpcSetupOfferInitMutationResult = NonNullable<
-  Awaited<ReturnType<typeof rpcSetupOfferInit>>
->;
-export type RpcSetupOfferInitMutationBody = BodyType<RpcNegotiationOfferInitMessageDto>;
-export type RpcSetupOfferInitMutationError = ErrorType<ErrorInfo>;
+const mutationKey = ['rpcSetupOfferInit'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
 
-/**
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rpcSetupOfferInit>>, {data: BodyType<RpcNegotiationOfferInitMessageDto>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  rpcSetupOfferInit(data,requestOptions)
+        }
+
+
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RpcSetupOfferInitMutationResult = NonNullable<Awaited<ReturnType<typeof rpcSetupOfferInit>>>
+    export type RpcSetupOfferInitMutationBody = BodyType<RpcNegotiationOfferInitMessageDto>
+    export type RpcSetupOfferInitMutationError = ErrorType<ErrorInfo>
+
+    /**
  * @summary Initiate a negotiation offer (provider)
  */
-export const useRpcSetupOfferInit = <TError = ErrorType<ErrorInfo>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof rpcSetupOfferInit>>,
-      TError,
-      { data: BodyType<RpcNegotiationOfferInitMessageDto> },
-      TContext
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof rpcSetupOfferInit>>,
-  TError,
-  { data: BodyType<RpcNegotiationOfferInitMessageDto> },
-  TContext
-> => {
-  return useMutation(getRpcSetupOfferInitMutationOptions(options), queryClient);
-};
-/**
+export const useRpcSetupOfferInit = <TError = ErrorType<ErrorInfo>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupOfferInit>>, TError,{data: BodyType<RpcNegotiationOfferInitMessageDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof rpcSetupOfferInit>>,
+        TError,
+        {data: BodyType<RpcNegotiationOfferInitMessageDto>},
+        TContext
+      > => {
+      return useMutation(getRpcSetupOfferInitMutationOptions(options), queryClient);
+    }
+    /**
  * @summary Initiate a contract negotiation request
  */
 export type rpcSetupRequestResponse200 = {
-  data: RPCResponse;
-  status: 200;
-};
+  data: RPCResponse
+  status: 200
+}
 
 export type rpcSetupRequestResponse400 = {
-  data: ErrorInfo;
-  status: 400;
-};
+  data: ErrorInfo
+  status: 400
+}
 
 export type rpcSetupRequestResponse401 = {
-  data: ErrorInfo;
-  status: 401;
-};
+  data: ErrorInfo
+  status: 401
+}
 
 export type rpcSetupRequestResponse403 = {
-  data: ErrorInfo;
-  status: 403;
-};
+  data: ErrorInfo
+  status: 403
+}
 
 export type rpcSetupRequestResponse404 = {
-  data: ErrorInfo;
-  status: 404;
-};
+  data: ErrorInfo
+  status: 404
+}
 
 export type rpcSetupRequestResponse500 = {
-  data: ErrorInfo;
-  status: 500;
-};
-
-export type rpcSetupRequestResponseSuccess = rpcSetupRequestResponse200 & {
+  data: ErrorInfo
+  status: 500
+}
+    
+export type rpcSetupRequestResponseSuccess = (rpcSetupRequestResponse200) & {
   headers: Headers;
 };
-export type rpcSetupRequestResponseError = (
-  | rpcSetupRequestResponse400
-  | rpcSetupRequestResponse401
-  | rpcSetupRequestResponse403
-  | rpcSetupRequestResponse404
-  | rpcSetupRequestResponse500
-) & {
+export type rpcSetupRequestResponseError = (rpcSetupRequestResponse400 | rpcSetupRequestResponse401 | rpcSetupRequestResponse403 | rpcSetupRequestResponse404 | rpcSetupRequestResponse500) & {
   headers: Headers;
 };
 
-export type rpcSetupRequestResponse = rpcSetupRequestResponseSuccess | rpcSetupRequestResponseError;
+export type rpcSetupRequestResponse = (rpcSetupRequestResponseSuccess | rpcSetupRequestResponseError)
 
 export const getRpcSetupRequestUrl = () => {
-  return `/dsp/current/negotiations/rpc/setup-request`;
-};
 
-export const rpcSetupRequest = async (
-  negotiationRPCRequestBody: NegotiationRPCRequestBody,
-  options?: RequestInit,
-): Promise<rpcSetupRequestResponse> => {
-  return customInstance<rpcSetupRequestResponse>(getRpcSetupRequestUrl(), {
+
+  
+
+  return `/dsp/current/negotiations/rpc/setup-request`
+}
+
+export const rpcSetupRequest = async (negotiationRPCRequestBody: NegotiationRPCRequestBody, options?: RequestInit): Promise<rpcSetupRequestResponse> => {
+  
+  return customInstance<rpcSetupRequestResponse>(getRpcSetupRequestUrl(),
+  {      
     ...options,
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(negotiationRPCRequestBody),
-  });
-};
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      negotiationRPCRequestBody,)
+  }
+);}
 
-export const getRpcSetupRequestMutationOptions = <
-  TError = ErrorType<ErrorInfo>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof rpcSetupRequest>>,
-    TError,
-    { data: BodyType<NegotiationRPCRequestBody> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customInstance>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof rpcSetupRequest>>,
-  TError,
-  { data: BodyType<NegotiationRPCRequestBody> },
-  TContext
-> => {
-  const mutationKey = ["rpcSetupRequest"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof rpcSetupRequest>>,
-    { data: BodyType<NegotiationRPCRequestBody> }
-  > = (props) => {
-    const { data } = props ?? {};
 
-    return rpcSetupRequest(data, requestOptions);
-  };
 
-  return { mutationFn, ...mutationOptions };
-};
+export const getRpcSetupRequestMutationOptions = <TError = ErrorType<ErrorInfo>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupRequest>>, TError,{data: BodyType<NegotiationRPCRequestBody>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof rpcSetupRequest>>, TError,{data: BodyType<NegotiationRPCRequestBody>}, TContext> => {
 
-export type RpcSetupRequestMutationResult = NonNullable<
-  Awaited<ReturnType<typeof rpcSetupRequest>>
->;
-export type RpcSetupRequestMutationBody = BodyType<NegotiationRPCRequestBody>;
-export type RpcSetupRequestMutationError = ErrorType<ErrorInfo>;
+const mutationKey = ['rpcSetupRequest'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
 
-/**
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rpcSetupRequest>>, {data: BodyType<NegotiationRPCRequestBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  rpcSetupRequest(data,requestOptions)
+        }
+
+
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RpcSetupRequestMutationResult = NonNullable<Awaited<ReturnType<typeof rpcSetupRequest>>>
+    export type RpcSetupRequestMutationBody = BodyType<NegotiationRPCRequestBody>
+    export type RpcSetupRequestMutationError = ErrorType<ErrorInfo>
+
+    /**
  * @summary Initiate a contract negotiation request
  */
-export const useRpcSetupRequest = <TError = ErrorType<ErrorInfo>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof rpcSetupRequest>>,
-      TError,
-      { data: BodyType<NegotiationRPCRequestBody> },
-      TContext
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof rpcSetupRequest>>,
-  TError,
-  { data: BodyType<NegotiationRPCRequestBody> },
-  TContext
-> => {
-  return useMutation(getRpcSetupRequestMutationOptions(options), queryClient);
-};
-/**
+export const useRpcSetupRequest = <TError = ErrorType<ErrorInfo>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupRequest>>, TError,{data: BodyType<NegotiationRPCRequestBody>}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof rpcSetupRequest>>,
+        TError,
+        {data: BodyType<NegotiationRPCRequestBody>},
+        TContext
+      > => {
+      return useMutation(getRpcSetupRequestMutationOptions(options), queryClient);
+    }
+    /**
  * @summary Send a counter-offer in a negotiation
  */
 export type rpcSetupOfferResponse200 = {
-  data: RPCResponse;
-  status: 200;
-};
+  data: RPCResponse
+  status: 200
+}
 
 export type rpcSetupOfferResponse400 = {
-  data: ErrorInfo;
-  status: 400;
-};
+  data: ErrorInfo
+  status: 400
+}
 
 export type rpcSetupOfferResponse401 = {
-  data: ErrorInfo;
-  status: 401;
-};
+  data: ErrorInfo
+  status: 401
+}
 
 export type rpcSetupOfferResponse403 = {
-  data: ErrorInfo;
-  status: 403;
-};
+  data: ErrorInfo
+  status: 403
+}
 
 export type rpcSetupOfferResponse404 = {
-  data: ErrorInfo;
-  status: 404;
-};
+  data: ErrorInfo
+  status: 404
+}
 
 export type rpcSetupOfferResponse500 = {
-  data: ErrorInfo;
-  status: 500;
-};
-
-export type rpcSetupOfferResponseSuccess = rpcSetupOfferResponse200 & {
+  data: ErrorInfo
+  status: 500
+}
+    
+export type rpcSetupOfferResponseSuccess = (rpcSetupOfferResponse200) & {
   headers: Headers;
 };
-export type rpcSetupOfferResponseError = (
-  | rpcSetupOfferResponse400
-  | rpcSetupOfferResponse401
-  | rpcSetupOfferResponse403
-  | rpcSetupOfferResponse404
-  | rpcSetupOfferResponse500
-) & {
+export type rpcSetupOfferResponseError = (rpcSetupOfferResponse400 | rpcSetupOfferResponse401 | rpcSetupOfferResponse403 | rpcSetupOfferResponse404 | rpcSetupOfferResponse500) & {
   headers: Headers;
 };
 
-export type rpcSetupOfferResponse = rpcSetupOfferResponseSuccess | rpcSetupOfferResponseError;
+export type rpcSetupOfferResponse = (rpcSetupOfferResponseSuccess | rpcSetupOfferResponseError)
 
 export const getRpcSetupOfferUrl = () => {
-  return `/dsp/current/negotiations/rpc/setup-offer`;
-};
 
-export const rpcSetupOffer = async (
-  negotiationRPCOfferBody: NegotiationRPCOfferBody,
-  options?: RequestInit,
-): Promise<rpcSetupOfferResponse> => {
-  return customInstance<rpcSetupOfferResponse>(getRpcSetupOfferUrl(), {
+
+  
+
+  return `/dsp/current/negotiations/rpc/setup-offer`
+}
+
+export const rpcSetupOffer = async (negotiationRPCOfferBody: NegotiationRPCOfferBody, options?: RequestInit): Promise<rpcSetupOfferResponse> => {
+  
+  return customInstance<rpcSetupOfferResponse>(getRpcSetupOfferUrl(),
+  {      
     ...options,
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(negotiationRPCOfferBody),
-  });
-};
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      negotiationRPCOfferBody,)
+  }
+);}
 
-export const getRpcSetupOfferMutationOptions = <
-  TError = ErrorType<ErrorInfo>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof rpcSetupOffer>>,
-    TError,
-    { data: BodyType<NegotiationRPCOfferBody> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customInstance>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof rpcSetupOffer>>,
-  TError,
-  { data: BodyType<NegotiationRPCOfferBody> },
-  TContext
-> => {
-  const mutationKey = ["rpcSetupOffer"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof rpcSetupOffer>>,
-    { data: BodyType<NegotiationRPCOfferBody> }
-  > = (props) => {
-    const { data } = props ?? {};
 
-    return rpcSetupOffer(data, requestOptions);
-  };
 
-  return { mutationFn, ...mutationOptions };
-};
+export const getRpcSetupOfferMutationOptions = <TError = ErrorType<ErrorInfo>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupOffer>>, TError,{data: BodyType<NegotiationRPCOfferBody>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof rpcSetupOffer>>, TError,{data: BodyType<NegotiationRPCOfferBody>}, TContext> => {
 
-export type RpcSetupOfferMutationResult = NonNullable<Awaited<ReturnType<typeof rpcSetupOffer>>>;
-export type RpcSetupOfferMutationBody = BodyType<NegotiationRPCOfferBody>;
-export type RpcSetupOfferMutationError = ErrorType<ErrorInfo>;
+const mutationKey = ['rpcSetupOffer'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
 
-/**
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rpcSetupOffer>>, {data: BodyType<NegotiationRPCOfferBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  rpcSetupOffer(data,requestOptions)
+        }
+
+
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RpcSetupOfferMutationResult = NonNullable<Awaited<ReturnType<typeof rpcSetupOffer>>>
+    export type RpcSetupOfferMutationBody = BodyType<NegotiationRPCOfferBody>
+    export type RpcSetupOfferMutationError = ErrorType<ErrorInfo>
+
+    /**
  * @summary Send a counter-offer in a negotiation
  */
-export const useRpcSetupOffer = <TError = ErrorType<ErrorInfo>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof rpcSetupOffer>>,
-      TError,
-      { data: BodyType<NegotiationRPCOfferBody> },
-      TContext
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof rpcSetupOffer>>,
-  TError,
-  { data: BodyType<NegotiationRPCOfferBody> },
-  TContext
-> => {
-  return useMutation(getRpcSetupOfferMutationOptions(options), queryClient);
-};
-/**
+export const useRpcSetupOffer = <TError = ErrorType<ErrorInfo>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupOffer>>, TError,{data: BodyType<NegotiationRPCOfferBody>}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof rpcSetupOffer>>,
+        TError,
+        {data: BodyType<NegotiationRPCOfferBody>},
+        TContext
+      > => {
+      return useMutation(getRpcSetupOfferMutationOptions(options), queryClient);
+    }
+    /**
  * @summary Accept a negotiation
  */
 export type rpcSetupAcceptanceResponse200 = {
-  data: RPCResponse;
-  status: 200;
-};
+  data: RPCResponse
+  status: 200
+}
 
 export type rpcSetupAcceptanceResponse400 = {
-  data: ErrorInfo;
-  status: 400;
-};
+  data: ErrorInfo
+  status: 400
+}
 
 export type rpcSetupAcceptanceResponse401 = {
-  data: ErrorInfo;
-  status: 401;
-};
+  data: ErrorInfo
+  status: 401
+}
 
 export type rpcSetupAcceptanceResponse403 = {
-  data: ErrorInfo;
-  status: 403;
-};
+  data: ErrorInfo
+  status: 403
+}
 
 export type rpcSetupAcceptanceResponse404 = {
-  data: ErrorInfo;
-  status: 404;
-};
+  data: ErrorInfo
+  status: 404
+}
 
 export type rpcSetupAcceptanceResponse500 = {
-  data: ErrorInfo;
-  status: 500;
-};
-
-export type rpcSetupAcceptanceResponseSuccess = rpcSetupAcceptanceResponse200 & {
+  data: ErrorInfo
+  status: 500
+}
+    
+export type rpcSetupAcceptanceResponseSuccess = (rpcSetupAcceptanceResponse200) & {
   headers: Headers;
 };
-export type rpcSetupAcceptanceResponseError = (
-  | rpcSetupAcceptanceResponse400
-  | rpcSetupAcceptanceResponse401
-  | rpcSetupAcceptanceResponse403
-  | rpcSetupAcceptanceResponse404
-  | rpcSetupAcceptanceResponse500
-) & {
+export type rpcSetupAcceptanceResponseError = (rpcSetupAcceptanceResponse400 | rpcSetupAcceptanceResponse401 | rpcSetupAcceptanceResponse403 | rpcSetupAcceptanceResponse404 | rpcSetupAcceptanceResponse500) & {
   headers: Headers;
 };
 
-export type rpcSetupAcceptanceResponse =
-  | rpcSetupAcceptanceResponseSuccess
-  | rpcSetupAcceptanceResponseError;
+export type rpcSetupAcceptanceResponse = (rpcSetupAcceptanceResponseSuccess | rpcSetupAcceptanceResponseError)
 
 export const getRpcSetupAcceptanceUrl = () => {
-  return `/dsp/current/negotiations/rpc/setup-acceptance`;
-};
 
-export const rpcSetupAcceptance = async (
-  negotiationRPCAcceptanceBody: NegotiationRPCAcceptanceBody,
-  options?: RequestInit,
-): Promise<rpcSetupAcceptanceResponse> => {
-  return customInstance<rpcSetupAcceptanceResponse>(getRpcSetupAcceptanceUrl(), {
+
+  
+
+  return `/dsp/current/negotiations/rpc/setup-acceptance`
+}
+
+export const rpcSetupAcceptance = async (negotiationRPCAcceptanceBody: NegotiationRPCAcceptanceBody, options?: RequestInit): Promise<rpcSetupAcceptanceResponse> => {
+  
+  return customInstance<rpcSetupAcceptanceResponse>(getRpcSetupAcceptanceUrl(),
+  {      
     ...options,
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(negotiationRPCAcceptanceBody),
-  });
-};
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      negotiationRPCAcceptanceBody,)
+  }
+);}
 
-export const getRpcSetupAcceptanceMutationOptions = <
-  TError = ErrorType<ErrorInfo>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof rpcSetupAcceptance>>,
-    TError,
-    { data: BodyType<NegotiationRPCAcceptanceBody> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customInstance>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof rpcSetupAcceptance>>,
-  TError,
-  { data: BodyType<NegotiationRPCAcceptanceBody> },
-  TContext
-> => {
-  const mutationKey = ["rpcSetupAcceptance"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof rpcSetupAcceptance>>,
-    { data: BodyType<NegotiationRPCAcceptanceBody> }
-  > = (props) => {
-    const { data } = props ?? {};
 
-    return rpcSetupAcceptance(data, requestOptions);
-  };
 
-  return { mutationFn, ...mutationOptions };
-};
+export const getRpcSetupAcceptanceMutationOptions = <TError = ErrorType<ErrorInfo>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupAcceptance>>, TError,{data: BodyType<NegotiationRPCAcceptanceBody>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof rpcSetupAcceptance>>, TError,{data: BodyType<NegotiationRPCAcceptanceBody>}, TContext> => {
 
-export type RpcSetupAcceptanceMutationResult = NonNullable<
-  Awaited<ReturnType<typeof rpcSetupAcceptance>>
->;
-export type RpcSetupAcceptanceMutationBody = BodyType<NegotiationRPCAcceptanceBody>;
-export type RpcSetupAcceptanceMutationError = ErrorType<ErrorInfo>;
+const mutationKey = ['rpcSetupAcceptance'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
 
-/**
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rpcSetupAcceptance>>, {data: BodyType<NegotiationRPCAcceptanceBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  rpcSetupAcceptance(data,requestOptions)
+        }
+
+
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RpcSetupAcceptanceMutationResult = NonNullable<Awaited<ReturnType<typeof rpcSetupAcceptance>>>
+    export type RpcSetupAcceptanceMutationBody = BodyType<NegotiationRPCAcceptanceBody>
+    export type RpcSetupAcceptanceMutationError = ErrorType<ErrorInfo>
+
+    /**
  * @summary Accept a negotiation
  */
-export const useRpcSetupAcceptance = <TError = ErrorType<ErrorInfo>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof rpcSetupAcceptance>>,
-      TError,
-      { data: BodyType<NegotiationRPCAcceptanceBody> },
-      TContext
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof rpcSetupAcceptance>>,
-  TError,
-  { data: BodyType<NegotiationRPCAcceptanceBody> },
-  TContext
-> => {
-  return useMutation(getRpcSetupAcceptanceMutationOptions(options), queryClient);
-};
-/**
+export const useRpcSetupAcceptance = <TError = ErrorType<ErrorInfo>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupAcceptance>>, TError,{data: BodyType<NegotiationRPCAcceptanceBody>}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof rpcSetupAcceptance>>,
+        TError,
+        {data: BodyType<NegotiationRPCAcceptanceBody>},
+        TContext
+      > => {
+      return useMutation(getRpcSetupAcceptanceMutationOptions(options), queryClient);
+    }
+    /**
  * @summary Finalize agreement for a negotiation
  */
 export type rpcSetupAgreementResponse200 = {
-  data: RPCResponse;
-  status: 200;
-};
+  data: RPCResponse
+  status: 200
+}
 
 export type rpcSetupAgreementResponse400 = {
-  data: ErrorInfo;
-  status: 400;
-};
+  data: ErrorInfo
+  status: 400
+}
 
 export type rpcSetupAgreementResponse401 = {
-  data: ErrorInfo;
-  status: 401;
-};
+  data: ErrorInfo
+  status: 401
+}
 
 export type rpcSetupAgreementResponse403 = {
-  data: ErrorInfo;
-  status: 403;
-};
+  data: ErrorInfo
+  status: 403
+}
 
 export type rpcSetupAgreementResponse404 = {
-  data: ErrorInfo;
-  status: 404;
-};
+  data: ErrorInfo
+  status: 404
+}
 
 export type rpcSetupAgreementResponse500 = {
-  data: ErrorInfo;
-  status: 500;
-};
-
-export type rpcSetupAgreementResponseSuccess = rpcSetupAgreementResponse200 & {
+  data: ErrorInfo
+  status: 500
+}
+    
+export type rpcSetupAgreementResponseSuccess = (rpcSetupAgreementResponse200) & {
   headers: Headers;
 };
-export type rpcSetupAgreementResponseError = (
-  | rpcSetupAgreementResponse400
-  | rpcSetupAgreementResponse401
-  | rpcSetupAgreementResponse403
-  | rpcSetupAgreementResponse404
-  | rpcSetupAgreementResponse500
-) & {
+export type rpcSetupAgreementResponseError = (rpcSetupAgreementResponse400 | rpcSetupAgreementResponse401 | rpcSetupAgreementResponse403 | rpcSetupAgreementResponse404 | rpcSetupAgreementResponse500) & {
   headers: Headers;
 };
 
-export type rpcSetupAgreementResponse =
-  | rpcSetupAgreementResponseSuccess
-  | rpcSetupAgreementResponseError;
+export type rpcSetupAgreementResponse = (rpcSetupAgreementResponseSuccess | rpcSetupAgreementResponseError)
 
 export const getRpcSetupAgreementUrl = () => {
-  return `/dsp/current/negotiations/rpc/setup-agreement`;
-};
 
-export const rpcSetupAgreement = async (
-  negotiationRPCAgreementBody: NegotiationRPCAgreementBody,
-  options?: RequestInit,
-): Promise<rpcSetupAgreementResponse> => {
-  return customInstance<rpcSetupAgreementResponse>(getRpcSetupAgreementUrl(), {
+
+  
+
+  return `/dsp/current/negotiations/rpc/setup-agreement`
+}
+
+export const rpcSetupAgreement = async (negotiationRPCAgreementBody: NegotiationRPCAgreementBody, options?: RequestInit): Promise<rpcSetupAgreementResponse> => {
+  
+  return customInstance<rpcSetupAgreementResponse>(getRpcSetupAgreementUrl(),
+  {      
     ...options,
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(negotiationRPCAgreementBody),
-  });
-};
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      negotiationRPCAgreementBody,)
+  }
+);}
 
-export const getRpcSetupAgreementMutationOptions = <
-  TError = ErrorType<ErrorInfo>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof rpcSetupAgreement>>,
-    TError,
-    { data: BodyType<NegotiationRPCAgreementBody> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customInstance>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof rpcSetupAgreement>>,
-  TError,
-  { data: BodyType<NegotiationRPCAgreementBody> },
-  TContext
-> => {
-  const mutationKey = ["rpcSetupAgreement"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof rpcSetupAgreement>>,
-    { data: BodyType<NegotiationRPCAgreementBody> }
-  > = (props) => {
-    const { data } = props ?? {};
 
-    return rpcSetupAgreement(data, requestOptions);
-  };
 
-  return { mutationFn, ...mutationOptions };
-};
+export const getRpcSetupAgreementMutationOptions = <TError = ErrorType<ErrorInfo>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupAgreement>>, TError,{data: BodyType<NegotiationRPCAgreementBody>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof rpcSetupAgreement>>, TError,{data: BodyType<NegotiationRPCAgreementBody>}, TContext> => {
 
-export type RpcSetupAgreementMutationResult = NonNullable<
-  Awaited<ReturnType<typeof rpcSetupAgreement>>
->;
-export type RpcSetupAgreementMutationBody = BodyType<NegotiationRPCAgreementBody>;
-export type RpcSetupAgreementMutationError = ErrorType<ErrorInfo>;
+const mutationKey = ['rpcSetupAgreement'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
 
-/**
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rpcSetupAgreement>>, {data: BodyType<NegotiationRPCAgreementBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  rpcSetupAgreement(data,requestOptions)
+        }
+
+
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RpcSetupAgreementMutationResult = NonNullable<Awaited<ReturnType<typeof rpcSetupAgreement>>>
+    export type RpcSetupAgreementMutationBody = BodyType<NegotiationRPCAgreementBody>
+    export type RpcSetupAgreementMutationError = ErrorType<ErrorInfo>
+
+    /**
  * @summary Finalize agreement for a negotiation
  */
-export const useRpcSetupAgreement = <TError = ErrorType<ErrorInfo>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof rpcSetupAgreement>>,
-      TError,
-      { data: BodyType<NegotiationRPCAgreementBody> },
-      TContext
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof rpcSetupAgreement>>,
-  TError,
-  { data: BodyType<NegotiationRPCAgreementBody> },
-  TContext
-> => {
-  return useMutation(getRpcSetupAgreementMutationOptions(options), queryClient);
-};
-/**
+export const useRpcSetupAgreement = <TError = ErrorType<ErrorInfo>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupAgreement>>, TError,{data: BodyType<NegotiationRPCAgreementBody>}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof rpcSetupAgreement>>,
+        TError,
+        {data: BodyType<NegotiationRPCAgreementBody>},
+        TContext
+      > => {
+      return useMutation(getRpcSetupAgreementMutationOptions(options), queryClient);
+    }
+    /**
  * @summary Verify a negotiation agreement
  */
 export type rpcSetupVerificationResponse200 = {
-  data: RPCResponse;
-  status: 200;
-};
+  data: RPCResponse
+  status: 200
+}
 
 export type rpcSetupVerificationResponse400 = {
-  data: ErrorInfo;
-  status: 400;
-};
+  data: ErrorInfo
+  status: 400
+}
 
 export type rpcSetupVerificationResponse401 = {
-  data: ErrorInfo;
-  status: 401;
-};
+  data: ErrorInfo
+  status: 401
+}
 
 export type rpcSetupVerificationResponse403 = {
-  data: ErrorInfo;
-  status: 403;
-};
+  data: ErrorInfo
+  status: 403
+}
 
 export type rpcSetupVerificationResponse404 = {
-  data: ErrorInfo;
-  status: 404;
-};
+  data: ErrorInfo
+  status: 404
+}
 
 export type rpcSetupVerificationResponse500 = {
-  data: ErrorInfo;
-  status: 500;
-};
-
-export type rpcSetupVerificationResponseSuccess = rpcSetupVerificationResponse200 & {
+  data: ErrorInfo
+  status: 500
+}
+    
+export type rpcSetupVerificationResponseSuccess = (rpcSetupVerificationResponse200) & {
   headers: Headers;
 };
-export type rpcSetupVerificationResponseError = (
-  | rpcSetupVerificationResponse400
-  | rpcSetupVerificationResponse401
-  | rpcSetupVerificationResponse403
-  | rpcSetupVerificationResponse404
-  | rpcSetupVerificationResponse500
-) & {
+export type rpcSetupVerificationResponseError = (rpcSetupVerificationResponse400 | rpcSetupVerificationResponse401 | rpcSetupVerificationResponse403 | rpcSetupVerificationResponse404 | rpcSetupVerificationResponse500) & {
   headers: Headers;
 };
 
-export type rpcSetupVerificationResponse =
-  | rpcSetupVerificationResponseSuccess
-  | rpcSetupVerificationResponseError;
+export type rpcSetupVerificationResponse = (rpcSetupVerificationResponseSuccess | rpcSetupVerificationResponseError)
 
 export const getRpcSetupVerificationUrl = () => {
-  return `/dsp/current/negotiations/rpc/setup-verification`;
-};
 
-export const rpcSetupVerification = async (
-  negotiationRPCVerificationBody: NegotiationRPCVerificationBody,
-  options?: RequestInit,
-): Promise<rpcSetupVerificationResponse> => {
-  return customInstance<rpcSetupVerificationResponse>(getRpcSetupVerificationUrl(), {
+
+  
+
+  return `/dsp/current/negotiations/rpc/setup-verification`
+}
+
+export const rpcSetupVerification = async (negotiationRPCVerificationBody: NegotiationRPCVerificationBody, options?: RequestInit): Promise<rpcSetupVerificationResponse> => {
+  
+  return customInstance<rpcSetupVerificationResponse>(getRpcSetupVerificationUrl(),
+  {      
     ...options,
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(negotiationRPCVerificationBody),
-  });
-};
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      negotiationRPCVerificationBody,)
+  }
+);}
 
-export const getRpcSetupVerificationMutationOptions = <
-  TError = ErrorType<ErrorInfo>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof rpcSetupVerification>>,
-    TError,
-    { data: BodyType<NegotiationRPCVerificationBody> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customInstance>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof rpcSetupVerification>>,
-  TError,
-  { data: BodyType<NegotiationRPCVerificationBody> },
-  TContext
-> => {
-  const mutationKey = ["rpcSetupVerification"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof rpcSetupVerification>>,
-    { data: BodyType<NegotiationRPCVerificationBody> }
-  > = (props) => {
-    const { data } = props ?? {};
 
-    return rpcSetupVerification(data, requestOptions);
-  };
 
-  return { mutationFn, ...mutationOptions };
-};
+export const getRpcSetupVerificationMutationOptions = <TError = ErrorType<ErrorInfo>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupVerification>>, TError,{data: BodyType<NegotiationRPCVerificationBody>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof rpcSetupVerification>>, TError,{data: BodyType<NegotiationRPCVerificationBody>}, TContext> => {
 
-export type RpcSetupVerificationMutationResult = NonNullable<
-  Awaited<ReturnType<typeof rpcSetupVerification>>
->;
-export type RpcSetupVerificationMutationBody = BodyType<NegotiationRPCVerificationBody>;
-export type RpcSetupVerificationMutationError = ErrorType<ErrorInfo>;
+const mutationKey = ['rpcSetupVerification'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
 
-/**
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rpcSetupVerification>>, {data: BodyType<NegotiationRPCVerificationBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  rpcSetupVerification(data,requestOptions)
+        }
+
+
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RpcSetupVerificationMutationResult = NonNullable<Awaited<ReturnType<typeof rpcSetupVerification>>>
+    export type RpcSetupVerificationMutationBody = BodyType<NegotiationRPCVerificationBody>
+    export type RpcSetupVerificationMutationError = ErrorType<ErrorInfo>
+
+    /**
  * @summary Verify a negotiation agreement
  */
-export const useRpcSetupVerification = <TError = ErrorType<ErrorInfo>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof rpcSetupVerification>>,
-      TError,
-      { data: BodyType<NegotiationRPCVerificationBody> },
-      TContext
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof rpcSetupVerification>>,
-  TError,
-  { data: BodyType<NegotiationRPCVerificationBody> },
-  TContext
-> => {
-  return useMutation(getRpcSetupVerificationMutationOptions(options), queryClient);
-};
-/**
+export const useRpcSetupVerification = <TError = ErrorType<ErrorInfo>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupVerification>>, TError,{data: BodyType<NegotiationRPCVerificationBody>}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof rpcSetupVerification>>,
+        TError,
+        {data: BodyType<NegotiationRPCVerificationBody>},
+        TContext
+      > => {
+      return useMutation(getRpcSetupVerificationMutationOptions(options), queryClient);
+    }
+    /**
  * @summary Finalize a negotiation
  */
 export type rpcSetupFinalizationResponse200 = {
-  data: RPCResponse;
-  status: 200;
-};
+  data: RPCResponse
+  status: 200
+}
 
 export type rpcSetupFinalizationResponse400 = {
-  data: ErrorInfo;
-  status: 400;
-};
+  data: ErrorInfo
+  status: 400
+}
 
 export type rpcSetupFinalizationResponse401 = {
-  data: ErrorInfo;
-  status: 401;
-};
+  data: ErrorInfo
+  status: 401
+}
 
 export type rpcSetupFinalizationResponse403 = {
-  data: ErrorInfo;
-  status: 403;
-};
+  data: ErrorInfo
+  status: 403
+}
 
 export type rpcSetupFinalizationResponse404 = {
-  data: ErrorInfo;
-  status: 404;
-};
+  data: ErrorInfo
+  status: 404
+}
 
 export type rpcSetupFinalizationResponse500 = {
-  data: ErrorInfo;
-  status: 500;
-};
-
-export type rpcSetupFinalizationResponseSuccess = rpcSetupFinalizationResponse200 & {
+  data: ErrorInfo
+  status: 500
+}
+    
+export type rpcSetupFinalizationResponseSuccess = (rpcSetupFinalizationResponse200) & {
   headers: Headers;
 };
-export type rpcSetupFinalizationResponseError = (
-  | rpcSetupFinalizationResponse400
-  | rpcSetupFinalizationResponse401
-  | rpcSetupFinalizationResponse403
-  | rpcSetupFinalizationResponse404
-  | rpcSetupFinalizationResponse500
-) & {
+export type rpcSetupFinalizationResponseError = (rpcSetupFinalizationResponse400 | rpcSetupFinalizationResponse401 | rpcSetupFinalizationResponse403 | rpcSetupFinalizationResponse404 | rpcSetupFinalizationResponse500) & {
   headers: Headers;
 };
 
-export type rpcSetupFinalizationResponse =
-  | rpcSetupFinalizationResponseSuccess
-  | rpcSetupFinalizationResponseError;
+export type rpcSetupFinalizationResponse = (rpcSetupFinalizationResponseSuccess | rpcSetupFinalizationResponseError)
 
 export const getRpcSetupFinalizationUrl = () => {
-  return `/dsp/current/negotiations/rpc/setup-finalization`;
-};
 
-export const rpcSetupFinalization = async (
-  negotiationRPCFinalizationBody: NegotiationRPCFinalizationBody,
-  options?: RequestInit,
-): Promise<rpcSetupFinalizationResponse> => {
-  return customInstance<rpcSetupFinalizationResponse>(getRpcSetupFinalizationUrl(), {
+
+  
+
+  return `/dsp/current/negotiations/rpc/setup-finalization`
+}
+
+export const rpcSetupFinalization = async (negotiationRPCFinalizationBody: NegotiationRPCFinalizationBody, options?: RequestInit): Promise<rpcSetupFinalizationResponse> => {
+  
+  return customInstance<rpcSetupFinalizationResponse>(getRpcSetupFinalizationUrl(),
+  {      
     ...options,
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(negotiationRPCFinalizationBody),
-  });
-};
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      negotiationRPCFinalizationBody,)
+  }
+);}
 
-export const getRpcSetupFinalizationMutationOptions = <
-  TError = ErrorType<ErrorInfo>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof rpcSetupFinalization>>,
-    TError,
-    { data: BodyType<NegotiationRPCFinalizationBody> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customInstance>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof rpcSetupFinalization>>,
-  TError,
-  { data: BodyType<NegotiationRPCFinalizationBody> },
-  TContext
-> => {
-  const mutationKey = ["rpcSetupFinalization"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof rpcSetupFinalization>>,
-    { data: BodyType<NegotiationRPCFinalizationBody> }
-  > = (props) => {
-    const { data } = props ?? {};
 
-    return rpcSetupFinalization(data, requestOptions);
-  };
 
-  return { mutationFn, ...mutationOptions };
-};
+export const getRpcSetupFinalizationMutationOptions = <TError = ErrorType<ErrorInfo>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupFinalization>>, TError,{data: BodyType<NegotiationRPCFinalizationBody>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof rpcSetupFinalization>>, TError,{data: BodyType<NegotiationRPCFinalizationBody>}, TContext> => {
 
-export type RpcSetupFinalizationMutationResult = NonNullable<
-  Awaited<ReturnType<typeof rpcSetupFinalization>>
->;
-export type RpcSetupFinalizationMutationBody = BodyType<NegotiationRPCFinalizationBody>;
-export type RpcSetupFinalizationMutationError = ErrorType<ErrorInfo>;
+const mutationKey = ['rpcSetupFinalization'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
 
-/**
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rpcSetupFinalization>>, {data: BodyType<NegotiationRPCFinalizationBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  rpcSetupFinalization(data,requestOptions)
+        }
+
+
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RpcSetupFinalizationMutationResult = NonNullable<Awaited<ReturnType<typeof rpcSetupFinalization>>>
+    export type RpcSetupFinalizationMutationBody = BodyType<NegotiationRPCFinalizationBody>
+    export type RpcSetupFinalizationMutationError = ErrorType<ErrorInfo>
+
+    /**
  * @summary Finalize a negotiation
  */
-export const useRpcSetupFinalization = <TError = ErrorType<ErrorInfo>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof rpcSetupFinalization>>,
-      TError,
-      { data: BodyType<NegotiationRPCFinalizationBody> },
-      TContext
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof rpcSetupFinalization>>,
-  TError,
-  { data: BodyType<NegotiationRPCFinalizationBody> },
-  TContext
-> => {
-  return useMutation(getRpcSetupFinalizationMutationOptions(options), queryClient);
-};
-/**
+export const useRpcSetupFinalization = <TError = ErrorType<ErrorInfo>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupFinalization>>, TError,{data: BodyType<NegotiationRPCFinalizationBody>}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof rpcSetupFinalization>>,
+        TError,
+        {data: BodyType<NegotiationRPCFinalizationBody>},
+        TContext
+      > => {
+      return useMutation(getRpcSetupFinalizationMutationOptions(options), queryClient);
+    }
+    /**
  * @summary Terminate a negotiation
  */
 export type rpcSetupTerminationResponse200 = {
-  data: RPCResponse;
-  status: 200;
-};
+  data: RPCResponse
+  status: 200
+}
 
 export type rpcSetupTerminationResponse400 = {
-  data: ErrorInfo;
-  status: 400;
-};
+  data: ErrorInfo
+  status: 400
+}
 
 export type rpcSetupTerminationResponse401 = {
-  data: ErrorInfo;
-  status: 401;
-};
+  data: ErrorInfo
+  status: 401
+}
 
 export type rpcSetupTerminationResponse403 = {
-  data: ErrorInfo;
-  status: 403;
-};
+  data: ErrorInfo
+  status: 403
+}
 
 export type rpcSetupTerminationResponse404 = {
-  data: ErrorInfo;
-  status: 404;
-};
+  data: ErrorInfo
+  status: 404
+}
 
 export type rpcSetupTerminationResponse500 = {
-  data: ErrorInfo;
-  status: 500;
-};
-
-export type rpcSetupTerminationResponseSuccess = rpcSetupTerminationResponse200 & {
+  data: ErrorInfo
+  status: 500
+}
+    
+export type rpcSetupTerminationResponseSuccess = (rpcSetupTerminationResponse200) & {
   headers: Headers;
 };
-export type rpcSetupTerminationResponseError = (
-  | rpcSetupTerminationResponse400
-  | rpcSetupTerminationResponse401
-  | rpcSetupTerminationResponse403
-  | rpcSetupTerminationResponse404
-  | rpcSetupTerminationResponse500
-) & {
+export type rpcSetupTerminationResponseError = (rpcSetupTerminationResponse400 | rpcSetupTerminationResponse401 | rpcSetupTerminationResponse403 | rpcSetupTerminationResponse404 | rpcSetupTerminationResponse500) & {
   headers: Headers;
 };
 
-export type rpcSetupTerminationResponse =
-  | rpcSetupTerminationResponseSuccess
-  | rpcSetupTerminationResponseError;
+export type rpcSetupTerminationResponse = (rpcSetupTerminationResponseSuccess | rpcSetupTerminationResponseError)
 
 export const getRpcSetupTerminationUrl = () => {
-  return `/dsp/current/negotiations/rpc/setup-termination`;
-};
 
-export const rpcSetupTermination = async (
-  negotiationRPCTerminationBody: NegotiationRPCTerminationBody,
-  options?: RequestInit,
-): Promise<rpcSetupTerminationResponse> => {
-  return customInstance<rpcSetupTerminationResponse>(getRpcSetupTerminationUrl(), {
+
+  
+
+  return `/dsp/current/negotiations/rpc/setup-termination`
+}
+
+export const rpcSetupTermination = async (negotiationRPCTerminationBody: NegotiationRPCTerminationBody, options?: RequestInit): Promise<rpcSetupTerminationResponse> => {
+  
+  return customInstance<rpcSetupTerminationResponse>(getRpcSetupTerminationUrl(),
+  {      
     ...options,
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(negotiationRPCTerminationBody),
-  });
-};
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      negotiationRPCTerminationBody,)
+  }
+);}
 
-export const getRpcSetupTerminationMutationOptions = <
-  TError = ErrorType<ErrorInfo>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof rpcSetupTermination>>,
-    TError,
-    { data: BodyType<NegotiationRPCTerminationBody> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customInstance>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof rpcSetupTermination>>,
-  TError,
-  { data: BodyType<NegotiationRPCTerminationBody> },
-  TContext
-> => {
-  const mutationKey = ["rpcSetupTermination"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof rpcSetupTermination>>,
-    { data: BodyType<NegotiationRPCTerminationBody> }
-  > = (props) => {
-    const { data } = props ?? {};
 
-    return rpcSetupTermination(data, requestOptions);
-  };
 
-  return { mutationFn, ...mutationOptions };
-};
+export const getRpcSetupTerminationMutationOptions = <TError = ErrorType<ErrorInfo>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupTermination>>, TError,{data: BodyType<NegotiationRPCTerminationBody>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof rpcSetupTermination>>, TError,{data: BodyType<NegotiationRPCTerminationBody>}, TContext> => {
 
-export type RpcSetupTerminationMutationResult = NonNullable<
-  Awaited<ReturnType<typeof rpcSetupTermination>>
->;
-export type RpcSetupTerminationMutationBody = BodyType<NegotiationRPCTerminationBody>;
-export type RpcSetupTerminationMutationError = ErrorType<ErrorInfo>;
+const mutationKey = ['rpcSetupTermination'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
 
-/**
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rpcSetupTermination>>, {data: BodyType<NegotiationRPCTerminationBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  rpcSetupTermination(data,requestOptions)
+        }
+
+
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RpcSetupTerminationMutationResult = NonNullable<Awaited<ReturnType<typeof rpcSetupTermination>>>
+    export type RpcSetupTerminationMutationBody = BodyType<NegotiationRPCTerminationBody>
+    export type RpcSetupTerminationMutationError = ErrorType<ErrorInfo>
+
+    /**
  * @summary Terminate a negotiation
  */
-export const useRpcSetupTermination = <TError = ErrorType<ErrorInfo>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof rpcSetupTermination>>,
-      TError,
-      { data: BodyType<NegotiationRPCTerminationBody> },
-      TContext
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof rpcSetupTermination>>,
-  TError,
-  { data: BodyType<NegotiationRPCTerminationBody> },
-  TContext
-> => {
-  return useMutation(getRpcSetupTerminationMutationOptions(options), queryClient);
+export const useRpcSetupTermination = <TError = ErrorType<ErrorInfo>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rpcSetupTermination>>, TError,{data: BodyType<NegotiationRPCTerminationBody>}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof rpcSetupTermination>>,
+        TError,
+        {data: BodyType<NegotiationRPCTerminationBody>},
+        TContext
+      > => {
+      return useMutation(getRpcSetupTerminationMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Initiate a negotiation request with simplified flow (consumer)
+ */
+export type bffRpcSetupRequestInitResponse201 = {
+  data: NegotiationProcessDto
+  status: 201
+}
+
+export type bffRpcSetupRequestInitResponse400 = {
+  data: ErrorInfo
+  status: 400
+}
+
+export type bffRpcSetupRequestInitResponse401 = {
+  data: ErrorInfo
+  status: 401
+}
+
+export type bffRpcSetupRequestInitResponse403 = {
+  data: ErrorInfo
+  status: 403
+}
+
+export type bffRpcSetupRequestInitResponse404 = {
+  data: ErrorInfo
+  status: 404
+}
+
+export type bffRpcSetupRequestInitResponse500 = {
+  data: ErrorInfo
+  status: 500
+}
+    
+export type bffRpcSetupRequestInitResponseSuccess = (bffRpcSetupRequestInitResponse201) & {
+  headers: Headers;
 };
+export type bffRpcSetupRequestInitResponseError = (bffRpcSetupRequestInitResponse400 | bffRpcSetupRequestInitResponse401 | bffRpcSetupRequestInitResponse403 | bffRpcSetupRequestInitResponse404 | bffRpcSetupRequestInitResponse500) & {
+  headers: Headers;
+};
+
+export type bffRpcSetupRequestInitResponse = (bffRpcSetupRequestInitResponseSuccess | bffRpcSetupRequestInitResponseError)
+
+export const getBffRpcSetupRequestInitUrl = () => {
+
+
+  
+
+  return `/dsp/current/negotiations/bff-rpc/setup-request-init`
+}
+
+export const bffRpcSetupRequestInit = async (rpcNegotiationRequestInitMessageDto: RpcNegotiationRequestInitMessageDto, options?: RequestInit): Promise<bffRpcSetupRequestInitResponse> => {
+  
+  return customInstance<bffRpcSetupRequestInitResponse>(getBffRpcSetupRequestInitUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      rpcNegotiationRequestInitMessageDto,)
+  }
+);}
+
+
+
+
+export const getBffRpcSetupRequestInitMutationOptions = <TError = ErrorType<ErrorInfo>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bffRpcSetupRequestInit>>, TError,{data: BodyType<RpcNegotiationRequestInitMessageDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof bffRpcSetupRequestInit>>, TError,{data: BodyType<RpcNegotiationRequestInitMessageDto>}, TContext> => {
+
+const mutationKey = ['bffRpcSetupRequestInit'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bffRpcSetupRequestInit>>, {data: BodyType<RpcNegotiationRequestInitMessageDto>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  bffRpcSetupRequestInit(data,requestOptions)
+        }
+
+
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BffRpcSetupRequestInitMutationResult = NonNullable<Awaited<ReturnType<typeof bffRpcSetupRequestInit>>>
+    export type BffRpcSetupRequestInitMutationBody = BodyType<RpcNegotiationRequestInitMessageDto>
+    export type BffRpcSetupRequestInitMutationError = ErrorType<ErrorInfo>
+
+    /**
+ * @summary Initiate a negotiation request with simplified flow (consumer)
+ */
+export const useBffRpcSetupRequestInit = <TError = ErrorType<ErrorInfo>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bffRpcSetupRequestInit>>, TError,{data: BodyType<RpcNegotiationRequestInitMessageDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof bffRpcSetupRequestInit>>,
+        TError,
+        {data: BodyType<RpcNegotiationRequestInitMessageDto>},
+        TContext
+      > => {
+      return useMutation(getBffRpcSetupRequestInitMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Initiate a negotiation offer in a simplified way (provider)
+ */
+export type bffRpcSetupOfferInitResponse201 = {
+  data: NegotiationProcessDto
+  status: 201
+}
+
+export type bffRpcSetupOfferInitResponse400 = {
+  data: ErrorInfo
+  status: 400
+}
+
+export type bffRpcSetupOfferInitResponse401 = {
+  data: ErrorInfo
+  status: 401
+}
+
+export type bffRpcSetupOfferInitResponse403 = {
+  data: ErrorInfo
+  status: 403
+}
+
+export type bffRpcSetupOfferInitResponse404 = {
+  data: ErrorInfo
+  status: 404
+}
+
+export type bffRpcSetupOfferInitResponse500 = {
+  data: ErrorInfo
+  status: 500
+}
+    
+export type bffRpcSetupOfferInitResponseSuccess = (bffRpcSetupOfferInitResponse201) & {
+  headers: Headers;
+};
+export type bffRpcSetupOfferInitResponseError = (bffRpcSetupOfferInitResponse400 | bffRpcSetupOfferInitResponse401 | bffRpcSetupOfferInitResponse403 | bffRpcSetupOfferInitResponse404 | bffRpcSetupOfferInitResponse500) & {
+  headers: Headers;
+};
+
+export type bffRpcSetupOfferInitResponse = (bffRpcSetupOfferInitResponseSuccess | bffRpcSetupOfferInitResponseError)
+
+export const getBffRpcSetupOfferInitUrl = () => {
+
+
+  
+
+  return `/dsp/current/negotiations/bff-rpc/setup-offer-init`
+}
+
+export const bffRpcSetupOfferInit = async (rpcNegotiationOfferInitMessageDto: RpcNegotiationOfferInitMessageDto, options?: RequestInit): Promise<bffRpcSetupOfferInitResponse> => {
+  
+  return customInstance<bffRpcSetupOfferInitResponse>(getBffRpcSetupOfferInitUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      rpcNegotiationOfferInitMessageDto,)
+  }
+);}
+
+
+
+
+export const getBffRpcSetupOfferInitMutationOptions = <TError = ErrorType<ErrorInfo>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bffRpcSetupOfferInit>>, TError,{data: BodyType<RpcNegotiationOfferInitMessageDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof bffRpcSetupOfferInit>>, TError,{data: BodyType<RpcNegotiationOfferInitMessageDto>}, TContext> => {
+
+const mutationKey = ['bffRpcSetupOfferInit'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bffRpcSetupOfferInit>>, {data: BodyType<RpcNegotiationOfferInitMessageDto>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  bffRpcSetupOfferInit(data,requestOptions)
+        }
+
+
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BffRpcSetupOfferInitMutationResult = NonNullable<Awaited<ReturnType<typeof bffRpcSetupOfferInit>>>
+    export type BffRpcSetupOfferInitMutationBody = BodyType<RpcNegotiationOfferInitMessageDto>
+    export type BffRpcSetupOfferInitMutationError = ErrorType<ErrorInfo>
+
+    /**
+ * @summary Initiate a negotiation offer in a simplified way (provider)
+ */
+export const useBffRpcSetupOfferInit = <TError = ErrorType<ErrorInfo>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bffRpcSetupOfferInit>>, TError,{data: BodyType<RpcNegotiationOfferInitMessageDto>}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof bffRpcSetupOfferInit>>,
+        TError,
+        {data: BodyType<RpcNegotiationOfferInitMessageDto>},
+        TContext
+      > => {
+      return useMutation(getBffRpcSetupOfferInitMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Accept a negotiation up to the end
+ */
+export type bffRpcSetupAcceptanceResponse200 = {
+  data: RPCResponse
+  status: 200
+}
+
+export type bffRpcSetupAcceptanceResponse400 = {
+  data: ErrorInfo
+  status: 400
+}
+
+export type bffRpcSetupAcceptanceResponse401 = {
+  data: ErrorInfo
+  status: 401
+}
+
+export type bffRpcSetupAcceptanceResponse403 = {
+  data: ErrorInfo
+  status: 403
+}
+
+export type bffRpcSetupAcceptanceResponse404 = {
+  data: ErrorInfo
+  status: 404
+}
+
+export type bffRpcSetupAcceptanceResponse500 = {
+  data: ErrorInfo
+  status: 500
+}
+    
+export type bffRpcSetupAcceptanceResponseSuccess = (bffRpcSetupAcceptanceResponse200) & {
+  headers: Headers;
+};
+export type bffRpcSetupAcceptanceResponseError = (bffRpcSetupAcceptanceResponse400 | bffRpcSetupAcceptanceResponse401 | bffRpcSetupAcceptanceResponse403 | bffRpcSetupAcceptanceResponse404 | bffRpcSetupAcceptanceResponse500) & {
+  headers: Headers;
+};
+
+export type bffRpcSetupAcceptanceResponse = (bffRpcSetupAcceptanceResponseSuccess | bffRpcSetupAcceptanceResponseError)
+
+export const getBffRpcSetupAcceptanceUrl = () => {
+
+
+  
+
+  return `/dsp/current/negotiations/bff-rpc/setup-acceptance`
+}
+
+export const bffRpcSetupAcceptance = async (negotiationRPCAcceptanceBody: NegotiationRPCAcceptanceBody, options?: RequestInit): Promise<bffRpcSetupAcceptanceResponse> => {
+  
+  return customInstance<bffRpcSetupAcceptanceResponse>(getBffRpcSetupAcceptanceUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      negotiationRPCAcceptanceBody,)
+  }
+);}
+
+
+
+
+export const getBffRpcSetupAcceptanceMutationOptions = <TError = ErrorType<ErrorInfo>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bffRpcSetupAcceptance>>, TError,{data: BodyType<NegotiationRPCAcceptanceBody>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof bffRpcSetupAcceptance>>, TError,{data: BodyType<NegotiationRPCAcceptanceBody>}, TContext> => {
+
+const mutationKey = ['bffRpcSetupAcceptance'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bffRpcSetupAcceptance>>, {data: BodyType<NegotiationRPCAcceptanceBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  bffRpcSetupAcceptance(data,requestOptions)
+        }
+
+
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BffRpcSetupAcceptanceMutationResult = NonNullable<Awaited<ReturnType<typeof bffRpcSetupAcceptance>>>
+    export type BffRpcSetupAcceptanceMutationBody = BodyType<NegotiationRPCAcceptanceBody>
+    export type BffRpcSetupAcceptanceMutationError = ErrorType<ErrorInfo>
+
+    /**
+ * @summary Accept a negotiation up to the end
+ */
+export const useBffRpcSetupAcceptance = <TError = ErrorType<ErrorInfo>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bffRpcSetupAcceptance>>, TError,{data: BodyType<NegotiationRPCAcceptanceBody>}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof bffRpcSetupAcceptance>>,
+        TError,
+        {data: BodyType<NegotiationRPCAcceptanceBody>},
+        TContext
+      > => {
+      return useMutation(getBffRpcSetupAcceptanceMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Finalize agreement for a negotiation up to the end
+ */
+export type bffRpcSetupAgreementResponse200 = {
+  data: RPCResponse
+  status: 200
+}
+
+export type bffRpcSetupAgreementResponse400 = {
+  data: ErrorInfo
+  status: 400
+}
+
+export type bffRpcSetupAgreementResponse401 = {
+  data: ErrorInfo
+  status: 401
+}
+
+export type bffRpcSetupAgreementResponse403 = {
+  data: ErrorInfo
+  status: 403
+}
+
+export type bffRpcSetupAgreementResponse404 = {
+  data: ErrorInfo
+  status: 404
+}
+
+export type bffRpcSetupAgreementResponse500 = {
+  data: ErrorInfo
+  status: 500
+}
+    
+export type bffRpcSetupAgreementResponseSuccess = (bffRpcSetupAgreementResponse200) & {
+  headers: Headers;
+};
+export type bffRpcSetupAgreementResponseError = (bffRpcSetupAgreementResponse400 | bffRpcSetupAgreementResponse401 | bffRpcSetupAgreementResponse403 | bffRpcSetupAgreementResponse404 | bffRpcSetupAgreementResponse500) & {
+  headers: Headers;
+};
+
+export type bffRpcSetupAgreementResponse = (bffRpcSetupAgreementResponseSuccess | bffRpcSetupAgreementResponseError)
+
+export const getBffRpcSetupAgreementUrl = () => {
+
+
+  
+
+  return `/dsp/current/negotiations/bff-rpc/setup-agreement`
+}
+
+export const bffRpcSetupAgreement = async (negotiationRPCAgreementBody: NegotiationRPCAgreementBody, options?: RequestInit): Promise<bffRpcSetupAgreementResponse> => {
+  
+  return customInstance<bffRpcSetupAgreementResponse>(getBffRpcSetupAgreementUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      negotiationRPCAgreementBody,)
+  }
+);}
+
+
+
+
+export const getBffRpcSetupAgreementMutationOptions = <TError = ErrorType<ErrorInfo>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bffRpcSetupAgreement>>, TError,{data: BodyType<NegotiationRPCAgreementBody>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof bffRpcSetupAgreement>>, TError,{data: BodyType<NegotiationRPCAgreementBody>}, TContext> => {
+
+const mutationKey = ['bffRpcSetupAgreement'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bffRpcSetupAgreement>>, {data: BodyType<NegotiationRPCAgreementBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  bffRpcSetupAgreement(data,requestOptions)
+        }
+
+
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BffRpcSetupAgreementMutationResult = NonNullable<Awaited<ReturnType<typeof bffRpcSetupAgreement>>>
+    export type BffRpcSetupAgreementMutationBody = BodyType<NegotiationRPCAgreementBody>
+    export type BffRpcSetupAgreementMutationError = ErrorType<ErrorInfo>
+
+    /**
+ * @summary Finalize agreement for a negotiation up to the end
+ */
+export const useBffRpcSetupAgreement = <TError = ErrorType<ErrorInfo>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bffRpcSetupAgreement>>, TError,{data: BodyType<NegotiationRPCAgreementBody>}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof bffRpcSetupAgreement>>,
+        TError,
+        {data: BodyType<NegotiationRPCAgreementBody>},
+        TContext
+      > => {
+      return useMutation(getBffRpcSetupAgreementMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Terminate a negotiation
+ */
+export type bffRpcSetupTerminationResponse200 = {
+  data: RPCResponse
+  status: 200
+}
+
+export type bffRpcSetupTerminationResponse400 = {
+  data: ErrorInfo
+  status: 400
+}
+
+export type bffRpcSetupTerminationResponse401 = {
+  data: ErrorInfo
+  status: 401
+}
+
+export type bffRpcSetupTerminationResponse403 = {
+  data: ErrorInfo
+  status: 403
+}
+
+export type bffRpcSetupTerminationResponse404 = {
+  data: ErrorInfo
+  status: 404
+}
+
+export type bffRpcSetupTerminationResponse500 = {
+  data: ErrorInfo
+  status: 500
+}
+    
+export type bffRpcSetupTerminationResponseSuccess = (bffRpcSetupTerminationResponse200) & {
+  headers: Headers;
+};
+export type bffRpcSetupTerminationResponseError = (bffRpcSetupTerminationResponse400 | bffRpcSetupTerminationResponse401 | bffRpcSetupTerminationResponse403 | bffRpcSetupTerminationResponse404 | bffRpcSetupTerminationResponse500) & {
+  headers: Headers;
+};
+
+export type bffRpcSetupTerminationResponse = (bffRpcSetupTerminationResponseSuccess | bffRpcSetupTerminationResponseError)
+
+export const getBffRpcSetupTerminationUrl = () => {
+
+
+  
+
+  return `/dsp/current/negotiations/bff-rpc/setup-termination`
+}
+
+export const bffRpcSetupTermination = async (negotiationRPCTerminationBody: NegotiationRPCTerminationBody, options?: RequestInit): Promise<bffRpcSetupTerminationResponse> => {
+  
+  return customInstance<bffRpcSetupTerminationResponse>(getBffRpcSetupTerminationUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      negotiationRPCTerminationBody,)
+  }
+);}
+
+
+
+
+export const getBffRpcSetupTerminationMutationOptions = <TError = ErrorType<ErrorInfo>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bffRpcSetupTermination>>, TError,{data: BodyType<NegotiationRPCTerminationBody>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof bffRpcSetupTermination>>, TError,{data: BodyType<NegotiationRPCTerminationBody>}, TContext> => {
+
+const mutationKey = ['bffRpcSetupTermination'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bffRpcSetupTermination>>, {data: BodyType<NegotiationRPCTerminationBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  bffRpcSetupTermination(data,requestOptions)
+        }
+
+
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BffRpcSetupTerminationMutationResult = NonNullable<Awaited<ReturnType<typeof bffRpcSetupTermination>>>
+    export type BffRpcSetupTerminationMutationBody = BodyType<NegotiationRPCTerminationBody>
+    export type BffRpcSetupTerminationMutationError = ErrorType<ErrorInfo>
+
+    /**
+ * @summary Terminate a negotiation
+ */
+export const useBffRpcSetupTermination = <TError = ErrorType<ErrorInfo>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bffRpcSetupTermination>>, TError,{data: BodyType<NegotiationRPCTerminationBody>}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof bffRpcSetupTermination>>,
+        TError,
+        {data: BodyType<NegotiationRPCTerminationBody>},
+        TContext
+      > => {
+      return useMutation(getBffRpcSetupTerminationMutationOptions(options), queryClient);
+    }
+    

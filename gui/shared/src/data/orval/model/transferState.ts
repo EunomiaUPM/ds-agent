@@ -10,17 +10,18 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  * OpenAPI spec version: 1.0.0
  */
 
-export type TransferState = (typeof TransferState)[keyof typeof TransferState];
+export type TransferState = typeof TransferState[keyof typeof TransferState];
+
 
 export const TransferState = {
-  INIT: "INIT",
-  CONFIGURING: "CONFIGURING",
-  AUTH: "AUTH",
-  READY: "READY",
-  SUBSCRIBING: "SUBSCRIBING",
-  STARTED: "STARTED",
-  UNSUBSCRIBING: "UNSUBSCRIBING",
-  STOPPED: "STOPPED",
-  TERMINATED: "TERMINATED",
-  ERROR: "ERROR",
+  INIT: 'INIT',
+  CONFIGURING: 'CONFIGURING',
+  AUTH: 'AUTH',
+  READY: 'READY',
+  SUBSCRIBING: 'SUBSCRIBING',
+  STARTED: 'STARTED',
+  UNSUBSCRIBING: 'UNSUBSCRIBING',
+  STOPPED: 'STOPPED',
+  TERMINATED: 'TERMINATED',
+  ERROR: 'ERROR',
 } as const;

@@ -9,7 +9,7 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { OfferDtoOfferContent } from "./offerDtoOfferContent";
+import type { OfferDtoOfferContent } from './offerDtoOfferContent';
 
 export interface OfferDto {
   id: string;

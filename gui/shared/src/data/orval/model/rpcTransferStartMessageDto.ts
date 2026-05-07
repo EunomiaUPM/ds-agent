@@ -9,7 +9,7 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { DataAddressDto } from "./dataAddressDto";
+import type { DataAddressDto } from './dataAddressDto';
 
 export interface RpcTransferStartMessageDto {
   consumerPid: string;

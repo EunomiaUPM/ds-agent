@@ -9,8 +9,8 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { ParameterDefinitionAutoFilledType } from "./parameterDefinitionAutoFilledType";
-import type { ParameterDefinitionParamType } from "./parameterDefinitionParamType";
+import type { ParameterDefinitionAutoFilledType } from './parameterDefinitionAutoFilledType';
+import type { ParameterDefinitionParamType } from './parameterDefinitionParamType';
 
 export interface ParameterDefinition {
   name: string;

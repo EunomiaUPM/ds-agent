@@ -18,7 +18,6 @@ export interface VCRequestDto {
   vc_type: string;
   assigned_id?: string;
   vc_uri?: string;
-  verification_uri?: string;
   status?: string;
   created_at?: string;
   ended_at?: string | null;

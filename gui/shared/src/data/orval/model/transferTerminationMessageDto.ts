@@ -11,8 +11,8 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  */
 
 export interface TransferTerminationMessageDto {
-  "@context": string;
-  "@type": string;
+  '@context': string;
+  '@type': string;
   providerPid: string;
   consumerPid: string;
   /** @nullable */

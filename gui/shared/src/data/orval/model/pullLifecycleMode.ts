@@ -10,8 +10,9 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  * OpenAPI spec version: 1.0.0
  */
 
-export type PullLifecycleMode = (typeof PullLifecycleMode)[keyof typeof PullLifecycleMode];
+export type PullLifecycleMode = typeof PullLifecycleMode[keyof typeof PullLifecycleMode];
+
 
 export const PullLifecycleMode = {
-  PULL: "PULL",
+  PULL: 'PULL',
 } as const;

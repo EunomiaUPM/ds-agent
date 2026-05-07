@@ -10,11 +10,12 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  * OpenAPI spec version: 1.0.0
  */
 
-export type LogLevel = (typeof LogLevel)[keyof typeof LogLevel];
+export type LogLevel = typeof LogLevel[keyof typeof LogLevel];
+
 
 export const LogLevel = {
-  Debug: "Debug",
-  Info: "Info",
-  Warn: "Warn",
-  Error: "Error",
+  Debug: 'Debug',
+  Info: 'Info',
+  Warn: 'Warn',
+  Error: 'Error',
 } as const;

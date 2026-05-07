@@ -9,14 +9,14 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { DataplaneTransferDtoEgressConfig } from "./dataplaneTransferDtoEgressConfig";
-import type { DataplaneTransferDtoFields } from "./dataplaneTransferDtoFields";
-import type { DataplaneTransferDtoFlowControl } from "./dataplaneTransferDtoFlowControl";
-import type { DataplaneTransferDtoIngressConfig } from "./dataplaneTransferDtoIngressConfig";
-import type { DataplaneTransferLogDto } from "./dataplaneTransferLogDto";
-import type { InteractionMode } from "./interactionMode";
-import type { TransferRole } from "./transferRole";
-import type { TransferState } from "./transferState";
+import type { DataplaneTransferDtoEgressConfig } from './dataplaneTransferDtoEgressConfig';
+import type { DataplaneTransferDtoFields } from './dataplaneTransferDtoFields';
+import type { DataplaneTransferDtoFlowControl } from './dataplaneTransferDtoFlowControl';
+import type { DataplaneTransferDtoIngressConfig } from './dataplaneTransferDtoIngressConfig';
+import type { DataplaneTransferLogDto } from './dataplaneTransferLogDto';
+import type { InteractionMode } from './interactionMode';
+import type { TransferRole } from './transferRole';
+import type { TransferState } from './transferState';
 
 export interface DataplaneTransferDto {
   id?: string;

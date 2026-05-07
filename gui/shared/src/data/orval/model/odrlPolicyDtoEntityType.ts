@@ -10,12 +10,12 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  * OpenAPI spec version: 1.0.0
  */
 
-export type OdrlPolicyDtoEntityType =
-  (typeof OdrlPolicyDtoEntityType)[keyof typeof OdrlPolicyDtoEntityType];
+export type OdrlPolicyDtoEntityType = typeof OdrlPolicyDtoEntityType[keyof typeof OdrlPolicyDtoEntityType];
+
 
 export const OdrlPolicyDtoEntityType = {
-  Distribution: "Distribution",
-  DataService: "DataService",
-  Catalog: "Catalog",
-  Dataset: "Dataset",
+  Distribution: 'Distribution',
+  DataService: 'DataService',
+  Catalog: 'Catalog',
+  Dataset: 'Dataset',
 } as const;

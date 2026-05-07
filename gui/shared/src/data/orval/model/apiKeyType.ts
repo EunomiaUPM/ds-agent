@@ -10,8 +10,9 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  * OpenAPI spec version: 1.0.0
  */
 
-export type ApiKeyType = (typeof ApiKeyType)[keyof typeof ApiKeyType];
+export type ApiKeyType = typeof ApiKeyType[keyof typeof ApiKeyType];
+
 
 export const ApiKeyType = {
-  API_KEY: "API_KEY",
+  API_KEY: 'API_KEY',
 } as const;

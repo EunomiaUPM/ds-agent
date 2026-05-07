@@ -19,3 +19,4 @@
 
 pub(crate) mod protocol;
 pub(crate) mod rpc;
+pub(crate) mod bff_rpc;

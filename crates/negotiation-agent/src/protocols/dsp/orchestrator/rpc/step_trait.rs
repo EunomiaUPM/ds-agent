@@ -16,7 +16,7 @@
  *  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
-
+use std::fmt::Debug;
 use crate::entities::negotiation_process::NegotiationProcessDto;
 use crate::protocols::dsp::orchestrator::rpc::types::RpcNegotiationProcessMessageTrait;
 use crate::protocols::dsp::persistence::NegotiationRpcPersistenceTrait;
@@ -39,6 +39,7 @@ use ymir::errors::Outcome;
 ///
 /// No process record exists yet; all routing information is read directly from
 /// the RPC input.
+#[derive(Debug)]
 pub(super) struct NegotiationRpcInitialContext {
     /// Provider's base URL; used to build the outgoing HTTP endpoint.
     pub provider_address: String,
@@ -50,6 +51,7 @@ pub(super) struct NegotiationRpcInitialContext {
 ///
 /// Populated by [`resolve_continuation_context`] from the database record
 /// identified by the consumer PID supplied in the RPC input.
+#[derive(Debug)]
 pub(super) struct NegotiationRpcContinuationContext {
     /// Full process record as stored in the database.
     pub process: NegotiationProcessDto,
@@ -66,6 +68,7 @@ pub(super) struct NegotiationRpcContinuationContext {
 /// offer content and the participant IDs required to construct the agreement
 /// body.  These lookups are performed in [`prepare_context`] so that
 /// `send_and_persist` remains a simple POST + persist call.
+#[derive(Debug)]
 pub(super) struct NegotiationRpcAgreementContext {
     /// Full process record as stored in the database.
     pub process: NegotiationProcessDto,
@@ -105,7 +108,7 @@ pub(super) trait NegotiationRpcStep: Send + Sync + 'static {
     /// Raw RPC input type this step handles.
     type Input: RpcNegotiationProcessMessageTrait + Clone + Send + Sync + 'static;
     /// Step-specific routing context produced by `prepare_context`.
-    type Context: Send + Sync + 'static;
+    type Context: Send + Sync + Debug + 'static;
 
     /// Optional input validation executed before any I/O.  Default: no-op.
     async fn validate(

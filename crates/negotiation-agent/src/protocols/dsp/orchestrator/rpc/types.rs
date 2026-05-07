@@ -373,6 +373,12 @@ pub struct RpcNegotiationAgreementMessageDto {
     consumer_pid: Urn,
 }
 
+impl RpcNegotiationAgreementMessageDto {
+    pub fn new(consumer_pid: Urn, provider_pid: Urn) -> Self {
+        Self { consumer_pid, provider_pid }
+    }
+}
+
 impl Into<NegotiationProcessMessageWrapper<NegotiationAgreementMessageDto>>
     for RpcNegotiationAgreementMessageDto
 {
@@ -444,6 +450,12 @@ impl RpcNegotiationProcessMessageTrait for RpcNegotiationAgreementMessageDto {
 pub struct RpcNegotiationVerificationMessageDto {
     provider_pid: Urn,
     consumer_pid: Urn,
+}
+
+impl RpcNegotiationVerificationMessageDto {
+    pub fn new(consumer_pid: Urn, provider_pid: Urn) -> Self {
+        Self { consumer_pid, provider_pid }
+    }
 }
 
 impl Into<NegotiationProcessMessageWrapper<NegotiationVerificationMessageDto>>
@@ -590,6 +602,12 @@ impl RpcNegotiationProcessMessageTrait for RpcNegotiationEventAcceptedMessageDto
 pub struct RpcNegotiationEventFinalizedMessageDto {
     provider_pid: Urn,
     consumer_pid: Urn,
+}
+
+impl RpcNegotiationEventFinalizedMessageDto {
+    pub fn new(consumer_pid: Urn, provider_pid: Urn) -> Self {
+        Self { consumer_pid, provider_pid }
+    }
 }
 
 impl Into<NegotiationProcessMessageWrapper<NegotiationEventMessageDto>>

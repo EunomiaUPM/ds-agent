@@ -58,6 +58,10 @@ impl ValidateStateTransition for ValidatedStateTransitionServiceForDsp {
             (RoleConfig::Consumer, NegotiationProcessMessageType::NegotiationAgreementMessage) => {
                 Ok(())
             }
+            (
+                RoleConfig::Consumer,
+                NegotiationProcessMessageType::NegotiationAgreementVerificationMessage,
+            ) => Ok(()),
             (_, NegotiationProcessMessageType::NegotiationEventMessage(_)) => Ok(()),
             (_, NegotiationProcessMessageType::NegotiationTerminationMessage) => Ok(()),
             _ => {

@@ -148,6 +148,7 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         &self,
         input: &RpcNegotiationAgreementMessageDto,
     ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationAgreementMessageDto>> {
+        dbg!(&input);
         let (response, process) = self.run_lifecycle::<RpcAgreementStep>(input).await?;
         Ok(RpcNegotiationMessageDto {
             request: input.clone(),

@@ -30,7 +30,7 @@ use crate::protocols::dsp::protocol_types::{
     NegotiationAckMessageDto, NegotiationAgreementMessageDto, NegotiationProcessMessageWrapper,
 };
 use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRpcSteps;
-use common::dsp_common::odrl::{OdrlAgreement, OdrlMessageOffer, OdrlTypes};
+use common::dsp_common::odrl::{ContractRequestMessageOfferTypes, OdrlAgreement, OdrlMessageOffer, OdrlTypes};
 use common::facades::ssi_auth_facade::MatesFacadeTrait;
 use common::http_client::HttpClient;
 use std::sync::Arc;
@@ -86,8 +86,17 @@ impl NegotiationRpcStep for RpcAgreementStep {
         let last_offer_record = persistence
             .fetch_last_offer_by_process(base.process.inner.id.as_str())
             .await?;
-        let last_offer =
-            serde_json::from_value::<OdrlMessageOffer>(last_offer_record.inner.offer_content)?;
+        let last_offer = {
+            let offer_types: ContractRequestMessageOfferTypes =
+                serde_json::from_value(last_offer_record.inner.offer_content)?;
+            match offer_types {
+                ContractRequestMessageOfferTypes::OfferMessage(offer) => offer,
+                ContractRequestMessageOfferTypes::OfferId(id) => OdrlMessageOffer {
+                    id: id.id,
+                    ..OdrlMessageOffer::default()
+                },
+            }
+        };
 
         // Resolve participant IDs from the mates directory.
         let assigner = mates_service

@@ -128,7 +128,7 @@ export function AppSidebar() {
           icon: Users,
         },
         {
-          title: "Credential Requests",
+          title: "VC Requests",
           url: "/admin/authority",
           icon: ShieldCheck,
         },
@@ -182,7 +182,7 @@ export function AppSidebar() {
         <Link to="/admin/">
           <img
             src={logoImg}
-            className="h-11 mt-2 mb-4 mr-auto ml-1 flex justify-start object-contain"
+            className="pl-3 pt-2 pr-6 mt-2 mb-2 mr-1 ml-1 flex justify-start object-contain"
             alt="Eunomia Logo"
           />
         </Link>

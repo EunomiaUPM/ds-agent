@@ -81,7 +81,7 @@ const RouteComponent = () => {
         onClose={() => setWizardCatalogOpen(false)}
         anchorRef={labelCatalogRef}
         align="left"
-        step={"1 3"}
+        step={"1 of 3"}
         sectionTitle="Connection with Participant Tutorial"
         title="Catalog browser"
         content={
@@ -104,7 +104,7 @@ const RouteComponent = () => {
               : { url: p.base_url, slug: p.participant_slug };
             return (
               <div className={unauthRedirect 
-              ? "ring-2 ring-secondary-400 shadow-md animate-pulse rounded-md" 
+              ? "ring-2 ring-secondary-400 shadow-md animate-pulse rounded-md w-full max-w-lg" 
               : ""}
               onClick={() => setWizardCatalogOpen(false)}>
                 <CatalogItem

@@ -8699,6 +8699,8 @@ components:
           type: string
         vc_uri:
           type: string
+        verification_uri:
+          type: string
         status:
           type: string
         created_at:

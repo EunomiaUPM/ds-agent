@@ -159,61 +159,71 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
         Ok(context)
     }
     async fn set_subscribing(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
+        // guard
+        if context.dataplane_process().inner.state == TransferState::Started {
+            return Ok(context);
+        }
+        let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
+        let dataplane_process = self
+            .dataplane_entity()
+            .put_dataplane_transfer_by_id(
+                &dataplane_urn,
+                &EditDataplaneTransferDto {
+                    state: Some(TransferState::Subscribing),
+                    ..EditDataplaneTransferDto::default()
+                },
+            )
+            .await?;
+        context.set_dataplane_process(dataplane_process);
         match context.driver().and_then(|d| d.subscriber.clone()) {
-            None => Ok(context),
-            Some(subscriber) => {
-                let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
-                let dataplane_process = self
-                    .dataplane_entity()
-                    .put_dataplane_transfer_by_id(
-                        &dataplane_urn,
-                        &EditDataplaneTransferDto {
-                            state: Some(TransferState::Subscribing),
-                            ..EditDataplaneTransferDto::default()
-                        },
-                    )
-                    .await?;
-                context.set_dataplane_process(dataplane_process);
-                match subscriber.subscribe(&context).await {
-                    Ok(ctx) => {
-                        let new_context = self.set_started(ctx).await?;
-                        Ok(new_context)
-                    }
-                    Err(e) => {
-                        let _ = self.set_terminating(context).await;
-                        Err(e)
-                    }
-                }
+            None => {
+                let new_context = self.set_started(context).await?;
+                Ok(new_context)
             }
+            Some(subscriber) => match subscriber.subscribe(&context).await {
+                Ok(ctx) => {
+                    let new_context = self.set_started(ctx).await?;
+                    Ok(new_context)
+                }
+                Err(e) => {
+                    let _ = self.set_terminating(context).await;
+                    Err(e)
+                }
+            },
         }
     }
     async fn set_unsubscribing(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
+        // guard
+        if context.dataplane_process().inner.state == TransferState::Stopped {
+            return Ok(context);
+        }
+        let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
+        let dataplane_process = self
+            .dataplane_entity()
+            .put_dataplane_transfer_by_id(
+                &dataplane_urn,
+                &EditDataplaneTransferDto {
+                    state: Some(TransferState::Unsubscribing),
+                    ..EditDataplaneTransferDto::default()
+                },
+            )
+            .await?;
+        context.set_dataplane_process(dataplane_process);
         match context.driver().and_then(|d| d.subscriber.clone()) {
-            None => Ok(context),
-            Some(subscriber) => {
-                let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
-                let dataplane_process = self
-                    .dataplane_entity()
-                    .put_dataplane_transfer_by_id(
-                        &dataplane_urn,
-                        &EditDataplaneTransferDto {
-                            state: Some(TransferState::Unsubscribing),
-                            ..EditDataplaneTransferDto::default()
-                        },
-                    )
-                    .await?;
-                context.set_dataplane_process(dataplane_process);
-                match subscriber.unsubscribe(&context).await {
-                    Ok(ctx) => {
-                        let new_context = self.set_stopped(ctx).await?;
-                        Ok(new_context)
-                    }
-                    Err(e) => {
-                        let _ = self.set_terminating(context).await;
-                        Err(e)
-                    }
-                }
+            None => {
+                let new_context = self.set_stopped(context).await?;
+                Ok(new_context)
             }
+            Some(subscriber) => match subscriber.unsubscribe(&context).await {
+                Ok(ctx) => {
+                    let new_context = self.set_stopped(ctx).await?;
+                    Ok(new_context)
+                }
+                Err(e) => {
+                    let _ = self.set_terminating(context).await;
+                    Err(e)
+                }
+            },
         }
     }
     async fn set_stopped(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {

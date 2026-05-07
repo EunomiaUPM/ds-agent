@@ -117,7 +117,7 @@ async fn test_create_instance() {
 #[tokio::test]
 async fn test_create_instance_too_much_parameters() {
     // SHOULD_FAIL is declared in parameters[] but never used in the template.
-    // Validation fails → the repo is never reached (no expectation needed).
+    // Validation fails - the repo is never reached (no expectation needed).
     let json_dto = json!({
         "authentication": {
             "type": "BASIC_AUTH",

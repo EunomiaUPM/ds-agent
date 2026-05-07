@@ -69,8 +69,8 @@ impl NegotiationProtocolStep for NegotiationEventStep {
 
     /// Dispatches to the appropriate persistence variant based on `event_type`.
     ///
-    /// - `ACCEPTED` → `update` (state advancement only)
-    /// - `FINALIZED` → `update_with_agreement` (activates the existing agreement)
+    /// - `ACCEPTED` - `update` (state advancement only)
+    /// - `FINALIZED` - `update_with_agreement` (activates the existing agreement)
     async fn persist(
         persistence: &Arc<OrchestrationPersistenceForProtocol>,
         _id: &str,

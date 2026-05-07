@@ -169,7 +169,7 @@ mod tests {
             .returning(move |_, _| Ok(dto(expected.clone())));
     }
 
-    // set_init drives the full sub-chain: configuring → auth → ready.
+    // set_init drives the full sub-chain: configuring - auth - ready.
     // After set_ready the forward address is replaced by the local ingress proxy URL
     // (the address the consumer advertises to the provider).
     #[tokio::test]
@@ -202,7 +202,7 @@ mod tests {
 
     // ── set_configuring ───────────────────────────────────────────────────────
 
-    // set_configuring is atomic: configure proxy → put(Configuring).
+    // set_configuring is atomic: configure proxy - put(Configuring).
     // It does NOT proceed to auth or ready.
     #[tokio::test]
     async fn test_set_configuring_builds_driver_and_proxy() {
@@ -239,7 +239,7 @@ mod tests {
 
     // ── set_auth ──────────────────────────────────────────────────────────────
 
-    // set_auth is atomic: NoOp authentication → put(Auth). Does NOT proceed to ready.
+    // set_auth is atomic: NoOp authentication - put(Auth). Does NOT proceed to ready.
     #[tokio::test]
     async fn test_set_auth_persists_auth_state() {
         let mut mock = MockDataplaneTransfersEntitiesTrait::new();

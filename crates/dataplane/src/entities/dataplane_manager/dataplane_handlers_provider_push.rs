@@ -203,7 +203,7 @@ mod tests {
 
     // ── set_configuring ───────────────────────────────────────────────────────
 
-    // set_configuring is atomic: configure proxy (NoOp) → put(Configuring).
+    // set_configuring is atomic: configure proxy (NoOp) - put(Configuring).
     // Does NOT proceed to auth or ready.
     #[tokio::test]
     async fn test_set_configuring_persists_configuring_state_and_preserves_connector() {
@@ -235,7 +235,7 @@ mod tests {
 
     // ── set_auth ──────────────────────────────────────────────────────────────
 
-    // set_auth is atomic: NoAuth connector config → put(Auth). Does NOT proceed to ready.
+    // set_auth is atomic: NoAuth connector config - put(Auth). Does NOT proceed to ready.
     #[tokio::test]
     async fn test_set_auth_persists_auth_state() {
         let mut mock = MockDataplaneTransfersEntitiesTrait::new();
@@ -335,7 +335,7 @@ mod tests {
 
     // ── set_subscribing ───────────────────────────────────────────────────────
 
-    // With a driver carrying a subscriber: put(Subscribing) → subscribe → set_started → put(Started).
+    // With a driver carrying a subscriber: put(Subscribing) - subscribe - set_started - put(Started).
     #[tokio::test]
     async fn test_set_subscribing_with_driver_activates_push() {
         let mut mock = MockDataplaneTransfersEntitiesTrait::new();
@@ -376,7 +376,7 @@ mod tests {
 
     // ── set_unsubscribing ─────────────────────────────────────────────────────
 
-    // With a driver carrying a subscriber: put(Unsubscribing) → unsubscribe → set_stopped → put(Stopped).
+    // With a driver carrying a subscriber: put(Unsubscribing) - unsubscribe - set_stopped - put(Stopped).
     #[tokio::test]
     async fn test_set_unsubscribing_with_driver_deactivates_push() {
         let mut mock = MockDataplaneTransfersEntitiesTrait::new();

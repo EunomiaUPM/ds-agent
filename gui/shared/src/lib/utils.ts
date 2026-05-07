@@ -94,8 +94,8 @@ export const formatUrn = (urn: string | undefined, truncate: boolean = true): st
  * their uniqueness and recognizability.
  *
  * Examples:
- * - "urn:dataset:abcd123456789" → "abcd1234"
- * - "did:web:example.com:user:xyz987654" → "xyz98765"
+ * - "urn:dataset:abcd123456789" - "abcd1234"
+ * - "did:web:example.com:user:xyz987654" - "xyz98765"
  *
  * If the input does not contain a structured prefix, a fallback truncation strategy may be applied.
  *

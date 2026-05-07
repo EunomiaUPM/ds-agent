@@ -49,7 +49,7 @@ use ymir::errors::Outcome;
 /// [`NegotiationProtocolStep`] template; `run_lifecycle` encodes the algorithm
 /// once:
 ///
-/// 1. **validate** → 2. **prepare context** (with optional early ack) →
+/// 1. **validate** - 2. **prepare context** (with optional early ack) →
 /// 3. **persist**
 ///
 /// Unlike the transfer orchestrator there is no `post_hook` because negotiation
@@ -194,7 +194,7 @@ impl ProtocolOrchestratorService {
     /// [`NegotiationProtocolStep`] template.
     ///
     /// The algorithm is the same regardless of step type:
-    /// validate → prepare context (with optional early ack) → persist.
+    /// validate - prepare context (with optional early ack) - persist.
     ///
     /// `id` is the peer-facing process identifier (continuation steps; pass `""`
     /// for initial steps that create a new process).

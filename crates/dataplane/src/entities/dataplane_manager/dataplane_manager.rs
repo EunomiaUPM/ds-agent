@@ -1046,7 +1046,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_set_subscribing_noop_provider_pull() {
-        // Pull providers have no subscriber → set_subscribing is noop
+        // Pull providers have no subscriber - set_subscribing is noop
         let mut mock_entity = MockDataplaneTransfersEntitiesTrait::new();
         let mut mock_connector = MockConnectorMock::new();
         let mut mock_factory = MockDataplaneDriverFactoryTrait::new();
@@ -1094,7 +1094,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_set_unsubscribing_noop_provider_pull() {
-        // Pull providers have no subscriber → set_unsubscribing is noop
+        // Pull providers have no subscriber - set_unsubscribing is noop
         let mut mock_entity = MockDataplaneTransfersEntitiesTrait::new();
         let mut mock_connector = MockConnectorMock::new();
         let mut mock_factory = MockDataplaneDriverFactoryTrait::new();
@@ -1144,7 +1144,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_set_subscribing_provider_push() {
-        // Push provider has a subscriber → set_subscribing calls NoOpPubSubscriber.subscribe
+        // Push provider has a subscriber - set_subscribing calls NoOpPubSubscriber.subscribe
         let mut mock_entity = MockDataplaneTransfersEntitiesTrait::new();
         let mut mock_connector = MockConnectorMock::new();
 
@@ -1176,7 +1176,7 @@ mod tests {
             .times(1)
             .returning(move |_| Ok(dummy_driver()));
 
-        // set_subscribing with subscriber: put(Subscribing) → subscribe → set_started → put(Started)
+        // set_subscribing with subscriber: put(Subscribing) - subscribe - set_started - put(Started)
         mock_entity
             .expect_put_dataplane_transfer_by_id()
             .times(1)
@@ -1223,7 +1223,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_set_unsubscribing_provider_push() {
-        // Push provider has a subscriber → set_unsubscribing calls NoOpPubSubscriber.unsubscribe
+        // Push provider has a subscriber - set_unsubscribing calls NoOpPubSubscriber.unsubscribe
         let mut mock_entity = MockDataplaneTransfersEntitiesTrait::new();
         let mut mock_connector = MockConnectorMock::new();
 
@@ -1255,7 +1255,7 @@ mod tests {
             .times(1)
             .returning(move |_| Ok(dummy_driver()));
 
-        // set_unsubscribing with subscriber: put(Unsubscribing) → unsubscribe → set_stopped → put(Stopped)
+        // set_unsubscribing with subscriber: put(Unsubscribing) - unsubscribe - set_stopped - put(Stopped)
         mock_entity
             .expect_put_dataplane_transfer_by_id()
             .times(1)

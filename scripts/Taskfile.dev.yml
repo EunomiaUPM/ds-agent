@@ -70,11 +70,11 @@ tasks:
   #   task onboard
   # ─────────────────────────────────────────────────────────────────────────
   onboard:mini:
-    desc: "Run the full onboarding sequence (Authority → Consumer → Provider)"
+    desc: "Run the full onboarding sequence (Authority - Consumer - Provider)"
     cmds:
       - bash {{.SCRIPTS_DIR}}/auto-onboarding-mini.sh
   onboard:dev:
-    desc: "Run the full onboarding sequence (Authority → Consumer → Provider) but for dev purposes"
+    desc: "Run the full onboarding sequence (Authority - Consumer - Provider) but for dev purposes"
     cmds:
       - bash {{.SCRIPTS_DIR}}/auto-onboarding-dev.sh
 

@@ -46,7 +46,7 @@ impl OrchestrationHelpers for AgreementEnricher {}
 
 // ─── RpcAgreementStep ─────────────────────────────────────────────────────────
 
-/// Sends a `ContractAgreementMessage` to the Consumer (Provider → Consumer).
+/// Sends a `ContractAgreementMessage` to the Consumer (Provider - Consumer).
 ///
 /// This is the most complex RPC step because the outgoing agreement body must
 /// be enriched before transmission:

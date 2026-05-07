@@ -253,7 +253,7 @@ mod tests {
         let instance = push_instance(raw, None);
         let params = json!({ "subscribe": { "id": "x" } });
         let result = resolve(&instance, params);
-        // null result → placeholder left as-is
+        // null result - placeholder left as-is
         assert_eq!(subscribe_url(&result), raw);
     }
 

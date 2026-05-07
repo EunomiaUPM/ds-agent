@@ -204,7 +204,7 @@ mod tests {
 
     // ── set_configuring ───────────────────────────────────────────────────────
 
-    // set_configuring is atomic: configure proxy (NoOp) → put(Configuring).
+    // set_configuring is atomic: configure proxy (NoOp) - put(Configuring).
     // Does NOT proceed to auth or ready.
     #[tokio::test]
     async fn test_set_configuring_persists_configuring_state_and_preserves_connector() {
@@ -237,7 +237,7 @@ mod tests {
 
     // ── set_auth ──────────────────────────────────────────────────────────────
 
-    // set_auth is atomic: NoAuth → NoOp authentication → put(Auth). Does NOT proceed to ready.
+    // set_auth is atomic: NoAuth - NoOp authentication - put(Auth). Does NOT proceed to ready.
     #[tokio::test]
     async fn test_set_auth_persists_auth_state() {
         let mut mock = MockDataplaneTransfersEntitiesTrait::new();

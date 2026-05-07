@@ -37,7 +37,7 @@ use ymir::errors::{Errors, Outcome};
 // ─── RpcVerificationStep ──────────────────────────────────────────────────────
 
 /// Sends a `ContractAgreementVerificationMessage` to the Provider
-/// (Consumer → Provider).
+/// (Consumer - Provider).
 ///
 /// Activates the existing agreement by calling `update_with_agreement` on
 /// persistence, which sets the agreement state to `ACTIVE`.

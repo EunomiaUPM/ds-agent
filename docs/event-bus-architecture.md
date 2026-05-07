@@ -88,9 +88,9 @@ catalog-agent.asset.updated
 ```
 
 Patrones de suscripción (con glob):
-- `transfer-agent.*.*` → todos los eventos del crate transfer-agent
-- `*.transfer.*` → todos los eventos de tipo "transfer" de cualquier crate
-- `*.*.*` → todos los eventos
+- `transfer-agent.*.*` - todos los eventos del crate transfer-agent
+- `*.transfer.*` - todos los eventos de tipo "transfer" de cualquier crate
+- `*.*.*` - todos los eventos
 
 ```rust
 // events/src/bus/topic.rs
@@ -228,12 +228,12 @@ CREATE INDEX events_correlation_idx ON events(correlation_id) WHERE correlation_
 
 ### Modificar tabla: `subscriptions`
 
-Reemplazar flags booleanos por `topic_pattern` (backward compat: migración convierte flags → pattern string):
+Reemplazar flags booleanos por `topic_pattern` (backward compat: migración convierte flags - pattern string):
 
 ```sql
 ALTER TABLE subscriptions ADD COLUMN topic_pattern TEXT;
--- migración: transfer_process=true → topic_pattern = 'transfer-agent.*.*'
--- catalog=true → topic_pattern = 'catalog-agent.*.*'
+-- migración: transfer_process=true - topic_pattern = 'transfer-agent.*.*'
+-- catalog=true - topic_pattern = 'catalog-agent.*.*'
 -- etc.
 ALTER TABLE subscriptions DROP COLUMN transfer_process;
 -- ... etc
@@ -286,7 +286,7 @@ CREATE TABLE dead_letter_queue (
 // Intento 3: 30s
 // Intento 4: 5min
 // Intento 5: 1h
-// → DLQ
+// - DLQ
 
 pub async fn run_retry_worker(db: Arc<dyn EventBusRepo>, config: RetryConfig) {
     loop {
@@ -436,7 +436,7 @@ pub struct KafkaConfig {
 - [ ] Migración SeaORM: nueva tabla `events`
 - [ ] Migración SeaORM: nueva tabla `event_deliveries` (reemplaza `notifications`)
 - [ ] Migración SeaORM: nueva tabla `dead_letter_queue`
-- [ ] Migración SeaORM: modificar `subscriptions` → `topic_pattern` string + migrar datos booleanos
+- [ ] Migración SeaORM: modificar `subscriptions` - `topic_pattern` string + migrar datos booleanos
 - [ ] `events/src/data/repo/event_store.rs` — impl `EventBusRepo` con sea-orm
 - [ ] Entidades SeaORM para las nuevas tablas
 
@@ -480,7 +480,7 @@ Inyectar `Arc<EventBus>` en los servicios y publicar en los puntos clave del flu
 
 ### Fase 8 — API HTTP backward compat
 
-- [ ] Mantener `GET/POST /subscriptions` con adaptador → `topic_pattern`
+- [ ] Mantener `GET/POST /subscriptions` con adaptador - `topic_pattern`
 - [ ] Mantener `GET /notifications` que lee de `event_deliveries` mapeado al formato antiguo
 - [ ] Deprecate warning en headers de los endpoints legacy
 
@@ -498,7 +498,7 @@ Inyectar `Arc<EventBus>` en los servicios y publicar en los puntos clave del flu
 | **Circuit breaker** | Por subscriber: pausa tras N fallos consecutivos |
 | **DLQ** | Tabla `dead_letter_queue`; endpoint para re-drive manual |
 | **Idempotencia** | `event.id` único; consumidores deben deduplicar si necesario |
-| **Retry** | Exponential backoff: 5s → 30s → 5min → 1h → DLQ |
+| **Retry** | Exponential backoff: 5s - 30s - 5min - 1h - DLQ |
 | **Observabilidad** | `tracing` spans por fase del lifecycle; métricas HTTP |
 | **Multi-tenant** | `source_crate` + `topic` permiten filtrado por origen |
 | **Data-aggregator** | Subscribe vía channel interno O consume desde Kafka |
@@ -530,13 +530,13 @@ transfer-agent llama:
 EventBus::publish():
   1. INSERT INTO events (id, topic, payload, ...) ← commit
   2. broadcaster.send(envelope.clone())           ← BFF recibe inmediatamente
-  3. kafka_sink.send(envelope.clone())            ← spawn; si falla → log
+  3. kafka_sink.send(envelope.clone())            ← spawn; si falla - log
   4. spawn dispatch_http_callbacks(envelope)
      - SELECT subscriptions WHERE topic_pattern matches
      - Para cada una: INSERT INTO event_deliveries (Pending)
-     - HTTP POST → si 2xx: UPDATE status=Delivered
-                 → si fallo: UPDATE attempts++, next_retry_at=now+backoff
-                 → si attempts>=max: INSERT dead_letter_queue
+     - HTTP POST - si 2xx: UPDATE status=Delivered
+                 - si fallo: UPDATE attempts++, next_retry_at=now+backoff
+                 - si attempts>=max: INSERT dead_letter_queue
 
 retry_poller (loop tokio):
   - cada 10s: SELECT event_deliveries WHERE status=Failed AND next_retry_at<=now

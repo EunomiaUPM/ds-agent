@@ -32,7 +32,7 @@ use ymir::errors::Outcome;
 // ─── InitialProviderOfferStep ─────────────────────────────────────────────────
 
 /// Handles an inbound `ContractOfferMessage` that initiates a new negotiation
-/// process (Provider → Consumer, first message of the offer flow).
+/// process (Provider - Consumer, first message of the offer flow).
 ///
 /// This is the symmetric counterpart of [`InitialContractRequestStep`]: the
 /// Provider drives the negotiation by sending the first offer.  The algorithm

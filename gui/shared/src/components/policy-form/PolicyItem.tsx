@@ -5,7 +5,7 @@
  * Allows editing the action and managing constraints within a policy rule.
  *
  * Part of the policy form component hierarchy:
- * PolicySection → PolicyItem → ConstraintItem
+ * PolicySection - PolicyItem - ConstraintItem
  *
  * @example
  * <PolicyItem

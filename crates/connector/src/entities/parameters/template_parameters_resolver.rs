@@ -91,7 +91,7 @@ impl<'a> TemplateParametersResolver<'a> {
     ///
     /// Example:
     ///   `resolver.with_response_context("SUB", flow_control_value)`
-    ///   → `{{__RUNTIME_SUB_RESPONSE_{.id}__}}` resolves via `.id` applied to `flow_control_value`
+    ///   - `{{__RUNTIME_SUB_RESPONSE_{.id}__}}` resolves via `.id` applied to `flow_control_value`
     pub fn with_response_context(mut self, context_type: &str, value: Value) -> Self {
         self.response_contexts
             .insert(context_type.to_uppercase(), value);

@@ -5,7 +5,7 @@
  * Provides select fields for left operand and operator, and a text input for right operand.
  *
  * Part of the policy form component hierarchy:
- * PolicySection → PolicyItem → ConstraintItem
+ * PolicySection - PolicyItem - ConstraintItem
  *
  * @example
  * <ConstraintItem

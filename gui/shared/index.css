@@ -179,6 +179,38 @@
   @apply grid grid-cols-1 gap-4 xl:grid-cols-2 xl:gap-8;
 }
 
+/* ONBOARDING OVERLAY */
+.overlayContainer {
+  @apply z-50 fixed top-0 left-0 w-full h-full;
+  @apply flex items-center justify-center;
+  @apply bg-black/80;
+
+  .overlayContent {
+    @apply absolute p-6;
+    @apply h-fit min-h-[480px];
+    @apply w-[80dvw] max-w-4xl min-w-[560px];
+    @apply flex flex-col justify-between items-center gap-8;
+    @apply text-center bg-background;
+
+    /* logo */
+    .contentLogo {
+      @apply h-[40px] pr-4;
+      @apply flex justify-center object-contain;
+    }
+    /* message */
+    .contentMessage {
+      @apply flex flex-col gap-4;
+      .messageGroup {
+      }
+    }
+    /* footer */
+    .contentFooter {
+    }
+  }
+}
+
+/* POLICIES */
+
 .policy-item-create {
   @apply first:mt-3 border-t pt-3  pb-5 border-white/20 last:pb-2;
 }

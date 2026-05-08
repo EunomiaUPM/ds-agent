@@ -31,6 +31,7 @@
 use base64::{engine::general_purpose::STANDARD, Engine};
 use serde::{Deserialize, Serialize};
 use ymir::errors::{Errors, Outcome};
+use crate::entities::parameters::TemplateString;
 
 /// Describes where a secret credential is stored.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -38,13 +39,13 @@ use ymir::errors::{Errors, Outcome};
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum SecretSource {
     /// Inline plaintext value (for development / testing only).
-    Plain(String),
+    Plain(TemplateString),
     /// Base64-encoded value stored inline.
-    Base64(String),
+    Base64(TemplateString),
     /// A reference to a HashiCorp Vault path + key.
-    VaultRef { path: String, key: String },
+    VaultRef { path: TemplateString, key: TemplateString },
     /// The name of an environment variable that holds the secret.
-    EnvVar(String),
+    EnvVar(TemplateString),
 }
 
 /// An opaque credential value.

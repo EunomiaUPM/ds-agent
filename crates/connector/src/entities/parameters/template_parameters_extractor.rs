@@ -317,8 +317,7 @@ mod tests {
     }
 
     #[test]
-    fn bearer_token_extracts_no_parameters() {
-        // The BearerToken arm in the walker is currently a no-op.
+    fn bearer_token_plain_template_extracts_parameter() {
         let dto = ConnectorTemplateDto {
             metadata: ConnectorMetadata {
                 name: None,
@@ -342,7 +341,9 @@ mod tests {
             }),
             parameters: vec![],
         };
-        assert!(run(dto).is_empty());
+        let found = run(dto);
+        assert_eq!(1, found.len());
+        assert_eq!("TOKEN", found[0]);
     }
 
     #[test]
@@ -411,8 +412,7 @@ mod tests {
 
     #[test]
     fn oauth2_with_literal_fields_extracts_no_parameters() {
-        // All TemplateString/TemplateVecString fields are literals; client_secret
-        // is a SecretString and is intentionally not scanned.
+        // All fields are literals — no placeholders anywhere, including client_secret.
         let dto = ConnectorTemplateDto {
             metadata: ConnectorMetadata {
                 name: None,

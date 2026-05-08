@@ -23,10 +23,10 @@
 //!
 //! # Secret fields
 //!
-//! Fields typed as [`SecretString`] (passwords, tokens, client secrets, API key
-//! values) are intentionally **not** parameterisable via `{{__NAME__}}`
-//! placeholders.  Only the non-secret fields (username, key name, token URL,
-//! client ID, scopes) support template substitution.
+//! Fields typed as [`SecretString`] support `{{__NAME__}}` placeholders in
+//! their inner content (e.g. `Plain("{{__TOKEN__}}")`).  The parameter
+//! pipeline walks all [`SecretSource`] variants, so secrets can be supplied
+//! as instance parameters just like any other template field.
 
 pub mod api_key;
 pub mod basic_auth;

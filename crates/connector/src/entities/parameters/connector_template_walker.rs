@@ -17,6 +17,7 @@
 
 use super::{TemplateMapString, TemplateString};
 use crate::entities::auth_config::AuthenticationConfig;
+use crate::entities::common::secret_management::{SecretSource, SecretString};
 use crate::entities::connector_template::ConnectorTemplateDto;
 use crate::entities::interaction::{InteractionConfig, PullLifecycle, PushLifecycle};
 use crate::entities::resource::{HttpSpec, KafkaSpec};
@@ -27,6 +28,18 @@ pub trait ConnectorTemplateWalker {
     fn on_string(&mut self, field: &mut TemplateString) -> Outcome<()>;
     fn on_vec_string(&mut self, field: &mut TemplateVecString) -> Outcome<()>;
     fn on_map_string(&mut self, field: &mut TemplateMapString) -> Outcome<()>;
+
+    fn walk_secret_string(&mut self, secret: &mut SecretString) -> Outcome<()> {
+        match &mut secret.source {
+            SecretSource::Plain(s) => self.on_string(s),
+            SecretSource::Base64(s) => self.on_string(s),
+            SecretSource::VaultRef { path, key } => {
+                self.on_string(path)?;
+                self.on_string(key)
+            }
+            SecretSource::EnvVar(s) => self.on_string(s),
+        }
+    }
 
     fn walk(&mut self, template: &mut ConnectorTemplateDto) -> Outcome<()> {
         self.walk_auth(&mut template.authentication)?;
@@ -39,19 +52,25 @@ pub trait ConnectorTemplateWalker {
             AuthenticationConfig::NoAuth => {}
             AuthenticationConfig::BasicAuth(c) => {
                 self.on_string(&mut c.username)?;
+                self.walk_secret_string(&mut c.password)?;
             }
-            AuthenticationConfig::BearerToken { .. } => {}
-            AuthenticationConfig::ApiKey { key, .. } => {
+            AuthenticationConfig::BearerToken { token } => {
+                self.walk_secret_string(token)?;
+            }
+            AuthenticationConfig::ApiKey { key, value, .. } => {
                 self.on_string(key)?;
+                self.walk_secret_string(value)?;
             }
             AuthenticationConfig::OAuth2 {
                 token_url,
                 client_id,
+                client_secret,
                 scopes,
                 ..
             } => {
                 self.on_string(token_url)?;
                 self.on_string(client_id)?;
+                self.walk_secret_string(client_secret)?;
                 self.on_vec_string(scopes)?;
             }
         }

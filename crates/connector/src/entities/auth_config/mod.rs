@@ -70,15 +70,18 @@ pub enum AuthenticationConfig {
         location: ApiKeyLocation,
     },
 
-    /// OAuth 2.0 client-credentials or authorization-code flow.
+    /// OAuth 2.0 flow (client-credentials, password, or authorization-code).
     ///
     /// `token_url`, `client_id`, and `scopes` support `{{__PARAM__}}` placeholders.
-    /// `client_secret` is a [`SecretString`] and is not parameterisable.
+    /// Grant-specific fields (e.g. `username` for `PASSWORD`) live inside `grant_type`.
     OAuth2 {
         grant_type: OAuthGrantType,
         token_url: TemplateString,
         client_id: TemplateString,
         client_secret: SecretString,
         scopes: TemplateVecString,
+        /// Action to take when the access token expires.  Defaults to [`TokenExpireAction::Refetch`].
+        #[serde(default)]
+        on_token_expire: TokenExpireAction,
     },
 }

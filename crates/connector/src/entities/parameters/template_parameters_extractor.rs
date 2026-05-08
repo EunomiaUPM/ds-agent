@@ -429,6 +429,7 @@ mod tests {
                     source: SecretSource::Plain("s3cr3t".to_string()),
                 },
                 scopes: TemplateVecString::Value(vec!["read".to_string()]),
+                on_token_expire: Default::default(),
             },
             interaction: InteractionConfig::Pull(PullLifecycle {
                 data_access: ProtocolSpec::Http(HttpSpec {
@@ -462,6 +463,7 @@ mod tests {
                     source: SecretSource::Plain("s3cr3t".to_string()),
                 },
                 scopes: TemplateVecString::Template("{{__SCOPES__}}".to_string()),
+                on_token_expire: Default::default(),
             },
             interaction: InteractionConfig::Pull(PullLifecycle {
                 data_access: ProtocolSpec::Http(HttpSpec {

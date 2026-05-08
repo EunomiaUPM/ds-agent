@@ -15,11 +15,40 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::entities::common::secret_management::SecretString;
+use crate::entities::parameters::TemplateString;
 use serde::{Deserialize, Serialize};
 
-/// OAuth 2.0 grant type.
+/// OAuth 2.0 grant type, carrying only the fields that are specific to each flow.
+///
+/// Common fields (`token_url`, `client_id`, `client_secret`, `scopes`) live in
+/// the parent [`AuthenticationConfig::OAuth2`] variant.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum OAuthGrantType {
+    /// Client Credentials flow (machine-to-machine).
     ClientCredentials,
+    /// Authorization Code flow (requires browser redirect).
     AuthorizationCode,
+    /// Resource Owner Password Credentials flow.
+    ///
+    /// `username` supports `{{__PARAM__}}` placeholders.
+    /// `password` is a [`SecretString`] and supports placeholders via its inner content.
+    Password {
+        username: TemplateString,
+        password: SecretString,
+    },
+}
+
+/// What the connector should do when the current OAuth2 access token expires.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum TokenExpireAction {
+    /// Re-authenticate from scratch using the configured grant flow.
+    #[default]
+    Refetch,
+    /// Use the `refresh_token` returned by the token endpoint; fall back to
+    /// [`Refetch`](Self::Refetch) if no refresh token is available.
+    RefreshOrRefetch,
 }

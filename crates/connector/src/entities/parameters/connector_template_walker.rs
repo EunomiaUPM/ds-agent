@@ -16,7 +16,7 @@
  */
 
 use super::{TemplateMapString, TemplateString};
-use crate::entities::auth_config::AuthenticationConfig;
+use crate::entities::auth_config::{AuthenticationConfig, OAuthGrantType};
 use crate::entities::common::secret_management::{SecretSource, SecretString};
 use crate::entities::connector_template::ConnectorTemplateDto;
 use crate::entities::interaction::{InteractionConfig, PullLifecycle, PushLifecycle};
@@ -62,6 +62,7 @@ pub trait ConnectorTemplateWalker {
                 self.walk_secret_string(value)?;
             }
             AuthenticationConfig::OAuth2 {
+                grant_type,
                 token_url,
                 client_id,
                 client_secret,
@@ -72,6 +73,10 @@ pub trait ConnectorTemplateWalker {
                 self.on_string(client_id)?;
                 self.walk_secret_string(client_secret)?;
                 self.on_vec_string(scopes)?;
+                if let OAuthGrantType::Password { username, password } = grant_type {
+                    self.on_string(username)?;
+                    self.walk_secret_string(password)?;
+                }
             }
         }
         Ok(())

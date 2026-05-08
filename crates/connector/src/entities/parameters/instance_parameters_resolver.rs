@@ -425,6 +425,7 @@ mod tests {
                     source: SecretSource::Plain("s3cr3t".to_string()),
                 },
                 scopes: TemplateVecString::Value(vec![]),
+                on_token_expire: Default::default(),
             },
             ..pull_http("https://api.example.com")
         };

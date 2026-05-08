@@ -188,6 +188,29 @@ pub async fn oauth2_context(
         client_id: client_id.to_string(),
         client_secret: plain_secret(client_secret),
         scopes: TemplateVecString::Value(vec![]),
+        on_token_expire: Default::default(),
+    })
+    .await
+}
+
+/// Provider context with OAuth2 Resource Owner Password Credentials (plain-text secrets).
+pub async fn oauth2_password_context(
+    token_url: &str,
+    client_id: &str,
+    client_secret: &str,
+    username: &str,
+    password: &str,
+) -> DataplaneContext {
+    provider_context(AuthenticationConfig::OAuth2 {
+        grant_type: OAuthGrantType::Password {
+            username: username.to_string(),
+            password: plain_secret(password),
+        },
+        token_url: token_url.to_string(),
+        client_id: client_id.to_string(),
+        client_secret: plain_secret(client_secret),
+        scopes: TemplateVecString::Value(vec![]),
+        on_token_expire: Default::default(),
     })
     .await
 }

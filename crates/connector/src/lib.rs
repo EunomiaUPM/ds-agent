@@ -35,7 +35,7 @@ pub use entities::resource::{HttpSpec, ProtocolSpec};
 pub use setup::ConnectorSetup;
 
 pub use entities::auth_config::{
-    ApiKeyLocation, AuthenticationConfig, BasicAuthConfig, OAuthGrantType,
+    ApiKeyLocation, AuthenticationConfig, BasicAuthConfig, OAuthGrantType, TokenExpireAction,
 };
 pub use entities::common::secret_management::{SecretSource, SecretString};
 pub use entities::parameters::runtime_parameters_resolver::RuntimeParametersResolver;

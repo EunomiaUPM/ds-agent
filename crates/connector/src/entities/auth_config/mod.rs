@@ -74,6 +74,7 @@ pub enum AuthenticationConfig {
     ///
     /// `token_url`, `client_id`, and `scopes` support `{{__PARAM__}}` placeholders.
     /// Grant-specific fields (e.g. `username` for `PASSWORD`) live inside `grant_type`.
+    #[serde(rename = "OAUTH2", rename_all = "camelCase")]
     OAuth2 {
         grant_type: OAuthGrantType,
         token_url: TemplateString,

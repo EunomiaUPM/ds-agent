@@ -106,7 +106,11 @@ async fn test_create_oauth2_password_grant_template() {
     });
     let mut dto: ConnectorTemplateDto = serde_json::from_value(json_dto).unwrap();
     let result = mock_entities().create_template(&mut dto).await;
-    assert!(result.is_ok(), "expected ok, got: {:#?}", result.unwrap_err());
+    assert!(
+        result.is_ok(),
+        "expected ok, got: {:#?}",
+        result.unwrap_err()
+    );
 }
 
 /// Happy path: all declared parameters match the template and the types are compatible.

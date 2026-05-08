@@ -16,7 +16,6 @@
  *  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
-use std::fmt::Debug;
 use crate::entities::negotiation_process::NegotiationProcessDto;
 use crate::protocols::dsp::orchestrator::rpc::types::RpcNegotiationProcessMessageTrait;
 use crate::protocols::dsp::persistence::NegotiationRpcPersistenceTrait;
@@ -28,6 +27,7 @@ use common::config::types::roles::RoleConfig;
 use common::dsp_common::odrl::OdrlMessageOffer;
 use common::facades::ssi_auth_facade::MatesFacadeTrait;
 use common::http_client::HttpClient;
+use std::fmt::Debug;
 use std::sync::Arc;
 use urn::Urn;
 use ymir::errors::Outcome;

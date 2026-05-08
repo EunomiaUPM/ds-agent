@@ -375,7 +375,10 @@ pub struct RpcNegotiationAgreementMessageDto {
 
 impl RpcNegotiationAgreementMessageDto {
     pub fn new(consumer_pid: Urn, provider_pid: Urn) -> Self {
-        Self { consumer_pid, provider_pid }
+        Self {
+            consumer_pid,
+            provider_pid,
+        }
     }
 }
 
@@ -454,7 +457,10 @@ pub struct RpcNegotiationVerificationMessageDto {
 
 impl RpcNegotiationVerificationMessageDto {
     pub fn new(consumer_pid: Urn, provider_pid: Urn) -> Self {
-        Self { consumer_pid, provider_pid }
+        Self {
+            consumer_pid,
+            provider_pid,
+        }
     }
 }
 
@@ -606,7 +612,10 @@ pub struct RpcNegotiationEventFinalizedMessageDto {
 
 impl RpcNegotiationEventFinalizedMessageDto {
     pub fn new(consumer_pid: Urn, provider_pid: Urn) -> Self {
-        Self { consumer_pid, provider_pid }
+        Self {
+            consumer_pid,
+            provider_pid,
+        }
     }
 }
 

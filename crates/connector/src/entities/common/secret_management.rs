@@ -28,10 +28,10 @@
 //! [`SecretString::resolve`] is a placeholder for vault / base64 / env-var
 //! resolution.  It is not yet implemented.
 
+use crate::entities::parameters::TemplateString;
 use base64::{engine::general_purpose::STANDARD, Engine};
 use serde::{Deserialize, Serialize};
 use ymir::errors::{Errors, Outcome};
-use crate::entities::parameters::TemplateString;
 
 /// Describes where a secret credential is stored.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -43,7 +43,10 @@ pub enum SecretSource {
     /// Base64-encoded value stored inline.
     Base64(TemplateString),
     /// A reference to a HashiCorp Vault path + key.
-    VaultRef { path: TemplateString, key: TemplateString },
+    VaultRef {
+        path: TemplateString,
+        key: TemplateString,
+    },
     /// The name of an environment variable that holds the secret.
     EnvVar(TemplateString),
 }

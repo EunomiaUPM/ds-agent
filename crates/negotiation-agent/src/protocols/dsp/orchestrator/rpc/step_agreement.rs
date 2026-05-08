@@ -30,7 +30,9 @@ use crate::protocols::dsp::protocol_types::{
     NegotiationAckMessageDto, NegotiationAgreementMessageDto, NegotiationProcessMessageWrapper,
 };
 use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRpcSteps;
-use common::dsp_common::odrl::{ContractRequestMessageOfferTypes, OdrlAgreement, OdrlMessageOffer, OdrlTypes};
+use common::dsp_common::odrl::{
+    ContractRequestMessageOfferTypes, OdrlAgreement, OdrlMessageOffer, OdrlTypes,
+};
 use common::facades::ssi_auth_facade::MatesFacadeTrait;
 use common::http_client::HttpClient;
 use std::sync::Arc;

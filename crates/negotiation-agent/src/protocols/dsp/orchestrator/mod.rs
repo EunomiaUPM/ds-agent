@@ -17,16 +17,16 @@
  *
  */
 
+pub(crate) mod bff;
 pub(crate) mod orchestrator;
 pub(crate) mod protocol;
 pub(crate) mod rpc;
 pub(crate) mod traits;
-pub(crate) mod bff;
 
+use crate::protocols::dsp::orchestrator::bff::BFFRPCOrchestratorTrait;
 use crate::protocols::dsp::orchestrator::protocol::ProtocolOrchestratorTrait;
 use crate::protocols::dsp::orchestrator::rpc::RPCOrchestratorTrait;
 use std::sync::Arc;
-use crate::protocols::dsp::orchestrator::bff::BFFRPCOrchestratorTrait;
 
 pub trait OrchestratorTrait: Send + Sync + 'static {
     fn get_protocol_service(&self) -> Arc<dyn ProtocolOrchestratorTrait>;

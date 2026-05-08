@@ -18,8 +18,12 @@
  */
 use crate::data::entities::transfer_event::{LogLevel, NewTransferEvent};
 use crate::data::factory_trait::DataplaneRepoTrait;
+use crate::entities::dataplane_drivers::proxy::http as http_proxy;
 use crate::entities::dataplane_manager::dataplane_proxy::{
     DataplaneProxyEgress, DataplaneProxyIngress,
+};
+use crate::entities::dataplane_manager::dataplane_runtime::{
+    DataplaneRuntime, ResolvedAuthCredentials,
 };
 use crate::entities::dataplane_transfers::DataplaneTransfersEntitiesTrait;
 use crate::entities::dataplane_transfers::{InteractionMode, TransferState};
@@ -174,8 +178,18 @@ impl TestingHTTPProxy {
             next_hop.push_str(&p);
         }
 
+        // Resolve auth credentials from the stored runtime (flow_control field).
+        let credentials = dataplane
+            .inner
+            .flow_control
+            .as_ref()
+            .and_then(|v| serde_json::from_value::<DataplaneRuntime>(v.clone()).ok())
+            .map(|rt| rt.auth)
+            .unwrap_or(ResolvedAuthCredentials::NoAuth);
+
+        let incoming_headers = req.headers().clone();
         let body = std::mem::take(req.body_mut());
-        let body_bytes = match to_bytes(body, 2024 * 1024) // MAX_BUFFER 2MB?
+        let body_bytes = match to_bytes(body, 2024 * 1024) // MAX_BUFFER 2MB
             .await
         {
             Ok(body_bytes) => body_bytes,
@@ -185,12 +199,20 @@ impl TestingHTTPProxy {
             Ok(method) => method,
             Err(_) => return (StatusCode::BAD_REQUEST, "method not allowed").into_response(),
         };
-        let res = state
-            .client
-            .request(method.clone(), next_hop.clone())
-            .body(body_bytes)
-            .send()
-            .await;
+
+        // Delegate to the proxy driver which injects auth headers.
+        let base_url = next_hop.clone();
+        let res = http_proxy::forward(
+            &state.client,
+            method.clone(),
+            &base_url,
+            None, // path already appended to next_hop above
+            &incoming_headers,
+            body_bytes,
+            &credentials,
+        )
+        .await
+        .map_err(|_| ());
 
         // Enhance Logging
         let role = dataplane.inner.role;

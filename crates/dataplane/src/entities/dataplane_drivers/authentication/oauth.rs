@@ -167,7 +167,14 @@ impl DriverAuthenticatorTrait for OauthAuthenticator {
             (TokenExpireAction::RefreshOrRefetch, Some(rt)) => {
                 Self::fetch_refresh(&token_url, &client_id, &secret, &rt)
                     .await
-                    .or(Self::fetch_grant(&grant_type, &token_url, &client_id, &secret, &scopes_vec).await)
+                    .or(Self::fetch_grant(
+                        &grant_type,
+                        &token_url,
+                        &client_id,
+                        &secret,
+                        &scopes_vec,
+                    )
+                    .await)
             }
             _ => Self::fetch_grant(&grant_type, &token_url, &client_id, &secret, &scopes_vec).await,
         }?;
@@ -189,7 +196,9 @@ impl DriverAuthenticatorTrait for OauthAuthenticator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_fixtures::{bearer_context, consumer_context, oauth2_context, oauth2_password_context};
+    use crate::test_fixtures::{
+        bearer_context, consumer_context, oauth2_context, oauth2_password_context,
+    };
 
     #[tokio::test]
     async fn returns_error_for_wrong_auth_type() {
@@ -216,14 +225,9 @@ mod tests {
     /// Validates graceful failure when the token URL is unreachable (password grant).
     #[tokio::test]
     async fn returns_error_when_token_url_unreachable_password_grant() {
-        let ctx = oauth2_password_context(
-            "http://127.0.0.1:1",
-            "client-id",
-            "secret",
-            "user",
-            "pass",
-        )
-        .await;
+        let ctx =
+            oauth2_password_context("http://127.0.0.1:1", "client-id", "secret", "user", "pass")
+                .await;
         let result = OauthAuthenticator.authenticate(&ctx).await;
         assert!(result.is_err());
     }

@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-mod dataplane_drivers;
+pub(crate) mod dataplane_drivers;
 pub(crate) mod dataplane_manager;
 pub mod dataplane_transfer_logs;
 pub mod dataplane_transfers;

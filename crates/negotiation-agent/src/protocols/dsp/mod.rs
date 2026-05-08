@@ -31,8 +31,10 @@ use crate::entities::negotiation_message::NegotiationAgentMessagesTrait;
 use crate::entities::negotiation_process::NegotiationAgentProcessesTrait;
 use crate::entities::offer::NegotiationAgentOffersTrait;
 use crate::protocols::dsp::facades::FacadeService;
+use crate::protocols::dsp::http::bff_rpc::BffRpcRouter;
 use crate::protocols::dsp::http::protocol::DspRouter;
 use crate::protocols::dsp::http::rpc::RpcRouter;
+use crate::protocols::dsp::orchestrator::bff::bff::BFFRPCOrchestratorService;
 use crate::protocols::dsp::orchestrator::orchestrator::OrchestratorService;
 use crate::protocols::dsp::orchestrator::protocol::persistence::OrchestrationPersistenceForProtocol;
 use crate::protocols::dsp::orchestrator::protocol::protocol::ProtocolOrchestratorService;
@@ -51,8 +53,6 @@ use common::facades::ssi_auth_facade::{MatesFacadeTrait, SSIAuthFacadeTrait};
 use common::http_client::HttpClient;
 use std::sync::Arc;
 use ymir::errors::Outcome;
-use crate::protocols::dsp::http::bff_rpc::BffRpcRouter;
-use crate::protocols::dsp::orchestrator::bff::bff::BFFRPCOrchestratorService;
 
 pub struct NegotiationDSP {
     negotiation_agent_process_entities: Arc<dyn NegotiationAgentProcessesTrait>,
@@ -156,9 +156,7 @@ impl ProtocolPluginTrait for NegotiationDSP {
             http_client.clone(),
             self.mates_service.clone(),
         ));
-        let bff_rpc_orchestator = Arc::new(BFFRPCOrchestratorService::new(
-            rpc_orchestator.clone(),
-        ));
+        let bff_rpc_orchestator = Arc::new(BFFRPCOrchestratorService::new(rpc_orchestator.clone()));
         let orchestrator_service = Arc::new(OrchestratorService::new(
             http_orchestator.clone(),
             rpc_orchestator.clone(),

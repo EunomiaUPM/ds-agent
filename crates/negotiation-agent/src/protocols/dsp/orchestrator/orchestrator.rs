@@ -18,27 +18,27 @@
  */
 
 use crate::protocols::dsp::orchestrator::OrchestratorTrait;
+use crate::protocols::dsp::orchestrator::bff::BFFRPCOrchestratorTrait;
 use crate::protocols::dsp::orchestrator::protocol::ProtocolOrchestratorTrait;
 use crate::protocols::dsp::orchestrator::rpc::RPCOrchestratorTrait;
 use std::sync::Arc;
-use crate::protocols::dsp::orchestrator::bff::BFFRPCOrchestratorTrait;
 
 pub struct OrchestratorService {
     protocol_service: Arc<dyn ProtocolOrchestratorTrait>,
     rpc_service: Arc<dyn RPCOrchestratorTrait>,
-    bff_rpc_service: Arc<dyn BFFRPCOrchestratorTrait>
+    bff_rpc_service: Arc<dyn BFFRPCOrchestratorTrait>,
 }
 
 impl OrchestratorService {
     pub fn new(
         protocol_service: Arc<dyn ProtocolOrchestratorTrait>,
         rpc_service: Arc<dyn RPCOrchestratorTrait>,
-        bff_rpc_service: Arc<dyn BFFRPCOrchestratorTrait>
+        bff_rpc_service: Arc<dyn BFFRPCOrchestratorTrait>,
     ) -> OrchestratorService {
         Self {
             protocol_service,
             rpc_service,
-            bff_rpc_service
+            bff_rpc_service,
         }
     }
 }

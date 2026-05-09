@@ -1,6 +1,7 @@
 use crate::entities::dataplane_drivers::DriverPubSubTrait;
 use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;
 use crate::entities::dataplane_manager::dataplane_proxy::HTTP_LISTENER_PATH;
+use crate::entities::dataplane_manager::dataplane_runtime::ResolvedAuthCredentials;
 use common::http_client::HttpClient;
 use connector::{InteractionConfig, ProtocolSpec, RuntimeParametersResolver, TemplateVecString};
 use serde_json::{json, Value};
@@ -16,6 +17,27 @@ impl HttpPubSubscriber {
     pub fn new() -> Self {
         let http_client = HttpClient::new(1, 1);
         Self { http_client }
+    }
+
+    /// Reads resolved credentials from the context runtime and configures the HTTP
+    /// client auth token for the next request.
+    ///
+    /// Only `BearerToken` and `OAuth2` are supported here — `HttpClient` sends an
+    /// `Authorization: Bearer <token>` header. Other credential types (BasicAuth,
+    /// ApiKey) cannot be injected through this client and are left as no-ops.
+    async fn apply_auth(&self, context: &DataplaneContext) {
+        let Some(runtime) = context.runtime() else {
+            return;
+        };
+        match &runtime.auth {
+            ResolvedAuthCredentials::BearerToken { token } => {
+                self.http_client.set_auth_token(token.clone()).await;
+            }
+            ResolvedAuthCredentials::OAuth2 { access_token, .. } => {
+                self.http_client.set_auth_token(access_token.clone()).await;
+            }
+            _ => {}
+        }
     }
 }
 
@@ -52,6 +74,7 @@ impl DriverPubSubTrait for HttpPubSubscriber {
             .as_ref()
             .map(|s| serde_json::from_str(s).unwrap_or_else(|_| json!(s)));
         let url = http_spec.url_template.clone();
+        self.apply_auth(context).await;
         let response: Value = {
             let b = body.unwrap_or(json!({}));
             self.http_client.post_json(&url, &b).await.map_err(|e| {
@@ -115,6 +138,7 @@ impl DriverPubSubTrait for HttpPubSubscriber {
             .map(|s| serde_json::from_str(s).unwrap_or_else(|_| json!(s)));
 
         // perform unsubscription
+        self.apply_auth(context).await;
         let response: Value = match method.as_str() {
             "DELETE" => {
                 self.http_client.delete::<()>(&url).await.map_err(|e| {

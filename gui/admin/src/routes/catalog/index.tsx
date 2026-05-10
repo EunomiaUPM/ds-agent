@@ -8,7 +8,9 @@ import { useFederatedCatalog } from "shared/src/data/useFederatedCatalog";
 import { useGetAllParticipants } from "shared/src/data/orval/participants/participants";
 import WizardDialog from "shared/src/components/WizardDialog";
 import { useRef, useState } from "react";
-import { Card, CardContent, CardFooter } from "shared/components/ui/card";
+import { Card, CardContent } from "shared/components/ui/card";
+import logoImg from "./../../../../shared/src/img/eunomia_logo_lg_light.svg";
+
 const RouteComponent = () => {
   const federated = useFederatedCatalog();
   const { data: participantsResponse } = useGetAllParticipants();
@@ -28,20 +30,25 @@ const RouteComponent = () => {
 
   if (federated.state === "no-authority") {
     return (
-      <PageLayout className="fixed top-0 left-0 w-full h-full bg-black/80 z-50 flex items-center justify-center">
-        <Card className="absolute w-[80dvw] h-[60dvh] flex flex-col justify-around items-center gap-6 text-center bg-background">
-          <CardContent className="flex flex-col gap-2">
-            <Heading level="h2">You haven't joined a Dataspace yet</Heading>
-            <p className="text-sm text-muted-foreground mb-8">
-              Add an authority to discover other participants and browse their catalogs.
-            </p>
-            <Link to="/authority/new">
-              <Button>
-                Join a Dataspace
-                <ArrowRight />
-              </Button>
-            </Link>
+      <PageLayout className="overlayContainer">
+        <Card className="overlayContent h-fit">
+          <div className="contentLogo">
+            <img src={logoImg} alt="Eunomia Logo" />
+          </div>
+          <CardContent className="contentMessage">
+            <div className="messageGroup">
+              <Heading level="h2">You haven't joined a Dataspace yet</Heading>
+              <p className="text-sm text-muted-foreground">
+                Add an authority to discover other participants and browse their catalogs.
+              </p>
+            </div>
           </CardContent>
+          <Link to="/authority/new" className="contentFooter">
+            <Button>
+              Join a Dataspace
+              <ArrowRight />
+            </Button>
+          </Link>
         </Card>
       </PageLayout>
     );

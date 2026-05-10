@@ -1,5 +1,5 @@
 import React from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowLeftRight,
   BookOpen,
@@ -7,7 +7,14 @@ import {
   HandshakeIcon,
   ShieldCheck,
   Users,
+  ArrowRight,
 } from "lucide-react";
+import { useFederatedCatalog } from "shared/src/data/useFederatedCatalog";
+import { Card, CardContent, CardFooter } from "shared/components/ui/card";
+import { PageLayout } from "shared/src/components/layout/PageLayout";
+import Heading from "shared/src/components/ui/heading.tsx";
+import { Button } from "shared/src/components/ui/button.tsx";
+import logoImg from "./../../../shared/src/img/eunomia_logo_lg_light.svg";
 
 const features = [
   {
@@ -49,41 +56,96 @@ const features = [
 ];
 
 const Index = () => {
-  return (
-    <div className="flex flex-1 flex-col gap-4 p-8 pt-6 overflow-hidden items-start justify-start w-full h-full">
-      <div className="p-6 max-w-3xl">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight mb-2">Welcome to Eunomia DS-Agent</h1>
-          <p className="text-muted-foreground text-base leading-relaxed">
-            Eunomia DS-Agent is a <strong>Dataspace Protocol</strong> administration console. It
-            gives operators full visibility and control over the <strong>catalog</strong>,{" "}
-            <strong>contract negotiations</strong>, <strong>agreements</strong>, and{" "}
-            <strong>data transfers</strong> that flow through the dataspace — alongside identity
-            management powered by <strong>Self-Sovereign Identity (SSI)</strong>.
-          </p>
-        </div>
+  const federated = useFederatedCatalog();
+  if (federated.state === "no-authority") {
+    return (
+      <PageLayout className="overlayContainer">
+        <Card className="overlayContent">
+          {/* logo */}
+          <div className="contentLogo">
+            <img src={logoImg} alt="Eunomia Logo" />
+          </div>
+          {/* message */}
+          <div className="contentMessage">
+            <div className="messageGroup">
+              <Heading level="h1" className="text-snow">
+                Welcome to Eunomia DS-Agent
+              </Heading>
+              <p className="text-white/70 text-balance text-base leading-relaxed">
+                Eunomia DS-Agent is a <strong>Dataspace Protocol</strong> administration console. It
+                gives operators full visibility and control over the <strong>catalog</strong>,{" "}
+                <strong>contract negotiations</strong>, <strong>agreements</strong>, and{" "}
+                <strong>data transfers</strong> that flow through the dataspace — alongside identity
+                management powered by <strong>Self-Sovereign Identity (SSI)</strong>.
+              </p>
+            </div>
+            <div className="messageGroup">
+              <h2 className="text-lg font-semibold mb-2 text-foreground">What you can do</h2>
 
-        <h2 className="text-lg font-semibold mb-4 text-foreground/80">What you can do</h2>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {features.map(({ icon: Icon, title, description }) => (
-            <div
-              key={title}
-              className="rounded-xl border border-white/10 bg-white/5 p-4 flex gap-3 items-start hover:bg-white/10 transition-colors"
-            >
-              <div className="mt-0.5 shrink-0 text-primary">
-                <Icon className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="font-semibold text-sm mb-1">{title}</p>
-                <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
+                {features.map(({ icon: Icon, title, description }) => (
+                  <div
+                    key={title}
+                    className="rounded-xl border border-white/10 bg-white/5 p-4 flex gap-3 items-start hover:bg-white/10 transition-colors"
+                  >
+                    <div className="mt-0.5 shrink-0 text-primary">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-sm mb-1">{title}</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          ))}
+          </div>
+          <Link to="/catalog">
+            <Button>
+              Explore the platform
+              <ArrowRight />
+            </Button>
+          </Link>
+        </Card>
+      </PageLayout>
+    );
+  } else {
+    return (
+      <div className="flex flex-1 flex-col gap-4 p-8 pt-6 overflow-hidden items-start justify-start w-full h-full">
+        <div className="p-6 max-w-3xl">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold tracking-tight mb-2">Welcome to Eunomia DS-Agent</h1>
+            <p className="text-muted-foreground text-base leading-relaxed">
+              Eunomia DS-Agent is a <strong>Dataspace Protocol</strong> administration console. It
+              gives operators full visibility and control over the <strong>catalog</strong>,{" "}
+              <strong>contract negotiations</strong>, <strong>agreements</strong>, and{" "}
+              <strong>data transfers</strong> that flow through the dataspace — alongside identity
+              management powered by <strong>Self-Sovereign Identity (SSI)</strong>.
+            </p>
+          </div>
+
+          <h2 className="text-lg font-semibold mb-4 text-foreground/80">What you can do</h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {features.map(({ icon: Icon, title, description }) => (
+              <div
+                key={title}
+                className="rounded-xl border border-white/10 bg-white/5 p-4 flex gap-3 items-start hover:bg-white/10 transition-colors"
+              >
+                <div className="mt-0.5 shrink-0 text-primary">
+                  <Icon className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm mb-1">{title}</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  }
 };
 
 export const Route = createFileRoute("/")({

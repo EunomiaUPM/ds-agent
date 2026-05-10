@@ -64,7 +64,10 @@ impl TestingHTTPProxy {
         dataplane_service: Arc<dyn DataplaneTransfersEntitiesTrait>,
         repo: Arc<dyn DataplaneRepoTrait>,
     ) -> Self {
-        let client = reqwest::Client::new();
+        let client = reqwest::Client::builder()
+            .danger_accept_invalid_certs(true)
+            .build()
+            .expect("Fallo al construir el cliente HTTP de reqwest");
         Self {
             client,
             dataplane_service,
@@ -178,6 +181,12 @@ impl TestingHTTPProxy {
             next_hop.push_str(&p);
         }
 
+        // Append query
+        if let Some(query) = req.uri().query() {
+            next_hop.push('?');
+            next_hop.push_str(query);
+        }
+
         // Resolve auth credentials from the stored runtime (flow_control field).
         let credentials = dataplane
             .inner
@@ -211,8 +220,7 @@ impl TestingHTTPProxy {
             body_bytes,
             &credentials,
         )
-        .await
-        .map_err(|_| ());
+        .await;
 
         // Enhance Logging
         let role = dataplane.inner.role;
@@ -265,7 +273,9 @@ impl TestingHTTPProxy {
         // forward request upstream
         match res {
             Ok(res) => Self::forward_response_helper(res),
-            Err(_) => return (StatusCode::BAD_GATEWAY, "peer connection problem").into_response(),
+            Err(e) => {
+                return (StatusCode::BAD_GATEWAY, format!("peer connection problem by: {:?}", e)).into_response()
+            }
         }
     }
 

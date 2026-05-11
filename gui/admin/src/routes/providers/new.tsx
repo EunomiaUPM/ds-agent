@@ -1,25 +1,35 @@
-import { AlertCircle, CheckCircle2, Loader2, Search } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { formatIdentifier } from 'shared/lib/utils';
-import { PageHeader } from 'shared/src/components/layout/PageHeader';
-import { PageLayout } from 'shared/src/components/layout/PageLayout';
-import { PageSection } from 'shared/src/components/layout/PageSection';
-import { Badge } from 'shared/src/components/ui/badge';
-import { Button } from 'shared/src/components/ui/button';
+import { AlertCircle, CheckCircle2, Loader2, Search } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { useForm } from "react-hook-form";
+import { formatIdentifier } from "shared/lib/utils";
+import { PageHeader } from "shared/src/components/layout/PageHeader";
+import { PageLayout } from "shared/src/components/layout/PageLayout";
+import { PageSection } from "shared/src/components/layout/PageSection";
+import { Badge } from "shared/src/components/ui/badge";
+import { Button } from "shared/src/components/ui/button";
 import {
-  Card, CardContent, CardDescription, CardHeader, CardTitle
-} from 'shared/src/components/ui/card';
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "shared/src/components/ui/card";
 import {
-  Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage
-} from 'shared/src/components/ui/form';
-import { Input } from 'shared/src/components/ui/input';
-import { customInstance } from 'shared/src/data/orval-mutator';
-import { useFederatedCatalog } from 'shared/src/data/useFederatedCatalog';
-import * as z from 'zod';
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "shared/src/components/ui/form";
+import { Input } from "shared/src/components/ui/input";
+import { customInstance } from "shared/src/data/orval-mutator";
+import { useFederatedCatalog } from "shared/src/data/useFederatedCatalog";
+import * as z from "zod";
 
-import { zodResolver } from '@hookform/resolvers/zod';
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { zodResolver } from "@hookform/resolvers/zod";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useGetAllParticipants } from "shared/src/data/orval/participants/participants";
 import WizardDialog from "shared/src/components/WizardDialog";
 
@@ -62,24 +72,21 @@ function NewProviderOnboard() {
   } | null>(null);
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
   const { data: participantsResponse } = useGetAllParticipants();
-  const localParticipants =
-    participantsResponse?.status === 200 ? participantsResponse.data : [];
-   
+  const localParticipants = participantsResponse?.status === 200 ? participantsResponse.data : [];
+
   const federated = useFederatedCatalog();
   const knownProviders = federated.state === "ok" ? federated.agents : [];
 
-
-    const labelURLRef = useRef<HTMLElement | null>(null);
-    // first wizard URL state
+  const labelURLRef = useRef<HTMLElement | null>(null);
+  // first wizard URL state
   const [wizardURLOpen, setWizardURLOpen] = useState(true);
 
-
-
-  //  if (!Array.isArray(localParticipants) || !Array.isArray(knownProviders)) 
-  //   return undefined; 
-    const localParticiapntsIds = new Set(localParticipants?.map((p) => p.participant_id));
-    const onboardedWithKnownProvider = knownProviders.find((prov) => localParticiapntsIds?.has(prov.participant_id));
-
+  //  if (!Array.isArray(localParticipants) || !Array.isArray(knownProviders))
+  //   return undefined;
+  const localParticiapntsIds = new Set(localParticipants?.map((p) => p.participant_id));
+  const onboardedWithKnownProvider = knownProviders.find((prov) =>
+    localParticiapntsIds?.has(prov.participant_id),
+  );
 
   const search = Route.useSearch();
 
@@ -160,30 +167,31 @@ function NewProviderOnboard() {
     }
   };
 
- let highlightButtonClasses = !onboardedWithKnownProvider ? " animate-pulse bg-secondary-600 hover:bg-secondary-500 ring-2 ring-secondary-400" : "";
-
-
+  let highlightButtonClasses = !onboardedWithKnownProvider
+    ? " animate-pulse bg-secondary-600 hover:bg-secondary-500 ring-2 ring-secondary-400"
+    : "";
 
   return (
     <PageLayout>
       <PageHeader title="New Connection" />
-      {!onboardedWithKnownProvider && 
-      <WizardDialog 
-        open={wizardURLOpen}
-        onClose={() => setWizardURLOpen(false)}
-        anchorRef={labelURLRef}
-        align="left"
-        sectionTitle={"Connection with Participant Tutorial"}
-        step="3 of 3"
-        title="New Connection with catalog owner"
-        content={
-          <>
-            The URL of the participant has already been filled, so you can send the participant a connection request.
-            <br />
-
-          </>}
-      />
-      }
+      {!onboardedWithKnownProvider && (
+        <WizardDialog
+          open={wizardURLOpen}
+          onClose={() => setWizardURLOpen(false)}
+          anchorRef={labelURLRef}
+          align="left"
+          sectionTitle={"Connection with Participant Tutorial"}
+          step="3 of 3"
+          title="New Connection with catalog owner"
+          content={
+            <>
+              The URL of the participant has already been filled, so you can send the participant a
+              connection request.
+              <br />
+            </>
+          }
+        />
+      )}
       <PageSection>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
@@ -202,7 +210,9 @@ function NewProviderOnboard() {
                       name="url"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel ref={(el) => (labelURLRef.current = el as any) }>Participant URL</FormLabel>
+                          <FormLabel ref={(el) => (labelURLRef.current = el as any)}>
+                            Participant URL
+                          </FormLabel>
                           <div className="flex items-center gap-2">
                             <FormControl className="flex-1">
                               <Input
@@ -385,7 +395,9 @@ function NewProviderOnboard() {
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                         Provider DID
                       </p>
-                      <Badge variant="infoLighter">{formatIdentifier(discoveredInfo.id)}</Badge>
+                      <Badge variant="infoLighter">
+                        {formatIdentifier(discoveredInfo.id, 0, true, 40)}
+                      </Badge>
                     </div>
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -398,7 +410,7 @@ function NewProviderOnboard() {
                             className="p-2 border rounded bg-background-200/30 text-sm space-y-1"
                           >
                             <p className="font-medium text-brand-sky">{s.type}</p>
-                            <p className="break-all text-white/70">{s.serviceEndpoint}</p>
+                            <p className="break-all text-xs text-white/70">{s.serviceEndpoint}</p>
                           </div>
                         ))}
                         {discoveredInfo.services.length === 0 && (

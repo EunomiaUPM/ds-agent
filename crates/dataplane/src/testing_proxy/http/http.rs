@@ -183,7 +183,8 @@ impl TestingHTTPProxy {
 
         // Append query
         if let Some(query) = req.uri().query() {
-            next_hop.push('?');
+            let sep = if next_hop.contains('?') { '&' } else { '?' };
+            next_hop.push(sep);
             next_hop.push_str(query);
         }
 

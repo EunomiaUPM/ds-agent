@@ -26,7 +26,7 @@ use urn::Urn;
 /// Unified DSP transfer context.
 #[derive(Debug, Clone)]
 pub struct DspTransferContext {
-    // ── Set at the HTTP boundary ──────────────────────────────────────────────
+    // Set at the HTTP boundary ──────────────────────────────────────────────
     /// Peer-facing process PID from the URL path `/{id}`.
     /// `None` for the request step (no prior process exists).
     /// `Some` for all continuation steps (inbound protocol path).
@@ -42,7 +42,7 @@ pub struct DspTransferContext {
     /// `None` on the outbound RPC path.
     pub associated_peer: Option<Mates>,
 
-    // ── Populated in prepare_context ─────────────────────────────────────────
+    // Populated in prepare_context ─────────────────────────────────────────
     /// Full persisted process record. `None` until the first DB interaction.
     /// Updated in-place on every state transition.
     pub process: Option<TransferProcessDto>,
@@ -63,7 +63,7 @@ pub struct DspTransferContext {
     /// Pre-allocated local process ID generated before the first HTTP send.
     pub local_process_id: Option<Urn>,
 
-    // ── Data-plane negotiation ────────────────────────────────────────────────
+    // Data-plane negotiation ────────────────────────────────────────────────
     /// Data address contributed by the message sender.
     /// PUSH mode request: consumer's ingest URL.
     /// `None` in PULL mode request.
@@ -72,11 +72,11 @@ pub struct DspTransferContext {
     /// Data address produced by our local dataplane (proxy / ingress URL).
     pub resolved_data_address: Option<DataAddressDto>,
 
-    // ── Outbound routing ──────────────────────────────────────────────────────
+    // Outbound routing ──────────────────────────────────────────────────────
     /// Provider's base URL for outbound DSP messages (RPC path only).
     pub provider_address: Option<String>,
 
-    // ── Lifecycle flags ───────────────────────────────────────────────────────
+    // Lifecycle flags ───────────────────────────────────────────────────────
     /// `true` when resuming a previously suspended transfer.
     /// Prevents the dataplane from re-initialising an active session.
     pub is_restart: bool,

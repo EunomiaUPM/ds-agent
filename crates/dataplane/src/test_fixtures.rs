@@ -27,7 +27,7 @@ use std::sync::Arc;
 use urn::Urn;
 use ymir::errors::Outcome;
 
-// ── local mock for ConnectorInstanceTrait ────────────────────────────────────
+// local mock for ConnectorInstanceTrait ────────────────────────────────────
 
 mock! {
     pub ConnectorInstance {}
@@ -46,7 +46,7 @@ mock! {
     }
 }
 
-// ── internal helpers ──────────────────────────────────────────────────────────
+// internal helpers ──────────────────────────────────────────────────────────
 
 fn tp_urn() -> Urn {
     Urn::from_str("urn:transfer-process:test-1").unwrap()
@@ -142,7 +142,7 @@ async fn provider_context(auth: AuthenticationConfig) -> DataplaneContext {
     .unwrap()
 }
 
-// ── public fixtures ───────────────────────────────────────────────────────────
+// public fixtures ───────────────────────────────────────────────────────────
 
 /// Provider context with `NoAuth` — useful to confirm wrong-type rejections.
 pub async fn no_auth_context() -> DataplaneContext {

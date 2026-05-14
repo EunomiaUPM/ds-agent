@@ -9,7 +9,7 @@ pub(crate) mod service;
 pub(crate) mod views;
 
 #[async_trait::async_trait]
-pub(crate) trait TransferProcessServiceTrait {
+pub(crate) trait TransferProcessServiceTrait: Send + Sync + 'static {
     async fn get_all(
         &self,
         filters: &TransferProcessFilter,

@@ -95,7 +95,7 @@ impl TransferProcess {
         }
     }
 
-    // ── Mutators ──────────────────────────────────────────────────────────────
+    // Mutators ──────────────────────────────────────────────────────────────
 
     pub fn apply_edit(&mut self, cmd: EditTransferProcessCommand) {
         if let Some(state) = cmd.state {
@@ -124,12 +124,13 @@ impl TransferProcess {
         self.updated_at = Utc::now();
     }
 
-    // ── Accessors ─────────────────────────────────────────────────────────────
+    // Accessors ─────────────────────────────────────────────────────────────
 
     pub fn id(&self) -> &TransferProcessId { &self.transfer_id }
     pub fn tenant_id(&self) -> &TenantId { &self.tenant_id }
     pub fn protocol(&self) -> &ProtocolId { &self.protocol }
     pub fn state(&self) -> &ProtocolState { &self.protocol_state }
+    pub fn state_metadata(&self) -> &StateMetadata { &self.state_metadata }
     pub fn role(&self) -> TransferRole { self.role }
     pub fn version(&self) -> u64 { self.version as u64 }
     pub fn correlation(&self) -> &TransferCorrelation { &self.correlation }
@@ -140,7 +141,7 @@ impl TransferProcess {
     pub fn created_at(&self) -> DateTime<Utc> { self.created_at }
     pub fn updated_at(&self) -> DateTime<Utc> { self.updated_at }
 
-    // ── Predicates ────────────────────────────────────────────────────────────
+    // Predicates ────────────────────────────────────────────────────────────
 
     pub fn belongs_to(&self, tenant: &TenantId) -> bool { &self.tenant_id == tenant }
     pub fn uses_protocol(&self, protocol: &ProtocolId) -> bool { &self.protocol == protocol }
@@ -160,7 +161,7 @@ fn json_merge(base: &mut Json, patch: Json) {
     }
 }
 
-// ── Builder ───────────────────────────────────────────────────────────────────
+// Builder ───────────────────────────────────────────────────────────────────
 
 #[derive(Clone, Default)]
 pub(crate) struct TransferProcessBuilder {

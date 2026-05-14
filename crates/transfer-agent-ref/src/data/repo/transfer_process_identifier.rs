@@ -11,6 +11,11 @@ pub trait TransferIdentifierRepoTrait: Send + Sync {
         process_id: &Urn,
     ) -> Outcome<Vec<TransferProcessIdentifier>>;
 
+    async fn get_identifiers_by_batch_process_id(
+        &self,
+        process_id_batch: &Vec<Urn>,
+    ) -> Outcome<Vec<TransferProcessIdentifier>>;
+
     async fn get_identifier_by_key(
         &self,
         process_id: &Urn,

@@ -1,11 +1,13 @@
 use std::fmt;
 use std::str::FromStr;
 use compact_str::CompactString;
+use serde::{Deserialize, Serialize};
 use urn::Urn;
 
-// ── URN-based identifiers ─────────────────────────────────────────────────────
+// URN-based identifiers ─────────────────────────────────────────────────────
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(transparent)]
 pub(crate) struct TransferProcessId(pub(crate) Urn);
 
 impl TransferProcessId {
@@ -22,7 +24,8 @@ impl fmt::Display for TransferProcessId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{}", self.0) }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(transparent)]
 pub(crate) struct MessageId(pub(crate) Urn);
 
 impl MessageId {
@@ -39,7 +42,8 @@ impl fmt::Display for MessageId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{}", self.0) }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(transparent)]
 pub(crate) struct ParticipantId(pub(crate) Urn);
 
 impl ParticipantId {
@@ -51,9 +55,10 @@ impl fmt::Display for ParticipantId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{}", self.0) }
 }
 
-// ── String-based identifiers ──────────────────────────────────────────────────
+// String-based identifiers ──────────────────────────────────────────────────
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(transparent)]
 pub(crate) struct TenantId(pub(crate) String);
 
 impl TenantId {
@@ -66,7 +71,8 @@ impl fmt::Display for TenantId {
 }
 
 /// X-Correlation-ID: ties a chain of related requests/responses together.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(transparent)]
 pub(crate) struct CorrelationId(pub(crate) CompactString);
 
 impl CorrelationId {
@@ -79,7 +85,8 @@ impl fmt::Display for CorrelationId {
 }
 
 /// X-Request-ID: unique identifier for a single inbound/outbound request.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(transparent)]
 pub(crate) struct RequestId(pub(crate) CompactString);
 
 impl RequestId {
@@ -96,7 +103,7 @@ impl fmt::Display for RequestId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{}", self.0) }
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// Helpers ───────────────────────────────────────────────────────────────────
 
 fn uuid_urn(prefix: &str) -> Urn {
     Urn::from_str(&format!("urn:{}:{}", prefix, uuid::Uuid::new_v4()))

@@ -12,6 +12,7 @@ members = [
     "crates/transfer-agent",
     "crates/connector",
     "crates/transfer-agent-ref",
+    "crates/oauth",
 ]
 exclude = [
     "static",
@@ -83,5 +84,6 @@ redis = { version = "1.0.2", features = ["default", "aio", "tokio-comp", "json"]
 regex = "1.12.2"
 tonic-prost-build = "0.14.5"
 compact_str = { version = "0.8", features = ["serde"] }
+argon2 = "0.5.3"
 ymir = {git = "https://github.com/EunomiaUPM/ymir.git", tag = "v0.7.0"}
 #ymir = { path = "./../ymir" }

@@ -32,7 +32,7 @@ pub(crate) struct NewTransferProcessCommand {
     pub properties: Option<Json>,
 }
 
-pub(crate) struct EditCommand {
+pub(crate) struct EditTransferProcessCommand {
     // state
     pub state: Option<ProtocolState>,
     pub state_metadata: Option<StateMetadata>,

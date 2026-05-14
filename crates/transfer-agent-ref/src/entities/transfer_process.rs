@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use chrono::{DateTime, Duration, Utc};
 use serde_json::Value as Json;
-use crate::entities::commands::EditCommand;
+use crate::entities::commands::EditTransferProcessCommand;
 use crate::entities::ids::{TenantId, TransferProcessId};
 use crate::entities::message_envelope::MessageEnvelopeRef;
 use crate::entities::protocol::{
@@ -97,7 +97,7 @@ impl TransferProcess {
 
     // ── Mutators ──────────────────────────────────────────────────────────────
 
-    pub fn apply_edit(&mut self, cmd: EditCommand) {
+    pub fn apply_edit(&mut self, cmd: EditTransferProcessCommand) {
         if let Some(state) = cmd.state {
             self.protocol_state = state;
             self.state_metadata = cmd.state_metadata.unwrap_or(StateMetadata::empty());

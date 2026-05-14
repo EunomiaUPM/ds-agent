@@ -39,11 +39,9 @@ function RouteComponent() {
   const otherParticipantSlug =
     otherParticipant?.participant_slug?.toString() || "Unknown Participant";
 
-  console.log("current dataset in participant dataset route", currentDataset);
-  console.log("distributioOOoOon", currentDataset?.distribution);
-
   useEffect(() => {
     mutate({
+      
       data: {
         associatedAgentPeer: participantId,
         filter: [],
@@ -70,7 +68,7 @@ function RouteComponent() {
   }
 
   const dataset = data?.status === 200 ? data.data : undefined;
-  console.log("dataset in participant dataset route", dataset);
+
 
   if (!dataset) return null;
 

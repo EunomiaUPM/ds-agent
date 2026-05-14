@@ -10,3 +10,4 @@ export const FormatDate = ({ date, format = "DD/MM/YYYY - HH:mm" }: FormatDatePr
   if (!date) return <span className="text-gray-400">-</span>;
   return <span>{dayjs(date).format(format)}</span>;
 };
+

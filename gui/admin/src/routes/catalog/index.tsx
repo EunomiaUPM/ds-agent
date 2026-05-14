@@ -65,6 +65,7 @@ const RouteComponent = () => {
   }
 
   const { agents } = federated;
+  console.log(federated, "federated")
   console.log(localParticipants, "localparticipants");
   console.log(agents, "agents");
 
@@ -90,7 +91,7 @@ const RouteComponent = () => {
           onClose={() => setWizardCatalogOpen(false)}
           anchorRef={labelCatalogRef}
           align="left"
-          step={"1 3"}
+          step={"1 of 3"}
           sectionTitle="Connection with Participant Tutorial"
           title="Catalog browser"
           content={
@@ -107,6 +108,7 @@ const RouteComponent = () => {
           const isOnboarded = localParticipants.some(
             (lp) => lp.participant_id === p.participant_id && !lp.is_me,
           );
+          console.log(isOnboarded, "isOnboarded")
           const unauthRedirect = isOnboarded ? null : { url: p.base_url, slug: p.participant_slug };
           return (
             <div

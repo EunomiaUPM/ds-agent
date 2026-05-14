@@ -40,9 +40,6 @@ const RouteComponent = () => {
   const { data: mainCatalogData } = useGetMainCatalogs();
   const mainCatalog = mainCatalogData?.status === 200 ? mainCatalogData.data : undefined;
 
-  console.log(mainCatalog, "maincatalog")
-  console.log(mainCatalog?.id, "maincatalog ID")
-
   const catalogId = mainCatalog?.id || ""
   const { data: catalogData } = useGetCatalogById(catalogId);
   const { data: datasetsData } = useGetDatasetsByCatalogId(catalogId);

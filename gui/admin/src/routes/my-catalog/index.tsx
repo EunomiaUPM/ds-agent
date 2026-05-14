@@ -147,11 +147,11 @@ function RouteComponent() {
               datasets.map((dataset) => (
                 <DatasetItem
                   key={dataset.id}
-                  title={dataset.dctTitle!}
-                  description={dataset.dctDescription!}
-                  date={dataset.dctIssued!}
-                  prevRoute={catalog.id!}
-                  datasetId={dataset.id!}
+                  title={dataset.dctTitle ?? ""}
+                  description={dataset.dctDescription ?? ""}
+                  date={dataset.dctIssued ?? ""}
+                  prevRoute={catalog.id ?? ""}
+                  datasetId={dataset.id ?? ""}
                   ownDataset={true}
                   dataset={dataset}
                 />

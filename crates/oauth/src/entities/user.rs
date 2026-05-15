@@ -7,6 +7,7 @@ pub struct User {
     pub tenant_id: String,
     pub email: String,
     pub password_hash: String,
+    pub password_salt: String,
     pub role: Role,
     pub created_at: DateTime<Utc>,
     pub extra_fields: serde_json::Value,

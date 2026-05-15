@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::entities::query::{Page, Sort, UserFilter};
+
 #[derive(Deserialize)]
 pub(crate) struct PasswordGrantRequest {
     pub username: String,
@@ -27,6 +29,18 @@ pub(crate) struct OpenIdConfiguration {
     pub grant_types_supported: Vec<String>,
     pub scopes_supported: Vec<String>,
     pub claims_supported: Vec<String>,
+}
+
+// ── User list query params ────────────────────────────────────────────────────
+
+#[derive(Deserialize, Default)]
+pub(crate) struct UserListQuery {
+    #[serde(flatten)]
+    pub filter: UserFilter,
+    #[serde(flatten)]
+    pub page: Page,
+    #[serde(default)]
+    pub sort: Sort,
 }
 
 impl OpenIdConfiguration {

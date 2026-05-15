@@ -1,11 +1,12 @@
-use crate::entities::refresh_token::RefreshToken;
 use thiserror::Error;
 use uuid::Uuid;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
+use crate::entities::refresh_token::RefreshToken;
+
 #[mockall::automock]
 #[async_trait::async_trait]
-pub trait RefreshTokenRepoTrait: Send + Sync {
+pub(crate) trait RefreshTokenRepository: Send + Sync {
     async fn create(&self, token: &RefreshToken) -> Outcome<RefreshToken>;
     async fn get_by_jti(&self, jti: &str) -> Outcome<Option<RefreshToken>>;
     async fn revoke(&self, id: Uuid) -> Outcome<()>;
@@ -13,11 +14,11 @@ pub trait RefreshTokenRepoTrait: Send + Sync {
 }
 
 #[derive(Debug, Error)]
-pub enum RefreshTokenRepoError {
-    #[error("Token not found")]
+pub(crate) enum RefreshTokenRepositoryError {
+    #[error("token not found")]
     NotFound,
-    #[error("Error accessing refresh tokens: {0}")]
+    #[error("database error: {0}")]
     Db(Box<dyn std::error::Error + Send + Sync>),
 }
 
-impl RepoIntoErrors for RefreshTokenRepoError {}
+impl RepoIntoErrors for RefreshTokenRepositoryError {}

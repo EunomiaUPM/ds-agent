@@ -19,6 +19,7 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(OauthUsers::TenantId).string().not_null().primary_key())
                     .col(ColumnDef::new(OauthUsers::Email).string().not_null().unique_key())
                     .col(ColumnDef::new(OauthUsers::PasswordHash).string().not_null())
+                    .col(ColumnDef::new(OauthUsers::PasswordSalt).string().not_null())
                     .col(ColumnDef::new(OauthUsers::Role).string().not_null())
                     .col(
                         ColumnDef::new(OauthUsers::CreatedAt)
@@ -47,6 +48,7 @@ pub enum OauthUsers {
     TenantId,
     Email,
     PasswordHash,
+    PasswordSalt,
     Role,
     CreatedAt,
     ExtraFields,

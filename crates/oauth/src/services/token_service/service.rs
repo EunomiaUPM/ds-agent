@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use chrono::Utc;
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
@@ -8,24 +7,25 @@ use uuid::Uuid;
 use ymir::errors::{BadFormat, Errors, Outcome};
 
 use crate::config::OAuthConfig;
-use crate::data::repo::refresh_token_repo::RefreshTokenRepoTrait;
-use crate::data::repo::user_repo::UserRepoTrait;
+use crate::data::repositories::refresh_token::RefreshTokenRepository;
+use crate::data::repositories::user::UserRepository;
 use crate::entities::refresh_token::RefreshToken;
 use crate::entities::role::Role;
+use crate::services::password;
 use crate::services::token_service::jwt::{as_map, AccessClaims, IdTokenClaims, RefreshClaims};
 use crate::services::token_service::views::TokenResponse;
 use crate::services::token_service::{Claims, TokenServiceTrait};
 
 pub(crate) struct TokenService {
-    user_repo: Arc<dyn UserRepoTrait>,
-    refresh_repo: Arc<dyn RefreshTokenRepoTrait>,
+    user_repo: Arc<dyn UserRepository>,
+    refresh_repo: Arc<dyn RefreshTokenRepository>,
     config: OAuthConfig,
 }
 
 impl TokenService {
     pub fn new(
-        user_repo: Arc<dyn UserRepoTrait>,
-        refresh_repo: Arc<dyn RefreshTokenRepoTrait>,
+        user_repo: Arc<dyn UserRepository>,
+        refresh_repo: Arc<dyn RefreshTokenRepository>,
         config: OAuthConfig,
     ) -> Self {
         Self { user_repo, refresh_repo, config }
@@ -115,13 +115,7 @@ impl TokenServiceTrait for TokenService {
             .await?
             .ok_or_else(|| Errors::format(BadFormat::Received, "invalid credentials", None))?;
 
-        PasswordHash::new(&user.password_hash)
-            .map_err(|e| Errors::crazy("password hash error", Some(e.to_string().into())))
-            .and_then(|h| {
-                Argon2::default()
-                    .verify_password(password.as_bytes(), &h)
-                    .map_err(|_| Errors::format(BadFormat::Received, "invalid credentials", None))
-            })?;
+        password::verify_password(password, &user.password_hash)?;
 
         let extra = as_map(user.extra_fields);
         Ok(TokenResponse {

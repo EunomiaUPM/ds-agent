@@ -1,15 +1,19 @@
 use std::sync::Arc;
 
 use axum::extract::rejection::JsonRejection;
-use axum::extract::{Path, State};
-use axum::http::{HeaderMap, StatusCode};
+use axum::extract::{Extension, Path, Query, Request, State};
+use axum::http::StatusCode;
+use axum::middleware::Next;
+use axum::response::Response;
 use axum::routing::get;
-use axum::{Json, Router};
+use axum::{middleware, Json, Router};
 use ymir::errors::{AppResult, BadFormat, Errors, Outcome};
 use ymir::utils::extract_payload;
 
 use crate::entities::commands::{CreateUserCommand, PatchUserCommand};
+use crate::entities::query::Paginated;
 use crate::entities::role::Role;
+use crate::http::forms::UserListQuery;
 use crate::http::helpers::bearer;
 use crate::services::token_service::{Claims, TokenServiceTrait};
 use crate::services::user_service::views::UserView;
@@ -27,7 +31,7 @@ impl UsersRouter {
     }
 
     pub(crate) fn router(self) -> Router {
-        Router::new()
+        let protected = Router::new()
             .route("/", get(Self::handle_list).post(Self::handle_create))
             .route(
                 "/{id}",
@@ -35,52 +39,61 @@ impl UsersRouter {
                     .patch(Self::handle_patch)
                     .delete(Self::handle_delete),
             )
-            .with_state(self)
+            .route_layer(middleware::from_fn_with_state(self.clone(), Self::auth_middleware));
+
+        Router::new().merge(protected).with_state(self)
     }
 
-    async fn auth(&self, headers: &HeaderMap) -> Outcome<Claims> {
-        self.token_svc.validate_token(bearer(headers)?).await
+    async fn auth_middleware(
+        State(s): State<Self>,
+        mut req: Request,
+        next: Next,
+    ) -> AppResult<Response> {
+        let token = bearer(req.headers())?.to_owned();
+        let claims = s.token_svc.validate_token(&token).await?;
+        req.extensions_mut().insert(claims);
+        Ok(next.run(req).await)
     }
 
-    async fn handle_list(State(s): State<Self>, headers: HeaderMap) -> AppResult<Json<Vec<UserView>>> {
-        let c = s.auth(&headers).await?;
-        require_admin(&c)?;
-        Ok(Json(s.user_svc.list_users().await?))
+    async fn handle_list(
+        State(s): State<Self>,
+        Extension(claims): Extension<Claims>,
+        Query(q): Query<UserListQuery>,
+    ) -> AppResult<Json<Paginated<UserView>>> {
+        require_admin(&claims)?;
+        Ok(Json(s.user_svc.list_users(&q.filter, &q.page, &q.sort).await?))
     }
 
     async fn handle_get_one(
         State(s): State<Self>,
-        headers: HeaderMap,
+        Extension(claims): Extension<Claims>,
         Path(id): Path<String>,
     ) -> AppResult<Json<UserView>> {
-        let c = s.auth(&headers).await?;
-        require_read_access(&c, &id)?;
+        require_read_access(&claims, &id)?;
         Ok(Json(s.user_svc.get_user(&id).await?))
     }
 
     async fn handle_create(
         State(s): State<Self>,
-        headers: HeaderMap,
+        Extension(claims): Extension<Claims>,
         payload: Result<Json<CreateUserCommand>, JsonRejection>,
     ) -> AppResult<(StatusCode, Json<UserView>)> {
-        let c = s.auth(&headers).await?;
-        require_admin(&c)?;
+        require_admin(&claims)?;
         let cmd = extract_payload(payload)?;
         Ok((StatusCode::CREATED, Json(s.user_svc.create_user(&cmd).await?)))
     }
 
     async fn handle_patch(
         State(s): State<Self>,
-        headers: HeaderMap,
+        Extension(claims): Extension<Claims>,
         Path(id): Path<String>,
         payload: Result<Json<PatchUserCommand>, JsonRejection>,
     ) -> AppResult<Json<UserView>> {
-        let c = s.auth(&headers).await?;
         let cmd = extract_payload(payload)?;
 
-        match c.role {
+        match claims.role {
             Role::Admin => {}
-            Role::Owner if c.sub == id => {
+            Role::Owner if claims.sub == id => {
                 if cmd.role.is_some() {
                     return Err(Errors::format(
                         BadFormat::Received,
@@ -97,11 +110,10 @@ impl UsersRouter {
 
     async fn handle_delete(
         State(s): State<Self>,
-        headers: HeaderMap,
+        Extension(claims): Extension<Claims>,
         Path(id): Path<String>,
     ) -> AppResult<StatusCode> {
-        let c = s.auth(&headers).await?;
-        require_admin(&c)?;
+        require_admin(&claims)?;
         s.user_svc.delete_user(&id).await?;
         Ok(StatusCode::NO_CONTENT)
     }

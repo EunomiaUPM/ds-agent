@@ -18,6 +18,7 @@ dataplane = { version = "0.3.8", path = "../dataplane", default-features = false
 negotiation_agent = { version = "0.3.8", path = "../negotiation-agent", default-features = false }
 catalog_agent = { version = "0.3.8", path = "../catalog-agent", default-features = false }
 connector = { version = "0.3.8", path = "../connector", default-features = false }
+oauth = { version = "0.1.0", path = "../oauth" }
 
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -49,8 +50,6 @@ bytes = { workspace = true }
 compact_str = { workspace = true }
 sha2 = { workspace = true }
 base64 = { workspace = true }
-jsonwebtoken = { workspace = true }
-oauth = { version = "0.1.0", path = "../oauth" }
 
 
 [build-dependencies]

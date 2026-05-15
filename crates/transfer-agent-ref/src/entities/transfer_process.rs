@@ -8,6 +8,7 @@ use crate::entities::protocol::{
     ProtocolId, ProtocolState, StateMetadata, TransferCorrelation, TransferRole,
 };
 
+#[derive(Clone)]
 pub(crate) struct TransferProcess {
     // Common
     transfer_id: TransferProcessId,

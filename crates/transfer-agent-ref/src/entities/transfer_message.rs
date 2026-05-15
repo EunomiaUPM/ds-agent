@@ -9,6 +9,7 @@ use crate::entities::ids::{CorrelationId, MessageId, ParticipantId, RequestId, T
 use crate::entities::message_envelope::Direction;
 use crate::entities::protocol::{ProtocolId, ProtocolMessageType, ProtocolState};
 
+#[derive(Clone)]
 pub(crate) struct TransferMessage {
     pub id: MessageId,
     pub transfer_process_id: TransferProcessId,
@@ -90,7 +91,7 @@ struct MessageSignatureInput {
     value: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", try_from = "MessageEnvelopeInput")]
 pub(crate) struct MessageEnvelope {
     #[serde(serialize_with = "ser_bytes_b64")]
@@ -151,7 +152,7 @@ impl MessageEnvelope {
     pub fn content_type(&self) -> &str { &self.content_type }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct MessageSignature {
     /// Signing algorithm: "EdDSA", "ES256", etc.
@@ -164,7 +165,7 @@ pub(crate) struct MessageSignature {
 
 // Processing result ─────────────────────────────────────────────────────────
 
-#[derive(Serialize)]
+#[derive(Clone, Serialize, Deserialize)]
 #[serde(tag = "status", rename_all = "camelCase")]
 pub(crate) enum MessageProcessingResult {
     Accepted { resulting_state: ProtocolState },

@@ -1,5 +1,6 @@
 use urn::Urn;
 
+#[derive(Clone)]
 pub(crate) struct TransferProcessIdentifier {
     pub transfer_process_id: Urn,
     pub key: String,

@@ -1,4 +1,4 @@
-use crate::entities::ids::{MessageId, ParticipantId, TenantId, TransferProcessId};
+use crate::entities::ids::{CorrelationId, MessageId, ParticipantId, RequestId, TenantId, TransferProcessId};
 use crate::entities::message_envelope::Direction;
 use crate::entities::protocol::{
     ProtocolId, ProtocolMessageType, ProtocolState, StateMetadata, TransferDirection, TransferRole,
@@ -28,7 +28,7 @@ pub(crate) struct NewTransferProcessCommand {
     pub properties: Option<Json>,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct EditTransferProcessCommand {
     pub state: Option<ProtocolState>,
@@ -47,7 +47,11 @@ pub(crate) struct NewTransferMessageCommand {
     pub direction: Direction,
     pub protocol: ProtocolId,
     pub message_type: ProtocolMessageType,
+    pub protocol_version: Option<String>,
     pub state_transition_from: ProtocolState,
     pub state_transition_to: ProtocolState,
     pub envelope: MessageEnvelope,
+    pub peer_participant_id: Option<ParticipantId>,
+    pub correlation_id: Option<CorrelationId>,
+    pub request_id: Option<RequestId>,
 }

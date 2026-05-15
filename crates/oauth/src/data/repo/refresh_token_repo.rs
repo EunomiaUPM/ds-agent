@@ -1,4 +1,4 @@
-use crate::entities::RefreshToken;
+use crate::entities::refresh_token::RefreshToken;
 use thiserror::Error;
 use uuid::Uuid;
 use ymir::errors::{Outcome, RepoIntoErrors};

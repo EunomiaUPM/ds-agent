@@ -1,7 +1,7 @@
 use axum::extract::FromRequestParts;
 use axum::http::request::Parts;
 use jsonwebtoken::{Algorithm, DecodingKey, Validation};
-use oauth::entities::Claims;
+use oauth::services::token_service::Claims;
 use ymir::errors::{BadFormat, Errors};
 
 /// Validated JWT claims extracted from `Authorization: Bearer <token>`.

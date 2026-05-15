@@ -1,4 +1,4 @@
-use oauth::entities::Role;
+use oauth::entities::role::Role;
 use ymir::errors::{BadFormat, Errors, Outcome};
 
 use crate::auth::extractor::AuthClaims;

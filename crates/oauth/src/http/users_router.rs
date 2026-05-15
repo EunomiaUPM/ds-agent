@@ -1,44 +1,32 @@
 use std::sync::Arc;
 
 use axum::extract::rejection::JsonRejection;
-use axum::extract::{FromRef, Path, State};
+use axum::extract::{Path, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::routing::get;
 use axum::{Json, Router};
-use ymir::errors::{AppResult, BadFormat, Errors};
+use ymir::errors::{AppResult, BadFormat, Errors, Outcome};
 use ymir::utils::extract_payload;
 
-use crate::entities::{Claims, CreateUserCommand, PatchUserCommand, Role, UserView};
-use crate::services::AuthServiceTrait;
-
-// Router ──────────────────────────────────────────────────────────────────
+use crate::entities::commands::{CreateUserCommand, PatchUserCommand};
+use crate::entities::role::Role;
+use crate::http::helpers::bearer;
+use crate::services::token_service::{Claims, TokenServiceTrait};
+use crate::services::user_service::views::UserView;
+use crate::services::user_service::UserServiceTrait;
 
 #[derive(Clone)]
-pub struct UsersRouter {
-    service: Arc<dyn AuthServiceTrait>,
-}
-
-impl FromRef<UsersRouter> for Arc<dyn AuthServiceTrait> {
-    fn from_ref(state: &UsersRouter) -> Self {
-        state.service.clone()
-    }
+pub(crate) struct UsersRouter {
+    token_svc: Arc<dyn TokenServiceTrait>,
+    user_svc: Arc<dyn UserServiceTrait>,
 }
 
 impl UsersRouter {
-    pub fn new(service: Arc<dyn AuthServiceTrait>) -> Self {
-        Self { service }
+    pub(crate) fn new(token_svc: Arc<dyn TokenServiceTrait>, user_svc: Arc<dyn UserServiceTrait>) -> Self {
+        Self { token_svc, user_svc }
     }
 
-    /// Mount under a prefix such as `/oauth/users`.
-    ///
-    /// | Method   | Path   | Admin | Owner       | Reader      |
-    /// |----------|--------|-------|-------------|-------------|
-    /// | GET      | `/`    | ✓ all | ✗           | ✗           |
-    /// | GET      | `/{id}`| ✓ any | ✓ self only | ✓ self only |
-    /// | POST     | `/`    | ✓     | ✗           | ✗           |
-    /// | PATCH    | `/{id}`| ✓ any | ✓ self only | ✗           |
-    /// | DELETE   | `/{id}`| ✓     | ✗           | ✗           |
-    pub fn router(self) -> Router {
+    pub(crate) fn router(self) -> Router {
         Router::new()
             .route("/", get(Self::handle_list).post(Self::handle_create))
             .route(
@@ -50,58 +38,49 @@ impl UsersRouter {
             .with_state(self)
     }
 
-    // Handlers ─────────────────────────────────────────────────────────────
-
-    /// `GET /` — list all users. Admin only.
-    async fn handle_list(
-        State(state): State<Self>,
-        headers: HeaderMap,
-    ) -> AppResult<Json<Vec<UserView>>> {
-        let claims = auth(&state, &headers).await?;
-        require_admin(&claims)?;
-        Ok(Json(state.service.list_users().await?))
+    async fn auth(&self, headers: &HeaderMap) -> Outcome<Claims> {
+        self.token_svc.validate_token(bearer(headers)?).await
     }
 
-    /// `GET /{id}` — get one user.
-    /// Admin: any. Owner / Reader: self only.
+    async fn handle_list(State(s): State<Self>, headers: HeaderMap) -> AppResult<Json<Vec<UserView>>> {
+        let c = s.auth(&headers).await?;
+        require_admin(&c)?;
+        Ok(Json(s.user_svc.list_users().await?))
+    }
+
     async fn handle_get_one(
-        State(state): State<Self>,
+        State(s): State<Self>,
         headers: HeaderMap,
         Path(id): Path<String>,
     ) -> AppResult<Json<UserView>> {
-        let claims = auth(&state, &headers).await?;
-        require_read_access(&claims, &id)?;
-        Ok(Json(state.service.get_user(&id).await?))
+        let c = s.auth(&headers).await?;
+        require_read_access(&c, &id)?;
+        Ok(Json(s.user_svc.get_user(&id).await?))
     }
 
-    /// `POST /` — create a new user. Admin only.
     async fn handle_create(
-        State(state): State<Self>,
+        State(s): State<Self>,
         headers: HeaderMap,
         payload: Result<Json<CreateUserCommand>, JsonRejection>,
     ) -> AppResult<(StatusCode, Json<UserView>)> {
-        let claims = auth(&state, &headers).await?;
-        require_admin(&claims)?;
+        let c = s.auth(&headers).await?;
+        require_admin(&c)?;
         let cmd = extract_payload(payload)?;
-        Ok((StatusCode::CREATED, Json(state.service.create_user(&cmd).await?)))
+        Ok((StatusCode::CREATED, Json(s.user_svc.create_user(&cmd).await?)))
     }
 
-    /// `PATCH /{id}` — partial update.
-    /// Admin: any field on any user.
-    /// Owner: own account only; `role` changes are rejected.
-    /// Reader: forbidden.
     async fn handle_patch(
-        State(state): State<Self>,
+        State(s): State<Self>,
         headers: HeaderMap,
         Path(id): Path<String>,
         payload: Result<Json<PatchUserCommand>, JsonRejection>,
     ) -> AppResult<Json<UserView>> {
-        let claims = auth(&state, &headers).await?;
+        let c = s.auth(&headers).await?;
         let cmd = extract_payload(payload)?;
 
-        match claims.role {
+        match c.role {
             Role::Admin => {}
-            Role::Owner if claims.sub == id => {
+            Role::Owner if c.sub == id => {
                 if cmd.role.is_some() {
                     return Err(Errors::format(
                         BadFormat::Received,
@@ -113,55 +92,33 @@ impl UsersRouter {
             _ => return Err(forbidden()),
         }
 
-        Ok(Json(state.service.patch_user(&id, &cmd).await?))
+        Ok(Json(s.user_svc.patch_user(&id, &cmd).await?))
     }
 
-    /// `DELETE /{id}` — delete a user. Admin only.
     async fn handle_delete(
-        State(state): State<Self>,
+        State(s): State<Self>,
         headers: HeaderMap,
         Path(id): Path<String>,
     ) -> AppResult<StatusCode> {
-        let claims = auth(&state, &headers).await?;
-        require_admin(&claims)?;
-        state.service.delete_user(&id).await?;
+        let c = s.auth(&headers).await?;
+        require_admin(&c)?;
+        s.user_svc.delete_user(&id).await?;
         Ok(StatusCode::NO_CONTENT)
     }
 }
 
-// RBAC helpers ─────────────────────────────────────────────────────────────
-
-/// Extracts and validates the bearer token, returning the decoded claims.
-async fn auth(state: &UsersRouter, headers: &HeaderMap) -> Outcome<Claims> {
-    let token = extract_bearer(headers)?;
-    state.service.validate_token(token).await
-}
-
-/// Admin can access anything. Owner/Reader can only access their own resource.
-fn require_read_access(claims: &Claims, target_tenant_id: &str) -> Outcome<()> {
-    match claims.role {
+fn require_read_access(c: &Claims, target: &str) -> Outcome<()> {
+    match c.role {
         Role::Admin => Ok(()),
-        _ if claims.sub == target_tenant_id => Ok(()),
+        _ if c.sub == target => Ok(()),
         _ => Err(forbidden()),
     }
 }
 
-fn require_admin(claims: &Claims) -> Outcome<()> {
-    if claims.role == Role::Admin { Ok(()) } else { Err(forbidden()) }
+fn require_admin(c: &Claims) -> Outcome<()> {
+    if c.role == Role::Admin { Ok(()) } else { Err(forbidden()) }
 }
 
 fn forbidden() -> Errors {
     Errors::format(BadFormat::Received, "forbidden: insufficient permissions", None)
 }
-
-fn extract_bearer(headers: &HeaderMap) -> Outcome<&str> {
-    headers
-        .get(axum::http::header::AUTHORIZATION)
-        .and_then(|v| v.to_str().ok())
-        .and_then(|v| v.strip_prefix("Bearer "))
-        .ok_or_else(|| {
-            Errors::format(BadFormat::Received, "missing or malformed Authorization header", None)
-        })
-}
-
-type Outcome<T> = ymir::errors::Outcome<T>;

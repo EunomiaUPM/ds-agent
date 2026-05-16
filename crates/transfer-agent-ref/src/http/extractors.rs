@@ -78,15 +78,17 @@ impl<S: Send + Sync> FromRequestParts<S> for ExtractedHeaders {
     type Rejection = Errors;
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        let tenant_id = get_header_str(&parts.headers, "x-tenant-id")
-            .map(TenantId::new)
-            .ok_or_else(|| {
-                Errors::format(
-                    BadFormat::Received,
-                    "missing required header: X-Tenant-ID",
-                    None,
-                )
-            })?;
+        let tenant_raw = get_header_str(&parts.headers, "x-tenant-id").ok_or_else(|| {
+            Errors::format(BadFormat::Received, "missing required header: X-Tenant-ID", None)
+        })?;
+        if !is_safe_id(tenant_raw) {
+            return Err(Errors::format(
+                BadFormat::Received,
+                "X-Tenant-ID contains invalid characters (allowed: alphanumeric, '-', '.')",
+                None,
+            ));
+        }
+        let tenant_id = TenantId::new(tenant_raw);
 
         let request_id = get_header_str(&parts.headers, "x-request-id")
             .map(RequestId::new)
@@ -101,6 +103,10 @@ impl<S: Send + Sync> FromRequestParts<S> for ExtractedHeaders {
             correlation_id,
         })
     }
+}
+
+fn is_safe_id(s: &str) -> bool {
+    !s.is_empty() && s.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '.')
 }
 
 fn get_header_str<'a>(headers: &'a HeaderMap, name: &str) -> Option<&'a str> {

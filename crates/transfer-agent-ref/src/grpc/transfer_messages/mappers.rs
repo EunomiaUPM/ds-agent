@@ -33,7 +33,7 @@ use crate::grpc::api::transfer_messages::{
 use crate::entities::query::{Page, Paginated, Sort, TransferMessageFilter};
 use crate::services::transfer_message::views::TransferMessageView;
 
-// ─── Request → Domain ───────────────────────────────────────────────────────
+// Request - Domain ───────────────────────────────────────────────────────
 
 pub fn into_list_params(
     req: ListTransferMessagesRequest,
@@ -114,7 +114,7 @@ pub fn into_create_cmd(
     })
 }
 
-// ─── Domain → Response ──────────────────────────────────────────────────────
+// Domain - Response ──────────────────────────────────────────────────────
 
 pub fn from_view(view: TransferMessageView) -> TransferMessageResponse {
     let direction = domain_direction_to_proto(view.direction) as i32;
@@ -150,7 +150,7 @@ pub fn from_paginated(result: Paginated<TransferMessageView>) -> TransferMessage
     }
 }
 
-// ─── Nested type conversions ─────────────────────────────────────────────────
+// Nested type conversions ─────────────────────────────────────────────────
 
 fn bytes_to_hex(h: &[u8; 32]) -> String {
     use std::fmt::Write;
@@ -202,7 +202,7 @@ fn from_processing_result(result: &MessageProcessingResult) -> ProtoResult {
     }
 }
 
-// ─── Envelope builder ────────────────────────────────────────────────────────
+// Envelope builder ────────────────────────────────────────────────────────
 
 fn build_envelope(
     raw: Vec<u8>,
@@ -232,7 +232,7 @@ fn build_envelope(
     })
 }
 
-// ─── Enum conversions ────────────────────────────────────────────────────────
+// Enum conversions ────────────────────────────────────────────────────────
 
 fn parse_proto_direction(value: i32) -> Result<Direction, Status> {
     match ProtoDirection::try_from(value) {
@@ -265,7 +265,7 @@ fn parse_protocol_id(s: &str) -> Result<ProtocolId, Status> {
     }
 }
 
-// ─── Pagination / sort ───────────────────────────────────────────────────────
+// Pagination / sort ───────────────────────────────────────────────────────
 
 fn parse_sort(s: &str) -> Result<Sort, Status> {
     match s {
@@ -276,7 +276,7 @@ fn parse_sort(s: &str) -> Result<Sort, Status> {
     }
 }
 
-// ─── Primitives ───────────────────────────────────────────────────────────────
+// Primitives ───────────────────────────────────────────────────────────────
 
 fn parse_urn(s: &str, field: &str) -> Result<Urn, Status> {
     Urn::from_str(s).map_err(|e| Status::invalid_argument(format!("{field}: invalid URN — {e}")))

@@ -9,7 +9,7 @@
 syntax = "proto3";
 package transfer_messages_ref;
 
-// ─── Enums ──────────────────────────────────────────────────────────────────
+// Enums ──────────────────────────────────────────────────────────────────
 
 enum Direction {
   INBOUND = 0;
@@ -22,7 +22,7 @@ enum MessageStatus {
   IDEMPOTENT_REPLAY = 2;
 }
 
-// ─── Nested types ───────────────────────────────────────────────────────────
+// Nested types ───────────────────────────────────────────────────────────
 
 message MessageEnvelope {
   bytes raw_bytes = 1;
@@ -40,7 +40,7 @@ message MessageProcessingResult {
   optional string error_code = 4;
 }
 
-// ─── Response types ─────────────────────────────────────────────────────────
+// Response types ─────────────────────────────────────────────────────────
 
 message TransferMessageResponse {
   string id = 1;
@@ -66,7 +66,7 @@ message TransferMessageListResponse {
 
 message DeleteResponse {}
 
-// ─── Request types ──────────────────────────────────────────────────────────
+// Request types ──────────────────────────────────────────────────────────
 
 /// Auth: authorization Bearer <token> + x-tenant-id metadata headers required.
 message ListTransferMessagesRequest {
@@ -113,7 +113,7 @@ message CreateTransferMessageRequest {
   optional string protocol_version = 14;
 }
 
-// ─── Service ────────────────────────────────────────────────────────────────
+// Service ────────────────────────────────────────────────────────────────
 
 service TransferMessagesRef {
   rpc ListTransferMessages(ListTransferMessagesRequest) returns (TransferMessageListResponse);

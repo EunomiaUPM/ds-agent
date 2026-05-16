@@ -28,7 +28,7 @@ use crate::grpc::api::transfer_processes::{
 };
 use crate::services::transfer_process::views::TransferProcessView;
 
-// ─── Request → Domain ───────────────────────────────────────────────────────
+// Request - Domain ───────────────────────────────────────────────────────
 
 pub fn into_list_params(
     req: ListTransferProcessesRequest,
@@ -150,7 +150,7 @@ pub fn into_edit_cmd(req: EditTransferProcessRequest) -> Result<EditTransferProc
     Ok(EditTransferProcessCommand { state, state_metadata, identifiers, properties, error_details })
 }
 
-// ─── Domain → Response ──────────────────────────────────────────────────────
+// Domain - Response ──────────────────────────────────────────────────────
 
 pub fn from_view(view: TransferProcessView) -> TransferProcessResponse {
     let role = domain_role_to_proto(view.role) as i32;
@@ -192,7 +192,7 @@ pub fn from_vec(views: Vec<TransferProcessView>) -> TransferProcessListResponse 
     }
 }
 
-// ─── Nested type conversions ─────────────────────────────────────────────────
+// Nested type conversions ─────────────────────────────────────────────────
 
 fn from_state_metadata(
     meta: StateMetadata,
@@ -215,7 +215,7 @@ fn from_correlation(corr: TransferCorrelation) -> ProtoCorrelation {
     }
 }
 
-// ─── Enum conversions ────────────────────────────────────────────────────────
+// Enum conversions ────────────────────────────────────────────────────────
 
 fn parse_proto_role(value: i32) -> Result<TransferRole, Status> {
     match ProtoTransferRole::try_from(value) {
@@ -266,7 +266,7 @@ fn domain_protocol_to_proto(protocol: &ProtocolId) -> ProtoProtocolId {
     }
 }
 
-// ─── Pagination / sort ──────────────────────────────────────────────────────
+// Pagination / sort ──────────────────────────────────────────────────────
 
 fn parse_sort(s: &str) -> Result<Sort, Status> {
     match s {
@@ -277,7 +277,7 @@ fn parse_sort(s: &str) -> Result<Sort, Status> {
     }
 }
 
-// ─── Primitives ──────────────────────────────────────────────────────────────
+// Primitives ──────────────────────────────────────────────────────────────
 
 fn parse_urn(s: &str, field: &str) -> Result<Urn, Status> {
     Urn::from_str(s).map_err(|e| Status::invalid_argument(format!("{field}: invalid URN — {e}")))

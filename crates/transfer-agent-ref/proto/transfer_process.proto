@@ -9,7 +9,7 @@
 syntax = "proto3";
 package transfer_processes_ref;
 
-// ─── Enums ──────────────────────────────────────────────────────────────────
+// Enums ──────────────────────────────────────────────────────────────────
 
 enum TransferRole {
   PROVIDER = 0;
@@ -22,7 +22,7 @@ enum ProtocolId {
   DSP2025_1 = 1;
 }
 
-// ─── Nested types ───────────────────────────────────────────────────────────
+// Nested types ───────────────────────────────────────────────────────────
 
 message StateMetadata {
   optional string attribute = 1;
@@ -39,7 +39,7 @@ message TransferCorrelation {
   optional string peer_participant_id = 6;
 }
 
-// ─── Response types ─────────────────────────────────────────────────────────
+// Response types ─────────────────────────────────────────────────────────
 
 message TransferProcessResponse {
   string id = 1;
@@ -64,7 +64,7 @@ message TransferProcessListResponse {
 
 message DeleteResponse {}
 
-// ─── Request types ──────────────────────────────────────────────────────────
+// Request types ──────────────────────────────────────────────────────────
 
 /// Auth: authorization Bearer <token> + x-tenant-id metadata headers required.
 message ListTransferProcessesRequest {
@@ -113,7 +113,7 @@ message EditTransferProcessRequest {
   repeated string state_reasons = 8;
 }
 
-// ─── Service ────────────────────────────────────────────────────────────────
+// Service ────────────────────────────────────────────────────────────────
 
 service TransferProcessesRef {
   rpc ListTransferProcesses(ListTransferProcessesRequest) returns (TransferProcessListResponse);

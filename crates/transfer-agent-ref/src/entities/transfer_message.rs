@@ -24,6 +24,7 @@ use chrono::{DateTime, Utc};
 use compact_str::CompactString;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use sha2::{Digest, Sha256};
+use thiserror::Error;
 use urn::Urn;
 
 use crate::entities::commands::NewTransferMessageCommand;
@@ -206,16 +207,25 @@ pub(crate) struct MessageEnvelope {
     pub signature: Option<MessageSignature>,
 }
 
+#[derive(Debug, Error)]
+pub(crate) enum EnvelopeError {
+    #[error("invalid base64 in field '{field}': {source}")]
+    InvalidBase64 {
+        field: &'static str,
+        source: base64::DecodeError,
+    },
+}
+
 impl TryFrom<MessageEnvelopeInput> for MessageEnvelope {
-    type Error = String;
+    type Error = EnvelopeError;
 
     fn try_from(input: MessageEnvelopeInput) -> Result<Self, Self::Error> {
-        let raw = b64_decode(&input.raw_bytes)?;
+        let raw = b64_decode(&input.raw_bytes, "rawBytes")?;
         let content_hash: [u8; 32] = Sha256::digest(&raw).into();
 
         let (canonical_form, canonical_hash) = match input.canonical_form {
             Some(cf) => {
-                let cf_raw = b64_decode(&cf)?;
+                let cf_raw = b64_decode(&cf, "canonicalForm")?;
                 let cf_hash: [u8; 32] = Sha256::digest(&cf_raw).into();
                 (Some(Bytes::from(cf_raw)), Some(cf_hash))
             }
@@ -224,8 +234,8 @@ impl TryFrom<MessageEnvelopeInput> for MessageEnvelope {
 
         let signature = input
             .signature
-            .map(|s| -> Result<MessageSignature, String> {
-                let value = Bytes::from(b64_decode(&s.value)?);
+            .map(|s| -> Result<MessageSignature, EnvelopeError> {
+                let value = Bytes::from(b64_decode(&s.value, "signature.value")?);
                 Ok(MessageSignature {
                     algorithm: s.algorithm,
                     key_id: s.key_id,
@@ -287,10 +297,10 @@ pub(crate) enum MessageProcessingResult {
 
 // Serde helpers ─────────────────────────────────────────────────────────────
 
-fn b64_decode(s: &str) -> Result<Vec<u8>, String> {
+fn b64_decode(s: &str, field: &'static str) -> Result<Vec<u8>, EnvelopeError> {
     base64::engine::general_purpose::STANDARD
         .decode(s)
-        .map_err(|e| e.to_string())
+        .map_err(|source| EnvelopeError::InvalidBase64 { field, source })
 }
 
 fn ser_bytes_b64<S: Serializer>(b: &Bytes, s: S) -> Result<S::Ok, S::Error> {
@@ -317,7 +327,7 @@ fn ser_opt_hash_hex<S: Serializer>(h: &Option<[u8; 32]>, s: S) -> Result<S::Ok, 
 
 fn de_b64_bytes<'de, D: Deserializer<'de>>(d: D) -> Result<Bytes, D::Error> {
     let s = String::deserialize(d)?;
-    b64_decode(&s)
+    b64_decode(&s, "bytes")
         .map(Bytes::from)
         .map_err(serde::de::Error::custom)
 }

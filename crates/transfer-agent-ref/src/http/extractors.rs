@@ -18,9 +18,33 @@
 use axum::extract::FromRequestParts;
 use axum::http::request::Parts;
 use axum::http::{HeaderMap, HeaderName, HeaderValue};
+use common::auth::claims::Claims;
 use ymir::errors::{BadFormat, Errors};
 
 use crate::entities::ids::{CorrelationId, RequestId, TenantId};
+
+/// Validated JWT claims injected by the auth middleware.
+pub(crate) struct AuthClaims(pub Claims);
+
+impl std::ops::Deref for AuthClaims {
+    type Target = Claims;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<S: Send + Sync> FromRequestParts<S> for AuthClaims {
+    type Rejection = Errors;
+
+    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        parts
+            .extensions
+            .get::<Claims>()
+            .cloned()
+            .map(AuthClaims)
+            .ok_or_else(|| Errors::crazy("auth middleware not applied to this route", None))
+    }
+}
 
 pub(crate) struct ExtractedHeaders {
     pub tenant_id: TenantId,

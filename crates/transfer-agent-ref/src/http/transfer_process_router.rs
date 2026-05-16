@@ -30,10 +30,9 @@ use ymir::utils::{extract_path_urn, extract_payload};
 use common::auth::claims::Role;
 use common::auth::rbac::Rbac;
 
-use crate::auth::extractor::AuthClaims;
 use crate::entities::commands::{EditTransferProcessCommand, NewTransferProcessCommand};
 use crate::entities::query::{Page, Paginated, Sort, TransferProcessFilter};
-use crate::http::extractors::ExtractedHeaders;
+use crate::http::extractors::{AuthClaims, ExtractedHeaders};
 use crate::services::transfer_process::TransferProcessServiceTrait;
 use crate::services::transfer_process::views::TransferProcessView;
 

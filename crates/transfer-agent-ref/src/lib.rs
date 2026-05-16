@@ -16,7 +16,6 @@
  */
 
 #![allow(unused)]
-mod auth;
 mod data;
 mod entities;
 mod http;

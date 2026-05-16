@@ -29,10 +29,9 @@ use ymir::utils::{extract_path_urn, extract_payload};
 use common::auth::claims::Role;
 use common::auth::rbac::Rbac;
 
-use crate::auth::extractor::AuthClaims;
 use crate::entities::commands::NewTransferMessageCommand;
 use crate::entities::query::{Page, Paginated, Sort, TransferMessageFilter};
-use crate::http::extractors::ExtractedHeaders;
+use crate::http::extractors::{AuthClaims, ExtractedHeaders};
 use crate::services::transfer_message::TransferMessageServiceTrait;
 use crate::services::transfer_message::views::TransferMessageView;
 

@@ -28,27 +28,30 @@ use crate::grpc::api::transfer_processes::{
 };
 use crate::services::transfer_process::views::TransferProcessView;
 
-// Request - Domain ───────────────────────────────────────────────────────
+// ─── Request → Domain ───────────────────────────────────────────────────────
 
 pub fn into_list_params(
     req: ListTransferProcessesRequest,
     tenant_id: Option<TenantId>,
 ) -> Result<(TransferProcessFilter, Page, Sort), Status> {
-    let protocol = req.protocol.map(|s| parse_protocol_id(&s)).transpose()?;
-    let state = req.state.map(|s| ProtocolState(s.into()));
-    let role = req.role.map(|s| parse_role_str(&s)).transpose()?;
-    let agreement_id = req.agreement_id.map(|s| parse_urn(&s, "agreement_id")).transpose()?;
-    let peer_participant_id = req
-        .peer_participant_id
+    let protocol = non_empty(&req.protocol).map(parse_protocol_id).transpose()?;
+    let state = non_empty(&req.state).map(|s| ProtocolState(s.into()));
+    let role = non_empty(&req.role).map(parse_role_str).transpose()?;
+    let agreement_id = non_empty(&req.agreement_id)
+        .map(|s| parse_urn(s, "agreement_id"))
+        .transpose()?;
+    let peer_participant_id = non_empty(&req.peer_participant_id)
         .map(|s| {
-            parse_urn(&s, "peer_participant_id").map(|u| {
-                use crate::entities::ids::ParticipantId;
-                ParticipantId::new(u)
-            })
+            use crate::entities::ids::ParticipantId;
+            parse_urn(s, "peer_participant_id").map(ParticipantId::new)
         })
         .transpose()?;
-    let created_after = req.created_after.map(|s| parse_dt(&s, "created_after")).transpose()?;
-    let created_before = req.created_before.map(|s| parse_dt(&s, "created_before")).transpose()?;
+    let created_after = non_empty(&req.created_after)
+        .map(|s| parse_dt(s, "created_after"))
+        .transpose()?;
+    let created_before = non_empty(&req.created_before)
+        .map(|s| parse_dt(s, "created_before"))
+        .transpose()?;
 
     let filter = TransferProcessFilter {
         tenant_id,
@@ -60,16 +63,17 @@ pub fn into_list_params(
         created_after,
         created_before,
     };
-    let page = Page { limit: if req.limit == 0 { 20 } else { req.limit }, cursor: req.cursor };
-    let sort = req.sort.map(|s| parse_sort(&s)).transpose()?.unwrap_or_default();
+    let cursor = non_empty(&req.cursor).map(|s| s.to_owned());
+    let page = Page { limit: if req.limit == 0 { 20 } else { req.limit }, cursor };
+    let sort = non_empty(&req.sort).map(parse_sort).transpose()?.unwrap_or_default();
     Ok((filter, page, sort))
 }
 
 pub fn into_batch(req: BatchTransferProcessesRequest) -> Result<BatchRequests, Status> {
     let ids = req
         .ids
-        .into_iter()
-        .map(|s| parse_urn(&s, "ids"))
+        .iter()
+        .map(|s| parse_urn(s, "ids"))
         .collect::<Result<Vec<_>, _>>()?;
     Ok(BatchRequests { ids })
 }
@@ -86,24 +90,22 @@ pub fn into_create_cmd(
     let agreement_id = parse_urn(&req.agreement_id, "agreement_id")?;
     let peer_participant_id =
         ParticipantId::new(parse_urn(&req.peer_participant_id, "peer_participant_id")?);
-    let callback_address = req
-        .callback_address
-        .map(|s| Url::from_str(&s).map_err(|e| Status::invalid_argument(format!("callback_address: {e}"))))
+    let callback_address = non_empty(&req.callback_address)
+        .map(|s| {
+            Url::from_str(s).map_err(|e| Status::invalid_argument(format!("callback_address: {e}")))
+        })
         .transpose()?;
-    let identifiers =
-        if req.identifiers.is_empty() { None } else { Some(req.identifiers) };
-    let properties = req
-        .properties
-        .map(|s| serde_json::from_str::<Json>(&s).map_err(|e| Status::invalid_argument(format!("properties: {e}"))))
+    let identifiers = if req.identifiers.is_empty() { None } else { Some(req.identifiers) };
+    let properties = non_empty(&req.properties)
+        .map(|s| {
+            serde_json::from_str::<Json>(s)
+                .map_err(|e| Status::invalid_argument(format!("properties: {e}")))
+        })
         .transpose()?;
     let initial_state_metadata = StateMetadata {
-        attribute: req.initial_state_attribute,
-        reason: if req.initial_state_reasons.is_empty() {
-            None
-        } else {
-            Some(req.initial_state_reasons)
-        },
-        code: req.initial_state_code,
+        attribute: non_empty(&req.initial_state_attribute).map(|s| s.to_owned()),
+        reason: if req.initial_state_reasons.is_empty() { None } else { Some(req.initial_state_reasons) },
+        code: non_empty(&req.initial_state_code).map(|s| s.to_owned()),
     };
 
     Ok(NewTransferProcessCommand {
@@ -123,34 +125,37 @@ pub fn into_create_cmd(
 }
 
 pub fn into_edit_cmd(req: EditTransferProcessRequest) -> Result<EditTransferProcessCommand, Status> {
-    let state = req.state.map(|s| ProtocolState(s.into()));
-    let state_metadata = if req.state_attribute.is_some()
-        || req.state_code.is_some()
+    let state = non_empty(&req.state).map(|s| ProtocolState(s.into()));
+    let state_metadata = if non_empty(&req.state_attribute).is_some()
+        || non_empty(&req.state_code).is_some()
         || !req.state_reasons.is_empty()
     {
         Some(StateMetadata {
-            attribute: req.state_attribute,
+            attribute: non_empty(&req.state_attribute).map(|s| s.to_owned()),
             reason: if req.state_reasons.is_empty() { None } else { Some(req.state_reasons) },
-            code: req.state_code,
+            code: non_empty(&req.state_code).map(|s| s.to_owned()),
         })
     } else {
         None
     };
-    let identifiers =
-        if req.identifiers.is_empty() { None } else { Some(req.identifiers) };
-    let properties = req
-        .properties
-        .map(|s| serde_json::from_str::<Json>(&s).map_err(|e| Status::invalid_argument(format!("properties: {e}"))))
+    let identifiers = if req.identifiers.is_empty() { None } else { Some(req.identifiers) };
+    let properties = non_empty(&req.properties)
+        .map(|s| {
+            serde_json::from_str::<Json>(s)
+                .map_err(|e| Status::invalid_argument(format!("properties: {e}")))
+        })
         .transpose()?;
-    let error_details = req
-        .error_details
-        .map(|s| serde_json::from_str::<Json>(&s).map_err(|e| Status::invalid_argument(format!("error_details: {e}"))))
+    let error_details = non_empty(&req.error_details)
+        .map(|s| {
+            serde_json::from_str::<Json>(s)
+                .map_err(|e| Status::invalid_argument(format!("error_details: {e}")))
+        })
         .transpose()?;
 
     Ok(EditTransferProcessCommand { state, state_metadata, identifiers, properties, error_details })
 }
 
-// Domain - Response ──────────────────────────────────────────────────────
+// ─── Domain → Response ──────────────────────────────────────────────────────
 
 pub fn from_view(view: TransferProcessView) -> TransferProcessResponse {
     let role = domain_role_to_proto(view.role) as i32;
@@ -158,7 +163,10 @@ pub fn from_view(view: TransferProcessView) -> TransferProcessResponse {
     let state_metadata = Some(from_state_metadata(view.state_metadata));
     let correlation = Some(from_correlation(view.correlation));
     let properties = serde_json::to_string(&view.properties).unwrap_or_default();
-    let error_details = view.error_details.map(|v| serde_json::to_string(&v).unwrap_or_default());
+    let error_details = view
+        .error_details
+        .map(|v| serde_json::to_string(&v).unwrap_or_default())
+        .unwrap_or_default();
 
     TransferProcessResponse {
         id: view.id.to_string(),
@@ -179,43 +187,41 @@ pub fn from_view(view: TransferProcessView) -> TransferProcessResponse {
 pub fn from_paginated(result: Paginated<TransferProcessView>) -> TransferProcessListResponse {
     TransferProcessListResponse {
         items: result.items.into_iter().map(from_view).collect(),
-        next_cursor: result.next_cursor,
-        total: result.total,
+        next_cursor: result.next_cursor.unwrap_or_default(),
+        total: result.total.unwrap_or(0),
     }
 }
 
 pub fn from_vec(views: Vec<TransferProcessView>) -> TransferProcessListResponse {
     TransferProcessListResponse {
         items: views.into_iter().map(from_view).collect(),
-        next_cursor: None,
-        total: None,
+        next_cursor: String::new(),
+        total: 0,
     }
 }
 
-// Nested type conversions ─────────────────────────────────────────────────
+// ─── Nested type conversions ─────────────────────────────────────────────────
 
-fn from_state_metadata(
-    meta: StateMetadata,
-) -> crate::grpc::api::transfer_processes::StateMetadata {
+fn from_state_metadata(meta: StateMetadata) -> crate::grpc::api::transfer_processes::StateMetadata {
     crate::grpc::api::transfer_processes::StateMetadata {
-        attribute: meta.attribute,
+        attribute: meta.attribute.unwrap_or_default(),
         reason: meta.reason.unwrap_or_default(),
-        code: meta.code,
+        code: meta.code.unwrap_or_default(),
     }
 }
 
 fn from_correlation(corr: TransferCorrelation) -> ProtoCorrelation {
     ProtoCorrelation {
         identifiers: corr.identifiers,
-        consumer_pid: corr.consumer_pid,
-        provider_pid: corr.provider_pid,
-        agreement_id: corr.agreement_id.map(|u| u.to_string()),
-        callback_address: corr.callback_address.map(|u| u.to_string()),
-        peer_participant_id: corr.peer_participant_id.map(|p| p.to_string()),
+        consumer_pid: corr.consumer_pid.unwrap_or_default(),
+        provider_pid: corr.provider_pid.unwrap_or_default(),
+        agreement_id: corr.agreement_id.map(|u| u.to_string()).unwrap_or_default(),
+        callback_address: corr.callback_address.map(|u| u.to_string()).unwrap_or_default(),
+        peer_participant_id: corr.peer_participant_id.map(|p| p.to_string()).unwrap_or_default(),
     }
 }
 
-// Enum conversions ────────────────────────────────────────────────────────
+// ─── Enum conversions ────────────────────────────────────────────────────────
 
 fn parse_proto_role(value: i32) -> Result<TransferRole, Status> {
     match ProtoTransferRole::try_from(value) {
@@ -266,7 +272,7 @@ fn domain_protocol_to_proto(protocol: &ProtocolId) -> ProtoProtocolId {
     }
 }
 
-// Pagination / sort ──────────────────────────────────────────────────────
+// ─── Pagination / sort ──────────────────────────────────────────────────────
 
 fn parse_sort(s: &str) -> Result<Sort, Status> {
     match s {
@@ -277,7 +283,12 @@ fn parse_sort(s: &str) -> Result<Sort, Status> {
     }
 }
 
-// Primitives ──────────────────────────────────────────────────────────────
+// ─── Primitives ──────────────────────────────────────────────────────────────
+
+/// Returns `Some(s)` if `s` is non-empty, `None` if it is `""`.
+fn non_empty(s: &str) -> Option<&str> {
+    if s.is_empty() { None } else { Some(s) }
+}
 
 fn parse_urn(s: &str, field: &str) -> Result<Urn, Status> {
     Urn::from_str(s).map_err(|e| Status::invalid_argument(format!("{field}: invalid URN — {e}")))

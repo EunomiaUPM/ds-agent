@@ -25,18 +25,18 @@ enum ProtocolId {
 // Nested types ───────────────────────────────────────────────────────────
 
 message StateMetadata {
-  optional string attribute = 1;
+  string attribute = 1; // "" = absent
   repeated string reason = 2;
-  optional string code = 3;
+  string code = 3;      // "" = absent
 }
 
 message TransferCorrelation {
   map<string, string> identifiers = 1;
-  optional string consumer_pid = 2;
-  optional string provider_pid = 3;
-  optional string agreement_id = 4;
-  optional string callback_address = 5;
-  optional string peer_participant_id = 6;
+  string consumer_pid = 2;        // "" = absent
+  string provider_pid = 3;        // "" = absent
+  string agreement_id = 4;        // "" = absent
+  string callback_address = 5;    // "" = absent
+  string peer_participant_id = 6; // "" = absent
 }
 
 // Response types ─────────────────────────────────────────────────────────
@@ -49,35 +49,36 @@ message TransferProcessResponse {
   string state = 5;
   StateMetadata state_metadata = 6;
   TransferCorrelation correlation = 7;
-  string properties = 8;          // JSON blob
-  optional string error_details = 9; // JSON blob
-  string created_at = 10;         // RFC3339
-  string updated_at = 11;         // RFC3339
+  string properties = 8;     // JSON blob
+  string error_details = 9;  // JSON blob; "" = absent
+  string created_at = 10;    // RFC3339
+  string updated_at = 11;    // RFC3339
   uint64 version = 12;
 }
 
 message TransferProcessListResponse {
   repeated TransferProcessResponse items = 1;
-  optional string next_cursor = 2;
-  optional uint64 total = 3;
+  string next_cursor = 2; // "" = no next page
+  uint64 total = 3;       // 0 = unknown
 }
 
 message DeleteResponse {}
 
 // Request types ──────────────────────────────────────────────────────────
 
-/// Auth: authorization Bearer <token> + x-tenant-id metadata headers required.
+// Auth: authorization Bearer <token> + x-tenant-id metadata headers required.
+// Filter strings: send "" to omit a filter. Pagination: limit=0 defaults to 20.
 message ListTransferProcessesRequest {
-  optional string protocol = 1;
-  optional string state = 2;
-  optional string role = 3;             // "provider" | "consumer" | "relay"
-  optional string agreement_id = 4;     // URN string
-  optional string peer_participant_id = 5; // URN string
-  optional string created_after = 6;    // RFC3339
-  optional string created_before = 7;   // RFC3339
-  uint32 limit = 8;
-  optional string cursor = 9;
-  optional string sort = 10; // "created_at_asc" | "created_at_desc" | "updated_at_desc"
+  string protocol = 1;           // "" = any; "dsp2024" | "dsp2025_1"
+  string state = 2;              // "" = any
+  string role = 3;               // "" = any; "provider" | "consumer" | "relay"
+  string agreement_id = 4;       // "" = any; URN string
+  string peer_participant_id = 5; // "" = any; URN string
+  string created_after = 6;      // "" = no lower bound; RFC3339
+  string created_before = 7;     // "" = no upper bound; RFC3339
+  uint32 limit = 8;              // 0 → default 20
+  string cursor = 9;             // "" = first page
+  string sort = 10;              // "" → "created_at_desc"; "created_at_asc" | "updated_at_desc"
 }
 
 message ResourceIdRequest {
@@ -94,22 +95,22 @@ message CreateTransferProcessRequest {
   string initial_state = 3;
   string agreement_id = 4;
   string peer_participant_id = 5;
-  optional string callback_address = 6;
+  string callback_address = 6;         // "" = absent
   map<string, string> identifiers = 7;
-  optional string properties = 8;          // JSON blob
-  optional string initial_state_attribute = 9;
-  optional string initial_state_code = 10;
+  string properties = 8;               // JSON blob; "" = absent
+  string initial_state_attribute = 9;  // "" = absent
+  string initial_state_code = 10;      // "" = absent
   repeated string initial_state_reasons = 11;
 }
 
 message EditTransferProcessRequest {
   string id = 1;
-  optional string state = 2;
+  string state = 2;              // "" = no change
   map<string, string> identifiers = 3;
-  optional string properties = 4;    // JSON blob
-  optional string error_details = 5; // JSON blob
-  optional string state_attribute = 6;
-  optional string state_code = 7;
+  string properties = 4;         // JSON blob; "" = no change
+  string error_details = 5;      // JSON blob; "" = no change
+  string state_attribute = 6;    // "" = absent
+  string state_code = 7;         // "" = absent
   repeated string state_reasons = 8;
 }
 

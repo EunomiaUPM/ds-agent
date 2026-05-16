@@ -33,17 +33,21 @@ use crate::grpc::api::transfer_messages::{
 use crate::entities::query::{Page, Paginated, Sort, TransferMessageFilter};
 use crate::services::transfer_message::views::TransferMessageView;
 
-// Request - Domain ───────────────────────────────────────────────────────
+// ─── Request → Domain ───────────────────────────────────────────────────────
 
 pub fn into_list_params(
     req: ListTransferMessagesRequest,
     tenant_id: Option<TenantId>,
 ) -> Result<(TransferMessageFilter, Page, Sort), Status> {
-    let direction = req.direction.map(|s| parse_direction_str(&s)).transpose()?;
-    let protocol = req.protocol.map(|s| parse_protocol_id(&s)).transpose()?;
-    let state_transition_to = req.state_transition_to.map(|s| ProtocolState(s.into()));
-    let created_after = req.created_after.map(|s| parse_dt(&s, "created_after")).transpose()?;
-    let created_before = req.created_before.map(|s| parse_dt(&s, "created_before")).transpose()?;
+    let direction = non_empty(&req.direction).map(parse_direction_str).transpose()?;
+    let protocol = non_empty(&req.protocol).map(parse_protocol_id).transpose()?;
+    let state_transition_to = non_empty(&req.state_transition_to).map(|s| ProtocolState(s.into()));
+    let created_after = non_empty(&req.created_after)
+        .map(|s| parse_dt(s, "created_after"))
+        .transpose()?;
+    let created_before = non_empty(&req.created_before)
+        .map(|s| parse_dt(s, "created_before"))
+        .transpose()?;
 
     let filter = TransferMessageFilter {
         tenant_id,
@@ -53,8 +57,9 @@ pub fn into_list_params(
         created_after,
         created_before,
     };
-    let page = Page { limit: if req.limit == 0 { 20 } else { req.limit }, cursor: req.cursor };
-    let sort = req.sort.map(|s| parse_sort(&s)).transpose()?.unwrap_or_default();
+    let cursor = non_empty(&req.cursor).map(|s| s.to_owned());
+    let page = Page { limit: if req.limit == 0 { 20 } else { req.limit }, cursor };
+    let sort = non_empty(&req.sort).map(parse_sort).transpose()?.unwrap_or_default();
     Ok((filter, page, sort))
 }
 
@@ -63,11 +68,15 @@ pub fn into_list_by_process_params(
     tenant_id: Option<TenantId>,
 ) -> Result<(Urn, TransferMessageFilter, Page, Sort), Status> {
     let process_id = parse_urn(&req.process_id, "process_id")?;
-    let direction = req.direction.map(|s| parse_direction_str(&s)).transpose()?;
-    let protocol = req.protocol.map(|s| parse_protocol_id(&s)).transpose()?;
-    let state_transition_to = req.state_transition_to.map(|s| ProtocolState(s.into()));
-    let created_after = req.created_after.map(|s| parse_dt(&s, "created_after")).transpose()?;
-    let created_before = req.created_before.map(|s| parse_dt(&s, "created_before")).transpose()?;
+    let direction = non_empty(&req.direction).map(parse_direction_str).transpose()?;
+    let protocol = non_empty(&req.protocol).map(parse_protocol_id).transpose()?;
+    let state_transition_to = non_empty(&req.state_transition_to).map(|s| ProtocolState(s.into()));
+    let created_after = non_empty(&req.created_after)
+        .map(|s| parse_dt(s, "created_after"))
+        .transpose()?;
+    let created_before = non_empty(&req.created_before)
+        .map(|s| parse_dt(s, "created_before"))
+        .transpose()?;
 
     let filter = TransferMessageFilter {
         tenant_id,
@@ -77,8 +86,9 @@ pub fn into_list_by_process_params(
         created_after,
         created_before,
     };
-    let page = Page { limit: if req.limit == 0 { 20 } else { req.limit }, cursor: req.cursor };
-    let sort = req.sort.map(|s| parse_sort(&s)).transpose()?.unwrap_or_default();
+    let cursor = non_empty(&req.cursor).map(|s| s.to_owned());
+    let page = Page { limit: if req.limit == 0 { 20 } else { req.limit }, cursor };
+    let sort = non_empty(&req.sort).map(parse_sort).transpose()?.unwrap_or_default();
     Ok((process_id, filter, page, sort))
 }
 
@@ -89,12 +99,12 @@ pub fn into_create_cmd(
     let process_urn = parse_urn(&req.transfer_process_id, "transfer_process_id")?;
     let direction = parse_proto_direction(req.direction)?;
     let protocol = parse_protocol_id(&req.protocol)?;
-    let peer_participant_id = req
-        .peer_participant_id
-        .map(|s| parse_urn(&s, "peer_participant_id").map(ParticipantId::new))
+    let peer_participant_id = non_empty(&req.peer_participant_id)
+        .map(|s| parse_urn(s, "peer_participant_id").map(ParticipantId::new))
         .transpose()?;
-    let correlation_id = req.correlation_id.map(CorrelationId::new);
-    let request_id = req.request_id.map(RequestId::new);
+    let correlation_id = non_empty(&req.correlation_id).map(CorrelationId::new);
+    let request_id = non_empty(&req.request_id).map(RequestId::new);
+    let protocol_version = non_empty(&req.protocol_version).map(|s| s.to_owned());
     let envelope = build_envelope(req.raw_bytes, req.content_type, req.headers, req.canonical_form)?;
 
     Ok(NewTransferMessageCommand {
@@ -104,7 +114,7 @@ pub fn into_create_cmd(
         direction,
         protocol,
         message_type: ProtocolMessageType(CompactString::from(req.message_type)),
-        protocol_version: req.protocol_version,
+        protocol_version,
         state_transition_from: ProtocolState(req.state_transition_from.into()),
         state_transition_to: ProtocolState(req.state_transition_to.into()),
         envelope,
@@ -114,7 +124,7 @@ pub fn into_create_cmd(
     })
 }
 
-// Domain - Response ──────────────────────────────────────────────────────
+// ─── Domain → Response ──────────────────────────────────────────────────────
 
 pub fn from_view(view: TransferMessageView) -> TransferMessageResponse {
     let direction = domain_direction_to_proto(view.direction) as i32;
@@ -135,7 +145,7 @@ pub fn from_view(view: TransferMessageView) -> TransferMessageResponse {
         protocol_version: view.protocol_version,
         envelope,
         occurred_at: view.occurred_at.to_rfc3339(),
-        correlation_id: view.correlation_id.map(|c| c.to_string()),
+        correlation_id: view.correlation_id.map(|c| c.to_string()).unwrap_or_default(),
         request_id: view.request_id.to_string(),
         peer_participant_id: view.peer_participant_id.to_string(),
         processing_result,
@@ -145,12 +155,12 @@ pub fn from_view(view: TransferMessageView) -> TransferMessageResponse {
 pub fn from_paginated(result: Paginated<TransferMessageView>) -> TransferMessageListResponse {
     TransferMessageListResponse {
         items: result.items.into_iter().map(from_view).collect(),
-        next_cursor: result.next_cursor,
-        total: result.total,
+        next_cursor: result.next_cursor.unwrap_or_default(),
+        total: result.total.unwrap_or(0),
     }
 }
 
-// Nested type conversions ─────────────────────────────────────────────────
+// ─── Nested type conversions ─────────────────────────────────────────────────
 
 fn bytes_to_hex(h: &[u8; 32]) -> String {
     use std::fmt::Write;
@@ -163,18 +173,14 @@ fn bytes_to_hex(h: &[u8; 32]) -> String {
 
 fn from_envelope(env: &MessageEnvelope) -> ProtoEnvelope {
     let content_hash = bytes_to_hex(&env.content_hash);
-    let canonical_hash = env.canonical_hash.map(|h| bytes_to_hex(&h));
+    let canonical_hash = env.canonical_hash.map(|h| bytes_to_hex(&h)).unwrap_or_default();
 
     ProtoEnvelope {
         raw_bytes: env.raw_bytes.to_vec(),
         content_type: env.content_type.to_string(),
         content_hash,
-        headers: env
-            .headers
-            .iter()
-            .map(|(k, v)| (k.to_string(), v.clone()))
-            .collect(),
-        canonical_form: env.canonical_form.as_ref().map(|b| b.to_vec()),
+        headers: env.headers.iter().map(|(k, v)| (k.to_string(), v.clone())).collect(),
+        canonical_form: env.canonical_form.as_ref().map(|b| b.to_vec()).unwrap_or_default(),
         canonical_hash,
     }
 }
@@ -183,56 +189,58 @@ fn from_processing_result(result: &MessageProcessingResult) -> ProtoResult {
     match result {
         MessageProcessingResult::Accepted { resulting_state } => ProtoResult {
             status: MessageStatus::Accepted as i32,
-            resulting_state: Some(resulting_state.0.to_string()),
-            rejection_reason: None,
-            error_code: None,
+            resulting_state: resulting_state.0.to_string(),
+            rejection_reason: String::new(),
+            error_code: String::new(),
         },
         MessageProcessingResult::Rejected { reason, error_code } => ProtoResult {
             status: MessageStatus::Rejected as i32,
-            resulting_state: None,
-            rejection_reason: Some(reason.clone()),
-            error_code: error_code.clone(),
+            resulting_state: String::new(),
+            rejection_reason: reason.clone(),
+            error_code: error_code.clone().unwrap_or_default(),
         },
         MessageProcessingResult::IdempotentReplay => ProtoResult {
             status: MessageStatus::IdempotentReplay as i32,
-            resulting_state: None,
-            rejection_reason: None,
-            error_code: None,
+            resulting_state: String::new(),
+            rejection_reason: String::new(),
+            error_code: String::new(),
         },
     }
 }
 
-// Envelope builder ────────────────────────────────────────────────────────
+// ─── Envelope builder ────────────────────────────────────────────────────────
 
 fn build_envelope(
     raw: Vec<u8>,
     content_type: String,
     headers: std::collections::HashMap<String, String>,
-    canonical_form: Option<Vec<u8>>,
+    canonical_form: Vec<u8>,
 ) -> Result<MessageEnvelope, Status> {
     let raw_bytes = Bytes::from(raw);
     let content_hash: [u8; 32] = Sha256::digest(&raw_bytes).into();
-    let (canonical_form, canonical_hash) = match canonical_form {
-        Some(cf) if !cf.is_empty() => {
-            let cf_bytes = Bytes::from(cf);
-            let ch: [u8; 32] = Sha256::digest(&cf_bytes).into();
-            (Some(cf_bytes), Some(ch))
-        }
-        _ => (None, None),
+    let (canonical_form, canonical_hash) = if canonical_form.is_empty() {
+        (None, None)
+    } else {
+        let cf = Bytes::from(canonical_form);
+        let ch: [u8; 32] = Sha256::digest(&cf).into();
+        (Some(cf), Some(ch))
     };
 
     Ok(MessageEnvelope {
         raw_bytes,
         content_type: CompactString::from(content_type),
         content_hash,
-        headers: headers.into_iter().map(|(k, v)| (CompactString::from(k), v)).collect::<BTreeMap<_, _>>(),
+        headers: headers
+            .into_iter()
+            .map(|(k, v)| (CompactString::from(k), v))
+            .collect::<BTreeMap<_, _>>(),
         canonical_form,
         canonical_hash,
         signature: None,
     })
 }
 
-// Enum conversions ────────────────────────────────────────────────────────
+// ─── Enum conversions ────────────────────────────────────────────────────────
 
 fn parse_proto_direction(value: i32) -> Result<Direction, Status> {
     match ProtoDirection::try_from(value) {
@@ -265,7 +273,7 @@ fn parse_protocol_id(s: &str) -> Result<ProtocolId, Status> {
     }
 }
 
-// Pagination / sort ───────────────────────────────────────────────────────
+// ─── Pagination / sort ───────────────────────────────────────────────────────
 
 fn parse_sort(s: &str) -> Result<Sort, Status> {
     match s {
@@ -276,7 +284,12 @@ fn parse_sort(s: &str) -> Result<Sort, Status> {
     }
 }
 
-// Primitives ───────────────────────────────────────────────────────────────
+// ─── Primitives ───────────────────────────────────────────────────────────────
+
+/// Returns `Some(s)` if `s` is non-empty, `None` if it is `""`.
+fn non_empty(s: &str) -> Option<&str> {
+    if s.is_empty() { None } else { Some(s) }
+}
 
 fn parse_urn(s: &str, field: &str) -> Result<Urn, Status> {
     Urn::from_str(s).map_err(|e| Status::invalid_argument(format!("{field}: invalid URN — {e}")))

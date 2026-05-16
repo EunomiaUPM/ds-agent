@@ -29,15 +29,15 @@ message MessageEnvelope {
   string content_type = 2;
   string content_hash = 3;         // hex SHA-256
   map<string, string> headers = 4;
-  optional bytes canonical_form = 5;
-  optional string canonical_hash = 6; // hex SHA-256
+  bytes canonical_form = 5;        // empty = absent
+  string canonical_hash = 6;       // "" = absent; hex SHA-256
 }
 
 message MessageProcessingResult {
   MessageStatus status = 1;
-  optional string resulting_state = 2;
-  optional string rejection_reason = 3;
-  optional string error_code = 4;
+  string resulting_state = 2;   // "" = absent
+  string rejection_reason = 3;  // "" = absent
+  string error_code = 4;        // "" = absent
 }
 
 // Response types ─────────────────────────────────────────────────────────
@@ -51,8 +51,8 @@ message TransferMessageResponse {
   string message_type = 6;
   string protocol_version = 7;
   MessageEnvelope envelope = 8;
-  string occurred_at = 9;          // RFC3339
-  optional string correlation_id = 10;
+  string occurred_at = 9;       // RFC3339
+  string correlation_id = 10;   // "" = absent
   string request_id = 11;
   string peer_participant_id = 12;
   MessageProcessingResult processing_result = 13;
@@ -60,36 +60,37 @@ message TransferMessageResponse {
 
 message TransferMessageListResponse {
   repeated TransferMessageResponse items = 1;
-  optional string next_cursor = 2;
-  optional uint64 total = 3;
+  string next_cursor = 2; // "" = no next page
+  uint64 total = 3;       // 0 = unknown
 }
 
 message DeleteResponse {}
 
 // Request types ──────────────────────────────────────────────────────────
 
-/// Auth: authorization Bearer <token> + x-tenant-id metadata headers required.
+// Auth: authorization Bearer <token> + x-tenant-id metadata headers required.
+// Filter strings: send "" to omit a filter. Pagination: limit=0 defaults to 20.
 message ListTransferMessagesRequest {
-  optional string direction = 1;        // "inbound" | "outbound"
-  optional string protocol = 2;
-  optional string state_transition_to = 3;
-  optional string created_after = 4;   // RFC3339
-  optional string created_before = 5;  // RFC3339
-  uint32 limit = 6;
-  optional string cursor = 7;
-  optional string sort = 8; // "created_at_asc" | "created_at_desc" | "updated_at_desc"
+  string direction = 1;          // "" = any; "inbound" | "outbound"
+  string protocol = 2;           // "" = any
+  string state_transition_to = 3; // "" = any
+  string created_after = 4;      // "" = no lower bound; RFC3339
+  string created_before = 5;     // "" = no upper bound; RFC3339
+  uint32 limit = 6;              // 0 → default 20
+  string cursor = 7;             // "" = first page
+  string sort = 8;               // "" → "created_at_desc"
 }
 
 message ListTransferMessagesByProcessRequest {
   string process_id = 1;
-  optional string direction = 2;
-  optional string protocol = 3;
-  optional string state_transition_to = 4;
-  optional string created_after = 5;
-  optional string created_before = 6;
+  string direction = 2;
+  string protocol = 3;
+  string state_transition_to = 4;
+  string created_after = 5;
+  string created_before = 6;
   uint32 limit = 7;
-  optional string cursor = 8;
-  optional string sort = 9;
+  string cursor = 8;
+  string sort = 9;
 }
 
 message ResourceIdRequest {
@@ -106,11 +107,11 @@ message CreateTransferMessageRequest {
   bytes raw_bytes = 7;
   string content_type = 8;
   map<string, string> headers = 9;
-  optional bytes canonical_form = 10;
-  optional string peer_participant_id = 11;
-  optional string correlation_id = 12;
-  optional string request_id = 13;
-  optional string protocol_version = 14;
+  bytes canonical_form = 10;          // empty = absent
+  string peer_participant_id = 11;    // "" = absent
+  string correlation_id = 12;         // "" = absent
+  string request_id = 13;             // "" = absent
+  string protocol_version = 14;       // "" = absent
 }
 
 // Service ────────────────────────────────────────────────────────────────

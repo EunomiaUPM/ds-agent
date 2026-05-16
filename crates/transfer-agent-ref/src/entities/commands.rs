@@ -20,7 +20,7 @@ use crate::entities::ids::{
 };
 use crate::entities::message_envelope::Direction;
 use crate::entities::protocol::{
-    ProtocolId, ProtocolMessageType, ProtocolState, StateMetadata, TransferDirection, TransferRole,
+    ProtocolId, ProtocolMessageType, ProtocolState, StateMetadata, TransferRole,
 };
 use crate::entities::transfer_message::MessageEnvelope;
 use serde::Deserialize;
@@ -33,10 +33,9 @@ use urn::Urn;
 #[serde(rename_all = "camelCase")]
 pub(crate) struct NewTransferProcessCommand {
     pub id: Option<TransferProcessId>,
-    pub tenant_id: TenantId,
+    pub tenant_id: Option<TenantId>,
     pub role: TransferRole,
     pub protocol: ProtocolId,
-    pub transfer_direction: TransferDirection,
     pub initial_state: ProtocolState,
     pub initial_state_metadata: StateMetadata,
     pub callback_address: Option<Url>,
@@ -62,7 +61,7 @@ pub(crate) struct EditTransferProcessCommand {
 pub(crate) struct NewTransferMessageCommand {
     pub id: Option<MessageId>,
     pub transfer_process_id: TransferProcessId,
-    pub tenant_id: TenantId,
+    pub tenant_id: Option<TenantId>,
     pub direction: Direction,
     pub protocol: ProtocolId,
     pub message_type: ProtocolMessageType,

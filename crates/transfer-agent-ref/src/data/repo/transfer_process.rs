@@ -31,6 +31,7 @@ pub trait TransferProcessRepoTrait: Send + Sync {
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Vec<TransferProcess>>;
+    async fn count_transfer_processes(&self, filters: &TransferProcessFilter) -> Outcome<u64>;
     async fn get_batch_transfer_processes(&self, ids: &Vec<Urn>) -> Outcome<Vec<TransferProcess>>;
     async fn get_transfer_process_by_id(&self, id: &Urn) -> Outcome<Option<TransferProcess>>;
     async fn get_transfer_process_by_key_id(

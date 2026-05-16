@@ -59,7 +59,7 @@ impl RefreshTokenRepository for SeaOrmRefreshTokenRepository {
     }
 
     async fn revoke(&self, id: Uuid) -> Outcome<()> {
-        let token = orm::Entity::find_by_id(id.to_string())
+        let token = orm::Entity::find_by_id(id)
             .one(self.db.as_ref())
             .await
             .map_err(|e| RefreshTokenRepositoryError::Db(Box::new(e)).into_errors())?

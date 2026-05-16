@@ -15,11 +15,15 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use base64::Engine;
+use chrono::DateTime;
+
 use crate::data::repo::transfer_process::TransferProcessRepoErrors;
 use crate::data::repo::transfer_process::TransferProcessRepoTrait;
 use crate::data::repo::transfer_process_identifier::TransferIdentifierRepoTrait;
 use crate::entities::commands::{EditTransferProcessCommand, NewTransferProcessCommand};
 use crate::entities::query::{Page, Paginated, Sort, TransferProcessFilter};
+use crate::entities::transfer_process::TransferProcess;
 use crate::entities::transfer_process_identifier::TransferProcessIdentifier;
 use crate::services::transfer_process::TransferProcessServiceTrait;
 use crate::services::transfer_process::views::TransferProcessView;
@@ -29,6 +33,14 @@ use std::sync::Arc;
 use urn::Urn;
 use ymir::errors::Outcome;
 use ymir::errors::RepoIntoErrors;
+
+fn encode_cursor(process: &TransferProcess, sort: &Sort) -> String {
+    let dt: DateTime<chrono::Utc> = match sort {
+        Sort::UpdatedAtDesc => process.updated_at(),
+        _ => process.created_at(),
+    };
+    base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(dt.to_rfc3339())
+}
 
 pub(crate) struct TransferProcessService {
     process_repo: Arc<dyn TransferProcessRepoTrait>,
@@ -75,6 +87,16 @@ impl TransferProcessServiceTrait for TransferProcessService {
                 .insert(id.key, id.value.unwrap_or_default());
         }
 
+        let total = self
+            .process_repo
+            .count_transfer_processes(filters)
+            .await?;
+        let next_cursor = if processes.len() == page.limit as usize {
+            processes.last().map(|p| encode_cursor(p, sort))
+        } else {
+            None
+        };
+
         let items = processes
             .into_iter()
             .map(|p| {
@@ -85,8 +107,8 @@ impl TransferProcessServiceTrait for TransferProcessService {
 
         Ok(Paginated {
             items,
-            next_cursor: None,
-            total: None,
+            next_cursor,
+            total: Some(total),
         })
     }
 

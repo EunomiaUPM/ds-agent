@@ -17,16 +17,18 @@
 
 use std::sync::Arc;
 
+use axum::Router;
 use sea_orm::DatabaseConnection;
 
 use crate::config::OAuthConfig;
 use crate::services::token_service::{TokenServiceTrait, TokenValidator};
+use crate::services::user_service::UserServiceTrait;
 
-pub struct TokenServiceSetup {}
+pub struct OAuthSetup {}
 
-impl TokenServiceSetup {
+impl OAuthSetup {
     pub fn new() -> Self {
-        TokenServiceSetup {}
+        OAuthSetup {}
     }
 
     /// Validate-only service backed by in-memory stubs.
@@ -45,11 +47,7 @@ impl TokenServiceSetup {
     }
 
     /// Full token service backed by a real database.
-    pub fn build_full(
-        &self,
-        config: OAuthConfig,
-        db: DatabaseConnection,
-    ) -> Arc<dyn TokenServiceTrait> {
+    pub fn build_full(&self, config: OAuthConfig, db: DatabaseConnection) -> Arc<dyn TokenServiceTrait> {
         use crate::data::factory::OAuthDataFactory;
         use crate::data::sea_orm::factory::SeaOrmDataFactory;
         use crate::services::token_service::service::TokenService;
@@ -59,5 +57,32 @@ impl TokenServiceSetup {
             factory.refresh_token_repository(),
             config,
         ))
+    }
+
+    /// Builds the full OAuth router (token, users) backed by a real database.
+    /// Mount this under an appropriate prefix (e.g. `/oauth`) in the host service.
+    pub fn build_router(&self, config: OAuthConfig, db: DatabaseConnection) -> Router {
+        use crate::data::factory::OAuthDataFactory;
+        use crate::data::sea_orm::factory::SeaOrmDataFactory;
+        use crate::http::token_router::TokenRouter;
+        use crate::http::users_router::UsersRouter;
+        use crate::services::token_service::service::TokenService;
+        use crate::services::user_service::service::UserService;
+
+        let factory = SeaOrmDataFactory::new(db);
+        let token_svc: Arc<dyn TokenServiceTrait> = Arc::new(TokenService::new(
+            factory.user_repository(),
+            factory.refresh_token_repository(),
+            config.clone(),
+        ));
+        let user_svc: Arc<dyn UserServiceTrait> = Arc::new(UserService::new(factory.user_repository()));
+        let issuer = config.issuer.clone();
+
+        let token_router = TokenRouter::new(token_svc.clone(), user_svc.clone(), issuer).router();
+        let users_router = UsersRouter::new(token_svc, user_svc).router();
+
+        Router::new()
+            .merge(token_router)
+            .nest("/users", users_router)
     }
 }

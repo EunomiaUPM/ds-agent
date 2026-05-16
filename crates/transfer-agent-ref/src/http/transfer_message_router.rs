@@ -26,6 +26,7 @@ use serde::Deserialize;
 use ymir::errors::AppResult;
 use ymir::utils::{extract_path_urn, extract_payload};
 
+use common::auth::claims::Role;
 use common::auth::rbac::Rbac;
 
 use crate::auth::extractor::AuthClaims;
@@ -71,7 +72,8 @@ impl TransferMessageRouter {
         Query(q): Query<TransferMessageQuery>,
     ) -> AppResult<(HeaderMap, Json<Paginated<TransferMessageView>>)> {
         Rbac::require_read(&auth, headers.tenant_id.as_str())?;
-        let (filter, page, sort) = q.into_domain(headers.tenant_id.clone());
+        let tenant_filter = (auth.role != Role::Admin).then(|| headers.tenant_id.clone());
+        let (filter, page, sort) = q.into_domain(tenant_filter);
         let result = state.service.get_all(&filter, &page, &sort).await?;
         let response_headers = headers.response_headers_paged(result.total);
         Ok((response_headers, Json(result)))
@@ -86,7 +88,8 @@ impl TransferMessageRouter {
     ) -> AppResult<(HeaderMap, Json<Paginated<TransferMessageView>>)> {
         Rbac::require_read(&auth, headers.tenant_id.as_str())?;
         let process_urn = extract_path_urn(&process_id)?;
-        let (filter, page, sort) = q.into_domain(headers.tenant_id.clone());
+        let tenant_filter = (auth.role != Role::Admin).then(|| headers.tenant_id.clone());
+        let (filter, page, sort) = q.into_domain(tenant_filter);
         let result = state
             .service
             .get_all_by_process(&process_urn, &filter, &page, &sort)
@@ -114,7 +117,10 @@ impl TransferMessageRouter {
         payload: Result<Json<NewTransferMessageCommand>, JsonRejection>,
     ) -> AppResult<(StatusCode, HeaderMap, Json<TransferMessageView>)> {
         Rbac::require_write(&auth, headers.tenant_id.as_str())?;
-        let payload = extract_payload(payload)?;
+        let mut payload = extract_payload(payload)?;
+        if payload.tenant_id.is_none() {
+            payload.tenant_id = Some(headers.tenant_id.clone());
+        }
         let view = state.service.create(&payload).await?;
         Ok((StatusCode::CREATED, headers.response_headers(), Json(view)))
     }
@@ -139,19 +145,27 @@ impl TransferMessageRouter {
 pub struct TransferMessageQuery {
     #[serde(flatten)]
     filter: TransferMessageFilter,
-    #[serde(flatten)]
-    page: Page,
+    #[serde(default = "default_limit")]
+    limit: u32,
+    cursor: Option<String>,
     #[serde(default)]
     sort: Sort,
+}
+
+fn default_limit() -> u32 {
+    20
 }
 
 impl TransferMessageQuery {
     fn into_domain(
         self,
-        tenant_id: crate::entities::ids::TenantId,
+        force_tenant_id: Option<crate::entities::ids::TenantId>,
     ) -> (TransferMessageFilter, Page, Sort) {
         let mut filter = self.filter;
-        filter.tenant_id = tenant_id;
-        (filter, self.page, self.sort)
+        if let Some(tid) = force_tenant_id {
+            filter.tenant_id = Some(tid);
+        }
+        let page = Page { limit: self.limit, cursor: self.cursor };
+        (filter, page, self.sort)
     }
 }

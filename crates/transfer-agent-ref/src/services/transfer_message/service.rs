@@ -15,16 +15,23 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use base64::Engine;
+
 use crate::data::repo::transfer_message::TransferMessageRepoErrors;
 use crate::data::repo::transfer_message::TransferMessageRepoTrait;
 use crate::entities::commands::NewTransferMessageCommand;
 use crate::entities::query::{Page, Paginated, Sort, TransferMessageFilter};
+use crate::entities::transfer_message::TransferMessage;
 use crate::services::transfer_message::TransferMessageServiceTrait;
 use crate::services::transfer_message::views::TransferMessageView;
 use std::sync::Arc;
 use urn::Urn;
 use ymir::errors::Outcome;
 use ymir::errors::RepoIntoErrors;
+
+fn encode_cursor(msg: &TransferMessage) -> String {
+    base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(msg.occurred_at().to_rfc3339())
+}
 
 pub(crate) struct TransferMessageService {
     message_repo: Arc<dyn TransferMessageRepoTrait>,
@@ -44,20 +51,18 @@ impl TransferMessageServiceTrait for TransferMessageService {
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<TransferMessageView>> {
+        let total = self.message_repo.count_transfer_messages(filters).await?;
         let messages = self
             .message_repo
             .get_all_transfer_messages(filters, page, sort)
             .await?;
-
-        let items = messages
-            .into_iter()
-            .map(TransferMessageView::assemble)
-            .collect();
-        Ok(Paginated {
-            items,
-            next_cursor: None,
-            total: None,
-        })
+        let next_cursor = if messages.len() == page.limit as usize {
+            messages.last().map(encode_cursor)
+        } else {
+            None
+        };
+        let items = messages.into_iter().map(TransferMessageView::assemble).collect();
+        Ok(Paginated { items, next_cursor, total: Some(total) })
     }
 
     async fn get_all_by_process(
@@ -67,20 +72,18 @@ impl TransferMessageServiceTrait for TransferMessageService {
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<TransferMessageView>> {
+        let total = self.message_repo.count_transfer_messages(filters).await?;
         let messages = self
             .message_repo
             .get_messages_by_process_id(process_id, filters, page, sort)
             .await?;
-
-        let items = messages
-            .into_iter()
-            .map(TransferMessageView::assemble)
-            .collect();
-        Ok(Paginated {
-            items,
-            next_cursor: None,
-            total: None,
-        })
+        let next_cursor = if messages.len() == page.limit as usize {
+            messages.last().map(encode_cursor)
+        } else {
+            None
+        };
+        let items = messages.into_iter().map(TransferMessageView::assemble).collect();
+        Ok(Paginated { items, next_cursor, total: Some(total) })
     }
 
     async fn get_one(&self, id: &Urn) -> Outcome<TransferMessageView> {

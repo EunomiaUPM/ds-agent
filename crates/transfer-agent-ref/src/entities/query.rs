@@ -55,8 +55,8 @@ pub enum Sort {
 
 #[derive(Deserialize)]
 pub struct TransferProcessFilter {
-    #[serde(skip_deserializing, default)]
-    pub tenant_id: TenantId,
+    /// `None` means no tenant restriction (admin queries). `Some` restricts to that tenant.
+    pub tenant_id: Option<TenantId>,
     pub protocol: Option<ProtocolId>,
     pub state: Option<ProtocolState>,
     pub role: Option<TransferRole>,
@@ -68,8 +68,8 @@ pub struct TransferProcessFilter {
 
 #[derive(Deserialize)]
 pub struct TransferMessageFilter {
-    #[serde(skip_deserializing, default)]
-    pub tenant_id: TenantId,
+    /// `None` means no tenant restriction (admin queries). `Some` restricts to that tenant.
+    pub tenant_id: Option<TenantId>,
     pub direction: Option<Direction>,
     pub protocol: Option<ProtocolId>,
     pub state_transition_to: Option<ProtocolState>,

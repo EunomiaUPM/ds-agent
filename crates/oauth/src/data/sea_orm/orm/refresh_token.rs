@@ -18,8 +18,7 @@
 use chrono::Utc;
 use sea_orm::ActiveValue::Set;
 use sea_orm::entity::prelude::*;
-use uuid::Uuid;
-use ymir::errors::{Errors, Outcome};
+use ymir::errors::Outcome;
 
 use crate::entities::refresh_token::RefreshToken;
 
@@ -27,7 +26,7 @@ use crate::entities::refresh_token::RefreshToken;
 #[sea_orm(table_name = "oauth_refresh_tokens")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
-    pub id: String,
+    pub id: Uuid,
     pub tenant_id: String,
     pub jti: String,
     pub expires_at: DateTimeWithTimeZone,
@@ -37,10 +36,8 @@ pub struct Model {
 
 impl Model {
     pub(crate) fn into_domain(self) -> Outcome<RefreshToken> {
-        let id = Uuid::parse_str(&self.id)
-            .map_err(|e| Errors::crazy("invalid UUID in refresh token", Some(Box::new(e))))?;
         Ok(RefreshToken {
-            id,
+            id: self.id,
             tenant_id: self.tenant_id,
             jti: self.jti,
             expires_at: self.expires_at.with_timezone(&Utc),
@@ -53,7 +50,7 @@ impl Model {
 impl ActiveModel {
     pub(crate) fn from_domain(rt: &RefreshToken) -> Self {
         Self {
-            id: Set(rt.id.to_string()),
+            id: Set(rt.id),
             tenant_id: Set(rt.tenant_id.clone()),
             jti: Set(rt.jti.clone()),
             expires_at: Set(rt.expires_at.into()),

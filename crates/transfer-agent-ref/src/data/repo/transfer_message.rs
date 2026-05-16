@@ -31,6 +31,7 @@ pub trait TransferMessageRepoTrait: Send + Sync {
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Vec<TransferMessage>>;
+    async fn count_transfer_messages(&self, filters: &TransferMessageFilter) -> Outcome<u64>;
 
     async fn get_messages_by_process_id(
         &self,

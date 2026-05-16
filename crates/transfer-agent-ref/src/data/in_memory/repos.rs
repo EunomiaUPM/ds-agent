@@ -78,8 +78,10 @@ impl TransferProcessRepoTrait for InMemoryTransferProcessRepo {
         let mut items: Vec<TransferProcess> = store
             .values()
             .filter(|p| {
-                if p.tenant_id().as_str() != filters.tenant_id.as_str() {
-                    return false;
+                if let Some(tid) = &filters.tenant_id {
+                    if p.tenant_id().as_str() != tid.as_str() {
+                        return false;
+                    }
                 }
                 if let Some(proto) = &filters.protocol {
                     if p.protocol() != proto {
@@ -148,6 +150,17 @@ impl TransferProcessRepoTrait for InMemoryTransferProcessRepo {
 
         items.truncate(page.limit as usize);
         Ok(items)
+    }
+
+    async fn count_transfer_processes(&self, filters: &TransferProcessFilter) -> Outcome<u64> {
+        let store = self.processes.lock().unwrap();
+        let count = store.values().filter(|p| {
+            if let Some(tid) = &filters.tenant_id {
+                if p.tenant_id().as_str() != tid.as_str() { return false; }
+            }
+            true
+        }).count() as u64;
+        Ok(count)
     }
 
     async fn get_batch_transfer_processes(&self, ids: &Vec<Urn>) -> Outcome<Vec<TransferProcess>> {
@@ -265,6 +278,17 @@ impl TransferMessageRepoTrait for InMemoryTransferMessageRepo {
             page,
             sort,
         ))
+    }
+
+    async fn count_transfer_messages(&self, filters: &TransferMessageFilter) -> Outcome<u64> {
+        let store = self.messages.lock().unwrap();
+        let count = store.values().filter(|m| {
+            if let Some(tid) = &filters.tenant_id {
+                if m.tenant_id().as_str() != tid.as_str() { return false; }
+            }
+            true
+        }).count() as u64;
+        Ok(count)
     }
 
     async fn get_transfer_message_by_id(&self, id: &Urn) -> Outcome<Option<TransferMessage>> {
@@ -389,8 +413,10 @@ fn filter_messages<'a>(
 
     let mut items: Vec<TransferMessage> = values
         .filter(|m| {
-            if m.tenant_id().as_str() != filters.tenant_id.as_str() {
-                return false;
+            if let Some(tid) = &filters.tenant_id {
+                if m.tenant_id().as_str() != tid.as_str() {
+                    return false;
+                }
             }
             if let Some(pid) = process_id {
                 if m.transfer_process_id().as_urn() != pid {
@@ -463,7 +489,7 @@ fn process_from_cmd(cmd: &NewTransferProcessCommand) -> TransferProcess {
     };
     TransferProcess::rehydrate(
         id,
-        cmd.tenant_id.clone(),
+        cmd.tenant_id.clone().expect("tenant_id must be resolved before reaching the repo"),
         cmd.role,
         now,
         now,

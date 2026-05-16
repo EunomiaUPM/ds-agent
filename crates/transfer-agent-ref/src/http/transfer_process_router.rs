@@ -27,6 +27,7 @@ use serde::Deserialize;
 use ymir::errors::AppResult;
 use ymir::utils::{extract_path_urn, extract_payload};
 
+use common::auth::claims::Role;
 use common::auth::rbac::Rbac;
 
 use crate::auth::extractor::AuthClaims;
@@ -74,7 +75,8 @@ impl TransferProcessRouter {
         Query(q): Query<TransferProcessQuery>,
     ) -> AppResult<(HeaderMap, Json<Paginated<TransferProcessView>>)> {
         Rbac::require_read(&auth, headers.tenant_id.as_str())?;
-        let (filter, page, sort) = q.into_domain(headers.tenant_id.clone());
+        let tenant_filter = (auth.role != Role::Admin).then(|| headers.tenant_id.clone());
+        let (filter, page, sort) = q.into_domain(tenant_filter);
         let result = state.service.get_all(&filter, &page, &sort).await?;
         let response_headers = headers.response_headers_paged(result.total);
         Ok((response_headers, Json(result)))
@@ -113,7 +115,10 @@ impl TransferProcessRouter {
         payload: Result<Json<NewTransferProcessCommand>, JsonRejection>,
     ) -> AppResult<(StatusCode, HeaderMap, Json<TransferProcessView>)> {
         Rbac::require_write(&auth, headers.tenant_id.as_str())?;
-        let payload = extract_payload(payload)?;
+        let mut payload = extract_payload(payload)?;
+        if payload.tenant_id.is_none() {
+            payload.tenant_id = Some(headers.tenant_id.clone());
+        }
         let view = state.service.create(&payload).await?;
         Ok((StatusCode::CREATED, headers.response_headers(), Json(view)))
     }
@@ -148,23 +153,33 @@ impl TransferProcessRouter {
 // Query params ──────────────────────────────────────────────────────────────
 
 /// Tenant is intentionally absent from the query string — it comes from X-Tenant-ID header.
+/// `limit` and `cursor` are NOT flattened from `Page` to avoid serde_urlencoded's
+/// string→u32 coercion failure when using `#[serde(flatten)]`.
 #[derive(Deserialize)]
 pub struct TransferProcessQuery {
     #[serde(flatten)]
     filter: TransferProcessFilter,
-    #[serde(flatten)]
-    page: Page,
+    #[serde(default = "default_limit")]
+    limit: u32,
+    cursor: Option<String>,
     #[serde(default)]
     sort: Sort,
+}
+
+fn default_limit() -> u32 {
+    20
 }
 
 impl TransferProcessQuery {
     fn into_domain(
         self,
-        tenant_id: crate::entities::ids::TenantId,
+        force_tenant_id: Option<crate::entities::ids::TenantId>,
     ) -> (TransferProcessFilter, Page, Sort) {
         let mut filter = self.filter;
-        filter.tenant_id = tenant_id;
-        (filter, self.page, self.sort)
+        if let Some(tid) = force_tenant_id {
+            filter.tenant_id = Some(tid);
+        }
+        let page = Page { limit: self.limit, cursor: self.cursor };
+        (filter, page, self.sort)
     }
 }

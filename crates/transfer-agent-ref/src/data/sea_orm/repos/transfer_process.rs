@@ -20,8 +20,8 @@ use std::sync::Arc;
 use base64::Engine;
 use chrono::DateTime;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder,
-    QuerySelect,
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
+    QueryOrder, QuerySelect,
 };
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
@@ -44,6 +44,7 @@ impl SeaOrmTransferProcessRepo {
     fn db_err(e: sea_orm::DbErr) -> ymir::errors::Errors {
         TransferProcessRepoErrors::ErrorFetchingTransferProcess(Box::new(e)).into_errors()
     }
+
     fn decode_cursor(&self, cursor: &str) -> Result<chrono::DateTime<chrono::FixedOffset>, ()> {
         let bytes = base64::engine::general_purpose::URL_SAFE_NO_PAD
             .decode(cursor)
@@ -51,39 +52,24 @@ impl SeaOrmTransferProcessRepo {
         let s = String::from_utf8(bytes).map_err(|_| ())?;
         DateTime::parse_from_rfc3339(&s).map_err(|_| ())
     }
-}
 
-#[async_trait::async_trait]
-impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
-    async fn get_all_transfer_processes(
-        &self,
+    fn apply_base_filters(
+        mut q: sea_orm::Select<orm::Entity>,
         filters: &TransferProcessFilter,
-        page: &Page,
-        sort: &Sort,
-    ) -> Outcome<Vec<TransferProcess>> {
-        let mut q = orm::Entity::find();
-
-        q = q.filter(orm::Column::TenantId.eq(filters.tenant_id.as_str()));
-
+    ) -> sea_orm::Select<orm::Entity> {
+        use serde::Serialize;
+        if let Some(tid) = &filters.tenant_id {
+            q = q.filter(orm::Column::TenantId.eq(tid.as_str()));
+        }
         if let Some(protocol) = &filters.protocol {
-            use serde::Serialize;
-            let s = serde_json::to_value(protocol)
-                .unwrap()
-                .as_str()
-                .unwrap_or("")
-                .to_string();
+            let s = serde_json::to_value(protocol).unwrap().as_str().unwrap_or("").to_string();
             q = q.filter(orm::Column::Protocol.eq(s));
         }
         if let Some(state) = &filters.state {
             q = q.filter(orm::Column::ProtocolState.eq(state.0.as_str()));
         }
         if let Some(role) = &filters.role {
-            use serde::Serialize;
-            let s = serde_json::to_value(role)
-                .unwrap()
-                .as_str()
-                .unwrap_or("")
-                .to_string();
+            let s = serde_json::to_value(role).unwrap().as_str().unwrap_or("").to_string();
             q = q.filter(orm::Column::Role.eq(s));
         }
         if let Some(agreement_id) = &filters.agreement_id {
@@ -98,6 +84,19 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
         if let Some(before) = filters.created_before {
             q = q.filter(orm::Column::CreatedAt.lt(before));
         }
+        q
+    }
+}
+
+#[async_trait::async_trait]
+impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
+    async fn get_all_transfer_processes(
+        &self,
+        filters: &TransferProcessFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<Vec<TransferProcess>> {
+        let mut q = Self::apply_base_filters(orm::Entity::find(), filters);
 
         if let Some(cursor) = &page.cursor {
             if let Ok(cursor_dt) = self.decode_cursor(cursor) {
@@ -123,6 +122,13 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
             .into_iter()
             .map(orm::Model::into_domain)
             .collect()
+    }
+
+    async fn count_transfer_processes(&self, filters: &TransferProcessFilter) -> Outcome<u64> {
+        Self::apply_base_filters(orm::Entity::find(), filters)
+            .count(self.db.as_ref())
+            .await
+            .map_err(Self::db_err)
     }
 
     async fn get_batch_transfer_processes(&self, ids: &Vec<Urn>) -> Outcome<Vec<TransferProcess>> {

@@ -35,7 +35,6 @@ pub(crate) struct TransferProcessView {
     pub state: ProtocolState,
     pub state_metadata: StateMetadata,
     pub correlation: TransferCorrelation,
-    pub extra_identifiers: HashMap<String, String>,
     pub properties: Json,
     pub error_details: Option<Json>,
     pub created_at: DateTime<Utc>,
@@ -48,6 +47,18 @@ impl TransferProcessView {
         process: TransferProcess,
         extra_identifiers: HashMap<String, String>,
     ) -> Self {
+        let mut correlation = process.correlation().clone();
+        correlation.identifiers.extend(extra_identifiers);
+        if correlation.consumer_pid.is_none() {
+            if let Some(v) = correlation.identifiers.get("consumerPid") {
+                correlation.consumer_pid = Some(v.clone());
+            }
+        }
+        if correlation.provider_pid.is_none() {
+            if let Some(v) = correlation.identifiers.get("providerPid") {
+                correlation.provider_pid = Some(v.clone());
+            }
+        }
         Self {
             id: process.id().clone(),
             tenant_id: process.tenant_id().clone(),
@@ -55,8 +66,7 @@ impl TransferProcessView {
             protocol: process.protocol().clone(),
             state: process.state().clone(),
             state_metadata: process.state_metadata().clone(),
-            correlation: process.correlation().clone(),
-            extra_identifiers,
+            correlation,
             properties: process.properties().clone(),
             error_details: process.error_details().cloned(),
             created_at: process.created_at(),

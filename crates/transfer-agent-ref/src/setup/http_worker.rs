@@ -27,6 +27,7 @@ use common::config::services::traits::TransferConfigTrait;
 use common::config::types::traits::CommonConfigTrait;
 use common::errors::CommonErrors;
 use common::well_known::WellKnownRoot;
+use oauth::config::OAuthConfig;
 use tokio::net::TcpListener;
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
@@ -65,7 +66,7 @@ impl TransferHttpWorker {
             "0.0.0.0"
         };
         let port = config.common().get_internal_port(HostType::Http);
-        let addr = format!("{}{}", host, port);
+        let addr = format!("{}:{}", host, port);
 
         let listener = TcpListener::bind(&addr)
             .await
@@ -122,6 +123,14 @@ pub async fn create_root_http_router(
     vault: Arc<VaultService>,
 ) -> Outcome<Router> {
     let db_connection = vault.get_db_connection(config.common()).await;
+
+    let oauth_config = OAuthConfig::new(
+        config.jwt_secret(),
+        config.common().get_host(HostType::Http),
+        "transfer-agent-ref",
+    );
+    let oauth_router = oauth::setup::OAuthSetup::new().build_router(oauth_config, db_connection.clone());
+
     let factory = SeaOrmDataFactory::new(db_connection);
 
     let process_svc = Arc::new(TransferProcessService::new(
@@ -139,13 +148,15 @@ pub async fn create_root_http_router(
         TransferMessageRouter::new(message_svc).router(),
     );
 
-    let token_svc = oauth::setup::TokenServiceSetup::new().build_validator(config.jwt_secret());
+    let token_svc = oauth::setup::OAuthSetup::new().build_validator(config.jwt_secret());
 
     let api_base = format!("{}/transfer-agent-ref", config.common().get_api_version());
-    let router = Router::new().nest(
-        &api_base,
-        build_router(token_svc, process_router, message_router),
-    );
+    let router = Router::new()
+        .nest(
+            &api_base,
+            build_router(token_svc, process_router, message_router),
+        )
+        .nest("/oauth", oauth_router);
 
     Ok(router)
 }

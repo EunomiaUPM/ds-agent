@@ -100,6 +100,10 @@ impl Model {
 impl ActiveModel {
     pub(crate) fn from_cmd(cmd: &NewTransferProcessCommand) -> Self {
         let id = cmd.id.clone().unwrap_or_else(TransferProcessId::generate);
+        let tenant_id = cmd
+            .tenant_id
+            .clone()
+            .expect("tenant_id must be resolved before reaching the repo");
         let now = chrono::Utc::now();
         let correlation = TransferCorrelation {
             identifiers: std::collections::HashMap::new(),
@@ -111,7 +115,7 @@ impl ActiveModel {
         };
         let process = TransferProcess::rehydrate(
             id,
-            cmd.tenant_id.clone(),
+            tenant_id,
             cmd.role,
             now,
             now,

@@ -66,10 +66,14 @@ impl TransferMessage {
         let request_id = cmd.request_id.clone().unwrap_or_else(RequestId::generate);
         let protocol_version =
             CompactString::from(cmd.protocol_version.as_deref().unwrap_or("1.0"));
+        let tenant_id = cmd
+            .tenant_id
+            .clone()
+            .expect("tenant_id must be resolved before reaching the domain");
         Self {
             id,
             transfer_process_id: cmd.transfer_process_id.clone(),
-            tenant_id: cmd.tenant_id.clone(),
+            tenant_id,
             direction: cmd.direction,
             protocol: cmd.protocol.clone(),
             message_type: cmd.message_type.clone(),

@@ -18,8 +18,8 @@
 use std::sync::Arc;
 
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder,
-    QuerySelect,
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
+    QueryOrder, QuerySelect,
 };
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
@@ -109,7 +109,9 @@ impl TransferMessageRepoTrait for SeaOrmTransferMessageRepo {
         sort: &Sort,
     ) -> Outcome<Vec<TransferMessage>> {
         let mut q = orm::Entity::find();
-        q = q.filter(orm::Column::TenantId.eq(filters.tenant_id.as_str()));
+        if let Some(tid) = &filters.tenant_id {
+            q = q.filter(orm::Column::TenantId.eq(tid.as_str()));
+        }
         q = self.apply_message_filters(q, filters, page, sort);
         q.limit(page.limit as u64)
             .all(self.db.as_ref())
@@ -118,6 +120,33 @@ impl TransferMessageRepoTrait for SeaOrmTransferMessageRepo {
             .into_iter()
             .map(orm::Model::into_domain)
             .collect()
+    }
+
+    async fn count_transfer_messages(&self, filters: &TransferMessageFilter) -> Outcome<u64> {
+        let mut q = orm::Entity::find();
+        if let Some(tid) = &filters.tenant_id {
+            q = q.filter(orm::Column::TenantId.eq(tid.as_str()));
+        }
+        if let Some(dir) = &filters.direction {
+            use serde::Serialize;
+            let s = serde_json::to_value(dir).unwrap().as_str().unwrap_or("").to_string();
+            q = q.filter(orm::Column::Direction.eq(s));
+        }
+        if let Some(protocol) = &filters.protocol {
+            use serde::Serialize;
+            let s = serde_json::to_value(protocol).unwrap().as_str().unwrap_or("").to_string();
+            q = q.filter(orm::Column::Protocol.eq(s));
+        }
+        if let Some(state) = &filters.state_transition_to {
+            q = q.filter(orm::Column::StateTransitionTo.eq(state.0.as_str()));
+        }
+        if let Some(after) = filters.created_after {
+            q = q.filter(orm::Column::OccurredAt.gt(after));
+        }
+        if let Some(before) = filters.created_before {
+            q = q.filter(orm::Column::OccurredAt.lt(before));
+        }
+        q.count(self.db.as_ref()).await.map_err(Self::db_err)
     }
 
     async fn get_messages_by_process_id(

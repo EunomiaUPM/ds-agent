@@ -51,11 +51,10 @@ impl TransferMessageServiceTrait for TransferMessageService {
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<TransferMessageView>> {
-        let total = self.message_repo.count_transfer_messages(filters).await?;
-        let messages = self
-            .message_repo
-            .get_all_transfer_messages(filters, page, sort)
-            .await?;
+        let (messages, total) = tokio::try_join!(
+            self.message_repo.get_all_transfer_messages(filters, page, sort),
+            self.message_repo.count_transfer_messages(filters),
+        )?;
         let next_cursor = if messages.len() == page.limit as usize {
             messages.last().map(encode_cursor)
         } else {
@@ -72,11 +71,10 @@ impl TransferMessageServiceTrait for TransferMessageService {
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<TransferMessageView>> {
-        let total = self.message_repo.count_transfer_messages(filters).await?;
-        let messages = self
-            .message_repo
-            .get_messages_by_process_id(process_id, filters, page, sort)
-            .await?;
+        let (messages, total) = tokio::try_join!(
+            self.message_repo.get_messages_by_process_id(process_id, filters, page, sort),
+            self.message_repo.count_transfer_messages(filters),
+        )?;
         let next_cursor = if messages.len() == page.limit as usize {
             messages.last().map(encode_cursor)
         } else {

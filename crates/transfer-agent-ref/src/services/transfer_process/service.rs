@@ -67,10 +67,10 @@ impl TransferProcessServiceTrait for TransferProcessService {
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<TransferProcessView>> {
-        let processes = self
-            .process_repo
-            .get_all_transfer_processes(filters, page, sort)
-            .await?;
+        let (processes, total) = tokio::try_join!(
+            self.process_repo.get_all_transfer_processes(filters, page, sort),
+            self.process_repo.count_transfer_processes(filters),
+        )?;
 
         let urns: Vec<Urn> = processes.iter().map(|p| p.id().as_urn().clone()).collect();
 
@@ -86,11 +86,6 @@ impl TransferProcessServiceTrait for TransferProcessService {
                 .or_default()
                 .insert(id.key, id.value.unwrap_or_default());
         }
-
-        let total = self
-            .process_repo
-            .count_transfer_processes(filters)
-            .await?;
         let next_cursor = if processes.len() == page.limit as usize {
             processes.last().map(|p| encode_cursor(p, sort))
         } else {

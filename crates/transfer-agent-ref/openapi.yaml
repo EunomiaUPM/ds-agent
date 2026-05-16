@@ -5,9 +5,7 @@ info:
   version: "0.1.0"
   description: |
     Internal agent for tracking DSP Transfer Processes and their associated
-    protocol messages. Manages the lifecycle of transfer processes (REQUESTED →
-    STARTED → SUSPENDED / COMPLETED / TERMINATED) and records every inbound/
-    outbound protocol message with its wire envelope.
+    protocol messages.
 
     **Base path:** `/api/v1/transfer-agent-ref`
     **Auth:** Bearer JWT issued by the bundled OAuth endpoint (`/oauth/token`).

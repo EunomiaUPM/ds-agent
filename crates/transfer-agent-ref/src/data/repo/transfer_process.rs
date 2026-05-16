@@ -23,7 +23,7 @@ use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
 #[allow(dead_code)]
-#[mockall::automock]
+#[cfg_attr(test, mockall::automock)]
 #[async_trait::async_trait]
 pub trait TransferProcessRepoTrait: Send + Sync {
     async fn get_all_transfer_processes(

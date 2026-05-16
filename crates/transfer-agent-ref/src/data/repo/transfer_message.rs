@@ -22,7 +22,7 @@ use thiserror::Error;
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
-#[mockall::automock]
+#[cfg_attr(test, mockall::automock)]
 #[async_trait::async_trait]
 pub trait TransferMessageRepoTrait: Send + Sync {
     async fn get_all_transfer_messages(

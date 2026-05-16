@@ -117,7 +117,7 @@ impl TransferHttpWorker {
     }
 }
 
-pub async fn create_root_http_router(
+pub(crate) async fn create_root_http_router(
     config: &TransferConfig,
     vault: Arc<VaultService>,
 ) -> Outcome<Router> {

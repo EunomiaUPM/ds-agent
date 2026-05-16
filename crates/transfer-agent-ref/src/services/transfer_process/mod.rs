@@ -37,7 +37,7 @@ pub(crate) trait TransferProcessServiceTrait: Send + Sync + 'static {
     async fn batch(&self, batch_request: &BatchRequests) -> Outcome<Vec<TransferProcessView>>;
     async fn create(
         &self,
-        batch_request: &NewTransferProcessCommand,
+        cmd: &NewTransferProcessCommand,
     ) -> Outcome<TransferProcessView>;
     async fn edit(
         &self,

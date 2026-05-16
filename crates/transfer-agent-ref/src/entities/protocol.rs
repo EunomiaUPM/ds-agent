@@ -54,6 +54,7 @@ pub(crate) struct ProtocolMessageType(pub CompactString);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct StateMetadata {
     pub attribute: Option<String>,
     pub reason: Option<Vec<String>>,
@@ -75,6 +76,7 @@ pub(crate) const PROVIDER_PID_KEY: &str = "providerPid";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct TransferCorrelation {
     pub identifiers: HashMap<String, String>,
     pub consumer_pid: Option<String>,

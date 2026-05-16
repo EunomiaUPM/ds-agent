@@ -224,12 +224,15 @@ impl TransferProcessRepoTrait for InMemoryTransferProcessRepo {
         id: &Urn,
         edit_model: &EditTransferProcessCommand,
     ) -> Outcome<TransferProcess> {
-        let mut store = self.processes.lock().unwrap();
-        let process = store
-            .get_mut(&id.to_string())
-            .ok_or_else(|| TransferProcessRepoErrors::TransferProcessNotFound.into_errors())?;
-        process.apply_edit(edit_model.clone());
-        Ok(process.clone())
+        let process = {
+            let mut store = self.processes.lock().unwrap();
+            let p = store
+                .get_mut(&id.to_string())
+                .ok_or_else(|| TransferProcessRepoErrors::TransferProcessNotFound.into_errors())?;
+            p.apply_edit(edit_model.clone());
+            p.clone()
+        }; // MutexGuard dropped here
+        Ok(process)
     }
 
     async fn delete_transfer_process(&self, id: &Urn) -> Outcome<()> {

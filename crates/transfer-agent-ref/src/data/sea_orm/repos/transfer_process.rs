@@ -46,12 +46,15 @@ impl SeaOrmTransferProcessRepo {
         TransferProcessRepoErrors::ErrorFetchingTransferProcess(Box::new(e)).into_errors()
     }
 
-    fn decode_cursor(&self, cursor: &str) -> Result<chrono::DateTime<chrono::FixedOffset>, ()> {
+    #[allow(clippy::result_large_err)]
+    fn decode_cursor(&self, cursor: &str) -> Outcome<chrono::DateTime<chrono::FixedOffset>> {
         let bytes = base64::engine::general_purpose::URL_SAFE_NO_PAD
             .decode(cursor)
-            .map_err(|_| ())?;
-        let s = String::from_utf8(bytes).map_err(|_| ())?;
-        DateTime::parse_from_rfc3339(&s).map_err(|_| ())
+            .map_err(|_| TransferProcessRepoErrors::InvalidCursor.into_errors())?;
+        let s = String::from_utf8(bytes)
+            .map_err(|_| TransferProcessRepoErrors::InvalidCursor.into_errors())?;
+        DateTime::parse_from_rfc3339(&s)
+            .map_err(|_| TransferProcessRepoErrors::InvalidCursor.into_errors())
     }
 
     fn apply_base_filters(
@@ -98,14 +101,13 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
         let mut q = Self::apply_base_filters(orm::Entity::find(), filters);
 
         if let Some(cursor) = &page.cursor {
-            if let Ok(cursor_dt) = self.decode_cursor(cursor) {
-                q = match sort {
-                    Sort::CreatedAtAsc => q.filter(orm::Column::CreatedAt.gt(cursor_dt)),
-                    Sort::CreatedAtDesc | Sort::UpdatedAtDesc => {
-                        q.filter(orm::Column::CreatedAt.lt(cursor_dt))
-                    }
-                };
-            }
+            let cursor_dt = self.decode_cursor(cursor)?;
+            q = match sort {
+                Sort::CreatedAtAsc => q.filter(orm::Column::CreatedAt.gt(cursor_dt)),
+                Sort::CreatedAtDesc | Sort::UpdatedAtDesc => {
+                    q.filter(orm::Column::CreatedAt.lt(cursor_dt))
+                }
+            };
         }
 
         q = match sort {

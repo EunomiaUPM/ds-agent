@@ -55,6 +55,8 @@ pub trait TransferMessageRepoTrait: Send + Sync {
 pub enum TransferMessageRepoErrors {
     #[error("Transfer Message not found")]
     TransferMessageNotFound,
+    #[error("Invalid pagination cursor")]
+    InvalidCursor,
     #[error("Error fetching transfer message. {0}")]
     ErrorFetchingTransferMessage(Box<dyn std::error::Error + Send + Sync>),
     #[error("Error creating transfer message. {0}")]

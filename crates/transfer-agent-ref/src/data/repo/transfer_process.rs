@@ -58,6 +58,8 @@ pub trait TransferProcessRepoTrait: Send + Sync {
 pub enum TransferProcessRepoErrors {
     #[error("Transfer Process not found")]
     TransferProcessNotFound,
+    #[error("Invalid pagination cursor")]
+    InvalidCursor,
     #[error("Error fetching transfer process. {0}")]
     ErrorFetchingTransferProcess(Box<dyn std::error::Error + Send + Sync>),
     #[error("Error creating transfer process. {0}")]

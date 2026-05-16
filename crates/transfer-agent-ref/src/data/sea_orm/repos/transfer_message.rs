@@ -17,6 +17,7 @@
 
 use std::sync::Arc;
 
+use base64::Engine;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
     QueryOrder, QuerySelect,
@@ -24,7 +25,9 @@ use sea_orm::{
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
-use crate::data::repo::transfer_message::{TransferMessageRepoErrors, TransferMessageRepoTrait};
+use crate::data::repo::transfer_message::{
+    TransferMessageRepoErrors, TransferMessageRepoTrait,
+};
 use crate::data::sea_orm::orm::ser_enum;
 use crate::data::sea_orm::orm::transfer_message as orm;
 use crate::entities::commands::NewTransferMessageCommand;
@@ -44,15 +47,25 @@ impl SeaOrmTransferMessageRepo {
         TransferMessageRepoErrors::ErrorFetchingTransferMessage(Box::new(e)).into_errors()
     }
 
+    #[allow(clippy::result_large_err)]
+    fn decode_cursor(&self, cursor: &str) -> Outcome<chrono::DateTime<chrono::FixedOffset>> {
+        let bytes = base64::engine::general_purpose::URL_SAFE_NO_PAD
+            .decode(cursor)
+            .map_err(|_| TransferMessageRepoErrors::InvalidCursor.into_errors())?;
+        let s = String::from_utf8(bytes)
+            .map_err(|_| TransferMessageRepoErrors::InvalidCursor.into_errors())?;
+        chrono::DateTime::parse_from_rfc3339(&s)
+            .map_err(|_| TransferMessageRepoErrors::InvalidCursor.into_errors())
+    }
+
+    #[allow(clippy::result_large_err)]
     fn apply_message_filters(
         &self,
         mut q: sea_orm::Select<orm::Entity>,
         filters: &TransferMessageFilter,
         page: &Page,
         sort: &Sort,
-    ) -> sea_orm::Select<orm::Entity> {
-        
-
+    ) -> Outcome<sea_orm::Select<orm::Entity>> {
         if let Some(dir) = &filters.direction {
             q = q.filter(orm::Column::Direction.eq(ser_enum(dir)));
         }
@@ -68,26 +81,17 @@ impl SeaOrmTransferMessageRepo {
         if let Some(before) = filters.created_before {
             q = q.filter(orm::Column::OccurredAt.lt(before));
         }
-
         if let Some(cursor) = &page.cursor {
-            if let Ok(bytes) =
-                base64::Engine::decode(&base64::engine::general_purpose::URL_SAFE_NO_PAD, cursor)
-            {
-                if let Ok(s) = String::from_utf8(bytes) {
-                    if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&s) {
-                        q = match sort {
-                            Sort::CreatedAtAsc => q.filter(orm::Column::OccurredAt.gt(dt)),
-                            _ => q.filter(orm::Column::OccurredAt.lt(dt)),
-                        };
-                    }
-                }
-            }
+            let dt = self.decode_cursor(cursor)?;
+            q = match sort {
+                Sort::CreatedAtAsc => q.filter(orm::Column::OccurredAt.gt(dt)),
+                _ => q.filter(orm::Column::OccurredAt.lt(dt)),
+            };
         }
-
-        match sort {
+        Ok(match sort {
             Sort::CreatedAtAsc => q.order_by_asc(orm::Column::OccurredAt),
             _ => q.order_by_desc(orm::Column::OccurredAt),
-        }
+        })
     }
 }
 
@@ -103,7 +107,7 @@ impl TransferMessageRepoTrait for SeaOrmTransferMessageRepo {
         if let Some(tid) = &filters.tenant_id {
             q = q.filter(orm::Column::TenantId.eq(tid.as_str()));
         }
-        q = self.apply_message_filters(q, filters, page, sort);
+        q = self.apply_message_filters(q, filters, page, sort)?;
         q.limit(page.limit as u64)
             .all(self.db.as_ref())
             .await
@@ -145,7 +149,7 @@ impl TransferMessageRepoTrait for SeaOrmTransferMessageRepo {
     ) -> Outcome<Vec<TransferMessage>> {
         let mut q = orm::Entity::find();
         q = q.filter(orm::Column::TransferProcessId.eq(process_id.to_string()));
-        q = self.apply_message_filters(q, filters, page, sort);
+        q = self.apply_message_filters(q, filters, page, sort)?;
         q.limit(page.limit as u64)
             .all(self.db.as_ref())
             .await

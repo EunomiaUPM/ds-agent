@@ -42,7 +42,11 @@ impl TransferGrpcWorker {
     ) -> Outcome<JoinHandle<()>> {
         let router = Self::create_root_grpc_router(config, vault).await?;
 
-        let host = if config.common().is_local() { "127.0.0.1" } else { "0.0.0.0" };
+        let host = if config.common().is_local() {
+            "127.0.0.1"
+        } else {
+            "0.0.0.0"
+        };
         let port = config.common().get_internal_port(HostType::Grpc);
         let addr = format!("{host}:{port}");
 

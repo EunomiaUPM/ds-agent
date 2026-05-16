@@ -47,7 +47,11 @@ impl OAuthSetup {
     }
 
     /// Full token service backed by a real database.
-    pub fn build_full(&self, config: OAuthConfig, db: DatabaseConnection) -> Arc<dyn TokenServiceTrait> {
+    pub fn build_full(
+        &self,
+        config: OAuthConfig,
+        db: DatabaseConnection,
+    ) -> Arc<dyn TokenServiceTrait> {
         use crate::data::factory::OAuthDataFactory;
         use crate::data::sea_orm::factory::SeaOrmDataFactory;
         use crate::services::token_service::service::TokenService;
@@ -75,7 +79,8 @@ impl OAuthSetup {
             factory.refresh_token_repository(),
             config.clone(),
         ));
-        let user_svc: Arc<dyn UserServiceTrait> = Arc::new(UserService::new(factory.user_repository()));
+        let user_svc: Arc<dyn UserServiceTrait> =
+            Arc::new(UserService::new(factory.user_repository()));
         let issuer = config.issuer.clone();
 
         let token_router = TokenRouter::new(token_svc.clone(), user_svc.clone(), issuer).router();

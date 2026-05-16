@@ -153,12 +153,17 @@ impl TransferProcessRepoTrait for InMemoryTransferProcessRepo {
 
     async fn count_transfer_processes(&self, filters: &TransferProcessFilter) -> Outcome<u64> {
         let store = self.processes.lock().unwrap();
-        let count = store.values().filter(|p| {
-            if let Some(tid) = &filters.tenant_id {
-                if p.tenant_id().as_str() != tid.as_str() { return false; }
-            }
-            true
-        }).count() as u64;
+        let count = store
+            .values()
+            .filter(|p| {
+                if let Some(tid) = &filters.tenant_id {
+                    if p.tenant_id().as_str() != tid.as_str() {
+                        return false;
+                    }
+                }
+                true
+            })
+            .count() as u64;
         Ok(count)
     }
 
@@ -286,12 +291,17 @@ impl TransferMessageRepoTrait for InMemoryTransferMessageRepo {
 
     async fn count_transfer_messages(&self, filters: &TransferMessageFilter) -> Outcome<u64> {
         let store = self.messages.lock().unwrap();
-        let count = store.values().filter(|m| {
-            if let Some(tid) = &filters.tenant_id {
-                if m.tenant_id().as_str() != tid.as_str() { return false; }
-            }
-            true
-        }).count() as u64;
+        let count = store
+            .values()
+            .filter(|m| {
+                if let Some(tid) = &filters.tenant_id {
+                    if m.tenant_id().as_str() != tid.as_str() {
+                        return false;
+                    }
+                }
+                true
+            })
+            .count() as u64;
         Ok(count)
     }
 
@@ -487,10 +497,9 @@ fn filter_messages<'a>(
 #[allow(dead_code, clippy::result_large_err)]
 fn process_from_cmd(cmd: &NewTransferProcessCommand) -> Outcome<TransferProcess> {
     let id = cmd.id.clone().unwrap_or_else(TransferProcessId::generate);
-    let tenant_id = cmd
-        .tenant_id
-        .clone()
-        .ok_or_else(|| ymir::errors::Errors::crazy("tenant_id must be resolved before reaching the repo", None))?;
+    let tenant_id = cmd.tenant_id.clone().ok_or_else(|| {
+        ymir::errors::Errors::crazy("tenant_id must be resolved before reaching the repo", None)
+    })?;
     let now = chrono::Utc::now();
     let correlation = TransferCorrelation {
         identifiers: std::collections::HashMap::new(),

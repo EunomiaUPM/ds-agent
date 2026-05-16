@@ -23,6 +23,8 @@ use urn::Urn;
 use ymir::errors::Outcome;
 
 pub(crate) mod service;
+#[cfg(test)]
+mod tests;
 pub(crate) mod views;
 
 #[async_trait::async_trait]
@@ -35,10 +37,7 @@ pub(crate) trait TransferProcessServiceTrait: Send + Sync + 'static {
     ) -> Outcome<Paginated<TransferProcessView>>;
     async fn get_one(&self, id: &Urn) -> Outcome<TransferProcessView>;
     async fn batch(&self, batch_request: &BatchRequests) -> Outcome<Vec<TransferProcessView>>;
-    async fn create(
-        &self,
-        cmd: &NewTransferProcessCommand,
-    ) -> Outcome<TransferProcessView>;
+    async fn create(&self, cmd: &NewTransferProcessCommand) -> Outcome<TransferProcessView>;
     async fn edit(
         &self,
         id: &Urn,

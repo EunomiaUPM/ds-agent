@@ -53,7 +53,8 @@ impl TransferMessageServiceTrait for TransferMessageService {
         sort: &Sort,
     ) -> Outcome<Paginated<TransferMessageView>> {
         let (messages, total) = tokio::try_join!(
-            self.message_repo.get_all_transfer_messages(filters, page, sort),
+            self.message_repo
+                .get_all_transfer_messages(filters, page, sort),
             self.message_repo.count_transfer_messages(filters),
         )?;
         let next_cursor = if messages.len() == page.limit as usize {
@@ -61,8 +62,15 @@ impl TransferMessageServiceTrait for TransferMessageService {
         } else {
             None
         };
-        let items = messages.into_iter().map(TransferMessageView::assemble).collect();
-        Ok(Paginated { items, next_cursor, total: Some(total) })
+        let items = messages
+            .into_iter()
+            .map(TransferMessageView::assemble)
+            .collect();
+        Ok(Paginated {
+            items,
+            next_cursor,
+            total: Some(total),
+        })
     }
 
     #[tracing::instrument(level = "info", skip(self, filters, page, sort), fields(process_id = %process_id), err)]
@@ -74,7 +82,8 @@ impl TransferMessageServiceTrait for TransferMessageService {
         sort: &Sort,
     ) -> Outcome<Paginated<TransferMessageView>> {
         let (messages, total) = tokio::try_join!(
-            self.message_repo.get_messages_by_process_id(process_id, filters, page, sort),
+            self.message_repo
+                .get_messages_by_process_id(process_id, filters, page, sort),
             self.message_repo.count_transfer_messages(filters),
         )?;
         let next_cursor = if messages.len() == page.limit as usize {
@@ -82,8 +91,15 @@ impl TransferMessageServiceTrait for TransferMessageService {
         } else {
             None
         };
-        let items = messages.into_iter().map(TransferMessageView::assemble).collect();
-        Ok(Paginated { items, next_cursor, total: Some(total) })
+        let items = messages
+            .into_iter()
+            .map(TransferMessageView::assemble)
+            .collect();
+        Ok(Paginated {
+            items,
+            next_cursor,
+            total: Some(total),
+        })
     }
 
     #[tracing::instrument(level = "info", skip(self), fields(id = %id), err)]

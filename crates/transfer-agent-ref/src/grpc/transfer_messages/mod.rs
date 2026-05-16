@@ -9,8 +9,8 @@
 
 mod mappers;
 
-use std::sync::Arc;
 use std::str::FromStr;
+use std::sync::Arc;
 
 use common::auth::claims::{Claims, Role};
 use common::auth::middleware::TokenValidator;
@@ -32,7 +32,10 @@ pub struct TransferMessagesGrpc {
 }
 
 impl TransferMessagesGrpc {
-    pub fn new(service: Arc<dyn TransferMessageServiceTrait>, validator: Arc<dyn TokenValidator>) -> Self {
+    pub fn new(
+        service: Arc<dyn TransferMessageServiceTrait>,
+        validator: Arc<dyn TokenValidator>,
+    ) -> Self {
         Self { service, validator }
     }
 

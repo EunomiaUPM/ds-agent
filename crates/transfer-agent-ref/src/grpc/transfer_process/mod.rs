@@ -9,12 +9,12 @@
 
 mod mappers;
 
-use std::sync::Arc;
 use std::str::FromStr;
+use std::sync::Arc;
 
 use common::auth::claims::{Claims, Role};
-use common::auth::rbac::Rbac;
 use common::auth::middleware::TokenValidator;
+use common::auth::rbac::Rbac;
 use tonic::{Request, Response, Status};
 use urn::Urn;
 
@@ -33,7 +33,10 @@ pub struct TransferProcessGrpc {
 }
 
 impl TransferProcessGrpc {
-    pub fn new(service: Arc<dyn TransferProcessServiceTrait>, validator: Arc<dyn TokenValidator>) -> Self {
+    pub fn new(
+        service: Arc<dyn TransferProcessServiceTrait>,
+        validator: Arc<dyn TokenValidator>,
+    ) -> Self {
         Self { service, validator }
     }
 

@@ -102,10 +102,9 @@ impl Model {
 impl ActiveModel {
     pub(crate) fn from_cmd(cmd: &NewTransferProcessCommand) -> Outcome<Self> {
         let id = cmd.id.clone().unwrap_or_else(TransferProcessId::generate);
-        let tenant_id = cmd
-            .tenant_id
-            .clone()
-            .ok_or_else(|| ymir::errors::Errors::crazy("tenant_id must be resolved before reaching the repo", None))?;
+        let tenant_id = cmd.tenant_id.clone().ok_or_else(|| {
+            ymir::errors::Errors::crazy("tenant_id must be resolved before reaching the repo", None)
+        })?;
         let now = chrono::Utc::now();
         let correlation = TransferCorrelation {
             identifiers: std::collections::HashMap::new(),

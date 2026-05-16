@@ -164,7 +164,10 @@ impl TransferMessageQuery {
         if let Some(tid) = force_tenant_id {
             filter.tenant_id = Some(tid);
         }
-        let page = Page { limit: self.limit, cursor: self.cursor };
+        let page = Page {
+            limit: self.limit,
+            cursor: self.cursor,
+        };
         (filter, page, self.sort)
     }
 }

@@ -69,7 +69,8 @@ impl TransferProcessServiceTrait for TransferProcessService {
         sort: &Sort,
     ) -> Outcome<Paginated<TransferProcessView>> {
         let (processes, total) = tokio::try_join!(
-            self.process_repo.get_all_transfer_processes(filters, page, sort),
+            self.process_repo
+                .get_all_transfer_processes(filters, page, sort),
             self.process_repo.count_transfer_processes(filters),
         )?;
 

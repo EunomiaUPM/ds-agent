@@ -23,8 +23,9 @@ use crate::entities::protocol::{
 use crate::entities::query::{Page, Paginated, Sort, TransferProcessFilter};
 use crate::grpc::api::transfer_processes::{
     BatchTransferProcessesRequest, CreateTransferProcessRequest, EditTransferProcessRequest,
-    ListTransferProcessesRequest, ProtocolId as ProtoProtocolId, TransferCorrelation as ProtoCorrelation,
-    TransferProcessListResponse, TransferProcessResponse, TransferRole as ProtoTransferRole,
+    ListTransferProcessesRequest, ProtocolId as ProtoProtocolId,
+    TransferCorrelation as ProtoCorrelation, TransferProcessListResponse, TransferProcessResponse,
+    TransferRole as ProtoTransferRole,
 };
 use crate::services::transfer_process::views::TransferProcessView;
 
@@ -34,7 +35,9 @@ pub fn into_list_params(
     req: ListTransferProcessesRequest,
     tenant_id: Option<TenantId>,
 ) -> Result<(TransferProcessFilter, Page, Sort), Status> {
-    let protocol = non_empty(&req.protocol).map(parse_protocol_id).transpose()?;
+    let protocol = non_empty(&req.protocol)
+        .map(parse_protocol_id)
+        .transpose()?;
     let state = non_empty(&req.state).map(|s| ProtocolState(s.into()));
     let role = non_empty(&req.role).map(parse_role_str).transpose()?;
     let agreement_id = non_empty(&req.agreement_id)
@@ -64,8 +67,14 @@ pub fn into_list_params(
         created_before,
     };
     let cursor = non_empty(&req.cursor).map(|s| s.to_owned());
-    let page = Page { limit: if req.limit == 0 { 20 } else { req.limit }, cursor };
-    let sort = non_empty(&req.sort).map(parse_sort).transpose()?.unwrap_or_default();
+    let page = Page {
+        limit: if req.limit == 0 { 20 } else { req.limit },
+        cursor,
+    };
+    let sort = non_empty(&req.sort)
+        .map(parse_sort)
+        .transpose()?
+        .unwrap_or_default();
     Ok((filter, page, sort))
 }
 
@@ -109,7 +118,11 @@ pub fn into_create_cmd(
         .transpose()?;
     let initial_state_metadata = StateMetadata {
         attribute: non_empty(&req.initial_state_attribute).map(|s| s.to_owned()),
-        reason: if req.initial_state_reasons.is_empty() { None } else { Some(req.initial_state_reasons) },
+        reason: if req.initial_state_reasons.is_empty() {
+            None
+        } else {
+            Some(req.initial_state_reasons)
+        },
         code: non_empty(&req.initial_state_code).map(|s| s.to_owned()),
     };
 
@@ -129,7 +142,9 @@ pub fn into_create_cmd(
     })
 }
 
-pub fn into_edit_cmd(req: EditTransferProcessRequest) -> Result<EditTransferProcessCommand, Status> {
+pub fn into_edit_cmd(
+    req: EditTransferProcessRequest,
+) -> Result<EditTransferProcessCommand, Status> {
     let state = non_empty(&req.state).map(|s| ProtocolState(s.into()));
     let state_metadata = if non_empty(&req.state_attribute).is_some()
         || non_empty(&req.state_code).is_some()
@@ -137,7 +152,11 @@ pub fn into_edit_cmd(req: EditTransferProcessRequest) -> Result<EditTransferProc
     {
         Some(StateMetadata {
             attribute: non_empty(&req.state_attribute).map(|s| s.to_owned()),
-            reason: if req.state_reasons.is_empty() { None } else { Some(req.state_reasons) },
+            reason: if req.state_reasons.is_empty() {
+                None
+            } else {
+                Some(req.state_reasons)
+            },
             code: non_empty(&req.state_code).map(|s| s.to_owned()),
         })
     } else {
@@ -162,7 +181,13 @@ pub fn into_edit_cmd(req: EditTransferProcessRequest) -> Result<EditTransferProc
         })
         .transpose()?;
 
-    Ok(EditTransferProcessCommand { state, state_metadata, identifiers, properties, error_details })
+    Ok(EditTransferProcessCommand {
+        state,
+        state_metadata,
+        identifiers,
+        properties,
+        error_details,
+    })
 }
 
 // ─── Domain → Response ──────────────────────────────────────────────────────
@@ -226,8 +251,14 @@ fn from_correlation(corr: TransferCorrelation) -> ProtoCorrelation {
         consumer_pid: corr.consumer_pid.unwrap_or_default(),
         provider_pid: corr.provider_pid.unwrap_or_default(),
         agreement_id: corr.agreement_id.map(|u| u.to_string()).unwrap_or_default(),
-        callback_address: corr.callback_address.map(|u| u.to_string()).unwrap_or_default(),
-        peer_participant_id: corr.peer_participant_id.map(|p| p.to_string()).unwrap_or_default(),
+        callback_address: corr
+            .callback_address
+            .map(|u| u.to_string())
+            .unwrap_or_default(),
+        peer_participant_id: corr
+            .peer_participant_id
+            .map(|p| p.to_string())
+            .unwrap_or_default(),
     }
 }
 
@@ -238,7 +269,9 @@ fn parse_proto_role(value: i32) -> Result<TransferRole, Status> {
         Ok(ProtoTransferRole::Provider) => Ok(TransferRole::Provider),
         Ok(ProtoTransferRole::Consumer) => Ok(TransferRole::Consumer),
         Ok(ProtoTransferRole::Relay) => Ok(TransferRole::Relay),
-        Err(_) => Err(Status::invalid_argument(format!("unknown TransferRole: {value}"))),
+        Err(_) => Err(Status::invalid_argument(format!(
+            "unknown TransferRole: {value}"
+        ))),
     }
 }
 
@@ -255,7 +288,9 @@ fn parse_proto_protocol_id(value: i32) -> Result<ProtocolId, Status> {
     match ProtoProtocolId::try_from(value) {
         Ok(ProtoProtocolId::Dsp2024) => Ok(ProtocolId::Dsp2024),
         Ok(ProtoProtocolId::Dsp20251) => Ok(ProtocolId::Dsp2025_1),
-        Err(_) => Err(Status::invalid_argument(format!("unknown ProtocolId: {value}"))),
+        Err(_) => Err(Status::invalid_argument(format!(
+            "unknown ProtocolId: {value}"
+        ))),
     }
 }
 
@@ -263,7 +298,9 @@ fn parse_protocol_id(s: &str) -> Result<ProtocolId, Status> {
     match s {
         "dsp2024" => Ok(ProtocolId::Dsp2024),
         "dsp2025_1" => Ok(ProtocolId::Dsp2025_1),
-        other => Err(Status::invalid_argument(format!("unknown protocol: {other}"))),
+        other => Err(Status::invalid_argument(format!(
+            "unknown protocol: {other}"
+        ))),
     }
 }
 

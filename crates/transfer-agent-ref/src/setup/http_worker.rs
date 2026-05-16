@@ -134,7 +134,8 @@ pub(crate) async fn create_root_http_router(
         config.common().get_host(HostType::Http),
         "transfer-agent-ref",
     );
-    let oauth_router = oauth::setup::OAuthSetup::new().build_router(oauth_config, db_connection.clone());
+    let oauth_router =
+        oauth::setup::OAuthSetup::new().build_router(oauth_config, db_connection.clone());
 
     let factory = SeaOrmDataFactory::new(db_connection);
 

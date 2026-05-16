@@ -79,7 +79,11 @@ impl<S: Send + Sync> FromRequestParts<S> for ExtractedHeaders {
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
         let tenant_raw = get_header_str(&parts.headers, "x-tenant-id").ok_or_else(|| {
-            Errors::format(BadFormat::Received, "missing required header: X-Tenant-ID", None)
+            Errors::format(
+                BadFormat::Received,
+                "missing required header: X-Tenant-ID",
+                None,
+            )
         })?;
         if !is_safe_id(tenant_raw) {
             return Err(Errors::format(
@@ -106,7 +110,9 @@ impl<S: Send + Sync> FromRequestParts<S> for ExtractedHeaders {
 }
 
 fn is_safe_id(s: &str) -> bool {
-    !s.is_empty() && s.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '.')
+    !s.is_empty()
+        && s.chars()
+            .all(|c| c.is_alphanumeric() || c == '-' || c == '.')
 }
 
 fn get_header_str<'a>(headers: &'a HeaderMap, name: &str) -> Option<&'a str> {

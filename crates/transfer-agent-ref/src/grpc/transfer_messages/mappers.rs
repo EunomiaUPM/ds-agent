@@ -18,19 +18,17 @@ use tonic::Status;
 use urn::Urn;
 
 use crate::entities::commands::NewTransferMessageCommand;
-use crate::entities::ids::{
-    CorrelationId, ParticipantId, RequestId, TenantId, TransferProcessId,
-};
+use crate::entities::ids::{CorrelationId, ParticipantId, RequestId, TenantId, TransferProcessId};
 use crate::entities::message_envelope::Direction;
 use crate::entities::protocol::{ProtocolId, ProtocolMessageType, ProtocolState};
+use crate::entities::query::{Page, Paginated, Sort, TransferMessageFilter};
 use crate::entities::transfer_message::{MessageEnvelope, MessageProcessingResult};
 use crate::grpc::api::transfer_messages::{
-    CreateTransferMessageRequest, Direction as ProtoDirection, ListTransferMessagesByProcessRequest,
-    ListTransferMessagesRequest, MessageEnvelope as ProtoEnvelope,
-    MessageProcessingResult as ProtoResult, MessageStatus, TransferMessageListResponse,
-    TransferMessageResponse,
+    CreateTransferMessageRequest, Direction as ProtoDirection,
+    ListTransferMessagesByProcessRequest, ListTransferMessagesRequest,
+    MessageEnvelope as ProtoEnvelope, MessageProcessingResult as ProtoResult, MessageStatus,
+    TransferMessageListResponse, TransferMessageResponse,
 };
-use crate::entities::query::{Page, Paginated, Sort, TransferMessageFilter};
 use crate::services::transfer_message::views::TransferMessageView;
 
 // ─── Request → Domain ───────────────────────────────────────────────────────
@@ -39,8 +37,12 @@ pub fn into_list_params(
     req: ListTransferMessagesRequest,
     tenant_id: Option<TenantId>,
 ) -> Result<(TransferMessageFilter, Page, Sort), Status> {
-    let direction = non_empty(&req.direction).map(parse_direction_str).transpose()?;
-    let protocol = non_empty(&req.protocol).map(parse_protocol_id).transpose()?;
+    let direction = non_empty(&req.direction)
+        .map(parse_direction_str)
+        .transpose()?;
+    let protocol = non_empty(&req.protocol)
+        .map(parse_protocol_id)
+        .transpose()?;
     let state_transition_to = non_empty(&req.state_transition_to).map(|s| ProtocolState(s.into()));
     let created_after = non_empty(&req.created_after)
         .map(|s| parse_dt(s, "created_after"))
@@ -58,8 +60,14 @@ pub fn into_list_params(
         created_before,
     };
     let cursor = non_empty(&req.cursor).map(|s| s.to_owned());
-    let page = Page { limit: if req.limit == 0 { 20 } else { req.limit }, cursor };
-    let sort = non_empty(&req.sort).map(parse_sort).transpose()?.unwrap_or_default();
+    let page = Page {
+        limit: if req.limit == 0 { 20 } else { req.limit },
+        cursor,
+    };
+    let sort = non_empty(&req.sort)
+        .map(parse_sort)
+        .transpose()?
+        .unwrap_or_default();
     Ok((filter, page, sort))
 }
 
@@ -68,8 +76,12 @@ pub fn into_list_by_process_params(
     tenant_id: Option<TenantId>,
 ) -> Result<(Urn, TransferMessageFilter, Page, Sort), Status> {
     let process_id = parse_urn(&req.process_id, "process_id")?;
-    let direction = non_empty(&req.direction).map(parse_direction_str).transpose()?;
-    let protocol = non_empty(&req.protocol).map(parse_protocol_id).transpose()?;
+    let direction = non_empty(&req.direction)
+        .map(parse_direction_str)
+        .transpose()?;
+    let protocol = non_empty(&req.protocol)
+        .map(parse_protocol_id)
+        .transpose()?;
     let state_transition_to = non_empty(&req.state_transition_to).map(|s| ProtocolState(s.into()));
     let created_after = non_empty(&req.created_after)
         .map(|s| parse_dt(s, "created_after"))
@@ -87,8 +99,14 @@ pub fn into_list_by_process_params(
         created_before,
     };
     let cursor = non_empty(&req.cursor).map(|s| s.to_owned());
-    let page = Page { limit: if req.limit == 0 { 20 } else { req.limit }, cursor };
-    let sort = non_empty(&req.sort).map(parse_sort).transpose()?.unwrap_or_default();
+    let page = Page {
+        limit: if req.limit == 0 { 20 } else { req.limit },
+        cursor,
+    };
+    let sort = non_empty(&req.sort)
+        .map(parse_sort)
+        .transpose()?
+        .unwrap_or_default();
     Ok((process_id, filter, page, sort))
 }
 
@@ -105,7 +123,12 @@ pub fn into_create_cmd(
     let correlation_id = non_empty(&req.correlation_id).map(CorrelationId::new);
     let request_id = non_empty(&req.request_id).map(RequestId::new);
     let protocol_version = non_empty(&req.protocol_version).map(|s| s.to_owned());
-    let envelope = build_envelope(req.raw_bytes, req.content_type, &req.headers, req.canonical_form)?;
+    let envelope = build_envelope(
+        req.raw_bytes,
+        req.content_type,
+        &req.headers,
+        req.canonical_form,
+    )?;
 
     Ok(NewTransferMessageCommand {
         id: None,
@@ -145,7 +168,10 @@ pub fn from_view(view: TransferMessageView) -> TransferMessageResponse {
         protocol_version: view.protocol_version,
         envelope,
         occurred_at: view.occurred_at.to_rfc3339(),
-        correlation_id: view.correlation_id.map(|c| c.to_string()).unwrap_or_default(),
+        correlation_id: view
+            .correlation_id
+            .map(|c| c.to_string())
+            .unwrap_or_default(),
         request_id: view.request_id.to_string(),
         peer_participant_id: view.peer_participant_id.to_string(),
         processing_result,
@@ -173,9 +199,15 @@ fn bytes_to_hex(h: &[u8; 32]) -> String {
 
 fn from_envelope(env: &MessageEnvelope) -> ProtoEnvelope {
     let content_hash = bytes_to_hex(&env.content_hash);
-    let canonical_hash = env.canonical_hash.map(|h| bytes_to_hex(&h)).unwrap_or_default();
+    let canonical_hash = env
+        .canonical_hash
+        .map(|h| bytes_to_hex(&h))
+        .unwrap_or_default();
     let headers = serde_json::to_string(
-        &env.headers.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect::<HashMap<_, _>>(),
+        &env.headers
+            .iter()
+            .map(|(k, v)| (k.as_str(), v.as_str()))
+            .collect::<HashMap<_, _>>(),
     )
     .unwrap_or_default();
 
@@ -184,7 +216,11 @@ fn from_envelope(env: &MessageEnvelope) -> ProtoEnvelope {
         content_type: env.content_type.to_string(),
         content_hash,
         headers,
-        canonical_form: env.canonical_form.as_ref().map(|b| b.to_vec()).unwrap_or_default(),
+        canonical_form: env
+            .canonical_form
+            .as_ref()
+            .map(|b| b.to_vec())
+            .unwrap_or_default(),
         canonical_hash,
     }
 }
@@ -256,7 +292,9 @@ fn parse_proto_direction(value: i32) -> Result<Direction, Status> {
     match ProtoDirection::try_from(value) {
         Ok(ProtoDirection::Inbound) => Ok(Direction::Inbound),
         Ok(ProtoDirection::Outbound) => Ok(Direction::Outbound),
-        Err(_) => Err(Status::invalid_argument(format!("unknown Direction: {value}"))),
+        Err(_) => Err(Status::invalid_argument(format!(
+            "unknown Direction: {value}"
+        ))),
     }
 }
 
@@ -264,7 +302,9 @@ fn parse_direction_str(s: &str) -> Result<Direction, Status> {
     match s {
         "inbound" => Ok(Direction::Inbound),
         "outbound" => Ok(Direction::Outbound),
-        other => Err(Status::invalid_argument(format!("unknown direction: {other}"))),
+        other => Err(Status::invalid_argument(format!(
+            "unknown direction: {other}"
+        ))),
     }
 }
 
@@ -279,7 +319,9 @@ fn parse_protocol_id(s: &str) -> Result<ProtocolId, Status> {
     match s {
         "dsp2024" => Ok(ProtocolId::Dsp2024),
         "dsp2025_1" => Ok(ProtocolId::Dsp2025_1),
-        other => Err(Status::invalid_argument(format!("unknown protocol: {other}"))),
+        other => Err(Status::invalid_argument(format!(
+            "unknown protocol: {other}"
+        ))),
     }
 }
 

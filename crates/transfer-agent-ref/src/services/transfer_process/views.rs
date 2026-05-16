@@ -17,8 +17,8 @@
 
 use crate::entities::ids::{TenantId, TransferProcessId};
 use crate::entities::protocol::{
-    ProtocolId, ProtocolState, StateMetadata, TransferCorrelation, TransferRole,
-    CONSUMER_PID_KEY, PROVIDER_PID_KEY,
+    CONSUMER_PID_KEY, PROVIDER_PID_KEY, ProtocolId, ProtocolState, StateMetadata,
+    TransferCorrelation, TransferRole,
 };
 use crate::entities::transfer_process::TransferProcess;
 use chrono::{DateTime, Utc};

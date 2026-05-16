@@ -61,7 +61,6 @@ impl SeaOrmTransferProcessRepo {
         mut q: sea_orm::Select<orm::Entity>,
         filters: &TransferProcessFilter,
     ) -> sea_orm::Select<orm::Entity> {
-        
         if let Some(tid) = &filters.tenant_id {
             q = q.filter(orm::Column::TenantId.eq(tid.as_str()));
         }

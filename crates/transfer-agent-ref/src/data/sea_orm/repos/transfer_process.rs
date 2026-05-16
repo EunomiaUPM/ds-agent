@@ -200,7 +200,7 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
         &self,
         cmd: &NewTransferProcessCommand,
     ) -> Outcome<TransferProcess> {
-        orm::ActiveModel::from_cmd(cmd)
+        orm::ActiveModel::from_cmd(cmd)?
             .insert(self.db.as_ref())
             .await
             .map_err(|e| {

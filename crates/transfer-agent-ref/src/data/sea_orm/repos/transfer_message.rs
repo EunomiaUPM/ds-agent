@@ -181,7 +181,7 @@ impl TransferMessageRepoTrait for SeaOrmTransferMessageRepo {
         &self,
         cmd: &NewTransferMessageCommand,
     ) -> Outcome<TransferMessage> {
-        orm::ActiveModel::from_domain(&TransferMessage::from_cmd(cmd))
+        orm::ActiveModel::from_domain(&TransferMessage::from_cmd(cmd)?)
             .insert(self.db.as_ref())
             .await
             .map_err(|e| {

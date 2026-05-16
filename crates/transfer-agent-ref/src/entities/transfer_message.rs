@@ -32,6 +32,7 @@ use crate::entities::ids::{
 };
 use crate::entities::message_envelope::Direction;
 use crate::entities::protocol::{ProtocolId, ProtocolMessageType, ProtocolState};
+use ymir::errors::{Errors, Outcome};
 
 #[derive(Clone)]
 pub(crate) struct TransferMessage {
@@ -58,7 +59,7 @@ pub(crate) struct TransferMessage {
 }
 
 impl TransferMessage {
-    pub(crate) fn from_cmd(cmd: &NewTransferMessageCommand) -> Self {
+    pub(crate) fn from_cmd(cmd: &NewTransferMessageCommand) -> Outcome<Self> {
         let id = cmd.id.clone().unwrap_or_else(MessageId::generate);
         let peer_participant_id = cmd.peer_participant_id.clone().unwrap_or_else(|| {
             ParticipantId::new(Urn::from_str("urn:unknown:participant").expect("static URN"))
@@ -69,8 +70,8 @@ impl TransferMessage {
         let tenant_id = cmd
             .tenant_id
             .clone()
-            .expect("tenant_id must be resolved before reaching the domain");
-        Self {
+            .ok_or_else(|| Errors::crazy("tenant_id must be resolved before reaching the domain", None))?;
+        Ok(Self {
             id,
             transfer_process_id: cmd.transfer_process_id.clone(),
             tenant_id,
@@ -86,7 +87,7 @@ impl TransferMessage {
             processing_result: MessageProcessingResult::Accepted {
                 resulting_state: cmd.state_transition_to.clone(),
             },
-        }
+        })
     }
 
     pub fn id(&self) -> &MessageId {

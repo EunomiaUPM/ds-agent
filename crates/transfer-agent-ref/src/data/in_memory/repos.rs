@@ -212,7 +212,7 @@ impl TransferProcessRepoTrait for InMemoryTransferProcessRepo {
         &self,
         cmd: &NewTransferProcessCommand,
     ) -> Outcome<TransferProcess> {
-        let process = process_from_cmd(cmd);
+        let process = process_from_cmd(cmd)?;
         self.processes
             .lock()
             .unwrap()
@@ -299,7 +299,7 @@ impl TransferMessageRepoTrait for InMemoryTransferMessageRepo {
         &self,
         cmd: &NewTransferMessageCommand,
     ) -> Outcome<TransferMessage> {
-        let msg = TransferMessage::from_cmd(cmd);
+        let msg = TransferMessage::from_cmd(cmd)?;
         self.messages
             .lock()
             .unwrap()
@@ -476,8 +476,12 @@ fn filter_messages<'a>(
     items
 }
 
-fn process_from_cmd(cmd: &NewTransferProcessCommand) -> TransferProcess {
+fn process_from_cmd(cmd: &NewTransferProcessCommand) -> Outcome<TransferProcess> {
     let id = cmd.id.clone().unwrap_or_else(TransferProcessId::generate);
+    let tenant_id = cmd
+        .tenant_id
+        .clone()
+        .ok_or_else(|| ymir::errors::Errors::crazy("tenant_id must be resolved before reaching the repo", None))?;
     let now = chrono::Utc::now();
     let correlation = TransferCorrelation {
         identifiers: std::collections::HashMap::new(),
@@ -487,9 +491,9 @@ fn process_from_cmd(cmd: &NewTransferProcessCommand) -> TransferProcess {
         callback_address: cmd.callback_address.clone(),
         peer_participant_id: Some(cmd.peer_participant_id.clone()),
     };
-    TransferProcess::rehydrate(
+    Ok(TransferProcess::rehydrate(
         id,
-        cmd.tenant_id.clone().expect("tenant_id must be resolved before reaching the repo"),
+        tenant_id,
         cmd.role,
         now,
         now,
@@ -502,5 +506,5 @@ fn process_from_cmd(cmd: &NewTransferProcessCommand) -> TransferProcess {
         None,
         None,
         None,
-    )
+    ))
 }

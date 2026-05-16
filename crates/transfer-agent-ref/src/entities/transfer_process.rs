@@ -22,6 +22,7 @@ use crate::entities::protocol::{
     ProtocolId, ProtocolState, StateMetadata, TransferCorrelation, TransferRole,
 };
 use chrono::{DateTime, Duration, Utc};
+use ymir::errors::{Errors, Outcome};
 use serde_json::Value as Json;
 use std::collections::HashMap;
 
@@ -250,12 +251,12 @@ impl TransferProcessBuilder {
         self
     }
 
-    pub fn build(self) -> TransferProcess {
-        TransferProcess::new(
-            self.tenant_id.expect("tenant_id is required"),
-            self.role.expect("role is required"),
-            self.protocol.expect("protocol is required"),
-            self.protocol_state.expect("protocol_state is required"),
+    pub fn build(self) -> Outcome<TransferProcess> {
+        Ok(TransferProcess::new(
+            self.tenant_id.ok_or_else(|| Errors::crazy("tenant_id is required", None))?,
+            self.role.ok_or_else(|| Errors::crazy("role is required", None))?,
+            self.protocol.ok_or_else(|| Errors::crazy("protocol is required", None))?,
+            self.protocol_state.ok_or_else(|| Errors::crazy("protocol_state is required", None))?,
             self.correlation.unwrap_or(TransferCorrelation {
                 identifiers: HashMap::new(),
                 consumer_pid: None,
@@ -264,6 +265,6 @@ impl TransferProcessBuilder {
                 callback_address: None,
                 peer_participant_id: None,
             }),
-        )
+        ))
     }
 }

@@ -20,6 +20,7 @@ use crate::entities::message_envelope::MessageEnvelopeRef;
 use crate::entities::protocol::{ProtocolState, StateMetadata};
 use chrono::{DateTime, Utc};
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub(crate) enum TransferProcessEvent {
     Created {

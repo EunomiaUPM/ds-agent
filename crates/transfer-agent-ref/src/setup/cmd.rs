@@ -19,7 +19,7 @@
 use crate::setup::boot::TransferBoot;
 use crate::setup::db_migrations::TransferAgentRefMigration;
 use clap::{Parser, Subcommand};
-use common::boot::{BootstrapInit, BootstrapStepTrait};
+use common::boot::BootstrapInit;
 use common::config::services::TransferConfig;
 use common::config::types::traits::{CommonConfigTrait, ConfigLoader};
 use std::sync::Arc;
@@ -63,7 +63,7 @@ impl TransferCommands {
                     .await?;
             }
             TransferCliCommands::Setup(args) => {
-                let config = TransferConfig::load(&*args.env_file)?;
+                let config = TransferConfig::load(&args.env_file)?;
                 let vault = if config.common().is_vault_real() {
                     VaultService::Real(RealVaultService::new())
                 } else {

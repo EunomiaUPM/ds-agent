@@ -57,7 +57,7 @@ impl SeaOrmTransferProcessRepo {
         mut q: sea_orm::Select<orm::Entity>,
         filters: &TransferProcessFilter,
     ) -> sea_orm::Select<orm::Entity> {
-        use serde::Serialize;
+        
         if let Some(tid) = &filters.tenant_id {
             q = q.filter(orm::Column::TenantId.eq(tid.as_str()));
         }
@@ -131,7 +131,7 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
             .map_err(Self::db_err)
     }
 
-    async fn get_batch_transfer_processes(&self, ids: &Vec<Urn>) -> Outcome<Vec<TransferProcess>> {
+    async fn get_batch_transfer_processes(&self, ids: &[Urn]) -> Outcome<Vec<TransferProcess>> {
         let id_strings: Vec<String> = ids.iter().map(|u| u.to_string()).collect();
         orm::Entity::find()
             .filter(orm::Column::Id.is_in(id_strings))
@@ -243,6 +243,7 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
     }
 }
 
+#[allow(clippy::result_large_err)]
 fn parse_urn(s: &str) -> Outcome<Urn> {
     use std::str::FromStr;
     Urn::from_str(s)

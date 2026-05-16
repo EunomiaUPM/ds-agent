@@ -16,45 +16,44 @@
  */
 
 use std::collections::HashMap;
-use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 
 use base64::Engine;
 use chrono::{DateTime, Utc};
-use compact_str::CompactString;
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
-use crate::data::repo::transfer_message::{TransferMessageRepoErrors, TransferMessageRepoTrait};
+use crate::data::repo::transfer_message::TransferMessageRepoTrait;
 use crate::data::repo::transfer_process::{TransferProcessRepoErrors, TransferProcessRepoTrait};
-use crate::data::repo::transfer_process_identifier::{
-    TransferIdentifierRepoErrors, TransferIdentifierRepoTrait,
-};
+use crate::data::repo::transfer_process_identifier::TransferIdentifierRepoTrait;
 use crate::entities::commands::{
     EditTransferProcessCommand, NewTransferMessageCommand, NewTransferProcessCommand,
 };
 use crate::entities::ids::TransferProcessId;
-use crate::entities::ids::{MessageId, ParticipantId, RequestId};
-use crate::entities::message_envelope::Direction;
-use crate::entities::protocol::{ProtocolState, TransferCorrelation};
+use crate::entities::protocol::TransferCorrelation;
 use crate::entities::query::{Page, Sort, TransferMessageFilter, TransferProcessFilter};
-use crate::entities::transfer_message::{MessageProcessingResult, TransferMessage};
+use crate::entities::transfer_message::TransferMessage;
 use crate::entities::transfer_process::TransferProcess;
 use crate::entities::transfer_process_identifier::TransferProcessIdentifier;
 
 // Shared store types ────────────────────────────────────────────────────────
 
+#[allow(dead_code)]
 type ProcessStore = Arc<Mutex<HashMap<String, TransferProcess>>>;
+#[allow(dead_code)]
 type MessageStore = Arc<Mutex<HashMap<String, TransferMessage>>>;
+#[allow(dead_code)]
 type IdentifierStore = Arc<Mutex<HashMap<(String, String), TransferProcessIdentifier>>>;
 
 // TransferProcessRepo ───────────────────────────────────────────────────────
 
+#[allow(dead_code)]
 pub(crate) struct InMemoryTransferProcessRepo {
     processes: ProcessStore,
     identifiers: IdentifierStore,
 }
 
+#[allow(dead_code)]
 impl InMemoryTransferProcessRepo {
     pub fn new(processes: ProcessStore, identifiers: IdentifierStore) -> Self {
         Self {
@@ -143,9 +142,9 @@ impl TransferProcessRepoTrait for InMemoryTransferProcessRepo {
             .collect();
 
         match sort {
-            Sort::CreatedAtAsc => items.sort_by(|a, b| a.created_at().cmp(&b.created_at())),
-            Sort::CreatedAtDesc => items.sort_by(|a, b| b.created_at().cmp(&a.created_at())),
-            Sort::UpdatedAtDesc => items.sort_by(|a, b| b.updated_at().cmp(&a.updated_at())),
+            Sort::CreatedAtAsc => items.sort_by_key(|a| a.created_at()),
+            Sort::CreatedAtDesc => items.sort_by_key(|a| std::cmp::Reverse(a.created_at())),
+            Sort::UpdatedAtDesc => items.sort_by_key(|a| std::cmp::Reverse(a.updated_at())),
         }
 
         items.truncate(page.limit as usize);
@@ -163,7 +162,7 @@ impl TransferProcessRepoTrait for InMemoryTransferProcessRepo {
         Ok(count)
     }
 
-    async fn get_batch_transfer_processes(&self, ids: &Vec<Urn>) -> Outcome<Vec<TransferProcess>> {
+    async fn get_batch_transfer_processes(&self, ids: &[Urn]) -> Outcome<Vec<TransferProcess>> {
         let store = self.processes.lock().unwrap();
         let id_strs: Vec<String> = ids.iter().map(|u| u.to_string()).collect();
         Ok(store
@@ -241,10 +240,12 @@ impl TransferProcessRepoTrait for InMemoryTransferProcessRepo {
 
 // TransferMessageRepo ───────────────────────────────────────────────────────
 
+#[allow(dead_code)]
 pub(crate) struct InMemoryTransferMessageRepo {
     messages: MessageStore,
 }
 
+#[allow(dead_code)]
 impl InMemoryTransferMessageRepo {
     pub fn new(messages: MessageStore) -> Self {
         Self { messages }
@@ -315,10 +316,12 @@ impl TransferMessageRepoTrait for InMemoryTransferMessageRepo {
 
 // TransferIdentifierRepo ────────────────────────────────────────────────────
 
+#[allow(dead_code)]
 pub(crate) struct InMemoryTransferIdentifierRepo {
     identifiers: IdentifierStore,
 }
 
+#[allow(dead_code)]
 impl InMemoryTransferIdentifierRepo {
     pub fn new(identifiers: IdentifierStore) -> Self {
         Self { identifiers }
@@ -344,7 +347,7 @@ impl TransferIdentifierRepoTrait for InMemoryTransferIdentifierRepo {
 
     async fn get_identifiers_by_batch_process_id(
         &self,
-        process_id_batch: &Vec<Urn>,
+        process_id_batch: &[Urn],
     ) -> Outcome<Vec<TransferProcessIdentifier>> {
         let pids: Vec<String> = process_id_batch.iter().map(|u| u.to_string()).collect();
         Ok(self
@@ -390,6 +393,7 @@ impl TransferIdentifierRepoTrait for InMemoryTransferIdentifierRepo {
 
 // Helpers ───────────────────────────────────────────────────────────────────
 
+#[allow(dead_code)]
 fn decode_cursor(cursor: Option<&str>) -> Option<DateTime<Utc>> {
     cursor
         .and_then(|c| {
@@ -402,6 +406,7 @@ fn decode_cursor(cursor: Option<&str>) -> Option<DateTime<Utc>> {
         .map(|dt| dt.with_timezone(&Utc))
 }
 
+#[allow(dead_code)]
 fn filter_messages<'a>(
     values: impl Iterator<Item = &'a TransferMessage>,
     process_id: Option<&Urn>,
@@ -468,14 +473,15 @@ fn filter_messages<'a>(
         .collect();
 
     match sort {
-        Sort::CreatedAtAsc => items.sort_by(|a, b| a.occurred_at().cmp(&b.occurred_at())),
-        _ => items.sort_by(|a, b| b.occurred_at().cmp(&a.occurred_at())),
+        Sort::CreatedAtAsc => items.sort_by_key(|a| a.occurred_at()),
+        _ => items.sort_by_key(|a| std::cmp::Reverse(a.occurred_at())),
     }
 
     items.truncate(page.limit as usize);
     items
 }
 
+#[allow(dead_code, clippy::result_large_err)]
 fn process_from_cmd(cmd: &NewTransferProcessCommand) -> Outcome<TransferProcess> {
     let id = cmd.id.clone().unwrap_or_else(TransferProcessId::generate);
     let tenant_id = cmd

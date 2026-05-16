@@ -20,7 +20,7 @@ use std::sync::Arc;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{FromRef, Path, Query, State};
 use axum::http::{HeaderMap, StatusCode};
-use axum::routing::{get, post};
+use axum::routing::get;
 use axum::{Json, Router};
 use serde::Deserialize;
 use ymir::errors::AppResult;

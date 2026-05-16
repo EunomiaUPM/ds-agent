@@ -37,6 +37,7 @@ pub(crate) struct MessageEnvelopeRef {
     pub recorded_at: DateTime<Utc>,
 }
 
+#[allow(dead_code)]
 impl MessageEnvelopeRef {
     pub fn new(
         id: Urn,

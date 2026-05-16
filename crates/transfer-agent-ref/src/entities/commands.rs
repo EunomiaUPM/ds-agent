@@ -39,6 +39,7 @@ pub(crate) struct NewTransferProcessCommand {
     pub initial_state: ProtocolState,
     pub initial_state_metadata: StateMetadata,
     pub callback_address: Option<Url>,
+    #[allow(dead_code)]
     pub connector_instance_id: Option<String>,
     pub agreement_id: Urn,
     pub peer_participant_id: ParticipantId,
@@ -66,6 +67,7 @@ pub(crate) struct NewTransferMessageCommand {
     pub protocol: ProtocolId,
     pub message_type: ProtocolMessageType,
     pub protocol_version: Option<String>,
+    #[allow(dead_code)]
     pub state_transition_from: ProtocolState,
     pub state_transition_to: ProtocolState,
     pub envelope: MessageEnvelope,

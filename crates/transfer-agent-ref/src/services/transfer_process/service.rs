@@ -180,11 +180,7 @@ impl TransferProcessServiceTrait for TransferProcessService {
             }
         }
 
-        let extra: HashMap<String, String> = cmd
-            .identifiers
-            .as_ref()
-            .map(|ids| ids.clone())
-            .unwrap_or_default();
+        let extra: HashMap<String, String> = cmd.identifiers.clone().unwrap_or_default();
 
         Ok(TransferProcessView::assemble(process, extra))
     }

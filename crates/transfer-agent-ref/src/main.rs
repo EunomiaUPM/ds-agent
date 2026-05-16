@@ -47,6 +47,7 @@ Show some love on https://github.com/EunomiaUPM/ds-agent
 
 ";
 
+#[allow(clippy::result_large_err)]
 #[tokio::main]
 async fn main() -> Outcome<()> {
     let filter = EnvFilter::builder()

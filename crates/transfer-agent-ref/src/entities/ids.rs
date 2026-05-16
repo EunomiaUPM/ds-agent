@@ -51,6 +51,7 @@ impl fmt::Display for TransferProcessId {
 #[serde(transparent)]
 pub(crate) struct MessageId(pub(crate) Urn);
 
+#[allow(dead_code)]
 impl MessageId {
     pub fn new(urn: Urn) -> Self {
         Self(urn)
@@ -75,6 +76,7 @@ impl fmt::Display for MessageId {
 #[serde(transparent)]
 pub(crate) struct ParticipantId(pub(crate) Urn);
 
+#[allow(dead_code)]
 impl ParticipantId {
     pub fn new(urn: Urn) -> Self {
         Self(urn)

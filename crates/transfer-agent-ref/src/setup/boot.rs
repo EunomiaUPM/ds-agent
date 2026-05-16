@@ -38,7 +38,7 @@ impl BootstrapServiceTrait for TransferBoot {
     type Config = TransferConfig;
 
     async fn load_config(env_file: String) -> Outcome<Self::Config> {
-        let config = Self::Config::load(&*env_file)?;
+        let config = Self::Config::load(&env_file)?;
         let table = json_to_table::json_to_table(&serde_json::to_value(&config)?)
             .collapse()
             .to_string();
@@ -90,7 +90,7 @@ impl BootstrapServiceTrait for TransferBoot {
                 _ = shutdown_rx.recv() => {
                     tracing::info!("Shutdown command received from Main Pipeline.");
                 }
-                _ = async { http_handle.await } => {
+                _ = http_handle => {
                     tracing::error!("HTTP subsystem failed or stopped unexpectedly!");
                 }
             }

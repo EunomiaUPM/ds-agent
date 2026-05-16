@@ -50,6 +50,7 @@ pub struct Model {
     pub state_transition_to: Option<String>,
 }
 
+#[allow(clippy::result_large_err)]
 impl Model {
     pub(crate) fn into_domain(self) -> Outcome<TransferMessage> {
         use crate::entities::ids::TransferProcessId;

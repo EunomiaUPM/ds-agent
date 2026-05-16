@@ -53,6 +53,7 @@ pub struct Model {
     pub last_outbound_envelope: Option<Json>,
 }
 
+#[allow(clippy::result_large_err)]
 impl Model {
     pub(crate) fn into_domain(self) -> Outcome<TransferProcess> {
         use crate::entities::message_envelope::MessageEnvelopeRef;
@@ -97,6 +98,7 @@ impl Model {
     }
 }
 
+#[allow(clippy::result_large_err)]
 impl ActiveModel {
     pub(crate) fn from_cmd(cmd: &NewTransferProcessCommand) -> Outcome<Self> {
         let id = cmd.id.clone().unwrap_or_else(TransferProcessId::generate);

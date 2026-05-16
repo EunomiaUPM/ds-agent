@@ -17,8 +17,7 @@
 
 use std::sync::Arc;
 
-use sea_orm::ActiveValue::Set;
-use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
+use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
@@ -60,7 +59,7 @@ impl TransferIdentifierRepoTrait for SeaOrmTransferIdentifierRepo {
 
     async fn get_identifiers_by_batch_process_id(
         &self,
-        process_id_batch: &Vec<Urn>,
+        process_id_batch: &[Urn],
     ) -> Outcome<Vec<TransferProcessIdentifier>> {
         let ids: Vec<String> = process_id_batch.iter().map(|u| u.to_string()).collect();
         orm::Entity::find()

@@ -58,6 +58,7 @@ pub(crate) struct TransferMessage {
     pub processing_result: MessageProcessingResult,
 }
 
+#[allow(dead_code, clippy::result_large_err)]
 impl TransferMessage {
     pub(crate) fn from_cmd(cmd: &NewTransferMessageCommand) -> Outcome<Self> {
         let id = cmd.id.clone().unwrap_or_else(MessageId::generate);
@@ -245,6 +246,7 @@ impl TryFrom<MessageEnvelopeInput> for MessageEnvelope {
     }
 }
 
+#[allow(dead_code)]
 impl MessageEnvelope {
     pub fn is_signed(&self) -> bool {
         self.signature.is_some()

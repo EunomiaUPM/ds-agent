@@ -22,6 +22,7 @@ use thiserror::Error;
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
+#[allow(dead_code)]
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait TransferProcessRepoTrait: Send + Sync {
@@ -32,7 +33,7 @@ pub trait TransferProcessRepoTrait: Send + Sync {
         sort: &Sort,
     ) -> Outcome<Vec<TransferProcess>>;
     async fn count_transfer_processes(&self, filters: &TransferProcessFilter) -> Outcome<u64>;
-    async fn get_batch_transfer_processes(&self, ids: &Vec<Urn>) -> Outcome<Vec<TransferProcess>>;
+    async fn get_batch_transfer_processes(&self, ids: &[Urn]) -> Outcome<Vec<TransferProcess>>;
     async fn get_transfer_process_by_id(&self, id: &Urn) -> Outcome<Option<TransferProcess>>;
     async fn get_transfer_process_by_key_id(
         &self,

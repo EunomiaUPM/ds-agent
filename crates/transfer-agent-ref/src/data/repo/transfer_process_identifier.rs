@@ -20,6 +20,7 @@ use thiserror::Error;
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
+#[allow(dead_code)]
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait TransferIdentifierRepoTrait: Send + Sync {
@@ -30,7 +31,7 @@ pub trait TransferIdentifierRepoTrait: Send + Sync {
 
     async fn get_identifiers_by_batch_process_id(
         &self,
-        process_id_batch: &Vec<Urn>,
+        process_id_batch: &[Urn],
     ) -> Outcome<Vec<TransferProcessIdentifier>>;
 
     async fn get_identifier_by_key(

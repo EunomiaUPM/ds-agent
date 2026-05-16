@@ -26,6 +26,7 @@ use crate::data::repo::transfer_message::TransferMessageRepoTrait;
 use crate::data::repo::transfer_process::TransferProcessRepoTrait;
 use crate::data::repo::transfer_process_identifier::TransferIdentifierRepoTrait;
 
+#[allow(dead_code)]
 pub(crate) struct InMemoryDataFactory {
     processes: Arc<Mutex<HashMap<String, crate::entities::transfer_process::TransferProcess>>>,
     messages: Arc<Mutex<HashMap<String, crate::entities::transfer_message::TransferMessage>>>,
@@ -39,6 +40,7 @@ pub(crate) struct InMemoryDataFactory {
     >,
 }
 
+#[allow(dead_code)]
 impl InMemoryDataFactory {
     pub fn new() -> Self {
         Self {

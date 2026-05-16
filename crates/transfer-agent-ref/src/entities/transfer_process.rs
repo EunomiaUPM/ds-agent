@@ -22,9 +22,7 @@ use crate::entities::protocol::{
     ProtocolId, ProtocolState, StateMetadata, TransferCorrelation, TransferRole,
 };
 use chrono::{DateTime, Duration, Utc};
-use ymir::errors::{Errors, Outcome};
 use serde_json::Value as Json;
-use std::collections::HashMap;
 
 #[derive(Clone)]
 pub(crate) struct TransferProcess {
@@ -49,11 +47,8 @@ pub(crate) struct TransferProcess {
     last_outbound_envelope: Option<MessageEnvelopeRef>,
 }
 
+#[allow(dead_code)]
 impl TransferProcess {
-    pub fn builder() -> TransferProcessBuilder {
-        TransferProcessBuilder::default()
-    }
-
     pub fn new(
         tenant_id: TenantId,
         role: TransferRole,
@@ -80,6 +75,7 @@ impl TransferProcess {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn rehydrate(
         transfer_id: TransferProcessId,
         tenant_id: TenantId,
@@ -211,60 +207,5 @@ fn json_merge(base: &mut Json, patch: Json) {
         for (k, v) in patch_map {
             base_map.insert(k, v);
         }
-    }
-}
-
-// Builder ───────────────────────────────────────────────────────────────────
-
-#[derive(Clone, Default)]
-pub(crate) struct TransferProcessBuilder {
-    tenant_id: Option<TenantId>,
-    role: Option<TransferRole>,
-    protocol: Option<ProtocolId>,
-    protocol_state: Option<ProtocolState>,
-    correlation: Option<TransferCorrelation>,
-}
-
-impl TransferProcessBuilder {
-    pub fn with_tenant(mut self, tenant_id: TenantId) -> Self {
-        self.tenant_id = Some(tenant_id);
-        self
-    }
-
-    pub fn with_role(mut self, role: TransferRole) -> Self {
-        self.role = Some(role);
-        self
-    }
-
-    pub fn with_protocol(mut self, protocol: ProtocolId) -> Self {
-        self.protocol = Some(protocol);
-        self
-    }
-
-    pub fn with_state(mut self, state: ProtocolState) -> Self {
-        self.protocol_state = Some(state);
-        self
-    }
-
-    pub fn with_correlation(mut self, correlation: TransferCorrelation) -> Self {
-        self.correlation = Some(correlation);
-        self
-    }
-
-    pub fn build(self) -> Outcome<TransferProcess> {
-        Ok(TransferProcess::new(
-            self.tenant_id.ok_or_else(|| Errors::crazy("tenant_id is required", None))?,
-            self.role.ok_or_else(|| Errors::crazy("role is required", None))?,
-            self.protocol.ok_or_else(|| Errors::crazy("protocol is required", None))?,
-            self.protocol_state.ok_or_else(|| Errors::crazy("protocol_state is required", None))?,
-            self.correlation.unwrap_or(TransferCorrelation {
-                identifiers: HashMap::new(),
-                consumer_pid: None,
-                provider_pid: None,
-                agreement_id: None,
-                callback_address: None,
-                peer_participant_id: None,
-            }),
-        ))
     }
 }

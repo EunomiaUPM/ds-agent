@@ -50,7 +50,7 @@ impl SeaOrmTransferMessageRepo {
         page: &Page,
         sort: &Sort,
     ) -> sea_orm::Select<orm::Entity> {
-        use serde::Serialize;
+        
 
         if let Some(dir) = &filters.direction {
             let s = serde_json::to_value(dir)
@@ -128,12 +128,12 @@ impl TransferMessageRepoTrait for SeaOrmTransferMessageRepo {
             q = q.filter(orm::Column::TenantId.eq(tid.as_str()));
         }
         if let Some(dir) = &filters.direction {
-            use serde::Serialize;
+            
             let s = serde_json::to_value(dir).unwrap().as_str().unwrap_or("").to_string();
             q = q.filter(orm::Column::Direction.eq(s));
         }
         if let Some(protocol) = &filters.protocol {
-            use serde::Serialize;
+            
             let s = serde_json::to_value(protocol).unwrap().as_str().unwrap_or("").to_string();
             q = q.filter(orm::Column::Protocol.eq(s));
         }

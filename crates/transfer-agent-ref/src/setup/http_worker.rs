@@ -23,7 +23,6 @@ use axum::extract::Request;
 use axum::response::IntoResponse;
 use axum::{Router, serve};
 use common::config::services::TransferConfig;
-use common::config::services::traits::TransferConfigTrait;
 use common::config::types::traits::CommonConfigTrait;
 use common::errors::CommonErrors;
 use common::well_known::WellKnownRoot;
@@ -66,7 +65,7 @@ impl TransferHttpWorker {
             "0.0.0.0"
         };
         let port = config.common().get_internal_port(HostType::Http);
-        let addr = format!("{}:{}", host, port);
+        let addr = format!("{host}:{port}");
 
         let listener = TcpListener::bind(&addr)
             .await

@@ -16,6 +16,7 @@
  *  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
+use crate::setup::grpc_worker::TransferGrpcWorker;
 use crate::setup::http_worker::TransferHttpWorker;
 use common::boot::BootstrapServiceTrait;
 use common::config::services::TransferConfig;
@@ -84,6 +85,9 @@ impl BootstrapServiceTrait for TransferBoot {
         tracing::info!("Spawning HTTP subsystem...");
         let http_handle = TransferHttpWorker::spawn(config, vault.clone(), &cancel_token).await?;
 
+        tracing::info!("Spawning gRPC subsystem...");
+        let grpc_handle = TransferGrpcWorker::spawn(config, vault.clone(), &cancel_token).await?;
+
         let token_clone = cancel_token.clone();
         tokio::spawn(async move {
             tokio::select! {
@@ -92,6 +96,9 @@ impl BootstrapServiceTrait for TransferBoot {
                 }
                 _ = http_handle => {
                     tracing::error!("HTTP subsystem failed or stopped unexpectedly!");
+                }
+                _ = grpc_handle => {
+                    tracing::error!("gRPC subsystem failed or stopped unexpectedly!");
                 }
             }
 

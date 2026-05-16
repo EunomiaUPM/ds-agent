@@ -17,6 +17,7 @@
 
 mod data;
 mod entities;
+mod grpc;
 mod http;
 mod services;
 pub mod setup;

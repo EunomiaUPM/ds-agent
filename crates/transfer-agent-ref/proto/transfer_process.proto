@@ -1,0 +1,125 @@
+/*
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ */
+syntax = "proto3";
+package transfer_processes_ref;
+
+// ─── Enums ──────────────────────────────────────────────────────────────────
+
+enum TransferRole {
+  PROVIDER = 0;
+  CONSUMER = 1;
+  RELAY = 2;
+}
+
+enum ProtocolId {
+  DSP2024 = 0;
+  DSP2025_1 = 1;
+}
+
+// ─── Nested types ───────────────────────────────────────────────────────────
+
+message StateMetadata {
+  optional string attribute = 1;
+  repeated string reason = 2;
+  optional string code = 3;
+}
+
+message TransferCorrelation {
+  map<string, string> identifiers = 1;
+  optional string consumer_pid = 2;
+  optional string provider_pid = 3;
+  optional string agreement_id = 4;
+  optional string callback_address = 5;
+  optional string peer_participant_id = 6;
+}
+
+// ─── Response types ─────────────────────────────────────────────────────────
+
+message TransferProcessResponse {
+  string id = 1;
+  string tenant_id = 2;
+  TransferRole role = 3;
+  ProtocolId protocol = 4;
+  string state = 5;
+  StateMetadata state_metadata = 6;
+  TransferCorrelation correlation = 7;
+  string properties = 8;          // JSON blob
+  optional string error_details = 9; // JSON blob
+  string created_at = 10;         // RFC3339
+  string updated_at = 11;         // RFC3339
+  uint64 version = 12;
+}
+
+message TransferProcessListResponse {
+  repeated TransferProcessResponse items = 1;
+  optional string next_cursor = 2;
+  optional uint64 total = 3;
+}
+
+message DeleteResponse {}
+
+// ─── Request types ──────────────────────────────────────────────────────────
+
+/// Auth: authorization Bearer <token> + x-tenant-id metadata headers required.
+message ListTransferProcessesRequest {
+  optional string protocol = 1;
+  optional string state = 2;
+  optional string role = 3;             // "provider" | "consumer" | "relay"
+  optional string agreement_id = 4;     // URN string
+  optional string peer_participant_id = 5; // URN string
+  optional string created_after = 6;    // RFC3339
+  optional string created_before = 7;   // RFC3339
+  uint32 limit = 8;
+  optional string cursor = 9;
+  optional string sort = 10; // "created_at_asc" | "created_at_desc" | "updated_at_desc"
+}
+
+message ResourceIdRequest {
+  string id = 1;
+}
+
+message BatchTransferProcessesRequest {
+  repeated string ids = 1;
+}
+
+message CreateTransferProcessRequest {
+  TransferRole role = 1;
+  ProtocolId protocol = 2;
+  string initial_state = 3;
+  string agreement_id = 4;
+  string peer_participant_id = 5;
+  optional string callback_address = 6;
+  map<string, string> identifiers = 7;
+  optional string properties = 8;          // JSON blob
+  optional string initial_state_attribute = 9;
+  optional string initial_state_code = 10;
+  repeated string initial_state_reasons = 11;
+}
+
+message EditTransferProcessRequest {
+  string id = 1;
+  optional string state = 2;
+  map<string, string> identifiers = 3;
+  optional string properties = 4;    // JSON blob
+  optional string error_details = 5; // JSON blob
+  optional string state_attribute = 6;
+  optional string state_code = 7;
+  repeated string state_reasons = 8;
+}
+
+// ─── Service ────────────────────────────────────────────────────────────────
+
+service TransferProcessesRef {
+  rpc ListTransferProcesses(ListTransferProcessesRequest) returns (TransferProcessListResponse);
+  rpc GetTransferProcess(ResourceIdRequest) returns (TransferProcessResponse);
+  rpc BatchGetTransferProcesses(BatchTransferProcessesRequest) returns (TransferProcessListResponse);
+  rpc CreateTransferProcess(CreateTransferProcessRequest) returns (TransferProcessResponse);
+  rpc EditTransferProcess(EditTransferProcessRequest) returns (TransferProcessResponse);
+  rpc DeleteTransferProcess(ResourceIdRequest) returns (DeleteResponse);
+}

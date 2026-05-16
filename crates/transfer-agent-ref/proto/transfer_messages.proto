@@ -1,0 +1,124 @@
+/*
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ */
+syntax = "proto3";
+package transfer_messages_ref;
+
+// ─── Enums ──────────────────────────────────────────────────────────────────
+
+enum Direction {
+  INBOUND = 0;
+  OUTBOUND = 1;
+}
+
+enum MessageStatus {
+  ACCEPTED = 0;
+  REJECTED = 1;
+  IDEMPOTENT_REPLAY = 2;
+}
+
+// ─── Nested types ───────────────────────────────────────────────────────────
+
+message MessageEnvelope {
+  bytes raw_bytes = 1;
+  string content_type = 2;
+  string content_hash = 3;         // hex SHA-256
+  map<string, string> headers = 4;
+  optional bytes canonical_form = 5;
+  optional string canonical_hash = 6; // hex SHA-256
+}
+
+message MessageProcessingResult {
+  MessageStatus status = 1;
+  optional string resulting_state = 2;
+  optional string rejection_reason = 3;
+  optional string error_code = 4;
+}
+
+// ─── Response types ─────────────────────────────────────────────────────────
+
+message TransferMessageResponse {
+  string id = 1;
+  string transfer_process_id = 2;
+  string tenant_id = 3;
+  Direction direction = 4;
+  string protocol = 5;
+  string message_type = 6;
+  string protocol_version = 7;
+  MessageEnvelope envelope = 8;
+  string occurred_at = 9;          // RFC3339
+  optional string correlation_id = 10;
+  string request_id = 11;
+  string peer_participant_id = 12;
+  MessageProcessingResult processing_result = 13;
+}
+
+message TransferMessageListResponse {
+  repeated TransferMessageResponse items = 1;
+  optional string next_cursor = 2;
+  optional uint64 total = 3;
+}
+
+message DeleteResponse {}
+
+// ─── Request types ──────────────────────────────────────────────────────────
+
+/// Auth: authorization Bearer <token> + x-tenant-id metadata headers required.
+message ListTransferMessagesRequest {
+  optional string direction = 1;        // "inbound" | "outbound"
+  optional string protocol = 2;
+  optional string state_transition_to = 3;
+  optional string created_after = 4;   // RFC3339
+  optional string created_before = 5;  // RFC3339
+  uint32 limit = 6;
+  optional string cursor = 7;
+  optional string sort = 8; // "created_at_asc" | "created_at_desc" | "updated_at_desc"
+}
+
+message ListTransferMessagesByProcessRequest {
+  string process_id = 1;
+  optional string direction = 2;
+  optional string protocol = 3;
+  optional string state_transition_to = 4;
+  optional string created_after = 5;
+  optional string created_before = 6;
+  uint32 limit = 7;
+  optional string cursor = 8;
+  optional string sort = 9;
+}
+
+message ResourceIdRequest {
+  string id = 1;
+}
+
+message CreateTransferMessageRequest {
+  string transfer_process_id = 1;
+  Direction direction = 2;
+  string protocol = 3;
+  string message_type = 4;
+  string state_transition_from = 5;
+  string state_transition_to = 6;
+  bytes raw_bytes = 7;
+  string content_type = 8;
+  map<string, string> headers = 9;
+  optional bytes canonical_form = 10;
+  optional string peer_participant_id = 11;
+  optional string correlation_id = 12;
+  optional string request_id = 13;
+  optional string protocol_version = 14;
+}
+
+// ─── Service ────────────────────────────────────────────────────────────────
+
+service TransferMessagesRef {
+  rpc ListTransferMessages(ListTransferMessagesRequest) returns (TransferMessageListResponse);
+  rpc ListTransferMessagesByProcess(ListTransferMessagesByProcessRequest) returns (TransferMessageListResponse);
+  rpc GetTransferMessage(ResourceIdRequest) returns (TransferMessageResponse);
+  rpc CreateTransferMessage(CreateTransferMessageRequest) returns (TransferMessageResponse);
+  rpc DeleteTransferMessage(ResourceIdRequest) returns (DeleteResponse);
+}

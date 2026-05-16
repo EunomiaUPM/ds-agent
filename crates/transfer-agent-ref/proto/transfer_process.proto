@@ -31,7 +31,7 @@ message StateMetadata {
 }
 
 message TransferCorrelation {
-  map<string, string> identifiers = 1;
+  string identifiers = 1;         // JSON blob; "" = absent
   string consumer_pid = 2;        // "" = absent
   string provider_pid = 3;        // "" = absent
   string agreement_id = 4;        // "" = absent
@@ -96,7 +96,7 @@ message CreateTransferProcessRequest {
   string agreement_id = 4;
   string peer_participant_id = 5;
   string callback_address = 6;         // "" = absent
-  map<string, string> identifiers = 7;
+  string identifiers = 7;           // JSON blob; "" = absent
   string properties = 8;               // JSON blob; "" = absent
   string initial_state_attribute = 9;  // "" = absent
   string initial_state_code = 10;      // "" = absent
@@ -106,7 +106,7 @@ message CreateTransferProcessRequest {
 message EditTransferProcessRequest {
   string id = 1;
   string state = 2;              // "" = no change
-  map<string, string> identifiers = 3;
+  string identifiers = 3;           // JSON blob; "" = absent
   string properties = 4;         // JSON blob; "" = no change
   string error_details = 5;      // JSON blob; "" = no change
   string state_attribute = 6;    // "" = absent

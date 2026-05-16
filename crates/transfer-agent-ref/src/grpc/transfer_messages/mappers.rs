@@ -7,7 +7,7 @@
  * (at your option) any later version.
  */
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::str::FromStr;
 
 use bytes::Bytes;
@@ -105,7 +105,7 @@ pub fn into_create_cmd(
     let correlation_id = non_empty(&req.correlation_id).map(CorrelationId::new);
     let request_id = non_empty(&req.request_id).map(RequestId::new);
     let protocol_version = non_empty(&req.protocol_version).map(|s| s.to_owned());
-    let envelope = build_envelope(req.raw_bytes, req.content_type, req.headers, req.canonical_form)?;
+    let envelope = build_envelope(req.raw_bytes, req.content_type, &req.headers, req.canonical_form)?;
 
     Ok(NewTransferMessageCommand {
         id: None,
@@ -174,12 +174,16 @@ fn bytes_to_hex(h: &[u8; 32]) -> String {
 fn from_envelope(env: &MessageEnvelope) -> ProtoEnvelope {
     let content_hash = bytes_to_hex(&env.content_hash);
     let canonical_hash = env.canonical_hash.map(|h| bytes_to_hex(&h)).unwrap_or_default();
+    let headers = serde_json::to_string(
+        &env.headers.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect::<HashMap<_, _>>(),
+    )
+    .unwrap_or_default();
 
     ProtoEnvelope {
         raw_bytes: env.raw_bytes.to_vec(),
         content_type: env.content_type.to_string(),
         content_hash,
-        headers: env.headers.iter().map(|(k, v)| (k.to_string(), v.clone())).collect(),
+        headers,
         canonical_form: env.canonical_form.as_ref().map(|b| b.to_vec()).unwrap_or_default(),
         canonical_hash,
     }
@@ -213,7 +217,7 @@ fn from_processing_result(result: &MessageProcessingResult) -> ProtoResult {
 fn build_envelope(
     raw: Vec<u8>,
     content_type: String,
-    headers: std::collections::HashMap<String, String>,
+    headers_json: &str,
     canonical_form: Vec<u8>,
 ) -> Result<MessageEnvelope, Status> {
     let raw_bytes = Bytes::from(raw);
@@ -225,15 +229,21 @@ fn build_envelope(
         let ch: [u8; 32] = Sha256::digest(&cf).into();
         (Some(cf), Some(ch))
     };
+    let headers: BTreeMap<CompactString, String> = if headers_json.is_empty() {
+        BTreeMap::new()
+    } else {
+        serde_json::from_str::<HashMap<String, String>>(headers_json)
+            .map_err(|e| Status::invalid_argument(format!("headers: {e}")))?
+            .into_iter()
+            .map(|(k, v)| (CompactString::from(k), v))
+            .collect()
+    };
 
     Ok(MessageEnvelope {
         raw_bytes,
         content_type: CompactString::from(content_type),
         content_hash,
-        headers: headers
-            .into_iter()
-            .map(|(k, v)| (CompactString::from(k), v))
-            .collect::<BTreeMap<_, _>>(),
+        headers,
         canonical_form,
         canonical_hash,
         signature: None,

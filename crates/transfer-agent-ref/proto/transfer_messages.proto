@@ -28,7 +28,7 @@ message MessageEnvelope {
   bytes raw_bytes = 1;
   string content_type = 2;
   string content_hash = 3;         // hex SHA-256
-  map<string, string> headers = 4;
+  string headers = 4;              // JSON blob; "" = absent
   bytes canonical_form = 5;        // empty = absent
   string canonical_hash = 6;       // "" = absent; hex SHA-256
 }
@@ -106,7 +106,7 @@ message CreateTransferMessageRequest {
   string state_transition_to = 6;
   bytes raw_bytes = 7;
   string content_type = 8;
-  map<string, string> headers = 9;
+  string headers = 9;              // JSON blob; "" = absent
   bytes canonical_form = 10;          // empty = absent
   string peer_participant_id = 11;    // "" = absent
   string correlation_id = 12;         // "" = absent

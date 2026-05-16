@@ -7,9 +7,15 @@ http_host: &http_host
   port: '1200'
   internal_port: null
 
+grpc_host: &grpc_host
+    protocol: 'http'
+    url: '127.0.0.1'
+    port: '1201'
+    internal_port: null
+
 hosts_default: &hosts_default
   http: *http_host
-  grpc: null
+  grpc: *grpc_host
   graphql: null
 
 api_version: &api_version 'v1'

@@ -95,7 +95,12 @@ pub fn into_create_cmd(
             Url::from_str(s).map_err(|e| Status::invalid_argument(format!("callback_address: {e}")))
         })
         .transpose()?;
-    let identifiers = if req.identifiers.is_empty() { None } else { Some(req.identifiers) };
+    let identifiers = non_empty(&req.identifiers)
+        .map(|s| {
+            serde_json::from_str::<std::collections::HashMap<String, String>>(s)
+                .map_err(|e| Status::invalid_argument(format!("identifiers: {e}")))
+        })
+        .transpose()?;
     let properties = non_empty(&req.properties)
         .map(|s| {
             serde_json::from_str::<Json>(s)
@@ -138,7 +143,12 @@ pub fn into_edit_cmd(req: EditTransferProcessRequest) -> Result<EditTransferProc
     } else {
         None
     };
-    let identifiers = if req.identifiers.is_empty() { None } else { Some(req.identifiers) };
+    let identifiers = non_empty(&req.identifiers)
+        .map(|s| {
+            serde_json::from_str::<std::collections::HashMap<String, String>>(s)
+                .map_err(|e| Status::invalid_argument(format!("identifiers: {e}")))
+        })
+        .transpose()?;
     let properties = non_empty(&req.properties)
         .map(|s| {
             serde_json::from_str::<Json>(s)
@@ -212,7 +222,7 @@ fn from_state_metadata(meta: StateMetadata) -> crate::grpc::api::transfer_proces
 
 fn from_correlation(corr: TransferCorrelation) -> ProtoCorrelation {
     ProtoCorrelation {
-        identifiers: corr.identifiers,
+        identifiers: serde_json::to_string(&corr.identifiers).unwrap_or_default(),
         consumer_pid: corr.consumer_pid.unwrap_or_default(),
         provider_pid: corr.provider_pid.unwrap_or_default(),
         agreement_id: corr.agreement_id.map(|u| u.to_string()).unwrap_or_default(),

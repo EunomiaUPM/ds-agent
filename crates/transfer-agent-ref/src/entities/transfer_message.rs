@@ -37,26 +37,26 @@ use ymir::errors::{Errors, Outcome};
 
 #[derive(Clone)]
 pub(crate) struct TransferMessage {
-    pub id: MessageId,
-    pub transfer_process_id: TransferProcessId,
-    pub tenant_id: TenantId,
-    pub direction: Direction,
+    pub(crate) id: MessageId,
+    pub(crate) transfer_process_id: TransferProcessId,
+    pub(crate) tenant_id: TenantId,
+    pub(crate) direction: Direction,
 
     // Protocol
-    pub protocol: ProtocolId,
-    pub message_type: ProtocolMessageType,
-    pub protocol_version: CompactString,
+    pub(crate) protocol: ProtocolId,
+    pub(crate) message_type: ProtocolMessageType,
+    pub(crate) protocol_version: CompactString,
 
     // Wire
-    pub envelope: MessageEnvelope,
+    pub(crate) envelope: MessageEnvelope,
 
     // Traceability
-    pub occurred_at: DateTime<Utc>,
-    pub correlation_id: Option<CorrelationId>,
-    pub request_id: RequestId,
-    pub peer_participant_id: ParticipantId,
+    pub(crate) occurred_at: DateTime<Utc>,
+    pub(crate) correlation_id: Option<CorrelationId>,
+    pub(crate) request_id: RequestId,
+    pub(crate) peer_participant_id: ParticipantId,
 
-    pub processing_result: MessageProcessingResult,
+    pub(crate) processing_result: MessageProcessingResult,
 }
 
 #[allow(dead_code, clippy::result_large_err)]

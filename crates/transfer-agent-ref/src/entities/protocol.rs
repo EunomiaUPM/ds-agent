@@ -70,6 +70,9 @@ impl StateMetadata {
     }
 }
 
+pub(crate) const CONSUMER_PID_KEY: &str = "consumerPid";
+pub(crate) const PROVIDER_PID_KEY: &str = "providerPid";
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TransferCorrelation {

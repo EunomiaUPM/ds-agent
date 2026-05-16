@@ -18,6 +18,7 @@
 use crate::entities::ids::{TenantId, TransferProcessId};
 use crate::entities::protocol::{
     ProtocolId, ProtocolState, StateMetadata, TransferCorrelation, TransferRole,
+    CONSUMER_PID_KEY, PROVIDER_PID_KEY,
 };
 use crate::entities::transfer_process::TransferProcess;
 use chrono::{DateTime, Utc};
@@ -50,12 +51,12 @@ impl TransferProcessView {
         let mut correlation = process.correlation().clone();
         correlation.identifiers.extend(extra_identifiers);
         if correlation.consumer_pid.is_none() {
-            if let Some(v) = correlation.identifiers.get("consumerPid") {
+            if let Some(v) = correlation.identifiers.get(CONSUMER_PID_KEY) {
                 correlation.consumer_pid = Some(v.clone());
             }
         }
         if correlation.provider_pid.is_none() {
-            if let Some(v) = correlation.identifiers.get("providerPid") {
+            if let Some(v) = correlation.identifiers.get(PROVIDER_PID_KEY) {
                 correlation.provider_pid = Some(v.clone());
             }
         }

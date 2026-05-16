@@ -314,13 +314,22 @@ fn ser_opt_bytes_b64<S: Serializer>(b: &Option<Bytes>, s: S) -> Result<S::Ok, S:
     }
 }
 
+fn bytes_to_hex(h: &[u8; 32]) -> String {
+    use std::fmt::Write;
+    let mut buf = String::with_capacity(64);
+    for b in h {
+        write!(buf, "{b:02x}").unwrap();
+    }
+    buf
+}
+
 fn ser_hash_hex<S: Serializer>(h: &[u8; 32], s: S) -> Result<S::Ok, S::Error> {
-    s.serialize_str(&h.iter().map(|b| format!("{b:02x}")).collect::<String>())
+    s.serialize_str(&bytes_to_hex(h))
 }
 
 fn ser_opt_hash_hex<S: Serializer>(h: &Option<[u8; 32]>, s: S) -> Result<S::Ok, S::Error> {
     match h {
-        Some(v) => s.serialize_some(&v.iter().map(|b| format!("{b:02x}")).collect::<String>()),
+        Some(v) => s.serialize_some(&bytes_to_hex(v)),
         None => s.serialize_none(),
     }
 }

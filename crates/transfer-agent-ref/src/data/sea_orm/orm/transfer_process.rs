@@ -63,7 +63,7 @@ impl Model {
         let role = deser_enum::<TransferRole>(&self.role)?;
         let created_at = self.created_at.with_timezone(&Utc);
         let updated_at = self.updated_at.with_timezone(&Utc);
-        let version = self.version as u32;
+        let version = u32::try_from(self.version).unwrap_or(0);
         let protocol = deser_enum::<ProtocolId>(&self.protocol)?;
         let protocol_state = ProtocolState(CompactString::from(self.protocol_state));
         let state_metadata =
@@ -142,7 +142,7 @@ impl ActiveModel {
             role: Set(ser_enum(&process.role())),
             created_at: Set(process.created_at().into()),
             updated_at: Set(process.updated_at().into()),
-            version: Set(process.version() as i32),
+            version: Set(i32::try_from(process.version()).unwrap_or(i32::MAX)),
             protocol: Set(ser_enum(process.protocol())),
             protocol_state: Set(process.state().0.to_string()),
             state_metadata: Set(ser_json(process.state_metadata())),

@@ -1,0 +1,1177 @@
+openapi: "3.1.0"
+
+info:
+  title: Transfer Agent Ref API
+  version: "0.1.0"
+  description: |
+    Internal agent for tracking DSP Transfer Processes and their associated
+    protocol messages. Manages the lifecycle of transfer processes (REQUESTED →
+    STARTED → SUSPENDED / COMPLETED / TERMINATED) and records every inbound/
+    outbound protocol message with its wire envelope.
+
+    **Base path:** `/api/v1/transfer-agent-ref`
+    **Auth:** Bearer JWT issued by the bundled OAuth endpoint (`/oauth/token`).
+    **Tenant isolation:** Every request must carry `X-Tenant-ID`. Non-admin
+    callers are automatically restricted to their own tenant.
+
+servers:
+  - url: /api/v1/transfer-agent-ref
+    description: Default (versioned base path)
+
+# ─── Security ────────────────────────────────────────────────────────────────
+
+security:
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  # ─── Reusable headers ──────────────────────────────────────────────────────
+
+  headers:
+    X-Request-ID:
+      description: >
+        Echoes the inbound `X-Request-ID` header. If absent in the request,
+        the server generates a UUID v4 and returns it here.
+      schema:
+        type: string
+    X-Correlation-ID:
+      description: Echoes the inbound `X-Correlation-ID` if present.
+      schema:
+        type: string
+    X-Total-Count:
+      description: Total number of records matching the applied filters (without cursor).
+      schema:
+        type: integer
+        format: int64
+
+  # ─── Reusable parameters ───────────────────────────────────────────────────
+
+  parameters:
+    XTenantID:
+      name: X-Tenant-ID
+      in: header
+      required: true
+      description: >
+        Caller's tenant identifier. Alphanumeric, hyphens and dots only.
+        Non-admin callers are restricted to this tenant automatically.
+      schema:
+        type: string
+        pattern: '^[a-zA-Z0-9\-.]+$'
+        example: acme-corp
+
+    XRequestID:
+      name: X-Request-ID
+      in: header
+      required: false
+      description: Client-generated request identifier for end-to-end tracing.
+      schema:
+        type: string
+
+    XCorrelationID:
+      name: X-Correlation-ID
+      in: header
+      required: false
+      description: Correlation token linking a chain of related requests.
+      schema:
+        type: string
+
+    ResourceId:
+      name: id
+      in: path
+      required: true
+      description: URN identifier of the resource.
+      schema:
+        $ref: '#/components/schemas/Urn'
+
+    Limit:
+      name: limit
+      in: query
+      required: false
+      description: Maximum number of items to return. Default 20.
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+        maximum: 1000
+        default: 20
+
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      description: >
+        Opaque pagination cursor returned in `nextCursor` of a previous response.
+        Encodes a base64url-encoded RFC 3339 timestamp. An invalid cursor returns
+        HTTP 400 — it is never silently ignored.
+      schema:
+        type: string
+
+    Sort:
+      name: sort
+      in: query
+      required: false
+      description: Sort order for paginated results.
+      schema:
+        type: string
+        enum: [created_at_asc, created_at_desc, updated_at_desc]
+        default: created_at_desc
+
+  # ─── Schemas ───────────────────────────────────────────────────────────────
+
+  schemas:
+
+    # Primitives
+
+    Urn:
+      type: string
+      description: >
+        Uniform Resource Name (RFC 8141). All resource identifiers in this API
+        use the scheme `urn:<nss>:<uuid>`, e.g.
+        `urn:transfer-process:550e8400-e29b-41d4-a716-446655440000`.
+      pattern: '^urn:[a-zA-Z0-9][a-zA-Z0-9-]{0,31}:[a-zA-Z0-9()+,\-.:=@;$_!*''%/?#]+$'
+      example: "urn:transfer-process:550e8400-e29b-41d4-a716-446655440000"
+
+    TransferRole:
+      type: string
+      enum: [provider, consumer, relay]
+      description: Role of this agent in the transfer.
+
+    ProtocolId:
+      type: string
+      enum: [dsp2024, dsp2025_1]
+      description: DSP protocol version governing this transfer.
+
+    Direction:
+      type: string
+      enum: [inbound, outbound]
+      description: Message direction relative to this agent.
+
+    # State metadata
+
+    StateMetadata:
+      type: object
+      description: >
+        Optional metadata attached to a protocol state. All fields are nullable.
+      properties:
+        attribute:
+          type: string
+          nullable: true
+          example: "suspended-by-provider"
+        reason:
+          type: array
+          items:
+            type: string
+          nullable: true
+          example: ["quota exceeded"]
+        code:
+          type: string
+          nullable: true
+          example: "QUOTA_EXCEEDED"
+
+    # Correlation
+
+    TransferCorrelation:
+      type: object
+      description: >
+        Cross-participant identifiers and routing information for this transfer.
+      properties:
+        identifiers:
+          type: object
+          additionalProperties:
+            type: string
+          description: >
+            Arbitrary key-value pairs. Canonical keys include `consumerPid`
+            and `providerPid`, which are also surfaced as top-level fields.
+          example:
+            consumerPid: "urn:consumer:abc"
+            providerPid: "urn:provider:xyz"
+        consumerPid:
+          type: string
+          nullable: true
+          description: Consumer-assigned process identifier (URN). Derived from `identifiers.consumerPid` if absent.
+        providerPid:
+          type: string
+          nullable: true
+          description: Provider-assigned process identifier (URN). Derived from `identifiers.providerPid` if absent.
+        agreementId:
+          $ref: '#/components/schemas/Urn'
+          nullable: true
+          description: URN of the data agreement governing this transfer.
+        callbackAddress:
+          type: string
+          format: uri
+          nullable: true
+          description: URL to notify upon state changes.
+        peerParticipantId:
+          $ref: '#/components/schemas/Urn'
+          nullable: true
+          description: URN identifying the remote participant.
+
+    # Envelope
+
+    MessageEnvelopeInput:
+      type: object
+      required: [rawBytes, contentType]
+      description: >
+        Wire envelope submitted when recording a protocol message. `rawBytes`
+        is base64-encoded (standard alphabet). `contentHash` is computed
+        server-side and returned in the response.
+      properties:
+        rawBytes:
+          type: string
+          format: byte
+          description: Base64-encoded raw wire payload.
+          example: "eyJAY29udGV4dCI6ICJodHRwczovL3..."
+        contentType:
+          type: string
+          description: MIME type of the payload.
+          example: "application/ld+json"
+        headers:
+          type: object
+          additionalProperties:
+            type: string
+          description: Protocol-level headers carried with the message.
+        canonicalForm:
+          type: string
+          format: byte
+          nullable: true
+          description: >
+            Base64-encoded URDNA2015 canonical form for JSON-LD messages.
+            `canonicalHash` is computed server-side.
+        signature:
+          $ref: '#/components/schemas/MessageSignatureInput'
+          nullable: true
+
+    MessageSignatureInput:
+      type: object
+      required: [algorithm, keyId, value]
+      properties:
+        algorithm:
+          type: string
+          description: Signing algorithm identifier (e.g. `EdDSA`, `ES256`).
+          example: "EdDSA"
+        keyId:
+          type: string
+          description: JWK key ID or signer URN.
+          example: "urn:key:ed25519:abc123"
+        value:
+          type: string
+          format: byte
+          description: Base64-encoded signature bytes.
+
+    MessageEnvelope:
+      type: object
+      description: Stored wire envelope returned in responses.
+      properties:
+        rawBytes:
+          type: string
+          format: byte
+          description: Base64-encoded raw wire payload.
+        contentType:
+          type: string
+        contentHash:
+          type: string
+          description: Lowercase hex-encoded SHA-256 of `rawBytes` (64 chars).
+          pattern: '^[0-9a-f]{64}$'
+          example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        headers:
+          type: object
+          additionalProperties:
+            type: string
+        canonicalForm:
+          type: string
+          format: byte
+          nullable: true
+        canonicalHash:
+          type: string
+          nullable: true
+          description: Hex-encoded SHA-256 of `canonicalForm`. Null if no canonical form.
+        signature:
+          $ref: '#/components/schemas/MessageSignature'
+          nullable: true
+
+    MessageSignature:
+      type: object
+      properties:
+        algorithm:
+          type: string
+        keyId:
+          type: string
+        value:
+          type: string
+          format: byte
+          description: Base64-encoded signature bytes.
+
+    MessageProcessingResult:
+      type: object
+      description: Outcome of processing this message.
+      required: [status]
+      discriminator:
+        propertyName: status
+        mapping:
+          accepted: '#/components/schemas/ProcessingResultAccepted'
+          rejected: '#/components/schemas/ProcessingResultRejected'
+          idempotentReplay: '#/components/schemas/ProcessingResultIdempotentReplay'
+      oneOf:
+        - $ref: '#/components/schemas/ProcessingResultAccepted'
+        - $ref: '#/components/schemas/ProcessingResultRejected'
+        - $ref: '#/components/schemas/ProcessingResultIdempotentReplay'
+
+    ProcessingResultAccepted:
+      type: object
+      required: [status, resultingState]
+      properties:
+        status:
+          type: string
+          enum: [accepted]
+        resultingState:
+          type: string
+          description: Protocol state the transfer process transitioned to after this message.
+          example: "STARTED"
+
+    ProcessingResultRejected:
+      type: object
+      required: [status, reason]
+      properties:
+        status:
+          type: string
+          enum: [rejected]
+        reason:
+          type: string
+        errorCode:
+          type: string
+          nullable: true
+
+    ProcessingResultIdempotentReplay:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [idempotentReplay]
+
+    # Views (responses)
+
+    TransferProcessView:
+      type: object
+      required: [id, tenantId, role, protocol, state, stateMetadata, correlation, properties, createdAt, updatedAt, version]
+      properties:
+        id:
+          $ref: '#/components/schemas/Urn'
+        tenantId:
+          type: string
+          example: "acme-corp"
+        role:
+          $ref: '#/components/schemas/TransferRole'
+        protocol:
+          $ref: '#/components/schemas/ProtocolId'
+        state:
+          type: string
+          description: Current DSP protocol state. Opaque string (pending state machine validation).
+          example: "REQUESTED"
+        stateMetadata:
+          $ref: '#/components/schemas/StateMetadata'
+        correlation:
+          $ref: '#/components/schemas/TransferCorrelation'
+        properties:
+          type: object
+          description: Arbitrary JSON properties attached to this process.
+        errorDetails:
+          type: object
+          nullable: true
+          description: Structured error information when the process is in a terminal error state.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        version:
+          type: integer
+          format: int64
+          description: Optimistic concurrency version. Incremented on every edit.
+
+    TransferMessageView:
+      type: object
+      required: [id, transferProcessId, tenantId, direction, protocol, messageType, protocolVersion, envelope, occurredAt, requestId, peerParticipantId, processingResult]
+      properties:
+        id:
+          $ref: '#/components/schemas/Urn'
+        transferProcessId:
+          $ref: '#/components/schemas/Urn'
+        tenantId:
+          type: string
+        direction:
+          $ref: '#/components/schemas/Direction'
+        protocol:
+          $ref: '#/components/schemas/ProtocolId'
+        messageType:
+          type: string
+          description: DSP message type (e.g. `dspace:TransferRequestMessage`).
+          example: "dspace:TransferRequestMessage"
+        protocolVersion:
+          type: string
+          example: "1.0"
+        envelope:
+          $ref: '#/components/schemas/MessageEnvelope'
+        occurredAt:
+          type: string
+          format: date-time
+        correlationId:
+          type: string
+          nullable: true
+        requestId:
+          type: string
+        peerParticipantId:
+          $ref: '#/components/schemas/Urn'
+        processingResult:
+          $ref: '#/components/schemas/MessageProcessingResult'
+
+    # Paginated wrappers
+
+    PaginatedTransferProcessView:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransferProcessView'
+        nextCursor:
+          type: string
+          nullable: true
+          description: Opaque cursor for the next page. Null when this is the last page.
+        total:
+          type: integer
+          format: int64
+          nullable: true
+          description: Total matching records (filters applied, cursor not applied).
+
+    PaginatedTransferMessageView:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransferMessageView'
+        nextCursor:
+          type: string
+          nullable: true
+        total:
+          type: integer
+          format: int64
+          nullable: true
+
+    # Requests
+
+    NewTransferProcessCommand:
+      type: object
+      required: [role, protocol, initialState, initialStateMetadata, agreementId, peerParticipantId]
+      properties:
+        id:
+          $ref: '#/components/schemas/Urn'
+          description: >
+            Client-assigned identifier. Server generates a UUID URN if absent.
+        tenantId:
+          type: string
+          description: >
+            Overrides `X-Tenant-ID` for the owning tenant. If absent, the header
+            value is used. Typically omitted.
+        role:
+          $ref: '#/components/schemas/TransferRole'
+        protocol:
+          $ref: '#/components/schemas/ProtocolId'
+        initialState:
+          type: string
+          description: Initial DSP state of the process.
+          example: "REQUESTED"
+        initialStateMetadata:
+          $ref: '#/components/schemas/StateMetadata'
+        callbackAddress:
+          type: string
+          format: uri
+          nullable: true
+        connectorInstanceId:
+          type: string
+          nullable: true
+          description: Connector instance that initiated this transfer. Informational only.
+        agreementId:
+          $ref: '#/components/schemas/Urn'
+        peerParticipantId:
+          $ref: '#/components/schemas/Urn'
+        identifiers:
+          type: object
+          additionalProperties:
+            type: string
+          nullable: true
+          description: >
+            Initial key-value identifiers (e.g. `consumerPid`, `providerPid`).
+            Stored separately and merged into `correlation.identifiers` on read.
+        properties:
+          type: object
+          nullable: true
+
+    EditTransferProcessCommand:
+      type: object
+      description: >
+        Partial update. All fields are optional; only provided fields are changed.
+      properties:
+        state:
+          type: string
+          nullable: true
+          description: New protocol state.
+        stateMetadata:
+          $ref: '#/components/schemas/StateMetadata'
+          nullable: true
+        identifiers:
+          type: object
+          additionalProperties:
+            type: string
+          nullable: true
+          description: Key-value pairs to upsert into `correlation.identifiers`.
+        properties:
+          type: object
+          nullable: true
+        errorDetails:
+          type: object
+          nullable: true
+
+    BatchRequests:
+      type: object
+      required: [ids]
+      properties:
+        ids:
+          type: array
+          items:
+            $ref: '#/components/schemas/Urn'
+          description: List of transfer process URNs to retrieve.
+
+    NewTransferMessageCommand:
+      type: object
+      required: [transferProcessId, direction, protocol, messageType, stateTransitionFrom, stateTransitionTo, envelope]
+      properties:
+        id:
+          $ref: '#/components/schemas/Urn'
+          description: Client-assigned identifier. Server generates if absent.
+        transferProcessId:
+          $ref: '#/components/schemas/Urn'
+        tenantId:
+          type: string
+          nullable: true
+          description: Falls back to `X-Tenant-ID` if absent.
+        direction:
+          $ref: '#/components/schemas/Direction'
+        protocol:
+          $ref: '#/components/schemas/ProtocolId'
+        messageType:
+          type: string
+          example: "dspace:TransferStartMessage"
+        protocolVersion:
+          type: string
+          nullable: true
+          default: "1.0"
+        stateTransitionFrom:
+          type: string
+          description: Protocol state before this message was processed.
+          example: "REQUESTED"
+        stateTransitionTo:
+          type: string
+          description: Protocol state after this message was processed.
+          example: "STARTED"
+        envelope:
+          $ref: '#/components/schemas/MessageEnvelopeInput'
+        peerParticipantId:
+          $ref: '#/components/schemas/Urn'
+          nullable: true
+        correlationId:
+          type: string
+          nullable: true
+        requestId:
+          type: string
+          nullable: true
+
+    # Error
+
+    ErrorResponse:
+      type: object
+      description: Standard error envelope from `ymir::errors::Errors`.
+      properties:
+        message:
+          type: string
+        code:
+          type: string
+          nullable: true
+        details:
+          type: object
+          nullable: true
+
+  # ─── Reusable responses ────────────────────────────────────────────────────
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid JWT.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    Forbidden:
+      description: Caller does not have the required role for this tenant.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFound:
+      description: Resource not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    BadRequest:
+      description: >
+        Invalid request body, invalid cursor, or malformed `X-Tenant-ID`.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    UnprocessableEntity:
+      description: Semantic validation failure (e.g. invalid base64 in envelope).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+# ─── Paths ───────────────────────────────────────────────────────────────────
+
+paths:
+
+  # ── Transfer Processes ─────────────────────────────────────────────────────
+
+  /transfer-processes:
+
+    get:
+      operationId: listTransferProcesses
+      summary: List transfer processes
+      description: >
+        Returns a cursor-paginated list of transfer processes visible to the
+        caller. Non-admin callers are restricted to their own tenant.
+      tags: [Transfer Processes]
+      parameters:
+        - $ref: '#/components/parameters/XTenantID'
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/XCorrelationID'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Sort'
+        - name: protocol
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/ProtocolId'
+        - name: state
+          in: query
+          required: false
+          description: Filter by protocol state string.
+          schema:
+            type: string
+        - name: role
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/TransferRole'
+        - name: agreement_id
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/Urn'
+        - name: peer_participant_id
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/Urn'
+        - name: created_after
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: created_before
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Paginated list of transfer processes.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            X-Correlation-ID:
+              $ref: '#/components/headers/X-Correlation-ID'
+            X-Total-Count:
+              $ref: '#/components/headers/X-Total-Count'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTransferProcessView'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      operationId: createTransferProcess
+      summary: Create a transfer process
+      description: >
+        Creates a new transfer process in the given initial state. If `id` is
+        absent, a UUID URN is generated. If `tenantId` is absent, the
+        `X-Tenant-ID` header is used.
+      tags: [Transfer Processes]
+      parameters:
+        - $ref: '#/components/parameters/XTenantID'
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/XCorrelationID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewTransferProcessCommand'
+            example:
+              role: provider
+              protocol: dsp2024
+              initialState: REQUESTED
+              initialStateMetadata: {}
+              agreementId: "urn:agreement:550e8400-e29b-41d4-a716-446655440000"
+              peerParticipantId: "urn:participant:consumer-a"
+              identifiers:
+                consumerPid: "urn:consumer:abc"
+      responses:
+        "201":
+          description: Transfer process created.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            X-Correlation-ID:
+              $ref: '#/components/headers/X-Correlation-ID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransferProcessView'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "422":
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /transfer-processes/batch:
+    post:
+      operationId: batchGetTransferProcesses
+      summary: Batch retrieve transfer processes by URN
+      description: >
+        Retrieves multiple transfer processes by their URNs in a single request.
+        Requires write role (admin). URNs that do not exist are silently absent
+        from the response.
+      tags: [Transfer Processes]
+      parameters:
+        - $ref: '#/components/parameters/XTenantID'
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/XCorrelationID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchRequests'
+      responses:
+        "200":
+          description: List of found transfer processes (subset of requested IDs).
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            X-Correlation-ID:
+              $ref: '#/components/headers/X-Correlation-ID'
+            X-Total-Count:
+              $ref: '#/components/headers/X-Total-Count'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TransferProcessView'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+
+  /transfer-processes/{id}:
+
+    get:
+      operationId: getTransferProcess
+      summary: Get a single transfer process
+      tags: [Transfer Processes]
+      parameters:
+        - $ref: '#/components/parameters/XTenantID'
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/XCorrelationID'
+        - $ref: '#/components/parameters/ResourceId'
+      responses:
+        "200":
+          description: Transfer process found.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            X-Correlation-ID:
+              $ref: '#/components/headers/X-Correlation-ID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransferProcessView'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      operationId: editTransferProcess
+      summary: Update a transfer process
+      description: >
+        Partial update. All body fields are optional. Provided `identifiers`
+        are upserted (merged), not replaced.
+      tags: [Transfer Processes]
+      parameters:
+        - $ref: '#/components/parameters/XTenantID'
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/XCorrelationID'
+        - $ref: '#/components/parameters/ResourceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EditTransferProcessCommand'
+      responses:
+        "200":
+          description: Updated transfer process.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            X-Correlation-ID:
+              $ref: '#/components/headers/X-Correlation-ID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransferProcessView'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "422":
+          $ref: '#/components/responses/UnprocessableEntity'
+
+    delete:
+      operationId: deleteTransferProcess
+      summary: Delete a transfer process
+      description: >
+        Permanently deletes the transfer process and its associated identifier
+        records. Messages are not deleted.
+      tags: [Transfer Processes]
+      parameters:
+        - $ref: '#/components/parameters/XTenantID'
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/XCorrelationID'
+        - $ref: '#/components/parameters/ResourceId'
+      responses:
+        "204":
+          description: Deleted successfully.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            X-Correlation-ID:
+              $ref: '#/components/headers/X-Correlation-ID'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+
+  # ── Transfer Messages ──────────────────────────────────────────────────────
+
+  /transfer-messages:
+
+    get:
+      operationId: listTransferMessages
+      summary: List transfer messages
+      description: >
+        Returns a cursor-paginated list of recorded protocol messages. Non-admin
+        callers are restricted to their own tenant.
+      tags: [Transfer Messages]
+      parameters:
+        - $ref: '#/components/parameters/XTenantID'
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/XCorrelationID'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Sort'
+        - name: direction
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/Direction'
+        - name: protocol
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/ProtocolId'
+        - name: state_transition_to
+          in: query
+          required: false
+          description: Filter by resulting state after the message was processed.
+          schema:
+            type: string
+        - name: created_after
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: created_before
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Paginated list of transfer messages.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            X-Correlation-ID:
+              $ref: '#/components/headers/X-Correlation-ID'
+            X-Total-Count:
+              $ref: '#/components/headers/X-Total-Count'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTransferMessageView'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      operationId: createTransferMessage
+      summary: Record a protocol message
+      description: >
+        Records an inbound or outbound DSP protocol message. The server computes
+        `contentHash` from `rawBytes`; the client must not send it. `tenantId`
+        defaults to `X-Tenant-ID` if absent.
+      tags: [Transfer Messages]
+      parameters:
+        - $ref: '#/components/parameters/XTenantID'
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/XCorrelationID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewTransferMessageCommand'
+            example:
+              transferProcessId: "urn:transfer-process:550e8400-e29b-41d4-a716-446655440000"
+              direction: inbound
+              protocol: dsp2024
+              messageType: "dspace:TransferStartMessage"
+              stateTransitionFrom: REQUESTED
+              stateTransitionTo: STARTED
+              envelope:
+                rawBytes: "eyJAY29udGV4dCI6ICJodHRwczovL3..."
+                contentType: "application/ld+json"
+      responses:
+        "201":
+          description: Message recorded.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            X-Correlation-ID:
+              $ref: '#/components/headers/X-Correlation-ID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransferMessageView'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "422":
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /transfer-messages/{id}:
+
+    get:
+      operationId: getTransferMessage
+      summary: Get a single transfer message
+      tags: [Transfer Messages]
+      parameters:
+        - $ref: '#/components/parameters/XTenantID'
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/XCorrelationID'
+        - $ref: '#/components/parameters/ResourceId'
+      responses:
+        "200":
+          description: Transfer message found.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            X-Correlation-ID:
+              $ref: '#/components/headers/X-Correlation-ID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransferMessageView'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      operationId: deleteTransferMessage
+      summary: Delete a transfer message
+      tags: [Transfer Messages]
+      parameters:
+        - $ref: '#/components/parameters/XTenantID'
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/XCorrelationID'
+        - $ref: '#/components/parameters/ResourceId'
+      responses:
+        "204":
+          description: Deleted successfully.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            X-Correlation-ID:
+              $ref: '#/components/headers/X-Correlation-ID'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+
+  /transfer-messages/process/{process_id}:
+
+    get:
+      operationId: listTransferMessagesByProcess
+      summary: List messages for a specific transfer process
+      description: >
+        Returns all recorded messages (inbound and outbound) for a given transfer
+        process, cursor-paginated. Applies the same tenant restriction as the
+        global list endpoint.
+      tags: [Transfer Messages]
+      parameters:
+        - $ref: '#/components/parameters/XTenantID'
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/XCorrelationID'
+        - name: process_id
+          in: path
+          required: true
+          description: URN of the transfer process.
+          schema:
+            $ref: '#/components/schemas/Urn'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Sort'
+        - name: direction
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/Direction'
+        - name: protocol
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/ProtocolId'
+        - name: state_transition_to
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: created_after
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: created_before
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Paginated messages for the process.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/X-Request-ID'
+            X-Correlation-ID:
+              $ref: '#/components/headers/X-Correlation-ID'
+            X-Total-Count:
+              $ref: '#/components/headers/X-Total-Count'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTransferMessageView'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+
+tags:
+  - name: Transfer Processes
+    description: >
+      Lifecycle management of DSP Transfer Processes. A transfer process tracks
+      the state machine progression of a data transfer between two participants.
+  - name: Transfer Messages
+    description: >
+      Immutable record of DSP protocol messages (requests, acks, suspensions,
+      completions, terminations) exchanged during a transfer process.

@@ -13,7 +13,7 @@ use crate::entities::refresh_token::RefreshToken;
 use crate::entities::role::Role;
 use crate::entities::user::User;
 
-// ── User ──────────────────────────────────────────────────────────────────────
+// User ──────────────────────────────────────────────────────────────────────
 
 pub(crate) struct InMemoryUserRepository {
     store: Arc<Mutex<HashMap<String, User>>>,
@@ -21,7 +21,9 @@ pub(crate) struct InMemoryUserRepository {
 
 impl InMemoryUserRepository {
     pub fn new() -> Self {
-        Self { store: Arc::new(Mutex::new(HashMap::new())) }
+        Self {
+            store: Arc::new(Mutex::new(HashMap::new())),
+        }
     }
 }
 
@@ -31,25 +33,55 @@ impl UserRepository for InMemoryUserRepository {
         let store = self.store.lock().unwrap();
 
         let cursor_dt = page.cursor.as_ref().and_then(|c| {
-            base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(c).ok()
+            base64::engine::general_purpose::URL_SAFE_NO_PAD
+                .decode(c)
+                .ok()
                 .and_then(|b| String::from_utf8(b).ok())
                 .and_then(|s| DateTime::parse_from_rfc3339(&s).ok())
                 .map(|dt| dt.with_timezone(&Utc))
         });
 
-        let mut users: Vec<User> = store.values().filter(|u| {
-            if let Some(role) = filter.role { if u.role != role { return false; } }
-            if let Some(ref email) = filter.email { if !u.email.contains(email.as_str()) { return false; } }
-            if let Some(after) = filter.created_after { if u.created_at <= after { return false; } }
-            if let Some(before) = filter.created_before { if u.created_at >= before { return false; } }
-            if let Some(cursor) = cursor_dt {
-                match sort {
-                    Sort::CreatedAtAsc => { if u.created_at <= cursor { return false; } }
-                    Sort::CreatedAtDesc => { if u.created_at >= cursor { return false; } }
+        let mut users: Vec<User> = store
+            .values()
+            .filter(|u| {
+                if let Some(role) = filter.role {
+                    if u.role != role {
+                        return false;
+                    }
                 }
-            }
-            true
-        }).cloned().collect();
+                if let Some(ref email) = filter.email {
+                    if !u.email.contains(email.as_str()) {
+                        return false;
+                    }
+                }
+                if let Some(after) = filter.created_after {
+                    if u.created_at <= after {
+                        return false;
+                    }
+                }
+                if let Some(before) = filter.created_before {
+                    if u.created_at >= before {
+                        return false;
+                    }
+                }
+                if let Some(cursor) = cursor_dt {
+                    match sort {
+                        Sort::CreatedAtAsc => {
+                            if u.created_at <= cursor {
+                                return false;
+                            }
+                        }
+                        Sort::CreatedAtDesc => {
+                            if u.created_at >= cursor {
+                                return false;
+                            }
+                        }
+                    }
+                }
+                true
+            })
+            .cloned()
+            .collect();
 
         match sort {
             Sort::CreatedAtAsc => users.sort_by(|a, b| a.created_at.cmp(&b.created_at)),
@@ -65,7 +97,13 @@ impl UserRepository for InMemoryUserRepository {
     }
 
     async fn get_by_email(&self, email: &str) -> Outcome<Option<User>> {
-        Ok(self.store.lock().unwrap().values().find(|u| u.email == email).cloned())
+        Ok(self
+            .store
+            .lock()
+            .unwrap()
+            .values()
+            .find(|u| u.email == email)
+            .cloned())
     }
 
     async fn create(&self, user: &User) -> Outcome<User> {
@@ -88,9 +126,15 @@ impl UserRepository for InMemoryUserRepository {
         let user = store
             .get_mut(tenant_id)
             .ok_or_else(|| UserRepositoryError::NotFound.into_errors())?;
-        if let Some(e) = email { user.email = e; }
-        if let Some(r) = role { user.role = r; }
-        if let Some(f) = extra_fields { user.extra_fields = f; }
+        if let Some(e) = email {
+            user.email = e;
+        }
+        if let Some(r) = role {
+            user.role = r;
+        }
+        if let Some(f) = extra_fields {
+            user.extra_fields = f;
+        }
         Ok(user.clone())
     }
 
@@ -100,7 +144,7 @@ impl UserRepository for InMemoryUserRepository {
     }
 }
 
-// ── RefreshToken ──────────────────────────────────────────────────────────────
+// RefreshToken ──────────────────────────────────────────────────────────────
 
 pub(crate) struct InMemoryRefreshTokenRepository {
     store: Arc<Mutex<HashMap<Uuid, RefreshToken>>>,
@@ -108,7 +152,9 @@ pub(crate) struct InMemoryRefreshTokenRepository {
 
 impl InMemoryRefreshTokenRepository {
     pub fn new() -> Self {
-        Self { store: Arc::new(Mutex::new(HashMap::new())) }
+        Self {
+            store: Arc::new(Mutex::new(HashMap::new())),
+        }
     }
 }
 
@@ -120,7 +166,13 @@ impl RefreshTokenRepository for InMemoryRefreshTokenRepository {
     }
 
     async fn get_by_jti(&self, jti: &str) -> Outcome<Option<RefreshToken>> {
-        Ok(self.store.lock().unwrap().values().find(|t| t.jti == jti).cloned())
+        Ok(self
+            .store
+            .lock()
+            .unwrap()
+            .values()
+            .find(|t| t.jti == jti)
+            .cloned())
     }
 
     async fn revoke(&self, id: Uuid) -> Outcome<()> {
@@ -131,9 +183,14 @@ impl RefreshTokenRepository for InMemoryRefreshTokenRepository {
     }
 
     async fn revoke_all_for_tenant(&self, tenant_id: &str) -> Outcome<()> {
-        self.store.lock().unwrap().values_mut().filter(|t| t.tenant_id == tenant_id).for_each(|t| {
-            t.revoked = true;
-        });
+        self.store
+            .lock()
+            .unwrap()
+            .values_mut()
+            .filter(|t| t.tenant_id == tenant_id)
+            .for_each(|t| {
+                t.revoked = true;
+            });
         Ok(())
     }
 }

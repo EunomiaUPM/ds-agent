@@ -7,7 +7,7 @@ use crate::services::user_service::views::{UserInfo, UserView};
 pub(crate) mod service;
 pub(crate) mod views;
 
-// ── Service trait ────────────────────────────────────────────────────────────
+// Service trait ────────────────────────────────────────────────────────────
 
 #[async_trait::async_trait]
 pub(crate) trait UserServiceTrait: Send + Sync + 'static {

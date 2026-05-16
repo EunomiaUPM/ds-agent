@@ -6,12 +6,14 @@ use axum::routing::{get, post};
 use axum::{Json, Router};
 use ymir::errors::AppResult;
 
-use crate::http::forms::{OpenIdConfiguration, PasswordGrantRequest, RefreshRequest, RevokeRequest};
+use crate::http::forms::{
+    OpenIdConfiguration, PasswordGrantRequest, RefreshRequest, RevokeRequest,
+};
 use crate::http::helpers::bearer;
-use crate::services::token_service::views::TokenResponse;
 use crate::services::token_service::TokenServiceTrait;
-use crate::services::user_service::views::UserInfo;
+use crate::services::token_service::views::TokenResponse;
 use crate::services::user_service::UserServiceTrait;
+use crate::services::user_service::views::UserInfo;
 
 #[derive(Clone)]
 pub(crate) struct TokenRouter {
@@ -27,7 +29,11 @@ impl TokenRouter {
         issuer: impl Into<String>,
     ) -> Self {
         let issuer = issuer.into();
-        Self { token_svc, user_svc, discovery: OpenIdConfiguration::build(&issuer) }
+        Self {
+            token_svc,
+            user_svc,
+            discovery: OpenIdConfiguration::build(&issuer),
+        }
     }
 
     pub(crate) fn router(self) -> Router {
@@ -36,7 +42,10 @@ impl TokenRouter {
             .route("/refresh", post(Self::handle_refresh))
             .route("/revoke", post(Self::handle_revoke))
             .route("/userinfo", get(Self::handle_userinfo))
-            .route("/.well-known/openid-configuration", get(Self::handle_discovery))
+            .route(
+                "/.well-known/openid-configuration",
+                get(Self::handle_discovery),
+            )
             .with_state(self)
     }
 
@@ -44,7 +53,9 @@ impl TokenRouter {
         State(s): State<Self>,
         Form(r): Form<PasswordGrantRequest>,
     ) -> AppResult<Json<TokenResponse>> {
-        Ok(Json(s.token_svc.issue_token(&r.username, &r.password).await?))
+        Ok(Json(
+            s.token_svc.issue_token(&r.username, &r.password).await?,
+        ))
     }
 
     async fn handle_refresh(

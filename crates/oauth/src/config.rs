@@ -16,7 +16,11 @@ pub struct OAuthConfig {
 }
 
 impl OAuthConfig {
-    pub fn new(jwt_secret: impl Into<String>, issuer: impl Into<String>, audience: impl Into<String>) -> Self {
+    pub fn new(
+        jwt_secret: impl Into<String>,
+        issuer: impl Into<String>,
+        audience: impl Into<String>,
+    ) -> Self {
         Self {
             jwt_secret: jwt_secret.into(),
             access_token_ttl_secs: 3_600,

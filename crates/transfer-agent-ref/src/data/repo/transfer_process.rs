@@ -1,6 +1,6 @@
 use crate::entities::commands::{EditTransferProcessCommand, NewTransferProcessCommand};
-use crate::entities::transfer_process::TransferProcess;
 use crate::entities::query::{Page, Sort, TransferProcessFilter};
+use crate::entities::transfer_process::TransferProcess;
 use thiserror::Error;
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};

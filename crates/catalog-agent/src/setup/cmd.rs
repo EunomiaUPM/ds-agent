@@ -19,7 +19,7 @@
 use crate::setup::boot::CatalogAgentBoot;
 use crate::setup::db_migrations::CatalogAgentMigration;
 use clap::{Parser, Subcommand};
-use common::boot::{BootstrapInit, BootstrapStepTrait};
+use common::boot::BootstrapInit;
 use common::config::services::CatalogConfig;
 use common::config::types::roles::RoleConfig;
 use common::config::types::traits::{CommonConfigTrait, ConfigLoader};
@@ -59,15 +59,9 @@ impl CatalogCommands {
         let cli = CatalogCli::parse();
         match cli.command {
             CatalogCliCommands::Start(args) => {
-                let init = BootstrapInit::<CatalogAgentBoot>::new(args.env_file);
-                let step1 = init.next_step().await?; // Init -> Config
-                let step2 = step1.0.next_step().await?; // Config -> ServicesStarted (Background)
-                let step3 = step2.0.next_step().await?; // Services -> Participant
-                let step4 = step3.0.next_step().await?; // Participant -> Catalog
-                let step5 = step4.0.next_step().await?; // Catalog -> DataService
-                let step6 = step5.0.next_step().await?; // DataService -> PolicyTemplates
-                let step_finalized = step6.0.next_step().await?;
-                let _ = step_finalized.0.next_step().await?;
+                BootstrapInit::<CatalogAgentBoot>::new(args.env_file)
+                    .run()
+                    .await?;
             }
             CatalogCliCommands::Setup(args) => {
                 let config = CatalogConfig::load(&*args.env_file)?;

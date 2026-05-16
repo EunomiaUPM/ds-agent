@@ -1,7 +1,7 @@
-use chrono::{DateTime, Utc};
 use crate::entities::ids::TransferProcessId;
 use crate::entities::message_envelope::MessageEnvelopeRef;
 use crate::entities::protocol::{ProtocolState, StateMetadata};
+use chrono::{DateTime, Utc};
 
 #[derive(Debug)]
 pub(crate) enum TransferProcessEvent {

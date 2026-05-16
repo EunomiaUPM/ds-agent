@@ -12,9 +12,9 @@ use crate::data::repositories::user::UserRepository;
 use crate::entities::refresh_token::RefreshToken;
 use crate::entities::role::Role;
 use crate::services::password;
-use crate::services::token_service::jwt::{as_map, AccessClaims, IdTokenClaims, RefreshClaims};
+use crate::services::token_service::jwt::{AccessClaims, IdTokenClaims, RefreshClaims, as_map};
 use crate::services::token_service::views::TokenResponse;
-use crate::services::token_service::{Claims, TokenServiceTrait};
+use crate::services::token_service::{Claims, TokenServiceTrait, TokenValidator};
 
 pub(crate) struct TokenService {
     user_repo: Arc<dyn UserRepository>,
@@ -28,7 +28,11 @@ impl TokenService {
         refresh_repo: Arc<dyn RefreshTokenRepository>,
         config: OAuthConfig,
     ) -> Self {
-        Self { user_repo, refresh_repo, config }
+        Self {
+            user_repo,
+            refresh_repo,
+            config,
+        }
     }
 
     fn sign<T: Serialize>(&self, claims: &T) -> Outcome<String> {
@@ -50,7 +54,13 @@ impl TokenService {
             &v,
         )
         .map(|d| d.claims)
-        .map_err(|e| Errors::format(BadFormat::Received, "invalid or expired token", Some(Box::new(e))))
+        .map_err(|e| {
+            Errors::format(
+                BadFormat::Received,
+                "invalid or expired token",
+                Some(Box::new(e)),
+            )
+        })
     }
 
     fn encode_access(&self, tenant_id: &str, role: Role) -> Outcome<String> {
@@ -107,6 +117,19 @@ impl TokenService {
 }
 
 #[async_trait::async_trait]
+impl TokenValidator for TokenService {
+    async fn validate_token(&self, access_token: &str) -> Outcome<Claims> {
+        let ac: AccessClaims = self.verify(access_token)?;
+        Ok(Claims {
+            sub: ac.sub,
+            role: ac.role,
+            iat: ac.iat,
+            exp: ac.exp,
+        })
+    }
+}
+
+#[async_trait::async_trait]
 impl TokenServiceTrait for TokenService {
     async fn issue_token(&self, email: &str, password: &str) -> Outcome<TokenResponse> {
         let user = self
@@ -135,7 +158,11 @@ impl TokenServiceTrait for TokenService {
             .await?
             .ok_or_else(|| Errors::format(BadFormat::Received, "unknown refresh token", None))?;
         if record.revoked {
-            return Err(Errors::format(BadFormat::Received, "refresh token revoked", None));
+            return Err(Errors::format(
+                BadFormat::Received,
+                "refresh token revoked",
+                None,
+            ));
         }
         self.refresh_repo.revoke(record.id).await?;
 
@@ -155,11 +182,6 @@ impl TokenServiceTrait for TokenService {
         })
     }
 
-    async fn validate_token(&self, access_token: &str) -> Outcome<Claims> {
-        let ac: AccessClaims = self.verify(access_token)?;
-        Ok(Claims { sub: ac.sub, role: ac.role, iat: ac.iat, exp: ac.exp })
-    }
-
     async fn revoke_refresh_token(&self, refresh_jwt: &str) -> Outcome<()> {
         let rc: RefreshClaims = self.verify(refresh_jwt)?;
         let record = self
@@ -170,4 +192,3 @@ impl TokenServiceTrait for TokenService {
         self.refresh_repo.revoke(record.id).await
     }
 }
-

@@ -1,6 +1,6 @@
 use axum::extract::FromRequestParts;
 use axum::http::request::Parts;
-use oauth::services::token_service::Claims;
+use common::auth::claims::Claims;
 use ymir::errors::Errors;
 
 /// Validated JWT claims injected by the auth middleware.

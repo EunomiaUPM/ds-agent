@@ -2,17 +2,24 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use crate::data::factory::DataFactory;
-use crate::data::repo::transfer_process_identifier::TransferIdentifierRepoTrait;
-use crate::data::repo::transfer_message::TransferMessageRepoTrait;
-use crate::data::repo::transfer_process::TransferProcessRepoTrait;
 use crate::data::in_memory::repos::{
     InMemoryTransferIdentifierRepo, InMemoryTransferMessageRepo, InMemoryTransferProcessRepo,
 };
+use crate::data::repo::transfer_message::TransferMessageRepoTrait;
+use crate::data::repo::transfer_process::TransferProcessRepoTrait;
+use crate::data::repo::transfer_process_identifier::TransferIdentifierRepoTrait;
 
 pub(crate) struct InMemoryDataFactory {
     processes: Arc<Mutex<HashMap<String, crate::entities::transfer_process::TransferProcess>>>,
     messages: Arc<Mutex<HashMap<String, crate::entities::transfer_message::TransferMessage>>>,
-    identifiers: Arc<Mutex<HashMap<(String, String), crate::entities::transfer_process_identifier::TransferProcessIdentifier>>>,
+    identifiers: Arc<
+        Mutex<
+            HashMap<
+                (String, String),
+                crate::entities::transfer_process_identifier::TransferProcessIdentifier,
+            >,
+        >,
+    >,
 }
 
 impl InMemoryDataFactory {
@@ -38,6 +45,8 @@ impl DataFactory for InMemoryDataFactory {
     }
 
     fn transfer_identifier_repo(&self) -> Arc<dyn TransferIdentifierRepoTrait> {
-        Arc::new(InMemoryTransferIdentifierRepo::new(self.identifiers.clone()))
+        Arc::new(InMemoryTransferIdentifierRepo::new(
+            self.identifiers.clone(),
+        ))
     }
 }

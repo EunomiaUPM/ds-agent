@@ -9,8 +9,8 @@ use crate::entities::commands::{CreateUserCommand, PatchUserCommand};
 use crate::entities::query::{Page, Paginated, Sort, UserFilter};
 use crate::entities::user::User;
 use crate::services::password;
-use crate::services::user_service::views::{UserInfo, UserView};
 use crate::services::user_service::UserServiceTrait;
+use crate::services::user_service::views::{UserInfo, UserView};
 
 pub(crate) struct UserService {
     user_repo: Arc<dyn UserRepository>,
@@ -30,11 +30,16 @@ impl UserServiceTrait for UserService {
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<UserView>> {
-        let fetch_page = Page { limit: page.limit + 1, cursor: page.cursor.clone() };
+        let fetch_page = Page {
+            limit: page.limit + 1,
+            cursor: page.cursor.clone(),
+        };
         let mut users = self.user_repo.get_all(filter, &fetch_page, sort).await?;
 
         let has_more = users.len() > page.limit as usize;
-        if has_more { users.truncate(page.limit as usize); }
+        if has_more {
+            users.truncate(page.limit as usize);
+        }
 
         let next_cursor = if has_more {
             users.last().map(|u| {
@@ -68,11 +73,24 @@ impl UserServiceTrait for UserService {
     }
 
     async fn create_user(&self, cmd: &CreateUserCommand) -> Outcome<UserView> {
-        if self.user_repo.get_by_tenant_id(&cmd.tenant_id).await?.is_some() {
-            return Err(Errors::format(BadFormat::Received, "tenant_id already in use", None));
+        if self
+            .user_repo
+            .get_by_tenant_id(&cmd.tenant_id)
+            .await?
+            .is_some()
+        {
+            return Err(Errors::format(
+                BadFormat::Received,
+                "tenant_id already in use",
+                None,
+            ));
         }
         if self.user_repo.get_by_email(&cmd.email).await?.is_some() {
-            return Err(Errors::format(BadFormat::Received, "email already in use", None));
+            return Err(Errors::format(
+                BadFormat::Received,
+                "email already in use",
+                None,
+            ));
         }
         let (password_hash, password_salt) = password::hash_password(&cmd.password)?;
         let user = User {
@@ -90,7 +108,12 @@ impl UserServiceTrait for UserService {
     async fn patch_user(&self, tenant_id: &str, cmd: &PatchUserCommand) -> Outcome<UserView> {
         Ok(UserView::assemble(
             self.user_repo
-                .patch(tenant_id, cmd.email.clone(), cmd.role, cmd.extra_fields.clone())
+                .patch(
+                    tenant_id,
+                    cmd.email.clone(),
+                    cmd.role,
+                    cmd.extra_fields.clone(),
+                )
                 .await?,
         ))
     }

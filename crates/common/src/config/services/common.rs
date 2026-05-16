@@ -27,6 +27,8 @@ pub struct CommonConfig {
     pub db: DatabaseConfig,
     pub api: ApiConfig,
     pub connection: ConnectionConfig,
+    #[serde(default)]
+    pub jwt_secret: String,
 }
 
 impl HostsConfigTrait for CommonConfig {

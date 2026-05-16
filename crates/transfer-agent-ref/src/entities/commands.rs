@@ -1,4 +1,6 @@
-use crate::entities::ids::{CorrelationId, MessageId, ParticipantId, RequestId, TenantId, TransferProcessId};
+use crate::entities::ids::{
+    CorrelationId, MessageId, ParticipantId, RequestId, TenantId, TransferProcessId,
+};
 use crate::entities::message_envelope::Direction;
 use crate::entities::protocol::{
     ProtocolId, ProtocolMessageType, ProtocolState, StateMetadata, TransferDirection, TransferRole,

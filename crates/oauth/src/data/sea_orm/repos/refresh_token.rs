@@ -1,12 +1,13 @@
 use std::sync::Arc;
 
-use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use sea_orm::ActiveValue::Set;
+use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use uuid::Uuid;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
-use crate::data::repositories::refresh_token::{RefreshTokenRepository, RefreshTokenRepositoryError};
-use crate::data::sea_orm::mappers::{refresh_token_from_orm, refresh_token_to_active_model};
+use crate::data::repositories::refresh_token::{
+    RefreshTokenRepository, RefreshTokenRepositoryError,
+};
 use crate::data::sea_orm::orm::refresh_token as orm;
 use crate::entities::refresh_token::RefreshToken;
 
@@ -23,11 +24,11 @@ impl SeaOrmRefreshTokenRepository {
 #[async_trait::async_trait]
 impl RefreshTokenRepository for SeaOrmRefreshTokenRepository {
     async fn create(&self, token: &RefreshToken) -> Outcome<RefreshToken> {
-        refresh_token_to_active_model(token)
+        orm::ActiveModel::from_domain(token)
             .insert(self.db.as_ref())
             .await
             .map_err(|e| RefreshTokenRepositoryError::Db(Box::new(e)).into_errors())
-            .and_then(refresh_token_from_orm)
+            .and_then(orm::Model::into_domain)
     }
 
     async fn get_by_jti(&self, jti: &str) -> Outcome<Option<RefreshToken>> {
@@ -36,7 +37,7 @@ impl RefreshTokenRepository for SeaOrmRefreshTokenRepository {
             .one(self.db.as_ref())
             .await
             .map_err(|e| RefreshTokenRepositoryError::Db(Box::new(e)).into_errors())?
-            .map(refresh_token_from_orm)
+            .map(orm::Model::into_domain)
             .transpose()
     }
 

@@ -40,17 +40,25 @@ impl<S: Send + Sync> FromRequestParts<S> for ExtractedHeaders {
         let tenant_id = get_header_str(&parts.headers, "x-tenant-id")
             .map(TenantId::new)
             .ok_or_else(|| {
-                Errors::format(BadFormat::Received, "missing required header: X-Tenant-ID", None)
+                Errors::format(
+                    BadFormat::Received,
+                    "missing required header: X-Tenant-ID",
+                    None,
+                )
             })?;
 
         let request_id = get_header_str(&parts.headers, "x-request-id")
             .map(RequestId::new)
             .unwrap_or_else(RequestId::generate);
 
-        let correlation_id = get_header_str(&parts.headers, "x-correlation-id")
-            .map(CorrelationId::new);
+        let correlation_id =
+            get_header_str(&parts.headers, "x-correlation-id").map(CorrelationId::new);
 
-        Ok(Self { tenant_id, request_id, correlation_id })
+        Ok(Self {
+            tenant_id,
+            request_id,
+            correlation_id,
+        })
     }
 }
 

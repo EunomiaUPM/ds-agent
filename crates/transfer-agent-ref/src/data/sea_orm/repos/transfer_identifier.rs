@@ -1,14 +1,13 @@
 use std::sync::Arc;
 
-use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use sea_orm::ActiveValue::Set;
+use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
 use crate::data::repo::transfer_process_identifier::{
     TransferIdentifierRepoErrors, TransferIdentifierRepoTrait,
 };
-use crate::data::sea_orm::mappers::{identifier_from_orm, identifier_to_active_model};
 use crate::data::sea_orm::orm::transfer_identifier as orm;
 use crate::entities::transfer_process_identifier::TransferProcessIdentifier;
 
@@ -38,7 +37,7 @@ impl TransferIdentifierRepoTrait for SeaOrmTransferIdentifierRepo {
             .await
             .map_err(Self::db_err)?
             .into_iter()
-            .map(identifier_from_orm)
+            .map(orm::Model::into_domain)
             .collect()
     }
 
@@ -53,7 +52,7 @@ impl TransferIdentifierRepoTrait for SeaOrmTransferIdentifierRepo {
             .await
             .map_err(Self::db_err)?
             .into_iter()
-            .map(identifier_from_orm)
+            .map(orm::Model::into_domain)
             .collect()
     }
 
@@ -68,7 +67,7 @@ impl TransferIdentifierRepoTrait for SeaOrmTransferIdentifierRepo {
             .one(self.db.as_ref())
             .await
             .map_err(Self::db_err)?
-            .map(identifier_from_orm)
+            .map(orm::Model::into_domain)
             .transpose()
     }
 
@@ -77,7 +76,7 @@ impl TransferIdentifierRepoTrait for SeaOrmTransferIdentifierRepo {
         process_id: &Urn,
         identifier: &TransferProcessIdentifier,
     ) -> Outcome<TransferProcessIdentifier> {
-        let active = identifier_to_active_model(process_id, identifier);
+        let active = orm::ActiveModel::from_domain(process_id, identifier);
         // ON CONFLICT (transfer_process_id, key) DO UPDATE SET value = excluded.value
         use sea_orm::sea_query::OnConflict;
         orm::Entity::insert(active)
@@ -88,7 +87,10 @@ impl TransferIdentifierRepoTrait for SeaOrmTransferIdentifierRepo {
             )
             .exec(self.db.as_ref())
             .await
-            .map_err(|e| TransferIdentifierRepoErrors::ErrorUpsertingTransferIdentifier(Box::new(e)).into_errors())?;
+            .map_err(|e| {
+                TransferIdentifierRepoErrors::ErrorUpsertingTransferIdentifier(Box::new(e))
+                    .into_errors()
+            })?;
 
         self.get_identifier_by_key(process_id, &identifier.key)
             .await?
@@ -101,7 +103,10 @@ impl TransferIdentifierRepoTrait for SeaOrmTransferIdentifierRepo {
             .filter(orm::Column::Key.eq(key))
             .exec(self.db.as_ref())
             .await
-            .map_err(|e| TransferIdentifierRepoErrors::ErrorDeletingTransferIdentifier(Box::new(e)).into_errors())?;
+            .map_err(|e| {
+                TransferIdentifierRepoErrors::ErrorDeletingTransferIdentifier(Box::new(e))
+                    .into_errors()
+            })?;
         Ok(())
     }
 }

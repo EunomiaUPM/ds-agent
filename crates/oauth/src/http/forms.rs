@@ -31,7 +31,7 @@ pub(crate) struct OpenIdConfiguration {
     pub claims_supported: Vec<String>,
 }
 
-// ── User list query params ────────────────────────────────────────────────────
+// User list query params ────────────────────────────────────────────────────
 
 #[derive(Deserialize, Default)]
 pub(crate) struct UserListQuery {
@@ -55,8 +55,13 @@ impl OpenIdConfiguration {
             grant_types_supported: vec!["password".into(), "refresh_token".into()],
             scopes_supported: vec!["openid".into(), "profile".into(), "email".into()],
             claims_supported: vec![
-                "sub".into(), "iss".into(), "aud".into(), "exp".into(),
-                "iat".into(), "email".into(), "role".into(),
+                "sub".into(),
+                "iss".into(),
+                "aud".into(),
+                "exp".into(),
+                "iat".into(),
+                "email".into(),
+                "role".into(),
             ],
         }
     }

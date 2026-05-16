@@ -1,9 +1,9 @@
-pub(crate) mod transfer_process;
-pub(crate) mod transfer_message;
-pub(crate) mod transfer_process_identifier;
+pub(crate) mod commands;
+pub(crate) mod events;
 pub(crate) mod ids;
 pub(crate) mod message_envelope;
 pub(crate) mod protocol;
-pub(crate) mod commands;
-pub(crate) mod events;
 pub(crate) mod query;
+pub(crate) mod transfer_message;
+pub(crate) mod transfer_process;
+pub(crate) mod transfer_process_identifier;

@@ -19,4 +19,7 @@ use crate::config::services::CommonConfig;
 
 pub trait CommonConfigTrait {
     fn common(&self) -> &CommonConfig;
+    fn jwt_secret(&self) -> &str {
+        &self.common().jwt_secret
+    }
 }

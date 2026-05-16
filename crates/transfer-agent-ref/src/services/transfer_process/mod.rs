@@ -22,6 +22,10 @@ pub(crate) trait TransferProcessServiceTrait: Send + Sync + 'static {
         &self,
         batch_request: &NewTransferProcessCommand,
     ) -> Outcome<TransferProcessView>;
-    async fn edit(&self, id: &Urn, cmd: &EditTransferProcessCommand) -> Outcome<TransferProcessView>;
+    async fn edit(
+        &self,
+        id: &Urn,
+        cmd: &EditTransferProcessCommand,
+    ) -> Outcome<TransferProcessView>;
     async fn delete(&self, id: &Urn) -> Outcome<()>;
 }

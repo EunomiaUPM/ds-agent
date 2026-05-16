@@ -1,16 +1,16 @@
+use crate::data::repo::transfer_process::TransferProcessRepoErrors;
+use crate::data::repo::transfer_process::TransferProcessRepoTrait;
+use crate::data::repo::transfer_process_identifier::TransferIdentifierRepoTrait;
+use crate::entities::commands::{EditTransferProcessCommand, NewTransferProcessCommand};
+use crate::entities::query::{Page, Paginated, Sort, TransferProcessFilter};
+use crate::entities::transfer_process_identifier::TransferProcessIdentifier;
+use crate::services::transfer_process::TransferProcessServiceTrait;
+use crate::services::transfer_process::views::TransferProcessView;
+use common::batch_requests::BatchRequests;
 use std::collections::HashMap;
 use std::sync::Arc;
 use urn::Urn;
 use ymir::errors::Outcome;
-use common::batch_requests::BatchRequests;
-use crate::data::repo::transfer_process::TransferProcessRepoErrors;
-use crate::data::repo::transfer_process::TransferProcessRepoTrait;
-use crate::data::repo::transfer_process_identifier::TransferIdentifierRepoTrait;
-use crate::entities::transfer_process_identifier::TransferProcessIdentifier;
-use crate::entities::commands::{EditTransferProcessCommand, NewTransferProcessCommand};
-use crate::entities::query::{Page, Paginated, Sort, TransferProcessFilter};
-use crate::services::transfer_process::TransferProcessServiceTrait;
-use crate::services::transfer_process::views::TransferProcessView;
 use ymir::errors::RepoIntoErrors;
 
 pub(crate) struct TransferProcessService {
@@ -23,7 +23,10 @@ impl TransferProcessService {
         process_repo: Arc<dyn TransferProcessRepoTrait>,
         identifiers_repo: Arc<dyn TransferIdentifierRepoTrait>,
     ) -> Self {
-        Self { process_repo, identifiers_repo }
+        Self {
+            process_repo,
+            identifiers_repo,
+        }
     }
 }
 
@@ -35,15 +38,15 @@ impl TransferProcessServiceTrait for TransferProcessService {
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<TransferProcessView>> {
-        let processes = self.process_repo
+        let processes = self
+            .process_repo
             .get_all_transfer_processes(filters, page, sort)
             .await?;
 
-        let urns: Vec<Urn> = processes.iter()
-            .map(|p| p.id().as_urn().clone())
-            .collect();
+        let urns: Vec<Urn> = processes.iter().map(|p| p.id().as_urn().clone()).collect();
 
-        let raw_identifiers = self.identifiers_repo
+        let raw_identifiers = self
+            .identifiers_repo
             .get_identifiers_by_batch_process_id(&urns)
             .await?;
 
@@ -63,16 +66,22 @@ impl TransferProcessServiceTrait for TransferProcessService {
             })
             .collect();
 
-        Ok(Paginated { items, next_cursor: None, total: None })
+        Ok(Paginated {
+            items,
+            next_cursor: None,
+            total: None,
+        })
     }
 
     async fn get_one(&self, id: &Urn) -> Outcome<TransferProcessView> {
-        let process = self.process_repo
+        let process = self
+            .process_repo
             .get_transfer_process_by_id(id)
             .await?
             .ok_or_else(|| TransferProcessRepoErrors::TransferProcessNotFound.into_errors())?;
 
-        let raw_identifiers = self.identifiers_repo
+        let raw_identifiers = self
+            .identifiers_repo
             .get_identifiers_by_process_id(id)
             .await?;
 
@@ -85,15 +94,15 @@ impl TransferProcessServiceTrait for TransferProcessService {
     }
 
     async fn batch(&self, batch_request: &BatchRequests) -> Outcome<Vec<TransferProcessView>> {
-        let processes = self.process_repo
+        let processes = self
+            .process_repo
             .get_batch_transfer_processes(&batch_request.ids)
             .await?;
 
-        let urns: Vec<Urn> = processes.iter()
-            .map(|p| p.id().as_urn().clone())
-            .collect();
+        let urns: Vec<Urn> = processes.iter().map(|p| p.id().as_urn().clone()).collect();
 
-        let raw_identifiers = self.identifiers_repo
+        let raw_identifiers = self
+            .identifiers_repo
             .get_identifiers_by_batch_process_id(&urns)
             .await?;
 
@@ -117,9 +126,7 @@ impl TransferProcessServiceTrait for TransferProcessService {
     }
 
     async fn create(&self, cmd: &NewTransferProcessCommand) -> Outcome<TransferProcessView> {
-        let process = self.process_repo
-            .create_transfer_process(cmd)
-            .await?;
+        let process = self.process_repo.create_transfer_process(cmd).await?;
 
         if let Some(identifiers) = &cmd.identifiers {
             for (key, value) in identifiers {
@@ -134,7 +141,8 @@ impl TransferProcessServiceTrait for TransferProcessService {
             }
         }
 
-        let extra: HashMap<String, String> = cmd.identifiers
+        let extra: HashMap<String, String> = cmd
+            .identifiers
             .as_ref()
             .map(|ids| ids.clone())
             .unwrap_or_default();
@@ -142,25 +150,25 @@ impl TransferProcessServiceTrait for TransferProcessService {
         Ok(TransferProcessView::assemble(process, extra))
     }
 
-    async fn edit(&self, id: &Urn, cmd: &EditTransferProcessCommand) -> Outcome<TransferProcessView> {
-        let process = self.process_repo
-            .put_transfer_process(id, cmd)
-            .await?;
+    async fn edit(
+        &self,
+        id: &Urn,
+        cmd: &EditTransferProcessCommand,
+    ) -> Outcome<TransferProcessView> {
+        let process = self.process_repo.put_transfer_process(id, cmd).await?;
 
         if let Some(identifiers) = &cmd.identifiers {
             for (key, value) in identifiers {
-                let identifier = TransferProcessIdentifier::new(
-                    id.clone(),
-                    key.clone(),
-                    Some(value.clone()),
-                );
+                let identifier =
+                    TransferProcessIdentifier::new(id.clone(), key.clone(), Some(value.clone()));
                 self.identifiers_repo
                     .upsert_identifier(id, &identifier)
                     .await?;
             }
         }
 
-        let raw_identifiers = self.identifiers_repo
+        let raw_identifiers = self
+            .identifiers_repo
             .get_identifiers_by_process_id(id)
             .await?;
 

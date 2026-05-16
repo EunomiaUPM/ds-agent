@@ -1,6 +1,6 @@
+use argon2::Argon2;
 use argon2::password_hash::rand_core::OsRng;
 use argon2::password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString};
-use argon2::Argon2;
 use ymir::errors::{BadFormat, Errors, Outcome};
 
 pub(crate) fn hash_password(password: &str) -> Outcome<(String, String)> {

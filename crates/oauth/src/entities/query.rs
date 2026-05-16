@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::entities::role::Role;
 
-// ── Pagination ────────────────────────────────────────────────────────────────
+// Pagination ────────────────────────────────────────────────────────────────
 
 #[derive(Deserialize)]
 pub(crate) struct Page {
@@ -12,10 +12,17 @@ pub(crate) struct Page {
     pub cursor: Option<String>,
 }
 
-fn default_limit() -> u32 { 20 }
+fn default_limit() -> u32 {
+    20
+}
 
 impl Default for Page {
-    fn default() -> Self { Self { limit: default_limit(), cursor: None } }
+    fn default() -> Self {
+        Self {
+            limit: default_limit(),
+            cursor: None,
+        }
+    }
 }
 
 #[derive(Serialize)]
@@ -33,7 +40,7 @@ pub(crate) enum Sort {
     CreatedAtDesc,
 }
 
-// ── Filters ───────────────────────────────────────────────────────────────────
+// Filters ───────────────────────────────────────────────────────────────────
 
 #[derive(Deserialize, Default)]
 #[serde(rename_all = "camelCase")]

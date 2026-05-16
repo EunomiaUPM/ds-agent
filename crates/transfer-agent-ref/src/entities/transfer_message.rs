@@ -1,11 +1,18 @@
 use std::collections::BTreeMap;
+use std::str::FromStr;
+
 use base64::Engine;
 use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use compact_str::CompactString;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use sha2::{Digest, Sha256};
-use crate::entities::ids::{CorrelationId, MessageId, ParticipantId, RequestId, TenantId, TransferProcessId};
+use urn::Urn;
+
+use crate::entities::commands::NewTransferMessageCommand;
+use crate::entities::ids::{
+    CorrelationId, MessageId, ParticipantId, RequestId, TenantId, TransferProcessId,
+};
 use crate::entities::message_envelope::Direction;
 use crate::entities::protocol::{ProtocolId, ProtocolMessageType, ProtocolState};
 
@@ -34,30 +41,96 @@ pub(crate) struct TransferMessage {
 }
 
 impl TransferMessage {
-    pub fn id(&self) -> &MessageId { &self.id }
-    pub fn transfer_process_id(&self) -> &TransferProcessId { &self.transfer_process_id }
-    pub fn tenant_id(&self) -> &TenantId { &self.tenant_id }
-    pub fn direction(&self) -> Direction { self.direction }
-    pub fn protocol(&self) -> &ProtocolId { &self.protocol }
-    pub fn message_type(&self) -> &ProtocolMessageType { &self.message_type }
-    pub fn protocol_version(&self) -> &str { &self.protocol_version }
-    pub fn envelope(&self) -> &MessageEnvelope { &self.envelope }
-    pub fn occurred_at(&self) -> DateTime<Utc> { self.occurred_at }
-    pub fn correlation_id(&self) -> Option<&CorrelationId> { self.correlation_id.as_ref() }
-    pub fn request_id(&self) -> &RequestId { &self.request_id }
-    pub fn peer_participant_id(&self) -> &ParticipantId { &self.peer_participant_id }
-    pub fn processing_result(&self) -> &MessageProcessingResult { &self.processing_result }
+    pub(crate) fn from_cmd(cmd: &NewTransferMessageCommand) -> Self {
+        let id = cmd.id.clone().unwrap_or_else(MessageId::generate);
+        let peer_participant_id = cmd.peer_participant_id.clone().unwrap_or_else(|| {
+            ParticipantId::new(Urn::from_str("urn:unknown:participant").expect("static URN"))
+        });
+        let request_id = cmd.request_id.clone().unwrap_or_else(RequestId::generate);
+        let protocol_version =
+            CompactString::from(cmd.protocol_version.as_deref().unwrap_or("1.0"));
+        Self {
+            id,
+            transfer_process_id: cmd.transfer_process_id.clone(),
+            tenant_id: cmd.tenant_id.clone(),
+            direction: cmd.direction,
+            protocol: cmd.protocol.clone(),
+            message_type: cmd.message_type.clone(),
+            protocol_version,
+            envelope: cmd.envelope.clone(),
+            occurred_at: Utc::now(),
+            correlation_id: cmd.correlation_id.clone(),
+            request_id,
+            peer_participant_id,
+            processing_result: MessageProcessingResult::Accepted {
+                resulting_state: cmd.state_transition_to.clone(),
+            },
+        }
+    }
 
-    pub fn is_inbound(&self) -> bool { self.direction == Direction::Inbound }
-    pub fn is_outbound(&self) -> bool { self.direction == Direction::Outbound }
+    pub fn id(&self) -> &MessageId {
+        &self.id
+    }
+    pub fn transfer_process_id(&self) -> &TransferProcessId {
+        &self.transfer_process_id
+    }
+    pub fn tenant_id(&self) -> &TenantId {
+        &self.tenant_id
+    }
+    pub fn direction(&self) -> Direction {
+        self.direction
+    }
+    pub fn protocol(&self) -> &ProtocolId {
+        &self.protocol
+    }
+    pub fn message_type(&self) -> &ProtocolMessageType {
+        &self.message_type
+    }
+    pub fn protocol_version(&self) -> &str {
+        &self.protocol_version
+    }
+    pub fn envelope(&self) -> &MessageEnvelope {
+        &self.envelope
+    }
+    pub fn occurred_at(&self) -> DateTime<Utc> {
+        self.occurred_at
+    }
+    pub fn correlation_id(&self) -> Option<&CorrelationId> {
+        self.correlation_id.as_ref()
+    }
+    pub fn request_id(&self) -> &RequestId {
+        &self.request_id
+    }
+    pub fn peer_participant_id(&self) -> &ParticipantId {
+        &self.peer_participant_id
+    }
+    pub fn processing_result(&self) -> &MessageProcessingResult {
+        &self.processing_result
+    }
+
+    pub fn is_inbound(&self) -> bool {
+        self.direction == Direction::Inbound
+    }
+    pub fn is_outbound(&self) -> bool {
+        self.direction == Direction::Outbound
+    }
     pub fn was_accepted(&self) -> bool {
-        matches!(self.processing_result, MessageProcessingResult::Accepted { .. })
+        matches!(
+            self.processing_result,
+            MessageProcessingResult::Accepted { .. }
+        )
     }
     pub fn was_rejected(&self) -> bool {
-        matches!(self.processing_result, MessageProcessingResult::Rejected { .. })
+        matches!(
+            self.processing_result,
+            MessageProcessingResult::Rejected { .. }
+        )
     }
     pub fn is_replay(&self) -> bool {
-        matches!(self.processing_result, MessageProcessingResult::IdempotentReplay)
+        matches!(
+            self.processing_result,
+            MessageProcessingResult::IdempotentReplay
+        )
     }
 
     /// State the process transitioned to after this message was accepted.
@@ -130,7 +203,11 @@ impl TryFrom<MessageEnvelopeInput> for MessageEnvelope {
             .signature
             .map(|s| -> Result<MessageSignature, String> {
                 let value = Bytes::from(b64_decode(&s.value)?);
-                Ok(MessageSignature { algorithm: s.algorithm, key_id: s.key_id, value })
+                Ok(MessageSignature {
+                    algorithm: s.algorithm,
+                    key_id: s.key_id,
+                    value,
+                })
             })
             .transpose()?;
 
@@ -147,9 +224,15 @@ impl TryFrom<MessageEnvelopeInput> for MessageEnvelope {
 }
 
 impl MessageEnvelope {
-    pub fn is_signed(&self) -> bool { self.signature.is_some() }
-    pub fn is_canonicalized(&self) -> bool { self.canonical_form.is_some() }
-    pub fn content_type(&self) -> &str { &self.content_type }
+    pub fn is_signed(&self) -> bool {
+        self.signature.is_some()
+    }
+    pub fn is_canonicalized(&self) -> bool {
+        self.canonical_form.is_some()
+    }
+    pub fn content_type(&self) -> &str {
+        &self.content_type
+    }
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -168,15 +251,22 @@ pub(crate) struct MessageSignature {
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(tag = "status", rename_all = "camelCase")]
 pub(crate) enum MessageProcessingResult {
-    Accepted { resulting_state: ProtocolState },
-    Rejected { reason: String, error_code: Option<String> },
+    Accepted {
+        resulting_state: ProtocolState,
+    },
+    Rejected {
+        reason: String,
+        error_code: Option<String>,
+    },
     IdempotentReplay,
 }
 
 // Serde helpers ─────────────────────────────────────────────────────────────
 
 fn b64_decode(s: &str) -> Result<Vec<u8>, String> {
-    base64::engine::general_purpose::STANDARD.decode(s).map_err(|e| e.to_string())
+    base64::engine::general_purpose::STANDARD
+        .decode(s)
+        .map_err(|e| e.to_string())
 }
 
 fn ser_bytes_b64<S: Serializer>(b: &Bytes, s: S) -> Result<S::Ok, S::Error> {
@@ -203,5 +293,7 @@ fn ser_opt_hash_hex<S: Serializer>(h: &Option<[u8; 32]>, s: S) -> Result<S::Ok, 
 
 fn de_b64_bytes<'de, D: Deserializer<'de>>(d: D) -> Result<Bytes, D::Error> {
     let s = String::deserialize(d)?;
-    b64_decode(&s).map(Bytes::from).map_err(serde::de::Error::custom)
+    b64_decode(&s)
+        .map(Bytes::from)
+        .map_err(serde::de::Error::custom)
 }

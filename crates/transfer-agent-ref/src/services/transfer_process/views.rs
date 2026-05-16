@@ -1,10 +1,12 @@
-use std::collections::HashMap;
+use crate::entities::ids::{TenantId, TransferProcessId};
+use crate::entities::protocol::{
+    ProtocolId, ProtocolState, StateMetadata, TransferCorrelation, TransferRole,
+};
+use crate::entities::transfer_process::TransferProcess;
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 use serde_json::Value as Json;
-use crate::entities::ids::{TenantId, TransferProcessId};
-use crate::entities::protocol::{ProtocolId, ProtocolState, StateMetadata, TransferCorrelation, TransferRole};
-use crate::entities::transfer_process::TransferProcess;
+use std::collections::HashMap;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]

@@ -1,11 +1,11 @@
-pub(crate) mod views;
 pub(crate) mod service;
+pub(crate) mod views;
 
-use urn::Urn;
-use ymir::errors::Outcome;
 use crate::entities::commands::NewTransferMessageCommand;
 use crate::entities::query::{Page, Paginated, Sort, TransferMessageFilter};
 use crate::services::transfer_message::views::TransferMessageView;
+use urn::Urn;
+use ymir::errors::Outcome;
 
 #[async_trait::async_trait]
 pub(crate) trait TransferMessageServiceTrait: Send + Sync + 'static {

@@ -6,18 +6,20 @@ use axum::http::StatusCode;
 use axum::middleware::Next;
 use axum::response::Response;
 use axum::routing::get;
-use axum::{middleware, Json, Router};
-use ymir::errors::{AppResult, BadFormat, Errors, Outcome};
+use axum::{Json, Router, middleware};
+use common::auth::claims::Claims;
+use common::auth::middleware::bearer;
+use common::auth::rbac::Rbac;
+use ymir::errors::{AppResult, BadFormat, Errors};
 use ymir::utils::extract_payload;
 
 use crate::entities::commands::{CreateUserCommand, PatchUserCommand};
 use crate::entities::query::Paginated;
 use crate::entities::role::Role;
 use crate::http::forms::UserListQuery;
-use crate::http::helpers::bearer;
-use crate::services::token_service::{Claims, TokenServiceTrait};
-use crate::services::user_service::views::UserView;
+use crate::services::token_service::TokenServiceTrait;
 use crate::services::user_service::UserServiceTrait;
+use crate::services::user_service::views::UserView;
 
 #[derive(Clone)]
 pub(crate) struct UsersRouter {
@@ -26,8 +28,14 @@ pub(crate) struct UsersRouter {
 }
 
 impl UsersRouter {
-    pub(crate) fn new(token_svc: Arc<dyn TokenServiceTrait>, user_svc: Arc<dyn UserServiceTrait>) -> Self {
-        Self { token_svc, user_svc }
+    pub(crate) fn new(
+        token_svc: Arc<dyn TokenServiceTrait>,
+        user_svc: Arc<dyn UserServiceTrait>,
+    ) -> Self {
+        Self {
+            token_svc,
+            user_svc,
+        }
     }
 
     pub(crate) fn router(self) -> Router {
@@ -39,7 +47,10 @@ impl UsersRouter {
                     .patch(Self::handle_patch)
                     .delete(Self::handle_delete),
             )
-            .route_layer(middleware::from_fn_with_state(self.clone(), Self::auth_middleware));
+            .route_layer(middleware::from_fn_with_state(
+                self.clone(),
+                Self::auth_middleware,
+            ));
 
         Router::new().merge(protected).with_state(self)
     }
@@ -60,8 +71,10 @@ impl UsersRouter {
         Extension(claims): Extension<Claims>,
         Query(q): Query<UserListQuery>,
     ) -> AppResult<Json<Paginated<UserView>>> {
-        require_admin(&claims)?;
-        Ok(Json(s.user_svc.list_users(&q.filter, &q.page, &q.sort).await?))
+        Rbac::require_admin(&claims)?;
+        Ok(Json(
+            s.user_svc.list_users(&q.filter, &q.page, &q.sort).await?,
+        ))
     }
 
     async fn handle_get_one(
@@ -69,7 +82,7 @@ impl UsersRouter {
         Extension(claims): Extension<Claims>,
         Path(id): Path<String>,
     ) -> AppResult<Json<UserView>> {
-        require_read_access(&claims, &id)?;
+        Rbac::require_read(&claims, &id)?;
         Ok(Json(s.user_svc.get_user(&id).await?))
     }
 
@@ -78,9 +91,12 @@ impl UsersRouter {
         Extension(claims): Extension<Claims>,
         payload: Result<Json<CreateUserCommand>, JsonRejection>,
     ) -> AppResult<(StatusCode, Json<UserView>)> {
-        require_admin(&claims)?;
+        Rbac::require_admin(&claims)?;
         let cmd = extract_payload(payload)?;
-        Ok((StatusCode::CREATED, Json(s.user_svc.create_user(&cmd).await?)))
+        Ok((
+            StatusCode::CREATED,
+            Json(s.user_svc.create_user(&cmd).await?),
+        ))
     }
 
     async fn handle_patch(
@@ -90,7 +106,6 @@ impl UsersRouter {
         payload: Result<Json<PatchUserCommand>, JsonRejection>,
     ) -> AppResult<Json<UserView>> {
         let cmd = extract_payload(payload)?;
-
         match claims.role {
             Role::Admin => {}
             Role::Owner if claims.sub == id => {
@@ -102,9 +117,8 @@ impl UsersRouter {
                     ));
                 }
             }
-            _ => return Err(forbidden()),
+            _ => Rbac::require_admin(&claims)?,
         }
-
         Ok(Json(s.user_svc.patch_user(&id, &cmd).await?))
     }
 
@@ -113,24 +127,8 @@ impl UsersRouter {
         Extension(claims): Extension<Claims>,
         Path(id): Path<String>,
     ) -> AppResult<StatusCode> {
-        require_admin(&claims)?;
+        Rbac::require_admin(&claims)?;
         s.user_svc.delete_user(&id).await?;
         Ok(StatusCode::NO_CONTENT)
     }
-}
-
-fn require_read_access(c: &Claims, target: &str) -> Outcome<()> {
-    match c.role {
-        Role::Admin => Ok(()),
-        _ if c.sub == target => Ok(()),
-        _ => Err(forbidden()),
-    }
-}
-
-fn require_admin(c: &Claims) -> Outcome<()> {
-    if c.role == Role::Admin { Ok(()) } else { Err(forbidden()) }
-}
-
-fn forbidden() -> Errors {
-    Errors::format(BadFormat::Received, "forbidden: insufficient permissions", None)
 }

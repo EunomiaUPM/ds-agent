@@ -19,7 +19,7 @@
 use crate::setup::boot::NegotiationAgentBoot;
 use crate::setup::db_migrations::NegotiationAgentMigration;
 use clap::{Parser, Subcommand};
-use common::boot::{BootstrapInit, BootstrapStepTrait};
+use common::boot::BootstrapInit;
 use common::config::services::ContractsConfig;
 use common::config::types::traits::{CommonConfigTrait, ConfigLoader};
 use std::sync::Arc;
@@ -58,15 +58,9 @@ impl NegotiationCommands {
         let cli = NegotiationCli::parse();
         match cli.command {
             NegotiationCliCommands::Start(args) => {
-                let init = BootstrapInit::<NegotiationAgentBoot>::new(args.env_file);
-                let step1 = init.next_step().await?; // Init -> Config
-                let step2 = step1.0.next_step().await?; // Config -> ServicesStarted (Background)
-                let step3 = step2.0.next_step().await?; // Services -> Participant
-                let step4 = step3.0.next_step().await?; // Participant -> Catalog
-                let step5 = step4.0.next_step().await?; // Catalog -> DataService
-                let step6 = step5.0.next_step().await?; // DataService -> PolicyTemplates
-                let step_finalized = step6.0.next_step().await?;
-                let _ = step_finalized.0.next_step().await?;
+                BootstrapInit::<NegotiationAgentBoot>::new(args.env_file)
+                    .run()
+                    .await?;
             }
             NegotiationCliCommands::Setup(args) => {
                 let config = ContractsConfig::load(&*args.env_file)?;

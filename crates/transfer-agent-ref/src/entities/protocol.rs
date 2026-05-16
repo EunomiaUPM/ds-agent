@@ -45,7 +45,11 @@ pub struct StateMetadata {
 
 impl StateMetadata {
     pub fn empty() -> Self {
-        Self { attribute: None, reason: None, code: None }
+        Self {
+            attribute: None,
+            reason: None,
+            code: None,
+        }
     }
 }
 

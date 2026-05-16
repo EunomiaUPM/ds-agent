@@ -85,6 +85,13 @@ pub trait BootstrapServiceTrait: Send + Sync {
         Ok(())
     }
 
+    fn enable_user_seed() -> bool {
+        false
+    }
+    async fn seed_users(_config: &Self::Config) -> Outcome<()> {
+        Ok(())
+    }
+
     async fn start_services_background(
         config: &Self::Config,
         vault_service: Arc<VaultService>,
@@ -111,6 +118,19 @@ impl<S: BootstrapServiceTrait> BootstrapInit<S> {
             env_file,
         }
     }
+
+    pub async fn run(self) -> Outcome<()> {
+        let s1 = self.next_step().await?;
+        let s2 = s1.0.next_step().await?;
+        let s3 = s2.0.next_step().await?;
+        let s4 = s3.0.next_step().await?;
+        let s5 = s4.0.next_step().await?;
+        let s6 = s5.0.next_step().await?;
+        let s7 = s6.0.next_step().await?;
+        let s8 = s7.0.next_step().await?;
+        let _ = s8.0.next_step().await?;
+        Ok(())
+    }
 }
 
 pub struct BootstrapConfigLoaded<S: BootstrapServiceTrait> {
@@ -119,6 +139,11 @@ pub struct BootstrapConfigLoaded<S: BootstrapServiceTrait> {
 }
 
 pub struct BootstrapServicesStarted<S: BootstrapServiceTrait> {
+    pub config: S::Config,
+    pub shutdown_tx: broadcast::Sender<()>,
+}
+
+pub struct BootstrapUsersSeeded<S: BootstrapServiceTrait> {
     pub config: S::Config,
     pub shutdown_tx: broadcast::Sender<()>,
 }
@@ -161,7 +186,7 @@ impl<S: BootstrapServiceTrait> BootstrapStepTrait for BootstrapInit<S> {
     type NextState = BootstrapCurrentState<BootstrapConfigLoaded<S>>;
 
     async fn next_step(self) -> Outcome<Self::NextState> {
-        tracing::info!("Step [1/8]: Init bootstrap configuration");
+        tracing::info!("Step [1/9]: Init bootstrap configuration");
         Ok(BootstrapCurrentState(BootstrapConfigLoaded {
             _marker: PhantomData,
             env_file: self.env_file,
@@ -174,7 +199,7 @@ impl<S: BootstrapServiceTrait> BootstrapStepTrait for BootstrapConfigLoaded<S> {
     type NextState = BootstrapCurrentState<BootstrapServicesStarted<S>>;
 
     async fn next_step(self) -> Outcome<Self::NextState> {
-        tracing::info!("Step [2/8]: Configuration loading");
+        tracing::info!("Step [2/9]: Configuration loading");
         let config = S::load_config(self.env_file).await?;
 
         let vault = match config.is_vault_real() {
@@ -183,7 +208,7 @@ impl<S: BootstrapServiceTrait> BootstrapStepTrait for BootstrapConfigLoaded<S> {
         };
         let vault = Arc::new(vault);
 
-        tracing::info!("Step [3/8]: Starting Services in Background");
+        tracing::info!("Step [3/9]: Starting Services in Background");
         S::cleanup_cache(&config).await?;
         let shutdown_tx = S::start_services_background(&config, vault.clone()).await?;
 
@@ -199,10 +224,28 @@ impl<S: BootstrapServiceTrait> BootstrapStepTrait for BootstrapConfigLoaded<S> {
 
 #[async_trait::async_trait]
 impl<S: BootstrapServiceTrait> BootstrapStepTrait for BootstrapServicesStarted<S> {
+    type NextState = BootstrapCurrentState<BootstrapUsersSeeded<S>>;
+
+    async fn next_step(self) -> Outcome<Self::NextState> {
+        tracing::info!("Step [4/9]: Seeding default users");
+
+        if S::enable_user_seed() {
+            S::seed_users(&self.config).await?;
+        }
+
+        Ok(BootstrapCurrentState(BootstrapUsersSeeded {
+            config: self.config,
+            shutdown_tx: self.shutdown_tx,
+        }))
+    }
+}
+
+#[async_trait::async_trait]
+impl<S: BootstrapServiceTrait> BootstrapStepTrait for BootstrapUsersSeeded<S> {
     type NextState = BootstrapCurrentState<BootstrapSelfParticipantOnBoarded<S>>;
 
     async fn next_step(self) -> Outcome<Self::NextState> {
-        tracing::info!("Step [4/8]: Creating self participant");
+        tracing::info!("Step [5/9]: Creating self participant");
 
         let participant_id = if S::enable_participant() {
             Some(S::create_participant(&self.config).await?)
@@ -223,7 +266,7 @@ impl<S: BootstrapServiceTrait> BootstrapStepTrait for BootstrapSelfParticipantOn
     type NextState = BootstrapCurrentState<BootstrapCatalogLoaded<S>>;
 
     async fn next_step(self) -> Outcome<Self::NextState> {
-        tracing::info!("Step [5/8]: Loading main catalog");
+        tracing::info!("Step [6/9]: Loading main catalog");
 
         let catalog_id = if S::enable_catalog() {
             Some(S::load_catalog(&self.participant_id, &self.config).await?)
@@ -245,7 +288,7 @@ impl<S: BootstrapServiceTrait> BootstrapStepTrait for BootstrapCatalogLoaded<S> 
     type NextState = BootstrapCurrentState<BootstrapDataServiceLoaded<S>>;
 
     async fn next_step(self) -> Outcome<Self::NextState> {
-        tracing::info!("Step [6/8]: Loading main dataservice");
+        tracing::info!("Step [7/9]: Loading main dataservice");
 
         let dataservice_id = if S::enable_dataservice() {
             Some(S::load_dataservice(&self.catalog_id, &self.config).await?)
@@ -268,7 +311,7 @@ impl<S: BootstrapServiceTrait> BootstrapStepTrait for BootstrapDataServiceLoaded
     type NextState = BootstrapCurrentState<BootstrapPolicyTemplateLoaded<S>>;
 
     async fn next_step(self) -> Outcome<Self::NextState> {
-        tracing::info!("Step [7/8]: Loading policy templates.");
+        tracing::info!("Step [8/9]: Loading policy templates.");
 
         if S::enable_policy_templates() {
             S::load_policy_templates(&self.config).await?
@@ -286,7 +329,7 @@ impl<S: BootstrapServiceTrait> BootstrapStepTrait for BootstrapPolicyTemplateLoa
     type NextState = BootstrapCurrentState<BootstrapFinalized<S>>;
 
     async fn next_step(self) -> Outcome<Self::NextState> {
-        tracing::info!("Step [8/8]: Bootstrap sequence completed. Services UP.");
+        tracing::info!("Step [9/9]: Bootstrap sequence completed. Services UP.");
 
         Ok(BootstrapCurrentState(BootstrapFinalized {
             _marker: PhantomData,

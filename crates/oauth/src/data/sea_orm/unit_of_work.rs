@@ -14,7 +14,9 @@ impl SeaOrmUow {
             .begin()
             .await
             .map_err(|e| Errors::crazy("failed to begin transaction", Some(Box::new(e))))?;
-        Ok(Self { txn: Mutex::new(Some(txn)) })
+        Ok(Self {
+            txn: Mutex::new(Some(txn)),
+        })
     }
 }
 

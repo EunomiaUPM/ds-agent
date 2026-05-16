@@ -40,6 +40,11 @@ impl UserInfo {
             serde_json::Value::Object(m) => m,
             _ => serde_json::Map::new(),
         };
-        Self { sub: u.tenant_id, email: u.email, role: u.role, extra }
+        Self {
+            sub: u.tenant_id,
+            email: u.email,
+            role: u.role,
+            extra,
+        }
     }
 }

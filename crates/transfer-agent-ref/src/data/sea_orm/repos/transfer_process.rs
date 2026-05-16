@@ -10,7 +10,6 @@ use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
 use crate::data::repo::transfer_process::{TransferProcessRepoErrors, TransferProcessRepoTrait};
-use crate::data::sea_orm::mappers::{process_from_cmd, process_from_orm, process_to_active_model};
 use crate::data::sea_orm::orm::transfer_process as orm;
 use crate::entities::commands::{EditTransferProcessCommand, NewTransferProcessCommand};
 use crate::entities::query::{Page, Sort, TransferProcessFilter};
@@ -27,6 +26,13 @@ impl SeaOrmTransferProcessRepo {
 
     fn db_err(e: sea_orm::DbErr) -> ymir::errors::Errors {
         TransferProcessRepoErrors::ErrorFetchingTransferProcess(Box::new(e)).into_errors()
+    }
+    fn decode_cursor(&self, cursor: &str) -> Result<chrono::DateTime<chrono::FixedOffset>, ()> {
+        let bytes = base64::engine::general_purpose::URL_SAFE_NO_PAD
+            .decode(cursor)
+            .map_err(|_| ())?;
+        let s = String::from_utf8(bytes).map_err(|_| ())?;
+        DateTime::parse_from_rfc3339(&s).map_err(|_| ())
     }
 }
 
@@ -77,7 +83,7 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
         }
 
         if let Some(cursor) = &page.cursor {
-            if let Ok(cursor_dt) = decode_cursor(cursor) {
+            if let Ok(cursor_dt) = self.decode_cursor(cursor) {
                 q = match sort {
                     Sort::CreatedAtAsc => q.filter(orm::Column::CreatedAt.gt(cursor_dt)),
                     Sort::CreatedAtDesc | Sort::UpdatedAtDesc => {
@@ -98,7 +104,7 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
             .await
             .map_err(Self::db_err)?
             .into_iter()
-            .map(process_from_orm)
+            .map(orm::Model::into_domain)
             .collect()
     }
 
@@ -110,7 +116,7 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
             .await
             .map_err(Self::db_err)?
             .into_iter()
-            .map(process_from_orm)
+            .map(orm::Model::into_domain)
             .collect()
     }
 
@@ -119,7 +125,7 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
             .one(self.db.as_ref())
             .await
             .map_err(Self::db_err)?
-            .map(process_from_orm)
+            .map(orm::Model::into_domain)
             .transpose()
     }
 
@@ -139,13 +145,17 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
 
         match ident {
             None => Ok(None),
-            Some(i) => self.get_transfer_process_by_id(
-                &Urn::from_str_safe(&i.transfer_process_id)?,
-            ).await,
+            Some(i) => {
+                self.get_transfer_process_by_id(&parse_urn(&i.transfer_process_id)?)
+                    .await
+            }
         }
     }
 
-    async fn get_transfer_process_by_key_value(&self, id: &Urn) -> Outcome<Option<TransferProcess>> {
+    async fn get_transfer_process_by_key_value(
+        &self,
+        id: &Urn,
+    ) -> Outcome<Option<TransferProcess>> {
         use crate::data::sea_orm::orm::transfer_identifier as ident_orm;
 
         let ident = ident_orm::Entity::find()
@@ -156,9 +166,10 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
 
         match ident {
             None => Ok(None),
-            Some(i) => self.get_transfer_process_by_id(
-                &Urn::from_str_safe(&i.transfer_process_id)?,
-            ).await,
+            Some(i) => {
+                self.get_transfer_process_by_id(&parse_urn(&i.transfer_process_id)?)
+                    .await
+            }
         }
     }
 
@@ -166,12 +177,13 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
         &self,
         cmd: &NewTransferProcessCommand,
     ) -> Outcome<TransferProcess> {
-        let process = process_from_cmd(cmd);
-        process_to_active_model(&process)
+        orm::ActiveModel::from_cmd(cmd)
             .insert(self.db.as_ref())
             .await
-            .map_err(|e| TransferProcessRepoErrors::ErrorCreatingTransferProcess(Box::new(e)).into_errors())
-            .and_then(process_from_orm)
+            .map_err(|e| {
+                TransferProcessRepoErrors::ErrorCreatingTransferProcess(Box::new(e)).into_errors()
+            })
+            .and_then(orm::Model::into_domain)
     }
 
     async fn put_transfer_process(
@@ -185,39 +197,31 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
             .map_err(Self::db_err)?
             .ok_or_else(|| TransferProcessRepoErrors::TransferProcessNotFound.into_errors())?;
 
-        let mut process = process_from_orm(existing)?;
+        let mut process = existing.into_domain()?;
         process.apply_edit(edit_model.clone());
 
-        process_to_active_model(&process)
+        orm::ActiveModel::from_domain(&process)
             .update(self.db.as_ref())
             .await
-            .map_err(|e| TransferProcessRepoErrors::ErrorUpdatingTransferProcess(Box::new(e)).into_errors())
-            .and_then(process_from_orm)
+            .map_err(|e| {
+                TransferProcessRepoErrors::ErrorUpdatingTransferProcess(Box::new(e)).into_errors()
+            })
+            .and_then(orm::Model::into_domain)
     }
 
     async fn delete_transfer_process(&self, id: &Urn) -> Outcome<()> {
         orm::Entity::delete_by_id(id.to_string())
             .exec(self.db.as_ref())
             .await
-            .map_err(|e| TransferProcessRepoErrors::ErrorDeletingTransferProcess(Box::new(e)).into_errors())?;
+            .map_err(|e| {
+                TransferProcessRepoErrors::ErrorDeletingTransferProcess(Box::new(e)).into_errors()
+            })?;
         Ok(())
     }
 }
 
-fn decode_cursor(cursor: &str) -> Result<chrono::DateTime<chrono::FixedOffset>, ()> {
-    let bytes =
-        base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(cursor).map_err(|_| ())?;
-    let s = String::from_utf8(bytes).map_err(|_| ())?;
-    DateTime::parse_from_rfc3339(&s).map_err(|_| ())
-}
-
-trait UrnFromStr {
-    fn from_str_safe(s: &str) -> Outcome<Urn>;
-}
-
-impl UrnFromStr for Urn {
-    fn from_str_safe(s: &str) -> Outcome<Urn> {
-        use std::str::FromStr;
-        Urn::from_str(s).map_err(|e| ymir::errors::Errors::crazy("invalid URN in database", Some(Box::new(e))))
-    }
+fn parse_urn(s: &str) -> Outcome<Urn> {
+    use std::str::FromStr;
+    Urn::from_str(s)
+        .map_err(|e| ymir::errors::Errors::crazy("invalid URN in database", Some(Box::new(e))))
 }

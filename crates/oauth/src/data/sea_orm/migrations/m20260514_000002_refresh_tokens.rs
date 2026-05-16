@@ -22,9 +22,18 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(OauthRefreshTokens::TenantId).string().not_null())
+                    .col(
+                        ColumnDef::new(OauthRefreshTokens::TenantId)
+                            .string()
+                            .not_null(),
+                    )
                     // JWT ID stored for revocation — unique per issued token.
-                    .col(ColumnDef::new(OauthRefreshTokens::Jti).string().not_null().unique_key())
+                    .col(
+                        ColumnDef::new(OauthRefreshTokens::Jti)
+                            .string()
+                            .not_null()
+                            .unique_key(),
+                    )
                     .col(
                         ColumnDef::new(OauthRefreshTokens::ExpiresAt)
                             .timestamp_with_time_zone()
@@ -47,7 +56,9 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager.drop_table(Table::drop().table(OauthRefreshTokens::Table).to_owned()).await
+        manager
+            .drop_table(Table::drop().table(OauthRefreshTokens::Table).to_owned())
+            .await
     }
 }
 

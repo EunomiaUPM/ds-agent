@@ -1,9 +1,9 @@
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
-use urn::Urn;
 use crate::entities::ids::{ParticipantId, TenantId};
 use crate::entities::message_envelope::Direction;
 use crate::entities::protocol::{ProtocolId, ProtocolState, TransferRole};
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use urn::Urn;
 
 // Pagination ────────────────────────────────────────────────────────────────
 
@@ -14,7 +14,9 @@ pub struct Page {
     pub cursor: Option<String>,
 }
 
-fn default_limit() -> u32 { 20 }
+fn default_limit() -> u32 {
+    20
+}
 
 #[derive(Serialize)]
 pub struct Paginated<T> {

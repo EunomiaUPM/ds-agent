@@ -13,22 +13,25 @@ use crate::data::repo::transfer_process::{TransferProcessRepoErrors, TransferPro
 use crate::data::repo::transfer_process_identifier::{
     TransferIdentifierRepoErrors, TransferIdentifierRepoTrait,
 };
-use crate::entities::commands::{EditTransferProcessCommand, NewTransferMessageCommand, NewTransferProcessCommand};
+use crate::entities::commands::{
+    EditTransferProcessCommand, NewTransferMessageCommand, NewTransferProcessCommand,
+};
+use crate::entities::ids::TransferProcessId;
 use crate::entities::ids::{MessageId, ParticipantId, RequestId};
 use crate::entities::message_envelope::Direction;
-use crate::entities::protocol::{TransferCorrelation, ProtocolState};
+use crate::entities::protocol::{ProtocolState, TransferCorrelation};
 use crate::entities::query::{Page, Sort, TransferMessageFilter, TransferProcessFilter};
 use crate::entities::transfer_message::{MessageProcessingResult, TransferMessage};
 use crate::entities::transfer_process::TransferProcess;
 use crate::entities::transfer_process_identifier::TransferProcessIdentifier;
 
-// ── Shared store types ────────────────────────────────────────────────────────
+// Shared store types ────────────────────────────────────────────────────────
 
 type ProcessStore = Arc<Mutex<HashMap<String, TransferProcess>>>;
 type MessageStore = Arc<Mutex<HashMap<String, TransferMessage>>>;
 type IdentifierStore = Arc<Mutex<HashMap<(String, String), TransferProcessIdentifier>>>;
 
-// ── TransferProcessRepo ───────────────────────────────────────────────────────
+// TransferProcessRepo ───────────────────────────────────────────────────────
 
 pub(crate) struct InMemoryTransferProcessRepo {
     processes: ProcessStore,
@@ -37,7 +40,10 @@ pub(crate) struct InMemoryTransferProcessRepo {
 
 impl InMemoryTransferProcessRepo {
     pub fn new(processes: ProcessStore, identifiers: IdentifierStore) -> Self {
-        Self { processes, identifiers }
+        Self {
+            processes,
+            identifiers,
+        }
     }
 }
 
@@ -55,24 +61,60 @@ impl TransferProcessRepoTrait for InMemoryTransferProcessRepo {
         let mut items: Vec<TransferProcess> = store
             .values()
             .filter(|p| {
-                if p.tenant_id().as_str() != filters.tenant_id.as_str() { return false; }
-                if let Some(proto) = &filters.protocol { if p.protocol() != proto { return false; } }
-                if let Some(state) = &filters.state { if p.state() != state { return false; } }
-                if let Some(role) = &filters.role { if p.role() != *role { return false; } }
+                if p.tenant_id().as_str() != filters.tenant_id.as_str() {
+                    return false;
+                }
+                if let Some(proto) = &filters.protocol {
+                    if p.protocol() != proto {
+                        return false;
+                    }
+                }
+                if let Some(state) = &filters.state {
+                    if p.state() != state {
+                        return false;
+                    }
+                }
+                if let Some(role) = &filters.role {
+                    if p.role() != *role {
+                        return false;
+                    }
+                }
                 if let Some(aid) = &filters.agreement_id {
-                    if p.correlation().agreement_id.as_ref() != Some(aid) { return false; }
+                    if p.correlation().agreement_id.as_ref() != Some(aid) {
+                        return false;
+                    }
                 }
                 if let Some(peer) = &filters.peer_participant_id {
-                    let stored = p.correlation().peer_participant_id.as_ref().map(|x| x.as_urn());
-                    if stored != Some(peer.as_urn()) { return false; }
+                    let stored = p
+                        .correlation()
+                        .peer_participant_id
+                        .as_ref()
+                        .map(|x| x.as_urn());
+                    if stored != Some(peer.as_urn()) {
+                        return false;
+                    }
                 }
-                if let Some(after) = filters.created_after { if p.created_at() <= after { return false; } }
-                if let Some(before) = filters.created_before { if p.created_at() >= before { return false; } }
+                if let Some(after) = filters.created_after {
+                    if p.created_at() <= after {
+                        return false;
+                    }
+                }
+                if let Some(before) = filters.created_before {
+                    if p.created_at() >= before {
+                        return false;
+                    }
+                }
                 if let Some(cursor) = cursor_dt {
                     match sort {
-                        Sort::CreatedAtAsc => { if p.created_at() <= cursor { return false; } }
+                        Sort::CreatedAtAsc => {
+                            if p.created_at() <= cursor {
+                                return false;
+                            }
+                        }
                         Sort::CreatedAtDesc | Sort::UpdatedAtDesc => {
-                            if p.created_at() >= cursor { return false; }
+                            if p.created_at() >= cursor {
+                                return false;
+                            }
                         }
                     }
                 }
@@ -140,7 +182,6 @@ impl TransferProcessRepoTrait for InMemoryTransferProcessRepo {
         &self,
         cmd: &NewTransferProcessCommand,
     ) -> Outcome<TransferProcess> {
-        use crate::data::sea_orm::mappers::process_from_cmd;
         let process = process_from_cmd(cmd);
         self.processes
             .lock()
@@ -168,7 +209,7 @@ impl TransferProcessRepoTrait for InMemoryTransferProcessRepo {
     }
 }
 
-// ── TransferMessageRepo ───────────────────────────────────────────────────────
+// TransferMessageRepo ───────────────────────────────────────────────────────
 
 pub(crate) struct InMemoryTransferMessageRepo {
     messages: MessageStore,
@@ -200,7 +241,13 @@ impl TransferMessageRepoTrait for InMemoryTransferMessageRepo {
         sort: &Sort,
     ) -> Outcome<Vec<TransferMessage>> {
         let store = self.messages.lock().unwrap();
-        Ok(filter_messages(store.values(), Some(process_id), filters, page, sort))
+        Ok(filter_messages(
+            store.values(),
+            Some(process_id),
+            filters,
+            page,
+            sort,
+        ))
     }
 
     async fn get_transfer_message_by_id(&self, id: &Urn) -> Outcome<Option<TransferMessage>> {
@@ -211,7 +258,7 @@ impl TransferMessageRepoTrait for InMemoryTransferMessageRepo {
         &self,
         cmd: &NewTransferMessageCommand,
     ) -> Outcome<TransferMessage> {
-        let msg = message_from_cmd(cmd);
+        let msg = TransferMessage::from_cmd(cmd);
         self.messages
             .lock()
             .unwrap()
@@ -225,7 +272,7 @@ impl TransferMessageRepoTrait for InMemoryTransferMessageRepo {
     }
 }
 
-// ── TransferIdentifierRepo ────────────────────────────────────────────────────
+// TransferIdentifierRepo ────────────────────────────────────────────────────
 
 pub(crate) struct InMemoryTransferIdentifierRepo {
     identifiers: IdentifierStore,
@@ -300,11 +347,15 @@ impl TransferIdentifierRepoTrait for InMemoryTransferIdentifierRepo {
     }
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// Helpers ───────────────────────────────────────────────────────────────────
 
 fn decode_cursor(cursor: Option<&str>) -> Option<DateTime<Utc>> {
     cursor
-        .and_then(|c| base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(c).ok())
+        .and_then(|c| {
+            base64::engine::general_purpose::URL_SAFE_NO_PAD
+                .decode(c)
+                .ok()
+        })
         .and_then(|b| String::from_utf8(b).ok())
         .and_then(|s| DateTime::parse_from_rfc3339(&s).ok())
         .map(|dt| dt.with_timezone(&Utc))
@@ -321,21 +372,51 @@ fn filter_messages<'a>(
 
     let mut items: Vec<TransferMessage> = values
         .filter(|m| {
-            if m.tenant_id().as_str() != filters.tenant_id.as_str() { return false; }
+            if m.tenant_id().as_str() != filters.tenant_id.as_str() {
+                return false;
+            }
             if let Some(pid) = process_id {
-                if m.transfer_process_id().as_urn() != pid { return false; }
+                if m.transfer_process_id().as_urn() != pid {
+                    return false;
+                }
             }
-            if let Some(dir) = &filters.direction { if m.direction() != *dir { return false; } }
-            if let Some(proto) = &filters.protocol { if m.protocol() != proto { return false; } }
+            if let Some(dir) = &filters.direction {
+                if m.direction() != *dir {
+                    return false;
+                }
+            }
+            if let Some(proto) = &filters.protocol {
+                if m.protocol() != proto {
+                    return false;
+                }
+            }
             if let Some(state) = &filters.state_transition_to {
-                if m.resulting_state() != Some(state) { return false; }
+                if m.resulting_state() != Some(state) {
+                    return false;
+                }
             }
-            if let Some(after) = filters.created_after { if m.occurred_at() <= after { return false; } }
-            if let Some(before) = filters.created_before { if m.occurred_at() >= before { return false; } }
+            if let Some(after) = filters.created_after {
+                if m.occurred_at() <= after {
+                    return false;
+                }
+            }
+            if let Some(before) = filters.created_before {
+                if m.occurred_at() >= before {
+                    return false;
+                }
+            }
             if let Some(cursor) = cursor_dt {
                 match sort {
-                    Sort::CreatedAtAsc => { if m.occurred_at() <= cursor { return false; } }
-                    _ => { if m.occurred_at() >= cursor { return false; } }
+                    Sort::CreatedAtAsc => {
+                        if m.occurred_at() <= cursor {
+                            return false;
+                        }
+                    }
+                    _ => {
+                        if m.occurred_at() >= cursor {
+                            return false;
+                        }
+                    }
                 }
             }
             true
@@ -352,33 +433,31 @@ fn filter_messages<'a>(
     items
 }
 
-fn message_from_cmd(cmd: &NewTransferMessageCommand) -> TransferMessage {
-    let id = cmd.id.clone().unwrap_or_else(MessageId::generate);
-    let peer_participant_id = cmd
-        .peer_participant_id
-        .clone()
-        .unwrap_or_else(|| ParticipantId::new(
-            Urn::from_str("urn:unknown:participant").expect("static URN"),
-        ));
-    let request_id = cmd.request_id.clone().unwrap_or_else(RequestId::generate);
-    let protocol_version = CompactString::from(cmd.protocol_version.as_deref().unwrap_or("1.0"));
-    let processing_result = MessageProcessingResult::Accepted {
-        resulting_state: cmd.state_transition_to.clone(),
+fn process_from_cmd(cmd: &NewTransferProcessCommand) -> TransferProcess {
+    let id = cmd.id.clone().unwrap_or_else(TransferProcessId::generate);
+    let now = chrono::Utc::now();
+    let correlation = TransferCorrelation {
+        identifiers: std::collections::HashMap::new(),
+        consumer_pid: None,
+        provider_pid: None,
+        agreement_id: Some(cmd.agreement_id.clone()),
+        callback_address: cmd.callback_address.clone(),
+        peer_participant_id: Some(cmd.peer_participant_id.clone()),
     };
-
-    TransferMessage {
+    TransferProcess::rehydrate(
         id,
-        transfer_process_id: cmd.transfer_process_id.clone(),
-        tenant_id: cmd.tenant_id.clone(),
-        direction: cmd.direction,
-        protocol: cmd.protocol.clone(),
-        message_type: cmd.message_type.clone(),
-        protocol_version,
-        envelope: cmd.envelope.clone(),
-        occurred_at: Utc::now(),
-        correlation_id: cmd.correlation_id.clone(),
-        request_id,
-        peer_participant_id,
-        processing_result,
-    }
+        cmd.tenant_id.clone(),
+        cmd.role,
+        now,
+        now,
+        0,
+        cmd.protocol.clone(),
+        cmd.initial_state.clone(),
+        cmd.initial_state_metadata.clone(),
+        correlation,
+        cmd.properties.clone().unwrap_or(serde_json::json!({})),
+        None,
+        None,
+        None,
+    )
 }

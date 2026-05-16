@@ -1,12 +1,12 @@
-use std::collections::HashMap;
-use chrono::{DateTime, Duration, Utc};
-use serde_json::Value as Json;
 use crate::entities::commands::EditTransferProcessCommand;
 use crate::entities::ids::{TenantId, TransferProcessId};
 use crate::entities::message_envelope::MessageEnvelopeRef;
 use crate::entities::protocol::{
     ProtocolId, ProtocolState, StateMetadata, TransferCorrelation, TransferRole,
 };
+use chrono::{DateTime, Duration, Utc};
+use serde_json::Value as Json;
+use std::collections::HashMap;
 
 #[derive(Clone)]
 pub(crate) struct TransferProcess {
@@ -127,26 +127,60 @@ impl TransferProcess {
 
     // Accessors ─────────────────────────────────────────────────────────────
 
-    pub fn id(&self) -> &TransferProcessId { &self.transfer_id }
-    pub fn tenant_id(&self) -> &TenantId { &self.tenant_id }
-    pub fn protocol(&self) -> &ProtocolId { &self.protocol }
-    pub fn state(&self) -> &ProtocolState { &self.protocol_state }
-    pub fn state_metadata(&self) -> &StateMetadata { &self.state_metadata }
-    pub fn role(&self) -> TransferRole { self.role }
-    pub fn version(&self) -> u64 { self.version as u64 }
-    pub fn correlation(&self) -> &TransferCorrelation { &self.correlation }
-    pub fn properties(&self) -> &Json { &self.properties }
-    pub fn error_details(&self) -> Option<&Json> { self.error_details.as_ref() }
-    pub fn last_inbound_envelope(&self) -> Option<&MessageEnvelopeRef> { self.last_inbound_envelope.as_ref() }
-    pub fn last_outbound_envelope(&self) -> Option<&MessageEnvelopeRef> { self.last_outbound_envelope.as_ref() }
-    pub fn created_at(&self) -> DateTime<Utc> { self.created_at }
-    pub fn updated_at(&self) -> DateTime<Utc> { self.updated_at }
+    pub fn id(&self) -> &TransferProcessId {
+        &self.transfer_id
+    }
+    pub fn tenant_id(&self) -> &TenantId {
+        &self.tenant_id
+    }
+    pub fn protocol(&self) -> &ProtocolId {
+        &self.protocol
+    }
+    pub fn state(&self) -> &ProtocolState {
+        &self.protocol_state
+    }
+    pub fn state_metadata(&self) -> &StateMetadata {
+        &self.state_metadata
+    }
+    pub fn role(&self) -> TransferRole {
+        self.role
+    }
+    pub fn version(&self) -> u64 {
+        self.version as u64
+    }
+    pub fn correlation(&self) -> &TransferCorrelation {
+        &self.correlation
+    }
+    pub fn properties(&self) -> &Json {
+        &self.properties
+    }
+    pub fn error_details(&self) -> Option<&Json> {
+        self.error_details.as_ref()
+    }
+    pub fn last_inbound_envelope(&self) -> Option<&MessageEnvelopeRef> {
+        self.last_inbound_envelope.as_ref()
+    }
+    pub fn last_outbound_envelope(&self) -> Option<&MessageEnvelopeRef> {
+        self.last_outbound_envelope.as_ref()
+    }
+    pub fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
+    pub fn updated_at(&self) -> DateTime<Utc> {
+        self.updated_at
+    }
 
     // Predicates ────────────────────────────────────────────────────────────
 
-    pub fn belongs_to(&self, tenant: &TenantId) -> bool { &self.tenant_id == tenant }
-    pub fn uses_protocol(&self, protocol: &ProtocolId) -> bool { &self.protocol == protocol }
-    pub fn age(&self) -> Duration { Utc::now() - self.created_at }
+    pub fn belongs_to(&self, tenant: &TenantId) -> bool {
+        &self.tenant_id == tenant
+    }
+    pub fn uses_protocol(&self, protocol: &ProtocolId) -> bool {
+        &self.protocol == protocol
+    }
+    pub fn age(&self) -> Duration {
+        Utc::now() - self.created_at
+    }
 
     fn bump(&mut self) {
         self.version = self.version.saturating_add(1);

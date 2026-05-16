@@ -1,6 +1,7 @@
 #![allow(unused)]
-mod entities;
-mod data;
-mod services;
-mod http;
 mod auth;
+mod data;
+mod entities;
+mod http;
+mod services;
+pub mod setup;

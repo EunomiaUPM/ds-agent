@@ -1,5 +1,5 @@
-use serde::Deserialize;
 use crate::entities::role::Role;
+use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]

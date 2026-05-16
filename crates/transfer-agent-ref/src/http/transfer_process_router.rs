@@ -10,12 +10,14 @@ use serde::Deserialize;
 use ymir::errors::AppResult;
 use ymir::utils::{extract_path_urn, extract_payload};
 
+use common::auth::rbac::Rbac;
+
 use crate::auth::extractor::AuthClaims;
 use crate::entities::commands::{EditTransferProcessCommand, NewTransferProcessCommand};
 use crate::entities::query::{Page, Paginated, Sort, TransferProcessFilter};
 use crate::http::extractors::ExtractedHeaders;
-use crate::services::transfer_process::views::TransferProcessView;
 use crate::services::transfer_process::TransferProcessServiceTrait;
+use crate::services::transfer_process::views::TransferProcessView;
 
 // Router ────────────────────────────────────────────────────────────────────
 
@@ -54,7 +56,7 @@ impl TransferProcessRouter {
         headers: ExtractedHeaders,
         Query(q): Query<TransferProcessQuery>,
     ) -> AppResult<(HeaderMap, Json<Paginated<TransferProcessView>>)> {
-        auth.require_read(headers.tenant_id.as_str())?;
+        Rbac::require_read(&auth, headers.tenant_id.as_str())?;
         let (filter, page, sort) = q.into_domain(headers.tenant_id.clone());
         let result = state.service.get_all(&filter, &page, &sort).await?;
         let response_headers = headers.response_headers_paged(result.total);
@@ -68,7 +70,7 @@ impl TransferProcessRouter {
         payload: Result<Json<BatchRequests>, JsonRejection>,
     ) -> AppResult<(HeaderMap, Json<Vec<TransferProcessView>>)> {
         // batch reads across ids — admin only, since we can't verify per-record tenant here
-        auth.require_write(headers.tenant_id.as_str())?;
+        Rbac::require_write(&auth, headers.tenant_id.as_str())?;
         let payload = extract_payload(payload)?;
         let views = state.service.batch(&payload).await?;
         let count = views.len() as u64;
@@ -81,7 +83,7 @@ impl TransferProcessRouter {
         headers: ExtractedHeaders,
         Path(id): Path<String>,
     ) -> AppResult<(HeaderMap, Json<TransferProcessView>)> {
-        auth.require_read(headers.tenant_id.as_str())?;
+        Rbac::require_read(&auth, headers.tenant_id.as_str())?;
         let urn = extract_path_urn(&id)?;
         let view = state.service.get_one(&urn).await?;
         Ok((headers.response_headers(), Json(view)))
@@ -93,7 +95,7 @@ impl TransferProcessRouter {
         headers: ExtractedHeaders,
         payload: Result<Json<NewTransferProcessCommand>, JsonRejection>,
     ) -> AppResult<(StatusCode, HeaderMap, Json<TransferProcessView>)> {
-        auth.require_write(headers.tenant_id.as_str())?;
+        Rbac::require_write(&auth, headers.tenant_id.as_str())?;
         let payload = extract_payload(payload)?;
         let view = state.service.create(&payload).await?;
         Ok((StatusCode::CREATED, headers.response_headers(), Json(view)))
@@ -106,7 +108,7 @@ impl TransferProcessRouter {
         Path(id): Path<String>,
         payload: Result<Json<EditTransferProcessCommand>, JsonRejection>,
     ) -> AppResult<(HeaderMap, Json<TransferProcessView>)> {
-        auth.require_write(headers.tenant_id.as_str())?;
+        Rbac::require_write(&auth, headers.tenant_id.as_str())?;
         let urn = extract_path_urn(&id)?;
         let payload = extract_payload(payload)?;
         let view = state.service.edit(&urn, &payload).await?;
@@ -119,7 +121,7 @@ impl TransferProcessRouter {
         headers: ExtractedHeaders,
         Path(id): Path<String>,
     ) -> AppResult<(StatusCode, HeaderMap)> {
-        auth.require_write(headers.tenant_id.as_str())?;
+        Rbac::require_write(&auth, headers.tenant_id.as_str())?;
         let urn = extract_path_urn(&id)?;
         state.service.delete(&urn).await?;
         Ok((StatusCode::NO_CONTENT, headers.response_headers()))
@@ -140,7 +142,10 @@ pub struct TransferProcessQuery {
 }
 
 impl TransferProcessQuery {
-    fn into_domain(self, tenant_id: crate::entities::ids::TenantId) -> (TransferProcessFilter, Page, Sort) {
+    fn into_domain(
+        self,
+        tenant_id: crate::entities::ids::TenantId,
+    ) -> (TransferProcessFilter, Page, Sort) {
         let mut filter = self.filter;
         filter.tenant_id = tenant_id;
         (filter, self.page, self.sort)

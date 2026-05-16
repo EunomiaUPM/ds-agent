@@ -27,6 +27,7 @@ use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
 use crate::data::repo::transfer_process::{TransferProcessRepoErrors, TransferProcessRepoTrait};
+use crate::data::sea_orm::orm::ser_enum;
 use crate::data::sea_orm::orm::transfer_process as orm;
 use crate::entities::commands::{EditTransferProcessCommand, NewTransferProcessCommand};
 use crate::entities::query::{Page, Sort, TransferProcessFilter};
@@ -62,15 +63,13 @@ impl SeaOrmTransferProcessRepo {
             q = q.filter(orm::Column::TenantId.eq(tid.as_str()));
         }
         if let Some(protocol) = &filters.protocol {
-            let s = serde_json::to_value(protocol).unwrap().as_str().unwrap_or("").to_string();
-            q = q.filter(orm::Column::Protocol.eq(s));
+            q = q.filter(orm::Column::Protocol.eq(ser_enum(protocol)));
         }
         if let Some(state) = &filters.state {
             q = q.filter(orm::Column::ProtocolState.eq(state.0.as_str()));
         }
         if let Some(role) = &filters.role {
-            let s = serde_json::to_value(role).unwrap().as_str().unwrap_or("").to_string();
-            q = q.filter(orm::Column::Role.eq(s));
+            q = q.filter(orm::Column::Role.eq(ser_enum(role)));
         }
         if let Some(agreement_id) = &filters.agreement_id {
             q = q.filter(orm::Column::AgreementId.eq(agreement_id.to_string()));

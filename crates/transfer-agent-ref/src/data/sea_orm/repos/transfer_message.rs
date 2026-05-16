@@ -25,6 +25,7 @@ use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
 use crate::data::repo::transfer_message::{TransferMessageRepoErrors, TransferMessageRepoTrait};
+use crate::data::sea_orm::orm::ser_enum;
 use crate::data::sea_orm::orm::transfer_message as orm;
 use crate::entities::commands::NewTransferMessageCommand;
 use crate::entities::query::{Page, Sort, TransferMessageFilter};
@@ -53,20 +54,10 @@ impl SeaOrmTransferMessageRepo {
         
 
         if let Some(dir) = &filters.direction {
-            let s = serde_json::to_value(dir)
-                .unwrap()
-                .as_str()
-                .unwrap_or("")
-                .to_string();
-            q = q.filter(orm::Column::Direction.eq(s));
+            q = q.filter(orm::Column::Direction.eq(ser_enum(dir)));
         }
         if let Some(protocol) = &filters.protocol {
-            let s = serde_json::to_value(protocol)
-                .unwrap()
-                .as_str()
-                .unwrap_or("")
-                .to_string();
-            q = q.filter(orm::Column::Protocol.eq(s));
+            q = q.filter(orm::Column::Protocol.eq(ser_enum(protocol)));
         }
         if let Some(state) = &filters.state_transition_to {
             q = q.filter(orm::Column::StateTransitionTo.eq(state.0.as_str()));
@@ -128,14 +119,10 @@ impl TransferMessageRepoTrait for SeaOrmTransferMessageRepo {
             q = q.filter(orm::Column::TenantId.eq(tid.as_str()));
         }
         if let Some(dir) = &filters.direction {
-            
-            let s = serde_json::to_value(dir).unwrap().as_str().unwrap_or("").to_string();
-            q = q.filter(orm::Column::Direction.eq(s));
+            q = q.filter(orm::Column::Direction.eq(ser_enum(dir)));
         }
         if let Some(protocol) = &filters.protocol {
-            
-            let s = serde_json::to_value(protocol).unwrap().as_str().unwrap_or("").to_string();
-            q = q.filter(orm::Column::Protocol.eq(s));
+            q = q.filter(orm::Column::Protocol.eq(ser_enum(protocol)));
         }
         if let Some(state) = &filters.state_transition_to {
             q = q.filter(orm::Column::StateTransitionTo.eq(state.0.as_str()));

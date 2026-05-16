@@ -61,7 +61,7 @@ impl TransferProcessService {
 
 #[async_trait::async_trait]
 impl TransferProcessServiceTrait for TransferProcessService {
-    #[tracing::instrument(skip_all, err)]
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn get_all(
         &self,
         filters: &TransferProcessFilter,
@@ -108,7 +108,7 @@ impl TransferProcessServiceTrait for TransferProcessService {
         })
     }
 
-    #[tracing::instrument(skip(self), fields(id = %id), err)]
+    #[tracing::instrument(level = "info", skip(self), fields(id = %id), err)]
     async fn get_one(&self, id: &Urn) -> Outcome<TransferProcessView> {
         let process = self
             .process_repo
@@ -129,7 +129,7 @@ impl TransferProcessServiceTrait for TransferProcessService {
         Ok(TransferProcessView::assemble(process, extra))
     }
 
-    #[tracing::instrument(skip_all, err)]
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn batch(&self, batch_request: &BatchRequests) -> Outcome<Vec<TransferProcessView>> {
         let processes = self
             .process_repo
@@ -162,7 +162,7 @@ impl TransferProcessServiceTrait for TransferProcessService {
         Ok(views)
     }
 
-    #[tracing::instrument(skip_all, err)]
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn create(&self, cmd: &NewTransferProcessCommand) -> Outcome<TransferProcessView> {
         let process = self.process_repo.create_transfer_process(cmd).await?;
 
@@ -184,7 +184,7 @@ impl TransferProcessServiceTrait for TransferProcessService {
         Ok(TransferProcessView::assemble(process, extra))
     }
 
-    #[tracing::instrument(skip(self, cmd), fields(id = %id), err)]
+    #[tracing::instrument(level = "info", skip(self, cmd), fields(id = %id), err)]
     async fn edit(
         &self,
         id: &Urn,
@@ -215,7 +215,7 @@ impl TransferProcessServiceTrait for TransferProcessService {
         Ok(TransferProcessView::assemble(process, extra))
     }
 
-    #[tracing::instrument(skip(self), fields(id = %id), err)]
+    #[tracing::instrument(level = "info", skip(self), fields(id = %id), err)]
     async fn delete(&self, id: &Urn) -> Outcome<()> {
         self.process_repo.delete_transfer_process(id).await
     }

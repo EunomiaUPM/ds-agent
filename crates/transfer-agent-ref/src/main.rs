@@ -20,6 +20,7 @@
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 use tracing_subscriber::filter::LevelFilter;
+use tracing_subscriber::fmt::format::FmtSpan;
 use transfer_agent_ref::setup::cmd::TransferCommands;
 use ymir::errors::{Errors, Outcome};
 
@@ -55,6 +56,7 @@ async fn main() -> Outcome<()> {
         .parse("debug,sqlx::query=off")
         .map_err(|e| Errors::crazy(e.to_string(), Some(Box::new(e))))?;
     tracing_subscriber::fmt()
+        .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
         .event_format(tracing_subscriber::fmt::format().with_line_number(true))
         .with_env_filter(filter)
         .init();

@@ -96,13 +96,19 @@ impl TransferHttpWorker {
             .fallback(Self::handler_404)
             .layer(
                 TraceLayer::new_for_http()
-                    .make_span_with(
-                        |_req: &Request<_>| tracing::info_span!("request", id = %Uuid::new_v4()),
-                    )
+                    .make_span_with(|req: &Request<_>| {
+                        let request_id = req
+                            .headers()
+                            .get("x-request-id")
+                            .and_then(|v| v.to_str().ok())
+                            .map(|s| s.to_owned())
+                            .unwrap_or_else(|| Uuid::new_v4().to_string());
+                        tracing::info_span!("request", id = %request_id)
+                    })
                     .on_request(|request: &Request<_>, _span: &tracing::Span| {
                         tracing::info!("{} {}", request.method(), request.uri());
                     })
-                    .on_response(DefaultOnResponse::new().level(tracing::Level::TRACE)),
+                    .on_response(DefaultOnResponse::new().level(tracing::Level::INFO)),
             );
         Ok(router)
     }

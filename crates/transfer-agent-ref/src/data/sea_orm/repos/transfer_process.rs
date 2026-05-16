@@ -42,7 +42,7 @@ impl SeaOrmTransferProcessRepo {
         Self { db }
     }
 
-    fn db_err(e: sea_orm::DbErr) -> ymir::errors::Errors {
+    fn fetch_err(e: sea_orm::DbErr) -> ymir::errors::Errors {
         TransferProcessRepoErrors::ErrorFetchingTransferProcess(Box::new(e)).into_errors()
     }
 
@@ -119,7 +119,7 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
         q.limit(page.limit as u64)
             .all(self.db.as_ref())
             .await
-            .map_err(Self::db_err)?
+            .map_err(Self::fetch_err)?
             .into_iter()
             .map(orm::Model::into_domain)
             .collect()
@@ -129,7 +129,7 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
         Self::apply_base_filters(orm::Entity::find(), filters)
             .count(self.db.as_ref())
             .await
-            .map_err(Self::db_err)
+            .map_err(Self::fetch_err)
     }
 
     async fn get_batch_transfer_processes(&self, ids: &[Urn]) -> Outcome<Vec<TransferProcess>> {
@@ -138,7 +138,7 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
             .filter(orm::Column::Id.is_in(id_strings))
             .all(self.db.as_ref())
             .await
-            .map_err(Self::db_err)?
+            .map_err(Self::fetch_err)?
             .into_iter()
             .map(orm::Model::into_domain)
             .collect()
@@ -148,7 +148,7 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
         orm::Entity::find_by_id(id.to_string())
             .one(self.db.as_ref())
             .await
-            .map_err(Self::db_err)?
+            .map_err(Self::fetch_err)?
             .map(orm::Model::into_domain)
             .transpose()
     }
@@ -165,7 +165,7 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
             .filter(ident_orm::Column::Value.eq(id.to_string()))
             .one(self.db.as_ref())
             .await
-            .map_err(Self::db_err)?;
+            .map_err(Self::fetch_err)?;
 
         match ident {
             None => Ok(None),
@@ -186,7 +186,7 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
             .filter(ident_orm::Column::Value.eq(id.to_string()))
             .one(self.db.as_ref())
             .await
-            .map_err(Self::db_err)?;
+            .map_err(Self::fetch_err)?;
 
         match ident {
             None => Ok(None),
@@ -218,7 +218,7 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
         let existing = orm::Entity::find_by_id(id.to_string())
             .one(self.db.as_ref())
             .await
-            .map_err(Self::db_err)?
+            .map_err(Self::fetch_err)?
             .ok_or_else(|| TransferProcessRepoErrors::TransferProcessNotFound.into_errors())?;
 
         let mut process = existing.into_domain()?;

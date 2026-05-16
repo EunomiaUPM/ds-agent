@@ -43,7 +43,7 @@ impl SeaOrmTransferMessageRepo {
         Self { db }
     }
 
-    fn db_err(e: sea_orm::DbErr) -> ymir::errors::Errors {
+    fn fetch_err(e: sea_orm::DbErr) -> ymir::errors::Errors {
         TransferMessageRepoErrors::ErrorFetchingTransferMessage(Box::new(e)).into_errors()
     }
 
@@ -111,7 +111,7 @@ impl TransferMessageRepoTrait for SeaOrmTransferMessageRepo {
         q.limit(page.limit as u64)
             .all(self.db.as_ref())
             .await
-            .map_err(Self::db_err)?
+            .map_err(Self::fetch_err)?
             .into_iter()
             .map(orm::Model::into_domain)
             .collect()
@@ -137,7 +137,7 @@ impl TransferMessageRepoTrait for SeaOrmTransferMessageRepo {
         if let Some(before) = filters.created_before {
             q = q.filter(orm::Column::OccurredAt.lt(before));
         }
-        q.count(self.db.as_ref()).await.map_err(Self::db_err)
+        q.count(self.db.as_ref()).await.map_err(Self::fetch_err)
     }
 
     async fn get_messages_by_process_id(
@@ -153,7 +153,7 @@ impl TransferMessageRepoTrait for SeaOrmTransferMessageRepo {
         q.limit(page.limit as u64)
             .all(self.db.as_ref())
             .await
-            .map_err(Self::db_err)?
+            .map_err(Self::fetch_err)?
             .into_iter()
             .map(orm::Model::into_domain)
             .collect()
@@ -163,7 +163,7 @@ impl TransferMessageRepoTrait for SeaOrmTransferMessageRepo {
         orm::Entity::find_by_id(id.to_string())
             .one(self.db.as_ref())
             .await
-            .map_err(Self::db_err)?
+            .map_err(Self::fetch_err)?
             .map(orm::Model::into_domain)
             .transpose()
     }

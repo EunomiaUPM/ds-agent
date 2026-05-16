@@ -45,6 +45,7 @@ impl TransferMessageService {
 
 #[async_trait::async_trait]
 impl TransferMessageServiceTrait for TransferMessageService {
+    #[tracing::instrument(skip_all, err)]
     async fn get_all(
         &self,
         filters: &TransferMessageFilter,
@@ -64,6 +65,7 @@ impl TransferMessageServiceTrait for TransferMessageService {
         Ok(Paginated { items, next_cursor, total: Some(total) })
     }
 
+    #[tracing::instrument(skip(self, filters, page, sort), fields(process_id = %process_id), err)]
     async fn get_all_by_process(
         &self,
         process_id: &Urn,
@@ -84,6 +86,7 @@ impl TransferMessageServiceTrait for TransferMessageService {
         Ok(Paginated { items, next_cursor, total: Some(total) })
     }
 
+    #[tracing::instrument(skip(self), fields(id = %id), err)]
     async fn get_one(&self, id: &Urn) -> Outcome<TransferMessageView> {
         let message = self
             .message_repo
@@ -94,12 +97,14 @@ impl TransferMessageServiceTrait for TransferMessageService {
         Ok(TransferMessageView::assemble(message))
     }
 
+    #[tracing::instrument(skip_all, err)]
     async fn create(&self, cmd: &NewTransferMessageCommand) -> Outcome<TransferMessageView> {
         let message = self.message_repo.create_transfer_message(cmd).await?;
 
         Ok(TransferMessageView::assemble(message))
     }
 
+    #[tracing::instrument(skip(self), fields(id = %id), err)]
     async fn delete(&self, id: &Urn) -> Outcome<()> {
         self.message_repo.delete_transfer_message(id).await
     }

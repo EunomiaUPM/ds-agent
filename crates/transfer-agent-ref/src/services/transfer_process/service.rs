@@ -80,10 +80,10 @@ impl TransferProcessServiceTrait for TransferProcessService {
             .get_identifiers_by_batch_process_id(&urns)
             .await?;
 
-        let mut grouped: HashMap<String, HashMap<String, String>> = HashMap::new();
+        let mut grouped: HashMap<Urn, HashMap<String, String>> = HashMap::new();
         for id in raw_identifiers {
             grouped
-                .entry(id.transfer_process_id.to_string())
+                .entry(id.transfer_process_id)
                 .or_default()
                 .insert(id.key, id.value.unwrap_or_default());
         }
@@ -96,7 +96,7 @@ impl TransferProcessServiceTrait for TransferProcessService {
         let items = processes
             .into_iter()
             .map(|p| {
-                let extra = grouped.remove(&p.id().to_string()).unwrap_or_default();
+                let extra = grouped.remove(p.id().as_urn()).unwrap_or_default();
                 TransferProcessView::assemble(p, extra)
             })
             .collect();
@@ -143,10 +143,10 @@ impl TransferProcessServiceTrait for TransferProcessService {
             .get_identifiers_by_batch_process_id(&urns)
             .await?;
 
-        let mut grouped: HashMap<String, HashMap<String, String>> = HashMap::new();
+        let mut grouped: HashMap<Urn, HashMap<String, String>> = HashMap::new();
         for id in raw_identifiers {
             grouped
-                .entry(id.transfer_process_id.to_string())
+                .entry(id.transfer_process_id)
                 .or_default()
                 .insert(id.key, id.value.unwrap_or_default());
         }
@@ -154,7 +154,7 @@ impl TransferProcessServiceTrait for TransferProcessService {
         let views = processes
             .into_iter()
             .map(|p| {
-                let extra = grouped.remove(&p.id().to_string()).unwrap_or_default();
+                let extra = grouped.remove(p.id().as_urn()).unwrap_or_default();
                 TransferProcessView::assemble(p, extra)
             })
             .collect();

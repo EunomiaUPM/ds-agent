@@ -16,9 +16,17 @@ const RouteComponent = () => {
   const { data: participantsResponse } = useGetAllParticipants();
   const localParticipants = participantsResponse?.status === 200 ? participantsResponse.data : [];
 
+
+  const myAgent = Array.isArray(participantsResponse?.data)
+    ? participantsResponse.data.find((p) => p.is_me && p.participant_type === "Agent")
+    : undefined;
+
+
   const labelCatalogRef = useRef<HTMLElement | null>(null);
   // first wizard URL state
   const [wizardCatalogOpen, setWizardCatalogOpen] = useState(true);
+
+
 
   if (federated.state === "loading") {
     return (
@@ -65,8 +73,8 @@ const RouteComponent = () => {
   }
 
   const { agents } = federated;
-  console.log(localParticipants, "localparticipants");
-  console.log(agents, "agents");
+
+
 
   //variable that tells if user is onboarded with any provider or not.
   // true = they are / false = they're not
@@ -79,6 +87,7 @@ const RouteComponent = () => {
     ),
   );
 
+
   return (
     <PageLayout>
       <div className="bg-violet-700/40 flex justify-center items-center h-48">
@@ -90,7 +99,7 @@ const RouteComponent = () => {
           onClose={() => setWizardCatalogOpen(false)}
           anchorRef={labelCatalogRef}
           align="left"
-          step={"1 3"}
+          step="1 of 3"
           sectionTitle="Connection with Participant Tutorial"
           title="Catalog browser"
           content={
@@ -108,41 +117,54 @@ const RouteComponent = () => {
             (lp) => lp.participant_id === p.participant_id && !lp.is_me,
           );
           const unauthRedirect = isOnboarded ? null : { url: p.base_url, slug: p.participant_slug };
+          // si no está autenticado con ningun proveedor, y es el primer agente de la lista
+          // destacar ese agente (modo ejemplo)
+          const firstAgentWithUnauth = (!onboardedWithKnownProvider && p === agents[0]) ? true : false;
+
+
+
+
           return (
             <div
               className={
-                unauthRedirect ? "ring-2 ring-secondary-400 shadow-md animate-pulse rounded-md" : ""
+                firstAgentWithUnauth ? "ring-2 ring-secondary-400 shadow-md animate-pulse rounded-md" : ""
               }
               onClick={() => setWizardCatalogOpen(false)}
             >
               <CatalogItem
                 key={p.participant_id}
-                date={""}
                 datasetNumber={0}
                 organizationName={p.participant_slug ?? "Unknown"}
                 id={p.participant_id ?? null}
-                isAuthenticated={isOnboarded}
-                unauthRedirect={unauthRedirect}
+                isAuthenticated={(p.participant_id === myAgent?.participant_id ? true : false) ? true : isOnboarded}
+                unauthRedirect={(p.participant_id === myAgent?.participant_id ? true : false) ? null : unauthRedirect}
+                onUnauthDialogClose={() => {
+                  if (firstAgentWithUnauth) {
+                    setTimeout(() => setWizardCatalogOpen(true), 50);
+                  }
+                }}
+                ownCatalog={p.participant_id === myAgent?.participant_id ? true : false}
+
               />
             </div>
           );
         })}
         <CatalogItem
-          date={""}
+          date={"5/19/2022"}
           datasetNumber={17}
           organizationName={"Another participant"}
           id={null}
           title={"Meteorology Stations in Madrid Catalog"}
         />
         <CatalogItem
-          date={""}
+          date={"12/08/2025"}
           datasetNumber={23}
           organizationName={"Another participant"}
           id={null}
           title={"Parking Ocupation in Ávila Catalog"}
         />
         <CatalogItem
-          date={""}
+          date={"2/2/2024"}
           datasetNumber={31}
           organizationName={"Another participant"}
           id={null}

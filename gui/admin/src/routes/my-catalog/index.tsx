@@ -61,11 +61,12 @@ function RouteComponent() {
 
   return (
     <PageLayout>
+
       <div className="grid grid-cols-3 gap-12">
         <div className="rounded-md border border-background-200/60 bg-background-200/5 p-4 max-h-[70vh] ">
           <Heading level="h2" className="capitalize">
             {" "}
-            {catalog.dctTitle ? catalog.dctTitle : `${myAgentSlug}'s Catalog for Demo`}
+            {catalog.dctTitle ? catalog.dctTitle : `${myAgentSlug}'s Catalog`}
           </Heading>
 
           <Badge variant="detail" size="lg" className="uppercase text-blue-300 font-semibold mb-3">
@@ -114,23 +115,25 @@ function RouteComponent() {
               items={
                 hasDataservice
                   ? [
-                      {
-                        label: "Dataservice ID",
-                        value: { type: "urn", value: mainDs.id! },
+                    {
+                      label: "Dataservice ID",
+                      value: { type: "urn", value: mainDs.id! },
+                    },
+                    {
+                      label: "Dataservice creation date",
+                      value: {
+                        type: "custom",
+                        content: <FormatDate date={mainDs.dctIssued} />,
                       },
-                      {
-                        label: "Dataservice creation date",
-                        value: {
-                          type: "custom",
-                          content: <FormatDate date={mainDs.dctIssued} />,
-                        },
-                      },
-                      {
-                        label: "Endpoint",
-                        value: mainDs.dcatEndpointUrl ?? "No endpoint provided",
-                      },
-                    ]
-                  : [{ label: "Dataservice", value: "No dataservice registered for this catalog" }]
+                    },
+                    {
+                      label: "Endpoint",
+                      value: mainDs.dcatEndpointUrl ?? "No endpoint provided",
+                    },
+                  ]
+                  : [
+                    { label: "Dataservice", value: "No dataservice registered for this catalog" },
+                  ]
               }
             />
           </>
@@ -144,11 +147,11 @@ function RouteComponent() {
               datasets.map((dataset) => (
                 <DatasetItem
                   key={dataset.id}
-                  title={dataset.dctTitle!}
-                  description={dataset.dctDescription!}
-                  date={dataset.dctIssued!}
-                  prevRoute={catalog.id!}
-                  datasetId={dataset.id!}
+                  title={dataset.dctTitle ?? ""}
+                  description={dataset.dctDescription ?? ""}
+                  date={dataset.dctIssued ?? ""}
+                  prevRoute={catalog.id ?? ""}
+                  datasetId={dataset.id ?? ""}
                   ownDataset={true}
                   dataset={dataset}
                 />
@@ -159,6 +162,8 @@ function RouteComponent() {
           </div>
         </div>
       </div>
+
     </PageLayout>
+
   );
 }

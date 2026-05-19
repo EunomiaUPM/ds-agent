@@ -36,13 +36,11 @@ import AvatarImg from "shared/components/ui/avatar-img";
 import { useGetMainCatalogs } from "shared/data/orval/catalogs/catalogs";
 
 const RouteComponent = () => {
+
   const { data: mainCatalogData } = useGetMainCatalogs();
   const mainCatalog = mainCatalogData?.status === 200 ? mainCatalogData.data : undefined;
 
-  console.log(mainCatalog, "maincatalog");
-  console.log(mainCatalog?.id, "maincatalog ID");
-
-  const catalogId = mainCatalog?.id || "";
+  const catalogId = mainCatalog?.id || ""
   const { data: catalogData } = useGetCatalogById(catalogId);
   const { data: datasetsData } = useGetDatasetsByCatalogId(catalogId);
   const { data: dataservicesData } = useGetDataServicesByCatalogId(catalogId);
@@ -58,16 +56,17 @@ const RouteComponent = () => {
     ? participants.data.find((p) => p.is_me && p.participant_type === "Agent")
     : undefined;
 
-  console.log(myAgent, "myAgent id");
-  const myAgentSlug = myAgent?.participant_slug;
 
+ const myAgentSlug = myAgent?.participant_slug
+ 
   return (
     <PageLayout>
+    
       <div className="grid grid-cols-3 gap-12">
         <div className="rounded-md border border-background-200/60 bg-background-200/5 p-4 max-h-[70vh] ">
           <Heading level="h2" className="capitalize">
             {" "}
-            {catalog.dctTitle ? catalog.dctTitle : `${myAgentSlug}'s Catalog for Demo`}
+            {catalog.dctTitle ? catalog.dctTitle : `${myAgentSlug}'s Catalog`}
           </Heading>
 
           <Badge variant="detail" size="lg" className="uppercase text-blue-300 font-semibold mb-3">
@@ -88,18 +87,18 @@ const RouteComponent = () => {
               },
               {
                 label: "Organization",
-                value: {
-                  type: "custom",
-                  content: (
-                    <div className={`catalog-participant-container flex gap-2 justify-start `}>
-                      <AvatarImg sizeClass="h-7" />
-                      <Heading level="h4" className="capitalize">
-                        {" "}
-                        {myAgentSlug}{" "}
-                      </Heading>
-                    </div>
-                  ),
-                },
+                  value: {
+                    type: "custom",
+                    content: (
+                      <div className={`catalog-participant-container flex gap-2 justify-start `}>
+                        <AvatarImg  sizeClass="h-7" />
+                        <Heading level="h4" className="capitalize">
+                          {" "}
+                          {myAgentSlug}{" "}
+                        </Heading>
+                      </div>
+                    ),
+                  },
               },
             ]}
           />
@@ -107,7 +106,7 @@ const RouteComponent = () => {
           <div className="h-1"></div>
           <div className="border-t border-white/10"></div>
           <div className="h-2"></div>
-
+      
           <>
             <Heading level="h4" className="text-left">
               Dataservice
@@ -158,7 +157,8 @@ const RouteComponent = () => {
           </div>
         </div>
       </div>
-    </PageLayout>
+    
+   </PageLayout>
   );
 };
 

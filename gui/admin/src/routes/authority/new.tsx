@@ -226,6 +226,8 @@ function NewAuthorityRequest() {
       ? "animate-pulse bg-secondary-600 hover:bg-secondary-500 ring-2 ring-secondary-400"
       : "";
 
+      
+
   return (
     <PageLayout>
       <PageHeader title="Request New Credential" />
@@ -558,7 +560,7 @@ function NewAuthorityRequest() {
                         Authority DID
                       </p>
                       <Badge variant="infoLighter" className=" break-all">
-                        {formatIdentifier(discoveredInfo.id)}
+                        {formatIdentifier(discoveredInfo.id, 0, true, 40)}
                       </Badge>
                     </div>
                     <div className="space-y-1">
@@ -567,9 +569,7 @@ function NewAuthorityRequest() {
                       </p>
                       <div className="flex flex-wrap gap-2 pt-1">
                         {discoveredInfo.vc_types.map((t) => (
-                          <Badge key={t} variant="info">
-                            {t}
-                          </Badge>
+                          <Badge key={t}>{getFriendlyVCType(t)}</Badge>
                         ))}
                       </div>
                     </div>
@@ -586,11 +586,11 @@ function NewAuthorityRequest() {
                             <p className="font-medium text-brand-sky">
                               {s.type.replace(/([a-z])([A-Z])/g, "$1 $2")}
                             </p>
-                            <p className="break-all text-white/70">{s.serviceEndpoint}</p>
+                            <p className="break-all text-xs text-white/70">{s.serviceEndpoint}</p>
                           </div>
                         ))}
                         {discoveredInfo.services.length === 0 && (
-                          <p className="text-[10px] italic opacity-50">No services found</p>
+                          <p className="text-sm italic opacity-50">No services found</p>
                         )}
                       </div>
                     </div>

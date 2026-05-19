@@ -395,7 +395,9 @@ function NewProviderOnboard() {
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                         Provider DID
                       </p>
-                      <Badge variant="infoLighter">{formatIdentifier(discoveredInfo.id)}</Badge>
+                      <Badge variant="infoLighter">
+                        {formatIdentifier(discoveredInfo.id, 0, true, 40)}
+                      </Badge>
                     </div>
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -408,7 +410,7 @@ function NewProviderOnboard() {
                             className="p-2 border rounded bg-background-200/30 text-sm space-y-1"
                           >
                             <p className="font-medium text-brand-sky">{s.type}</p>
-                            <p className="break-all text-white/70">{s.serviceEndpoint}</p>
+                            <p className="break-all text-xs text-white/70">{s.serviceEndpoint}</p>
                           </div>
                         ))}
                         {discoveredInfo.services.length === 0 && (

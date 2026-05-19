@@ -1,6 +1,6 @@
 use common::config::ApplicationConfig;
 use common::config::services::{
-    CatalogConfig, CommonConfig, ContractsConfig, GatewayConfig, MonolithConfig, TransferConfig,
+    CatalogConfig, ContractsConfig, GatewayConfig, MonolithConfig, TransferConfig,
 };
 use thiserror::Error;
 use ymir::errors::{Outcome, RepoIntoErrors};
@@ -18,6 +18,7 @@ pub trait KeystoreConfigRepo: Send + Sync {
 }
 
 #[derive(Debug, Error)]
+#[allow(dead_code)]
 pub enum KeystoreConfigRepoErrors {
     #[error("Error fetching Keystore config. {0}")]
     ErrorFetching(Box<dyn std::error::Error + Send + Sync>),

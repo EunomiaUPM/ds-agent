@@ -10,11 +10,13 @@ use sea_orm::DatabaseConnection;
 use std::ops::Deref;
 use std::sync::Arc;
 
+#[allow(dead_code)]
 pub(crate) struct SeaOrmFactory {
     config: Arc<ApplicationConfig>,
     db: Arc<DatabaseConnection>,
 }
 
+#[allow(dead_code)]
 impl SeaOrmFactory {
     pub fn new(db: Arc<DatabaseConnection>, config: Arc<ApplicationConfig>) -> Self {
         Self { db, config }

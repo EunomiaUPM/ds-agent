@@ -87,7 +87,10 @@ const NewParameterDialog = ({ open, onClose }: NewParameterDialogProps) => {
               className="font-mono text-xs"
               placeholder="/my/parameter/key"
               value={key}
-              onChange={(e) => { setKey(e.target.value); setJsonError(null); }}
+              onChange={(e) => {
+                setKey(e.target.value);
+                setJsonError(null);
+              }}
             />
           </div>
 
@@ -97,7 +100,10 @@ const NewParameterDialog = ({ open, onClose }: NewParameterDialogProps) => {
               className="font-mono text-xs min-h-[100px]"
               placeholder='"string", 42, {"key": "value"}, [...]'
               value={valueStr}
-              onChange={(e) => { setValueStr(e.target.value); setJsonError(null); }}
+              onChange={(e) => {
+                setValueStr(e.target.value);
+                setJsonError(null);
+              }}
             />
             {jsonError && <p className="text-xs text-destructive">{jsonError}</p>}
           </div>
@@ -113,8 +119,12 @@ const NewParameterDialog = ({ open, onClose }: NewParameterDialogProps) => {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSubmit} isLoading={isPending}>Create</Button>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} isLoading={isPending}>
+            Create
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -264,7 +274,10 @@ const ParameterRow = ({ param }: { param: KeystoreParameterView }) => {
               variant="ghost"
               size="icon"
               className="h-7 w-7"
-              onClick={(e) => { e.stopPropagation(); setExpanded((v) => !v); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setExpanded((v) => !v);
+              }}
             >
               {expanded ? (
                 <ChevronUp className="h-3.5 w-3.5" />
@@ -276,7 +289,10 @@ const ParameterRow = ({ param }: { param: KeystoreParameterView }) => {
               variant="ghost"
               size="icon"
               className="h-7 w-7 text-muted-foreground hover:text-foreground"
-              onClick={(e) => { e.stopPropagation(); setEditing(true); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditing(true);
+              }}
             >
               <Pencil className="h-3.5 w-3.5" />
             </Button>
@@ -285,7 +301,10 @@ const ParameterRow = ({ param }: { param: KeystoreParameterView }) => {
               size="icon"
               className="h-7 w-7 text-destructive/70 hover:text-destructive"
               isLoading={isDeleting}
-              onClick={(e) => { e.stopPropagation(); del({ key: param.key.replace(/^\//, "") }); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                del({ key: param.key.replace(/^\//, "") });
+              }}
             >
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
@@ -307,11 +326,7 @@ const ParameterRow = ({ param }: { param: KeystoreParameterView }) => {
       </div>
 
       {editing && (
-        <EditParameterDialog
-          param={param}
-          open={editing}
-          onClose={() => setEditing(false)}
-        />
+        <EditParameterDialog param={param} open={editing} onClose={() => setEditing(false)} />
       )}
     </>
   );
@@ -372,9 +387,7 @@ const KeystoreParameters = () => {
         )}
       </PageSection>
 
-      {creating && (
-        <NewParameterDialog open={creating} onClose={() => setCreating(false)} />
-      )}
+      {creating && <NewParameterDialog open={creating} onClose={() => setCreating(false)} />}
     </>
   );
 };

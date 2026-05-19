@@ -68,7 +68,9 @@ function RouteComponent() {
 
   if (!catalog) return null;
   // { console.log(dataCatalog, "data catalog") }
-   { console.log(catalog, "catalog participant") }
+  {
+    console.log(catalog, "catalog participant");
+  }
   // { console.log(catalog?.response, "catalog response in participant") }
   {
     console.log(catalog?.response?.dataset, " datasets in participant");
@@ -115,7 +117,7 @@ function RouteComponent() {
                     type: "custom",
                     content: (
                       <div className="catalog-participant-container flex gap-2 justify-start">
-                     <Avatar sizeClass="h-7" />
+                        <Avatar sizeClass="h-7" />
                         <Heading level="h4" className="capitalize">
                           {" "}
                           {otherParticipantSlug}{" "}

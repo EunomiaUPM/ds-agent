@@ -60,7 +60,7 @@ const DistributionItem: React.FC<DistributionItemProps> = ({
                 prevRoute: prevRoute!,
                 dataserviceId: dataserviceId!,
               }}
-               className="col-span-3"
+              className="col-span-3"
             >
               <span className="underline-offset-2 hover:underline flex gap-2">
                 Dataservice <ExternalLink className="h-4 w-4" />

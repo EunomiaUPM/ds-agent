@@ -89,7 +89,10 @@ const NewSecretDialog = ({ open, onClose }: NewSecretDialogProps) => {
               className="font-mono text-xs"
               placeholder="/my/secret/key"
               value={key}
-              onChange={(e) => { setKey(e.target.value); setError(null); }}
+              onChange={(e) => {
+                setKey(e.target.value);
+                setError(null);
+              }}
             />
           </div>
 
@@ -99,7 +102,10 @@ const NewSecretDialog = ({ open, onClose }: NewSecretDialogProps) => {
               className="font-mono text-xs min-h-[100px]"
               placeholder='Enter secret value (any JSON: "string", 42, {...}, [...])'
               value={valueStr}
-              onChange={(e) => { setValueStr(e.target.value); setError(null); }}
+              onChange={(e) => {
+                setValueStr(e.target.value);
+                setError(null);
+              }}
             />
             {error && <p className="text-xs text-destructive">{error}</p>}
             <p className="text-[11px] text-muted-foreground/60">
@@ -118,8 +124,12 @@ const NewSecretDialog = ({ open, onClose }: NewSecretDialogProps) => {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSubmit} isLoading={isPending}>Create</Button>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} isLoading={isPending}>
+            Create
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -291,11 +301,7 @@ const SecretRow = ({ secret }: { secret: KeystoreSecretView }) => {
       </div>
 
       {editing && (
-        <EditSecretDialog
-          secret={secret}
-          open={editing}
-          onClose={() => setEditing(false)}
-        />
+        <EditSecretDialog secret={secret} open={editing} onClose={() => setEditing(false)} />
       )}
     </>
   );
@@ -356,9 +362,7 @@ const KeystoreSecrets = () => {
         )}
       </PageSection>
 
-      {creating && (
-        <NewSecretDialog open={creating} onClose={() => setCreating(false)} />
-      )}
+      {creating && <NewSecretDialog open={creating} onClose={() => setCreating(false)} />}
     </>
   );
 };

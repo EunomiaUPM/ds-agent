@@ -20,9 +20,7 @@ type FederatedCatalogResult =
   | { state: "error"; error: unknown }
   | { state: "ok"; agents: FederatedParticipant[]; myParticipantId: string | undefined };
 
-const fetchFederatedCatalog = async (
-  authorityBaseUrl: string,
-): Promise<FederatedParticipant[]> => {
+const fetchFederatedCatalog = async (authorityBaseUrl: string): Promise<FederatedParticipant[]> => {
   const encoded = encodeURIComponent(authorityBaseUrl);
   const res = await customInstance<{
     status: number;
@@ -35,11 +33,9 @@ const fetchFederatedCatalog = async (
 };
 
 export const useFederatedCatalog = (): FederatedCatalogResult => {
-  const { data: participantsResponse, isLoading: participantsLoading } =
-    useGetAllParticipants();
+  const { data: participantsResponse, isLoading: participantsLoading } = useGetAllParticipants();
 
-  const localParticipants =
-    participantsResponse?.status === 200 ? participantsResponse.data : [];
+  const localParticipants = participantsResponse?.status === 200 ? participantsResponse.data : [];
 
   const authority = localParticipants.find((p) => p.participant_type === "Authority");
   const myParticipantId = localParticipants.find((p) => p.is_me)?.participant_id;

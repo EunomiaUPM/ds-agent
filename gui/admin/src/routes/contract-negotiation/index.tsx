@@ -29,7 +29,7 @@ const RouteComponent = () => {
 
   return (
     <PageLayout>
-      <PageHeader title="Contract Negotiations"  className="flex items-center justify-between">
+      <PageHeader title="Contract Negotiations" className="flex items-center justify-between">
         <div className="flex gap-1 mt-2 p-0.5 rounded-md bg-white/5 w-fit text-xs">
           <button
             onClick={() => setMode("business")}

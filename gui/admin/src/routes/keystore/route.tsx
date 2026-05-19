@@ -16,8 +16,7 @@ const KeystoreLayout = () => {
 
   return (
     <PageLayout>
-      <PageHeader title="Keystore">
-      </PageHeader>
+      <PageHeader title="Keystore"></PageHeader>
 
       <div className="flex gap-1 border-b border-white/10 mb-6 w-full">
         {tabs.map((tab) => {

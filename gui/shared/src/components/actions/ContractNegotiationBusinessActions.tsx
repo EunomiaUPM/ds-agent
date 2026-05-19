@@ -37,7 +37,11 @@ export const ContractNegotiationBusinessActions = ({
         case "REQUESTED":
         case "ACCEPTED":
           return [
-            { label: "Agree", variant: "default", Component: ContractNegotiationBusinessAgreementDialog },
+            {
+              label: "Agree",
+              variant: "default",
+              Component: ContractNegotiationBusinessAgreementDialog,
+            },
           ];
         case "AGREED":
         case "VERIFIED":
@@ -57,7 +61,11 @@ export const ContractNegotiationBusinessActions = ({
           ];
         case "OFFERED":
           return [
-            { label: "Accept", variant: "default", Component: ContractNegotiationBusinessAcceptanceDialog },
+            {
+              label: "Accept",
+              variant: "default",
+              Component: ContractNegotiationBusinessAcceptanceDialog,
+            },
             {
               label: "Terminate",
               variant: "destructive",

@@ -13,7 +13,7 @@ interface Props {
   content?: React.ReactNode;
   actionHref?: string;
   actionLabel?: string;
-  sectionTitle: string
+  sectionTitle: string;
 }
 
 export default function WizardEndDialog({
@@ -23,7 +23,7 @@ export default function WizardEndDialog({
   content,
   actionHref = "/catalog/",
   actionLabel = "See catalog",
-  sectionTitle
+  sectionTitle,
 }: Props) {
   if (!open) return null;
   const portalRoot = typeof window !== "undefined" ? document.body : null;
@@ -38,8 +38,12 @@ export default function WizardEndDialog({
         >
           ✕
         </button> */}
-        <Badge variant="wizardSuccess" className="mb-2">{sectionTitle}</Badge>
-        <Heading level="h5" className="mb-2 text-xl font-semibold">{title}</Heading>
+        <Badge variant="wizardSuccess" className="mb-2">
+          {sectionTitle}
+        </Badge>
+        <Heading level="h5" className="mb-2 text-xl font-semibold">
+          {title}
+        </Heading>
         <p className="mb-4 text-sm text-muted-foreground">{content}</p>
 
         <div className="flex justify-end gap-2">

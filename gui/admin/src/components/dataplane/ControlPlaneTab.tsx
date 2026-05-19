@@ -32,10 +32,7 @@ export function ControlPlaneTab({ tp }: { tp: TransferProcessDto }) {
                     content: (
                       <Badge
                         variant="status"
-                        state={mergeStateAndAttribute(
-                          tp.state ?? "",
-                          tp.stateAttribute ?? "",
-                        )}
+                        state={mergeStateAndAttribute(tp.state ?? "", tp.stateAttribute ?? "")}
                       >
                         {mergeStateAndAttribute(tp.state ?? "", tp.stateAttribute ?? "")}
                       </Badge>

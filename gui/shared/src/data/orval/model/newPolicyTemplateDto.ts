@@ -9,9 +9,9 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { LocalizedText } from "./localizedText";
-import type { NewPolicyTemplateDtoParameters } from "./newPolicyTemplateDtoParameters";
-import type { OdrlPolicyInfo } from "./odrlPolicyInfo";
+import type { LocalizedText } from './localizedText';
+import type { NewPolicyTemplateDtoParameters } from './newPolicyTemplateDtoParameters';
+import type { OdrlPolicyInfo } from './odrlPolicyInfo';
 
 export interface NewPolicyTemplateDto {
   id?: string;

@@ -10,12 +10,12 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  * OpenAPI spec version: 1.0.0
  */
 
-export type NewPolicyInstantiationDtoEntityType =
-  (typeof NewPolicyInstantiationDtoEntityType)[keyof typeof NewPolicyInstantiationDtoEntityType];
+export type NewPolicyInstantiationDtoEntityType = typeof NewPolicyInstantiationDtoEntityType[keyof typeof NewPolicyInstantiationDtoEntityType];
+
 
 export const NewPolicyInstantiationDtoEntityType = {
-  Distribution: "Distribution",
-  DataService: "DataService",
-  Catalog: "Catalog",
-  Dataset: "Dataset",
+  Distribution: 'Distribution',
+  DataService: 'DataService',
+  Catalog: 'Catalog',
+  Dataset: 'Dataset',
 } as const;

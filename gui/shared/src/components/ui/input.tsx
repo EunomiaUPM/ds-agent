@@ -34,7 +34,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
     return (
       <div
         className={cn(
-          "flex h-7 items-center rounded-sm border-0 border-input bg-white/5 pl-2 text-xs focus-within:ring-1 focus-within:ring-ring/50",
+          "flex h-7 items-center rounded-sm border-0 border-input bg-white/10 pl-2 text-sm focus-within:ring-1 focus-within:ring-ring/50",
           className,
         )}
       >

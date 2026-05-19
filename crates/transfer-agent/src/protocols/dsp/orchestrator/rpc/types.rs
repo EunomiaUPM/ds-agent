@@ -53,7 +53,7 @@ pub trait RpcTransferProcessMessageTrait: Debug + Send + Sync {
 
 // ─── TransferRequestMessage ───────────────────────────────────────────────────
 
-/// RPC payload for initiating a new transfer process (Consumer → Provider).
+/// RPC payload for initiating a new transfer process (Consumer - Provider).
 ///
 /// Carries everything needed to build a DSP `TransferRequestMessage` plus the
 /// routing fields (`associated_agent_peer`, `provider_address`) that are

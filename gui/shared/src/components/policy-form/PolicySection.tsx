@@ -5,7 +5,7 @@
  * Contains a list of PolicyItem components and an "Add" button.
  *
  * Part of the policy form component hierarchy:
- * PolicySection → PolicyItem → ConstraintItem
+ * PolicySection - PolicyItem - ConstraintItem
  *
  * @example
  * <PolicySection

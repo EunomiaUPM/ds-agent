@@ -9,7 +9,7 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { OdrlConstraintRightOperand } from "./odrlConstraintRightOperand";
+import type { OdrlConstraintRightOperand } from './odrlConstraintRightOperand';
 
 export interface OdrlConstraint {
   leftOperand?: string;

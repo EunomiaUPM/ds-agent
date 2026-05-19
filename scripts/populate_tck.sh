@@ -80,7 +80,7 @@ seed_catalog() {
     pair=$(make_dataset "tck-$key")
     DS[$key]="${pair%% *}"
     OFFER[$key]="${pair##* }"
-    ok "$key → ds=${DS[$key]:0:30}..."
+    ok "$key - ds=${DS[$key]:0:30}..."
   done
 }
 
@@ -121,7 +121,7 @@ seed_agreements() {
              TP0201 TP0202 TP0203 TP0204 TP0205 \
              TP0301 TP0302 TP0303 TP0304 TP0305 TP0306; do
     AGR_PROV[$key]=$(make_agreement "$anchor_ds")
-    ok "$key → ${AGR_PROV[$key]:0:40}..."
+    ok "$key - ${AGR_PROV[$key]:0:40}..."
   done
 
   log "Creating 16 consumer-role agreements (TPC*)..."
@@ -129,7 +129,7 @@ seed_agreements() {
              TPC0201 TPC0202 TPC0203 TPC0204 TPC0205 \
              TPC0301 TPC0302 TPC0303 TPC0304 TPC0305 TPC0306; do
     AGR_CONS[$key]=$(make_agreement "$anchor_ds")
-    ok "$key → ${AGR_CONS[$key]:0:40}..."
+    ok "$key - ${AGR_CONS[$key]:0:40}..."
   done
 }
 
@@ -204,7 +204,7 @@ main() {
     '{datasets: $ds, offers: $offer, provider_agreements: $agr_p, consumer_agreements: $agr_c}' \
     > "$OUTPUT_MAPPING"
 
-  ok "TCK seeding complete → $OUTPUT_MAPPING"
+  ok "TCK seeding complete - $OUTPUT_MAPPING"
 }
 
 main

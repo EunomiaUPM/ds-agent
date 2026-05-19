@@ -10,9 +10,9 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  * OpenAPI spec version: 1.0.0
  */
 
-export type Oauth2ClientCredentialsType =
-  (typeof Oauth2ClientCredentialsType)[keyof typeof Oauth2ClientCredentialsType];
+export type Oauth2ClientCredentialsType = typeof Oauth2ClientCredentialsType[keyof typeof Oauth2ClientCredentialsType];
+
 
 export const Oauth2ClientCredentialsType = {
-  Oauth2ClientCredentials: "Oauth2ClientCredentials",
+  Oauth2ClientCredentials: 'Oauth2ClientCredentials',
 } as const;

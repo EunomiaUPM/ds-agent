@@ -10,11 +10,11 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  * OpenAPI spec version: 1.0.0
  */
 
-export type GetAllParticipantsType =
-  (typeof GetAllParticipantsType)[keyof typeof GetAllParticipantsType];
+export type GetAllParticipantsType = typeof GetAllParticipantsType[keyof typeof GetAllParticipantsType];
+
 
 export const GetAllParticipantsType = {
-  agents: "agents",
-  authorities: "authorities",
-  all: "all",
+  agents: 'agents',
+  authorities: 'authorities',
+  all: 'all',
 } as const;

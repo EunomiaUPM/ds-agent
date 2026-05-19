@@ -66,6 +66,53 @@ fn echo_model(
     }
 }
 
+/// Parses the full OAuth2 Password-grant template JSON to verify camelCase field names
+/// and the nested `grantType` object round-trip correctly.
+#[tokio::test]
+async fn test_create_oauth2_password_grant_template() {
+    let json_dto = json!({
+        "authentication": {
+            "type": "OAUTH2",
+            "grantType": {
+                "type": "PASSWORD",
+                "username": "{{__USER_NAME__}}",
+                "password": { "type": "PLAIN", "content": "{{__USER_PASS__}}" }
+            },
+            "tokenUrl": "{{__TOKEN_URL__}}",
+            "clientId": "{{__CLIENT_ID__}}",
+            "clientSecret": { "type": "PLAIN", "content": "{{__CLIENT_SECRET__}}" },
+            "scopes": [],
+            "onTokenExpire": "REFRESH_OR_REFETCH"
+        },
+        "interaction": {
+            "mode": "PULL",
+            "dataAccess": {
+                "protocol": "HTTP",
+                "urlTemplate": "{{__ACCESS_URL__}}",
+                "method": "{{__ACCESS_METHODS__}}",
+                "headers": "{{__ACCESS_HEADERS__}}"
+            }
+        },
+        "parameters": [
+            { "paramType": "STRING",            "name": "ACCESS_URL",     "title": "Url",             "required": true },
+            { "paramType": "VEC<STRING>",        "name": "ACCESS_METHODS", "title": "Methods",         "required": true },
+            { "paramType": "MAP<STRING,STRING>", "name": "ACCESS_HEADERS", "title": "Headers",         "required": true },
+            { "paramType": "STRING",            "name": "USER_NAME",      "title": "User Name",       "required": true },
+            { "paramType": "STRING",            "name": "USER_PASS",      "title": "User Password",   "required": true },
+            { "paramType": "STRING",            "name": "TOKEN_URL",      "title": "Token URL",       "required": true },
+            { "paramType": "STRING",            "name": "CLIENT_ID",      "title": "Client ID",       "required": true },
+            { "paramType": "STRING",            "name": "CLIENT_SECRET",  "title": "Client Secret",   "required": true }
+        ]
+    });
+    let mut dto: ConnectorTemplateDto = serde_json::from_value(json_dto).unwrap();
+    let result = mock_entities().create_template(&mut dto).await;
+    assert!(
+        result.is_ok(),
+        "expected ok, got: {:#?}",
+        result.unwrap_err()
+    );
+}
+
 /// Happy path: all declared parameters match the template and the types are compatible.
 ///
 /// Parameter / context compatibility verified here:
@@ -117,7 +164,7 @@ async fn test_create_instance() {
 #[tokio::test]
 async fn test_create_instance_too_much_parameters() {
     // SHOULD_FAIL is declared in parameters[] but never used in the template.
-    // Validation fails → the repo is never reached (no expectation needed).
+    // Validation fails - the repo is never reached (no expectation needed).
     let json_dto = json!({
         "authentication": {
             "type": "BASIC_AUTH",

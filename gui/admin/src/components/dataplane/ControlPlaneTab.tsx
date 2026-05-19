@@ -2,7 +2,7 @@ import React from "react";
 import { TabsContent } from "shared/src/components/ui/tabs";
 import { InfoList } from "shared/src/components/ui/info-list";
 import { FormatDate } from "shared/src/components/ui/format-date";
-import { Badge, BadgeState } from "shared/components/ui/badge";
+import { Badge } from "shared/components/ui/badge";
 import { PageSection } from "shared/src/components/layout/PageSection";
 import { InfoGrid } from "shared/src/components/layout/InfoGrid";
 import TransferProcessMessageComponent from "shared/src/components/TransferProcessMessageComponent";
@@ -32,12 +32,7 @@ export function ControlPlaneTab({ tp }: { tp: TransferProcessDto }) {
                     content: (
                       <Badge
                         variant="status"
-                        state={
-                          mergeStateAndAttribute(
-                            tp.state ?? "",
-                            tp.stateAttribute ?? "",
-                          ) as BadgeState
-                        }
+                        state={mergeStateAndAttribute(tp.state ?? "", tp.stateAttribute ?? "")}
                       >
                         {mergeStateAndAttribute(tp.state ?? "", tp.stateAttribute ?? "")}
                       </Badge>

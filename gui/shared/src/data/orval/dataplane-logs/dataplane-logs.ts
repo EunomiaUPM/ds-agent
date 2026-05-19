@@ -9,7 +9,10 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useQuery
+} from '@tanstack/react-query';
 import type {
   DataTag,
   DefinedInitialDataOptions,
@@ -23,298 +26,207 @@ import type {
   UseInfiniteQueryOptions,
   UseInfiniteQueryResult,
   UseQueryOptions,
-  UseQueryResult,
-} from "@tanstack/react-query";
+  UseQueryResult
+} from '@tanstack/react-query';
 
-import type { DataplaneTransferLogDto, InternalServerErrorResponse } from ".././model";
+import type {
+  DataplaneTransferLogDto,
+  InternalServerErrorResponse
+} from '.././model';
 
-import { customInstance } from "../../orval-mutator";
-import type { ErrorType } from "../../orval-mutator";
+import { customInstance } from '../../orval-mutator';
+import type { ErrorType } from '../../orval-mutator';
+
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+
 
 /**
  * @summary Get dataplane transfer logs
  */
 export type getDataplaneTransferLogsResponse200 = {
-  data: DataplaneTransferLogDto[];
-  status: 200;
-};
+  data: DataplaneTransferLogDto[]
+  status: 200
+}
 
 export type getDataplaneTransferLogsResponse500 = {
-  data: InternalServerErrorResponse;
-  status: 500;
-};
-
-export type getDataplaneTransferLogsResponseSuccess = getDataplaneTransferLogsResponse200 & {
+  data: InternalServerErrorResponse
+  status: 500
+}
+    
+export type getDataplaneTransferLogsResponseSuccess = (getDataplaneTransferLogsResponse200) & {
   headers: Headers;
 };
-export type getDataplaneTransferLogsResponseError = getDataplaneTransferLogsResponse500 & {
+export type getDataplaneTransferLogsResponseError = (getDataplaneTransferLogsResponse500) & {
   headers: Headers;
 };
 
-export type getDataplaneTransferLogsResponse =
-  | getDataplaneTransferLogsResponseSuccess
-  | getDataplaneTransferLogsResponseError;
+export type getDataplaneTransferLogsResponse = (getDataplaneTransferLogsResponseSuccess | getDataplaneTransferLogsResponseError)
 
-export const getGetDataplaneTransferLogsUrl = (dataplaneProcessId: string) => {
-  return `/transfers/dataplane/dataplane-processes/${dataplaneProcessId}/logs`;
-};
+export const getGetDataplaneTransferLogsUrl = (dataplaneProcessId: string,) => {
 
-export const getDataplaneTransferLogs = async (
-  dataplaneProcessId: string,
-  options?: RequestInit,
-): Promise<getDataplaneTransferLogsResponse> => {
-  return customInstance<getDataplaneTransferLogsResponse>(
-    getGetDataplaneTransferLogsUrl(dataplaneProcessId),
-    {
-      ...options,
-      method: "GET",
-    },
-  );
-};
 
-export const getGetDataplaneTransferLogsInfiniteQueryKey = (dataplaneProcessId: string) => {
-  return [
-    "infinite",
-    `/transfers/dataplane/dataplane-processes/${dataplaneProcessId}/logs`,
-  ] as const;
-};
+  
 
-export const getGetDataplaneTransferLogsQueryKey = (dataplaneProcessId: string) => {
-  return [`/transfers/dataplane/dataplane-processes/${dataplaneProcessId}/logs`] as const;
-};
+  return `/transfers/dataplane/dataplane-processes/${dataplaneProcessId}/logs`
+}
 
-export const getGetDataplaneTransferLogsInfiniteQueryOptions = <
-  TData = InfiniteData<Awaited<ReturnType<typeof getDataplaneTransferLogs>>>,
-  TError = ErrorType<InternalServerErrorResponse>,
->(
-  dataplaneProcessId: string,
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDataplaneTransferLogs>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
+export const getDataplaneTransferLogs = async (dataplaneProcessId: string, options?: RequestInit): Promise<getDataplaneTransferLogsResponse> => {
+  
+  return customInstance<getDataplaneTransferLogsResponse>(getGetDataplaneTransferLogsUrl(dataplaneProcessId),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getGetDataplaneTransferLogsInfiniteQueryKey = (dataplaneProcessId: string,) => {
+    return [
+    'infinite', `/transfers/dataplane/dataplane-processes/${dataplaneProcessId}/logs`
+    ] as const;
+    }
+
+export const getGetDataplaneTransferLogsQueryKey = (dataplaneProcessId: string,) => {
+    return [
+    `/transfers/dataplane/dataplane-processes/${dataplaneProcessId}/logs`
+    ] as const;
+    }
+
+    
+export const getGetDataplaneTransferLogsInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof getDataplaneTransferLogs>>>, TError = ErrorType<InternalServerErrorResponse>>(dataplaneProcessId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDataplaneTransferLogs>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey =
-    queryOptions?.queryKey ?? getGetDataplaneTransferLogsInfiniteQueryKey(dataplaneProcessId);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getDataplaneTransferLogs>>> = ({
-    signal,
-  }) => getDataplaneTransferLogs(dataplaneProcessId, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getGetDataplaneTransferLogsInfiniteQueryKey(dataplaneProcessId);
 
-  return {
-    queryKey,
-    queryFn,
-    enabled: !!dataplaneProcessId,
-    ...queryOptions,
-  } as UseInfiniteQueryOptions<
-    Awaited<ReturnType<typeof getDataplaneTransferLogs>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData> };
-};
+  
 
-export type GetDataplaneTransferLogsInfiniteQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getDataplaneTransferLogs>>
->;
-export type GetDataplaneTransferLogsInfiniteQueryError = ErrorType<InternalServerErrorResponse>;
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDataplaneTransferLogs>>> = ({ signal }) => getDataplaneTransferLogs(dataplaneProcessId, { signal, ...requestOptions });
 
-export function useGetDataplaneTransferLogsInfinite<
-  TData = InfiniteData<Awaited<ReturnType<typeof getDataplaneTransferLogs>>>,
-  TError = ErrorType<InternalServerErrorResponse>,
->(
-  dataplaneProcessId: string,
-  options: {
-    query: Partial<
-      UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDataplaneTransferLogs>>, TError, TData>
-    > &
-      Pick<
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(dataplaneProcessId),  ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDataplaneTransferLogs>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
+}
+
+export type GetDataplaneTransferLogsInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getDataplaneTransferLogs>>>
+export type GetDataplaneTransferLogsInfiniteQueryError = ErrorType<InternalServerErrorResponse>
+
+
+export function useGetDataplaneTransferLogsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getDataplaneTransferLogs>>>, TError = ErrorType<InternalServerErrorResponse>>(
+ dataplaneProcessId: string, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDataplaneTransferLogs>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getDataplaneTransferLogs>>,
           TError,
           Awaited<ReturnType<typeof getDataplaneTransferLogs>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
-export function useGetDataplaneTransferLogsInfinite<
-  TData = InfiniteData<Awaited<ReturnType<typeof getDataplaneTransferLogs>>>,
-  TError = ErrorType<InternalServerErrorResponse>,
->(
-  dataplaneProcessId: string,
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDataplaneTransferLogs>>, TError, TData>
-    > &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetDataplaneTransferLogsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getDataplaneTransferLogs>>>, TError = ErrorType<InternalServerErrorResponse>>(
+ dataplaneProcessId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDataplaneTransferLogs>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getDataplaneTransferLogs>>,
           TError,
           Awaited<ReturnType<typeof getDataplaneTransferLogs>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
-export function useGetDataplaneTransferLogsInfinite<
-  TData = InfiniteData<Awaited<ReturnType<typeof getDataplaneTransferLogs>>>,
-  TError = ErrorType<InternalServerErrorResponse>,
->(
-  dataplaneProcessId: string,
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDataplaneTransferLogs>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetDataplaneTransferLogsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getDataplaneTransferLogs>>>, TError = ErrorType<InternalServerErrorResponse>>(
+ dataplaneProcessId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDataplaneTransferLogs>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
  * @summary Get dataplane transfer logs
  */
 
-export function useGetDataplaneTransferLogsInfinite<
-  TData = InfiniteData<Awaited<ReturnType<typeof getDataplaneTransferLogs>>>,
-  TError = ErrorType<InternalServerErrorResponse>,
->(
-  dataplaneProcessId: string,
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDataplaneTransferLogs>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
-  const queryOptions = getGetDataplaneTransferLogsInfiniteQueryOptions(dataplaneProcessId, options);
+export function useGetDataplaneTransferLogsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getDataplaneTransferLogs>>>, TError = ErrorType<InternalServerErrorResponse>>(
+ dataplaneProcessId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDataplaneTransferLogs>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient 
+ ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
 
-  const query = useInfiniteQuery(queryOptions, queryClient) as UseInfiniteQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData> };
+  const queryOptions = getGetDataplaneTransferLogsInfiniteQueryOptions(dataplaneProcessId,options)
+
+  const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-export const getGetDataplaneTransferLogsQueryOptions = <
-  TData = Awaited<ReturnType<typeof getDataplaneTransferLogs>>,
-  TError = ErrorType<InternalServerErrorResponse>,
->(
-  dataplaneProcessId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getDataplaneTransferLogs>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
+
+
+
+export const getGetDataplaneTransferLogsQueryOptions = <TData = Awaited<ReturnType<typeof getDataplaneTransferLogs>>, TError = ErrorType<InternalServerErrorResponse>>(dataplaneProcessId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDataplaneTransferLogs>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey =
-    queryOptions?.queryKey ?? getGetDataplaneTransferLogsQueryKey(dataplaneProcessId);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getDataplaneTransferLogs>>> = ({
-    signal,
-  }) => getDataplaneTransferLogs(dataplaneProcessId, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getGetDataplaneTransferLogsQueryKey(dataplaneProcessId);
 
-  return { queryKey, queryFn, enabled: !!dataplaneProcessId, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getDataplaneTransferLogs>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData> };
-};
+  
 
-export type GetDataplaneTransferLogsQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getDataplaneTransferLogs>>
->;
-export type GetDataplaneTransferLogsQueryError = ErrorType<InternalServerErrorResponse>;
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDataplaneTransferLogs>>> = ({ signal }) => getDataplaneTransferLogs(dataplaneProcessId, { signal, ...requestOptions });
 
-export function useGetDataplaneTransferLogs<
-  TData = Awaited<ReturnType<typeof getDataplaneTransferLogs>>,
-  TError = ErrorType<InternalServerErrorResponse>,
->(
-  dataplaneProcessId: string,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getDataplaneTransferLogs>>, TError, TData>
-    > &
-      Pick<
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(dataplaneProcessId),  ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDataplaneTransferLogs>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
+}
+
+export type GetDataplaneTransferLogsQueryResult = NonNullable<Awaited<ReturnType<typeof getDataplaneTransferLogs>>>
+export type GetDataplaneTransferLogsQueryError = ErrorType<InternalServerErrorResponse>
+
+
+export function useGetDataplaneTransferLogs<TData = Awaited<ReturnType<typeof getDataplaneTransferLogs>>, TError = ErrorType<InternalServerErrorResponse>>(
+ dataplaneProcessId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDataplaneTransferLogs>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getDataplaneTransferLogs>>,
           TError,
           Awaited<ReturnType<typeof getDataplaneTransferLogs>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
-export function useGetDataplaneTransferLogs<
-  TData = Awaited<ReturnType<typeof getDataplaneTransferLogs>>,
-  TError = ErrorType<InternalServerErrorResponse>,
->(
-  dataplaneProcessId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getDataplaneTransferLogs>>, TError, TData>
-    > &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetDataplaneTransferLogs<TData = Awaited<ReturnType<typeof getDataplaneTransferLogs>>, TError = ErrorType<InternalServerErrorResponse>>(
+ dataplaneProcessId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDataplaneTransferLogs>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getDataplaneTransferLogs>>,
           TError,
           Awaited<ReturnType<typeof getDataplaneTransferLogs>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
-export function useGetDataplaneTransferLogs<
-  TData = Awaited<ReturnType<typeof getDataplaneTransferLogs>>,
-  TError = ErrorType<InternalServerErrorResponse>,
->(
-  dataplaneProcessId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getDataplaneTransferLogs>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetDataplaneTransferLogs<TData = Awaited<ReturnType<typeof getDataplaneTransferLogs>>, TError = ErrorType<InternalServerErrorResponse>>(
+ dataplaneProcessId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDataplaneTransferLogs>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
  * @summary Get dataplane transfer logs
  */
 
-export function useGetDataplaneTransferLogs<
-  TData = Awaited<ReturnType<typeof getDataplaneTransferLogs>>,
-  TError = ErrorType<InternalServerErrorResponse>,
->(
-  dataplaneProcessId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getDataplaneTransferLogs>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
-  const queryOptions = getGetDataplaneTransferLogsQueryOptions(dataplaneProcessId, options);
+export function useGetDataplaneTransferLogs<TData = Awaited<ReturnType<typeof getDataplaneTransferLogs>>, TError = ErrorType<InternalServerErrorResponse>>(
+ dataplaneProcessId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDataplaneTransferLogs>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData>;
-  };
+  const queryOptions = getGetDataplaneTransferLogsQueryOptions(dataplaneProcessId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+
+
+

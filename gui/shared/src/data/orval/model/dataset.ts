@@ -9,14 +9,14 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { Distribution } from "./distribution";
-import type { DistributionMinimized } from "./distributionMinimized";
-import type { OdrlOffer } from "./odrlOffer";
+import type { Distribution } from './distribution';
+import type { DistributionMinimized } from './distributionMinimized';
+import type { OdrlOffer } from './odrlOffer';
 
 export interface Dataset {
-  "@context"?: string | string[];
-  "@type"?: string;
-  "@id"?: string;
+  '@context'?: string | string[];
+  '@type'?: string;
+  '@id'?: string;
   hasPolicy?: OdrlOffer[];
   distribution?: Distribution[] | DistributionMinimized[];
   conformsTo?: string;

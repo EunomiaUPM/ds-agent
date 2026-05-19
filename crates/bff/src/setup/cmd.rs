@@ -96,7 +96,7 @@ impl GatewayCommands {
     }
 
     fn build_frontend(_env_file: String) -> Outcome<()> {
-        let cwd = "./../gui/admin".to_string();
+        let cwd = "./../../gui/admin".to_string();
 
         // 1. Build react application
         let mut cmd = Command::new("npm")

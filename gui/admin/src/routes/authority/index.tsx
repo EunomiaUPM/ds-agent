@@ -8,9 +8,12 @@ import { Badge } from "shared/src/components/ui/badge";
 import { Button } from "shared/src/components/ui/button";
 import { FormatDate } from "shared/src/components/ui/format-date";
 import { useGetAllVCRequests } from "shared/src/data/orval/vc-request/vc-request";
-import { formatUrn, getFriendlyVCType } from "shared/src/lib/utils";
+import { formatIdentifier, getFriendlyVCType } from "shared/src/lib/utils";
 
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { useGetAllParticipants } from "shared/src/data/orval/participants/participants";
+import WizardEndDialog from "shared/src/components/WizardEndDialog";
 
 /**
  * Route for listing all VC requests to an authority.
@@ -21,6 +24,24 @@ export const Route = createFileRoute("/authority/")({
 
 function AuthorityRequestsPage() {
   const { data: response } = useGetAllVCRequests();
+  const { data: participantsResponse } = useGetAllParticipants();
+  const participants = participantsResponse?.status === 200 ? participantsResponse.data : [];
+
+  const [showCongrats, setShowCongrats] = useState(false);
+
+  console.log(participants, "participants");
+
+  useEffect(() => {
+    try {
+      const justJoined = sessionStorage.getItem("justJoinedDataspace");
+      if (justJoined === "true" && requests.length === 0) {
+        setShowCongrats(true);
+        sessionStorage.removeItem("justJoinedDataspace");
+      }
+    } catch (e) {
+      // ignore storage errors
+    }
+  }, [participantsResponse]);
   const rawRequests = response?.status === 200 ? response.data : [];
 
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(
@@ -72,26 +93,24 @@ function AuthorityRequestsPage() {
     );
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "processing":
-        return "bg-blue-500/10 text-blue-500 border-blue-500/20";
-      case "pending":
-        return "bg-amber-500/10 text-amber-500 border-amber-500/20";
-      case "approved":
-        return "bg-green-500/10 text-green-500 border-green-500/20";
-      case "finalized":
-        return "bg-purple-500/10 text-purple-500 border-purple-500/20";
-      case "rejected":
-        return "bg-red-500/10 text-red-500 border-red-500/20";
-      default:
-        return "bg-gray-500/10 text-gray-500 border-gray-500/20";
-    }
-  };
-
   return (
     <PageLayout>
-      <PageHeader title="Request Credential">
+      <WizardEndDialog
+        open={showCongrats}
+        sectionTitle="Dataspace Sign Up Tutorial Completed"
+        onClose={() => setShowCongrats(false)}
+        title={"Congratulations"}
+        content={
+          <>
+            Congratulations, you are part now of the Dataspace of Heimdall
+            <br />
+            You can now browse the catalogs in the dataspace.
+          </>
+        }
+        actionHref={"/catalog/"}
+        actionLabel={"See dataspace"}
+      />
+      <PageHeader title="Credential Requests">
         <div className="flex justify-end mb-4">
           <Link to="/authority/new">
             <Button>
@@ -101,6 +120,7 @@ function AuthorityRequestsPage() {
           </Link>
         </div>
       </PageHeader>
+
       <PageSection>
         <DataTable
           className="text-sm"
@@ -108,67 +128,72 @@ function AuthorityRequestsPage() {
           keyExtractor={(a) => a.id}
           columns={[
             {
-              header: (
-                <Button
-                  variant="ghost"
-                  onClick={() => handleSort("id")}
-                  className="p-0 h-auto font-semibold"
-                >
-                  Request ID {getSortIcon("id")}
-                </Button>
-              ),
-              cell: (a: any) => <Badge variant={"info"}>{formatUrn(a.id)}</Badge>,
-            },
-            {
-              header: (
-                <Button
-                  variant="ghost"
-                  onClick={() => handleSort("authority_slug")}
-                  className="p-0 h-auto font-semibold"
-                >
-                  Authority Name {getSortIcon("authority_slug")}
-                </Button>
-              ),
+              header: "Authority Name",
+              // (
+              //   <Button
+              //     variant="ghost"
+              //     onClick={() => handleSort("authority_slug")}
+              //     className="p-0 h-auto font-semibold"
+              //   >
+              //     Authority Name {getSortIcon("authority_slug")}
+              //   </Button>
+              // ),
               cell: (a: any) => a.authority_slug || "-",
             },
             {
-              header: (
-                <Button
-                  variant="ghost"
-                  onClick={() => handleSort("vc_type")}
-                  className="p-0 h-auto font-semibold"
-                >
-                  VC Type {getSortIcon("vc_type")}
-                </Button>
-              ),
+              header: "Request ID",
+              // (
+              //   <Button
+              //     variant="ghost"
+              //     onClick={() => handleSort("id")}
+              //     className="p-0 h-auto font-semibold"
+              //   >
+              //     Request ID {getSortIcon("id")}
+              //   </Button>
+              // ),
+              cell: (a: any) => <Badge variant={"info"}>{formatIdentifier(a.id)}</Badge>,
+            },
+            {
+              header: "Credential Type",
+              // (
+              //   <Button
+              //     variant="ghost"
+              //     onClick={() => handleSort("vc_type")}
+              //     className="p-0 h-auto font-semibold"
+              //   >
+              //     Credential Type {getSortIcon("vc_type")}
+              //   </Button>
+              // ),
               cell: (a: any) => <Badge variant="role">{getFriendlyVCType(a.vc_type)}</Badge>,
             },
             {
-              header: (
-                <Button
-                  variant="ghost"
-                  onClick={() => handleSort("status")}
-                  className="p-0 h-auto font-semibold"
-                >
-                  Status {getSortIcon("status")}
-                </Button>
-              ),
+              header: "Status",
+              // (
+              //   <Button
+              //     variant="ghost"
+              //     onClick={() => handleSort("status")}
+              //     className="p-0 h-auto font-semibold"
+              //   >
+              //     Status {getSortIcon("status")}
+              //   </Button>
+              // ),
               cell: (a: any) => (
-                <Badge className={`border ${getStatusColor(a.status || "")}`}>
+                <Badge variant={"status"} state={a.status}>
                   {a.status || "-"}
                 </Badge>
               ),
             },
             {
-              header: (
-                <Button
-                  variant="ghost"
-                  onClick={() => handleSort("created_at")}
-                  className="p-0 h-auto font-semibold"
-                >
-                  Created at {getSortIcon("created_at")}
-                </Button>
-              ),
+              header: "Created at",
+              // (
+              //   <Button
+              //     variant="ghost"
+              //     onClick={() => handleSort("created_at")}
+              //     className="p-0 h-auto font-semibold"
+              //   >
+              //     Created at {getSortIcon("created_at")}
+              //   </Button>
+              // ),
               cell: (a: any) => (a.created_at ? <FormatDate date={a.created_at} /> : "-"),
             },
             {
@@ -176,9 +201,9 @@ function AuthorityRequestsPage() {
               cell: (a) => (
                 // @ts-ignore
                 <Link to="/authority/request-details" search={{ requestId: a.id }}>
-                  <Button variant="link" size={"sm"}>
+                  <Button variant="link">
                     See details
-                    <ArrowRight className="ml-2 h-4 w-4" />
+                    <ArrowRight />
                   </Button>
                 </Link>
               ),

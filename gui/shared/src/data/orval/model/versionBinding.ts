@@ -10,9 +10,10 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  * OpenAPI spec version: 1.0.0
  */
 
-export type VersionBinding = (typeof VersionBinding)[keyof typeof VersionBinding];
+export type VersionBinding = typeof VersionBinding[keyof typeof VersionBinding];
+
 
 export const VersionBinding = {
-  HTTPS: "HTTPS",
-  HTTP: "HTTP",
+  HTTPS: 'HTTPS',
+  HTTP: 'HTTP',
 } as const;

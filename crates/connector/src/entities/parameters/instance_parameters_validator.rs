@@ -383,7 +383,7 @@ mod test {
             ]),
             &defs,
         ));
-        // Two unknown keys → two "Unknown parameter" messages separated by "; "
+        // Two unknown keys - two "Unknown parameter" messages separated by "; "
         assert_eq!(msg.matches("Unknown parameter").count(), 2, "got: {msg}");
     }
 

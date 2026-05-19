@@ -48,5 +48,7 @@ pub enum ResolvedAuthCredentials {
         token_type: String,
         /// Unix timestamp (seconds) at which the token expires, if known.
         expires_at: Option<u64>,
+        /// Refresh token returned by the token endpoint, if any.
+        refresh_token: Option<String>,
     },
 }

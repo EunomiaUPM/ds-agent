@@ -17,6 +17,7 @@
 
 pub(super) mod authentication;
 pub(super) mod configuration;
+pub(crate) mod proxy;
 pub(super) mod pubsub;
 
 use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;

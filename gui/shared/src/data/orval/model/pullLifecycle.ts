@@ -9,8 +9,8 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { PullLifecycleDataAccess } from "./pullLifecycleDataAccess";
-import type { PullLifecycleMode } from "./pullLifecycleMode";
+import type { PullLifecycleDataAccess } from './pullLifecycleDataAccess';
+import type { PullLifecycleMode } from './pullLifecycleMode';
 
 export interface PullLifecycle {
   mode: PullLifecycleMode;

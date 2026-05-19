@@ -9,7 +9,10 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useQuery
+} from '@tanstack/react-query';
 import type {
   DataTag,
   DefinedInitialDataOptions,
@@ -23,857 +26,651 @@ import type {
   UseInfiniteQueryOptions,
   UseInfiniteQueryResult,
   UseQueryOptions,
-  UseQueryResult,
-} from "@tanstack/react-query";
+  UseQueryResult
+} from '@tanstack/react-query';
 
-import type { ErrorInfo, GetAllParticipantsParams, ParticipantDto } from ".././model";
+import type {
+  ErrorInfo,
+  GetAllParticipantsParams,
+  ParticipantDto
+} from '.././model';
 
-import { customInstance } from "../../orval-mutator";
-import type { ErrorType } from "../../orval-mutator";
+import { customInstance } from '../../orval-mutator';
+import type { ErrorType } from '../../orval-mutator';
+
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+
 
 /**
  * @summary List all participants
  */
 export type getAllParticipantsResponse200 = {
-  data: ParticipantDto[];
-  status: 200;
-};
+  data: ParticipantDto[]
+  status: 200
+}
 
 export type getAllParticipantsResponse400 = {
-  data: ErrorInfo;
-  status: 400;
-};
+  data: ErrorInfo
+  status: 400
+}
 
 export type getAllParticipantsResponse401 = {
-  data: ErrorInfo;
-  status: 401;
-};
+  data: ErrorInfo
+  status: 401
+}
 
 export type getAllParticipantsResponse403 = {
-  data: ErrorInfo;
-  status: 403;
-};
+  data: ErrorInfo
+  status: 403
+}
 
 export type getAllParticipantsResponse404 = {
-  data: ErrorInfo;
-  status: 404;
-};
+  data: ErrorInfo
+  status: 404
+}
 
 export type getAllParticipantsResponse500 = {
-  data: ErrorInfo;
-  status: 500;
-};
-
-export type getAllParticipantsResponseSuccess = getAllParticipantsResponse200 & {
+  data: ErrorInfo
+  status: 500
+}
+    
+export type getAllParticipantsResponseSuccess = (getAllParticipantsResponse200) & {
   headers: Headers;
 };
-export type getAllParticipantsResponseError = (
-  | getAllParticipantsResponse400
-  | getAllParticipantsResponse401
-  | getAllParticipantsResponse403
-  | getAllParticipantsResponse404
-  | getAllParticipantsResponse500
-) & {
+export type getAllParticipantsResponseError = (getAllParticipantsResponse400 | getAllParticipantsResponse401 | getAllParticipantsResponse403 | getAllParticipantsResponse404 | getAllParticipantsResponse500) & {
   headers: Headers;
 };
 
-export type getAllParticipantsResponse =
-  | getAllParticipantsResponseSuccess
-  | getAllParticipantsResponseError;
+export type getAllParticipantsResponse = (getAllParticipantsResponseSuccess | getAllParticipantsResponseError)
 
-export const getGetAllParticipantsUrl = (params?: GetAllParticipantsParams) => {
+export const getGetAllParticipantsUrl = (params?: GetAllParticipantsParams,) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    
     if (value !== undefined) {
-      normalizedParams.append(key, value === null ? "null" : value.toString());
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
     }
   });
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/mates/all?${stringifiedParams}` : `/mates/all`;
-};
+  return stringifiedParams.length > 0 ? `/mates/all?${stringifiedParams}` : `/mates/all`
+}
 
-export const getAllParticipants = async (
-  params?: GetAllParticipantsParams,
-  options?: RequestInit,
-): Promise<getAllParticipantsResponse> => {
-  return customInstance<getAllParticipantsResponse>(getGetAllParticipantsUrl(params), {
+export const getAllParticipants = async (params?: GetAllParticipantsParams, options?: RequestInit): Promise<getAllParticipantsResponse> => {
+  
+  return customInstance<getAllParticipantsResponse>(getGetAllParticipantsUrl(params),
+  {      
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
+    
+    
+  }
+);}
 
-export const getGetAllParticipantsInfiniteQueryKey = (params?: GetAllParticipantsParams) => {
-  return ["infinite", `/mates/all`, ...(params ? [params] : [])] as const;
-};
 
-export const getGetAllParticipantsQueryKey = (params?: GetAllParticipantsParams) => {
-  return [`/mates/all`, ...(params ? [params] : [])] as const;
-};
 
-export const getGetAllParticipantsInfiniteQueryOptions = <
-  TData = InfiniteData<Awaited<ReturnType<typeof getAllParticipants>>>,
-  TError = ErrorType<ErrorInfo>,
->(
-  params?: GetAllParticipantsParams,
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllParticipants>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
+
+
+export const getGetAllParticipantsInfiniteQueryKey = (params?: GetAllParticipantsParams,) => {
+    return [
+    'infinite', `/mates/all`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+export const getGetAllParticipantsQueryKey = (params?: GetAllParticipantsParams,) => {
+    return [
+    `/mates/all`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+    
+export const getGetAllParticipantsInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof getAllParticipants>>>, TError = ErrorType<ErrorInfo>>(params?: GetAllParticipantsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllParticipants>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetAllParticipantsInfiniteQueryKey(params);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getAllParticipants>>> = ({ signal }) =>
-    getAllParticipants(params, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getGetAllParticipantsInfiniteQueryKey(params);
 
-  return { queryKey, queryFn, ...queryOptions } as UseInfiniteQueryOptions<
-    Awaited<ReturnType<typeof getAllParticipants>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData> };
-};
+  
 
-export type GetAllParticipantsInfiniteQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getAllParticipants>>
->;
-export type GetAllParticipantsInfiniteQueryError = ErrorType<ErrorInfo>;
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAllParticipants>>> = ({ signal }) => getAllParticipants(params, { signal, ...requestOptions });
 
-export function useGetAllParticipantsInfinite<
-  TData = InfiniteData<Awaited<ReturnType<typeof getAllParticipants>>>,
-  TError = ErrorType<ErrorInfo>,
->(
-  params: undefined | GetAllParticipantsParams,
-  options: {
-    query: Partial<
-      UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllParticipants>>, TError, TData>
-    > &
-      Pick<
+      
+
+      
+
+   return  { queryKey, queryFn,   ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllParticipants>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
+}
+
+export type GetAllParticipantsInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getAllParticipants>>>
+export type GetAllParticipantsInfiniteQueryError = ErrorType<ErrorInfo>
+
+
+export function useGetAllParticipantsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getAllParticipants>>>, TError = ErrorType<ErrorInfo>>(
+ params: undefined |  GetAllParticipantsParams, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllParticipants>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getAllParticipants>>,
           TError,
           Awaited<ReturnType<typeof getAllParticipants>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
-export function useGetAllParticipantsInfinite<
-  TData = InfiniteData<Awaited<ReturnType<typeof getAllParticipants>>>,
-  TError = ErrorType<ErrorInfo>,
->(
-  params?: GetAllParticipantsParams,
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllParticipants>>, TError, TData>
-    > &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetAllParticipantsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getAllParticipants>>>, TError = ErrorType<ErrorInfo>>(
+ params?: GetAllParticipantsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllParticipants>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getAllParticipants>>,
           TError,
           Awaited<ReturnType<typeof getAllParticipants>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
-export function useGetAllParticipantsInfinite<
-  TData = InfiniteData<Awaited<ReturnType<typeof getAllParticipants>>>,
-  TError = ErrorType<ErrorInfo>,
->(
-  params?: GetAllParticipantsParams,
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllParticipants>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetAllParticipantsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getAllParticipants>>>, TError = ErrorType<ErrorInfo>>(
+ params?: GetAllParticipantsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllParticipants>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
  * @summary List all participants
  */
 
-export function useGetAllParticipantsInfinite<
-  TData = InfiniteData<Awaited<ReturnType<typeof getAllParticipants>>>,
-  TError = ErrorType<ErrorInfo>,
->(
-  params?: GetAllParticipantsParams,
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllParticipants>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
-  const queryOptions = getGetAllParticipantsInfiniteQueryOptions(params, options);
+export function useGetAllParticipantsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getAllParticipants>>>, TError = ErrorType<ErrorInfo>>(
+ params?: GetAllParticipantsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllParticipants>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient 
+ ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
 
-  const query = useInfiniteQuery(queryOptions, queryClient) as UseInfiniteQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData> };
+  const queryOptions = getGetAllParticipantsInfiniteQueryOptions(params,options)
+
+  const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-export const getGetAllParticipantsQueryOptions = <
-  TData = Awaited<ReturnType<typeof getAllParticipants>>,
-  TError = ErrorType<ErrorInfo>,
->(
-  params?: GetAllParticipantsParams,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllParticipants>>, TError, TData>>;
-    request?: SecondParameter<typeof customInstance>;
-  },
+
+
+
+export const getGetAllParticipantsQueryOptions = <TData = Awaited<ReturnType<typeof getAllParticipants>>, TError = ErrorType<ErrorInfo>>(params?: GetAllParticipantsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllParticipants>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetAllParticipantsQueryKey(params);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getAllParticipants>>> = ({ signal }) =>
-    getAllParticipants(params, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getGetAllParticipantsQueryKey(params);
 
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getAllParticipants>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData> };
-};
+  
 
-export type GetAllParticipantsQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getAllParticipants>>
->;
-export type GetAllParticipantsQueryError = ErrorType<ErrorInfo>;
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAllParticipants>>> = ({ signal }) => getAllParticipants(params, { signal, ...requestOptions });
 
-export function useGetAllParticipants<
-  TData = Awaited<ReturnType<typeof getAllParticipants>>,
-  TError = ErrorType<ErrorInfo>,
->(
-  params: undefined | GetAllParticipantsParams,
-  options: {
-    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllParticipants>>, TError, TData>> &
-      Pick<
+      
+
+      
+
+   return  { queryKey, queryFn,   ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAllParticipants>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
+}
+
+export type GetAllParticipantsQueryResult = NonNullable<Awaited<ReturnType<typeof getAllParticipants>>>
+export type GetAllParticipantsQueryError = ErrorType<ErrorInfo>
+
+
+export function useGetAllParticipants<TData = Awaited<ReturnType<typeof getAllParticipants>>, TError = ErrorType<ErrorInfo>>(
+ params: undefined |  GetAllParticipantsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllParticipants>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getAllParticipants>>,
           TError,
           Awaited<ReturnType<typeof getAllParticipants>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
-export function useGetAllParticipants<
-  TData = Awaited<ReturnType<typeof getAllParticipants>>,
-  TError = ErrorType<ErrorInfo>,
->(
-  params?: GetAllParticipantsParams,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getAllParticipants>>, TError, TData>
-    > &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetAllParticipants<TData = Awaited<ReturnType<typeof getAllParticipants>>, TError = ErrorType<ErrorInfo>>(
+ params?: GetAllParticipantsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllParticipants>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getAllParticipants>>,
           TError,
           Awaited<ReturnType<typeof getAllParticipants>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
-export function useGetAllParticipants<
-  TData = Awaited<ReturnType<typeof getAllParticipants>>,
-  TError = ErrorType<ErrorInfo>,
->(
-  params?: GetAllParticipantsParams,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllParticipants>>, TError, TData>>;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetAllParticipants<TData = Awaited<ReturnType<typeof getAllParticipants>>, TError = ErrorType<ErrorInfo>>(
+ params?: GetAllParticipantsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllParticipants>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
  * @summary List all participants
  */
 
-export function useGetAllParticipants<
-  TData = Awaited<ReturnType<typeof getAllParticipants>>,
-  TError = ErrorType<ErrorInfo>,
->(
-  params?: GetAllParticipantsParams,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllParticipants>>, TError, TData>>;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
-  const queryOptions = getGetAllParticipantsQueryOptions(params, options);
+export function useGetAllParticipants<TData = Awaited<ReturnType<typeof getAllParticipants>>, TError = ErrorType<ErrorInfo>>(
+ params?: GetAllParticipantsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllParticipants>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData>;
-  };
+  const queryOptions = getGetAllParticipantsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+
+
 
 /**
  * @summary Get the current participant's info
  */
 export type getMyselfResponse200 = {
-  data: ParticipantDto;
-  status: 200;
-};
+  data: ParticipantDto
+  status: 200
+}
 
 export type getMyselfResponse400 = {
-  data: ErrorInfo;
-  status: 400;
-};
+  data: ErrorInfo
+  status: 400
+}
 
 export type getMyselfResponse401 = {
-  data: ErrorInfo;
-  status: 401;
-};
+  data: ErrorInfo
+  status: 401
+}
 
 export type getMyselfResponse403 = {
-  data: ErrorInfo;
-  status: 403;
-};
+  data: ErrorInfo
+  status: 403
+}
 
 export type getMyselfResponse404 = {
-  data: ErrorInfo;
-  status: 404;
-};
+  data: ErrorInfo
+  status: 404
+}
 
 export type getMyselfResponse500 = {
-  data: ErrorInfo;
-  status: 500;
-};
-
-export type getMyselfResponseSuccess = getMyselfResponse200 & {
+  data: ErrorInfo
+  status: 500
+}
+    
+export type getMyselfResponseSuccess = (getMyselfResponse200) & {
   headers: Headers;
 };
-export type getMyselfResponseError = (
-  | getMyselfResponse400
-  | getMyselfResponse401
-  | getMyselfResponse403
-  | getMyselfResponse404
-  | getMyselfResponse500
-) & {
+export type getMyselfResponseError = (getMyselfResponse400 | getMyselfResponse401 | getMyselfResponse403 | getMyselfResponse404 | getMyselfResponse500) & {
   headers: Headers;
 };
 
-export type getMyselfResponse = getMyselfResponseSuccess | getMyselfResponseError;
+export type getMyselfResponse = (getMyselfResponseSuccess | getMyselfResponseError)
 
 export const getGetMyselfUrl = () => {
-  return `/mates/myself`;
-};
 
-export const getMyself = async (options?: RequestInit): Promise<getMyselfResponse> => {
-  return customInstance<getMyselfResponse>(getGetMyselfUrl(), {
+
+  
+
+  return `/mates/myself`
+}
+
+export const getMyself = async ( options?: RequestInit): Promise<getMyselfResponse> => {
+  
+  return customInstance<getMyselfResponse>(getGetMyselfUrl(),
+  {      
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
 
 export const getGetMyselfInfiniteQueryKey = () => {
-  return ["infinite", `/mates/myself`] as const;
-};
+    return [
+    'infinite', `/mates/myself`
+    ] as const;
+    }
 
 export const getGetMyselfQueryKey = () => {
-  return [`/mates/myself`] as const;
-};
+    return [
+    `/mates/myself`
+    ] as const;
+    }
 
-export const getGetMyselfInfiniteQueryOptions = <
-  TData = InfiniteData<Awaited<ReturnType<typeof getMyself>>>,
-  TError = ErrorType<ErrorInfo>,
->(options?: {
-  query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyself>>, TError, TData>>;
-  request?: SecondParameter<typeof customInstance>;
-}) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
+    
+export const getGetMyselfInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof getMyself>>>, TError = ErrorType<ErrorInfo>>( options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyself>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
 
-  const queryKey = queryOptions?.queryKey ?? getGetMyselfInfiniteQueryKey();
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyself>>> = ({ signal }) =>
-    getMyself({ signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getGetMyselfInfiniteQueryKey();
 
-  return { queryKey, queryFn, ...queryOptions } as UseInfiniteQueryOptions<
-    Awaited<ReturnType<typeof getMyself>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData> };
-};
+  
 
-export type GetMyselfInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getMyself>>>;
-export type GetMyselfInfiniteQueryError = ErrorType<ErrorInfo>;
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyself>>> = ({ signal }) => getMyself({ signal, ...requestOptions });
 
-export function useGetMyselfInfinite<
-  TData = InfiniteData<Awaited<ReturnType<typeof getMyself>>>,
-  TError = ErrorType<ErrorInfo>,
->(
-  options: {
-    query: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyself>>, TError, TData>> &
-      Pick<
+      
+
+      
+
+   return  { queryKey, queryFn,   ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyself>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
+}
+
+export type GetMyselfInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getMyself>>>
+export type GetMyselfInfiniteQueryError = ErrorType<ErrorInfo>
+
+
+export function useGetMyselfInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getMyself>>>, TError = ErrorType<ErrorInfo>>(
+  options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyself>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getMyself>>,
           TError,
           Awaited<ReturnType<typeof getMyself>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
-export function useGetMyselfInfinite<
-  TData = InfiniteData<Awaited<ReturnType<typeof getMyself>>>,
-  TError = ErrorType<ErrorInfo>,
->(
-  options?: {
-    query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyself>>, TError, TData>> &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetMyselfInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getMyself>>>, TError = ErrorType<ErrorInfo>>(
+  options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyself>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getMyself>>,
           TError,
           Awaited<ReturnType<typeof getMyself>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
-export function useGetMyselfInfinite<
-  TData = InfiniteData<Awaited<ReturnType<typeof getMyself>>>,
-  TError = ErrorType<ErrorInfo>,
->(
-  options?: {
-    query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyself>>, TError, TData>>;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetMyselfInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getMyself>>>, TError = ErrorType<ErrorInfo>>(
+  options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyself>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
  * @summary Get the current participant's info
  */
 
-export function useGetMyselfInfinite<
-  TData = InfiniteData<Awaited<ReturnType<typeof getMyself>>>,
-  TError = ErrorType<ErrorInfo>,
->(
-  options?: {
-    query?: Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyself>>, TError, TData>>;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
-  const queryOptions = getGetMyselfInfiniteQueryOptions(options);
+export function useGetMyselfInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getMyself>>>, TError = ErrorType<ErrorInfo>>(
+  options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyself>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient 
+ ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
 
-  const query = useInfiniteQuery(queryOptions, queryClient) as UseInfiniteQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData> };
+  const queryOptions = getGetMyselfInfiniteQueryOptions(options)
+
+  const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-export const getGetMyselfQueryOptions = <
-  TData = Awaited<ReturnType<typeof getMyself>>,
-  TError = ErrorType<ErrorInfo>,
->(options?: {
-  query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyself>>, TError, TData>>;
-  request?: SecondParameter<typeof customInstance>;
-}) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetMyselfQueryKey();
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyself>>> = ({ signal }) =>
-    getMyself({ signal, ...requestOptions });
 
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getMyself>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData> };
-};
+export const getGetMyselfQueryOptions = <TData = Awaited<ReturnType<typeof getMyself>>, TError = ErrorType<ErrorInfo>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyself>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
 
-export type GetMyselfQueryResult = NonNullable<Awaited<ReturnType<typeof getMyself>>>;
-export type GetMyselfQueryError = ErrorType<ErrorInfo>;
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-export function useGetMyself<
-  TData = Awaited<ReturnType<typeof getMyself>>,
-  TError = ErrorType<ErrorInfo>,
->(
-  options: {
-    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyself>>, TError, TData>> &
-      Pick<
+  const queryKey =  queryOptions?.queryKey ?? getGetMyselfQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyself>>> = ({ signal }) => getMyself({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn,   ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyself>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
+}
+
+export type GetMyselfQueryResult = NonNullable<Awaited<ReturnType<typeof getMyself>>>
+export type GetMyselfQueryError = ErrorType<ErrorInfo>
+
+
+export function useGetMyself<TData = Awaited<ReturnType<typeof getMyself>>, TError = ErrorType<ErrorInfo>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyself>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getMyself>>,
           TError,
           Awaited<ReturnType<typeof getMyself>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
-export function useGetMyself<
-  TData = Awaited<ReturnType<typeof getMyself>>,
-  TError = ErrorType<ErrorInfo>,
->(
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyself>>, TError, TData>> &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetMyself<TData = Awaited<ReturnType<typeof getMyself>>, TError = ErrorType<ErrorInfo>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyself>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getMyself>>,
           TError,
           Awaited<ReturnType<typeof getMyself>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
-export function useGetMyself<
-  TData = Awaited<ReturnType<typeof getMyself>>,
-  TError = ErrorType<ErrorInfo>,
->(
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyself>>, TError, TData>>;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetMyself<TData = Awaited<ReturnType<typeof getMyself>>, TError = ErrorType<ErrorInfo>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyself>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
  * @summary Get the current participant's info
  */
 
-export function useGetMyself<
-  TData = Awaited<ReturnType<typeof getMyself>>,
-  TError = ErrorType<ErrorInfo>,
->(
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyself>>, TError, TData>>;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
-  const queryOptions = getGetMyselfQueryOptions(options);
+export function useGetMyself<TData = Awaited<ReturnType<typeof getMyself>>, TError = ErrorType<ErrorInfo>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyself>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData>;
-  };
+  const queryOptions = getGetMyselfQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+
+
 
 /**
  * @summary Get participant by ID
  */
 export type getParticipantByIdResponse200 = {
-  data: ParticipantDto;
-  status: 200;
-};
+  data: ParticipantDto
+  status: 200
+}
 
 export type getParticipantByIdResponse400 = {
-  data: ErrorInfo;
-  status: 400;
-};
+  data: ErrorInfo
+  status: 400
+}
 
 export type getParticipantByIdResponse401 = {
-  data: ErrorInfo;
-  status: 401;
-};
+  data: ErrorInfo
+  status: 401
+}
 
 export type getParticipantByIdResponse403 = {
-  data: ErrorInfo;
-  status: 403;
-};
+  data: ErrorInfo
+  status: 403
+}
 
 export type getParticipantByIdResponse404 = {
-  data: ErrorInfo;
-  status: 404;
-};
+  data: ErrorInfo
+  status: 404
+}
 
 export type getParticipantByIdResponse500 = {
-  data: ErrorInfo;
-  status: 500;
-};
-
-export type getParticipantByIdResponseSuccess = getParticipantByIdResponse200 & {
+  data: ErrorInfo
+  status: 500
+}
+    
+export type getParticipantByIdResponseSuccess = (getParticipantByIdResponse200) & {
   headers: Headers;
 };
-export type getParticipantByIdResponseError = (
-  | getParticipantByIdResponse400
-  | getParticipantByIdResponse401
-  | getParticipantByIdResponse403
-  | getParticipantByIdResponse404
-  | getParticipantByIdResponse500
-) & {
+export type getParticipantByIdResponseError = (getParticipantByIdResponse400 | getParticipantByIdResponse401 | getParticipantByIdResponse403 | getParticipantByIdResponse404 | getParticipantByIdResponse500) & {
   headers: Headers;
 };
 
-export type getParticipantByIdResponse =
-  | getParticipantByIdResponseSuccess
-  | getParticipantByIdResponseError;
+export type getParticipantByIdResponse = (getParticipantByIdResponseSuccess | getParticipantByIdResponseError)
 
-export const getGetParticipantByIdUrl = (participantId: string) => {
-  return `/mates/${participantId}`;
-};
+export const getGetParticipantByIdUrl = (participantId: string,) => {
 
-export const getParticipantById = async (
-  participantId: string,
-  options?: RequestInit,
-): Promise<getParticipantByIdResponse> => {
-  return customInstance<getParticipantByIdResponse>(getGetParticipantByIdUrl(participantId), {
+
+  
+
+  return `/mates/${participantId}`
+}
+
+export const getParticipantById = async (participantId: string, options?: RequestInit): Promise<getParticipantByIdResponse> => {
+  
+  return customInstance<getParticipantByIdResponse>(getGetParticipantByIdUrl(participantId),
+  {      
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
+    
+    
+  }
+);}
 
-export const getGetParticipantByIdInfiniteQueryKey = (participantId: string) => {
-  return ["infinite", `/mates/${participantId}`] as const;
-};
 
-export const getGetParticipantByIdQueryKey = (participantId: string) => {
-  return [`/mates/${participantId}`] as const;
-};
 
-export const getGetParticipantByIdInfiniteQueryOptions = <
-  TData = InfiniteData<Awaited<ReturnType<typeof getParticipantById>>>,
-  TError = ErrorType<ErrorInfo>,
->(
-  participantId: string,
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<Awaited<ReturnType<typeof getParticipantById>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
+
+
+export const getGetParticipantByIdInfiniteQueryKey = (participantId: string,) => {
+    return [
+    'infinite', `/mates/${participantId}`
+    ] as const;
+    }
+
+export const getGetParticipantByIdQueryKey = (participantId: string,) => {
+    return [
+    `/mates/${participantId}`
+    ] as const;
+    }
+
+    
+export const getGetParticipantByIdInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof getParticipantById>>>, TError = ErrorType<ErrorInfo>>(participantId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getParticipantById>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetParticipantByIdInfiniteQueryKey(participantId);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getParticipantById>>> = ({ signal }) =>
-    getParticipantById(participantId, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getGetParticipantByIdInfiniteQueryKey(participantId);
 
-  return {
-    queryKey,
-    queryFn,
-    enabled: !!participantId,
-    ...queryOptions,
-  } as UseInfiniteQueryOptions<Awaited<ReturnType<typeof getParticipantById>>, TError, TData> & {
-    queryKey: DataTag<QueryKey, TData>;
-  };
-};
+  
 
-export type GetParticipantByIdInfiniteQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getParticipantById>>
->;
-export type GetParticipantByIdInfiniteQueryError = ErrorType<ErrorInfo>;
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getParticipantById>>> = ({ signal }) => getParticipantById(participantId, { signal, ...requestOptions });
 
-export function useGetParticipantByIdInfinite<
-  TData = InfiniteData<Awaited<ReturnType<typeof getParticipantById>>>,
-  TError = ErrorType<ErrorInfo>,
->(
-  participantId: string,
-  options: {
-    query: Partial<
-      UseInfiniteQueryOptions<Awaited<ReturnType<typeof getParticipantById>>, TError, TData>
-    > &
-      Pick<
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(participantId),  ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof getParticipantById>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
+}
+
+export type GetParticipantByIdInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getParticipantById>>>
+export type GetParticipantByIdInfiniteQueryError = ErrorType<ErrorInfo>
+
+
+export function useGetParticipantByIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getParticipantById>>>, TError = ErrorType<ErrorInfo>>(
+ participantId: string, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getParticipantById>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getParticipantById>>,
           TError,
           Awaited<ReturnType<typeof getParticipantById>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
-export function useGetParticipantByIdInfinite<
-  TData = InfiniteData<Awaited<ReturnType<typeof getParticipantById>>>,
-  TError = ErrorType<ErrorInfo>,
->(
-  participantId: string,
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<Awaited<ReturnType<typeof getParticipantById>>, TError, TData>
-    > &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetParticipantByIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getParticipantById>>>, TError = ErrorType<ErrorInfo>>(
+ participantId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getParticipantById>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getParticipantById>>,
           TError,
           Awaited<ReturnType<typeof getParticipantById>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
-export function useGetParticipantByIdInfinite<
-  TData = InfiniteData<Awaited<ReturnType<typeof getParticipantById>>>,
-  TError = ErrorType<ErrorInfo>,
->(
-  participantId: string,
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<Awaited<ReturnType<typeof getParticipantById>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetParticipantByIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getParticipantById>>>, TError = ErrorType<ErrorInfo>>(
+ participantId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getParticipantById>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
  * @summary Get participant by ID
  */
 
-export function useGetParticipantByIdInfinite<
-  TData = InfiniteData<Awaited<ReturnType<typeof getParticipantById>>>,
-  TError = ErrorType<ErrorInfo>,
->(
-  participantId: string,
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<Awaited<ReturnType<typeof getParticipantById>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
-  const queryOptions = getGetParticipantByIdInfiniteQueryOptions(participantId, options);
+export function useGetParticipantByIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getParticipantById>>>, TError = ErrorType<ErrorInfo>>(
+ participantId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getParticipantById>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient 
+ ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
 
-  const query = useInfiniteQuery(queryOptions, queryClient) as UseInfiniteQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData> };
+  const queryOptions = getGetParticipantByIdInfiniteQueryOptions(participantId,options)
+
+  const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-export const getGetParticipantByIdQueryOptions = <
-  TData = Awaited<ReturnType<typeof getParticipantById>>,
-  TError = ErrorType<ErrorInfo>,
->(
-  participantId: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getParticipantById>>, TError, TData>>;
-    request?: SecondParameter<typeof customInstance>;
-  },
+
+
+
+export const getGetParticipantByIdQueryOptions = <TData = Awaited<ReturnType<typeof getParticipantById>>, TError = ErrorType<ErrorInfo>>(participantId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getParticipantById>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetParticipantByIdQueryKey(participantId);
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getParticipantById>>> = ({ signal }) =>
-    getParticipantById(participantId, { signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getGetParticipantByIdQueryKey(participantId);
 
-  return { queryKey, queryFn, enabled: !!participantId, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getParticipantById>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData> };
-};
+  
 
-export type GetParticipantByIdQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getParticipantById>>
->;
-export type GetParticipantByIdQueryError = ErrorType<ErrorInfo>;
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getParticipantById>>> = ({ signal }) => getParticipantById(participantId, { signal, ...requestOptions });
 
-export function useGetParticipantById<
-  TData = Awaited<ReturnType<typeof getParticipantById>>,
-  TError = ErrorType<ErrorInfo>,
->(
-  participantId: string,
-  options: {
-    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getParticipantById>>, TError, TData>> &
-      Pick<
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(participantId),  ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getParticipantById>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
+}
+
+export type GetParticipantByIdQueryResult = NonNullable<Awaited<ReturnType<typeof getParticipantById>>>
+export type GetParticipantByIdQueryError = ErrorType<ErrorInfo>
+
+
+export function useGetParticipantById<TData = Awaited<ReturnType<typeof getParticipantById>>, TError = ErrorType<ErrorInfo>>(
+ participantId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getParticipantById>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getParticipantById>>,
           TError,
           Awaited<ReturnType<typeof getParticipantById>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
-export function useGetParticipantById<
-  TData = Awaited<ReturnType<typeof getParticipantById>>,
-  TError = ErrorType<ErrorInfo>,
->(
-  participantId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getParticipantById>>, TError, TData>
-    > &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetParticipantById<TData = Awaited<ReturnType<typeof getParticipantById>>, TError = ErrorType<ErrorInfo>>(
+ participantId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getParticipantById>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getParticipantById>>,
           TError,
           Awaited<ReturnType<typeof getParticipantById>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
-export function useGetParticipantById<
-  TData = Awaited<ReturnType<typeof getParticipantById>>,
-  TError = ErrorType<ErrorInfo>,
->(
-  participantId: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getParticipantById>>, TError, TData>>;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetParticipantById<TData = Awaited<ReturnType<typeof getParticipantById>>, TError = ErrorType<ErrorInfo>>(
+ participantId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getParticipantById>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
  * @summary Get participant by ID
  */
 
-export function useGetParticipantById<
-  TData = Awaited<ReturnType<typeof getParticipantById>>,
-  TError = ErrorType<ErrorInfo>,
->(
-  participantId: string,
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getParticipantById>>, TError, TData>>;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
-  const queryOptions = getGetParticipantByIdQueryOptions(participantId, options);
+export function useGetParticipantById<TData = Awaited<ReturnType<typeof getParticipantById>>, TError = ErrorType<ErrorInfo>>(
+ participantId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getParticipantById>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData>;
-  };
+  const queryOptions = getGetParticipantByIdQueryOptions(participantId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+
+
+

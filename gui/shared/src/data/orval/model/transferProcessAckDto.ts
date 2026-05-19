@@ -11,8 +11,8 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  */
 
 export interface TransferProcessAckDto {
-  "@context": string;
-  "@type": string;
+  '@context': string;
+  '@type': string;
   consumerPid: string;
   providerPid: string;
   state: string;

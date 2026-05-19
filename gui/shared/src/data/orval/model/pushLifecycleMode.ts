@@ -10,8 +10,9 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  * OpenAPI spec version: 1.0.0
  */
 
-export type PushLifecycleMode = (typeof PushLifecycleMode)[keyof typeof PushLifecycleMode];
+export type PushLifecycleMode = typeof PushLifecycleMode[keyof typeof PushLifecycleMode];
+
 
 export const PushLifecycleMode = {
-  PUSH: "PUSH",
+  PUSH: 'PUSH',
 } as const;

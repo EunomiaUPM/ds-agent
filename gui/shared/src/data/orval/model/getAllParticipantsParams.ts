@@ -9,15 +9,15 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { GetAllParticipantsType } from "./getAllParticipantsType";
+import type { GetAllParticipantsType } from './getAllParticipantsType';
 
 export type GetAllParticipantsParams = {
-  /**
-   * Filter mates by participant type. Defaults to `all`.
-   */
-  type?: GetAllParticipantsType;
-  /**
-   * When `true`, excludes the own identity (is_me) from the results.
-   */
-  exclude?: boolean;
+/**
+ * Filter mates by participant type. Defaults to `all`.
+ */
+type?: GetAllParticipantsType;
+/**
+ * When `true`, excludes the own identity (is_me) from the results.
+ */
+exclude?: boolean;
 };

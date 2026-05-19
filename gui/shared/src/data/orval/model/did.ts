@@ -9,10 +9,10 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { DidVerificationMethod } from "./didVerificationMethod";
+import type { DidVerificationMethod } from './didVerificationMethod';
 
 export interface Did {
-  "@context": string[];
+  '@context': string[];
   assertionMethod: string[];
   authentication: string[];
   capabilityDelegation: string[];

@@ -13,6 +13,8 @@ members = [
     "crates/connector",
     "crates/transfer-agent-ref",
     "crates/oauth",
+    "crates/connector",
+    "crates/keystore",
 ]
 exclude = [
     "static",
@@ -38,7 +40,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 axum = { version = "0.8.8", features = ["ws"] }
 tower-http = { version = "0.6.2", features = ["trace", "cors", "fs"] }
 dotenvy = "0.15"
-reqwest = { version = "0.13.1", features = ["json", "form"] }
+reqwest = { version = "0.13.3", default-features = false, features = ["json", "form", "native-tls", "http2"] }
 once_cell = "1.19.0"
 thiserror = "2.0.12"
 jsonschema = "0.45.0"
@@ -85,5 +87,5 @@ regex = "1.12.2"
 tonic-prost-build = "0.14.5"
 compact_str = { version = "0.8", features = ["serde"] }
 argon2 = "0.5.3"
-ymir = {git = "https://github.com/EunomiaUPM/ymir.git", tag = "v0.7.0"}
+ymir = {git = "https://github.com/EunomiaUPM/ymir.git", tag = "v0.7.1"}
 #ymir = { path = "./../ymir" }

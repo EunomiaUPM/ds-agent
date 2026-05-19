@@ -32,7 +32,7 @@ use ymir::errors::Outcome;
 // ─── InitialContractRequestStep ───────────────────────────────────────────────
 
 /// Handles an inbound `ContractRequestMessage` that initiates a new negotiation
-/// process (Consumer → Provider, first message of the request flow).
+/// process (Consumer - Provider, first message of the request flow).
 ///
 /// This is one of the two steps that creates a new process record.  The
 /// algorithm is:

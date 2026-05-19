@@ -157,10 +157,10 @@ The notebook covers the following flow:
 3. **Catalog Management** — Create catalogs, datasets, data-services, and distributions
 4. **Policy Definition** — Define access policies for datasets
 5. **Contract Negotiation** — Complete negotiation flow:
-   - Request → Offer → Request → Offer → Acceptance → Agreement → Verification → Finalization
+   - Request - Offer - Request - Offer - Acceptance - Agreement - Verification - Finalization
 6. **Transfer Negotiation** — Data transfer flow:
-   - Request → Start → Data access via dataplane
-   - Suspension/Resumption → Completion
+   - Request - Start - Data access via dataplane
+   - Suspension/Resumption - Completion
 
 ### API Endpoints Overview
 

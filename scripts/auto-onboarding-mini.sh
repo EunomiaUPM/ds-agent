@@ -79,32 +79,13 @@ C_BEG_BODY=$(jq -n \
     --arg url "$DOCKER_AUTHORITY_URL/api/v1/gate/access" \
     --arg id "$AUTH_DID" \
     --arg slug "authority" \
-    --arg vc_type "DataspaceParticipant_jwt_vc_json" \
+    --arg vc_type "DataSpaceParticipant_jwt_vc_json" \
     --arg method "cert" \
     '{url:$url,id:$id,slug:$slug,vc_type:$vc_type,method:$method}')
 
 curl_raw POST "$CONSUMER_URL/api/v1/vc-request/beg" "$C_BEG_BODY" >/dev/null
 log_success "Credential request sent"
 
-# ----------------------------
-# STEP 6 - Approver requests
-# ----------------------------
-log_step "STEP 6 - Authority retrieving requests"
-
-ALL_REQUESTS=$(curl_raw GET "$AUTHORITY_URL/api/v1/approver/all")
-PETITION_ID=$(echo "$ALL_REQUESTS" | jq -r '.[-1].id')
-
-log_info "Petition ID: $PETITION_ID"
-
-# ----------------------------
-# STEP 7 - Approve
-# ----------------------------
-log_step "STEP 7 - Approving request"
-
-APPROVE_BODY='{"approve": true}'
-curl_raw POST "$AUTHORITY_URL/api/v1/approver/$PETITION_ID" "$APPROVE_BODY" >/dev/null
-
-log_success "Request approved"
 
 # ----------------------------
 # STEP 8 - OIDC4VCI URI

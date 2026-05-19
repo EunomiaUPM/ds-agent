@@ -9,8 +9,8 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { Catalog } from "./catalog";
-import type { ParticipantDto } from "./participantDto";
+import type { Catalog } from './catalog';
+import type { ParticipantDto } from './participantDto';
 
 export interface PeerCatalogEntry {
   participant?: ParticipantDto;

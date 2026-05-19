@@ -11,7 +11,7 @@
  */
 
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { formatUrn } from "shared/src/lib/utils";
+import { formatIdentifier, formatUrn } from "shared/src/lib/utils";
 import { DataTable } from "shared/src/components/DataTable";
 import { useMemo, useState } from "react";
 import { Button } from "shared/src/components/ui/button.tsx";
@@ -35,12 +35,6 @@ interface Participant extends ParticipantDto {
   saved_at?: string;
   extra_fields?: any;
 }
-
-const truncateId = (id?: string) => {
-  if (!id) return "N/A";
-  if (id.length <= 40) return id;
-  return `${id.slice(0, 20)}...${id.slice(-15)}`;
-};
 
 // =============================================================================
 // ROUTE
@@ -132,7 +126,7 @@ function RouteComponent() {
       <PageHeader
         title="Participants"
         badge={
-          <Badge variant="info" size="lg">
+          <Badge size="lg" className="uppercase font-medium">
             {allParticipants.length} total
           </Badge>
         }
@@ -141,10 +135,7 @@ function RouteComponent() {
       {/* Quick Stats / My Agent info */}
       {myAgent && (
         <div className="mb-8">
-          <Card className="bg-gradient-to-br from-brand-sky/10 to-brand-violet/10 border-brand-sky/20 overflow-hidden relative">
-            <div className="absolute top-0 right-0 p-4 opacity-10">
-              <div className="w-24 h-24 rounded-full bg-brand-sky blur-3xl" />
-            </div>
+          <Card className="bg-background-200/15 overflow-hidden relative">
             <CardHeader className="pb-2">
               <div className="flex justify-between items-center">
                 <div>
@@ -155,43 +146,38 @@ function RouteComponent() {
                     {myAgent.participant_slug || "Unnamed Agent"}
                   </CardTitle>
                 </div>
-                <Badge variant="info" className="animate-pulse">
+                <Badge variant="status" state="active">
                   Active
                 </Badge>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-2">
+              <div className="flex justify-between flex-wrap gap-8 mt-2">
                 <div className="space-y-1">
                   <p className="text-[10px] text-muted-foreground uppercase">DID Identifier</p>
-                  <p className="text-xs font-mono truncate" title={myAgent.participant_id}>
-                    {truncateId(myAgent.participant_id)}
-                  </p>
+                  <Badge variant="info">
+                    {formatIdentifier(myAgent.participant_id, 0, true, 40)}
+                  </Badge>
                 </div>
                 <div className="space-y-1">
                   <p className="text-[10px] text-muted-foreground uppercase">System Role</p>
-                  <div className="flex pt-1">
-                    <Badge variant="role" dsrole={myAgent.participant_type as BadgeRole}>
-                      {myAgent.participant_type}
-                    </Badge>
-                  </div>
+                  <Badge variant="role" dsrole={myAgent.participant_type as BadgeRole}>
+                    {myAgent.participant_type}
+                  </Badge>
                 </div>
                 <div className="space-y-1">
                   <p className="text-[10px] text-muted-foreground uppercase">Base URL</p>
-                  <p className="text-xs font-mono">{myAgent.base_url}</p>
+                  <Badge variant="info">{myAgent.base_url}</Badge>
                 </div>
-                <div className="flex items-end justify-end">
+                <div className="flex-1 flex items-end justify-end">
                   <Link
                     to="/participants/$participantId"
                     params={{ participantId: myAgent.participant_id! }}
-                    className={buttonVariants({
-                      variant: "secondary",
-                      size: "sm",
-                      className: "relative z-10 bg-white/50 hover:bg-white/80 text-black",
-                    })}
                   >
-                    View My Profile
-                    <ArrowRight className="ml-2 h-3 w-3" />
+                    <Button variant="link">
+                      View My Profile
+                      <ArrowRight />
+                    </Button>
                   </Link>
                 </div>
               </div>
@@ -207,15 +193,16 @@ function RouteComponent() {
           keyExtractor={(p) => p.participant_id!}
           columns={[
             {
-              header: (
-                <Button
-                  variant="ghost"
-                  onClick={() => handleSort("participant_slug")}
-                  className="p-0 h-auto font-semibold"
-                >
-                  Name {getSortIcon("participant_slug")}
-                </Button>
-              ),
+              header: "Participant",
+              // (
+              //   <Button
+              //     variant="ghost"
+              //     onClick={() => handleSort("participant_slug")}
+              //     className="p-0 h-auto font-semibold"
+              //   >
+              //     Name {getSortIcon("participant_slug")}
+              //   </Button>
+              // ),
               accessorKey: "participant_slug",
               cell: (p) => (
                 <div className="flex items-center gap-3">
@@ -224,25 +211,26 @@ function RouteComponent() {
                   >
                     {(p.participant_slug || "U").charAt(0).toUpperCase()}
                   </div>
-                  <div className="flex flex-col">
-                    <span className="font-medium text-14">{p.participant_slug || "Unknown"}</span>
-                    {p.is_me && (
-                      <span className="text-[10px] text-brand-sky font-bold">IT'S ME</span>
-                    )}
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-medium capitalize">
+                      {p.participant_slug || "Unknown"}
+                    </span>
+                    {p.is_me && <Badge size="sm">IT'S ME</Badge>}
                   </div>
                 </div>
               ),
             },
             {
-              header: (
-                <Button
-                  variant="ghost"
-                  onClick={() => handleSort("participant_type")}
-                  className="p-0 h-auto font-semibold"
-                >
-                  Type {getSortIcon("participant_type")}
-                </Button>
-              ),
+              header: "Participant Type",
+              // (
+              //   <Button
+              //     variant="ghost"
+              //     onClick={() => handleSort("participant_type")}
+              //     className="p-0 h-auto font-semibold"
+              //   >
+              //     Type {getSortIcon("participant_type")}
+              //   </Button>
+              // ),
               accessorKey: "participant_type",
               cell: (p) => (
                 <Badge variant="role" dsrole={p.participant_type as BadgeRole}>
@@ -251,37 +239,39 @@ function RouteComponent() {
               ),
             },
             {
-              header: (
-                <Button
-                  variant="ghost"
-                  onClick={() => handleSort("participant_id")}
-                  className="p-0 h-auto font-semibold"
-                >
-                  DID / ID {getSortIcon("participant_id")}
-                </Button>
-              ),
+              header: "Participant DID",
+              // (
+              //   <Button
+              //     variant="ghost"
+              //     onClick={() => handleSort("participant_id")}
+              //     className="p-0 h-auto font-semibold"
+              //   >
+              //     DID / ID {getSortIcon("participant_id")}
+              //   </Button>
+              // ),
               accessorKey: "participant_id",
               cell: (p) => (
-                <div className="font-mono text-[11px] opacity-70" title={p.participant_id}>
-                  {truncateId(p.participant_id)}
-                </div>
+                <Badge variant="info">{formatIdentifier(p.participant_id, 0, true, 40)}</Badge>
               ),
             },
             {
-              header: (
-                <Button
-                  variant="ghost"
-                  onClick={() => handleSort("last_interaction")}
-                  className="p-0 h-auto font-semibold"
-                >
-                  Last Active {getSortIcon("last_interaction")}
-                </Button>
-              ),
+              header: "Last interaction",
+              // (
+              //   <Button
+              //     variant="ghost"
+              //     onClick={() => handleSort("last_interaction")}
+              //     className="p-0 h-auto font-semibold"
+              //   >
+              //     Last Active {getSortIcon("last_interaction")}
+              //   </Button>
+              // ),
               accessorKey: "last_interaction",
               cell: (p: Participant) => (
-                <div className="text-[11px] opacity-60">
-                  {p.last_interaction ? dayjs(p.last_interaction).format("MMM d, HH:mm") : "Never"}
-                </div>
+                <p>
+                  {p.last_interaction
+                    ? dayjs(p.last_interaction).format("DD MM YYYY - HH:mm")
+                    : "Never"}
+                </p>
               ),
             },
             {
@@ -290,13 +280,11 @@ function RouteComponent() {
                 <Link
                   to="/participants/$participantId"
                   params={{ participantId: p.participant_id! }}
-                  className={buttonVariants({
-                    variant: "ghost",
-                    size: "icon",
-                    className: "hover:text-brand-sky hover:bg-brand-sky/10",
-                  })}
                 >
-                  <ArrowRight className="h-4 w-4" />
+                  <Button variant="link">
+                    See agent
+                    <ArrowRight />
+                  </Button>
                 </Link>
               ),
             },

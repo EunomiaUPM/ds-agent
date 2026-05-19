@@ -58,23 +58,6 @@ function ProviderRequestDetails() {
   const request = response?.data;
   const [showSecrets, setShowSecrets] = useState(false);
 
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "processing":
-        return "bg-blue-500/10 text-blue-500 border-blue-500/20";
-      case "pending":
-        return "bg-amber-500/10 text-amber-500 border-amber-500/20";
-      case "approved":
-        return "bg-green-500/10 text-green-500 border-green-500/20";
-      case "finalized":
-        return "bg-purple-500/10 text-purple-500 border-purple-500/20";
-      case "rejected":
-        return "bg-red-500/10 text-red-500 border-red-500/20";
-      default:
-        return "bg-gray-500/10 text-gray-500 border-gray-500/20";
-    }
-  };
-
   const getTimelineData = (req: any) => {
     const status = req.status?.toLowerCase() || "";
     const pastEvents: { id: string; title: string; date?: string | null }[] = [
@@ -193,7 +176,9 @@ function ProviderRequestDetails() {
               Back
             </Button>
           </Link>
-          <Badge className={`border ${getStatusColor(request.status)}`}>{request.status}</Badge>
+          <Badge variant={"status"} state={request.status}>
+            {request.status || "-"}
+          </Badge>
         </div>
       </PageHeader>
 
@@ -432,7 +417,7 @@ function ProviderRequestDetails() {
                       <span className="text-muted-foreground font-semibold uppercase tracking-wider text-xs">
                         Current State:
                       </span>
-                      <Badge className={`border ${getStatusColor(request.status || "")}`}>
+                      <Badge variant={"status"} state={request.status}>
                         {request.status}
                       </Badge>
                     </div>

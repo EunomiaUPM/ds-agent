@@ -10,10 +10,11 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  * OpenAPI spec version: 1.0.0
  */
 
-export type AuthProtocol = (typeof AuthProtocol)[keyof typeof AuthProtocol];
+export type AuthProtocol = typeof AuthProtocol[keyof typeof AuthProtocol];
+
 
 export const AuthProtocol = {
-  OAuth: "OAuth",
-  Token: "Token",
-  GNAP: "GNAP",
+  OAuth: 'OAuth',
+  Token: 'Token',
+  GNAP: 'GNAP',
 } as const;

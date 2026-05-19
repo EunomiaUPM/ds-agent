@@ -56,7 +56,7 @@ use ymir::errors::Outcome;
 /// All nine operations (two initial + seven lifecycle steps) are driven by the
 /// [`NegotiationRpcStep`] template; `run_lifecycle` encodes the algorithm once:
 ///
-/// validate → prepare context → auth → send + persist
+/// validate - prepare context - auth - send + persist
 #[allow(unused)]
 pub struct RPCOrchestratorService {
     validator: Arc<dyn ValidationRpcSteps>,
@@ -148,6 +148,7 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         &self,
         input: &RpcNegotiationAgreementMessageDto,
     ) -> Outcome<RpcNegotiationMessageDto<RpcNegotiationAgreementMessageDto>> {
+        dbg!(&input);
         let (response, process) = self.run_lifecycle::<RpcAgreementStep>(input).await?;
         Ok(RpcNegotiationMessageDto {
             request: input.clone(),
@@ -216,7 +217,7 @@ impl RPCOrchestratorService {
     /// [`NegotiationRpcStep`] template.
     ///
     /// The algorithm is the same regardless of step type:
-    /// validate → prepare context → auth → send + persist.
+    /// validate - prepare context - auth - send + persist.
     ///
     /// Unlike the transfer RPC template there is no `pre_hook` / `post_hook`
     /// because negotiation does not involve a data-plane session.

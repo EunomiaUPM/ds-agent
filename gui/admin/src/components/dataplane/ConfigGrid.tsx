@@ -1,6 +1,6 @@
 import React from "react";
 
-/** Renders a plain object as a tidy key → value list */
+/** Renders a plain object as a tidy key - value list */
 export function ConfigGrid({ data }: { data: Record<string, unknown> }) {
   const entries = Object.entries(data);
   if (!entries.length) return <span className="text-muted-foreground text-xs italic">—</span>;

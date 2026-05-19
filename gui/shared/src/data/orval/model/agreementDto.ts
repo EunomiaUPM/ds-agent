@@ -9,7 +9,7 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { AgreementDtoAgreementContent } from "./agreementDtoAgreementContent";
+import type { AgreementDtoAgreementContent } from './agreementDtoAgreementContent';
 
 export interface AgreementDto {
   id: string;

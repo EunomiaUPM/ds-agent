@@ -9,8 +9,8 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { OdrlAtomicConstraintOperator } from "./odrlAtomicConstraintOperator";
-import type { OdrlAtomicConstraintRightOperand } from "./odrlAtomicConstraintRightOperand";
+import type { OdrlAtomicConstraintOperator } from './odrlAtomicConstraintOperator';
+import type { OdrlAtomicConstraintRightOperand } from './odrlAtomicConstraintRightOperand';
 
 export interface OdrlAtomicConstraint {
   leftOperand: string;

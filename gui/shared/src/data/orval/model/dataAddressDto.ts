@@ -9,7 +9,7 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { EndpointPropertyDto } from "./endpointPropertyDto";
+import type { EndpointPropertyDto } from './endpointPropertyDto';
 
 export interface DataAddressDto {
   endpointType?: string;

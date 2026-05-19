@@ -26,6 +26,7 @@ import {
   Search,
   Wallet,
   ShieldCheck,
+  KeyRound,
 } from "lucide-react";
 import React, { useContext } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
@@ -40,6 +41,7 @@ import {
   SidebarGroupLabel,
 } from "./ui/sidebar";
 import logoImg from "./../img/eunomia_logo_lg_light.svg";
+import dsLogoImg from "./../img/dsagent_logo_light.svg";
 import { GlobalInfoContext, GlobalInfoContextType } from "shared/src/context/GlobalInfoContext";
 
 // =============================================================================
@@ -128,12 +130,12 @@ export function AppSidebar() {
           icon: Users,
         },
         {
-          title: "Request Credential",
+          title: "VC Requests",
           url: "/admin/authority",
           icon: ShieldCheck,
         },
         {
-          title: "Providers Sessions",
+          title: "My Connections",
           url: "/admin/providers",
           icon: Users,
         },
@@ -146,6 +148,11 @@ export function AppSidebar() {
           title: "My Wallet",
           url: "/admin/wallet/info",
           icon: Wallet,
+        },
+        {
+          title: "Keystore",
+          url: "/admin/keystore/parameters",
+          icon: KeyRound,
         },
         {
           title: "My Catalog",
@@ -176,13 +183,18 @@ export function AppSidebar() {
   // ---------------------------------------------------------------------------
 
   return (
-    <Sidebar className="bg-base-sidebar z-50">
+    <Sidebar className="bg-base-sidebar z-50 pt-4">
       <SidebarContent>
         {/* Logo */}
         <Link to="/admin/">
           <img
+            src={dsLogoImg}
+            className="hidden opacity-80 max-h-6 pl-6 pt-2 pr-12 mx-auto object-contain"
+            alt="ds-agent logo"
+          />
+          <img
             src={logoImg}
-            className="h-11 mt-2 mb-4 mr-auto ml-1 flex justify-start object-contain"
+            className="pl-3 pt-2 pr-6 mt-2 mb-2 mr-1 ml-1 object-contain"
             alt="Eunomia Logo"
           />
         </Link>

@@ -10,14 +10,14 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  * OpenAPI spec version: 1.0.0
  */
 
-export type ParameterDefinitionParamType =
-  (typeof ParameterDefinitionParamType)[keyof typeof ParameterDefinitionParamType];
+export type ParameterDefinitionParamType = typeof ParameterDefinitionParamType[keyof typeof ParameterDefinitionParamType];
+
 
 export const ParameterDefinitionParamType = {
-  STRING: "STRING",
-  INT: "INT",
-  BOOLEAN: "BOOLEAN",
-  "VEC<STRING>": "VEC<STRING>",
-  "MAP<STRING": "MAP<STRING",
-  "STRING>": "STRING>",
+  STRING: 'STRING',
+  INT: 'INT',
+  BOOLEAN: 'BOOLEAN',
+  'VEC<STRING>': 'VEC<STRING>',
+  'MAP<STRING': 'MAP<STRING',
+  'STRING>': 'STRING>',
 } as const;

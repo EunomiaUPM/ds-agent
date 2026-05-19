@@ -10,6 +10,4 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  * OpenAPI spec version: 1.0.0
  */
 
-export type RpcNegotiationMessageDtoRpcNegotiationRequestMessageDtoNegotiationAgentModel = {
-  [key: string]: unknown;
-};
+export type RpcNegotiationMessageDtoRpcNegotiationRequestMessageDtoNegotiationAgentModel = { [key: string]: unknown };

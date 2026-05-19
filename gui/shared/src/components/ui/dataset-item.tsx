@@ -66,7 +66,7 @@ const DatasetItem: React.FC<DatasetItemProps> = ({
       >
         <div className="dataset-header flex justify-between items-center">
           <Heading level="h5" className="!mb-0 font-bold underline-offset-2 hover:underline">
-            {title} Dataset
+            {title}
           </Heading>
         </div>
       </Link>
@@ -79,15 +79,25 @@ const DatasetItem: React.FC<DatasetItemProps> = ({
           <div className="policies-summary-container flex flex-col gap-2 text-xs uppercase">
             <span>{policies.length} policies </span>
             {policies.length > 0 &&
-              policies.map((p: any, idx: number) => (
-                <Badge
-                  key={idx}
-                  variant="detail"
-                  className={"text-2xs " + (showMore ? `flex` : `hidden`)}
-                >
-                  {p.description ? p.description : "Policy description"}
-                </Badge>
-              ))}
+              policies.map((p: any, idx: number) => {
+                let title =
+                  p.description
+                    ?.split(" ")
+                    .slice(0, 2)
+                    .map((word: any) => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(" ") || "Policy description";
+                return (
+                  <>
+                    <Badge
+                      key={idx}
+                      variant="detail"
+                      className={"text-2xs " + (showMore ? `flex` : `hidden`)}
+                    >
+                      {title}
+                    </Badge>
+                  </>
+                );
+              })}
           </div>
           <div className="distributions-summary-container flex flex-col gap-2 text-xs uppercase">
             <span>{distributions.length} distributions </span>

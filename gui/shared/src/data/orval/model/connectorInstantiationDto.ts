@@ -9,8 +9,8 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { ConnectorInstantiationDtoParameters } from "./connectorInstantiationDtoParameters";
-import type { InstanceMetadataDto } from "./instanceMetadataDto";
+import type { ConnectorInstantiationDtoParameters } from './connectorInstantiationDtoParameters';
+import type { InstanceMetadataDto } from './instanceMetadataDto';
 
 export interface ConnectorInstantiationDto {
   templateName: string;

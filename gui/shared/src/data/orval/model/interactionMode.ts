@@ -10,9 +10,10 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  * OpenAPI spec version: 1.0.0
  */
 
-export type InteractionMode = (typeof InteractionMode)[keyof typeof InteractionMode];
+export type InteractionMode = typeof InteractionMode[keyof typeof InteractionMode];
+
 
 export const InteractionMode = {
-  PULL: "PULL",
-  PUSH: "PUSH",
+  PULL: 'PULL',
+  PUSH: 'PUSH',
 } as const;

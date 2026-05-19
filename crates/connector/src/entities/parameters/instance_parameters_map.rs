@@ -315,7 +315,7 @@ mod tests {
         let defs = vec![def("HOST", ParameterType::String, None)];
         assert!(
             !build_with_defaults(&defs).contains_key("HOST"),
-            "no default → no injection"
+            "no default - no injection"
         );
     }
 
@@ -487,7 +487,7 @@ mod tests {
     }
 
     // =========================================================================
-    // Pipeline — instance → default → sys priority
+    // Pipeline — instance - default - sys priority
     // =========================================================================
 
     #[test]

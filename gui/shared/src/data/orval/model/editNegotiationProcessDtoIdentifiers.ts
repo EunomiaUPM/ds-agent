@@ -10,4 +10,4 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  * OpenAPI spec version: 1.0.0
  */
 
-export type EditNegotiationProcessDtoIdentifiers = { [key: string]: string };
+export type EditNegotiationProcessDtoIdentifiers = {[key: string]: string};

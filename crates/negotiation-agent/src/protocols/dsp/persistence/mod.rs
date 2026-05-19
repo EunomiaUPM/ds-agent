@@ -43,8 +43,8 @@ use ymir::errors::Outcome;
 // (in `orchestrator/protocol/persistence`), which has its own richer API.
 //
 // Direction symmetry mirrors the transfer agent:
-//   INBOUND  (protocol) → peer sent the message; local agent responds
-//   OUTBOUND (RPC)      → local agent initiates; peer acknowledges
+//   INBOUND  (protocol) - peer sent the message; local agent responds
+//   OUTBOUND (RPC)      - local agent initiates; peer acknowledges
 
 // ─── Trait ────────────────────────────────────────────────────────────────────
 
@@ -109,7 +109,7 @@ pub trait NegotiationRpcPersistenceTrait: Send + Sync {
 
     /// Advance the process state, log the message, and create a new agreement record.
     ///
-    /// Used by the agreement step (Provider → Consumer).
+    /// Used by the agreement step (Provider - Consumer).
     async fn update_with_new_agreement(
         &self,
         identifier: &str,
@@ -120,8 +120,8 @@ pub trait NegotiationRpcPersistenceTrait: Send + Sync {
 
     /// Advance the process state, log the message, and activate the existing agreement.
     ///
-    /// Used by the verification step (Consumer → Provider) and the
-    /// event-finalized step (Provider → Consumer).
+    /// Used by the verification step (Consumer - Provider) and the
+    /// event-finalized step (Provider - Consumer).
     async fn update_with_agreement(
         &self,
         identifier: &str,

@@ -41,7 +41,7 @@ fn get_template_fixture_dto() -> ConnectorTemplateDto {
             "username": "asd",
             "password": {
                 "type": "PLAIN",
-                "content": "{{__SYS_RANDSTRING__}}"
+                "content": "{{__SYS_TOKEN__}}"
             }
         },
         "interaction": {

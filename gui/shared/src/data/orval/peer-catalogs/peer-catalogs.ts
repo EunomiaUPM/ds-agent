@@ -9,7 +9,10 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useQuery
+} from '@tanstack/react-query';
 import type {
   DataTag,
   DefinedInitialDataOptions,
@@ -23,266 +26,212 @@ import type {
   UseInfiniteQueryOptions,
   UseInfiniteQueryResult,
   UseQueryOptions,
-  UseQueryResult,
-} from "@tanstack/react-query";
+  UseQueryResult
+} from '@tanstack/react-query';
 
-import type { ErrorInfo, PeerCatalogEntry } from ".././model";
+import type {
+  ErrorInfo,
+  PeerCatalogEntry
+} from '.././model';
 
-import { customInstance } from "../../orval-mutator";
-import type { ErrorType } from "../../orval-mutator";
+import { customInstance } from '../../orval-mutator';
+import type { ErrorType } from '../../orval-mutator';
+
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+
 
 /**
  * @summary Get all remote peer catalog
  */
 export type getAllPeerCatalogResponse200 = {
-  data: PeerCatalogEntry[];
-  status: 200;
-};
+  data: PeerCatalogEntry[]
+  status: 200
+}
 
 export type getAllPeerCatalogResponse404 = {
-  data: ErrorInfo;
-  status: 404;
-};
+  data: ErrorInfo
+  status: 404
+}
 
 export type getAllPeerCatalogResponse500 = {
-  data: ErrorInfo;
-  status: 500;
-};
-
-export type getAllPeerCatalogResponseSuccess = getAllPeerCatalogResponse200 & {
+  data: ErrorInfo
+  status: 500
+}
+    
+export type getAllPeerCatalogResponseSuccess = (getAllPeerCatalogResponse200) & {
   headers: Headers;
 };
-export type getAllPeerCatalogResponseError = (
-  | getAllPeerCatalogResponse404
-  | getAllPeerCatalogResponse500
-) & {
+export type getAllPeerCatalogResponseError = (getAllPeerCatalogResponse404 | getAllPeerCatalogResponse500) & {
   headers: Headers;
 };
 
-export type getAllPeerCatalogResponse =
-  | getAllPeerCatalogResponseSuccess
-  | getAllPeerCatalogResponseError;
+export type getAllPeerCatalogResponse = (getAllPeerCatalogResponseSuccess | getAllPeerCatalogResponseError)
 
 export const getGetAllPeerCatalogUrl = () => {
-  return `/peer-catalogs`;
-};
 
-export const getAllPeerCatalog = async (
-  options?: RequestInit,
-): Promise<getAllPeerCatalogResponse> => {
-  return customInstance<getAllPeerCatalogResponse>(getGetAllPeerCatalogUrl(), {
+
+  
+
+  return `/peer-catalogs`
+}
+
+export const getAllPeerCatalog = async ( options?: RequestInit): Promise<getAllPeerCatalogResponse> => {
+  
+  return customInstance<getAllPeerCatalogResponse>(getGetAllPeerCatalogUrl(),
+  {      
     ...options,
-    method: "GET",
-  });
-};
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
 
 export const getGetAllPeerCatalogInfiniteQueryKey = () => {
-  return ["infinite", `/peer-catalogs`] as const;
-};
+    return [
+    'infinite', `/peer-catalogs`
+    ] as const;
+    }
 
 export const getGetAllPeerCatalogQueryKey = () => {
-  return [`/peer-catalogs`] as const;
-};
+    return [
+    `/peer-catalogs`
+    ] as const;
+    }
 
-export const getGetAllPeerCatalogInfiniteQueryOptions = <
-  TData = InfiniteData<Awaited<ReturnType<typeof getAllPeerCatalog>>>,
-  TError = ErrorType<ErrorInfo>,
->(options?: {
-  query?: Partial<
-    UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllPeerCatalog>>, TError, TData>
-  >;
-  request?: SecondParameter<typeof customInstance>;
-}) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
+    
+export const getGetAllPeerCatalogInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof getAllPeerCatalog>>>, TError = ErrorType<ErrorInfo>>( options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllPeerCatalog>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
 
-  const queryKey = queryOptions?.queryKey ?? getGetAllPeerCatalogInfiniteQueryKey();
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getAllPeerCatalog>>> = ({ signal }) =>
-    getAllPeerCatalog({ signal, ...requestOptions });
+  const queryKey =  queryOptions?.queryKey ?? getGetAllPeerCatalogInfiniteQueryKey();
 
-  return { queryKey, queryFn, ...queryOptions } as UseInfiniteQueryOptions<
-    Awaited<ReturnType<typeof getAllPeerCatalog>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData> };
-};
+  
 
-export type GetAllPeerCatalogInfiniteQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getAllPeerCatalog>>
->;
-export type GetAllPeerCatalogInfiniteQueryError = ErrorType<ErrorInfo>;
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAllPeerCatalog>>> = ({ signal }) => getAllPeerCatalog({ signal, ...requestOptions });
 
-export function useGetAllPeerCatalogInfinite<
-  TData = InfiniteData<Awaited<ReturnType<typeof getAllPeerCatalog>>>,
-  TError = ErrorType<ErrorInfo>,
->(
-  options: {
-    query: Partial<
-      UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllPeerCatalog>>, TError, TData>
-    > &
-      Pick<
+      
+
+      
+
+   return  { queryKey, queryFn,   ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllPeerCatalog>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
+}
+
+export type GetAllPeerCatalogInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getAllPeerCatalog>>>
+export type GetAllPeerCatalogInfiniteQueryError = ErrorType<ErrorInfo>
+
+
+export function useGetAllPeerCatalogInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getAllPeerCatalog>>>, TError = ErrorType<ErrorInfo>>(
+  options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllPeerCatalog>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getAllPeerCatalog>>,
           TError,
           Awaited<ReturnType<typeof getAllPeerCatalog>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
-export function useGetAllPeerCatalogInfinite<
-  TData = InfiniteData<Awaited<ReturnType<typeof getAllPeerCatalog>>>,
-  TError = ErrorType<ErrorInfo>,
->(
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllPeerCatalog>>, TError, TData>
-    > &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetAllPeerCatalogInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getAllPeerCatalog>>>, TError = ErrorType<ErrorInfo>>(
+  options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllPeerCatalog>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getAllPeerCatalog>>,
           TError,
           Awaited<ReturnType<typeof getAllPeerCatalog>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
-export function useGetAllPeerCatalogInfinite<
-  TData = InfiniteData<Awaited<ReturnType<typeof getAllPeerCatalog>>>,
-  TError = ErrorType<ErrorInfo>,
->(
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllPeerCatalog>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetAllPeerCatalogInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getAllPeerCatalog>>>, TError = ErrorType<ErrorInfo>>(
+  options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllPeerCatalog>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
  * @summary Get all remote peer catalog
  */
 
-export function useGetAllPeerCatalogInfinite<
-  TData = InfiniteData<Awaited<ReturnType<typeof getAllPeerCatalog>>>,
-  TError = ErrorType<ErrorInfo>,
->(
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllPeerCatalog>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
-  const queryOptions = getGetAllPeerCatalogInfiniteQueryOptions(options);
+export function useGetAllPeerCatalogInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getAllPeerCatalog>>>, TError = ErrorType<ErrorInfo>>(
+  options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllPeerCatalog>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient 
+ ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
 
-  const query = useInfiniteQuery(queryOptions, queryClient) as UseInfiniteQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData> };
+  const queryOptions = getGetAllPeerCatalogInfiniteQueryOptions(options)
+
+  const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-export const getGetAllPeerCatalogQueryOptions = <
-  TData = Awaited<ReturnType<typeof getAllPeerCatalog>>,
-  TError = ErrorType<ErrorInfo>,
->(options?: {
-  query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllPeerCatalog>>, TError, TData>>;
-  request?: SecondParameter<typeof customInstance>;
-}) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetAllPeerCatalogQueryKey();
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getAllPeerCatalog>>> = ({ signal }) =>
-    getAllPeerCatalog({ signal, ...requestOptions });
 
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getAllPeerCatalog>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData> };
-};
+export const getGetAllPeerCatalogQueryOptions = <TData = Awaited<ReturnType<typeof getAllPeerCatalog>>, TError = ErrorType<ErrorInfo>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllPeerCatalog>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
 
-export type GetAllPeerCatalogQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getAllPeerCatalog>>
->;
-export type GetAllPeerCatalogQueryError = ErrorType<ErrorInfo>;
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-export function useGetAllPeerCatalog<
-  TData = Awaited<ReturnType<typeof getAllPeerCatalog>>,
-  TError = ErrorType<ErrorInfo>,
->(
-  options: {
-    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllPeerCatalog>>, TError, TData>> &
-      Pick<
+  const queryKey =  queryOptions?.queryKey ?? getGetAllPeerCatalogQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAllPeerCatalog>>> = ({ signal }) => getAllPeerCatalog({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn,   ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAllPeerCatalog>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
+}
+
+export type GetAllPeerCatalogQueryResult = NonNullable<Awaited<ReturnType<typeof getAllPeerCatalog>>>
+export type GetAllPeerCatalogQueryError = ErrorType<ErrorInfo>
+
+
+export function useGetAllPeerCatalog<TData = Awaited<ReturnType<typeof getAllPeerCatalog>>, TError = ErrorType<ErrorInfo>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllPeerCatalog>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getAllPeerCatalog>>,
           TError,
           Awaited<ReturnType<typeof getAllPeerCatalog>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
-export function useGetAllPeerCatalog<
-  TData = Awaited<ReturnType<typeof getAllPeerCatalog>>,
-  TError = ErrorType<ErrorInfo>,
->(
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllPeerCatalog>>, TError, TData>> &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetAllPeerCatalog<TData = Awaited<ReturnType<typeof getAllPeerCatalog>>, TError = ErrorType<ErrorInfo>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllPeerCatalog>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getAllPeerCatalog>>,
           TError,
           Awaited<ReturnType<typeof getAllPeerCatalog>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
-export function useGetAllPeerCatalog<
-  TData = Awaited<ReturnType<typeof getAllPeerCatalog>>,
-  TError = ErrorType<ErrorInfo>,
->(
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllPeerCatalog>>, TError, TData>>;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetAllPeerCatalog<TData = Awaited<ReturnType<typeof getAllPeerCatalog>>, TError = ErrorType<ErrorInfo>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllPeerCatalog>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
  * @summary Get all remote peer catalog
  */
 
-export function useGetAllPeerCatalog<
-  TData = Awaited<ReturnType<typeof getAllPeerCatalog>>,
-  TError = ErrorType<ErrorInfo>,
->(
-  options?: {
-    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllPeerCatalog>>, TError, TData>>;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
-  const queryOptions = getGetAllPeerCatalogQueryOptions(options);
+export function useGetAllPeerCatalog<TData = Awaited<ReturnType<typeof getAllPeerCatalog>>, TError = ErrorType<ErrorInfo>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllPeerCatalog>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData>;
-  };
+  const queryOptions = getGetAllPeerCatalogQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+
+
+

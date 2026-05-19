@@ -1,33 +1,37 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { AlertCircle, CheckCircle2, Loader2, Search } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { PageLayout } from "shared/src/components/layout/PageLayout";
+import { formatIdentifier } from "shared/lib/utils";
 import { PageHeader } from "shared/src/components/layout/PageHeader";
+import { PageLayout } from "shared/src/components/layout/PageLayout";
 import { PageSection } from "shared/src/components/layout/PageSection";
+import { Badge } from "shared/src/components/ui/badge";
+import { Button } from "shared/src/components/ui/button";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "shared/src/components/ui/card";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription,
 } from "shared/src/components/ui/form";
 import { Input } from "shared/src/components/ui/input";
-import { Button } from "shared/src/components/ui/button";
-import { Search, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
-import { Badge } from "shared/src/components/ui/badge";
 import { customInstance } from "shared/src/data/orval-mutator";
+import { useFederatedCatalog } from "shared/src/data/useFederatedCatalog";
+import * as z from "zod";
+
+import { zodResolver } from "@hookform/resolvers/zod";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useGetAllParticipants } from "shared/src/data/orval/participants/participants";
+import WizardDialog from "shared/src/components/WizardDialog";
 
 const schema = z.object({
   url: z.string().url("Please enter a valid URL"),
@@ -44,9 +48,18 @@ interface DidService {
 
 type FormValues = z.infer<typeof schema>;
 
+interface NewProviderSearch {
+  url?: string;
+  slug?: string;
+}
+
 // @ts-ignore
 export const Route = createFileRoute("/providers/new")({
   component: NewProviderOnboard,
+  validateSearch: (search: Record<string, unknown>): NewProviderSearch => ({
+    url: typeof search.url === "string" ? search.url : undefined,
+    slug: typeof search.slug === "string" ? search.slug : undefined,
+  }),
 });
 
 function NewProviderOnboard() {
@@ -58,18 +71,30 @@ function NewProviderOnboard() {
     services: DidService[];
   } | null>(null);
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
-
   const { data: participantsResponse } = useGetAllParticipants();
-  const knownProviders =
-    participantsResponse?.status === 200
-      ? participantsResponse.data.filter((p) => p.participant_type === "Agent" && !p.is_me)
-      : [];
+  const localParticipants = participantsResponse?.status === 200 ? participantsResponse.data : [];
+
+  const federated = useFederatedCatalog();
+  const knownProviders = federated.state === "ok" ? federated.agents : [];
+
+  const labelURLRef = useRef<HTMLElement | null>(null);
+  // first wizard URL state
+  const [wizardURLOpen, setWizardURLOpen] = useState(true);
+
+  //  if (!Array.isArray(localParticipants) || !Array.isArray(knownProviders))
+  //   return undefined;
+  const localParticiapntsIds = new Set(localParticipants?.map((p) => p.participant_id));
+  const onboardedWithKnownProvider = knownProviders.find((prov) =>
+    localParticiapntsIds?.has(prov.participant_id),
+  );
+
+  const search = Route.useSearch();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema) as any,
     defaultValues: {
-      url: "",
-      slug: "",
+      url: search.url ?? "",
+      slug: search.slug ?? "",
       auto: true,
       actions: ["talk"],
     },
@@ -101,6 +126,15 @@ function NewProviderOnboard() {
     }
   };
 
+  const [didPrefill, setDidPrefill] = useState(false);
+  useEffect(() => {
+    if (didPrefill || !search.url) return;
+    form.setValue("url", search.url);
+    if (search.slug) form.setValue("slug", search.slug);
+    handleDiscovery(search.url);
+    setDidPrefill(true);
+  }, [search.url, search.slug, didPrefill]);
+
   const onSubmit = async (values: FormValues) => {
     if (!discoveredInfo) return;
 
@@ -118,6 +152,13 @@ function NewProviderOnboard() {
         },
       });
 
+      // mark that the user just authenticated/was onboarded via the new-provider flow
+      try {
+        sessionStorage.setItem("JustAuthenticatedProvider", "true");
+      } catch (e) {
+        /* ignore if unavailable */
+      }
+
       (navigate as any)({ to: "/providers" });
     } catch (err) {
       console.error(err);
@@ -126,17 +167,39 @@ function NewProviderOnboard() {
     }
   };
 
+  let highlightButtonClasses = !onboardedWithKnownProvider
+    ? " animate-pulse bg-secondary-600 hover:bg-secondary-500 ring-2 ring-secondary-400"
+    : "";
+
   return (
     <PageLayout>
-      <PageHeader title="New Provider Onboarding" />
+      <PageHeader title="New Connection" />
+      {!onboardedWithKnownProvider && (
+        <WizardDialog
+          open={wizardURLOpen}
+          onClose={() => setWizardURLOpen(false)}
+          anchorRef={labelURLRef}
+          align="left"
+          sectionTitle={"Connection with Participant Tutorial"}
+          step="3 of 3"
+          title="New Connection with catalog owner"
+          content={
+            <>
+              The URL of the participant has already been filled, so you can send the participant a
+              connection request.
+              <br />
+            </>
+          }
+        />
+      )}
       <PageSection>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Provider Connection</CardTitle>
+                <CardTitle>Participant Connection</CardTitle>
                 <CardDescription>
-                  Enter the provider base URL to discover its DID and initiate onboarding.
+                  Enter the participant base URL to discover its DID and initiate onboarding.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -147,9 +210,11 @@ function NewProviderOnboard() {
                       name="url"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Provider URL</FormLabel>
-                          <div className="flex gap-2">
-                            <FormControl>
+                          <FormLabel ref={(el) => (labelURLRef.current = el as any)}>
+                            Participant URL
+                          </FormLabel>
+                          <div className="flex items-center gap-2">
+                            <FormControl className="flex-1">
                               <Input
                                 placeholder="https://provider.example.com"
                                 list="known-providers"
@@ -177,15 +242,16 @@ function NewProviderOnboard() {
                             <Button
                               type="button"
                               variant="secondary"
+                              size="sm"
                               onClick={() => handleDiscovery()}
                               disabled={isDiscovering || !url}
                             >
                               {isDiscovering ? (
                                 <Loader2 className="animate-spin h-4 w-4 mr-2" />
                               ) : (
-                                <Search className="h-4 w-4 mr-2" />
+                                <Search />
                               )}
-                              Discover
+                              Find provider
                             </Button>
                           </div>
                           <FormMessage />
@@ -196,44 +262,42 @@ function NewProviderOnboard() {
                       )}
                     />
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control as any}
-                        name="slug"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Friendly Name (Slug)</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Acme Provider" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                    <FormField
+                      control={form.control as any}
+                      name="slug"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Friendly Name (Slug)</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Acme Provider" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                      <FormField
-                        control={form.control as any}
-                        name="auto"
-                        render={({ field }: { field: any }) => (
-                          <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                            <FormControl>
-                              <input
-                                type="checkbox"
-                                checked={field.value}
-                                onChange={field.onChange}
-                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                              />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel>Automatic Authentication</FormLabel>
-                              <FormDescription>
-                                Automatically handle the authentication flow.
-                              </FormDescription>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
+                    <FormField
+                      control={form.control as any}
+                      name="auto"
+                      render={({ field }: { field: any }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                          <FormControl>
+                            <input
+                              type="checkbox"
+                              checked={field.value}
+                              onChange={field.onChange}
+                              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel>Automatic Authentication</FormLabel>
+                            <FormDescription>
+                              Automatically handle the authentication flow.
+                            </FormDescription>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
 
                     {/* 
                     <FormField
@@ -293,7 +357,7 @@ function NewProviderOnboard() {
 
                     <Button
                       type="submit"
-                      className="w-full"
+                      className={`w-full   ${highlightButtonClasses}`}
                       disabled={!discoveredInfo || isSubmitting}
                     >
                       {isSubmitting ? (
@@ -331,8 +395,8 @@ function NewProviderOnboard() {
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                         Provider DID
                       </p>
-                      <Badge variant="infoLighter" className="font-mono text-[10px] break-all p-2">
-                        {discoveredInfo.id}
+                      <Badge variant="infoLighter">
+                        {formatIdentifier(discoveredInfo.id, 0, true, 40)}
                       </Badge>
                     </div>
                     <div className="space-y-1">
@@ -343,10 +407,10 @@ function NewProviderOnboard() {
                         {discoveredInfo.services.map((s, idx) => (
                           <div
                             key={idx}
-                            className="p-2 border rounded bg-background-200/50 text-[10px] space-y-1"
+                            className="p-2 border rounded bg-background-200/30 text-sm space-y-1"
                           >
-                            <p className="font-bold text-primary">{s.type}</p>
-                            <p className="break-all opacity-70">{s.serviceEndpoint}</p>
+                            <p className="font-medium text-brand-sky">{s.type}</p>
+                            <p className="break-all text-xs text-white/70">{s.serviceEndpoint}</p>
                           </div>
                         ))}
                         {discoveredInfo.services.length === 0 && (
@@ -354,7 +418,7 @@ function NewProviderOnboard() {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-green-500 font-medium pt-2">
+                    <div className="flex items-center gap-2 text-sm text-success-400 font-medium pt-2">
                       <CheckCircle2 className="h-4 w-4" />
                       Provider verified
                     </div>

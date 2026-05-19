@@ -18,6 +18,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { clearSession, isSessionActive, setSession } from "../lib/session";
 import eunomiaLogo from "shared/src/img/eunomia_logo_lg_light.svg";
 import { DevMode } from "shared/src/components/DevMode";
+import { Toaster } from "shared/src/components/ui/sonner";
 
 export const Route = createRootRouteWithContext<{
   queryClient: QueryClient;
@@ -62,6 +63,7 @@ function RootComponent() {
           </div>
         </SidebarInset>
       </SidebarProvider>
+      <Toaster />
       <GlobalLoadingIndicator />
       <TanStackRouterDevtools />
     </>

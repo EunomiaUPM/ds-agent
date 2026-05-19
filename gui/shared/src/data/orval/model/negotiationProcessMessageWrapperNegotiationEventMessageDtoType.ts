@@ -10,9 +10,9 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  * OpenAPI spec version: 1.0.0
  */
 
-export type NegotiationProcessMessageWrapperNegotiationEventMessageDtoType =
-  (typeof NegotiationProcessMessageWrapperNegotiationEventMessageDtoType)[keyof typeof NegotiationProcessMessageWrapperNegotiationEventMessageDtoType];
+export type NegotiationProcessMessageWrapperNegotiationEventMessageDtoType = typeof NegotiationProcessMessageWrapperNegotiationEventMessageDtoType[keyof typeof NegotiationProcessMessageWrapperNegotiationEventMessageDtoType];
+
 
 export const NegotiationProcessMessageWrapperNegotiationEventMessageDtoType = {
-  ContractNegotiationEventMessage: "ContractNegotiationEventMessage",
+  ContractNegotiationEventMessage: 'ContractNegotiationEventMessage',
 } as const;

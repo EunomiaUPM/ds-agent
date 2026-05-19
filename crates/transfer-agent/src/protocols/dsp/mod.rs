@@ -169,7 +169,7 @@ impl ProtocolPluginTrait for TransferDSP {
             proxy_base_url,
         ));
 
-        // data service resolver (resolves agreement → dataset → distribution → connector)
+        // data service resolver (resolves agreement - dataset - distribution - connector)
         let data_service_resolver = Arc::new(DataServiceFacadeServiceForDSProtocol::new(
             self.config.clone(),
             http_client.clone(),

@@ -31,8 +31,10 @@ use crate::entities::negotiation_message::NegotiationAgentMessagesTrait;
 use crate::entities::negotiation_process::NegotiationAgentProcessesTrait;
 use crate::entities::offer::NegotiationAgentOffersTrait;
 use crate::protocols::dsp::facades::FacadeService;
+use crate::protocols::dsp::http::bff_rpc::BffRpcRouter;
 use crate::protocols::dsp::http::protocol::DspRouter;
 use crate::protocols::dsp::http::rpc::RpcRouter;
+use crate::protocols::dsp::orchestrator::bff::bff::BFFRPCOrchestratorService;
 use crate::protocols::dsp::orchestrator::orchestrator::OrchestratorService;
 use crate::protocols::dsp::orchestrator::protocol::persistence::OrchestrationPersistenceForProtocol;
 use crate::protocols::dsp::orchestrator::protocol::protocol::ProtocolOrchestratorService;
@@ -154,9 +156,11 @@ impl ProtocolPluginTrait for NegotiationDSP {
             http_client.clone(),
             self.mates_service.clone(),
         ));
+        let bff_rpc_orchestator = Arc::new(BFFRPCOrchestratorService::new(rpc_orchestator.clone()));
         let orchestrator_service = Arc::new(OrchestratorService::new(
             http_orchestator.clone(),
             rpc_orchestator.clone(),
+            bff_rpc_orchestator.clone(),
         ));
 
         // router
@@ -166,10 +170,12 @@ impl ProtocolPluginTrait for NegotiationDSP {
             self.ssi_auth_service.clone(),
         );
         let rcp_router = RpcRouter::new(orchestrator_service.clone(), self.config.clone());
+        let bff_rcp_router = BffRpcRouter::new(orchestrator_service.clone(), self.config.clone());
 
         Ok(Router::new()
             .merge(dsp_router.router())
-            .merge(rcp_router.router()))
+            .merge(rcp_router.router())
+            .merge(bff_rcp_router.router()))
     }
 
     fn build_grpc_router(&self) -> Outcome<Option<Router>> {

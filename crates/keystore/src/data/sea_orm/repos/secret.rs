@@ -15,10 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use chrono::Utc;
-use sea_orm::{
-    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
-};
+use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use ymir::errors::{Outcome, RepoIntoErrors};
 
 use crate::data::repo::secrets::{SecretRepoErrors, SecretRepoTrait};
@@ -149,20 +146,14 @@ impl SecretRepoTrait for SeaOrmSecretRepo {
     }
 
     async fn delete_secret(&self, key: &Key) -> Outcome<()> {
-        let current = secret::Entity::find_by_id(key.as_str())
-            .filter(secret::Column::DeletedAt.is_null())
-            .one(&self.db)
+        let result = secret::Entity::delete_by_id(key.as_str())
+            .exec(&self.db)
             .await
-            .map_err(|e| SecretRepoErrors::ErrorDeletingSecret(e.into()).into_errors())?
-            .ok_or_else(|| SecretRepoErrors::SecretNotFound.into_errors())?;
+            .map_err(|e| SecretRepoErrors::ErrorDeletingSecret(e.into()).into_errors())?;
 
-        let mut active: secret::ActiveModel = current.into();
-        active.deleted_at = ActiveValue::Set(Some(Utc::now().into()));
-
-        active
-            .update(&self.db)
-            .await
-            .map(|_| ())
-            .map_err(|e| SecretRepoErrors::ErrorDeletingSecret(e.into()).into_errors())
+        if result.rows_affected == 0 {
+            return Err(SecretRepoErrors::SecretNotFound.into_errors());
+        }
+        Ok(())
     }
 }

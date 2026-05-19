@@ -48,9 +48,9 @@ impl SecretRouter {
         Router::new()
             .route("/", get(Self::list))
             .route("/", post(Self::create))
-            .route("/{key}", get(Self::read))
-            .route("/{key}", put(Self::update))
-            .route("/{key}", delete(Self::delete))
+            .route("/{*key}", get(Self::read))
+            .route("/{*key}", put(Self::update))
+            .route("/{*key}", delete(Self::delete))
             .with_state(self)
     }
 
@@ -77,7 +77,7 @@ impl SecretRouter {
         State(state): State<SecretRouter>,
         Path(key): Path<String>,
     ) -> AppResult<Json<SecretView>> {
-        let key = Key::new(key)?;
+        let key = Key::new(format!("/{}", key))?;
         let entry = state.service.read(&key).await?;
         Ok(Json(SecretView::from(entry)))
     }
@@ -87,7 +87,7 @@ impl SecretRouter {
         Path(key): Path<String>,
         Json(cmd): Json<EditSecretCommand>,
     ) -> AppResult<Json<VersionResponse>> {
-        let key = Key::new(key)?;
+        let key = Key::new(format!("/{}", key))?;
         let version = state.service.update(&key, &cmd).await?;
         Ok(Json(VersionResponse::from(version)))
     }
@@ -96,7 +96,7 @@ impl SecretRouter {
         State(state): State<SecretRouter>,
         Path(key): Path<String>,
     ) -> AppResult<StatusCode> {
-        let key = Key::new(key)?;
+        let key = Key::new(format!("/{}", key))?;
         state.service.delete(&key).await?;
         Ok(StatusCode::NO_CONTENT)
     }

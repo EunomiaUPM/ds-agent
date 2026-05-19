@@ -39,9 +39,11 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .primary_key(),
                     )
-                    // value is stored as plaintext; callers are responsible for
-                    // application-level encryption before passing to the repo.
-                    .col(ColumnDef::new(KeystoreSecrets::Value).text().not_null())
+                    .col(
+                        ColumnDef::new(KeystoreSecrets::Value)
+                            .json_binary()
+                            .not_null(),
+                    )
                     .col(
                         ColumnDef::new(KeystoreSecrets::Version)
                             .big_integer()

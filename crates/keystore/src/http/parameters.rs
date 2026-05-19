@@ -48,9 +48,9 @@ impl ParameterRouter {
         Router::new()
             .route("/", get(Self::list))
             .route("/", post(Self::create))
-            .route("/{key}", get(Self::read))
-            .route("/{key}", put(Self::update))
-            .route("/{key}", delete(Self::delete))
+            .route("/{*key}", get(Self::read))
+            .route("/{*key}", put(Self::update))
+            .route("/{*key}", delete(Self::delete))
             .with_state(self)
     }
 
@@ -77,7 +77,7 @@ impl ParameterRouter {
         State(state): State<ParameterRouter>,
         Path(key): Path<String>,
     ) -> AppResult<Json<ParameterView>> {
-        let key = Key::new(key)?;
+        let key = Key::new(format!("/{}", key))?;
         let entry = state.service.read(&key).await?;
         Ok(Json(ParameterView::from(entry)))
     }
@@ -87,7 +87,7 @@ impl ParameterRouter {
         Path(key): Path<String>,
         Json(cmd): Json<EditParameterCommand<serde_json::Value>>,
     ) -> AppResult<Json<VersionResponse>> {
-        let key = Key::new(key)?;
+        let key = Key::new(format!("/{}", key))?;
         let version = state.service.update(&key, &cmd, "").await?;
         Ok(Json(VersionResponse::from(version)))
     }
@@ -96,7 +96,7 @@ impl ParameterRouter {
         State(state): State<ParameterRouter>,
         Path(key): Path<String>,
     ) -> AppResult<StatusCode> {
-        let key = Key::new(key)?;
+        let key = Key::new(format!("/{}", key))?;
         state.service.delete(&key).await?;
         Ok(StatusCode::NO_CONTENT)
     }

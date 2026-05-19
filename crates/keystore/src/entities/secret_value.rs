@@ -1,14 +1,14 @@
-use secrecy::{ExposeSecret, SecretString};
+use serde::Deserialize;
 
 #[derive(Clone)]
-pub struct SecretValue(secrecy::SecretString);
+pub struct SecretValue(serde_json::Value);
 
 impl SecretValue {
-    pub fn new(s: String) -> Self {
-        Self(SecretString::new(s.into()))
+    pub fn new(v: serde_json::Value) -> Self {
+        Self(v)
     }
-    pub fn expose(&self) -> &str {
-        self.0.expose_secret()
+    pub fn expose(&self) -> &serde_json::Value {
+        &self.0
     }
 }
 
@@ -26,7 +26,8 @@ impl serde::Serialize for SecretValue {
 
 impl<'de> serde::Deserialize<'de> for SecretValue {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let s = String::deserialize(deserializer)?;
-        Ok(SecretValue::new(s))
+        Ok(SecretValue::new(serde_json::Value::deserialize(
+            deserializer,
+        )?))
     }
 }

@@ -168,14 +168,8 @@ impl ParameterRepoTrait for InMemoryParameterRepo {
 
     async fn delete_parameter(&self, key: &Key) -> Outcome<()> {
         let mut g = self.store.write().await;
-        let active = g
-            .get(key.as_str())
-            .map_or(false, |e| e.metadata.deleted_at.is_none());
-        if !active {
+        if g.remove(key.as_str()).is_none() {
             return Err(ParameterRepoErrors::ParameterNotFound.into_errors());
-        }
-        if let Some(e) = g.get_mut(key.as_str()) {
-            e.metadata.deleted_at = Some(Utc::now());
         }
         Ok(())
     }
@@ -301,14 +295,8 @@ impl SecretRepoTrait for InMemorySecretRepo {
 
     async fn delete_secret(&self, key: &Key) -> Outcome<()> {
         let mut g = self.store.write().await;
-        let active = g
-            .get(key.as_str())
-            .map_or(false, |e| e.metadata.deleted_at.is_none());
-        if !active {
+        if g.remove(key.as_str()).is_none() {
             return Err(SecretRepoErrors::SecretNotFound.into_errors());
-        }
-        if let Some(e) = g.get_mut(key.as_str()) {
-            e.metadata.deleted_at = Some(Utc::now());
         }
         Ok(())
     }

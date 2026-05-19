@@ -16,7 +16,7 @@
  */
 
 use chrono::Utc;
-use sea_orm::prelude::DateTimeWithTimeZone;
+use sea_orm::prelude::{DateTimeWithTimeZone, Json};
 use sea_orm::{
     ActiveModelBehavior, ActiveValue, DeriveEntityModel, DerivePrimaryKey, DeriveRelation,
     EnumIter, PrimaryKeyTrait,
@@ -34,9 +34,7 @@ use crate::entities::version::Version;
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub key: String,
-    // Stored as plaintext TEXT; application-level encryption is the caller's
-    // responsibility before reaching the repo.
-    pub value: String,
+    pub value: Json,
     pub version: i64,
     pub description: Option<String>,
     pub created_at: DateTimeWithTimeZone,
@@ -56,7 +54,7 @@ impl ActiveModel {
         let now: DateTimeWithTimeZone = Utc::now().into();
         Self {
             key: ActiveValue::Set(cmd.key.as_str().to_owned()),
-            value: ActiveValue::Set(cmd.value.expose().to_owned()),
+            value: ActiveValue::Set(cmd.value.expose().clone()),
             version: ActiveValue::Set(Version::INITIAL.value() as i64),
             description: ActiveValue::Set(cmd.description.clone()),
             created_at: ActiveValue::Set(now),
@@ -68,7 +66,7 @@ impl ActiveModel {
     }
 
     pub fn apply_edit_cmd(mut self, cmd: &EditSecretCommand, next_version: i64) -> Self {
-        self.value = ActiveValue::Set(cmd.value.expose().to_owned());
+        self.value = ActiveValue::Set(cmd.value.expose().clone());
         self.version = ActiveValue::Set(next_version);
         self.updated_at = ActiveValue::Set(Utc::now().into());
         self.updated_by = ActiveValue::Set(String::new());

@@ -15,10 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use chrono::Utc;
-use sea_orm::{
-    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
-};
+use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use ymir::errors::{Outcome, RepoIntoErrors};
 
 use crate::data::repo::parameters::{ParameterRepoErrors, ParameterRepoTrait};
@@ -161,20 +158,14 @@ impl ParameterRepoTrait for SeaOrmParameterRepo {
     }
 
     async fn delete_parameter(&self, key: &Key) -> Outcome<()> {
-        let current = parameter::Entity::find_by_id(key.as_str())
-            .filter(parameter::Column::DeletedAt.is_null())
-            .one(&self.db)
+        let result = parameter::Entity::delete_by_id(key.as_str())
+            .exec(&self.db)
             .await
-            .map_err(|e| ParameterRepoErrors::ErrorDeletingParameter(e.into()).into_errors())?
-            .ok_or_else(|| ParameterRepoErrors::ParameterNotFound.into_errors())?;
+            .map_err(|e| ParameterRepoErrors::ErrorDeletingParameter(e.into()).into_errors())?;
 
-        let mut active: parameter::ActiveModel = current.into();
-        active.deleted_at = ActiveValue::Set(Some(Utc::now().into()));
-
-        active
-            .update(&self.db)
-            .await
-            .map(|_| ())
-            .map_err(|e| ParameterRepoErrors::ErrorDeletingParameter(e.into()).into_errors())
+        if result.rows_affected == 0 {
+            return Err(ParameterRepoErrors::ParameterNotFound.into_errors());
+        }
+        Ok(())
     }
 }

@@ -20,6 +20,7 @@ use serde::Serialize;
 
 use crate::entities::entry::SecretEntry;
 use crate::entities::metadata::Metadata;
+use crate::entities::secret_value::SecretValue;
 use crate::entities::version::Version;
 
 #[derive(Serialize)]
@@ -27,8 +28,7 @@ use crate::entities::version::Version;
 pub struct SecretView {
     pub key: String,
     pub version: u64,
-    // Expose the plaintext value. Callers must ensure the transport is secured (TLS).
-    pub value: String,
+    pub value: SecretValue,
     pub description: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -41,7 +41,7 @@ impl From<SecretEntry> for SecretView {
         Self {
             key: e.metadata.key.to_string(),
             version: e.metadata.version.value(),
-            value: e.value.expose().to_owned(),
+            value: e.value,
             description: e.metadata.description,
             created_at: e.metadata.created_at,
             updated_at: e.metadata.updated_at,

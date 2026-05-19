@@ -11,6 +11,7 @@ pub struct NewParameterCommand<T> {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct EditParameterCommand<T> {
     pub value: T,
     pub expected_version: Version,
@@ -25,6 +26,7 @@ pub struct NewSecretCommand {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct EditSecretCommand {
     pub value: SecretValue,
     pub expected_version: Version,

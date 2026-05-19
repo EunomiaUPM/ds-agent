@@ -43,20 +43,20 @@ const RouteComponent = () => {
   const currentParticipantNegoc = Array.isArray(participants?.data) ? participants?.data.find((p) =>
     p.participant_id === requestedParticipantId) : undefined;
 
-  useEffect(() => {
-    if (bubbleFeedbackAction && currentDatasetNegoc && currentParticipantNegoc) {
-      toast("Contract Request Sent", {
-        description: (
-          <span>
-            You sent a contract negotiation request for <b>{currentDatasetNegoc?.title}</b> to participant <b>{currentParticipantNegoc?.participant_slug}</b>.
-          </span>
-        ),
-        position: "top-center",
-        duration: 8000
-      });
-      setBubbleFeedbackAction(false);
-    }
-  }, [bubbleFeedbackAction, currentDatasetNegoc, currentParticipantNegoc]);
+  // useEffect(() => {
+  //   if (bubbleFeedbackAction && currentDatasetNegoc && currentParticipantNegoc) {
+  //     toast("Contract Request Sent", {
+  //       description: (
+  //         <span>
+  //           You sent a contract negotiation request for <b>{currentDatasetNegoc?.title}</b> to participant <b>{currentParticipantNegoc?.participant_slug}</b>.
+  //         </span>
+  //       ),
+  //       position: "top-center",
+  //       duration: 8000
+  //     });
+  //     setBubbleFeedbackAction(false);
+  //   }
+  // }, [bubbleFeedbackAction, currentDatasetNegoc, currentParticipantNegoc]);
 
   useEffect(() => {
     if (!requestedParticipantId || !requestedDatasetId) return;

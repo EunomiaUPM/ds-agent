@@ -127,13 +127,13 @@ export const PolicyWrapperShow = ({
   const descriptionText = description ? description : "No description available for this policy.";
   const generatedTitle = descriptionText
     .split(" ")
-    .slice(0, 3)
+    .slice(0, 2)
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 
   return (
-    <div className="w-full h-full">
-      <div className="h-full flex flex-col items-start justify-between border border-white/10 bg-background-300/20 p-4 rounded-lg">
+    <div className="w-full h-full ">
+      <div className="flex flex-col items-start justify-between border border-white/10 bg-background-300/20 p-4 rounded-lg">
         <div className="title-description-container w-full">  {/* Header: Title and actions */}
           <div className="flex justify-between items-start w-full mb-2">
             <Heading level="h4" className="flex items-center gap-2 font-bold text-white tracking-tight mb-1">

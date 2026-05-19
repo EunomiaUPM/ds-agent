@@ -10,9 +10,11 @@ import { Button } from "shared/src/components/ui/button";
 import WizardDialog from "shared/src/components/WizardDialog";
 import { useRef } from "react";
 import { useGetAllParticipants } from "shared/src/data/orval/participants/participants";
+import { Badge } from "shared/src/components/ui/badge";
+import { useRpcSetupCatalogRequest } from "shared/src/data/orval/catalog-rp-c/catalog-rp-c";
 
 interface CatalogItemProps {
-  date: string;
+  date?: string | undefined;
   datasetNumber: number;
   organizationName: string;
   id: string | null;
@@ -20,6 +22,7 @@ interface CatalogItemProps {
   isAuthenticated?: boolean;
   unauthRedirect?: { url: string; slug: string } | null;
   onUnauthDialogClose?: () => void;
+  ownCatalog?: boolean;
 }
 
 const CatalogItem: React.FC<CatalogItemProps> = ({
@@ -31,6 +34,7 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
   isAuthenticated,
   unauthRedirect,
   onUnauthDialogClose,
+  ownCatalog = false,
 }) => {
   const unavailableCatalogClasses =
     id === null ? "opacity-65 grayscale cursor-not-allowed" : "cursor-pointer";
@@ -40,7 +44,30 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
   const labelConnectRef = useRef<HTMLElement | null>(null);
   const [wizardConnectOpen, setWizardConnectOpen] = useState(false);
 
-  const headingText = title ? title : `${organizationName}'s Catalog`;
+  const { mutate, data } = useRpcSetupCatalogRequest();
+
+  React.useEffect(() => {
+    if (id) {
+      mutate({
+        data: {
+          associatedAgentPeer: id,
+          filter: [],
+          noCache: true,
+        },
+      });
+    }
+  }, [id, mutate]);
+
+  const liveCatalog = data?.status === 200 ? data.data : undefined;
+  const liveTitle = liveCatalog?.response?.title;
+  const liveDate = liveCatalog?.response?.issued;
+  const liveDatasetNr = liveCatalog?.response?.dataset?.length
+
+  const displayTitle = liveTitle || title;
+  const displayDate = liveDate || date;
+  const displayDatasetNr = liveDatasetNr || datasetNumber;
+
+  const headingText = displayTitle ? displayTitle : `${organizationName}'s Catalog`;
   const headingNode = (
     <Heading level="h4" className="capitalize mb-3 underline-offset-2 hover:underline">
       {headingText}
@@ -128,7 +155,12 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
     );
   } else if (id !== null) {
     headingLink = (
-      <Link to="/catalog/participant/$participantId" params={{ participantId: id }}>
+      <Link
+        to={"/catalog/participant/$id/"}
+        params={{
+          id: id!,
+        }}
+      >
         {headingNode}
       </Link>
     );
@@ -138,19 +170,25 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
 
   return (
     <div
-      className={`catalog-card h-full bg-background-200/15  hover:bg-background-200/30 transition-all border rounded-md flex flex-col p-4 gap-3 justify-between max-w-lg ${unavailableCatalogClasses} ${isAuthenticated ? "border-emerald-500/40" : "border-white/10"}`}
+      className={`catalog-card h-full bg-background-200/15  hover:bg-background-200/30 transition-all border rounded-md flex flex-col p-4 gap-3 justify-between max-w-lg ${unavailableCatalogClasses} ${isAuthenticated ? "border-emerald-500/40" : "border-white/10"} ${(ownCatalog && isAuthenticated) ? "border-white/10" : ""}`}
     >
       <div className="catalog-top">
         <div className="catalog-dates-container flex gap-3 text-sm tracking-wide items-start justify-between">
           <div className="catalog-dates-created flex gap-1 mb-2">
             <p className="text-sm">Created at:</p>
-            <FormatDate date={date} />
+            <FormatDate date={displayDate} />
           </div>
           {isAuthenticated ? (
-            <span className="flex items-center gap-1 text-xs text-emerald-400 font-medium">
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              Authenticated
-            </span>
+            !ownCatalog ? (
+              <span className="flex items-center gap-1 text-xs text-emerald-400 font-medium">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+
+                Authenticated
+              </span>) : (
+              <Badge variant="detail" size="default" className="uppercase text-blue-300 font-semibold mb-3">
+                My own catalog
+              </Badge>
+            )
           ) : id !== null ? (
             <span className="flex items-center gap-1 text-xs text-muted-foreground font-medium text-red-400">
               <Lock className="h-3.5 w-3.5" />
@@ -176,7 +214,7 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
         </div>
         <div className="catalog-items-container flex justify-end gap-2 text-sm italic">
           <p> 1 Dataservice </p>
-          <p> {datasetNumber} Datasets </p>
+          <p> {displayDatasetNr} Datasets </p>
         </div>
       </div>
     </div>

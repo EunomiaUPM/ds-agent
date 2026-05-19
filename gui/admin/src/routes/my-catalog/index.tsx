@@ -61,7 +61,6 @@ function RouteComponent() {
 
   return (
     <PageLayout>
-
       <div className="grid grid-cols-3 gap-12">
         <div className="rounded-md border border-background-200/60 bg-background-200/5 p-4 max-h-[70vh] ">
           <Heading level="h2" className="capitalize">
@@ -115,25 +114,23 @@ function RouteComponent() {
               items={
                 hasDataservice
                   ? [
-                    {
-                      label: "Dataservice ID",
-                      value: { type: "urn", value: mainDs.id! },
-                    },
-                    {
-                      label: "Dataservice creation date",
-                      value: {
-                        type: "custom",
-                        content: <FormatDate date={mainDs.dctIssued} />,
+                      {
+                        label: "Dataservice ID",
+                        value: { type: "urn", value: mainDs.id! },
                       },
-                    },
-                    {
-                      label: "Endpoint",
-                      value: mainDs.dcatEndpointUrl ?? "No endpoint provided",
-                    },
-                  ]
-                  : [
-                    { label: "Dataservice", value: "No dataservice registered for this catalog" },
-                  ]
+                      {
+                        label: "Dataservice creation date",
+                        value: {
+                          type: "custom",
+                          content: <FormatDate date={mainDs.dctIssued} />,
+                        },
+                      },
+                      {
+                        label: "Endpoint",
+                        value: mainDs.dcatEndpointUrl ?? "No endpoint provided",
+                      },
+                    ]
+                  : [{ label: "Dataservice", value: "No dataservice registered for this catalog" }]
               }
             />
           </>
@@ -162,8 +159,6 @@ function RouteComponent() {
           </div>
         </div>
       </div>
-
     </PageLayout>
-
   );
 }

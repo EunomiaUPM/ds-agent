@@ -5,7 +5,15 @@ import Heading from "shared/src/components/ui/heading";
 import { Link } from "@tanstack/react-router";
 import { FormatDate } from "shared/src/components/ui/format-date";
 import { CheckCircle2, Lock } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "shared/src/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "shared/src/components/ui/dialog";
 import { Button } from "shared/src/components/ui/button";
 import WizardDialog from "shared/src/components/WizardDialog";
 import { useRef } from "react";
@@ -39,7 +47,9 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
   const unavailableCatalogClasses =
     id === null ? "opacity-65 grayscale cursor-not-allowed" : "cursor-pointer";
 
-  const highlightButtonClasses = unauthRedirect ? "animate-pulse bg-secondary-600 hover:bg-secondary-500 ring-2 ring-secondary-400" : ""
+  const highlightButtonClasses = unauthRedirect
+    ? "animate-pulse bg-secondary-600 hover:bg-secondary-500 ring-2 ring-secondary-400"
+    : "";
 
   const labelConnectRef = useRef<HTMLElement | null>(null);
   const [wizardConnectOpen, setWizardConnectOpen] = useState(false);
@@ -61,7 +71,7 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
   const liveCatalog = data?.status === 200 ? data.data : undefined;
   const liveTitle = liveCatalog?.response?.title;
   const liveDate = liveCatalog?.response?.issued;
-  const liveDatasetNr = liveCatalog?.response?.dataset?.length
+  const liveDatasetNr = liveCatalog?.response?.dataset?.length;
 
   const displayTitle = liveTitle || title;
   const displayDate = liveDate || date;
@@ -81,7 +91,9 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
   const { data: participantsResponse } = useGetAllParticipants();
   const localParticipants = participantsResponse?.status === 200 ? participantsResponse.data : [];
 
-  let isOnboardedWithKnownProvider = localParticipants.some((lp) => lp.participant_type !== "Authority" && lp.is_me === false)
+  let isOnboardedWithKnownProvider = localParticipants.some(
+    (lp) => lp.participant_type !== "Authority" && lp.is_me === false,
+  );
 
   // open the wizard only after the dialog has been opened and the title anchor is mounted
   React.useEffect(() => {
@@ -105,18 +117,25 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
   if (unauthRedirect) {
     headingLink = (
       <>
-        <button type="button" onClick={() => setOpenDialog(true)} className="p-0 m-0 text-left w-full">
+        <button
+          type="button"
+          onClick={() => setOpenDialog(true)}
+          className="p-0 m-0 text-left w-full"
+        >
           {headingNode}
         </button>
 
         <Dialog open={openDialog} onOpenChange={handleOpenChange}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle ref={(el) => (labelConnectRef.current = el as any)}
+              <DialogTitle
+                ref={(el) => (labelConnectRef.current = el as any)}
                 className="flex gap-2 items-center"
               >
-                <Lock className="h-5 w-5" ></Lock>
-                <Heading level="h4" className="!mb-0">Access required</Heading>
+                <Lock className="h-5 w-5"></Lock>
+                <Heading level="h4" className="!mb-0">
+                  Access required
+                </Heading>
               </DialogTitle>
               <DialogDescription>
                 {isOnboardedWithKnownProvider ? (
@@ -132,25 +151,30 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
                     title="Connection with Dataspace Participant required"
                     content={
                       <>
-                        You can only access the catalog of a participant if you
-                        are connected to them. Click on the button <strong>"Request connection"</strong> to connect with the owner of the catalog.
-                      </>}
+                        You can only access the catalog of a participant if you are connected to
+                        them. Click on the button <strong>"Request connection"</strong> to connect
+                        with the owner of the catalog.
+                      </>
+                    }
                   />
                 )}
-                You don't have permission to access this catalog. <br /> First, you need to connect with <strong>{organizationName}</strong>.
+                You don't have permission to access this catalog. <br /> First, you need to connect
+                with <strong>{organizationName}</strong>.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
               <DialogClose asChild>
                 <Button variant="ghost">Keep browsing</Button>
               </DialogClose>
-              <Link to="/providers/new" search={{ url: unauthRedirect.url, slug: unauthRedirect.slug }}>
+              <Link
+                to="/providers/new"
+                search={{ url: unauthRedirect.url, slug: unauthRedirect.slug }}
+              >
                 <Button className={highlightButtonClasses}>Request connection</Button>
               </Link>
             </DialogFooter>
           </DialogContent>
         </Dialog>
-
       </>
     );
   } else if (id !== null) {
@@ -170,7 +194,7 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
 
   return (
     <div
-      className={`catalog-card h-full bg-background-200/15  hover:bg-background-200/30 transition-all border rounded-md flex flex-col p-4 gap-3 justify-between max-w-lg ${unavailableCatalogClasses} ${isAuthenticated ? "border-emerald-500/40" : "border-white/10"} ${(ownCatalog && isAuthenticated) ? "border-white/10" : ""}`}
+      className={`catalog-card h-full bg-background-200/15  hover:bg-background-200/30 transition-all border rounded-md flex flex-col p-4 gap-3 justify-between max-w-lg ${unavailableCatalogClasses} ${isAuthenticated ? "border-emerald-500/40" : "border-white/10"} ${ownCatalog && isAuthenticated ? "border-white/10" : ""}`}
     >
       <div className="catalog-top">
         <div className="catalog-dates-container flex gap-3 text-sm tracking-wide items-start justify-between">
@@ -182,10 +206,14 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
             !ownCatalog ? (
               <span className="flex items-center gap-1 text-xs text-emerald-400 font-medium">
                 <CheckCircle2 className="h-3.5 w-3.5" />
-
                 Authenticated
-              </span>) : (
-              <Badge variant="detail" size="default" className="uppercase text-blue-300 font-semibold mb-3">
+              </span>
+            ) : (
+              <Badge
+                variant="detail"
+                size="default"
+                className="uppercase text-blue-300 font-semibold mb-3"
+              >
                 My own catalog
               </Badge>
             )
@@ -199,9 +227,9 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
         <div className="catalog-text-container">
           {headingLink}
           <p className="mb-2 line-clamp-3 text-sm">
-            This is the catalog of <span className="capitalize">{organizationName}</span>, who is also
-            part of this dataspace. Click on the catalog name to see the datasets and dataservice they
-            offer.
+            This is the catalog of <span className="capitalize">{organizationName}</span>, who is
+            also part of this dataspace. Click on the catalog name to see the datasets and
+            dataservice they offer.
           </p>
         </div>
       </div>

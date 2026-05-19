@@ -16,17 +16,13 @@ const RouteComponent = () => {
   const { data: participantsResponse } = useGetAllParticipants();
   const localParticipants = participantsResponse?.status === 200 ? participantsResponse.data : [];
 
-
   const myAgent = Array.isArray(participantsResponse?.data)
     ? participantsResponse.data.find((p) => p.is_me && p.participant_type === "Agent")
     : undefined;
 
-
   const labelCatalogRef = useRef<HTMLElement | null>(null);
   // first wizard URL state
   const [wizardCatalogOpen, setWizardCatalogOpen] = useState(true);
-
-
 
   if (federated.state === "loading") {
     return (
@@ -74,8 +70,6 @@ const RouteComponent = () => {
 
   const { agents } = federated;
 
-
-
   //variable that tells if user is onboarded with any provider or not.
   // true = they are / false = they're not
   const onboardedWithKnownProvider = agents.some((prov) =>
@@ -86,7 +80,6 @@ const RouteComponent = () => {
         lp.participant_type !== "Authority",
     ),
   );
-
 
   return (
     <PageLayout>
@@ -119,15 +112,15 @@ const RouteComponent = () => {
           const unauthRedirect = isOnboarded ? null : { url: p.base_url, slug: p.participant_slug };
           // si no está autenticado con ningun proveedor, y es el primer agente de la lista
           // destacar ese agente (modo ejemplo)
-          const firstAgentWithUnauth = (!onboardedWithKnownProvider && p === agents[0]) ? true : false;
-
-
-
+          const firstAgentWithUnauth =
+            !onboardedWithKnownProvider && p === agents[0] ? true : false;
 
           return (
             <div
               className={
-                firstAgentWithUnauth ? "ring-2 ring-secondary-400 shadow-md animate-pulse rounded-md" : ""
+                firstAgentWithUnauth
+                  ? "ring-2 ring-secondary-400 shadow-md animate-pulse rounded-md"
+                  : ""
               }
               onClick={() => setWizardCatalogOpen(false)}
             >
@@ -136,15 +129,20 @@ const RouteComponent = () => {
                 datasetNumber={0}
                 organizationName={p.participant_slug ?? "Unknown"}
                 id={p.participant_id ?? null}
-                isAuthenticated={(p.participant_id === myAgent?.participant_id ? true : false) ? true : isOnboarded}
-                unauthRedirect={(p.participant_id === myAgent?.participant_id ? true : false) ? null : unauthRedirect}
+                isAuthenticated={
+                  (p.participant_id === myAgent?.participant_id ? true : false) ? true : isOnboarded
+                }
+                unauthRedirect={
+                  (p.participant_id === myAgent?.participant_id ? true : false)
+                    ? null
+                    : unauthRedirect
+                }
                 onUnauthDialogClose={() => {
                   if (firstAgentWithUnauth) {
                     setTimeout(() => setWizardCatalogOpen(true), 50);
                   }
                 }}
                 ownCatalog={p.participant_id === myAgent?.participant_id ? true : false}
-
               />
             </div>
           );

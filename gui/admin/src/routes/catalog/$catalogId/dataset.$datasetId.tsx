@@ -60,7 +60,7 @@ function RouteComponent() {
     ? participants.data.find((p) => p.is_me && p.participant_type === "Agent")
     : undefined;
 
-  const myAgentSlug = myAgent?.participant_slug
+  const myAgentSlug = myAgent?.participant_slug;
 
   // for catalog slug
   const catalog = catalogData?.status === 200 ? catalogData.data : undefined;

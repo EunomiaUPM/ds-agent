@@ -41,7 +41,6 @@ function RouteComponent() {
 
   useEffect(() => {
     mutate({
-      
       data: {
         associatedAgentPeer: participantId,
         filter: [],
@@ -68,7 +67,6 @@ function RouteComponent() {
   }
 
   const dataset = data?.status === 200 ? data.data : undefined;
-
 
   if (!dataset) return null;
 

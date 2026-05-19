@@ -15,17 +15,14 @@ import { PageHeader } from "shared/src/components/layout/PageHeader";
 import { PageSection } from "shared/src/components/layout/PageSection";
 import { useGetAllParticipants } from "shared/data/orval/participants/participants";
 import { Dataset, ParticipantDto, RpcCatalogResponseMessageDto } from "shared/data/orval/model";
-import {
-  useRpcSetupCatalogRequest,
-} from "shared/src/data/orval/catalog-rp-c/catalog-rp-c";
+import { useRpcSetupCatalogRequest } from "shared/src/data/orval/catalog-rp-c/catalog-rp-c";
 
 const RouteComponent = () => {
   const { data: cnProcessesData } = useGetNegotiationProcesses();
   const { data: participants } = useGetAllParticipants();
 
-
   //para la notificacion burbuja: "you completed a contract neg. w/ dataset"
-  const [bubbleFeedbackAction, setBubbleFeedbackAction] = useState(false)
+  const [bubbleFeedbackAction, setBubbleFeedbackAction] = useState(false);
   const [requestedDatasetId, setRequestedDatasetId] = useState<string | null>(null);
   const [requestedParticipantId, setRequestedParticipantId] = useState<string | null>(null);
 
@@ -40,8 +37,9 @@ const RouteComponent = () => {
   }, [data]);
 
   // encontrar el participant por el id que se le pasa en localstorage
-  const currentParticipantNegoc = Array.isArray(participants?.data) ? participants?.data.find((p) =>
-    p.participant_id === requestedParticipantId) : undefined;
+  const currentParticipantNegoc = Array.isArray(participants?.data)
+    ? participants?.data.find((p) => p.participant_id === requestedParticipantId)
+    : undefined;
 
   // useEffect(() => {
   //   if (bubbleFeedbackAction && currentDatasetNegoc && currentParticipantNegoc) {
@@ -69,30 +67,25 @@ const RouteComponent = () => {
     });
   }, [requestedParticipantId, requestedDatasetId, mutate]);
 
-
-  console.log(currentParticipantNegoc?.participant_slug, " currentParticipantNegoc?")
-  console.log(currentDatasetNegoc, " currentDatasetNegoc?")
+  console.log(currentParticipantNegoc?.participant_slug, " currentParticipantNegoc?");
+  console.log(currentDatasetNegoc, " currentDatasetNegoc?");
 
   //obtener de local storage la info de la acción que se acaba de hacer
   useEffect(() => {
     try {
-      const justSentContract = sessionStorage.getItem("justSentContract")
-      const datasetId = sessionStorage.getItem("datasetId")
-      const participantId = sessionStorage.getItem("participantId")
+      const justSentContract = sessionStorage.getItem("justSentContract");
+      const datasetId = sessionStorage.getItem("datasetId");
+      const participantId = sessionStorage.getItem("participantId");
       if (justSentContract === "true") {
-        setBubbleFeedbackAction(true)
+        setBubbleFeedbackAction(true);
         setRequestedDatasetId(datasetId);
         setRequestedParticipantId(participantId);
         sessionStorage.removeItem("justSentContract");
       }
-    }
-
-    catch (e) {
+    } catch (e) {
       // ignore storage errors
     }
-  }, [])
-
-
+  }, []);
 
   const cnProcesses = cnProcessesData?.status === 200 ? cnProcessesData.data : [];
   const cnProcessesSorted = useMemo(() => {
@@ -102,7 +95,6 @@ const RouteComponent = () => {
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
   }, [cnProcesses]);
-
 
   return (
     <PageLayout>

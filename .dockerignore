@@ -9,3 +9,4 @@ gui/node_modules
 gui/admin/dist
 gui/shared/dist
 gui/.cache
+.codegraph/

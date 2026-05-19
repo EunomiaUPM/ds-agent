@@ -56,10 +56,7 @@ export const useFederatedCatalog = (): FederatedCatalogResult => {
   if (federatedError) return { state: "error", error: federatedError };
   if (!federated) return { state: "loading" };
 
-
-  const agents = federated.filter(
-    (p) => p.participant_type === "Agent" 
-  );
+  const agents = federated.filter((p) => p.participant_type === "Agent");
 
   return { state: "ok", agents, myParticipantId };
 };

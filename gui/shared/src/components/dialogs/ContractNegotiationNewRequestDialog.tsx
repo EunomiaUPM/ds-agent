@@ -103,10 +103,10 @@ export const ContractNegotiationNewRequestDialog = ({
       navigate({
         to: "/contract-negotiation",
       });
-        try {
+      try {
         sessionStorage.setItem("justSentContract", "true");
-        sessionStorage.setItem("datasetId", `${datasetId}`)
-         sessionStorage.setItem("participantId", `${participantId}`)
+        sessionStorage.setItem("datasetId", `${datasetId}`);
+        sessionStorage.setItem("participantId", `${participantId}`);
       } catch (e) {
         /* ignore if unavailable */
       }

@@ -50,6 +50,7 @@ static/environment/envs/**
 !static/environment/envs/**/*.example
 
 .claude
+.codegraph/
 
 # CodeGraph data files
 *.db

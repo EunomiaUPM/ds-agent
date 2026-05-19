@@ -14,7 +14,6 @@ import { useFederatedCatalog } from "shared/data/useFederatedCatalog";
 import { Badge } from "shared/src/components/ui/badge";
 import { useGetAllParticipants } from "shared/src/data/orval/participants/participants";
 
-
 function RouteComponent() {
   const { participantId } = Route.useParams();
   const federated = useFederatedCatalog();
@@ -24,8 +23,8 @@ function RouteComponent() {
   const localParticipants = participantsResponse?.status === 200 ? participantsResponse.data : [];
 
   const myAgent = localParticipants?.find((p) => p.is_me && p.participant_type === "Agent");
-   
-  console.log(myAgent, "myAgent")
+
+  console.log(myAgent, "myAgent");
 
   if (federated.state === "loading") {
     return (
@@ -36,9 +35,7 @@ function RouteComponent() {
   }
 
   if (federated.state === "no-authority") {
-    return (
-      <p className="italic"> No authority found </p>
-    );
+    return <p className="italic"> No authority found </p>;
   }
 
   if (federated.state === "error") {
@@ -53,12 +50,9 @@ function RouteComponent() {
 
   const { agents } = federated;
 
-
   const participant = agents?.find((p) => {
     return p.participant_id === participantId;
-  }
-  )
-
+  });
 
   useEffect(() => {
     mutate({
@@ -89,9 +83,7 @@ function RouteComponent() {
 
   const catalog = data?.status === 200 ? data.data : undefined;
 
-
   if (!catalog) return null;
-
 
   return (
     <PageLayout>
@@ -104,11 +96,15 @@ function RouteComponent() {
                 ? catalog.response?.title
                 : `${participant?.participant_slug} Catalog `}
             </Heading>
-            {participant?.participant_id === myAgent?.participant_id &&
-              <Badge variant="detail" size="lg" className="uppercase text-blue-300 font-semibold mb-3">
+            {participant?.participant_id === myAgent?.participant_id && (
+              <Badge
+                variant="detail"
+                size="lg"
+                className="uppercase text-blue-300 font-semibold mb-3"
+              >
                 My own catalog
               </Badge>
-            }
+            )}
             <p className="text-sm mb-2">Description of the catalog. </p>
             <InfoList
               items={[
@@ -195,7 +191,6 @@ function RouteComponent() {
           </div>
         </div>
       </div>
-
     </PageLayout>
   );
 }

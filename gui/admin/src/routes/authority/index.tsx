@@ -29,8 +29,7 @@ function AuthorityRequestsPage() {
 
   const [showCongrats, setShowCongrats] = useState(false);
 
-  console.log(participants, "participants")
-
+  console.log(participants, "participants");
 
   useEffect(() => {
     try {
@@ -76,7 +75,6 @@ function AuthorityRequestsPage() {
     return sortableRequests;
   }, [rawRequests, sortConfig]);
 
-
   const handleSort = (key: string) => {
     let direction: "asc" | "desc" = "asc";
     if (sortConfig && sortConfig.key === key && sortConfig.direction === "asc") {
@@ -102,11 +100,13 @@ function AuthorityRequestsPage() {
         sectionTitle="Dataspace Sign Up Tutorial Completed"
         onClose={() => setShowCongrats(false)}
         title={"Congratulations"}
-        content={<>
-          Congratulations, you are part now of the Dataspace of Heimdall
-          <br />
-          You can now browse the catalogs in the dataspace.
-        </>}
+        content={
+          <>
+            Congratulations, you are part now of the Dataspace of Heimdall
+            <br />
+            You can now browse the catalogs in the dataspace.
+          </>
+        }
         actionHref={"/catalog/"}
         actionLabel={"See dataspace"}
       />

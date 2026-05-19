@@ -80,25 +80,24 @@ const DatasetItem: React.FC<DatasetItemProps> = ({
             <span>{policies.length} policies </span>
             {policies.length > 0 &&
               policies.map((p: any, idx: number) => {
-                let title = p.description?.split(" ")
-                  .slice(0, 2)
-                  .map((word: any) => word.charAt(0).toUpperCase() + word.slice(1))
-                  .join(" ") || "Policy description"
+                let title =
+                  p.description
+                    ?.split(" ")
+                    .slice(0, 2)
+                    .map((word: any) => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(" ") || "Policy description";
                 return (
                   <>
-
                     <Badge
                       key={idx}
                       variant="detail"
                       className={"text-2xs " + (showMore ? `flex` : `hidden`)}
                     >
-                    { title }
+                      {title}
                     </Badge>
                   </>
-                )
-              }
-              )}
-
+                );
+              })}
           </div>
           <div className="distributions-summary-container flex flex-col gap-2 text-xs uppercase">
             <span>{distributions.length} distributions </span>

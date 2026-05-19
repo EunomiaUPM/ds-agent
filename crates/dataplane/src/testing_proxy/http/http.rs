@@ -275,7 +275,11 @@ impl TestingHTTPProxy {
         match res {
             Ok(res) => Self::forward_response_helper(res),
             Err(e) => {
-                return (StatusCode::BAD_GATEWAY, format!("peer connection problem by: {:?}", e)).into_response()
+                return (
+                    StatusCode::BAD_GATEWAY,
+                    format!("peer connection problem by: {:?}", e),
+                )
+                    .into_response()
             }
         }
     }

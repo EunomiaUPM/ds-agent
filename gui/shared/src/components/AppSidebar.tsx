@@ -26,6 +26,7 @@ import {
   Search,
   Wallet,
   ShieldCheck,
+  KeyRound,
 } from "lucide-react";
 import React, { useContext } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
@@ -146,6 +147,11 @@ export function AppSidebar() {
           title: "My Wallet",
           url: "/admin/wallet/info",
           icon: Wallet,
+        },
+        {
+          title: "Keystore",
+          url: "/admin/keystore/parameters",
+          icon: KeyRound,
         },
         {
           title: "My Catalog",

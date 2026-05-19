@@ -93,10 +93,12 @@ const badgeVariants = cva(
         role: "text-white uppercase border-white/10",
         status: "bg-opacity-30 border-white/10 text-foreground-300 uppercase",
         detail: "text-xs bg-brand-sky/20 !px-1 !py-0 max-w-[140px] !whitespace-normal",
-       code: "bg-gray-900 border border-gray-800 rounded-sm font-mono text-red-500 !py-0",
-      wizard: "bg-violet-800 border border-violet-600 text-violet-200 uppercase tracking-wide !py-0 !pt-0.5 px-3" ,
-        wizardSuccess:"bg-success-800  border border-success-700 text-success-200 [&>span]:bg-success-800 uppercase tracking-wide !py-0 !pt-0.5 px-3",
-    },
+        code: "bg-gray-900 border border-gray-800 rounded-sm font-mono text-red-500 !py-0",
+        wizard:
+          "bg-violet-800 border border-violet-600 text-violet-200 uppercase tracking-wide !py-0 !pt-0.5 px-3",
+        wizardSuccess:
+          "bg-success-800  border border-success-700 text-success-200 [&>span]:bg-success-800 uppercase tracking-wide !py-0 !pt-0.5 px-3",
+      },
 
       /**
        * Process state for status badges.

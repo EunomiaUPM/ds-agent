@@ -36,7 +36,8 @@ export const ContractNegotiationBusinessAgreementDialog = ({
         <>
           You are about to agree to the contract negotiation terms.
           <br />
-          This will automatically complete the negotiation (Agreement - Verification - Finalization).
+          This will automatically complete the negotiation (Agreement - Verification -
+          Finalization).
         </>
       }
       infoItems={mapCNProcessToInfoItemsForProvider(process)}

@@ -94,7 +94,7 @@ function RouteComponent() {
                   type: "custom",
                   content: (
                     <div className="catalog-participant-container flex gap-2 justify-start">
-                  <Avatar />
+                      <Avatar />
                       <Heading level="h4" className="capitalize">
                         {" "}
                         {otherParticipantSlug}{" "}

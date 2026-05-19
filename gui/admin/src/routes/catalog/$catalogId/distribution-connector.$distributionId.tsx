@@ -112,12 +112,11 @@ function RequestStep({ label, step }: { label: string; step: Record<string, unkn
       <div className="rounded-md border border-white/10 bg-muted/20 divide-y divide-white/5">
         {/* Protocol + Method */}
         <div className="flex items-center gap-5 px-3 py-2">
-
           <InfoListItem
             label="protocol"
             value={
-              protocol ?
-                { type: "custom", content: <ProtocolBadge protocol={protocol} /> }
+              protocol
+                ? { type: "custom", content: <ProtocolBadge protocol={protocol} /> }
                 : undefined
             }
           />
@@ -125,9 +124,7 @@ function RequestStep({ label, step }: { label: string; step: Record<string, unkn
           <InfoListItem
             label="method/s"
             value={
-              protocol ?
-                { type: "custom", content: <MethodBadge method={method} /> }
-                : undefined
+              protocol ? { type: "custom", content: <MethodBadge method={method} /> } : undefined
             }
           />
         </div>
@@ -138,11 +135,12 @@ function RequestStep({ label, step }: { label: string; step: Record<string, unkn
             <InfoListItem
               label="URL Template"
               value={
-                urlTemplate ?
-                  {
-                    type: "custom",
-                    content: <UrlRow url={urlTemplate} />
-                  } : undefined
+                urlTemplate
+                  ? {
+                      type: "custom",
+                      content: <UrlRow url={urlTemplate} />,
+                    }
+                  : undefined
               }
             />
           </div>
@@ -154,23 +152,24 @@ function RequestStep({ label, step }: { label: string; step: Record<string, unkn
             <InfoListItem
               label="Body Template"
               value={
-                urlTemplate ?
-                  {
-                    type: "custom",
-                    content: <pre className="font-mono text-xs bg-gray-800/60 text-foreground/60 border border-secondary-600/20 whitespace-pre-wrap break-all  rounded p-2 mt-1">
-                      {(() => {
-                        try {
-                          return JSON.stringify(JSON.parse(String(bodyTemplate)), null, 2);
-                        } catch {
-                          return String(bodyTemplate);
-                        }
-                      })()}
-                    </pre>
-                  } : undefined
+                urlTemplate
+                  ? {
+                      type: "custom",
+                      content: (
+                        <pre className="font-mono text-xs bg-gray-800/60 text-foreground/60 border border-secondary-600/20 whitespace-pre-wrap break-all  rounded p-2 mt-1">
+                          {(() => {
+                            try {
+                              return JSON.stringify(JSON.parse(String(bodyTemplate)), null, 2);
+                            } catch {
+                              return String(bodyTemplate);
+                            }
+                          })()}
+                        </pre>
+                      ),
+                    }
+                  : undefined
               }
             />
-
-
           </div>
         )}
 
@@ -195,7 +194,6 @@ function RequestStep({ label, step }: { label: string; step: Record<string, unkn
             />
           </div>
         )}
-
 
         {/* Extra fields */}
         {Object.keys(rest).length > 0 && (
@@ -272,15 +270,11 @@ function RouteComponent() {
   //   | undefined;
   //  const isPushAlt = altInteraction?.mode === "PUSH";
 
-
   const interaction = connector?.interaction as
     | (PushLifecycle & Record<string, unknown>)
     | undefined;
 
-
   const isPush = interaction?.mode === "PUSH";
-
-
 
   return (
     <PageLayout>

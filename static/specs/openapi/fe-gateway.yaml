@@ -63,6 +63,12 @@ tags:
     description: .well-known RPC commands
   - name: Gateway
     description: Gateway-specific endpoints (config, notifications, websocket)
+  - name: Keystore Parameters
+    description: "Plain key/value entries with full JSON value support (→ keystore)"
+  - name: Keystore Secrets
+    description: "Sensitive key/value entries — values are masked in all responses (→ keystore)"
+  - name: Keystore Config
+    description: "Runtime application configuration (→ keystore)"
 paths:
   /fe-config:
     get:
@@ -5326,6 +5332,229 @@ paths:
         "500":
           description: Internal Server Error
 
+  # --- Keystore: Parameters ---
+  /v1/keystore/parameters:
+    get:
+      tags:
+        - Keystore Parameters
+      summary: List parameters
+      operationId: listParameters
+      parameters:
+        - $ref: "#/components/parameters/KeystorePrefixParam"
+      responses:
+        "200":
+          description: List of parameters
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/KeystoreParameterView"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      tags:
+        - Keystore Parameters
+      summary: Create parameter
+      operationId: createParameter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/KeystoreNewParameterCommand"
+      responses:
+        "201":
+          description: Parameter created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KeystoreParameterView"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/keystore/parameters/{key}:
+    parameters:
+      - $ref: "#/components/parameters/KeystoreKeyParam"
+    get:
+      tags:
+        - Keystore Parameters
+      summary: Get parameter
+      operationId: getParameter
+      responses:
+        "200":
+          description: Parameter found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KeystoreParameterView"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    put:
+      tags:
+        - Keystore Parameters
+      summary: Update parameter
+      operationId: updateParameter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/KeystoreEditParameterCommand"
+      responses:
+        "200":
+          description: Parameter updated — returns new version
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KeystoreVersionResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      tags:
+        - Keystore Parameters
+      summary: Delete parameter
+      operationId: deleteParameter
+      responses:
+        "204":
+          description: Parameter deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # --- Keystore: Secrets ---
+  /v1/keystore/secrets:
+    get:
+      tags:
+        - Keystore Secrets
+      summary: List secrets
+      description: Values are always masked as `"*****"`.
+      operationId: listSecrets
+      parameters:
+        - $ref: "#/components/parameters/KeystorePrefixParam"
+      responses:
+        "200":
+          description: List of secrets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/KeystoreSecretView"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      tags:
+        - Keystore Secrets
+      summary: Create secret
+      operationId: createSecret
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/KeystoreNewSecretCommand"
+      responses:
+        "201":
+          description: Secret created. Value is masked in the response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KeystoreSecretView"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/keystore/secrets/{key}:
+    parameters:
+      - $ref: "#/components/parameters/KeystoreKeyParam"
+    get:
+      tags:
+        - Keystore Secrets
+      summary: Get secret
+      description: Value is always masked as `"*****"`.
+      operationId: getSecret
+      responses:
+        "200":
+          description: Secret found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KeystoreSecretView"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    put:
+      tags:
+        - Keystore Secrets
+      summary: Update secret
+      operationId: updateSecret
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/KeystoreEditSecretCommand"
+      responses:
+        "200":
+          description: Secret updated — returns new version
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KeystoreVersionResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      tags:
+        - Keystore Secrets
+      summary: Delete secret
+      operationId: deleteSecret
+      responses:
+        "204":
+          description: Secret deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # --- Keystore: Config ---
+  /v1/keystore/config:
+    get:
+      tags:
+        - Keystore Config
+      summary: Get application config
+      operationId: getApplicationConfig
+      responses:
+        "200":
+          description: Current application configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KeystoreApplicationConfig"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
 components:
   parameters:
     catalogId:
@@ -5390,6 +5619,28 @@ components:
       required: true
       schema:
         type: string
+    KeystoreKeyParam:
+      name: key
+      in: path
+      required: true
+      description: |
+        Path-style key in the format `/segment1/segment2/...`.
+        Each segment may contain `[a-zA-Z0-9_.-]` characters.
+        Example: `/service/api-key`
+      schema:
+        type: string
+        pattern: '^(/[a-zA-Z0-9_.\-]+)+$'
+        example: /service/api-key
+    KeystorePrefixParam:
+      name: prefix
+      in: query
+      required: false
+      description: |
+        Filter results to keys that start with this prefix.
+        Example: `/service` returns `/service/api-key` and `/service/db/host`.
+      schema:
+        type: string
+        example: /service
   schemas:
     FeConfig:
       type: object
@@ -8746,6 +8997,176 @@ components:
           type: string
         actions:
           type: string
+    # --- Keystore schemas ---
+    KeystoreVersionResponse:
+      type: object
+      required:
+        - version
+      properties:
+        version:
+          type: integer
+          minimum: 1
+          description: New version number after the update
+          example: 2
+    KeystoreParameterView:
+      type: object
+      required:
+        - key
+        - version
+        - value
+        - createdAt
+        - updatedAt
+        - createdBy
+        - updatedBy
+      properties:
+        key:
+          type: string
+          description: Path-style key (e.g. /service/timeout)
+          example: /service/timeout
+        version:
+          type: integer
+          minimum: 1
+          example: 1
+        value:
+          description: Any valid JSON value (string, number, boolean, array, object)
+          example: 30
+        description:
+          type: string
+          nullable: true
+          example: Connection timeout in seconds
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-05-19T10:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2026-05-19T10:00:00Z"
+        createdBy:
+          type: string
+          example: admin
+        updatedBy:
+          type: string
+          example: admin
+    KeystoreNewParameterCommand:
+      type: object
+      required:
+        - key
+        - value
+      properties:
+        key:
+          type: string
+          pattern: '^(/[a-zA-Z0-9_.\-]+)+$'
+          description: Path-style key
+          example: /service/timeout
+        value:
+          description: Any valid JSON value
+          example: 30
+        description:
+          type: string
+          nullable: true
+          example: Connection timeout in seconds
+    KeystoreEditParameterCommand:
+      type: object
+      required:
+        - value
+        - expectedVersion
+      properties:
+        value:
+          description: New value (any valid JSON)
+          example: 60
+        expectedVersion:
+          type: integer
+          minimum: 1
+          description: Must match current version (optimistic locking)
+          example: 1
+        description:
+          type: string
+          nullable: true
+          example: Connection timeout in seconds
+    KeystoreSecretView:
+      type: object
+      required:
+        - key
+        - version
+        - value
+        - createdAt
+        - updatedAt
+        - createdBy
+        - updatedBy
+      properties:
+        key:
+          type: string
+          description: Path-style key
+          example: /db/password
+        version:
+          type: integer
+          minimum: 1
+          example: 1
+        value:
+          type: string
+          description: Always masked — never returns the real value
+          enum:
+            - "*****"
+          example: "*****"
+        description:
+          type: string
+          nullable: true
+          example: Production database password
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-05-19T10:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2026-05-19T10:00:00Z"
+        createdBy:
+          type: string
+          example: admin
+        updatedBy:
+          type: string
+          example: admin
+    KeystoreNewSecretCommand:
+      type: object
+      required:
+        - key
+        - value
+      properties:
+        key:
+          type: string
+          pattern: '^(/[a-zA-Z0-9_.\-]+)+$'
+          description: Path-style key
+          example: /db/password
+        value:
+          description: Secret value — any valid JSON
+          example: s3cr3t!
+        description:
+          type: string
+          nullable: true
+          example: Production database password
+    KeystoreEditSecretCommand:
+      type: object
+      required:
+        - value
+        - expectedVersion
+      properties:
+        value:
+          description: New secret value — any valid JSON
+          example: n3w-s3cr3t!
+        expectedVersion:
+          type: integer
+          minimum: 1
+          description: Must match current version (optimistic locking)
+          example: 1
+        description:
+          type: string
+          nullable: true
+          example: Production database password
+    KeystoreApplicationConfig:
+      type: object
+      description: Full runtime application configuration. Shape depends on deployment.
+      additionalProperties: true
   responses:
     InternalServerError:
       description: Internal Server Error
@@ -8761,6 +9182,12 @@ components:
             $ref: "#/components/schemas/ErrorInfo"
     NotFound:
       description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorInfo"
+    Conflict:
+      description: Conflict — key already exists or version mismatch
       content:
         application/json:
           schema:

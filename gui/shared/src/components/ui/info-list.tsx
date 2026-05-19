@@ -173,5 +173,3 @@ export const InfoListItem = ({ label, value, className, keyClassName }: InfoItem
     </div>
   );
 };
-
-

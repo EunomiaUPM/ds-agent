@@ -10,7 +10,7 @@ members = [
     "crates/catalog-agent",
     "crates/negotiation-agent",
     "crates/transfer-agent",
-    "crates/connector",
+    "crates/connector", "crates/keystore",
 ]
 exclude = [
     "static",

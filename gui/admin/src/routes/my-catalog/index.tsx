@@ -61,7 +61,6 @@ function RouteComponent() {
 
   return (
     <PageLayout>
-    
       <div className="grid grid-cols-3 gap-12">
         <div className="rounded-md border border-background-200/60 bg-background-200/5 p-4 max-h-[70vh] ">
           <Heading level="h2" className="capitalize">
@@ -87,18 +86,18 @@ function RouteComponent() {
               },
               {
                 label: "Organization",
-                  value: {
-                    type: "custom",
-                    content: (
-                      <div className={`catalog-participant-container flex gap-2 justify-start `}>
-                        <AvatarImg  sizeClass="h-7" />
-                        <Heading level="h4" className="capitalize">
-                          {" "}
-                          {myAgentSlug}{" "}
-                        </Heading>
-                      </div>
-                    ),
-                  },
+                value: {
+                  type: "custom",
+                  content: (
+                    <div className={`catalog-participant-container flex gap-2 justify-start `}>
+                      <AvatarImg sizeClass="h-7" />
+                      <Heading level="h4" className="capitalize">
+                        {" "}
+                        {myAgentSlug}{" "}
+                      </Heading>
+                    </div>
+                  ),
+                },
               },
             ]}
           />
@@ -106,7 +105,7 @@ function RouteComponent() {
           <div className="h-1"></div>
           <div className="border-t border-white/10"></div>
           <div className="h-2"></div>
-      
+
           <>
             <Heading level="h4" className="text-left">
               Dataservice
@@ -131,9 +130,7 @@ function RouteComponent() {
                         value: mainDs.dcatEndpointUrl ?? "No endpoint provided",
                       },
                     ]
-                  : [
-                      { label: "Dataservice", value: "No dataservice registered for this catalog" },
-                    ]
+                  : [{ label: "Dataservice", value: "No dataservice registered for this catalog" }]
               }
             />
           </>
@@ -162,8 +159,6 @@ function RouteComponent() {
           </div>
         </div>
       </div>
-    
-   </PageLayout>
-  
+    </PageLayout>
   );
 }

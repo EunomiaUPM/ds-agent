@@ -111,6 +111,7 @@ impl GatewayServiceTrait for GatewayService {
             "peer-catalogs" => self.config.catalog().get_host(HostType::Http),
             "gaia" => self.config.ssi_auth().get_host(HostType::Http),
             "well-known" => self.config.common().hosts.http.get_host(),
+            "v1" => self.config.common().hosts.http.get_host(),
             _ => return (StatusCode::NOT_FOUND, "prefix not found").into_response(),
         };
 
@@ -134,6 +135,7 @@ impl GatewayServiceTrait for GatewayService {
             "peer-catalogs" => "api/v1/catalog-agent/peer-catalogs",
             "gaia" => "api/v1/gaia",
             "well-known" => ".well-known",
+            "v1" => "api/v1",
             _ => {
                 return (StatusCode::NOT_FOUND, "prefix not found in microservice").into_response()
             }

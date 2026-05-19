@@ -23,7 +23,6 @@ use crate::data::repo::secrets::{SecretRepoErrors, SecretRepoTrait};
 use crate::entities::commands::{EditSecretCommand, NewSecretCommand};
 use crate::entities::entry::SecretEntry;
 use crate::entities::key::{Key, KeyPrefix};
-use crate::entities::metadata::Metadata;
 use crate::entities::version::Version;
 use crate::services::secrets::SecretStore;
 
@@ -40,9 +39,8 @@ impl SecretStoreImpl {
 #[async_trait::async_trait]
 impl SecretStore for SecretStoreImpl {
     #[tracing::instrument(level = "info", skip_all, err)]
-    async fn create(&self, cmd: &NewSecretCommand) -> Outcome<Version> {
-        let entry = self.repo.create_secret(cmd).await?;
-        Ok(entry.metadata.version)
+    async fn create(&self, cmd: &NewSecretCommand) -> Outcome<SecretEntry> {
+        self.repo.create_secret(cmd).await
     }
 
     #[tracing::instrument(level = "info", skip(self), fields(key = %key), err)]
@@ -51,16 +49,6 @@ impl SecretStore for SecretStoreImpl {
             .get_secret_by_key(key)
             .await?
             .ok_or_else(|| SecretRepoErrors::SecretNotFound.into_errors())
-    }
-
-    #[tracing::instrument(level = "info", skip(self), fields(key = %key), err)]
-    async fn read_metadata(&self, key: &Key) -> Outcome<Metadata> {
-        let entry = self
-            .repo
-            .get_secret_by_key(key)
-            .await?
-            .ok_or_else(|| SecretRepoErrors::SecretNotFound.into_errors())?;
-        Ok(entry.metadata)
     }
 
     #[tracing::instrument(level = "info", skip(self, cmd), fields(key = %key), err)]
@@ -75,13 +63,12 @@ impl SecretStore for SecretStoreImpl {
     }
 
     #[tracing::instrument(level = "info", skip(self), err)]
-    async fn list(&self, prefix: &KeyPrefix) -> Outcome<Vec<Metadata>> {
+    async fn list(&self, prefix: &KeyPrefix) -> Outcome<Vec<SecretEntry>> {
         let all = self.repo.get_all_secrets().await?;
         let prefix_str = prefix.as_str();
         Ok(all
             .into_iter()
             .filter(|e| prefix_str.is_empty() || e.metadata.key.as_str().starts_with(prefix_str))
-            .map(|e| e.metadata)
             .collect())
     }
 }

@@ -23,7 +23,6 @@ use crate::data::repo::parameters::{ParameterRepoErrors, ParameterRepoTrait};
 use crate::entities::commands::{EditParameterCommand, NewParameterCommand};
 use crate::entities::entry::Entry;
 use crate::entities::key::{Key, KeyPrefix};
-use crate::entities::metadata::Metadata;
 use crate::entities::version::Version;
 use crate::services::parameters::ParameterStore;
 
@@ -40,9 +39,11 @@ impl ParameterStoreImpl {
 #[async_trait::async_trait]
 impl ParameterStore<serde_json::Value> for ParameterStoreImpl {
     #[tracing::instrument(level = "info", skip_all, err)]
-    async fn create(&self, cmd: &NewParameterCommand<serde_json::Value>) -> Outcome<Version> {
-        let entry = self.repo.create_parameter(cmd).await?;
-        Ok(entry.metadata.version)
+    async fn create(
+        &self,
+        cmd: &NewParameterCommand<serde_json::Value>,
+    ) -> Outcome<Entry<serde_json::Value>> {
+        self.repo.create_parameter(cmd).await
     }
 
     #[tracing::instrument(level = "info", skip(self), fields(key = %key), err)]
@@ -71,13 +72,12 @@ impl ParameterStore<serde_json::Value> for ParameterStoreImpl {
     }
 
     #[tracing::instrument(level = "info", skip(self), err)]
-    async fn list(&self, prefix: &KeyPrefix) -> Outcome<Vec<Metadata>> {
+    async fn list(&self, prefix: &KeyPrefix) -> Outcome<Vec<Entry<serde_json::Value>>> {
         let all = self.repo.get_all_parameters().await?;
         let prefix_str = prefix.as_str();
         Ok(all
             .into_iter()
             .filter(|e| prefix_str.is_empty() || e.metadata.key.as_str().starts_with(prefix_str))
-            .map(|e| e.metadata)
             .collect())
     }
 }

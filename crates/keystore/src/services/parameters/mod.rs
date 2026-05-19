@@ -4,7 +4,6 @@ pub mod views;
 use crate::entities::commands::{EditParameterCommand, NewParameterCommand};
 use crate::entities::entry::Entry;
 use crate::entities::key::{Key, KeyPrefix};
-use crate::entities::metadata::Metadata;
 use crate::entities::version::Version;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -15,7 +14,7 @@ pub trait ParameterStore<T>: Send + Sync
 where
     T: Serialize + DeserializeOwned + Send + Sync + 'static,
 {
-    async fn create(&self, cmd: &NewParameterCommand<T>) -> Outcome<Version>;
+    async fn create(&self, cmd: &NewParameterCommand<T>) -> Outcome<Entry<T>>;
 
     async fn read(&self, key: &Key) -> Outcome<Entry<T>>;
 
@@ -28,5 +27,5 @@ where
 
     async fn delete(&self, key: &Key) -> Outcome<()>;
 
-    async fn list(&self, prefix: &KeyPrefix) -> Outcome<Vec<Metadata>>;
+    async fn list(&self, prefix: &KeyPrefix) -> Outcome<Vec<Entry<T>>>;
 }

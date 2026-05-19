@@ -27,7 +27,7 @@ use ymir::errors::AppResult;
 use crate::entities::commands::{EditParameterCommand, NewParameterCommand};
 use crate::entities::key::{Key, KeyPrefix};
 use crate::services::parameters::ParameterStore;
-use crate::services::parameters::views::{ParameterMetadataView, ParameterView, VersionResponse};
+use crate::services::parameters::views::{ParameterView, VersionResponse};
 
 #[derive(Clone)]
 pub struct ParameterRouter {
@@ -57,20 +57,18 @@ impl ParameterRouter {
     async fn list(
         State(state): State<ParameterRouter>,
         Query(params): Query<PrefixQuery>,
-    ) -> AppResult<Json<Vec<ParameterMetadataView>>> {
+    ) -> AppResult<Json<Vec<ParameterView>>> {
         let prefix = KeyPrefix::new(params.prefix.unwrap_or_default());
         let items = state.service.list(&prefix).await?;
-        Ok(Json(
-            items.into_iter().map(ParameterMetadataView::from).collect(),
-        ))
+        Ok(Json(items.into_iter().map(ParameterView::from).collect()))
     }
 
     async fn create(
         State(state): State<ParameterRouter>,
         Json(cmd): Json<NewParameterCommand<serde_json::Value>>,
-    ) -> AppResult<(StatusCode, Json<VersionResponse>)> {
-        let version = state.service.create(&cmd).await?;
-        Ok((StatusCode::CREATED, Json(VersionResponse::from(version))))
+    ) -> AppResult<(StatusCode, Json<ParameterView>)> {
+        let entry = state.service.create(&cmd).await?;
+        Ok((StatusCode::CREATED, Json(ParameterView::from(entry))))
     }
 
     async fn read(

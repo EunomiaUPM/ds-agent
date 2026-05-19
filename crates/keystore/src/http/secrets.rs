@@ -27,7 +27,7 @@ use ymir::errors::AppResult;
 use crate::entities::commands::{EditSecretCommand, NewSecretCommand};
 use crate::entities::key::{Key, KeyPrefix};
 use crate::services::secrets::SecretStore;
-use crate::services::secrets::views::{SecretMetadataView, SecretView, VersionResponse};
+use crate::services::secrets::views::{SecretView, VersionResponse};
 
 #[derive(Clone)]
 pub struct SecretRouter {
@@ -57,20 +57,18 @@ impl SecretRouter {
     async fn list(
         State(state): State<SecretRouter>,
         Query(params): Query<PrefixQuery>,
-    ) -> AppResult<Json<Vec<SecretMetadataView>>> {
+    ) -> AppResult<Json<Vec<SecretView>>> {
         let prefix = KeyPrefix::new(params.prefix.unwrap_or_default());
         let items = state.service.list(&prefix).await?;
-        Ok(Json(
-            items.into_iter().map(SecretMetadataView::from).collect(),
-        ))
+        Ok(Json(items.into_iter().map(SecretView::from).collect()))
     }
 
     async fn create(
         State(state): State<SecretRouter>,
         Json(cmd): Json<NewSecretCommand>,
-    ) -> AppResult<(StatusCode, Json<VersionResponse>)> {
-        let version = state.service.create(&cmd).await?;
-        Ok((StatusCode::CREATED, Json(VersionResponse::from(version))))
+    ) -> AppResult<(StatusCode, Json<SecretView>)> {
+        let entry = state.service.create(&cmd).await?;
+        Ok((StatusCode::CREATED, Json(SecretView::from(entry))))
     }
 
     async fn read(

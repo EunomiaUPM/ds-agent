@@ -126,7 +126,7 @@ function RouteComponent() {
                           className="capitalize !mb-0 underline-offset-2 hover:underline"
                         >
                           {" "}
-                          {catalog?.dctTitle || `${myAgentSlug}'s Catalog for Demo`}
+                          {catalog?.dctTitle || `${myAgentSlug}'s`}
                         </Heading>
                       </Link>
                       <p className="text-xs text-muted-foreground">

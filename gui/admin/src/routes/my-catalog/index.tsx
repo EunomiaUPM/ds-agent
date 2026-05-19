@@ -66,7 +66,7 @@ function RouteComponent() {
         <div className="rounded-md border border-background-200/60 bg-background-200/5 p-4 max-h-[70vh] ">
           <Heading level="h2" className="capitalize">
             {" "}
-            {catalog.dctTitle ? catalog.dctTitle : `${myAgentSlug}'s Catalog for Demo`}
+            {catalog.dctTitle ? catalog.dctTitle : `${myAgentSlug}'s Catalog`}
           </Heading>
 
           <Badge variant="detail" size="lg" className="uppercase text-blue-300 font-semibold mb-3">

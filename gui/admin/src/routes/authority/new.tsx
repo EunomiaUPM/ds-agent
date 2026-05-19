@@ -226,6 +226,8 @@ function NewAuthorityRequest() {
       ? "animate-pulse bg-secondary-600 hover:bg-secondary-500 ring-2 ring-secondary-400"
       : "";
 
+      
+
   return (
     <PageLayout>
       <PageHeader title="Request New Credential" />

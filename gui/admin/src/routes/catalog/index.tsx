@@ -7,7 +7,7 @@ import { PageLayout } from "shared/src/components/layout/PageLayout";
 import { useFederatedCatalog } from "shared/src/data/useFederatedCatalog";
 import { useGetAllParticipants } from "shared/src/data/orval/participants/participants";
 import WizardDialog from "shared/src/components/WizardDialog";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Card, CardContent } from "shared/components/ui/card";
 import logoImg from "./../../../../shared/src/img/eunomia_logo_lg_light.svg";
 
@@ -65,9 +65,7 @@ const RouteComponent = () => {
   }
 
   const { agents } = federated;
-  console.log(federated, "federated")
-  console.log(localParticipants, "localparticipants");
-  console.log(agents, "agents");
+
 
   //variable that tells if user is onboarded with any provider or not.
   // true = they are / false = they're not
@@ -80,6 +78,7 @@ const RouteComponent = () => {
     ),
   );
 
+
   return (
     <PageLayout>
       <div className="bg-violet-700/40 flex justify-center items-center h-48">
@@ -91,7 +90,7 @@ const RouteComponent = () => {
           onClose={() => setWizardCatalogOpen(false)}
           anchorRef={labelCatalogRef}
           align="left"
-          step={"1 of 3"}
+          step="1 of 3"
           sectionTitle="Connection with Participant Tutorial"
           title="Catalog browser"
           content={
@@ -108,12 +107,15 @@ const RouteComponent = () => {
           const isOnboarded = localParticipants.some(
             (lp) => lp.participant_id === p.participant_id && !lp.is_me,
           );
-          console.log(isOnboarded, "isOnboarded")
           const unauthRedirect = isOnboarded ? null : { url: p.base_url, slug: p.participant_slug };
+          // si no está autenticado con ningun proveedor, y es el primer agente de la lista
+          // destacar ese agente (modo ejemplo)
+          const firstAgentWithUnauth = (!onboardedWithKnownProvider && p === agents[0]) ? true : false;
+
           return (
             <div
               className={
-                unauthRedirect ? "ring-2 ring-secondary-400 shadow-md animate-pulse rounded-md" : ""
+                firstAgentWithUnauth ? "ring-2 ring-secondary-400 shadow-md animate-pulse rounded-md" : ""
               }
               onClick={() => setWizardCatalogOpen(false)}
             >
@@ -125,6 +127,11 @@ const RouteComponent = () => {
                 id={p.participant_id ?? null}
                 isAuthenticated={isOnboarded}
                 unauthRedirect={unauthRedirect}
+                onUnauthDialogClose={() => {
+                  if (firstAgentWithUnauth) {
+                    setTimeout(() => setWizardCatalogOpen(true), 50);
+                  }
+                }}
               />
             </div>
           );

@@ -29,11 +29,13 @@ function AuthorityRequestsPage() {
 
   const [showCongrats, setShowCongrats] = useState(false);
 
+  console.log(participants, "participants")
+
+
   useEffect(() => {
     try {
       const justJoined = sessionStorage.getItem("justJoinedDataspace");
-      const authorities = participants.filter((p: any) => p.participant_type === "Authority");
-      if (justJoined === "true" && authorities.length === 1) {
+      if (justJoined === "true" && requests.length === 0) {
         setShowCongrats(true);
         sessionStorage.removeItem("justJoinedDataspace");
       }
@@ -75,7 +77,6 @@ function AuthorityRequestsPage() {
   }, [rawRequests, sortConfig]);
 
 
-
   const handleSort = (key: string) => {
     let direction: "asc" | "desc" = "asc";
     if (sortConfig && sortConfig.key === key && sortConfig.direction === "asc") {
@@ -102,10 +103,10 @@ function AuthorityRequestsPage() {
         onClose={() => setShowCongrats(false)}
         title={"Congratulations"}
         content={<>
-        Congratulations, you are part now of the Dataspace of Heimdall
-        <br/>
-        You can now browse the catalogs in the dataspace.
-          </>}
+          Congratulations, you are part now of the Dataspace of Heimdall
+          <br />
+          You can now browse the catalogs in the dataspace.
+        </>}
         actionHref={"/catalog/"}
         actionLabel={"See dataspace"}
       />

@@ -32,9 +32,6 @@ function RouteComponent() {
   const otherParticipantSlug =
     otherParticipant?.participant_slug?.toString() || "Unknown Participant";
 
-  {
-    console.log(otherParticipant, "participant in participant catalog route");
-  }
 
   useEffect(() => {
     mutate({
@@ -67,18 +64,7 @@ function RouteComponent() {
   const dataCatalog = catalogData?.status === 200 ? catalogData.data : undefined;
 
   if (!catalog) return null;
-  // { console.log(dataCatalog, "data catalog") }
-   { console.log(catalog, "catalog participant") }
-  // { console.log(catalog?.response, "catalog response in participant") }
-  {
-    console.log(catalog?.response?.dataset, " datasets in participant");
-  }
-  {
-    console.log(
-      catalog?.response?.dataset?.map((d: any) => d["@id"]),
-      "catalog datasets ids in participant",
-    );
-  }
+ 
 
   return (
     <PageLayout>
@@ -97,7 +83,7 @@ function RouteComponent() {
               {" "}
               {catalog.response?.title
                 ? catalog.response?.title
-                : `${otherParticipantSlug}'s Catalog for Demo `}
+                : `${otherParticipantSlug}'s Catalog `}
             </Heading>
             <p className="text-sm mb-2">Description of the catalog. </p>
             <InfoList

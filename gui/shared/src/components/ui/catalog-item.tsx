@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "shared/src/components/ui/button";
 import WizardDialog from "shared/src/components/WizardDialog";
 import { useRef } from "react";
+import { useGetAllParticipants } from "shared/src/data/orval/participants/participants";
 
 interface CatalogItemProps {
   date: string;
@@ -18,6 +19,7 @@ interface CatalogItemProps {
   title?: string;
   isAuthenticated?: boolean;
   unauthRedirect?: { url: string; slug: string } | null;
+  onUnauthDialogClose?: () => void;
 }
 
 const CatalogItem: React.FC<CatalogItemProps> = ({
@@ -28,6 +30,7 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
   title,
   isAuthenticated,
   unauthRedirect,
+  onUnauthDialogClose,
 }) => {
   const unavailableCatalogClasses =
     id === null ? "opacity-65 grayscale cursor-not-allowed" : "cursor-pointer";
@@ -37,7 +40,7 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
   const labelConnectRef = useRef<HTMLElement | null>(null);
   const [wizardConnectOpen, setWizardConnectOpen] = useState(false);
 
-  const headingText = title ? title : `${organizationName}'s Catalog for Demo`;
+  const headingText = title ? title : `${organizationName}'s Catalog`;
   const headingNode = (
     <Heading level="h4" className="capitalize mb-3 underline-offset-2 hover:underline">
       {headingText}
@@ -46,6 +49,13 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
 
   let headingLink: React.ReactNode;
   const [openDialog, setOpenDialog] = useState(false);
+
+  //verify if user is onboarded with any provider to decide whether we show the wizard or we dont
+  const { data: participantsResponse } = useGetAllParticipants();
+  const localParticipants = participantsResponse?.status === 200 ? participantsResponse.data : [];
+
+  let isOnboardedWithKnownProvider = localParticipants.some((lp) => lp.participant_type !== "Authority" && lp.is_me === false)
+
   // open the wizard only after the dialog has been opened and the title anchor is mounted
   React.useEffect(() => {
     let t: any;
@@ -58,6 +68,13 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
     return () => clearTimeout(t);
   }, [openDialog]);
 
+  const handleOpenChange = (isOpen: boolean) => {
+    setOpenDialog(isOpen);
+    if (!isOpen && onUnauthDialogClose) {
+      onUnauthDialogClose();
+    }
+  };
+
   if (unauthRedirect) {
     headingLink = (
       <>
@@ -65,7 +82,7 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
           {headingNode}
         </button>
 
-        <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+        <Dialog open={openDialog} onOpenChange={handleOpenChange}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle ref={(el) => (labelConnectRef.current = el as any)}
@@ -75,26 +92,30 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
                 <Heading level="h4" className="!mb-0">Access required</Heading>
               </DialogTitle>
               <DialogDescription>
-                <WizardDialog
-                  open={wizardConnectOpen}
-                  onClose={() => setWizardConnectOpen(false)}
-                  anchorRef={labelConnectRef}
-                  sectionTitle="Connection with Participant Tutorial"
-                  step="2 of 3"
-                  align="left"
-                  title="Connection with Dataspace Participant required"
-                  content={
-                    <>
-                      You can only access the catalog of a participant if you
-                      are connected to them. Click on the button <strong>"Request connection"</strong> to connect with the owner of the catalog.
-                    </>}
-                />
+                {isOnboardedWithKnownProvider ? (
+                  ""
+                ) : (
+                  <WizardDialog
+                    open={wizardConnectOpen}
+                    onClose={() => setWizardConnectOpen(false)}
+                    anchorRef={labelConnectRef}
+                    sectionTitle="Connection with Participant Tutorial"
+                    step="2 of 3"
+                    align="left"
+                    title="Connection with Dataspace Participant required"
+                    content={
+                      <>
+                        You can only access the catalog of a participant if you
+                        are connected to them. Click on the button <strong>"Request connection"</strong> to connect with the owner of the catalog.
+                      </>}
+                  />
+                )}
                 You don't have permission to access this catalog. <br /> First, you need to connect with <strong>{organizationName}</strong>.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
               <DialogClose asChild>
-                <Button variant="ghost" onClick={() => setOpenDialog(false)}>Keep browsing</Button>
+                <Button variant="ghost">Keep browsing</Button>
               </DialogClose>
               <Link to="/providers/new" search={{ url: unauthRedirect.url, slug: unauthRedirect.slug }}>
                 <Button className={highlightButtonClasses}>Request connection</Button>
@@ -120,43 +141,43 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
       className={`catalog-card h-full bg-background-200/15  hover:bg-background-200/30 transition-all border rounded-md flex flex-col p-4 gap-3 justify-between max-w-lg ${unavailableCatalogClasses} ${isAuthenticated ? "border-emerald-500/40" : "border-white/10"}`}
     >
       <div className="catalog-top">
-      <div className="catalog-dates-container flex gap-3 text-sm tracking-wide items-start justify-between">
-        <div className="catalog-dates-created flex gap-1 mb-2">
-          <p className="text-sm">Created at:</p>
-          <FormatDate date={date} />
+        <div className="catalog-dates-container flex gap-3 text-sm tracking-wide items-start justify-between">
+          <div className="catalog-dates-created flex gap-1 mb-2">
+            <p className="text-sm">Created at:</p>
+            <FormatDate date={date} />
+          </div>
+          {isAuthenticated ? (
+            <span className="flex items-center gap-1 text-xs text-emerald-400 font-medium">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Authenticated
+            </span>
+          ) : id !== null ? (
+            <span className="flex items-center gap-1 text-xs text-muted-foreground font-medium text-red-400">
+              <Lock className="h-3.5 w-3.5" />
+              Auth required
+            </span>
+          ) : null}
         </div>
-        {isAuthenticated ? (
-          <span className="flex items-center gap-1 text-xs text-emerald-400 font-medium">
-            <CheckCircle2 className="h-3.5 w-3.5" />
-            Authenticated
-          </span>
-        ) : id !== null ? (
-          <span className="flex items-center gap-1 text-xs text-muted-foreground font-medium text-red-400">
-            <Lock className="h-3.5 w-3.5" />
-            Auth required
-          </span>
-        ) : null}
+        <div className="catalog-text-container">
+          {headingLink}
+          <p className="mb-2 line-clamp-3 text-sm">
+            This is the catalog of <span className="capitalize">{organizationName}</span>, who is also
+            part of this dataspace. Click on the catalog name to see the datasets and dataservice they
+            offer.
+          </p>
+        </div>
       </div>
-      <div className="catalog-text-container">
-        {headingLink}
-        <p className="mb-2 line-clamp-3 text-sm">
-          This is the catalog of <span className="capitalize">{organizationName}</span>, who is also
-          part of this dataspace. Click on the catalog name to see the datasets and dataservice they
-          offer.
-        </p>
-      </div>
-      </div>
-       <div className="catalog-bottom">
-      <div className="catalog-participant-container flex gap-2 justify-start items-center mb-2">
-        <Avatar src={avatarImg}  />
-        <Heading level="h5" className="capitalize !mb-0">
-          {organizationName}
-        </Heading>
-      </div>
-      <div className="catalog-items-container flex justify-end gap-2 text-sm italic">
-        <p> 1 Dataservice </p>
-        <p> {datasetNumber} Datasets </p>
-      </div>
+      <div className="catalog-bottom">
+        <div className="catalog-participant-container flex gap-2 justify-start items-center mb-2">
+          <Avatar src={avatarImg} />
+          <Heading level="h5" className="capitalize !mb-0">
+            {organizationName}
+          </Heading>
+        </div>
+        <div className="catalog-items-container flex justify-end gap-2 text-sm italic">
+          <p> 1 Dataservice </p>
+          <p> {datasetNumber} Datasets </p>
+        </div>
       </div>
     </div>
   );

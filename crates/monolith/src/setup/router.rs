@@ -51,7 +51,7 @@ pub async fn create_core_router(config: &ApplicationConfig, vault: Arc<VaultServ
 
     let keystore_prefix = format!("{}/keystore", config.monolith().common().get_api_version());
     let keystore_router = KeystoreSetup::new()
-        .build_keystore_router(config.monolith(), vault.clone())
+        .build_keystore_router(config.monolith(), Arc::new(config.clone()), vault.clone())
         .await;
 
     Router::new()

@@ -15,38 +15,44 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+pub mod config;
 pub mod parameters;
 pub mod secrets;
 
 use std::sync::Arc;
 
-use axum::Router;
-
+use crate::services::config::ConfigStore;
 use crate::services::parameters::ParameterStore;
 use crate::services::secrets::SecretStore;
+use axum::Router;
 
 pub struct KeystoreRouter {
     parameters: Arc<dyn ParameterStore<serde_json::Value>>,
     secrets: Arc<dyn SecretStore>,
+    config: Arc<dyn ConfigStore>,
 }
 
 impl KeystoreRouter {
     pub fn new(
         parameters: Arc<dyn ParameterStore<serde_json::Value>>,
         secrets: Arc<dyn SecretStore>,
+        config: Arc<dyn ConfigStore>,
     ) -> Self {
         Self {
             parameters,
             secrets,
+            config,
         }
     }
 
     pub fn router(self) -> Router {
         let parameters_router = parameters::ParameterRouter::new(self.parameters).router();
         let secrets_router = secrets::SecretRouter::new(self.secrets).router();
+        let config_router = config::ConfigRouter::new(self.config).router();
 
         Router::new()
             .nest("/parameters", parameters_router)
             .nest("/secrets", secrets_router)
+            .nest("/config", config_router)
     }
 }

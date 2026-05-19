@@ -24,12 +24,15 @@ use axum::extract::Request;
 use axum::Router;
 use bff::create_gateway_http_router;
 use catalog_agent::setup::create_root_http_router as catalog_router;
+use common::config::types::traits::CommonConfigTrait;
 use common::config::ApplicationConfig;
 use common::well_known::WellKnownRoot;
+use keystore::KeystoreSetup;
 use negotiation_agent::create_negotiations_http_router;
 use tower_http::trace::{DefaultOnResponse, TraceLayer};
 use transfer_agent::setup::create_root_http_router;
 use uuid::Uuid;
+use ymir::config::traits::ApiConfigTrait;
 use ymir::services::vault::global::VaultService;
 
 pub async fn create_core_router(config: &ApplicationConfig, vault: Arc<VaultService>) -> Router {
@@ -46,6 +49,11 @@ pub async fn create_core_router(config: &ApplicationConfig, vault: Arc<VaultServ
         .expect("Failed to create catalog router");
     let gateway_router = create_gateway_http_router(&config.gateway()).await;
 
+    let keystore_prefix = format!("{}/keystore", config.monolith().common().get_api_version());
+    let keystore_router = KeystoreSetup::new()
+        .build_keystore_router(config.monolith(), vault.clone())
+        .await;
+
     Router::new()
         .merge(well_known_root_dspace)
         .merge(catalog_agent_router)
@@ -53,6 +61,7 @@ pub async fn create_core_router(config: &ApplicationConfig, vault: Arc<VaultServ
         .merge(negotiation_agent_router)
         .merge(transfer_agent_router)
         .merge(gateway_router)
+        .nest(&keystore_prefix, keystore_router)
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(

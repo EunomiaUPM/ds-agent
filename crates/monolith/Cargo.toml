@@ -21,6 +21,7 @@ catalog_agent = { version = "0.3.8", path = "../catalog-agent", default-features
 connector = { version = "0.3.8", path = "../connector", default-features = false }
 bff = { version = "0.3.8", path = "../bff", default-features = false }
 negotiation_agent = { version = "0.3.8", path = "../negotiation-agent", default-features = false }
+keystore = { version = "0.1.0", path = "../keystore", default-features = false }
 
 
 clap = { workspace = true }

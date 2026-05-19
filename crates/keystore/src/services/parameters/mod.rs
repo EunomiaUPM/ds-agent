@@ -1,4 +1,6 @@
-// services/parameter_store.rs
+pub mod service;
+pub mod views;
+
 use crate::entities::commands::{EditParameterCommand, NewParameterCommand};
 use crate::entities::entry::Entry;
 use crate::entities::key::{Key, KeyPrefix};
@@ -13,9 +15,9 @@ pub trait ParameterStore<T>: Send + Sync
 where
     T: Serialize + DeserializeOwned + Send + Sync + 'static,
 {
-    async fn create(&self, cmd: &NewParameterCommand<T>, actor: &str) -> Outcome<Version>;
+    async fn create(&self, cmd: &NewParameterCommand<T>) -> Outcome<Version>;
 
-    async fn read(&self, key: &Key, actor: &str) -> Outcome<Entry<T>>;
+    async fn read(&self, key: &Key) -> Outcome<Entry<T>>;
 
     async fn update(
         &self,
@@ -24,7 +26,7 @@ where
         actor: &str,
     ) -> Outcome<Version>;
 
-    async fn delete(&self, key: &Key, actor: &str) -> Outcome<()>;
+    async fn delete(&self, key: &Key) -> Outcome<()>;
 
-    async fn list(&self, prefix: &KeyPrefix, actor: &str) -> Outcome<Vec<Metadata>>;
+    async fn list(&self, prefix: &KeyPrefix) -> Outcome<Vec<Metadata>>;
 }

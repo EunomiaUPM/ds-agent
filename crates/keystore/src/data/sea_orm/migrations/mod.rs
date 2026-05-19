@@ -15,19 +15,23 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod m20260519_000001_parameters;
-pub mod m20260519_000002_secrets;
+pub(crate) mod m20260519_000001_parameters;
+pub(crate) mod m20260519_000002_secrets;
 
-use sea_orm_migration::MigratorTrait;
+use sea_orm_migration::{MigrationTrait, MigratorTrait};
 
 pub struct Migrator;
 
 #[async_trait::async_trait]
 impl MigratorTrait for Migrator {
     fn migrations() -> Vec<Box<dyn sea_orm_migration::MigrationTrait>> {
-        vec![
-            Box::new(m20260519_000001_parameters::Migration),
-            Box::new(m20260519_000002_secrets::Migration),
-        ]
+        get_keystore_migrations()
     }
+}
+
+pub fn get_keystore_migrations() -> Vec<Box<dyn MigrationTrait>> {
+    vec![
+        Box::new(m20260519_000001_parameters::Migration),
+        Box::new(m20260519_000002_secrets::Migration),
+    ]
 }

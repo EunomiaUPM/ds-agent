@@ -11,6 +11,13 @@ pub struct ConfigPassthroughRepo {
     config: Arc<ApplicationConfig>,
 }
 
+impl ConfigPassthroughRepo {
+    pub fn new(config: Arc<ApplicationConfig>) -> Self {
+        Self { config }
+    }
+}
+
+#[async_trait::async_trait]
 impl KeystoreConfigRepo for ConfigPassthroughRepo {
     async fn get_transfer_config(&self) -> Outcome<TransferConfig> {
         Ok(self.config.transfer().clone())

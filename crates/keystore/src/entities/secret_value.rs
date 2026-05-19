@@ -1,5 +1,3 @@
-use serde::Deserialize;
-
 #[derive(Clone)]
 pub struct SecretValue(serde_json::Value);
 

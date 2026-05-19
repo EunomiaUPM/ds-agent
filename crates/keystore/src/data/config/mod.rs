@@ -1,7 +1,7 @@
 use crate::data::repo::config::KeystoreConfigRepo;
 use common::config::ApplicationConfig;
 use common::config::services::{
-    CatalogConfig, CommonConfig, ContractsConfig, GatewayConfig, MonolithConfig, TransferConfig,
+    CatalogConfig, ContractsConfig, GatewayConfig, MonolithConfig, TransferConfig,
 };
 use std::ops::Deref;
 use std::sync::Arc;

@@ -2,6 +2,7 @@ use crate::entities::key::Key;
 use crate::entities::version::Version;
 
 #[derive(Debug, thiserror::Error)]
+#[allow(dead_code)]
 pub enum RegistryError {
     #[error("entry not found: {0}")]
     NotFound(Key),

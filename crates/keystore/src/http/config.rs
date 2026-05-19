@@ -17,17 +17,11 @@
 
 use std::sync::Arc;
 
-use crate::entities::commands::{EditParameterCommand, NewParameterCommand};
-use crate::entities::key::{Key, KeyPrefix};
 use crate::services::config::ConfigStore;
-use crate::services::parameters::ParameterStore;
-use crate::services::parameters::views::{ParameterView, VersionResponse};
-use axum::extract::{Path, Query, State};
-use axum::http::StatusCode;
-use axum::routing::{delete, get, post, put};
+use axum::extract::State;
+use axum::routing::get;
 use axum::{Json, Router};
 use common::config::ApplicationConfig;
-use serde::Deserialize;
 use ymir::errors::AppResult;
 
 #[derive(Clone)]

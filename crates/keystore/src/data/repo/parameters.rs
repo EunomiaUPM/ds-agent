@@ -45,6 +45,7 @@ pub trait ParameterRepoTrait: Send + Sync {
 }
 
 #[derive(Debug, Error)]
+#[allow(dead_code)]
 pub enum ParameterRepoErrors {
     #[error("Parameter not found")]
     ParameterNotFound,

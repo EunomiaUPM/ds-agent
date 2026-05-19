@@ -15,12 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 use crate::entities::commands::{EditParameterCommand, NewParameterCommand};
+use crate::entities::entry::Entry;
 use crate::entities::key::Key;
 use crate::entities::version::Version;
 use serde::{Serialize, de::DeserializeOwned};
 use thiserror::Error;
 use ymir::errors::{Outcome, RepoIntoErrors};
-use crate::entities::entry::Entry;
 
 #[allow(dead_code)]
 #[cfg_attr(test, mockall::automock(type Value = serde_json::Value;))]
@@ -30,14 +30,8 @@ pub trait ParameterRepoTrait: Send + Sync {
 
     async fn get_all_parameters(&self) -> Outcome<Vec<Entry<Self::Value>>>;
     async fn count_parameters(&self) -> Outcome<u64>;
-    async fn get_batch_parameters(
-        &self,
-        keys: &[Key],
-    ) -> Outcome<Vec<Entry<Self::Value>>>;
-    async fn get_parameter_by_key(
-        &self,
-        key: &Key,
-    ) -> Outcome<Option<Entry<Self::Value>>>;
+    async fn get_batch_parameters(&self, keys: &[Key]) -> Outcome<Vec<Entry<Self::Value>>>;
+    async fn get_parameter_by_key(&self, key: &Key) -> Outcome<Option<Entry<Self::Value>>>;
     async fn create_parameter(
         &self,
         new_model: &NewParameterCommand<Self::Value>,

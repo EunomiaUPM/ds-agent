@@ -1,6 +1,6 @@
+use crate::utils::validate_key;
 use serde::{Deserialize, Serialize};
 use ymir::errors::Outcome;
-use crate::utils::validate_key;
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct Key(String);

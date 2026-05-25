@@ -1,5 +1,5 @@
-import { Button, ButtonSizes } from "../ui/button";
-import React, { useContext } from "react";
+import { Button } from "../ui/button";
+import React from "react";
 import { cva } from "class-variance-authority";
 import { ContractNegotiationBusinessAgreementDialog } from "../dialogs/ContractNegotiationBusinessAgreementDialog";
 import { ContractNegotiationBusinessAcceptanceDialog } from "../dialogs/ContractNegotiationBusinessAcceptanceDialog";
@@ -9,9 +9,7 @@ import { ProcessActionDialog } from "./ProcessActionDialog";
 import { NegotiationProcessDto } from "shared/src/data/orval/model/negotiationProcessDto";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
-/**
- * Actions available for a contract negotiation process.
- */
+
 export const ContractNegotiationBusinessActions = ({
   process,
   tiny = false,
@@ -19,7 +17,6 @@ export const ContractNegotiationBusinessActions = ({
   process: NegotiationProcessDto;
   tiny: boolean;
 }) => {
-  // Define container class name with variants
   const containerClassName = cva("", {
     variants: {
       tiny: {
@@ -30,7 +27,6 @@ export const ContractNegotiationBusinessActions = ({
     },
   });
 
-  // Determine available actions based on process state and user role
   const getActions = () => {
     if (process.role === "Provider") {
       switch (process.state) {
@@ -42,10 +38,12 @@ export const ContractNegotiationBusinessActions = ({
               variant: "default",
               Component: ContractNegotiationBusinessAgreementDialog,
             },
+            {
+              label: "Terminate",
+              variant: "destructive",
+              Component: ContractNegotiationTerminationDialog,
+            },
           ];
-        case "AGREED":
-        case "VERIFIED":
-          return [];
         default:
           return [];
       }
@@ -72,8 +70,6 @@ export const ContractNegotiationBusinessActions = ({
               Component: ContractNegotiationTerminationDialog,
             },
           ];
-        case "AGREED":
-          return [];
         default:
           return [];
       }
@@ -81,20 +77,19 @@ export const ContractNegotiationBusinessActions = ({
     return [];
   };
 
-  // Get the actions for the current process state and user role
   const actions = getActions();
 
-  // Determine if no further actions are available
-  const showNoFurtherActions = () =>
+  const isTerminalState = () =>
     process.state === "TERMINATED" ||
     process.state === "AGREED" ||
     process.state === "VERIFIED" ||
+    process.state === "FINALIZED" ||
     (process.role === "Consumer" && process.state === "ACCEPTED");
 
-  // Determine if agreement can be viewed
-  const showGoToAgreement = () => {
-    return process.state === "FINALIZED" && !!process.agreement;
-  };
+  const showGoToAgreement = () => process.state === "FINALIZED" && !!process.agreement;
+
+  const showSwitchToStandard = () =>
+    actions.length === 0 && !isTerminalState() && !showGoToAgreement();
 
   return (
     <div className={containerClassName({ tiny })}>
@@ -119,13 +114,18 @@ export const ContractNegotiationBusinessActions = ({
             process={process}
           />
         ))}
-        {showNoFurtherActions() && <NoFurtherActions />}
+        {isTerminalState() && !showGoToAgreement() && <NoFurtherActions />}
         {showGoToAgreement() && (
           <Link to="/agreements/$agreementId" params={{ agreementId: process.agreement!.id }}>
             <Button variant="link">
               See agreement <ArrowRight />
             </Button>
           </Link>
+        )}
+        {showSwitchToStandard() && (
+          <span className="text-xs text-white/40 italic">
+            This step is only visible in Standard mode
+          </span>
         )}
       </div>
     </div>

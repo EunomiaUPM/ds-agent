@@ -32,7 +32,7 @@ use crate::config::types::{EntityClientConfig, GaiaConfig};
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct SsiAuthConfig {
     common_config: CommonConfig,
-    wallet_config: Option<WalletConfig>,
+    wallet_config: WalletConfig,
     client_config: EntityClientConfig,
     did_config: DidConfig,
     vc_config: VcConfig,
@@ -60,7 +60,7 @@ impl VerifyReqConfigTrait for SsiAuthConfig {
 
 impl WalletConfigTrait for SsiAuthConfig {
     fn wallet_config(&self) -> &WalletConfig {
-        self.wallet_config.as_ref().expect("Wallet is not active")
+        &self.wallet_config
     }
 }
 
@@ -93,8 +93,5 @@ impl GaiaConfigTrait for SsiAuthConfig {
 impl SsiAuthConfigTrait for SsiAuthConfig {
     fn is_gaia_active(&self) -> bool {
         self.gaia_config.is_some()
-    }
-    fn is_wallet_active(&self) -> bool {
-        self.wallet_config.is_some()
     }
 }

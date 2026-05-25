@@ -30,6 +30,7 @@ use ymir::types::issuing::{
     AuthServerMetadata, CredentialRequestsss, IssuerMetadata, IssuingToken, TokenRequest,
     VCCredOffer,
 };
+use ymir::types::wallet::waltid::OidcUri;
 use ymir::utils::{
     extract_bearer_token, extract_form_payload, extract_payload, extract_query_param,
 };
@@ -127,7 +128,9 @@ impl GaiaSelfIssuerRouter {
 
     async fn req_credential(
         State(self_issuer): State<Arc<dyn CoreGaiaSelfIssuerTrait>>,
+        payload: Result<Json<OidcUri>, JsonRejection>,
     ) -> AppResult<()> {
-        self_issuer.request_gaia_vc().await
+        let payload = extract_payload(payload)?;
+        self_issuer.request_gaia_vc(&payload.uri).await
     }
 }

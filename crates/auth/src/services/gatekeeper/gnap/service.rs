@@ -30,8 +30,8 @@ use ymir::errors::{BadFormat, Errors, Outcome};
 use ymir::types::gnap::grant_request::{GrantRequest, InteractActions, InteractStart, KeyProof};
 use ymir::types::gnap::grant_response::GrantResponse;
 use ymir::types::gnap::{AccessToken, RefBody};
+use ymir::utils::get_from_opt;
 use ymir::utils::{create_opaque_token, extract_gnap_token, trim_4_base};
-use ymir::utils::{get_from_opt, parse_from_slice};
 
 use super::super::GateKeeperTrait;
 use super::config::{GnapGateKeeperConfig, GnapGateKeeperConfigTrait};
@@ -152,7 +152,7 @@ impl GateKeeperTrait for GnapGateKeeperService {
     }
 
     fn validate_req(&self, payload: &Bytes, headers: &HeaderMap) -> Outcome<GrantRequest> {
-        let grant_request: GrantRequest = parse_from_slice(payload)?;
+        let grant_request: GrantRequest = serde_json::from_slice(payload)?;
 
         match grant_request.client.key.cert.as_deref() {
             Some(cert) => {
@@ -208,7 +208,7 @@ impl GateKeeperTrait for GnapGateKeeperService {
     ) -> Outcome<()> {
         info!("Validating continuing request");
 
-        let ref_body: RefBody = parse_from_slice(payload)?;
+        let ref_body: RefBody = serde_json::from_slice(payload)?;
 
         let token = extract_gnap_token(headers)?;
 

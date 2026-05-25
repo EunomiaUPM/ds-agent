@@ -28,7 +28,7 @@ use ymir::config::types::HostType;
 use ymir::data::entities::{
     mates, req_interaction, req_request, req_verification, token_requirements,
 };
-use ymir::errors::{Errors, Outcome};
+use ymir::errors::{Errors, Outcome, PetitionFailure};
 use ymir::services::client::ClientTrait;
 use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
@@ -237,10 +237,18 @@ impl OnboarderTrait for GnapOnboarderService {
         res: Response,
     ) -> Outcome<mates::NewModel> {
         info!("Managing response");
-        let token = if res.status().is_success() {
+        let token: AccessToken = if res.status().is_success() {
             info!("Success retrieving the token");
-            let token: AccessToken = res.parse_json().await?;
-            token
+            res.json().await.map_err(|e| {
+                Errors::petition(
+                    "",
+                    "unknown",
+                    None,
+                    PetitionFailure::BodyDeserialization,
+                    "Error deserializing body",
+                    Some(Box::new(e)),
+                )
+            })?
         } else {
             return Err(Errors::provider(
                 res.url().to_string(),

@@ -36,9 +36,7 @@ use ymir::types::gnap::CredentialResponse;
 use ymir::types::http::Body;
 use ymir::types::secrets::StringHelper;
 use ymir::types::vcs::VcType;
-use ymir::utils::{
-    expect_from_env, get_from_opt, get_query_param, json_headers, trim_4_base, ResponseExt,
-};
+use ymir::utils::{expect_from_env, get_from_opt, get_query_param, json_headers, trim_4_base, ResponseExt};
 
 use super::super::VcRequesterTrait;
 use super::config::{VCRequesterConfig, VCRequesterConfigTrait};

@@ -16,9 +16,8 @@
  */
 
 use serde::{Deserialize, Serialize};
-use ymir::config::types::HostConfig;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct GaiaConfig {
-    pub api: HostConfig,
+    pub active: bool,
 }

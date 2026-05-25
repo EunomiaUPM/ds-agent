@@ -15,13 +15,11 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use ymir::config::traits::SingleHostTrait;
-
 use crate::config::types::GaiaConfig;
 
 pub trait GaiaConfigTrait {
     fn gaia_config(&self) -> &GaiaConfig;
-    fn get_gaia_api_host(&self) -> String {
-        self.gaia_config().api.get_host()
+    fn is_active(&self) -> bool {
+        self.gaia_config().active
     }
 }

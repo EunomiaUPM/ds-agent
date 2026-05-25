@@ -34,5 +34,4 @@ pub trait SsiAuthConfigTrait:
     + GaiaConfigTrait
 {
     fn is_gaia_active(&self) -> bool;
-    fn is_wallet_active(&self) -> bool;
 }

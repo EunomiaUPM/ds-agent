@@ -22,11 +22,12 @@ use async_trait::async_trait;
 use axum::http::header::{ACCEPT, CONTENT_TYPE};
 use axum::http::{HeaderMap, HeaderValue};
 use chrono::{Duration, Utc};
-use common::config::types::traits::{EntityClientTrait, GaiaConfigTrait};
+use common::config::types::traits::EntityClientTrait;
 use jsonwebtoken::{Algorithm, Header};
 use serde_json::{json, Value};
 use tracing::info;
 use uuid::Uuid;
+use ymir::capabilities::{Did, Signer};
 use ymir::config::traits::HostsConfigTrait;
 use ymir::config::types::HostType;
 use ymir::data::entities::issuing;
@@ -36,15 +37,17 @@ use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
 use ymir::types::http::Body;
 use ymir::types::issuing::{GiveVC, IssuingToken};
+use ymir::types::jwt::VcJwtClaimsBuilder;
+use ymir::types::keys::Key;
 use ymir::types::secrets::StringHelper;
-use ymir::types::vcs::claims_v1::{VCClaimsV1, VCFromClaimsV1};
-use ymir::types::vcs::claims_v2::VCClaimsV2;
-use ymir::types::vcs::vc_issuer::VCIssuer;
+use ymir::types::vcs::doc::VcDocumentBuilder;
 use ymir::types::vcs::vc_specs::legal_person::LegalPersonCredentialSubject;
 use ymir::types::vcs::vc_specs::terms_and_conds::TermsAndConditionsCredSub;
-use ymir::types::vcs::{GaiaVP, VPDef, VcInsideGaiaVPBuilder, VcType, W3cDataModelVersion};
-use ymir::types::wallet::MatchingVCs;
-use ymir::utils::{expect_from_env, get_rsa_key, parse_to_value, sign_token, ResponseExt};
+use ymir::types::vcs::VcIssuer;
+use ymir::types::vcs::{GaiaVP, VPDef, VcInsideGaiaVPBuilder, VcType};
+use ymir::types::wallet::fafnir::SigningCtx;
+use ymir::types::wallet::waltid::MatchingVCs;
+use ymir::utils::{expect_from_env, ResponseExt};
 
 use super::super::GaiaOwnIssuerTrait;
 use super::config::{GaiaGaiaSelfIssuerConfigTrait, GaiaSelfIssuerConfig};
@@ -105,8 +108,8 @@ impl GaiaOwnIssuerTrait for BasicGaiaSelfIssuer {
         let terms_id = format!("urn:uuid:{}", Uuid::new_v4().to_string());
 
         let legal_subj =
-            parse_to_value(&LegalPersonCredentialSubject::new4gaia(did, vc_type, code)?)?;
-        let terms_subj = parse_to_value(&TermsAndConditionsCredSub::random(did))?;
+            serde_json::to_value(&LegalPersonCredentialSubject::new4gaia(did, vc_type, code)?)?;
+        let terms_subj = serde_json::to_value(&TermsAndConditionsCredSub::random(did))?;
 
         let person_vc = self.build_vc(did, &legal_id, &VcType::LegalPerson, legal_subj)?;
         let terms_vc = self.build_vc(did, &terms_id, &VcType::TermsAndConditions, terms_subj)?;
@@ -116,62 +119,45 @@ impl GaiaOwnIssuerTrait for BasicGaiaSelfIssuer {
 
         let key = expect_from_env("VAULT_APP_PRIV_KEY");
         let key: StringHelper = self.vault.read(None, &key).await?;
-        let key = get_rsa_key(key.data())?;
+        let key = Key::try_weird_from("", key.data())?;
+        let did = Did::parse_from_kid(did)?;
+        let ctx = SigningCtx::new(did, key);
 
-        let person_vc_jwt = sign_token(&header, &person_vc, &key)?;
-        let terms_vc_jwt = sign_token(&header, &terms_vc, &key)?;
+        let person_vc_jwt =
+            Signer::sign_enveloped("vc+ld+json+jwt", "vc+ld+json", &person_vc, &ctx)?;
+        let terms_vc_jwt = Signer::sign_enveloped("vc+ld+json+jwt", "vc+ld+json", &terms_vc, &ctx)?;
 
         Ok(json!({
             "credential_responses": vec![
-                GiveVC { format: "jwt_vc_json".to_string(), credential: person_vc_jwt },
-                GiveVC { format: "jwt_vc_json".to_string(), credential: terms_vc_jwt }
+                GiveVC { format: "jwt_vc_json".to_string(), credential: person_vc_jwt.to_string() },
+                GiveVC { format: "jwt_vc_json".to_string(), credential: terms_vc_jwt.to_string() }
             ]
         }))
     }
 
     fn build_vc(&self, did: &str, id: &str, vc_type: &VcType, subject: Value) -> Outcome<Value> {
         let now = Utc::now();
-        let issuer = VCIssuer {
-            id: did.to_string(),
-            name: None,
-        };
-        let context_v1 = vec!["https://www.w3.org/ns/credentials/v1".to_string()];
-        let context_v2 = vec!["https://www.w3.org/ns/credentials/v2".to_string()];
-        let types = vec!["VerifiableCredential".to_string(), vc_type.to_string()];
-        let valid_until = Some(now + Duration::days(365));
 
-        match self.config.get_data_model_version() {
-            W3cDataModelVersion::V1 => parse_to_value(&VCClaimsV1 {
-                exp: None,
-                iat: None,
-                jti: Some(id.to_string()),
-                iss: Some(did.to_string()),
-                sub: Some(did.to_string()),
-                vc: VCFromClaimsV1 {
-                    context: context_v1,
-                    r#type: types,
-                    id: id.to_string(),
-                    credential_subject: subject,
-                    issuer,
-                    valid_from: Some(now),
-                    valid_until,
-                },
-            }),
-            W3cDataModelVersion::V2 => parse_to_value(&VCClaimsV2 {
-                exp: None,
-                iat: None,
-                jti: Some(id.to_string()),
-                iss: Some(did.to_string()),
-                sub: Some(did.to_string()),
-                context: context_v2,
-                r#type: types,
-                id: id.to_string(),
-                credential_subject: subject,
-                issuer,
-                valid_from: Some(now),
-                valid_until,
-            }),
-        }
+        let w3c_data_model = self.config.get_w3c_data_model();
+
+        let doc = VcDocumentBuilder::new(&vc_type, &w3c_data_model)
+            .id(id.to_string())
+            .issuer(VcIssuer::Did(did.to_string()))
+            .credential_subject(subject)
+            .valid_from(now)
+            .valid_until(now + Duration::days(365))
+            .build();
+
+        let vc = VcJwtClaimsBuilder::new(w3c_data_model)
+            .iss(did.to_string())
+            .sub(did.to_string())
+            .jti(id.to_string())
+            .iat(now)
+            .exp(now + Duration::days(365))
+            .vc(doc)
+            .build();
+
+        Ok(serde_json::to_value(&vc)?)
     }
 
     async fn build_vp(&self, vcs: &[MatchingVCs], did: Option<&str>) -> Outcome<String> {
@@ -187,12 +173,12 @@ impl GaiaOwnIssuerTrait for BasicGaiaSelfIssuer {
         let priv_key = expect_from_env("VAULT_APP_PRIV_KEY");
         let priv_key: StringHelper = self.vault.read(None, &priv_key).await?;
 
-        let key = get_rsa_key(priv_key.data())?;
+        let key = Key::try_weird_from("", priv_key.data())?;
 
         let now = Utc::now();
 
         let mut claims = GaiaVP {
-            context: vec![],
+            context: vec![self.config.get_w3c_data_model().to_string()],
             r#type: "VerifiablePresentation".to_string(),
             verifiable_credential: vec![],
             issuer: did.to_string(),
@@ -200,44 +186,32 @@ impl GaiaOwnIssuerTrait for BasicGaiaSelfIssuer {
             valid_until: Some(now + Duration::days(1)),
         };
 
-        let context;
-        match self.config.get_data_model_version() {
-            W3cDataModelVersion::V1 => {
-                context = &["https://www.w3.org/ns/credentials/v1"];
-            }
-            W3cDataModelVersion::V2 => {
-                context = &["https://www.w3.org/ns/credentials/v2"];
-            }
-        }
-
         let mut jwts = vec![];
 
         for vc in vcs {
             let jwt = VcInsideGaiaVPBuilder::default()
-                .context(context)
+                .context(&[self.config.get_w3c_data_model().to_string().as_str()])
                 .id(vc.document.clone())
                 .build();
             jwts.push(jwt);
         }
 
-        let context: Vec<String> = context.iter().map(ToString::to_string).collect();
         claims.verifiable_credential = jwts;
-        claims.context = context;
 
-        let vc_jwt = sign_token(&header, &claims, &key)?;
+        let did = Did::parse_from_kid(did)?;
+        let ctx = SigningCtx::new(did, key);
+        let claims = serde_json::to_value(claims)?;
+
+        let vc_jwt = Signer::sign_enveloped("vp+ld+json+jwt", "vp+ld+json", &claims, &ctx)?;
 
         info!("{}", vc_jwt);
-        Ok(vc_jwt)
+        Ok(vc_jwt.to_string())
     }
 
-    async fn send_req(&self, body: &str) -> Outcome<String> {
+    async fn send_req(&self, body: &str, url: &str) -> Outcome<String> {
         info!("Sending request to retrieve Gaia-x Compliance vc");
 
-        let url = format!(
-            "{}?urn:uuid:{}",
-            self.config.get_gaia_api_host(),
-            Uuid::new_v4().to_string()
-        );
+        let url = format!("{}?urn:uuid:{}", url, Uuid::new_v4().to_string());
 
         let mut headers = HeaderMap::new();
         headers.insert(CONTENT_TYPE, HeaderValue::from_static("text/plain"));
@@ -268,7 +242,7 @@ impl GaiaOwnIssuerTrait for BasicGaiaSelfIssuer {
     }
 
     fn generate_vpds(&self, vc_types: &[VcType]) -> Vec<VPDef> {
-        let data_model = self.config.get_data_model_version();
+        let data_model = self.config.get_w3c_data_model();
         let mut vpds: Vec<VPDef> = Vec::new();
         for vc_type in vc_types {
             let id = Uuid::new_v4().to_string();

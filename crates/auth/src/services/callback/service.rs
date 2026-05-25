@@ -32,18 +32,17 @@ use ymir::services::vault::{VaultService, VaultTrait};
 use ymir::types::gnap::{ApprovedCallbackBody, RefBody};
 use ymir::types::http::Body;
 use ymir::types::secrets::StringHelper;
-use ymir::utils::{expect_from_env, get_from_opt, json_headers, ParseHeaderExt};
+use ymir::utils::{expect_from_env, get_from_opt, http_client, json_headers, ParseHeaderExt};
 
 use crate::services::callback::CallbackTrait;
 
 pub struct BasicCallbackService {
-    client: Arc<dyn ClientTrait>,
     vault: Arc<VaultService>,
 }
 
 impl BasicCallbackService {
-    pub fn new(client: Arc<dyn ClientTrait>, vault: Arc<VaultService>) -> BasicCallbackService {
-        BasicCallbackService { client, vault }
+    pub fn new(vault: Arc<VaultService>) -> BasicCallbackService {
+        BasicCallbackService { vault }
     }
 }
 
@@ -111,6 +110,6 @@ impl CallbackTrait for BasicCallbackService {
 
         headers.extend(httpsig);
 
-        self.client.post(&url, Some(headers), body).await
+        http_client().post(&url, Some(headers), body).await
     }
 }

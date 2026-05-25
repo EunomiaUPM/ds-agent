@@ -74,7 +74,7 @@ impl GaiaGaiaSelfIssuerConfigTrait for GaiaSelfIssuerConfig {
     fn is_local(&self) -> bool {
         self.is_local
     }
-    fn get_data_model_version(&self) -> &W3cDataModelVersion {
+    fn get_w3c_data_model(&self) -> &W3cDataModelVersion {
         &self.vc_data_model
     }
     fn get_did(&self) -> &str {

@@ -46,7 +46,7 @@ pub struct AuthCore {
     repo: Arc<dyn AuthRepoTrait>,
     config: Arc<SsiAuthConfig>,
     // EXTRA MODULES
-    wallet: Option<Arc<dyn WalletTrait>>,
+    wallet: Arc<dyn WalletTrait>,
     issuer: Option<Arc<dyn IssuerTrait>>,
     own_issuer: Option<Arc<dyn GaiaOwnIssuerTrait>>,
 }
@@ -62,7 +62,7 @@ impl AuthCore {
         repo: Arc<dyn AuthRepoTrait>,
         config: Arc<SsiAuthConfig>,
         // EXTRA MODULES
-        wallet: Option<Arc<dyn WalletTrait>>,
+        wallet: Arc<dyn WalletTrait>,
         issuer: Option<Arc<dyn IssuerTrait>>,
         self_issuer: Option<Arc<dyn GaiaOwnIssuerTrait>>,
     ) -> AuthCore {
@@ -95,17 +95,14 @@ impl CoreOnboarderTrait for AuthCore {
         self.callback.clone()
     }
 
-    fn wallet(&self) -> Option<Arc<dyn WalletTrait>> {
-        self.wallet.as_ref().cloned()
+    fn wallet(&self) -> Arc<dyn WalletTrait> {
+        self.wallet.clone()
     }
 }
 
 impl CoreWalletTrait for AuthCore {
     fn wallet(&self) -> Arc<dyn WalletTrait> {
-        self.wallet
-            .as_ref()
-            .map(Clone::clone)
-            .expect("Wallet module is required for this operation but is not active in the current configuration")
+        self.wallet.clone()
     }
 
     fn mate(&self) -> Option<Arc<dyn MatesTrait>> {
@@ -130,8 +127,8 @@ impl CoreVcRequesterTrait for AuthCore {
         self.callback.clone()
     }
 
-    fn wallet(&self) -> Option<Arc<dyn WalletTrait>> {
-        self.wallet.as_ref().cloned()
+    fn wallet(&self) -> Arc<dyn WalletTrait> {
+        self.wallet.clone()
     }
 }
 
@@ -156,7 +153,7 @@ impl CoreGaiaSelfIssuerTrait for AuthCore {
             .expect("Gaia module is required for this operation but is not active in the current configuration")
     }
 
-    fn wallet(&self) -> Option<Arc<dyn WalletTrait>> {
+    fn wallet(&self) -> Arc<dyn WalletTrait> {
         self.wallet.clone()
     }
 
@@ -215,12 +212,6 @@ impl AuthCoreTrait for AuthCore {
         }
     }
 
-    fn is_wallet_active(&self) -> bool {
-        match self.wallet {
-            Some(_) => true,
-            None => false,
-        }
-    }
     fn config(&self) -> Arc<SsiAuthConfig> {
         self.config.clone()
     }

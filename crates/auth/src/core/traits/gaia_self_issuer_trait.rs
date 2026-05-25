@@ -29,8 +29,8 @@ use ymir::types::issuing::{
     VCCredOffer,
 };
 use ymir::types::vcs::VcType;
-use ymir::types::wallet::MatchingVCs;
-use ymir::utils::{get_claim, parse_to_value};
+use ymir::types::wallet::waltid::MatchingVCs;
+use ymir::utils::get_claim;
 
 use crate::services::gaia_self_issuer::GaiaOwnIssuerTrait;
 use crate::services::repo::repo_trait::AuthRepoTrait;
@@ -39,7 +39,7 @@ use crate::services::repo::repo_trait::AuthRepoTrait;
 pub trait CoreGaiaSelfIssuerTrait: Send + Sync + 'static {
     fn issuer(&self) -> Arc<dyn IssuerTrait>;
     fn gaia(&self) -> Arc<dyn GaiaOwnIssuerTrait>;
-    fn wallet(&self) -> Option<Arc<dyn WalletTrait>>;
+    fn wallet(&self) -> Arc<dyn WalletTrait>;
     fn repo(&self) -> Arc<dyn AuthRepoTrait>;
     async fn generate_gaia_vcs(&self) -> Outcome<Option<String>> {
         let id = Uuid::new_v4().to_string();
@@ -47,13 +47,8 @@ pub trait CoreGaiaSelfIssuerTrait: Send + Sync + 'static {
         let model = self.gaia().start_basic_vcs(&id, &uri);
         let _model = self.repo().issuing().create(model).await?;
 
-        match self.wallet() {
-            Some(wallet) => {
-                wallet.process_oidc4vci(&uri).await?;
-                Ok(None)
-            }
-            None => Ok(Some(uri)),
-        }
+        self.wallet().process_oidc4vci(&uri).await?;
+        Ok(None)
     }
     async fn get_cred_offer_data(&self, id: String) -> Outcome<VCCredOffer> {
         let mut model = self.repo().issuing().get_by_id(&id).await?;
@@ -94,16 +89,7 @@ pub trait CoreGaiaSelfIssuerTrait: Send + Sync + 'static {
         _payload: CredentialRequestsss,
         _token: String,
     ) -> Outcome<Value> {
-        let wallet = match self.wallet() {
-            Some(data) => data,
-            None => {
-                return Err(Errors::not_active(
-                    "Wallet module is required for this step and its not active",
-                    None,
-                ))
-            }
-        };
-        let did = wallet.get_did().await?;
+        let did = self.wallet().get_did().await?;
         let vc_types = vec![
             VcType::Euid,
             VcType::Eori,
@@ -124,11 +110,7 @@ pub trait CoreGaiaSelfIssuerTrait: Send + Sync + 'static {
         self.gaia().issue_cred(&did, &vc_type, &code).await
     }
 
-    async fn request_gaia_vc(&self) -> Outcome<()> {
-        let wallet = self
-            .wallet()
-            .ok_or_else(|| Errors::not_impl("Not implemented if wallet is not connected", None))?;
-
+    async fn request_gaia_vc(&self, url: &str) -> Outcome<()> {
         let reg_number = self
             .match_vcs(&[
                 VcType::Euid,
@@ -143,29 +125,20 @@ pub trait CoreGaiaSelfIssuerTrait: Send + Sync + 'static {
         let terms_conds = self.match_vcs(&[VcType::TermsAndConditions]).await?;
 
         let vcs = vec![reg_number, legal_person, terms_conds];
-        let did = wallet.get_did().await?;
+        let did = self.wallet().get_did().await?;
         let body = self.gaia().build_vp(&vcs, Some(&did)).await?;
-        let vc = self.gaia().send_req(&body).await?;
+        let vc = self.gaia().send_req(&body, url).await?;
 
         println!("{:#?}", vc);
         Ok(())
     }
 
     async fn match_vcs(&self, vc_types: &[VcType]) -> Outcome<MatchingVCs> {
-        let wallet = match self.wallet() {
-            Some(data) => data,
-            None => {
-                return Err(Errors::not_active(
-                    "Wallet module is required for this step and its not active",
-                    None,
-                ))
-            }
-        };
         let vpds = self.gaia().generate_vpds(&vc_types);
         let mut vc: Option<MatchingVCs> = None;
         for vpd in &vpds {
-            let vpd = parse_to_value(vpd)?;
-            let vec = wallet.match_vc4vp(vpd).await?;
+            let vpd = serde_json::to_value(vpd)?;
+            let vec = self.wallet().match_vc4vp(vpd).await?;
             if !vec.is_empty() {
                 vc = vec.first().cloned();
                 break;

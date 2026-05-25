@@ -86,10 +86,7 @@ ssi_auth:
     auto_approve_cert: false
     vcs_requested: [DataSpaceParticipant]
   gaia_config:
-    api:
-      protocol: 'http'
-      url: '127.0.0.1'
-      port: '1500'
+    active: true
   did_config:
     did: 'did:jwk:...'
     type: Jwk

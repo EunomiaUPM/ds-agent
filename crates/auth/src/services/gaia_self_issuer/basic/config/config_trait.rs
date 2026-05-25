@@ -23,6 +23,6 @@ pub trait GaiaGaiaSelfIssuerConfigTrait:
     HostsConfigTrait + GaiaConfigTrait + EntityClientTrait
 {
     fn is_local(&self) -> bool;
-    fn get_data_model_version(&self) -> &W3cDataModelVersion;
+    fn get_w3c_data_model(&self) -> &W3cDataModelVersion;
     fn get_did(&self) -> &str;
 }

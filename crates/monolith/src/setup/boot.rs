@@ -72,7 +72,7 @@ impl BootstrapServiceTrait for CoreBoot {
                 // if mate not found
                 HttpClientError::HttpError { status, .. } if status.as_u16() == 404 => {
                     // onboard mate with wallet
-                    let url = format!("{}{}/wallet/onboard", base_url, api);
+                    let url = format!("{}{}/wallet/link", base_url, api);
                     client.post_void::<()>(url.as_str()).await?;
                 }
                 _ => return Err(err.into()),

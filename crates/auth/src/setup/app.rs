@@ -25,7 +25,7 @@ use common::config::services::SsiAuthConfig;
 use common::config::types::traits::CommonConfigTrait;
 use tokio::net::TcpListener;
 use tracing::info;
-use ymir::config::traits::{ConnectionConfigTrait, HostsConfigTrait};
+use ymir::config::traits::{ApiConfigTrait, ConnectionConfigTrait, DidConfigTrait, HostsConfigTrait, WalletConfigTrait};
 use ymir::config::types::HostType;
 use ymir::errors::{Errors, Outcome};
 use ymir::services::client::ClientService;
@@ -36,9 +36,13 @@ use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
 use ymir::services::verifier::basic::config::BasicVerifierConfig;
 use ymir::services::verifier::basic::BasicVerifierService;
+use ymir::services::wallet::fafnir::config::FafnirConfigBuilder;
+use ymir::services::wallet::fafnir::FafnirService;
 use ymir::services::wallet::walt_id::config::WaltIdConfig;
 use ymir::services::wallet::walt_id::WaltIdService;
 use ymir::services::wallet::WalletTrait;
+use ymir::types::dids::{DidService, DidServiceType};
+use ymir::types::wallet::WalletInstance;
 use ymir::types::secrets::StringHelper;
 use ymir::utils::expect_from_env;
 
@@ -83,41 +87,59 @@ impl AuthApplication {
             vault.clone(),
             onboarder_config,
         ));
-        let callback = Arc::new(BasicCallbackService::new(client.clone(), vault.clone()));
+        let callback = Arc::new(BasicCallbackService::new(vault.clone()));
         let repo = Arc::new(AuthRepoForSql::create_repo(db_connection));
         let gatekeeper = Arc::new(GnapGateKeeperService::new(gatekeeper_config));
         let business = Arc::new(BasicBusinessService::new(business_config));
         let verifier = Arc::new(BasicVerifierService::new(client.clone(), verifier_config));
 
-        let (gaia, issuer) =
-            match config.is_gaia_active() {
-                true => {
-                    let issuer_config = BasicIssuerConfig::from(config.clone());
-                    let gaia_config = GaiaSelfIssuerConfig::from(config.clone());
-
-                    let gaia: Option<Arc<dyn GaiaOwnIssuerTrait>> = Some(Arc::new(
-                        BasicGaiaSelfIssuer::new(vault.clone(), client.clone(), gaia_config),
-                    ));
-
-                    let issuer: Option<Arc<dyn IssuerTrait>> = Some(Arc::new(
-                        BasicIssuerService::new(issuer_config, client.clone(), vault.clone()),
-                    ));
-
-                    (gaia, issuer)
-                }
-                false => (None, None),
-            };
-
-        let wallet: Option<Arc<dyn WalletTrait>> = match config.is_wallet_active() {
+        let (gaia, issuer) = match config.is_gaia_active() {
             true => {
+                let issuer_config = BasicIssuerConfig::from(config.clone());
+                let gaia_config = GaiaSelfIssuerConfig::from(config.clone());
+
+                let gaia: Option<Arc<dyn GaiaOwnIssuerTrait>> = Some(Arc::new(
+                    BasicGaiaSelfIssuer::new(vault.clone(), client.clone(), gaia_config),
+                ));
+
+                let issuer: Option<Arc<dyn IssuerTrait>> = Some(Arc::new(BasicIssuerService::new(
+                    issuer_config,
+                    vault.clone(),
+                )));
+
+                (gaia, issuer)
+            }
+            false => (None, None),
+        };
+
+        let services = vec![DidService::basic(
+            DidServiceType::AuthorizationServer,
+            format!(
+                "{}{}/gate/access",
+                config.common().get_host(HostType::Http),
+                config.common().get_api_version()
+            ),
+        )];
+        // El backend de wallet se elige en runtime según el yaml
+        // (`wallet: Fafnir | WaltId` dentro del bloque wallet config).
+        let wallet: Arc<dyn WalletTrait> = match config.get_wallet() {
+            WalletInstance::WaltId => {
                 let walt_id_config = WaltIdConfig::from(config.clone());
-                Some(Arc::new(WaltIdService::new(
-                    walt_id_config,
+                Arc::new(WaltIdService::new(walt_id_config, vault.clone(), services))
+            }
+            WalletInstance::Fafnir => {
+                let fafnir_config = FafnirConfigBuilder::new()
+                    .hosts(config.common().hosts().clone())
+                    .wallet(config.wallet_config().clone())
+                    .did(config.did_config().clone())
+                    .build();
+                Arc::new(FafnirService::new(
+                    fafnir_config,
                     client.clone(),
                     vault.clone(),
-                )))
+                    services.clone(),
+                ))
             }
-            false => None,
         };
 
         // CORE

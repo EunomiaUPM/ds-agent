@@ -34,7 +34,7 @@ pub trait CoreVcRequesterTrait: Send + Sync + 'static {
     fn vc_req(&self) -> Arc<dyn VcRequesterTrait>;
     fn repo(&self) -> Arc<dyn AuthRepoTrait>;
     fn callback(&self) -> Arc<dyn CallbackTrait>;
-    fn wallet(&self) -> Option<Arc<dyn WalletTrait>>;
+    fn wallet(&self) -> Arc<dyn WalletTrait>;
     async fn beg_vc(&self, payload: ReachAuthority) -> Outcome<Option<String>> {
         let (vc_model, int_model) = self.vc_req().start(&payload)?;
         let mut vc_model = self.repo().vc_req().create(vc_model).await?;
@@ -49,25 +49,23 @@ pub trait CoreVcRequesterTrait: Send + Sync + 'static {
             Some(uri) => {
                 if approved {
                     if vc_model.auto {
-                        if let Some(wallet) = self.wallet() {
-                            vc_model.vc_uri = Some(uri.clone());
-                            vc_model.status = "Finalized".to_string();
+                        vc_model.vc_uri = Some(uri.clone());
+                        vc_model.status = "Finalized".to_string();
 
-                            let base_url = trim_4_base(&vc_model.grant_endpoint);
-                            let mate = mates::NewModel {
-                                participant_id: vc_model.authority_id.clone(),
-                                participant_slug: vc_model.authority_slug.clone(),
-                                participant_type: "Authority".to_string(),
-                                base_url,
-                                token: None,
-                                extra_fields: None,
-                                is_me: false,
-                            };
-                            self.repo().mates().force_create(mate).await?;
-                            wallet.process_oidc4vci(&uri).await?;
-                            self.repo().vc_req().update(vc_model).await?;
-                            return Ok(None);
-                        }
+                        let base_url = trim_4_base(&vc_model.grant_endpoint);
+                        let mate = mates::NewModel {
+                            participant_id: vc_model.authority_id.clone(),
+                            participant_slug: vc_model.authority_slug.clone(),
+                            participant_type: "Authority".to_string(),
+                            base_url,
+                            token: None,
+                            extra_fields: None,
+                            is_me: false,
+                        };
+                        self.repo().mates().force_create(mate).await?;
+                        self.wallet().process_oidc4vci(&uri).await?;
+                        self.repo().vc_req().update(vc_model).await?;
+                        return Ok(None);
                     } else {
                         vc_model.vc_uri = Some(uri.clone());
                         vc_model.status = "Approved".to_string();
@@ -79,10 +77,8 @@ pub trait CoreVcRequesterTrait: Send + Sync + 'static {
                     let _ver_model = self.repo().verification_req().create(ver_model).await?;
 
                     if vc_model.auto {
-                        if let Some(wallet) = self.wallet() {
-                            wallet.process_oidc4vp(&uri).await?;
-                            return Ok(None);
-                        }
+                        self.wallet().process_oidc4vp(&uri).await?;
+                        return Ok(None);
                     }
                     Ok(Some(uri))
                 }
@@ -110,14 +106,13 @@ pub trait CoreVcRequesterTrait: Send + Sync + 'static {
         let mate = self.repo().mates().force_create(mate).await?;
 
         if vc_req_model.auto {
-            if let Some(wallet) = self.wallet() {
-                let uri = vc_req_model.vc_uri.as_deref().ok_or_else(|| {
-                    Errors::crazy("Something crazy with auto wallet happened", None)
-                })?;
-                wallet.process_oidc4vci(uri).await?;
-                vc_req_model.status = "Finalized".to_string();
-                self.repo().vc_req().update(vc_req_model).await?;
-            }
+            let uri = vc_req_model
+                .vc_uri
+                .as_deref()
+                .ok_or_else(|| Errors::crazy("Something crazy with auto wallet happened", None))?;
+            self.wallet().process_oidc4vci(uri).await?;
+            vc_req_model.status = "Finalized".to_string();
+            self.repo().vc_req().update(vc_req_model).await?;
         }
 
         Ok(mate)
@@ -137,58 +132,41 @@ pub trait CoreVcRequesterTrait: Send + Sync + 'static {
     }
     async fn process_oid4vci(&self, payload: &ProcessUriOid4VCI) -> Outcome<()> {
         let mut model = self.repo().vc_req().get_by_id(&payload.id).await?;
-        match self.wallet() {
-            Some(wallet) => {
-                wallet.process_oidc4vci(&payload.uri).await?;
-                model.status = "Finalized".to_string();
-                let model = self.repo().vc_req().update(model).await?;
-                let base_url = trim_4_base(&model.grant_endpoint);
-                let mate = mates::NewModel {
-                    participant_id: model.authority_id.clone(),
-                    participant_slug: model.authority_slug.clone(),
-                    participant_type: "Authority".to_string(),
-                    base_url,
-                    token: None,
-                    extra_fields: None,
-                    is_me: false,
-                };
-                self.repo().mates().force_create(mate).await?;
-            }
-            None => {
-                return Err(Errors::not_active(
-                    "Unable to execute this action without a wallet",
-                    None,
-                ))
-            }
-        }
+
+        self.wallet().process_oidc4vci(&payload.uri).await?;
+        model.status = "Finalized".to_string();
+        let model = self.repo().vc_req().update(model).await?;
+        let base_url = trim_4_base(&model.grant_endpoint);
+        let mate = mates::NewModel {
+            participant_id: model.authority_id.clone(),
+            participant_slug: model.authority_slug.clone(),
+            participant_type: "Authority".to_string(),
+            base_url,
+            token: None,
+            extra_fields: None,
+            is_me: false,
+        };
+        self.repo().mates().force_create(mate).await?;
+
         Ok(())
     }
     async fn process_oid4vp(&self, payload: &ProcessUriOid4VP) -> Outcome<()> {
-        match self.wallet() {
-            Some(wallet) => {
-                wallet.process_oidc4vp(&payload.uri).await?;
+        self.wallet().process_oidc4vp(&payload.uri).await?;
 
-                let entity = WhoEntity::from_str(&payload.entity)?;
-                match entity {
-                    WhoEntity::Authority => {
-                        let mut model = self.repo().vc_req().get_by_id(&payload.id).await?;
-                        model.status = "Approved".to_string();
-                        self.repo().vc_req().update(model).await?;
-                    }
-                    WhoEntity::Provider => {
-                        let mut model = self.repo().request_req().get_by_id(&payload.id).await?;
-                        model.status = "Approved".to_string();
-                        self.repo().request_req().update(model).await?;
-                    }
-                };
+        let entity = WhoEntity::from_str(&payload.entity)?;
+        match entity {
+            WhoEntity::Authority => {
+                let mut model = self.repo().vc_req().get_by_id(&payload.id).await?;
+                model.status = "Approved".to_string();
+                self.repo().vc_req().update(model).await?;
             }
-            None => {
-                return Err(Errors::not_active(
-                    "Unable to execute this action without a wallet",
-                    None,
-                ))
+            WhoEntity::Provider => {
+                let mut model = self.repo().request_req().get_by_id(&payload.id).await?;
+                model.status = "Approved".to_string();
+                self.repo().request_req().update(model).await?;
             }
-        }
+        };
+
         Ok(())
     }
 }

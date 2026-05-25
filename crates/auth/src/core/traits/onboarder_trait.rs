@@ -33,7 +33,7 @@ pub trait CoreOnboarderTrait: Send + Sync + 'static {
     fn onboarder(&self) -> Arc<dyn OnboarderTrait>;
     fn repo(&self) -> Arc<dyn AuthRepoTrait>;
     fn callback(&self) -> Arc<dyn CallbackTrait>;
-    fn wallet(&self) -> Option<Arc<dyn WalletTrait>>;
+    fn wallet(&self) -> Arc<dyn WalletTrait>;
 
     async fn onboard_req(&self, payload: ReachProvider) -> Outcome<Option<String>> {
         let (req_model, int_model, token_model) = self.onboarder().start(&payload);
@@ -49,12 +49,11 @@ pub trait CoreOnboarderTrait: Send + Sync + 'static {
         let ver_model = self.repo().verification_req().create(ver_model).await?;
 
         if req_model.auto {
-            if let Some(wallet) = self.wallet() {
-                wallet.process_oidc4vp(&ver_model.uri).await?;
-                return Ok(None);
-            }
+            self.wallet().process_oidc4vp(&ver_model.uri).await?;
+            Ok(None)
+        } else {
+            Ok(Some(ver_model.uri))
         }
-        Ok(Some(ver_model.uri))
     }
 
     async fn continue_req(&self, id: &str, payload: ApprovedCallbackBody) -> Outcome<mates::Model> {

@@ -257,6 +257,7 @@ impl RpcRouter {
             data_address: None,
             provider_address: input.connector_address,
             callback_address,
+            auto_start: None,
         };
         let ctx = DspTransferContext::outbound_request(
             rpc_dto.associated_agent_peer.clone(),

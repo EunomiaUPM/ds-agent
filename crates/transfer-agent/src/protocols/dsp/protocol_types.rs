@@ -62,6 +62,10 @@ pub struct TransferRequestMessageDto {
     pub data_address: Option<DataAddressDto>,
     pub callback_address: String,
     pub consumer_pid: Urn,
+    /// BFF simplified flow: Provider auto-responds with TransferStart when `true`.
+    /// Standard-compliant peers omit this field; `None` preserves normal behaviour.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub auto_start: Option<bool>,
 }
 
 impl TransferProcessMessageTrait for TransferRequestMessageDto {

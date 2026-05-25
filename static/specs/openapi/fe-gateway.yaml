@@ -4742,6 +4742,55 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorInfo"
+  /dsp/current/transfers/bff-rpc/setup-request:
+    post:
+      operationId: bffRpcSetupTransferRequest
+      summary: Initiate a transfer request with simplified BFF flow (consumer). The Provider automatically responds with a TransferStart.
+      tags:
+        - TransferRPC
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransferRPCRequestBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RPCResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorInfo"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorInfo"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorInfo"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorInfo"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorInfo"
   /subscriptions:
     get:
       operationId: getSubscriptions
@@ -7394,6 +7443,11 @@ components:
           type: string
         dataAddress:
           $ref: "#/components/schemas/DataAddressDto"
+        autoStart:
+          type: boolean
+          description: >
+            BFF simplified flow. When true the Provider automatically responds
+            with a TransferStartMessage upon receiving the request.
     TransferRPCStartBody:
       type: object
       required:

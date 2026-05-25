@@ -20,28 +20,32 @@ import { BaseProcessDialog } from "./base";
 import { urnInfoItem } from "./base/infoItemMappers";
 import { InfoItemProps } from "../ui/info-list";
 import { AgreementDto, DataAddressDto, Distribution } from "../../data/orval/model";
-import {
-  useBffRpcSetupTransferRequest,
-  useSetupTransferRequest,
-} from "../../data/orval/transfer-rp-c/transfer-rp-c";
 import { useRpcSetupDatasetRequest } from "../../data/orval/catalog-rp-c/catalog-rp-c";
 import { useMyWellKnownDSPPath, useParticipantDSPPath } from "../../hooks/useWellKnownUrl";
 import { useNavigate } from "@tanstack/react-router";
+import { useMutation } from "@tanstack/react-query";
+import axios from "axios";
 
 type TransferRequestInputs = { distributionId: string; pushEndpointUrl: string };
 
-export interface TransferProcessRequestDialogProps {
+export interface TransferProcessBusinessRequestDialogProps {
   process: AgreementDto;
   onClose?: () => void;
 }
 
-export const TransferProcessRequestDialog = ({ process }: TransferProcessRequestDialogProps) => {
+const useBffSetupTransferRequest = () =>
+  useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      axios.post("/api/transfers/bff-rpc/setup-request", data),
+  });
+
+export const TransferProcessBusinessRequestDialog = ({
+  process,
+}: TransferProcessBusinessRequestDialogProps) => {
   const navigate = useNavigate();
-  const { mutateAsync: setupTransferRequest } = useSetupTransferRequest();
-  const { mutateAsync: bffSetupTransferRequest } = useBffRpcSetupTransferRequest();
+  const { mutateAsync } = useBffSetupTransferRequest();
   const { mutateAsync: setupDatasetRequestAsync } = useRpcSetupDatasetRequest();
   const [distributions, setDistributions] = useState<Distribution[]>([]);
-  const [autoStart, setAutoStart] = useState(true);
   const myDspPath = useMyWellKnownDSPPath();
   const { path: providerDspPath } = useParticipantDSPPath(process.providerParticipantId);
 
@@ -81,29 +85,29 @@ export const TransferProcessRequestDialog = ({ process }: TransferProcessRequest
         }
       : undefined;
 
-    const payload = {
+    const res = await mutateAsync({
       associatedAgentPeer: process.providerParticipantId,
       providerAddress: providerDspPath || "",
       callbackAddress: myDspPath || "",
       agreementId: process.id,
       // @ts-ignore
       format: distribution.formats || "",
-      dataAddress,
-    };
-
-    const res = autoStart
-      ? await bffSetupTransferRequest({ data: payload })
-      : await setupTransferRequest({ data: payload });
+      ...(dataAddress ? { dataAddress } : {}),
+    });
 
     if (res.status === 201) navigate({ to: "/transfer-process" });
   };
 
   return (
     <BaseProcessDialog<TransferRequestInputs>
-      title="Transfer Request"
+      title="Transfer Request (Business)"
       description={
         <span className="max-w-full flex flex-wrap gap-1">
-          Start transfer process for Agreement <Badge variant="info">{formatUrn(process.id)}</Badge>
+          Start transfer for Agreement{" "}
+          <Badge variant="info">{formatUrn(process.id)}</Badge>.{" "}
+          <span className="text-white/60">
+            The Provider will automatically start the transfer upon receiving the request.
+          </span>
         </span>
       }
       infoItems={[urnInfoItem("Dataset", process.target)].filter(Boolean) as InfoItemProps[]}
@@ -139,8 +143,7 @@ export const TransferProcessRequestDialog = ({ process }: TransferProcessRequest
                   </Select>
                 </FormControl>
                 <FormDescription>
-                  By selecting distribution method you are choosing how the data will be
-                  transferred.
+                  Choosing the distribution method determines how data will be transferred.
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -170,21 +173,10 @@ export const TransferProcessRequestDialog = ({ process }: TransferProcessRequest
           />
         </div>
       }
-      submitLabel={autoStart ? "Request & Auto-start" : "Request Transfer"}
+      submitLabel="Request & Auto-start"
       submitVariant="default"
       onSubmit={handleSubmit}
       form={form}
-      afterInfoContent={
-        <label className="flex items-center gap-2 text-xs text-white/70 cursor-pointer select-none pt-2">
-          <input
-            type="checkbox"
-            checked={autoStart}
-            onChange={(e) => setAutoStart(e.target.checked)}
-            className="accent-white w-3.5 h-3.5"
-          />
-          Auto-start (Provider starts the transfer automatically)
-        </label>
-      }
     />
   );
 };

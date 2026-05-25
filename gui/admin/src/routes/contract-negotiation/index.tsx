@@ -3,26 +3,28 @@ import { formatIdentifier } from "shared/src/lib/utils";
 import { DataTable } from "shared/src/components/DataTable";
 import { FormatDate } from "shared/src/components/ui/format-date";
 import { Button } from "shared/src/components/ui/button.tsx";
-import { toast } from "sonner";
-import { Badge, BadgeState } from "shared/src/components/ui/badge.tsx";
-import { Input } from "shared/src/components/ui/input.tsx";
+import { Badge } from "shared/src/components/ui/badge.tsx";
 import { useGetNegotiationProcesses } from "shared/src/data/orval/negotiations/negotiations";
 import { ContractNegotiationActions } from "shared/src/components/actions/ContractNegotiationActions";
+import { ContractNegotiationBusinessActions } from "shared/src/components/actions/ContractNegotiationBusinessActions";
 import { useMemo, useEffect, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { PageLayout } from "shared/src/components/layout/PageLayout";
 import { PageHeader } from "shared/src/components/layout/PageHeader";
 import { PageSection } from "shared/src/components/layout/PageSection";
 import { useGetAllParticipants } from "shared/data/orval/participants/participants";
-import { Dataset, ParticipantDto, RpcCatalogResponseMessageDto } from "shared/data/orval/model";
+import { Dataset, RpcCatalogResponseMessageDto } from "shared/data/orval/model";
 import { useRpcSetupCatalogRequest } from "shared/src/data/orval/catalog-rp-c/catalog-rp-c";
+
+type ActionsMode = "business" | "standard";
 
 const RouteComponent = () => {
   const { data: cnProcessesData } = useGetNegotiationProcesses();
   const { data: participants } = useGetAllParticipants();
+  const [mode, setMode] = useState<ActionsMode>("business");
 
   //para la notificacion burbuja: "you completed a contract neg. w/ dataset"
-  const [bubbleFeedbackAction, setBubbleFeedbackAction] = useState(false);
+  const [_bubbleFeedbackAction, setBubbleFeedbackAction] = useState(false);
   const [requestedDatasetId, setRequestedDatasetId] = useState<string | null>(null);
   const [requestedParticipantId, setRequestedParticipantId] = useState<string | null>(null);
 
@@ -98,7 +100,30 @@ const RouteComponent = () => {
 
   return (
     <PageLayout>
-      <PageHeader title="Contract Negotiations" />
+      <PageHeader title="Contract Negotiations" className="flex items-center justify-between">
+        <div className="flex gap-1 mt-2 p-0.5 rounded-md bg-white/5 w-fit text-xs">
+          <button
+            onClick={() => setMode("business")}
+            className={`px-3 py-1 rounded transition-colors ${
+              mode === "business"
+                ? "bg-white/15 text-white font-medium"
+                : "text-white/50 hover:text-white/80"
+            }`}
+          >
+            Business
+          </button>
+          <button
+            onClick={() => setMode("standard")}
+            className={`px-3 py-1 rounded transition-colors ${
+              mode === "standard"
+                ? "bg-white/15 text-white font-medium"
+                : "text-white/50 hover:text-white/80"
+            }`}
+          >
+            Standard
+          </button>
+        </div>
+      </PageHeader>
 
       <PageSection>
         <DataTable
@@ -122,7 +147,7 @@ const RouteComponent = () => {
                     {formatIdentifier(p.associatedAgentPeer, 3)}
                   </span>
                   <span className="text-white/70">as</span>
-                  <Badge className="h-fit">{p.role == "provider" ? "Provider" : "Consumer"}</Badge>
+                  <Badge className="h-fit">{p.role == "Provider" ? "Provider" : "Consumer"}</Badge>
                 </p>
               ),
             },
@@ -140,7 +165,12 @@ const RouteComponent = () => {
             },
             {
               header: "Actions",
-              cell: (p) => <ContractNegotiationActions process={p} tiny={true} />,
+              cell: (p) =>
+                mode === "business" ? (
+                  <ContractNegotiationBusinessActions process={p} tiny={true} />
+                ) : (
+                  <ContractNegotiationActions process={p} tiny={true} />
+                ),
             },
             {
               header: "Link",

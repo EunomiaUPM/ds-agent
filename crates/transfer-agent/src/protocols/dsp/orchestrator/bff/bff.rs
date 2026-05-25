@@ -1,10 +1,10 @@
 use crate::protocols::dsp::context::DspTransferContext;
 use crate::protocols::dsp::orchestrator::bff::BFFRPCOrchestratorTrait;
 use crate::protocols::dsp::orchestrator::protocol::ProtocolOrchestratorTrait;
-use crate::protocols::dsp::orchestrator::rpc::RPCOrchestratorTrait;
 use crate::protocols::dsp::orchestrator::rpc::types::{
     RpcTransferMessageDto, RpcTransferRequestMessageDto, RpcTransferStartMessageDto,
 };
+use crate::protocols::dsp::orchestrator::rpc::RPCOrchestratorTrait;
 use crate::protocols::dsp::protocol_types::{
     TransferProcessAckDto, TransferProcessMessageWrapper, TransferRequestMessageDto,
 };
@@ -43,7 +43,9 @@ impl BFFRPCOrchestratorTrait for BFFRPCOrchestratorService {
             bff_input.provider_address.clone(),
             bff_input.data_address.clone(),
         );
-        self.rpc_service.setup_transfer_request(ctx, &bff_input).await
+        self.rpc_service
+            .setup_transfer_request(ctx, &bff_input)
+            .await
     }
 
     // Provider → processes REQUEST then schedules a TransferStart once the ack
@@ -74,7 +76,10 @@ impl BFFRPCOrchestratorTrait for BFFRPCOrchestratorService {
                 for attempt in 0..MAX_ATTEMPTS {
                     tokio::time::sleep(Duration::from_millis(delays_ms[attempt as usize])).await;
                     let start_ctx = DspTransferContext::outbound_continuation();
-                    match rpc_service.setup_transfer_start(start_ctx, &start_input).await {
+                    match rpc_service
+                        .setup_transfer_start(start_ctx, &start_input)
+                        .await
+                    {
                         Ok(_) => {
                             tracing::info!(
                                 "BFF auto-start: TransferStart sent (attempt {})",
@@ -83,18 +88,11 @@ impl BFFRPCOrchestratorTrait for BFFRPCOrchestratorService {
                             return;
                         }
                         Err(e) => {
-                            tracing::warn!(
-                                "BFF auto-start: attempt {} failed: {}",
-                                attempt + 1,
-                                e
-                            );
+                            tracing::warn!("BFF auto-start: attempt {} failed: {}", attempt + 1, e);
                         }
                     }
                 }
-                tracing::error!(
-                    "BFF auto-start: giving up after {} attempts",
-                    MAX_ATTEMPTS
-                );
+                tracing::error!("BFF auto-start: giving up after {} attempts", MAX_ATTEMPTS);
             });
         }
 

@@ -55,7 +55,7 @@ services:
   # =========================
   provider-setup:
     container_name: provider-setup
-    image: rmenendez8/rainbow:v1.2.6
+    image: quay.io/eunomia_upm/ds-agent
     command: ["setup", "-e", "/app/static/environment/config/prod/core.provider.yaml"]
     volumes:
       - ./../../static/environment/config/prod/core.provider.yaml:/app/static/environment/config/prod/core.provider.yaml

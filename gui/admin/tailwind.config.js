@@ -3,6 +3,7 @@ import { theme as theme_, plugins as plugins_ } from "./../shared/tailwind.confi
 /** @type {import('tailwindcss').Config} */
 
 module.exports = {
+  darkMode: ["class"],
   content: [
     "index.css",
     "./src/**/*.{ts,tsx,js,jsx,css,sass,scss}",
@@ -15,6 +16,9 @@ module.exports = {
         ubuntu: ["Ubuntu", "sans-serif"],
         source: ["Source Sans Pro", "Source Sans 3", "sans-serif"],
         mono: ['"Source Code Pro"', "monospace"],
+        space: ["Space Grotesk", "sans-serif"],
+        inter: ["Inter", "sans-serif"],
+        spacemono: ["Space Mono", "monospace"],
       },
       fontSize: {
         "3xs": ["0.5rem", { lineHeight: "1.4" }] /* 8px */,
@@ -34,9 +38,84 @@ module.exports = {
         64: ["4rem", { lineHeight: "1.4" }],
       },
       colors: {
+        /** Colores del nuevo Design System */
+        newds: {
+          white: "#FEFEFE",
+          black: "#131313",
+          base: {
+            50: "#F6F6FA",
+            100: "#EEEEF4",
+            200: "#DDDDEA",
+            300: "#CECEE1",
+            400: "#B0B0D0",
+            500: "#7878A8",
+            600: "#5C5C80",
+            700: "#474761",
+            800: "#37374A",
+            900: "#2C2C38",
+            950: "#1C1C20",
+          },
+          primary: {
+            DEFAULT: "#5A42FA",
+            50: "#F1F3FE",
+            100: "#E4E7FD",
+            200: "#CDD4FF",
+            300: "#A1A1FC",
+            400: "#7878FB",
+            500: "#5A42FA",
+            600: "#433BCD",
+            700: "#392EB0",
+            800: "#2D248A",
+            900: "#29226B",
+            950: "#1B183C",
+          },
+          error: {
+            DEFAULT: "#E94A51",
+            50: "#FEF2F3",
+            100: "#FDE3E4",
+            200: "#FCCCCE",
+            300: "#F9A8AC",
+            400: "#F3767C",
+            500: "#E94A51",
+            600: "#D52A32",
+            700: "#B32229",
+            800: "#942025",
+            900: "#6B1014",
+            950: "#430C0F",
+          },
+          warn: {
+            DEFAULT: "#FE9A00",
+            50: "#FFFBEB",
+            100: "#FEF3C6",
+            200: "#FEE685",
+            300: "#FFD230",
+            400: "#FFB900",
+            500: "#FE9A00",
+            600: "#E17100",
+            700: "#CC4B02",
+            800: "#973C00",
+            900: "#7B3306",
+            950: "#461901",
+          },
+          success: {
+            DEFAULT: "#18B77B",
+            50: "#DDFEEC",
+            100: "#BDFCDB",
+            200: "#86F4C4",
+            300: "#4EE4A6",
+            400: "#2DCE8E",
+            500: "#18B77B",
+            600: "#009966",
+            700: "#0B7851",
+            800: "#07583C",
+            900: "#033D2D",
+            950: "#01231B",
+          },
+        },
+        /** Colores actuales */
         foreground: "#f8f8fa",
         text: "#f1f1f6",
-        stroke: "#645d7a",
+        stroke: "#525880",
         roles: {
           provider: "#52BFE0",
           consumer: "#FF852F",
@@ -51,10 +130,21 @@ module.exports = {
           black: "#0D0D1C",
         },
         base: {
-          // TO DO?
           main: "#09091B",
-          sidebar: "#191930",
+          sidebar: "#1D1C3D",
           header: "#24234C",
+
+          50: "#F6F6FA",
+          100: "#EEEEF4",
+          200: "#EEEEF4",
+          300: "#EEEEF4",
+          400: "#EEEEF4",
+          500: "#EEEEF4",
+          600: "#EEEEF4",
+          700: "#EEEEF4",
+          800: "#EEEEF4",
+          900: "#EEEEF4",
+          950: "#EEEEF4",
         },
         background: {
           DEFAULT: "#09091B",
@@ -72,10 +162,10 @@ module.exports = {
           900: "#524d65",
           800: "#645d7a",
           700: "#786f92",
-          600: "#867ea3",
+          600: "#867ea3", // default
           500: "#9e9ab8",
           400: "#b9b7ce",
-          300: "#d3d2e0", // default, que sino el texto es muy oscuro
+          300: "#d3d2e0",
           200: "#d3d2e0",
           100: "#f1f1f6",
           50: "#f8f8fa",
@@ -125,7 +215,7 @@ module.exports = {
           600: "#d42643", // default
           500: "#eb485b",
           400: "#f47883",
-          300: "#f79ea5",
+          300: "#f9a8ae",
           200: "#fccfd3",
           100: "#fee5e6",
           50: "#fef2f2",
@@ -227,3 +317,83 @@ module.exports = {
 
 export const theme = theme_;
 export const plugins = plugins_;
+
+// TAILWIND CONFIG POR DEFECTO - Quiza se pueda rescatar algo de esto.
+
+// import { fontFamily } from "tailwindcss/defaultTheme"
+
+// /** @type {import('tailwindcss').Config} */
+// export const content = [
+//   "index.css",
+//   "./src/**/*.{ts,tsx,js,jsx,css,sass,scss}"
+// ]
+// export const theme = {
+//   container: {
+//     center: true,
+//     padding: "2rem",
+//     screens: {
+//       "2xl": "1400px",
+//     },
+//   },
+//   extend: {
+//     colors: {
+//       border: "hsl(var(--border))",
+//       input: "hsl(var(--input))",
+//       ring: "hsl(var(--ring))",
+//       background: "hsl(var(--background))",
+//       foreground: "hsl(var(--foreground))",
+//       primary: {
+//         DEFAULT: "hsl(var(--primary))",
+//         foreground: "hsl(var(--primary-foreground))",
+//       },
+//       secondary: {
+//         DEFAULT: "hsl(var(--secondary))",
+//         foreground: "hsl(var(--secondary-foreground))",
+//       },
+//       destructive: {
+//         DEFAULT: "hsl(var(--destructive))",
+//         foreground: "hsl(var(--destructive-foreground))",
+//       },
+//       muted: {
+//         DEFAULT: "hsl(var(--muted))",
+//         foreground: "hsl(var(--muted-foreground))",
+//       },
+//       accent: {
+//         DEFAULT: "hsl(var(--accent))",
+//         foreground: "hsl(var(--accent-foreground))",
+//       },
+//       popover: {
+//         DEFAULT: "hsl(var(--popover))",
+//         foreground: "hsl(var(--popover-foreground))",
+//       },
+//       card: {
+//         DEFAULT: "hsl(var(--card))",
+//         foreground: "hsl(var(--card-foreground))",
+//       },
+//     },
+//     borderRadius: {
+//       lg: `var(--radius)`,
+//       md: `calc(var(--radius) - 2px)`,
+//       sm: "calc(var(--radius) - 4px)",
+//     },
+//     fontFamily: {
+//       sans: ["var(--font-sans)", ...fontFamily.sans],
+//     },
+//     keyframes: {
+//       "accordion-down": {
+//         from: { height: "0" },
+//         to: { height: "var(--radix-accordion-content-height)" },
+//       },
+//       "accordion-up": {
+//         from: { height: "var(--radix-accordion-content-height)" },
+//         to: { height: "0" },
+//       },
+//     },
+//     animation: {
+//       "accordion-down": "accordion-down 0.2s ease-out",
+//       "accordion-up": "accordion-up 0.2s ease-out",
+//     },
+//   },
+// }
+// // eslint-disable-next-line no-undef
+// export const plugins = [require("tailwindcss-animate")]

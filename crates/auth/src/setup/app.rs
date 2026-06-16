@@ -56,8 +56,8 @@ use crate::services::gaia_self_issuer::basic::BasicGaiaSelfIssuer;
 use crate::services::gaia_self_issuer::GaiaOwnIssuerTrait;
 use crate::services::gatekeeper::gnap::config::GnapGateKeeperConfig;
 use crate::services::gatekeeper::gnap::GnapGateKeeperService;
-use crate::services::onboarder::gnap::config::GnapOnboarderConfig;
-use crate::services::onboarder::gnap::GnapOnboarderService;
+use crate::services::peer_connector::gnap::config::GnapPeerConnectorConfig;
+use crate::services::peer_connector::gnap::GnapPeerConnectorService;
 use crate::services::repo::service::AuthRepoForSql;
 use crate::services::vc_requester::basic::config::VCRequesterConfig;
 use crate::services::vc_requester::basic::VCReqService;
@@ -69,7 +69,7 @@ impl AuthApplication {
         // CONFIGS
         let db_connection = vault.get_db_connection(config.common()).await;
         let vc_req_config = VCRequesterConfig::from(config.clone());
-        let onboarder_config = GnapOnboarderConfig::from(config.clone());
+        let onboarder_config = GnapPeerConnectorConfig::from(config.clone());
         let gatekeeper_config = GnapGateKeeperConfig::from(config.clone());
         let verifier_config = BasicVerifierConfig::from(config.clone());
         let business_config = BusinessConfig::from(config.clone());
@@ -82,7 +82,7 @@ impl AuthApplication {
             vault.clone(),
             vc_req_config,
         ));
-        let onboarder = Arc::new(GnapOnboarderService::new(
+        let onboarder = Arc::new(GnapPeerConnectorService::new(
             client.clone(),
             vault.clone(),
             onboarder_config,

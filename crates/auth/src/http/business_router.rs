@@ -25,15 +25,15 @@ use common::auth::business::BusinessLoginRequest;
 use ymir::errors::AppResult;
 use ymir::utils::extract_payload;
 
-use crate::core::traits::CoreBusinessTrait;
+use crate::core::modules::BusinessModuleTrait;
 use crate::types::business::BusinessResponse;
 
 pub struct BusinessRouter {
-    pub business: Arc<dyn CoreBusinessTrait>,
+    pub business: Arc<dyn BusinessModuleTrait>,
 }
 
 impl BusinessRouter {
-    pub fn new(business: Arc<dyn CoreBusinessTrait>) -> Self {
+    pub fn new(business: Arc<dyn BusinessModuleTrait>) -> Self {
         BusinessRouter { business }
     }
 
@@ -45,14 +45,14 @@ impl BusinessRouter {
     }
 
     async fn login(
-        State(business): State<Arc<dyn CoreBusinessTrait>>,
+        State(business): State<Arc<dyn BusinessModuleTrait>>,
         payload: Result<Json<BusinessLoginRequest>, JsonRejection>,
     ) -> AppResult<String> {
         let payload = extract_payload(payload)?;
         business.login(payload).await
     }
     async fn token(
-        State(business): State<Arc<dyn CoreBusinessTrait>>,
+        State(business): State<Arc<dyn BusinessModuleTrait>>,
         payload: Result<Json<BusinessLoginRequest>, JsonRejection>,
     ) -> AppResult<Json<BusinessResponse>> {
         let payload = extract_payload(payload)?;

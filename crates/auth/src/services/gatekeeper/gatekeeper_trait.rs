@@ -17,37 +17,38 @@
 
 use axum::body::Bytes;
 use axum::http::HeaderMap;
-use ymir::data::entities::{
-    mates, recv_interaction, recv_request, recv_verification, token_requirements,
-};
+use ymir::data::entities::received::{grant, interaction};
+use ymir::data::entities::shared::{participant, resource_req};
 use ymir::errors::Outcome;
 use ymir::types::gnap::grant_request::GrantRequest;
 use ymir::types::gnap::grant_response::GrantResponse;
-use ymir::types::gnap::AccessToken;
 
 pub trait GateKeeperTrait: Send + Sync + 'static {
-    fn start(
+    fn validate_grant(&self, payload: &Bytes, headers: &HeaderMap) -> Outcome<GrantRequest>;
+    fn build_grant_plan(
         &self,
-        payload: &Bytes,
-        headers: &HeaderMap,
-    ) -> Outcome<(
-        recv_request::NewModel,
-        recv_interaction::NewModel,
-        token_requirements::Model,
-    )>;
-    fn validate_req(&self, payload: &Bytes, headers: &HeaderMap) -> Outcome<GrantRequest>;
-    fn respond_req(&self, int_model: &recv_interaction::Model, uri: &str) -> GrantResponse;
+        payload: GrantRequest,
+    ) -> Outcome<(grant::Plan, interaction::Plan, resource_req::Model)>;
+
+    fn respond_grant_pending(&self, interaction: &interaction::Model, uri: &str) -> GrantResponse;
     fn validate_cont_req(
         &self,
-        model: &recv_interaction::Model,
+        model: &interaction::Model,
         payload: &Bytes,
         headers: &HeaderMap,
     ) -> Outcome<()>;
-    fn continue_req(
+    async fn finish_interaction(&self, model: &interaction::Model) -> Outcome<Option<String>>;
+    fn end_req(
         &self,
-        req_model: &mut recv_request::Model,
-        int_model: &recv_interaction::Model,
-        token_model: &token_requirements::Model,
-        ver_model: &recv_verification::Model,
-    ) -> (mates::NewModel, AccessToken);
+        grant: &mut grant::Model,
+        resource_req: &resource_req::Model,
+        token: &str,
+    ) -> GrantResponse;
+    fn build_mate_plan(
+        &self,
+        holder: &str,
+        nick: &str,
+        base_url: &str,
+        token: &str,
+    ) -> participant::Plan;
 }

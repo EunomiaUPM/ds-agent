@@ -16,5 +16,7 @@
  */
 
 mod core;
-pub mod traits;
+pub mod modules;
+mod traits;
+
 pub use core::AuthCore;

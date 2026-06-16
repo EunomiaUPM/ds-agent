@@ -26,14 +26,14 @@ use ymir::errors::AppResult;
 use ymir::types::gnap::grant_response::GrantResponse;
 use ymir::types::gnap::AccessToken;
 
-use crate::core::traits::CoreGateKeeperTrait;
+use crate::core::modules::GateKeeperModuleTrait;
 
 pub struct GateKeeperRouter {
-    gatekeeper: Arc<dyn CoreGateKeeperTrait>,
+    gatekeeper: Arc<dyn GateKeeperModuleTrait>,
 }
 
 impl GateKeeperRouter {
-    pub fn new(gatekeeper: Arc<dyn CoreGateKeeperTrait>) -> Self {
+    pub fn new(gatekeeper: Arc<dyn GateKeeperModuleTrait>) -> Self {
         GateKeeperRouter { gatekeeper }
     }
 
@@ -45,19 +45,19 @@ impl GateKeeperRouter {
     }
 
     async fn manage_req(
-        State(gatekeeper): State<Arc<dyn CoreGateKeeperTrait>>,
+        State(gatekeeper): State<Arc<dyn GateKeeperModuleTrait>>,
         headers: HeaderMap,
         payload: Bytes,
     ) -> AppResult<Json<GrantResponse>> {
-        Ok(Json(gatekeeper.manage_req(payload, headers).await?))
+        Ok(Json(gatekeeper.manage_grant_req(payload, headers).await?))
     }
 
     async fn continue_req(
-        State(gatekeeper): State<Arc<dyn CoreGateKeeperTrait>>,
+        State(gatekeeper): State<Arc<dyn GateKeeperModuleTrait>>,
         headers: HeaderMap,
         Path(id): Path<String>,
         payload: Bytes,
     ) -> AppResult<Json<AccessToken>> {
-        Ok(Json(gatekeeper.continue_req(id, payload, headers).await?))
+        Ok(Json(gatekeeper.manage_continue_req(id, payload, headers).await?))
     }
 }

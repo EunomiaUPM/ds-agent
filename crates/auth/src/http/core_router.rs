@@ -29,11 +29,11 @@ use uuid::Uuid;
 use ymir::config::traits::ApiConfigTrait;
 use ymir::http::{HealthRouter, OpenapiRouter, WalletRouter};
 
-use crate::core::traits::AuthCoreTrait;
+use crate::core::modules::AuthCoreTrait;
 use crate::core::AuthCore;
 use crate::http::business_router::BusinessRouter;
 use crate::http::gatekeeper_router::GateKeeperRouter;
-use crate::http::onboarder_router::OnboarderRouter;
+use crate::http::peer_connector_router::OnboarderRouter;
 use crate::http::verifier_router::VerifierRouter;
 use crate::http::{GaiaSelfIssuerRouter, MateRouter, VcRequesterRouter};
 
@@ -87,7 +87,7 @@ impl AuthRouter {
             .nest(&format!("{}/gate", api_path), gatekeeper_router.router())
             .nest(&format!("{}/verifier", api_path), verifier_router.router())
             .nest(&format!("{}/business", api_path), business_router.router())
-            .nest(&format!("{}/onboard", api_path), onboarder_router.router())
+            .nest(&format!("{}/peer-connection", api_path), onboarder_router.router())
             .nest(&format!("{}/docs", api_path), openapi_router.router());
 
         let router = match self.core.is_gaia_active() {

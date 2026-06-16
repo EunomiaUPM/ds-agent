@@ -17,22 +17,21 @@
 
 use std::sync::Arc;
 
-use ymir::services::repo::subtraits::{
-    BusinessMatesRepoTrait, IssuingTrait, MatesTrait, RecvInteractionTrait, RecvRequestTrait,
-    RecvVerificationTrait, ReqInteractionTrait, ReqRequestTrait, ReqVcTrait, ReqVerificationTrait,
-    TokenRequirementsTrait,
+use ymir::services::repo::traits::received::{
+    RecvGrantRepoTrait, RecvInteractionRepoTrait, RecvVerificationRepoTrait,
 };
+use ymir::services::repo::traits::sent::{
+    SentGrantRepoTrait, SentInteractionRepoTrait, SentVerificationRepoTrait,
+};
+use ymir::services::repo::traits::shared::{ParticipantRepoTrait, ResourceReqRepoTrait};
 
 pub trait AuthRepoTrait: Send + Sync + 'static {
-    fn request_req(&self) -> Arc<dyn ReqRequestTrait>;
-    fn request_rcv(&self) -> Arc<dyn RecvRequestTrait>;
-    fn interaction_req(&self) -> Arc<dyn ReqInteractionTrait>;
-    fn interaction_rcv(&self) -> Arc<dyn RecvInteractionTrait>;
-    fn verification_req(&self) -> Arc<dyn ReqVerificationTrait>;
-    fn verification_rcv(&self) -> Arc<dyn RecvVerificationTrait>;
-    fn token_requirements(&self) -> Arc<dyn TokenRequirementsTrait>;
-    fn mates(&self) -> Arc<dyn MatesTrait>;
-    fn business_mates(&self) -> Arc<dyn BusinessMatesRepoTrait>;
-    fn vc_req(&self) -> Arc<dyn ReqVcTrait>;
-    fn issuing(&self) -> Arc<dyn IssuingTrait>;
+    fn sent_grant(&self) -> Arc<dyn SentGrantRepoTrait>;
+    fn sent_interaction(&self) -> Arc<dyn SentInteractionRepoTrait>;
+    fn sent_verification(&self) -> Arc<dyn SentVerificationRepoTrait>;
+    fn participant(&self) -> Arc<dyn ParticipantRepoTrait>;
+    fn resource_req(&self) -> Arc<dyn ResourceReqRepoTrait>;
+    fn recv_grant(&self) -> Arc<dyn RecvGrantRepoTrait>;
+    fn recv_interaction(&self) -> Arc<dyn RecvInteractionRepoTrait>;
+    fn recv_verification(&self) -> Arc<dyn RecvVerificationRepoTrait>;
 }

@@ -29,16 +29,16 @@ use ymir::errors::AppResult;
 use ymir::types::gnap::{ApprovedCallbackBody, CallbackBody};
 use ymir::utils::{extract_payload, extract_query_param};
 
-use crate::core::traits::CoreVcRequesterTrait;
+use crate::core::modules::VcRequesterModuleTrait;
 use crate::types::entities::ReachAuthority;
 use crate::types::wallet_helper::{ProcessUriOid4VCI, ProcessUriOid4VP};
 
 pub struct VcRequesterRouter {
-    requester: Arc<dyn CoreVcRequesterTrait>,
+    requester: Arc<dyn VcRequesterModuleTrait>,
 }
 
 impl VcRequesterRouter {
-    pub fn new(requester: Arc<dyn CoreVcRequesterTrait>) -> Self {
+    pub fn new(requester: Arc<dyn VcRequesterModuleTrait>) -> Self {
         VcRequesterRouter { requester }
     }
 
@@ -55,7 +55,7 @@ impl VcRequesterRouter {
     }
 
     async fn beg(
-        State(requester): State<Arc<dyn CoreVcRequesterTrait>>,
+        State(requester): State<Arc<dyn VcRequesterModuleTrait>>,
         payload: Result<Json<ReachAuthority>, JsonRejection>,
     ) -> AppResult {
         let payload = extract_payload(payload)?;
@@ -67,19 +67,19 @@ impl VcRequesterRouter {
     }
 
     async fn get_all(
-        State(requester): State<Arc<dyn CoreVcRequesterTrait>>,
+        State(requester): State<Arc<dyn VcRequesterModuleTrait>>,
     ) -> AppResult<Json<Vec<Model>>> {
         Ok(Json(requester.get_all().await?))
     }
 
     async fn get_one(
-        State(requester): State<Arc<dyn CoreVcRequesterTrait>>,
+        State(requester): State<Arc<dyn VcRequesterModuleTrait>>,
         Path(id): Path<String>,
     ) -> AppResult<Json<Model>> {
         Ok(Json(requester.get_by_id(id).await?))
     }
     async fn get_callback(
-        State(requester): State<Arc<dyn CoreVcRequesterTrait>>,
+        State(requester): State<Arc<dyn VcRequesterModuleTrait>>,
         Path(id): Path<String>,
         Query(params): Query<HashMap<String, String>>,
     ) -> AppResult<Json<mates::Model>> {
@@ -90,7 +90,7 @@ impl VcRequesterRouter {
     }
 
     async fn post_callback(
-        State(requester): State<Arc<dyn CoreVcRequesterTrait>>,
+        State(requester): State<Arc<dyn VcRequesterModuleTrait>>,
         Path(id): Path<String>,
         payload: Result<Json<CallbackBody>, JsonRejection>,
     ) -> AppResult {
@@ -105,14 +105,14 @@ impl VcRequesterRouter {
         })
     }
     async fn oidc4vci(
-        State(requester): State<Arc<dyn CoreVcRequesterTrait>>,
+        State(requester): State<Arc<dyn VcRequesterModuleTrait>>,
         payload: Result<Json<ProcessUriOid4VCI>, JsonRejection>,
     ) -> AppResult {
         let payload = extract_payload(payload)?;
         Ok(requester.process_oid4vci(&payload).await?.into_response())
     }
     async fn oidc4vp(
-        State(requester): State<Arc<dyn CoreVcRequesterTrait>>,
+        State(requester): State<Arc<dyn VcRequesterModuleTrait>>,
         payload: Result<Json<ProcessUriOid4VP>, JsonRejection>,
     ) -> AppResult {
         let payload = extract_payload(payload)?;

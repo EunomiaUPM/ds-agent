@@ -16,6 +16,7 @@
  */
 
 use serde::{Deserialize, Serialize};
+use ymir::types::gnap::grant_request::interact::InteractAction;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ReachAuthority {
@@ -32,6 +33,6 @@ pub struct ReachProvider {
     pub id: String,
     pub slug: String,
     pub url: String,
-    pub actions: Vec<String>,
+    pub actions: Vec<InteractAction>,
     pub auto: Option<bool>,
 }

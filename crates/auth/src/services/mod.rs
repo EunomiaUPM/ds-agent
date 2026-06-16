@@ -15,10 +15,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod business;
 pub mod callback;
 pub mod gaia_self_issuer;
 pub mod gatekeeper;
-pub mod onboarder;
+pub mod peer_connector;
 pub mod repo;
 pub mod vc_requester;

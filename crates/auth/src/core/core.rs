@@ -18,27 +18,26 @@
 use std::sync::Arc;
 
 use common::config::services::SsiAuthConfig;
-use ymir::core_traits::CoreWalletTrait;
 use ymir::services::issuer::IssuerTrait;
 use ymir::services::repo::subtraits::{MatesTrait, MinionsTrait};
 use ymir::services::verifier::VerifierTrait;
 use ymir::services::wallet::WalletTrait;
 
-use crate::core::traits::{
-    AuthCoreTrait, CoreBusinessTrait, CoreGaiaSelfIssuerTrait, CoreGateKeeperTrait, CoreMateTrait,
-    CoreOnboarderTrait, CoreVcRequesterTrait, CoreVerifierTrait,
+use crate::core::modules::{
+    AuthCoreTrait, BusinessModuleTrait, GaiaSelfIssuerModuleTrait, GateKeeperModuleTrait, CoreMateTrait,
+    PeerConnectorModuleTrait, VcRequesterModuleTrait, VerifierModuleTrait,
 };
 use crate::services::business::BusinessTrait;
 use crate::services::callback::CallbackTrait;
 use crate::services::gaia_self_issuer::GaiaOwnIssuerTrait;
 use crate::services::gatekeeper::GateKeeperTrait;
-use crate::services::onboarder::OnboarderTrait;
+use crate::services::peer_connector::PeerConnectorTrait;
 use crate::services::repo::repo_trait::AuthRepoTrait;
 use crate::services::vc_requester::VcRequesterTrait;
 
 pub struct AuthCore {
     vc_requester: Arc<dyn VcRequesterTrait>,
-    onboarder: Arc<dyn OnboarderTrait>,
+    onboarder: Arc<dyn PeerConnectorTrait>,
     callback: Arc<dyn CallbackTrait>,
     business: Arc<dyn BusinessTrait>,
     gatekeeper: Arc<dyn GateKeeperTrait>,
@@ -54,7 +53,7 @@ pub struct AuthCore {
 impl AuthCore {
     pub fn new(
         vc_requester: Arc<dyn VcRequesterTrait>,
-        onboarder: Arc<dyn OnboarderTrait>,
+        onboarder: Arc<dyn PeerConnectorTrait>,
         callback: Arc<dyn CallbackTrait>,
         business: Arc<dyn BusinessTrait>,
         gatekeeper: Arc<dyn GateKeeperTrait>,
@@ -82,8 +81,8 @@ impl AuthCore {
     }
 }
 
-impl CoreOnboarderTrait for AuthCore {
-    fn onboarder(&self) -> Arc<dyn OnboarderTrait> {
+impl PeerConnectorModuleTrait for AuthCore {
+    fn onboarder(&self) -> Arc<dyn PeerConnectorTrait> {
         self.onboarder.clone()
     }
 
@@ -114,7 +113,7 @@ impl CoreWalletTrait for AuthCore {
     }
 }
 
-impl CoreVcRequesterTrait for AuthCore {
+impl VcRequesterModuleTrait for AuthCore {
     fn vc_req(&self) -> Arc<dyn VcRequesterTrait> {
         self.vc_requester.clone()
     }
@@ -138,7 +137,7 @@ impl CoreMateTrait for AuthCore {
     }
 }
 
-impl CoreGaiaSelfIssuerTrait for AuthCore {
+impl GaiaSelfIssuerModuleTrait for AuthCore {
     fn issuer(&self) -> Arc<dyn IssuerTrait> {
         self.issuer
             .as_ref()
@@ -162,7 +161,7 @@ impl CoreGaiaSelfIssuerTrait for AuthCore {
     }
 }
 
-impl CoreVerifierTrait for AuthCore {
+impl VerifierModuleTrait for AuthCore {
     fn verifier(&self) -> Arc<dyn VerifierTrait> {
         self.verifier.clone()
     }
@@ -176,7 +175,7 @@ impl CoreVerifierTrait for AuthCore {
     }
 }
 
-impl CoreBusinessTrait for AuthCore {
+impl BusinessModuleTrait for AuthCore {
     fn business(&self) -> Arc<dyn BusinessTrait> {
         self.business.clone()
     }
@@ -190,7 +189,7 @@ impl CoreBusinessTrait for AuthCore {
     }
 }
 
-impl CoreGateKeeperTrait for AuthCore {
+impl GateKeeperModuleTrait for AuthCore {
     fn gatekeeper(&self) -> Arc<dyn GateKeeperTrait> {
         self.gatekeeper.clone()
     }

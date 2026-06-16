@@ -40,7 +40,7 @@ impl MigratorTrait for NegotiationAgentMigration {
 impl NegotiationAgentMigration {
     pub async fn run(config: &ContractsConfig, vault: Arc<VaultService>) -> Outcome<()> {
         // db_connection
-        let db_connection = vault.get_db_connection(config.common()).await;
+        let db_connection = vault.get_db_connection(config.common()).await?;
         // run migration
         Self::refresh(&db_connection)
             .await

@@ -71,9 +71,9 @@ impl GatewayCommands {
             GatewayCliCommands::Start(args) => {
                 let config = GatewayBoot::load_config(args.env_file).await?;
                 let vault = if config.common().is_vault_real() {
-                    VaultService::Real(RealVaultService::new())
+                    VaultService::Real(RealVaultService::new()?)
                 } else {
-                    VaultService::Fake(FakeVaultService::new())
+                    VaultService::Fake(FakeVaultService::new()?)
                 };
                 GatewayBoot::start_services_background(&config, Arc::new(vault)).await?;
             }

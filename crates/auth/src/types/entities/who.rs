@@ -29,10 +29,8 @@ impl FromStr for WhoEntity {
     type Err = Errors;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "Authority" => Ok(WhoEntity::Authority),
+        match s.to_ascii_lowercase().as_str() {
             "authority" => Ok(WhoEntity::Authority),
-            "Provider" => Ok(WhoEntity::Provider),
             "provider" => Ok(WhoEntity::Provider),
             format => Err(Errors::parse(format!("Unknown entity: {}", format), None)),
         }

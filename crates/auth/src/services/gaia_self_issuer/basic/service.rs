@@ -35,22 +35,19 @@ use ymir::errors::{Errors, Outcome, PetitionFailure};
 use ymir::services::client::ClientTrait;
 use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
-use ymir::types::http::Body;
 use ymir::types::issuing::{GiveVC, IssuingToken};
 use ymir::types::jwt::VcJwtClaimsBuilder;
-use ymir::types::keys::Key;
 use ymir::types::secrets::StringHelper;
 use ymir::types::vcs::doc::VcDocumentBuilder;
 use ymir::types::vcs::vc_specs::legal_person::LegalPersonCredentialSubject;
 use ymir::types::vcs::vc_specs::terms_and_conds::TermsAndConditionsCredSub;
 use ymir::types::vcs::VcIssuer;
 use ymir::types::vcs::{GaiaVP, VPDef, VcInsideGaiaVPBuilder, VcType};
-use ymir::types::wallet::fafnir::SigningCtx;
 use ymir::types::wallet::waltid::MatchingVCs;
 use ymir::utils::{expect_from_env, ResponseExt};
 
 use super::super::GaiaOwnIssuerTrait;
-use super::config::{GaiaGaiaSelfIssuerConfigTrait, GaiaSelfIssuerConfig};
+use super::GaiaSelfIssuerConfig;
 
 pub struct BasicGaiaSelfIssuer {
     vault: Arc<VaultService>,
@@ -77,17 +74,13 @@ impl GaiaOwnIssuerTrait for BasicGaiaSelfIssuer {
     fn start_basic_vcs(&self, id: &str, uri: &str) -> issuing::NewModel {
         info!("Starting retrieving basic gaia vcs");
         let host = self.config.get_host(HostType::Http);
-        let aud = match self.config.is_local() {
-            true => host.replace("127.0.0.1", "host.docker.internal"),
-            false => host,
-        };
 
         let vc_type = format!("{}&{}", VcType::LegalPerson, VcType::TermsAndConditions);
         issuing::NewModel {
             id: id.to_string(),
             name: self.config.get_clas_id().to_string(),
             vc_type,
-            aud,
+            aud: host,
             uri: uri.to_string(),
         }
     }

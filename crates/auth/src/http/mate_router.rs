@@ -17,7 +17,7 @@
 
 use std::sync::Arc;
 
-use crate::core::traits::{CoreMateTrait, MateRouterGetAllQueryParamsType};
+use crate::core::modules::{CoreMateTrait, MateRouterGetAllQueryParamsType};
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{Path, Query, State};
 use axum::routing::{get, post, put};

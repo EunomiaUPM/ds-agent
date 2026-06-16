@@ -20,7 +20,7 @@ mod core_router;
 mod gaia_self_issuer_router;
 mod gatekeeper_router;
 mod mate_router;
-mod onboarder_router;
+mod peer_connector_router;
 mod vc_requester_router;
 mod verifier_router;
 
@@ -29,6 +29,6 @@ pub use core_router::AuthRouter;
 pub use gaia_self_issuer_router::GaiaSelfIssuerRouter;
 pub use gatekeeper_router::GateKeeperRouter;
 pub use mate_router::MateRouter;
-pub use onboarder_router::OnboarderRouter;
+pub use peer_connector_router::OnboarderRouter;
 pub use vc_requester_router::VcRequesterRouter;
 pub use verifier_router::VerifierRouter;

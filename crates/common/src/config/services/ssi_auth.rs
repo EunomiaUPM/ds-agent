@@ -16,10 +16,8 @@
  */
 
 use serde::{Deserialize, Serialize};
-use ymir::config::traits::{
-    DidConfigTrait, VcConfigTrait, VerifyReqConfigTrait, WalletConfigTrait,
-};
-use ymir::config::types::{DidConfig, VcConfig, VerifyReqConfig, WalletConfig};
+use ymir::config::traits::{DidConfigTrait, VerifyReqConfigTrait, WalletConfigTrait};
+use ymir::config::types::{DidConfig, VerifyReqConfig, WalletConfig};
 use ymir::errors::Outcome;
 
 use crate::config::services::traits::SsiAuthConfigTrait;
@@ -35,15 +33,8 @@ pub struct SsiAuthConfig {
     wallet_config: WalletConfig,
     client_config: EntityClientConfig,
     did_config: DidConfig,
-    vc_config: VcConfig,
     verify_req_config: VerifyReqConfig,
     gaia_config: Option<GaiaConfig>,
-}
-
-impl VcConfigTrait for SsiAuthConfig {
-    fn vc_config(&self) -> &VcConfig {
-        &self.vc_config
-    }
 }
 
 impl DidConfigTrait for SsiAuthConfig {

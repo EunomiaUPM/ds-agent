@@ -25,92 +25,85 @@ use common::config::services::SsiAuthConfig;
 use common::config::types::traits::CommonConfigTrait;
 use tokio::net::TcpListener;
 use tracing::info;
-use ymir::config::traits::{ApiConfigTrait, ConnectionConfigTrait, DidConfigTrait, HostsConfigTrait, WalletConfigTrait};
+use ymir::config::traits::{
+    ApiConfigTrait, ConnectionConfigTrait, DidConfigTrait, HostsConfigTrait, WalletConfigTrait,
+};
 use ymir::config::types::HostType;
 use ymir::errors::{Errors, Outcome};
 use ymir::services::client::ClientService;
-use ymir::services::issuer::basic::config::BasicIssuerConfig;
-use ymir::services::issuer::basic::BasicIssuerService;
-use ymir::services::issuer::IssuerTrait;
 use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
-use ymir::services::verifier::basic::config::BasicVerifierConfig;
+use ymir::services::verifier::basic::BasicVerifierConfig;
 use ymir::services::verifier::basic::BasicVerifierService;
-use ymir::services::wallet::fafnir::config::FafnirConfigBuilder;
+use ymir::services::wallet::fafnir::FafnirConfig;
 use ymir::services::wallet::fafnir::FafnirService;
-use ymir::services::wallet::walt_id::config::WaltIdConfig;
+use ymir::services::wallet::walt_id::WaltIdConfig;
 use ymir::services::wallet::walt_id::WaltIdService;
 use ymir::services::wallet::WalletTrait;
 use ymir::types::dids::{DidService, DidServiceType};
-use ymir::types::wallet::WalletInstance;
+use ymir::types::participants::ParticipantType;
 use ymir::types::secrets::StringHelper;
+use ymir::types::wallet::WalletInstance;
 use ymir::utils::expect_from_env;
 
 use crate::core::AuthCore;
 use crate::http::AuthRouter;
-use crate::services::business::basic::config::BusinessConfig;
-use crate::services::business::basic::BasicBusinessService;
 use crate::services::callback::BasicCallbackService;
-use crate::services::gaia_self_issuer::basic::config::GaiaSelfIssuerConfig;
 use crate::services::gaia_self_issuer::basic::BasicGaiaSelfIssuer;
+use crate::services::gaia_self_issuer::basic::GaiaSelfIssuerConfig;
 use crate::services::gaia_self_issuer::GaiaOwnIssuerTrait;
-use crate::services::gatekeeper::gnap::config::GnapGateKeeperConfig;
+use crate::services::gatekeeper::gnap::GnapGateKeeperConfig;
 use crate::services::gatekeeper::gnap::GnapGateKeeperService;
-use crate::services::peer_connector::gnap::config::GnapPeerConnectorConfig;
+use crate::services::peer_connector::gnap::GnapPeerConnectorConfig;
 use crate::services::peer_connector::gnap::GnapPeerConnectorService;
 use crate::services::repo::service::AuthRepoForSql;
-use crate::services::vc_requester::basic::config::VCRequesterConfig;
 use crate::services::vc_requester::basic::VCReqService;
+use crate::services::vc_requester::basic::VCRequesterConfig;
 
 pub struct AuthApplication {}
 
 impl AuthApplication {
-    pub async fn create_router(config: &SsiAuthConfig, vault: Arc<VaultService>) -> Router {
-        // CONFIGS
-        let db_connection = vault.get_db_connection(config.common()).await;
-        let vc_req_config = VCRequesterConfig::from(config.clone());
-        let onboarder_config = GnapPeerConnectorConfig::from(config.clone());
+    pub async fn create_router(
+        config: &SsiAuthConfig,
+        vault: Arc<VaultService>,
+    ) -> Outcome<Router> {
+        // =========================================CONFIGS=========================================
+        let db_connection = vault.get_db_connection(config.common()).await?;
+        let vc_req_config = VCRequesterConfig::from(config);
+        let peer_connector_config = GnapPeerConnectorConfig::from(config);
         let gatekeeper_config = GnapGateKeeperConfig::from(config.clone());
         let verifier_config = BasicVerifierConfig::from(config.clone());
-        let business_config = BusinessConfig::from(config.clone());
         let core_config = Arc::new(config.clone());
 
-        // SERVICES
-        let client = Arc::new(ClientService::default());
-        let vc_req = Arc::new(VCReqService::new(
-            client.clone(),
+        // ========================================SERVICES=========================================
+        let vc_requester = Arc::new(VCReqService::new(vault.clone(), vc_req_config));
+        let peer_connector = Arc::new(GnapPeerConnectorService::new(
             vault.clone(),
-            vc_req_config,
-        ));
-        let onboarder = Arc::new(GnapPeerConnectorService::new(
-            client.clone(),
-            vault.clone(),
-            onboarder_config,
+            peer_connector_config,
         ));
         let callback = Arc::new(BasicCallbackService::new(vault.clone()));
         let repo = Arc::new(AuthRepoForSql::create_repo(db_connection));
         let gatekeeper = Arc::new(GnapGateKeeperService::new(gatekeeper_config));
-        let business = Arc::new(BasicBusinessService::new(business_config));
-        let verifier = Arc::new(BasicVerifierService::new(client.clone(), verifier_config));
+        let verifier = Arc::new(BasicVerifierService::new(verifier_config));
 
-        let (gaia, issuer) = match config.is_gaia_active() {
-            true => {
-                let issuer_config = BasicIssuerConfig::from(config.clone());
-                let gaia_config = GaiaSelfIssuerConfig::from(config.clone());
-
-                let gaia: Option<Arc<dyn GaiaOwnIssuerTrait>> = Some(Arc::new(
-                    BasicGaiaSelfIssuer::new(vault.clone(), client.clone(), gaia_config),
-                ));
-
-                let issuer: Option<Arc<dyn IssuerTrait>> = Some(Arc::new(BasicIssuerService::new(
-                    issuer_config,
-                    vault.clone(),
-                )));
-
-                (gaia, issuer)
-            }
-            false => (None, None),
-        };
+        // let (gaia, issuer) = match config.is_gaia_active() {
+        //     true => {
+        //         let issuer_config = BasicIssuerConfig::from(config.clone());
+        //         let gaia_config = GaiaSelfIssuerConfig::from(config.clone());
+        //
+        //         let gaia: Option<Arc<dyn GaiaOwnIssuerTrait>> = Some(Arc::new(
+        //             BasicGaiaSelfIssuer::new(vault.clone(), client.clone(), gaia_config),
+        //         ));
+        //
+        //         let issuer: Option<Arc<dyn IssuerTrait>> = Some(Arc::new(BasicIssuerService::new(
+        //             issuer_config,
+        //             vault.clone(),
+        //         )));
+        //
+        //         (gaia, issuer)
+        //     }
+        //     false => (None, None),
+        // };
 
         let services = vec![DidService::basic(
             DidServiceType::AuthorizationServer,
@@ -120,44 +113,41 @@ impl AuthApplication {
                 config.common().get_api_version()
             ),
         )];
-        // El backend de wallet se elige en runtime según el yaml
-        // (`wallet: Fafnir | WaltId` dentro del bloque wallet config).
+
         let wallet: Arc<dyn WalletTrait> = match config.get_wallet() {
             WalletInstance::WaltId => {
-                let walt_id_config = WaltIdConfig::from(config.clone());
-                Arc::new(WaltIdService::new(walt_id_config, vault.clone(), services))
+                let walt_id_config = WaltIdConfig::from(config);
+                Arc::new(WaltIdService::new(
+                    walt_id_config,
+                    vault.clone(),
+                    services,
+                    ParticipantType::Agent,
+                ))
             }
             WalletInstance::Fafnir => {
-                let fafnir_config = FafnirConfigBuilder::new()
-                    .hosts(config.common().hosts().clone())
-                    .wallet(config.wallet_config().clone())
-                    .did(config.did_config().clone())
-                    .build();
+                let fafnir_config = FafnirConfig::from(config);
                 Arc::new(FafnirService::new(
                     fafnir_config,
-                    client.clone(),
                     vault.clone(),
-                    services.clone(),
+                    services,
+                    ParticipantType::Agent,
                 ))
             }
         };
 
         // CORE
         let core = Arc::new(AuthCore::new(
-            vc_req,
-            onboarder,
+            vc_requester,
+            peer_connector,
             callback,
-            business,
             gatekeeper,
             verifier,
             repo,
-            core_config,
             wallet,
-            issuer,
-            gaia,
+            core_config,
         ));
 
-        AuthRouter::new(core).router()
+        Ok(AuthRouter::new(core).router())
     }
 
     pub async fn run_basic(config: SsiAuthConfig, vault_service: Arc<VaultService>) -> Outcome<()> {
@@ -193,7 +183,7 @@ impl AuthApplication {
         .await
         .map_err(|e| Errors::crazy("Errors parsing certificate stuff", Some(Box::new(e))))?;
 
-        let router = Self::create_router(config, vault).await;
+        let router = Self::create_router(config, vault).await?;
 
         let port = config.common().hosts().get_internal_port(HostType::Http);
         let addr_str = format!("0.0.0.0:{}", port);

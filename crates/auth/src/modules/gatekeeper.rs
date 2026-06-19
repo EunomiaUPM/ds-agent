@@ -15,15 +15,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::core::traits::{HasGateKeeper, HasRepo};
 use crate::services::gatekeeper::GateKeeperTrait;
+use crate::services::{HasGateKeeper, HasRepo};
 use async_trait::async_trait;
 use axum::body::Bytes;
 use axum::http::HeaderMap;
 use ymir::errors::Outcome;
-use ymir::modules::HasVerifier;
+use ymir::services::HasVerifier;
 use ymir::services::verifier::VerifierTrait;
 use ymir::types::gnap::grant_response::{ErrorResponse, GrantResponse};
+use ymir::types::gnap::GrantStatus;
 use ymir::utils::{create_opaque_token, errors_to_error_code, require_field};
 
 #[async_trait]
@@ -45,23 +46,45 @@ pub trait GateKeeperModuleTrait:
         payload: Bytes,
         headers: HeaderMap,
     ) -> Outcome<GrantResponse> {
-        let grant_request = self.gatekeeper().validate_grant(&payload, &headers)?;
+        let grant_request = self.gatekeeper().validate_grant_req(&payload, &headers)?;
 
-        let (grant, interaction, resource_req) =
-            self.gatekeeper().build_grant_plan(grant_request)?;
+        let grant = self
+            .gatekeeper()
+            .build_grant_plan(grant_request.client.class_id.clone())?;
+        let interaction = self.gatekeeper().build_interaction_plan(
+            &grant.id,
+            grant_request.client,
+            grant_request.interact,
+        )?;
+        let resource_req = self
+            .gatekeeper()
+            .build_resource_req_plan(&grant.id, grant_request.kind)?;
 
         let grant = self.repo().recv_grant().create(grant).await?;
         let interaction = self.repo().recv_interaction().create(interaction).await?;
         let _resource_req = self.repo().resource_req().create(resource_req).await?;
 
-        let verification = self.verifier().prep_vp_plan(&grant.id)?;
+        let verification = self.verifier().build_vp_plan(&grant.id);
         let ver_model = self.repo().recv_verification().create(verification).await?;
         let uri = self.verifier().generate_verification_uri(&ver_model);
-        let grant_res = self.gatekeeper().respond_grant_pending(&interaction, &uri);
-        Ok(grant_res)
+        Ok(GrantResponse::pending(uri, &interaction))
     }
 
     async fn manage_continue_req(
+        &self,
+        id: String,
+        payload: Bytes,
+        headers: HeaderMap,
+    ) -> GrantResponse {
+        self.inner_manage_continue_req(id, payload, headers)
+            .await
+            .unwrap_or_else(|e| {
+                e.log();
+                let code = errors_to_error_code(&e);
+                GrantResponse::Error(ErrorResponse { error: code })
+            })
+    }
+    async fn inner_manage_continue_req(
         &self,
         id: String,
         payload: Bytes,
@@ -77,16 +100,10 @@ pub trait GateKeeperModuleTrait:
             .recv_verification()
             .get_by_id(&interaction.id)
             .await?;
-        let resource_req = self
-            .repo()
-            .resource_req()
-            .get_by_id(&interaction.id)
-            .await?;
-
-        let token = create_opaque_token();
-        let grant_response = self.gatekeeper().end_req(&mut grant, &resource_req, &token);
 
         let holder = require_field(verification.holder.as_ref(), "holder")?;
+        let token = create_opaque_token();
+
         let mate = self.gatekeeper().build_mate_plan(
             holder,
             &grant.participant_nick,
@@ -95,6 +112,18 @@ pub trait GateKeeperModuleTrait:
         );
 
         let _mate = self.repo().participant().force_update(mate).await?;
-        Ok(grant_response)
+
+        grant.token = Some(token.to_string());
+        grant.status = GrantStatus::Approved;
+
+        let _grant = self.repo().recv_grant().update(grant).await?;
+
+        let resource_req = self
+            .repo()
+            .resource_req()
+            .get_by_id(&interaction.id)
+            .await?;
+
+        Ok(GrantResponse::token_approved(token, &resource_req))
     }
 }

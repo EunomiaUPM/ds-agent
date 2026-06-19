@@ -15,10 +15,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::core::traits::{HasGateKeeper, HasRepo};
+use crate::services::{HasGateKeeper, HasRepo};
 use async_trait::async_trait;
 use ymir::errors::Outcome;
-use ymir::modules::HasVerifier;
+use ymir::services::HasVerifier;
 use ymir::services::verifier::VerifierTrait;
 use ymir::types::vcs::VPDef;
 use ymir::types::verifying::VerifyPayload;
@@ -39,13 +39,14 @@ pub trait VerifierModuleTrait:
             .await;
 
         self.repo().recv_verification().update(verification).await?;
-        result?;
 
         let interaction = self
             .repo()
             .recv_interaction()
             .get_by_id(&verification.id)
             .await?;
-        self.gatekeeper().finish_interaction(&interaction).await
+        self.gatekeeper()
+            .finish_interaction(&interaction, result)
+            .await
     }
 }

@@ -18,8 +18,7 @@
 use crate::config::services::SsiAuthConfig;
 use crate::config::types::traits::CommonConfigTrait;
 use ymir::config::traits::{
-    ApiConfigTrait, DidConfigTrait, HostsConfigTrait, VcConfigTrait, VerifyReqConfigTrait,
-    WalletConfigTrait,
+    ApiConfigTrait, DidConfigTrait, HostsConfigTrait, VerifyReqConfigTrait, WalletConfigTrait,
 };
 use ymir::services::issuer::basic::BasicIssuerConfig;
 use ymir::services::verifier::basic::BasicVerifierConfig;
@@ -52,13 +51,12 @@ impl From<&SsiAuthConfig> for BasicVerifierConfig {
             value.common().hosts().clone(),
             value.common().get_api_version(),
             value.get_requested_vcs().to_vec(),
-            value.vc_config().clone(),
         )
     }
 }
 
-impl From<SsiAuthConfig> for BasicIssuerConfig {
-    fn from(value: SsiAuthConfig) -> Self {
+impl From<&SsiAuthConfig> for BasicIssuerConfig {
+    fn from(value: &SsiAuthConfig) -> Self {
         BasicIssuerConfig::new(
             value.common().hosts().clone(),
             value.common().get_api_version(),

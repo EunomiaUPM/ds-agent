@@ -17,7 +17,7 @@
 
 use std::sync::Arc;
 
-use crate::core::modules::{CoreMateTrait, MateRouterGetAllQueryParamsType};
+use crate::modules::CoreMateTrait;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{Path, Query, State};
 use axum::routing::{get, post, put};
@@ -25,49 +25,39 @@ use axum::{Json, Router};
 use common::batch_requests::BatchRequests;
 use common::facades::VerifyTokenRequest;
 use serde::Deserialize;
-use ymir::data::entities::mates::{Model, NewModel};
+use ymir::data::entities::shared::participant::{Model, Plan};
 use ymir::errors::AppResult;
+use ymir::types::participants::ParticipantType;
 use ymir::utils::extract_payload;
 
-pub struct MateRouter {
-    mater: Arc<dyn CoreMateTrait>,
+pub struct ParticipantRouter {
+    manager: Arc<dyn CoreMateTrait>,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct MateRouterGetAllQueryParams {
-    #[serde(rename = "type")]
-    _type: Option<MateRouterGetAllQueryParamsType>,
-    #[serde(default)]
-    exclude_myself: Option<bool>,
-}
-
-impl MateRouter {
-    pub fn new(mater: Arc<dyn CoreMateTrait>) -> MateRouter {
-        MateRouter { mater }
+impl ParticipantRouter {
+    pub fn new(mater: Arc<dyn CoreMateTrait>) -> ParticipantRouter {
+        ParticipantRouter { manager: mater }
     }
 
     pub fn router(self) -> Router {
         Router::new()
             .route("/all", get(Self::get_all))
-            .route("/myself", get(Self::get_me))
+            .route("/myself", get(Self::get_myself))
             .route("/{id}", get(Self::get_by_id))
             .route("/batch", post(Self::get_batch))
             .route("/token", post(Self::get_by_token))
             .route("/{id}", put(Self::update_by_id))
             .route("/", post(Self::create))
-            .with_state(self.mater)
+            .with_state(self.manager)
     }
 
     async fn get_all(
         State(mater): State<Arc<dyn CoreMateTrait>>,
-        query: Query<MateRouterGetAllQueryParams>,
+        query: Query<MateQuery>,
     ) -> AppResult<Json<Vec<Model>>> {
-        let _type = query
-            ._type
-            .as_ref()
-            .unwrap_or(&MateRouterGetAllQueryParamsType::All);
-        let exclude_myself = query.exclude_myself.unwrap_or(false);
-        Ok(Json(mater.get_all(_type, &exclude_myself).await?))
+        let filter = query.r#type.unwrap_or(ParticipantType::All);
+
+        Ok(Json(mater.get_all(filter, query.exclude_myself).await?))
     }
     async fn get_by_id(
         State(mater): State<Arc<dyn CoreMateTrait>>,
@@ -76,7 +66,7 @@ impl MateRouter {
         Ok(Json(mater.get_by_id(id).await?))
     }
 
-    async fn get_me(State(mater): State<Arc<dyn CoreMateTrait>>) -> AppResult<Json<Model>> {
+    async fn get_myself(State(mater): State<Arc<dyn CoreMateTrait>>) -> AppResult<Json<Model>> {
         Ok(Json(mater.get_me().await?))
     }
 
@@ -105,9 +95,16 @@ impl MateRouter {
     }
     async fn create(
         State(mater): State<Arc<dyn CoreMateTrait>>,
-        payload: Result<Json<NewModel>, JsonRejection>,
+        payload: Result<Json<Plan>, JsonRejection>,
     ) -> AppResult<Json<Model>> {
         let payload = extract_payload(payload)?;
         Ok(Json(mater.create_mate(&payload).await?))
     }
+}
+
+#[derive(Deserialize)]
+struct MateQuery {
+    r#type: Option<ParticipantType>,
+    #[serde(default)]
+    exclude_myself: bool,
 }

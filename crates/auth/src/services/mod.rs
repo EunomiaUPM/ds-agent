@@ -21,3 +21,6 @@ pub mod gatekeeper;
 pub mod peer_connector;
 pub mod repo;
 pub mod vc_requester;
+mod has_service_trait;
+
+pub use has_service_trait::*;

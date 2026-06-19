@@ -16,7 +16,14 @@
  */
 
 
-pub enum WhatResponse {
+pub enum VcWhatResponse {
     Issuance(String),
     Presentation(String),
+    Wait
+}
+
+pub enum TokenWhatResponse {
+    Completed,
+    Presentation(String),
+    Wait
 }

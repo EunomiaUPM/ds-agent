@@ -14,18 +14,26 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 use crate::types::entities::ReachProvider;
-use crate::types::plan::PeerConnectionPlan;
+use crate::types::response::TokenWhatResponse;
 use async_trait::async_trait;
 use ymir::data::entities::sent::{grant, interaction, verification};
 use ymir::data::entities::shared::{participant, resource_req};
 use ymir::errors::Outcome;
+use ymir::types::gnap::grant_request::interact::InteractAction;
 use ymir::types::gnap::grant_response::GrantResponse;
 
 #[async_trait]
 pub trait PeerConnectorTrait: Send + Sync + 'static {
-    fn build_peer_plan(&self, payload: &ReachProvider) -> PeerConnectionPlan;
+    fn build_grant_plan(&self, payload: ReachProvider) -> grant::Plan;
+    fn build_interaction_plan(&self, id: &str) -> interaction::Plan;
+    fn build_resource_req_plan(
+        &self,
+        id: &str,
+        actions: Vec<InteractAction>,
+    ) -> resource_req::Model;
+    fn build_verification_plan(&self, id: &str, uri: &str) -> Outcome<verification::Plan>;
+    fn build_mate_plan(&self, grant: &grant::Model) -> participant::Plan;
     async fn send_grant_req(
         &self,
         grant: &grant::Model,
@@ -37,9 +45,5 @@ pub trait PeerConnectorTrait: Send + Sync + 'static {
         response: GrantResponse,
         grant: &mut grant::Model,
         interaction: &mut interaction::Model,
-    ) -> Outcome<String>;
-    fn build_verification_plan(&self, id: &str, uri: &str) -> Outcome<verification::Plan>;
-    fn manage_cont_resp(&self, response: GrantResponse, grant: &mut grant::Model) -> Outcome<()>;
-    fn build_mate_plan(&self, grant: &grant::Model) -> participant::Plan;
-    fn manage_rejection(&self, model: &mut grant::Model);
+    ) -> Outcome<TokenWhatResponse>;
 }

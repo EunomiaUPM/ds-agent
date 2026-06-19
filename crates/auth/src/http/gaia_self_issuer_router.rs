@@ -35,7 +35,7 @@ use ymir::utils::{
     extract_bearer_token, extract_form_payload, extract_payload, extract_query_param,
 };
 
-use crate::core::modules::GaiaSelfIssuerModuleTrait;
+use crate::modules::GaiaSelfIssuerModuleTrait;
 
 pub struct GaiaSelfIssuerRouter {
     self_issuer: Arc<dyn GaiaSelfIssuerModuleTrait>,

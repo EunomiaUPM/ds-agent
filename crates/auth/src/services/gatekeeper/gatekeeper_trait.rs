@@ -13,37 +13,30 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
 
+ */
 use axum::body::Bytes;
 use axum::http::HeaderMap;
 use ymir::data::entities::received::{grant, interaction};
 use ymir::data::entities::shared::{participant, resource_req};
 use ymir::errors::Outcome;
-use ymir::types::gnap::grant_request::GrantRequest;
-use ymir::types::gnap::grant_response::GrantResponse;
+use ymir::types::gnap::grant_request::client::Client;
+use ymir::types::gnap::grant_request::interact::InteractRequest;
+use ymir::types::gnap::grant_request::{GrantRequest, GrantRequestKind};
 
 pub trait GateKeeperTrait: Send + Sync + 'static {
-    fn validate_grant(&self, payload: &Bytes, headers: &HeaderMap) -> Outcome<GrantRequest>;
-    fn build_grant_plan(
+    fn build_grant_plan(&self, class_id: Option<String>) -> Outcome<grant::Plan>;
+    fn build_resource_req_plan(
         &self,
-        payload: GrantRequest,
-    ) -> Outcome<(grant::Plan, interaction::Plan, resource_req::Model)>;
-
-    fn respond_grant_pending(&self, interaction: &interaction::Model, uri: &str) -> GrantResponse;
-    fn validate_cont_req(
+        id: &str,
+        grant_request_kind: GrantRequestKind,
+    ) -> Outcome<resource_req::Model>;
+    fn build_interaction_plan(
         &self,
-        model: &interaction::Model,
-        payload: &Bytes,
-        headers: &HeaderMap,
-    ) -> Outcome<()>;
-    async fn finish_interaction(&self, model: &interaction::Model) -> Outcome<Option<String>>;
-    fn end_req(
-        &self,
-        grant: &mut grant::Model,
-        resource_req: &resource_req::Model,
-        token: &str,
-    ) -> GrantResponse;
+        id: &str,
+        client: Client,
+        interact: Option<InteractRequest>,
+    ) -> Outcome<interaction::Plan>;
     fn build_mate_plan(
         &self,
         holder: &str,
@@ -51,4 +44,15 @@ pub trait GateKeeperTrait: Send + Sync + 'static {
         base_url: &str,
         token: &str,
     ) -> participant::Plan;
+    fn validate_grant_req(&self, payload: &Bytes, headers: &HeaderMap) -> Outcome<GrantRequest>;
+
+    fn validate_cont_req(
+        &self,
+        model: &interaction::Model,
+        payload: &Bytes,
+        headers: &HeaderMap,
+    ) -> Outcome<()>;
+    async fn finish_interaction(&self, model: &interaction::Model, verification_result: Outcome<()>) -> Outcome<Option<String>>;
+
+
 }

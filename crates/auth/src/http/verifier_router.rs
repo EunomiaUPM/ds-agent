@@ -27,7 +27,7 @@ use ymir::types::vcs::VPDef;
 use ymir::types::verifying::VerifyPayload;
 use ymir::utils::extract_form_payload;
 
-use crate::core::modules::VerifierModuleTrait;
+use crate::modules::VerifierModuleTrait;
 
 pub struct VerifierRouter {
     verifier: Arc<dyn VerifierModuleTrait>,

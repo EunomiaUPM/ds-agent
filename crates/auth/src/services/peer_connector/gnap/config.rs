@@ -30,7 +30,7 @@ pub struct GnapPeerConnectorConfig {
 impl From<&SsiAuthConfig> for GnapPeerConnectorConfig {
     fn from(value: &SsiAuthConfig) -> Self {
         GnapPeerConnectorConfig {
-            hosts: value.common().hosts.clone(),
+            hosts: value.common().hosts().clone(),
             client: value.client_config().clone(),
             api_path: value.common().get_api_version(),
         }

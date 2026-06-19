@@ -24,9 +24,8 @@ use axum::routing::post;
 use axum::{Json, Router};
 use ymir::errors::AppResult;
 use ymir::types::gnap::grant_response::GrantResponse;
-use ymir::types::gnap::AccessToken;
 
-use crate::core::modules::GateKeeperModuleTrait;
+use crate::modules::GateKeeperModuleTrait;
 
 pub struct GateKeeperRouter {
     gatekeeper: Arc<dyn GateKeeperModuleTrait>,
@@ -49,7 +48,7 @@ impl GateKeeperRouter {
         headers: HeaderMap,
         payload: Bytes,
     ) -> AppResult<Json<GrantResponse>> {
-        Ok(Json(gatekeeper.manage_grant_req(payload, headers).await?))
+        Ok(Json(gatekeeper.manage_grant_req(payload, headers).await))
     }
 
     async fn continue_req(
@@ -57,7 +56,9 @@ impl GateKeeperRouter {
         headers: HeaderMap,
         Path(id): Path<String>,
         payload: Bytes,
-    ) -> AppResult<Json<AccessToken>> {
-        Ok(Json(gatekeeper.manage_continue_req(id, payload, headers).await?))
+    ) -> AppResult<Json<GrantResponse>> {
+        Ok(Json(
+            gatekeeper.manage_continue_req(id, payload, headers).await,
+        ))
     }
 }

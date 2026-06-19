@@ -25,8 +25,8 @@ pub struct GnapGateKeeperConfig {
     api_path: String,
 }
 
-impl From<SsiAuthConfig> for GnapGateKeeperConfig {
-    fn from(value: SsiAuthConfig) -> Self {
+impl From<&SsiAuthConfig> for GnapGateKeeperConfig {
+    fn from(value: &SsiAuthConfig) -> Self {
         Self {
             hosts: value.common().hosts().clone(),
             api_path: value.common().get_api_version(),

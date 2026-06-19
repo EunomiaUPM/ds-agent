@@ -16,23 +16,26 @@
  */
 
 use serde::{Deserialize, Serialize};
-use ymir::types::gnap::grant_request::interact::InteractAction;
+use ymir::types::gnap::grant_request::interact::{InteractAction, InteractStart};
+use ymir::types::vcs::VcTypeConfig;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ReachAuthority {
     pub id: String,
-    pub slug: String,
+    pub nick: String,
     pub url: String,
-    pub vc_type: String,
-    pub method: String,
+    pub vc_type: VcTypeConfig,
+    pub method: InteractStart,
+    // #[serde(default)] TODO
     pub auto: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ReachProvider {
     pub id: String,
-    pub slug: String,
+    pub nick: String,
     pub url: String,
     pub actions: Vec<InteractAction>,
+    // #[serde(default)] TODO
     pub auto: Option<bool>,
 }

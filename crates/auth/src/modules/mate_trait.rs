@@ -15,59 +15,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::sync::Arc;
-
 use crate::services::repo::repo_trait::AuthRepoTrait;
+use crate::services::HasRepo;
 use async_trait::async_trait;
 use common::batch_requests::BatchRequests;
 use common::facades::VerifyTokenRequest;
 use json_value_merge::Merge;
-use serde::{Deserialize, Deserializer};
 use ymir::data::entities::shared::participant::{Model, Plan};
 use ymir::errors::Outcome;
-
-#[derive(Debug, PartialEq)]
-pub enum MateRouterGetAllQueryParamsType {
-    Agents,
-    Authorities,
-    All,
-    Other(String),
-}
-
-impl<'de> Deserialize<'de> for MateRouterGetAllQueryParamsType {
-    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-        let s = String::deserialize(d)?;
-        Ok(match s.as_str() {
-            "agents" => Self::Agents,
-            "authorities" => Self::Authorities,
-            "all" => Self::All,
-            other => Self::Other(other.to_string()),
-        })
-    }
-}
+use ymir::types::participants::ParticipantType;
 
 #[async_trait]
-pub trait CoreMateTrait: Send + Sync + 'static {
-    fn repo(&self) -> Arc<dyn AuthRepoTrait>;
-
-    async fn get_all(
-        &self,
-        query_type: &MateRouterGetAllQueryParamsType,
-        exclude: &bool,
-    ) -> Outcome<Vec<Model>> {
-        let mates = self.repo().mates().get_all(None, None).await?;
+pub trait CoreMateTrait: HasRepo + Send + Sync + 'static {
+    async fn get_all(&self, query_type: ParticipantType, exclude: bool) -> Outcome<Vec<Model>> {
+        let mates = self.repo().participant().filter_by_type(query_type).await?;
         let filtered_in_mates = mates
             .into_iter()
-            .filter(|mate| !*exclude || !mate.is_me)
-            .filter(|mate| match query_type {
-                MateRouterGetAllQueryParamsType::Authorities => {
-                    mate.participant_type == "Authority".to_string()
-                }
-                MateRouterGetAllQueryParamsType::Agents => {
-                    mate.participant_type == "Agent".to_string()
-                }
-                _ => true,
-            })
+            .filter(|mate| !exclude || !mate.is_me)
             .collect();
         Ok(filtered_in_mates)
     }
@@ -99,7 +63,7 @@ pub trait CoreMateTrait: Send + Sync + 'static {
         self.repo().mates().update(mate).await
     }
 
-    async fn create_mate(&self, payload: &NewModel) -> Outcome<Model> {
+    async fn create_mate(&self, payload: &Plan) -> Outcome<Model> {
         self.repo().mates().create(payload.clone()).await
     }
 }

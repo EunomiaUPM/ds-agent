@@ -15,23 +15,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::collections::HashMap;
 use std::sync::Arc;
 
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{Path, Query, State};
-use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::{Json, Router};
-use ymir::data::entities::mates;
-use ymir::data::entities::req_vc::Model;
+use ymir::data::entities::sent::grant::Model;
 use ymir::errors::AppResult;
-use ymir::types::gnap::{ApprovedCallbackBody, CallbackBody};
-use ymir::utils::{extract_payload, extract_query_param};
+use ymir::types::gnap::CallbackBody;
+use ymir::utils::extract_payload;
 
-use crate::core::modules::VcRequesterModuleTrait;
+use crate::modules::VcRequesterModuleTrait;
 use crate::types::entities::ReachAuthority;
-use crate::types::wallet_helper::{ProcessUriOid4VCI, ProcessUriOid4VP};
 
 pub struct VcRequesterRouter {
     requester: Arc<dyn VcRequesterModuleTrait>,
@@ -49,21 +45,15 @@ impl VcRequesterRouter {
             .route("/{id}", get(Self::get_one))
             .route("/callback/{id}", get(Self::get_callback))
             .route("/callback/{id}", post(Self::post_callback))
-            .route("/oidc4vci", post(Self::oidc4vci))
-            .route("/oidc4vp", post(Self::oidc4vp))
             .with_state(self.requester)
     }
 
     async fn beg(
         State(requester): State<Arc<dyn VcRequesterModuleTrait>>,
         payload: Result<Json<ReachAuthority>, JsonRejection>,
-    ) -> AppResult {
+    ) -> AppResult<()> {
         let payload = extract_payload(payload)?;
-        Ok(match requester.beg_vc(payload).await {
-            Ok(Some(data)) => data.into_response(),
-            Ok(None) => ().into_response(),
-            Err(err) => err.into_response(),
-        })
+        requester.beg_vc(payload).await
     }
 
     async fn get_all(
@@ -81,41 +71,17 @@ impl VcRequesterRouter {
     async fn get_callback(
         State(requester): State<Arc<dyn VcRequesterModuleTrait>>,
         Path(id): Path<String>,
-        Query(params): Query<HashMap<String, String>>,
-    ) -> AppResult<Json<mates::Model>> {
-        let hash = extract_query_param(&params, "hash")?;
-        let interact_ref = extract_query_param(&params, "interact_ref")?;
-        let payload = ApprovedCallbackBody { interact_ref, hash };
-        Ok(Json(requester.continue_req(id, payload).await?))
+        Query(payload): Query<CallbackBody>,
+    ) -> AppResult<()> {
+        requester.manage_interaction_finish(id, payload).await
     }
 
     async fn post_callback(
         State(requester): State<Arc<dyn VcRequesterModuleTrait>>,
         Path(id): Path<String>,
         payload: Result<Json<CallbackBody>, JsonRejection>,
-    ) -> AppResult {
+    ) -> AppResult<()> {
         let payload = extract_payload(payload)?;
-        Ok(match payload {
-            CallbackBody::Approved(data) => requester
-                .continue_req(id, data)
-                .await
-                .map(Json)
-                .into_response(),
-            CallbackBody::Rejected(_) => requester.manage_rejection(id).await.into_response(),
-        })
-    }
-    async fn oidc4vci(
-        State(requester): State<Arc<dyn VcRequesterModuleTrait>>,
-        payload: Result<Json<ProcessUriOid4VCI>, JsonRejection>,
-    ) -> AppResult {
-        let payload = extract_payload(payload)?;
-        Ok(requester.process_oid4vci(&payload).await?.into_response())
-    }
-    async fn oidc4vp(
-        State(requester): State<Arc<dyn VcRequesterModuleTrait>>,
-        payload: Result<Json<ProcessUriOid4VP>, JsonRejection>,
-    ) -> AppResult {
-        let payload = extract_payload(payload)?;
-        Ok(requester.process_oid4vp(&payload).await?.into_response())
+        requester.manage_interaction_finish(id, payload).await
     }
 }

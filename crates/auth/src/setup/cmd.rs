@@ -68,11 +68,9 @@ impl AuthCommands {
             }
             AuthCliCommands::Setup(args) => {
                 let (config, vault) = Self::bootstrap(args)?;
-                match config.common().is_prod() {
-                    true => vault.write_all_secrets(None).await?,
-                    false => vault.write_local_secrets(None).await?,
-                }
-                let connection = vault.get_db_connection(config.common()).await;
+
+                vault.write_all_secrets(None).await?;
+                let connection = vault.get_db_connection(config.common()).await?;
                 AuthMigrator::run(&connection).await?;
             }
         }
@@ -83,9 +81,9 @@ impl AuthCommands {
     fn bootstrap(args: AuthCliArgs) -> Outcome<(SsiAuthConfig, VaultService)> {
         let config = SsiAuthConfig::load(&args.env_file)?;
         let vault = if config.common().is_vault_real() {
-            VaultService::Real(RealVaultService::new())
+            VaultService::Real(RealVaultService::new()?)
         } else {
-            VaultService::Fake(FakeVaultService::new())
+            VaultService::Fake(FakeVaultService::new()?)
         };
         show_table(&config)?;
         Ok((config, vault))

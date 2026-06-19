@@ -15,7 +15,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod gnap;
-mod peer_connector_trait;
+mod gatekeeper;
+mod verifier;
+mod gaia_self_issuer;
+mod mate_trait;
+mod peer_connector;
+mod vc_requester;
 
-pub use peer_connector_trait::PeerConnectorTrait;
+pub use gatekeeper::GateKeeperModuleTrait;
+pub use verifier::VerifierModuleTrait;
+pub use gaia_self_issuer::GaiaSelfIssuerModuleTrait;
+pub use mate_trait::CoreMateTrait;
+pub use peer_connector::PeerConnectorModuleTrait;
+pub use vc_requester::VcRequesterModuleTrait;

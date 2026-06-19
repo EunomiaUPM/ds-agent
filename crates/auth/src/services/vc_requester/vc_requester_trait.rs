@@ -15,21 +15,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 use crate::types::entities::ReachAuthority;
-use crate::types::response::WhatResponse;
+use crate::types::response::VcWhatResponse;
 use async_trait::async_trait;
-use reqwest::Response;
-use std::unreachable;
 use ymir::data::entities::sent::{grant, interaction, verification};
 use ymir::data::entities::shared::participant;
-use ymir::errors::{BadFormat, Errors, Outcome};
-use ymir::types::gnap::grant_response::{GrantResponse, GrantResponseKind};
-use ymir::types::gnap::GrantStatus;
-use ymir::types::participants::ParticipantType;
-use ymir::utils::trim_4_base;
+use ymir::errors::Outcome;
+use ymir::types::gnap::grant_request::interact::InteractStart;
+use ymir::types::gnap::grant_response::GrantResponse;
 
 #[async_trait]
 pub trait VcRequesterTrait: Send + Sync + 'static {
-    fn build_vc_plan(&self, payload: &ReachAuthority) -> Outcome<(grant::Plan, interaction::Plan)>;
+    fn build_grant_plan(&self, payload: ReachAuthority) -> grant::Plan;
+    fn build_interaction_plan(&self, id: &str, start: InteractStart) -> interaction::Plan;
+    fn build_verification_plan(&self, uri: &str, id: &str) -> Outcome<verification::Plan>;
+    fn build_authority_plan(&self, grant: &grant::Model) -> participant::Plan;
     async fn send_grant_req(
         &self,
         grant: &grant::Model,
@@ -40,13 +39,6 @@ pub trait VcRequesterTrait: Send + Sync + 'static {
         response: GrantResponse,
         grant: &mut grant::Model,
         interaction: &mut interaction::Model,
-    ) -> Outcome<Option<WhatResponse>>;
-    fn build_verification_plan(&self, uri: &str, id: &str) -> Outcome<verification::Plan>;
-    async fn manage_res(
-        &self,
-        vc_req_model: &mut req_vc::Model,
-        res: Response,
-    ) -> Outcome<mates::NewModel>;
-    fn build_authority_plan(&self, grant: &grant::Model) -> participant::Plan;
-    async fn manage_rejection(&self, vc_req_model: &mut req_vc::Model) -> Outcome<()>;
+    ) -> Outcome<VcWhatResponse>;
+
 }

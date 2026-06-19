@@ -28,7 +28,7 @@ pub use business_router::BusinessRouter;
 pub use core_router::AuthRouter;
 pub use gaia_self_issuer_router::GaiaSelfIssuerRouter;
 pub use gatekeeper_router::GateKeeperRouter;
-pub use mate_router::MateRouter;
+pub use mate_router::ParticipantRouter;
 pub use peer_connector_router::OnboarderRouter;
 pub use vc_requester_router::VcRequesterRouter;
 pub use verifier_router::VerifierRouter;

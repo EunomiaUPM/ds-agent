@@ -34,7 +34,7 @@ use ymir::types::gnap::grant_request::GrantRequestKind;
 use ymir::types::gnap::grant_response::GrantResponse;
 use ymir::types::gnap::{ApprovedCallbackBody, ContinueRequest};
 use ymir::types::http::HttpBody;
-use ymir::types::keys::{Certificate, PrivateKey};
+use ymir::types::keys::{Certificate, KeySource, PrivateKey};
 use ymir::types::secrets::{PemHelper, StringHelper};
 use ymir::utils::{
     expect_from_env, http_client, json_headers, require_field, ParseHeaderExt, ResponseExt,
@@ -119,6 +119,7 @@ impl CallbackTrait for BasicCallbackService {
         let cert = expect_from_env("VAULT_APP_CERT");
         let cert: StringHelper = self.vault.read(None, &cert).await?;
         let certificate = Certificate::try_from_pem(cert.data())?;
+        let key_source = KeySource::Cert(certificate);
 
         let priv_key = expect_from_env("VAULT_APP_PRIV_KEY");
         let priv_key: PemHelper = self.vault.read(None, &priv_key).await?;
@@ -133,7 +134,7 @@ impl CallbackTrait for BasicCallbackService {
         let mut headers = json_headers();
         headers.insert(AUTHORIZATION, authorization.parse_header()?);
         let httpsig = HttpSig::build(
-            &certificate,
+            &key_source,
             &priv_key,
             None,
             "POST",

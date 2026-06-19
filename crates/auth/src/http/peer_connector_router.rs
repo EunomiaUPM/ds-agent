@@ -15,97 +15,74 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::collections::HashMap;
 use std::sync::Arc;
 
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{Path, Query, State};
-use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::{Json, Router};
-use ymir::data::entities::{mates, req_request};
+use ymir::data::entities::sent::grant;
 use ymir::errors::AppResult;
-use ymir::types::gnap::{ApprovedCallbackBody, CallbackBody};
-use ymir::utils::{extract_payload, extract_query_param};
+use ymir::types::gnap::CallbackBody;
+use ymir::utils::extract_payload;
 
-use crate::core::modules::PeerConnectorModuleTrait;
+use crate::modules::PeerConnectorModuleTrait;
 use crate::types::entities::ReachProvider;
 
 pub struct OnboarderRouter {
-    onboarder: Arc<dyn PeerConnectorModuleTrait>,
+    peer_connector: Arc<dyn PeerConnectorModuleTrait>,
 }
 
 impl OnboarderRouter {
-    pub fn new(onboarder: Arc<dyn PeerConnectorModuleTrait>) -> Self {
-        Self { onboarder }
+    pub fn new(peer_connector: Arc<dyn PeerConnectorModuleTrait>) -> Self {
+        Self { peer_connector }
     }
 
     pub fn router(self) -> Router {
         Router::new()
-            .route("/provider", post(Self::onboard))
+            .route("/provider", post(Self::connect))
             .route("/callback/{id}", get(Self::get_callback))
             .route("/callback/{id}", post(Self::post_callback))
             .route("/request/all", get(Self::get_all))
             .route("/request/{id}", get(Self::get_one))
-            .with_state(self.onboarder)
+            .with_state(self.peer_connector)
     }
 
-    async fn onboard(
-        State(onboarder): State<Arc<dyn PeerConnectorModuleTrait>>,
+    async fn connect(
+        State(peer_connector): State<Arc<dyn PeerConnectorModuleTrait>>,
         payload: Result<Json<ReachProvider>, JsonRejection>,
-    ) -> AppResult {
+    ) -> AppResult<()> {
         let payload = extract_payload(payload)?;
-        Ok(match onboarder.onboard_req(payload).await {
-            Ok(Some(data)) => data.into_response(),
-            Ok(None) => ().into_response(),
-            Err(e) => e.into_response(),
-        })
+        peer_connector.req_peer_connection(payload).await
     }
 
     async fn get_callback(
-        State(onboarder): State<Arc<dyn PeerConnectorModuleTrait>>,
+        State(peer_connector): State<Arc<dyn PeerConnectorModuleTrait>>,
         Path(id): Path<String>,
-        Query(params): Query<HashMap<String, String>>,
-    ) -> AppResult {
-        let hash = extract_query_param(&params, "hash")?;
-        let interact_ref = extract_query_param(&params, "interact_ref")?;
-        let payload = ApprovedCallbackBody { interact_ref, hash };
-        Ok(match payload {
-            CallbackBody::Approved(data) => onboarder
-                .continue_req(&id, data)
-                .await
-                .map(Json)
-                .into_response(),
-            CallbackBody::Rejected(_) => onboarder.manage_rejection(id).await.into_response(),
-        })
+        Query(params): Query<CallbackBody>,
+    ) -> AppResult<()> {
+        peer_connector.manage_interaction_finish(id, params).await
     }
 
     async fn post_callback(
-        State(onboarder): State<Arc<dyn PeerConnectorModuleTrait>>,
+        State(peer_connector): State<Arc<dyn PeerConnectorModuleTrait>>,
         Path(id): Path<String>,
         payload: Result<Json<CallbackBody>, JsonRejection>,
-    ) -> AppResult {
+    ) -> AppResult<()> {
         let payload = extract_payload(payload)?;
-        Ok(match payload {
-            CallbackBody::Approved(data) => onboarder
-                .continue_req(&id, data)
-                .await
-                .map(Json)
-                .into_response(),
-            CallbackBody::Rejected(_) => onboarder.manage_rejection(id).await.into_response(),
-        })
+        peer_connector.continue_req(id, payload).await
     }
 
     async fn get_all(
-        State(onboarder): State<Arc<dyn PeerConnectorModuleTrait>>,
-    ) -> AppResult<Json<Vec<req_request::Model>>> {
-        Ok(Json(onboarder.get_all().await?))
+        State(peer_connector): State<Arc<dyn PeerConnectorModuleTrait>>,
+    ) -> AppResult<Json<Vec<grant::Model>>> {
+        Ok(Json(peer_connector.get_all().await?))
     }
 
     async fn get_one(
-        State(onboarder): State<Arc<dyn PeerConnectorModuleTrait>>,
+        State(peer_connector): State<Arc<dyn PeerConnectorModuleTrait>>,
         Path(id): Path<String>,
-    ) -> AppResult<Json<req_request::Model>> {
-        Ok(Json(onboarder.get_by_id(id).await?))
+    ) -> AppResult<Json<grant::Model>> {
+        Ok(Json(peer_connector.get_by_id(id).await?))
     }
 }

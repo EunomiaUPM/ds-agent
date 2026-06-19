@@ -16,7 +16,6 @@
  */
 
 use std::str::FromStr;
-use std::sync::Arc;
 
 use async_trait::async_trait;
 use serde_json::Value;
@@ -26,7 +25,6 @@ use ymir::services::issuer::IssuerTrait;
 use ymir::services::wallet::WalletTrait;
 use ymir::types::issuing::{
     AuthServerMetadata, CredentialRequestsss, IssuerMetadata, IssuingToken, TokenRequest,
-    VCCredOffer,
 };
 use ymir::types::vcs::VcType;
 use ymir::types::wallet::waltid::MatchingVCs;
@@ -36,10 +34,10 @@ use crate::services::repo::repo_trait::AuthRepoTrait;
 
 #[async_trait]
 pub trait GaiaSelfIssuerModuleTrait: Send + Sync + 'static {
-    fn issuer(&self) -> Arc<dyn IssuerTrait>;
-    fn gaia(&self) -> Arc<dyn GaiaOwnIssuerTrait>;
-    fn wallet(&self) -> Arc<dyn WalletTrait>;
-    fn repo(&self) -> Arc<dyn AuthRepoTrait>;
+    // fn issuer(&self) -> Arc<dyn IssuerTrait>;
+    // fn gaia(&self) -> Arc<dyn GaiaOwnIssuerTrait>;
+    // fn wallet(&self) -> Arc<dyn WalletTrait>;
+    // fn repo(&self) -> Arc<dyn AuthRepoTrait>;
     async fn generate_gaia_vcs(&self) -> Outcome<Option<String>> {
         let id = Uuid::new_v4().to_string();
         let uri = self.issuer().generate_issuing_uri(&id, Some("gaia"));

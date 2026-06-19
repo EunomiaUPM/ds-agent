@@ -15,17 +15,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use serde::{Deserialize, Serialize};
+use common::config::services::SsiAuthConfig;
+use std::sync::Arc;
+use ymir::modules::WalletModuleTrait;
 
-#[derive(Deserialize, Serialize, Debug)]
-pub struct ProcessUriOid4VCI {
-    pub id: String,
-    pub uri: String,
-}
+use crate::modules::{
+    CoreMateTrait, GaiaSelfIssuerModuleTrait, GateKeeperModuleTrait, PeerConnectorModuleTrait,
+    VcRequesterModuleTrait, VerifierModuleTrait,
+};
 
-#[derive(Deserialize, Serialize, Debug)]
-pub struct ProcessUriOid4VP {
-    pub entity: String,
-    pub id: String,
-    pub uri: String,
+pub trait AuthOrchestatorTrait:
+    PeerConnectorModuleTrait
+    + WalletModuleTrait
+    + VcRequesterModuleTrait
+    + CoreMateTrait
+    + GaiaSelfIssuerModuleTrait
+    + VerifierModuleTrait
+    + VcRequesterModuleTrait
+    + GateKeeperModuleTrait
+    + Send
+    + Sync
+    + 'static
+{
+    fn config(&self) -> Arc<SsiAuthConfig>;
 }

@@ -15,15 +15,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 pub enum VcWhatResponse {
     Issuance(String),
     Presentation(String),
-    Wait
+    Wait,
 }
 
 pub enum TokenWhatResponse {
     Completed,
     Presentation(String),
-    Wait
+    Wait,
 }
+

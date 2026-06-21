@@ -147,7 +147,7 @@ impl VcRequesterTrait for VCReqService {
     ) -> Outcome<GrantResponse> {
         info!("Sending grant request request to authority");
 
-        let vc_type_config = require_field(grant.vc_type_config, "vc_type_config")?;
+        let vc_type_config = require_field(grant.vc_type_config.as_ref(), "vc_type_config")?;
         let cert = expect_from_env("VAULT_APP_CERT");
         let cert: StringHelper = self.vault.read(None, &cert).await?;
         let certificate = Certificate::try_from_pem(cert.data())?;
@@ -159,7 +159,7 @@ impl VcRequesterTrait for VCReqService {
 
         let client = self.config.get_client(cert.data())?;
 
-        let grant_request = GrantRequest::new_vc(client, vc_type_config, interaction);
+        let grant_request = GrantRequest::new_vc(client, vc_type_config.clone(), interaction);
 
         let (body, body_bytes) = HttpBody::from_json_bytes(&grant_request)?;
 

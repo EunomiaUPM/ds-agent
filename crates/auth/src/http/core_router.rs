@@ -29,11 +29,11 @@ use uuid::Uuid;
 use ymir::config::traits::ApiConfigTrait;
 use ymir::http::{HealthRouter, OpenapiRouter, WalletRouter};
 
-use crate::core::{AuthCore, AuthOrchestatorTrait};
+use crate::core::{AuthCore, AuthOrchestratorTrait};
 use crate::http::gatekeeper_router::GateKeeperRouter;
 use crate::http::peer_connector_router::OnboarderRouter;
 use crate::http::verifier_router::VerifierRouter;
-use crate::http::{GaiaSelfIssuerRouter, ParticipantRouter, VcRequesterRouter};
+use crate::http::{ParticipantRouter, VcRequesterRouter};
 
 pub struct AuthRouter {
     core: Arc<AuthCore>,
@@ -57,7 +57,7 @@ impl AuthRouter {
         let mate_router = ParticipantRouter::new(self.core.clone());
         let verifier_router = VerifierRouter::new(self.core.clone());
         let onboarder_router = OnboarderRouter::new(self.core.clone());
-        let gaia_router = GaiaSelfIssuerRouter::new(self.core.clone());
+        // let gaia_router = GaiaSelfIssuerRouter::new(self.core.clone());
         let openapi_router = OpenapiRouter::new(self.openapi.clone());
         let health_router = HealthRouter::new();
 
@@ -75,7 +75,7 @@ impl AuthRouter {
 
         let router = Router::new()
             .merge(wallet_router.well_known())
-            .merge(gaia_router.well_known())
+            // .merge(gaia_router.well_known())
             .nest(&format!("{}/wallet", api_path), wallet_router.router())
             .nest(&format!("{}/mates", api_path), mate_router.router())
             .nest(&format!("{}", api_path), health_router.router())
@@ -85,9 +85,12 @@ impl AuthRouter {
             )
             .nest(&format!("{}/gate", api_path), gatekeeper_router.router())
             .nest(&format!("{}/verifier", api_path), verifier_router.router())
-            .nest(&format!("{}/peer-connection", api_path), onboarder_router.router())
-            .nest(&format!("{}/docs", api_path), openapi_router.router())
-            .nest(&format!("{}/gaia", api_path), gaia_router.router());
+            .nest(
+                &format!("{}/peer-connection", api_path),
+                onboarder_router.router(),
+            )
+            .nest(&format!("{}/docs", api_path), openapi_router.router());
+        // .nest(&format!("{}/gaia", api_path), gaia_router.router());
 
         router.fallback(Self::fallback).layer(cors).layer(
             TraceLayer::new_for_http()

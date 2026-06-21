@@ -18,13 +18,13 @@
 mod gatekeeper;
 mod verifier;
 mod gaia_self_issuer;
-mod mate_trait;
+mod participant;
 mod peer_connector;
 mod vc_requester;
 
-pub use gatekeeper::GateKeeperModuleTrait;
-pub use verifier::VerifierModuleTrait;
-pub use gaia_self_issuer::GaiaSelfIssuerModuleTrait;
-pub use mate_trait::CoreMateTrait;
-pub use peer_connector::PeerConnectorModuleTrait;
-pub use vc_requester::VcRequesterModuleTrait;
+pub use gatekeeper::GateKeeperModule;
+pub use verifier::VerifierModule;
+pub use gaia_self_issuer::GaiaSelfIssuerModule;
+pub use participant::ParticipantModule;
+pub use peer_connector::PeerConnectorModule;
+pub use vc_requester::VcRequesterModule;

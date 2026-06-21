@@ -17,15 +17,16 @@
 
 use common::config::services::SsiAuthConfig;
 use std::sync::Arc;
+use ymir::modules::WalletModuleTrait;
 use ymir::services::repo::traits::shared::ParticipantRepoTrait;
 use ymir::services::verifier::VerifierTrait;
 use ymir::services::wallet::WalletTrait;
 use ymir::services::{HasVerifier, HasWallet};
 
-use super::AuthOrchestatorTrait;
+use super::AuthOrchestratorTrait;
 use crate::modules::{
-    CoreMateTrait, GaiaSelfIssuerModuleTrait, GateKeeperModuleTrait, PeerConnectorModuleTrait,
-    VcRequesterModuleTrait, VerifierModuleTrait,
+    ParticipantModule, GaiaSelfIssuerModule, GateKeeperModule, PeerConnectorModule,
+    VcRequesterModule, VerifierModule,
 };
 use crate::services::callback::CallbackTrait;
 use crate::services::gaia_self_issuer::GaiaOwnIssuerTrait;
@@ -118,13 +119,13 @@ impl HasVerifier for AuthCore {
 }
 
 // ========================================== MODULES ==============================================
-impl PeerConnectorModuleTrait for AuthCore {}
-impl CoreMateTrait for AuthCore {}
-impl VcRequesterModuleTrait for AuthCore {}
-impl GaiaSelfIssuerModuleTrait for AuthCore {}
-impl VerifierModuleTrait for AuthCore {}
+impl PeerConnectorModule for AuthCore {}
+impl ParticipantModule for AuthCore {}
+impl VcRequesterModule for AuthCore {}
+impl GaiaSelfIssuerModule for AuthCore {}
+impl VerifierModule for AuthCore {}
 
-impl GateKeeperModuleTrait for AuthCore {}
+impl GateKeeperModule for AuthCore {}
 impl WalletModuleTrait for AuthCore {
     fn participant(&self) -> Arc<dyn ParticipantRepoTrait> {
         self.repo.participant().clone()
@@ -132,7 +133,7 @@ impl WalletModuleTrait for AuthCore {
 }
 
 // ======================================== ORCHESTATOR ============================================
-impl AuthOrchestatorTrait for AuthCore {
+impl AuthOrchestratorTrait for AuthCore {
     fn config(&self) -> Arc<SsiAuthConfig> {
         self.config.clone()
     }

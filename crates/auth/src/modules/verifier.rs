@@ -18,35 +18,39 @@
 use crate::services::{HasGateKeeper, HasRepo};
 use async_trait::async_trait;
 use ymir::errors::Outcome;
-use ymir::services::HasVerifier;
 use ymir::services::verifier::VerifierTrait;
+use ymir::services::HasVerifier;
+use ymir::types::gnap::InteractionFinishResponse;
 use ymir::types::vcs::VPDef;
 use ymir::types::verifying::VerifyPayload;
 
 #[async_trait]
-pub trait VerifierModuleTrait:
-    HasGateKeeper + HasVerifier + HasRepo + Send + Sync + 'static
-{
+pub trait VerifierModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync + 'static {
     async fn get_vpd(&self, state: String) -> Outcome<VPDef> {
         let verification = self.repo().recv_verification().get_by_state(&state).await?;
         self.verifier().generate_vpd(&verification)
     }
-    async fn verify(&self, state: String, payload: VerifyPayload) -> Outcome<Option<String>> {
+    async fn verify(
+        &self,
+        state: String,
+        payload: VerifyPayload,
+    ) -> Outcome<InteractionFinishResponse> {
         let mut verification = self.repo().recv_verification().get_by_state(&state).await?;
-        let result = self
+        let verification_result = self
             .verifier()
             .verify_all(&mut verification, &payload.vp_token)
             .await;
-
-        self.repo().recv_verification().update(verification).await?;
 
         let interaction = self
             .repo()
             .recv_interaction()
             .get_by_id(&verification.id)
             .await?;
+
+        self.repo().recv_verification().update(verification).await?;
+
         self.gatekeeper()
-            .finish_interaction(&interaction, result)
+            .finish_interaction(&interaction, verification_result.clone())
             .await
     }
 }

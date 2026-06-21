@@ -26,15 +26,15 @@ use ymir::errors::AppResult;
 use ymir::types::gnap::CallbackBody;
 use ymir::utils::extract_payload;
 
-use crate::modules::PeerConnectorModuleTrait;
+use crate::modules::PeerConnectorModule;
 use crate::types::entities::ReachProvider;
 
 pub struct OnboarderRouter {
-    peer_connector: Arc<dyn PeerConnectorModuleTrait>,
+    peer_connector: Arc<dyn PeerConnectorModule>,
 }
 
 impl OnboarderRouter {
-    pub fn new(peer_connector: Arc<dyn PeerConnectorModuleTrait>) -> Self {
+    pub fn new(peer_connector: Arc<dyn PeerConnectorModule>) -> Self {
         Self { peer_connector }
     }
 
@@ -49,7 +49,7 @@ impl OnboarderRouter {
     }
 
     async fn connect(
-        State(peer_connector): State<Arc<dyn PeerConnectorModuleTrait>>,
+        State(peer_connector): State<Arc<dyn PeerConnectorModule>>,
         payload: Result<Json<ReachProvider>, JsonRejection>,
     ) -> AppResult<()> {
         let payload = extract_payload(payload)?;
@@ -57,7 +57,7 @@ impl OnboarderRouter {
     }
 
     async fn get_callback(
-        State(peer_connector): State<Arc<dyn PeerConnectorModuleTrait>>,
+        State(peer_connector): State<Arc<dyn PeerConnectorModule>>,
         Path(id): Path<String>,
         Query(params): Query<CallbackBody>,
     ) -> AppResult<()> {
@@ -65,7 +65,7 @@ impl OnboarderRouter {
     }
 
     async fn post_callback(
-        State(peer_connector): State<Arc<dyn PeerConnectorModuleTrait>>,
+        State(peer_connector): State<Arc<dyn PeerConnectorModule>>,
         Path(id): Path<String>,
         payload: Result<Json<CallbackBody>, JsonRejection>,
     ) -> AppResult<()> {
@@ -74,13 +74,13 @@ impl OnboarderRouter {
     }
 
     async fn get_all(
-        State(peer_connector): State<Arc<dyn PeerConnectorModuleTrait>>,
+        State(peer_connector): State<Arc<dyn PeerConnectorModule>>,
     ) -> AppResult<Json<Vec<grant::Model>>> {
         Ok(Json(peer_connector.get_all().await?))
     }
 
     async fn get_one(
-        State(peer_connector): State<Arc<dyn PeerConnectorModuleTrait>>,
+        State(peer_connector): State<Arc<dyn PeerConnectorModule>>,
         Path(id): Path<String>,
     ) -> AppResult<Json<grant::Model>> {
         Ok(Json(peer_connector.get_by_id(id).await?))

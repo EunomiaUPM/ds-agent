@@ -26,15 +26,15 @@ use ymir::errors::AppResult;
 use ymir::types::gnap::CallbackBody;
 use ymir::utils::extract_payload;
 
-use crate::modules::VcRequesterModuleTrait;
+use crate::modules::VcRequesterModule;
 use crate::types::entities::ReachAuthority;
 
 pub struct VcRequesterRouter {
-    requester: Arc<dyn VcRequesterModuleTrait>,
+    requester: Arc<dyn VcRequesterModule>,
 }
 
 impl VcRequesterRouter {
-    pub fn new(requester: Arc<dyn VcRequesterModuleTrait>) -> Self {
+    pub fn new(requester: Arc<dyn VcRequesterModule>) -> Self {
         VcRequesterRouter { requester }
     }
 
@@ -49,7 +49,7 @@ impl VcRequesterRouter {
     }
 
     async fn beg(
-        State(requester): State<Arc<dyn VcRequesterModuleTrait>>,
+        State(requester): State<Arc<dyn VcRequesterModule>>,
         payload: Result<Json<ReachAuthority>, JsonRejection>,
     ) -> AppResult<()> {
         let payload = extract_payload(payload)?;
@@ -57,19 +57,19 @@ impl VcRequesterRouter {
     }
 
     async fn get_all(
-        State(requester): State<Arc<dyn VcRequesterModuleTrait>>,
+        State(requester): State<Arc<dyn VcRequesterModule>>,
     ) -> AppResult<Json<Vec<Model>>> {
         Ok(Json(requester.get_all().await?))
     }
 
     async fn get_one(
-        State(requester): State<Arc<dyn VcRequesterModuleTrait>>,
+        State(requester): State<Arc<dyn VcRequesterModule>>,
         Path(id): Path<String>,
     ) -> AppResult<Json<Model>> {
         Ok(Json(requester.get_by_id(id).await?))
     }
     async fn get_callback(
-        State(requester): State<Arc<dyn VcRequesterModuleTrait>>,
+        State(requester): State<Arc<dyn VcRequesterModule>>,
         Path(id): Path<String>,
         Query(payload): Query<CallbackBody>,
     ) -> AppResult<()> {
@@ -77,7 +77,7 @@ impl VcRequesterRouter {
     }
 
     async fn post_callback(
-        State(requester): State<Arc<dyn VcRequesterModuleTrait>>,
+        State(requester): State<Arc<dyn VcRequesterModule>>,
         Path(id): Path<String>,
         payload: Result<Json<CallbackBody>, JsonRejection>,
     ) -> AppResult<()> {

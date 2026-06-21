@@ -22,6 +22,7 @@ use crate::services::{HasCallback, HasRepo, HasVcRequester};
 use crate::types::entities::ReachAuthority;
 use crate::types::response::VcWhatResponse;
 use async_trait::async_trait;
+use chrono::Utc;
 use ymir::data::entities::sent::grant;
 use ymir::errors::Outcome;
 use ymir::services::HasWallet;
@@ -30,7 +31,7 @@ use ymir::types::gnap::{ApprovedCallbackBody, CallbackBody, GrantStatus};
 use ymir::types::verifying::VerificationStatus;
 
 #[async_trait]
-pub trait VcRequesterModuleTrait:
+pub trait VcRequesterModule:
     HasVcRequester + HasRepo + HasCallback + HasWallet + Send + Sync + 'static
 {
     async fn beg_vc(&self, payload: ReachAuthority) -> Outcome<()> {
@@ -53,14 +54,69 @@ pub trait VcRequesterModuleTrait:
         let grant = self.repo().sent_grant().update(grant).await?;
         let _interaction = self.repo().sent_interaction().update(interaction).await?;
 
-        self.manage_grant_resp(grant, what_response)
+        self.manage_grant_resp(grant, what_response).await
     }
 
     async fn manage_interaction_finish(&self, id: String, payload: CallbackBody) -> Outcome<()> {
         match payload {
-            CallbackBody::Approved(payload) => self.req_vc_continuation(id, payload),
-            CallbackBody::Rejected(_payload) => self.manage_rejection(id),
+            CallbackBody::Approved(payload) => self.req_vc_continuation(id, payload).await,
+            CallbackBody::Rejected(_payload) => self.manage_rejection(id).await,
         }
+    }
+    // =================================== GETTERS FOR FRONTEND ====================================
+
+    async fn get_all(&self) -> Outcome<Vec<grant::Model>> {
+        self.repo()
+            .sent_grant()
+            .get_by_type(GrantKind::CredentialRequest)
+            .await
+    }
+
+    async fn get_by_id(&self, id: String) -> Outcome<grant::Model> {
+        self.repo().vc_req().get_by_id(&id).await
+    }
+
+    // ========================================= INTERNALS =========================================
+    async fn manage_grant_resp(
+        &self,
+        grant: grant::Model,
+        vc_what_response: Outcome<VcWhatResponse>,
+    ) -> Outcome<()> {
+        match vc_what_response? {
+            VcWhatResponse::Issuance(uri) => self.manage_oid4vci(grant, &uri).await,
+            VcWhatResponse::Presentation(uri) => self.manage_oid4vp(&grant.id, grant.auto, &uri).await,
+            VcWhatResponse::Wait => Ok(()),
+        }
+    }
+
+    async fn manage_oid4vci(&self, mut grant: grant::Model, uri: &str) -> Outcome<()> {
+        if &grant.auto {
+            self.wallet().process_oid4vci(&uri).await?;
+
+            grant.status = GrantStatus::Finalized;
+            grant.ended_at = Some(Utc::now());
+            let grant = self.repo().sent_grant().update(grant).await?;
+            let authority = self.vc_requester().build_authority_plan(&grant);
+            self.repo().participant().force_update(authority).await?;
+        }
+
+        Ok(())
+    }
+    async fn manage_oid4vp(&self, id: &str, auto: bool, uri: &str) -> Outcome<()> {
+        let verification = self.vc_requester().build_verification_plan(&uri, id)?;
+        let mut verification = self.repo().sent_verification().create(verification).await?;
+
+        if auto {
+            match self.wallet().process_oid4vp(&uri).await {
+                Ok(_) => verification.status = VerificationStatus::Verified,
+                Err(_) => {
+                    verification.status = VerificationStatus::Failed;
+                }
+            }
+            verification.ended_at = Some(Utc::now());
+            self.repo().sent_verification().update(verification).await?;
+        }
+        Ok(())
     }
 
     async fn req_vc_continuation(&self, id: String, payload: ApprovedCallbackBody) -> Outcome<()> {
@@ -81,65 +137,14 @@ pub trait VcRequesterModuleTrait:
         let grant = self.repo().sent_grant().update(grant).await?;
         let _interaction = self.repo().sent_interaction().update(interaction).await?;
 
-        self.manage_grant_resp(grant, what_response)
+        self.manage_grant_resp(grant, what_response).await
     }
 
     async fn manage_rejection(&self, id: String) -> Outcome<()> {
         let mut grant = self.repo().sent_grant().get_by_id(&id).await?;
         grant.status = GrantStatus::Rejected;
-        grant.ended_at = Some(chrono::Utc::now());
+        grant.ended_at = Some(Utc::now());
         self.repo().sent_grant().update(grant).await?;
         Ok(())
-    }
-
-    async fn manage_grant_resp(
-        &self,
-        grant: grant::Model,
-        vc_what_response: Outcome<VcWhatResponse>,
-    ) -> Outcome<()> {
-        match vc_what_response? {
-            VcWhatResponse::Issuance(uri) => self.manage_oid4vci(grant, &uri),
-            VcWhatResponse::Presentation(uri) => self.manage_oid4vp(&grant.id, grant.auto, &uri),
-            VcWhatResponse::Wait => Ok(()),
-        }
-    }
-
-    async fn manage_oid4vci(&self, mut grant: grant::Model, uri: &str) -> Outcome<()> {
-        self.wallet().process_oid4vci(uri).await?;
-
-        grant.status = GrantStatus::Finalized;
-        let grant = self.repo().sent_grant().update(grant).await?;
-
-        let authority = self.vc_requester().build_authority_plan(&grant);
-        self.repo().participant().force_update(authority).await?;
-
-        Ok(())
-    }
-    async fn manage_oid4vp(&self, id: &str, auto: bool, uri: &str) -> Outcome<()> {
-        self.wallet().process_oid4vp(uri).await?;
-
-        let verification = self.vc_requester().build_verification_plan(&uri, id)?;
-        let mut verification = self.repo().sent_verification().create(verification).await?;
-
-        if auto {
-            match self.wallet().process_oid4vp(&uri).await {
-                Ok(_) => verification.status = VerificationStatus::Verified,
-                Err(_) => {
-                    verification.status = VerificationStatus::Failed;
-                }
-            }
-            self.repo().sent_verification().update(verification).await?;
-        }
-        Ok(())
-    }
-    async fn get_all(&self) -> Outcome<Vec<grant::Model>> {
-        self.repo()
-            .sent_grant()
-            .get_by_type(GrantKind::CredentialRequest)
-            .await
-    }
-
-    async fn get_by_id(&self, id: String) -> Outcome<grant::Model> {
-        self.repo().vc_req().get_by_id(&id).await
     }
 }

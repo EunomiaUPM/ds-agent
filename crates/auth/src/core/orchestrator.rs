@@ -20,19 +20,18 @@ use std::sync::Arc;
 use ymir::modules::WalletModuleTrait;
 
 use crate::modules::{
-    CoreMateTrait, GaiaSelfIssuerModuleTrait, GateKeeperModuleTrait, PeerConnectorModuleTrait,
-    VcRequesterModuleTrait, VerifierModuleTrait,
+    ParticipantModule, GaiaSelfIssuerModule, GateKeeperModule, PeerConnectorModule,
+    VcRequesterModule, VerifierModule,
 };
 
-pub trait AuthOrchestatorTrait:
-    PeerConnectorModuleTrait
+pub trait AuthOrchestratorTrait:
+PeerConnectorModule
     + WalletModuleTrait
-    + VcRequesterModuleTrait
-    + CoreMateTrait
-    + GaiaSelfIssuerModuleTrait
-    + VerifierModuleTrait
-    + VcRequesterModuleTrait
-    + GateKeeperModuleTrait
+    + ParticipantModule
+    + GaiaSelfIssuerModule
+    + VerifierModule
+    + VcRequesterModule
+    + GateKeeperModule
     + Send
     + Sync
     + 'static

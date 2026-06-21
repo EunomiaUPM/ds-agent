@@ -71,8 +71,8 @@ impl AuthApplication {
         let db_connection = vault.get_db_connection(config.common()).await?;
         let vc_req_config = VCRequesterConfig::from(config);
         let peer_connector_config = GnapPeerConnectorConfig::from(config);
-        let gatekeeper_config = GnapGateKeeperConfig::from(config.clone());
-        let verifier_config = BasicVerifierConfig::from(config.clone());
+        let gatekeeper_config = GnapGateKeeperConfig::from(config);
+        let verifier_config = BasicVerifierConfig::from(config);
         let core_config = Arc::new(config.clone());
 
         // ========================================SERVICES=========================================
@@ -117,21 +117,25 @@ impl AuthApplication {
         let wallet: Arc<dyn WalletTrait> = match config.get_wallet() {
             WalletInstance::WaltId => {
                 let walt_id_config = WaltIdConfig::from(config);
-                Arc::new(WaltIdService::new(
+                let wallet = WaltIdService::new(
                     walt_id_config,
                     vault.clone(),
                     services,
                     ParticipantType::Agent,
-                ))
+                )
+                .await?;
+                Arc::new(wallet)
             }
             WalletInstance::Fafnir => {
                 let fafnir_config = FafnirConfig::from(config);
-                Arc::new(FafnirService::new(
+                let wallet = FafnirService::new(
                     fafnir_config,
                     vault.clone(),
                     services,
                     ParticipantType::Agent,
-                ))
+                )
+                .await?;
+                Arc::new(wallet)
             }
         };
 
@@ -151,7 +155,7 @@ impl AuthApplication {
     }
 
     pub async fn run_basic(config: SsiAuthConfig, vault_service: Arc<VaultService>) -> Outcome<()> {
-        let router = Self::create_router(&config, vault_service).await;
+        let router = Self::create_router(&config, vault_service).await?;
 
         let port = config.common().hosts().get_internal_port(HostType::Http);
         let addr = format!("0.0.0.0:{}", port);

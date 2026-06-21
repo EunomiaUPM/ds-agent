@@ -17,7 +17,7 @@
 
 use std::sync::Arc;
 
-use crate::modules::CoreMateTrait;
+use crate::modules::ParticipantModule;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{Path, Query, State};
 use axum::routing::{get, post, put};
@@ -31,11 +31,11 @@ use ymir::types::participants::ParticipantType;
 use ymir::utils::extract_payload;
 
 pub struct ParticipantRouter {
-    manager: Arc<dyn CoreMateTrait>,
+    manager: Arc<dyn ParticipantModule>,
 }
 
 impl ParticipantRouter {
-    pub fn new(mater: Arc<dyn CoreMateTrait>) -> ParticipantRouter {
+    pub fn new(mater: Arc<dyn ParticipantModule>) -> ParticipantRouter {
         ParticipantRouter { manager: mater }
     }
 
@@ -52,7 +52,7 @@ impl ParticipantRouter {
     }
 
     async fn get_all(
-        State(mater): State<Arc<dyn CoreMateTrait>>,
+        State(mater): State<Arc<dyn ParticipantModule>>,
         query: Query<MateQuery>,
     ) -> AppResult<Json<Vec<Model>>> {
         let filter = query.r#type.unwrap_or(ParticipantType::All);
@@ -60,18 +60,18 @@ impl ParticipantRouter {
         Ok(Json(mater.get_all(filter, query.exclude_myself).await?))
     }
     async fn get_by_id(
-        State(mater): State<Arc<dyn CoreMateTrait>>,
+        State(mater): State<Arc<dyn ParticipantModule>>,
         Path(id): Path<String>,
     ) -> AppResult<Json<Model>> {
         Ok(Json(mater.get_by_id(id).await?))
     }
 
-    async fn get_myself(State(mater): State<Arc<dyn CoreMateTrait>>) -> AppResult<Json<Model>> {
+    async fn get_myself(State(mater): State<Arc<dyn ParticipantModule>>) -> AppResult<Json<Model>> {
         Ok(Json(mater.get_me().await?))
     }
 
     async fn get_batch(
-        State(mater): State<Arc<dyn CoreMateTrait>>,
+        State(mater): State<Arc<dyn ParticipantModule>>,
         payload: Result<Json<BatchRequests>, JsonRejection>,
     ) -> AppResult<Json<Vec<Model>>> {
         let payload = extract_payload(payload)?;
@@ -79,14 +79,14 @@ impl ParticipantRouter {
     }
 
     async fn get_by_token(
-        State(mater): State<Arc<dyn CoreMateTrait>>,
+        State(mater): State<Arc<dyn ParticipantModule>>,
         payload: Result<Json<VerifyTokenRequest>, JsonRejection>,
     ) -> AppResult<Json<Model>> {
         let payload = extract_payload(payload)?;
         Ok(Json(mater.get_by_token(payload).await?))
     }
     async fn update_by_id(
-        State(mater): State<Arc<dyn CoreMateTrait>>,
+        State(mater): State<Arc<dyn ParticipantModule>>,
         Path(id): Path<String>,
         payload: Result<Json<serde_json::Value>, JsonRejection>,
     ) -> AppResult<Json<Model>> {
@@ -94,7 +94,7 @@ impl ParticipantRouter {
         Ok(Json(mater.update_extra_fields_by_id(id, payload).await?))
     }
     async fn create(
-        State(mater): State<Arc<dyn CoreMateTrait>>,
+        State(mater): State<Arc<dyn ParticipantModule>>,
         payload: Result<Json<Plan>, JsonRejection>,
     ) -> AppResult<Json<Model>> {
         let payload = extract_payload(payload)?;

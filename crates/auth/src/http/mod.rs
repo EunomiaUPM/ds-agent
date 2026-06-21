@@ -15,20 +15,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-mod business_router;
 mod core_router;
-mod gaia_self_issuer_router;
+// mod gaia_self_issuer_router;
 mod gatekeeper_router;
-mod mate_router;
+mod participant_router;
 mod peer_connector_router;
 mod vc_requester_router;
 mod verifier_router;
 
-pub use business_router::BusinessRouter;
 pub use core_router::AuthRouter;
-pub use gaia_self_issuer_router::GaiaSelfIssuerRouter;
+// pub use gaia_self_issuer_router::GaiaSelfIssuerRouter;
 pub use gatekeeper_router::GateKeeperRouter;
-pub use mate_router::ParticipantRouter;
+pub use participant_router::ParticipantRouter;
 pub use peer_connector_router::OnboarderRouter;
 pub use vc_requester_router::VcRequesterRouter;
 pub use verifier_router::VerifierRouter;

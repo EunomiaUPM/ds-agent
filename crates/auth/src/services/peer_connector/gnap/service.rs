@@ -67,14 +67,12 @@ impl GnapPeerConnectorService {
 #[async_trait]
 impl PeerConnectorTrait for GnapPeerConnectorService {
     fn build_grant_plan(&self, payload: ReachProvider) -> grant::Plan {
-        let id = uuid::Uuid::new_v4().to_string();
-
         grant::Plan {
-            id: id.clone(),
-            participant_id: payload.id.clone(),
-            participant_nick: payload.nick.clone(),
+            id: uuid::Uuid::new_v4().to_string(),
+            participant_id: payload.id,
+            participant_nick: payload.nick,
             vc_type_config: None,
-            grant_endpoint: payload.url.clone(),
+            grant_endpoint: payload.url,
             auto: payload.auto,
             kind: GrantKind::AccessToken,
         }
@@ -91,7 +89,7 @@ impl PeerConnectorTrait for GnapPeerConnectorService {
             id: id.to_string(),
             start: vec![InteractStart::Oid4VP],
             method: FinishMethod::Push,
-            callback_uri: callback_uri.clone(),
+            callback_uri,
             hash_method: None,
             hints: None,
         }
@@ -236,8 +234,8 @@ impl PeerConnectorTrait for GnapPeerConnectorService {
                 interaction.continue_endpoint = Some(payload.r#continue.uri);
                 interaction.continue_wait = payload.r#continue.wait.map(|n| n as i64);
                 let uri = payload.interact.oid4vp.ok_or_else(|| {
-                    Errors::authority_grant(
-                        "Authority did not send expected interaction method (oid4vp)",
+                    Errors::provider_grant(
+                        "Provider did not send expected interaction method (oid4vp)",
                     )
                 })?;
                 Ok(TokenWhatResponse::Presentation(uri))

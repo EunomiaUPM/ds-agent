@@ -28,7 +28,7 @@ use ymir::types::gnap::GrantStatus;
 use ymir::utils::{create_opaque_token, errors_to_error_code, require_field};
 
 #[async_trait]
-pub trait GateKeeperModuleTrait:
+pub trait GateKeeperModule:
     HasGateKeeper + HasVerifier + HasRepo + Send + Sync + 'static
 {
     async fn manage_grant_req(&self, payload: Bytes, headers: HeaderMap) -> GrantResponse {
@@ -40,6 +40,23 @@ pub trait GateKeeperModuleTrait:
                 GrantResponse::Error(ErrorResponse { error: code })
             })
     }
+
+    async fn manage_continue_req(
+        &self,
+        id: String,
+        payload: Bytes,
+        headers: HeaderMap,
+    ) -> GrantResponse {
+        self.inner_manage_continue_req(id, payload, headers)
+            .await
+            .unwrap_or_else(|e| {
+                e.log();
+                let code = errors_to_error_code(&e);
+                GrantResponse::Error(ErrorResponse { error: code })
+            })
+    }
+
+    // ========================================= INTERNALS =========================================
 
     async fn inner_manage_grant_req(
         &self,
@@ -64,26 +81,12 @@ pub trait GateKeeperModuleTrait:
         let interaction = self.repo().recv_interaction().create(interaction).await?;
         let _resource_req = self.repo().resource_req().create(resource_req).await?;
 
-        let verification = self.verifier().build_vp_plan(&grant.id);
+        let verification = self.verifier().build_vp_plan(&grant.id)?;
         let ver_model = self.repo().recv_verification().create(verification).await?;
         let uri = self.verifier().generate_verification_uri(&ver_model);
         Ok(GrantResponse::pending(uri, &interaction))
     }
 
-    async fn manage_continue_req(
-        &self,
-        id: String,
-        payload: Bytes,
-        headers: HeaderMap,
-    ) -> GrantResponse {
-        self.inner_manage_continue_req(id, payload, headers)
-            .await
-            .unwrap_or_else(|e| {
-                e.log();
-                let code = errors_to_error_code(&e);
-                GrantResponse::Error(ErrorResponse { error: code })
-            })
-    }
     async fn inner_manage_continue_req(
         &self,
         id: String,

@@ -25,14 +25,14 @@ use axum::{Json, Router};
 use ymir::errors::AppResult;
 use ymir::types::gnap::grant_response::GrantResponse;
 
-use crate::modules::GateKeeperModuleTrait;
+use crate::modules::GateKeeperModule;
 
 pub struct GateKeeperRouter {
-    gatekeeper: Arc<dyn GateKeeperModuleTrait>,
+    gatekeeper: Arc<dyn GateKeeperModule>,
 }
 
 impl GateKeeperRouter {
-    pub fn new(gatekeeper: Arc<dyn GateKeeperModuleTrait>) -> Self {
+    pub fn new(gatekeeper: Arc<dyn GateKeeperModule>) -> Self {
         GateKeeperRouter { gatekeeper }
     }
 
@@ -44,7 +44,7 @@ impl GateKeeperRouter {
     }
 
     async fn manage_req(
-        State(gatekeeper): State<Arc<dyn GateKeeperModuleTrait>>,
+        State(gatekeeper): State<Arc<dyn GateKeeperModule>>,
         headers: HeaderMap,
         payload: Bytes,
     ) -> AppResult<Json<GrantResponse>> {
@@ -52,7 +52,7 @@ impl GateKeeperRouter {
     }
 
     async fn continue_req(
-        State(gatekeeper): State<Arc<dyn GateKeeperModuleTrait>>,
+        State(gatekeeper): State<Arc<dyn GateKeeperModule>>,
         headers: HeaderMap,
         Path(id): Path<String>,
         payload: Bytes,

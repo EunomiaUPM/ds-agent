@@ -22,15 +22,16 @@ use crate::services::{HasCallback, HasPeerConnector, HasRepo};
 use crate::types::entities::ReachProvider;
 use crate::types::response::TokenWhatResponse;
 use async_trait::async_trait;
+use chrono::Utc;
 use ymir::data::entities::sent::grant;
 use ymir::errors::Outcome;
-use ymir::modules::HasWallet;
+use ymir::services::HasWallet;
 use ymir::types::gnap::grant_request::GrantKind;
 use ymir::types::gnap::{ApprovedCallbackBody, CallbackBody, GrantStatus};
 use ymir::types::verifying::VerificationStatus;
 
 #[async_trait]
-pub trait PeerConnectorModuleTrait:
+pub trait PeerConnectorModule:
     HasPeerConnector + HasRepo + HasCallback + HasWallet + Send + Sync + 'static
 {
     async fn req_peer_connection(&self, payload: ReachProvider) -> Outcome<()> {
@@ -52,41 +53,52 @@ pub trait PeerConnectorModuleTrait:
 
         let what_response =
             self.peer_connector()
-                .manage_grant_resp(grant_resp, &mut grant, &mut interaction);
+                    .manage_grant_resp(grant_resp, &mut grant, &mut interaction);
 
         let grant = self.repo().sent_grant().update(grant).await?;
         let _interaction = self.repo().sent_interaction().update(interaction).await?;
 
-        self.manage_grant_resp(grant, what_response)
+        self.manage_what_resp(grant, what_response).await
     }
 
     async fn manage_interaction_finish(&self, id: String, payload: CallbackBody) -> Outcome<()> {
         match payload {
-            CallbackBody::Approved(payload) => self.req_peer_continuation(id, payload),
-            CallbackBody::Rejected(_payload) => self.manage_rejection(id),
+            CallbackBody::Approved(payload) => self.req_peer_continuation(id, payload).await,
+            CallbackBody::Rejected(_payload) => self.manage_rejection(id).await,
         }
     }
 
-    async fn manage_grant_resp(
+    // =================================== GETTERS FOR FRONTEND ====================================
+    async fn get_all(&self) -> Outcome<Vec<grant::Model>> {
+        self.repo()
+            .sent_grant()
+            .get_by_type(GrantKind::AccessToken)
+            .await
+    }
+
+    async fn get_by_id(&self, id: String) -> Outcome<grant::Model> {
+        self.repo().sent_grant().get_by_id(&id).await
+    }
+
+    // ========================================= INTERNALS =========================================
+    async fn manage_what_resp(
         &self,
         grant: grant::Model,
         vc_what_response: Outcome<TokenWhatResponse>,
     ) -> Outcome<()> {
         match vc_what_response? {
             TokenWhatResponse::Completed => {
-                let authority = self.peer_connector().build_mate_plan(&grant);
-                self.repo().participant().force_update(authority).await?;
+                let mate = self.peer_connector().build_mate_plan(&grant);
+                self.repo().participant().force_update(mate).await?;
                 Ok(())
             }
-            TokenWhatResponse::Presentation(uri) => self.manage_oid4vp(&grant.id, grant.auto, &uri),
+            TokenWhatResponse::Presentation(uri) => self.manage_oid4vp(&grant.id, grant.auto, &uri).await,
             TokenWhatResponse::Wait => Ok(()),
         }
     }
 
     async fn manage_oid4vp(&self, id: &str, auto: bool, uri: &str) -> Outcome<()> {
-        self.wallet().process_oid4vp(uri).await?;
-
-        let verification = self.vc_requester().build_verification_plan(&uri, id)?;
+        let verification = self.peer_connector().build_verification_plan(&uri, id)?;
         let mut verification = self.repo().sent_verification().create(verification).await?;
 
         if auto {
@@ -96,6 +108,7 @@ pub trait PeerConnectorModuleTrait:
                     verification.status = VerificationStatus::Failed;
                 }
             }
+            verification.ended_at = Some(Utc::now());
             self.repo().sent_verification().update(verification).await?;
         }
         Ok(())
@@ -106,8 +119,8 @@ pub trait PeerConnectorModuleTrait:
         id: String,
         payload: ApprovedCallbackBody,
     ) -> Outcome<()> {
-        let mut interaction = self.repo().interaction_req().get_by_id(id).await?;
-        let mut grant = self.repo().sent_grant().get_by_id(id).await?;
+        let mut interaction = self.repo().sent_interaction().get_by_id(&id).await?;
+        let mut grant = self.repo().sent_grant().get_by_id(&id).await?;
         self.callback().apply_callback(&mut interaction, &payload);
 
         let result = self.callback().check_callback(&interaction, &grant);
@@ -123,7 +136,7 @@ pub trait PeerConnectorModuleTrait:
         let grant = self.repo().sent_grant().update(grant).await?;
         let _interaction = self.repo().sent_interaction().update(interaction).await?;
 
-        self.manage_grant_resp(grant, what_response)
+        self.manage_what_resp(grant, what_response).await
     }
 
     async fn manage_rejection(&self, id: String) -> Outcome<()> {
@@ -134,14 +147,5 @@ pub trait PeerConnectorModuleTrait:
         Ok(())
     }
 
-    async fn get_all(&self) -> Outcome<Vec<grant::Model>> {
-        self.repo()
-            .sent_grant()
-            .get_by_type(GrantKind::AccessToken)
-            .await
-    }
 
-    async fn get_by_id(&self, id: String) -> Outcome<grant::Model> {
-        self.repo().sent_grant().get_by_id(&id).await
-    }
 }

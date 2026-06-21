@@ -17,6 +17,8 @@
 
 use std::str::FromStr;
 
+use super::super::GateKeeperTrait;
+use super::config::GnapGateKeeperConfig;
 use axum::body::Bytes;
 use axum::http::HeaderMap;
 use tracing::info;
@@ -35,7 +37,8 @@ use ymir::types::gnap::grant_request::interact::{
 use ymir::types::gnap::grant_request::{GrantKind, GrantRequest, GrantRequestKind};
 use ymir::types::gnap::grant_response::GrantResponse;
 use ymir::types::gnap::{
-    ApprovedCallbackBody, CallbackBody, ContinueRequest, GrantStatus, RejectedCallbackBody,
+    ApprovedCallbackBody, CallbackBody, ContinueRequest, GrantStatus, InteractionFinishResponse,
+    RejectedCallbackBody,
 };
 use ymir::types::http::HttpBody;
 use ymir::types::keys::{Certificate, DbKeySource, KeySource, PublicKey};
@@ -43,9 +46,6 @@ use ymir::types::participants::ParticipantType;
 use ymir::utils::{
     create_opaque_token, extract_gnap_token, http_client, json_headers, trim_4_base,
 };
-
-use super::super::GateKeeperTrait;
-use super::config::GnapGateKeeperConfig;
 
 pub struct GnapGateKeeperService {
     config: GnapGateKeeperConfig,
@@ -127,20 +127,6 @@ impl GateKeeperTrait for GnapGateKeeperService {
     ) -> Outcome<interaction::Plan> {
         info!("Managing Grant Request");
 
-        let host = format!(
-            "{}{}/gate",
-            self.config.hosts().get_host(HostType::Http),
-            self.config.get_api_path(),
-        );
-        let grant_endpoint = format!("{host}/access");
-        let continue_endpoint = format!("{host}/continue");
-        let continue_token = create_opaque_token();
-
-        let key_source = match &client.key.material {
-            KeyMaterial::Jwk { jwk } => DbKeySource::PublicKey(jwk.clone()),
-            KeyMaterial::Cert { cert } => DbKeySource::Cert(cert.clone()),
-        };
-
         let interact = interact.ok_or_else(|| {
             Errors::format(
                 BadFormat::Received,
@@ -189,6 +175,20 @@ impl GateKeeperTrait for GnapGateKeeperService {
                 None,
             ));
         }
+
+        let key_source = match &client.key.material {
+            KeyMaterial::Jwk { jwk } => DbKeySource::PublicKey(jwk.clone()),
+            KeyMaterial::Cert { cert } => DbKeySource::Cert(cert.clone()),
+        };
+
+        let host = format!(
+            "{}{}/gate",
+            self.config.hosts().get_host(HostType::Http),
+            self.config.get_api_path(),
+        );
+        let grant_endpoint = format!("{host}/access");
+        let continue_endpoint = format!("{host}/continue");
+        let continue_token = create_opaque_token();
 
         let interaction = interaction::Plan {
             id: id.to_string(),
@@ -273,8 +273,6 @@ impl GateKeeperTrait for GnapGateKeeperService {
 
         let continue_req: ContinueRequest = serde_json::from_slice(payload)?;
 
-        let token = extract_gnap_token(headers)?;
-
         let key_source = match &interaction.key_source {
             DbKeySource::Cert(pem) => {
                 let cert = Certificate::try_from_pem(pem)?;
@@ -304,6 +302,7 @@ impl GateKeeperTrait for GnapGateKeeperService {
             ));
         }
 
+        let token = extract_gnap_token(headers)?;
         if token != interaction.continue_token {
             return Err(Errors::security(
                 &format!(
@@ -320,39 +319,37 @@ impl GateKeeperTrait for GnapGateKeeperService {
         &self,
         interaction: &interaction::Model,
         verification_result: Outcome<()>,
-    ) -> Outcome<Option<String>> {
+    ) -> Outcome<InteractionFinishResponse> {
         info!("Finishing interaction");
         match interaction.method {
-            FinishMethod::Redirect => {
-                let params = match verification_result {
-                    Ok(_) => {
-                        format!(
-                            "hash={}&interact_ref={}",
-                            interaction.hash, interaction.interact_ref
-                        )
-                    }
-                    Err(e) => {
-                        format!("rejected={}", e)
-                    }
-                };
-                let uri = format!("{}?{}", interaction.callback_uri, params);
-                Ok(Some(uri))
-            }
+            FinishMethod::Redirect => match verification_result {
+                Ok(_) => {
+                    let uri = format!(
+                        "{}?hash={}&interact_ref={}",
+                        interaction.callback_uri, interaction.hash, interaction.interact_ref
+                    );
+                    Ok(InteractionFinishResponse::Success(Some(uri)))
+                }
+                Err(e) => {
+                    let uri = format!("{}?rejected={}", interaction.callback_uri, e);
+                    Ok(InteractionFinishResponse::Failure(Some(uri)))
+                }
+            },
             FinishMethod::Push => {
-                let body = match verification_result {
-                    Ok(_) => {
-                        let body = ApprovedCallbackBody {
+                let (body, was_approved) = match verification_result {
+                    Ok(_) => (
+                        CallbackBody::Approved(ApprovedCallbackBody {
                             interact_ref: interaction.interact_ref.clone(),
                             hash: interaction.hash.clone(),
-                        };
-                        CallbackBody::Approved(body)
-                    }
-                    Err(e) => {
-                        let body = RejectedCallbackBody {
+                        }),
+                        true,
+                    ),
+                    Err(e) => (
+                        CallbackBody::Rejected(RejectedCallbackBody {
                             rejected: e.to_string(),
-                        };
-                        CallbackBody::Rejected(body)
-                    }
+                        }),
+                        false,
+                    ),
                 };
 
                 http_client()
@@ -362,7 +359,12 @@ impl GateKeeperTrait for GnapGateKeeperService {
                         HttpBody::json(&body)?,
                     )
                     .await?;
-                Ok(None)
+
+                if was_approved {
+                    Ok(InteractionFinishResponse::Success(None))
+                } else {
+                    Ok(InteractionFinishResponse::Failure(None))
+                }
             }
             FinishMethod::Other(_) => {
                 unreachable!("build_interaction_plan filters out this state")

@@ -26,7 +26,7 @@ use ymir::errors::Outcome;
 use ymir::types::participants::ParticipantType;
 
 #[async_trait]
-pub trait CoreMateTrait: HasRepo + Send + Sync + 'static {
+pub trait ParticipantModule: HasRepo + Send + Sync + 'static {
     async fn get_all(&self, query_type: ParticipantType, exclude: bool) -> Outcome<Vec<Model>> {
         let mates = self.repo().participant().filter_by_type(query_type).await?;
         let filtered_in_mates = mates

@@ -19,4 +19,4 @@ mod core;
 mod orchestrator;
 
 pub use core::AuthCore;
-pub use orchestrator::AuthOrchestatorTrait;
+pub use orchestrator::AuthOrchestratorTrait;

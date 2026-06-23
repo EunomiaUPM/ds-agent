@@ -6,7 +6,6 @@ use futures_util::future::try_join_all;
 use ymir::errors::Outcome;
 use ymir::services::vault::VaultService;
 use ymir::services::vault::VaultTrait;
-use ymir::services::vault::vault_rs::RealVaultService;
 
 use crate::data::repo::secrets::SecretRepoTrait;
 use crate::entities::commands::{EditSecretCommand, NewSecretCommand};
@@ -15,17 +14,18 @@ use crate::entities::key::Key;
 use crate::entities::secret_value::SecretValue;
 
 pub struct VaultSecretRepo {
-    vault_service: RealVaultService,
+    vault_service: Arc<VaultService>,
     repo: Arc<dyn SecretRepoTrait>,
 }
 
 impl VaultSecretRepo {
-    pub fn new(vault_service: VaultService, repo: Arc<dyn SecretRepoTrait>) -> Self {
-        let VaultService::Real(real) = vault_service else {
-            panic!("VaultService must be VaultService::Real for this service");
-        };
+    pub fn new(vault_service: Arc<VaultService>, repo: Arc<dyn SecretRepoTrait>) -> Self {
+        assert!(
+            matches!(*vault_service, VaultService::Real(_)),
+            "VaultService must be Real for VaultSecretRepo"
+        );
         Self {
-            vault_service: real,
+            vault_service,
             repo,
         }
     }

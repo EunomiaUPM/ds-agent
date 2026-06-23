@@ -82,10 +82,11 @@ impl SecretRepoTrait for VaultSecretRepo {
         }))
     }
 
-    async fn create_secret(&self, new_model: &mut NewSecretCommand) -> Outcome<SecretEntry> {
+    async fn create_secret(&self, new_model: &NewSecretCommand) -> Outcome<SecretEntry> {
         self.vault_write(&new_model.key, &new_model.value).await?;
-        new_model.value = SecretValue::new(Value::String("vault".to_string()));
-        self.repo.create_secret(new_model).await
+        let mut entry_model = new_model.clone();
+        entry_model.value = SecretValue::new(Value::String("vault".to_string()));
+        self.repo.create_secret(&entry_model).await
     }
 
     async fn put_secret(&self, key: &Key, edit_model: &EditSecretCommand) -> Outcome<SecretEntry> {

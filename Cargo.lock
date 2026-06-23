@@ -2082,6 +2082,7 @@ dependencies = [
  "chrono",
  "common",
  "connector",
+ "futures-util",
  "hyper",
  "mockall",
  "redis",

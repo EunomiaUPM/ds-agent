@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use futures_util::future::try_join_all;
-
+use serde_json::Value;
 use ymir::errors::Outcome;
 use ymir::services::vault::VaultService;
 use ymir::services::vault::VaultTrait;
@@ -82,14 +82,17 @@ impl SecretRepoTrait for VaultSecretRepo {
         }))
     }
 
-    async fn create_secret(&self, new_model: &NewSecretCommand) -> Outcome<SecretEntry> {
+    async fn create_secret(&self, new_model: &mut NewSecretCommand) -> Outcome<SecretEntry> {
         self.vault_write(&new_model.key, &new_model.value).await?;
+        new_model.value = SecretValue::new(Value::String("vault".to_string()));
         self.repo.create_secret(new_model).await
     }
 
     async fn put_secret(&self, key: &Key, edit_model: &EditSecretCommand) -> Outcome<SecretEntry> {
         // DB first: validates version conflict before touching vault
-        let entry = self.repo.put_secret(key, edit_model).await?;
+        let mut entry_model = edit_model.clone();
+        entry_model.value = SecretValue::new(Value::String("vault".to_string()));
+        let entry = self.repo.put_secret(key, &entry_model).await?;
         self.vault_write(key, &edit_model.value).await?;
         Ok(Entry {
             metadata: entry.metadata,

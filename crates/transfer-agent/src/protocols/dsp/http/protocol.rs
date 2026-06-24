@@ -171,11 +171,19 @@ impl DspRouter {
             Err(e) => return e.into_response(),
         };
         let ctx = DspTransferContext::inbound(None, mate.participant_id.clone(), mate);
-        let result = state
-            .orchestrator
-            .get_protocol_service()
-            .on_transfer_request(ctx, &data)
-            .await;
+        let result = if data.dto.auto_start == Some(true) {
+            state
+                .orchestrator
+                .get_bff_rpc_service()
+                .on_transfer_request_auto_start(ctx, &data)
+                .await
+        } else {
+            state
+                .orchestrator
+                .get_protocol_service()
+                .on_transfer_request(ctx, &data)
+                .await
+        };
 
         match result {
             Ok((data, already_exists)) => {

@@ -20,20 +20,33 @@ use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;
 use crate::entities::dataplane_manager::dataplane_proxy::HTTP_LISTENER_PATH;
 use crate::entities::dataplane_manager::dataplane_runtime::ResolvedAuthCredentials;
 use common::http_client::HttpClient;
-use connector::{InteractionConfig, ProtocolSpec, RuntimeParametersResolver, TemplateVecString};
+use connector::{
+    InteractionConfig, KeystoreLookup, ProtocolSpec, RuntimeParametersResolver, TemplateVecString,
+};
 use serde_json::{json, Value};
 use std::sync::Arc;
 use ymir::errors::{Errors, Outcome};
 
-#[derive(Debug)]
 pub struct HttpPubSubscriber {
     http_client: HttpClient,
+    keystore: Option<Arc<dyn KeystoreLookup>>,
+}
+
+impl std::fmt::Debug for HttpPubSubscriber {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("HttpPubSubscriber")
+            .field("keystore", &self.keystore.is_some())
+            .finish()
+    }
 }
 
 impl HttpPubSubscriber {
-    pub fn new() -> Self {
+    pub fn new(keystore: Option<Arc<dyn KeystoreLookup>>) -> Self {
         let http_client = HttpClient::new(1, 1);
-        Self { http_client }
+        Self {
+            http_client,
+            keystore,
+        }
     }
 
     /// Reads resolved credentials from the context runtime and configures the HTTP
@@ -69,9 +82,12 @@ impl DriverPubSubTrait for HttpPubSubscriber {
         let dp = &context.dataplane_process().inner.id;
         let ingress_url = format!("{}{}", HTTP_LISTENER_PATH, dp);
         let runtime_value = serde_json::to_value(context.runtime().cloned().unwrap_or_default())?;
-        let resolved_connector = RuntimeParametersResolver::new(connector, &runtime_value)
-            .with_ingress(Some(ingress_url))
-            .resolve()?;
+        let mut resolver = RuntimeParametersResolver::new(connector, &runtime_value)
+            .with_ingress(Some(ingress_url));
+        if let Some(ks) = &self.keystore {
+            resolver = resolver.with_keystore(ks.clone());
+        }
+        let resolved_connector = resolver.resolve().await?;
         let push_lifecycle = match &resolved_connector.interaction {
             InteractionConfig::Push(p) => p,
             _ => {
@@ -122,9 +138,12 @@ impl DriverPubSubTrait for HttpPubSubscriber {
             .forward_dataplane_address()
             .map(|a| a.endpoint.as_str());
         let runtime_value = serde_json::to_value(context.runtime().cloned().unwrap_or_default())?;
-        let current_instance = RuntimeParametersResolver::new(connector, &runtime_value)
-            .with_ingress(ingress_url)
-            .resolve()?;
+        let mut resolver =
+            RuntimeParametersResolver::new(connector, &runtime_value).with_ingress(ingress_url);
+        if let Some(ks) = &self.keystore {
+            resolver = resolver.with_keystore(ks.clone());
+        }
+        let current_instance = resolver.resolve().await?;
 
         // re-extract the resolved unsubscribe spec
         let resolved_push = match &current_instance.interaction {

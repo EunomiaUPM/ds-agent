@@ -582,4 +582,113 @@ export const useSetupTransferTermination = <TError = ErrorType<ErrorInfo>,
       > => {
       return useMutation(getSetupTransferTerminationMutationOptions(options), queryClient);
     }
+    /**
+ * @summary Initiate a transfer request with simplified BFF flow (consumer). The Provider automatically responds with a TransferStart.
+ */
+export type bffRpcSetupTransferRequestResponse201 = {
+  data: RPCResponse
+  status: 201
+}
+
+export type bffRpcSetupTransferRequestResponse400 = {
+  data: ErrorInfo
+  status: 400
+}
+
+export type bffRpcSetupTransferRequestResponse401 = {
+  data: ErrorInfo
+  status: 401
+}
+
+export type bffRpcSetupTransferRequestResponse403 = {
+  data: ErrorInfo
+  status: 403
+}
+
+export type bffRpcSetupTransferRequestResponse404 = {
+  data: ErrorInfo
+  status: 404
+}
+
+export type bffRpcSetupTransferRequestResponse500 = {
+  data: ErrorInfo
+  status: 500
+}
+    
+export type bffRpcSetupTransferRequestResponseSuccess = (bffRpcSetupTransferRequestResponse201) & {
+  headers: Headers;
+};
+export type bffRpcSetupTransferRequestResponseError = (bffRpcSetupTransferRequestResponse400 | bffRpcSetupTransferRequestResponse401 | bffRpcSetupTransferRequestResponse403 | bffRpcSetupTransferRequestResponse404 | bffRpcSetupTransferRequestResponse500) & {
+  headers: Headers;
+};
+
+export type bffRpcSetupTransferRequestResponse = (bffRpcSetupTransferRequestResponseSuccess | bffRpcSetupTransferRequestResponseError)
+
+export const getBffRpcSetupTransferRequestUrl = () => {
+
+
+  
+
+  return `/dsp/current/transfers/bff-rpc/setup-request`
+}
+
+export const bffRpcSetupTransferRequest = async (transferRPCRequestBody: TransferRPCRequestBody, options?: RequestInit): Promise<bffRpcSetupTransferRequestResponse> => {
+  
+  return customInstance<bffRpcSetupTransferRequestResponse>(getBffRpcSetupTransferRequestUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      transferRPCRequestBody,)
+  }
+);}
+
+
+
+
+export const getBffRpcSetupTransferRequestMutationOptions = <TError = ErrorType<ErrorInfo>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bffRpcSetupTransferRequest>>, TError,{data: BodyType<TransferRPCRequestBody>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof bffRpcSetupTransferRequest>>, TError,{data: BodyType<TransferRPCRequestBody>}, TContext> => {
+
+const mutationKey = ['bffRpcSetupTransferRequest'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bffRpcSetupTransferRequest>>, {data: BodyType<TransferRPCRequestBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  bffRpcSetupTransferRequest(data,requestOptions)
+        }
+
+
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BffRpcSetupTransferRequestMutationResult = NonNullable<Awaited<ReturnType<typeof bffRpcSetupTransferRequest>>>
+    export type BffRpcSetupTransferRequestMutationBody = BodyType<TransferRPCRequestBody>
+    export type BffRpcSetupTransferRequestMutationError = ErrorType<ErrorInfo>
+
+    /**
+ * @summary Initiate a transfer request with simplified BFF flow (consumer). The Provider automatically responds with a TransferStart.
+ */
+export const useBffRpcSetupTransferRequest = <TError = ErrorType<ErrorInfo>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bffRpcSetupTransferRequest>>, TError,{data: BodyType<TransferRPCRequestBody>}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof bffRpcSetupTransferRequest>>,
+        TError,
+        {data: BodyType<TransferRPCRequestBody>},
+        TContext
+      > => {
+      return useMutation(getBffRpcSetupTransferRequestMutationOptions(options), queryClient);
+    }
     

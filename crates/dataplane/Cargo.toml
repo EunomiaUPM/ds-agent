@@ -11,9 +11,12 @@ path = "src/lib.rs"
 [dependencies]
 common = { version = "0.3.1", path = "../common", default-features = true }
 connector = { version = "0.3.1", path = "../connector", default-features = true }
+keystore = { version = "0.1.0", path = "../keystore", default-features = true }
 
 serde = { workspace = true }
 serde_json = { workspace = true }
+regex = { workspace = true }
+futures-util = { workspace = true }
 tracing = { workspace = true }
 axum = { workspace = true }
 reqwest = { workspace = true }

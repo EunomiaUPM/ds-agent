@@ -25,6 +25,7 @@ sea-orm = { workspace = true }
 sea-orm-migration = { workspace = true }
 hyper = { workspace = true }
 tokio = { workspace = true }
+futures-util = { workspace = true }
 async-trait = { workspace = true }
 uuid = { workspace = true }
 ymir = { workspace = true }

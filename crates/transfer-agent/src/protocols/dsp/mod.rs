@@ -32,8 +32,10 @@ use crate::entities::transfer_process::TransferAgentProcessesTrait;
 // use crate::protocols::dsp::facades::data_plane_facade::dataplane_strategy_factory::DataPlaneStrategyFactory;
 use crate::protocols::dsp::facades::data_service_resolver_facade::data_service_resolver_facade::DataServiceFacadeServiceForDSProtocol;
 use crate::protocols::dsp::facades::FacadeService;
+use crate::protocols::dsp::http::bff_rpc::BffRpcRouter;
 use crate::protocols::dsp::http::protocol::DspRouter;
 use crate::protocols::dsp::http::rpc::RpcRouter;
+use crate::protocols::dsp::orchestrator::bff::bff::BFFRPCOrchestratorService;
 use crate::protocols::dsp::orchestrator::orchestrator::OrchestratorService;
 use crate::protocols::dsp::orchestrator::protocol::protocol::ProtocolOrchestratorService;
 use crate::protocols::dsp::orchestrator::rpc::rpc::RPCOrchestratorService;
@@ -195,9 +197,14 @@ impl ProtocolPluginTrait for TransferDSP {
             facades.clone(),
             self.mates_facade.clone(),
         ));
+        let bff_rpc_orchestrator = Arc::new(BFFRPCOrchestratorService::new(
+            http_orchestator.clone(),
+            rpc_orchestator.clone(),
+        ));
         let orchestrator_service = Arc::new(OrchestratorService::new(
             http_orchestator.clone(),
             rpc_orchestator.clone(),
+            bff_rpc_orchestrator,
         ));
 
         // router
@@ -209,10 +216,12 @@ impl ProtocolPluginTrait for TransferDSP {
         let dsp_router =
             DspRouter::new(orchestrator_service.clone(), self.config.clone(), ssi_auth);
         let rcp_router = RpcRouter::new(orchestrator_service.clone());
+        let bff_rpc_router = BffRpcRouter::new(orchestrator_service.clone());
 
         Ok(Router::new()
             .merge(dsp_router.router())
-            .merge(rcp_router.router()))
+            .merge(rcp_router.router())
+            .merge(bff_rpc_router.router()))
     }
 
     fn build_grpc_router(&self) -> Outcome<Option<Router>> {

@@ -22,13 +22,15 @@ use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;
 use crate::DataplaneTransfersEntitiesTrait;
 use common::config::services::TransferConfig;
 use connector::ConnectorInstanceTrait;
+use keystore::SecretStore;
 use std::sync::Arc;
 use ymir::errors::Outcome;
 
 pub struct DataplaneHandlerProviderPush {
-    pub(super) dataplane_entity: Arc<dyn DataplaneTransfersEntitiesTrait>,
-    pub(super) connector_entity: Arc<dyn ConnectorInstanceTrait>,
+    dataplane_entity: Arc<dyn DataplaneTransfersEntitiesTrait>,
+    connector_entity: Arc<dyn ConnectorInstanceTrait>,
     config: Arc<TransferConfig>,
+    secret_store: Option<Arc<dyn SecretStore>>,
 }
 
 impl DataplaneHandlerProviderPush {
@@ -36,11 +38,13 @@ impl DataplaneHandlerProviderPush {
         dataplane_entity: Arc<dyn DataplaneTransfersEntitiesTrait>,
         connector_entity: Arc<dyn ConnectorInstanceTrait>,
         config: Arc<TransferConfig>,
+        secret_store: Option<Arc<dyn SecretStore>>,
     ) -> Self {
         Self {
             dataplane_entity,
             connector_entity,
             config,
+            secret_store,
         }
     }
 }
@@ -53,13 +57,14 @@ impl DataplaneCommandStateMachine for DataplaneHandlerProviderPush {
     fn dataplane_entity(&self) -> Arc<dyn DataplaneTransfersEntitiesTrait> {
         self.dataplane_entity.clone()
     }
-
     fn connector_entity(&self) -> Arc<dyn ConnectorInstanceTrait> {
         self.connector_entity.clone()
     }
-
     fn transfer_config(&self) -> Arc<TransferConfig> {
         self.config.clone()
+    }
+    fn secret_store(&self) -> Option<Arc<dyn SecretStore>> {
+        self.secret_store.clone()
     }
 }
 
@@ -174,6 +179,7 @@ mod tests {
             entity,
             Arc::new(MockConnectorMock::new()),
             transfer_config_fixture(),
+            None,
         )
     }
 
@@ -188,7 +194,7 @@ mod tests {
                 transfer_process_id: Urn::from_str(TP_URN).unwrap(),
                 connector_instance: connector_fixture(),
                 direction: DataplaneInitCommandDirection::Push {
-                    data_address: push_address_fixture(),
+                    data_address: Some(push_address_fixture()),
                 },
             },
         )

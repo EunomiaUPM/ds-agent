@@ -37,11 +37,15 @@ struct TokenResponse {
 #[derive(Debug)]
 pub struct OauthAuthenticator;
 
+fn http_client() -> &'static reqwest::Client {
+    static CLIENT: std::sync::OnceLock<reqwest::Client> = std::sync::OnceLock::new();
+    CLIENT.get_or_init(reqwest::Client::new)
+}
+
 impl OauthAuthenticator {
     /// POST to `token_url` with the given form fields and deserialize the response.
     async fn post_token(token_url: &str, params: &[(&str, &str)]) -> Outcome<TokenResponse> {
-        let client = reqwest::Client::new();
-        let resp = client
+        let resp = http_client()
             .post(token_url)
             .form(params)
             .send()
@@ -133,7 +137,13 @@ impl OauthAuthenticator {
     fn resolve_scopes(scopes: TemplateVecString) -> Vec<String> {
         match scopes {
             TemplateVecString::Value(v) => v,
-            TemplateVecString::Template(_) => vec![],
+            TemplateVecString::Template(t) => {
+                // Scopes arrived as an unresolved template — parameter resolution did not run
+                // before authentication. OAuth proceeds with no scopes; the resulting token may
+                // have incorrect permissions.
+                tracing::warn!(template = %t, "OAuth2 scopes contain an unresolved template; proceeding with empty scopes");
+                vec![]
+            }
         }
     }
 
@@ -150,6 +160,21 @@ impl OauthAuthenticator {
 #[async_trait::async_trait]
 impl DriverAuthenticatorTrait for OauthAuthenticator {
     async fn authenticate(&self, context: &DataplaneContext) -> Outcome<DataplaneContext> {
+        // Skip re-auth when the current token is still valid within a 30-second buffer.
+        if let Some(runtime) = context.runtime() {
+            if let ResolvedAuthCredentials::OAuth2 { expires_at, .. } = &runtime.auth {
+                let now = SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .ok()
+                    .map(|d| d.as_secs())
+                    .unwrap_or(0);
+                const EXPIRY_BUFFER_SECS: u64 = 30;
+                if expires_at.map_or(false, |exp| exp > now + EXPIRY_BUFFER_SECS) {
+                    return Ok(context.clone());
+                }
+            }
+        }
+
         let connector = context
             .connector_instance()
             .ok_or_else(|| Errors::crazy("Connector not available", None))?;
@@ -182,16 +207,13 @@ impl DriverAuthenticatorTrait for OauthAuthenticator {
 
         let response = match (&on_token_expire, existing_refresh) {
             (TokenExpireAction::RefreshOrRefetch, Some(rt)) => {
-                Self::fetch_refresh(&token_url, &client_id, &secret, &rt)
-                    .await
-                    .or(Self::fetch_grant(
-                        &grant_type,
-                        &token_url,
-                        &client_id,
-                        &secret,
-                        &scopes_vec,
-                    )
-                    .await)
+                match Self::fetch_refresh(&token_url, &client_id, &secret, &rt).await {
+                    Ok(r) => Ok(r),
+                    Err(_) => {
+                        Self::fetch_grant(&grant_type, &token_url, &client_id, &secret, &scopes_vec)
+                            .await
+                    }
+                }
             }
             _ => Self::fetch_grant(&grant_type, &token_url, &client_id, &secret, &scopes_vec).await,
         }?;
@@ -204,7 +226,7 @@ impl DriverAuthenticatorTrait for OauthAuthenticator {
                 expires_at: Self::expires_at_from(response.expires_in),
                 refresh_token: response.refresh_token,
             },
-            ..Default::default()
+            ..context.runtime().cloned().unwrap_or_default()
         });
         Ok(ctx)
     }

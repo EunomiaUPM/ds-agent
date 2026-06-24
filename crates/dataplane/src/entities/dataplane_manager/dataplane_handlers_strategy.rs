@@ -27,24 +27,28 @@ use crate::entities::dataplane_transfers::{InteractionMode, TransferRole};
 use crate::DataplaneTransfersEntitiesTrait;
 use common::config::services::TransferConfig;
 use connector::ConnectorInstanceTrait;
+use keystore::SecretStore;
 use std::sync::Arc;
 use ymir::errors::Outcome;
 
 pub struct DataplaneStrategyFactory {
-    pub(super) dataplane_entity: Arc<dyn DataplaneTransfersEntitiesTrait>,
-    pub(super) connector_entity: Arc<dyn ConnectorInstanceTrait>,
+    dataplane_entity: Arc<dyn DataplaneTransfersEntitiesTrait>,
+    connector_entity: Arc<dyn ConnectorInstanceTrait>,
     config: Arc<TransferConfig>,
+    secret_store: Option<Arc<dyn SecretStore>>,
 }
 impl DataplaneStrategyFactory {
     pub fn new(
         dataplane_entity: Arc<dyn DataplaneTransfersEntitiesTrait>,
         connector_entity: Arc<dyn ConnectorInstanceTrait>,
         config: Arc<TransferConfig>,
+        secret_store: Option<Arc<dyn SecretStore>>,
     ) -> Self {
         Self {
             dataplane_entity,
             connector_entity,
             config,
+            secret_store,
         }
     }
     pub fn get_strategy(
@@ -59,6 +63,7 @@ impl DataplaneStrategyFactory {
                     self.dataplane_entity.clone(),
                     self.connector_entity.clone(),
                     self.config.clone(),
+                    self.secret_store.clone(),
                 ))
             }
             (TransferRole::Provider, InteractionMode::Push) => {
@@ -66,6 +71,7 @@ impl DataplaneStrategyFactory {
                     self.dataplane_entity.clone(),
                     self.connector_entity.clone(),
                     self.config.clone(),
+                    self.secret_store.clone(),
                 ))
             }
             (TransferRole::Consumer, InteractionMode::Pull) => {
@@ -73,6 +79,7 @@ impl DataplaneStrategyFactory {
                     self.dataplane_entity.clone(),
                     self.connector_entity.clone(),
                     self.config.clone(),
+                    self.secret_store.clone(),
                 ))
             }
             (TransferRole::Consumer, InteractionMode::Push) => {
@@ -80,6 +87,7 @@ impl DataplaneStrategyFactory {
                     self.dataplane_entity.clone(),
                     self.connector_entity.clone(),
                     self.config.clone(),
+                    self.secret_store.clone(),
                 ))
             }
         }
@@ -192,6 +200,7 @@ mod tests {
             entity_for_init(),
             Arc::new(MockConnectorMock::new()),
             transfer_config_fixture(),
+            None,
         )
         .get_strategy(&context)
     }
@@ -210,7 +219,7 @@ mod tests {
         let context = dummy_context(DataplaneInitCommandTypes::AsConsumer {
             transfer_process_id: Urn::from_str("urn:tp:1").unwrap(),
             direction: DataplaneInitCommandDirection::Pull {
-                data_address: empty_address(),
+                data_address: Some(empty_address()),
             },
         })
         .await;
@@ -222,7 +231,7 @@ mod tests {
         let context = dummy_context(DataplaneInitCommandTypes::AsConsumer {
             transfer_process_id: Urn::from_str("urn:tp:1").unwrap(),
             direction: DataplaneInitCommandDirection::Push {
-                data_address: empty_address(),
+                data_address: Some(empty_address()),
             },
         })
         .await;
@@ -235,7 +244,7 @@ mod tests {
             transfer_process_id: Urn::from_str("urn:tp:1").unwrap(),
             connector_instance: connector_fixture(),
             direction: DataplaneInitCommandDirection::Pull {
-                data_address: empty_address(),
+                data_address: Some(empty_address()),
             },
         })
         .await;
@@ -248,7 +257,7 @@ mod tests {
             transfer_process_id: Urn::from_str("urn:tp:1").unwrap(),
             connector_instance: connector_fixture(),
             direction: DataplaneInitCommandDirection::Push {
-                data_address: empty_address(),
+                data_address: Some(empty_address()),
             },
         })
         .await;

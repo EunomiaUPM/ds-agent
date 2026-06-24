@@ -16,24 +16,23 @@
  */
 
 use crate::entities::dataplane_manager::dataplane_commands::{
-    set_configuring_helper, DataplaneCommandStateMachine, DataplaneInitCommandTypes,
+    DataplaneCommandStateMachine, DataplaneInitCommandTypes,
 };
 use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;
-use crate::entities::dataplane_manager::dataplane_driver_factory::DataplaneDriverFactory;
-use crate::entities::dataplane_manager::dataplane_proxy::DataplaneProxy;
-use crate::entities::dataplane_transfers::{EditDataplaneTransferDto, TransferState};
 use crate::DataplaneTransfersEntitiesTrait;
 use common::config::services::TransferConfig;
 use connector::ConnectorInstanceTrait;
+use keystore::SecretStore;
 use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 
 pub struct DataplaneHandlerProviderPull {
-    pub(super) dataplane_entity: Arc<dyn DataplaneTransfersEntitiesTrait>,
-    pub(super) connector_entity: Arc<dyn ConnectorInstanceTrait>,
+    dataplane_entity: Arc<dyn DataplaneTransfersEntitiesTrait>,
+    connector_entity: Arc<dyn ConnectorInstanceTrait>,
     config: Arc<TransferConfig>,
+    secret_store: Option<Arc<dyn SecretStore>>,
 }
 
 impl DataplaneHandlerProviderPull {
@@ -41,11 +40,13 @@ impl DataplaneHandlerProviderPull {
         dataplane_entity: Arc<dyn DataplaneTransfersEntitiesTrait>,
         connector_entity: Arc<dyn ConnectorInstanceTrait>,
         config: Arc<TransferConfig>,
+        secret_store: Option<Arc<dyn SecretStore>>,
     ) -> Self {
         Self {
             dataplane_entity,
             connector_entity,
             config,
+            secret_store,
         }
     }
 }
@@ -55,30 +56,17 @@ impl DataplaneCommandStateMachine for DataplaneHandlerProviderPull {
     fn handler_name(&self) -> &'static str {
         "ProviderPull"
     }
-
     fn dataplane_entity(&self) -> Arc<dyn DataplaneTransfersEntitiesTrait> {
         self.dataplane_entity.clone()
     }
-
     fn connector_entity(&self) -> Arc<dyn ConnectorInstanceTrait> {
         self.connector_entity.clone()
     }
-
     fn transfer_config(&self) -> Arc<TransferConfig> {
         self.config.clone()
     }
-    async fn set_init(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
-        let ctx = set_configuring_helper(self.dataplane_entity(), context).await?;
-        let ctx = self.set_auth(ctx).await?;
-        let ctx = self.set_ready(ctx).await?;
-        Ok(ctx)
-    }
-    async fn set_configuring(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
-        let ctx = set_configuring_helper(self.dataplane_entity(), context).await?;
-        let ctx = self.set_auth(ctx).await?;
-        let ctx = self.set_ready(ctx).await?;
-        let ctx = self.set_started(ctx).await?;
-        Ok(ctx)
+    fn secret_store(&self) -> Option<Arc<dyn SecretStore>> {
+        self.secret_store.clone()
     }
 }
 
@@ -183,6 +171,7 @@ mod tests {
             entity,
             Arc::new(MockConnectorMock::new()),
             transfer_config_fixture(),
+            None,
         )
     }
 
@@ -197,7 +186,7 @@ mod tests {
                 transfer_process_id: Urn::from_str(TP_URN).unwrap(),
                 connector_instance: connector_fixture(),
                 direction: DataplaneInitCommandDirection::Pull {
-                    data_address: proxy_address_fixture(),
+                    data_address: Some(proxy_address_fixture()),
                 },
             },
         )

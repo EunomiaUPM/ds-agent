@@ -55,7 +55,7 @@ services:
   # =========================
   consumer-setup:
     container_name: consumer-setup
-    image: rmenendez8/rainbow:v1.2.6
+    image: quay.io/eunomia_upm/ds-agent
     command: ["setup", "-e", "/app/static/environment/config/prod/core.consumer.yaml"]
     volumes:
       - ./../../static/environment/config/prod/core.consumer.yaml:/app/static/environment/config/prod/core.consumer.yaml

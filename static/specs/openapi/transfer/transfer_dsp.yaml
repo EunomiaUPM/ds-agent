@@ -354,6 +354,11 @@ components:
         consumerPid:
           type: string
           format: urn
+        autoStart:
+          type: boolean
+          description: >
+            BFF simplified flow. When true the Provider automatically responds
+            with a TransferStartMessage. Omitted by standard-compliant peers.
 
     TransferStartMessageDto:
       type: object
@@ -505,6 +510,11 @@ components:
           type: string
         callbackAddress:
           type: string
+        autoStart:
+          type: boolean
+          description: >
+            BFF simplified flow. When true the BFF endpoint injects autoStart=true
+            into the wire message so the Provider auto-starts the transfer.
 
     RpcTransferStartMessageDto:
       type: object

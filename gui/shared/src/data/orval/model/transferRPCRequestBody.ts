@@ -18,4 +18,7 @@ export interface TransferRPCRequestBody {
   agreementId: string;
   format: string;
   dataAddress?: DataAddressDto;
+  /** BFF simplified flow. When true the Provider automatically responds with a TransferStartMessage upon receiving the request.
+ */
+  autoStart?: boolean;
 }

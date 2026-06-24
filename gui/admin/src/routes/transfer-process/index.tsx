@@ -6,8 +6,11 @@ import { Button } from "shared/src/components/ui/button.tsx";
 import { Badge, BadgeState } from "shared/src/components/ui/badge.tsx";
 import { Input } from "shared/src/components/ui/input.tsx";
 import { TransferProcessActions } from "shared/src/components/actions/TransferProcessActions.tsx";
+import { TransferProcessBusinessActions } from "shared/src/components/actions/TransferProcessBusinessActions.tsx";
 import { ArrowRight } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+
+type ActionsMode = "business" | "standard";
 import { mergeStateAndAttribute } from "shared/src/lib/utils.ts";
 import { PageLayout } from "shared/src/components/layout/PageLayout";
 import { PageHeader } from "shared/src/components/layout/PageHeader";
@@ -23,6 +26,7 @@ export const Route = createFileRoute("/transfer-process/")({
 });
 
 function RouteComponent() {
+  const [mode, setMode] = useState<ActionsMode>("business");
   const { data: transferProcessesResponse, isLoading: isTransferProcessesLoading } =
     useGetTransferProcesses();
   const transferProcesses =
@@ -45,7 +49,30 @@ function RouteComponent() {
 
   return (
     <PageLayout>
-      <PageHeader title="Transfer Processes" />
+      <PageHeader title="Transfer Processes" className="flex items-center justify-between">
+        <div className="flex gap-1 mt-2 p-0.5 rounded-md bg-white/5 w-fit text-xs">
+          <button
+            onClick={() => setMode("business")}
+            className={`px-3 py-1 rounded transition-colors ${
+              mode === "business"
+                ? "bg-white/15 text-white font-medium"
+                : "text-white/50 hover:text-white/80"
+            }`}
+          >
+            Business
+          </button>
+          <button
+            onClick={() => setMode("standard")}
+            className={`px-3 py-1 rounded transition-colors ${
+              mode === "standard"
+                ? "bg-white/15 text-white font-medium"
+                : "text-white/50 hover:text-white/80"
+            }`}
+          >
+            Standard
+          </button>
+        </div>
+      </PageHeader>
       <PageSection>
         <DataTable
           className="text-sm"
@@ -78,7 +105,12 @@ function RouteComponent() {
             },
             {
               header: "Actions",
-              cell: (tp) => <TransferProcessActions process={tp} tiny={true} />,
+              cell: (tp) =>
+                mode === "business" ? (
+                  <TransferProcessBusinessActions process={tp} tiny={true} />
+                ) : (
+                  <TransferProcessActions process={tp} tiny={true} />
+                ),
             },
             {
               header: "Link",

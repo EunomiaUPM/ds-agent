@@ -91,6 +91,24 @@ impl SecretRepoTrait for SeaOrmSecretRepo {
         .transpose()
     }
 
+    async fn list_secrets_by_prefix(&self, prefix: &str) -> Outcome<Vec<SecretEntry>> {
+        let mut query = secret::Entity::find().filter(secret::Column::DeletedAt.is_null());
+        if !prefix.is_empty() {
+            query = query.filter(secret::Column::Key.like(format!("{}%", prefix)));
+        }
+        let rows = query
+            .all(&self.db)
+            .await
+            .map_err(|e| SecretRepoErrors::ErrorFetchingSecret(e.into()).into_errors())?;
+
+        rows.into_iter()
+            .map(|m| {
+                m.into_entry()
+                    .map_err(|e| SecretRepoErrors::ErrorFetchingSecret(e.into()).into_errors())
+            })
+            .collect()
+    }
+
     async fn create_secret(&self, cmd: &NewSecretCommand) -> Outcome<SecretEntry> {
         let exists = secret::Entity::find_by_id(cmd.key.as_str())
             .filter(secret::Column::DeletedAt.is_null())

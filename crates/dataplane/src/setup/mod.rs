@@ -18,6 +18,7 @@
 use crate::cache::cache_redis::dataplane_transfer_cache::DataplaneTransferCacheForRedis;
 use crate::data::factory_sql::DataplaneRepoForSql;
 use crate::data::factory_trait::DataplaneRepoTrait;
+use crate::entities::dataplane_drivers::keystore_lookup::KeystoreClientImpl;
 use crate::entities::dataplane_manager::dataplane_driver_factory::DataplaneDriverFactory;
 use crate::entities::dataplane_manager::dataplane_manager::DataplaneManager;
 use crate::entities::dataplane_transfer_logs::dataplane_transfer_logs_entity::DataplaneTransferLogsEntityService;
@@ -32,6 +33,7 @@ use common::config::services::TransferConfig;
 use common::config::types::traits::{CacheConfigTrait, CommonConfigTrait};
 use common::http_client::HttpClient;
 use connector::ConnectorInstanceTrait;
+use keystore::setup::KeystoreSetup;
 use sea_orm::Database;
 use std::ops::Deref;
 use std::sync::Arc;
@@ -86,7 +88,22 @@ impl DataplaneSetup {
             cache,
         ));
 
-        DataplaneManager::new(dataplane_process_entity, connector_entity, config.clone())
+        // keystore
+        let (parameter_store, secret_store) = KeystoreSetup::new()
+            .build_keystore_stores(config.deref(), vault.clone())
+            .await;
+        let keystore_lookup = Arc::new(KeystoreClientImpl::new(
+            parameter_store,
+            secret_store.clone(),
+        ));
+
+        DataplaneManager::new_with_factory(
+            dataplane_process_entity,
+            connector_entity,
+            config.clone(),
+            Arc::new(DataplaneDriverFactory::with_keystore(keystore_lookup)),
+        )
+        .with_secret_store(secret_store)
     }
 
     pub async fn build_control_router(

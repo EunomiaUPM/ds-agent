@@ -68,6 +68,8 @@ pub struct RpcTransferRequestMessageDto {
     pub data_address: Option<DataAddressDto>,
     pub provider_address: String,
     pub callback_address: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub auto_start: Option<bool>,
 }
 
 impl Into<TransferProcessMessageWrapper<TransferRequestMessageDto>>
@@ -86,6 +88,7 @@ impl Into<TransferProcessMessageWrapper<TransferRequestMessageDto>>
                 data_address: self.data_address,
                 callback_address,
                 consumer_pid: consumer_pid_urn,
+                auto_start: self.auto_start,
             },
         }
     }

@@ -184,7 +184,7 @@ impl ConnectorTemplateEntitiesTrait for ConnectorTemplateEntitiesService {
                 error!("{}", e);
                 Errors::db(&e.to_string(), None)
             })?;
-        // create ouput
+        // create output
         Self::map_model_to_dto(saved_model)
     }
 

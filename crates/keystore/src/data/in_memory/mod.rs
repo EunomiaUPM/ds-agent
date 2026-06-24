@@ -226,6 +226,14 @@ impl SecretRepoTrait for InMemorySecretRepo {
             .cloned())
     }
 
+    async fn list_secrets_by_prefix(&self, prefix: &str) -> Outcome<Vec<SecretEntry>> {
+        let g = self.store.read().await;
+        Ok(active(&*g)
+            .filter(|e| prefix.is_empty() || e.metadata.key.as_str().starts_with(prefix))
+            .cloned()
+            .collect())
+    }
+
     async fn create_secret(&self, cmd: &NewSecretCommand) -> Outcome<SecretEntry> {
         let mut g = self.store.write().await;
         if g.get(cmd.key.as_str())

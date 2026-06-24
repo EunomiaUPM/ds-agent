@@ -14,8 +14,8 @@ use std::sync::Arc;
 use ymir::errors::{Errors, Outcome};
 
 pub struct DataplaneManager {
-    pub(super) dataplane_entity: Arc<dyn DataplaneTransfersEntitiesTrait>,
-    pub(super) connector_entity: Arc<dyn ConnectorInstanceTrait>,
+    dataplane_entity: Arc<dyn DataplaneTransfersEntitiesTrait>,
+    connector_entity: Arc<dyn ConnectorInstanceTrait>,
     config: Arc<TransferConfig>,
     driver_factory: Arc<dyn DataplaneDriverFactoryTrait>,
     secret_store: Option<Arc<dyn SecretStore>>,
@@ -27,13 +27,12 @@ impl DataplaneManager {
         connector_entity: Arc<dyn ConnectorInstanceTrait>,
         config: Arc<TransferConfig>,
     ) -> Self {
-        Self {
+        Self::new_with_factory(
             dataplane_entity,
             connector_entity,
             config,
-            driver_factory: Arc::new(DataplaneDriverFactory::new()),
-            secret_store: None,
-        }
+            Arc::new(DataplaneDriverFactory::new()),
+        )
     }
 
     pub fn new_with_factory(
@@ -60,30 +59,26 @@ impl DataplaneManager {
         &self,
         command: DataplaneCommand,
     ) -> Outcome<DataplaneCommandResponse> {
-        let mut context = match command.clone() {
+        let mut context = match &command {
             DataplaneCommand::SetInit(init) => {
                 DataplaneContext::from_init(
                     self.dataplane_entity.clone(),
                     self.connector_entity.clone(),
                     self.config.clone(),
-                    init,
+                    init.clone(),
                 )
                 .await?
             }
-            DataplaneCommand::SetConfiguring(continuation) => {
-                if let Some((cont, address)) = continuation {
-                    DataplaneContext::from_continuation(
-                        self.dataplane_entity.clone(),
-                        self.connector_entity.clone(),
-                        self.driver_factory.clone(),
-                        self.config.clone(),
-                        cont,
-                        Some(address),
-                    )
-                    .await
-                } else {
-                    Err(Errors::crazy("Configuring not allowed", None))
-                }?
+            DataplaneCommand::SetConfiguring((cont, address)) => {
+                DataplaneContext::from_continuation(
+                    self.dataplane_entity.clone(),
+                    self.connector_entity.clone(),
+                    self.driver_factory.clone(),
+                    self.config.clone(),
+                    cont.clone(),
+                    Some(address.clone()),
+                )
+                .await?
             }
             DataplaneCommand::GetAssociated(continuation)
             | DataplaneCommand::SetStarted(continuation)
@@ -96,15 +91,15 @@ impl DataplaneManager {
                     self.connector_entity.clone(),
                     self.driver_factory.clone(),
                     self.config.clone(),
-                    continuation,
+                    continuation.clone(),
                     None,
                 )
                 .await?
             }
             cmd => {
-                return Ok(DataplaneCommandResponse::Err(
-                    Errors::crazy(format!("Dataplane command {} not expected here", cmd), None)
-                        .into(),
+                return Err(Errors::crazy(
+                    format!("Dataplane command {} not expected here", cmd),
+                    None,
                 ))
             }
         };
@@ -137,12 +132,7 @@ impl DataplaneManager {
             DataplaneCommand::SetUnsubscribing(_) => handler_strategy.set_unsubscribing(context),
             DataplaneCommand::SetStopped(_) => handler_strategy.set_stopped(context),
             DataplaneCommand::SetTerminating(_) => handler_strategy.set_terminating(context),
-            cmd => {
-                return Err(Errors::crazy(
-                    format!("Dataplane command {} not expected here", cmd),
-                    None,
-                ))
-            }
+            cmd => unreachable!("command '{}' was rejected in context-building phase", cmd),
         }
         .await?;
 
@@ -793,7 +783,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_unexpected_command_returns_err_response() {
-        // SetConfiguring with no continuation is explicitly rejected.
+        // SetAuth is an internal state-machine step — never a valid external command.
         let mock_entity = MockDataplaneTransfersEntitiesTrait::new();
         let mock_connector = MockConnectorMock::new();
 
@@ -802,7 +792,7 @@ mod tests {
             Arc::new(mock_connector),
             transfer_config_fixture(),
         )
-        .execute_command(DataplaneCommand::SetConfiguring(None))
+        .execute_command(DataplaneCommand::SetAuth)
         .await;
 
         assert!(result.is_err());

@@ -1,4 +1,3 @@
-use crate::data::entities::dataplane_transfers::Model;
 use crate::entities::dataplane_drivers::DataplaneDriver;
 use crate::entities::dataplane_manager::dataplane_commands::{
     DataplaneContinuation, DataplaneInitCommandDirection, DataplaneInitCommandTypes,
@@ -15,12 +14,11 @@ use crate::entities::dataplane_transfers::{
 use crate::entities::dataplane_manager::conform_dataplane_forward_url;
 use crate::{DataplaneAddress, DataplaneTransfersEntitiesTrait};
 use common::config::services::TransferConfig;
-use connector::{ConnectorInstanceDto, ConnectorInstanceTrait, InteractionConfig, ProtocolSpec};
+use connector::{ConnectorInstanceDto, ConnectorInstanceTrait};
 use serde_json::json;
 use std::str::FromStr;
 use std::sync::Arc;
-use tokio::runtime::Runtime;
-use urn::{Urn, UrnBuilder};
+use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 
 #[derive(Clone, Debug)]
@@ -120,12 +118,8 @@ impl DataplaneContext {
         // db access
         let dataplane_process = dataplane_entity
             .get_dataplane_transfer_by_process_id(&continuation.transfer_dto_urn)
-            .await?;
-        if let None = dataplane_process {
-            return Err(Errors::crazy("Dataplane Process not found", None));
-        }
-
-        let dataplane_process = dataplane_process.unwrap();
+            .await?
+            .ok_or_else(|| Errors::crazy("Dataplane Process not found", None))?;
         // connector
         let connector_id = &dataplane_process.inner.connector_instance_id;
         let connector = match connector_id {
@@ -155,7 +149,7 @@ impl DataplaneContext {
 
         // driver to context
         context.driver = match &connector {
-            Some(conn) => Some(driver_factory.get_or_create_driver(&context)?),
+            Some(_) => Some(driver_factory.get_or_create_driver(&context)?),
             None => None, // Consumer has no driver
         };
 

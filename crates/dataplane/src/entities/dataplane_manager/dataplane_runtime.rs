@@ -178,8 +178,14 @@ impl<'a> RuntimeSecretVault<'a> {
         let prefix = Self::path_prefix(transfer_id);
         let key_prefix = KeyPrefix::new(prefix);
         let entries = self.store.list(&key_prefix).await?;
-        for entry in entries {
-            let _ = self.store.delete(&entry.metadata.key).await;
+        let deletes: Vec<_> = entries
+            .iter()
+            .map(|entry| self.store.delete(&entry.metadata.key))
+            .collect();
+        for result in futures_util::future::join_all(deletes).await {
+            if let Err(e) = result {
+                tracing::warn!(error = %e, "vault cleanup: failed to delete secret");
+            }
         }
         Ok(())
     }

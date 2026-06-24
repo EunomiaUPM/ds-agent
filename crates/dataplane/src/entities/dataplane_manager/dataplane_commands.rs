@@ -12,13 +12,13 @@ use keystore::SecretStore;
 use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
-use ymir::errors::Outcome;
+use ymir::errors::{Errors, Outcome};
 
 #[derive(Clone, Debug)]
 pub enum DataplaneCommand {
     GetAssociated(DataplaneContinuation),
     SetInit(DataplaneInitCommandTypes),
-    SetConfiguring(Option<(DataplaneContinuation, DataplaneAddress)>), // just in case egress is configured from outside
+    SetConfiguring((DataplaneContinuation, DataplaneAddress)),
     SetAuth,
     SetReady,
     SetStarted(DataplaneContinuation),
@@ -60,7 +60,6 @@ pub struct DataplaneContinuation {
 pub enum DataplaneCommandResponse {
     Ok,
     OkWithAddress(DataplaneAddress),
-    Err(Box<dyn std::error::Error + Sync + Send + 'static>),
 }
 
 impl std::fmt::Display for DataplaneCommand {
@@ -88,6 +87,10 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
     fn transfer_config(&self) -> Arc<TransferConfig>;
     fn secret_store(&self) -> Option<Arc<dyn SecretStore>>;
 
+    fn driver_factory(&self) -> Arc<dyn DataplaneDriverFactoryTrait> {
+        Arc::new(DataplaneDriverFactory::new())
+    }
+
     async fn get_associated(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
         context.set_forward_dataplane_address_from_ingress();
         Ok(context)
@@ -100,24 +103,28 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
         Ok(ctx)
     }
     async fn set_configuring(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
-        set_configuring_helper(self.dataplane_entity(), context).await
+        set_configuring_helper(
+            self.dataplane_entity(),
+            self.driver_factory().as_ref(),
+            context,
+        )
+        .await
     }
     async fn set_auth(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
-        let driver = DataplaneDriverFactory::new().get_or_create_driver(&context)?;
-        // Use the context returned by authenticate — it carries the resolved runtime.
-        let mut context = driver.authenticator.authenticate(&context).await?;
+        // Reuse the driver from context when set_configuring already ran; create from factory
+        // otherwise (e.g. when set_auth is called directly in tests or retry scenarios).
+        let authenticator = match context.driver() {
+            Some(driver) => driver.authenticator.clone(),
+            None => {
+                self.driver_factory()
+                    .get_or_create_driver(&context)?
+                    .authenticator
+            }
+        };
+        let mut context = authenticator.authenticate(&context).await?;
         let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
         let new_state = TransferState::Auth;
-        let flow_control =
-            if let (Some(runtime), Some(store)) = (context.runtime(), self.secret_store()) {
-                let transfer_id = context.dataplane_process().inner.id.clone();
-                let exported = RuntimeSecretVault::new(store.as_ref())
-                    .export(runtime, &transfer_id)
-                    .await?;
-                serde_json::to_value(&exported).ok()
-            } else {
-                context.runtime().and_then(|r| serde_json::to_value(r).ok())
-            };
+        let flow_control = self.export_runtime_flow_control(&context).await?;
         let dataplane_process = self
             .dataplane_entity()
             .put_dataplane_transfer_by_id(
@@ -131,6 +138,32 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
             .await?;
         context.set_dataplane_process(dataplane_process);
         Ok(context)
+    }
+
+    async fn export_runtime_flow_control(
+        &self,
+        context: &DataplaneContext,
+    ) -> Outcome<Option<serde_json::Value>> {
+        if let (Some(runtime), Some(store)) = (context.runtime(), self.secret_store()) {
+            let transfer_id = context.dataplane_process().inner.id.clone();
+            let exported = RuntimeSecretVault::new(store.as_ref())
+                .export(runtime, &transfer_id)
+                .await?;
+            let value = serde_json::to_value(&exported).map_err(|e| {
+                Errors::crazy(format!("Failed to serialize exported runtime: {}", e), None)
+            })?;
+            Ok(Some(value))
+        } else {
+            match context.runtime() {
+                None => Ok(None),
+                Some(r) => {
+                    let value = serde_json::to_value(r).map_err(|e| {
+                        Errors::crazy(format!("Failed to serialize runtime: {}", e), None)
+                    })?;
+                    Ok(Some(value))
+                }
+            }
+        }
     }
     async fn set_ready(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
         let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
@@ -154,16 +187,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
     async fn set_started(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
         let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
         let new_state = TransferState::Started;
-        let flow_control =
-            if let (Some(runtime), Some(store)) = (context.runtime(), self.secret_store()) {
-                let transfer_id = context.dataplane_process().inner.id.clone();
-                let exported = RuntimeSecretVault::new(store.as_ref())
-                    .export(runtime, &transfer_id)
-                    .await?;
-                serde_json::to_value(&exported).ok()
-            } else {
-                context.runtime().and_then(|r| serde_json::to_value(r).ok())
-            };
+        let flow_control = self.export_runtime_flow_control(&context).await?;
         let dataplane_process = self
             .dataplane_entity()
             .put_dataplane_transfer_by_id(
@@ -286,10 +310,11 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
 
 pub(crate) async fn set_configuring_helper(
     dp_trait: Arc<dyn DataplaneTransfersEntitiesTrait>,
+    driver_factory: &dyn DataplaneDriverFactoryTrait,
     context: DataplaneContext,
 ) -> Outcome<DataplaneContext> {
     // driver
-    let driver = DataplaneDriverFactory::new().get_or_create_driver(&context)?;
+    let driver = driver_factory.get_or_create_driver(&context)?;
     // proxy
     let mut context = driver.proxy_configurator.configure_proxy(&context).await?;
     // runtime

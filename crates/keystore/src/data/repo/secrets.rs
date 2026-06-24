@@ -13,6 +13,7 @@ pub trait SecretRepoTrait: Send + Sync {
     async fn count_secrets(&self) -> Outcome<u64>;
     async fn get_batch_secrets(&self, keys: &[Key]) -> Outcome<Vec<SecretEntry>>;
     async fn get_secret_by_key(&self, key: &Key) -> Outcome<Option<SecretEntry>>;
+    async fn list_secrets_by_prefix(&self, prefix: &str) -> Outcome<Vec<SecretEntry>>;
     async fn create_secret(&self, new_model: &NewSecretCommand) -> Outcome<SecretEntry>;
     async fn put_secret(&self, key: &Key, edit_model: &EditSecretCommand) -> Outcome<SecretEntry>;
     async fn delete_secret(&self, key: &Key) -> Outcome<()>;

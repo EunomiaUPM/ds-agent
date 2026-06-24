@@ -18,6 +18,7 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
+use crate::entities::parameters::jq::run_jq;
 use crate::entities::parameters::keystore_lookup::KeystoreLookup;
 use crate::entities::parameters::{
     template_runtime_json_regex, template_runtime_parameter_regex, template_runtime_secret_regex,
@@ -25,38 +26,6 @@ use crate::entities::parameters::{
 use crate::ConnectorInstanceDto;
 use regex::Regex;
 use ymir::errors::{Errors, Outcome};
-
-/// Evaluate a jq expression against a JSON value. Returns the first output, or `None` on
-/// parse/compile/runtime error (warnings are emitted via `tracing`).
-fn run_jq(expr: &str, value: serde_json::Value) -> Option<serde_json::Value> {
-    use jaq_interpret::{Ctx, FilterT, ParseCtx, RcIter, Val};
-
-    let (f, errs) = jaq_parse::parse(expr, jaq_parse::main());
-    if !errs.is_empty() {
-        tracing::warn!("runtime_jq: parse errors for {:?}: {:?}", expr, errs);
-        return None;
-    }
-    let f = f?;
-
-    let mut defs = ParseCtx::new(Vec::new());
-    let filter = defs.compile(f);
-    if !defs.errs.is_empty() {
-        tracing::warn!(
-            "runtime_jq: {} compile error(s) for {:?}",
-            defs.errs.len(),
-            expr
-        );
-        return None;
-    }
-
-    let inputs = RcIter::new(core::iter::empty());
-    let result = filter
-        .run((Ctx::new([], &inputs), Val::from(value)))
-        .next()
-        .and_then(|r| r.ok())
-        .map(serde_json::Value::from);
-    result
-}
 
 pub struct RuntimeParametersResolver<'a> {
     connector_instance: &'a ConnectorInstanceDto,
@@ -89,17 +58,20 @@ impl<'a> RuntimeParametersResolver<'a> {
     }
 
     pub async fn resolve(&self) -> Outcome<ConnectorInstanceDto> {
-        let (param_cache, secret_cache) = tokio::join!(
-            self.fetch_keystore(template_runtime_parameter_regex(), true),
-            self.fetch_keystore(template_runtime_secret_regex(), false)
-        );
-
+        // Serialize once; reuse for keystore regex scan and for in-place mutation.
         let mut value = serde_json::to_value(self.connector_instance).map_err(|e| {
             Errors::crazy(
                 format!("Failed to serialize connector instance: {}", e),
                 None,
             )
         })?;
+        let json = value.to_string();
+
+        let (param_cache, secret_cache) = tokio::join!(
+            self.fetch_keystore(template_runtime_parameter_regex(), &json, true),
+            self.fetch_keystore(template_runtime_secret_regex(), &json, false)
+        );
+
         self.resolve_value(&mut value, &param_cache, &secret_cache);
         serde_json::from_value(value).map_err(|e| {
             Errors::crazy(
@@ -112,14 +84,14 @@ impl<'a> RuntimeParametersResolver<'a> {
     async fn fetch_keystore(
         &self,
         re: &Regex,
+        json: &str,
         is_param: bool,
     ) -> HashMap<String, serde_json::Value> {
         let Some(ks) = &self.keystore else {
             return HashMap::new();
         };
-        let json = serde_json::to_string(self.connector_instance).unwrap_or_default();
         let keys: HashSet<String> = re
-            .captures_iter(&json)
+            .captures_iter(json)
             .map(|cap| cap[1].to_string())
             .collect();
         let fetches: Vec<_> = keys
@@ -222,6 +194,7 @@ impl<'a> RuntimeParametersResolver<'a> {
             // Interpolation — stringify each match.
             let snapshot = work.clone();
             let mut result = snapshot.clone();
+            let mut json_changed = false;
             for caps in re.captures_iter(&snapshot) {
                 let full_match = &caps[0];
                 let expr = &caps[1];
@@ -231,9 +204,13 @@ impl<'a> RuntimeParametersResolver<'a> {
                         other => other.to_string(),
                     };
                     result = result.replace(full_match, &s);
+                    json_changed = true;
                 }
             }
-            return Some(serde_json::Value::String(result));
+            if json_changed {
+                return Some(serde_json::Value::String(result));
+            }
+            // No jq expression resolved — fall through to the `changed` check below.
         }
 
         if changed {

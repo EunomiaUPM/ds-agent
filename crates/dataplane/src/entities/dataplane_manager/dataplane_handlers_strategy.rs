@@ -15,8 +15,8 @@ use std::sync::Arc;
 use ymir::errors::Outcome;
 
 pub struct DataplaneStrategyFactory {
-    pub(super) dataplane_entity: Arc<dyn DataplaneTransfersEntitiesTrait>,
-    pub(super) connector_entity: Arc<dyn ConnectorInstanceTrait>,
+    dataplane_entity: Arc<dyn DataplaneTransfersEntitiesTrait>,
+    connector_entity: Arc<dyn ConnectorInstanceTrait>,
     config: Arc<TransferConfig>,
     secret_store: Option<Arc<dyn SecretStore>>,
 }

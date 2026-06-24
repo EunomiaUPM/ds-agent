@@ -19,6 +19,7 @@ pub(crate) mod connector_template_walker;
 pub(crate) mod instance_parameters_map;
 pub(crate) mod instance_parameters_resolver;
 pub(crate) mod instance_parameters_validator;
+pub(crate) mod jq;
 pub mod keystore_lookup;
 pub(crate) mod runtime_parameters_resolver;
 pub(crate) mod template_parameters_extractor;
@@ -57,22 +58,24 @@ impl FromStr for SysParameterType {
     type Err = Errors;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // SYS_OWN_URL and SYS_OWN_URL_DOCKER share a variant with different field values —
+        // serde cannot represent these two aliases as a plain string, so they stay explicit.
         match s {
-            "SYS_URN" => Ok(Self::SysUrn),
-            "SYS_TOKEN" => Ok(Self::SysToken),
-            "SYS_TIMESTAMP" => Ok(Self::SysTimestamp),
-            "SYS_ISO8601" => Ok(Self::SysIso8601),
-            "SYS_OWN_URL" => Ok(Self::SysOwnUrl {
-                host_docker_internal: false,
-            }),
-            "SYS_OWN_URL_DOCKER" => Ok(Self::SysOwnUrl {
-                host_docker_internal: true,
-            }),
-            _ => Err(Errors::validation(
-                format!("{} system parameter not valid", s),
-                None,
-            )),
+            "SYS_OWN_URL" => {
+                return Ok(Self::SysOwnUrl {
+                    host_docker_internal: false,
+                })
+            }
+            "SYS_OWN_URL_DOCKER" => {
+                return Ok(Self::SysOwnUrl {
+                    host_docker_internal: true,
+                })
+            }
+            _ => {}
         }
+        // All unit variants delegate to serde so new variants don't require a FromStr update.
+        serde_json::from_value(serde_json::Value::String(s.to_string()))
+            .map_err(|_| Errors::validation(format!("{} system parameter not valid", s), None))
     }
 }
 

@@ -86,9 +86,7 @@ impl DataPlaneStrategy for ConsumerPullStrategy {
                         None,
                     )
                 })?;
-            let cmd = DataplaneCommand::SetConfiguring(
-                Some((continuation, dataplane)), // set egress
-            );
+            let cmd = DataplaneCommand::SetConfiguring((continuation, dataplane));
             mgr.execute_command(cmd).await?;
             return Ok(None);
         }

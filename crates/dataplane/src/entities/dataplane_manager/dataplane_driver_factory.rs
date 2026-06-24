@@ -126,7 +126,10 @@ impl DataplaneDriverFactory {
                         self.keystore.clone(),
                     )))),
                     ProtocolSpec::Kafka(_) => {
-                        todo!("not implemented yet")
+                        return Err(Errors::crazy(
+                            "Kafka push subscriber is not yet implemented",
+                            None,
+                        ))
                     }
                 },
             }

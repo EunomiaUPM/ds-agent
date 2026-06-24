@@ -15,15 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use super::jq::run_jq;
+use super::template_parameter_regex;
 use regex::Regex;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::OnceLock;
-
-fn template_regex() -> &'static Regex {
-    static REGEX: OnceLock<Regex> = OnceLock::new();
-    REGEX.get_or_init(|| Regex::new(r"\{\{\s*__(.*?)__\s*\}\}").expect("Invalid Regex"))
-}
 
 fn response_key_regex() -> &'static Regex {
     static REGEX: OnceLock<Regex> = OnceLock::new();
@@ -35,42 +32,8 @@ fn response_key_regex() -> &'static Regex {
     })
 }
 
-/// Evaluate a jq expression against a JSON value. Returns the first output value, if any.
-fn run_jq(expr: &str, value: Value) -> Option<Value> {
-    use jaq_interpret::{Ctx, FilterT, ParseCtx, RcIter, Val};
-
-    let (f, errs) = jaq_parse::parse(expr, jaq_parse::main());
-    if !errs.is_empty() {
-        tracing::warn!("run_jq: parse errors for {:?}: {:?}", expr, errs);
-        return None;
-    }
-    let f = f?;
-
-    let mut defs = ParseCtx::new(Vec::new());
-    let filter = defs.compile(f);
-
-    if !defs.errs.is_empty() {
-        tracing::warn!(
-            "run_jq: {} compile error(s) for {:?}",
-            defs.errs.len(),
-            expr
-        );
-        return None;
-    }
-
-    let inputs = RcIter::new(core::iter::empty());
-    let result = filter
-        .run((Ctx::new([], &inputs), Val::from(value)))
-        .next()
-        .and_then(|r| r.ok())
-        .map(Value::from);
-
-    result
-}
-
 pub struct TemplateParametersResolver<'a> {
     values: &'a HashMap<String, Value>,
-    context_stack: Vec<String>,
     /// Named response contexts for RUNTIME_*_RESPONSE_{jq} extraction.
     /// Key: uppercase type name (e.g. "SUB", "AUTH")
     /// Value: the JSON response body to run jq against
@@ -81,7 +44,6 @@ impl<'a> TemplateParametersResolver<'a> {
     pub fn new(values: &'a HashMap<String, Value>) -> Self {
         Self {
             values,
-            context_stack: vec![],
             response_contexts: HashMap::new(),
         }
     }
@@ -131,6 +93,7 @@ impl<'a> TemplateParametersResolver<'a> {
             return None;
         }
         let mut new_string = raw.to_string();
+        let mut changed = false;
         for caps in re.captures_iter(raw) {
             let full_match = &caps[0];
             let key = &caps[1];
@@ -138,9 +101,10 @@ impl<'a> TemplateParametersResolver<'a> {
             if let Some(val) = self.resolve_key(key) {
                 let replacement_str = self.value_to_string(&val);
                 new_string = new_string.replace(full_match, &replacement_str);
+                changed = true;
             }
         }
-        Some(Value::String(new_string))
+        if changed { Some(Value::String(new_string)) } else { None }
     }
 
     fn value_to_string(&self, val: &Value) -> String {
@@ -175,16 +139,12 @@ pub trait ParameterResolverBehavior {
 }
 
 impl ParameterResolverBehavior for TemplateParametersResolver<'_> {
-    fn enter_scope(&mut self, name: &str) {
-        self.context_stack.push(name.to_string());
-    }
+    fn enter_scope(&mut self, _name: &str) {}
 
-    fn exit_scope(&mut self) {
-        self.context_stack.pop();
-    }
+    fn exit_scope(&mut self) {}
 
     fn resolve(&self, raw: &str) -> Option<Value> {
-        let re = template_regex();
+        let re = template_parameter_regex();
         if let Some(val) = self.try_exact_replacement(re, raw) {
             return Some(val);
         }

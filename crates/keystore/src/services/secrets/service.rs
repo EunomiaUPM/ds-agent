@@ -65,12 +65,7 @@ impl SecretStore for SecretStoreImpl {
 
     #[tracing::instrument(level = "info", skip(self), err)]
     async fn list(&self, prefix: &KeyPrefix) -> Outcome<Vec<SecretEntry>> {
-        let all = self.repo.get_all_secrets().await?;
-        let prefix_str = prefix.as_str();
-        Ok(all
-            .into_iter()
-            .filter(|e| prefix_str.is_empty() || e.metadata.key.as_str().starts_with(prefix_str))
-            .collect())
+        self.repo.list_secrets_by_prefix(prefix.as_str()).await
     }
 
     #[tracing::instrument(level = "info", skip(self, value), fields(key = %key), err)]

@@ -82,6 +82,11 @@ impl SecretRepoTrait for VaultSecretRepo {
         }))
     }
 
+    async fn list_secrets_by_prefix(&self, prefix: &str) -> Outcome<Vec<SecretEntry>> {
+        let entries = self.repo.list_secrets_by_prefix(prefix).await?;
+        self.hydrate(entries).await
+    }
+
     async fn create_secret(&self, new_model: &NewSecretCommand) -> Outcome<SecretEntry> {
         self.vault_write(&new_model.key, &new_model.value).await?;
         let mut entry_model = new_model.clone();

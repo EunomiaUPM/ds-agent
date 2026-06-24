@@ -9,6 +9,7 @@ use crate::entities::dataplane_manager::dataplane_handlers_strategy::DataplaneSt
 use crate::DataplaneTransfersEntitiesTrait;
 use common::config::services::TransferConfig;
 use connector::ConnectorInstanceTrait;
+use keystore::SecretStore;
 use std::sync::Arc;
 use ymir::errors::{Errors, Outcome};
 
@@ -17,6 +18,7 @@ pub struct DataplaneManager {
     pub(super) connector_entity: Arc<dyn ConnectorInstanceTrait>,
     config: Arc<TransferConfig>,
     driver_factory: Arc<dyn DataplaneDriverFactoryTrait>,
+    secret_store: Option<Arc<dyn SecretStore>>,
 }
 
 impl DataplaneManager {
@@ -29,7 +31,8 @@ impl DataplaneManager {
             dataplane_entity,
             connector_entity,
             config,
-            driver_factory: Arc::new(DataplaneDriverFactory),
+            driver_factory: Arc::new(DataplaneDriverFactory::new()),
+            secret_store: None,
         }
     }
 
@@ -44,14 +47,20 @@ impl DataplaneManager {
             connector_entity,
             config,
             driver_factory,
+            secret_store: None,
         }
+    }
+
+    pub fn with_secret_store(mut self, store: Arc<dyn SecretStore>) -> Self {
+        self.secret_store = Some(store);
+        self
     }
 
     pub async fn execute_command(
         &self,
         command: DataplaneCommand,
     ) -> Outcome<DataplaneCommandResponse> {
-        let context = match command.clone() {
+        let mut context = match command.clone() {
             DataplaneCommand::SetInit(init) => {
                 DataplaneContext::from_init(
                     self.dataplane_entity.clone(),
@@ -100,11 +109,21 @@ impl DataplaneManager {
             }
         };
 
+        // Resolve runtime secret placeholders before dispatch.
+        if let (Some(runtime), Some(store)) = (context.runtime().cloned(), &self.secret_store) {
+            use crate::entities::dataplane_manager::dataplane_runtime::RuntimeSecretVault;
+            let resolved = RuntimeSecretVault::new(store.as_ref())
+                .resolve(runtime)
+                .await;
+            context.set_runtime(resolved);
+        }
+
         // Select strategy based on (role, interaction_mode) from the loaded context
         let handler_strategy = DataplaneStrategyFactory::new(
             self.dataplane_entity.clone(),
             self.connector_entity.clone(),
             self.config.clone(),
+            self.secret_store.clone(),
         )
         .get_strategy(&context);
 
@@ -377,7 +396,7 @@ mod tests {
             DataplaneInitCommandTypes::AsConsumer {
                 transfer_process_id,
                 direction: DataplaneInitCommandDirection::Pull {
-                    data_address: dummy_dataplane_forward_address(),
+                    data_address: Some(dummy_dataplane_forward_address()),
                 },
             },
         ))
@@ -445,12 +464,12 @@ mod tests {
             DataplaneInitCommandTypes::AsConsumer {
                 transfer_process_id: tp_id,
                 direction: DataplaneInitCommandDirection::Push {
-                    data_address: DataplaneAddress {
+                    data_address: Some(DataplaneAddress {
                         endpoint_type: "HttpData".to_string(),
                         endpoint: "http://example.com/data".to_string(),
                         authorization_type: None,
                         authorization: None,
-                    },
+                    }),
                 },
             },
         ))
@@ -542,7 +561,7 @@ mod tests {
                 transfer_process_id: tp_id,
                 connector_instance: connector,
                 direction: DataplaneInitCommandDirection::Pull {
-                    data_address: dummy_dataplane_forward_address(),
+                    data_address: Some(dummy_dataplane_forward_address()),
                 },
             },
         ))
@@ -574,22 +593,6 @@ mod tests {
                 )))
             });
 
-        // set_started calls set_configuring first when state == Ready
-        mock_entity
-            .expect_put_dataplane_transfer_by_id()
-            .withf(|_, dto| dto.state == Some(TransferState::Configuring))
-            .times(1)
-            .returning(|id, _| {
-                Ok(dummy_dataplane_transfer_dto(
-                    &id.to_string(),
-                    "urn:transfer-process:10",
-                    TransferRole::Consumer,
-                    InteractionMode::Pull,
-                    TransferState::Configuring,
-                    None,
-                ))
-            });
-
         mock_entity
             .expect_put_dataplane_transfer_by_id()
             .withf(|_, dto| dto.state == Some(TransferState::Started))
@@ -610,12 +613,9 @@ mod tests {
             Arc::new(mock_connector),
             transfer_config_fixture(),
         )
-        .execute_command(DataplaneCommand::SetStarted(
-            DataplaneContinuation {
-                transfer_dto_urn: tp_id,
-            },
-            None,
-        ))
+        .execute_command(DataplaneCommand::SetStarted(DataplaneContinuation {
+            transfer_dto_urn: tp_id,
+        }))
         .await;
 
         assert!(result.is_ok());
@@ -793,8 +793,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_unexpected_command_returns_err_response() {
-        // SetConfiguring has no continuation — manager returns Ok(DataplaneCommandResponse::Err),
-        // NOT Outcome::Err, so the caller can handle it gracefully.
+        // SetConfiguring with no continuation is explicitly rejected.
         let mock_entity = MockDataplaneTransfersEntitiesTrait::new();
         let mock_connector = MockConnectorMock::new();
 
@@ -803,11 +802,10 @@ mod tests {
             Arc::new(mock_connector),
             transfer_config_fixture(),
         )
-        .execute_command(DataplaneCommand::SetConfiguring)
+        .execute_command(DataplaneCommand::SetConfiguring(None))
         .await;
 
-        assert!(result.is_ok());
-        assert!(matches!(result.unwrap(), DataplaneCommandResponse::Err(_)));
+        assert!(result.is_err());
     }
 
     #[tokio::test]
@@ -825,12 +823,9 @@ mod tests {
             Arc::new(mock_connector),
             transfer_config_fixture(),
         )
-        .execute_command(DataplaneCommand::SetStarted(
-            DataplaneContinuation {
-                transfer_dto_urn: Urn::from_str("urn:transfer-process:99").unwrap(),
-            },
-            None,
-        ))
+        .execute_command(DataplaneCommand::SetStarted(DataplaneContinuation {
+            transfer_dto_urn: Urn::from_str("urn:transfer-process:99").unwrap(),
+        }))
         .await;
 
         assert!(result.is_err());
@@ -872,22 +867,6 @@ mod tests {
             .times(1)
             .returning(|_| Ok(dummy_driver()));
 
-        // set_started calls set_configuring first when state == Ready
-        mock_entity
-            .expect_put_dataplane_transfer_by_id()
-            .withf(|_, dto| dto.state == Some(TransferState::Configuring))
-            .times(1)
-            .returning(|id, _| {
-                Ok(dummy_dataplane_transfer_dto(
-                    &id.to_string(),
-                    "urn:transfer-process:20",
-                    TransferRole::Provider,
-                    InteractionMode::Pull,
-                    TransferState::Configuring,
-                    Some(Urn::from_str("urn:connector-instance:20").unwrap()),
-                ))
-            });
-
         mock_entity
             .expect_put_dataplane_transfer_by_id()
             .withf(|_, dto| dto.state == Some(TransferState::Started))
@@ -909,12 +888,9 @@ mod tests {
             transfer_config_fixture(),
             Arc::new(mock_factory),
         )
-        .execute_command(DataplaneCommand::SetStarted(
-            DataplaneContinuation {
-                transfer_dto_urn: tp_id,
-            },
-            None,
-        ))
+        .execute_command(DataplaneCommand::SetStarted(DataplaneContinuation {
+            transfer_dto_urn: tp_id,
+        }))
         .await;
 
         assert!(result.is_ok());

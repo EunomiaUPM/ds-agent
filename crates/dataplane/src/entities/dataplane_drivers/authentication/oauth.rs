@@ -133,6 +133,21 @@ impl OauthAuthenticator {
 #[async_trait::async_trait]
 impl DriverAuthenticatorTrait for OauthAuthenticator {
     async fn authenticate(&self, context: &DataplaneContext) -> Outcome<DataplaneContext> {
+        // Skip re-auth when the current token is still valid within a 30-second buffer.
+        if let Some(runtime) = context.runtime() {
+            if let ResolvedAuthCredentials::OAuth2 { expires_at, .. } = &runtime.auth {
+                let now = SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .ok()
+                    .map(|d| d.as_secs())
+                    .unwrap_or(0);
+                const EXPIRY_BUFFER_SECS: u64 = 30;
+                if expires_at.map_or(false, |exp| exp > now + EXPIRY_BUFFER_SECS) {
+                    return Ok(context.clone());
+                }
+            }
+        }
+
         let connector = context
             .connector_instance()
             .ok_or_else(|| Errors::crazy("Connector not available", None))?;

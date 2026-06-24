@@ -1,6 +1,6 @@
 pub mod commands;
-pub(crate) mod entry;
-pub(crate) mod key;
+pub mod entry;
+pub mod key;
 pub(crate) mod metadata;
-pub(crate) mod secret_value;
+pub mod secret_value;
 pub(crate) mod version;

@@ -23,6 +23,7 @@ use crate::data::repo::secrets::{SecretRepoErrors, SecretRepoTrait};
 use crate::entities::commands::{EditSecretCommand, NewSecretCommand};
 use crate::entities::entry::SecretEntry;
 use crate::entities::key::{Key, KeyPrefix};
+use crate::entities::secret_value::SecretValue;
 use crate::entities::version::Version;
 use crate::services::secrets::SecretStore;
 
@@ -70,5 +71,33 @@ impl SecretStore for SecretStoreImpl {
             .into_iter()
             .filter(|e| prefix_str.is_empty() || e.metadata.key.as_str().starts_with(prefix_str))
             .collect())
+    }
+
+    #[tracing::instrument(level = "info", skip(self, value), fields(key = %key), err)]
+    async fn upsert(&self, key: &Key, value: SecretValue) -> Outcome<()> {
+        match self.repo.get_secret_by_key(key).await? {
+            None => {
+                self.repo
+                    .create_secret(&NewSecretCommand {
+                        key: key.clone(),
+                        value,
+                        description: None,
+                    })
+                    .await?;
+            }
+            Some(existing) => {
+                self.repo
+                    .put_secret(
+                        key,
+                        &EditSecretCommand {
+                            value,
+                            expected_version: existing.metadata.version,
+                            description: None,
+                        },
+                    )
+                    .await?;
+            }
+        }
+        Ok(())
     }
 }

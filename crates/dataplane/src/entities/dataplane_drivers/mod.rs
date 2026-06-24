@@ -1,5 +1,6 @@
 pub(super) mod authentication;
 pub(super) mod configuration;
+pub mod keystore_lookup;
 pub(crate) mod proxy;
 pub(super) mod pubsub;
 

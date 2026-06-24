@@ -15,12 +15,27 @@ use crate::entities::dataplane_drivers::{
 };
 use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;
 use crate::entities::dataplane_transfers::{InteractionMode, TransferRole};
-use connector::{AuthenticationConfig, ConnectorInstanceDto, InteractionConfig, ProtocolSpec};
+use connector::{
+    AuthenticationConfig, ConnectorInstanceDto, InteractionConfig, KeystoreLookup, ProtocolSpec,
+};
 use std::sync::Arc;
 use ymir::errors::{Errors, Outcome};
 
-/// Unit-of-work factory — stateless, constructed on demand from the context.
-pub struct DataplaneDriverFactory;
+pub struct DataplaneDriverFactory {
+    keystore: Option<Arc<dyn KeystoreLookup>>,
+}
+
+impl DataplaneDriverFactory {
+    pub fn new() -> Self {
+        Self { keystore: None }
+    }
+
+    pub fn with_keystore(keystore: Arc<dyn KeystoreLookup>) -> Self {
+        Self {
+            keystore: Some(keystore),
+        }
+    }
+}
 
 #[cfg_attr(test, mockall::automock)]
 pub trait DataplaneDriverFactoryTrait: Send + Sync {
@@ -107,7 +122,9 @@ impl DataplaneDriverFactory {
             match interaction_mode {
                 InteractionMode::Pull => Ok(None),
                 InteractionMode::Push => match Self::extract_protocol(&connector_instance) {
-                    ProtocolSpec::Http(_) => Ok(Some(Arc::new(HttpPubSubscriber::new()))),
+                    ProtocolSpec::Http(_) => Ok(Some(Arc::new(HttpPubSubscriber::new(
+                        self.keystore.clone(),
+                    )))),
                     ProtocolSpec::Kafka(_) => {
                         todo!("not implemented yet")
                     }

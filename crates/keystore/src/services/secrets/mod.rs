@@ -4,6 +4,7 @@ pub mod views;
 use crate::entities::commands::{EditSecretCommand, NewSecretCommand};
 use crate::entities::entry::SecretEntry;
 use crate::entities::key::{Key, KeyPrefix};
+use crate::entities::secret_value::SecretValue;
 use crate::entities::version::Version;
 use ymir::errors::Outcome;
 
@@ -18,4 +19,6 @@ pub trait SecretStore: Send + Sync {
     async fn delete(&self, key: &Key) -> Outcome<()>;
 
     async fn list(&self, prefix: &KeyPrefix) -> Outcome<Vec<SecretEntry>>;
+
+    async fn upsert(&self, key: &Key, value: SecretValue) -> Outcome<()>;
 }

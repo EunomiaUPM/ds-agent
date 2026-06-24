@@ -134,7 +134,7 @@ async fn provider_context(auth: AuthenticationConfig) -> DataplaneContext {
             transfer_process_id: tp_urn(),
             connector_instance: connector,
             direction: DataplaneInitCommandDirection::Pull {
-                data_address: forward_address(),
+                data_address: Some(forward_address()),
             },
         },
     )
@@ -228,7 +228,7 @@ pub async fn consumer_context() -> DataplaneContext {
         DataplaneInitCommandTypes::AsConsumer {
             transfer_process_id: tp_urn(),
             direction: DataplaneInitCommandDirection::Pull {
-                data_address: forward_address(),
+                data_address: Some(forward_address()),
             },
         },
     )

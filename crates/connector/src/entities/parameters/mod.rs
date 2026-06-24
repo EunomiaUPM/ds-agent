@@ -19,6 +19,7 @@ pub(crate) mod connector_template_walker;
 pub(crate) mod instance_parameters_map;
 pub(crate) mod instance_parameters_resolver;
 pub(crate) mod instance_parameters_validator;
+pub mod keystore_lookup;
 pub(crate) mod runtime_parameters_resolver;
 pub(crate) mod template_parameters_extractor;
 pub(crate) mod template_parameters_validator;
@@ -145,5 +146,23 @@ pub(crate) fn template_runtime_json_regex() -> &'static Regex {
     static REGEX: OnceLock<Regex> = OnceLock::new();
     REGEX.get_or_init(|| {
         Regex::new(r"\{\{\s*__RUNTIME_JSON_\{(.+?)}__\s*}}").expect("Invalid RUNTIME_JSON regex")
+    })
+}
+
+/// Matches `{{__RUNTIME_PARAMETER_{/key}__}}` and captures the key path.
+pub(crate) fn template_runtime_parameter_regex() -> &'static Regex {
+    static REGEX: OnceLock<Regex> = OnceLock::new();
+    REGEX.get_or_init(|| {
+        Regex::new(r"\{\{\s*__RUNTIME_PARAMETER_\{([^}]+)}__\s*\}\}")
+            .expect("Invalid RUNTIME_PARAMETER regex")
+    })
+}
+
+/// Matches `{{__RUNTIME_SECRET_{/key}__}}` and captures the key path.
+pub(crate) fn template_runtime_secret_regex() -> &'static Regex {
+    static REGEX: OnceLock<Regex> = OnceLock::new();
+    REGEX.get_or_init(|| {
+        Regex::new(r"\{\{\s*__RUNTIME_SECRET_\{([^}]+)}__\s*\}\}")
+            .expect("Invalid RUNTIME_SECRET regex")
     })
 }

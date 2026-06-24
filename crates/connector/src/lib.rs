@@ -43,3 +43,4 @@ pub use entities::parameters::runtime_parameters_resolver::RuntimeParametersReso
 #[cfg(test)]
 pub use entities::connector_instance::MockConnectorInstanceTrait;
 pub use entities::connector_template::ConnectorMetadata;
+pub use entities::parameters::keystore_lookup::KeystoreLookup;

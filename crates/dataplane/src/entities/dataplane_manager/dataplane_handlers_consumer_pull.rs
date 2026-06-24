@@ -1,13 +1,11 @@
 use crate::entities::dataplane_manager::dataplane_commands::{
-    set_configuring_helper, DataplaneCommandStateMachine, DataplaneInitCommandTypes,
+    DataplaneCommandStateMachine, DataplaneInitCommandTypes,
 };
 use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;
-use crate::entities::dataplane_manager::dataplane_driver_factory::{
-    DataplaneDriverFactory, DataplaneDriverFactoryTrait,
-};
 use crate::DataplaneTransfersEntitiesTrait;
 use common::config::services::TransferConfig;
 use connector::ConnectorInstanceTrait;
+use keystore::SecretStore;
 use std::sync::Arc;
 use ymir::errors::Outcome;
 
@@ -15,6 +13,7 @@ pub struct DataplaneHandlerConsumerPull {
     pub(super) dataplane_entity: Arc<dyn DataplaneTransfersEntitiesTrait>,
     pub(super) connector_entity: Arc<dyn ConnectorInstanceTrait>,
     config: Arc<TransferConfig>,
+    secret_store: Option<Arc<dyn SecretStore>>,
 }
 
 impl DataplaneHandlerConsumerPull {
@@ -22,11 +21,13 @@ impl DataplaneHandlerConsumerPull {
         dataplane_entity: Arc<dyn DataplaneTransfersEntitiesTrait>,
         connector_entity: Arc<dyn ConnectorInstanceTrait>,
         config: Arc<TransferConfig>,
+        secret_store: Option<Arc<dyn SecretStore>>,
     ) -> Self {
         Self {
             dataplane_entity,
             connector_entity,
             config,
+            secret_store,
         }
     }
 }
@@ -36,26 +37,17 @@ impl DataplaneCommandStateMachine for DataplaneHandlerConsumerPull {
     fn handler_name(&self) -> &'static str {
         "ConsumerPull"
     }
-
     fn dataplane_entity(&self) -> Arc<dyn DataplaneTransfersEntitiesTrait> {
         self.dataplane_entity.clone()
     }
     fn connector_entity(&self) -> Arc<dyn ConnectorInstanceTrait> {
         self.connector_entity.clone()
     }
-
     fn transfer_config(&self) -> Arc<TransferConfig> {
         self.config.clone()
     }
-    async fn set_init(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
-        Ok(context)
-    }
-    async fn set_configuring(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
-        let ctx = set_configuring_helper(self.dataplane_entity(), context).await?;
-        let ctx = self.set_auth(ctx).await?;
-        let ctx = self.set_ready(ctx).await?;
-        let ctx = self.set_started(ctx).await?;
-        Ok(ctx)
+    fn secret_store(&self) -> Option<Arc<dyn SecretStore>> {
+        self.secret_store.clone()
     }
 }
 
@@ -134,6 +126,7 @@ mod tests {
             entity,
             Arc::new(MockConnectorInstance::new()),
             transfer_config_fixture(),
+            None,
         )
     }
 
@@ -147,7 +140,7 @@ mod tests {
             DataplaneInitCommandTypes::AsConsumer {
                 transfer_process_id: Urn::from_str(TP_URN).unwrap(),
                 direction: DataplaneInitCommandDirection::Pull {
-                    data_address: forward_address_fixture(),
+                    data_address: Some(forward_address_fixture()),
                 },
             },
         )

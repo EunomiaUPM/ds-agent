@@ -25,6 +25,7 @@ uuid = { workspace = true }
 async-trait = { workspace = true }
 ymir = { workspace = true }
 regex = { workspace = true }
+futures-util = { workspace = true }
 jaq-interpret = { workspace = true }
 jaq-parse = { workspace = true }
 urn = { workspace = true }

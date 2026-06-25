@@ -70,7 +70,7 @@ impl OnboarderRouter {
         payload: Result<Json<CallbackBody>, JsonRejection>,
     ) -> AppResult<()> {
         let payload = extract_payload(payload)?;
-        peer_connector.continue_req(id, payload).await
+        peer_connector.manage_interaction_finish(id, payload).await
     }
 
     async fn get_all(

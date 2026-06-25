@@ -15,7 +15,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod basic;
-mod gaia_self_issuer_trait;
+use async_trait::async_trait;
+use ymir::errors::Outcome;
+use ymir::types::jwt::VCJwtClaims;
 
-pub use gaia_self_issuer_trait::GaiaOwnIssuerTrait;
+#[async_trait]
+pub trait GaiaSelfAttesterTrait: Send + Sync + 'static {
+    async fn generate_terms_cons_vc(&self) -> Outcome<VCJwtClaims>;
+    async fn generate_legal_person(&self) -> Outcome<VCJwtClaims>;
+}

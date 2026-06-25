@@ -16,11 +16,12 @@
  */
 
 use crate::services::callback::CallbackTrait;
+use crate::services::gaia_self_attester::GaiaSelfAttesterTrait;
 use crate::services::gatekeeper::GateKeeperTrait;
 use crate::services::peer_connector::PeerConnectorTrait;
 use crate::services::repo::repo_trait::AuthRepoTrait;
-use std::sync::Arc;
 use crate::services::vc_requester::VcRequesterTrait;
+use std::sync::Arc;
 
 pub trait HasRepo {
     fn repo(&self) -> Arc<dyn AuthRepoTrait>;
@@ -40,4 +41,8 @@ pub trait HasGateKeeper {
 
 pub trait HasVcRequester {
     fn vc_requester(&self) -> Arc<dyn VcRequesterTrait>;
+}
+
+pub trait HasGaiaSelfAttester {
+    fn gaia(&self) -> Arc<dyn GaiaSelfAttesterTrait>;
 }

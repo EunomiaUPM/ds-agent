@@ -15,32 +15,28 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::str::FromStr;
 use std::sync::Arc;
 
 use async_trait::async_trait;
 use common::config::types::traits::EntityClientTrait;
-use reqwest::Response;
 use tracing::info;
-use url::Url;
 use ymir::capabilities::HttpSig;
 use ymir::config::traits::HostsConfigTrait;
 use ymir::config::types::HostType;
 use ymir::data::entities::sent::{grant, interaction, verification};
 use ymir::data::entities::shared::participant;
-use ymir::errors::{BadFormat, Errors, Outcome};
+use ymir::errors::{Errors, Outcome};
 use ymir::services::client::ClientTrait;
 use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
 use ymir::types::gnap::grant_request::interact::{FinishMethod, InteractStart};
 use ymir::types::gnap::grant_request::{GrantKind, GrantRequest};
-use ymir::types::gnap::grant_response::{ErrorCode, GrantResponse, GrantResponseKind};
+use ymir::types::gnap::grant_response::{GrantResponse, GrantResponseKind};
 use ymir::types::gnap::GrantStatus;
 use ymir::types::http::HttpBody;
 use ymir::types::keys::{Certificate, KeySource, PrivateKey};
 use ymir::types::participants::ParticipantType;
 use ymir::types::secrets::{PemHelper, StringHelper};
-use ymir::types::vcs::{VcType, VcTypeConfig};
 use ymir::utils::{
     expect_from_env, get_query_param, http_client, json_headers, require_field, trim_4_base,
     ResponseExt,

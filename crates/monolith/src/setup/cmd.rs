@@ -78,22 +78,18 @@ impl CoreCommands {
             CoreCliCommands::Setup(args) => {
                 let config = ApplicationConfig::load(&args.env_file)?;
                 let vault = if config.monolith().common().is_vault_real() {
-                    VaultService::Real(RealVaultService::new())
+                    VaultService::Real(RealVaultService::new()?)
                 } else {
-                    VaultService::Fake(FakeVaultService::new())
+                    VaultService::Fake(FakeVaultService::new()?)
                 };
                 let table = json_to_table::json_to_table(&serde_json::to_value(&config)?)
                     .collapse()
                     .to_string();
                 info!("Current Config:\n{}", &table);
 
-                if config.monolith().common().is_prod() {
-                    vault.write_all_secrets(None).await?;
-                } else {
-                    vault.write_local_secrets(None).await?;
-                }
+                vault.write_all_secrets(None).await?;
 
-                let db_connection = vault.get_db_connection(config.monolith().common()).await;
+                let db_connection = vault.get_db_connection(config.monolith().common()).await?;
 
                 CoreProviderMigration::run(&db_connection).await?;
             }

@@ -15,10 +15,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::services::repo::repo_trait::AuthRepoTrait;
 use crate::services::HasRepo;
 use async_trait::async_trait;
-use common::batch_requests::BatchRequests;
+use common::batch_requests::BatchRequestsAsString;
 use common::facades::VerifyTokenRequest;
 use json_value_merge::Merge;
 use ymir::data::entities::shared::participant::{Model, Plan};
@@ -37,33 +36,33 @@ pub trait ParticipantModule: HasRepo + Send + Sync + 'static {
     }
 
     async fn get_by_id(&self, id: String) -> Outcome<Model> {
-        self.repo().mates().get_by_id(&id).await
+        self.repo().participant().get_by_id(&id).await
     }
 
     async fn get_me(&self) -> Outcome<Model> {
-        self.repo().mates().get_me().await
+        self.repo().participant().get_me().await
     }
 
-    async fn get_mate_batch(&self, payload: BatchRequests) -> Outcome<Vec<Model>> {
-        self.repo().mates().get_batch(&payload.ids).await
+    async fn get_participant_batch(&self, payload: BatchRequestsAsString) -> Outcome<Vec<Model>> {
+        self.repo().participant().get_batch(&payload.ids).await
     }
 
     async fn get_by_token(&self, payload: VerifyTokenRequest) -> Outcome<Model> {
-        self.repo().mates().get_by_token(&payload.token).await
+        self.repo().participant().get_by_token(&payload.token).await
     }
     async fn update_extra_fields_by_id(
         &self,
         id: String,
         extra_fields: serde_json::Value,
     ) -> Outcome<Model> {
-        let mut mate = self.repo().mates().get_by_id(&id).await?;
+        let mut mate = self.repo().participant().get_by_id(&id).await?;
         let mut merged_extra_fields = mate.extra_fields.clone();
         merged_extra_fields.merge(&extra_fields);
         mate.extra_fields = merged_extra_fields;
-        self.repo().mates().update(mate).await
+        self.repo().participant().update(mate).await
     }
 
-    async fn create_mate(&self, payload: &Plan) -> Outcome<Model> {
-        self.repo().mates().create(payload.clone()).await
+    async fn create_participant(&self, payload: &Plan) -> Outcome<Model> {
+        self.repo().participant().create(payload.clone()).await
     }
 }

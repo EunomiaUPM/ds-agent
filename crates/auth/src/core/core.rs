@@ -15,26 +15,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use common::config::services::SsiAuthConfig;
-use std::sync::Arc;
-use ymir::modules::WalletModuleTrait;
-use ymir::services::repo::traits::shared::ParticipantRepoTrait;
-use ymir::services::verifier::VerifierTrait;
-use ymir::services::wallet::WalletTrait;
-use ymir::services::{HasVerifier, HasWallet};
-
 use super::AuthOrchestratorTrait;
 use crate::modules::{
-    ParticipantModule, GaiaSelfIssuerModule, GateKeeperModule, PeerConnectorModule,
+    GaiaSelfAttesterModule, GateKeeperModule, ParticipantModule, PeerConnectorModule,
     VcRequesterModule, VerifierModule,
 };
 use crate::services::callback::CallbackTrait;
-use crate::services::gaia_self_issuer::GaiaOwnIssuerTrait;
+use crate::services::gaia_self_attester::GaiaSelfAttesterTrait;
 use crate::services::gatekeeper::GateKeeperTrait;
 use crate::services::peer_connector::PeerConnectorTrait;
 use crate::services::repo::repo_trait::AuthRepoTrait;
 use crate::services::vc_requester::VcRequesterTrait;
-use crate::services::{HasCallback, HasGateKeeper, HasPeerConnector, HasRepo, HasVcRequester};
+use crate::services::{
+    HasCallback, HasGaiaSelfAttester, HasGateKeeper, HasPeerConnector, HasRepo, HasVcRequester,
+};
+use common::config::services::SsiAuthConfig;
+use std::sync::Arc;
+use ymir::modules::WalletModuleTrait;
+use ymir::services::issuer::IssuerTrait;
+use ymir::services::verifier::VerifierTrait;
+use ymir::services::wallet::WalletTrait;
+use ymir::services::{HasIssuer, HasVerifier, HasWallet};
 
 pub struct AuthCore {
     vc_requester: Arc<dyn VcRequesterTrait>,
@@ -44,7 +45,8 @@ pub struct AuthCore {
     verifier: Arc<dyn VerifierTrait>,
     repo: Arc<dyn AuthRepoTrait>,
     wallet: Arc<dyn WalletTrait>,
-    // gaia: Arc<dyn GaiaOwnIssuerTrait>,
+    gaia: Option<Arc<dyn GaiaSelfAttesterTrait>>,
+    issuer: Option<Arc<dyn IssuerTrait>>,
     config: Arc<SsiAuthConfig>,
 }
 
@@ -57,7 +59,8 @@ impl AuthCore {
         verifier: Arc<dyn VerifierTrait>,
         repo: Arc<dyn AuthRepoTrait>,
         wallet: Arc<dyn WalletTrait>,
-        // gaia: Arc<dyn GaiaOwnIssuerTrait>,
+        gaia: Option<Arc<dyn GaiaSelfAttesterTrait>>,
+        issuer: Option<Arc<dyn IssuerTrait>>,
         config: Arc<SsiAuthConfig>,
     ) -> AuthCore {
         AuthCore {
@@ -69,7 +72,8 @@ impl AuthCore {
             repo,
             config,
             wallet,
-            // gaia,
+            gaia,
+            issuer,
         }
     }
 }
@@ -118,19 +122,31 @@ impl HasVerifier for AuthCore {
     }
 }
 
+impl HasGaiaSelfAttester for AuthCore {
+    fn gaia(&self) -> Arc<dyn GaiaSelfAttesterTrait> {
+        self.gaia.as_ref().expect("Gaia Module not active").clone()
+    }
+}
+
+impl HasIssuer for AuthCore {
+    fn issuer(&self) -> Arc<dyn IssuerTrait> {
+        self.issuer
+            .as_ref()
+            .expect("Issuer Module not active")
+            .clone()
+    }
+}
+
 // ========================================== MODULES ==============================================
 impl PeerConnectorModule for AuthCore {}
 impl ParticipantModule for AuthCore {}
 impl VcRequesterModule for AuthCore {}
-impl GaiaSelfIssuerModule for AuthCore {}
+
+impl GaiaSelfAttesterModule for AuthCore {}
 impl VerifierModule for AuthCore {}
 
 impl GateKeeperModule for AuthCore {}
-impl WalletModuleTrait for AuthCore {
-    fn participant(&self) -> Arc<dyn ParticipantRepoTrait> {
-        self.repo.participant().clone()
-    }
-}
+impl WalletModuleTrait for AuthCore {}
 
 // ======================================== ORCHESTATOR ============================================
 impl AuthOrchestratorTrait for AuthCore {

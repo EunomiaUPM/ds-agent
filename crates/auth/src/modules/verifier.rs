@@ -18,11 +18,10 @@
 use crate::services::{HasGateKeeper, HasRepo};
 use async_trait::async_trait;
 use ymir::errors::Outcome;
-use ymir::services::verifier::VerifierTrait;
 use ymir::services::HasVerifier;
 use ymir::types::gnap::InteractionFinishResponse;
 use ymir::types::vcs::VPDef;
-use ymir::types::verifying::VerifyPayload;
+use ymir::types::verification::VerifyPayload;
 
 #[async_trait]
 pub trait VerifierModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync + 'static {
@@ -50,7 +49,7 @@ pub trait VerifierModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync + 
         self.repo().recv_verification().update(verification).await?;
 
         self.gatekeeper()
-            .finish_interaction(&interaction, verification_result.clone())
+            .finish_interaction(&interaction, verification_result)
             .await
     }
 }

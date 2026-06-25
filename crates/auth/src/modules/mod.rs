@@ -17,14 +17,14 @@
 
 mod gatekeeper;
 mod verifier;
-mod gaia_self_issuer;
+mod gaia_self_attester;
 mod participant;
 mod peer_connector;
 mod vc_requester;
 
 pub use gatekeeper::GateKeeperModule;
 pub use verifier::VerifierModule;
-pub use gaia_self_issuer::GaiaSelfIssuerModule;
+pub use gaia_self_attester::GaiaSelfAttesterModule;
 pub use participant::ParticipantModule;
 pub use peer_connector::PeerConnectorModule;
 pub use vc_requester::VcRequesterModule;

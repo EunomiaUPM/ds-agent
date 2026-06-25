@@ -22,7 +22,7 @@ use axum::extract::rejection::JsonRejection;
 use axum::extract::{Path, Query, State};
 use axum::routing::{get, post, put};
 use axum::{Json, Router};
-use common::batch_requests::BatchRequests;
+use common::batch_requests::BatchRequestsAsString;
 use common::facades::VerifyTokenRequest;
 use serde::Deserialize;
 use ymir::data::entities::shared::participant::{Model, Plan};
@@ -52,53 +52,55 @@ impl ParticipantRouter {
     }
 
     async fn get_all(
-        State(mater): State<Arc<dyn ParticipantModule>>,
+        State(manager): State<Arc<dyn ParticipantModule>>,
         query: Query<MateQuery>,
     ) -> AppResult<Json<Vec<Model>>> {
-        let filter = query.r#type.unwrap_or(ParticipantType::All);
+        let filter = query.r#type.clone().unwrap_or(ParticipantType::All);
 
-        Ok(Json(mater.get_all(filter, query.exclude_myself).await?))
+        Ok(Json(manager.get_all(filter, query.exclude_myself).await?))
     }
     async fn get_by_id(
-        State(mater): State<Arc<dyn ParticipantModule>>,
+        State(manager): State<Arc<dyn ParticipantModule>>,
         Path(id): Path<String>,
     ) -> AppResult<Json<Model>> {
-        Ok(Json(mater.get_by_id(id).await?))
+        Ok(Json(manager.get_by_id(id).await?))
     }
 
-    async fn get_myself(State(mater): State<Arc<dyn ParticipantModule>>) -> AppResult<Json<Model>> {
-        Ok(Json(mater.get_me().await?))
+    async fn get_myself(
+        State(manager): State<Arc<dyn ParticipantModule>>,
+    ) -> AppResult<Json<Model>> {
+        Ok(Json(manager.get_me().await?))
     }
 
     async fn get_batch(
-        State(mater): State<Arc<dyn ParticipantModule>>,
-        payload: Result<Json<BatchRequests>, JsonRejection>,
+        State(manager): State<Arc<dyn ParticipantModule>>,
+        payload: Result<Json<BatchRequestsAsString>, JsonRejection>,
     ) -> AppResult<Json<Vec<Model>>> {
         let payload = extract_payload(payload)?;
-        Ok(Json(mater.get_mate_batch(payload).await?))
+        Ok(Json(manager.get_participant_batch(payload).await?))
     }
 
     async fn get_by_token(
-        State(mater): State<Arc<dyn ParticipantModule>>,
+        State(manager): State<Arc<dyn ParticipantModule>>,
         payload: Result<Json<VerifyTokenRequest>, JsonRejection>,
     ) -> AppResult<Json<Model>> {
         let payload = extract_payload(payload)?;
-        Ok(Json(mater.get_by_token(payload).await?))
+        Ok(Json(manager.get_by_token(payload).await?))
     }
     async fn update_by_id(
-        State(mater): State<Arc<dyn ParticipantModule>>,
+        State(manager): State<Arc<dyn ParticipantModule>>,
         Path(id): Path<String>,
         payload: Result<Json<serde_json::Value>, JsonRejection>,
     ) -> AppResult<Json<Model>> {
         let payload = extract_payload(payload)?;
-        Ok(Json(mater.update_extra_fields_by_id(id, payload).await?))
+        Ok(Json(manager.update_extra_fields_by_id(id, payload).await?))
     }
     async fn create(
-        State(mater): State<Arc<dyn ParticipantModule>>,
+        State(manager): State<Arc<dyn ParticipantModule>>,
         payload: Result<Json<Plan>, JsonRejection>,
     ) -> AppResult<Json<Model>> {
         let payload = extract_payload(payload)?;
-        Ok(Json(mater.create_mate(&payload).await?))
+        Ok(Json(manager.create_participant(&payload).await?))
     }
 }
 

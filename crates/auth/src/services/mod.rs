@@ -16,7 +16,7 @@
  */
 
 pub mod callback;
-pub mod gaia_self_issuer;
+pub mod gaia_self_attester;
 pub mod gatekeeper;
 pub mod peer_connector;
 pub mod repo;

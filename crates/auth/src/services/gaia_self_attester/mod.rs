@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-mod config;
+mod gaia_self_attester_trait;
 mod service;
 
-pub use config::GaiaSelfIssuerConfig;
-pub use service::BasicGaiaSelfIssuer;
+pub use gaia_self_attester_trait::GaiaSelfAttesterTrait;
+pub use service::GaiaSelfAttester;

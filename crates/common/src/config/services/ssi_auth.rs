@@ -76,8 +76,8 @@ impl EntityClientTrait for SsiAuthConfig {
 }
 
 impl GaiaConfigTrait for SsiAuthConfig {
-    fn gaia_config(&self) -> &GaiaConfig {
-        self.gaia_config.as_ref().expect("GaiaConfig is not active")
+    fn gaia_config(&self) -> Option<&GaiaConfig> {
+        self.gaia_config.as_ref()
     }
 }
 

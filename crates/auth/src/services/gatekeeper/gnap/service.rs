@@ -14,30 +14,26 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
-use std::str::FromStr;
-
 use super::super::GateKeeperTrait;
 use super::config::GnapGateKeeperConfig;
+use async_trait::async_trait;
 use axum::body::Bytes;
 use axum::http::HeaderMap;
 use tracing::info;
 use ymir::capabilities::HttpSig;
 use ymir::config::traits::HostsConfigTrait;
 use ymir::config::types::HostType;
-use ymir::data::entities::received::{grant, interaction, verification};
+use ymir::data::entities::received::{grant, interaction};
 use ymir::data::entities::shared::{participant, resource_req};
 use ymir::errors::{BadFormat, Errors, Outcome};
 use ymir::services::client::ClientTrait;
-use ymir::types::gnap::grant_request::access::AccessTokenRequest;
 use ymir::types::gnap::grant_request::client::{Client, KeyMaterial, KeyProof};
 use ymir::types::gnap::grant_request::interact::{
     FinishMethod, HashMethod, InteractAction, InteractRequest, InteractStart,
 };
 use ymir::types::gnap::grant_request::{GrantKind, GrantRequest, GrantRequestKind};
-use ymir::types::gnap::grant_response::GrantResponse;
 use ymir::types::gnap::{
-    ApprovedCallbackBody, CallbackBody, ContinueRequest, GrantStatus, InteractionFinishResponse,
+    ApprovedCallbackBody, CallbackBody, ContinueRequest, InteractionFinishResponse,
     RejectedCallbackBody,
 };
 use ymir::types::http::HttpBody;
@@ -57,6 +53,7 @@ impl GnapGateKeeperService {
     }
 }
 
+#[async_trait]
 impl GateKeeperTrait for GnapGateKeeperService {
     fn build_grant_plan(&self, class_id: Option<String>) -> Outcome<grant::Plan> {
         let class_id = class_id.ok_or_else(|| {

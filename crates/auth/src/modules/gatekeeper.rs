@@ -15,22 +15,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::services::gatekeeper::GateKeeperTrait;
 use crate::services::{HasGateKeeper, HasRepo};
 use async_trait::async_trait;
 use axum::body::Bytes;
 use axum::http::HeaderMap;
 use ymir::errors::Outcome;
 use ymir::services::HasVerifier;
-use ymir::services::verifier::VerifierTrait;
 use ymir::types::gnap::grant_response::{ErrorResponse, GrantResponse};
 use ymir::types::gnap::GrantStatus;
 use ymir::utils::{create_opaque_token, errors_to_error_code, require_field};
 
 #[async_trait]
-pub trait GateKeeperModule:
-    HasGateKeeper + HasVerifier + HasRepo + Send + Sync + 'static
-{
+pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync + 'static {
     async fn manage_grant_req(&self, payload: Bytes, headers: HeaderMap) -> GrantResponse {
         self.inner_manage_grant_req(payload, headers)
             .await

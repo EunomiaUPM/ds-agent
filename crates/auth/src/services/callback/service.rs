@@ -21,7 +21,6 @@ use async_trait::async_trait;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use base64::Engine;
 use reqwest::header::AUTHORIZATION;
-use reqwest::Response;
 use sha2::{Digest, Sha256, Sha384, Sha512};
 use tracing::info;
 use ymir::capabilities::HttpSig;
@@ -30,7 +29,6 @@ use ymir::errors::{Errors, Outcome};
 use ymir::services::client::ClientTrait;
 use ymir::services::vault::{VaultService, VaultTrait};
 use ymir::types::gnap::grant_request::interact::HashMethod;
-use ymir::types::gnap::grant_request::GrantRequestKind;
 use ymir::types::gnap::grant_response::GrantResponse;
 use ymir::types::gnap::{ApprovedCallbackBody, ContinueRequest};
 use ymir::types::http::HttpBody;
@@ -98,8 +96,8 @@ impl CallbackTrait for BasicCallbackService {
 
         let calculated_hash = URL_SAFE_NO_PAD.encode(hash_result);
 
-        let hash = require_field(interaction.hash, "hash")?;
-        if calculated_hash != hash {
+        let hash = require_field(interaction.hash.as_ref(), "hash")?;
+        if &calculated_hash != hash {
             return Err(Errors::security(
                 "Hash does not match the calculated one",
                 None,

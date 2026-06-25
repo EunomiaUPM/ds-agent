@@ -15,9 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::services::callback::CallbackTrait;
-use crate::services::peer_connector::PeerConnectorTrait;
-use crate::services::repo::repo_trait::AuthRepoTrait;
 use crate::services::{HasCallback, HasPeerConnector, HasRepo};
 use crate::types::entities::ReachProvider;
 use crate::types::response::TokenWhatResponse;
@@ -28,7 +25,7 @@ use ymir::errors::Outcome;
 use ymir::services::HasWallet;
 use ymir::types::gnap::grant_request::GrantKind;
 use ymir::types::gnap::{ApprovedCallbackBody, CallbackBody, GrantStatus};
-use ymir::types::verifying::VerificationStatus;
+use ymir::types::verification::VerificationStatus;
 
 #[async_trait]
 pub trait PeerConnectorModule:
@@ -53,7 +50,7 @@ pub trait PeerConnectorModule:
 
         let what_response =
             self.peer_connector()
-                    .manage_grant_resp(grant_resp, &mut grant, &mut interaction);
+                .manage_grant_resp(grant_resp, &mut grant, &mut interaction);
 
         let grant = self.repo().sent_grant().update(grant).await?;
         let _interaction = self.repo().sent_interaction().update(interaction).await?;
@@ -72,7 +69,7 @@ pub trait PeerConnectorModule:
     async fn get_all(&self) -> Outcome<Vec<grant::Model>> {
         self.repo()
             .sent_grant()
-            .get_by_type(GrantKind::AccessToken)
+            .filter_by_type(GrantKind::AccessToken)
             .await
     }
 
@@ -92,7 +89,9 @@ pub trait PeerConnectorModule:
                 self.repo().participant().force_update(mate).await?;
                 Ok(())
             }
-            TokenWhatResponse::Presentation(uri) => self.manage_oid4vp(&grant.id, grant.auto, &uri).await,
+            TokenWhatResponse::Presentation(uri) => {
+                self.manage_oid4vp(&grant.id, grant.auto, &uri).await
+            }
             TokenWhatResponse::Wait => Ok(()),
         }
     }
@@ -142,10 +141,8 @@ pub trait PeerConnectorModule:
     async fn manage_rejection(&self, id: String) -> Outcome<()> {
         let mut grant = self.repo().sent_grant().get_by_id(&id).await?;
         grant.status = GrantStatus::Rejected;
-        grant.ended_at = Some(chrono::Utc::now());
+        grant.ended_at = Some(Utc::now());
         self.repo().sent_grant().update(grant).await?;
         Ok(())
     }
-
-
 }

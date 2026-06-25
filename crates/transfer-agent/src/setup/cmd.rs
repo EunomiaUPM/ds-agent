@@ -71,9 +71,9 @@ impl TransferCommands {
             TransferCliCommands::Setup(args) => {
                 let config = TransferConfig::load(&*args.env_file)?;
                 let vault = if config.common().is_vault_real() {
-                    VaultService::Real(RealVaultService::new())
+                    VaultService::Real(RealVaultService::new()?)
                 } else {
-                    VaultService::Fake(FakeVaultService::new())
+                    VaultService::Fake(FakeVaultService::new()?)
                 };
                 let table = json_to_table::json_to_table(&serde_json::to_value(&config)?)
                     .collapse()

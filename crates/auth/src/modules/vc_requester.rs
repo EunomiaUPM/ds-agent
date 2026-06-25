@@ -15,9 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::services::callback::CallbackTrait;
-use crate::services::repo::repo_trait::AuthRepoTrait;
-use crate::services::vc_requester::VcRequesterTrait;
 use crate::services::{HasCallback, HasRepo, HasVcRequester};
 use crate::types::entities::ReachAuthority;
 use crate::types::response::VcWhatResponse;
@@ -28,7 +25,7 @@ use ymir::errors::Outcome;
 use ymir::services::HasWallet;
 use ymir::types::gnap::grant_request::GrantKind;
 use ymir::types::gnap::{ApprovedCallbackBody, CallbackBody, GrantStatus};
-use ymir::types::verifying::VerificationStatus;
+use ymir::types::verification::VerificationStatus;
 
 #[async_trait]
 pub trait VcRequesterModule:
@@ -68,12 +65,12 @@ pub trait VcRequesterModule:
     async fn get_all(&self) -> Outcome<Vec<grant::Model>> {
         self.repo()
             .sent_grant()
-            .get_by_type(GrantKind::CredentialRequest)
+            .filter_by_type(GrantKind::CredentialRequest)
             .await
     }
 
     async fn get_by_id(&self, id: String) -> Outcome<grant::Model> {
-        self.repo().vc_req().get_by_id(&id).await
+        self.repo().sent_grant().get_by_id(&id).await
     }
 
     // ========================================= INTERNALS =========================================
@@ -90,7 +87,7 @@ pub trait VcRequesterModule:
     }
 
     async fn manage_oid4vci(&self, mut grant: grant::Model, uri: &str) -> Outcome<()> {
-        if &grant.auto {
+        if grant.auto {
             self.wallet().process_oid4vci(&uri).await?;
 
             grant.status = GrantStatus::Finalized;

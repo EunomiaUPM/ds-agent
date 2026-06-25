@@ -17,7 +17,7 @@
  *
  */
 
-use auth::data::migrator::get_auth_migrations;
+use auth::data::migrations::get_auth_migrations;
 use catalog_agent::get_catalog_migrations;
 use connector::get_connector_migrations;
 use dataplane::get_dataplane_migrations;

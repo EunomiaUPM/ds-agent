@@ -26,7 +26,7 @@ use axum::{Form, Json, Router};
 use ymir::errors::AppResult;
 use ymir::types::gnap::InteractionFinishResponse;
 use ymir::types::vcs::VPDef;
-use ymir::types::verifying::VerifyPayload;
+use ymir::types::verification::VerifyPayload;
 use ymir::utils::extract_form_payload;
 
 use crate::modules::VerifierModule;

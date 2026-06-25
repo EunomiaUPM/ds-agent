@@ -15,26 +15,24 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use common::config::services::SsiAuthConfig;
-use std::sync::Arc;
-use ymir::modules::WalletModuleTrait;
+use crate::services::HasGaiaSelfAttester;
+use async_trait::async_trait;
+use ymir::errors::Outcome;
+use ymir::services::{HasIssuer, HasWallet};
 
-use crate::modules::{
-    ParticipantModule, GaiaSelfAttesterModule, GateKeeperModule, PeerConnectorModule,
-    VcRequesterModule, VerifierModule,
-};
-
-pub trait AuthOrchestratorTrait:
-PeerConnectorModule
-    + WalletModuleTrait
-    + ParticipantModule
-    + GaiaSelfAttesterModule
-    + VerifierModule
-    + VcRequesterModule
-    + GateKeeperModule
-    + Send
-    + Sync
-    + 'static
+#[async_trait]
+pub trait GaiaSelfAttesterModule:
+    HasGaiaSelfAttester + HasIssuer + HasWallet + Send + Sync + 'static
 {
-    fn config(&self) -> Arc<SsiAuthConfig>;
+    async fn generate_gaia_vcs(&self) -> Outcome<()> {
+        let legal_p = self.gaia().generate_legal_person().await?;
+        let terms = self.gaia().generate_legal_person().await?;
+        let legal_p = self.issuer().sign_claims(&legal_p).await?;
+        let terms = self.issuer().sign_claims(&terms).await?;
+
+        self.wallet().store_vc(legal_p).await?;
+        self.wallet().store_vc(terms).await?;
+
+        Ok(())
+    }
 }

@@ -54,7 +54,7 @@ impl DataplaneSetup {
         config: &TransferConfig,
         vault: Arc<VaultService>,
     ) -> Arc<dyn DataplaneRepoTrait> {
-        let db_connection = vault.get_db_connection(config.common()).await;
+        let db_connection = vault.get_db_connection(config.common()).await.expect("Unable to retrieve db connection");
         let dataplane_repo = Arc::new(DataplaneRepoForSql::create_repo(db_connection.clone()));
         dataplane_repo
     }

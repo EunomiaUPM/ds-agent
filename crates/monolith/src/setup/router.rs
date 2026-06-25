@@ -38,7 +38,7 @@ use ymir::services::vault::global::VaultService;
 pub async fn create_core_router(config: &ApplicationConfig, vault: Arc<VaultService>) -> Router {
     let well_known_root_dspace =
         WellKnownRoot::get_well_known_router(&config.into()).expect("Failed to well known router");
-    let auth_router = AuthApplication::create_router(&config.ssi_auth(), vault.clone()).await;
+    let auth_router = AuthApplication::create_router(&config.ssi_auth(), vault.clone()).await.expect("Unable to build auth router");
     let negotiation_agent_router =
         create_negotiations_http_router(&config.contracts(), vault.clone()).await;
     let transfer_agent_router = create_root_http_router(&config.transfer(), vault.clone())

@@ -35,7 +35,7 @@ use tracing::{error, info, warn};
 use urn::Urn;
 use ymir::config::traits::{ApiConfigTrait, HostsConfigTrait};
 use ymir::config::types::HostType;
-use ymir::data::entities::mates;
+use ymir::data::entities::shared::participant;
 use ymir::errors::{Errors, Outcome};
 use ymir::services::vault::global::VaultService;
 
@@ -64,7 +64,7 @@ impl BootstrapServiceTrait for CoreBoot {
         // attempt first
         let url = format!("{}{}/mates/myself", base_url, api);
         let url = url.replace("host.docker.internal", "127.0.0.1");
-        let participant = client.get_json::<mates::Model>(url.as_str()).await;
+        let participant = client.get_json::<participant::Model>(url.as_str()).await;
 
         // catch error
         if let Err(err) = participant {
@@ -79,7 +79,7 @@ impl BootstrapServiceTrait for CoreBoot {
             }
             // attempt again
             let url = format!("{}{}/mates/myself", base_url, api);
-            let participant = client.get_json::<mates::Model>(url.as_str()).await?;
+            let participant = client.get_json::<participant::Model>(url.as_str()).await?;
             // and return id
             Ok(participant.participant_id)
         } else {

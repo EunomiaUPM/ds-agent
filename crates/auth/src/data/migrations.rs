@@ -15,8 +15,19 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::config::types::GaiaConfig;
+use sea_orm_migration::MigrationTrait;
+use ymir::data::migrations::received;
+use ymir::data::migrations::sent;
+use ymir::data::migrations::shared;
 
-pub trait GaiaConfigTrait {
-    fn gaia_config(&self) -> Option<&GaiaConfig>;
+pub fn get_auth_migrations() -> Vec<Box<dyn MigrationTrait>> {
+    let mut m = vec![
+        // Shared: picks individuales
+        Box::new(shared::participant::Migration) as Box<dyn MigrationTrait>,
+        Box::new(shared::issuance::Migration),
+    ];
+    // Received y sent: bloques enteros
+    m.extend(received::get_recv_migrations());
+    m.extend(sent::get_sent_migrations());
+    m
 }

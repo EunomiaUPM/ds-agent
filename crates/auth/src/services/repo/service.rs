@@ -18,7 +18,9 @@
 use std::sync::Arc;
 
 use sea_orm::DatabaseConnection;
-use ymir::services::repo::postgres::received::{RecvGrantPostgresRepo, RecvInteractionPostgresRepo};
+use ymir::services::repo::postgres::received::{
+    RecvGrantPostgresRepo, RecvInteractionPostgresRepo, RecvVerificationPostgresRepo,
+};
 use ymir::services::repo::postgres::sent::{
     SentGrantPostgresRepo, SentInteractionPostgresRepo, SentVerificationPostgresRepo,
 };
@@ -57,8 +59,12 @@ impl AuthRepoForSql {
             participant_repo: Arc::new(ParticipantPostgresRepo::new(db_connection.clone())),
             resource_req_repo: Arc::new(ResourceReqPostgresRepo::new(db_connection.clone())),
             recv_grant_repo: Arc::new(RecvGrantPostgresRepo::new(db_connection.clone())),
-            recv_verification_repo: Arc::new(RecvGrantPostgresRepo::new(db_connection.clone())),
-            recv_interaction_repo: Arc::new(RecvInteractionPostgresRepo::new(db_connection.clone())),
+            recv_verification_repo: Arc::new(RecvVerificationPostgresRepo::new(
+                db_connection.clone(),
+            )),
+            recv_interaction_repo: Arc::new(RecvInteractionPostgresRepo::new(
+                db_connection.clone(),
+            )),
         }
     }
 }

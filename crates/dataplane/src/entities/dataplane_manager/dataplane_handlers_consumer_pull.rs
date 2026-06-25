@@ -1,6 +1,4 @@
-use crate::entities::dataplane_manager::dataplane_commands::{
-    DataplaneCommandStateMachine, DataplaneInitCommandTypes,
-};
+use crate::entities::dataplane_manager::dataplane_commands::{set_configuring_helper, DataplaneCommandStateMachine, DataplaneInitCommandTypes};
 use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;
 use crate::DataplaneTransfersEntitiesTrait;
 use common::config::services::TransferConfig;
@@ -48,6 +46,17 @@ impl DataplaneCommandStateMachine for DataplaneHandlerConsumerPull {
     }
     fn secret_store(&self) -> Option<Arc<dyn SecretStore>> {
         self.secret_store.clone()
+    }
+
+    async fn set_init(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
+        Ok(context)
+    }
+    async fn set_configuring(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
+        let ctx = set_configuring_helper(self.dataplane_entity(), self.driver_factory().as_ref(), context).await?;
+        let ctx = self.set_auth(ctx).await?;
+        let ctx = self.set_ready(ctx).await?;
+        let ctx = self.set_started(ctx).await?;
+        Ok(ctx)
     }
 }
 

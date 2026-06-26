@@ -51,7 +51,10 @@ impl DataplaneCommandStateMachine for DataplaneHandlerProviderPull {
     }
 
     async fn set_init(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
-        Ok(context)
+        let ctx = set_configuring_helper(self.dataplane_entity(), self.driver_factory().as_ref(), context).await?;
+        let ctx = self.set_auth(ctx).await?;
+        let ctx = self.set_ready(ctx).await?;
+        Ok(ctx)
     }
     async fn set_configuring(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
         let ctx = set_configuring_helper(self.dataplane_entity(), self.driver_factory().as_ref(), context).await?;
@@ -202,13 +205,16 @@ mod tests {
 
     // set_configuring ───────────────────────────────────────────────────────
 
-    // set_configuring is atomic: configure proxy (NoOp) - put(Configuring).
-    // Does NOT proceed to auth or ready.
+    // set_configuring drives the full provider-pull flow atomically:
+    // configure proxy → auth → ready → started.
     #[tokio::test]
     async fn test_set_configuring_persists_configuring_state_and_preserves_connector() {
         let mut mock = MockDataplaneTransfersEntitiesTrait::new();
         expect_create(&mut mock);
         expect_put(&mut mock, TransferState::Configuring);
+        expect_put(&mut mock, TransferState::Auth);
+        expect_put(&mut mock, TransferState::Ready);
+        expect_put(&mut mock, TransferState::Started);
 
         let entity: Arc<dyn crate::DataplaneTransfersEntitiesTrait> = Arc::new(mock);
         let context = init_context(entity.clone()).await;
@@ -217,20 +223,13 @@ mod tests {
 
         assert!(result.is_ok());
         let ctx = result.unwrap();
-        assert_eq!(
-            ctx.dataplane_process().inner.state,
-            TransferState::Configuring
-        );
+        assert_eq!(ctx.dataplane_process().inner.state, TransferState::Started);
         assert!(ctx.driver().is_some());
-        // connector must survive configuring — it describes the provider's data source
+        // connector must survive the full flow — it describes the provider's data source
         let conn = ctx
             .connector_instance()
             .expect("connector instance must be preserved");
         assert_eq!(conn.id, Urn::from_str(CONNECTOR_URN).unwrap());
-        let addr = ctx
-            .forward_dataplane_address()
-            .expect("proxy address must be preserved");
-        assert_eq!(addr.endpoint, "http://dataplane.example.com/proxy/transfer");
     }
 
     // set_auth ──────────────────────────────────────────────────────────────

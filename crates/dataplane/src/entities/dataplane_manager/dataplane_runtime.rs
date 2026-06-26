@@ -59,9 +59,13 @@ impl<'a> RuntimeSecretVault<'a> {
         Self { store }
     }
 
-    /// Replaces sensitive fields in `runtime` with placeholders and persists them in the store.
-    /// Returns an error if any vault write fails — the caller should abort the command rather
-    /// than persist plaintext credentials to the database.
+    /// Vaults ephemeral credentials in `runtime` that are not owned by the connector config.
+    ///
+    /// Only `OAuth2` tokens are vaulted — access/refresh tokens are acquired at runtime and
+    /// have no persistent home in the connector. Static connector credentials (`BearerToken`,
+    /// `ApiKey`, `BasicAuth`) are passed through unchanged: their source of truth is the
+    /// connector's own `SecretString`, so duplicating them under `/runtime/<id>/...` would
+    /// create an unnecessary copy. Returns an error if any vault write fails.
     pub async fn export(
         &self,
         runtime: &DataplaneRuntime,
@@ -72,37 +76,28 @@ impl<'a> RuntimeSecretVault<'a> {
         let auth = match &runtime.auth {
             ResolvedAuthCredentials::NoAuth => ResolvedAuthCredentials::NoAuth,
 
+            // Static connector credentials — the connector's SecretString is the authoritative
             ResolvedAuthCredentials::BearerToken { token } => {
-                let path = format!("{}/bearer-token", prefix);
-                self.upsert(&path, json!(token)).await?;
-                ResolvedAuthCredentials::BearerToken {
-                    token: Self::placeholder(&path),
-                }
+                ResolvedAuthCredentials::BearerToken { token: token.clone() }
             }
 
-            ResolvedAuthCredentials::ApiKey {
-                key,
-                value,
-                location,
-            } => {
-                let path = format!("{}/api-key-value", prefix);
-                self.upsert(&path, json!(value)).await?;
+            ResolvedAuthCredentials::ApiKey { key, value, location } => {
                 ResolvedAuthCredentials::ApiKey {
                     key: key.clone(),
-                    value: Self::placeholder(&path),
+                    value: value.clone(),
                     location: location.clone(),
                 }
             }
 
             ResolvedAuthCredentials::BasicAuth { username, password } => {
-                let path = format!("{}/basic-auth-password", prefix);
-                self.upsert(&path, json!(password)).await?;
                 ResolvedAuthCredentials::BasicAuth {
                     username: username.clone(),
-                    password: Self::placeholder(&path),
+                    password: password.clone(),
                 }
             }
 
+            // OAuth2 tokens are ephemeral — not stored in the connector config — so they
+            // must be vaulted to survive across continuation events.
             ResolvedAuthCredentials::OAuth2 {
                 access_token,
                 token_type,

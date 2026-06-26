@@ -188,14 +188,29 @@ impl TestingHTTPProxy {
             next_hop.push_str(query);
         }
 
-        // Resolve auth credentials from the stored runtime (flow_control field).
-        let credentials = dataplane
+        // Resolve auth credentials for the outbound (egress) request.
+        //
+        // Provider-side proxy: credentials come from flow_control.auth (resolved from the
+        // connector's SecretString during set_auth).
+        // Consumer-side proxy: the runtime has NoAuth (no connector); outbound credentials
+        // come from the egress token set from the provider's DataplaneAddress.
+        let flow_control_auth = dataplane
             .inner
             .flow_control
             .as_ref()
             .and_then(|v| serde_json::from_value::<DataplaneRuntime>(v.clone()).ok())
             .map(|rt| rt.auth)
             .unwrap_or(ResolvedAuthCredentials::NoAuth);
+
+        let credentials = match flow_control_auth {
+            ResolvedAuthCredentials::NoAuth => match &egress {
+                DataplaneProxyEgress::HttpProxy {
+                    token: Some(t), ..
+                } if !t.is_empty() => ResolvedAuthCredentials::BearerToken { token: t.clone() },
+                _ => ResolvedAuthCredentials::NoAuth,
+            },
+            other => other,
+        };
 
         let incoming_headers = req.headers().clone();
         let body = std::mem::take(req.body_mut());

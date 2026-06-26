@@ -330,53 +330,7 @@ mod tests {
                 ))
             });
 
-        let tp1 = transfer_process_id.clone().to_string();
-        mock_entity
-            .expect_put_dataplane_transfer_by_id()
-            .times(1)
-            .withf(|_, edit| edit.state == Some(TransferState::Configuring))
-            .returning(move |_, _| {
-                Ok(dummy_dataplane_transfer_dto(
-                    "urn:dataplane-transfer:1",
-                    tp1.as_str(),
-                    TransferRole::Consumer,
-                    InteractionMode::Pull,
-                    TransferState::Configuring,
-                    None,
-                ))
-            });
-
-        let tp2 = transfer_process_id.clone().to_string();
-        mock_entity
-            .expect_put_dataplane_transfer_by_id()
-            .times(1)
-            .withf(|_, edit| edit.state == Some(TransferState::Auth))
-            .returning(move |_, _| {
-                Ok(dummy_dataplane_transfer_dto(
-                    "urn:dataplane-transfer:1",
-                    tp2.as_str(),
-                    TransferRole::Consumer,
-                    InteractionMode::Pull,
-                    TransferState::Auth,
-                    None,
-                ))
-            });
-
-        let tp3 = transfer_process_id.clone().to_string();
-        mock_entity
-            .expect_put_dataplane_transfer_by_id()
-            .times(1)
-            .withf(|_, edit| edit.state == Some(TransferState::Ready))
-            .returning(move |_, _| {
-                Ok(dummy_dataplane_transfer_dto(
-                    "urn:dataplane-transfer:1",
-                    tp3.as_str(),
-                    TransferRole::Consumer,
-                    InteractionMode::Pull,
-                    TransferState::Ready,
-                    None,
-                ))
-            });
+        // ConsumerPull.set_init is a no-op — no put calls expected
 
         let result = DataplaneManager::new(
             Arc::new(mock_entity),

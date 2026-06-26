@@ -171,16 +171,13 @@ mod tests {
             .returning(move |_, _| Ok(dto(expected.clone())));
     }
 
-    // set_init drives the full sub-chain: configuring - auth - ready.
-    // After set_ready the forward address is replaced by the local ingress proxy URL
-    // (the address the consumer advertises to the provider).
+    // ConsumerPull.set_init is a no-op: the full initialization flow is driven by
+    // SetConfiguring (which the manager sends once the provider signals its address).
     #[tokio::test]
-    async fn test_set_init_reaches_ready_and_exposes_proxy_address() {
+    async fn test_set_init_is_noop_for_consumer_pull() {
         let mut mock = MockDataplaneTransfersEntitiesTrait::new();
         expect_create(&mut mock);
-        expect_put(&mut mock, TransferState::Configuring);
-        expect_put(&mut mock, TransferState::Auth);
-        expect_put(&mut mock, TransferState::Ready);
+        // no put expectations — set_init does not touch the DB
 
         let entity: Arc<dyn crate::DataplaneTransfersEntitiesTrait> = Arc::new(mock);
         let context = init_context(entity.clone()).await;
@@ -188,29 +185,22 @@ mod tests {
 
         assert!(result.is_ok());
         let ctx = result.unwrap();
-        assert_eq!(ctx.dataplane_process().inner.state, TransferState::Ready);
-        // after set_ready the address is the local proxy ingress URL built from the DP id
-        let addr = ctx
-            .forward_dataplane_address()
-            .expect("proxy ingress address must be set after set_ready");
-        assert!(
-            addr.endpoint.contains("/dataplane/proxy/"),
-            "expected proxy ingress path, got: {}",
-            addr.endpoint
-        );
-        // consumer pull never has a connector instance
+        assert_eq!(ctx.dataplane_process().inner.state, TransferState::Init);
         assert!(ctx.connector_instance().is_none());
     }
 
     // set_configuring ───────────────────────────────────────────────────────
 
-    // set_configuring is atomic: configure proxy - put(Configuring).
-    // It does NOT proceed to auth or ready.
+    // set_configuring drives the full consumer-pull flow atomically:
+    // configure proxy → auth → ready → started.
     #[tokio::test]
     async fn test_set_configuring_builds_driver_and_proxy() {
         let mut mock = MockDataplaneTransfersEntitiesTrait::new();
         expect_create(&mut mock);
         expect_put(&mut mock, TransferState::Configuring);
+        expect_put(&mut mock, TransferState::Auth);
+        expect_put(&mut mock, TransferState::Ready);
+        expect_put(&mut mock, TransferState::Started);
 
         let entity: Arc<dyn crate::DataplaneTransfersEntitiesTrait> = Arc::new(mock);
         let context = init_context(entity.clone()).await;
@@ -218,77 +208,53 @@ mod tests {
 
         assert!(result.is_ok());
         let ctx = result.unwrap();
-        assert_eq!(
-            ctx.dataplane_process().inner.state,
-            TransferState::Configuring
-        );
-        assert!(
-            ctx.driver().is_some(),
-            "driver must be set after configuring"
-        );
-        assert!(
-            ctx.proxy().is_some(),
-            "proxy must be built after configuring"
-        );
-        // provider address must be preserved
-        let addr = ctx
-            .forward_dataplane_address()
-            .expect("provider address must be preserved");
-        assert_eq!(addr.endpoint, "http://provider-endpoint.com/data");
-        assert_eq!(addr.authorization_type.as_deref(), Some("Bearer"));
+        assert_eq!(ctx.dataplane_process().inner.state, TransferState::Started);
+        assert!(ctx.driver().is_some(), "driver must be set after configuring");
+        assert!(ctx.proxy().is_some(), "proxy must be built after configuring");
         assert!(ctx.connector_instance().is_none());
+        // after set_ready/set_started the forward address is the local proxy ingress URL
+        let addr = ctx.forward_dataplane_address().expect("proxy ingress address must be set");
+        assert!(
+            addr.endpoint.contains("/dataplane/proxy/"),
+            "expected proxy ingress path, got: {}",
+            addr.endpoint
+        );
     }
 
     // set_auth ──────────────────────────────────────────────────────────────
 
-    // set_auth is atomic: NoOp authentication - put(Auth). Does NOT proceed to ready.
+    // set_auth in isolation: no-op authentication → put(Auth).
     #[tokio::test]
     async fn test_set_auth_persists_auth_state() {
         let mut mock = MockDataplaneTransfersEntitiesTrait::new();
         expect_create(&mut mock);
-        expect_put(&mut mock, TransferState::Configuring);
         expect_put(&mut mock, TransferState::Auth);
 
         let entity: Arc<dyn crate::DataplaneTransfersEntitiesTrait> = Arc::new(mock);
         let context = init_context(entity.clone()).await;
-        let context = handler(entity.clone())
-            .set_configuring(context)
-            .await
-            .unwrap();
 
         let result = handler(entity.clone()).set_auth(context).await;
         assert!(result.is_ok());
         let ctx = result.unwrap();
         assert_eq!(ctx.dataplane_process().inner.state, TransferState::Auth);
         assert!(ctx.connector_instance().is_none());
-        assert!(ctx.forward_dataplane_address().is_some());
     }
 
     // set_ready ─────────────────────────────────────────────────────────────
 
-    // set_ready must call put exactly once with state=Ready and return the updated context.
+    // set_ready in isolation: put(Ready) exactly once.
     #[tokio::test]
     async fn test_set_ready_persists_state() {
         let mut mock = MockDataplaneTransfersEntitiesTrait::new();
         expect_create(&mut mock);
-        expect_put(&mut mock, TransferState::Configuring);
-        expect_put(&mut mock, TransferState::Auth);
         expect_put(&mut mock, TransferState::Ready);
 
         let entity: Arc<dyn crate::DataplaneTransfersEntitiesTrait> = Arc::new(mock);
         let context = init_context(entity.clone()).await;
-        let context = handler(entity.clone())
-            .set_configuring(context)
-            .await
-            .unwrap();
-        let context = handler(entity.clone()).set_auth(context).await.unwrap();
 
         let result = handler(entity.clone()).set_ready(context).await;
         assert!(result.is_ok());
-        assert_eq!(
-            result.unwrap().dataplane_process().inner.state,
-            TransferState::Ready
-        );
+        assert_eq!(result.unwrap().dataplane_process().inner.state, TransferState::Ready);
     }
 
     // set_started ───────────────────────────────────────────────────────────

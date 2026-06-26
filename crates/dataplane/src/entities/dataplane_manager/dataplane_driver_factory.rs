@@ -26,15 +26,21 @@ pub struct DataplaneDriverFactory {
     keystore: Option<Arc<dyn KeystoreLookup>>,
 }
 
+impl Default for DataplaneDriverFactory {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DataplaneDriverFactory {
     pub fn new() -> Self {
         Self { keystore: None }
     }
 
-    pub fn with_keystore(keystore: Arc<dyn KeystoreLookup>) -> Self {
-        Self {
-            keystore: Some(keystore),
-        }
+    /// Attaches the keystore used to resolve driver credentials.
+    pub fn with_keystore(mut self, keystore: Arc<dyn KeystoreLookup>) -> Self {
+        self.keystore = Some(keystore);
+        self
     }
 }
 

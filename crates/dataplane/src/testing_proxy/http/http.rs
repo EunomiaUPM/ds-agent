@@ -78,8 +78,9 @@ impl TestingHTTPProxy {
         }
     }
 
-    pub fn with_keystore(mut self, keystore: Option<Arc<dyn KeystoreLookup>>) -> Self {
-        self.keystore = keystore;
+    /// Attaches the keystore used to resolve credentials when proxying.
+    pub fn with_keystore(mut self, keystore: Arc<dyn KeystoreLookup>) -> Self {
+        self.keystore = Some(keystore);
         self
     }
     pub fn router(self) -> Router {

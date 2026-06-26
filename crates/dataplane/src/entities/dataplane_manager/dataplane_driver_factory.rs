@@ -36,10 +36,17 @@ use connector::{
     AuthenticationConfig, ConnectorInstanceDto, InteractionConfig, KeystoreLookup, ProtocolSpec,
 };
 use std::sync::Arc;
-use ymir::errors::{Errors, Outcome};
+use crate::errors::DataplaneError;
+use ymir::errors::Outcome;
 
 pub struct DataplaneDriverFactory {
     keystore: Option<Arc<dyn KeystoreLookup>>,
+}
+
+impl Default for DataplaneDriverFactory {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl DataplaneDriverFactory {
@@ -47,10 +54,10 @@ impl DataplaneDriverFactory {
         Self { keystore: None }
     }
 
-    pub fn with_keystore(keystore: Arc<dyn KeystoreLookup>) -> Self {
-        Self {
-            keystore: Some(keystore),
-        }
+    /// Attaches the keystore used to resolve driver credentials.
+    pub fn with_keystore(mut self, keystore: Arc<dyn KeystoreLookup>) -> Self {
+        self.keystore = Some(keystore);
+        self
     }
 }
 
@@ -88,10 +95,7 @@ impl DataplaneDriverFactory {
         } else {
             match context.dataplane_process_role() {
                 TransferRole::Consumer => Ok(Arc::new(NoOpAuthenticator)),
-                TransferRole::Provider => Err(Errors::crazy(
-                    "Connector instance not available for provider",
-                    None,
-                )),
+                TransferRole::Provider => Err(DataplaneError::ConnectorNotAvailable.into()),
             }
         }
     }
@@ -105,14 +109,18 @@ impl DataplaneDriverFactory {
             let interaction_mode = context.dataplane_process_interaction_mode();
             let protocol_spec = Self::extract_protocol(&connector_instance);
 
-            match (protocol_spec, role, interaction_mode) {
+            match (protocol_spec, &role, &interaction_mode) {
                 (ProtocolSpec::Http(_), TransferRole::Provider, InteractionMode::Pull) => {
                     Ok(Arc::new(HttpProviderPullConfigurator))
                 }
                 (ProtocolSpec::Http(_), TransferRole::Provider, InteractionMode::Push) => {
                     Ok(Arc::new(HttpProviderPushConfigurator))
                 }
-                (_, _, _) => Err(Errors::crazy("Connector drivers not available", None)),
+                (_, _, _) => Err(DataplaneError::NoDriverForCombination {
+                    role: role.to_string(),
+                    mode: interaction_mode.to_string(),
+                }
+                .into()),
             }
         } else {
             match (
@@ -125,7 +133,7 @@ impl DataplaneDriverFactory {
                 (TransferRole::Consumer, InteractionMode::Push) => {
                     Ok(Arc::new(HttpConsumerPushConfigurator))
                 }
-                _ => Err(Errors::crazy("Connector instance not available", None)),
+                _ => Err(DataplaneError::ConnectorNotAvailable.into()),
             }
         }
     }
@@ -143,10 +151,10 @@ impl DataplaneDriverFactory {
                         self.keystore.clone(),
                     )))),
                     ProtocolSpec::Kafka(_) => {
-                        return Err(Errors::crazy(
-                            "Kafka push subscriber is not yet implemented",
-                            None,
-                        ))
+                        return Err(DataplaneError::FeatureNotImplemented {
+                            feature: "Kafka push subscriber".to_string(),
+                        }
+                        .into())
                     }
                 },
             }

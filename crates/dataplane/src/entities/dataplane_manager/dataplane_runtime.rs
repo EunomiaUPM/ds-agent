@@ -1,9 +1,8 @@
 use std::collections::{HashMap, HashSet};
-use std::sync::OnceLock;
+use std::sync::Arc;
 
-use connector::ApiKeyLocation;
+use connector::{template_runtime_secret_regex, ApiKeyLocation, KeystoreLookup};
 use keystore::{Key, KeyPrefix, SecretStore, SecretValue};
-use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use ymir::errors::Outcome;
@@ -59,9 +58,13 @@ impl<'a> RuntimeSecretVault<'a> {
         Self { store }
     }
 
-    /// Replaces sensitive fields in `runtime` with placeholders and persists them in the store.
-    /// Returns an error if any vault write fails — the caller should abort the command rather
-    /// than persist plaintext credentials to the database.
+    /// Vaults ephemeral credentials in `runtime` that are not owned by the connector config.
+    ///
+    /// Only `OAuth2` tokens are vaulted — access/refresh tokens are acquired at runtime and
+    /// have no persistent home in the connector. Static connector credentials (`BearerToken`,
+    /// `ApiKey`, `BasicAuth`) are passed through unchanged: their source of truth is the
+    /// connector's own `SecretString`, so duplicating them under `/runtime/<id>/...` would
+    /// create an unnecessary copy. Returns an error if any vault write fails.
     pub async fn export(
         &self,
         runtime: &DataplaneRuntime,
@@ -72,11 +75,13 @@ impl<'a> RuntimeSecretVault<'a> {
         let auth = match &runtime.auth {
             ResolvedAuthCredentials::NoAuth => ResolvedAuthCredentials::NoAuth,
 
+            // Static connector credentials: vault the literal value so the DB never stores
+            // the secret in plain text. If the value is already a RUNTIME_SECRET placeholder
+            // (i.e. the connector's SecretString points directly into the keystore), pass it
+            // through — the proxy resolves it at request time without an intermediate vault entry.
             ResolvedAuthCredentials::BearerToken { token } => {
-                let path = format!("{}/bearer-token", prefix);
-                self.upsert(&path, json!(token)).await?;
                 ResolvedAuthCredentials::BearerToken {
-                    token: Self::placeholder(&path),
+                    token: token.clone(),
                 }
             }
 
@@ -84,25 +89,21 @@ impl<'a> RuntimeSecretVault<'a> {
                 key,
                 value,
                 location,
-            } => {
-                let path = format!("{}/api-key-value", prefix);
-                self.upsert(&path, json!(value)).await?;
-                ResolvedAuthCredentials::ApiKey {
-                    key: key.clone(),
-                    value: Self::placeholder(&path),
-                    location: location.clone(),
-                }
-            }
+            } => ResolvedAuthCredentials::ApiKey {
+                key: key.clone(),
+                value: value.clone(),
+                location: location.clone(),
+            },
 
             ResolvedAuthCredentials::BasicAuth { username, password } => {
-                let path = format!("{}/basic-auth-password", prefix);
-                self.upsert(&path, json!(password)).await?;
                 ResolvedAuthCredentials::BasicAuth {
                     username: username.clone(),
-                    password: Self::placeholder(&path),
+                    password: password.clone(),
                 }
             }
 
+            // OAuth2 tokens are ephemeral — not stored in the connector config — so they
+            // must be vaulted to survive across continuation events.
             ResolvedAuthCredentials::OAuth2 {
                 access_token,
                 token_type,
@@ -149,7 +150,7 @@ impl<'a> RuntimeSecretVault<'a> {
         };
 
         let json_str = value.to_string();
-        let keys: HashSet<String> = Self::regex()
+        let keys: HashSet<String> = template_runtime_secret_regex()
             .captures_iter(&json_str)
             .map(|cap| cap[1].to_string())
             .collect();
@@ -161,6 +162,50 @@ impl<'a> RuntimeSecretVault<'a> {
         let fetches: Vec<_> = keys
             .iter()
             .map(|k| async move { (k.clone(), self.fetch(k).await) })
+            .collect();
+        let results = futures_util::future::join_all(fetches).await;
+        let cache: HashMap<String, serde_json::Value> = results
+            .into_iter()
+            .filter_map(|(k, v)| v.map(|val| (k, val)))
+            .collect();
+
+        Self::substitute(&mut value, &cache);
+
+        serde_json::from_value(value).unwrap_or(runtime)
+    }
+
+    /// Resolves `{{__RUNTIME_SECRET_{path}__}}` placeholders using a `KeystoreLookup`.
+    ///
+    /// Identical to [`resolve`](Self::resolve) but fetches via `KeystoreLookup::get_secret`
+    /// rather than `SecretStore::read` directly.  Use this in the proxy, where the same
+    /// `KeystoreClientImpl` instance that the driver factory uses must be shared so that
+    /// static connector secrets (e.g. `/ecostars/api_key`) are reachable.
+    pub async fn resolve_with_lookup(
+        runtime: DataplaneRuntime,
+        lookup: &Arc<dyn KeystoreLookup>,
+    ) -> DataplaneRuntime {
+        let mut value = match serde_json::to_value(&runtime) {
+            Ok(v) => v,
+            Err(_) => return runtime,
+        };
+
+        let json_str = value.to_string();
+        let keys: HashSet<String> = template_runtime_secret_regex()
+            .captures_iter(&json_str)
+            .map(|cap| cap[1].to_string())
+            .collect();
+
+        if keys.is_empty() {
+            return runtime;
+        }
+
+        let fetches: Vec<_> = keys
+            .iter()
+            .map(|k| {
+                let k = k.clone();
+                let lookup = lookup.clone();
+                async move { (k.clone(), lookup.get_secret(&k).await) }
+            })
             .collect();
         let results = futures_util::future::join_all(fetches).await;
         let cache: HashMap<String, serde_json::Value> = results
@@ -214,14 +259,6 @@ impl<'a> RuntimeSecretVault<'a> {
         format!("/runtime/{}", id_part)
     }
 
-    fn regex() -> &'static Regex {
-        static RE: OnceLock<Regex> = OnceLock::new();
-        RE.get_or_init(|| {
-            Regex::new(r"\{\{\s*__RUNTIME_SECRET_\{([^}]+)\}__\s*\}\}")
-                .expect("invalid RUNTIME_SECRET regex")
-        })
-    }
-
     fn substitute(value: &mut serde_json::Value, cache: &HashMap<String, serde_json::Value>) {
         match value {
             serde_json::Value::String(s) => {
@@ -247,7 +284,7 @@ impl<'a> RuntimeSecretVault<'a> {
         raw: &str,
         cache: &HashMap<String, serde_json::Value>,
     ) -> Option<serde_json::Value> {
-        let re = Self::regex();
+        let re = template_runtime_secret_regex();
         let caps = re.captures(raw)?;
         // Exact match: preserve the JSON type of the stored value.
         if caps.get(0)?.as_str() == raw {

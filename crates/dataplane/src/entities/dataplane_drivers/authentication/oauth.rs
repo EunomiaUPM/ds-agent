@@ -23,7 +23,8 @@ use crate::entities::dataplane_manager::dataplane_runtime::{
 use connector::{AuthenticationConfig, OAuthGrantType, TemplateVecString, TokenExpireAction};
 use serde::Deserialize;
 use std::time::{SystemTime, UNIX_EPOCH};
-use ymir::errors::{Errors, Outcome};
+use crate::errors::DataplaneError;
+use ymir::errors::Outcome;
 
 /// Response body returned by an OAuth 2.0 token endpoint.
 #[derive(Debug, Deserialize)]
@@ -50,28 +51,26 @@ impl OauthAuthenticator {
             .form(params)
             .send()
             .await
-            .map_err(|e| {
-                Errors::crazy(
-                    &format!("OAuth2 token request failed: {}", e),
-                    Some(Box::new(e)),
-                )
+            .map_err(|e| DataplaneError::AuthNetworkError {
+                url: token_url.to_string(),
+                reason: e.to_string(),
             })?;
 
         if !resp.status().is_success() {
             let status = resp.status();
             let body = resp.text().await.unwrap_or_default();
-            return Err(Errors::crazy(
-                &format!("OAuth2 token endpoint returned {}: {}", status, body),
-                None,
-            ));
+            return Err(DataplaneError::AuthEndpointError {
+                url: token_url.to_string(),
+                status: status.as_u16(),
+                body,
+            }
+            .into());
         }
 
-        resp.json::<TokenResponse>().await.map_err(|e| {
-            Errors::crazy(
-                &format!("Failed to parse OAuth2 token response: {}", e),
-                Some(Box::new(e)),
-            )
-        })
+        resp.json::<TokenResponse>().await.map_err(|e| DataplaneError::AuthResponseParseFailed {
+            url: token_url.to_string(),
+            reason: e.to_string(),
+        }.into())
     }
 
     /// Full grant flow: dispatches on `grant_type` to build the right form body.
@@ -109,10 +108,10 @@ impl OauthAuthenticator {
                 }
                 Self::post_token(token_url, &params).await
             }
-            OAuthGrantType::AuthorizationCode => Err(Errors::crazy(
-                "AuthorizationCode grant requires browser interaction and cannot be used in a connector driver",
-                None,
-            )),
+            OAuthGrantType::AuthorizationCode => Err(DataplaneError::FeatureNotImplemented {
+                feature: "OAuth2 AuthorizationCode grant (requires browser interaction)".to_string(),
+            }
+            .into()),
         }
     }
 
@@ -177,7 +176,7 @@ impl DriverAuthenticatorTrait for OauthAuthenticator {
 
         let connector = context
             .connector_instance()
-            .ok_or_else(|| Errors::crazy("Connector not available", None))?;
+            .ok_or_else(|| DataplaneError::ConnectorNotAvailable)?;
 
         let AuthenticationConfig::OAuth2 {
             grant_type,
@@ -188,10 +187,10 @@ impl DriverAuthenticatorTrait for OauthAuthenticator {
             on_token_expire,
         } = connector.authentication_config.clone()
         else {
-            return Err(Errors::crazy(
-                "Connector auth config should be type OAUTH2",
-                None,
-            ));
+            return Err(DataplaneError::AuthConfigMismatch {
+                expected: "OAuth2".to_string(),
+            }
+            .into());
         };
 
         let secret = client_secret.resolve().await?;

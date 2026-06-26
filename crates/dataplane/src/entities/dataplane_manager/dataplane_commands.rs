@@ -29,7 +29,8 @@ use keystore::SecretStore;
 use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
-use ymir::errors::{Errors, Outcome};
+use crate::errors::DataplaneError;
+use ymir::errors::Outcome;
 
 #[derive(Clone, Debug)]
 pub enum DataplaneCommand {
@@ -167,7 +168,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
                 .export(runtime, &transfer_id)
                 .await?;
             let value = serde_json::to_value(&exported).map_err(|e| {
-                Errors::crazy(format!("Failed to serialize exported runtime: {}", e), None)
+                DataplaneError::RuntimeSerializationFailed { reason: e.to_string() }
             })?;
             Ok(Some(value))
         } else {
@@ -175,7 +176,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
                 None => Ok(None),
                 Some(r) => {
                     let value = serde_json::to_value(r).map_err(|e| {
-                        Errors::crazy(format!("Failed to serialize runtime: {}", e), None)
+                        DataplaneError::RuntimeSerializationFailed { reason: e.to_string() }
                     })?;
                     Ok(Some(value))
                 }
@@ -204,14 +205,12 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
     async fn set_started(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
         let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
         let new_state = TransferState::Started;
-        let flow_control = self.export_runtime_flow_control(&context).await?;
         let dataplane_process = self
             .dataplane_entity()
             .put_dataplane_transfer_by_id(
                 &dataplane_urn,
                 &EditDataplaneTransferDto {
                     state: Some(new_state),
-                    flow_control,
                     ..EditDataplaneTransferDto::default()
                 },
             )

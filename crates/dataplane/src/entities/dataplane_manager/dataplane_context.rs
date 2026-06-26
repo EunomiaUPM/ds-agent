@@ -19,7 +19,8 @@ use serde_json::json;
 use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
-use ymir::errors::{Errors, Outcome};
+use crate::errors::DataplaneError;
+use ymir::errors::Outcome;
 
 #[derive(Clone, Debug)]
 pub struct DataplaneContext {
@@ -119,7 +120,9 @@ impl DataplaneContext {
         let dataplane_process = dataplane_entity
             .get_dataplane_transfer_by_process_id(&continuation.transfer_dto_urn)
             .await?
-            .ok_or_else(|| Errors::crazy("Dataplane Process not found", None))?;
+            .ok_or_else(|| DataplaneError::TransferNotFound {
+                transfer_process_id: continuation.transfer_dto_urn.to_string(),
+            })?;
         // connector
         let connector_id = &dataplane_process.inner.connector_instance_id;
         let connector = match connector_id {

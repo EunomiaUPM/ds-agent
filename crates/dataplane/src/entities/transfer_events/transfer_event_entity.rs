@@ -32,10 +32,8 @@ pub struct TransferEventEntityService {
 }
 
 impl TransferEventEntityService {
-    pub fn new(data_plane_repo: &std::sync::Arc<dyn DataplaneRepoTrait>) -> Self {
-        Self {
-            data_plane_repo: data_plane_repo.clone(),
-        }
+    pub fn new(data_plane_repo: Arc<dyn DataplaneRepoTrait>) -> Self {
+        Self { data_plane_repo }
     }
 }
 

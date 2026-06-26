@@ -44,3 +44,4 @@ pub use entities::parameters::runtime_parameters_resolver::RuntimeParametersReso
 pub use entities::connector_instance::MockConnectorInstanceTrait;
 pub use entities::connector_template::ConnectorMetadata;
 pub use entities::parameters::keystore_lookup::KeystoreLookup;
+pub use entities::parameters::{template_runtime_parameter_regex, template_runtime_secret_regex};

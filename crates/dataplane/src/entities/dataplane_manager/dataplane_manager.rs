@@ -28,7 +28,8 @@ use common::config::services::TransferConfig;
 use connector::ConnectorInstanceTrait;
 use keystore::SecretStore;
 use std::sync::Arc;
-use ymir::errors::{Errors, Outcome};
+use crate::errors::DataplaneError;
+use ymir::errors::Outcome;
 
 pub struct DataplaneManager {
     dataplane_entity: Arc<dyn DataplaneTransfersEntitiesTrait>,
@@ -39,34 +40,33 @@ pub struct DataplaneManager {
 }
 
 impl DataplaneManager {
+    /// Required dependencies. The driver factory defaults to a keystore-less
+    /// `DataplaneDriverFactory` and the secret store to `None`; override either
+    /// with the `with_*` methods below.
     pub fn new(
         dataplane_entity: Arc<dyn DataplaneTransfersEntitiesTrait>,
         connector_entity: Arc<dyn ConnectorInstanceTrait>,
         config: Arc<TransferConfig>,
     ) -> Self {
-        Self::new_with_factory(
-            dataplane_entity,
-            connector_entity,
-            config,
-            Arc::new(DataplaneDriverFactory::new()),
-        )
-    }
-
-    pub fn new_with_factory(
-        dataplane_entity: Arc<dyn DataplaneTransfersEntitiesTrait>,
-        connector_entity: Arc<dyn ConnectorInstanceTrait>,
-        config: Arc<TransferConfig>,
-        driver_factory: Arc<dyn DataplaneDriverFactoryTrait>,
-    ) -> Self {
         Self {
             dataplane_entity,
             connector_entity,
             config,
-            driver_factory,
+            driver_factory: Arc::new(DataplaneDriverFactory::new()),
             secret_store: None,
         }
     }
 
+    /// Overrides the default driver factory (e.g. one backed by the keystore).
+    pub fn with_driver_factory(
+        mut self,
+        driver_factory: Arc<dyn DataplaneDriverFactoryTrait>,
+    ) -> Self {
+        self.driver_factory = driver_factory;
+        self
+    }
+
+    /// Enables runtime-secret resolution via the given secret store.
     pub fn with_secret_store(mut self, store: Arc<dyn SecretStore>) -> Self {
         self.secret_store = Some(store);
         self
@@ -114,10 +114,10 @@ impl DataplaneManager {
                 .await?
             }
             cmd => {
-                return Err(Errors::crazy(
-                    format!("Dataplane command {} not expected here", cmd),
-                    None,
-                ))
+                return Err(DataplaneError::UnexpectedCommand {
+                    command: cmd.to_string(),
+                }
+                .into())
             }
         };
 
@@ -346,53 +346,7 @@ mod tests {
                 ))
             });
 
-        let tp1 = transfer_process_id.clone().to_string();
-        mock_entity
-            .expect_put_dataplane_transfer_by_id()
-            .times(1)
-            .withf(|_, edit| edit.state == Some(TransferState::Configuring))
-            .returning(move |_, _| {
-                Ok(dummy_dataplane_transfer_dto(
-                    "urn:dataplane-transfer:1",
-                    tp1.as_str(),
-                    TransferRole::Consumer,
-                    InteractionMode::Pull,
-                    TransferState::Configuring,
-                    None,
-                ))
-            });
-
-        let tp2 = transfer_process_id.clone().to_string();
-        mock_entity
-            .expect_put_dataplane_transfer_by_id()
-            .times(1)
-            .withf(|_, edit| edit.state == Some(TransferState::Auth))
-            .returning(move |_, _| {
-                Ok(dummy_dataplane_transfer_dto(
-                    "urn:dataplane-transfer:1",
-                    tp2.as_str(),
-                    TransferRole::Consumer,
-                    InteractionMode::Pull,
-                    TransferState::Auth,
-                    None,
-                ))
-            });
-
-        let tp3 = transfer_process_id.clone().to_string();
-        mock_entity
-            .expect_put_dataplane_transfer_by_id()
-            .times(1)
-            .withf(|_, edit| edit.state == Some(TransferState::Ready))
-            .returning(move |_, _| {
-                Ok(dummy_dataplane_transfer_dto(
-                    "urn:dataplane-transfer:1",
-                    tp3.as_str(),
-                    TransferRole::Consumer,
-                    InteractionMode::Pull,
-                    TransferState::Ready,
-                    None,
-                ))
-            });
+        // ConsumerPull.set_init is a no-op — no put calls expected
 
         let result = DataplaneManager::new(
             Arc::new(mock_entity),
@@ -889,12 +843,12 @@ mod tests {
                 ))
             });
 
-        let result = DataplaneManager::new_with_factory(
+        let result = DataplaneManager::new(
             Arc::new(mock_entity),
             Arc::new(mock_connector),
             transfer_config_fixture(),
-            Arc::new(mock_factory),
         )
+        .with_driver_factory(Arc::new(mock_factory))
         .execute_command(DataplaneCommand::SetStarted(DataplaneContinuation {
             transfer_dto_urn: tp_id,
         }))
@@ -951,12 +905,12 @@ mod tests {
                 ))
             });
 
-        let result = DataplaneManager::new_with_factory(
+        let result = DataplaneManager::new(
             Arc::new(mock_entity),
             Arc::new(mock_connector),
             transfer_config_fixture(),
-            Arc::new(mock_factory),
         )
+        .with_driver_factory(Arc::new(mock_factory))
         .execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
             transfer_dto_urn: tp_id,
         }))
@@ -1013,12 +967,12 @@ mod tests {
                 ))
             });
 
-        let result = DataplaneManager::new_with_factory(
+        let result = DataplaneManager::new(
             Arc::new(mock_entity),
             Arc::new(mock_connector),
             transfer_config_fixture(),
-            Arc::new(mock_factory),
         )
+        .with_driver_factory(Arc::new(mock_factory))
         .execute_command(DataplaneCommand::SetTerminating(DataplaneContinuation {
             transfer_dto_urn: tp_id,
         }))
@@ -1061,12 +1015,12 @@ mod tests {
             .times(1)
             .returning(|_| Ok(dummy_driver_pull()));
 
-        let result = DataplaneManager::new_with_factory(
+        let result = DataplaneManager::new(
             Arc::new(mock_entity),
             Arc::new(mock_connector),
             transfer_config_fixture(),
-            Arc::new(mock_factory),
         )
+        .with_driver_factory(Arc::new(mock_factory))
         .execute_command(DataplaneCommand::SetSubscribing(DataplaneContinuation {
             transfer_dto_urn: tp_id,
         }))
@@ -1109,12 +1063,12 @@ mod tests {
             .times(1)
             .returning(|_| Ok(dummy_driver_pull()));
 
-        let result = DataplaneManager::new_with_factory(
+        let result = DataplaneManager::new(
             Arc::new(mock_entity),
             Arc::new(mock_connector),
             transfer_config_fixture(),
-            Arc::new(mock_factory),
         )
+        .with_driver_factory(Arc::new(mock_factory))
         .execute_command(DataplaneCommand::SetUnsubscribing(DataplaneContinuation {
             transfer_dto_urn: tp_id,
         }))
@@ -1190,12 +1144,12 @@ mod tests {
                 ))
             });
 
-        let result = DataplaneManager::new_with_factory(
+        let result = DataplaneManager::new(
             Arc::new(mock_entity),
             Arc::new(mock_connector),
             transfer_config_fixture(),
-            Arc::new(mock_factory),
         )
+        .with_driver_factory(Arc::new(mock_factory))
         .execute_command(DataplaneCommand::SetSubscribing(DataplaneContinuation {
             transfer_dto_urn: tp_id,
         }))
@@ -1269,12 +1223,12 @@ mod tests {
                 ))
             });
 
-        let result = DataplaneManager::new_with_factory(
+        let result = DataplaneManager::new(
             Arc::new(mock_entity),
             Arc::new(mock_connector),
             transfer_config_fixture(),
-            Arc::new(mock_factory),
         )
+        .with_driver_factory(Arc::new(mock_factory))
         .execute_command(DataplaneCommand::SetUnsubscribing(DataplaneContinuation {
             transfer_dto_urn: tp_id,
         }))

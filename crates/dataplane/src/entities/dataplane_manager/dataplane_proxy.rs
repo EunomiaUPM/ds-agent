@@ -84,6 +84,12 @@ pub struct DataplaneProxy {
     pub(crate) egress: DataplaneProxyEgress,
 }
 
+impl Default for DataplaneProxy {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DataplaneProxy {
     pub fn new() -> Self {
         Self {

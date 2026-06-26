@@ -25,7 +25,8 @@ use connector::{
 };
 use serde_json::{json, Value};
 use std::sync::Arc;
-use ymir::errors::{Errors, Outcome};
+use crate::errors::DataplaneError;
+use ymir::errors::Outcome;
 
 pub struct HttpPubSubscriber {
     http_client: HttpClient,
@@ -77,7 +78,9 @@ impl DriverPubSubTrait for HttpPubSubscriber {
         // extract subscribe spec
         let connector = context
             .connector_instance()
-            .ok_or_else(|| Errors::crazy("No connector instance for PUSH subscribe", None))?;
+            .ok_or_else(|| DataplaneError::PubSubConnectorNotAvailable {
+                operation: "subscribe".to_string(),
+            })?;
 
         let dp = &context.dataplane_process().inner.id;
         let ingress_url = format!("{}{}", HTTP_LISTENER_PATH, dp);
@@ -91,15 +94,21 @@ impl DriverPubSubTrait for HttpPubSubscriber {
         let push_lifecycle = match &resolved_connector.interaction {
             InteractionConfig::Push(p) => p,
             _ => {
-                return Err(Errors::crazy(
-                    "Resolved connector interaction is not PUSH",
-                    None,
-                ))
+                return Err(DataplaneError::WrongInteractionType {
+                    expected: "Push".to_string(),
+                    found: "other".to_string(),
+                }
+                .into())
             }
         };
         let http_spec = match &push_lifecycle.subscribe {
             ProtocolSpec::Http(spec) => spec,
-            _ => return Err(Errors::crazy("Only HTTP subscribe is supported", None)),
+            _ => {
+                return Err(DataplaneError::UnsupportedProtocol {
+                    protocol: "non-HTTP subscribe".to_string(),
+                }
+                .into())
+            }
         };
 
         let body: Option<Value> = http_spec
@@ -111,7 +120,11 @@ impl DriverPubSubTrait for HttpPubSubscriber {
         let response: Value = {
             let b = body.unwrap_or(json!({}));
             self.http_client.post_json(&url, &b).await.map_err(|e| {
-                Errors::crazy(format!("Subscribe POST failed: {}", e), Some(Box::new(e)))
+                DataplaneError::PubSubRequestFailed {
+                    method: "POST".to_string(),
+                    url: url.clone(),
+                    reason: e.to_string(),
+                }
             })?
         };
 
@@ -127,10 +140,18 @@ impl DriverPubSubTrait for HttpPubSubscriber {
         // extract unsubscribe spec
         let connector = context
             .connector_instance()
-            .ok_or_else(|| Errors::crazy("No connector instance for PUSH unsubscribe", None))?;
+            .ok_or_else(|| DataplaneError::PubSubConnectorNotAvailable {
+                operation: "unsubscribe".to_string(),
+            })?;
         let push_lifecycle = match &connector.interaction {
             InteractionConfig::Push(p) => p,
-            _ => return Err(Errors::crazy("Connector interaction is not PUSH", None)),
+            _ => {
+                return Err(DataplaneError::WrongInteractionType {
+                    expected: "Push".to_string(),
+                    found: "other".to_string(),
+                }
+                .into())
+            }
         };
 
         // resolve placeholders against current runtime state and ingress address
@@ -149,15 +170,21 @@ impl DriverPubSubTrait for HttpPubSubscriber {
         let resolved_push = match &current_instance.interaction {
             InteractionConfig::Push(p) => p,
             _ => {
-                return Err(Errors::crazy(
-                    "Resolved connector interaction is not PUSH",
-                    None,
-                ))
+                return Err(DataplaneError::WrongInteractionType {
+                    expected: "Push".to_string(),
+                    found: "other".to_string(),
+                }
+                .into())
             }
         };
         let resolved_http = match &resolved_push.unsubscribe {
             Some(ProtocolSpec::Http(s)) => s,
-            _ => return Err(Errors::crazy("Resolved unsubscribe spec is not HTTP", None)),
+            _ => {
+                return Err(DataplaneError::UnsupportedProtocol {
+                    protocol: "non-HTTP unsubscribe".to_string(),
+                }
+                .into())
+            }
         };
 
         let url = resolved_http.url_template.clone();
@@ -178,33 +205,46 @@ impl DriverPubSubTrait for HttpPubSubscriber {
         let response: Value = match method.as_str() {
             "DELETE" => {
                 self.http_client.delete::<()>(&url).await.map_err(|e| {
-                    Errors::crazy(
-                        format!("Unsubscribe DELETE failed: {}", e),
-                        Some(Box::new(e)),
-                    )
+                    DataplaneError::PubSubRequestFailed {
+                        method: "DELETE".to_string(),
+                        url: url.clone(),
+                        reason: e.to_string(),
+                    }
                 })?;
                 Value::Null
             }
             "POST" => {
                 let b = body.unwrap_or(json!({}));
                 self.http_client.post_json(&url, &b).await.map_err(|e| {
-                    Errors::crazy(format!("Unsubscribe POST failed: {}", e), Some(Box::new(e)))
+                    DataplaneError::PubSubRequestFailed {
+                        method: "POST".to_string(),
+                        url: url.clone(),
+                        reason: e.to_string(),
+                    }
                 })?
             }
             "PUT" => {
                 let b = body.unwrap_or(json!({}));
                 self.http_client.put_json(&url, &b).await.map_err(|e| {
-                    Errors::crazy(format!("Unsubscribe PUT failed: {}", e), Some(Box::new(e)))
+                    DataplaneError::PubSubRequestFailed {
+                        method: "PUT".to_string(),
+                        url: url.clone(),
+                        reason: e.to_string(),
+                    }
                 })?
             }
             "GET" => self.http_client.get_json(&url).await.map_err(|e| {
-                Errors::crazy(format!("Unsubscribe GET failed: {}", e), Some(Box::new(e)))
+                DataplaneError::PubSubRequestFailed {
+                    method: "GET".to_string(),
+                    url: url.clone(),
+                    reason: e.to_string(),
+                }
             })?,
             other => {
-                return Err(Errors::crazy(
-                    format!("Unsupported unsubscribe HTTP method: {}", other),
-                    None,
-                ))
+                return Err(DataplaneError::UnsupportedProtocol {
+                    protocol: format!("HTTP method {}", other),
+                }
+                .into())
             }
         };
 

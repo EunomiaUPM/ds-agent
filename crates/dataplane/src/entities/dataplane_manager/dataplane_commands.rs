@@ -188,14 +188,14 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
     async fn set_started(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
         let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
         let new_state = TransferState::Started;
-        let flow_control = self.export_runtime_flow_control(&context).await?;
+        //let flow_control = self.export_runtime_flow_control(&context).await?;
         let dataplane_process = self
             .dataplane_entity()
             .put_dataplane_transfer_by_id(
                 &dataplane_urn,
                 &EditDataplaneTransferDto {
                     state: Some(new_state),
-                    flow_control,
+                    //flow_control,
                     ..EditDataplaneTransferDto::default()
                 },
             )

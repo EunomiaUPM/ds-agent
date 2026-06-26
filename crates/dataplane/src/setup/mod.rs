@@ -172,6 +172,14 @@ impl DataplaneSetup {
             dataplane_repo.clone(),
             cache,
         ));
-        TestingHTTPProxy::new(dataplane_process_entity.clone(), dataplane_repo).router()
+
+        let (parameter_store, secret_store) = KeystoreSetup::new()
+            .build_keystore_stores(config, vault.clone())
+            .await;
+        let keystore_lookup = Arc::new(KeystoreClientImpl::new(parameter_store, secret_store));
+
+        TestingHTTPProxy::new(dataplane_process_entity.clone(), dataplane_repo)
+            .with_keystore(Some(keystore_lookup))
+            .router()
     }
 }

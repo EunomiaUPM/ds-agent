@@ -153,7 +153,7 @@ pub(crate) fn template_runtime_json_regex() -> &'static Regex {
 }
 
 /// Matches `{{__RUNTIME_PARAMETER_{/key}__}}` and captures the key path.
-pub(crate) fn template_runtime_parameter_regex() -> &'static Regex {
+pub fn template_runtime_parameter_regex() -> &'static Regex {
     static REGEX: OnceLock<Regex> = OnceLock::new();
     REGEX.get_or_init(|| {
         Regex::new(r"\{\{\s*__RUNTIME_PARAMETER_\{([^}]+)}__\s*\}\}")
@@ -162,7 +162,7 @@ pub(crate) fn template_runtime_parameter_regex() -> &'static Regex {
 }
 
 /// Matches `{{__RUNTIME_SECRET_{/key}__}}` and captures the key path.
-pub(crate) fn template_runtime_secret_regex() -> &'static Regex {
+pub fn template_runtime_secret_regex() -> &'static Regex {
     static REGEX: OnceLock<Regex> = OnceLock::new();
     REGEX.get_or_init(|| {
         Regex::new(r"\{\{\s*__RUNTIME_SECRET_\{([^}]+)}__\s*\}\}")

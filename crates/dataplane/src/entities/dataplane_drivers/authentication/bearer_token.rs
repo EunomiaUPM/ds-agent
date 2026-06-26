@@ -26,6 +26,10 @@ impl DriverAuthenticatorTrait for BearerTokenAuthenticator {
         };
 
         let resolved = token.resolve().await?;
+        dbg!(&resolved);
+        dbg!(&token);
+
+
         let mut ctx = context.clone();
         ctx.set_runtime(DataplaneRuntime {
             auth: ResolvedAuthCredentials::BearerToken { token: resolved },
@@ -58,7 +62,6 @@ mod tests {
 
     #[tokio::test]
     async fn returns_error_for_wrong_auth_type() {
-        // NoAuth context -> BearerToken authenticator should reject it
         let ctx = no_auth_context().await;
         let result = BearerTokenAuthenticator.authenticate(&ctx).await;
         assert!(result.is_err());
@@ -66,7 +69,6 @@ mod tests {
 
     #[tokio::test]
     async fn returns_error_without_connector() {
-        // Consumer pull context has no connector instance
         let ctx = consumer_context().await;
         let result = BearerTokenAuthenticator.authenticate(&ctx).await;
         assert!(result.is_err());

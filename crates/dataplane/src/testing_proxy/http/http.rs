@@ -23,7 +23,7 @@ use crate::entities::dataplane_manager::dataplane_proxy::{
     DataplaneProxyEgress, DataplaneProxyIngress,
 };
 use crate::entities::dataplane_manager::dataplane_runtime::{
-    DataplaneRuntime, ResolvedAuthCredentials,
+    DataplaneRuntime, ResolvedAuthCredentials, RuntimeSecretVault,
 };
 use crate::entities::dataplane_transfers::DataplaneTransfersEntitiesTrait;
 use crate::entities::dataplane_transfers::{InteractionMode, TransferState};
@@ -31,20 +31,22 @@ use axum::body::{to_bytes, Body};
 use axum::extract::{FromRef, Path, Request, State};
 use axum::response::{IntoResponse, Response};
 use axum::routing::any;
-use axum::Router;
+use axum::{Json, Router};
 use common::utils::get_urn_from_string;
+use connector::KeystoreLookup;
 use hyper::Method;
 use reqwest::Response as ReqwestResponse;
 use reqwest::{Client, StatusCode};
 use serde_json::json;
 use std::sync::Arc;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 #[derive(Clone)]
 pub struct TestingHTTPProxy {
     client: Client,
     dataplane_service: Arc<dyn DataplaneTransfersEntitiesTrait>,
     repo: Arc<dyn DataplaneRepoTrait>,
+    keystore: Option<Arc<dyn KeystoreLookup>>,
 }
 
 impl FromRef<TestingHTTPProxy> for Client {
@@ -72,7 +74,13 @@ impl TestingHTTPProxy {
             client,
             dataplane_service,
             repo,
+            keystore: None,
         }
+    }
+
+    pub fn with_keystore(mut self, keystore: Option<Arc<dyn KeystoreLookup>>) -> Self {
+        self.keystore = keystore;
+        self
     }
     pub fn router(self) -> Router {
         Router::new()
@@ -191,14 +199,24 @@ impl TestingHTTPProxy {
         // Resolve auth credentials for the outbound (egress) request.
         //
         // Provider-side proxy: credentials come from flow_control.auth (resolved from the
-        // connector's SecretString during set_auth).
+        // connector's SecretString during set_auth). OAuth2 tokens are vaulted — resolve
+        // placeholders via the secret store before use.
         // Consumer-side proxy: the runtime has NoAuth (no connector); outbound credentials
         // come from the egress token set from the provider's DataplaneAddress.
-        let flow_control_auth = dataplane
+        let flow_control_runtime = dataplane
             .inner
             .flow_control
             .as_ref()
-            .and_then(|v| serde_json::from_value::<DataplaneRuntime>(v.clone()).ok())
+            .and_then(|v| serde_json::from_value::<DataplaneRuntime>(v.clone()).ok());
+
+        let flow_control_runtime = match (flow_control_runtime, &state.keystore) {
+            (Some(rt), Some(lookup)) => {
+                Some(RuntimeSecretVault::resolve_with_lookup(rt, lookup).await)
+            }
+            (rt, _) => rt,
+        };
+
+        let flow_control_auth = flow_control_runtime
             .map(|rt| rt.auth)
             .unwrap_or(ResolvedAuthCredentials::NoAuth);
 
@@ -225,14 +243,34 @@ impl TestingHTTPProxy {
             Err(_) => return (StatusCode::BAD_REQUEST, "method not allowed").into_response(),
         };
 
+        // Log the auth header that will be sent upstream.
+        let auth_header_preview = match &credentials {
+            ResolvedAuthCredentials::NoAuth => "Authorization: <none>".to_string(),
+            ResolvedAuthCredentials::BearerToken { token } =>
+                format!("Authorization: Bearer {}", &token[..token.len().min(40)]),
+            ResolvedAuthCredentials::ApiKey { key, value, .. } =>
+                format!("{}: {}...", key, &value[..value.len().min(20)]),
+            ResolvedAuthCredentials::BasicAuth { username, .. } =>
+                format!("Authorization: Basic <{}:***>", username),
+            ResolvedAuthCredentials::OAuth2 { access_token, token_type, .. } =>
+                format!("Authorization: {} {}", token_type, &access_token[..access_token.len().min(40)]),
+        };
+        // logged at warn so it's visible regardless of log level (debug for prod)
+        warn!("Proxy {} {} | keystore={} | {}", method, next_hop,
+            state.keystore.is_some(), auth_header_preview);
+
         // Delegate to the proxy driver which injects auth headers.
+        // Drop the incoming Authorization header — the proxy uses its own outbound credentials
+        // and adding both would produce duplicate Authorization values on the upstream request.
+        let mut filtered_headers = incoming_headers.clone();
+        filtered_headers.remove("authorization");
         let base_url = next_hop.clone();
         let res = http_proxy::forward(
             &state.client,
             method.clone(),
             &base_url,
             None, // path already appended to next_hop above
-            &incoming_headers,
+            &filtered_headers,
             body_bytes,
             &credentials,
         )
@@ -286,13 +324,27 @@ impl TestingHTTPProxy {
             error!("Failed to log transfer event: {:?}", e);
         }
 
-        // forward request upstream
+        // Forward response — hide upstream error details from the consumer but log them.
         match res {
+            Ok(res) if res.status().is_client_error() || res.status().is_server_error() => {
+                let status = res.status();
+                let body_text = res
+                    .text()
+                    .await
+                    .unwrap_or_else(|_| "<unreadable>".to_string());
+                error!(
+                    "Upstream {} {} -> {} | sent=[{}] keystore={} | body: {}",
+                    method, next_hop, status, auth_header_preview,
+                    state.keystore.is_some(), body_text
+                );
+                (status, Json(json!({"error": "upstream error"}))).into_response()
+            }
             Ok(res) => Self::forward_response_helper(res),
             Err(e) => {
-                return (
+                error!("Proxy forward failed {} {}: {:?}", method, next_hop, e);
+                (
                     StatusCode::BAD_GATEWAY,
-                    format!("peer connection problem by: {:?}", e),
+                    Json(json!({"error": "proxy error"})),
                 )
                     .into_response()
             }

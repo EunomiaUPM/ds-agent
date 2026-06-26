@@ -27,8 +27,10 @@ use crate::entities::dataplane_manager::dataplane_runtime::{
 };
 use crate::entities::dataplane_transfers::DataplaneTransfersEntitiesTrait;
 use crate::entities::dataplane_transfers::{InteractionMode, TransferState};
-use axum::body::{to_bytes, Body};
+use crate::entities::dataplane_transfers::DataplaneTransferDto;
+use axum::body::{to_bytes, Body, Bytes};
 use axum::extract::{FromRef, Path, Request, State};
+use axum::http::HeaderMap;
 use axum::response::{IntoResponse, Response};
 use axum::routing::any;
 use axum::{Json, Router};
@@ -39,7 +41,78 @@ use reqwest::Response as ReqwestResponse;
 use reqwest::{Client, StatusCode};
 use serde_json::json;
 use std::sync::Arc;
+use std::time::Duration;
 use tracing::{error, info, warn};
+use urn::Urn;
+use ymir::errors::Outcome;
+
+/// Maximum request body we buffer before forwarding upstream (2 MiB).
+const MAX_BODY_BYTES: usize = 2 * 1024 * 1024;
+/// Cap on establishing the upstream TCP connection.
+const UPSTREAM_CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
+/// Cap on the whole upstream request/response exchange.
+const UPSTREAM_TIMEOUT: Duration = Duration::from_secs(30);
+
+/// Hop-by-hop headers (RFC 7230 §6.1) that must not be relayed end-to-end.
+const HOP_BY_HOP_HEADERS: [&str; 8] = [
+    "connection",
+    "keep-alive",
+    "proxy-authenticate",
+    "proxy-authorization",
+    "te",
+    "trailer",
+    "transfer-encoding",
+    "upgrade",
+];
+
+/// Early-exit conditions while proxying, each mapped to an HTTP status.
+enum ProxyError {
+    BadDataplaneId,
+    DataplaneNotFound,
+    DataplaneLookupFailed,
+    NotStarted(TransferState),
+    InvalidEgressConfig,
+    UnsupportedEgress,
+    BodyTooLarge,
+}
+
+impl IntoResponse for ProxyError {
+    fn into_response(self) -> Response {
+        let (status, message) = match self {
+            ProxyError::BadDataplaneId => {
+                (StatusCode::BAD_REQUEST, "data_plane_id not urn".to_string())
+            }
+            ProxyError::DataplaneNotFound => {
+                (StatusCode::NOT_FOUND, "dataplane id not found".to_string())
+            }
+            ProxyError::DataplaneLookupFailed => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "error fetching dataplane".to_string(),
+            ),
+            ProxyError::NotStarted(state) => (
+                StatusCode::FORBIDDEN,
+                format!("Transfer is not STARTED (current: {state:?})"),
+            ),
+            ProxyError::InvalidEgressConfig => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Invalid or missing egress_config".to_string(),
+            ),
+            ProxyError::UnsupportedEgress => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Connector egress not handled by HTTP proxy".to_string(),
+            ),
+            ProxyError::BodyTooLarge => (StatusCode::BAD_REQUEST, "body too big".to_string()),
+        };
+        (status, message).into_response()
+    }
+}
+
+/// The parts of the incoming request we forward upstream.
+struct OutboundRequest {
+    method: Method,
+    headers: HeaderMap,
+    body: Bytes,
+}
 
 #[derive(Clone)]
 pub struct TestingHTTPProxy {
@@ -66,10 +139,15 @@ impl TestingHTTPProxy {
         dataplane_service: Arc<dyn DataplaneTransfersEntitiesTrait>,
         repo: Arc<dyn DataplaneRepoTrait>,
     ) -> Self {
-        let client = reqwest::Client::builder()
+        // `danger_accept_invalid_certs` is intentional: this is a TESTING proxy
+        // that must reach upstreams using self-signed certificates. Timeouts stop
+        // a dead upstream from hanging the proxy connection indefinitely.
+        let client = Client::builder()
             .danger_accept_invalid_certs(true)
+            .connect_timeout(UPSTREAM_CONNECT_TIMEOUT)
+            .timeout(UPSTREAM_TIMEOUT)
             .build()
-            .expect("Fallo al construir el cliente HTTP de reqwest");
+            .expect("failed to build reqwest HTTP client");
         Self {
             client,
             dataplane_service,
@@ -109,199 +187,230 @@ impl TestingHTTPProxy {
         Self::handle_request(state, data_plane_id, Some(path), req).await
     }
 
+    /// Axum entry point: runs the proxy pipeline and turns an early
+    /// `ProxyError` into its HTTP response.
     async fn handle_request(
         state: TestingHTTPProxy,
         data_plane_id: String,
         path: Option<String>,
-        mut req: Request,
-    ) -> impl IntoResponse {
-        info!("* /data/{} (path: {:?})", data_plane_id, path);
-        // validations
-        let data_plane_urn = match get_urn_from_string(&data_plane_id) {
-            Ok(urn) => urn,
-            Err(_) => return (StatusCode::BAD_REQUEST, "data_plane_id not urn").into_response(),
-        };
+        req: Request,
+    ) -> Response {
+        match state.proxy(&data_plane_id, path.as_deref(), req).await {
+            Ok(response) => response,
+            Err(err) => err.into_response(),
+        }
+    }
 
-        // PDP: Fetch by Dataplane ID (urn:dataplane-transfer:...)
-        let dataplane = match state
+    /// The proxy pipeline, top to bottom: validate, authorize, build the
+    /// target URL, resolve credentials, then forward and log.
+    async fn proxy(
+        &self,
+        data_plane_id: &str,
+        path: Option<&str>,
+        req: Request,
+    ) -> Result<Response, ProxyError> {
+        info!("* proxy /data/{data_plane_id} (path: {path:?})");
+
+        let urn = Self::parse_dataplane_id(data_plane_id)?;
+        let dataplane = self.load_started_dataplane(&urn).await?;
+        let egress = Self::parse_egress(&dataplane)?;
+
+        // Capture the query string before the body consumes the request.
+        let query = req.uri().query().map(str::to_owned);
+        let outbound = Self::extract_outbound(req).await?;
+
+        let target = Self::build_target_url(&egress, path, query.as_deref())?;
+        let credentials = self.resolve_credentials(&dataplane, &egress).await;
+
+        Ok(self
+            .forward_and_log(&dataplane, data_plane_id, path, &egress, &target, outbound, &credentials)
+            .await)
+    }
+
+    // --- Validation & lookup ---------------------------------------------
+
+    /// Parses the `{data_plane_id}` path segment into a transfer URN.
+    fn parse_dataplane_id(raw: &str) -> Result<Urn, ProxyError> {
+        get_urn_from_string(&raw.to_string()).map_err(|_| ProxyError::BadDataplaneId)
+    }
+
+    /// Loads the transfer and enforces that it is `Started` — the proxy only
+    /// relays traffic for active transfers.
+    async fn load_started_dataplane(&self, urn: &Urn) -> Result<DataplaneTransferDto, ProxyError> {
+        let dataplane = self
             .dataplane_service
-            .get_dataplane_transfer_by_id(&data_plane_urn)
+            .get_dataplane_transfer_by_id(urn)
             .await
-        {
-            Ok(dataplane) => match dataplane {
-                Some(dataplane) => dataplane,
-                None => return (StatusCode::NOT_FOUND, "dataplane id not found").into_response(),
-            },
-            Err(_) => {
-                return (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "error fetching dataplane",
-                )
-                    .into_response()
-            }
-        };
+            .map_err(|_| ProxyError::DataplaneLookupFailed)?
+            .ok_or(ProxyError::DataplaneNotFound)?;
 
-        // STRICT State Check: Only STARTED is allowed
         if dataplane.inner.state != TransferState::Started {
-            return (
-                StatusCode::FORBIDDEN,
-                format!(
-                    "Transfer is not STARTED (current: {:?})",
-                    dataplane.inner.state
-                ),
-            )
-                .into_response();
+            return Err(ProxyError::NotStarted(dataplane.inner.state.clone()));
         }
+        Ok(dataplane)
+    }
 
-        // Read egress config from the dataplane process
-        let egress: DataplaneProxyEgress =
-            match serde_json::from_value(dataplane.inner.egress_config.clone()) {
-                Ok(e) => e,
-                Err(_) => {
-                    return (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        "Invalid or missing egress_config",
-                    )
-                        .into_response()
-                }
-            };
+    /// Reads the egress configuration the transfer was provisioned with.
+    fn parse_egress(dataplane: &DataplaneTransferDto) -> Result<DataplaneProxyEgress, ProxyError> {
+        serde_json::from_value(dataplane.inner.egress_config.clone())
+            .map_err(|_| ProxyError::InvalidEgressConfig)
+    }
 
-        let mut next_hop = match &egress {
-            DataplaneProxyEgress::HttpProxy {
-                path,
-                token,
-                token_type,
-            } => path.clone(),
-            _ => {
-                return (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "Connector egress not handled by HTTP proxy",
-                )
-                    .into_response()
-            }
+    // --- Request shaping --------------------------------------------------
+
+    /// Extracts the method, headers and size-limited body from the request.
+    async fn extract_outbound(mut req: Request) -> Result<OutboundRequest, ProxyError> {
+        let method = req.method().clone();
+        let headers = req.headers().clone();
+        let body = std::mem::take(req.body_mut());
+        let body = to_bytes(body, MAX_BODY_BYTES)
+            .await
+            .map_err(|_| ProxyError::BodyTooLarge)?;
+        Ok(OutboundRequest { method, headers, body })
+    }
+
+    /// Builds the upstream URL: egress base path + optional wildcard path + query.
+    fn build_target_url(
+        egress: &DataplaneProxyEgress,
+        path: Option<&str>,
+        query: Option<&str>,
+    ) -> Result<String, ProxyError> {
+        let DataplaneProxyEgress::HttpProxy { path: base, .. } = egress else {
+            return Err(ProxyError::UnsupportedEgress);
         };
+        let mut url = base.clone();
 
-        // Append path if present
-        if let Some(p) = &path {
-            // Ensure no double slashes or missing slash
-            if !next_hop.ends_with('/') {
-                next_hop.push('/');
+        // Join the wildcard segment, guarding against missing/double slashes.
+        if let Some(p) = path {
+            if !url.ends_with('/') {
+                url.push('/');
             }
-            next_hop.push_str(&p);
+            url.push_str(p);
         }
 
-        // Append query
-        if let Some(query) = req.uri().query() {
-            let sep = if next_hop.contains('?') { '&' } else { '?' };
-            next_hop.push(sep);
-            next_hop.push_str(query);
+        // Preserve the original query string.
+        if let Some(q) = query {
+            url.push(if url.contains('?') { '&' } else { '?' });
+            url.push_str(q);
         }
+        Ok(url)
+    }
 
-        // Resolve auth credentials for the outbound (egress) request.
-        //
-        // Provider-side proxy: credentials come from flow_control.auth (resolved from the
-        // connector's SecretString during set_auth). OAuth2 tokens are vaulted — resolve
-        // placeholders via the secret store before use.
-        // Consumer-side proxy: the runtime has NoAuth (no connector); outbound credentials
-        // come from the egress token set from the provider's DataplaneAddress.
-        let flow_control_runtime = dataplane
+    // --- Credentials ------------------------------------------------------
+
+    /// Determines the credentials to present upstream.
+    ///
+    /// Provider-side: credentials live in `flow_control.auth` (resolved from the
+    /// connector secret during `set_auth`); vaulted OAuth2 tokens are resolved
+    /// via the keystore. Consumer-side: there is no connector, so we fall back
+    /// to the bearer token carried in the egress config.
+    async fn resolve_credentials(
+        &self,
+        dataplane: &DataplaneTransferDto,
+        egress: &DataplaneProxyEgress,
+    ) -> ResolvedAuthCredentials {
+        let runtime = dataplane
             .inner
             .flow_control
             .as_ref()
             .and_then(|v| serde_json::from_value::<DataplaneRuntime>(v.clone()).ok());
 
-        let flow_control_runtime = match (flow_control_runtime, &state.keystore) {
+        // Resolve vaulted placeholders when a keystore is configured.
+        let runtime = match (runtime, &self.keystore) {
             (Some(rt), Some(lookup)) => {
                 Some(RuntimeSecretVault::resolve_with_lookup(rt, lookup).await)
             }
             (rt, _) => rt,
         };
 
-        let flow_control_auth = flow_control_runtime
+        let auth = runtime
             .map(|rt| rt.auth)
             .unwrap_or(ResolvedAuthCredentials::NoAuth);
 
-        let credentials = match flow_control_auth {
-            ResolvedAuthCredentials::NoAuth => match &egress {
-                DataplaneProxyEgress::HttpProxy {
-                    token: Some(t), ..
-                } if !t.is_empty() => ResolvedAuthCredentials::BearerToken { token: t.clone() },
+        // Fall back to the egress bearer token when the runtime carries no auth.
+        match auth {
+            ResolvedAuthCredentials::NoAuth => match egress {
+                DataplaneProxyEgress::HttpProxy { token: Some(t), .. } if !t.is_empty() => {
+                    ResolvedAuthCredentials::BearerToken { token: t.clone() }
+                }
                 _ => ResolvedAuthCredentials::NoAuth,
             },
             other => other,
-        };
+        }
+    }
 
-        let incoming_headers = req.headers().clone();
-        let body = std::mem::take(req.body_mut());
-        let body_bytes = match to_bytes(body, 2024 * 1024) // MAX_BUFFER 2MB
-            .await
-        {
-            Ok(body_bytes) => body_bytes,
-            Err(_) => return (StatusCode::BAD_REQUEST, "body too big").into_response(),
-        };
-        let method = match Method::try_from(req.method()) {
-            Ok(method) => method,
-            Err(_) => return (StatusCode::BAD_REQUEST, "method not allowed").into_response(),
-        };
+    // --- Forwarding & response -------------------------------------------
 
-        // Log the auth header that will be sent upstream.
-        let auth_header_preview = match &credentials {
-            ResolvedAuthCredentials::NoAuth => "Authorization: <none>".to_string(),
-            ResolvedAuthCredentials::BearerToken { token } =>
-                format!("Authorization: Bearer {}", &token[..token.len().min(40)]),
-            ResolvedAuthCredentials::ApiKey { key, value, .. } =>
-                format!("{}: {}...", key, &value[..value.len().min(20)]),
-            ResolvedAuthCredentials::BasicAuth { username, .. } =>
-                format!("Authorization: Basic <{}:***>", username),
-            ResolvedAuthCredentials::OAuth2 { access_token, token_type, .. } =>
-                format!("Authorization: {} {}", token_type, &access_token[..access_token.len().min(40)]),
-        };
-        // logged at warn so it's visible regardless of log level (debug for prod)
-        warn!("Proxy {} {} | keystore={} | {}", method, next_hop,
-            state.keystore.is_some(), auth_header_preview);
+    /// Forwards the request upstream, records a transfer event, and maps the
+    /// upstream response back to the caller.
+    #[allow(clippy::too_many_arguments)]
+    async fn forward_and_log(
+        &self,
+        dataplane: &DataplaneTransferDto,
+        data_plane_id: &str,
+        path: Option<&str>,
+        egress: &DataplaneProxyEgress,
+        target: &str,
+        outbound: OutboundRequest,
+        credentials: &ResolvedAuthCredentials,
+    ) -> Response {
+        let auth_preview = Self::preview_auth(credentials);
+        // Logged at warn so it stays visible regardless of the configured level.
+        warn!(
+            "Proxy {} {} | keystore={} | {}",
+            outbound.method,
+            target,
+            self.keystore.is_some(),
+            auth_preview
+        );
 
-        // Delegate to the proxy driver which injects auth headers.
-        // Drop the incoming Authorization header — the proxy uses its own outbound credentials
-        // and adding both would produce duplicate Authorization values on the upstream request.
-        let mut filtered_headers = incoming_headers.clone();
-        filtered_headers.remove("authorization");
-        let base_url = next_hop.clone();
-        let res = http_proxy::forward(
-            &state.client,
-            method.clone(),
-            &base_url,
-            None, // path already appended to next_hop above
-            &filtered_headers,
-            body_bytes,
-            &credentials,
+        // Drop the inbound Authorization header — the proxy injects its own
+        // outbound credentials and two would produce duplicate values upstream.
+        let mut headers = outbound.headers;
+        headers.remove("authorization");
+
+        let response = http_proxy::forward(
+            &self.client,
+            outbound.method.clone(),
+            target,
+            None, // the wildcard path is already baked into `target`
+            &headers,
+            outbound.body,
+            credentials,
         )
         .await;
 
-        // Enhance Logging
-        let role = dataplane.inner.role;
-        let mode = dataplane.inner.interaction_mode;
+        self.record_event(dataplane, data_plane_id, path, egress, target, &outbound.method, &response)
+            .await;
 
-        let ingress_type = match serde_json::from_value::<DataplaneProxyIngress>(
-            dataplane.inner.ingress_config.clone(),
-        ) {
-            Ok(DataplaneProxyIngress::HttpListener { .. }) => "HttpListener",
-            Ok(DataplaneProxyIngress::NoOp { .. }) => "NoOp",
-            Err(_) => "Unknown",
-        };
+        Self::map_response(response, &outbound.method, target, &auth_preview, self.keystore.is_some())
+            .await
+    }
 
-        let egress_type = match &egress {
-            DataplaneProxyEgress::HttpProxy { .. } => "HttpProxy",
-            _ => "Unknown",
-        };
+    /// Persists a best-effort transfer event describing this proxied request.
+    #[allow(clippy::too_many_arguments)]
+    async fn record_event(
+        &self,
+        dataplane: &DataplaneTransferDto,
+        data_plane_id: &str,
+        path: Option<&str>,
+        egress: &DataplaneProxyEgress,
+        target: &str,
+        method: &Method,
+        response: &Outcome<ReqwestResponse>,
+    ) {
+        let role = dataplane.inner.role.clone();
+        let mode = dataplane.inner.interaction_mode.clone();
+        let ingress_type = Self::ingress_label(dataplane);
+        let egress_type = Self::egress_label(egress);
+        let status = response.as_ref().map(|r| r.status().as_u16()).unwrap_or(0);
 
-        // Log Transfer Event
         let event = NewTransferEvent {
             transfer_id: dataplane.inner.id.clone(),
             level: LogLevel::Info,
             component: "DataProxy".to_string(),
             message: format!(
-                "Transfer [{}|{}] from {} to {} | Ingress: {} | Egress: {}",
-                role, mode, data_plane_id, next_hop, ingress_type, egress_type
+                "Transfer [{role}|{mode}] from {data_plane_id} to {target} | Ingress: {ingress_type} | Egress: {egress_type}"
             ),
             data: Some(json!({
                 "role": role,
@@ -310,59 +419,107 @@ impl TestingHTTPProxy {
                 "egress": egress_type,
                 "origin_path": path,
                 "method": method.to_string(),
-                "target": next_hop,
-                "status": res.as_ref().map(|r| r.status().as_u16()).unwrap_or(0),
+                "target": target,
+                "status": status,
             })),
         };
 
-        // Fire and forget logging (or await/warn)
-        if let Err(e) = state
+        // Fire-and-forget: a logging failure must not break the data path.
+        if let Err(e) = self
             .repo
             .get_transfer_events_repo()
             .create_transfer_event(&event)
             .await
         {
-            error!("Failed to log transfer event: {:?}", e);
+            error!("Failed to log transfer event: {e:?}");
         }
+    }
 
-        // Forward response — hide upstream error details from the consumer but log them.
-        match res {
+    /// Maps the upstream result to the client response, masking upstream error
+    /// bodies (still logged server-side) so internal details are not leaked.
+    async fn map_response(
+        result: Outcome<ReqwestResponse>,
+        method: &Method,
+        target: &str,
+        auth_preview: &str,
+        keystore_present: bool,
+    ) -> Response {
+        match result {
             Ok(res) if res.status().is_client_error() || res.status().is_server_error() => {
                 let status = res.status();
-                let body_text = res
-                    .text()
-                    .await
-                    .unwrap_or_else(|_| "<unreadable>".to_string());
+                let body_text = res.text().await.unwrap_or_else(|_| "<unreadable>".to_string());
                 error!(
                     "Upstream {} {} -> {} | sent=[{}] keystore={} | body: {}",
-                    method, next_hop, status, auth_header_preview,
-                    state.keystore.is_some(), body_text
+                    method, target, status, auth_preview, keystore_present, body_text
                 );
                 (status, Json(json!({"error": "upstream error"}))).into_response()
             }
-            Ok(res) => Self::forward_response_helper(res),
+            Ok(res) => Self::relay_response(res),
             Err(e) => {
-                error!("Proxy forward failed {} {}: {:?}", method, next_hop, e);
-                (
-                    StatusCode::BAD_GATEWAY,
-                    Json(json!({"error": "proxy error"})),
-                )
-                    .into_response()
+                error!("Proxy forward failed {} {}: {:?}", method, target, e);
+                (StatusCode::BAD_GATEWAY, Json(json!({"error": "proxy error"}))).into_response()
             }
         }
     }
 
-    pub fn forward_response_helper(reqwest_response: ReqwestResponse) -> Response {
-        let status = reqwest_response.status();
-        let headers = reqwest_response.headers().clone();
-        let body_stream = reqwest_response.bytes_stream();
-        let body = Body::from_stream(body_stream);
-        let mut response = Response::builder().status(status);
-        let response_headers = response.headers_mut().unwrap();
-        for (key, value) in headers.iter() {
-            response_headers.insert(key, value.clone());
-        }
+    /// Streams the upstream response back to the client, dropping hop-by-hop
+    /// headers that must not be relayed end-to-end (RFC 7230 §6.1).
+    fn relay_response(upstream: ReqwestResponse) -> Response {
+        let status = upstream.status();
+        let headers = upstream.headers().clone();
+        let body = Body::from_stream(upstream.bytes_stream());
 
-        response.body(body).unwrap()
+        let mut response = Response::builder().status(status);
+        if let Some(out_headers) = response.headers_mut() {
+            for (key, value) in headers.iter() {
+                if HOP_BY_HOP_HEADERS.contains(&key.as_str().to_ascii_lowercase().as_str()) {
+                    continue;
+                }
+                out_headers.insert(key, value.clone());
+            }
+        }
+        response
+            .body(body)
+            .unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response())
+    }
+
+    // --- Small labels for logging ----------------------------------------
+
+    /// Human-readable label of the configured ingress kind.
+    fn ingress_label(dataplane: &DataplaneTransferDto) -> &'static str {
+        match serde_json::from_value::<DataplaneProxyIngress>(dataplane.inner.ingress_config.clone()) {
+            Ok(DataplaneProxyIngress::HttpListener { .. }) => "HttpListener",
+            Ok(DataplaneProxyIngress::NoOp) => "NoOp",
+            Err(_) => "Unknown",
+        }
+    }
+
+    /// Human-readable label of the configured egress kind.
+    fn egress_label(egress: &DataplaneProxyEgress) -> &'static str {
+        match egress {
+            DataplaneProxyEgress::HttpProxy { .. } => "HttpProxy",
+            _ => "Unknown",
+        }
+    }
+
+    /// Renders a truncated, log-safe preview of the outbound Authorization header.
+    fn preview_auth(credentials: &ResolvedAuthCredentials) -> String {
+        match credentials {
+            ResolvedAuthCredentials::NoAuth => "Authorization: <none>".to_string(),
+            ResolvedAuthCredentials::BearerToken { token } => {
+                format!("Authorization: Bearer {}", &token[..token.len().min(40)])
+            }
+            ResolvedAuthCredentials::ApiKey { key, value, .. } => {
+                format!("{}: {}...", key, &value[..value.len().min(20)])
+            }
+            ResolvedAuthCredentials::BasicAuth { username, .. } => {
+                format!("Authorization: Basic <{username}:***>")
+            }
+            ResolvedAuthCredentials::OAuth2 { access_token, token_type, .. } => format!(
+                "Authorization: {} {}",
+                token_type,
+                &access_token[..access_token.len().min(40)]
+            ),
+        }
     }
 }

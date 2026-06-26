@@ -12,7 +12,8 @@ use keystore::SecretStore;
 use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
-use ymir::errors::{Errors, Outcome};
+use crate::errors::DataplaneError;
+use ymir::errors::Outcome;
 
 #[derive(Clone, Debug)]
 pub enum DataplaneCommand {
@@ -150,7 +151,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
                 .export(runtime, &transfer_id)
                 .await?;
             let value = serde_json::to_value(&exported).map_err(|e| {
-                Errors::crazy(format!("Failed to serialize exported runtime: {}", e), None)
+                DataplaneError::RuntimeSerializationFailed { reason: e.to_string() }
             })?;
             Ok(Some(value))
         } else {
@@ -158,7 +159,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
                 None => Ok(None),
                 Some(r) => {
                     let value = serde_json::to_value(r).map_err(|e| {
-                        Errors::crazy(format!("Failed to serialize runtime: {}", e), None)
+                        DataplaneError::RuntimeSerializationFailed { reason: e.to_string() }
                     })?;
                     Ok(Some(value))
                 }

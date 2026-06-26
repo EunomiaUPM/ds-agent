@@ -6,7 +6,8 @@ use connector::ApiKeyLocation;
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue, AUTHORIZATION};
 use reqwest::{Client, Method, Response};
 use std::str::FromStr;
-use ymir::errors::{Errors, Outcome};
+use crate::errors::DataplaneError;
+use ymir::errors::Outcome;
 
 /// Builds auth headers and (for query-param API keys) extra query parameters
 /// from already-resolved credentials.
@@ -23,7 +24,10 @@ pub fn build_auth_artifacts(
 
         ResolvedAuthCredentials::BearerToken { token } => {
             let value = HeaderValue::from_str(&format!("Bearer {}", token)).map_err(|e| {
-                Errors::crazy(&format!("Invalid bearer token header value: {}", e), None)
+                DataplaneError::InvalidHeaderValue {
+                    header: "Authorization".to_string(),
+                    reason: e.to_string(),
+                }
             })?;
             headers.insert(AUTHORIZATION, value);
         }
@@ -31,7 +35,10 @@ pub fn build_auth_artifacts(
         ResolvedAuthCredentials::BasicAuth { username, password } => {
             let encoded = BASE64.encode(format!("{}:{}", username, password));
             let value = HeaderValue::from_str(&format!("Basic {}", encoded)).map_err(|e| {
-                Errors::crazy(&format!("Invalid basic auth header value: {}", e), None)
+                DataplaneError::InvalidHeaderValue {
+                    header: "Authorization".to_string(),
+                    reason: e.to_string(),
+                }
             })?;
             headers.insert(AUTHORIZATION, value);
         }
@@ -43,13 +50,16 @@ pub fn build_auth_artifacts(
         } => match location {
             ApiKeyLocation::Header => {
                 let name = HeaderName::from_str(key).map_err(|e| {
-                    Errors::crazy(
-                        &format!("Invalid API key header name '{}': {}", key, e),
-                        None,
-                    )
+                    DataplaneError::InvalidHeaderValue {
+                        header: key.to_string(),
+                        reason: e.to_string(),
+                    }
                 })?;
                 let hval = HeaderValue::from_str(value).map_err(|e| {
-                    Errors::crazy(&format!("Invalid API key header value: {}", e), None)
+                    DataplaneError::InvalidHeaderValue {
+                        header: key.to_string(),
+                        reason: e.to_string(),
+                    }
                 })?;
                 headers.insert(name, hval);
             }
@@ -64,8 +74,9 @@ pub fn build_auth_artifacts(
             ..
         } => {
             let value = HeaderValue::from_str(&format!("{} {}", token_type, access_token))
-                .map_err(|e| {
-                    Errors::crazy(&format!("Invalid OAuth2 auth header value: {}", e), None)
+                .map_err(|e| DataplaneError::InvalidHeaderValue {
+                    header: "Authorization".to_string(),
+                    reason: e.to_string(),
                 })?;
             headers.insert(AUTHORIZATION, value);
         }
@@ -111,6 +122,7 @@ pub async fn forward(
     }
 
     // Start building the request, copying incoming headers first.
+    let method_str = method.as_str().to_string();
     let mut builder = client.request(method, &url);
     for (name, value) in incoming_headers.iter() {
         // Skip hop-by-hop headers that must not be forwarded.
@@ -129,12 +141,13 @@ pub async fn forward(
         builder = builder.header(name.clone(), value.clone());
     }
 
-    builder.body(body).send().await.map_err(|e| {
-        Errors::crazy(
-            &format!("Upstream request failed: {}", e),
-            Some(Box::new(e)),
-        )
-    })
+    Ok(builder.body(body).send().await.map_err(|e| {
+        DataplaneError::ProxyRequestFailed {
+            method: method_str,
+            url: url.clone(),
+            reason: e.to_string(),
+        }
+    })?)
 }
 
 #[cfg(test)]

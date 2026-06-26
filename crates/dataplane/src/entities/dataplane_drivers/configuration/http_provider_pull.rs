@@ -4,7 +4,8 @@ use crate::entities::dataplane_manager::dataplane_proxy::{
     DataplaneProxy, DataplaneProxyEgress, DataplaneProxyIngress, HTTP_LISTENER_PATH,
 };
 use connector::{InteractionConfig, ProtocolSpec};
-use ymir::errors::{Errors, Outcome};
+use crate::errors::DataplaneError;
+use ymir::errors::Outcome;
 
 #[derive(Debug)]
 pub struct HttpProviderPullConfigurator;
@@ -24,10 +25,11 @@ impl HttpProviderPullConfigurator {
             let protocol_spec = match &connector.interaction {
                 InteractionConfig::Pull(lc) => lc.data_access.clone(),
                 InteractionConfig::Push(_) => {
-                    return Err(Errors::crazy(
-                        "Connector interaction shouldn't be Push at this point",
-                        None,
-                    ))
+                    return Err(DataplaneError::WrongInteractionType {
+                        expected: "Pull".to_string(),
+                        found: "Push".to_string(),
+                    }
+                    .into())
                 }
             };
             if let ProtocolSpec::Http(http_spec) = protocol_spec {
@@ -37,13 +39,13 @@ impl HttpProviderPullConfigurator {
                     token: None,
                 })
             } else {
-                return Err(Errors::crazy(
-                    "Connector interaction spec should be HTTP at this point",
-                    None,
-                ));
+                return Err(DataplaneError::UnsupportedProtocol {
+                    protocol: "non-HTTP data access spec".to_string(),
+                }
+                .into());
             }
         } else {
-            Err(Errors::crazy("Connector instance not available", None))
+            Err(DataplaneError::ConnectorNotAvailable.into())
         }
     }
 }

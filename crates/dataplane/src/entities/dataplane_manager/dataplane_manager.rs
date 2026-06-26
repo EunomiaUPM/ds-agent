@@ -11,7 +11,8 @@ use common::config::services::TransferConfig;
 use connector::ConnectorInstanceTrait;
 use keystore::SecretStore;
 use std::sync::Arc;
-use ymir::errors::{Errors, Outcome};
+use crate::errors::DataplaneError;
+use ymir::errors::Outcome;
 
 pub struct DataplaneManager {
     dataplane_entity: Arc<dyn DataplaneTransfersEntitiesTrait>,
@@ -97,10 +98,10 @@ impl DataplaneManager {
                 .await?
             }
             cmd => {
-                return Err(Errors::crazy(
-                    format!("Dataplane command {} not expected here", cmd),
-                    None,
-                ))
+                return Err(DataplaneError::UnexpectedCommand {
+                    command: cmd.to_string(),
+                }
+                .into())
             }
         };
 

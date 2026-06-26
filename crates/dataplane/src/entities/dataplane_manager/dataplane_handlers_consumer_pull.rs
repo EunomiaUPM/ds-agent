@@ -202,7 +202,7 @@ mod tests {
         assert!(ctx.connector_instance().is_none());
     }
 
-    // ── set_configuring ───────────────────────────────────────────────────────
+    // set_configuring ───────────────────────────────────────────────────────
 
     // set_configuring is atomic: configure proxy - put(Configuring).
     // It does NOT proceed to auth or ready.
@@ -239,7 +239,7 @@ mod tests {
         assert!(ctx.connector_instance().is_none());
     }
 
-    // ── set_auth ──────────────────────────────────────────────────────────────
+    // set_auth ──────────────────────────────────────────────────────────────
 
     // set_auth is atomic: NoOp authentication - put(Auth). Does NOT proceed to ready.
     #[tokio::test]
@@ -264,7 +264,7 @@ mod tests {
         assert!(ctx.forward_dataplane_address().is_some());
     }
 
-    // ── set_ready ─────────────────────────────────────────────────────────────
+    // set_ready ─────────────────────────────────────────────────────────────
 
     // set_ready must call put exactly once with state=Ready and return the updated context.
     #[tokio::test]
@@ -291,7 +291,7 @@ mod tests {
         );
     }
 
-    // ── set_started ───────────────────────────────────────────────────────────
+    // set_started ───────────────────────────────────────────────────────────
 
     // set_started must call put exactly once with state=Started and return the updated context.
     #[tokio::test]
@@ -312,7 +312,7 @@ mod tests {
         );
     }
 
-    // ── set_stopped ───────────────────────────────────────────────────────────
+    // set_stopped ───────────────────────────────────────────────────────────
 
     // set_stopped must call put exactly once with state=Stopped and return the updated context.
     #[tokio::test]
@@ -333,7 +333,7 @@ mod tests {
         );
     }
 
-    // ── set_terminating ───────────────────────────────────────────────────────
+    // set_terminating ───────────────────────────────────────────────────────
 
     // set_terminating must call put exactly once with state=Terminated and return the updated context.
     #[tokio::test]
@@ -354,7 +354,7 @@ mod tests {
         );
     }
 
-    // ── set_subscribing / set_unsubscribing ───────────────────────────────────
+    // set_subscribing / set_unsubscribing ───────────────────────────────────
 
     // Pull mode has no subscriber: set_subscribing must be a no-op — no put is called
     // and the context is returned unchanged.

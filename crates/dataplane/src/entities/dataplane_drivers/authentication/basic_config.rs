@@ -4,7 +4,8 @@ use crate::entities::dataplane_manager::dataplane_runtime::{
     DataplaneRuntime, ResolvedAuthCredentials,
 };
 use connector::AuthenticationConfig;
-use ymir::errors::{Errors, Outcome};
+use crate::errors::DataplaneError;
+use ymir::errors::Outcome;
 
 #[derive(Debug)]
 pub struct BasicConfigAuthenticator;
@@ -14,13 +15,13 @@ impl DriverAuthenticatorTrait for BasicConfigAuthenticator {
     async fn authenticate(&self, context: &DataplaneContext) -> Outcome<DataplaneContext> {
         let connector = context
             .connector_instance()
-            .ok_or_else(|| Errors::crazy("Connector not available", None))?;
+            .ok_or_else(|| DataplaneError::ConnectorNotAvailable)?;
 
         let AuthenticationConfig::BasicAuth(basic) = connector.authentication_config.clone() else {
-            return Err(Errors::crazy(
-                "Connector auth config should be type BASIC_AUTH",
-                None,
-            ));
+            return Err(DataplaneError::AuthConfigMismatch {
+                expected: "BasicAuth".to_string(),
+            }
+            .into());
         };
 
         let password = basic.password.resolve().await?;

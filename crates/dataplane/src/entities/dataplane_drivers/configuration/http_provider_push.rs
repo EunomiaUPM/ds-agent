@@ -4,7 +4,8 @@ use crate::entities::dataplane_manager::dataplane_proxy::{
     DataplaneProxy, DataplaneProxyEgress, DataplaneProxyIngress, HTTP_LISTENER_PATH,
 };
 use connector::{InteractionConfig, ProtocolSpec};
-use ymir::errors::{Errors, Outcome};
+use crate::errors::DataplaneError;
+use ymir::errors::Outcome;
 
 #[derive(Debug)]
 pub struct HttpProviderPushConfigurator;
@@ -27,7 +28,10 @@ impl HttpProviderPushConfigurator {
                 token: dataplane_address.authorization.clone(),
             })
         } else {
-            Err(Errors::crazy("Forward dataplane's address not found", None))
+            Err(DataplaneError::MissingTransferContext {
+                detail: "forward dataplane address".to_string(),
+            }
+            .into())
         }
     }
 }

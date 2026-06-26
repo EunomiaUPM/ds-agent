@@ -24,6 +24,7 @@ use urn::{Urn, UrnBuilder};
 
 use crate::entities::dataplane_manager::dataplane_commands::DataplaneInitCommandTypes;
 use strum::Display;
+use crate::errors::DataplaneError;
 use ymir::errors::Errors;
 
 #[derive(
@@ -44,10 +45,7 @@ impl TryFrom<RoleConfig> for TransferRole {
         match value {
             RoleConfig::Consumer => Ok(Self::Consumer),
             RoleConfig::Provider => Ok(Self::Provider),
-            RoleConfig::NotDefined => Err(Errors::crazy(
-                "Not allowed here this role. Dataplane must have Provider or Consumer Role",
-                None,
-            )),
+            RoleConfig::NotDefined => Err(DataplaneError::InvalidRoleConfig.into()),
         }
     }
 }
@@ -59,10 +57,7 @@ impl TryFrom<&RoleConfig> for TransferRole {
         match value {
             RoleConfig::Consumer => Ok(Self::Consumer),
             RoleConfig::Provider => Ok(Self::Provider),
-            RoleConfig::NotDefined => Err(Errors::crazy(
-                "Not allowed here this role. Dataplane must have Provider or Consumer Role",
-                None,
-            )),
+            RoleConfig::NotDefined => Err(DataplaneError::InvalidRoleConfig.into()),
         }
     }
 }

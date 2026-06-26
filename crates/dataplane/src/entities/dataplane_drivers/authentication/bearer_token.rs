@@ -4,7 +4,8 @@ use crate::entities::dataplane_manager::dataplane_runtime::{
     DataplaneRuntime, ResolvedAuthCredentials,
 };
 use connector::AuthenticationConfig;
-use ymir::errors::{Errors, Outcome};
+use crate::errors::DataplaneError;
+use ymir::errors::Outcome;
 
 #[derive(Debug)]
 pub struct BearerTokenAuthenticator;
@@ -14,14 +15,14 @@ impl DriverAuthenticatorTrait for BearerTokenAuthenticator {
     async fn authenticate(&self, context: &DataplaneContext) -> Outcome<DataplaneContext> {
         let connector = context
             .connector_instance()
-            .ok_or_else(|| Errors::crazy("Connector not available", None))?;
+            .ok_or_else(|| DataplaneError::ConnectorNotAvailable)?;
 
         let AuthenticationConfig::BearerToken { token } = connector.authentication_config.clone()
         else {
-            return Err(Errors::crazy(
-                "Connector auth config should be type BEARER_TOKEN",
-                None,
-            ));
+            return Err(DataplaneError::AuthConfigMismatch {
+                expected: "BearerToken".to_string(),
+            }
+            .into());
         };
 
         let resolved = token.resolve().await?;

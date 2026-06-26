@@ -17,7 +17,8 @@
 
 use serde::de::DeserializeOwned;
 use urn::Urn;
-use ymir::errors::{Errors, Outcome};
+use crate::errors::DataplaneError;
+use ymir::errors::Outcome;
 
 #[async_trait::async_trait]
 pub trait UtilsCacheTrait: Send + Sync {
@@ -89,7 +90,7 @@ pub trait UtilsCacheTrait: Send + Sync {
             .arg("$")
             .query_async(&mut connection)
             .await
-            .map_err(|e| Errors::crazy("Redis not able to query", Some(Box::new(e))))?;
+            .map_err(|e| DataplaneError::CacheQueryFailed { reason: e.to_string() })?;
 
         let mut results = Vec::with_capacity(data.len());
         for entry in data.into_iter().flatten() {
@@ -110,7 +111,7 @@ pub trait UtilsCacheTrait: Send + Sync {
             .arg("$")
             .query_async(&mut connection)
             .await
-            .map_err(|e| Errors::crazy("Redis not able to query", Some(Box::new(e))))?;
+            .map_err(|e| DataplaneError::CacheQueryFailed { reason: e.to_string() })?;
 
         if let Some(json_str) = data {
             let mut models: Vec<Self::Dto> = serde_json::from_str(&json_str)?;

@@ -33,7 +33,7 @@ use crate::core::{AuthCore, AuthOrchestratorTrait};
 use crate::http::gatekeeper_router::GateKeeperRouter;
 use crate::http::peer_connector_router::OnboarderRouter;
 use crate::http::verifier_router::VerifierRouter;
-use crate::http::{ParticipantRouter, VcRequesterRouter};
+use crate::http::{GaiaSelfAttesterRouter, ParticipantRouter, VcRequesterRouter};
 
 pub struct AuthRouter {
     core: Arc<AuthCore>,
@@ -57,7 +57,7 @@ impl AuthRouter {
         let mate_router = ParticipantRouter::new(self.core.clone());
         let verifier_router = VerifierRouter::new(self.core.clone());
         let onboarder_router = OnboarderRouter::new(self.core.clone());
-        // let gaia_router = GaiaSelfIssuerRouter::new(self.core.clone());
+        let gaia_router = GaiaSelfAttesterRouter::new(self.core.clone());
         let openapi_router = OpenapiRouter::new(self.openapi.clone());
         let health_router = HealthRouter::new();
 
@@ -89,8 +89,8 @@ impl AuthRouter {
                 &format!("{}/peer-connection", api_path),
                 onboarder_router.router(),
             )
+            .nest(&format!("{}/gaia", api_path), gaia_router.router())
             .nest(&format!("{}/docs", api_path), openapi_router.router());
-        // .nest(&format!("{}/gaia", api_path), gaia_router.router());
 
         router.fallback(Self::fallback).layer(cors).layer(
             TraceLayer::new_for_http()

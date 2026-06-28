@@ -15,18 +15,30 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-mod core_router;
-mod gaia_self_attester_router;
-mod gatekeeper_router;
-mod participant_router;
-mod peer_connector_router;
-mod vc_requester_router;
-mod verifier_router;
+use std::sync::Arc;
 
-pub use core_router::AuthRouter;
-pub use gaia_self_attester_router::GaiaSelfAttesterRouter;
-pub use gatekeeper_router::GateKeeperRouter;
-pub use participant_router::ParticipantRouter;
-pub use peer_connector_router::OnboarderRouter;
-pub use vc_requester_router::VcRequesterRouter;
-pub use verifier_router::VerifierRouter;
+use crate::modules::GaiaSelfAttesterModule;
+use axum::extract::State;
+use axum::routing::post;
+use axum::Router;
+use ymir::errors::AppResult;
+
+pub struct GaiaSelfAttesterRouter {
+    gaia: Arc<dyn GaiaSelfAttesterModule>,
+}
+
+impl GaiaSelfAttesterRouter {
+    pub fn new(gaia: Arc<dyn GaiaSelfAttesterModule>) -> Self {
+        GaiaSelfAttesterRouter { gaia }
+    }
+
+    pub fn router(self) -> Router {
+        Router::new()
+            .route("/generate", post(Self::generate))
+            .with_state(self.gaia)
+    }
+
+    async fn generate(State(gaia): State<Arc<dyn GaiaSelfAttesterModule>>) -> AppResult<()> {
+        gaia.generate_gaia_vcs().await
+    }
+}

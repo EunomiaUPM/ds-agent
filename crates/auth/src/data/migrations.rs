@@ -24,7 +24,7 @@ pub fn get_auth_migrations() -> Vec<Box<dyn MigrationTrait>> {
     let mut m = vec![
         // Shared: picks individuales
         Box::new(shared::participant::Migration) as Box<dyn MigrationTrait>,
-        Box::new(shared::issuance::Migration),
+        Box::new(shared::resource_req::Migration),
     ];
     // Received y sent: bloques enteros
     m.extend(received::get_recv_migrations());

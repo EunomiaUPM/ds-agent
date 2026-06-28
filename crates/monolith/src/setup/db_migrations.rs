@@ -28,6 +28,7 @@ use sea_orm::DatabaseConnection;
 use sea_orm_migration::{MigrationTrait, MigratorTrait};
 use transfer_agent::get_transfer_agent_migrations;
 use ymir::errors::{Errors, Outcome};
+use sea_orm::sea_query::{Alias, DynIden, IntoIden};
 
 pub struct CoreProviderMigration;
 
@@ -53,11 +54,15 @@ impl MigratorTrait for CoreProviderMigration {
         migrations.append(&mut keystore_migrations);
         migrations
     }
+
+    fn migration_table_name() -> DynIden {
+        Alias::new("seaql_ds_agent_migrations").into_iden()
+    }
 }
 
 impl CoreProviderMigration {
     pub async fn run(db_connection: &DatabaseConnection) -> Outcome<()> {
-        Self::refresh(db_connection)
+        Self::up(db_connection, None)
             .await
             .map_err(|e| Errors::db("Error migrating data", Some(Box::new(e))))
     }

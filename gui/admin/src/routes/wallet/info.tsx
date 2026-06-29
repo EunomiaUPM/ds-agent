@@ -96,7 +96,10 @@ const WalletInfoPage = () => {
               header: "DID",
               accessorKey: "did",
               cell: (d) => (
-                <span className="font-mono text-[10px] text-muted-foreground break-all">
+                <span
+                  className="font-mono text-[10px] text-muted-foreground block max-w-[260px] truncate"
+                  title={d.did}
+                >
                   {d.did}
                 </span>
               ),

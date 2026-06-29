@@ -42,9 +42,7 @@ impl WellKnownRPCService {
             .get_mate_by_id(mate_id.to_string())
             .await
             .map_err(|e| Errors::missing_resource(mate_id, "Mate not found", Some(Box::new(e))))?;
-        participant
-            .base_url
-            .ok_or_else(|| Errors::missing_resource(mate_id, "Base url not found", None))
+        Ok(participant.base_url)
     }
 }
 

@@ -24,8 +24,9 @@ use ymir::errors::Outcome;
 use crate::config::types::min_known_config::MinKnownConfig;
 use crate::config::types::traits::MinKnownConfigTrait;
 use crate::facades::ssi_auth_facade::SSIAuthFacadeTrait;
-use crate::facades::{Mates, VerifyTokenRequest};
+use crate::facades::VerifyTokenRequest;
 use crate::http_client::HttpClient;
+use ymir::data::entities::shared::participant::Model as Mates;
 
 const SSI_AUTH_FACADE_VERIFICATION_URL: &str = "/api/v1/mates/token";
 

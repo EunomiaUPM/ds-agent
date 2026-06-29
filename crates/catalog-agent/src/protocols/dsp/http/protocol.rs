@@ -33,11 +33,11 @@ use common::config::services::CatalogConfig;
 use common::dsp_common::context_field::ContextField;
 use common::dsp_common::normalizer::dsp_namespace_normalizer;
 use common::facades::ssi_auth_facade::SSIAuthFacadeTrait;
-use common::facades::Mates;
 use reqwest::StatusCode;
 use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
+use ymir::data::entities::shared::participant::Model as Mates;
 
 #[derive(Clone)]
 pub struct DspRouter {

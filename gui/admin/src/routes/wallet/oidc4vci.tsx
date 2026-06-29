@@ -22,7 +22,7 @@ const Oidc4vciPage = () => {
     error,
   } = useMutation({
     mutationFn: (data: { uri: string }) =>
-      customInstance("/wallet/oidc4vci", { method: "POST", data }),
+      customInstance("/wallet/oid4vci", { method: "POST", data }),
     onSuccess: () => toast.success("Credential issued successfully"),
     onError: (err) => {
       const msg = err instanceof Error ? err.message : "Failed to process credential offer";
@@ -43,7 +43,7 @@ const Oidc4vciPage = () => {
 
   return (
     <div className="max-w-2xl mx-auto py-8">
-      <PageSection title="Credential Issuance (OIDC4VCI)">
+      <PageSection title="Credential Issuance (OID4VCI)">
         <div className="bg-white/5 border border-white/10 rounded-2xl p-10 backdrop-blur-md shadow-2xl space-y-8">
           <div className="text-center space-y-2">
             <FileText className="h-12 w-12 text-primary mx-auto mb-2" />

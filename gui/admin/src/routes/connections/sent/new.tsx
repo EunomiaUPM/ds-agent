@@ -1,9 +1,7 @@
-import { AlertCircle, CheckCircle2, Loader2, Search } from "lucide-react";
+import { AlertCircle, ArrowLeft, CheckCircle2, Loader2, Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { formatIdentifier } from "shared/lib/utils";
-import { PageHeader } from "shared/src/components/layout/PageHeader";
-import { PageLayout } from "shared/src/components/layout/PageLayout";
 import { PageSection } from "shared/src/components/layout/PageSection";
 import { Badge } from "shared/src/components/ui/badge";
 import { Button } from "shared/src/components/ui/button";
@@ -29,13 +27,13 @@ import { useFederatedCatalog } from "shared/src/data/useFederatedCatalog";
 import * as z from "zod";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useGetAllParticipants } from "shared/src/data/orval/participants/participants";
 import WizardDialog from "shared/src/components/WizardDialog";
 
 const schema = z.object({
   url: z.string().url("Please enter a valid URL"),
-  slug: z.string().min(1, "Name is required"),
+  nick: z.string().min(1, "Name is required"),
   auto: z.boolean().default(true),
   actions: z.array(z.string()).min(1, "Select at least one action"),
 });
@@ -48,21 +46,21 @@ interface DidService {
 
 type FormValues = z.infer<typeof schema>;
 
-interface NewProviderSearch {
+interface NewConnectionSearch {
   url?: string;
-  slug?: string;
+  nick?: string;
 }
 
 // @ts-ignore
-export const Route = createFileRoute("/providers/new")({
-  component: NewProviderOnboard,
-  validateSearch: (search: Record<string, unknown>): NewProviderSearch => ({
+export const Route = createFileRoute("/connections/sent/new")({
+  component: NewSentConnection,
+  validateSearch: (search: Record<string, unknown>): NewConnectionSearch => ({
     url: typeof search.url === "string" ? search.url : undefined,
-    slug: typeof search.slug === "string" ? search.slug : undefined,
+    nick: typeof search.nick === "string" ? search.nick : undefined,
   }),
 });
 
-function NewProviderOnboard() {
+function NewSentConnection() {
   const navigate = useNavigate();
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -78,14 +76,11 @@ function NewProviderOnboard() {
   const knownProviders = federated.state === "ok" ? federated.agents : [];
 
   const labelURLRef = useRef<HTMLElement | null>(null);
-  // first wizard URL state
   const [wizardURLOpen, setWizardURLOpen] = useState(true);
 
-  //  if (!Array.isArray(localParticipants) || !Array.isArray(knownProviders))
-  //   return undefined;
-  const localParticiapntsIds = new Set(localParticipants?.map((p) => p.participant_id));
+  const localParticipantsIds = new Set(localParticipants?.map((p) => p.participant_id));
   const onboardedWithKnownProvider = knownProviders.find((prov) =>
-    localParticiapntsIds?.has(prov.participant_id),
+    localParticipantsIds?.has(prov.participant_id),
   );
 
   const search = Route.useSearch();
@@ -94,7 +89,7 @@ function NewProviderOnboard() {
     resolver: zodResolver(schema) as any,
     defaultValues: {
       url: search.url ?? "",
-      slug: search.slug ?? "",
+      nick: search.nick ?? "",
       auto: true,
       actions: ["talk"],
     },
@@ -130,10 +125,10 @@ function NewProviderOnboard() {
   useEffect(() => {
     if (didPrefill || !search.url) return;
     form.setValue("url", search.url);
-    if (search.slug) form.setValue("slug", search.slug);
+    if (search.nick) form.setValue("nick", search.nick);
     handleDiscovery(search.url);
     setDidPrefill(true);
-  }, [search.url, search.slug, didPrefill]);
+  }, [search.url, search.nick, didPrefill]);
 
   const onSubmit = async (values: FormValues) => {
     if (!discoveredInfo) return;
@@ -143,23 +138,24 @@ function NewProviderOnboard() {
       const authService = discoveredInfo.services.find((s) => s.type === "AuthorizationServer");
       const targetUrl = authService?.serviceEndpoint || values.url;
 
-      await customInstance(`/onboard/provider`, {
+      await customInstance(`/peer-connection/connect`, {
         method: "POST",
         data: {
-          ...values,
           id: discoveredInfo.id,
+          nick: values.nick,
           url: targetUrl,
+          actions: values.actions,
+          auto: values.auto,
         },
       });
 
-      // mark that the user just authenticated/was onboarded via the new-provider flow
       try {
         sessionStorage.setItem("JustAuthenticatedProvider", "true");
       } catch (e) {
         /* ignore if unavailable */
       }
 
-      (navigate as any)({ to: "/providers" });
+      (navigate as any)({ to: "/connections/sent" });
     } catch (err) {
       console.error(err);
     } finally {
@@ -172,8 +168,15 @@ function NewProviderOnboard() {
     : "";
 
   return (
-    <PageLayout>
-      <PageHeader title="New Connection" />
+    <>
+      <div className="flex items-center justify-between mb-4">
+        <Link to="/connections/sent">
+          <Button variant="ghost" size="sm">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Sent
+          </Button>
+        </Link>
+      </div>
       {!onboardedWithKnownProvider && (
         <WizardDialog
           open={wizardURLOpen}
@@ -224,8 +227,8 @@ function NewProviderOnboard() {
                                   const val = e.target.value;
                                   const known = knownProviders.find((a) => a.base_url === val);
                                   if (known) {
-                                    if (known.participant_slug) {
-                                      form.setValue("slug", known.participant_slug);
+                                    if (known.participant_nick) {
+                                      form.setValue("nick", known.participant_nick);
                                     }
                                     handleDiscovery(val);
                                   }
@@ -235,7 +238,7 @@ function NewProviderOnboard() {
                             <datalist id="known-providers">
                               {knownProviders.map((provider) => (
                                 <option key={provider.participant_id} value={provider.base_url}>
-                                  {provider.participant_slug || provider.participant_id}
+                                  {provider.participant_nick || provider.participant_id}
                                 </option>
                               ))}
                             </datalist>
@@ -264,10 +267,10 @@ function NewProviderOnboard() {
 
                     <FormField
                       control={form.control as any}
-                      name="slug"
+                      name="nick"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Friendly Name (Slug)</FormLabel>
+                          <FormLabel>Friendly Name (Nick)</FormLabel>
                           <FormControl>
                             <Input placeholder="Acme Provider" {...field} />
                           </FormControl>
@@ -298,62 +301,6 @@ function NewProviderOnboard() {
                         </FormItem>
                       )}
                     />
-
-                    {/* 
-                    <FormField
-                      control={form.control as any}
-                      name="actions"
-                      render={() => (
-                        <FormItem>
-                          <div className="mb-4">
-                            <FormLabel>Requested Actions</FormLabel>
-                            <FormDescription>
-                              Select the actions you want to perform with this provider.
-                            </FormDescription>
-                          </div>
-                          <div className="flex flex-wrap gap-4">
-                            {["talk", "pull", "push"].map((action) => (
-                              <FormField
-                                key={action}
-                                control={form.control as any}
-                                name="actions"
-                                render={({ field }: { field: any }) => {
-                                  return (
-                                    <FormItem
-                                      key={action}
-                                      className="flex flex-row items-start space-x-3 space-y-0"
-                                    >
-                                      <FormControl>
-                                        <input
-                                          type="checkbox"
-                                          checked={field.value?.includes(action)}
-                                          onChange={(e) => {
-                                            const checked = e.target.checked;
-                                            return checked
-                                              ? field.onChange([...field.value, action])
-                                              : field.onChange(
-                                                  field.value?.filter(
-                                                    (value: string) => value !== action
-                                                  )
-                                                );
-                                          }}
-                                          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                                        />
-                                      </FormControl>
-                                      <FormLabel className="font-normal capitalize">
-                                        {action}
-                                      </FormLabel>
-                                    </FormItem>
-                                  );
-                                }}
-                              />
-                            ))}
-                          </div>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    */}
 
                     <Button
                       type="submit"
@@ -433,6 +380,6 @@ function NewProviderOnboard() {
           </div>
         </div>
       </PageSection>
-    </PageLayout>
+    </>
   );
 }

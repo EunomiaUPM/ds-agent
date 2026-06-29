@@ -22,10 +22,11 @@ use common::facades::VerifyTokenRequest;
 use json_value_merge::Merge;
 use ymir::data::entities::shared::participant::{Model, Plan};
 use ymir::errors::Outcome;
+use ymir::services::HasWallet;
 use ymir::types::participants::ParticipantType;
 
 #[async_trait]
-pub trait ParticipantModule: HasRepo + Send + Sync + 'static {
+pub trait ParticipantModule: HasWallet + HasRepo + Send + Sync + 'static {
     async fn get_all(&self, query_type: ParticipantType, exclude: bool) -> Outcome<Vec<Model>> {
         let mates = self.repo().participant().filter_by_type(query_type).await?;
         let filtered_in_mates = mates
@@ -62,7 +63,15 @@ pub trait ParticipantModule: HasRepo + Send + Sync + 'static {
         self.repo().participant().update(mate).await
     }
 
-    async fn create_participant(&self, payload: &Plan) -> Outcome<Model> {
-        self.repo().participant().create(payload.clone()).await
+    async fn create_participant(&self, payload: Plan) -> Outcome<Model> {
+        self.repo().participant().create(payload).await
+    }
+
+    async fn update_myself(&self) -> Outcome<Model> {
+        let mut model = self.repo().participant().get_me().await?;
+        let lock = self.wallet().get_identity();
+        let identity = lock.read().await;
+        model.participant_id = identity.did().id().to_string();
+        self.repo().participant().update(model).await
     }
 }

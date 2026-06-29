@@ -53,7 +53,7 @@ function RouteComponent() {
     ? participants.data.find((p) => p.is_me && p.participant_type === "Agent")
     : undefined;
 
-  const myAgentSlug = myAgent?.participant_slug;
+  const myAgentSlug = myAgent?.participant_nick;
 
   // pick preferred data service: marked main or first available
   const mainDs = (dataservices || []).find((ds) => ds.dspaceMainDataService) ?? dataservices[0];

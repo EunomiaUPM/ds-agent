@@ -19,8 +19,11 @@ use crate::services::{HasGateKeeper, HasRepo};
 use async_trait::async_trait;
 use axum::body::Bytes;
 use axum::http::HeaderMap;
+use serde_json::{json, Value};
+use ymir::data::entities::received::grant;
 use ymir::errors::Outcome;
 use ymir::services::HasVerifier;
+use ymir::types::gnap::grant_request::GrantKind;
 use ymir::types::gnap::grant_response::{ErrorResponse, GrantResponse};
 use ymir::types::gnap::GrantStatus;
 use ymir::utils::{create_opaque_token, errors_to_error_code, require_field};
@@ -50,6 +53,31 @@ pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync 
                 let code = errors_to_error_code(&e);
                 GrantResponse::Error(ErrorResponse { error: code })
             })
+    }
+
+    // =================================== GETTERS FOR FRONTEND ====================================
+    async fn get_all(&self) -> Outcome<Vec<grant::Model>> {
+        self.repo()
+            .recv_grant()
+            .filter_by_type(GrantKind::AccessToken)
+            .await
+    }
+
+    async fn get_by_id(&self, id: String) -> Outcome<grant::Model> {
+        self.repo().recv_grant().get_by_id(&id).await
+    }
+
+    async fn get_by_id_with_details(&self, id: String) -> Outcome<Value> {
+        let grant = self.repo().recv_grant().get_by_id(&id).await?;
+        let resource_req = self.repo().resource_req().get_by_id(&id).await?;
+        let interaction = self.repo().recv_interaction().get_by_id(&id).await.ok();
+        let verification = self.repo().recv_verification().get_by_id(&id).await.ok();
+        Ok(json!({
+            "grant": grant,
+            "resource_req": resource_req,
+            "interaction": interaction,
+            "verification": verification,
+        }))
     }
 
     // ========================================= INTERNALS =========================================

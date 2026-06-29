@@ -15,8 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::facades::Mates;
 use async_trait::async_trait;
+use ymir::data::entities::shared::participant::Model as Mates;
 use ymir::errors::Outcome;
 
 pub mod mates_facade;

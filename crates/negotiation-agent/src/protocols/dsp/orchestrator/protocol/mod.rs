@@ -35,7 +35,7 @@ use crate::protocols::dsp::protocol_types::{
     NegotiationRequestInitMessageDto, NegotiationRequestMessageDto,
     NegotiationTerminationMessageDto, NegotiationVerificationMessageDto,
 };
-use common::facades::Mates;
+use ymir::data::entities::shared::participant::Model as Mates;
 use ymir::errors::Outcome;
 
 #[async_trait::async_trait]

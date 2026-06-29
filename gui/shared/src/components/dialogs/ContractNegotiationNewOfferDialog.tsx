@@ -182,7 +182,7 @@ export const ContractNegotiationNewOfferDialog = ({
                     key={participant.participant_id}
                     value={participant.participant_id || ""}
                   >
-                    {participant.participant_slug || participant.participant_id} -{" "}
+                    {participant.participant_nick || participant.participant_id} -{" "}
                     {participant.base_url}
                   </SelectItem>
                 ))}

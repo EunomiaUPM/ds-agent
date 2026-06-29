@@ -19,7 +19,8 @@ import { Badge, BadgeRole } from "shared/src/components/ui/badge";
 import { buttonVariants } from "shared/src/components/ui/button";
 
 // Icons
-import { ArrowRight, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { SortableHeader, SortConfig } from "shared/src/components/SortableHeader";
 import { PageLayout } from "shared/src/components/layout/PageLayout";
 import { PageHeader } from "shared/src/components/layout/PageHeader";
 import { PageSection } from "shared/src/components/layout/PageSection";
@@ -49,9 +50,7 @@ export const Route = createFileRoute("/participants/")({
 
 function RouteComponent() {
   const { data: participants, isLoading, isError, error } = useGetAllParticipants();
-  const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(
-    null,
-  );
+  const [sortConfig, setSortConfig] = useState<SortConfig<string> | null>(null);
 
   const rawParticipants = (participants?.data || []) as Participant[];
 
@@ -88,16 +87,6 @@ function RouteComponent() {
       direction = "desc";
     }
     setSortConfig({ key, direction });
-  };
-
-  const getSortIcon = (key: string) => {
-    if (!sortConfig || sortConfig.key !== key)
-      return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />;
-    return sortConfig.direction === "asc" ? (
-      <ArrowUp className="ml-2 h-4 w-4" />
-    ) : (
-      <ArrowDown className="ml-2 h-4 w-4" />
-    );
   };
 
   if (isLoading) {
@@ -143,7 +132,7 @@ function RouteComponent() {
                     My Local Agent
                   </p>
                   <CardTitle className="text-2xl">
-                    {myAgent.participant_slug || "Unnamed Agent"}
+                    {myAgent.participant_nick || "Unnamed Agent"}
                   </CardTitle>
                 </div>
                 <Badge variant="status" state="active">
@@ -193,27 +182,25 @@ function RouteComponent() {
           keyExtractor={(p) => p.participant_id!}
           columns={[
             {
-              header: "Participant",
-              // (
-              //   <Button
-              //     variant="ghost"
-              //     onClick={() => handleSort("participant_slug")}
-              //     className="p-0 h-auto font-semibold"
-              //   >
-              //     Name {getSortIcon("participant_slug")}
-              //   </Button>
-              // ),
-              accessorKey: "participant_slug",
+              header: (
+                <SortableHeader
+                  label="Participant"
+                  sortKey="participant_nick"
+                  sortConfig={sortConfig}
+                  onSort={handleSort}
+                />
+              ),
+              accessorKey: "participant_nick",
               cell: (p) => (
                 <div className="flex items-center gap-3">
                   <div
                     className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs ${p.is_me ? "bg-brand-sky text-white" : "bg-background-200 text-muted-foreground"}`}
                   >
-                    {(p.participant_slug || "U").charAt(0).toUpperCase()}
+                    {(p.participant_nick || "U").charAt(0).toUpperCase()}
                   </div>
                   <div className="flex items-baseline gap-2">
                     <span className="font-medium capitalize">
-                      {p.participant_slug || "Unknown"}
+                      {p.participant_nick || "Unknown"}
                     </span>
                     {p.is_me && <Badge size="sm">IT'S ME</Badge>}
                   </div>
@@ -221,16 +208,14 @@ function RouteComponent() {
               ),
             },
             {
-              header: "Participant Type",
-              // (
-              //   <Button
-              //     variant="ghost"
-              //     onClick={() => handleSort("participant_type")}
-              //     className="p-0 h-auto font-semibold"
-              //   >
-              //     Type {getSortIcon("participant_type")}
-              //   </Button>
-              // ),
+              header: (
+                <SortableHeader
+                  label="Participant Type"
+                  sortKey="participant_type"
+                  sortConfig={sortConfig}
+                  onSort={handleSort}
+                />
+              ),
               accessorKey: "participant_type",
               cell: (p) => (
                 <Badge variant="role" dsrole={p.participant_type as BadgeRole}>
@@ -239,32 +224,28 @@ function RouteComponent() {
               ),
             },
             {
-              header: "Participant DID",
-              // (
-              //   <Button
-              //     variant="ghost"
-              //     onClick={() => handleSort("participant_id")}
-              //     className="p-0 h-auto font-semibold"
-              //   >
-              //     DID / ID {getSortIcon("participant_id")}
-              //   </Button>
-              // ),
+              header: (
+                <SortableHeader
+                  label="Participant DID"
+                  sortKey="participant_id"
+                  sortConfig={sortConfig}
+                  onSort={handleSort}
+                />
+              ),
               accessorKey: "participant_id",
               cell: (p) => (
                 <Badge variant="info">{formatIdentifier(p.participant_id, 0, true, 40)}</Badge>
               ),
             },
             {
-              header: "Last interaction",
-              // (
-              //   <Button
-              //     variant="ghost"
-              //     onClick={() => handleSort("last_interaction")}
-              //     className="p-0 h-auto font-semibold"
-              //   >
-              //     Last Active {getSortIcon("last_interaction")}
-              //   </Button>
-              // ),
+              header: (
+                <SortableHeader
+                  label="Last interaction"
+                  sortKey="last_interaction"
+                  sortConfig={sortConfig}
+                  onSort={handleSort}
+                />
+              ),
               accessorKey: "last_interaction",
               cell: (p: Participant) => (
                 <p>

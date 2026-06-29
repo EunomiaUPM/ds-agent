@@ -21,9 +21,11 @@ use axum::extract::rejection::JsonRejection;
 use axum::extract::{Path, Query, State};
 use axum::routing::{get, post};
 use axum::{Json, Router};
+use serde_json::Value;
 use ymir::data::entities::sent::grant::Model;
 use ymir::errors::AppResult;
 use ymir::types::gnap::CallbackBody;
+use ymir::types::wallet::OidcUri;
 use ymir::utils::extract_payload;
 
 use crate::modules::VcRequesterModule;
@@ -43,8 +45,13 @@ impl VcRequesterRouter {
             .route("/beg", post(Self::beg))
             .route("/all", get(Self::get_all))
             .route("/{id}", get(Self::get_one))
-            .route("/callback/{id}", get(Self::get_callback))
-            .route("/callback/{id}", post(Self::post_callback))
+            .route("/{id}/details", get(Self::get_one_with_details))
+            .route(
+                "/callback/{id}",
+                get(Self::get_callback).post(Self::post_callback),
+            )
+            .route("/oid4vci/{id}", post(Self::manage_oid4vci))
+            .route("/oid4vp/{id}", post(Self::manage_oid4vp))
             .with_state(self.requester)
     }
 
@@ -68,6 +75,14 @@ impl VcRequesterRouter {
     ) -> AppResult<Json<Model>> {
         Ok(Json(requester.get_by_id(id).await?))
     }
+
+    async fn get_one_with_details(
+        State(requester): State<Arc<dyn VcRequesterModule>>,
+        Path(id): Path<String>,
+    ) -> AppResult<Json<Value>> {
+        Ok(Json(requester.get_by_id_with_details(id).await?))
+    }
+
     async fn get_callback(
         State(requester): State<Arc<dyn VcRequesterModule>>,
         Path(id): Path<String>,
@@ -83,5 +98,23 @@ impl VcRequesterRouter {
     ) -> AppResult<()> {
         let payload = extract_payload(payload)?;
         requester.manage_interaction_finish(id, payload).await
+    }
+
+    async fn manage_oid4vci(
+        State(requester): State<Arc<dyn VcRequesterModule>>,
+        Path(id): Path<String>,
+        payload: Result<Json<OidcUri>, JsonRejection>,
+    ) -> AppResult<()> {
+        let payload = extract_payload(payload)?;
+        requester.process_oid4vci(id, payload).await
+    }
+
+    async fn manage_oid4vp(
+        State(requester): State<Arc<dyn VcRequesterModule>>,
+        Path(id): Path<String>,
+        payload: Result<Json<OidcUri>, JsonRejection>,
+    ) -> AppResult<()> {
+        let payload = extract_payload(payload)?;
+        requester.process_oid4vp(id, payload).await
     }
 }

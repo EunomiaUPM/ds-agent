@@ -1,92 +1,83 @@
-import {
-  AlertCircle,
-  Check,
-  CheckCircle2,
-  Clock,
-  Copy,
-  Eye,
-  EyeOff,
-  ExternalLink,
-  FileJson,
-  Info,
-  Key,
-  Loader2,
-  Shield,
-} from "lucide-react";
-import { useState } from "react";
-import QRCode from "react-qr-code";
-import { PageHeader } from "shared/src/components/layout/PageHeader";
-import { PageLayout } from "shared/src/components/layout/PageLayout";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { customInstance } from "shared/src/data/orval-mutator";
 import { PageSection } from "shared/src/components/layout/PageSection";
-import { Badge } from "shared/src/components/ui/badge";
-import { Button } from "shared/src/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
+  CardDescription,
 } from "shared/src/components/ui/card";
+import { Badge } from "shared/src/components/ui/badge";
+import { Button } from "shared/src/components/ui/button";
+import * as z from "zod";
+import { useState } from "react";
 import { FormatDate } from "shared/src/components/ui/format-date";
-import { customInstance } from "shared/src/data/orval-mutator";
-import { formatUrn, getFriendlyVCType } from "shared/src/lib/utils";
-import { z } from "zod";
+import {
+  AlertCircle,
+  ArrowLeft,
+  CheckCircle2,
+  Clock,
+  Eye,
+  EyeOff,
+  FileJson,
+  Inbox,
+  Key,
+  Layers,
+} from "lucide-react";
+import { getFriendlyVCType } from "shared/src/lib/utils";
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
-
-const searchSchema = z.object({
-  requestId: z.string().optional(),
-});
-
-interface SentGrant {
+interface RecvGrant {
   id: string;
-  participant_id: string;
   participant_nick: string;
-  grant_endpoint: string;
   kind: string;
-  status: string;
   token?: string | null;
-  /**
-   * Each entry is the string id of a VcTypeConfig, e.g. "gx_VatId_jwt_vc_json".
-   * Comes from the backend's `impl_serde_via_str!(VcTypeConfig)`.
-   */
   vc_type_config?: string[] | null;
-  vc_uri?: string | null;
-  as_assigned_id?: string | null;
-  auto: boolean;
+  status: string;
   created_at: string;
   ended_at?: string | null;
 }
 
-interface SentInteraction {
+interface RecvInteraction {
   id: string;
   start: any[];
   method: string;
   callback_uri: string;
+  key_source?: any;
   client_nonce: string;
   hash_method: any;
   hints?: string | null;
-  continue_endpoint?: string | null;
-  continue_token?: string | null;
+  continue_endpoint: string;
+  continue_id: string;
+  continue_token: string;
   continue_wait?: number | null;
-  as_nonce?: string | null;
-  oidc_vp_uri?: string | null;
-  interact_ref?: string | null;
-  hash?: string | null;
+  as_nonce: string;
+  interact_ref: string;
+  hash: string;
 }
 
-interface SentVerification {
+interface ResourceReq {
   id: string;
-  uri: string;
-  scheme: string;
-  response_type: string;
-  client_id: string;
-  response_mode: string;
-  pd_uri: string;
-  client_id_scheme: string;
+  type: any;
+  actions: any[];
+  locations?: string[] | null;
+  datatypes?: string[] | null;
+  identifier?: string | null;
+  privileges?: string[] | null;
+  label?: string | null;
+  flags?: any[] | null;
+}
+
+interface RecvVerification {
+  id: string;
+  state: string;
   nonce: string;
-  response_uri: string;
+  vc_type: any[];
+  audience: string;
+  holder?: string | null;
+  vpt?: string | null;
+  vcs: string[];
   status: string;
   created_at: string;
   ended_at?: string | null;
@@ -95,108 +86,96 @@ interface SentVerification {
 interface DetailsResponse {
   status: number;
   data: {
-    grant: SentGrant;
-    interaction: SentInteraction | null;
-    verification: SentVerification | null;
+    grant: RecvGrant;
+    resource_req: ResourceReq | null;
+    interaction: RecvInteraction | null;
+    verification: RecvVerification | null;
   };
 }
 
-
-/**
- * Route for viewing details of a specific VC request.
- * Path: /authority/request-details
- */
-// @ts-ignore
-export const Route = createFileRoute("/authority/request-details")({
-  validateSearch: (search) => searchSchema.parse(search),
-  component: RequestDetailsPage,
+const searchSchema = z.object({
+  requestId: z.string(),
 });
 
-function RequestDetailsPage() {
-  const { requestId } = Route.useSearch();
-  const queryClient = useQueryClient();
-  const [isProcessing, setIsProcessing] = useState(false);
+// @ts-ignore
+export const Route = createFileRoute("/connections/received/request-details")({
+  validateSearch: (search) => searchSchema.parse(search),
+  component: ReceivedRequestDetails,
+});
 
-  const queryKey = ["vc-request-details", requestId];
+function ReceivedRequestDetails() {
+  const { requestId } = Route.useSearch();
+
   const { data: response, isLoading } = useQuery({
-    queryKey,
+    queryKey: ["gate-received-details", requestId],
     queryFn: () =>
-      customInstance<DetailsResponse>(`/vc-request/${encodeURIComponent(requestId!)}/details`, {
-        method: "GET",
-      }),
+      customInstance<DetailsResponse>(
+        `/gate/request/${encodeURIComponent(requestId)}/details`,
+        { method: "GET" },
+      ),
     enabled: !!requestId,
   });
 
   const details = response?.status === 200 ? response.data : null;
   const grant = details?.grant ?? null;
+  const resourceReq = details?.resource_req ?? null;
   const interaction = details?.interaction ?? null;
   const verification = details?.verification ?? null;
-
   const timelineData = grant ? getTimelineData(grant) : null;
-
-  const handleAction = async (path: string, uri: string) => {
-    if (!grant) return;
-    setIsProcessing(true);
-    try {
-      await customInstance(`${path}/${encodeURIComponent(grant.id)}`, {
-        method: "POST",
-        data: { uri },
-      });
-      await queryClient.invalidateQueries({ queryKey });
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
 
   if (isLoading) {
     return (
-      <PageLayout>
-        <PageHeader title="Loading request..." />
-        <PageSection>
-          <div className="flex justify-center py-20">
-            <Badge variant="infoLighter" className="animate-pulse">
-              Loading details...
-            </Badge>
-          </div>
-        </PageSection>
-      </PageLayout>
+      <PageSection>
+        <div className="flex justify-center py-20">
+          <Badge variant="infoLighter" className="animate-pulse">
+            Loading details...
+          </Badge>
+        </div>
+      </PageSection>
     );
   }
 
   if (!grant) {
     return (
-      <PageLayout>
-        <PageHeader title="Request Not Found" />
-        <PageSection>
-          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-            <AlertCircle className="h-12 w-12 mb-4 opacity-20" />
-            <p>We couldn't find a VC request with the ID: {requestId}</p>
-          </div>
-        </PageSection>
-      </PageLayout>
+      <PageSection>
+        <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+          <AlertCircle className="h-12 w-12 mb-4 opacity-20" />
+          <p>We couldn't find an incoming request with the ID: {requestId}</p>
+          <Link to="/connections/received" className="mt-4">
+            <Button variant="outline">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Received
+            </Button>
+          </Link>
+        </div>
+      </PageSection>
     );
   }
 
   return (
-    <PageLayout>
-      <PageHeader title={`Request: ${grant.participant_nick || "Authority"}`}>
-        <div className="text-xs text-muted-foreground font-mono mt-1">ID: {grant.id}</div>
-      </PageHeader>
+    <>
+      <div className="flex items-center justify-between mb-4">
+        <Link to="/connections/received">
+          <Button variant="ghost" size="sm">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Received
+          </Button>
+        </Link>
+        <div className="text-xs text-muted-foreground font-mono">ID: {grant.id}</div>
+      </div>
 
-      <PageSection>
+      <PageSection title={`Incoming: ${grant.participant_nick || "Peer"}`}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* ===== Grant ============================================================= */}
           <Card className="md:col-span-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Info className="h-5 w-5 text-primary" />
+                <Inbox className="h-5 w-5 text-primary" />
                 Grant
               </CardTitle>
-              <CardDescription>The credential request sent to the authority.</CardDescription>
+              <CardDescription>The access-token request a peer sent to us.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-4">
                 <DetailItem label="Status">
                   <Badge variant={"status"} state={grant.status}>
@@ -208,7 +187,11 @@ function RequestDetailsPage() {
                     {grant.kind}
                   </Badge>
                 </DetailItem>
-                <DetailItem label="Credential Types">
+                <DetailItem label="Peer Nick">{grant.participant_nick || "-"}</DetailItem>
+                <DetailItem label="Issued Token">
+                  <SecretField value={grant.token} />
+                </DetailItem>
+                <DetailItem label="VC Types Requested">
                   {(grant.vc_type_config ?? []).length === 0 ? (
                     <span className="text-xs text-muted-foreground">—</span>
                   ) : (
@@ -221,71 +204,20 @@ function RequestDetailsPage() {
                     </div>
                   )}
                 </DetailItem>
-                <DetailItem label="Auto-claim">
-                  <Badge variant={grant.auto ? "default" : "info"} className="text-[10px]">
-                    {grant.auto ? "ON" : "OFF"}
-                  </Badge>
-                </DetailItem>
-                <DetailItem label="Authority DID">
-                  <span className="font-mono text-xs break-all">
-                    {formatUrn(grant.participant_id || "")}
-                  </span>
-                </DetailItem>
-                <DetailItem label="Authority Nick">{grant.participant_nick || "-"}</DetailItem>
-                <DetailItem label="Grant Endpoint">
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground break-all">
-                    {grant.grant_endpoint || "-"}
-                    {grant.grant_endpoint && <ExternalLink className="h-3 w-3" />}
-                  </div>
-                </DetailItem>
-                <DetailItem label="AS Assigned ID">
-                  <span className="font-mono text-xs">{grant.as_assigned_id || "-"}</span>
-                </DetailItem>
-                <DetailItem label="Created At">
+                <DetailItem label="Received At">
                   {grant.created_at ? <FormatDate date={grant.created_at} /> : "-"}
                 </DetailItem>
                 <DetailItem label="Ended At">
                   {grant.ended_at ? <FormatDate date={grant.ended_at} /> : "-"}
                 </DetailItem>
               </div>
-
-              {grant.vc_uri && grant.status?.toLowerCase() === "approved" && (
-                <div className="pt-4 border-t space-y-6">
-                  <DetailItem label="VC URI (Claiming)" labelClassName="text-green-500">
-                    <div className="mt-2 flex flex-col sm:flex-row gap-6 items-start">
-                      <div className="p-3 bg-white rounded-lg shadow-sm border border-stroke flex-shrink-0">
-                        <QRCode value={grant.vc_uri} size={120} />
-                      </div>
-                      <div className="flex-1 w-full space-y-3">
-                        <p className="text-xs text-muted-foreground italic">
-                          Scan this QR to claim your Verifiable Credential directly in your wallet.
-                        </p>
-                        <UriDisplay uri={grant.vc_uri} />
-                        <Button
-                          className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white"
-                          size="sm"
-                          onClick={() => handleAction("/vc-request/oid4vci", grant.vc_uri!)}
-                          disabled={isProcessing}
-                        >
-                          {isProcessing ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          ) : (
-                            <Shield className="mr-2 h-4 w-4" />
-                          )}
-                          Claim in Agent
-                        </Button>
-                      </div>
-                    </div>
-                  </DetailItem>
-                </div>
-              )}
             </CardContent>
           </Card>
 
-          {/* ===== Timeline ============================================================ */}
+          {/* ===== Timeline =========================================================== */}
           <Card>
             <CardHeader>
-              <CardTitle>Request Timeline</CardTitle>
+              <CardTitle>Timeline</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               {timelineData && timelineData.pastEvents.length > 0 && (
@@ -326,6 +258,9 @@ function RequestDetailsPage() {
           </Card>
         </div>
 
+        {/* ===== Resource Request =================================================== */}
+        <ResourceReqCard resourceReq={resourceReq} />
+
         {/* ===== Interaction ========================================================= */}
         {interaction ? (
           <Card className="mt-6">
@@ -334,7 +269,7 @@ function RequestDetailsPage() {
                 <Key className="h-5 w-5 text-primary" />
                 Interaction
               </CardTitle>
-              <CardDescription>GNAP interaction handshake associated to this grant.</CardDescription>
+              <CardDescription>GNAP interaction handshake initiated by the peer.</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-4">
@@ -357,7 +292,7 @@ function RequestDetailsPage() {
                 </DetailItem>
                 <DetailItem label="Continue Endpoint">
                   <span className="font-mono text-[10px] break-all">
-                    {interaction.continue_endpoint || "—"}
+                    {interaction.continue_endpoint}
                   </span>
                 </DetailItem>
                 <DetailItem label="Hash Method">
@@ -373,10 +308,8 @@ function RequestDetailsPage() {
                 <DetailItem label="Interact Ref">
                   <SecretField value={interaction.interact_ref} />
                 </DetailItem>
-                <DetailItem label="OIDC4VP URI">
-                  <span className="font-mono text-[10px] break-all">
-                    {interaction.oidc_vp_uri || "—"}
-                  </span>
+                <DetailItem label="AS Nonce">
+                  <SecretField value={interaction.as_nonce} />
                 </DetailItem>
               </div>
             </CardContent>
@@ -389,7 +322,7 @@ function RequestDetailsPage() {
                 Interaction
               </CardTitle>
               <CardDescription>
-                Not required — the authority approved this grant directly without a GNAP handshake.
+                Not required — this grant was approved directly without a GNAP handshake.
               </CardDescription>
             </CardHeader>
           </Card>
@@ -401,41 +334,50 @@ function RequestDetailsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CheckCircle2 className="h-5 w-5 text-amber-500" />
-                Verification (OIDC4VP)
+                Verification (OID4VP)
               </CardTitle>
               <CardDescription>
-                The authority requested a presentation before issuing the credential.
+                We requested a presentation from the peer before issuing the token.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-4">
                 <DetailItem label="Status">
                   <Badge variant={"status"} state={verification.status}>
                     {verification.status}
                   </Badge>
                 </DetailItem>
-                <DetailItem label="Response Type">
-                  <span className="font-mono text-[10px]">{verification.response_type}</span>
-                </DetailItem>
-                <DetailItem label="Client ID">
-                  <span className="font-mono text-[10px] break-all">{verification.client_id}</span>
-                </DetailItem>
-                <DetailItem label="Client ID Scheme">
-                  <span className="font-mono text-[10px]">{verification.client_id_scheme}</span>
-                </DetailItem>
-                <DetailItem label="Response Mode">
-                  <span className="font-mono text-[10px]">{verification.response_mode}</span>
-                </DetailItem>
-                <DetailItem label="Response URI">
-                  <span className="font-mono text-[10px] break-all">
-                    {verification.response_uri}
-                  </span>
-                </DetailItem>
-                <DetailItem label="PD URI">
-                  <span className="font-mono text-[10px] break-all">{verification.pd_uri}</span>
+                <DetailItem label="State">
+                  <SecretField value={verification.state} />
                 </DetailItem>
                 <DetailItem label="Nonce">
                   <SecretField value={verification.nonce} />
+                </DetailItem>
+                <DetailItem label="Audience">
+                  <span className="font-mono text-[10px] break-all">{verification.audience}</span>
+                </DetailItem>
+                <DetailItem label="Holder">
+                  {verification.holder ? (
+                    <span className="font-mono text-[10px] break-all">{verification.holder}</span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
+                </DetailItem>
+                <DetailItem label="VC Types">
+                  {(verification.vc_type ?? []).length === 0 ? (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  ) : (
+                    <div className="flex flex-wrap gap-1">
+                      {verification.vc_type.map((t, idx) => (
+                        <Badge key={idx} variant="role">
+                          {typeof t === "string" ? t : Object.keys(t ?? {})[0] ?? "?"}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </DetailItem>
+                <DetailItem label="Presented VCs count">
+                  <span className="font-mono text-xs">{verification.vcs?.length ?? 0}</span>
                 </DetailItem>
                 <DetailItem label="Created At">
                   <FormatDate date={verification.created_at} />
@@ -444,43 +386,6 @@ function RequestDetailsPage() {
                   {verification.ended_at ? <FormatDate date={verification.ended_at} /> : "—"}
                 </DetailItem>
               </div>
-
-              {verification.uri &&
-                verification.status?.toLowerCase() !== "verified" &&
-                verification.status?.toLowerCase() !== "failed" && (
-                <div className="pt-4 border-t">
-                  <DetailItem
-                    label="Verification URI (Authentication)"
-                    labelClassName="text-amber-500"
-                  >
-                    <div className="mt-2 flex flex-col sm:flex-row gap-6 items-start">
-                      <div className="p-3 bg-white rounded-lg shadow-sm border border-stroke flex-shrink-0">
-                        <QRCode value={verification.uri} size={120} />
-                      </div>
-                      <div className="flex-1 w-full space-y-3">
-                        <p className="text-xs text-muted-foreground italic">
-                          Use this QR if you need to authenticate with the authority before
-                          receiving the VC.
-                        </p>
-                        <UriDisplay uri={verification.uri} />
-                        <Button
-                          className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white"
-                          size="sm"
-                          onClick={() => handleAction("/vc-request/oid4vp", verification.uri)}
-                          disabled={isProcessing}
-                        >
-                          {isProcessing ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          ) : (
-                            <Key className="mr-2 h-4 w-4" />
-                          )}
-                          Present in Agent
-                        </Button>
-                      </div>
-                    </div>
-                  </DetailItem>
-                </div>
-              )}
             </CardContent>
           </Card>
         ) : interaction ? (
@@ -488,33 +393,29 @@ function RequestDetailsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-muted-foreground">
                 <CheckCircle2 className="h-5 w-5" />
-                Verification (OIDC4VP)
+                Verification (OID4VP)
               </CardTitle>
               <CardDescription>
-                Not required — the authority didn't ask for a presentation.
+                Not required — we didn't ask the peer for a presentation.
               </CardDescription>
             </CardHeader>
           </Card>
         ) : null}
 
-        {/* ===== Raw JSON (debugging) =============================================== */}
         <RawDetails details={details} />
       </PageSection>
-    </PageLayout>
+    </>
   );
 }
 
-function getTimelineData(req: SentGrant) {
+function getTimelineData(req: RecvGrant) {
   const status = req.status?.toLowerCase() || "";
   const pastEvents: { id: string; title: string; date?: string | null }[] = [
-    { id: "created", title: "Request Created", date: req.created_at },
+    { id: "received", title: "Request Received", date: req.created_at },
   ];
 
   if (status === "pending") {
     pastEvents.push({ id: "processing", title: "Processing" });
-  } else if (status === "rejected") {
-    pastEvents.push({ id: "processing", title: "Processing" });
-    pastEvents.push({ id: "pending", title: "Pending" });
   } else if (status === "approved") {
     pastEvents.push({ id: "processing", title: "Processing" });
     pastEvents.push({ id: "pending", title: "Pending" });
@@ -522,27 +423,27 @@ function getTimelineData(req: SentGrant) {
     pastEvents.push({ id: "processing", title: "Processing" });
     pastEvents.push({ id: "pending", title: "Pending" });
     pastEvents.push({ id: "approved", title: "Approved" });
+  } else if (status === "rejected") {
+    pastEvents.push({ id: "processing", title: "Processing" });
+    pastEvents.push({ id: "pending", title: "Pending" });
   }
 
   let instruction = "";
   switch (status) {
     case "processing":
-      instruction = "The Authorization Server (AS) has not yet evaluated the request.";
+      instruction = "We have received the request and are evaluating it.";
       break;
     case "pending":
-      instruction =
-        "Waiting for your authentication. Scan the QR in the Verification section to authenticate with the authority.";
-      break;
-    case "rejected":
-      instruction = "Your request has been rejected. No further action can be taken.";
+      instruction = "Waiting for the peer to present credentials before issuing the token.";
       break;
     case "approved":
-      instruction =
-        "The request has been approved. You can now claim your Verifiable Credential.";
+      instruction = "We approved the request. The peer has the access token.";
       break;
     case "finalized":
-      instruction =
-        "You have successfully claimed the Verifiable Credential. The process is complete.";
+      instruction = "The connection lifecycle has ended (token expired or session closed).";
+      break;
+    case "rejected":
+      instruction = "We rejected the request. No further action will be taken.";
       break;
     default:
       instruction = "Unknown state.";
@@ -552,25 +453,130 @@ function getTimelineData(req: SentGrant) {
   return { pastEvents, instruction };
 }
 
-function UriDisplay({ uri }: { uri: string }) {
-  const [copied, setCopied] = useState(false);
+function enumLabel(v: any): string {
+  if (v === null || v === undefined) return "?";
+  if (typeof v === "string") return v;
+  if (typeof v === "object") {
+    const key = Object.keys(v)[0];
+    if (!key) return "?";
+    const inner = v[key];
+    return typeof inner === "string" ? `${key}(${inner})` : key;
+  }
+  return String(v);
+}
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(uri);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const truncatedUri =
-    uri.length > 50 ? `${uri.substring(0, 25)}...${uri.substring(uri.length - 20)}` : uri;
-
+function ResourceReqCard({ resourceReq }: { resourceReq: ResourceReq | null }) {
+  if (!resourceReq) {
+    return (
+      <Card className="mt-6 opacity-50 border-dashed">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-muted-foreground">
+            <Layers className="h-5 w-5" />
+            Resource Request
+          </CardTitle>
+          <CardDescription>No resource access bound to this grant.</CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
   return (
-    <div className="flex items-center gap-2 p-2 bg-muted/50 rounded border border-stroke overflow-hidden">
-      <span className="font-mono text-[10px] truncate flex-1">{truncatedUri}</span>
-      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleCopy}>
-        {copied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
-      </Button>
-    </div>
+    <Card className="mt-6">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Layers className="h-5 w-5 text-primary" />
+          Resource Request
+        </CardTitle>
+        <CardDescription>The resource access the peer is asking for.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-4">
+          <DetailItem label="Type">
+            <Badge variant="info" className="font-mono">
+              {enumLabel(resourceReq.type)}
+            </Badge>
+          </DetailItem>
+          <DetailItem label="Identifier">
+            {resourceReq.identifier ? (
+              <span className="font-mono text-[10px] break-all">{resourceReq.identifier}</span>
+            ) : (
+              <span className="text-xs text-muted-foreground">—</span>
+            )}
+          </DetailItem>
+          <DetailItem label="Label">
+            {resourceReq.label ? (
+              <span className="text-sm">{resourceReq.label}</span>
+            ) : (
+              <span className="text-xs text-muted-foreground">—</span>
+            )}
+          </DetailItem>
+          <DetailItem label="Actions">
+            {(resourceReq.actions ?? []).length === 0 ? (
+              <span className="text-xs text-muted-foreground">—</span>
+            ) : (
+              <div className="flex flex-wrap gap-1">
+                {resourceReq.actions.map((a, idx) => (
+                  <Badge key={idx} variant="role">
+                    {enumLabel(a)}
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </DetailItem>
+          <DetailItem label="Locations">
+            {(resourceReq.locations ?? []).length === 0 ? (
+              <span className="text-xs text-muted-foreground">—</span>
+            ) : (
+              <div className="flex flex-col gap-1">
+                {resourceReq.locations!.map((loc, idx) => (
+                  <span key={idx} className="font-mono text-[10px] break-all">
+                    {loc}
+                  </span>
+                ))}
+              </div>
+            )}
+          </DetailItem>
+          <DetailItem label="Datatypes">
+            {(resourceReq.datatypes ?? []).length === 0 ? (
+              <span className="text-xs text-muted-foreground">—</span>
+            ) : (
+              <div className="flex flex-wrap gap-1">
+                {resourceReq.datatypes!.map((d, idx) => (
+                  <Badge key={idx} variant="info">
+                    {d}
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </DetailItem>
+          <DetailItem label="Privileges">
+            {(resourceReq.privileges ?? []).length === 0 ? (
+              <span className="text-xs text-muted-foreground">—</span>
+            ) : (
+              <div className="flex flex-wrap gap-1">
+                {resourceReq.privileges!.map((p, idx) => (
+                  <Badge key={idx} variant="info">
+                    {p}
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </DetailItem>
+          <DetailItem label="Flags">
+            {(resourceReq.flags ?? []).length === 0 ? (
+              <span className="text-xs text-muted-foreground">—</span>
+            ) : (
+              <div className="flex flex-wrap gap-1">
+                {resourceReq.flags!.map((f, idx) => (
+                  <Badge key={idx} variant="info" className="font-mono">
+                    {enumLabel(f)}
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </DetailItem>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -641,3 +647,4 @@ function RawDetails({ details }: { details: DetailsResponse["data"] | null }) {
     </div>
   );
 }
+

@@ -42,7 +42,7 @@ impl ParticipantRouter {
     pub fn router(self) -> Router {
         Router::new()
             .route("/all", get(Self::get_all))
-            .route("/myself", get(Self::get_myself))
+            .route("/myself", get(Self::get_myself).post(Self::update_myself))
             .route("/{id}", get(Self::get_by_id))
             .route("/batch", post(Self::get_batch))
             .route("/token", post(Self::get_by_token))
@@ -100,7 +100,12 @@ impl ParticipantRouter {
         payload: Result<Json<Plan>, JsonRejection>,
     ) -> AppResult<Json<Model>> {
         let payload = extract_payload(payload)?;
-        Ok(Json(manager.create_participant(&payload).await?))
+        Ok(Json(manager.create_participant(payload).await?))
+    }
+    async fn update_myself(
+        State(manager): State<Arc<dyn ParticipantModule>>,
+    ) -> AppResult<Json<Model>> {
+        Ok(Json(manager.update_myself().await?))
     }
 }
 

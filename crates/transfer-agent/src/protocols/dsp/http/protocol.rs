@@ -43,7 +43,7 @@ use axum::{
 };
 use common::config::services::TransferConfig;
 use common::facades::ssi_auth_facade::SSIAuthFacadeTrait;
-use common::facades::Mates;
+use ymir::data::entities::shared::participant::Model as Mates;
 use ymir::errors::Errors;
 use ymir::utils::{extract_path_urn, extract_payload};
 

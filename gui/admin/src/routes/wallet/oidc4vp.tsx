@@ -22,7 +22,7 @@ const Oidc4vpPage = () => {
     error,
   } = useMutation({
     mutationFn: (data: { uri: string }) =>
-      customInstance("/wallet/oidc4vp", { method: "POST", data }),
+      customInstance("/wallet/oid4vp", { method: "POST", data }),
     onSuccess: () => toast.success("Presentation submitted successfully"),
     onError: (err) => {
       const msg = err instanceof Error ? err.message : "Failed to process presentation request";
@@ -43,7 +43,7 @@ const Oidc4vpPage = () => {
 
   return (
     <div className="max-w-2xl mx-auto py-8">
-      <PageSection title="Verification Presentation (OIDC4VP)">
+      <PageSection title="Verification Presentation (OID4VP)">
         <div className="bg-white/5 border border-white/10 rounded-2xl p-10 backdrop-blur-md shadow-2xl space-y-8">
           <div className="text-center space-y-2">
             <ShieldCheck className="h-12 w-12 text-primary mx-auto mb-2" />

@@ -21,9 +21,11 @@ use axum::extract::rejection::JsonRejection;
 use axum::extract::{Path, Query, State};
 use axum::routing::{get, post};
 use axum::{Json, Router};
+use serde_json::Value;
 use ymir::data::entities::sent::grant;
 use ymir::errors::AppResult;
 use ymir::types::gnap::CallbackBody;
+use ymir::types::wallet::OidcUri;
 use ymir::utils::extract_payload;
 
 use crate::modules::PeerConnectorModule;
@@ -40,11 +42,15 @@ impl OnboarderRouter {
 
     pub fn router(self) -> Router {
         Router::new()
-            .route("/provider", post(Self::connect))
-            .route("/callback/{id}", get(Self::get_callback))
-            .route("/callback/{id}", post(Self::post_callback))
+            .route("/connect", post(Self::connect))
             .route("/request/all", get(Self::get_all))
             .route("/request/{id}", get(Self::get_one))
+            .route("/request/{id}/details", get(Self::get_one_with_details))
+            .route(
+                "/callback/{id}",
+                get(Self::get_callback).post(Self::post_callback),
+            )
+            .route("/oid4vp/{id}", post(Self::manage_oid4vp))
             .with_state(self.peer_connector)
     }
 
@@ -84,5 +90,21 @@ impl OnboarderRouter {
         Path(id): Path<String>,
     ) -> AppResult<Json<grant::Model>> {
         Ok(Json(peer_connector.get_by_id(id).await?))
+    }
+
+    async fn get_one_with_details(
+        State(peer_connector): State<Arc<dyn PeerConnectorModule>>,
+        Path(id): Path<String>,
+    ) -> AppResult<Json<Value>> {
+        Ok(Json(peer_connector.get_by_id_with_details(id).await?))
+    }
+    
+    async fn manage_oid4vp(
+        State(peer_connector): State<Arc<dyn PeerConnectorModule>>,
+        Path(id): Path<String>,
+        payload: Result<Json<OidcUri>, JsonRejection>,
+    ) -> AppResult<()> {
+        let payload = extract_payload(payload)?;
+        peer_connector.process_oid4vp(id, payload).await
     }
 }

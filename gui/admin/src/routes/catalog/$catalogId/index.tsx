@@ -55,7 +55,7 @@ const RouteComponent = () => {
     ? participants.data.find((p) => p.is_me && p.participant_type === "Agent")
     : undefined;
 
-  const myAgentSlug = myAgent?.participant_slug;
+  const myAgentSlug = myAgent?.participant_nick;
 
   return (
     <PageLayout>

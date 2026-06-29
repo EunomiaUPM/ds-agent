@@ -14,11 +14,11 @@ import { Route as rootRoute } from './routes/__root'
 import { Route as WalletRouteImport } from './routes/wallet/route'
 import { Route as TransferProcessRouteImport } from './routes/transfer-process/route'
 import { Route as SubscriptionsRouteImport } from './routes/subscriptions/route'
-import { Route as ProvidersRouteImport } from './routes/providers/route'
 import { Route as ParticipantsRouteImport } from './routes/participants/route'
 import { Route as MyCatalogRouteImport } from './routes/my-catalog/route'
 import { Route as KeystoreRouteImport } from './routes/keystore/route'
 import { Route as ContractNegotiationRouteImport } from './routes/contract-negotiation/route'
+import { Route as ConnectionsRouteImport } from './routes/connections/route'
 import { Route as CatalogRouteImport } from './routes/catalog/route'
 import { Route as AuthorityRouteImport } from './routes/authority/route'
 import { Route as AgreementsRouteImport } from './routes/agreements/route'
@@ -26,12 +26,12 @@ import { Route as IndexImport } from './routes/index'
 import { Route as WalletIndexImport } from './routes/wallet/index'
 import { Route as TransferProcessIndexImport } from './routes/transfer-process/index'
 import { Route as SubscriptionsIndexImport } from './routes/subscriptions/index'
-import { Route as ProvidersIndexImport } from './routes/providers/index'
 import { Route as ParticipantsIndexImport } from './routes/participants/index'
 import { Route as MyCatalogIndexImport } from './routes/my-catalog/index'
 import { Route as LoginIndexImport } from './routes/login/index'
 import { Route as KeystoreIndexImport } from './routes/keystore/index'
 import { Route as ContractNegotiationIndexImport } from './routes/contract-negotiation/index'
+import { Route as ConnectionsIndexImport } from './routes/connections/index'
 import { Route as CatalogIndexImport } from './routes/catalog/index'
 import { Route as AuthorityIndexImport } from './routes/authority/index'
 import { Route as AgreementsIndexImport } from './routes/agreements/index'
@@ -41,8 +41,6 @@ import { Route as WalletKeysImport } from './routes/wallet/keys'
 import { Route as WalletInfoImport } from './routes/wallet/info'
 import { Route as WalletDidImport } from './routes/wallet/did'
 import { Route as WalletCredentialsImport } from './routes/wallet/credentials'
-import { Route as ProvidersRequestDetailsImport } from './routes/providers/request-details'
-import { Route as ProvidersNewImport } from './routes/providers/new'
 import { Route as KeystoreSecretsImport } from './routes/keystore/secrets'
 import { Route as KeystoreParametersImport } from './routes/keystore/parameters'
 import { Route as KeystoreConfigImport } from './routes/keystore/config'
@@ -52,12 +50,19 @@ import { Route as AgreementsAgreementIdImport } from './routes/agreements/$agree
 import { Route as TransferProcessTransferProcessIdRouteImport } from './routes/transfer-process/$transferProcessId/route'
 import { Route as ParticipantsParticipantIdRouteImport } from './routes/participants/$participantId/route'
 import { Route as ContractNegotiationCnProcessRouteImport } from './routes/contract-negotiation/$cnProcess/route'
+import { Route as ConnectionsSentRouteImport } from './routes/connections/sent/route'
+import { Route as ConnectionsReceivedRouteImport } from './routes/connections/received/route'
 import { Route as CatalogParticipantRouteImport } from './routes/catalog/participant/route'
 import { Route as CatalogCatalogIdRouteImport } from './routes/catalog/$catalogId/route'
 import { Route as TransferProcessTransferProcessIdIndexImport } from './routes/transfer-process/$transferProcessId/index'
 import { Route as ParticipantsParticipantIdIndexImport } from './routes/participants/$participantId/index'
 import { Route as ContractNegotiationCnProcessIndexImport } from './routes/contract-negotiation/$cnProcess/index'
+import { Route as ConnectionsSentIndexImport } from './routes/connections/sent/index'
+import { Route as ConnectionsReceivedIndexImport } from './routes/connections/received/index'
 import { Route as CatalogCatalogIdIndexImport } from './routes/catalog/$catalogId/index'
+import { Route as ConnectionsSentRequestDetailsImport } from './routes/connections/sent/request-details'
+import { Route as ConnectionsSentNewImport } from './routes/connections/sent/new'
+import { Route as ConnectionsReceivedRequestDetailsImport } from './routes/connections/received/request-details'
 import { Route as CatalogParticipantParticipantIdIndexImport } from './routes/catalog/participant/$participantId/index'
 import { Route as TransferProcessTransferProcessIdTransferMessageTransferMessageIdImport } from './routes/transfer-process/$transferProcessId/transfer-message.$transferMessageId'
 import { Route as CatalogCatalogIdDistributionConnectorDistributionIdImport } from './routes/catalog/$catalogId/distribution-connector.$distributionId'
@@ -85,12 +90,6 @@ const SubscriptionsRouteRoute = SubscriptionsRouteImport.update({
   getParentRoute: () => rootRoute,
 } as any)
 
-const ProvidersRouteRoute = ProvidersRouteImport.update({
-  id: '/providers',
-  path: '/providers',
-  getParentRoute: () => rootRoute,
-} as any)
-
 const ParticipantsRouteRoute = ParticipantsRouteImport.update({
   id: '/participants',
   path: '/participants',
@@ -112,6 +111,12 @@ const KeystoreRouteRoute = KeystoreRouteImport.update({
 const ContractNegotiationRouteRoute = ContractNegotiationRouteImport.update({
   id: '/contract-negotiation',
   path: '/contract-negotiation',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const ConnectionsRouteRoute = ConnectionsRouteImport.update({
+  id: '/connections',
+  path: '/connections',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -157,12 +162,6 @@ const SubscriptionsIndexRoute = SubscriptionsIndexImport.update({
   getParentRoute: () => SubscriptionsRouteRoute,
 } as any)
 
-const ProvidersIndexRoute = ProvidersIndexImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => ProvidersRouteRoute,
-} as any)
-
 const ParticipantsIndexRoute = ParticipantsIndexImport.update({
   id: '/',
   path: '/',
@@ -191,6 +190,12 @@ const ContractNegotiationIndexRoute = ContractNegotiationIndexImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => ContractNegotiationRouteRoute,
+} as any)
+
+const ConnectionsIndexRoute = ConnectionsIndexImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ConnectionsRouteRoute,
 } as any)
 
 const CatalogIndexRoute = CatalogIndexImport.update({
@@ -245,18 +250,6 @@ const WalletCredentialsRoute = WalletCredentialsImport.update({
   id: '/credentials',
   path: '/credentials',
   getParentRoute: () => WalletRouteRoute,
-} as any)
-
-const ProvidersRequestDetailsRoute = ProvidersRequestDetailsImport.update({
-  id: '/request-details',
-  path: '/request-details',
-  getParentRoute: () => ProvidersRouteRoute,
-} as any)
-
-const ProvidersNewRoute = ProvidersNewImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => ProvidersRouteRoute,
 } as any)
 
 const KeystoreSecretsRoute = KeystoreSecretsImport.update({
@@ -316,6 +309,18 @@ const ContractNegotiationCnProcessRouteRoute =
     getParentRoute: () => ContractNegotiationRouteRoute,
   } as any)
 
+const ConnectionsSentRouteRoute = ConnectionsSentRouteImport.update({
+  id: '/sent',
+  path: '/sent',
+  getParentRoute: () => ConnectionsRouteRoute,
+} as any)
+
+const ConnectionsReceivedRouteRoute = ConnectionsReceivedRouteImport.update({
+  id: '/received',
+  path: '/received',
+  getParentRoute: () => ConnectionsRouteRoute,
+} as any)
+
 const CatalogParticipantRouteRoute = CatalogParticipantRouteImport.update({
   id: '/participant',
   path: '/participant',
@@ -349,11 +354,43 @@ const ContractNegotiationCnProcessIndexRoute =
     getParentRoute: () => ContractNegotiationCnProcessRouteRoute,
   } as any)
 
+const ConnectionsSentIndexRoute = ConnectionsSentIndexImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ConnectionsSentRouteRoute,
+} as any)
+
+const ConnectionsReceivedIndexRoute = ConnectionsReceivedIndexImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ConnectionsReceivedRouteRoute,
+} as any)
+
 const CatalogCatalogIdIndexRoute = CatalogCatalogIdIndexImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => CatalogCatalogIdRouteRoute,
 } as any)
+
+const ConnectionsSentRequestDetailsRoute =
+  ConnectionsSentRequestDetailsImport.update({
+    id: '/request-details',
+    path: '/request-details',
+    getParentRoute: () => ConnectionsSentRouteRoute,
+  } as any)
+
+const ConnectionsSentNewRoute = ConnectionsSentNewImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => ConnectionsSentRouteRoute,
+} as any)
+
+const ConnectionsReceivedRequestDetailsRoute =
+  ConnectionsReceivedRequestDetailsImport.update({
+    id: '/request-details',
+    path: '/request-details',
+    getParentRoute: () => ConnectionsReceivedRouteRoute,
+  } as any)
 
 const CatalogParticipantParticipantIdIndexRoute =
   CatalogParticipantParticipantIdIndexImport.update({
@@ -431,6 +468,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CatalogRouteImport
       parentRoute: typeof rootRoute
     }
+    '/connections': {
+      id: '/connections'
+      path: '/connections'
+      fullPath: '/connections'
+      preLoaderRoute: typeof ConnectionsRouteImport
+      parentRoute: typeof rootRoute
+    }
     '/contract-negotiation': {
       id: '/contract-negotiation'
       path: '/contract-negotiation'
@@ -457,13 +501,6 @@ declare module '@tanstack/react-router' {
       path: '/participants'
       fullPath: '/participants'
       preLoaderRoute: typeof ParticipantsRouteImport
-      parentRoute: typeof rootRoute
-    }
-    '/providers': {
-      id: '/providers'
-      path: '/providers'
-      fullPath: '/providers'
-      preLoaderRoute: typeof ProvidersRouteImport
       parentRoute: typeof rootRoute
     }
     '/subscriptions': {
@@ -500,6 +537,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/catalog/participant'
       preLoaderRoute: typeof CatalogParticipantRouteImport
       parentRoute: typeof CatalogRouteImport
+    }
+    '/connections/received': {
+      id: '/connections/received'
+      path: '/received'
+      fullPath: '/connections/received'
+      preLoaderRoute: typeof ConnectionsReceivedRouteImport
+      parentRoute: typeof ConnectionsRouteImport
+    }
+    '/connections/sent': {
+      id: '/connections/sent'
+      path: '/sent'
+      fullPath: '/connections/sent'
+      preLoaderRoute: typeof ConnectionsSentRouteImport
+      parentRoute: typeof ConnectionsRouteImport
     }
     '/contract-negotiation/$cnProcess': {
       id: '/contract-negotiation/$cnProcess'
@@ -564,20 +615,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof KeystoreSecretsImport
       parentRoute: typeof KeystoreRouteImport
     }
-    '/providers/new': {
-      id: '/providers/new'
-      path: '/new'
-      fullPath: '/providers/new'
-      preLoaderRoute: typeof ProvidersNewImport
-      parentRoute: typeof ProvidersRouteImport
-    }
-    '/providers/request-details': {
-      id: '/providers/request-details'
-      path: '/request-details'
-      fullPath: '/providers/request-details'
-      preLoaderRoute: typeof ProvidersRequestDetailsImport
-      parentRoute: typeof ProvidersRouteImport
-    }
     '/wallet/credentials': {
       id: '/wallet/credentials'
       path: '/credentials'
@@ -641,6 +678,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CatalogIndexImport
       parentRoute: typeof CatalogRouteImport
     }
+    '/connections/': {
+      id: '/connections/'
+      path: '/'
+      fullPath: '/connections/'
+      preLoaderRoute: typeof ConnectionsIndexImport
+      parentRoute: typeof ConnectionsRouteImport
+    }
     '/contract-negotiation/': {
       id: '/contract-negotiation/'
       path: '/'
@@ -676,13 +720,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ParticipantsIndexImport
       parentRoute: typeof ParticipantsRouteImport
     }
-    '/providers/': {
-      id: '/providers/'
-      path: '/'
-      fullPath: '/providers/'
-      preLoaderRoute: typeof ProvidersIndexImport
-      parentRoute: typeof ProvidersRouteImport
-    }
     '/subscriptions/': {
       id: '/subscriptions/'
       path: '/'
@@ -704,12 +741,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WalletIndexImport
       parentRoute: typeof WalletRouteImport
     }
+    '/connections/received/request-details': {
+      id: '/connections/received/request-details'
+      path: '/request-details'
+      fullPath: '/connections/received/request-details'
+      preLoaderRoute: typeof ConnectionsReceivedRequestDetailsImport
+      parentRoute: typeof ConnectionsReceivedRouteImport
+    }
+    '/connections/sent/new': {
+      id: '/connections/sent/new'
+      path: '/new'
+      fullPath: '/connections/sent/new'
+      preLoaderRoute: typeof ConnectionsSentNewImport
+      parentRoute: typeof ConnectionsSentRouteImport
+    }
+    '/connections/sent/request-details': {
+      id: '/connections/sent/request-details'
+      path: '/request-details'
+      fullPath: '/connections/sent/request-details'
+      preLoaderRoute: typeof ConnectionsSentRequestDetailsImport
+      parentRoute: typeof ConnectionsSentRouteImport
+    }
     '/catalog/$catalogId/': {
       id: '/catalog/$catalogId/'
       path: '/'
       fullPath: '/catalog/$catalogId/'
       preLoaderRoute: typeof CatalogCatalogIdIndexImport
       parentRoute: typeof CatalogCatalogIdRouteImport
+    }
+    '/connections/received/': {
+      id: '/connections/received/'
+      path: '/'
+      fullPath: '/connections/received/'
+      preLoaderRoute: typeof ConnectionsReceivedIndexImport
+      parentRoute: typeof ConnectionsReceivedRouteImport
+    }
+    '/connections/sent/': {
+      id: '/connections/sent/'
+      path: '/'
+      fullPath: '/connections/sent/'
+      preLoaderRoute: typeof ConnectionsSentIndexImport
+      parentRoute: typeof ConnectionsSentRouteImport
     }
     '/contract-negotiation/$cnProcess/': {
       id: '/contract-negotiation/$cnProcess/'
@@ -864,6 +936,53 @@ const CatalogRouteRouteWithChildren = CatalogRouteRoute._addFileChildren(
   CatalogRouteRouteChildren,
 )
 
+interface ConnectionsReceivedRouteRouteChildren {
+  ConnectionsReceivedRequestDetailsRoute: typeof ConnectionsReceivedRequestDetailsRoute
+  ConnectionsReceivedIndexRoute: typeof ConnectionsReceivedIndexRoute
+}
+
+const ConnectionsReceivedRouteRouteChildren: ConnectionsReceivedRouteRouteChildren =
+  {
+    ConnectionsReceivedRequestDetailsRoute:
+      ConnectionsReceivedRequestDetailsRoute,
+    ConnectionsReceivedIndexRoute: ConnectionsReceivedIndexRoute,
+  }
+
+const ConnectionsReceivedRouteRouteWithChildren =
+  ConnectionsReceivedRouteRoute._addFileChildren(
+    ConnectionsReceivedRouteRouteChildren,
+  )
+
+interface ConnectionsSentRouteRouteChildren {
+  ConnectionsSentNewRoute: typeof ConnectionsSentNewRoute
+  ConnectionsSentRequestDetailsRoute: typeof ConnectionsSentRequestDetailsRoute
+  ConnectionsSentIndexRoute: typeof ConnectionsSentIndexRoute
+}
+
+const ConnectionsSentRouteRouteChildren: ConnectionsSentRouteRouteChildren = {
+  ConnectionsSentNewRoute: ConnectionsSentNewRoute,
+  ConnectionsSentRequestDetailsRoute: ConnectionsSentRequestDetailsRoute,
+  ConnectionsSentIndexRoute: ConnectionsSentIndexRoute,
+}
+
+const ConnectionsSentRouteRouteWithChildren =
+  ConnectionsSentRouteRoute._addFileChildren(ConnectionsSentRouteRouteChildren)
+
+interface ConnectionsRouteRouteChildren {
+  ConnectionsReceivedRouteRoute: typeof ConnectionsReceivedRouteRouteWithChildren
+  ConnectionsSentRouteRoute: typeof ConnectionsSentRouteRouteWithChildren
+  ConnectionsIndexRoute: typeof ConnectionsIndexRoute
+}
+
+const ConnectionsRouteRouteChildren: ConnectionsRouteRouteChildren = {
+  ConnectionsReceivedRouteRoute: ConnectionsReceivedRouteRouteWithChildren,
+  ConnectionsSentRouteRoute: ConnectionsSentRouteRouteWithChildren,
+  ConnectionsIndexRoute: ConnectionsIndexRoute,
+}
+
+const ConnectionsRouteRouteWithChildren =
+  ConnectionsRouteRoute._addFileChildren(ConnectionsRouteRouteChildren)
+
 interface ContractNegotiationCnProcessRouteRouteChildren {
   ContractNegotiationCnProcessIndexRoute: typeof ContractNegotiationCnProcessIndexRoute
 }
@@ -954,22 +1073,6 @@ const ParticipantsRouteRouteChildren: ParticipantsRouteRouteChildren = {
 const ParticipantsRouteRouteWithChildren =
   ParticipantsRouteRoute._addFileChildren(ParticipantsRouteRouteChildren)
 
-interface ProvidersRouteRouteChildren {
-  ProvidersNewRoute: typeof ProvidersNewRoute
-  ProvidersRequestDetailsRoute: typeof ProvidersRequestDetailsRoute
-  ProvidersIndexRoute: typeof ProvidersIndexRoute
-}
-
-const ProvidersRouteRouteChildren: ProvidersRouteRouteChildren = {
-  ProvidersNewRoute: ProvidersNewRoute,
-  ProvidersRequestDetailsRoute: ProvidersRequestDetailsRoute,
-  ProvidersIndexRoute: ProvidersIndexRoute,
-}
-
-const ProvidersRouteRouteWithChildren = ProvidersRouteRoute._addFileChildren(
-  ProvidersRouteRouteChildren,
-)
-
 interface SubscriptionsRouteRouteChildren {
   SubscriptionsIndexRoute: typeof SubscriptionsIndexRoute
 }
@@ -1042,16 +1145,18 @@ export interface FileRoutesByFullPath {
   '/agreements': typeof AgreementsRouteRouteWithChildren
   '/authority': typeof AuthorityRouteRouteWithChildren
   '/catalog': typeof CatalogRouteRouteWithChildren
+  '/connections': typeof ConnectionsRouteRouteWithChildren
   '/contract-negotiation': typeof ContractNegotiationRouteRouteWithChildren
   '/keystore': typeof KeystoreRouteRouteWithChildren
   '/my-catalog': typeof MyCatalogRouteRouteWithChildren
   '/participants': typeof ParticipantsRouteRouteWithChildren
-  '/providers': typeof ProvidersRouteRouteWithChildren
   '/subscriptions': typeof SubscriptionsRouteRouteWithChildren
   '/transfer-process': typeof TransferProcessRouteRouteWithChildren
   '/wallet': typeof WalletRouteRouteWithChildren
   '/catalog/$catalogId': typeof CatalogCatalogIdRouteRouteWithChildren
   '/catalog/participant': typeof CatalogParticipantRouteRouteWithChildren
+  '/connections/received': typeof ConnectionsReceivedRouteRouteWithChildren
+  '/connections/sent': typeof ConnectionsSentRouteRouteWithChildren
   '/contract-negotiation/$cnProcess': typeof ContractNegotiationCnProcessRouteRouteWithChildren
   '/participants/$participantId': typeof ParticipantsParticipantIdRouteRouteWithChildren
   '/transfer-process/$transferProcessId': typeof TransferProcessTransferProcessIdRouteRouteWithChildren
@@ -1061,8 +1166,6 @@ export interface FileRoutesByFullPath {
   '/keystore/config': typeof KeystoreConfigRoute
   '/keystore/parameters': typeof KeystoreParametersRoute
   '/keystore/secrets': typeof KeystoreSecretsRoute
-  '/providers/new': typeof ProvidersNewRoute
-  '/providers/request-details': typeof ProvidersRequestDetailsRoute
   '/wallet/credentials': typeof WalletCredentialsRoute
   '/wallet/did': typeof WalletDidRoute
   '/wallet/info': typeof WalletInfoRoute
@@ -1072,16 +1175,21 @@ export interface FileRoutesByFullPath {
   '/agreements/': typeof AgreementsIndexRoute
   '/authority/': typeof AuthorityIndexRoute
   '/catalog/': typeof CatalogIndexRoute
+  '/connections/': typeof ConnectionsIndexRoute
   '/contract-negotiation/': typeof ContractNegotiationIndexRoute
   '/keystore/': typeof KeystoreIndexRoute
   '/login': typeof LoginIndexRoute
   '/my-catalog/': typeof MyCatalogIndexRoute
   '/participants/': typeof ParticipantsIndexRoute
-  '/providers/': typeof ProvidersIndexRoute
   '/subscriptions/': typeof SubscriptionsIndexRoute
   '/transfer-process/': typeof TransferProcessIndexRoute
   '/wallet/': typeof WalletIndexRoute
+  '/connections/received/request-details': typeof ConnectionsReceivedRequestDetailsRoute
+  '/connections/sent/new': typeof ConnectionsSentNewRoute
+  '/connections/sent/request-details': typeof ConnectionsSentRequestDetailsRoute
   '/catalog/$catalogId/': typeof CatalogCatalogIdIndexRoute
+  '/connections/received/': typeof ConnectionsReceivedIndexRoute
+  '/connections/sent/': typeof ConnectionsSentIndexRoute
   '/contract-negotiation/$cnProcess/': typeof ContractNegotiationCnProcessIndexRoute
   '/participants/$participantId/': typeof ParticipantsParticipantIdIndexRoute
   '/transfer-process/$transferProcessId/': typeof TransferProcessTransferProcessIdIndexRoute
@@ -1102,8 +1210,6 @@ export interface FileRoutesByTo {
   '/keystore/config': typeof KeystoreConfigRoute
   '/keystore/parameters': typeof KeystoreParametersRoute
   '/keystore/secrets': typeof KeystoreSecretsRoute
-  '/providers/new': typeof ProvidersNewRoute
-  '/providers/request-details': typeof ProvidersRequestDetailsRoute
   '/wallet/credentials': typeof WalletCredentialsRoute
   '/wallet/did': typeof WalletDidRoute
   '/wallet/info': typeof WalletInfoRoute
@@ -1113,16 +1219,21 @@ export interface FileRoutesByTo {
   '/agreements': typeof AgreementsIndexRoute
   '/authority': typeof AuthorityIndexRoute
   '/catalog': typeof CatalogIndexRoute
+  '/connections': typeof ConnectionsIndexRoute
   '/contract-negotiation': typeof ContractNegotiationIndexRoute
   '/keystore': typeof KeystoreIndexRoute
   '/login': typeof LoginIndexRoute
   '/my-catalog': typeof MyCatalogIndexRoute
   '/participants': typeof ParticipantsIndexRoute
-  '/providers': typeof ProvidersIndexRoute
   '/subscriptions': typeof SubscriptionsIndexRoute
   '/transfer-process': typeof TransferProcessIndexRoute
   '/wallet': typeof WalletIndexRoute
+  '/connections/received/request-details': typeof ConnectionsReceivedRequestDetailsRoute
+  '/connections/sent/new': typeof ConnectionsSentNewRoute
+  '/connections/sent/request-details': typeof ConnectionsSentRequestDetailsRoute
   '/catalog/$catalogId': typeof CatalogCatalogIdIndexRoute
+  '/connections/received': typeof ConnectionsReceivedIndexRoute
+  '/connections/sent': typeof ConnectionsSentIndexRoute
   '/contract-negotiation/$cnProcess': typeof ContractNegotiationCnProcessIndexRoute
   '/participants/$participantId': typeof ParticipantsParticipantIdIndexRoute
   '/transfer-process/$transferProcessId': typeof TransferProcessTransferProcessIdIndexRoute
@@ -1140,16 +1251,18 @@ export interface FileRoutesById {
   '/agreements': typeof AgreementsRouteRouteWithChildren
   '/authority': typeof AuthorityRouteRouteWithChildren
   '/catalog': typeof CatalogRouteRouteWithChildren
+  '/connections': typeof ConnectionsRouteRouteWithChildren
   '/contract-negotiation': typeof ContractNegotiationRouteRouteWithChildren
   '/keystore': typeof KeystoreRouteRouteWithChildren
   '/my-catalog': typeof MyCatalogRouteRouteWithChildren
   '/participants': typeof ParticipantsRouteRouteWithChildren
-  '/providers': typeof ProvidersRouteRouteWithChildren
   '/subscriptions': typeof SubscriptionsRouteRouteWithChildren
   '/transfer-process': typeof TransferProcessRouteRouteWithChildren
   '/wallet': typeof WalletRouteRouteWithChildren
   '/catalog/$catalogId': typeof CatalogCatalogIdRouteRouteWithChildren
   '/catalog/participant': typeof CatalogParticipantRouteRouteWithChildren
+  '/connections/received': typeof ConnectionsReceivedRouteRouteWithChildren
+  '/connections/sent': typeof ConnectionsSentRouteRouteWithChildren
   '/contract-negotiation/$cnProcess': typeof ContractNegotiationCnProcessRouteRouteWithChildren
   '/participants/$participantId': typeof ParticipantsParticipantIdRouteRouteWithChildren
   '/transfer-process/$transferProcessId': typeof TransferProcessTransferProcessIdRouteRouteWithChildren
@@ -1159,8 +1272,6 @@ export interface FileRoutesById {
   '/keystore/config': typeof KeystoreConfigRoute
   '/keystore/parameters': typeof KeystoreParametersRoute
   '/keystore/secrets': typeof KeystoreSecretsRoute
-  '/providers/new': typeof ProvidersNewRoute
-  '/providers/request-details': typeof ProvidersRequestDetailsRoute
   '/wallet/credentials': typeof WalletCredentialsRoute
   '/wallet/did': typeof WalletDidRoute
   '/wallet/info': typeof WalletInfoRoute
@@ -1170,16 +1281,21 @@ export interface FileRoutesById {
   '/agreements/': typeof AgreementsIndexRoute
   '/authority/': typeof AuthorityIndexRoute
   '/catalog/': typeof CatalogIndexRoute
+  '/connections/': typeof ConnectionsIndexRoute
   '/contract-negotiation/': typeof ContractNegotiationIndexRoute
   '/keystore/': typeof KeystoreIndexRoute
   '/login/': typeof LoginIndexRoute
   '/my-catalog/': typeof MyCatalogIndexRoute
   '/participants/': typeof ParticipantsIndexRoute
-  '/providers/': typeof ProvidersIndexRoute
   '/subscriptions/': typeof SubscriptionsIndexRoute
   '/transfer-process/': typeof TransferProcessIndexRoute
   '/wallet/': typeof WalletIndexRoute
+  '/connections/received/request-details': typeof ConnectionsReceivedRequestDetailsRoute
+  '/connections/sent/new': typeof ConnectionsSentNewRoute
+  '/connections/sent/request-details': typeof ConnectionsSentRequestDetailsRoute
   '/catalog/$catalogId/': typeof CatalogCatalogIdIndexRoute
+  '/connections/received/': typeof ConnectionsReceivedIndexRoute
+  '/connections/sent/': typeof ConnectionsSentIndexRoute
   '/contract-negotiation/$cnProcess/': typeof ContractNegotiationCnProcessIndexRoute
   '/participants/$participantId/': typeof ParticipantsParticipantIdIndexRoute
   '/transfer-process/$transferProcessId/': typeof TransferProcessTransferProcessIdIndexRoute
@@ -1198,16 +1314,18 @@ export interface FileRouteTypes {
     | '/agreements'
     | '/authority'
     | '/catalog'
+    | '/connections'
     | '/contract-negotiation'
     | '/keystore'
     | '/my-catalog'
     | '/participants'
-    | '/providers'
     | '/subscriptions'
     | '/transfer-process'
     | '/wallet'
     | '/catalog/$catalogId'
     | '/catalog/participant'
+    | '/connections/received'
+    | '/connections/sent'
     | '/contract-negotiation/$cnProcess'
     | '/participants/$participantId'
     | '/transfer-process/$transferProcessId'
@@ -1217,8 +1335,6 @@ export interface FileRouteTypes {
     | '/keystore/config'
     | '/keystore/parameters'
     | '/keystore/secrets'
-    | '/providers/new'
-    | '/providers/request-details'
     | '/wallet/credentials'
     | '/wallet/did'
     | '/wallet/info'
@@ -1228,16 +1344,21 @@ export interface FileRouteTypes {
     | '/agreements/'
     | '/authority/'
     | '/catalog/'
+    | '/connections/'
     | '/contract-negotiation/'
     | '/keystore/'
     | '/login'
     | '/my-catalog/'
     | '/participants/'
-    | '/providers/'
     | '/subscriptions/'
     | '/transfer-process/'
     | '/wallet/'
+    | '/connections/received/request-details'
+    | '/connections/sent/new'
+    | '/connections/sent/request-details'
     | '/catalog/$catalogId/'
+    | '/connections/received/'
+    | '/connections/sent/'
     | '/contract-negotiation/$cnProcess/'
     | '/participants/$participantId/'
     | '/transfer-process/$transferProcessId/'
@@ -1257,8 +1378,6 @@ export interface FileRouteTypes {
     | '/keystore/config'
     | '/keystore/parameters'
     | '/keystore/secrets'
-    | '/providers/new'
-    | '/providers/request-details'
     | '/wallet/credentials'
     | '/wallet/did'
     | '/wallet/info'
@@ -1268,16 +1387,21 @@ export interface FileRouteTypes {
     | '/agreements'
     | '/authority'
     | '/catalog'
+    | '/connections'
     | '/contract-negotiation'
     | '/keystore'
     | '/login'
     | '/my-catalog'
     | '/participants'
-    | '/providers'
     | '/subscriptions'
     | '/transfer-process'
     | '/wallet'
+    | '/connections/received/request-details'
+    | '/connections/sent/new'
+    | '/connections/sent/request-details'
     | '/catalog/$catalogId'
+    | '/connections/received'
+    | '/connections/sent'
     | '/contract-negotiation/$cnProcess'
     | '/participants/$participantId'
     | '/transfer-process/$transferProcessId'
@@ -1293,16 +1417,18 @@ export interface FileRouteTypes {
     | '/agreements'
     | '/authority'
     | '/catalog'
+    | '/connections'
     | '/contract-negotiation'
     | '/keystore'
     | '/my-catalog'
     | '/participants'
-    | '/providers'
     | '/subscriptions'
     | '/transfer-process'
     | '/wallet'
     | '/catalog/$catalogId'
     | '/catalog/participant'
+    | '/connections/received'
+    | '/connections/sent'
     | '/contract-negotiation/$cnProcess'
     | '/participants/$participantId'
     | '/transfer-process/$transferProcessId'
@@ -1312,8 +1438,6 @@ export interface FileRouteTypes {
     | '/keystore/config'
     | '/keystore/parameters'
     | '/keystore/secrets'
-    | '/providers/new'
-    | '/providers/request-details'
     | '/wallet/credentials'
     | '/wallet/did'
     | '/wallet/info'
@@ -1323,16 +1447,21 @@ export interface FileRouteTypes {
     | '/agreements/'
     | '/authority/'
     | '/catalog/'
+    | '/connections/'
     | '/contract-negotiation/'
     | '/keystore/'
     | '/login/'
     | '/my-catalog/'
     | '/participants/'
-    | '/providers/'
     | '/subscriptions/'
     | '/transfer-process/'
     | '/wallet/'
+    | '/connections/received/request-details'
+    | '/connections/sent/new'
+    | '/connections/sent/request-details'
     | '/catalog/$catalogId/'
+    | '/connections/received/'
+    | '/connections/sent/'
     | '/contract-negotiation/$cnProcess/'
     | '/participants/$participantId/'
     | '/transfer-process/$transferProcessId/'
@@ -1350,11 +1479,11 @@ export interface RootRouteChildren {
   AgreementsRouteRoute: typeof AgreementsRouteRouteWithChildren
   AuthorityRouteRoute: typeof AuthorityRouteRouteWithChildren
   CatalogRouteRoute: typeof CatalogRouteRouteWithChildren
+  ConnectionsRouteRoute: typeof ConnectionsRouteRouteWithChildren
   ContractNegotiationRouteRoute: typeof ContractNegotiationRouteRouteWithChildren
   KeystoreRouteRoute: typeof KeystoreRouteRouteWithChildren
   MyCatalogRouteRoute: typeof MyCatalogRouteRouteWithChildren
   ParticipantsRouteRoute: typeof ParticipantsRouteRouteWithChildren
-  ProvidersRouteRoute: typeof ProvidersRouteRouteWithChildren
   SubscriptionsRouteRoute: typeof SubscriptionsRouteRouteWithChildren
   TransferProcessRouteRoute: typeof TransferProcessRouteRouteWithChildren
   WalletRouteRoute: typeof WalletRouteRouteWithChildren
@@ -1366,11 +1495,11 @@ const rootRouteChildren: RootRouteChildren = {
   AgreementsRouteRoute: AgreementsRouteRouteWithChildren,
   AuthorityRouteRoute: AuthorityRouteRouteWithChildren,
   CatalogRouteRoute: CatalogRouteRouteWithChildren,
+  ConnectionsRouteRoute: ConnectionsRouteRouteWithChildren,
   ContractNegotiationRouteRoute: ContractNegotiationRouteRouteWithChildren,
   KeystoreRouteRoute: KeystoreRouteRouteWithChildren,
   MyCatalogRouteRoute: MyCatalogRouteRouteWithChildren,
   ParticipantsRouteRoute: ParticipantsRouteRouteWithChildren,
-  ProvidersRouteRoute: ProvidersRouteRouteWithChildren,
   SubscriptionsRouteRoute: SubscriptionsRouteRouteWithChildren,
   TransferProcessRouteRoute: TransferProcessRouteRouteWithChildren,
   WalletRouteRoute: WalletRouteRouteWithChildren,
@@ -1391,11 +1520,11 @@ export const routeTree = rootRoute
         "/agreements",
         "/authority",
         "/catalog",
+        "/connections",
         "/contract-negotiation",
         "/keystore",
         "/my-catalog",
         "/participants",
-        "/providers",
         "/subscriptions",
         "/transfer-process",
         "/wallet",
@@ -1428,6 +1557,14 @@ export const routeTree = rootRoute
         "/catalog/"
       ]
     },
+    "/connections": {
+      "filePath": "connections/route.tsx",
+      "children": [
+        "/connections/received",
+        "/connections/sent",
+        "/connections/"
+      ]
+    },
     "/contract-negotiation": {
       "filePath": "contract-negotiation/route.tsx",
       "children": [
@@ -1455,14 +1592,6 @@ export const routeTree = rootRoute
       "children": [
         "/participants/$participantId",
         "/participants/"
-      ]
-    },
-    "/providers": {
-      "filePath": "providers/route.tsx",
-      "children": [
-        "/providers/new",
-        "/providers/request-details",
-        "/providers/"
       ]
     },
     "/subscriptions": {
@@ -1506,6 +1635,23 @@ export const routeTree = rootRoute
       "children": [
         "/catalog/participant/$participantId/",
         "/catalog/participant/$participantId/dataset/$datasetId"
+      ]
+    },
+    "/connections/received": {
+      "filePath": "connections/received/route.tsx",
+      "parent": "/connections",
+      "children": [
+        "/connections/received/request-details",
+        "/connections/received/"
+      ]
+    },
+    "/connections/sent": {
+      "filePath": "connections/sent/route.tsx",
+      "parent": "/connections",
+      "children": [
+        "/connections/sent/new",
+        "/connections/sent/request-details",
+        "/connections/sent/"
       ]
     },
     "/contract-negotiation/$cnProcess": {
@@ -1554,14 +1700,6 @@ export const routeTree = rootRoute
       "filePath": "keystore/secrets.tsx",
       "parent": "/keystore"
     },
-    "/providers/new": {
-      "filePath": "providers/new.tsx",
-      "parent": "/providers"
-    },
-    "/providers/request-details": {
-      "filePath": "providers/request-details.tsx",
-      "parent": "/providers"
-    },
     "/wallet/credentials": {
       "filePath": "wallet/credentials.tsx",
       "parent": "/wallet"
@@ -1598,6 +1736,10 @@ export const routeTree = rootRoute
       "filePath": "catalog/index.tsx",
       "parent": "/catalog"
     },
+    "/connections/": {
+      "filePath": "connections/index.tsx",
+      "parent": "/connections"
+    },
     "/contract-negotiation/": {
       "filePath": "contract-negotiation/index.tsx",
       "parent": "/contract-negotiation"
@@ -1617,10 +1759,6 @@ export const routeTree = rootRoute
       "filePath": "participants/index.tsx",
       "parent": "/participants"
     },
-    "/providers/": {
-      "filePath": "providers/index.tsx",
-      "parent": "/providers"
-    },
     "/subscriptions/": {
       "filePath": "subscriptions/index.tsx",
       "parent": "/subscriptions"
@@ -1633,9 +1771,29 @@ export const routeTree = rootRoute
       "filePath": "wallet/index.tsx",
       "parent": "/wallet"
     },
+    "/connections/received/request-details": {
+      "filePath": "connections/received/request-details.tsx",
+      "parent": "/connections/received"
+    },
+    "/connections/sent/new": {
+      "filePath": "connections/sent/new.tsx",
+      "parent": "/connections/sent"
+    },
+    "/connections/sent/request-details": {
+      "filePath": "connections/sent/request-details.tsx",
+      "parent": "/connections/sent"
+    },
     "/catalog/$catalogId/": {
       "filePath": "catalog/$catalogId/index.tsx",
       "parent": "/catalog/$catalogId"
+    },
+    "/connections/received/": {
+      "filePath": "connections/received/index.tsx",
+      "parent": "/connections/received"
+    },
+    "/connections/sent/": {
+      "filePath": "connections/sent/index.tsx",
+      "parent": "/connections/sent"
     },
     "/contract-negotiation/$cnProcess/": {
       "filePath": "contract-negotiation/$cnProcess/index.tsx",

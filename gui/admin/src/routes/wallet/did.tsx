@@ -242,7 +242,10 @@ const DidPanel = ({
           <Badge variant="info" className="font-mono text-[10px]">
             {did.type}
           </Badge>
-          <span className="text-xs text-muted-foreground/60 font-mono truncate">
+          <span
+            className="text-xs text-muted-foreground/60 font-mono truncate max-w-[320px]"
+            title={did.did}
+          >
             {did.did}
           </span>
         </button>

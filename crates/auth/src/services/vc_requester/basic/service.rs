@@ -194,6 +194,7 @@ impl VcRequesterTrait for VCReqService {
                     credential_response,
                 } => {
                     grant.status = GrantStatus::Approved;
+                    grant.vc_uri = Some(credential_response.credential_uri.clone());
                     grant.ended_at = Some(chrono::Utc::now());
                     Ok(VcWhatResponse::Issuance(credential_response.credential_uri))
                 }

@@ -20,12 +20,14 @@ use crate::types::entities::ReachAuthority;
 use crate::types::response::VcWhatResponse;
 use async_trait::async_trait;
 use chrono::Utc;
-use ymir::data::entities::sent::grant;
+use serde_json::{json, Value};
+use ymir::data::entities::sent::{grant, verification};
 use ymir::errors::Outcome;
 use ymir::services::HasWallet;
 use ymir::types::gnap::grant_request::GrantKind;
 use ymir::types::gnap::{ApprovedCallbackBody, CallbackBody, GrantStatus};
 use ymir::types::verification::VerificationStatus;
+use ymir::types::wallet::OidcUri;
 
 #[async_trait]
 pub trait VcRequesterModule:
@@ -73,6 +75,41 @@ pub trait VcRequesterModule:
         self.repo().sent_grant().get_by_id(&id).await
     }
 
+    async fn get_by_id_with_details(&self, id: String) -> Outcome<Value> {
+        let grant = self.repo().sent_grant().get_by_id(&id).await?;
+        let interaction = self.repo().sent_interaction().get_by_id(&id).await.ok();
+        let verification = self.repo().sent_verification().get_by_id(&id).await.ok();
+        Ok(json!({
+            "grant": grant,
+            "interaction": interaction,
+            "verification": verification,
+        }))
+    }
+    // ========================================= PROCESS OID4VC =========================================
+    async fn process_oid4vci(&self, id: String, payload: OidcUri) -> Outcome<()> {
+        let mut grant = self.repo().sent_grant().get_by_id(&id).await?;
+        self.wallet().process_oid4vci(&payload.uri).await?;
+        grant.status = GrantStatus::Finalized;
+        grant.ended_at = Some(Utc::now());
+        let grant = self.repo().sent_grant().update(grant).await?;
+        let authority = self.vc_requester().build_authority_plan(&grant);
+        self.repo().participant().force_update(authority).await?;
+        Ok(())
+    }
+
+    async fn process_oid4vp(&self, id: String, payload: OidcUri) -> Outcome<()> {
+        let mut verification = self.repo().sent_verification().get_by_id(&id).await?;
+        match self.wallet().process_oid4vp(&payload.uri).await {
+            Ok(_) => verification.status = VerificationStatus::Verified,
+            Err(_) => {
+                verification.status = VerificationStatus::Failed;
+            }
+        }
+        verification.ended_at = Some(Utc::now());
+        self.repo().sent_verification().update(verification).await?;
+        Ok(())
+    }
+
     // ========================================= INTERNALS =========================================
     async fn manage_grant_resp(
         &self,
@@ -81,7 +118,9 @@ pub trait VcRequesterModule:
     ) -> Outcome<()> {
         match vc_what_response? {
             VcWhatResponse::Issuance(uri) => self.manage_oid4vci(grant, &uri).await,
-            VcWhatResponse::Presentation(uri) => self.manage_oid4vp(&grant.id, grant.auto, &uri).await,
+            VcWhatResponse::Presentation(uri) => {
+                self.manage_auto_oid4vp(&grant.id, grant.auto, &uri).await
+            }
             VcWhatResponse::Wait => Ok(()),
         }
     }
@@ -99,21 +138,27 @@ pub trait VcRequesterModule:
 
         Ok(())
     }
-    async fn manage_oid4vp(&self, id: &str, auto: bool, uri: &str) -> Outcome<()> {
+    async fn manage_oid4vp(&self, mut verification: verification::Model, uri: &str) -> Outcome<()> {
+        match self.wallet().process_oid4vp(&uri).await {
+            Ok(_) => verification.status = VerificationStatus::Verified,
+            Err(_) => {
+                verification.status = VerificationStatus::Failed;
+            }
+        }
+        verification.ended_at = Some(Utc::now());
+        self.repo().sent_verification().update(verification).await?;
+        Ok(())
+    }
+
+    async fn manage_auto_oid4vp(&self, id: &str, auto: bool, uri: &str) -> Outcome<()> {
         let verification = self.vc_requester().build_verification_plan(&uri, id)?;
-        let mut verification = self.repo().sent_verification().create(verification).await?;
+        let verification = self.repo().sent_verification().create(verification).await?;
 
         if auto {
-            match self.wallet().process_oid4vp(&uri).await {
-                Ok(_) => verification.status = VerificationStatus::Verified,
-                Err(_) => {
-                    verification.status = VerificationStatus::Failed;
-                }
-            }
-            verification.ended_at = Some(Utc::now());
-            self.repo().sent_verification().update(verification).await?;
+            self.manage_oid4vp(verification, uri).await
+        } else {
+            Ok(())
         }
-        Ok(())
     }
 
     async fn req_vc_continuation(&self, id: String, payload: ApprovedCallbackBody) -> Outcome<()> {

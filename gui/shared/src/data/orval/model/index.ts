@@ -220,6 +220,7 @@ export * from './parameterDefinition';
 export * from './parameterDefinitionAutoFilledType';
 export * from './parameterDefinitionParamType';
 export * from './participantDto';
+export * from './participantDtoExtraFields';
 export * from './peerCatalogEntry';
 export * from './policyTemplateAllowedDefaultValues';
 export * from './policyTemplateDto';

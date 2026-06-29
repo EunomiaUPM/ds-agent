@@ -9,16 +9,5 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { ParticipantDtoExtraFields } from './participantDtoExtraFields';
 
-export interface ParticipantDto {
-  participant_id?: string;
-  participant_nick?: string;
-  participant_type?: string;
-  base_url?: string;
-  token?: string;
-  saved_at?: string;
-  last_interaction?: string;
-  extra_fields?: ParticipantDtoExtraFields;
-  is_me?: boolean;
-}
+export type ParticipantDtoExtraFields = { [key: string]: unknown };

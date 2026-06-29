@@ -36,7 +36,7 @@ use async_trait::async_trait;
 use common::config::types::roles::RoleConfig;
 use common::dsp_common::odrl::ContractRequestMessageOfferTypes;
 use common::errors::{CommonErrors, ErrorLog};
-use common::facades::Mates;
+use ymir::data::entities::shared::participant::Model as Mates;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::fmt::Debug;

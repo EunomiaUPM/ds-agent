@@ -118,7 +118,7 @@ impl PeerConnectorTrait for GnapPeerConnectorService {
         }
     }
 
-    fn build_verification_plan(&self, id: &str, uri: &str) -> Outcome<verification::Plan> {
+    fn build_verification_plan(&self, uri: &str, id: &str) -> Outcome<verification::Plan> {
         info!("Saving verification data");
 
         // url::Url doesn't accept custom schemes; rewrite to https just for parsing.

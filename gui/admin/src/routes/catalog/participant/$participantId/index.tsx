@@ -94,7 +94,7 @@ function RouteComponent() {
               {" "}
               {catalog.response?.title
                 ? catalog.response?.title
-                : `${participant?.participant_slug} Catalog `}
+                : `${participant?.participant_nick} Catalog `}
             </Heading>
             {participant?.participant_id === myAgent?.participant_id && (
               <Badge
@@ -123,7 +123,7 @@ function RouteComponent() {
                       <div className="catalog-participant-container flex gap-2 justify-start">
                         <Avatar sizeClass="h-7" />
                         <Heading level="h4" className="capitalize">
-                          {participant?.participant_slug}
+                          {participant?.participant_nick}
                         </Heading>
                       </div>
                     ),

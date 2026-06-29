@@ -24,7 +24,7 @@ use ymir::errors::Outcome;
 use super::MatesFacadeTrait;
 use crate::config::types::min_known_config::MinKnownConfig;
 use crate::config::types::traits::MinKnownConfigTrait;
-use crate::facades::Mates;
+use ymir::data::entities::shared::participant::Model as Mates;
 use crate::http_client::HttpClient;
 
 pub struct MatesFacadeService {

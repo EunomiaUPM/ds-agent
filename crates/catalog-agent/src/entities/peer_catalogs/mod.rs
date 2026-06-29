@@ -18,7 +18,7 @@
 pub(crate) mod peer_catalogs;
 
 use crate::protocols::dsp::types::catalog_definition::Catalog;
-use common::facades::Mates;
+use ymir::data::entities::shared::participant::Model as Mates;
 use ymir::errors::Outcome;
 
 #[async_trait::async_trait]

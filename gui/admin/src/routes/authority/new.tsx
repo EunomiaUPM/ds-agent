@@ -322,8 +322,8 @@ function NewAuthorityRequest() {
                                   const val = e.target.value;
                                   const known = knownAuthorities.find((a) => a.base_url === val);
                                   if (known) {
-                                    if (known.participant_slug) {
-                                      form.setValue("nick", known.participant_slug);
+                                    if (known.participant_nick) {
+                                      form.setValue("nick", known.participant_nick);
                                     }
                                     handleDiscovery(val);
                                   }
@@ -333,7 +333,7 @@ function NewAuthorityRequest() {
                             <datalist id="known-authorities">
                               {knownAuthorities.map((authority) => (
                                 <option key={authority.participant_id} value={authority.base_url}>
-                                  {authority.participant_slug || authority.participant_id}
+                                  {authority.participant_nick || authority.participant_id}
                                 </option>
                               ))}
                             </datalist>

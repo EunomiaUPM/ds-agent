@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { useOidc4vpRequest } from "shared/data/orval/wallet/wallet";
+import { useMutation } from "@tanstack/react-query";
+import { customInstance } from "shared/src/data/orval-mutator";
+import { toast } from "sonner";
 import { PageSection } from "shared/src/components/layout/PageSection";
 import { Input } from "shared/src/components/ui/input";
 import { Button } from "shared/src/components/ui/button";
@@ -12,16 +14,30 @@ import { ShieldCheck, Loader2 } from "lucide-react";
  */
 const Oidc4vpPage = () => {
   const [uri, setUri] = useState("");
-  const { mutateAsync: processVp, isPending, isSuccess, error } = useOidc4vpRequest();
+
+  const {
+    mutateAsync: processVp,
+    isPending,
+    isSuccess,
+    error,
+  } = useMutation({
+    mutationFn: (data: { uri: string }) =>
+      customInstance("/wallet/oidc4vp", { method: "POST", data }),
+    onSuccess: () => toast.success("Presentation submitted successfully"),
+    onError: (err) => {
+      const msg = err instanceof Error ? err.message : "Failed to process presentation request";
+      toast.error(msg);
+    },
+  });
 
   const handleProcess = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!uri) return;
     try {
-      await processVp({ data: { uri } });
+      await processVp({ uri });
       setUri("");
-    } catch (err) {
-      console.error(err);
+    } catch {
+      // already surfaced via onError toast
     }
   };
 

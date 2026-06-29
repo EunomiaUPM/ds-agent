@@ -20,7 +20,6 @@ use ymir::types::vcs::VcType;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct GaiaConfig {
-    pub active: bool,
     pub legal_person: LegalPersonInfo,
 }
 

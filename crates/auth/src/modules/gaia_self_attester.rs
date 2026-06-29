@@ -17,8 +17,10 @@
 
 use crate::services::HasGaiaSelfAttester;
 use async_trait::async_trait;
+use ymir::data::entities::wallet::vc;
 use ymir::errors::Outcome;
 use ymir::services::{HasIssuer, HasWallet};
+use ymir::types::issuance::VcBody;
 
 #[async_trait]
 pub trait GaiaSelfAttesterModule:
@@ -26,10 +28,16 @@ pub trait GaiaSelfAttesterModule:
 {
     async fn generate_gaia_vcs(&self) -> Outcome<()> {
         let legal_p = self.gaia().generate_legal_person().await?;
-        let terms = self.gaia().generate_legal_person().await?;
+        let terms = self.gaia().generate_terms_cons_vc().await?;
         let legal_p = self.issuer().sign_claims(&legal_p).await?;
         let terms = self.issuer().sign_claims(&terms).await?;
 
+        let legal_p = vc::Plan {
+            vc_body: VcBody::Jwt(legal_p),
+        };
+        let terms = vc::Plan {
+            vc_body: VcBody::Jwt(terms),
+        };
         self.wallet().store_vc(legal_p).await?;
         self.wallet().store_vc(terms).await?;
 

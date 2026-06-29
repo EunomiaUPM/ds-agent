@@ -37,6 +37,7 @@ import { Route as AuthorityIndexImport } from './routes/authority/index'
 import { Route as AgreementsIndexImport } from './routes/agreements/index'
 import { Route as WalletOidc4vpImport } from './routes/wallet/oidc4vp'
 import { Route as WalletOidc4vciImport } from './routes/wallet/oidc4vci'
+import { Route as WalletKeysImport } from './routes/wallet/keys'
 import { Route as WalletInfoImport } from './routes/wallet/info'
 import { Route as WalletDidImport } from './routes/wallet/did'
 import { Route as WalletCredentialsImport } from './routes/wallet/credentials'
@@ -219,6 +220,12 @@ const WalletOidc4vpRoute = WalletOidc4vpImport.update({
 const WalletOidc4vciRoute = WalletOidc4vciImport.update({
   id: '/oidc4vci',
   path: '/oidc4vci',
+  getParentRoute: () => WalletRouteRoute,
+} as any)
+
+const WalletKeysRoute = WalletKeysImport.update({
+  id: '/keys',
+  path: '/keys',
   getParentRoute: () => WalletRouteRoute,
 } as any)
 
@@ -590,6 +597,13 @@ declare module '@tanstack/react-router' {
       path: '/info'
       fullPath: '/wallet/info'
       preLoaderRoute: typeof WalletInfoImport
+      parentRoute: typeof WalletRouteImport
+    }
+    '/wallet/keys': {
+      id: '/wallet/keys'
+      path: '/keys'
+      fullPath: '/wallet/keys'
+      preLoaderRoute: typeof WalletKeysImport
       parentRoute: typeof WalletRouteImport
     }
     '/wallet/oidc4vci': {
@@ -1003,6 +1017,7 @@ interface WalletRouteRouteChildren {
   WalletCredentialsRoute: typeof WalletCredentialsRoute
   WalletDidRoute: typeof WalletDidRoute
   WalletInfoRoute: typeof WalletInfoRoute
+  WalletKeysRoute: typeof WalletKeysRoute
   WalletOidc4vciRoute: typeof WalletOidc4vciRoute
   WalletOidc4vpRoute: typeof WalletOidc4vpRoute
   WalletIndexRoute: typeof WalletIndexRoute
@@ -1012,6 +1027,7 @@ const WalletRouteRouteChildren: WalletRouteRouteChildren = {
   WalletCredentialsRoute: WalletCredentialsRoute,
   WalletDidRoute: WalletDidRoute,
   WalletInfoRoute: WalletInfoRoute,
+  WalletKeysRoute: WalletKeysRoute,
   WalletOidc4vciRoute: WalletOidc4vciRoute,
   WalletOidc4vpRoute: WalletOidc4vpRoute,
   WalletIndexRoute: WalletIndexRoute,
@@ -1050,6 +1066,7 @@ export interface FileRoutesByFullPath {
   '/wallet/credentials': typeof WalletCredentialsRoute
   '/wallet/did': typeof WalletDidRoute
   '/wallet/info': typeof WalletInfoRoute
+  '/wallet/keys': typeof WalletKeysRoute
   '/wallet/oidc4vci': typeof WalletOidc4vciRoute
   '/wallet/oidc4vp': typeof WalletOidc4vpRoute
   '/agreements/': typeof AgreementsIndexRoute
@@ -1090,6 +1107,7 @@ export interface FileRoutesByTo {
   '/wallet/credentials': typeof WalletCredentialsRoute
   '/wallet/did': typeof WalletDidRoute
   '/wallet/info': typeof WalletInfoRoute
+  '/wallet/keys': typeof WalletKeysRoute
   '/wallet/oidc4vci': typeof WalletOidc4vciRoute
   '/wallet/oidc4vp': typeof WalletOidc4vpRoute
   '/agreements': typeof AgreementsIndexRoute
@@ -1146,6 +1164,7 @@ export interface FileRoutesById {
   '/wallet/credentials': typeof WalletCredentialsRoute
   '/wallet/did': typeof WalletDidRoute
   '/wallet/info': typeof WalletInfoRoute
+  '/wallet/keys': typeof WalletKeysRoute
   '/wallet/oidc4vci': typeof WalletOidc4vciRoute
   '/wallet/oidc4vp': typeof WalletOidc4vpRoute
   '/agreements/': typeof AgreementsIndexRoute
@@ -1203,6 +1222,7 @@ export interface FileRouteTypes {
     | '/wallet/credentials'
     | '/wallet/did'
     | '/wallet/info'
+    | '/wallet/keys'
     | '/wallet/oidc4vci'
     | '/wallet/oidc4vp'
     | '/agreements/'
@@ -1242,6 +1262,7 @@ export interface FileRouteTypes {
     | '/wallet/credentials'
     | '/wallet/did'
     | '/wallet/info'
+    | '/wallet/keys'
     | '/wallet/oidc4vci'
     | '/wallet/oidc4vp'
     | '/agreements'
@@ -1296,6 +1317,7 @@ export interface FileRouteTypes {
     | '/wallet/credentials'
     | '/wallet/did'
     | '/wallet/info'
+    | '/wallet/keys'
     | '/wallet/oidc4vci'
     | '/wallet/oidc4vp'
     | '/agreements/'
@@ -1462,6 +1484,7 @@ export const routeTree = rootRoute
         "/wallet/credentials",
         "/wallet/did",
         "/wallet/info",
+        "/wallet/keys",
         "/wallet/oidc4vci",
         "/wallet/oidc4vp",
         "/wallet/"
@@ -1549,6 +1572,10 @@ export const routeTree = rootRoute
     },
     "/wallet/info": {
       "filePath": "wallet/info.tsx",
+      "parent": "/wallet"
+    },
+    "/wallet/keys": {
+      "filePath": "wallet/keys.tsx",
       "parent": "/wallet"
     },
     "/wallet/oidc4vci": {

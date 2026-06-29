@@ -1,6 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { customInstance } from "shared/src/data/orval-mutator";
+import { toast } from "sonner";
 import { PageSection } from "shared/src/components/layout/PageSection";
 import { Skeleton } from "shared/src/components/ui/skeleton";
 import { Button } from "shared/src/components/ui/button";
@@ -15,9 +16,10 @@ import {
   Calendar,
   Building2,
   Loader2,
-  Info,
   Trash2,
+  ArrowRight,
   Check,
+  Sparkles,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "shared/src/lib/utils";
@@ -27,7 +29,7 @@ interface VcsResponse {
   data: any[];
 }
 
-const COMPLIANCE_TYPES = [
+const REGISTRATION_TYPES = [
   "gx:Eori",
   "gx:Euid",
   "gx:LeiCode",
@@ -38,6 +40,19 @@ const COMPLIANCE_TYPES = [
   "TaxId",
   "VatId",
 ];
+const LEGAL_PERSON_TYPES = ["gx:LegalPerson", "LegalPerson"];
+const TC_TYPES = ["gx:TermsAndConditions", "TermsAndConditions"];
+const LABEL_TYPES = ["gx:LabelCredential", "LabelCredential"];
+
+const RECOMMENDED_REGISTRATION_VC = "gx_VatId_jwt_vc_json";
+const RECOMMENDED_COMPLIANCE_VC = "gx_LabelCredential_jwt_vc_json";
+
+function vcHasAny(vcs: any[], targets: string[]): boolean {
+  return vcs.some((vc) => {
+    const types: string[] = vc.parsed_document?.type || [];
+    return types.some((t) => targets.includes(t));
+  });
+}
 
 const WalletCredentials = () => {
   const queryClient = useQueryClient();
@@ -51,31 +66,36 @@ const WalletCredentials = () => {
   });
 
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generateSuccess, setGenerateSuccess] = useState(false);
 
   const credentials = response?.status === 200 ? response.data : [];
 
-  // Check if we have a registration number VC to enable Gaia-X generation
-  const hasRegistrationVC = credentials.some((vc: any) => {
-    const types = vc.parsedDocument?.type || [];
-    return types.some((t: string) => COMPLIANCE_TYPES.includes(t));
-  });
+  const hasRegistration = vcHasAny(credentials, REGISTRATION_TYPES);
+  const hasLegalPerson = vcHasAny(credentials, LEGAL_PERSON_TYPES);
+  const hasTermsAndConditions = vcHasAny(credentials, TC_TYPES);
+  const hasLabel = vcHasAny(credentials, LABEL_TYPES);
 
-  const hasGaiaLabel = credentials.some((vc: any) => {
-    const types = vc.parsedDocument?.type || [];
-    return types.some((t: string) => t === "gx:LabelCredential" || t === "LabelCredential");
-  });
+  // Pipeline step:
+  // 1) need registration VC from a legal authority
+  // 2) auto-generate self-attested LegalPerson + TermsAndConditions
+  // 3) request the compliance credential from a clearing house
+  // 4) compliant (LabelCredential held)
+  const step: 1 | 2 | 3 | 4 = hasLabel
+    ? 4
+    : hasRegistration && hasLegalPerson && hasTermsAndConditions
+      ? 3
+      : hasRegistration
+        ? 2
+        : 1;
 
   const handleGenerateGaia = async () => {
     setIsGenerating(true);
-    setGenerateSuccess(false);
     try {
-      await customInstance("/gaia/credential/generate", { method: "POST" });
-      setGenerateSuccess(true);
-      // Force an immediate refetch of the credentials list
+      await customInstance("/gaia/generate", { method: "POST" });
+      toast.success("Gaia-X self-issued credentials generated");
       await queryClient.invalidateQueries({ queryKey: ["wallet-vcs-custom"] });
     } catch (err) {
-      console.error("Error generating Gaia-X credentials:", err);
+      const msg = err instanceof Error ? err.message : "Failed to generate Gaia-X credentials";
+      toast.error(msg);
     } finally {
       setIsGenerating(false);
     }
@@ -84,9 +104,11 @@ const WalletCredentials = () => {
   const handleDeleteVc = async (id: string) => {
     try {
       await customInstance(`/wallet/credential/${id}`, { method: "DELETE" });
+      toast.success("Credential deleted");
       await queryClient.invalidateQueries({ queryKey: ["wallet-vcs-custom"] });
     } catch (err) {
-      console.error("Failed to delete VC:", err);
+      const msg = err instanceof Error ? err.message : "Failed to delete credential";
+      toast.error(msg);
     }
   };
 
@@ -114,75 +136,13 @@ const WalletCredentials = () => {
     <div className="space-y-8 pb-20">
       {/* Gaia-X Compliance Section */}
       <PageSection title="Gaia-X Compliance">
-        <div
-          className={cn(
-            "relative overflow-hidden p-6 rounded-2xl border transition-all duration-300",
-            hasGaiaLabel
-              ? "bg-green-500/10 border-green-500/20 shadow-lg"
-              : hasRegistrationVC
-                ? "bg-primary/5 border-primary/20 shadow-lg shadow-primary/5"
-                : "bg-white/2 border-white/5 opacity-80",
-          )}
-        >
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <ShieldCheck
-                  className={cn(
-                    "h-5 w-5",
-                    hasGaiaLabel
-                      ? "text-green-500"
-                      : hasRegistrationVC
-                        ? "text-primary"
-                        : "text-muted-foreground",
-                  )}
-                />
-                <h3 className="font-semibold text-lg">Gaia-X Framework Setup</h3>
-              </div>
-              <p className="text-sm text-muted-foreground max-w-xl">
-                {hasGaiaLabel
-                  ? "Your wallet is already Gaia-X compliant. You possess a valid LabelCredential."
-                  : "Generate the necessary Gaia-X compliant credentials based on your registration information. This will enable your participation in Gaia-X ecosystems."}
-              </p>
-              {generateSuccess && !hasGaiaLabel && (
-                <div className="flex items-center gap-2 text-xs font-medium text-green-500 animate-in fade-in slide-in-from-left-2">
-                  <Info className="h-3 w-3" />
-                  Gaia-X credentials generated successfully. You can now request your
-                  LabelCredential.
-                </div>
-              )}
-            </div>
-
-            <Button
-              disabled={hasGaiaLabel || !hasRegistrationVC || isGenerating}
-              onClick={handleGenerateGaia}
-              className="md:min-w-[200px]"
-              variant={hasGaiaLabel ? "outline" : hasRegistrationVC ? "default" : "secondary"}
-            >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Generating...
-                </>
-              ) : hasGaiaLabel ? (
-                <>
-                  <Check className="mr-2 h-4 w-4 text-green-500" />
-                  Compliance Active
-                </>
-              ) : (
-                "Setup Gaia-X Compliance"
-              )}
-            </Button>
-          </div>
-
-          {!hasRegistrationVC && !hasGaiaLabel && (
-            <div className="mt-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[10px] text-amber-500 flex items-center gap-2 font-mono">
-              <ShieldAlert className="h-3 w-3" />
-              REQUIREMENT: You need an EORI, TaxID, or VAT registration credential to enable this
-              action.
-            </div>
-          )}
-        </div>
+        <ComplianceStepCard
+          step={step}
+          isGenerating={isGenerating}
+          onGenerate={handleGenerateGaia}
+          flags={{ hasRegistration, hasLegalPerson, hasTermsAndConditions, hasLabel }}
+        />
+        <StepTrail step={step} />
       </PageSection>
 
       {/* Credentials List */}
@@ -208,14 +168,17 @@ const WalletCredentials = () => {
 const CredentialCard = ({ vc, onDelete }: { vc: any; onDelete: (id: string) => Promise<void> }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const parsed = vc.parsedDocument || {};
+  const parsed = vc.parsed_document || {};
   const issuerName = parsed.issuer?.name || parsed.issuer?.id || "Unknown Issuer";
   const types = (parsed.type || []).filter((t: string) => t !== "VerifiableCredential");
   const displayType = types.length > 0 ? types[types.length - 1] : "Credential";
 
-  // Format dates
-  const addedDate = vc.addedOn ? new Date(vc.addedOn).toLocaleDateString() : "N/A";
-  const validUntil = parsed.validUntil ? new Date(parsed.validUntil).toLocaleDateString() : "Never";
+  // Format dates. `added_on` and `valid_until` come from the entity; `validUntil` may
+  // also live inside the parsed VC document depending on the issuer.
+  const addedRaw = vc.added_on ?? vc.addedOn;
+  const addedDate = addedRaw ? new Date(addedRaw).toLocaleDateString() : "N/A";
+  const validRaw = vc.valid_until ?? parsed.validUntil ?? parsed.expirationDate;
+  const validUntil = validRaw ? new Date(validRaw).toLocaleDateString() : "Never";
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -345,6 +308,218 @@ const CredentialCard = ({ vc, onDelete }: { vc: any; onDelete: (id: string) => P
           </div>
         </div>
       </div>
+    </div>
+  );
+};
+
+interface ComplianceFlags {
+  hasRegistration: boolean;
+  hasLegalPerson: boolean;
+  hasTermsAndConditions: boolean;
+  hasLabel: boolean;
+}
+
+const ComplianceStepCard = ({
+  step,
+  isGenerating,
+  onGenerate,
+  flags,
+}: {
+  step: 1 | 2 | 3 | 4;
+  isGenerating: boolean;
+  onGenerate: () => void;
+  flags: ComplianceFlags;
+}) => {
+  const wrapper = cn(
+    "relative overflow-hidden p-6 rounded-2xl border transition-all duration-300",
+    step === 4
+      ? "bg-green-500/10 border-green-500/20 shadow-lg"
+      : step === 1
+        ? "bg-white/2 border-white/5 opacity-90"
+        : "bg-primary/5 border-primary/20 shadow-lg shadow-primary/5",
+  );
+
+  return (
+    <div className={wrapper}>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <ShieldCheck
+              className={cn(
+                "h-5 w-5",
+                step === 4 ? "text-green-500" : step === 1 ? "text-muted-foreground" : "text-primary",
+              )}
+            />
+            <h3 className="font-semibold text-lg">{stepTitle(step)}</h3>
+            <Badge variant="info" className="font-mono text-[10px]">
+              Step {step} of 4
+            </Badge>
+          </div>
+          <p className="text-sm text-muted-foreground max-w-xl">{stepDescription(step)}</p>
+        </div>
+
+        <StepCta step={step} isGenerating={isGenerating} onGenerate={onGenerate} />
+      </div>
+
+      {step === 1 && (
+        <Hint
+          tone="amber"
+          text="REQUIREMENT: pick a credential type like VatId, TaxId or LeiCode from a legal authority."
+        />
+      )}
+      {step === 2 && !flags.hasLegalPerson && !flags.hasTermsAndConditions && (
+        <Hint
+          tone="primary"
+          text="The wallet will self-issue gx:LegalPerson and gx:TermsAndConditions on top of your registration credential."
+        />
+      )}
+      {step === 3 && (
+        <Hint
+          tone="primary"
+          text="Ask a clearing house to issue a LabelCredential signing your self-attested data."
+        />
+      )}
+    </div>
+  );
+};
+
+const StepCta = ({
+  step,
+  isGenerating,
+  onGenerate,
+}: {
+  step: 1 | 2 | 3 | 4;
+  isGenerating: boolean;
+  onGenerate: () => void;
+}) => {
+  if (step === 1) {
+    return (
+      <Link to="/authority/new" search={{ recommended: RECOMMENDED_REGISTRATION_VC } as any}>
+        <Button className="md:min-w-[220px]">
+          Request VC
+          <ArrowRight className="ml-2 h-4 w-4" />
+        </Button>
+      </Link>
+    );
+  }
+  if (step === 2) {
+    return (
+      <Button
+        disabled={isGenerating}
+        onClick={onGenerate}
+        className="md:min-w-[220px]"
+      >
+        {isGenerating ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Generating...
+          </>
+        ) : (
+          <>
+            <Sparkles className="mr-2 h-4 w-4" />
+            Auto-generate VCs
+          </>
+        )}
+      </Button>
+    );
+  }
+  if (step === 3) {
+    return (
+      <Link to="/authority/new" search={{ recommended: RECOMMENDED_COMPLIANCE_VC } as any}>
+        <Button className="md:min-w-[220px]">
+          Request Compliance
+          <ArrowRight className="ml-2 h-4 w-4" />
+        </Button>
+      </Link>
+    );
+  }
+  return (
+    <Button variant="outline" disabled className="md:min-w-[220px]">
+      <Check className="mr-2 h-4 w-4 text-green-500" />
+      Compliance Active
+    </Button>
+  );
+};
+
+function stepTitle(step: 1 | 2 | 3 | 4) {
+  switch (step) {
+    case 1:
+      return "Get your legal identity credential";
+    case 2:
+      return "Self-issue Gaia-X base credentials";
+    case 3:
+      return "Request the compliance credential";
+    case 4:
+      return "You are Gaia-X compliant";
+  }
+}
+
+function stepDescription(step: 1 | 2 | 3 | 4) {
+  switch (step) {
+    case 1:
+      return "Pick a registration credential (VatId, TaxId, LEI, EORI, ...) from a trusted authority. This anchors your legal identity.";
+    case 2:
+      return "Generate the two self-issued credentials (LegalPerson and TermsAndConditions) that Gaia-X requires on top of your registration data.";
+    case 3:
+      return "With registration + self-issued credentials in hand, a clearing house can now sign your LabelCredential.";
+    case 4:
+      return "Your wallet holds a valid LabelCredential. You can participate in Gaia-X workflows.";
+  }
+}
+
+const Hint = ({ tone, text }: { tone: "amber" | "primary"; text: string }) => {
+  const cls =
+    tone === "amber"
+      ? "bg-amber-500/10 border-amber-500/20 text-amber-500"
+      : "bg-primary/10 border-primary/20 text-primary";
+  return (
+    <div className={cn("mt-4 p-3 rounded-lg text-[10px] flex items-center gap-2 font-mono border", cls)}>
+      <ShieldAlert className="h-3 w-3" />
+      {text}
+    </div>
+  );
+};
+
+const StepTrail = ({ step }: { step: 1 | 2 | 3 | 4 }) => {
+  const items: { n: 1 | 2 | 3 | 4; label: string }[] = [
+    { n: 1, label: "Registration" },
+    { n: 2, label: "Self-issued" },
+    { n: 3, label: "Compliance" },
+    { n: 4, label: "Compliant" },
+  ];
+  return (
+    <div className="mt-4 flex items-center gap-2">
+      {items.map((it, idx) => {
+        const done = it.n < step;
+        const current = it.n === step;
+        return (
+          <div key={it.n} className="flex items-center gap-2">
+            <div
+              className={cn(
+                "h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold border",
+                done
+                  ? "bg-green-500/20 border-green-500/40 text-green-500"
+                  : current
+                    ? "bg-primary/20 border-primary/40 text-primary"
+                    : "bg-white/5 border-white/10 text-muted-foreground",
+              )}
+            >
+              {done ? <Check className="h-3 w-3" /> : it.n}
+            </div>
+            <span
+              className={cn(
+                "text-[10px] uppercase tracking-widest",
+                current ? "text-primary font-bold" : "text-muted-foreground",
+              )}
+            >
+              {it.label}
+            </span>
+            {idx < items.length - 1 && (
+              <div className="h-px w-6 bg-white/10" aria-hidden />
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 };

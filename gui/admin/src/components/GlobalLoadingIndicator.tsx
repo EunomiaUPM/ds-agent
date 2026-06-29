@@ -1,22 +1,25 @@
-import { useIsFetching } from "@tanstack/react-query";
+import { useIsFetching, useIsMutating } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 /**
- * Global loading indicator component that shows when queries are fetching.
+ * Global loading indicator component that shows when queries are fetching
+ * or any mutation is in flight.
  */
 export function GlobalLoadingIndicator() {
   const isFetching = useIsFetching();
+  const isMutating = useIsMutating();
+  const inFlight = isFetching + isMutating;
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (isFetching > 0) {
+    if (inFlight > 0) {
       setVisible(true);
     } else {
       const timer = setTimeout(() => setVisible(false), 500);
       return () => clearTimeout(timer);
     }
-  }, [isFetching]);
+  }, [inFlight]);
 
   if (!visible) return null;
 

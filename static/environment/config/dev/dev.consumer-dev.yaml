@@ -4,18 +4,29 @@
 http_host: &http_host
   protocol: 'http'
   url: '127.0.0.1'
-  port: '1200'
+  port: '1100'
   internal_port: null
 
-min_hosts: &min_hosts
+min_http_host: &min_http_host
+  protocol: 'http'
+  url: '127.0.0.1'
+  port: '1100'
+  internal_port: null
+
+hosts_default: &hosts_default
   http: *http_host
+  grpc: null
+  graphql: null
+
+min_hosts_default: &min_hosts_default
+  http: *min_http_host
   grpc: null
   graphql: null
 
 api_version: &api_version 'v1'
 
 min_known_config: &min_known_config
-  hosts: *min_hosts
+  hosts: *min_hosts_default
   api_version: *api_version
 
 is_catalog_datahub: &is_catalog_datahub false
@@ -25,27 +36,21 @@ policy_templates_folder: &policy_templates_folder './../../static/policy_templat
 cache_config: &cache_config
   cache_type: Redis
   url: '127.0.0.1'
-  port: '6379'
+  port: '6380'
   user: 'default'
-  password: 'ds_core_provider_redis'
+  password: 'ds_core_consumer_redis'
 
 common_config: &common_config
-  hosts:
-    http:
-      protocol: 'http'
-      url: '127.0.0.1'
-      port: '1200'
-      internal_port: null
-    grpc: null
-    graphql: null
+  hosts: *hosts_default
   db:
     db_type: Postgres
     url: '127.0.0.1'
-    port: '1400'
+    port: '1300'
   api:
     version: *api_version
     openapi_path: './../../static/specs/openapi/merged_openapi.json'
   connection:
+    is_local: true
     is_prod: false
     is_vault_real: false
     has_tls_proxy: false
@@ -81,29 +86,30 @@ ssi_auth:
       http:
         protocol: 'http'
         url: '127.0.0.1'
-        port: '7002'
+        port: '7001'
       grpc: null
       graphql: null
   client_config:
-    class_id: 'Provider'
+    class_id: 'Consumer'
     display: null
   verify_req_config:
     is_cert_allowed: false
     auto_approve_cert: false
-    vcs_requested: [ DataSpaceParticipant ]
+    vcs_requested: [DataSpaceParticipant]
   did_config:
-    # type: Jwk
-    type: Web
-    domain: '127.0.0.1'
-    path:
-    port: '1200'
+    type: Jwk
+  #  did_config:
+  #    type: Web
+  #    domain: '127.0.0.1'
+  #    path:
+  #    port: '1100'
   gaia_config:
     legal_person:
-      name: "EunomiaProvider"
-      description: "Provider node for the Eunomia DataSpace"
+      name: "EunomiaConsumer"
+      description: "Consumer node for the Eunomia dataspace demo"
       registration_number:
         kind: "VatId"
-        value: "VATES-987654321"
+        value: "VATES-123456789"
         country_code: "ES"
         # subdivision_country_code: "ES-M"
       legal_address:

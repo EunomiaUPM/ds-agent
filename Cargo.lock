@@ -816,25 +816,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "19d374276b40fb8bbdee95aef7c7fa6b5316ec764510eb64b8dd0e2ed0d7e7f5"
 
 [[package]]
-name = "crossbeam-deque"
-version = "0.8.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9dd111b7b7f7d55b72c0a6ae361660ee5853c9af73f70c3c2ef6858b950e2e51"
-dependencies = [
- "crossbeam-epoch",
- "crossbeam-utils",
-]
-
-[[package]]
-name = "crossbeam-epoch"
-version = "0.9.18"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5b82ac4a3c2ca9c3460964f020e1402edd5753411d7737aa39c3714ad1b5420e"
-dependencies = [
- "crossbeam-utils",
-]
-
-[[package]]
 name = "crossbeam-queue"
 version = "0.3.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1316,7 +1297,6 @@ checksum = "8b147ee9d1f6d097cef9ce628cd2ee62288d963e16fb287bd9286455b241382d"
 dependencies = [
  "futures-channel",
  "futures-core",
- "futures-executor",
  "futures-io",
  "futures-sink",
  "futures-task",
@@ -1396,7 +1376,6 @@ version = "0.3.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "389ca41296e6190b48053de0321d02a77f32f8a5d2461dd38762c0593805c6d6"
 dependencies = [
- "futures-channel",
  "futures-core",
  "futures-io",
  "futures-macro",
@@ -2990,26 +2969,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "63b8176103e19a2643978565ca18b50549f6101881c443590420e4dc998a3c69"
 
 [[package]]
-name = "rayon"
-version = "1.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb39b166781f92d482534ef4b4b1b2568f42613b53e5b6c160e24cfbfa30926d"
-dependencies = [
- "either",
- "rayon-core",
-]
-
-[[package]]
-name = "rayon-core"
-version = "1.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22e18b0f0062d30d4230b2e85ff77fdfe4326feb054b9783a3460d8435c8ab91"
-dependencies = [
- "crossbeam-deque",
- "crossbeam-utils",
-]
-
-[[package]]
 name = "redis"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3480,9 +3439,9 @@ dependencies = [
 
 [[package]]
 name = "sea-orm"
-version = "1.1.17"
+version = "1.1.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "699b1ec145a6530c8f862eed7529d8a6068392e628d81cc70182934001e9c2a3"
+checksum = "6d945f62558fac19e5988680d2fdf747b734c2dbc6ce2cb81ba33ed8dde5b103"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -3510,9 +3469,9 @@ dependencies = [
 
 [[package]]
 name = "sea-orm-cli"
-version = "1.1.17"
+version = "1.1.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "500cd31ebb07814d4c7b73796708bfab6c13d22f8db072cdb5115f967f4d5d2c"
+checksum = "da80ebcdb44571e86f03a2bdcb5532136a87397f366f38bbce64673fc5e6a450"
 dependencies = [
  "chrono",
  "clap",
@@ -3526,9 +3485,9 @@ dependencies = [
 
 [[package]]
 name = "sea-orm-macros"
-version = "1.1.17"
+version = "1.1.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0c964f4b7f34f53decf381bc88f03187b9355e07f356ce65544626e781a9585"
+checksum = "9b9a3f90e336ec74803e8eb98c61bc98754c1adfba3b4f84d946237b752b1c88"
 dependencies = [
  "heck 0.5.0",
  "proc-macro2",
@@ -3540,9 +3499,9 @@ dependencies = [
 
 [[package]]
 name = "sea-orm-migration"
-version = "1.1.17"
+version = "1.1.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "977e3f71486b04371026d1ecd899f49cf437f832cd11d463f8948ee02e47ed9e"
+checksum = "7315c0cadb7e60fb17ee2bb282aa27d01911fc2a7e5836ec1d4ac37d19250bb4"
 dependencies = [
  "async-trait",
  "clap",
@@ -5544,7 +5503,8 @@ checksum = "cfe53a6657fd280eaa890a3bc59152892ffa3e30101319d168b781ed6529b049"
 
 [[package]]
 name = "ymir"
-version = "0.7.0"
+version = "0.8.0"
+source = "git+https://github.com/EunomiaUPM/ymir.git?tag=v0.8.1#5d899e17789e9f95c87c5196adc39c2575934cb1"
 dependencies = [
  "async-trait",
  "axum",
@@ -5552,12 +5512,9 @@ dependencies = [
  "bs58",
  "chrono",
  "ed25519-dalek",
- "futures",
- "hex",
  "json-canon",
  "pkcs8 0.11.0",
  "rand 0.8.5",
- "rayon",
  "reqwest 0.13.3",
  "rsa",
  "sea-orm",

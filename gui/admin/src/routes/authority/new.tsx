@@ -43,6 +43,16 @@ interface DidService {
   serviceEndpoint: string;
 }
 
+/**
+ * `host.docker.internal` doesn't resolve in the browser running on the host.
+ * Rewrite only the host portion to `127.0.0.1` for the browser-side fetch.
+ * The original URL (with the docker hostname) is what the form keeps and what
+ * the backend ultimately receives — the backend lives inside docker and can
+ * resolve `host.docker.internal` natively.
+ */
+const toBrowserHost = (url: string): string =>
+  url.replace(/(^https?:\/\/)host\.docker\.internal/, "$1127.0.0.1");
+
 const DEMO_AUTHORITY_URL = "https://dev-dataspaces.dit.upm.es";
 const DEMO_AUTHORITY_NICK = "Heimdall";
 const DEMO_VC_TYPE_ID = "DataSpaceParticipant_jwt_vc_json";
@@ -155,13 +165,14 @@ function NewAuthorityRequest() {
     setDiscoveryError(null);
     try {
       const cleanUrl = targetUrl.replace(/\/$/, "");
+      const fetchUrl = toBrowserHost(cleanUrl);
 
-      const didResponse = await fetch(`${cleanUrl}/.well-known/did.json`);
+      const didResponse = await fetch(`${fetchUrl}/.well-known/did.json`);
       if (!didResponse.ok) throw new Error("Failed to fetch DID document");
       const didJson = await didResponse.json();
       const id = didJson.id;
 
-      const issuerResponse = await fetch(`${cleanUrl}/.well-known/openid-credential-issuer`);
+      const issuerResponse = await fetch(`${fetchUrl}/.well-known/openid-credential-issuer`);
       if (!issuerResponse.ok) throw new Error("Failed to fetch Credential Issuer configuration");
       const issuerJson = await issuerResponse.json();
 
@@ -357,6 +368,18 @@ function NewAuthorityRequest() {
                           <FormDescription>
                             Example: http://host.docker.internal:1500
                           </FormDescription>
+                          {url && url.includes("host.docker.internal") && (
+                            <p className="text-[10px] text-muted-foreground mt-1 flex items-start gap-1">
+                              <Info className="h-3 w-3 mt-0.5 shrink-0" />
+                              <span>
+                                Browser fetch will use{" "}
+                                <code className="font-mono text-[10px]">127.0.0.1</code> — the back
+                                receives{" "}
+                                <code className="font-mono text-[10px]">host.docker.internal</code>{" "}
+                                unchanged.
+                              </span>
+                            </p>
+                          )}
                         </FormItem>
                       )}
                     />

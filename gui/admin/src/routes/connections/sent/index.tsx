@@ -122,6 +122,7 @@ function SentConnectionsPage() {
           className="text-sm text-white"
           data={requests}
           keyExtractor={(r) => r.id}
+          emptyMessage="No outgoing connections yet"
           columns={[
             {
               header: (

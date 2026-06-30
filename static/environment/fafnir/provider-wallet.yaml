@@ -1,0 +1,18 @@
+http_host: &http_host
+  protocol: 'http'
+  url: '127.0.0.1'
+  port: null
+  internal_port: '7001'
+
+hosts:
+  http: *http_host
+  grpc: null
+  graphql: null
+
+db_config:
+  db_type: Postgres
+  url: 'provider-db'
+  port: '5432'
+
+is_docker: true
+is_vault_real: false

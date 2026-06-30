@@ -75,6 +75,13 @@ export interface DataTableProps<T> {
 
   /** Additional CSS class for the table */
   className?: string;
+
+  /**
+   * Message shown when `data` is empty. Defaults to a generic
+   * "Nothing here yet". Pass a domain-specific phrase for clarity
+   * (e.g. "No connections yet", "No credential requests yet").
+   */
+  emptyMessage?: React.ReactNode;
 }
 
 // =============================================================================
@@ -100,6 +107,7 @@ export function DataTable<T>({
   keyExtractor,
   onRowClick,
   className,
+  emptyMessage,
 }: DataTableProps<T>) {
   return (
     <Table className={className} containerClassName="overflow-visible">
@@ -116,20 +124,31 @@ export function DataTable<T>({
 
       {/* Table body */}
       <TableBody>
-        {data.map((item) => (
-          <TableRow
-            key={keyExtractor(item)}
-            onClick={() => onRowClick && onRowClick(item)}
-            className={onRowClick ? "cursor-pointer hover:bg-muted/50" : ""}
-          >
-            {columns.map((col, index) => (
-              <TableCell key={index} className={col.className + " text-white [&>p]:text-white"}>
-                {/* Use custom cell renderer if provided, otherwise use accessorKey */}
-                {col.cell ? col.cell(item) : (item[col.accessorKey!] as React.ReactNode)}
-              </TableCell>
-            ))}
+        {data.length === 0 ? (
+          <TableRow className="hover:bg-transparent">
+            <TableCell
+              colSpan={columns.length}
+              className="text-center text-muted-foreground italic text-sm py-10"
+            >
+              {emptyMessage ?? "Nothing here yet"}
+            </TableCell>
           </TableRow>
-        ))}
+        ) : (
+          data.map((item) => (
+            <TableRow
+              key={keyExtractor(item)}
+              onClick={() => onRowClick && onRowClick(item)}
+              className={onRowClick ? "cursor-pointer hover:bg-muted/50" : ""}
+            >
+              {columns.map((col, index) => (
+                <TableCell key={index} className={col.className + " text-white [&>p]:text-white"}>
+                  {/* Use custom cell renderer if provided, otherwise use accessorKey */}
+                  {col.cell ? col.cell(item) : (item[col.accessorKey!] as React.ReactNode)}
+                </TableCell>
+              ))}
+            </TableRow>
+          ))
+        )}
       </TableBody>
     </Table>
   );

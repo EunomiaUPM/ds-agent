@@ -131,6 +131,7 @@ function AuthorityRequestsPage() {
           className="text-sm"
           data={requests}
           keyExtractor={(a) => a.id}
+          emptyMessage="No credential requests yet"
           columns={[
             {
               header: (

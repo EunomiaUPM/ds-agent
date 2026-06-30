@@ -328,6 +328,7 @@ impl GateKeeperTrait for GnapGateKeeperService {
                     Ok(InteractionFinishResponse::Success(Some(uri)))
                 }
                 Err(e) => {
+                    e.log();
                     let uri = format!("{}?rejected={}", interaction.callback_uri, e);
                     Ok(InteractionFinishResponse::Failure(Some(uri)))
                 }
@@ -341,12 +342,15 @@ impl GateKeeperTrait for GnapGateKeeperService {
                         }),
                         true,
                     ),
-                    Err(e) => (
-                        CallbackBody::Rejected(RejectedCallbackBody {
-                            rejected: e.to_string(),
-                        }),
-                        false,
-                    ),
+                    Err(e) => {
+                        e.log();
+                        (
+                            CallbackBody::Rejected(RejectedCallbackBody {
+                                rejected: e.to_string(),
+                            }),
+                            false,
+                        )
+                    }
                 };
 
                 http_client()

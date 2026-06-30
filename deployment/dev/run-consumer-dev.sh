@@ -66,6 +66,15 @@ cp -r ../../gui/admin/dist/* ./src/static/admin/dist/
 
 echo -e "\033[0;32mFrontend built and copied successfully\033[0m"
 
+# 3.5. Wait for fafnir-wallet
+echo -e "\033[0;36mWaiting for fafnir-wallet to be ready...\033[0m"
+WALLET_URL="http://localhost:7001/readiness"   # 7002 en provider
+until curl -fs "$WALLET_URL" > /dev/null 2>&1; do
+    sleep 2
+done
+echo -e "\033[0;32mfafnir-wallet ready\033[0m"
+
+
 # =========================
 # 6. Backend setup
 # =========================
@@ -80,5 +89,4 @@ cargo run setup -e ../../static/environment/config/dev/dev.consumer.yaml
 # =========================
 echo -e "\033[0;36mStarting consumer...\033[0m"
 
-cargo watch \
-  -x "run start -e ../../static/environment/config/dev/dev.consumer.yaml"
+cargo watch -i "vault/*" -x "run start -e ../../static/environment/config/dev/dev.consumer.yaml"

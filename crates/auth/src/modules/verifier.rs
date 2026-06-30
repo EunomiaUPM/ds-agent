@@ -34,6 +34,7 @@ pub trait VerifierModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync + 
         state: String,
         payload: VerifyPayload,
     ) -> Outcome<InteractionFinishResponse> {
+        println!("{:#?}", payload.vp_token);
         let mut verification = self.repo().recv_verification().get_by_state(&state).await?;
         let verification_result = self
             .verifier()

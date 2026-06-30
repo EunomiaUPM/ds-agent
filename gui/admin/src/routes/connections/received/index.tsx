@@ -78,6 +78,7 @@ function ReceivedConnectionsPage() {
         className="text-sm text-white"
         data={requests}
         keyExtractor={(r) => r.id}
+        emptyMessage="No incoming connections yet"
         columns={[
           {
             header: (

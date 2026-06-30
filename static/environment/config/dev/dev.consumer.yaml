@@ -7,7 +7,7 @@ http_host: &http_host
   port: '1100'
   internal_port: null
 
-hosts_default: &hosts_default
+min_hosts: &min_hosts
   http: *http_host
   grpc: null
   graphql: null
@@ -15,7 +15,7 @@ hosts_default: &hosts_default
 api_version: &api_version 'v1'
 
 min_known_config: &min_known_config
-  hosts: *hosts_default
+  hosts: *min_hosts
   api_version: *api_version
 
 is_catalog_datahub: &is_catalog_datahub false
@@ -30,7 +30,14 @@ cache_config: &cache_config
   password: 'ds_core_consumer_redis'
 
 common_config: &common_config
-  hosts: *hosts_default
+  hosts:
+    http:
+      protocol: 'http'
+      url: '127.0.0.1'
+      port: '1100'
+      internal_port: null
+    grpc: null
+    graphql: null
   db:
     db_type: Postgres
     url: '127.0.0.1'
@@ -39,7 +46,6 @@ common_config: &common_config
     version: *api_version
     openapi_path: './../../static/specs/openapi/merged_openapi.json'
   connection:
-    is_local: true
     is_prod: false
     is_vault_real: false
     has_tls_proxy: false
@@ -70,29 +76,49 @@ catalog:
 ssi_auth:
   common_config: *common_config
   wallet_config:
+    wallet: Fafnir
     api:
-      protocol: 'http'
-      url: '127.0.0.1'
-      port: '7001'
-    id: null
+      http:
+        protocol: 'http'
+        url: '127.0.0.1'
+        port: '7001'
+      grpc: null
+      graphql: null
   client_config:
     class_id: 'Consumer'
     display: null
-  vc_config:
-    vc_model: JwtVc
-    w3c_data_model: V2
   verify_req_config:
     is_cert_allowed: false
     auto_approve_cert: false
-    vcs_requested: [DataSpaceParticipant]
-  gaia_config:
-    active: true
+    vcs_requested: [ DataSpaceParticipant ]
   did_config:
-    did: 'did:jwk:...'
-    type: Jwk
-    did_web_options: null
-    #    domain: "CHANGE_ME"
-    #    path: null
+    # type: Jwk
+    type: Web
+    domain: '127.0.0.1'
+    path:
+    port: '1100'
+  gaia_config:
+    legal_person:
+      name: "EunomiaConsumer"
+      description: "Consumer node for the Eunomia DataSpace"
+      registration_number:
+        kind: "VatId"
+        value: "VATES-123456789"
+        country_code: "ES"
+        # subdivision_country_code: "ES-M"
+      legal_address:
+        country_code: "ES"
+        country_name: "Spain"
+        locality: "Madrid"
+        postal_code: "28040"
+        street_address: "Av. Complutense, 30, Moncloa - Aravaca"
+      headquarters_address:
+        country_code: "ES"
+        country_name: "Spain"
+        locality: "Madrid"
+        postal_code: "28040"
+        street_address: "Av. Complutense, 30, Moncloa - Aravaca"
+
 
 # ==========================
 # CONTRACTS

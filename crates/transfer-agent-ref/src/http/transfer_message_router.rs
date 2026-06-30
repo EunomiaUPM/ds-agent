@@ -18,20 +18,22 @@
 use std::sync::Arc;
 
 use axum::extract::rejection::JsonRejection;
-use axum::extract::{FromRef, Path, Query, State};
+use axum::extract::{FromRef, OriginalUri, Path, Query, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::routing::get;
 use axum::{Json, Router};
 use serde::Deserialize;
-use ymir::errors::AppResult;
+use ymir::errors::{AppResult, Errors};
 use ymir::utils::{extract_path_urn, extract_payload};
 
 use common::auth::claims::Role;
 use common::auth::rbac::Rbac;
 
 use crate::entities::commands::NewTransferMessageCommand;
-use crate::entities::query::{Page, Paginated, Sort, TransferMessageFilter};
-use crate::http::extractors::{AuthClaims, ExtractedHeaders};
+use crate::entities::query::{
+    Page, Paginated, Sort, TransferMessageFilter, clamp_limit, validate_date_range,
+};
+use crate::http::extractors::{AuthClaims, ExtractedHeaders, tenant_matches};
 use crate::services::transfer_message::TransferMessageServiceTrait;
 use crate::services::transfer_message::views::TransferMessageView;
 
@@ -72,7 +74,7 @@ impl TransferMessageRouter {
     ) -> AppResult<(HeaderMap, Json<Paginated<TransferMessageView>>)> {
         Rbac::require_read(&auth, headers.tenant_id.as_str())?;
         let tenant_filter = (auth.role != Role::Admin).then(|| headers.tenant_id.clone());
-        let (filter, page, sort) = q.into_domain(tenant_filter);
+        let (filter, page, sort) = q.into_domain(tenant_filter)?;
         let result = state.service.get_all(&filter, &page, &sort).await?;
         let response_headers = headers.response_headers_paged(result.total);
         Ok((response_headers, Json(result)))
@@ -88,7 +90,7 @@ impl TransferMessageRouter {
         Rbac::require_read(&auth, headers.tenant_id.as_str())?;
         let process_urn = extract_path_urn(&process_id)?;
         let tenant_filter = (auth.role != Role::Admin).then(|| headers.tenant_id.clone());
-        let (filter, page, sort) = q.into_domain(tenant_filter);
+        let (filter, page, sort) = q.into_domain(tenant_filter)?;
         let result = state
             .service
             .get_all_by_process(&process_urn, &filter, &page, &sort)
@@ -106,6 +108,9 @@ impl TransferMessageRouter {
         Rbac::require_read(&auth, headers.tenant_id.as_str())?;
         let urn = extract_path_urn(&id)?;
         let view = state.service.get_one(&urn).await?;
+        if !tenant_matches(auth.role, &headers.tenant_id, &view.tenant_id) {
+            return Err(not_found(&id));
+        }
         Ok((headers.response_headers(), Json(view)))
     }
 
@@ -113,15 +118,19 @@ impl TransferMessageRouter {
         State(state): State<Self>,
         auth: AuthClaims,
         headers: ExtractedHeaders,
+        OriginalUri(uri): OriginalUri,
         payload: Result<Json<NewTransferMessageCommand>, JsonRejection>,
     ) -> AppResult<(StatusCode, HeaderMap, Json<TransferMessageView>)> {
         Rbac::require_write(&auth, headers.tenant_id.as_str())?;
         let mut payload = extract_payload(payload)?;
-        if payload.tenant_id.is_none() {
+        // Non-admins can only create within their own tenant; the body cannot override it.
+        if auth.role != Role::Admin || payload.tenant_id.is_none() {
             payload.tenant_id = Some(headers.tenant_id.clone());
         }
         let view = state.service.create(&payload).await?;
-        Ok((StatusCode::CREATED, headers.response_headers(), Json(view)))
+        let mut response_headers = headers.response_headers();
+        insert_location(&mut response_headers, uri.path(), &view.id.to_string());
+        Ok((StatusCode::CREATED, response_headers, Json(view)))
     }
 
     async fn handle_delete(
@@ -132,8 +141,28 @@ impl TransferMessageRouter {
     ) -> AppResult<(StatusCode, HeaderMap)> {
         Rbac::require_write(&auth, headers.tenant_id.as_str())?;
         let urn = extract_path_urn(&id)?;
+        // Verify tenant ownership before deleting; surfaces 404 for missing/foreign records.
+        if auth.role != Role::Admin {
+            let existing = state.service.get_one(&urn).await?;
+            if !tenant_matches(auth.role, &headers.tenant_id, &existing.tenant_id) {
+                return Err(not_found(&id));
+            }
+        }
         state.service.delete(&urn).await?;
         Ok((StatusCode::NO_CONTENT, headers.response_headers()))
+    }
+}
+
+#[allow(clippy::result_large_err)]
+fn not_found(id: &str) -> Errors {
+    Errors::missing_resource(id, "transfer message not found", None)
+}
+
+/// Sets `Location: <collection-path>/<id>` on a 201 response.
+fn insert_location(headers: &mut HeaderMap, collection_path: &str, id: &str) {
+    let path = format!("{}/{}", collection_path.trim_end_matches('/'), id);
+    if let Ok(value) = axum::http::HeaderValue::from_str(&path) {
+        headers.insert(axum::http::header::LOCATION, value);
     }
 }
 
@@ -156,18 +185,20 @@ fn default_limit() -> u32 {
 }
 
 impl TransferMessageQuery {
+    #[allow(clippy::result_large_err)]
     fn into_domain(
         self,
         force_tenant_id: Option<crate::entities::ids::TenantId>,
-    ) -> (TransferMessageFilter, Page, Sort) {
+    ) -> ymir::errors::Outcome<(TransferMessageFilter, Page, Sort)> {
         let mut filter = self.filter;
+        validate_date_range(filter.created_after, filter.created_before)?;
         if let Some(tid) = force_tenant_id {
             filter.tenant_id = Some(tid);
         }
         let page = Page {
-            limit: self.limit,
+            limit: clamp_limit(self.limit),
             cursor: self.cursor,
         };
-        (filter, page, self.sort)
+        Ok((filter, page, self.sort))
     }
 }

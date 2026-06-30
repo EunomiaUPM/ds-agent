@@ -103,16 +103,21 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
             let cursor_dt = self.decode_cursor(cursor)?;
             q = match sort {
                 Sort::CreatedAtAsc => q.filter(orm::Column::CreatedAt.gt(cursor_dt)),
-                Sort::CreatedAtDesc | Sort::UpdatedAtDesc => {
-                    q.filter(orm::Column::CreatedAt.lt(cursor_dt))
-                }
+                Sort::CreatedAtDesc => q.filter(orm::Column::CreatedAt.lt(cursor_dt)),
+                Sort::UpdatedAtDesc => q.filter(orm::Column::UpdatedAt.lt(cursor_dt)),
             };
         }
 
         q = match sort {
-            Sort::CreatedAtAsc => q.order_by_asc(orm::Column::CreatedAt),
-            Sort::CreatedAtDesc => q.order_by_desc(orm::Column::CreatedAt),
-            Sort::UpdatedAtDesc => q.order_by_desc(orm::Column::UpdatedAt),
+            Sort::CreatedAtAsc => q
+                .order_by_asc(orm::Column::CreatedAt)
+                .order_by_asc(orm::Column::Id),
+            Sort::CreatedAtDesc => q
+                .order_by_desc(orm::Column::CreatedAt)
+                .order_by_desc(orm::Column::Id),
+            Sort::UpdatedAtDesc => q
+                .order_by_desc(orm::Column::UpdatedAt)
+                .order_by_desc(orm::Column::Id),
         };
 
         q.limit(page.limit as u64)

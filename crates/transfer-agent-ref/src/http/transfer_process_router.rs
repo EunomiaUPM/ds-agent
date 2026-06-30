@@ -18,23 +18,28 @@
 use std::sync::Arc;
 
 use axum::extract::rejection::JsonRejection;
-use axum::extract::{FromRef, Path, Query, State};
+use axum::extract::{FromRef, OriginalUri, Path, Query, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use common::batch_requests::BatchRequests;
 use serde::Deserialize;
-use ymir::errors::AppResult;
+use ymir::errors::{AppResult, BadFormat, Errors};
 use ymir::utils::{extract_path_urn, extract_payload};
 
 use common::auth::claims::Role;
 use common::auth::rbac::Rbac;
 
 use crate::entities::commands::{EditTransferProcessCommand, NewTransferProcessCommand};
-use crate::entities::query::{Page, Paginated, Sort, TransferProcessFilter};
-use crate::http::extractors::{AuthClaims, ExtractedHeaders};
+use crate::entities::query::{
+    Page, Paginated, Sort, TransferProcessFilter, clamp_limit, validate_date_range,
+};
+use crate::http::extractors::{AuthClaims, ExtractedHeaders, tenant_matches};
 use crate::services::transfer_process::TransferProcessServiceTrait;
 use crate::services::transfer_process::views::TransferProcessView;
+
+/// Maximum number of ids accepted in a single `/batch` request.
+const MAX_BATCH_IDS: usize = 100;
 
 // Router ────────────────────────────────────────────────────────────────────
 
@@ -75,7 +80,7 @@ impl TransferProcessRouter {
     ) -> AppResult<(HeaderMap, Json<Paginated<TransferProcessView>>)> {
         Rbac::require_read(&auth, headers.tenant_id.as_str())?;
         let tenant_filter = (auth.role != Role::Admin).then(|| headers.tenant_id.clone());
-        let (filter, page, sort) = q.into_domain(tenant_filter);
+        let (filter, page, sort) = q.into_domain(tenant_filter)?;
         let result = state.service.get_all(&filter, &page, &sort).await?;
         let response_headers = headers.response_headers_paged(result.total);
         Ok((response_headers, Json(result)))
@@ -87,10 +92,20 @@ impl TransferProcessRouter {
         headers: ExtractedHeaders,
         payload: Result<Json<BatchRequests>, JsonRejection>,
     ) -> AppResult<(HeaderMap, Json<Vec<TransferProcessView>>)> {
-        // batch reads across ids — admin only, since we can't verify per-record tenant here
-        Rbac::require_write(&auth, headers.tenant_id.as_str())?;
+        Rbac::require_read(&auth, headers.tenant_id.as_str())?;
         let payload = extract_payload(payload)?;
-        let views = state.service.batch(&payload).await?;
+        if payload.ids.len() > MAX_BATCH_IDS {
+            return Err(Errors::format(
+                BadFormat::Received,
+                format!("batch request exceeds the maximum of {MAX_BATCH_IDS} ids"),
+                None,
+            ));
+        }
+        let mut views = state.service.batch(&payload).await?;
+        // Non-admins only ever see their own tenant's records, even when ids leak across tenants.
+        if auth.role != Role::Admin {
+            views.retain(|v| v.tenant_id == headers.tenant_id);
+        }
         let count = views.len() as u64;
         Ok((headers.response_headers_paged(Some(count)), Json(views)))
     }
@@ -104,6 +119,9 @@ impl TransferProcessRouter {
         Rbac::require_read(&auth, headers.tenant_id.as_str())?;
         let urn = extract_path_urn(&id)?;
         let view = state.service.get_one(&urn).await?;
+        if !tenant_matches(auth.role, &headers.tenant_id, &view.tenant_id) {
+            return Err(not_found(&id));
+        }
         Ok((headers.response_headers(), Json(view)))
     }
 
@@ -111,15 +129,19 @@ impl TransferProcessRouter {
         State(state): State<Self>,
         auth: AuthClaims,
         headers: ExtractedHeaders,
+        OriginalUri(uri): OriginalUri,
         payload: Result<Json<NewTransferProcessCommand>, JsonRejection>,
     ) -> AppResult<(StatusCode, HeaderMap, Json<TransferProcessView>)> {
         Rbac::require_write(&auth, headers.tenant_id.as_str())?;
         let mut payload = extract_payload(payload)?;
-        if payload.tenant_id.is_none() {
+        // Non-admins can only create within their own tenant; the body cannot override it.
+        if auth.role != Role::Admin || payload.tenant_id.is_none() {
             payload.tenant_id = Some(headers.tenant_id.clone());
         }
         let view = state.service.create(&payload).await?;
-        Ok((StatusCode::CREATED, headers.response_headers(), Json(view)))
+        let mut response_headers = headers.response_headers();
+        insert_location(&mut response_headers, uri.path(), &view.id.to_string());
+        Ok((StatusCode::CREATED, response_headers, Json(view)))
     }
 
     async fn handle_edit(
@@ -132,6 +154,13 @@ impl TransferProcessRouter {
         Rbac::require_write(&auth, headers.tenant_id.as_str())?;
         let urn = extract_path_urn(&id)?;
         let payload = extract_payload(payload)?;
+        // Verify tenant ownership before mutating (tenant is immutable, so no TOCTOU).
+        if auth.role != Role::Admin {
+            let existing = state.service.get_one(&urn).await?;
+            if !tenant_matches(auth.role, &headers.tenant_id, &existing.tenant_id) {
+                return Err(not_found(&id));
+            }
+        }
         let view = state.service.edit(&urn, &payload).await?;
         Ok((headers.response_headers(), Json(view)))
     }
@@ -144,8 +173,28 @@ impl TransferProcessRouter {
     ) -> AppResult<(StatusCode, HeaderMap)> {
         Rbac::require_write(&auth, headers.tenant_id.as_str())?;
         let urn = extract_path_urn(&id)?;
+        // Verify tenant ownership before deleting; surfaces 404 for missing/foreign records.
+        if auth.role != Role::Admin {
+            let existing = state.service.get_one(&urn).await?;
+            if !tenant_matches(auth.role, &headers.tenant_id, &existing.tenant_id) {
+                return Err(not_found(&id));
+            }
+        }
         state.service.delete(&urn).await?;
         Ok((StatusCode::NO_CONTENT, headers.response_headers()))
+    }
+}
+
+#[allow(clippy::result_large_err)]
+fn not_found(id: &str) -> Errors {
+    Errors::missing_resource(id, "transfer process not found", None)
+}
+
+/// Sets `Location: <collection-path>/<id>` on a 201 response.
+fn insert_location(headers: &mut HeaderMap, collection_path: &str, id: &str) {
+    let path = format!("{}/{}", collection_path.trim_end_matches('/'), id);
+    if let Ok(value) = axum::http::HeaderValue::from_str(&path) {
+        headers.insert(axum::http::header::LOCATION, value);
     }
 }
 
@@ -170,18 +219,20 @@ fn default_limit() -> u32 {
 }
 
 impl TransferProcessQuery {
+    #[allow(clippy::result_large_err)]
     fn into_domain(
         self,
         force_tenant_id: Option<crate::entities::ids::TenantId>,
-    ) -> (TransferProcessFilter, Page, Sort) {
+    ) -> ymir::errors::Outcome<(TransferProcessFilter, Page, Sort)> {
         let mut filter = self.filter;
+        validate_date_range(filter.created_after, filter.created_before)?;
         if let Some(tid) = force_tenant_id {
             filter.tenant_id = Some(tid);
         }
         let page = Page {
-            limit: self.limit,
+            limit: clamp_limit(self.limit),
             cursor: self.cursor,
         };
-        (filter, page, self.sort)
+        Ok((filter, page, self.sort))
     }
 }

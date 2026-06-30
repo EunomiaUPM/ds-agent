@@ -21,8 +21,15 @@ use crate::entities::protocol::{ProtocolId, ProtocolState, TransferRole};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use urn::Urn;
+use ymir::errors::{BadFormat, Errors, Outcome};
 
 // Pagination ────────────────────────────────────────────────────────────────
+
+/// Default page size when the client does not specify `limit`.
+pub const DEFAULT_PAGE_LIMIT: u32 = 20;
+/// Hard upper bound on `limit` to protect the database from unbounded scans.
+/// Requests above this are clamped down to it.
+pub const MAX_PAGE_LIMIT: u32 = 100;
 
 #[derive(Deserialize)]
 pub struct Page {
@@ -32,10 +39,31 @@ pub struct Page {
 }
 
 fn default_limit() -> u32 {
-    20
+    DEFAULT_PAGE_LIMIT
+}
+
+/// Clamps a client-supplied `limit` into `[1, MAX_PAGE_LIMIT]`.
+pub fn clamp_limit(limit: u32) -> u32 {
+    limit.clamp(1, MAX_PAGE_LIMIT)
+}
+
+/// Rejects an inverted/empty `created_after`..`created_before` window with a 400.
+#[allow(clippy::result_large_err)]
+pub fn validate_date_range(after: Option<DateTime<Utc>>, before: Option<DateTime<Utc>>) -> Outcome<()> {
+    if let (Some(a), Some(b)) = (after, before) {
+        if a >= b {
+            return Err(Errors::format(
+                BadFormat::Received,
+                "createdAfter must be strictly before createdBefore",
+                None,
+            ));
+        }
+    }
+    Ok(())
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Paginated<T> {
     pub items: Vec<T>,
     pub next_cursor: Option<String>,

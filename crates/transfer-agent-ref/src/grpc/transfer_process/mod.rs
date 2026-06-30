@@ -111,6 +111,9 @@ impl TransferProcessesRef for TransferProcessGrpc {
             .get_one(&urn)
             .await
             .map_err(|e| Status::not_found(e.to_string()))?;
+        if claims.role != Role::Admin && view.tenant_id != tenant_id {
+            return Err(Status::not_found("transfer process not found"));
+        }
         Ok(Response::new(mappers::from_view(view)))
     }
 
@@ -120,13 +123,17 @@ impl TransferProcessesRef for TransferProcessGrpc {
     ) -> Result<Response<TransferProcessListResponse>, Status> {
         let (meta, _, proto_req) = request.into_parts();
         let (claims, tenant_id) = self.extract_auth(&meta).await?;
-        Self::check_write(&claims, &tenant_id)?;
+        Self::check_read(&claims, &tenant_id)?;
         let batch = mappers::into_batch(proto_req)?;
-        let views = self
+        let mut views = self
             .service
             .batch(&batch)
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
+        // Non-admins only ever see their own tenant's records, even when ids leak across tenants.
+        if claims.role != Role::Admin {
+            views.retain(|v| v.tenant_id == tenant_id);
+        }
         Ok(Response::new(mappers::from_vec(views)))
     }
 
@@ -155,6 +162,17 @@ impl TransferProcessesRef for TransferProcessGrpc {
         Self::check_write(&claims, &tenant_id)?;
         let urn = parse_urn(&proto_req.id)?;
         let cmd = mappers::into_edit_cmd(proto_req)?;
+        // Verify tenant ownership before mutating (tenant is immutable, so no TOCTOU).
+        if claims.role != Role::Admin {
+            let existing = self
+                .service
+                .get_one(&urn)
+                .await
+                .map_err(|e| Status::not_found(e.to_string()))?;
+            if existing.tenant_id != tenant_id {
+                return Err(Status::not_found("transfer process not found"));
+            }
+        }
         let view = self
             .service
             .edit(&urn, &cmd)
@@ -171,6 +189,17 @@ impl TransferProcessesRef for TransferProcessGrpc {
         let (claims, tenant_id) = self.extract_auth(&meta).await?;
         Self::check_write(&claims, &tenant_id)?;
         let urn = parse_urn(&proto_req.id)?;
+        // Verify tenant ownership before deleting; surfaces not-found for foreign records.
+        if claims.role != Role::Admin {
+            let existing = self
+                .service
+                .get_one(&urn)
+                .await
+                .map_err(|e| Status::not_found(e.to_string()))?;
+            if existing.tenant_id != tenant_id {
+                return Err(Status::not_found("transfer process not found"));
+            }
+        }
         self.service
             .delete(&urn)
             .await

@@ -18,10 +18,18 @@
 use axum::extract::FromRequestParts;
 use axum::http::request::Parts;
 use axum::http::{HeaderMap, HeaderName, HeaderValue};
-use common::auth::claims::Claims;
+use common::auth::claims::{Claims, Role};
 use ymir::errors::{BadFormat, Errors};
 
 use crate::entities::ids::{CorrelationId, RequestId, TenantId};
+
+/// Cross-tenant access guard. Admins may touch any tenant's resource; everyone
+/// else may only touch resources whose tenant matches the caller's `X-Tenant-ID`.
+/// Returning `false` here is translated by the caller into a `404 Not Found`
+/// (rather than `403`) so the existence of other tenants' resources is not leaked.
+pub(crate) fn tenant_matches(role: Role, caller: &TenantId, resource: &TenantId) -> bool {
+    role == Role::Admin || caller == resource
+}
 
 /// Validated JWT claims injected by the auth middleware.
 pub(crate) struct AuthClaims(pub Claims);
@@ -46,10 +54,12 @@ impl<S: Send + Sync> FromRequestParts<S> for AuthClaims {
     }
 }
 
+/// Important headers to be extracted
 pub(crate) struct ExtractedHeaders {
     pub tenant_id: TenantId,
     /// Echoed from X-Request-ID or generated if absent.
     pub request_id: RequestId,
+    /// Echoed from X-Correlation-ID or generated if absent.
     pub correlation_id: Option<CorrelationId>,
 }
 
@@ -112,7 +122,7 @@ impl<S: Send + Sync> FromRequestParts<S> for ExtractedHeaders {
 fn is_safe_id(s: &str) -> bool {
     !s.is_empty()
         && s.chars()
-            .all(|c| c.is_alphanumeric() || c == '-' || c == '.')
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '.')
 }
 
 fn get_header_str<'a>(headers: &'a HeaderMap, name: &str) -> Option<&'a str> {

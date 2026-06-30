@@ -129,8 +129,13 @@ impl TransferProcessRepoTrait for InMemoryTransferProcessRepo {
                                 return false;
                             }
                         }
-                        Sort::CreatedAtDesc | Sort::UpdatedAtDesc => {
+                        Sort::CreatedAtDesc => {
                             if p.created_at() >= cursor {
+                                return false;
+                            }
+                        }
+                        Sort::UpdatedAtDesc => {
+                            if p.updated_at() >= cursor {
                                 return false;
                             }
                         }
@@ -142,9 +147,27 @@ impl TransferProcessRepoTrait for InMemoryTransferProcessRepo {
             .collect();
 
         match sort {
-            Sort::CreatedAtAsc => items.sort_by_key(|a| a.created_at()),
-            Sort::CreatedAtDesc => items.sort_by_key(|a| std::cmp::Reverse(a.created_at())),
-            Sort::UpdatedAtDesc => items.sort_by_key(|a| std::cmp::Reverse(a.updated_at())),
+            Sort::CreatedAtAsc => {
+                items.sort_by(|a, b| {
+                    a.created_at()
+                        .cmp(&b.created_at())
+                        .then_with(|| a.id().to_string().cmp(&b.id().to_string()))
+                });
+            }
+            Sort::CreatedAtDesc => {
+                items.sort_by(|a, b| {
+                    b.created_at()
+                        .cmp(&a.created_at())
+                        .then_with(|| b.id().to_string().cmp(&a.id().to_string()))
+                });
+            }
+            Sort::UpdatedAtDesc => {
+                items.sort_by(|a, b| {
+                    b.updated_at()
+                        .cmp(&a.updated_at())
+                        .then_with(|| b.id().to_string().cmp(&a.id().to_string()))
+                });
+            }
         }
 
         items.truncate(page.limit as usize);
@@ -486,8 +509,16 @@ fn filter_messages<'a>(
         .collect();
 
     match sort {
-        Sort::CreatedAtAsc => items.sort_by_key(|a| a.occurred_at()),
-        _ => items.sort_by_key(|a| std::cmp::Reverse(a.occurred_at())),
+        Sort::CreatedAtAsc => items.sort_by(|a, b| {
+            a.occurred_at()
+                .cmp(&b.occurred_at())
+                .then_with(|| a.id.to_string().cmp(&b.id.to_string()))
+        }),
+        _ => items.sort_by(|a, b| {
+            b.occurred_at()
+                .cmp(&a.occurred_at())
+                .then_with(|| b.id.to_string().cmp(&a.id.to_string()))
+        }),
     }
 
     items.truncate(page.limit as usize);

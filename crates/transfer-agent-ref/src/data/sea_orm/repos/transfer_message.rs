@@ -87,8 +87,12 @@ impl SeaOrmTransferMessageRepo {
             };
         }
         Ok(match sort {
-            Sort::CreatedAtAsc => q.order_by_asc(orm::Column::OccurredAt),
-            _ => q.order_by_desc(orm::Column::OccurredAt),
+            Sort::CreatedAtAsc => q
+                .order_by_asc(orm::Column::OccurredAt)
+                .order_by_asc(orm::Column::Id),
+            _ => q
+                .order_by_desc(orm::Column::OccurredAt)
+                .order_by_desc(orm::Column::Id),
         })
     }
 }

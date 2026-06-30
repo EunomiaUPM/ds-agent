@@ -128,6 +128,9 @@ impl TransferMessagesRef for TransferMessagesGrpc {
             .get_one(&urn)
             .await
             .map_err(|e| Status::not_found(e.to_string()))?;
+        if claims.role != Role::Admin && view.tenant_id != tenant_id {
+            return Err(Status::not_found("transfer message not found"));
+        }
         Ok(Response::new(mappers::from_view(view)))
     }
 
@@ -155,6 +158,17 @@ impl TransferMessagesRef for TransferMessagesGrpc {
         let (claims, tenant_id) = self.extract_auth(&meta).await?;
         Self::check_write(&claims, &tenant_id)?;
         let urn = parse_urn(&proto_req.id)?;
+        // Verify tenant ownership before deleting; surfaces not-found for foreign records.
+        if claims.role != Role::Admin {
+            let existing = self
+                .service
+                .get_one(&urn)
+                .await
+                .map_err(|e| Status::not_found(e.to_string()))?;
+            if existing.tenant_id != tenant_id {
+                return Err(Status::not_found("transfer message not found"));
+            }
+        }
         self.service
             .delete(&urn)
             .await

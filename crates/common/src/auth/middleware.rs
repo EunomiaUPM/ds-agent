@@ -21,7 +21,7 @@ use axum::extract::{Request, State};
 use axum::http::HeaderMap;
 use axum::middleware::Next;
 use axum::response::Response;
-use ymir::errors::{AppResult, BadFormat, Errors, Outcome};
+use ymir::errors::{AppResult, Errors, Outcome};
 
 use crate::auth::claims::Claims;
 
@@ -49,11 +49,5 @@ pub fn bearer(headers: &HeaderMap) -> Outcome<&str> {
         .get(axum::http::header::AUTHORIZATION)
         .and_then(|v| v.to_str().ok())
         .and_then(|v| v.strip_prefix("Bearer "))
-        .ok_or_else(|| {
-            Errors::format(
-                BadFormat::Received,
-                "missing or malformed Authorization header",
-                None,
-            )
-        })
+        .ok_or_else(|| Errors::unauthorized("missing or malformed Authorization header", None))
 }

@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use ymir::errors::{BadFormat, Errors, Outcome};
+use ymir::errors::{Errors, Outcome};
 
 use crate::auth::claims::{Claims, Role};
 
@@ -60,9 +60,5 @@ impl Rbac {
 }
 
 fn forbidden() -> Errors {
-    Errors::format(
-        BadFormat::Received,
-        "forbidden: insufficient permissions",
-        None,
-    )
+    Errors::forbidden("forbidden: insufficient permissions", None)
 }

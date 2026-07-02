@@ -18,7 +18,7 @@ use tonic::Status;
 use urn::Urn;
 
 use crate::entities::commands::NewTransferMessageCommand;
-use crate::entities::ids::{CorrelationId, ParticipantId, RequestId, TenantId, TransferProcessId};
+use crate::entities::ids::{CorrelationId, ParticipantId, RequestId, TransferProcessId};
 use crate::entities::message_envelope::Direction;
 use crate::entities::protocol::{ProtocolId, ProtocolMessageType, ProtocolState};
 use crate::entities::query::{Page, Paginated, Sort, TransferMessageFilter};
@@ -35,7 +35,6 @@ use crate::services::transfer_message::views::TransferMessageView;
 
 pub fn into_list_params(
     req: ListTransferMessagesRequest,
-    tenant_id: Option<TenantId>,
 ) -> Result<(TransferMessageFilter, Page, Sort), Status> {
     let direction = non_empty(&req.direction)
         .map(parse_direction_str)
@@ -52,7 +51,7 @@ pub fn into_list_params(
         .transpose()?;
 
     let filter = TransferMessageFilter {
-        tenant_id,
+        tenant_id: None,
         direction,
         protocol,
         state_transition_to,
@@ -73,7 +72,6 @@ pub fn into_list_params(
 
 pub fn into_list_by_process_params(
     req: ListTransferMessagesByProcessRequest,
-    tenant_id: Option<TenantId>,
 ) -> Result<(Urn, TransferMessageFilter, Page, Sort), Status> {
     let process_id = parse_urn(&req.process_id, "process_id")?;
     let direction = non_empty(&req.direction)
@@ -91,7 +89,7 @@ pub fn into_list_by_process_params(
         .transpose()?;
 
     let filter = TransferMessageFilter {
-        tenant_id,
+        tenant_id: None,
         direction,
         protocol,
         state_transition_to,
@@ -112,7 +110,6 @@ pub fn into_list_by_process_params(
 
 pub fn into_create_cmd(
     req: CreateTransferMessageRequest,
-    tenant_id: TenantId,
 ) -> Result<NewTransferMessageCommand, Status> {
     let process_urn = parse_urn(&req.transfer_process_id, "transfer_process_id")?;
     let direction = parse_proto_direction(req.direction)?;
@@ -133,7 +130,7 @@ pub fn into_create_cmd(
     Ok(NewTransferMessageCommand {
         id: None,
         transfer_process_id: TransferProcessId::new(process_urn),
-        tenant_id: Some(tenant_id),
+        tenant_id: None,
         direction,
         protocol,
         message_type: ProtocolMessageType(CompactString::from(req.message_type)),

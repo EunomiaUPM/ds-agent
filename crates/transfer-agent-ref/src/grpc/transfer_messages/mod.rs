@@ -12,9 +12,8 @@ mod mappers;
 use std::str::FromStr;
 use std::sync::Arc;
 
-use common::auth::claims::{Claims, Role};
+use common::auth::claims::Claims;
 use common::auth::middleware::TokenValidator;
-use common::auth::rbac::Rbac;
 use tonic::{Request, Response, Status};
 use urn::Urn;
 
@@ -24,6 +23,8 @@ use crate::grpc::api::transfer_messages::{
     ListTransferMessagesRequest, ResourceIdRequest, TransferMessageListResponse,
     TransferMessageResponse, transfer_messages_ref_server::TransferMessagesRef,
 };
+use crate::grpc::to_status;
+use crate::services::access::AccessScope;
 use crate::services::transfer_message::TransferMessageServiceTrait;
 
 pub struct TransferMessagesGrpc {
@@ -63,18 +64,16 @@ impl TransferMessagesGrpc {
         Ok((claims, TenantId::new(tenant_raw)))
     }
 
-    fn check_read(claims: &Claims, tenant_id: &TenantId) -> Result<(), Status> {
-        Rbac::require_read(claims, tenant_id.as_str())
-            .map_err(|e| Status::permission_denied(e.to_string()))
+    /// Builds the caller's read scope (RBAC + tenant) from request metadata.
+    async fn read_scope(&self, meta: &tonic::metadata::MetadataMap) -> Result<AccessScope, Status> {
+        let (claims, tenant) = self.extract_auth(meta).await?;
+        AccessScope::for_read(&claims, &tenant).map_err(to_status)
     }
 
-    fn check_write(claims: &Claims, tenant_id: &TenantId) -> Result<(), Status> {
-        Rbac::require_write(claims, tenant_id.as_str())
-            .map_err(|e| Status::permission_denied(e.to_string()))
-    }
-
-    fn tenant_filter(claims: &Claims, tenant_id: &TenantId) -> Option<TenantId> {
-        (claims.role != Role::Admin).then(|| tenant_id.clone())
+    /// Builds the caller's write scope (RBAC + tenant) from request metadata.
+    async fn write_scope(&self, meta: &tonic::metadata::MetadataMap) -> Result<AccessScope, Status> {
+        let (claims, tenant) = self.extract_auth(meta).await?;
+        AccessScope::for_write(&claims, &tenant).map_err(to_status)
     }
 }
 
@@ -85,15 +84,13 @@ impl TransferMessagesRef for TransferMessagesGrpc {
         request: Request<ListTransferMessagesRequest>,
     ) -> Result<Response<TransferMessageListResponse>, Status> {
         let (meta, _, proto_req) = request.into_parts();
-        let (claims, tenant_id) = self.extract_auth(&meta).await?;
-        Self::check_read(&claims, &tenant_id)?;
-        let tenant_filter = Self::tenant_filter(&claims, &tenant_id);
-        let (filter, page, sort) = mappers::into_list_params(proto_req, tenant_filter)?;
+        let scope = self.read_scope(&meta).await?;
+        let (filter, page, sort) = mappers::into_list_params(proto_req)?;
         let result = self
             .service
-            .get_all(&filter, &page, &sort)
+            .get_all(&scope, &filter, &page, &sort)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(to_status)?;
         Ok(Response::new(mappers::from_paginated(result)))
     }
 
@@ -102,16 +99,13 @@ impl TransferMessagesRef for TransferMessagesGrpc {
         request: Request<ListTransferMessagesByProcessRequest>,
     ) -> Result<Response<TransferMessageListResponse>, Status> {
         let (meta, _, proto_req) = request.into_parts();
-        let (claims, tenant_id) = self.extract_auth(&meta).await?;
-        Self::check_read(&claims, &tenant_id)?;
-        let tenant_filter = Self::tenant_filter(&claims, &tenant_id);
-        let (process_urn, filter, page, sort) =
-            mappers::into_list_by_process_params(proto_req, tenant_filter)?;
+        let scope = self.read_scope(&meta).await?;
+        let (process_urn, filter, page, sort) = mappers::into_list_by_process_params(proto_req)?;
         let result = self
             .service
-            .get_all_by_process(&process_urn, &filter, &page, &sort)
+            .get_all_by_process(&scope, &process_urn, &filter, &page, &sort)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(to_status)?;
         Ok(Response::new(mappers::from_paginated(result)))
     }
 
@@ -120,17 +114,13 @@ impl TransferMessagesRef for TransferMessagesGrpc {
         request: Request<ResourceIdRequest>,
     ) -> Result<Response<TransferMessageResponse>, Status> {
         let (meta, _, proto_req) = request.into_parts();
-        let (claims, tenant_id) = self.extract_auth(&meta).await?;
-        Self::check_read(&claims, &tenant_id)?;
+        let scope = self.read_scope(&meta).await?;
         let urn = parse_urn(&proto_req.id)?;
         let view = self
             .service
-            .get_one(&urn)
+            .get_one(&scope, &urn)
             .await
-            .map_err(|e| Status::not_found(e.to_string()))?;
-        if claims.role != Role::Admin && view.tenant_id != tenant_id {
-            return Err(Status::not_found("transfer message not found"));
-        }
+            .map_err(to_status)?;
         Ok(Response::new(mappers::from_view(view)))
     }
 
@@ -139,14 +129,13 @@ impl TransferMessagesRef for TransferMessagesGrpc {
         request: Request<CreateTransferMessageRequest>,
     ) -> Result<Response<TransferMessageResponse>, Status> {
         let (meta, _, proto_req) = request.into_parts();
-        let (claims, tenant_id) = self.extract_auth(&meta).await?;
-        Self::check_write(&claims, &tenant_id)?;
-        let cmd = mappers::into_create_cmd(proto_req, tenant_id)?;
+        let scope = self.write_scope(&meta).await?;
+        let cmd = mappers::into_create_cmd(proto_req)?;
         let view = self
             .service
-            .create(&cmd)
+            .create(&scope, &cmd)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(to_status)?;
         Ok(Response::new(mappers::from_view(view)))
     }
 
@@ -155,24 +144,12 @@ impl TransferMessagesRef for TransferMessagesGrpc {
         request: Request<ResourceIdRequest>,
     ) -> Result<Response<DeleteResponse>, Status> {
         let (meta, _, proto_req) = request.into_parts();
-        let (claims, tenant_id) = self.extract_auth(&meta).await?;
-        Self::check_write(&claims, &tenant_id)?;
+        let scope = self.write_scope(&meta).await?;
         let urn = parse_urn(&proto_req.id)?;
-        // Verify tenant ownership before deleting; surfaces not-found for foreign records.
-        if claims.role != Role::Admin {
-            let existing = self
-                .service
-                .get_one(&urn)
-                .await
-                .map_err(|e| Status::not_found(e.to_string()))?;
-            if existing.tenant_id != tenant_id {
-                return Err(Status::not_found("transfer message not found"));
-            }
-        }
         self.service
-            .delete(&urn)
+            .delete(&scope, &urn)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(to_status)?;
         Ok(Response::new(DeleteResponse {}))
     }
 }

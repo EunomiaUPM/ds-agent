@@ -17,6 +17,7 @@
 
 use crate::entities::commands::{EditTransferProcessCommand, NewTransferProcessCommand};
 use crate::entities::query::{Page, Paginated, Sort, TransferProcessFilter};
+use crate::services::access::AccessScope;
 use crate::services::transfer_process::views::TransferProcessView;
 use common::batch_requests::BatchRequests;
 use urn::Urn;
@@ -27,21 +28,33 @@ pub(crate) mod service;
 mod tests;
 pub(crate) mod views;
 
+/// All methods take the caller's [`AccessScope`] and own every tenant-scoping and
+/// ownership rule, so the HTTP and gRPC transports only translate wire formats.
 #[async_trait::async_trait]
 pub(crate) trait TransferProcessServiceTrait: Send + Sync + 'static {
     async fn get_all(
         &self,
+        scope: &AccessScope,
         filters: &TransferProcessFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<TransferProcessView>>;
-    async fn get_one(&self, id: &Urn) -> Outcome<TransferProcessView>;
-    async fn batch(&self, batch_request: &BatchRequests) -> Outcome<Vec<TransferProcessView>>;
-    async fn create(&self, cmd: &NewTransferProcessCommand) -> Outcome<TransferProcessView>;
+    async fn get_one(&self, scope: &AccessScope, id: &Urn) -> Outcome<TransferProcessView>;
+    async fn batch(
+        &self,
+        scope: &AccessScope,
+        batch_request: &BatchRequests,
+    ) -> Outcome<Vec<TransferProcessView>>;
+    async fn create(
+        &self,
+        scope: &AccessScope,
+        cmd: &NewTransferProcessCommand,
+    ) -> Outcome<TransferProcessView>;
     async fn edit(
         &self,
+        scope: &AccessScope,
         id: &Urn,
         cmd: &EditTransferProcessCommand,
     ) -> Outcome<TransferProcessView>;
-    async fn delete(&self, id: &Urn) -> Outcome<()>;
+    async fn delete(&self, scope: &AccessScope, id: &Urn) -> Outcome<()>;
 }

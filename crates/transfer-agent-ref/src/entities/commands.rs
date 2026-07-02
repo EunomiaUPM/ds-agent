@@ -29,7 +29,7 @@ use std::collections::HashMap;
 use url::Url;
 use urn::Urn;
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct NewTransferProcessCommand {
     pub id: Option<TransferProcessId>,
@@ -57,7 +57,7 @@ pub(crate) struct EditTransferProcessCommand {
     pub error_details: Option<Json>,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct NewTransferMessageCommand {
     pub id: Option<MessageId>,

@@ -19,9 +19,22 @@ use crate::entities::query::{Page, Sort, TransferMessageFilter};
 use crate::entities::transfer_message::{
     MessageEnvelope, MessageProcessingResult, TransferMessage,
 };
+use crate::services::access::AccessScope;
 use crate::services::transfer_message::TransferMessageServiceTrait;
 use crate::services::transfer_message::service::TransferMessageService;
+use common::auth::claims::Role;
 use ymir::errors::RepoIntoErrors;
+
+/// Unrestricted scope used by the bulk of the tests, which exercise behaviour
+/// unrelated to tenant isolation.
+fn admin_scope() -> AccessScope {
+    AccessScope::from_role(Role::Admin, &TenantId::new("tenant-1"))
+}
+
+/// Scope restricted to a single tenant, for the isolation-specific tests.
+fn tenant_scope(tenant: &str) -> AccessScope {
+    AccessScope::from_role(Role::Owner, &TenantId::new(tenant))
+}
 
 // Unit tests for TransferMessageService. The single repository dependency
 // (TransferMessageRepoTrait) is replaced with a mockall mock.
@@ -122,7 +135,7 @@ async fn get_all_empty_result() {
 
     let svc = make_svc(repo);
     let result = svc
-        .get_all(&empty_filter(), &default_page(), &Sort::CreatedAtDesc)
+        .get_all(&admin_scope(), &empty_filter(), &default_page(), &Sort::CreatedAtDesc)
         .await
         .unwrap();
 
@@ -146,7 +159,7 @@ async fn get_all_full_page_produces_cursor_from_occurred_at() {
 
     let svc = make_svc(repo);
     let result = svc
-        .get_all(
+        .get_all(&admin_scope(), 
             &empty_filter(),
             &Page {
                 limit: 1,
@@ -172,7 +185,7 @@ async fn get_all_partial_page_no_cursor() {
 
     let svc = make_svc(repo);
     let result = svc
-        .get_all(
+        .get_all(&admin_scope(), 
             &empty_filter(),
             &Page {
                 limit: 5,
@@ -195,7 +208,7 @@ async fn get_all_total_forwarded_from_count() {
 
     let svc = make_svc(repo);
     let result = svc
-        .get_all(&empty_filter(), &default_page(), &Sort::CreatedAtDesc)
+        .get_all(&admin_scope(), &empty_filter(), &default_page(), &Sort::CreatedAtDesc)
         .await
         .unwrap();
 
@@ -215,7 +228,7 @@ async fn get_all_filter_by_direction_passed_through() {
         ..empty_filter()
     };
     let svc = make_svc(repo);
-    svc.get_all(&filter, &default_page(), &Sort::CreatedAtDesc)
+    svc.get_all(&admin_scope(), &filter, &default_page(), &Sort::CreatedAtDesc)
         .await
         .unwrap();
 }
@@ -233,7 +246,7 @@ async fn get_all_filter_by_protocol_passed_through() {
         ..empty_filter()
     };
     let svc = make_svc(repo);
-    svc.get_all(&filter, &default_page(), &Sort::CreatedAtDesc)
+    svc.get_all(&admin_scope(), &filter, &default_page(), &Sort::CreatedAtDesc)
         .await
         .unwrap();
 }
@@ -251,7 +264,7 @@ async fn get_all_filter_by_state_transition_to_passed_through() {
         ..empty_filter()
     };
     let svc = make_svc(repo);
-    svc.get_all(&filter, &default_page(), &Sort::CreatedAtDesc)
+    svc.get_all(&admin_scope(), &filter, &default_page(), &Sort::CreatedAtDesc)
         .await
         .unwrap();
 }
@@ -269,7 +282,7 @@ async fn get_all_filter_by_tenant_id_passed_through() {
         ..empty_filter()
     };
     let svc = make_svc(repo);
-    svc.get_all(&filter, &default_page(), &Sort::CreatedAtDesc)
+    svc.get_all(&admin_scope(), &filter, &default_page(), &Sort::CreatedAtDesc)
         .await
         .unwrap();
 }
@@ -290,7 +303,7 @@ async fn get_all_filter_by_date_range_passed_through() {
         ..empty_filter()
     };
     let svc = make_svc(repo);
-    svc.get_all(&filter, &default_page(), &Sort::CreatedAtDesc)
+    svc.get_all(&admin_scope(), &filter, &default_page(), &Sort::CreatedAtDesc)
         .await
         .unwrap();
 }
@@ -304,7 +317,7 @@ async fn get_all_sort_created_at_asc_passed_through() {
     repo.expect_count_transfer_messages().returning(|_| Ok(0));
 
     let svc = make_svc(repo);
-    svc.get_all(&empty_filter(), &default_page(), &Sort::CreatedAtAsc)
+    svc.get_all(&admin_scope(), &empty_filter(), &default_page(), &Sort::CreatedAtAsc)
         .await
         .unwrap();
 }
@@ -318,7 +331,7 @@ async fn get_all_sort_updated_at_desc_passed_through() {
     repo.expect_count_transfer_messages().returning(|_| Ok(0));
 
     let svc = make_svc(repo);
-    svc.get_all(&empty_filter(), &default_page(), &Sort::UpdatedAtDesc)
+    svc.get_all(&admin_scope(), &empty_filter(), &default_page(), &Sort::UpdatedAtDesc)
         .await
         .unwrap();
 }
@@ -332,7 +345,7 @@ async fn get_all_page_limit_and_cursor_passed_through() {
     repo.expect_count_transfer_messages().returning(|_| Ok(0));
 
     let svc = make_svc(repo);
-    svc.get_all(
+    svc.get_all(&admin_scope(), 
         &empty_filter(),
         &Page {
             limit: 5,
@@ -355,7 +368,7 @@ async fn get_all_propagates_message_repo_error() {
 
     let svc = make_svc(repo);
     assert!(
-        svc.get_all(&empty_filter(), &default_page(), &Sort::CreatedAtDesc)
+        svc.get_all(&admin_scope(), &empty_filter(), &default_page(), &Sort::CreatedAtDesc)
             .await
             .is_err()
     );
@@ -372,7 +385,7 @@ async fn get_all_propagates_count_repo_error() {
 
     let svc = make_svc(repo);
     assert!(
-        svc.get_all(&empty_filter(), &default_page(), &Sort::CreatedAtDesc)
+        svc.get_all(&admin_scope(), &empty_filter(), &default_page(), &Sort::CreatedAtDesc)
             .await
             .is_err()
     );
@@ -395,7 +408,7 @@ async fn get_all_by_process_happy_path() {
 
     let svc = make_svc(repo);
     let result = svc
-        .get_all_by_process(
+        .get_all_by_process(&admin_scope(), 
             &process_urn,
             &empty_filter(),
             &default_page(),
@@ -418,7 +431,7 @@ async fn get_all_by_process_empty() {
 
     let svc = make_svc(repo);
     let result = svc
-        .get_all_by_process(
+        .get_all_by_process(&admin_scope(), 
             &process_urn,
             &empty_filter(),
             &default_page(),
@@ -445,7 +458,7 @@ async fn get_all_by_process_full_page_produces_cursor() {
 
     let svc = make_svc(repo);
     let result = svc
-        .get_all_by_process(
+        .get_all_by_process(&admin_scope(), 
             &process_urn,
             &empty_filter(),
             &Page {
@@ -472,7 +485,7 @@ async fn get_all_by_process_partial_page_no_cursor() {
 
     let svc = make_svc(repo);
     let result = svc
-        .get_all_by_process(
+        .get_all_by_process(&admin_scope(), 
             &process_urn,
             &empty_filter(),
             &Page {
@@ -498,7 +511,7 @@ async fn get_all_by_process_process_id_passed_through() {
     repo.expect_count_transfer_messages().returning(|_| Ok(0));
 
     let svc = make_svc(repo);
-    svc.get_all_by_process(
+    svc.get_all_by_process(&admin_scope(), 
         &process_urn,
         &empty_filter(),
         &default_page(),
@@ -522,7 +535,7 @@ async fn get_all_by_process_filter_direction_passed_through() {
         ..empty_filter()
     };
     let svc = make_svc(repo);
-    svc.get_all_by_process(&process_urn, &filter, &default_page(), &Sort::CreatedAtDesc)
+    svc.get_all_by_process(&admin_scope(), &process_urn, &filter, &default_page(), &Sort::CreatedAtDesc)
         .await
         .unwrap();
 }
@@ -539,7 +552,7 @@ async fn get_all_by_process_propagates_repo_error() {
 
     let svc = make_svc(repo);
     assert!(
-        svc.get_all_by_process(
+        svc.get_all_by_process(&admin_scope(), 
             &process_urn,
             &empty_filter(),
             &default_page(),
@@ -564,7 +577,7 @@ async fn get_one_happy_path() {
         .returning(move |_| Ok(Some(mc.clone())));
 
     let svc = make_svc(repo);
-    let view = svc.get_one(&id_urn).await.unwrap();
+    let view = svc.get_one(&admin_scope(), &id_urn).await.unwrap();
 
     assert_eq!(&view.id, &msg.id);
     assert_eq!(view.direction, msg.direction);
@@ -581,7 +594,7 @@ async fn get_one_returns_view_fields_correctly() {
         .returning(move |_| Ok(Some(mc.clone())));
 
     let svc = make_svc(repo);
-    let view = svc.get_one(&id_urn).await.unwrap();
+    let view = svc.get_one(&admin_scope(), &id_urn).await.unwrap();
 
     assert_eq!(view.tenant_id, TenantId::new("tenant-1"));
     assert_eq!(view.protocol_version, "1.0");
@@ -598,7 +611,7 @@ async fn get_one_not_found_returns_error() {
         .returning(|_| Ok(None));
 
     let svc = make_svc(repo);
-    assert!(svc.get_one(&p_urn(999)).await.is_err());
+    assert!(svc.get_one(&admin_scope(), &p_urn(999)).await.is_err());
 }
 
 #[tokio::test]
@@ -609,7 +622,60 @@ async fn get_one_propagates_repo_error() {
     });
 
     let svc = make_svc(repo);
-    assert!(svc.get_one(&p_urn(1)).await.is_err());
+    assert!(svc.get_one(&admin_scope(), &p_urn(1)).await.is_err());
+}
+
+// ─── tenant isolation (AccessScope) ───────────────────────────────────────────
+
+#[tokio::test]
+async fn get_one_foreign_tenant_returns_not_found() {
+    let msg = make_message(1); // tenant-1
+    let id_urn = msg.id.as_urn().clone();
+    let mc = msg.clone();
+    let mut repo = MockTransferMessageRepoTrait::new();
+    repo.expect_get_transfer_message_by_id()
+        .returning(move |_| Ok(Some(mc.clone())));
+
+    let svc = make_svc(repo);
+    assert!(
+        svc.get_one(&tenant_scope("tenant-2"), &id_urn)
+            .await
+            .is_err()
+    );
+}
+
+#[tokio::test]
+async fn create_forces_caller_tenant_for_non_admin() {
+    let msg = make_message(1);
+    let mc = msg.clone();
+    let mut repo = MockTransferMessageRepoTrait::new();
+    repo.expect_create_transfer_message()
+        .withf(|cmd| cmd.tenant_id.as_ref().map(|t| t.as_str()) == Some("tenant-2"))
+        .returning(move |_| Ok(mc.clone()));
+
+    let svc = make_svc(repo);
+    // make_cmd sets tenant_id = tenant-1; the scope must override it.
+    svc.create(&tenant_scope("tenant-2"), &make_cmd())
+        .await
+        .unwrap();
+}
+
+#[tokio::test]
+async fn delete_foreign_tenant_returns_not_found() {
+    let msg = make_message(1); // tenant-1
+    let id_urn = msg.id.as_urn().clone();
+    let mc = msg.clone();
+    let mut repo = MockTransferMessageRepoTrait::new();
+    repo.expect_get_transfer_message_by_id()
+        .returning(move |_| Ok(Some(mc.clone())));
+    repo.expect_delete_transfer_message().times(0);
+
+    let svc = make_svc(repo);
+    assert!(
+        svc.delete(&tenant_scope("tenant-2"), &id_urn)
+            .await
+            .is_err()
+    );
 }
 
 // ─── create ──────────────────────────────────────────────────────────────────
@@ -626,7 +692,7 @@ async fn create_happy_path() {
         .returning(move |_| Ok(mc.clone()));
 
     let svc = make_svc(repo);
-    let view = svc.create(&make_cmd()).await.unwrap();
+    let view = svc.create(&admin_scope(), &make_cmd()).await.unwrap();
 
     assert_eq!(&view.id, &msg.id);
     assert_eq!(view.direction, Direction::Inbound);
@@ -649,7 +715,7 @@ async fn create_view_fields_assembled_from_stored_message() {
     cmd.direction = Direction::Outbound;
     cmd.protocol = ProtocolId::Dsp2025_1;
     let svc = make_svc(repo);
-    let view = svc.create(&cmd).await.unwrap();
+    let view = svc.create(&admin_scope(), &cmd).await.unwrap();
 
     assert_eq!(view.direction, Direction::Outbound);
     assert_eq!(view.protocol, ProtocolId::Dsp2025_1);
@@ -663,7 +729,7 @@ async fn create_propagates_repo_error() {
     });
 
     let svc = make_svc(repo);
-    assert!(svc.create(&make_cmd()).await.is_err());
+    assert!(svc.create(&admin_scope(), &make_cmd()).await.is_err());
 }
 
 // ─── delete ──────────────────────────────────────────────────────────────────
@@ -676,7 +742,7 @@ async fn delete_happy_path() {
         .returning(|_| Ok(()));
 
     let svc = make_svc(repo);
-    assert!(svc.delete(&p_urn(1)).await.is_ok());
+    assert!(svc.delete(&admin_scope(), &p_urn(1)).await.is_ok());
 }
 
 #[tokio::test]
@@ -687,5 +753,5 @@ async fn delete_propagates_error() {
     });
 
     let svc = make_svc(repo);
-    assert!(svc.delete(&p_urn(1)).await.is_err());
+    assert!(svc.delete(&admin_scope(), &p_urn(1)).await.is_err());
 }

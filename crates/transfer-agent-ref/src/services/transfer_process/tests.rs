@@ -21,10 +21,23 @@ use crate::entities::protocol::{
 use crate::entities::query::{Page, Sort, TransferProcessFilter};
 use crate::entities::transfer_process::TransferProcess;
 use crate::entities::transfer_process_identifier::TransferProcessIdentifier;
+use crate::services::access::AccessScope;
 use crate::services::transfer_process::TransferProcessServiceTrait;
 use crate::services::transfer_process::service::TransferProcessService;
+use common::auth::claims::Role;
 use common::batch_requests::BatchRequests;
 use ymir::errors::RepoIntoErrors;
+
+/// Unrestricted scope used by the bulk of the tests, which exercise behaviour
+/// unrelated to tenant isolation.
+fn admin_scope() -> AccessScope {
+    AccessScope::from_role(Role::Admin, &TenantId::new("tenant-1"))
+}
+
+/// Scope restricted to a single tenant, for the isolation-specific tests.
+fn tenant_scope(tenant: &str) -> AccessScope {
+    AccessScope::from_role(Role::Owner, &TenantId::new(tenant))
+}
 
 // Unit tests for TransferProcessService. Both repository dependencies
 // (TransferProcessRepoTrait and TransferIdentifierRepoTrait) are replaced
@@ -155,7 +168,7 @@ async fn get_all_empty_result() {
 
     let svc = make_svc(proc_repo, id_repo);
     let result = svc
-        .get_all(&empty_filter(), &default_page(), &Sort::CreatedAtDesc)
+        .get_all(&admin_scope(), &empty_filter(), &default_page(), &Sort::CreatedAtDesc)
         .await
         .unwrap();
 
@@ -185,7 +198,7 @@ async fn get_all_full_page_produces_cursor() {
 
     let svc = make_svc(proc_repo, id_repo);
     let result = svc
-        .get_all(
+        .get_all(&admin_scope(), 
             &empty_filter(),
             &Page {
                 limit: 1,
@@ -220,7 +233,7 @@ async fn get_all_partial_page_no_cursor() {
 
     let svc = make_svc(proc_repo, id_repo);
     let result = svc
-        .get_all(
+        .get_all(&admin_scope(), 
             &empty_filter(),
             &Page {
                 limit: 5,
@@ -274,7 +287,7 @@ async fn get_all_cursor_uses_updated_at_for_sort_updated_at_desc() {
 
     let svc = make_svc(proc_repo, id_repo);
     let result = svc
-        .get_all(
+        .get_all(&admin_scope(), 
             &empty_filter(),
             &Page {
                 limit: 1,
@@ -325,7 +338,7 @@ async fn get_all_cursor_uses_created_at_for_sort_created_at_asc() {
 
     let svc = make_svc(proc_repo, id_repo);
     let result = svc
-        .get_all(
+        .get_all(&admin_scope(), 
             &empty_filter(),
             &Page {
                 limit: 1,
@@ -361,7 +374,7 @@ async fn get_all_merges_identifiers_and_promotes_consumer_pid() {
 
     let svc = make_svc(proc_repo, id_repo);
     let result = svc
-        .get_all(&empty_filter(), &default_page(), &Sort::CreatedAtDesc)
+        .get_all(&admin_scope(), &empty_filter(), &default_page(), &Sort::CreatedAtDesc)
         .await
         .unwrap();
 
@@ -392,7 +405,7 @@ async fn get_all_total_forwarded_from_count() {
 
     let svc = make_svc(proc_repo, id_repo);
     let result = svc
-        .get_all(&empty_filter(), &default_page(), &Sort::CreatedAtDesc)
+        .get_all(&admin_scope(), &empty_filter(), &default_page(), &Sort::CreatedAtDesc)
         .await
         .unwrap();
 
@@ -419,7 +432,7 @@ async fn get_all_filter_by_protocol_passed_through() {
         ..empty_filter()
     };
     let svc = make_svc(proc_repo, id_repo);
-    svc.get_all(&filter, &default_page(), &Sort::CreatedAtDesc)
+    svc.get_all(&admin_scope(), &filter, &default_page(), &Sort::CreatedAtDesc)
         .await
         .unwrap();
 }
@@ -444,7 +457,7 @@ async fn get_all_filter_by_role_passed_through() {
         ..empty_filter()
     };
     let svc = make_svc(proc_repo, id_repo);
-    svc.get_all(&filter, &default_page(), &Sort::CreatedAtDesc)
+    svc.get_all(&admin_scope(), &filter, &default_page(), &Sort::CreatedAtDesc)
         .await
         .unwrap();
 }
@@ -469,7 +482,7 @@ async fn get_all_filter_by_state_passed_through() {
         ..empty_filter()
     };
     let svc = make_svc(proc_repo, id_repo);
-    svc.get_all(&filter, &default_page(), &Sort::CreatedAtDesc)
+    svc.get_all(&admin_scope(), &filter, &default_page(), &Sort::CreatedAtDesc)
         .await
         .unwrap();
 }
@@ -494,7 +507,7 @@ async fn get_all_filter_by_tenant_id_passed_through() {
         ..empty_filter()
     };
     let svc = make_svc(proc_repo, id_repo);
-    svc.get_all(&filter, &default_page(), &Sort::CreatedAtDesc)
+    svc.get_all(&admin_scope(), &filter, &default_page(), &Sort::CreatedAtDesc)
         .await
         .unwrap();
 }
@@ -522,7 +535,7 @@ async fn get_all_filter_by_date_range_passed_through() {
         ..empty_filter()
     };
     let svc = make_svc(proc_repo, id_repo);
-    svc.get_all(&filter, &default_page(), &Sort::CreatedAtDesc)
+    svc.get_all(&admin_scope(), &filter, &default_page(), &Sort::CreatedAtDesc)
         .await
         .unwrap();
 }
@@ -543,7 +556,7 @@ async fn get_all_page_cursor_passed_through() {
         .returning(|_| Ok(vec![]));
 
     let svc = make_svc(proc_repo, id_repo);
-    svc.get_all(
+    svc.get_all(&admin_scope(), 
         &empty_filter(),
         &Page {
             limit: 10,
@@ -573,7 +586,7 @@ async fn get_all_propagates_process_repo_error() {
 
     let svc = make_svc(proc_repo, id_repo);
     assert!(
-        svc.get_all(&empty_filter(), &default_page(), &Sort::CreatedAtDesc)
+        svc.get_all(&admin_scope(), &empty_filter(), &default_page(), &Sort::CreatedAtDesc)
             .await
             .is_err()
     );
@@ -595,7 +608,7 @@ async fn get_all_propagates_count_repo_error() {
 
     let svc = make_svc(proc_repo, id_repo);
     assert!(
-        svc.get_all(&empty_filter(), &default_page(), &Sort::CreatedAtDesc)
+        svc.get_all(&admin_scope(), &empty_filter(), &default_page(), &Sort::CreatedAtDesc)
             .await
             .is_err()
     );
@@ -624,7 +637,7 @@ async fn get_all_propagates_identifier_repo_error() {
 
     let svc = make_svc(proc_repo, id_repo);
     assert!(
-        svc.get_all(&empty_filter(), &default_page(), &Sort::CreatedAtDesc)
+        svc.get_all(&admin_scope(), &empty_filter(), &default_page(), &Sort::CreatedAtDesc)
             .await
             .is_err()
     );
@@ -647,7 +660,7 @@ async fn get_one_returns_view_with_identifiers() {
         .returning(move |_| Ok(vec![idc.clone()]));
 
     let svc = make_svc(proc_repo, id_repo);
-    let view = svc.get_one(p.id().as_urn()).await.unwrap();
+    let view = svc.get_one(&admin_scope(), p.id().as_urn()).await.unwrap();
 
     assert_eq!(&view.id, p.id());
     assert_eq!(
@@ -674,7 +687,7 @@ async fn get_one_promotes_consumer_pid_and_provider_pid_from_identifiers() {
         .returning(move |_| Ok(idsc.clone()));
 
     let svc = make_svc(proc_repo, id_repo);
-    let view = svc.get_one(p.id().as_urn()).await.unwrap();
+    let view = svc.get_one(&admin_scope(), p.id().as_urn()).await.unwrap();
 
     assert_eq!(view.correlation.consumer_pid.as_deref(), Some("cpid-abc"));
     assert_eq!(view.correlation.provider_pid.as_deref(), Some("ppid-xyz"));
@@ -694,7 +707,7 @@ async fn get_one_without_identifiers_returns_empty_map() {
         .returning(|_| Ok(vec![]));
 
     let svc = make_svc(proc_repo, id_repo);
-    let view = svc.get_one(p.id().as_urn()).await.unwrap();
+    let view = svc.get_one(&admin_scope(), p.id().as_urn()).await.unwrap();
 
     assert!(view.correlation.identifiers.is_empty());
     assert!(view.correlation.consumer_pid.is_none());
@@ -710,7 +723,7 @@ async fn get_one_not_found_returns_error() {
     let id_repo = MockTransferIdentifierRepoTrait::new();
 
     let svc = make_svc(proc_repo, id_repo);
-    assert!(svc.get_one(&p_urn(999)).await.is_err());
+    assert!(svc.get_one(&admin_scope(), &p_urn(999)).await.is_err());
 }
 
 #[tokio::test]
@@ -724,7 +737,7 @@ async fn get_one_propagates_process_repo_error() {
     let id_repo = MockTransferIdentifierRepoTrait::new();
 
     let svc = make_svc(proc_repo, id_repo);
-    assert!(svc.get_one(&p_urn(1)).await.is_err());
+    assert!(svc.get_one(&admin_scope(), &p_urn(1)).await.is_err());
 }
 
 #[tokio::test]
@@ -746,7 +759,91 @@ async fn get_one_propagates_identifier_repo_error() {
         });
 
     let svc = make_svc(proc_repo, id_repo);
-    assert!(svc.get_one(p.id().as_urn()).await.is_err());
+    assert!(svc.get_one(&admin_scope(), p.id().as_urn()).await.is_err());
+}
+
+// ─── tenant isolation (AccessScope) ───────────────────────────────────────────
+// These exercise the rules the service now owns on behalf of both transports.
+
+#[tokio::test]
+async fn get_one_foreign_tenant_returns_not_found() {
+    // Process belongs to tenant-1; an owner scoped to tenant-2 must get a 404.
+    let p = make_process(1); // tenant-1
+    let pc = p.clone();
+    let mut proc_repo = MockTransferProcessRepoTrait::new();
+    proc_repo
+        .expect_get_transfer_process_by_id()
+        .returning(move |_| Ok(Some(pc.clone())));
+    let id_repo = MockTransferIdentifierRepoTrait::new();
+
+    let svc = make_svc(proc_repo, id_repo);
+    assert!(
+        svc.get_one(&tenant_scope("tenant-2"), p.id().as_urn())
+            .await
+            .is_err()
+    );
+}
+
+#[tokio::test]
+async fn create_forces_caller_tenant_for_non_admin() {
+    // Even though the body asks for tenant-1, an owner scoped to tenant-2 must
+    // have the record created under tenant-2.
+    let pc = make_process(1);
+    let mut proc_repo = MockTransferProcessRepoTrait::new();
+    proc_repo
+        .expect_create_transfer_process()
+        .withf(|cmd| cmd.tenant_id.as_ref().map(|t| t.as_str()) == Some("tenant-2"))
+        .returning(move |_| Ok(pc.clone()));
+    let mut id_repo = MockTransferIdentifierRepoTrait::new();
+    id_repo.expect_upsert_identifier().times(0);
+
+    let svc = make_svc(proc_repo, id_repo);
+    // make_new_cmd sets tenant_id = tenant-1; the scope must override it.
+    svc.create(&tenant_scope("tenant-2"), &make_new_cmd(None))
+        .await
+        .unwrap();
+}
+
+#[tokio::test]
+async fn edit_foreign_tenant_returns_not_found_without_mutating() {
+    // ensure_access fetches the record, sees tenant-1, and rejects the tenant-2
+    // owner before put_transfer_process is ever called.
+    let pc = make_process(1); // tenant-1
+    let mut proc_repo = MockTransferProcessRepoTrait::new();
+    proc_repo
+        .expect_get_transfer_process_by_id()
+        .returning(move |_| Ok(Some(pc.clone())));
+    proc_repo.expect_put_transfer_process().times(0);
+    let id_repo = MockTransferIdentifierRepoTrait::new();
+
+    let svc = make_svc(proc_repo, id_repo);
+    assert!(
+        svc.edit(&tenant_scope("tenant-2"), &p_urn(1), &make_edit_cmd(None, None))
+            .await
+            .is_err()
+    );
+}
+
+#[tokio::test]
+async fn batch_filters_out_foreign_tenant_records() {
+    // The repo returns a tenant-1 record; a tenant-2 owner must see none of it.
+    let p = make_process(1); // tenant-1
+    let pc = p.clone();
+    let mut proc_repo = MockTransferProcessRepoTrait::new();
+    proc_repo
+        .expect_get_batch_transfer_processes()
+        .returning(move |_| Ok(vec![pc.clone()]));
+    let mut id_repo = MockTransferIdentifierRepoTrait::new();
+    id_repo
+        .expect_get_identifiers_by_batch_process_id()
+        .returning(|_| Ok(vec![]));
+
+    let svc = make_svc(proc_repo, id_repo);
+    let views = svc
+        .batch(&tenant_scope("tenant-2"), &BatchRequests { ids: vec![p_urn(1)] })
+        .await
+        .unwrap();
+    assert!(views.is_empty());
 }
 
 // ─── batch ────────────────────────────────────────────────────────────────────
@@ -765,7 +862,7 @@ async fn batch_empty_ids_returns_empty_vec() {
         .returning(|_| Ok(vec![]));
 
     let svc = make_svc(proc_repo, id_repo);
-    let views = svc.batch(&BatchRequests { ids: vec![] }).await.unwrap();
+    let views = svc.batch(&admin_scope(), &BatchRequests { ids: vec![] }).await.unwrap();
 
     assert!(views.is_empty());
 }
@@ -786,7 +883,7 @@ async fn batch_returns_one_view_per_process() {
 
     let svc = make_svc(proc_repo, id_repo);
     let views = svc
-        .batch(&BatchRequests {
+        .batch(&admin_scope(), &BatchRequests {
             ids: vec![p_urn(1), p_urn(2)],
         })
         .await
@@ -816,7 +913,7 @@ async fn batch_groups_identifiers_per_process() {
 
     let svc = make_svc(proc_repo, id_repo);
     let views = svc
-        .batch(&BatchRequests {
+        .batch(&admin_scope(), &BatchRequests {
             ids: vec![p_urn(1), p_urn(2)],
         })
         .await
@@ -851,7 +948,7 @@ async fn batch_propagates_process_repo_error() {
 
     let svc = make_svc(proc_repo, id_repo);
     assert!(
-        svc.batch(&BatchRequests {
+        svc.batch(&admin_scope(), &BatchRequests {
             ids: vec![p_urn(1)]
         })
         .await
@@ -879,7 +976,7 @@ async fn batch_propagates_identifier_repo_error() {
 
     let svc = make_svc(proc_repo, id_repo);
     assert!(
-        svc.batch(&BatchRequests {
+        svc.batch(&admin_scope(), &BatchRequests {
             ids: vec![p_urn(1)]
         })
         .await
@@ -905,7 +1002,7 @@ async fn create_without_identifiers_does_not_call_upsert() {
     id_repo.expect_upsert_identifier().times(0); // enforces "never called"
 
     let svc = make_svc(proc_repo, id_repo);
-    let view = svc.create(&make_new_cmd(None)).await.unwrap();
+    let view = svc.create(&admin_scope(), &make_new_cmd(None)).await.unwrap();
 
     assert!(&view.correlation.identifiers.is_empty());
 }
@@ -933,7 +1030,7 @@ async fn create_with_one_identifier_upserts_once() {
         });
 
     let svc = make_svc(proc_repo, id_repo);
-    let view = svc.create(&make_new_cmd(Some(ids))).await.unwrap();
+    let view = svc.create(&admin_scope(), &make_new_cmd(Some(ids))).await.unwrap();
 
     assert_eq!(
         view.correlation
@@ -970,7 +1067,7 @@ async fn create_with_multiple_identifiers_upserts_each() {
         });
 
     let svc = make_svc(proc_repo, id_repo);
-    let view = svc.create(&make_new_cmd(Some(ids.clone()))).await.unwrap();
+    let view = svc.create(&admin_scope(), &make_new_cmd(Some(ids.clone()))).await.unwrap();
 
     for (k, v) in &ids {
         assert_eq!(
@@ -989,7 +1086,7 @@ async fn create_propagates_process_repo_error() {
     let id_repo = MockTransferIdentifierRepoTrait::new();
 
     let svc = make_svc(proc_repo, id_repo);
-    assert!(svc.create(&make_new_cmd(None)).await.is_err());
+    assert!(svc.create(&admin_scope(), &make_new_cmd(None)).await.is_err());
 }
 
 #[tokio::test]
@@ -1008,7 +1105,7 @@ async fn create_propagates_identifier_upsert_error() {
     let mut ids = HashMap::new();
     ids.insert("k".to_string(), "v".to_string());
     let svc = make_svc(proc_repo, id_repo);
-    assert!(svc.create(&make_new_cmd(Some(ids))).await.is_err());
+    assert!(svc.create(&admin_scope(), &make_new_cmd(Some(ids))).await.is_err());
 }
 
 // ─── edit ─────────────────────────────────────────────────────────────────────
@@ -1033,7 +1130,7 @@ async fn edit_with_state_change() {
 
     let svc = make_svc(proc_repo, id_repo);
     let view = svc
-        .edit(&urn, &make_edit_cmd(Some("COMPLETED"), None))
+        .edit(&admin_scope(), &urn, &make_edit_cmd(Some("COMPLETED"), None))
         .await
         .unwrap();
 
@@ -1056,7 +1153,7 @@ async fn edit_without_identifiers_skips_upsert() {
         .returning(|_| Ok(vec![]));
 
     let svc = make_svc(proc_repo, id_repo);
-    svc.edit(&urn, &make_edit_cmd(None, None)).await.unwrap();
+    svc.edit(&admin_scope(), &urn, &make_edit_cmd(None, None)).await.unwrap();
 }
 
 #[tokio::test]
@@ -1089,7 +1186,7 @@ async fn edit_with_identifiers_upserts_then_fetches() {
     ids.insert("newKey".to_string(), "newVal".to_string());
     let svc = make_svc(proc_repo, id_repo);
     let view = svc
-        .edit(&urn, &make_edit_cmd(None, Some(ids)))
+        .edit(&admin_scope(), &urn, &make_edit_cmd(None, Some(ids)))
         .await
         .unwrap();
 
@@ -1136,7 +1233,7 @@ async fn edit_view_identifiers_come_from_repo_after_upsert() {
     ids.insert("newKey".to_string(), "newVal".to_string());
     let svc = make_svc(proc_repo, id_repo);
     let view = svc
-        .edit(&urn, &make_edit_cmd(None, Some(ids)))
+        .edit(&admin_scope(), &urn, &make_edit_cmd(None, Some(ids)))
         .await
         .unwrap();
 
@@ -1154,7 +1251,7 @@ async fn edit_propagates_process_repo_error() {
 
     let svc = make_svc(proc_repo, id_repo);
     assert!(
-        svc.edit(&p_urn(1), &make_edit_cmd(None, None))
+        svc.edit(&admin_scope(), &p_urn(1), &make_edit_cmd(None, None))
             .await
             .is_err()
     );
@@ -1177,7 +1274,7 @@ async fn edit_propagates_identifier_upsert_error() {
     ids.insert("k".to_string(), "v".to_string());
     let svc = make_svc(proc_repo, id_repo);
     assert!(
-        svc.edit(&p_urn(1), &make_edit_cmd(None, Some(ids)))
+        svc.edit(&admin_scope(), &p_urn(1), &make_edit_cmd(None, Some(ids)))
             .await
             .is_err()
     );
@@ -1205,7 +1302,7 @@ async fn edit_propagates_identifier_fetch_error() {
 
     let svc = make_svc(proc_repo, id_repo);
     assert!(
-        svc.edit(&p_urn(1), &make_edit_cmd(None, None))
+        svc.edit(&admin_scope(), &p_urn(1), &make_edit_cmd(None, None))
             .await
             .is_err()
     );
@@ -1223,7 +1320,7 @@ async fn delete_happy_path() {
     let id_repo = MockTransferIdentifierRepoTrait::new();
 
     let svc = make_svc(proc_repo, id_repo);
-    assert!(svc.delete(&p_urn(1)).await.is_ok());
+    assert!(svc.delete(&admin_scope(), &p_urn(1)).await.is_ok());
 }
 
 #[tokio::test]
@@ -1235,5 +1332,5 @@ async fn delete_propagates_error() {
     let id_repo = MockTransferIdentifierRepoTrait::new();
 
     let svc = make_svc(proc_repo, id_repo);
-    assert!(svc.delete(&p_urn(1)).await.is_err());
+    assert!(svc.delete(&admin_scope(), &p_urn(1)).await.is_err());
 }

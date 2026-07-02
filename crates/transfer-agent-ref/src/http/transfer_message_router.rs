@@ -23,17 +23,13 @@ use axum::http::{HeaderMap, StatusCode};
 use axum::routing::get;
 use axum::{Json, Router};
 use serde::Deserialize;
-use ymir::errors::{AppResult, Errors};
+use ymir::errors::AppResult;
 use ymir::utils::{extract_path_urn, extract_payload};
 
-use common::auth::claims::Role;
-use common::auth::rbac::Rbac;
-
 use crate::entities::commands::NewTransferMessageCommand;
-use crate::entities::query::{
-    Page, Paginated, Sort, TransferMessageFilter, clamp_limit, validate_date_range,
-};
-use crate::http::extractors::{AuthClaims, ExtractedHeaders, tenant_matches};
+use crate::entities::query::{Page, Paginated, Sort, TransferMessageFilter};
+use crate::http::extractors::{AuthClaims, ExtractedHeaders};
+use crate::services::access::AccessScope;
 use crate::services::transfer_message::TransferMessageServiceTrait;
 use crate::services::transfer_message::views::TransferMessageView;
 
@@ -72,10 +68,9 @@ impl TransferMessageRouter {
         headers: ExtractedHeaders,
         Query(q): Query<TransferMessageQuery>,
     ) -> AppResult<(HeaderMap, Json<Paginated<TransferMessageView>>)> {
-        Rbac::require_read(&auth, headers.tenant_id.as_str())?;
-        let tenant_filter = (auth.role != Role::Admin).then(|| headers.tenant_id.clone());
-        let (filter, page, sort) = q.into_domain(tenant_filter)?;
-        let result = state.service.get_all(&filter, &page, &sort).await?;
+        let scope = AccessScope::for_read(&auth, &headers.tenant_id)?;
+        let (filter, page, sort) = q.into_domain();
+        let result = state.service.get_all(&scope, &filter, &page, &sort).await?;
         let response_headers = headers.response_headers_paged(result.total);
         Ok((response_headers, Json(result)))
     }
@@ -87,13 +82,12 @@ impl TransferMessageRouter {
         Path(process_id): Path<String>,
         Query(q): Query<TransferMessageQuery>,
     ) -> AppResult<(HeaderMap, Json<Paginated<TransferMessageView>>)> {
-        Rbac::require_read(&auth, headers.tenant_id.as_str())?;
+        let scope = AccessScope::for_read(&auth, &headers.tenant_id)?;
         let process_urn = extract_path_urn(&process_id)?;
-        let tenant_filter = (auth.role != Role::Admin).then(|| headers.tenant_id.clone());
-        let (filter, page, sort) = q.into_domain(tenant_filter)?;
+        let (filter, page, sort) = q.into_domain();
         let result = state
             .service
-            .get_all_by_process(&process_urn, &filter, &page, &sort)
+            .get_all_by_process(&scope, &process_urn, &filter, &page, &sort)
             .await?;
         let response_headers = headers.response_headers_paged(result.total);
         Ok((response_headers, Json(result)))
@@ -105,12 +99,9 @@ impl TransferMessageRouter {
         headers: ExtractedHeaders,
         Path(id): Path<String>,
     ) -> AppResult<(HeaderMap, Json<TransferMessageView>)> {
-        Rbac::require_read(&auth, headers.tenant_id.as_str())?;
+        let scope = AccessScope::for_read(&auth, &headers.tenant_id)?;
         let urn = extract_path_urn(&id)?;
-        let view = state.service.get_one(&urn).await?;
-        if !tenant_matches(auth.role, &headers.tenant_id, &view.tenant_id) {
-            return Err(not_found(&id));
-        }
+        let view = state.service.get_one(&scope, &urn).await?;
         Ok((headers.response_headers(), Json(view)))
     }
 
@@ -121,13 +112,9 @@ impl TransferMessageRouter {
         OriginalUri(uri): OriginalUri,
         payload: Result<Json<NewTransferMessageCommand>, JsonRejection>,
     ) -> AppResult<(StatusCode, HeaderMap, Json<TransferMessageView>)> {
-        Rbac::require_write(&auth, headers.tenant_id.as_str())?;
-        let mut payload = extract_payload(payload)?;
-        // Non-admins can only create within their own tenant; the body cannot override it.
-        if auth.role != Role::Admin || payload.tenant_id.is_none() {
-            payload.tenant_id = Some(headers.tenant_id.clone());
-        }
-        let view = state.service.create(&payload).await?;
+        let scope = AccessScope::for_write(&auth, &headers.tenant_id)?;
+        let payload = extract_payload(payload)?;
+        let view = state.service.create(&scope, &payload).await?;
         let mut response_headers = headers.response_headers();
         insert_location(&mut response_headers, uri.path(), &view.id.to_string());
         Ok((StatusCode::CREATED, response_headers, Json(view)))
@@ -139,23 +126,11 @@ impl TransferMessageRouter {
         headers: ExtractedHeaders,
         Path(id): Path<String>,
     ) -> AppResult<(StatusCode, HeaderMap)> {
-        Rbac::require_write(&auth, headers.tenant_id.as_str())?;
+        let scope = AccessScope::for_write(&auth, &headers.tenant_id)?;
         let urn = extract_path_urn(&id)?;
-        // Verify tenant ownership before deleting; surfaces 404 for missing/foreign records.
-        if auth.role != Role::Admin {
-            let existing = state.service.get_one(&urn).await?;
-            if !tenant_matches(auth.role, &headers.tenant_id, &existing.tenant_id) {
-                return Err(not_found(&id));
-            }
-        }
-        state.service.delete(&urn).await?;
+        state.service.delete(&scope, &urn).await?;
         Ok((StatusCode::NO_CONTENT, headers.response_headers()))
     }
-}
-
-#[allow(clippy::result_large_err)]
-fn not_found(id: &str) -> Errors {
-    Errors::missing_resource(id, "transfer message not found", None)
 }
 
 /// Sets `Location: <collection-path>/<id>` on a 201 response.
@@ -168,7 +143,9 @@ fn insert_location(headers: &mut HeaderMap, collection_path: &str, id: &str) {
 
 // Query params ──────────────────────────────────────────────────────────────
 
-/// Tenant is intentionally absent from the query string — it comes from X-Tenant-ID header.
+/// Tenant is intentionally absent from the query string — the service injects it
+/// from the caller's [`AccessScope`]. Date-range validation and limit clamping
+/// also live in the service so both transports share them.
 #[derive(Deserialize)]
 pub struct TransferMessageQuery {
     #[serde(flatten)]
@@ -181,24 +158,15 @@ pub struct TransferMessageQuery {
 }
 
 fn default_limit() -> u32 {
-    20
+    crate::entities::query::DEFAULT_PAGE_LIMIT
 }
 
 impl TransferMessageQuery {
-    #[allow(clippy::result_large_err)]
-    fn into_domain(
-        self,
-        force_tenant_id: Option<crate::entities::ids::TenantId>,
-    ) -> ymir::errors::Outcome<(TransferMessageFilter, Page, Sort)> {
-        let mut filter = self.filter;
-        validate_date_range(filter.created_after, filter.created_before)?;
-        if let Some(tid) = force_tenant_id {
-            filter.tenant_id = Some(tid);
-        }
+    fn into_domain(self) -> (TransferMessageFilter, Page, Sort) {
         let page = Page {
-            limit: clamp_limit(self.limit),
+            limit: self.limit,
             cursor: self.cursor,
         };
-        Ok((filter, page, self.sort))
+        (self.filter, page, self.sort)
     }
 }

@@ -16,7 +16,6 @@ use tonic::Status;
 use urn::Urn;
 
 use crate::entities::commands::{EditTransferProcessCommand, NewTransferProcessCommand};
-use crate::entities::ids::TenantId;
 use crate::entities::protocol::{
     ProtocolId, ProtocolState, StateMetadata, TransferCorrelation, TransferRole,
 };
@@ -33,7 +32,6 @@ use crate::services::transfer_process::views::TransferProcessView;
 
 pub fn into_list_params(
     req: ListTransferProcessesRequest,
-    tenant_id: Option<TenantId>,
 ) -> Result<(TransferProcessFilter, Page, Sort), Status> {
     let protocol = non_empty(&req.protocol)
         .map(parse_protocol_id)
@@ -57,7 +55,7 @@ pub fn into_list_params(
         .transpose()?;
 
     let filter = TransferProcessFilter {
-        tenant_id,
+        tenant_id: None,
         protocol,
         state,
         role,
@@ -89,7 +87,6 @@ pub fn into_batch(req: BatchTransferProcessesRequest) -> Result<BatchRequests, S
 
 pub fn into_create_cmd(
     req: CreateTransferProcessRequest,
-    tenant_id: TenantId,
 ) -> Result<NewTransferProcessCommand, Status> {
     use crate::entities::ids::ParticipantId;
     use url::Url;
@@ -128,7 +125,7 @@ pub fn into_create_cmd(
 
     Ok(NewTransferProcessCommand {
         id: None,
-        tenant_id: Some(tenant_id),
+        tenant_id: None,
         role,
         protocol,
         initial_state: ProtocolState(req.initial_state.into()),

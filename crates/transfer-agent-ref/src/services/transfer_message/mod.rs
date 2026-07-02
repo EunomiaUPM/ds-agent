@@ -22,14 +22,18 @@ pub(crate) mod views;
 
 use crate::entities::commands::NewTransferMessageCommand;
 use crate::entities::query::{Page, Paginated, Sort, TransferMessageFilter};
+use crate::services::access::AccessScope;
 use crate::services::transfer_message::views::TransferMessageView;
 use urn::Urn;
 use ymir::errors::Outcome;
 
+/// All methods take the caller's [`AccessScope`] and own every tenant-scoping and
+/// ownership rule, so the HTTP and gRPC transports only translate wire formats.
 #[async_trait::async_trait]
 pub(crate) trait TransferMessageServiceTrait: Send + Sync + 'static {
     async fn get_all(
         &self,
+        scope: &AccessScope,
         filters: &TransferMessageFilter,
         page: &Page,
         sort: &Sort,
@@ -37,15 +41,20 @@ pub(crate) trait TransferMessageServiceTrait: Send + Sync + 'static {
 
     async fn get_all_by_process(
         &self,
+        scope: &AccessScope,
         process_id: &Urn,
         filters: &TransferMessageFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<TransferMessageView>>;
 
-    async fn get_one(&self, id: &Urn) -> Outcome<TransferMessageView>;
+    async fn get_one(&self, scope: &AccessScope, id: &Urn) -> Outcome<TransferMessageView>;
 
-    async fn create(&self, cmd: &NewTransferMessageCommand) -> Outcome<TransferMessageView>;
+    async fn create(
+        &self,
+        scope: &AccessScope,
+        cmd: &NewTransferMessageCommand,
+    ) -> Outcome<TransferMessageView>;
 
-    async fn delete(&self, id: &Urn) -> Outcome<()>;
+    async fn delete(&self, scope: &AccessScope, id: &Urn) -> Outcome<()>;
 }

@@ -30,6 +30,8 @@ pub const DEFAULT_PAGE_LIMIT: u32 = 20;
 /// Hard upper bound on `limit` to protect the database from unbounded scans.
 /// Requests above this are clamped down to it.
 pub const MAX_PAGE_LIMIT: u32 = 100;
+/// Maximum number of ids accepted in a single batch lookup.
+pub const MAX_BATCH_IDS: usize = 100;
 
 #[derive(Deserialize)]
 pub struct Page {
@@ -43,11 +45,10 @@ fn default_limit() -> u32 {
 }
 
 /// Clamps a client-supplied `limit` into `[1, MAX_PAGE_LIMIT]`.
-pub fn clamp_limit(limit: u32) -> u32 {
+pub fn clamp_page_limit(limit: u32) -> u32 {
     limit.clamp(1, MAX_PAGE_LIMIT)
 }
 
-/// Rejects an inverted/empty `created_after`..`created_before` window with a 400.
 #[allow(clippy::result_large_err)]
 pub fn validate_date_range(after: Option<DateTime<Utc>>, before: Option<DateTime<Utc>>) -> Outcome<()> {
     if let (Some(a), Some(b)) = (after, before) {
@@ -81,7 +82,7 @@ pub enum Sort {
 
 // Filters ───────────────────────────────────────────────────────────────────
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct TransferProcessFilter {
     /// `None` means no tenant restriction (admin queries). `Some` restricts to that tenant.
     pub tenant_id: Option<TenantId>,
@@ -94,7 +95,7 @@ pub struct TransferProcessFilter {
     pub created_before: Option<DateTime<Utc>>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct TransferMessageFilter {
     /// `None` means no tenant restriction (admin queries). `Some` restricts to that tenant.
     pub tenant_id: Option<TenantId>,

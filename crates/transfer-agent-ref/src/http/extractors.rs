@@ -18,18 +18,10 @@
 use axum::extract::FromRequestParts;
 use axum::http::request::Parts;
 use axum::http::{HeaderMap, HeaderName, HeaderValue};
-use common::auth::claims::{Claims, Role};
+use common::auth::claims::Claims;
 use ymir::errors::{BadFormat, Errors};
 
 use crate::entities::ids::{CorrelationId, RequestId, TenantId};
-
-/// Cross-tenant access guard. Admins may touch any tenant's resource; everyone
-/// else may only touch resources whose tenant matches the caller's `X-Tenant-ID`.
-/// Returning `false` here is translated by the caller into a `404 Not Found`
-/// (rather than `403`) so the existence of other tenants' resources is not leaked.
-pub(crate) fn tenant_matches(role: Role, caller: &TenantId, resource: &TenantId) -> bool {
-    role == Role::Admin || caller == resource
-}
 
 /// Validated JWT claims injected by the auth middleware.
 pub(crate) struct AuthClaims(pub Claims);
@@ -119,6 +111,7 @@ impl<S: Send + Sync> FromRequestParts<S> for ExtractedHeaders {
     }
 }
 
+/// Module helpers
 fn is_safe_id(s: &str) -> bool {
     !s.is_empty()
         && s.chars()

@@ -1,4 +1,5 @@
 use crate::entities::dataplane_manager::dataplane_runtime::ResolvedAuthCredentials;
+use crate::errors::DataplaneError;
 use axum::body::Bytes;
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine;
@@ -6,7 +7,6 @@ use connector::ApiKeyLocation;
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue, AUTHORIZATION};
 use reqwest::{Client, Method, Response};
 use std::str::FromStr;
-use crate::errors::DataplaneError;
 use ymir::errors::Outcome;
 
 /// Builds auth headers and (for query-param API keys) extra query parameters
@@ -49,12 +49,11 @@ pub fn build_auth_artifacts(
             location,
         } => match location {
             ApiKeyLocation::Header => {
-                let name = HeaderName::from_str(key).map_err(|e| {
-                    DataplaneError::InvalidHeaderValue {
+                let name =
+                    HeaderName::from_str(key).map_err(|e| DataplaneError::InvalidHeaderValue {
                         header: key.to_string(),
                         reason: e.to_string(),
-                    }
-                })?;
+                    })?;
                 let hval = HeaderValue::from_str(value).map_err(|e| {
                     DataplaneError::InvalidHeaderValue {
                         header: key.to_string(),
@@ -141,13 +140,15 @@ pub async fn forward(
         builder = builder.header(name.clone(), value.clone());
     }
 
-    Ok(builder.body(body).send().await.map_err(|e| {
-        DataplaneError::ProxyRequestFailed {
+    Ok(builder
+        .body(body)
+        .send()
+        .await
+        .map_err(|e| DataplaneError::ProxyRequestFailed {
             method: method_str,
             url: url.clone(),
             reason: e.to_string(),
-        }
-    })?)
+        })?)
 }
 
 #[cfg(test)]

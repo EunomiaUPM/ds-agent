@@ -25,9 +25,9 @@ use crate::entities::dataplane_manager::dataplane_proxy::{
 use crate::entities::dataplane_manager::dataplane_runtime::{
     DataplaneRuntime, ResolvedAuthCredentials, RuntimeSecretVault,
 };
+use crate::entities::dataplane_transfers::DataplaneTransferDto;
 use crate::entities::dataplane_transfers::DataplaneTransfersEntitiesTrait;
 use crate::entities::dataplane_transfers::{InteractionMode, TransferState};
-use crate::entities::dataplane_transfers::DataplaneTransferDto;
 use axum::body::{to_bytes, Body, Bytes};
 use axum::extract::{FromRef, Path, Request, State};
 use axum::http::HeaderMap;
@@ -223,7 +223,15 @@ impl TestingHTTPProxy {
         let credentials = self.resolve_credentials(&dataplane, &egress).await;
 
         Ok(self
-            .forward_and_log(&dataplane, data_plane_id, path, &egress, &target, outbound, &credentials)
+            .forward_and_log(
+                &dataplane,
+                data_plane_id,
+                path,
+                &egress,
+                &target,
+                outbound,
+                &credentials,
+            )
             .await)
     }
 
@@ -266,7 +274,11 @@ impl TestingHTTPProxy {
         let body = to_bytes(body, MAX_BODY_BYTES)
             .await
             .map_err(|_| ProxyError::BodyTooLarge)?;
-        Ok(OutboundRequest { method, headers, body })
+        Ok(OutboundRequest {
+            method,
+            headers,
+            body,
+        })
     }
 
     /// Builds the upstream URL: egress base path + optional wildcard path + query.
@@ -380,11 +392,25 @@ impl TestingHTTPProxy {
         )
         .await;
 
-        self.record_event(dataplane, data_plane_id, path, egress, target, &outbound.method, &response)
-            .await;
+        self.record_event(
+            dataplane,
+            data_plane_id,
+            path,
+            egress,
+            target,
+            &outbound.method,
+            &response,
+        )
+        .await;
 
-        Self::map_response(response, &outbound.method, target, &auth_preview, self.keystore.is_some())
-            .await
+        Self::map_response(
+            response,
+            &outbound.method,
+            target,
+            &auth_preview,
+            self.keystore.is_some(),
+        )
+        .await
     }
 
     /// Persists a best-effort transfer event describing this proxied request.
@@ -447,7 +473,10 @@ impl TestingHTTPProxy {
         match result {
             Ok(res) if res.status().is_client_error() || res.status().is_server_error() => {
                 let status = res.status();
-                let body_text = res.text().await.unwrap_or_else(|_| "<unreadable>".to_string());
+                let body_text = res
+                    .text()
+                    .await
+                    .unwrap_or_else(|_| "<unreadable>".to_string());
                 error!(
                     "Upstream {} {} -> {} | sent=[{}] keystore={} | body: {}",
                     method, target, status, auth_preview, keystore_present, body_text
@@ -457,7 +486,11 @@ impl TestingHTTPProxy {
             Ok(res) => Self::relay_response(res),
             Err(e) => {
                 error!("Proxy forward failed {} {}: {:?}", method, target, e);
-                (StatusCode::BAD_GATEWAY, Json(json!({"error": "proxy error"}))).into_response()
+                (
+                    StatusCode::BAD_GATEWAY,
+                    Json(json!({"error": "proxy error"})),
+                )
+                    .into_response()
             }
         }
     }
@@ -487,7 +520,9 @@ impl TestingHTTPProxy {
 
     /// Human-readable label of the configured ingress kind.
     fn ingress_label(dataplane: &DataplaneTransferDto) -> &'static str {
-        match serde_json::from_value::<DataplaneProxyIngress>(dataplane.inner.ingress_config.clone()) {
+        match serde_json::from_value::<DataplaneProxyIngress>(
+            dataplane.inner.ingress_config.clone(),
+        ) {
             Ok(DataplaneProxyIngress::HttpListener { .. }) => "HttpListener",
             Ok(DataplaneProxyIngress::NoOp) => "NoOp",
             Err(_) => "Unknown",
@@ -515,7 +550,11 @@ impl TestingHTTPProxy {
             ResolvedAuthCredentials::BasicAuth { username, .. } => {
                 format!("Authorization: Basic <{username}:***>")
             }
-            ResolvedAuthCredentials::OAuth2 { access_token, token_type, .. } => format!(
+            ResolvedAuthCredentials::OAuth2 {
+                access_token,
+                token_type,
+                ..
+            } => format!(
                 "Authorization: {} {}",
                 token_type,
                 &access_token[..access_token.len().min(40)]

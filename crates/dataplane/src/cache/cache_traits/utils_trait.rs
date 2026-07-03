@@ -15,9 +15,9 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::errors::DataplaneError;
 use serde::de::DeserializeOwned;
 use urn::Urn;
-use crate::errors::DataplaneError;
 use ymir::errors::Outcome;
 
 #[async_trait::async_trait]
@@ -90,7 +90,9 @@ pub trait UtilsCacheTrait: Send + Sync {
             .arg("$")
             .query_async(&mut connection)
             .await
-            .map_err(|e| DataplaneError::CacheQueryFailed { reason: e.to_string() })?;
+            .map_err(|e| DataplaneError::CacheQueryFailed {
+                reason: e.to_string(),
+            })?;
 
         let mut results = Vec::with_capacity(data.len());
         for entry in data.into_iter().flatten() {
@@ -111,7 +113,9 @@ pub trait UtilsCacheTrait: Send + Sync {
             .arg("$")
             .query_async(&mut connection)
             .await
-            .map_err(|e| DataplaneError::CacheQueryFailed { reason: e.to_string() })?;
+            .map_err(|e| DataplaneError::CacheQueryFailed {
+                reason: e.to_string(),
+            })?;
 
         if let Some(json_str) = data {
             let mut models: Vec<Self::Dto> = serde_json::from_str(&json_str)?;

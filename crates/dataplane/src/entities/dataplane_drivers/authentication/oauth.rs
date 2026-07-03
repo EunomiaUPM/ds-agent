@@ -20,10 +20,10 @@ use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;
 use crate::entities::dataplane_manager::dataplane_runtime::{
     DataplaneRuntime, ResolvedAuthCredentials,
 };
+use crate::errors::DataplaneError;
 use connector::{AuthenticationConfig, OAuthGrantType, TemplateVecString, TokenExpireAction};
 use serde::Deserialize;
 use std::time::{SystemTime, UNIX_EPOCH};
-use crate::errors::DataplaneError;
 use ymir::errors::Outcome;
 
 /// Response body returned by an OAuth 2.0 token endpoint.
@@ -67,10 +67,13 @@ impl OauthAuthenticator {
             .into());
         }
 
-        resp.json::<TokenResponse>().await.map_err(|e| DataplaneError::AuthResponseParseFailed {
-            url: token_url.to_string(),
-            reason: e.to_string(),
-        }.into())
+        resp.json::<TokenResponse>().await.map_err(|e| {
+            DataplaneError::AuthResponseParseFailed {
+                url: token_url.to_string(),
+                reason: e.to_string(),
+            }
+            .into()
+        })
     }
 
     /// Full grant flow: dispatches on `grant_type` to build the right form body.
@@ -109,7 +112,8 @@ impl OauthAuthenticator {
                 Self::post_token(token_url, &params).await
             }
             OAuthGrantType::AuthorizationCode => Err(DataplaneError::FeatureNotImplemented {
-                feature: "OAuth2 AuthorizationCode grant (requires browser interaction)".to_string(),
+                feature: "OAuth2 AuthorizationCode grant (requires browser interaction)"
+                    .to_string(),
             }
             .into()),
         }

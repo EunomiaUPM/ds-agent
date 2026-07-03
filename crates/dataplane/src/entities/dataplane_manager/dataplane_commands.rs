@@ -22,6 +22,7 @@ use crate::entities::dataplane_manager::dataplane_driver_factory::{
 };
 use crate::entities::dataplane_manager::dataplane_runtime::{DataplaneRuntime, RuntimeSecretVault};
 use crate::entities::dataplane_transfers::{EditDataplaneTransferDto, TransferState};
+use crate::errors::DataplaneError;
 use crate::{DataplaneAddress, DataplaneTransfersEntitiesTrait};
 use common::config::services::TransferConfig;
 use connector::{ConnectorInstanceDto, ConnectorInstanceTrait};
@@ -29,7 +30,6 @@ use keystore::SecretStore;
 use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
-use crate::errors::DataplaneError;
 use ymir::errors::Outcome;
 
 #[derive(Clone, Debug)]
@@ -168,7 +168,9 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
                 .export(runtime, &transfer_id)
                 .await?;
             let value = serde_json::to_value(&exported).map_err(|e| {
-                DataplaneError::RuntimeSerializationFailed { reason: e.to_string() }
+                DataplaneError::RuntimeSerializationFailed {
+                    reason: e.to_string(),
+                }
             })?;
             Ok(Some(value))
         } else {
@@ -176,7 +178,9 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
                 None => Ok(None),
                 Some(r) => {
                     let value = serde_json::to_value(r).map_err(|e| {
-                        DataplaneError::RuntimeSerializationFailed { reason: e.to_string() }
+                        DataplaneError::RuntimeSerializationFailed {
+                            reason: e.to_string(),
+                        }
                     })?;
                     Ok(Some(value))
                 }

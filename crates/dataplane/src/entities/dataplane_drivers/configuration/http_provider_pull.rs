@@ -20,8 +20,8 @@ use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;
 use crate::entities::dataplane_manager::dataplane_proxy::{
     DataplaneProxy, DataplaneProxyEgress, DataplaneProxyIngress, HTTP_LISTENER_PATH,
 };
-use connector::{InteractionConfig, ProtocolSpec};
 use crate::errors::DataplaneError;
+use connector::{InteractionConfig, ProtocolSpec};
 use ymir::errors::Outcome;
 
 #[derive(Debug)]

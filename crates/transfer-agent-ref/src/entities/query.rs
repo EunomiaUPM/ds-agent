@@ -50,7 +50,10 @@ pub fn clamp_page_limit(limit: u32) -> u32 {
 }
 
 #[allow(clippy::result_large_err)]
-pub fn validate_date_range(after: Option<DateTime<Utc>>, before: Option<DateTime<Utc>>) -> Outcome<()> {
+pub fn validate_date_range(
+    after: Option<DateTime<Utc>>,
+    before: Option<DateTime<Utc>>,
+) -> Outcome<()> {
     if let (Some(a), Some(b)) = (after, before) {
         if a >= b {
             return Err(Errors::format(

@@ -168,7 +168,12 @@ async fn get_all_empty_result() {
 
     let svc = make_svc(proc_repo, id_repo);
     let result = svc
-        .get_all(&admin_scope(), &empty_filter(), &default_page(), &Sort::CreatedAtDesc)
+        .get_all(
+            &admin_scope(),
+            &empty_filter(),
+            &default_page(),
+            &Sort::CreatedAtDesc,
+        )
         .await
         .unwrap();
 
@@ -198,7 +203,8 @@ async fn get_all_full_page_produces_cursor() {
 
     let svc = make_svc(proc_repo, id_repo);
     let result = svc
-        .get_all(&admin_scope(), 
+        .get_all(
+            &admin_scope(),
             &empty_filter(),
             &Page {
                 limit: 1,
@@ -233,7 +239,8 @@ async fn get_all_partial_page_no_cursor() {
 
     let svc = make_svc(proc_repo, id_repo);
     let result = svc
-        .get_all(&admin_scope(), 
+        .get_all(
+            &admin_scope(),
             &empty_filter(),
             &Page {
                 limit: 5,
@@ -287,7 +294,8 @@ async fn get_all_cursor_uses_updated_at_for_sort_updated_at_desc() {
 
     let svc = make_svc(proc_repo, id_repo);
     let result = svc
-        .get_all(&admin_scope(), 
+        .get_all(
+            &admin_scope(),
             &empty_filter(),
             &Page {
                 limit: 1,
@@ -338,7 +346,8 @@ async fn get_all_cursor_uses_created_at_for_sort_created_at_asc() {
 
     let svc = make_svc(proc_repo, id_repo);
     let result = svc
-        .get_all(&admin_scope(), 
+        .get_all(
+            &admin_scope(),
             &empty_filter(),
             &Page {
                 limit: 1,
@@ -374,7 +383,12 @@ async fn get_all_merges_identifiers_and_promotes_consumer_pid() {
 
     let svc = make_svc(proc_repo, id_repo);
     let result = svc
-        .get_all(&admin_scope(), &empty_filter(), &default_page(), &Sort::CreatedAtDesc)
+        .get_all(
+            &admin_scope(),
+            &empty_filter(),
+            &default_page(),
+            &Sort::CreatedAtDesc,
+        )
         .await
         .unwrap();
 
@@ -405,7 +419,12 @@ async fn get_all_total_forwarded_from_count() {
 
     let svc = make_svc(proc_repo, id_repo);
     let result = svc
-        .get_all(&admin_scope(), &empty_filter(), &default_page(), &Sort::CreatedAtDesc)
+        .get_all(
+            &admin_scope(),
+            &empty_filter(),
+            &default_page(),
+            &Sort::CreatedAtDesc,
+        )
         .await
         .unwrap();
 
@@ -432,9 +451,14 @@ async fn get_all_filter_by_protocol_passed_through() {
         ..empty_filter()
     };
     let svc = make_svc(proc_repo, id_repo);
-    svc.get_all(&admin_scope(), &filter, &default_page(), &Sort::CreatedAtDesc)
-        .await
-        .unwrap();
+    svc.get_all(
+        &admin_scope(),
+        &filter,
+        &default_page(),
+        &Sort::CreatedAtDesc,
+    )
+    .await
+    .unwrap();
 }
 
 #[tokio::test]
@@ -457,9 +481,14 @@ async fn get_all_filter_by_role_passed_through() {
         ..empty_filter()
     };
     let svc = make_svc(proc_repo, id_repo);
-    svc.get_all(&admin_scope(), &filter, &default_page(), &Sort::CreatedAtDesc)
-        .await
-        .unwrap();
+    svc.get_all(
+        &admin_scope(),
+        &filter,
+        &default_page(),
+        &Sort::CreatedAtDesc,
+    )
+    .await
+    .unwrap();
 }
 
 #[tokio::test]
@@ -482,9 +511,14 @@ async fn get_all_filter_by_state_passed_through() {
         ..empty_filter()
     };
     let svc = make_svc(proc_repo, id_repo);
-    svc.get_all(&admin_scope(), &filter, &default_page(), &Sort::CreatedAtDesc)
-        .await
-        .unwrap();
+    svc.get_all(
+        &admin_scope(),
+        &filter,
+        &default_page(),
+        &Sort::CreatedAtDesc,
+    )
+    .await
+    .unwrap();
 }
 
 #[tokio::test]
@@ -507,9 +541,14 @@ async fn get_all_filter_by_tenant_id_passed_through() {
         ..empty_filter()
     };
     let svc = make_svc(proc_repo, id_repo);
-    svc.get_all(&admin_scope(), &filter, &default_page(), &Sort::CreatedAtDesc)
-        .await
-        .unwrap();
+    svc.get_all(
+        &admin_scope(),
+        &filter,
+        &default_page(),
+        &Sort::CreatedAtDesc,
+    )
+    .await
+    .unwrap();
 }
 
 #[tokio::test]
@@ -535,9 +574,14 @@ async fn get_all_filter_by_date_range_passed_through() {
         ..empty_filter()
     };
     let svc = make_svc(proc_repo, id_repo);
-    svc.get_all(&admin_scope(), &filter, &default_page(), &Sort::CreatedAtDesc)
-        .await
-        .unwrap();
+    svc.get_all(
+        &admin_scope(),
+        &filter,
+        &default_page(),
+        &Sort::CreatedAtDesc,
+    )
+    .await
+    .unwrap();
 }
 
 #[tokio::test]
@@ -556,7 +600,8 @@ async fn get_all_page_cursor_passed_through() {
         .returning(|_| Ok(vec![]));
 
     let svc = make_svc(proc_repo, id_repo);
-    svc.get_all(&admin_scope(), 
+    svc.get_all(
+        &admin_scope(),
         &empty_filter(),
         &Page {
             limit: 10,
@@ -586,9 +631,14 @@ async fn get_all_propagates_process_repo_error() {
 
     let svc = make_svc(proc_repo, id_repo);
     assert!(
-        svc.get_all(&admin_scope(), &empty_filter(), &default_page(), &Sort::CreatedAtDesc)
-            .await
-            .is_err()
+        svc.get_all(
+            &admin_scope(),
+            &empty_filter(),
+            &default_page(),
+            &Sort::CreatedAtDesc
+        )
+        .await
+        .is_err()
     );
 }
 
@@ -608,9 +658,14 @@ async fn get_all_propagates_count_repo_error() {
 
     let svc = make_svc(proc_repo, id_repo);
     assert!(
-        svc.get_all(&admin_scope(), &empty_filter(), &default_page(), &Sort::CreatedAtDesc)
-            .await
-            .is_err()
+        svc.get_all(
+            &admin_scope(),
+            &empty_filter(),
+            &default_page(),
+            &Sort::CreatedAtDesc
+        )
+        .await
+        .is_err()
     );
 }
 
@@ -637,9 +692,14 @@ async fn get_all_propagates_identifier_repo_error() {
 
     let svc = make_svc(proc_repo, id_repo);
     assert!(
-        svc.get_all(&admin_scope(), &empty_filter(), &default_page(), &Sort::CreatedAtDesc)
-            .await
-            .is_err()
+        svc.get_all(
+            &admin_scope(),
+            &empty_filter(),
+            &default_page(),
+            &Sort::CreatedAtDesc
+        )
+        .await
+        .is_err()
     );
 }
 
@@ -818,9 +878,13 @@ async fn edit_foreign_tenant_returns_not_found_without_mutating() {
 
     let svc = make_svc(proc_repo, id_repo);
     assert!(
-        svc.edit(&tenant_scope("tenant-2"), &p_urn(1), &make_edit_cmd(None, None))
-            .await
-            .is_err()
+        svc.edit(
+            &tenant_scope("tenant-2"),
+            &p_urn(1),
+            &make_edit_cmd(None, None)
+        )
+        .await
+        .is_err()
     );
 }
 
@@ -840,7 +904,12 @@ async fn batch_filters_out_foreign_tenant_records() {
 
     let svc = make_svc(proc_repo, id_repo);
     let views = svc
-        .batch(&tenant_scope("tenant-2"), &BatchRequests { ids: vec![p_urn(1)] })
+        .batch(
+            &tenant_scope("tenant-2"),
+            &BatchRequests {
+                ids: vec![p_urn(1)],
+            },
+        )
         .await
         .unwrap();
     assert!(views.is_empty());
@@ -862,7 +931,10 @@ async fn batch_empty_ids_returns_empty_vec() {
         .returning(|_| Ok(vec![]));
 
     let svc = make_svc(proc_repo, id_repo);
-    let views = svc.batch(&admin_scope(), &BatchRequests { ids: vec![] }).await.unwrap();
+    let views = svc
+        .batch(&admin_scope(), &BatchRequests { ids: vec![] })
+        .await
+        .unwrap();
 
     assert!(views.is_empty());
 }
@@ -883,9 +955,12 @@ async fn batch_returns_one_view_per_process() {
 
     let svc = make_svc(proc_repo, id_repo);
     let views = svc
-        .batch(&admin_scope(), &BatchRequests {
-            ids: vec![p_urn(1), p_urn(2)],
-        })
+        .batch(
+            &admin_scope(),
+            &BatchRequests {
+                ids: vec![p_urn(1), p_urn(2)],
+            },
+        )
         .await
         .unwrap();
 
@@ -913,9 +988,12 @@ async fn batch_groups_identifiers_per_process() {
 
     let svc = make_svc(proc_repo, id_repo);
     let views = svc
-        .batch(&admin_scope(), &BatchRequests {
-            ids: vec![p_urn(1), p_urn(2)],
-        })
+        .batch(
+            &admin_scope(),
+            &BatchRequests {
+                ids: vec![p_urn(1), p_urn(2)],
+            },
+        )
         .await
         .unwrap();
 
@@ -948,9 +1026,12 @@ async fn batch_propagates_process_repo_error() {
 
     let svc = make_svc(proc_repo, id_repo);
     assert!(
-        svc.batch(&admin_scope(), &BatchRequests {
-            ids: vec![p_urn(1)]
-        })
+        svc.batch(
+            &admin_scope(),
+            &BatchRequests {
+                ids: vec![p_urn(1)]
+            }
+        )
         .await
         .is_err()
     );
@@ -976,9 +1057,12 @@ async fn batch_propagates_identifier_repo_error() {
 
     let svc = make_svc(proc_repo, id_repo);
     assert!(
-        svc.batch(&admin_scope(), &BatchRequests {
-            ids: vec![p_urn(1)]
-        })
+        svc.batch(
+            &admin_scope(),
+            &BatchRequests {
+                ids: vec![p_urn(1)]
+            }
+        )
         .await
         .is_err()
     );
@@ -1002,7 +1086,10 @@ async fn create_without_identifiers_does_not_call_upsert() {
     id_repo.expect_upsert_identifier().times(0); // enforces "never called"
 
     let svc = make_svc(proc_repo, id_repo);
-    let view = svc.create(&admin_scope(), &make_new_cmd(None)).await.unwrap();
+    let view = svc
+        .create(&admin_scope(), &make_new_cmd(None))
+        .await
+        .unwrap();
 
     assert!(&view.correlation.identifiers.is_empty());
 }
@@ -1030,7 +1117,10 @@ async fn create_with_one_identifier_upserts_once() {
         });
 
     let svc = make_svc(proc_repo, id_repo);
-    let view = svc.create(&admin_scope(), &make_new_cmd(Some(ids))).await.unwrap();
+    let view = svc
+        .create(&admin_scope(), &make_new_cmd(Some(ids)))
+        .await
+        .unwrap();
 
     assert_eq!(
         view.correlation
@@ -1067,7 +1157,10 @@ async fn create_with_multiple_identifiers_upserts_each() {
         });
 
     let svc = make_svc(proc_repo, id_repo);
-    let view = svc.create(&admin_scope(), &make_new_cmd(Some(ids.clone()))).await.unwrap();
+    let view = svc
+        .create(&admin_scope(), &make_new_cmd(Some(ids.clone())))
+        .await
+        .unwrap();
 
     for (k, v) in &ids {
         assert_eq!(
@@ -1086,7 +1179,11 @@ async fn create_propagates_process_repo_error() {
     let id_repo = MockTransferIdentifierRepoTrait::new();
 
     let svc = make_svc(proc_repo, id_repo);
-    assert!(svc.create(&admin_scope(), &make_new_cmd(None)).await.is_err());
+    assert!(
+        svc.create(&admin_scope(), &make_new_cmd(None))
+            .await
+            .is_err()
+    );
 }
 
 #[tokio::test]
@@ -1105,7 +1202,11 @@ async fn create_propagates_identifier_upsert_error() {
     let mut ids = HashMap::new();
     ids.insert("k".to_string(), "v".to_string());
     let svc = make_svc(proc_repo, id_repo);
-    assert!(svc.create(&admin_scope(), &make_new_cmd(Some(ids))).await.is_err());
+    assert!(
+        svc.create(&admin_scope(), &make_new_cmd(Some(ids)))
+            .await
+            .is_err()
+    );
 }
 
 // ─── edit ─────────────────────────────────────────────────────────────────────
@@ -1130,7 +1231,11 @@ async fn edit_with_state_change() {
 
     let svc = make_svc(proc_repo, id_repo);
     let view = svc
-        .edit(&admin_scope(), &urn, &make_edit_cmd(Some("COMPLETED"), None))
+        .edit(
+            &admin_scope(),
+            &urn,
+            &make_edit_cmd(Some("COMPLETED"), None),
+        )
         .await
         .unwrap();
 
@@ -1153,7 +1258,9 @@ async fn edit_without_identifiers_skips_upsert() {
         .returning(|_| Ok(vec![]));
 
     let svc = make_svc(proc_repo, id_repo);
-    svc.edit(&admin_scope(), &urn, &make_edit_cmd(None, None)).await.unwrap();
+    svc.edit(&admin_scope(), &urn, &make_edit_cmd(None, None))
+        .await
+        .unwrap();
 }
 
 #[tokio::test]

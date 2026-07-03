@@ -55,7 +55,11 @@ pub enum DataplaneError {
     AuthNetworkError { url: String, reason: String },
 
     #[error("Dataplane Error: Auth endpoint {url} returned HTTP {status}: {body}")]
-    AuthEndpointError { url: String, status: u16, body: String },
+    AuthEndpointError {
+        url: String,
+        status: u16,
+        body: String,
+    },
 
     #[error("Dataplane Error: Failed to parse auth endpoint response from {url}: {reason}")]
     AuthResponseParseFailed { url: String, reason: String },
@@ -65,14 +69,22 @@ pub enum DataplaneError {
     InvalidHeaderValue { header: String, reason: String },
 
     #[error("Dataplane Error: Proxy HTTP request {method} {url} failed: {reason}")]
-    ProxyRequestFailed { method: String, url: String, reason: String },
+    ProxyRequestFailed {
+        method: String,
+        url: String,
+        reason: String,
+    },
 
     // PubSub ──────────────────────────────────────────────────────────────
     #[error("Dataplane Error: No connector available for pubsub operation '{operation}'")]
     PubSubConnectorNotAvailable { operation: String },
 
     #[error("Dataplane Error: PubSub {method} to {url} failed: {reason}")]
-    PubSubRequestFailed { method: String, url: String, reason: String },
+    PubSubRequestFailed {
+        method: String,
+        url: String,
+        reason: String,
+    },
 
     // State machine / serialization ────────────────────────────────────────
     #[error("Dataplane Error: Failed to serialize runtime state: {reason}")]
@@ -92,9 +104,13 @@ const DP: &str = "[Dataplane]";
 impl From<DataplaneError> for Errors {
     fn from(e: DataplaneError) -> Errors {
         match e {
-            DataplaneError::TransferNotFound { transfer_process_id } => {
-                Errors::missing_resource(transfer_process_id, format!("{DP} Transfer process not found in dataplane"), None)
-            }
+            DataplaneError::TransferNotFound {
+                transfer_process_id,
+            } => Errors::missing_resource(
+                transfer_process_id,
+                format!("{DP} Transfer process not found in dataplane"),
+                None,
+            ),
 
             DataplaneError::FeatureNotImplemented { feature } => {
                 Errors::not_impl(format!("{DP} {feature}"), None)
@@ -104,30 +120,67 @@ impl From<DataplaneError> for Errors {
                 Errors::not_impl(format!("{DP} Protocol not supported: {protocol}"), None)
             }
 
-            DataplaneError::AuthNetworkError { url, reason } => {
-                Errors::petition(url, "POST", None, PetitionFailure::Network, format!("{DP} {reason}"), None)
-            }
+            DataplaneError::AuthNetworkError { url, reason } => Errors::petition(
+                url,
+                "POST",
+                None,
+                PetitionFailure::Network,
+                format!("{DP} {reason}"),
+                None,
+            ),
 
             DataplaneError::AuthEndpointError { url, status, body } => {
                 let sc = StatusCode::from_u16(status).unwrap_or(StatusCode::BAD_GATEWAY);
-                Errors::petition(url, "POST", Some(sc), PetitionFailure::HttpStatus(sc), format!("{DP} {body}"), None)
+                Errors::petition(
+                    url,
+                    "POST",
+                    Some(sc),
+                    PetitionFailure::HttpStatus(sc),
+                    format!("{DP} {body}"),
+                    None,
+                )
             }
 
-            DataplaneError::AuthResponseParseFailed { url, reason } => {
-                Errors::petition(url, "POST", None, PetitionFailure::BodyDeserialization, format!("{DP} {reason}"), None)
-            }
+            DataplaneError::AuthResponseParseFailed { url, reason } => Errors::petition(
+                url,
+                "POST",
+                None,
+                PetitionFailure::BodyDeserialization,
+                format!("{DP} {reason}"),
+                None,
+            ),
 
-            DataplaneError::ProxyRequestFailed { method, url, reason } => {
-                Errors::petition(url, method, None, PetitionFailure::Network, format!("{DP} {reason}"), None)
-            }
+            DataplaneError::ProxyRequestFailed {
+                method,
+                url,
+                reason,
+            } => Errors::petition(
+                url,
+                method,
+                None,
+                PetitionFailure::Network,
+                format!("{DP} {reason}"),
+                None,
+            ),
 
-            DataplaneError::PubSubRequestFailed { method, url, reason } => {
-                Errors::petition(url, method, None, PetitionFailure::Network, format!("{DP} {reason}"), None)
-            }
+            DataplaneError::PubSubRequestFailed {
+                method,
+                url,
+                reason,
+            } => Errors::petition(
+                url,
+                method,
+                None,
+                PetitionFailure::Network,
+                format!("{DP} {reason}"),
+                None,
+            ),
 
-            DataplaneError::InvalidHeaderValue { header, reason } => {
-                Errors::format(BadFormat::Sent, format!("{DP} [header={header}] {reason}"), None)
-            }
+            DataplaneError::InvalidHeaderValue { header, reason } => Errors::format(
+                BadFormat::Sent,
+                format!("{DP} [header={header}] {reason}"),
+                None,
+            ),
 
             DataplaneError::UnexpectedCommand { command } => {
                 Errors::crazy(format!("{DP} Unexpected command: {command}"), None)
@@ -141,21 +194,24 @@ impl From<DataplaneError> for Errors {
                 Errors::crazy(format!("{DP} No driver for role={role} mode={mode}"), None)
             }
 
-            DataplaneError::AuthConfigMismatch { expected } => {
-                Errors::crazy(format!("{DP} Auth config mismatch: expected {expected}"), None)
-            }
+            DataplaneError::AuthConfigMismatch { expected } => Errors::crazy(
+                format!("{DP} Auth config mismatch: expected {expected}"),
+                None,
+            ),
 
-            DataplaneError::WrongInteractionType { expected, found } => {
-                Errors::crazy(format!("{DP} Wrong interaction type: expected={expected} found={found}"), None)
-            }
+            DataplaneError::WrongInteractionType { expected, found } => Errors::crazy(
+                format!("{DP} Wrong interaction type: expected={expected} found={found}"),
+                None,
+            ),
 
             DataplaneError::MissingTransferContext { detail } => {
                 Errors::crazy(format!("{DP} Missing transfer context: {detail}"), None)
             }
 
-            DataplaneError::PubSubConnectorNotAvailable { operation } => {
-                Errors::crazy(format!("{DP} No connector for pubsub operation: {operation}"), None)
-            }
+            DataplaneError::PubSubConnectorNotAvailable { operation } => Errors::crazy(
+                format!("{DP} No connector for pubsub operation: {operation}"),
+                None,
+            ),
 
             DataplaneError::RuntimeSerializationFailed { reason } => {
                 Errors::crazy(format!("{DP} Runtime serialization failed: {reason}"), None)
@@ -165,9 +221,10 @@ impl From<DataplaneError> for Errors {
                 Errors::crazy(format!("{DP} Redis cache operation failed: {reason}"), None)
             }
 
-            DataplaneError::InvalidRoleConfig => {
-                Errors::crazy(format!("{DP} RoleConfig::NotDefined is not valid in dataplane context"), None)
-            }
+            DataplaneError::InvalidRoleConfig => Errors::crazy(
+                format!("{DP} RoleConfig::NotDefined is not valid in dataplane context"),
+                None,
+            ),
         }
     }
 }

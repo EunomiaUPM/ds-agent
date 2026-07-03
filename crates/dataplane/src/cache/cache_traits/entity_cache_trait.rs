@@ -18,10 +18,10 @@
 use crate::cache::cache_traits::redis_cache_connector_trait::RedisCacheConnectorTrait;
 use crate::cache::cache_traits::utils_trait::UtilsCacheTrait;
 use crate::cache::cache_traits::DESIRED_CACHE_TTL;
+use crate::errors::DataplaneError;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use urn::Urn;
-use crate::errors::DataplaneError;
 use ymir::errors::Outcome;
 
 #[async_trait::async_trait]
@@ -64,7 +64,9 @@ where
             .arg(DESIRED_CACHE_TTL)
             .query_async::<()>(&mut self.get_conn())
             .await
-            .map_err(|e| DataplaneError::CacheQueryFailed { reason: e.to_string() })?;
+            .map_err(|e| DataplaneError::CacheQueryFailed {
+                reason: e.to_string(),
+            })?;
         Ok(())
     }
 
@@ -75,7 +77,9 @@ where
             .arg(&key)
             .query_async(&mut self.get_conn())
             .await
-            .map_err(|e| DataplaneError::CacheQueryFailed { reason: e.to_string() })?;
+            .map_err(|e| DataplaneError::CacheQueryFailed {
+                reason: e.to_string(),
+            })?;
         Ok(())
     }
 
@@ -86,7 +90,9 @@ where
             .arg(main_key)
             .query_async(&mut self.get_conn())
             .await
-            .map_err(|e| DataplaneError::CacheQueryFailed { reason: e.to_string() })?;
+            .map_err(|e| DataplaneError::CacheQueryFailed {
+                reason: e.to_string(),
+            })?;
         if let Some(key) = target_key {
             return Self::hydrate_from_single_key(self.get_conn(), key).await;
         }
@@ -103,7 +109,9 @@ where
             .arg(&key)
             .query_async(&mut self.get_conn())
             .await
-            .map_err(|e| DataplaneError::CacheQueryFailed { reason: e.to_string() })?;
+            .map_err(|e| DataplaneError::CacheQueryFailed {
+                reason: e.to_string(),
+            })?;
         Ok(())
     }
 
@@ -117,7 +125,9 @@ where
             .arg(stop)
             .query_async(&mut self.get_conn())
             .await
-            .map_err(|e| DataplaneError::CacheQueryFailed { reason: e.to_string() })?;
+            .map_err(|e| DataplaneError::CacheQueryFailed {
+                reason: e.to_string(),
+            })?;
 
         Self::hydrate_from_multiple_keys(self.get_conn(), keys).await
     }
@@ -132,7 +142,9 @@ where
             .arg(key)
             .query_async(&mut self.get_conn())
             .await
-            .map_err(|e| DataplaneError::CacheQueryFailed { reason: e.to_string() })?;
+            .map_err(|e| DataplaneError::CacheQueryFailed {
+                reason: e.to_string(),
+            })?;
         Ok(())
     }
 
@@ -145,7 +157,9 @@ where
             .arg(key)
             .query_async(&mut self.get_conn())
             .await
-            .map_err(|e| DataplaneError::CacheQueryFailed { reason: e.to_string() })?;
+            .map_err(|e| DataplaneError::CacheQueryFailed {
+                reason: e.to_string(),
+            })?;
         Ok(())
     }
 

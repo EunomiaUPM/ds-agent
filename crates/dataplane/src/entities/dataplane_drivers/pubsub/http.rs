@@ -19,13 +19,13 @@ use crate::entities::dataplane_drivers::DriverPubSubTrait;
 use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;
 use crate::entities::dataplane_manager::dataplane_proxy::HTTP_LISTENER_PATH;
 use crate::entities::dataplane_manager::dataplane_runtime::ResolvedAuthCredentials;
+use crate::errors::DataplaneError;
 use common::http_client::HttpClient;
 use connector::{
     InteractionConfig, KeystoreLookup, ProtocolSpec, RuntimeParametersResolver, TemplateVecString,
 };
 use serde_json::{json, Value};
 use std::sync::Arc;
-use crate::errors::DataplaneError;
 use ymir::errors::Outcome;
 
 pub struct HttpPubSubscriber {
@@ -76,11 +76,11 @@ impl HttpPubSubscriber {
 impl DriverPubSubTrait for HttpPubSubscriber {
     async fn subscribe(&self, context: &DataplaneContext) -> Outcome<DataplaneContext> {
         // extract subscribe spec
-        let connector = context
-            .connector_instance()
-            .ok_or_else(|| DataplaneError::PubSubConnectorNotAvailable {
+        let connector = context.connector_instance().ok_or_else(|| {
+            DataplaneError::PubSubConnectorNotAvailable {
                 operation: "subscribe".to_string(),
-            })?;
+            }
+        })?;
 
         let dp = &context.dataplane_process().inner.id;
         let ingress_url = format!("{}{}", HTTP_LISTENER_PATH, dp);
@@ -138,11 +138,11 @@ impl DriverPubSubTrait for HttpPubSubscriber {
 
     async fn unsubscribe(&self, context: &DataplaneContext) -> Outcome<DataplaneContext> {
         // extract unsubscribe spec
-        let connector = context
-            .connector_instance()
-            .ok_or_else(|| DataplaneError::PubSubConnectorNotAvailable {
+        let connector = context.connector_instance().ok_or_else(|| {
+            DataplaneError::PubSubConnectorNotAvailable {
                 operation: "unsubscribe".to_string(),
-            })?;
+            }
+        })?;
         let push_lifecycle = match &connector.interaction {
             InteractionConfig::Push(p) => p,
             _ => {

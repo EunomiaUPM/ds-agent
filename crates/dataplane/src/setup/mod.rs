@@ -118,7 +118,10 @@ impl DataplaneSetup {
         let (parameter_store, secret_store) = KeystoreSetup::new()
             .build_keystore_stores(config, vault)
             .await;
-        let lookup = Arc::new(KeystoreClientImpl::new(parameter_store, secret_store.clone()));
+        let lookup = Arc::new(KeystoreClientImpl::new(
+            parameter_store,
+            secret_store.clone(),
+        ));
         (lookup, secret_store)
     }
 
@@ -167,11 +170,9 @@ impl DataplaneSetup {
 
         // Transfer processes (CRUD + event association).
         let dataplane_process_entity = self.transfers_entity(&infra);
-        let dataplane_processes_router = DataPlaneProcessesRouter::new(
-            dataplane_process_entity,
-            transfer_event_entity.clone(),
-        )
-        .router();
+        let dataplane_processes_router =
+            DataPlaneProcessesRouter::new(dataplane_process_entity, transfer_event_entity.clone())
+                .router();
 
         // Compose the process-scoped routers, then mount everything.
         let dataplane_processes_router = Router::new()

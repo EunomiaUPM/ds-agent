@@ -24,7 +24,7 @@ use crate::entities::protocol::{
 use chrono::{DateTime, Duration, Utc};
 use serde_json::Value as Json;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub(crate) struct TransferProcess {
     // Common
     transfer_id: TransferProcessId,

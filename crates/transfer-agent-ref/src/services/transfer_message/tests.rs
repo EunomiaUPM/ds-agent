@@ -135,7 +135,12 @@ async fn get_all_empty_result() {
 
     let svc = make_svc(repo);
     let result = svc
-        .get_all(&admin_scope(), &empty_filter(), &default_page(), &Sort::CreatedAtDesc)
+        .get_all(
+            &admin_scope(),
+            &empty_filter(),
+            &default_page(),
+            &Sort::CreatedAtDesc,
+        )
         .await
         .unwrap();
 
@@ -159,7 +164,8 @@ async fn get_all_full_page_produces_cursor_from_occurred_at() {
 
     let svc = make_svc(repo);
     let result = svc
-        .get_all(&admin_scope(), 
+        .get_all(
+            &admin_scope(),
             &empty_filter(),
             &Page {
                 limit: 1,
@@ -185,7 +191,8 @@ async fn get_all_partial_page_no_cursor() {
 
     let svc = make_svc(repo);
     let result = svc
-        .get_all(&admin_scope(), 
+        .get_all(
+            &admin_scope(),
             &empty_filter(),
             &Page {
                 limit: 5,
@@ -208,7 +215,12 @@ async fn get_all_total_forwarded_from_count() {
 
     let svc = make_svc(repo);
     let result = svc
-        .get_all(&admin_scope(), &empty_filter(), &default_page(), &Sort::CreatedAtDesc)
+        .get_all(
+            &admin_scope(),
+            &empty_filter(),
+            &default_page(),
+            &Sort::CreatedAtDesc,
+        )
         .await
         .unwrap();
 
@@ -228,9 +240,14 @@ async fn get_all_filter_by_direction_passed_through() {
         ..empty_filter()
     };
     let svc = make_svc(repo);
-    svc.get_all(&admin_scope(), &filter, &default_page(), &Sort::CreatedAtDesc)
-        .await
-        .unwrap();
+    svc.get_all(
+        &admin_scope(),
+        &filter,
+        &default_page(),
+        &Sort::CreatedAtDesc,
+    )
+    .await
+    .unwrap();
 }
 
 #[tokio::test]
@@ -246,9 +263,14 @@ async fn get_all_filter_by_protocol_passed_through() {
         ..empty_filter()
     };
     let svc = make_svc(repo);
-    svc.get_all(&admin_scope(), &filter, &default_page(), &Sort::CreatedAtDesc)
-        .await
-        .unwrap();
+    svc.get_all(
+        &admin_scope(),
+        &filter,
+        &default_page(),
+        &Sort::CreatedAtDesc,
+    )
+    .await
+    .unwrap();
 }
 
 #[tokio::test]
@@ -264,9 +286,14 @@ async fn get_all_filter_by_state_transition_to_passed_through() {
         ..empty_filter()
     };
     let svc = make_svc(repo);
-    svc.get_all(&admin_scope(), &filter, &default_page(), &Sort::CreatedAtDesc)
-        .await
-        .unwrap();
+    svc.get_all(
+        &admin_scope(),
+        &filter,
+        &default_page(),
+        &Sort::CreatedAtDesc,
+    )
+    .await
+    .unwrap();
 }
 
 #[tokio::test]
@@ -282,9 +309,14 @@ async fn get_all_filter_by_tenant_id_passed_through() {
         ..empty_filter()
     };
     let svc = make_svc(repo);
-    svc.get_all(&admin_scope(), &filter, &default_page(), &Sort::CreatedAtDesc)
-        .await
-        .unwrap();
+    svc.get_all(
+        &admin_scope(),
+        &filter,
+        &default_page(),
+        &Sort::CreatedAtDesc,
+    )
+    .await
+    .unwrap();
 }
 
 #[tokio::test]
@@ -303,9 +335,14 @@ async fn get_all_filter_by_date_range_passed_through() {
         ..empty_filter()
     };
     let svc = make_svc(repo);
-    svc.get_all(&admin_scope(), &filter, &default_page(), &Sort::CreatedAtDesc)
-        .await
-        .unwrap();
+    svc.get_all(
+        &admin_scope(),
+        &filter,
+        &default_page(),
+        &Sort::CreatedAtDesc,
+    )
+    .await
+    .unwrap();
 }
 
 #[tokio::test]
@@ -317,9 +354,14 @@ async fn get_all_sort_created_at_asc_passed_through() {
     repo.expect_count_transfer_messages().returning(|_| Ok(0));
 
     let svc = make_svc(repo);
-    svc.get_all(&admin_scope(), &empty_filter(), &default_page(), &Sort::CreatedAtAsc)
-        .await
-        .unwrap();
+    svc.get_all(
+        &admin_scope(),
+        &empty_filter(),
+        &default_page(),
+        &Sort::CreatedAtAsc,
+    )
+    .await
+    .unwrap();
 }
 
 #[tokio::test]
@@ -331,9 +373,14 @@ async fn get_all_sort_updated_at_desc_passed_through() {
     repo.expect_count_transfer_messages().returning(|_| Ok(0));
 
     let svc = make_svc(repo);
-    svc.get_all(&admin_scope(), &empty_filter(), &default_page(), &Sort::UpdatedAtDesc)
-        .await
-        .unwrap();
+    svc.get_all(
+        &admin_scope(),
+        &empty_filter(),
+        &default_page(),
+        &Sort::UpdatedAtDesc,
+    )
+    .await
+    .unwrap();
 }
 
 #[tokio::test]
@@ -345,7 +392,8 @@ async fn get_all_page_limit_and_cursor_passed_through() {
     repo.expect_count_transfer_messages().returning(|_| Ok(0));
 
     let svc = make_svc(repo);
-    svc.get_all(&admin_scope(), 
+    svc.get_all(
+        &admin_scope(),
         &empty_filter(),
         &Page {
             limit: 5,
@@ -368,9 +416,14 @@ async fn get_all_propagates_message_repo_error() {
 
     let svc = make_svc(repo);
     assert!(
-        svc.get_all(&admin_scope(), &empty_filter(), &default_page(), &Sort::CreatedAtDesc)
-            .await
-            .is_err()
+        svc.get_all(
+            &admin_scope(),
+            &empty_filter(),
+            &default_page(),
+            &Sort::CreatedAtDesc
+        )
+        .await
+        .is_err()
     );
 }
 
@@ -385,9 +438,14 @@ async fn get_all_propagates_count_repo_error() {
 
     let svc = make_svc(repo);
     assert!(
-        svc.get_all(&admin_scope(), &empty_filter(), &default_page(), &Sort::CreatedAtDesc)
-            .await
-            .is_err()
+        svc.get_all(
+            &admin_scope(),
+            &empty_filter(),
+            &default_page(),
+            &Sort::CreatedAtDesc
+        )
+        .await
+        .is_err()
     );
 }
 
@@ -408,7 +466,8 @@ async fn get_all_by_process_happy_path() {
 
     let svc = make_svc(repo);
     let result = svc
-        .get_all_by_process(&admin_scope(), 
+        .get_all_by_process(
+            &admin_scope(),
             &process_urn,
             &empty_filter(),
             &default_page(),
@@ -431,7 +490,8 @@ async fn get_all_by_process_empty() {
 
     let svc = make_svc(repo);
     let result = svc
-        .get_all_by_process(&admin_scope(), 
+        .get_all_by_process(
+            &admin_scope(),
             &process_urn,
             &empty_filter(),
             &default_page(),
@@ -458,7 +518,8 @@ async fn get_all_by_process_full_page_produces_cursor() {
 
     let svc = make_svc(repo);
     let result = svc
-        .get_all_by_process(&admin_scope(), 
+        .get_all_by_process(
+            &admin_scope(),
             &process_urn,
             &empty_filter(),
             &Page {
@@ -485,7 +546,8 @@ async fn get_all_by_process_partial_page_no_cursor() {
 
     let svc = make_svc(repo);
     let result = svc
-        .get_all_by_process(&admin_scope(), 
+        .get_all_by_process(
+            &admin_scope(),
             &process_urn,
             &empty_filter(),
             &Page {
@@ -511,7 +573,8 @@ async fn get_all_by_process_process_id_passed_through() {
     repo.expect_count_transfer_messages().returning(|_| Ok(0));
 
     let svc = make_svc(repo);
-    svc.get_all_by_process(&admin_scope(), 
+    svc.get_all_by_process(
+        &admin_scope(),
         &process_urn,
         &empty_filter(),
         &default_page(),
@@ -535,9 +598,15 @@ async fn get_all_by_process_filter_direction_passed_through() {
         ..empty_filter()
     };
     let svc = make_svc(repo);
-    svc.get_all_by_process(&admin_scope(), &process_urn, &filter, &default_page(), &Sort::CreatedAtDesc)
-        .await
-        .unwrap();
+    svc.get_all_by_process(
+        &admin_scope(),
+        &process_urn,
+        &filter,
+        &default_page(),
+        &Sort::CreatedAtDesc,
+    )
+    .await
+    .unwrap();
 }
 
 #[tokio::test]
@@ -552,7 +621,8 @@ async fn get_all_by_process_propagates_repo_error() {
 
     let svc = make_svc(repo);
     assert!(
-        svc.get_all_by_process(&admin_scope(), 
+        svc.get_all_by_process(
+            &admin_scope(),
             &process_urn,
             &empty_filter(),
             &default_page(),

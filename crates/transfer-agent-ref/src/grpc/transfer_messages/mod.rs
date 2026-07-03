@@ -71,7 +71,10 @@ impl TransferMessagesGrpc {
     }
 
     /// Builds the caller's write scope (RBAC + tenant) from request metadata.
-    async fn write_scope(&self, meta: &tonic::metadata::MetadataMap) -> Result<AccessScope, Status> {
+    async fn write_scope(
+        &self,
+        meta: &tonic::metadata::MetadataMap,
+    ) -> Result<AccessScope, Status> {
         let (claims, tenant) = self.extract_auth(meta).await?;
         AccessScope::for_write(&claims, &tenant).map_err(to_status)
     }
@@ -131,11 +134,7 @@ impl TransferMessagesRef for TransferMessagesGrpc {
         let (meta, _, proto_req) = request.into_parts();
         let scope = self.write_scope(&meta).await?;
         let cmd = mappers::into_create_cmd(proto_req)?;
-        let view = self
-            .service
-            .create(&scope, &cmd)
-            .await
-            .map_err(to_status)?;
+        let view = self.service.create(&scope, &cmd).await.map_err(to_status)?;
         Ok(Response::new(mappers::from_view(view)))
     }
 
@@ -146,10 +145,7 @@ impl TransferMessagesRef for TransferMessagesGrpc {
         let (meta, _, proto_req) = request.into_parts();
         let scope = self.write_scope(&meta).await?;
         let urn = parse_urn(&proto_req.id)?;
-        self.service
-            .delete(&scope, &urn)
-            .await
-            .map_err(to_status)?;
+        self.service.delete(&scope, &urn).await.map_err(to_status)?;
         Ok(Response::new(DeleteResponse {}))
     }
 }

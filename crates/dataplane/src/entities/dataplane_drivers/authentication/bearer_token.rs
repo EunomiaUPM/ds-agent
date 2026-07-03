@@ -20,8 +20,8 @@ use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;
 use crate::entities::dataplane_manager::dataplane_runtime::{
     DataplaneRuntime, ResolvedAuthCredentials,
 };
-use connector::AuthenticationConfig;
 use crate::errors::DataplaneError;
+use connector::AuthenticationConfig;
 use ymir::errors::Outcome;
 
 #[derive(Debug)]
@@ -45,7 +45,6 @@ impl DriverAuthenticatorTrait for BearerTokenAuthenticator {
         let resolved = token.resolve().await?;
         dbg!(&resolved);
         dbg!(&token);
-
 
         let mut ctx = context.clone();
         ctx.set_runtime(DataplaneRuntime {

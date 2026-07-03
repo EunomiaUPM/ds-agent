@@ -1,4 +1,6 @@
-use crate::entities::dataplane_manager::dataplane_commands::{set_configuring_helper, DataplaneCommandStateMachine, DataplaneInitCommandTypes};
+use crate::entities::dataplane_manager::dataplane_commands::{
+    set_configuring_helper, DataplaneCommandStateMachine, DataplaneInitCommandTypes,
+};
 use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;
 use crate::DataplaneTransfersEntitiesTrait;
 use common::config::services::TransferConfig;
@@ -52,7 +54,12 @@ impl DataplaneCommandStateMachine for DataplaneHandlerConsumerPull {
         Ok(context)
     }
     async fn set_configuring(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
-        let ctx = set_configuring_helper(self.dataplane_entity(), self.driver_factory().as_ref(), context).await?;
+        let ctx = set_configuring_helper(
+            self.dataplane_entity(),
+            self.driver_factory().as_ref(),
+            context,
+        )
+        .await?;
         let ctx = self.set_auth(ctx).await?;
         let ctx = self.set_ready(ctx).await?;
         let ctx = self.set_started(ctx).await?;
@@ -209,11 +216,19 @@ mod tests {
         assert!(result.is_ok());
         let ctx = result.unwrap();
         assert_eq!(ctx.dataplane_process().inner.state, TransferState::Started);
-        assert!(ctx.driver().is_some(), "driver must be set after configuring");
-        assert!(ctx.proxy().is_some(), "proxy must be built after configuring");
+        assert!(
+            ctx.driver().is_some(),
+            "driver must be set after configuring"
+        );
+        assert!(
+            ctx.proxy().is_some(),
+            "proxy must be built after configuring"
+        );
         assert!(ctx.connector_instance().is_none());
         // after set_ready/set_started the forward address is the local proxy ingress URL
-        let addr = ctx.forward_dataplane_address().expect("proxy ingress address must be set");
+        let addr = ctx
+            .forward_dataplane_address()
+            .expect("proxy ingress address must be set");
         assert!(
             addr.endpoint.contains("/dataplane/proxy/"),
             "expected proxy ingress path, got: {}",
@@ -254,7 +269,10 @@ mod tests {
 
         let result = handler(entity.clone()).set_ready(context).await;
         assert!(result.is_ok());
-        assert_eq!(result.unwrap().dataplane_process().inner.state, TransferState::Ready);
+        assert_eq!(
+            result.unwrap().dataplane_process().inner.state,
+            TransferState::Ready
+        );
     }
 
     // set_started ───────────────────────────────────────────────────────────

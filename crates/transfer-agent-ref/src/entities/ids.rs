@@ -158,6 +158,31 @@ impl fmt::Display for RequestId {
     }
 }
 
+/// X-Request-ID: unique identifier for a single inbound/outbound request.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(transparent)]
+pub(crate) struct IdempotencyKey(pub(crate) CompactString);
+
+impl IdempotencyKey {
+    pub fn new(s: impl Into<CompactString>) -> Self {
+        Self(s.into())
+    }
+
+    pub fn generate() -> Self {
+        Self(CompactString::from(uuid::Uuid::new_v4().to_string()))
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl fmt::Display for IdempotencyKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 // Helpers ───────────────────────────────────────────────────────────────────
 
 fn uuid_urn(prefix: &str) -> Urn {

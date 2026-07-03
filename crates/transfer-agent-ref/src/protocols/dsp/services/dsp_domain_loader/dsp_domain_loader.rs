@@ -17,15 +17,16 @@
 
 use std::sync::Arc;
 
-use common::dsp_common::odrl::OdrlAgreement;
 use urn::Urn;
 use ymir::errors::{BadFormat, Errors, Outcome};
 
 use crate::data::repo::transfer_process::TransferProcessRepoTrait;
 use crate::entities::protocol::{TransferDirection, TransferRole};
-use crate::protocols::dsp::entities::dsp_context::{
-    TransferContextConnectorRole, TransferContextProcessSlot, TransferContextTyped,
-    TransferDSPContextDomain,
+use crate::protocols::dsp::entities::context_common::{
+    TransferContextConnectorRole, TransferContextProcessSlot,
+};
+use crate::protocols::dsp::entities::context_dsp::{
+    TransferDSPContextDomain, TransferDSPContextTyped,
 };
 use crate::protocols::dsp::facades::FacadeTrait;
 use crate::protocols::dsp::services::dsp_domain_loader::DspDomainLoaderTrait;
@@ -49,7 +50,7 @@ impl DspDomainLoader {
         }
     }
 
-    pub async fn load(&self, typed: TransferContextTyped) -> Outcome<TransferDSPContextDomain> {
+    pub async fn load(&self, typed: TransferDSPContextTyped) -> Outcome<TransferDSPContextDomain> {
         let process = self.process_slot(&typed).await?;
         let role = self.role(&process, &typed).await?;
         let is_restart = Self::is_restart(&process);
@@ -72,7 +73,7 @@ impl DspDomainLoader {
     /// Load the existing process by its pid, or signal a brand-new one.
     async fn process_slot(
         &self,
-        typed: &TransferContextTyped,
+        typed: &TransferDSPContextTyped,
     ) -> Outcome<TransferContextProcessSlot> {
         for pid in [typed.provider_pid.as_deref(), typed.consumer_pid.as_deref()]
             .into_iter()
@@ -85,7 +86,11 @@ impl DspDomainLoader {
                     None,
                 )
             })?;
-            if let Some(found) = self.process_repo.get_transfer_process_by_key_value(&urn).await? {
+            if let Some(found) = self
+                .process_repo
+                .get_transfer_process_by_key_value(&urn)
+                .await?
+            {
                 return Ok(TransferContextProcessSlot::Existing(found));
             }
         }
@@ -103,7 +108,7 @@ impl DspDomainLoader {
     async fn role(
         &self,
         process: &TransferContextProcessSlot,
-        typed: &TransferContextTyped,
+        typed: &TransferDSPContextTyped,
     ) -> Outcome<TransferRole> {
         match process {
             TransferContextProcessSlot::Existing(p) => Ok(p.role()),
@@ -115,7 +120,7 @@ impl DspDomainLoader {
 
     async fn connector(
         &self,
-        typed: &TransferContextTyped,
+        typed: &TransferDSPContextTyped,
     ) -> Outcome<TransferContextConnectorRole> {
         let agreement_id = typed
             .rdf
@@ -140,7 +145,7 @@ impl DspDomainLoader {
         ))
     }
 
-    fn transfer_direction(typed: &TransferContextTyped, is_restart: bool) -> TransferDirection {
+    fn transfer_direction(typed: &TransferDSPContextTyped, is_restart: bool) -> TransferDirection {
         if is_restart {
             return TransferDirection::Pull;
         }
@@ -157,7 +162,7 @@ impl DspDomainLoader {
 
     async fn is_idempotent_replay(
         &self,
-        _typed: &TransferContextTyped,
+        _typed: &TransferDSPContextTyped,
         _process: &TransferContextProcessSlot,
     ) -> Outcome<bool> {
         Ok(false)
@@ -168,14 +173,18 @@ impl DspDomainLoader {
 mod tests {
     use super::*;
     use crate::data::repo::transfer_process::MockTransferProcessRepoTrait;
-    use crate::protocols::dsp::entities::dsp_context::{
-        TransferContextParsed, TransferContextRdf, TransferDspContextRaw,
+    use crate::protocols::dsp::entities::auth::TransferDSPAuthn;
+    use crate::protocols::dsp::entities::context_common::TransferContextRaw;
+    use crate::protocols::dsp::entities::context_dsp::{
+        TransferDSPContextParsed, TransferDSPContextRdf,
     };
     use crate::protocols::dsp::entities::message_types::TransferDSPMessageType;
     use crate::protocols::dsp::facades::data_service_resolver_facade::DataServiceFacadeTrait;
     use crate::protocols::dsp::facades::dataplane_facade::DataPlaneFacadeTrait;
+    use crate::protocols::dsp::services::dsp_domain_loader::MockDspDomainLoaderTrait;
     use axum::extract::Request;
     use chrono::Utc;
+    use common::dsp_common::odrl::OdrlAgreement;
     use common::dsp_common::well_known_types::DSPProtocolVersions;
     use common::facades::Mates;
 
@@ -208,7 +217,7 @@ mod tests {
         }
     }
 
-    async fn typed(body: &'static str) -> TransferContextTyped {
+    async fn typed(body: &'static str) -> TransferDSPContextTyped {
         let mut req = Request::builder()
             .method("POST")
             .uri("/transfers")
@@ -216,17 +225,19 @@ mod tests {
             .body(axum::body::Body::from(body))
             .unwrap();
         req.extensions_mut().insert(mate());
-        let raw = TransferDspContextRaw::from_request(req).await.unwrap();
+        let raw = TransferContextRaw::<TransferDSPAuthn>::from_request(req)
+            .await
+            .unwrap();
         let json: serde_json::Value = serde_json::from_slice(&raw.body_bytes).unwrap();
-        let parsed = TransferContextParsed::from_raw(
+        let parsed = TransferDSPContextParsed::from_raw(
             raw,
             DSPProtocolVersions::V2025_1,
             TransferDSPMessageType::TransferStartMessage,
             json,
         )
         .unwrap();
-        let rdf = TransferContextRdf::from_parsed(parsed).await.unwrap();
-        TransferContextTyped::from_rdf(rdf).unwrap()
+        let rdf = TransferDSPContextRdf::from_parsed(parsed).await.unwrap();
+        TransferDSPContextTyped::from_rdf(rdf).unwrap()
     }
 
     #[tokio::test]
@@ -234,7 +245,7 @@ mod tests {
         let loader = DspDomainLoader::new(
             Arc::new(MockTransferProcessRepoTrait::new()),
             Arc::new(StubFacades),
-            Arc::new(MockDspDomainResolver::new()),
+            Arc::new(MockDspDomainLoaderTrait::new()),
         );
         let t = typed(
             r#"{"@context":"https://w3id.org/dspace/2025/1/context.jsonld","@type":"TransferStartMessage","providerPid":"not-a-urn"}"#,
@@ -246,10 +257,10 @@ mod tests {
     #[tokio::test]
     async fn load_new_process_without_agreement_is_consumer() {
         let mut repo = MockTransferProcessRepoTrait::new();
-        repo.expect_get_transfer_process_by_id()
+        repo.expect_get_transfer_process_by_key_value()
             .returning(|_| Ok(None)); // → New slot
 
-        let mut resolver = MockDspDomainResolver::new();
+        let mut resolver = MockDspDomainLoaderTrait::new();
         resolver
             .expect_resolve_agreement()
             .returning(|_| Ok(OdrlAgreement::default()));

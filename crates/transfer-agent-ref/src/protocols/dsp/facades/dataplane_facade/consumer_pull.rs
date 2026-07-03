@@ -15,8 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::protocols::dsp::entities::dsp_context::TransferContextProcessSlot;
-use crate::protocols::dsp::entities::dsp_context::TransferDSPContextDomain as DspTransferContext;
+use crate::protocols::dsp::entities::context_dsp::TransferDSPContextDomain as DspTransferContext;
 
 use crate::protocols::dsp::entities::data_address::DataAddressDto;
 use crate::protocols::dsp::facades::dataplane_facade::strategy::DataPlaneStrategy;
@@ -25,8 +24,6 @@ use dataplane::{
     DataplaneAddress, DataplaneCommand, DataplaneContinuation, DataplaneInitCommandDirection,
     DataplaneInitCommandTypes, DataplaneManager,
 };
-use std::str::FromStr;
-use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 
 pub(super) struct ConsumerPullStrategy;
@@ -157,4 +154,3 @@ impl DataPlaneStrategy for ConsumerPullStrategy {
         Ok(())
     }
 }
-

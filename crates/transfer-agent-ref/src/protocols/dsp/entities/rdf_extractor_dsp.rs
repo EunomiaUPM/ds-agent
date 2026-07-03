@@ -1,6 +1,9 @@
-use crate::protocols::dsp::entities::dsp_context::TransferContextRdf;
+use crate::protocols::dsp::entities::context_dsp::TransferDSPContextRdf;
 use common::dsp_common::data_address::DataAddress;
 use ymir::errors::{BadFormat, Errors, Outcome};
+
+/// Each DSP message is a RDF graph, so it's better to treat the deserialization
+/// and serialization as such.
 
 static CONSUMER_PID_KEY: &str = "consumerPid";
 static PROVIDER_PID_KEY: &str = "providerPid";
@@ -10,11 +13,11 @@ static DATA_ADDRESS_KEY: &str = "dataAddress";
 /// Internal to [`TransferContextTyped::from_rdf`] — one method per field so each
 /// extraction rule has a single home.
 pub struct DspTransferRdfExtractor<'a> {
-    pub rdf: &'a TransferContextRdf,
+    pub rdf: &'a TransferDSPContextRdf,
 }
 
 impl<'a> DspTransferRdfExtractor<'a> {
-    pub fn new(rdf: &'a TransferContextRdf) -> Self {
+    pub fn new(rdf: &'a TransferDSPContextRdf) -> Self {
         Self { rdf }
     }
 

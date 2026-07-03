@@ -25,6 +25,25 @@
 
 ---
 
+## Estado actual — lo HECHO (compila, 7 tests dsp verdes)
+
+> **Desviación de estructura (intencional):** el molde vive en `protocols/dsp/{entities,facades,services}`
+> (scoped por protocolo), no en `protocols/{context,pipeline,manager,strategies}`. El canonicalizer
+> se fue a `common/rdf/dsp` para reuso entre crates. Nada de esto está cableado a los transportes
+> todavía → los warnings `dead_code` son esperados (el pipeline aún no tiene quien lo llame).
+
+- [x] **Cadena de contexto (Día 2 typestate)** — `TransferDspContextRaw → …Parsed → …Rdf → …Typed → TransferDSPContextDomain` en `entities/dsp_context.rs`. Cada fase = constructor `from_<prev>`.
+- [x] **Canonicalizer (Día 2 pipeline)** — expansión JSON-LD + URDNA2015/RDFC-1.0 **reales**, offline (contexto DSP + ODRL profile embebidos), en `common::rdf::dsp::DspCanonicalizer`. Cableado en `TransferContextRdf::from_parsed`. Da `canonical_n_quads` + `canonical_hash` (base de idempotencia/firma).
+- [x] **typed_deserializer (Día 2)** — `DspTransferRdfExtractor`: saca pids, `dataAddress`, tipo de mensaje. Puerta pública `TransferContextTyped::from_rdf`.
+- [x] **domain_loader (Día 2, más que stub)** — `services/dsp_domain_loader`: slot de proceso vía repo (`Existing`/`New`), `role` (existing→proceso, new→resolver), `agreement` (resolver), `connector` (DataService facade por `agreementId`), `transfer_direction` (dataAddress→Push/Pull, guard `is_restart`). Inyecta `FacadeTrait` + `DspDomainResolver`.
+- [x] **Capa de facades (infra Día 3)** — `DataServiceFacadeTrait` + `DataPlaneFacadeTrait` (agregadas por `FacadeTrait`), strategies dataplane (Consumer/Provider × Pull/Push), `strategy_for(role, direction)`, conversiones `DataAddress ↔ DataplaneAddress`. Todo compila.
+
+**Pendiente dentro del Día 2:** stages `json_schema` + `shacl`; `context/helpers.rs` (accesores transversales).
+
+**Deuda marcada (`ponytail:`):** `is_restart`/`is_idempotent_replay` provisionales (`false`); rama restart de `transfer_direction` diferida al proceso persistido; `DspDomainResolver` sin impl concreta (solo el seam).
+
+---
+
 ## Día 1 — Cerrar el andamiaje (lo que falta del dominio + ports nuevos)
 
 > Día 1 del plan original está ~80% hecho en `entities/` + `data/`. Solo faltan la
@@ -41,12 +60,12 @@
 
 ## Día 2 — Context typestate + pipeline (nuevo, en `protocols/`)
 
-- [ ] `protocols/context/`: `CtxRaw → CtxParsed → CtxRdf → CtxTyped → CtxDomain` (firmas encadenadas)
+- [x] `protocols/context/`: cadena `Raw → Parsed → Rdf → Typed → Domain` — hecha en `dsp/entities/dsp_context.rs`
 - [ ] `protocols/context/helpers.rs`: accesores transversales (`request_id()`, `tenant()`, `correlation_id()`) — el tenant/scope ya existe vía `AccessScope`, reúsalo
-- [ ] `protocols/pipeline/`: envolver stages que YA funcionan (mira `negotiation-agent`/`common` antes de escribir) → `json_schema`, `jsonld_parser`, `canonicalizer`, `shacl`
-- [ ] `protocols/pipeline/typed_deserializer.rs` (nuevo) → produce los tipos de `entities/protocol.rs` (`ProtocolMessageType`, `TransferCorrelation`…)
-- [ ] `protocols/pipeline/domain_loader.rs` (nuevo; medio-stub hoy) → carga `TransferProcess` vía repo
-- [ ] La cadena inbound **compila** con typestate → fin del día
+- [x] `canonicalizer` + `jsonld_parser` — hechos (`common::rdf::dsp::DspCanonicalizer`, real). Faltan `json_schema` y `shacl`.
+- [x] `typed_deserializer` → `DspTransferRdfExtractor` (produce pids/dataAddress/tipo)
+- [x] `domain_loader` → `DspDomainLoader` (carga proceso vía repo + resuelve el resto de hechos)
+- [x] La cadena inbound **compila** con typestate
 
 > ⚠️ Si `c.typed.rdf.parsed.raw.x` te mata: colapsa fases (fusiona `CtxParsed`/`CtxRdf`). NUNCA `HashMap<String,Any>`.
 > ⚠️ Antes de escribir un stage, `grep`/codegraph en `negotiation-agent` y `common`: el jsonld/shacl casi seguro ya existe.

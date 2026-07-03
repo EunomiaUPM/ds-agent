@@ -697,9 +697,9 @@ dependencies = [
  "bytes",
  "chrono",
  "http",
- "json-syntax 0.12.5",
+ "json-syntax",
  "json_to_table",
- "locspan 0.9.2",
+ "locspan",
  "mockall",
  "redis",
  "reqwest 0.13.3",
@@ -2196,8 +2196,8 @@ dependencies = [
  "json-ld-core",
  "json-ld-expansion",
  "json-ld-syntax",
- "json-syntax 0.9.6",
- "locspan 0.7.16",
+ "json-syntax",
+ "locspan",
  "rdf-types",
  "thiserror 1.0.69",
 ]
@@ -2216,9 +2216,9 @@ dependencies = [
  "json-ld-core",
  "json-ld-expansion",
  "json-ld-syntax",
- "json-syntax 0.9.6",
+ "json-syntax",
  "langtag",
- "locspan 0.7.16",
+ "locspan",
  "mown",
  "rdf-types",
  "thiserror 1.0.69",
@@ -2235,7 +2235,7 @@ dependencies = [
  "iref",
  "json-ld-core",
  "json-ld-syntax",
- "locspan 0.7.16",
+ "locspan",
  "mown",
  "rdf-types",
  "thiserror 1.0.69",
@@ -2253,9 +2253,9 @@ dependencies = [
  "hashbrown 0.13.2",
  "iref",
  "json-ld-syntax",
- "json-syntax 0.9.6",
+ "json-syntax",
  "langtag",
- "locspan 0.7.16",
+ "locspan",
  "locspan-derive",
  "log",
  "mime",
@@ -2283,9 +2283,9 @@ dependencies = [
  "json-ld-context-processing",
  "json-ld-core",
  "json-ld-syntax",
- "json-syntax 0.9.6",
+ "json-syntax",
  "langtag",
- "locspan 0.7.16",
+ "locspan",
  "mown",
  "rdf-types",
  "thiserror 1.0.69",
@@ -2303,9 +2303,9 @@ dependencies = [
  "hashbrown 0.13.2",
  "indexmap 1.9.3",
  "iref",
- "json-syntax 0.9.6",
+ "json-syntax",
  "langtag",
- "locspan 0.7.16",
+ "locspan",
  "locspan-derive",
  "rdf-types",
  "smallvec",
@@ -2334,28 +2334,11 @@ dependencies = [
  "hashbrown 0.12.3",
  "indexmap 1.9.3",
  "json-number",
- "locspan 0.7.16",
+ "locspan",
  "locspan-derive",
  "ryu-js",
  "smallstr",
  "smallvec",
-]
-
-[[package]]
-name = "json-syntax"
-version = "0.12.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "044a68aba3f96d712f492b72be25e10f96201eaaca3207a7d6e68d6d5105fda9"
-dependencies = [
- "decoded-char",
- "hashbrown 0.12.3",
- "indexmap 1.9.3",
- "json-number",
- "locspan 0.8.2",
- "locspan-derive",
- "smallstr",
- "smallvec",
- "utf8-decode",
 ]
 
 [[package]]
@@ -2580,18 +2563,6 @@ dependencies = [
  "contextual",
  "hashbrown 0.13.2",
 ]
-
-[[package]]
-name = "locspan"
-version = "0.8.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "33890449fcfac88e94352092944bf321f55e5deb4e289a6f51c87c55731200a0"
-
-[[package]]
-name = "locspan"
-version = "0.9.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "00416caea84c0fbaadce739010be28e7db17de093702efae02bfab51fd9c53b3"
 
 [[package]]
 name = "locspan-derive"
@@ -3613,7 +3584,7 @@ dependencies = [
  "indexmap 1.9.3",
  "iref",
  "langtag",
- "locspan 0.7.16",
+ "locspan",
  "locspan-derive",
  "thiserror 1.0.69",
 ]
@@ -4576,9 +4547,9 @@ checksum = "88ec9c99a461633661beca3660af36ef40e4ccf5e2a893ef5c43a95125a746e3"
 dependencies = [
  "iref",
  "json-ld",
- "json-syntax 0.9.6",
+ "json-syntax",
  "langtag",
- "locspan 0.7.16",
+ "locspan",
  "rdf-types",
  "sophia_api",
  "sophia_iri",

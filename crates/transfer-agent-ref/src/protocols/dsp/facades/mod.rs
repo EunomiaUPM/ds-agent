@@ -1,4 +1,3 @@
-#![allow(unused)]
 /*
  *
  *  * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM

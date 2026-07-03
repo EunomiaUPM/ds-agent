@@ -15,9 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::protocols::dsp::entities::dsp_context::TransferContextConnectorRole;
-use crate::protocols::dsp::entities::dsp_context::TransferContextProcessSlot;
-use crate::protocols::dsp::entities::dsp_context::TransferDSPContextDomain;
+use crate::protocols::dsp::entities::context_common::TransferContextConnectorRole;
+use crate::protocols::dsp::entities::context_dsp::TransferDSPContextDomain;
 
 use crate::protocols::dsp::entities::data_address::DataAddressDto;
 use crate::protocols::dsp::facades::dataplane_facade::strategy::DataPlaneStrategy;
@@ -26,8 +25,6 @@ use dataplane::{
     DataplaneAddress, DataplaneCommand, DataplaneContinuation, DataplaneInitCommandDirection,
     DataplaneInitCommandTypes, DataplaneManager,
 };
-use std::str::FromStr;
-use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 
 pub(super) struct ProviderPushStrategy;
@@ -112,7 +109,7 @@ impl DataPlaneStrategy for ProviderPushStrategy {
         ctx: &TransferDSPContextDomain,
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
-        let id = ctx.process_urn( "provider push suspend_post")?;
+        let id = ctx.process_urn("provider push suspend_post")?;
         mgr.execute_command(DataplaneCommand::SetUnsubscribing(DataplaneContinuation {
             transfer_dto_urn: id,
         }))

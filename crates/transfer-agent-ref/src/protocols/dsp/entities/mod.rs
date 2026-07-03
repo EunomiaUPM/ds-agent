@@ -1,7 +1,11 @@
-mod auth;
+pub mod auth;
+pub mod command;
+pub mod context_common;
+pub mod context_dsp;
+pub mod context_rpc;
 pub mod data_address;
-pub mod dsp_context;
-mod dsp_rdf_extractor;
+mod dataplane_signal;
 pub mod message_types;
-mod state;
-mod state_metadata;
+mod rdf_extractor_dsp;
+pub mod state;
+pub mod state_metadata;

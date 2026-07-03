@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::protocols::dsp::entities::dsp_context::TransferDSPContextDomain;
+use crate::protocols::dsp::entities::context_dsp::TransferDSPContextDomain;
 
 use crate::protocols::dsp::entities::data_address::DataAddressDto;
 use crate::protocols::dsp::facades::dataplane_facade::DataPlaneFacadeTrait;

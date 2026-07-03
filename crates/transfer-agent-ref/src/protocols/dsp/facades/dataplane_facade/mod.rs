@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::protocols::dsp::entities::dsp_context::TransferDSPContextDomain;
+use crate::protocols::dsp::entities::context_dsp::TransferDSPContextDomain;
 
 mod consumer_pull;
 mod consumer_push;

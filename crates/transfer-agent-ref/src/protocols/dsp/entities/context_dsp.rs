@@ -1,109 +1,63 @@
-use std::str::FromStr;
-use crate::entities::ids::{CorrelationId, IdempotencyKey, RequestId};
-use crate::entities::message_envelope::Direction;
 use crate::entities::protocol::{TransferDirection, TransferRole};
-use crate::entities::transfer_process::TransferProcess;
 use crate::protocols::dsp::entities::auth::TransferDSPAuthn;
-use crate::protocols::dsp::entities::dsp_rdf_extractor::DspTransferRdfExtractor;
+use crate::protocols::dsp::entities::context_common::{BuildAuthn, TransferContextRaw, header};
+use crate::protocols::dsp::entities::context_common::{
+    TransferContextConnectorRole, TransferContextProcessSlot,
+};
 use crate::protocols::dsp::entities::message_types::TransferDSPMessageType;
-use axum::extract::Request;
-use bytes::Bytes;
-use chrono::{DateTime, Utc};
+use crate::protocols::dsp::entities::rdf_extractor_dsp::DspTransferRdfExtractor;
 use common::dsp_common::data_address::DataAddress;
 use common::dsp_common::odrl::OdrlAgreement;
 use common::dsp_common::well_known_types::DSPProtocolVersions;
 use common::facades::Mates;
 use common::rdf::dsp::DspCanonicalizer;
-use connector::ConnectorInstanceDto;
-use http::HeaderMap;
+use http::request::Parts;
 use sha2::{Digest, Sha256};
+use std::str::FromStr;
 use urn::Urn;
-use ymir::errors::{BadFormat, Errors, Outcome};
+use ymir::errors::{Errors, Outcome};
 
-/// Cap on inbound DSP message bodies. DSP control-plane messages are tiny. this only bounds a hostile/misbehaving peer.
-const MAX_BODY_BYTES: usize = 1024 * 1024;
+/// Context Created from DSP controllers
+/// The context is used for validation at several steps, command for Manager creation
 
-#[derive(Debug)]
-pub struct TransferDspContextRaw {
-    pub request_id: RequestId,
-    pub direction: Direction,
-    pub request_full_path: String,
-    pub request_path: String,
-    pub method: http::Method,
-    pub headers_in: HeaderMap,
-    pub body_bytes: Bytes,
-    pub incoming_at: DateTime<Utc>,
-    pub idempotency_key: Option<IdempotencyKey>,
-    pub inter_peer_authn: TransferDSPAuthn,
-    pub correlation_id: Option<CorrelationId>,
-}
-
-impl TransferDspContextRaw {
-    /// Extract an inbound DSP request off the wire. Runs *after* the auth
-    /// middleware, so the peer identity (`Mates`) is already resolved and waiting
-    /// in the request extensions — here we only read it, never verify a token.
-    pub async fn from_request(request: Request) -> Outcome<Self> {
-        let incoming_at = Utc::now();
-        let (parts, body) = request.into_parts();
-
-        let body_bytes = axum::body::to_bytes(body, MAX_BODY_BYTES)
-            .await
-            .map_err(|_| {
-                Errors::format(BadFormat::Received, "failed to read request body", None)
-            })?;
-
-        let request_id = header(&parts.headers, "x-request-id")
-            .map(RequestId::new)
-            .unwrap_or_else(RequestId::generate);
-        let correlation_id = header(&parts.headers, "x-correlation-id").map(CorrelationId::new);
-        let idempotency_key = header(&parts.headers, "idempotency-key").map(IdempotencyKey::new);
-
-        let request_path = parts.uri.path().to_string();
-        let request_full_path = parts
-            .uri
-            .path_and_query()
-            .map(|pq| pq.as_str().to_string())
-            .unwrap_or_else(|| request_path.clone());
-
-        // Resolved by the auth middleware in axum extension
-        let participant = parts.extensions.get::<Mates>().cloned().ok_or_else(|| {
+// TransferContextRaw --
+impl BuildAuthn for TransferDSPAuthn {
+    fn from_request_parts(parts: &Parts) -> Outcome<Self> {
+        let associated_participant = parts.extensions.get::<Mates>().cloned().ok_or_else(|| {
             Errors::crazy(
                 "auth middleware did not resolve participant (Mates missing)",
                 None,
             )
         })?;
-
-        let inter_peer_authn = parse_authn(&parts.headers, participant);
-
-        Ok(Self {
-            request_id,
-            direction: Direction::Inbound,
-            request_full_path,
-            request_path,
-            method: parts.method,
-            headers_in: parts.headers,
-            body_bytes,
-            incoming_at,
-            idempotency_key,
-            inter_peer_authn,
-            correlation_id,
+        let raw = header(&parts.headers, "authorization").unwrap_or_default();
+        let (token_type, token_content) = raw
+            .split_once(' ')
+            .map(|(t, c)| (t.to_string(), c.trim().to_string()))
+            .unwrap_or_else(|| (String::new(), raw.clone()));
+        Ok(TransferDSPAuthn {
+            raw,
+            token_type,
+            token_content,
+            associated_participant,
         })
     }
 }
 
+// TransferDSPContextParsed --
+
 #[derive(Debug)]
-pub struct TransferContextParsed {
-    pub raw: TransferDspContextRaw,
+pub struct TransferDSPContextParsed {
+    pub raw: TransferContextRaw<TransferDSPAuthn>,
     pub dsp_version: DSPProtocolVersions,
     pub dsp_message_type: TransferDSPMessageType,
     pub json_value: serde_json::Value,
 }
 
-impl TransferContextParsed {
+impl TransferDSPContextParsed {
     /// Wrap the raw context with the parse-stage output (version, message type,
     /// JSON body). The parsing itself lives in the pipeline `json_schema` stage.
     pub fn from_raw(
-        raw: TransferDspContextRaw,
+        raw: TransferContextRaw<TransferDSPAuthn>,
         dsp_version: DSPProtocolVersions,
         dsp_message_type: TransferDSPMessageType,
         json_value: serde_json::Value,
@@ -117,19 +71,21 @@ impl TransferContextParsed {
     }
 }
 
+// TransferDSPContextRdf --
+
 #[derive(Debug)]
-pub struct TransferContextRdf {
-    pub parsed: TransferContextParsed,
+pub struct TransferDSPContextRdf {
+    pub parsed: TransferDSPContextParsed,
     /// URDNA2015 / RDFC-1.0 canonical n-quads of the expanded message.
     pub canonical_n_quads: String,
     pub canonical_hash: [u8; 32],
 }
 
-impl TransferContextRdf {
+impl TransferDSPContextRdf {
     /// Expand the DSP JSON-LD message to RDF and canonicalize it (URDNA2015 /
     /// RDFC-1.0) so `canonical_hash` is a stable content identity for idempotency
     /// and message signing. See [`common::rdf::dsp::DspCanonicalizer`].
-    pub async fn from_parsed(parsed: TransferContextParsed) -> Outcome<Self> {
+    pub async fn from_parsed(parsed: TransferDSPContextParsed) -> Outcome<Self> {
         let canonical_n_quads = DspCanonicalizer::new(parsed.json_value.clone())
             .canonicalize()
             .await?;
@@ -142,26 +98,28 @@ impl TransferContextRdf {
     }
 }
 
+// TransferDSPContextTyped --
+
 #[derive(Debug)]
-pub struct TransferContextTyped {
-    pub rdf: TransferContextRdf,
+pub struct TransferDSPContextTyped {
+    pub rdf: TransferDSPContextRdf,
     pub message: TransferDSPMessageType,
     pub consumer_pid: Option<String>,
     pub provider_pid: Option<String>,
     pub data_address: Option<DataAddress>,
 }
 
-impl TransferContextTyped {
+impl TransferDSPContextTyped {
     /// Build the typed context from the RDF stage (the `Rdf to Typed` pipeline
     /// step). This is the only public entry; field extraction lives in the
     /// private [`DspTransferRdfExtractor`].
-    pub fn from_rdf(rdf: TransferContextRdf) -> Outcome<Self> {
+    pub fn from_rdf(rdf: TransferDSPContextRdf) -> Outcome<Self> {
         let extractor = DspTransferRdfExtractor::new(&rdf);
         let message = extractor.rdf.parsed.dsp_message_type.clone();
         let consumer_pid = extractor.consumer_pid();
         let provider_pid = extractor.provider_pid();
         let data_address = extractor.data_address()?;
-        Ok(TransferContextTyped {
+        Ok(TransferDSPContextTyped {
             rdf,
             message,
             consumer_pid,
@@ -171,9 +129,11 @@ impl TransferContextTyped {
     }
 }
 
+// TransferDSPContextDomain --
+
 #[derive(Debug)]
 pub struct TransferDSPContextDomain {
-    pub typed: TransferContextTyped,
+    pub typed: TransferDSPContextTyped,
     pub process: TransferContextProcessSlot,
     pub agreement: OdrlAgreement,
     pub role: TransferRole,
@@ -189,7 +149,7 @@ impl TransferDSPContextDomain {
     /// `domain_loader` stage: the process slot (loaded or newly minted),
     /// agreement, role, connector, and the restart / idempotent-replay flags.
     pub fn from_typed(
-        typed: TransferContextTyped,
+        typed: TransferDSPContextTyped,
         process: TransferContextProcessSlot,
         agreement: OdrlAgreement,
         role: TransferRole,
@@ -216,28 +176,19 @@ impl TransferDSPContextDomain {
         match &self.process {
             TransferContextProcessSlot::Existing(p) => Ok(p.id().as_urn().clone()),
             TransferContextProcessSlot::New { consumer_pid } => Urn::from_str(consumer_pid)
-                .map_err(|_| Errors::crazy(format!("invalid consumer_pid urn for {location}"), None)),
+                .map_err(|_| {
+                    Errors::crazy(format!("invalid consumer_pid urn for {location}"), None)
+                }),
         }
     }
 }
 
-#[derive(Debug)]
-pub enum TransferContextConnectorRole {
-    ConsumerNotHavingConnector,
-    ProviderHavingConnector(ConnectorInstanceDto),
-}
-
-#[derive(Debug)]
-pub enum TransferContextProcessSlot {
-    Existing(TransferProcess),
-    New { consumer_pid: String },
-}
-
-pub type TransferDSPContext = TransferDSPContextDomain;
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::entities::message_envelope::Direction;
+    use axum::extract::Request;
+    use chrono::Utc;
 
     fn mate() -> Mates {
         let t = Utc::now().naive_utc();
@@ -270,16 +221,16 @@ mod tests {
 
     #[tokio::test]
     async fn from_request_reads_wire_fields_and_resolved_participant() {
-        let raw = TransferDspContextRaw::from_request(request_with_mate("{}"))
+        let raw = TransferContextRaw::<TransferDSPAuthn>::from_request(request_with_mate("{}"))
             .await
             .unwrap();
         assert_eq!(raw.request_id.as_str(), "req-1");
         assert_eq!(raw.request_path, "/transfers/123/start");
         assert_eq!(raw.request_full_path, "/transfers/123/start?x=1");
-        assert_eq!(raw.inter_peer_authn.token_type, "Bearer");
-        assert_eq!(raw.inter_peer_authn.token_content, "eyJabc");
+        assert_eq!(raw.authn.token_type, "Bearer");
+        assert_eq!(raw.authn.token_content, "eyJabc");
         assert_eq!(
-            raw.inter_peer_authn.associated_participant.participant_slug,
+            raw.authn.associated_participant.participant_slug,
             "provider"
         );
         assert!(matches!(raw.direction, Direction::Inbound));
@@ -289,7 +240,11 @@ mod tests {
     async fn from_request_fails_without_auth_middleware() {
         // No Mates in extensions → wiring error, not a silent None.
         let req = Request::builder().body(axum::body::Body::empty()).unwrap();
-        assert!(TransferDspContextRaw::from_request(req).await.is_err());
+        assert!(
+            TransferContextRaw::<TransferDSPAuthn>::from_request(req)
+                .await
+                .is_err()
+        );
     }
 
     #[tokio::test]
@@ -331,7 +286,7 @@ mod tests {
             r#"{"@context":"https://w3id.org/dspace/2025/1/context.jsonld","@type":"TransferStartMessage","providerPid":"urn:uuid:pp","consumerPid":"urn:uuid:cc","dataAddress":{"@type":"DataAddress","endpointType":"HttpData","endpoint":"http://example.com/data","endpointProperties":[]}}"#,
         )
         .await;
-        let typed = TransferContextTyped::from_rdf(rdf).unwrap();
+        let typed = TransferDSPContextTyped::from_rdf(rdf).unwrap();
         assert_eq!(typed.provider_pid.as_deref(), Some("urn:uuid:pp"));
         assert_eq!(typed.consumer_pid.as_deref(), Some("urn:uuid:cc"));
         assert_eq!(
@@ -351,49 +306,23 @@ mod tests {
             r#"{"@context":"https://w3id.org/dspace/2025/1/context.jsonld","@type":"TransferProcess"}"#,
         )
         .await;
-        let typed = TransferContextTyped::from_rdf(rdf).unwrap();
+        let typed = TransferDSPContextTyped::from_rdf(rdf).unwrap();
         assert!(typed.provider_pid.is_none());
         assert!(typed.data_address.is_none());
     }
 
-    async fn rdf_from(body: &'static str) -> TransferContextRdf {
-        let raw = TransferDspContextRaw::from_request(request_with_mate(body))
+    async fn rdf_from(body: &'static str) -> TransferDSPContextRdf {
+        let raw = TransferContextRaw::<TransferDSPAuthn>::from_request(request_with_mate(body))
             .await
             .unwrap();
         let json: serde_json::Value = serde_json::from_slice(&raw.body_bytes).unwrap();
-        let parsed = TransferContextParsed::from_raw(
+        let parsed = TransferDSPContextParsed::from_raw(
             raw,
             DSPProtocolVersions::V2025_1,
             TransferDSPMessageType::TransferStartMessage,
             json,
         )
         .unwrap();
-        TransferContextRdf::from_parsed(parsed).await.unwrap()
-    }
-}
-
-// Helpers
-
-/// Header getter
-fn header(headers: &HeaderMap, name: &str) -> Option<String> {
-    headers
-        .get(name)
-        .and_then(|v| v.to_str().ok())
-        .map(str::to_string)
-}
-
-/// Split the `Authorization` header into type + content (`Bearer eyJ...` →
-/// (`Bearer`, `eyJ...`)) and attach the already-resolved peer identity.
-fn parse_authn(headers: &HeaderMap, associated_participant: Mates) -> TransferDSPAuthn {
-    let raw = header(headers, "authorization").unwrap_or_default();
-    let (token_type, token_content) = raw
-        .split_once(' ')
-        .map(|(t, c)| (t.to_string(), c.trim().to_string()))
-        .unwrap_or_else(|| (String::new(), raw.clone()));
-    TransferDSPAuthn {
-        raw,
-        token_type,
-        token_content,
-        associated_participant,
+        TransferDSPContextRdf::from_parsed(parsed).await.unwrap()
     }
 }

@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+/// Pure DataAddress as defined in DSP
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct DataAddressDto {

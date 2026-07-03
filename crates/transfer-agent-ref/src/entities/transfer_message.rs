@@ -190,7 +190,7 @@ struct MessageSignatureInput {
     value: String,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase", try_from = "MessageEnvelopeInput")]
 pub(crate) struct MessageEnvelope {
     #[serde(serialize_with = "ser_bytes_b64")]
@@ -271,7 +271,7 @@ impl MessageEnvelope {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct MessageSignature {
     /// Signing algorithm: "EdDSA", "ES256", etc.

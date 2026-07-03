@@ -16,8 +16,8 @@
  */
 
 use crate::entities::protocol::{TransferDirection, TransferRole};
+use crate::protocols::dsp::entities::context_dsp::TransferDSPContextDomain;
 use crate::protocols::dsp::entities::data_address::DataAddressDto;
-use crate::protocols::dsp::entities::dsp_context::TransferDSPContextDomain;
 use crate::protocols::dsp::facades::dataplane_facade::{
     consumer_pull::ConsumerPullStrategy, consumer_push::ConsumerPushStrategy,
     provider_pull::ProviderPullStrategy, provider_push::ProviderPushStrategy,
@@ -52,8 +52,11 @@ pub(super) trait DataPlaneStrategy: Send + Sync {
         mgr: &DataplaneManager,
     ) -> Outcome<Option<DataAddressDto>>;
 
-    async fn on_suspend_pre(&self, ctx: &TransferDSPContextDomain, mgr: &DataplaneManager)
-    -> Outcome<()>;
+    async fn on_suspend_pre(
+        &self,
+        ctx: &TransferDSPContextDomain,
+        mgr: &DataplaneManager,
+    ) -> Outcome<()>;
 
     async fn on_suspend_post(
         &self,

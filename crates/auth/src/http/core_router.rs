@@ -26,18 +26,14 @@ use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::{DefaultOnResponse, TraceLayer};
 use tracing::{error, info, Level};
 use uuid::Uuid;
-use ymir::config::traits::{ApiConfigTrait, HostsConfigTrait};
-use ymir::config::types::HostType;
+use ymir::config::traits::ApiConfigTrait;
 use ymir::http::{HealthRouter, OpenapiRouter, WalletRouter};
-use ymir::types::dids::{DidService, DidServiceType};
 
-use crate::core::traits::AuthCoreTrait;
-use crate::core::AuthCore;
-use crate::http::business_router::BusinessRouter;
+use crate::core::{AuthCore, AuthOrchestratorTrait};
 use crate::http::gatekeeper_router::GateKeeperRouter;
-use crate::http::onboarder_router::OnboarderRouter;
+use crate::http::peer_connector_router::OnboarderRouter;
 use crate::http::verifier_router::VerifierRouter;
-use crate::http::{GaiaSelfIssuerRouter, MateRouter, VcRequesterRouter};
+use crate::http::{GaiaSelfAttesterRouter, ParticipantRouter, VcRequesterRouter};
 
 pub struct AuthRouter {
     core: Arc<AuthCore>,
@@ -55,13 +51,14 @@ impl AuthRouter {
     }
 
     pub fn router(self) -> Router {
+        let wallet_router = WalletRouter::new(self.core.clone());
         let vc_requester_router = VcRequesterRouter::new(self.core.clone());
         let gatekeeper_router = GateKeeperRouter::new(self.core.clone());
-        let mate_router = MateRouter::new(self.core.clone());
+        let mate_router = ParticipantRouter::new(self.core.clone());
         let verifier_router = VerifierRouter::new(self.core.clone());
-        let openapi_router = OpenapiRouter::new(self.openapi.clone());
-        let business_router = BusinessRouter::new(self.core.clone());
         let onboarder_router = OnboarderRouter::new(self.core.clone());
+        let gaia_router = GaiaSelfAttesterRouter::new(self.core.clone());
+        let openapi_router = OpenapiRouter::new(self.openapi.clone());
         let health_router = HealthRouter::new();
 
         let api_path = self.core.config().common().get_api_version();
@@ -77,45 +74,23 @@ impl AuthRouter {
             .allow_credentials(false);
 
         let router = Router::new()
-            .nest(&format!("{}", api_path), health_router.router())
+            .merge(wallet_router.well_known())
+            // .merge(gaia_router.well_known())
+            .nest(&format!("{}/wallet", api_path), wallet_router.router())
             .nest(&format!("{}/mates", api_path), mate_router.router())
+            .nest(&format!("{}", api_path), health_router.router())
             .nest(
                 &format!("{}/vc-request", api_path),
                 vc_requester_router.router(),
             )
             .nest(&format!("{}/gate", api_path), gatekeeper_router.router())
             .nest(&format!("{}/verifier", api_path), verifier_router.router())
-            .nest(&format!("{}/business", api_path), business_router.router())
-            .nest(&format!("{}/onboard", api_path), onboarder_router.router())
+            .nest(
+                &format!("{}/peer-connection", api_path),
+                onboarder_router.router(),
+            )
+            .nest(&format!("{}/gaia", api_path), gaia_router.router())
             .nest(&format!("{}/docs", api_path), openapi_router.router());
-
-        let router = match self.core.is_gaia_active() {
-            true => {
-                let gaia_router = GaiaSelfIssuerRouter::new(self.core.clone());
-                router
-                    .merge(gaia_router.well_known())
-                    .nest(&format!("{}/gaia", api_path), gaia_router.router())
-            }
-            false => router,
-        };
-
-        let router = match self.core.is_wallet_active() {
-            true => {
-                let services = vec![DidService::basic(
-                    DidServiceType::AuthorizationServer,
-                    format!(
-                        "{}{}/gate/access",
-                        self.core.config().common().get_host(HostType::Http),
-                        api_path
-                    ),
-                )];
-                let wallet = WalletRouter::new(self.core.clone());
-                router
-                    .merge(wallet.well_known(Some(services)))
-                    .nest(&format!("{}/wallet", api_path), wallet.router())
-            }
-            false => router,
-        };
 
         router.fallback(Self::fallback).layer(cors).layer(
             TraceLayer::new_for_http()

@@ -1,19 +1,45 @@
-import { ArrowDown, ArrowRight, ArrowUp, ArrowUpDown, Plus } from "lucide-react";
-import { useMemo, useState } from "react";
+import { ArrowRight, Plus } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { DataTable } from "shared/src/components/DataTable";
+import { SortableHeader, SortConfig } from "shared/src/components/SortableHeader";
 import { PageHeader } from "shared/src/components/layout/PageHeader";
 import { PageLayout } from "shared/src/components/layout/PageLayout";
 import { PageSection } from "shared/src/components/layout/PageSection";
 import { Badge } from "shared/src/components/ui/badge";
 import { Button } from "shared/src/components/ui/button";
 import { FormatDate } from "shared/src/components/ui/format-date";
-import { useGetAllVCRequests } from "shared/src/data/orval/vc-request/vc-request";
+import { useQuery } from "@tanstack/react-query";
+import { customInstance } from "shared/src/data/orval-mutator";
 import { formatIdentifier, getFriendlyVCType } from "shared/src/lib/utils";
 
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect } from "react";
 import { useGetAllParticipants } from "shared/src/data/orval/participants/participants";
 import WizardEndDialog from "shared/src/components/WizardEndDialog";
+
+interface SentGrant {
+  id: string;
+  participant_id: string;
+  participant_nick: string;
+  grant_endpoint: string;
+  kind: string;
+  status: string;
+  token?: string | null;
+  /**
+   * Each entry is the string id of a VcTypeConfig, e.g. "gx_VatId_jwt_vc_json".
+   * Comes from the backend's `impl_serde_via_str!(VcTypeConfig)`.
+   */
+  vc_type_config?: string[] | null;
+  vc_uri?: string | null;
+  as_assigned_id?: string | null;
+  auto: boolean;
+  created_at: string;
+  ended_at?: string | null;
+}
+
+interface GrantsResponse {
+  status: number;
+  data: SentGrant[];
+}
 
 /**
  * Route for listing all VC requests to an authority.
@@ -23,13 +49,42 @@ export const Route = createFileRoute("/authority/")({
 });
 
 function AuthorityRequestsPage() {
-  const { data: response } = useGetAllVCRequests();
+  const { data: response } = useQuery({
+    queryKey: ["vc-requests-list"],
+    queryFn: () => customInstance<GrantsResponse>("/vc-request/all", { method: "GET" }),
+  });
   const { data: participantsResponse } = useGetAllParticipants();
-  const participants = participantsResponse?.status === 200 ? participantsResponse.data : [];
 
   const [showCongrats, setShowCongrats] = useState(false);
+  const rawRequests = response?.status === 200 ? response.data : [];
+  const [sortConfig, setSortConfig] = useState<SortConfig<keyof SentGrant & string> | null>(null);
 
-  console.log(participants, "participants");
+  const requests = useMemo(() => {
+    const items = [...rawRequests];
+    if (sortConfig !== null) {
+      items.sort((a, b) => {
+        const aVal = a[sortConfig.key];
+        const bVal = b[sortConfig.key];
+        if (aVal === bVal) return 0;
+        if (aVal === null || aVal === undefined) return sortConfig.direction === "asc" ? -1 : 1;
+        if (bVal === null || bVal === undefined) return sortConfig.direction === "asc" ? 1 : -1;
+        const aString = String(aVal).toLowerCase();
+        const bString = String(bVal).toLowerCase();
+        if (aString < bString) return sortConfig.direction === "asc" ? -1 : 1;
+        if (aString > bString) return sortConfig.direction === "asc" ? 1 : -1;
+        return 0;
+      });
+    }
+    return items;
+  }, [rawRequests, sortConfig]);
+
+  const handleSort = (key: keyof SentGrant & string) => {
+    let direction: "asc" | "desc" = "asc";
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === "asc") {
+      direction = "desc";
+    }
+    setSortConfig({ key, direction });
+  };
 
   useEffect(() => {
     try {
@@ -41,57 +96,7 @@ function AuthorityRequestsPage() {
     } catch (e) {
       // ignore storage errors
     }
-  }, [participantsResponse]);
-  const rawRequests = response?.status === 200 ? response.data : [];
-
-  const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(
-    null,
-  );
-
-  const requests = useMemo(() => {
-    let sortableRequests = [...(rawRequests || [])];
-    if (sortConfig !== null) {
-      sortableRequests.sort((a: any, b: any) => {
-        const aVal = a[sortConfig.key];
-        const bVal = b[sortConfig.key];
-
-        if (aVal === bVal) return 0;
-
-        if (aVal === null || aVal === undefined) return sortConfig.direction === "asc" ? -1 : 1;
-        if (bVal === null || bVal === undefined) return sortConfig.direction === "asc" ? 1 : -1;
-
-        const aString = String(aVal).toLowerCase();
-        const bString = String(bVal).toLowerCase();
-
-        if (aString < bString) {
-          return sortConfig.direction === "asc" ? -1 : 1;
-        }
-        if (aString > bString) {
-          return sortConfig.direction === "asc" ? 1 : -1;
-        }
-        return 0;
-      });
-    }
-    return sortableRequests;
-  }, [rawRequests, sortConfig]);
-
-  const handleSort = (key: string) => {
-    let direction: "asc" | "desc" = "asc";
-    if (sortConfig && sortConfig.key === key && sortConfig.direction === "asc") {
-      direction = "desc";
-    }
-    setSortConfig({ key, direction });
-  };
-
-  const getSortIcon = (key: string) => {
-    if (!sortConfig || sortConfig.key !== key)
-      return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />;
-    return sortConfig.direction === "asc" ? (
-      <ArrowUp className="ml-2 h-4 w-4" />
-    ) : (
-      <ArrowDown className="ml-2 h-4 w-4" />
-    );
-  };
+  }, [participantsResponse, requests.length]);
 
   return (
     <PageLayout>
@@ -124,77 +129,79 @@ function AuthorityRequestsPage() {
       <PageSection>
         <DataTable
           className="text-sm"
-          data={requests ?? []}
+          data={requests}
           keyExtractor={(a) => a.id}
+          emptyMessage="No credential requests yet"
           columns={[
             {
-              header: "Authority Name",
-              // (
-              //   <Button
-              //     variant="ghost"
-              //     onClick={() => handleSort("authority_slug")}
-              //     className="p-0 h-auto font-semibold"
-              //   >
-              //     Authority Name {getSortIcon("authority_slug")}
-              //   </Button>
-              // ),
-              cell: (a: any) => a.authority_slug || "-",
+              header: (
+                <SortableHeader
+                  label="Authority"
+                  sortKey="participant_nick"
+                  sortConfig={sortConfig}
+                  onSort={handleSort}
+                />
+              ),
+              cell: (a) => a.participant_nick || "-",
             },
             {
               header: "Request ID",
-              // (
-              //   <Button
-              //     variant="ghost"
-              //     onClick={() => handleSort("id")}
-              //     className="p-0 h-auto font-semibold"
-              //   >
-              //     Request ID {getSortIcon("id")}
-              //   </Button>
-              // ),
-              cell: (a: any) => <Badge variant={"info"}>{formatIdentifier(a.id)}</Badge>,
+              cell: (a) => <Badge variant={"info"}>{formatIdentifier(a.id)}</Badge>,
             },
             {
-              header: "Credential Type",
-              // (
-              //   <Button
-              //     variant="ghost"
-              //     onClick={() => handleSort("vc_type")}
-              //     className="p-0 h-auto font-semibold"
-              //   >
-              //     Credential Type {getSortIcon("vc_type")}
-              //   </Button>
-              // ),
-              cell: (a: any) => <Badge variant="role">{getFriendlyVCType(a.vc_type)}</Badge>,
+              header: "Credential Types",
+              cell: (a) => {
+                const configs = a.vc_type_config ?? [];
+                if (configs.length === 0) return <span className="text-muted-foreground">—</span>;
+                return (
+                  <div className="flex flex-wrap gap-1">
+                    {configs.map((cfg, idx) => (
+                      <Badge key={idx} variant="role">
+                        {getFriendlyVCType(cfg)}
+                      </Badge>
+                    ))}
+                  </div>
+                );
+              },
             },
             {
-              header: "Status",
-              // (
-              //   <Button
-              //     variant="ghost"
-              //     onClick={() => handleSort("status")}
-              //     className="p-0 h-auto font-semibold"
-              //   >
-              //     Status {getSortIcon("status")}
-              //   </Button>
-              // ),
-              cell: (a: any) => (
+              header: "Auto",
+              cell: (a) =>
+                a.auto ? (
+                  <Badge variant="default" className="text-[10px]">
+                    ON
+                  </Badge>
+                ) : (
+                  <Badge variant="info" className="text-[10px]">
+                    OFF
+                  </Badge>
+                ),
+            },
+            {
+              header: (
+                <SortableHeader
+                  label="Status"
+                  sortKey="status"
+                  sortConfig={sortConfig}
+                  onSort={handleSort}
+                />
+              ),
+              cell: (a) => (
                 <Badge variant={"status"} state={a.status}>
                   {a.status || "-"}
                 </Badge>
               ),
             },
             {
-              header: "Created at",
-              // (
-              //   <Button
-              //     variant="ghost"
-              //     onClick={() => handleSort("created_at")}
-              //     className="p-0 h-auto font-semibold"
-              //   >
-              //     Created at {getSortIcon("created_at")}
-              //   </Button>
-              // ),
-              cell: (a: any) => (a.created_at ? <FormatDate date={a.created_at} /> : "-"),
+              header: (
+                <SortableHeader
+                  label="Created at"
+                  sortKey="created_at"
+                  sortConfig={sortConfig}
+                  onSort={handleSort}
+                />
+              ),
+              cell: (a) => (a.created_at ? <FormatDate date={a.created_at} /> : "-"),
             },
             {
               header: "Details",
@@ -214,3 +221,4 @@ function AuthorityRequestsPage() {
     </PageLayout>
   );
 }
+

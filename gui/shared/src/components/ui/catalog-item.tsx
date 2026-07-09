@@ -167,8 +167,8 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
                 <Button variant="ghost">Keep browsing</Button>
               </DialogClose>
               <Link
-                to="/providers/new"
-                search={{ url: unauthRedirect.url, slug: unauthRedirect.slug }}
+                to="/connections/sent/new"
+                search={{ url: unauthRedirect.url, nick: unauthRedirect.slug }}
               >
                 <Button className={highlightButtonClasses}>Request connection</Button>
               </Link>

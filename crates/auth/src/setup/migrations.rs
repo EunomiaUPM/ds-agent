@@ -19,7 +19,7 @@ use sea_orm::DatabaseConnection;
 use sea_orm_migration::{MigrationTrait, MigratorTrait};
 use ymir::errors::{Errors, Outcome};
 
-use crate::data::migrator::get_auth_migrations;
+use crate::data::migrations::get_auth_migrations;
 
 pub struct AuthMigrator;
 

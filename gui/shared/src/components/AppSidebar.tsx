@@ -136,7 +136,7 @@ export function AppSidebar() {
         },
         {
           title: "My Connections",
-          url: "/admin/providers",
+          url: "/admin/connections",
           icon: Users,
         },
       ],

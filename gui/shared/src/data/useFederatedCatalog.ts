@@ -4,7 +4,7 @@ import { customInstance } from "shared/src/data/orval-mutator";
 
 export interface FederatedParticipant {
   participant_id: string;
-  participant_slug: string;
+  participant_nick: string;
   participant_type: string;
   base_url: string;
   is_me?: boolean;

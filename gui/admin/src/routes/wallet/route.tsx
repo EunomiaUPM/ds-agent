@@ -19,9 +19,10 @@ const WalletLayout = () => {
   const tabs = [
     { label: "Info", to: "/wallet/info" },
     { label: "DID", to: "/wallet/did" },
+    { label: "Keys", to: "/wallet/keys" },
     { label: "Credentials", to: "/wallet/credentials" },
-    { label: "OIDC4VP", to: "/wallet/oidc4vp" },
-    { label: "OIDC4VCI", to: "/wallet/oidc4vci" },
+    { label: "OID4VP", to: "/wallet/oidc4vp" },
+    { label: "OID4VCI", to: "/wallet/oidc4vci" },
   ];
 
   return (

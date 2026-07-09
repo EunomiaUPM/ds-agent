@@ -9,6 +9,10 @@ services:
       - ./../../static/environment/envs/consumer.db.env.example
     ports:
       - "1300:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U mini_consumer" ]
+      interval: 10s
+      retries: 10
 
   consumer-redis:
     image: redis:alpine
@@ -20,3 +24,50 @@ services:
       redis-server 
       --requirepass ds_core_consumer_redis
       --user admin on >ds_core_consumer_redis ~* +@all
+
+  fafnir-setup:
+    container_name: "consumer-fafnir-setup"
+    image: "rmenendez8/fafnir:v0.2.0"
+    depends_on:
+      consumer-db:
+        condition: service_healthy
+    volumes:
+      - ./../../static/environment/fafnir/consumer-wallet.yaml:/app/static/fafnir/config.yaml
+      - ./../../static/vault/consumer/secrets/db.json.example:/app/vault/secrets/db.json.example
+    env_file:
+      - ./../../static/environment/fafnir/env.example
+    environment:
+      RUST_BACKTRACE: 1
+    command:
+      - setup
+      - --env-file
+      - /app/static/fafnir/config.yaml
+
+  fafnir-wallet:
+    container_name: "consumer-fafnir-wallet"
+    image: "rmenendez8/fafnir:v0.2.0"
+    restart: always
+    depends_on:
+      fafnir-setup:
+        condition: service_completed_successfully
+    volumes:
+      - ./../../static/environment/fafnir/consumer-wallet.yaml:/app/static/fafnir/config.yaml
+      - ./../../static/vault/consumer/secrets/db.json.example:/app/vault/secrets/db.json.example
+    env_file:
+      - ./../../static/environment/fafnir/env.example
+    environment:
+      RUST_BACKTRACE: 1
+    ports:
+      - "7001:7001"
+    command:
+      - start
+      - --env-file
+      - /app/static/fafnir/config.yaml
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:7001/readiness" ]
+      interval: 10s
+      timeout: 2s
+      retries: 10
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+

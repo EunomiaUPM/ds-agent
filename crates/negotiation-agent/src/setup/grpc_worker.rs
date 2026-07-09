@@ -56,14 +56,10 @@ impl NegotiationGrpcWorker {
         token: &CancellationToken,
     ) -> Outcome<JoinHandle<()>> {
         let router = Self::create_root_grpc_router(&config, vault.clone()).await?;
-        let host = if config.common().is_local() {
-            "127.0.0.1"
-        } else {
-            "0.0.0.0"
-        };
+
         let port = config.common().get_internal_port(HostType::Grpc);
         let grpc_port = format!("{}{}", port, "1");
-        let addr = format!("{}:{}", host, grpc_port);
+        let addr = format!("0.0.0.0:{}", grpc_port);
 
         let listener = TcpListener::bind(&addr)
             .await
@@ -89,7 +85,7 @@ impl NegotiationGrpcWorker {
         config: &ContractsConfig,
         vault: Arc<VaultService>,
     ) -> Outcome<tonic::transport::server::Router> {
-        let db_connection = vault.get_db_connection(config.common()).await;
+        let db_connection = vault.get_db_connection(config.common()).await?;
         let config = Arc::new(config.clone());
         let negotiation_repo = Arc::new(NegotiationAgentRepoForSql::create_repo(
             db_connection.clone(),

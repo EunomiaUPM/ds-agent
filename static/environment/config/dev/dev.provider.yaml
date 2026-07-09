@@ -8,10 +8,10 @@ http_host: &http_host
   internal_port: null
 
 grpc_host: &grpc_host
-    protocol: 'http'
-    url: '127.0.0.1'
-    port: '1201'
-    internal_port: null
+  protocol: 'http'
+  url: '127.0.0.1'
+  port: '1201'
+  internal_port: null
 
 hosts_default: &hosts_default
   http: *http_host

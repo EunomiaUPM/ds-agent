@@ -27,7 +27,7 @@ use crate::protocols::dsp::protocol_types::{
     NegotiationProcessMessageWrapper,
 };
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
-use common::facades::Mates;
+use ymir::data::entities::shared::participant::Model as Mates;
 use std::sync::Arc;
 use ymir::errors::Outcome;
 // ─── NegotiationEventStep ─────────────────────────────────────────────────────

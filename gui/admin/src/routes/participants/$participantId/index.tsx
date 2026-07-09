@@ -77,7 +77,7 @@ function RouteComponent() {
   return (
     <PageLayout>
       <PageHeader
-        title={p.participant_slug || "Participant Details"}
+        title={p.participant_nick || "Participant Details"}
         badge={
           <div className="flex gap-2">
             <Badge variant="role" dsrole={p.participant_type as BadgeRole}>

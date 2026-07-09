@@ -15,75 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::utils::get_urn;
 use serde::{Deserialize, Serialize};
 
 pub mod inner_auth_facade;
 pub mod ssi_auth_facade;
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Mates {
-    pub participant_id: String,
-    pub participant_slug: String,
-    pub participant_type: String,
-    pub base_url: Option<String>,
-    pub token: Option<String>,
-    pub token_actions: Option<String>,
-    pub saved_at: chrono::NaiveDateTime,
-    pub last_interaction: chrono::NaiveDateTime,
-    pub extra_fields: Option<serde_json::Value>,
-    pub is_me: bool,
-}
-
-impl Mates {
-    pub fn default4consumer(
-        id: Option<String>,
-        slug: String,
-        url: String,
-        token: Option<String>,
-        token_actions: Option<String>,
-        is_me: bool,
-    ) -> Self {
-        let participant_id = id.unwrap_or_else(|| get_urn(None).to_string());
-
-        Self {
-            participant_id,
-            participant_slug: slug,
-            participant_type: "Provider".to_string(),
-            base_url: Some(url),
-            token,
-            token_actions,
-            saved_at: chrono::Utc::now().naive_utc(),
-            last_interaction: chrono::Utc::now().naive_utc(),
-            extra_fields: None,
-            is_me,
-        }
-    }
-
-    pub fn default4provider(
-        id: Option<String>,
-        slug: String,
-        url: String,
-        token: Option<String>,
-        token_actions: Option<String>,
-        is_me: bool,
-    ) -> Self {
-        let participant_id = id.unwrap_or_else(|| get_urn(None).to_string());
-
-        Self {
-            participant_id,
-            participant_slug: slug,
-            participant_type: "Consumer".to_string(),
-            base_url: Some(url),
-            token,
-            token_actions,
-            saved_at: chrono::Utc::now().naive_utc(),
-            last_interaction: chrono::Utc::now().naive_utc(),
-            extra_fields: None,
-            is_me,
-        }
-    }
-}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct VerifyTokenRequest {

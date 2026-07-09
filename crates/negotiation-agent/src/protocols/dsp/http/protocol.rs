@@ -37,7 +37,7 @@ use axum::{
 use common::config::services::ContractsConfig;
 use common::dsp_common::context_field::ContextField;
 use common::dsp_common::normalizer::dsp_namespace_normalizer;
-use common::facades::Mates;
+use ymir::data::entities::shared::participant::Model as Mates;
 use common::facades::ssi_auth_facade::SSIAuthFacadeTrait;
 use serde::Serialize;
 use std::future::Future;

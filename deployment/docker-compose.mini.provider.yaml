@@ -9,6 +9,10 @@ services:
       - ./../static/environment/envs/provider.db.env.example
     ports:
       - "1400:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U mini_provider" ]
+      interval: 10s
+      retries: 10
 
   provider-redis:
     image: redis:alpine
@@ -21,12 +25,57 @@ services:
       --requirepass ds_core_provider_redis
       --user admin on >ds_core_provider_redis ~* +@all
 
+  fafnir-setup:
+    container_name: "provider-fafnir-setup"
+    image: "rmenendez8/fafnir:v0.2.0"
+    depends_on:
+      provider-db:
+        condition: service_healthy
+    volumes:
+      - ./../static/environment/fafnir/provider-wallet.yaml:/app/static/fafnir/config.yaml
+      - ./../static/vault/provider/secrets/db.json.example:/app/vault/secrets/db.json.example
+    env_file:
+      - ./../static/environment/fafnir/env.example
+    environment:
+      RUST_BACKTRACE: 1
+    command:
+      - setup
+      - --env-file
+      - /app/static/fafnir/config.yaml
+
+  fafnir-wallet:
+    container_name: "provider-fafnir-wallet"
+    image: "rmenendez8/fafnir:v0.2.0"
+    restart: always
+    depends_on:
+      fafnir-setup:
+        condition: service_completed_successfully
+    volumes:
+      - ./../static/environment/fafnir/provider-wallet.yaml:/app/static/fafnir/config.yaml
+      - ./../static/vault/provider/secrets/db.json.example:/app/vault/secrets/db.json.example
+    env_file:
+      - ./../static/environment/fafnir/env.example
+    environment:
+      RUST_BACKTRACE: 1
+    command:
+      - start
+      - --env-file
+      - /app/static/fafnir/config.yaml
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:7001/readiness" ]
+      interval: 10s
+      timeout: 2s
+      retries: 10
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+
   # =========================
   # Setup job (one-shot)
   # =========================
   provider-setup:
     container_name: provider-setup
-    image: quay.io/eunomia_upm/ds-agent
+    image: "rmenendez8/eunomia:v1.4.0"
     command: ["setup", "-e", "/app/static/environment/config/core.provider.mini.yaml"]
     volumes:
       - ./../static/:/app/static
@@ -45,7 +94,7 @@ services:
   # =========================
   provider:
     container_name: provider
-    image: quay.io/eunomia_upm/ds-agent
+    image: "rmenendez8/eunomia:v1.4.0"
     command: ["start", "-e", "/app/static/environment/config/core.provider.mini.yaml"]
     ports:
       - "1200:1200"
@@ -59,6 +108,8 @@ services:
         condition: service_started
       provider-redis:
         condition: service_started
+      fafnir-wallet:
+        condition: service_healthy
     env_file:
       - ./../static/environment/envs/core.provider.env.example
     environment:

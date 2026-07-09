@@ -43,7 +43,7 @@ impl MigratorTrait for TransferAgentMigration {
 impl TransferAgentMigration {
     pub async fn run(config: &TransferConfig, vault: Arc<VaultService>) -> Outcome<()> {
         // db_connection
-        let db_connection = vault.get_db_connection(config.common()).await;
+        let db_connection = vault.get_db_connection(config.common()).await?;
         // run migration
         Self::refresh(&db_connection)
             .await

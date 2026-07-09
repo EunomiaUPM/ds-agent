@@ -44,7 +44,7 @@ impl MigratorTrait for CatalogAgentMigration {
 impl CatalogAgentMigration {
     pub async fn run(config: &CatalogConfig, vault: Arc<VaultService>) -> Outcome<()> {
         // db_connection
-        let db_connection = vault.get_db_connection(config.common()).await;
+        let db_connection = vault.get_db_connection(config.common()).await?;
         // run migration
         Self::refresh(&db_connection).await.map_err(|e| {
             Errors::crazy(

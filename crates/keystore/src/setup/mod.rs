@@ -76,7 +76,7 @@ impl KeystoreSetup {
     where
         C: CommonConfigTrait + Send + Sync,
     {
-        let db = vault.get_db_connection(config.common()).await;
+        let db = vault.get_db_connection(config.common()).await.expect("Unable to retrieve db connection");
 
         let config_repo = Arc::new(ConfigPassthroughRepo::new(app_config));
         let parameter_repo = Arc::new(SeaOrmParameterRepo::new(db.clone()));

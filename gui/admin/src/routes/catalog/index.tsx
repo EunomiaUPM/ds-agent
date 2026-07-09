@@ -109,7 +109,7 @@ const RouteComponent = () => {
           const isOnboarded = localParticipants.some(
             (lp) => lp.participant_id === p.participant_id && !lp.is_me,
           );
-          const unauthRedirect = isOnboarded ? null : { url: p.base_url, slug: p.participant_slug };
+          const unauthRedirect = isOnboarded ? null : { url: p.base_url, slug: p.participant_nick };
           // si no está autenticado con ningun proveedor, y es el primer agente de la lista
           // destacar ese agente (modo ejemplo)
           const firstAgentWithUnauth =
@@ -127,7 +127,7 @@ const RouteComponent = () => {
               <CatalogItem
                 key={p.participant_id}
                 datasetNumber={0}
-                organizationName={p.participant_slug ?? "Unknown"}
+                organizationName={p.participant_nick ?? "Unknown"}
                 id={p.participant_id ?? null}
                 isAuthenticated={
                   (p.participant_id === myAgent?.participant_id ? true : false) ? true : isOnboarded

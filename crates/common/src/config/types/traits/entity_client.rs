@@ -15,10 +15,9 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use ymir::errors::Outcome;
-use ymir::types::gnap::grant_request::{Client4GR, Key4GR, KeyProof};
-
 use crate::config::types::{DisplayInfo, EntityClientConfig};
+use ymir::errors::Outcome;
+use ymir::types::gnap::grant_request::client::{Client, ClientKey, KeyProof};
 
 pub trait EntityClientTrait {
     fn client_config(&self) -> &EntityClientConfig;
@@ -28,14 +27,14 @@ pub trait EntityClientTrait {
     fn get_display_info(&self) -> Option<&DisplayInfo> {
         self.client_config().display.as_ref()
     }
-    fn get_pretty_client_config(&self, cert: &str) -> Outcome<Client4GR> {
+    fn get_client(&self, cert: &str) -> Outcome<Client> {
         let clean_cert = cert
             .lines()
             .filter(|line| !line.starts_with("-----"))
             .collect::<String>();
 
-        Ok(Client4GR {
-            key: Key4GR::new(KeyProof::HttpSig, None, Some(clean_cert))?,
+        Ok(Client {
+            key: ClientKey::cert(KeyProof::HttpSig, clean_cert),
             class_id: Some(self.get_clas_id().to_string()),
             display: None,
         })

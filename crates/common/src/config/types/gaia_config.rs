@@ -16,9 +16,42 @@
  */
 
 use serde::{Deserialize, Serialize};
-use ymir::config::types::HostConfig;
+use ymir::types::vcs::VcType;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct GaiaConfig {
-    pub api: HostConfig,
+    pub legal_person: LegalPersonInfo,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct LegalPersonInfo {
+    pub registration_number: RegNumberInfo,
+    pub legal_address: AddressInfo,
+    pub headquarters_address: AddressInfo,
+    pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct RegNumberInfo {
+    pub kind: VcType,
+    pub value: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub country_code: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subdivision_country_code: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct AddressInfo {
+    pub country_code: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub country_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub locality: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub postal_code: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub street_address: Option<String>,
 }

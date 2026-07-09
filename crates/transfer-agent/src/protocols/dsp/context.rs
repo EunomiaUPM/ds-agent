@@ -19,9 +19,9 @@
 
 use crate::entities::transfer_process::TransferProcessDto;
 use crate::protocols::dsp::protocol_types::DataAddressDto;
-use common::facades::Mates;
 use connector::ConnectorInstanceDto;
 use urn::Urn;
+use ymir::data::entities::shared::participant::Model as Mates;
 
 /// Unified DSP transfer context.
 #[derive(Debug, Clone)]

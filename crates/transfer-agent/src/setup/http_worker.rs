@@ -60,13 +60,8 @@ impl TransferHttpWorker {
         let router = Self::create_root_http_router(&config, vault.clone())
             .await?
             .merge(well_known_router);
-        let host = if config.common().is_local() {
-            "127.0.0.1"
-        } else {
-            "0.0.0.0"
-        };
         let port = config.common().get_internal_port(HostType::Http);
-        let addr = format!("{}{}", host, port);
+        let addr = format!("0.0.0.0:{}", port);
 
         let listener = TcpListener::bind(&addr)
             .await
@@ -121,7 +116,7 @@ pub async fn create_root_http_router(
     vault: Arc<VaultService>,
 ) -> Outcome<Router> {
     // ROOT Dependency Injection
-    let db_connection = vault.get_db_connection(config.common()).await;
+    let db_connection = vault.get_db_connection(config.common()).await?;
     let config = Arc::new(config.clone());
     let transfer_repo = Arc::new(TransferAgentRepoForSql::create_repo(db_connection.clone()));
 

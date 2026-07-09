@@ -48,13 +48,8 @@ impl TransferGrpcWorker {
         token: &CancellationToken,
     ) -> Outcome<JoinHandle<()>> {
         let router = Self::create_root_grpc_router(&config, vault.clone()).await?;
-        let host = if config.common().is_local() {
-            "127.0.0.1"
-        } else {
-            "0.0.0.0"
-        };
         let port = config.common().get_internal_port(HostType::Grpc);
-        let addr = format!("{}{}", host, port);
+        let addr = format!("0.0.0.0:{}", port);
 
         let listener = TcpListener::bind(&addr)
             .await
@@ -80,7 +75,7 @@ impl TransferGrpcWorker {
         config: &TransferConfig,
         vault: Arc<VaultService>,
     ) -> Outcome<tonic::transport::server::Router> {
-        let db_connection = vault.get_db_connection(config.common()).await;
+        let db_connection = vault.get_db_connection(config.common()).await?;
         let transfer_repo = Arc::new(TransferAgentRepoForSql::create_repo(db_connection.clone()));
 
         let messages_service = Arc::new(TransferAgentMessagesService::new(transfer_repo.clone()));

@@ -15,46 +15,51 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use ymir::config::traits::{
-    ApiConfigTrait, ConnectionConfigTrait, DidConfigTrait, HostsConfigTrait, VcConfigTrait,
-    VerifyReqConfigTrait, WalletConfigTrait,
-};
-use ymir::services::issuer::basic::config::{BasicIssuerConfig, BasicIssuerConfigBuilder};
-use ymir::services::verifier::basic::config::{BasicVerifierConfig, BasicVerifierConfigBuilder};
-use ymir::services::wallet::walt_id::config::{WaltIdConfig, WaltIdConfigBuilder};
-
 use crate::config::services::SsiAuthConfig;
 use crate::config::types::traits::CommonConfigTrait;
+use ymir::config::traits::{
+    ApiConfigTrait, DidConfigTrait, HostsConfigTrait, VerifyReqConfigTrait, WalletConfigTrait,
+};
+use ymir::services::issuer::oid4vci_1_0::IssuerConfig;
+use ymir::services::verifier::oid4vp_draft20::VerifierConfig;
+use ymir::services::wallet::fafnir::FafnirConfig;
+use ymir::services::wallet::walt_id::WaltIdConfig;
 
-impl From<SsiAuthConfig> for WaltIdConfig {
-    fn from(value: SsiAuthConfig) -> Self {
-        WaltIdConfigBuilder::new()
-            .hosts(value.common().hosts().clone())
-            .ssi_wallet_config(value.wallet_config().clone())
-            .did_config(value.did_config().clone())
-            .build()
+impl From<&SsiAuthConfig> for WaltIdConfig {
+    fn from(value: &SsiAuthConfig) -> Self {
+        WaltIdConfig::new(
+            value.common().hosts().clone(),
+            value.wallet_config().clone(),
+            value.did_config().clone(),
+        )
     }
 }
 
-impl From<SsiAuthConfig> for BasicVerifierConfig {
-    fn from(value: SsiAuthConfig) -> Self {
-        BasicVerifierConfigBuilder::new()
-            .hosts(value.common().hosts().clone())
-            .local(value.common().is_local())
-            .requested_vcs(value.get_requested_vcs().to_vec())
-            .api_path(value.common().get_api_version())
-            .vc_config(value.vc_config().clone())
-            .build()
+impl From<&SsiAuthConfig> for FafnirConfig {
+    fn from(value: &SsiAuthConfig) -> Self {
+        FafnirConfig::new(
+            value.common().hosts().clone(),
+            value.wallet_config().clone(),
+            value.did_config().clone(),
+        )
     }
 }
 
-impl From<SsiAuthConfig> for BasicIssuerConfig {
-    fn from(value: SsiAuthConfig) -> Self {
-        BasicIssuerConfigBuilder::new()
-            .hosts(value.common().hosts().clone())
-            .local(value.common().is_local())
-            .api_path(value.common().get_api_version())
-            .did_config(value.did_config().clone())
-            .build()
+impl From<&SsiAuthConfig> for VerifierConfig {
+    fn from(value: &SsiAuthConfig) -> Self {
+        VerifierConfig::new(
+            value.common().hosts().clone(),
+            value.common().get_api_version(),
+            value.get_requested_vcs().to_vec(),
+        )
+    }
+}
+
+impl From<&SsiAuthConfig> for IssuerConfig {
+    fn from(value: &SsiAuthConfig) -> Self {
+        IssuerConfig::new(
+            value.common().hosts().clone(),
+            value.common().get_api_version(),
+        )
     }
 }

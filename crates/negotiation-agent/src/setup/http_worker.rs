@@ -64,13 +64,8 @@ impl NegotiationHttpWorker {
             .await?
             .merge(well_known_router)
             .merge(health_router);
-        let host = if config.common().is_local() {
-            "127.0.0.1"
-        } else {
-            "0.0.0.0"
-        };
         let port = config.common().get_internal_port(HostType::Http);
-        let addr = format!("{}{}", host, port);
+        let addr = format!("0.0.0.0:{}", port);
 
         let listener = TcpListener::bind(&addr)
             .await
@@ -122,7 +117,10 @@ impl NegotiationHttpWorker {
 
 pub async fn create_root_http_router(config: &ContractsConfig, vault: Arc<VaultService>) -> Router {
     // ROOT Dependency Injection
-    let db_connection = vault.get_db_connection(config.common()).await;
+    let db_connection = vault
+        .get_db_connection(config.common())
+        .await
+        .expect("Unable to retrieve database connection");
     let config = Arc::new(config.clone());
     let negotiation_repo = Arc::new(NegotiationAgentRepoForSql::create_repo(
         db_connection.clone(),

@@ -1,54 +1,37 @@
-import { AlertCircle, CheckCircle2, Info, Loader2, Search } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { useForm } from "react-hook-form";
-import { PageHeader } from "shared/src/components/layout/PageHeader";
-import { PageLayout } from "shared/src/components/layout/PageLayout";
-import { PageSection } from "shared/src/components/layout/PageSection";
-import { Badge } from "shared/src/components/ui/badge";
-import { Button } from "shared/src/components/ui/button";
+import { AlertCircle, CheckCircle2, Info, Loader2, Search } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { PageHeader } from 'shared/src/components/layout/PageHeader';
+import { PageLayout } from 'shared/src/components/layout/PageLayout';
+import { PageSection } from 'shared/src/components/layout/PageSection';
+import { Badge } from 'shared/src/components/ui/badge';
+import { Button } from 'shared/src/components/ui/button';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "shared/src/components/ui/card";
+    Card, CardContent, CardDescription, CardHeader, CardTitle
+} from 'shared/src/components/ui/card';
 import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "shared/src/components/ui/form";
-import { Input } from "shared/src/components/ui/input";
+    Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage
+} from 'shared/src/components/ui/form';
+import { Input } from 'shared/src/components/ui/input';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "shared/src/components/ui/select";
+    Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+} from 'shared/src/components/ui/select';
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "shared/src/components/ui/tooltip";
-import WizardDialog from "shared/src/components/WizardDialog";
-import { customInstance } from "shared/src/data/orval-mutator";
-import { useGetAllParticipants } from "shared/src/data/orval/participants/participants";
-import { useFederatedCatalog } from "shared/src/data/useFederatedCatalog";
-import { formatIdentifier, getFriendlyVCType } from "shared/src/lib/utils";
-import * as z from "zod";
+    Tooltip, TooltipContent, TooltipProvider, TooltipTrigger
+} from 'shared/src/components/ui/tooltip';
+import WizardDialog from 'shared/src/components/WizardDialog';
+import { customInstance } from 'shared/src/data/orval-mutator';
+import { useGetAllParticipants } from 'shared/src/data/orval/participants/participants';
+import { useFederatedCatalog } from 'shared/src/data/useFederatedCatalog';
+import { formatIdentifier, getFriendlyVCType } from 'shared/src/lib/utils';
+import * as z from 'zod';
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { zodResolver } from '@hookform/resolvers/zod';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 
 const schema = z.object({
   url: z.string().url("Please enter a valid URL"),
-  slug: z.string().min(1, "Name is required"),
+  nick: z.string().min(1, "Name is required"),
   vc_type: z.string().min(1, "Please select a VC type"),
   method: z.enum(["oidc4vp", "cert"]),
   auto: z.boolean().default(true),
@@ -59,6 +42,16 @@ interface DidService {
   type: string;
   serviceEndpoint: string;
 }
+
+/**
+ * `host.docker.internal` doesn't resolve in the browser running on the host.
+ * Rewrite only the host portion to `127.0.0.1` for the browser-side fetch.
+ * The original URL (with the docker hostname) is what the form keeps and what
+ * the backend ultimately receives — the backend lives inside docker and can
+ * resolve `host.docker.internal` natively.
+ */
+const toBrowserHost = (url: string): string =>
+  url.replace(/(^https?:\/\/)host\.docker\.internal/, "$1127.0.0.1");
 
 const DEMO_AUTHORITY_URL = "https://dev-dataspaces.dit.upm.es";
 const DEMO_AUTHORITY_NICK = "Heimdall";
@@ -96,11 +89,22 @@ function LabelWithInfo({ label, children }: { label: string; children: React.Rea
 
 // @ts-ignore
 export const Route = createFileRoute("/authority/new")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    recommended:
+      typeof search?.recommended === "string" ? (search.recommended as string) : undefined,
+  }),
   component: NewAuthorityRequest,
 });
 
 function NewAuthorityRequest() {
   const navigate = useNavigate();
+  const search = Route.useSearch();
+  const recommended = search.recommended ?? DEMO_VC_TYPE_ID;
+  const recommendedMethod: "cert" | "oidc4vp" = recommended.startsWith(
+    "gx_LabelCredential",
+  )
+    ? "oidc4vp"
+    : "cert";
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [discoveredInfo, setDiscoveredInfo] = useState<{
@@ -126,15 +130,15 @@ function NewAuthorityRequest() {
     resolver: zodResolver(schema) as any,
     defaultValues: {
       url: "",
-      slug: "",
+      nick: "",
       vc_type: "",
-      method: "cert",
+      method: recommendedMethod,
       auto: true,
     },
   });
 
   const url = form.watch("url");
-  const slug = form.watch("slug");
+  const nick = form.watch("nick");
   // refs for positioning the tooltip over the "Authority URL" label
   const labelURLRef = useRef<HTMLElement | null>(null);
   const vcType = form.watch("vc_type");
@@ -161,13 +165,14 @@ function NewAuthorityRequest() {
     setDiscoveryError(null);
     try {
       const cleanUrl = targetUrl.replace(/\/$/, "");
+      const fetchUrl = toBrowserHost(cleanUrl);
 
-      const didResponse = await fetch(`${cleanUrl}/.well-known/did.json`);
+      const didResponse = await fetch(`${fetchUrl}/.well-known/did.json`);
       if (!didResponse.ok) throw new Error("Failed to fetch DID document");
       const didJson = await didResponse.json();
       const id = didJson.id;
 
-      const issuerResponse = await fetch(`${cleanUrl}/.well-known/openid-credential-issuer`);
+      const issuerResponse = await fetch(`${fetchUrl}/.well-known/openid-credential-issuer`);
       if (!issuerResponse.ok) throw new Error("Failed to fetch Credential Issuer configuration");
       const issuerJson = await issuerResponse.json();
 
@@ -247,7 +252,7 @@ function NewAuthorityRequest() {
                 size="sm"
                 onClick={() => {
                   form.setValue("url", DEMO_AUTHORITY_URL);
-                  form.setValue("slug", DEMO_AUTHORITY_NICK);
+                  form.setValue("nick", DEMO_AUTHORITY_NICK);
                   setWizardStep(2);
                 }}
               >
@@ -328,8 +333,8 @@ function NewAuthorityRequest() {
                                   const val = e.target.value;
                                   const known = knownAuthorities.find((a) => a.base_url === val);
                                   if (known) {
-                                    if (known.participant_slug) {
-                                      form.setValue("slug", known.participant_slug);
+                                    if (known.participant_nick) {
+                                      form.setValue("nick", known.participant_nick);
                                     }
                                     handleDiscovery(val);
                                   }
@@ -339,7 +344,7 @@ function NewAuthorityRequest() {
                             <datalist id="known-authorities">
                               {knownAuthorities.map((authority) => (
                                 <option key={authority.participant_id} value={authority.base_url}>
-                                  {authority.participant_slug || authority.participant_id}
+                                  {authority.participant_nick || authority.participant_id}
                                 </option>
                               ))}
                             </datalist>
@@ -363,14 +368,26 @@ function NewAuthorityRequest() {
                           <FormDescription>
                             Example: http://host.docker.internal:1500
                           </FormDescription>
+                          {url && url.includes("host.docker.internal") && (
+                            <p className="text-[10px] text-muted-foreground mt-1 flex items-start gap-1">
+                              <Info className="h-3 w-3 mt-0.5 shrink-0" />
+                              <span>
+                                Browser fetch will use{" "}
+                                <code className="font-mono text-[10px]">127.0.0.1</code> — the back
+                                receives{" "}
+                                <code className="font-mono text-[10px]">host.docker.internal</code>{" "}
+                                unchanged.
+                              </span>
+                            </p>
+                          )}
                         </FormItem>
                       )}
                     />
 
                     <FormField
                       control={form.control as any}
-                      name="slug"
-                      render={({ field }) => (
+                      name="nick"
+                      render={({ field }) => (  
                         <FormItem>
                           <FormLabel>Nickname</FormLabel>
                           <FormControl>
@@ -407,8 +424,8 @@ function NewAuthorityRequest() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {discoveredInfo?.vc_types.map((type) => {
-                                const isRecommended = type === DEMO_VC_TYPE_ID;
+                              {discoveredInfo?.vc_types.map((type: string) => {
+                                const isRecommended = type === recommended;
                                 return (
                                   <SelectItem
                                     key={type}
@@ -450,39 +467,74 @@ function NewAuthorityRequest() {
                             later, once your wallet holds something the authority can check.
                           </LabelWithInfo>
                           <FormControl>
-                            <div className="relative flex p-1 bg-muted/50 border border-primary/40 rounded-lg w-full">
-                              {/* Sliding pill */}
-                              <div
-                                className={`absolute top-1 bottom-1 w-[calc(50%-0.25rem)] bg-primary rounded-md transition-transform duration-300 ease-in-out shadow-sm ${
-                                  field.value === "cert"
-                                    ? "translate-x-0"
-                                    : "translate-x-[calc(100%+0.25rem)]"
-                                }`}
-                              />
+                            <div className="space-y-2">
+                              <div className="relative flex p-1 bg-muted/50 border border-primary/40 rounded-lg w-full">
+                                {/* Sliding pill */}
+                                <div
+                                  className={`absolute top-1 bottom-1 w-[calc(50%-0.25rem)] bg-primary rounded-md transition-transform duration-300 ease-in-out shadow-sm ${
+                                    field.value === "cert"
+                                      ? "translate-x-0"
+                                      : "translate-x-[calc(100%+0.25rem)]"
+                                  }`}
+                                />
 
-                              <button
-                                type="button"
-                                className={`relative z-10 w-1/2 py-2 px-3 text-xs md:text-sm font-semibold transition-colors duration-300 rounded-md ${
-                                  field.value === "cert"
-                                    ? "text-primary-foreground"
-                                    : "text-foreground/70 hover:text-foreground"
-                                }`}
-                                onClick={() => field.onChange("cert")}
-                              >
-                                Certificate
-                              </button>
+                                <button
+                                  type="button"
+                                  className={`relative z-10 w-1/2 py-2 px-3 text-xs md:text-sm font-semibold transition-all duration-300 rounded-md ${
+                                    field.value === "cert"
+                                      ? "text-primary-foreground"
+                                      : "text-foreground/70 hover:text-foreground"
+                                  } ${
+                                    recommendedMethod === "cert" && field.value !== "cert"
+                                      ? "ring-2 ring-secondary-400"
+                                      : ""
+                                  }`}
+                                  onClick={() => field.onChange("cert")}
+                                >
+                                  Certificate
+                                </button>
 
-                              <button
-                                type="button"
-                                className={`relative z-10 w-1/2 py-2 px-3 text-xs md:text-sm font-semibold transition-colors duration-300 rounded-md ${
-                                  field.value === "oidc4vp"
-                                    ? "text-primary-foreground"
-                                    : "text-foreground/70 hover:text-foreground"
-                                }`}
-                                onClick={() => field.onChange("oidc4vp")}
-                              >
-                                Verifiable Credential
-                              </button>
+                                <button
+                                  type="button"
+                                  className={`relative z-10 w-1/2 py-2 px-3 text-xs md:text-sm font-semibold transition-all duration-300 rounded-md ${
+                                    field.value === "oidc4vp"
+                                      ? "text-primary-foreground"
+                                      : "text-foreground/70 hover:text-foreground"
+                                  } ${
+                                    recommendedMethod === "oidc4vp" && field.value !== "oidc4vp"
+                                      ? "ring-2 ring-secondary-400"
+                                      : ""
+                                  }`}
+                                  onClick={() => field.onChange("oidc4vp")}
+                                >
+                                  Verifiable Credential
+                                </button>
+                              </div>
+
+                              {/* Recommendation hint (fades, no layout shift) */}
+                              <div className="h-5 flex items-center justify-end gap-2">
+                                <span
+                                  className={`text-[10px] uppercase tracking-widest text-muted-foreground transition-opacity duration-500 ${
+                                    field.value !== recommendedMethod
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  }`}
+                                >
+                                  Recommended:
+                                </span>
+                                <Badge
+                                  variant="info"
+                                  className={`text-[10px] transition-opacity duration-500 ${
+                                    field.value !== recommendedMethod
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  }`}
+                                >
+                                  {recommendedMethod === "cert"
+                                    ? "Certificate"
+                                    : "Verifiable Credential"}
+                                </Badge>
+                              </div>
                             </div>
                           </FormControl>
                           <FormMessage />

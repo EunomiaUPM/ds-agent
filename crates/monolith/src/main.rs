@@ -66,6 +66,8 @@ async fn main() -> Outcome<()> {
         .with_env_filter(filter)
         .init();
     info!("{}", INFO);
-    CoreCommands::init_command_line().await?;
-    Ok(())
+    CoreCommands::init_command_line().await.map_err(|e| {
+        e.log();
+        e
+    })
 }

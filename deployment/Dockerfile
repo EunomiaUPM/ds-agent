@@ -59,7 +59,7 @@ RUN --mount=type=cache,target=/app/target/ \
 FROM debian:bookworm-slim AS final
 
 RUN apt-get update && \
-    apt-get install -y libssl3 ca-certificates && \
+    apt-get install -y libssl3 ca-certificates wget && \
     rm -rf /var/lib/apt/lists/*
 
 # Non-privileged user

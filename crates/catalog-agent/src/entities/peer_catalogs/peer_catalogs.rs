@@ -19,7 +19,7 @@ use crate::cache::factory_trait::CatalogAgentCacheTrait;
 use crate::entities::peer_catalogs::PeerCatalogTrait;
 use crate::protocols::dsp::types::catalog_definition::Catalog;
 use common::facades::ssi_auth_facade::MatesFacadeTrait;
-use common::facades::Mates;
+use ymir::data::entities::shared::participant::Model as Mates;
 use std::sync::Arc;
 use tracing::warn;
 use ymir::errors::Outcome;

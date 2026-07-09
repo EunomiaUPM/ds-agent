@@ -28,7 +28,7 @@ use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 use tower_http::trace::{DefaultOnResponse, TraceLayer};
 use uuid::Uuid;
-use ymir::config::traits::{ConnectionConfigTrait, HostsConfigTrait};
+use ymir::config::traits::HostsConfigTrait;
 use ymir::config::types::HostType;
 use ymir::errors::{Errors, Outcome};
 use ymir::http::HealthRouter;
@@ -48,13 +48,9 @@ impl GatewayHttpWorker {
             .await?
             .merge(well_known_router)
             .merge(health_router);
-        let host = if config.common().is_local() {
-            "127.0.0.1"
-        } else {
-            "0.0.0.0"
-        };
+
         let port = config.common().get_internal_port(HostType::Http);
-        let addr = format!("{}{}", host, port);
+        let addr = format!("0.0.0.0:{}", port);
 
         let listener = TcpListener::bind(&addr)
             .await

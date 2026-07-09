@@ -715,7 +715,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorInfo"
 
-
   /peer-catalogs:
     get:
       tags:
@@ -7185,7 +7184,7 @@ components:
       properties:
         participant_id:
           type: string
-        participant_slug:
+        participant_nick:
           type: string
         participant_type:
           type: string
@@ -7193,6 +7192,15 @@ components:
           type: string
         token:
           type: string
+        saved_at:
+          type: string
+          format: date-time
+        last_interaction:
+          type: string
+          format: date-time
+        extra_fields:
+          type: object
+          additionalProperties: true
         is_me:
           type: boolean
     PeerCatalogEntry:

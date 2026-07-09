@@ -16,5 +16,7 @@
  */
 
 mod core;
-pub mod traits;
+mod orchestrator;
+
 pub use core::AuthCore;
+pub use orchestrator::AuthOrchestratorTrait;

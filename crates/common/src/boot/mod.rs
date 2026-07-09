@@ -203,8 +203,8 @@ impl<S: BootstrapServiceTrait> BootstrapStepTrait for BootstrapConfigLoaded<S> {
         let config = S::load_config(self.env_file).await?;
 
         let vault = match config.is_vault_real() {
-            true => VaultService::Real(RealVaultService::new()),
-            false => VaultService::Fake(FakeVaultService::new()),
+            true => VaultService::Real(RealVaultService::new()?),
+            false => VaultService::Fake(FakeVaultService::new()?),
         };
         let vault = Arc::new(vault);
 

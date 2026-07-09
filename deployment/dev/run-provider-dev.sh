@@ -43,6 +43,14 @@ FRONTEND_PID=$!
 
 echo -e "\033[0;32mFrontend dev server spawned\033[0m"
 
+# 3.5. Wait for fafnir-wallet
+echo -e "\033[0;36mWaiting for fafnir-wallet to be ready...\033[0m"
+WALLET_URL="http://localhost:7002/readiness"   # 7002 en provider
+until curl -fs "$WALLET_URL" > /dev/null 2>&1; do
+    sleep 2
+done
+echo -e "\033[0;32mfafnir-wallet ready\033[0m"
+
 
 # 5. Backend setup
 echo -e "\033[0;36mRunning setup...\033[0m"
@@ -56,4 +64,4 @@ fi
 
 # 6. Start
 echo -e "\033[0;36mStarting provider...\033[0m"
-cargo watch -x "run start -e ../../static/environment/config/dev/dev.provider.yaml"
+cargo watch -i "vault/*" -x "run start -e ../../static/environment/config/dev/dev.provider.yaml"

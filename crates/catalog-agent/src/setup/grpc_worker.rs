@@ -70,13 +70,9 @@ impl CatalogGrpcWorker {
         token: &CancellationToken,
     ) -> Outcome<JoinHandle<()>> {
         let router = Self::create_root_grpc_router(&config, vault.clone()).await?;
-        let host = if config.common().is_local() {
-            "127.0.0.1"
-        } else {
-            "0.0.0.0"
-        };
+
         let port = config.common().get_internal_port(HostType::Http);
-        let addr = format!("{}{}", host, port);
+        let addr = format!("0.0.0.0:{}", port);
 
         let listener = TcpListener::bind(&addr)
             .await
@@ -103,7 +99,7 @@ impl CatalogGrpcWorker {
         vault: Arc<VaultService>,
     ) -> Outcome<tonic::transport::server::Router> {
         // conn
-        let db_connection = vault.get_db_connection(config.common()).await;
+        let db_connection = vault.get_db_connection(config.common()).await?;
         let cache_connection_url = config.get_full_cache_url();
         let redis_client = redis::Client::open(cache_connection_url)
             .map_err(|e| Errors::crazy("Error creating Redis client", Some(Box::new(e))))?;

@@ -15,30 +15,28 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::collections::HashMap;
 use std::sync::Arc;
 
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{Path, Query, State};
-use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::{Json, Router};
-use ymir::data::entities::mates;
-use ymir::data::entities::req_vc::Model;
+use serde_json::Value;
+use ymir::data::entities::sent::grant::Model;
 use ymir::errors::AppResult;
-use ymir::types::gnap::{ApprovedCallbackBody, CallbackBody};
-use ymir::utils::{extract_payload, extract_query_param};
+use ymir::types::gnap::CallbackBody;
+use ymir::types::wallet::OidcUri;
+use ymir::utils::extract_payload;
 
-use crate::core::traits::CoreVcRequesterTrait;
+use crate::modules::VcRequesterModule;
 use crate::types::entities::ReachAuthority;
-use crate::types::wallet_helper::{ProcessUriOid4VCI, ProcessUriOid4VP};
 
 pub struct VcRequesterRouter {
-    requester: Arc<dyn CoreVcRequesterTrait>,
+    requester: Arc<dyn VcRequesterModule>,
 }
 
 impl VcRequesterRouter {
-    pub fn new(requester: Arc<dyn CoreVcRequesterTrait>) -> Self {
+    pub fn new(requester: Arc<dyn VcRequesterModule>) -> Self {
         VcRequesterRouter { requester }
     }
 
@@ -47,75 +45,76 @@ impl VcRequesterRouter {
             .route("/beg", post(Self::beg))
             .route("/all", get(Self::get_all))
             .route("/{id}", get(Self::get_one))
-            .route("/callback/{id}", get(Self::get_callback))
-            .route("/callback/{id}", post(Self::post_callback))
-            .route("/oidc4vci", post(Self::oidc4vci))
-            .route("/oidc4vp", post(Self::oidc4vp))
+            .route("/{id}/details", get(Self::get_one_with_details))
+            .route(
+                "/callback/{id}",
+                get(Self::get_callback).post(Self::post_callback),
+            )
+            .route("/oid4vci/{id}", post(Self::manage_oid4vci))
+            .route("/oid4vp/{id}", post(Self::manage_oid4vp))
             .with_state(self.requester)
     }
 
     async fn beg(
-        State(requester): State<Arc<dyn CoreVcRequesterTrait>>,
+        State(requester): State<Arc<dyn VcRequesterModule>>,
         payload: Result<Json<ReachAuthority>, JsonRejection>,
-    ) -> AppResult {
+    ) -> AppResult<()> {
         let payload = extract_payload(payload)?;
-        Ok(match requester.beg_vc(payload).await {
-            Ok(Some(data)) => data.into_response(),
-            Ok(None) => ().into_response(),
-            Err(err) => err.into_response(),
-        })
+        requester.beg_vc(payload).await
     }
 
     async fn get_all(
-        State(requester): State<Arc<dyn CoreVcRequesterTrait>>,
+        State(requester): State<Arc<dyn VcRequesterModule>>,
     ) -> AppResult<Json<Vec<Model>>> {
         Ok(Json(requester.get_all().await?))
     }
 
     async fn get_one(
-        State(requester): State<Arc<dyn CoreVcRequesterTrait>>,
+        State(requester): State<Arc<dyn VcRequesterModule>>,
         Path(id): Path<String>,
     ) -> AppResult<Json<Model>> {
         Ok(Json(requester.get_by_id(id).await?))
     }
-    async fn get_callback(
-        State(requester): State<Arc<dyn CoreVcRequesterTrait>>,
+
+    async fn get_one_with_details(
+        State(requester): State<Arc<dyn VcRequesterModule>>,
         Path(id): Path<String>,
-        Query(params): Query<HashMap<String, String>>,
-    ) -> AppResult<Json<mates::Model>> {
-        let hash = extract_query_param(&params, "hash")?;
-        let interact_ref = extract_query_param(&params, "interact_ref")?;
-        let payload = ApprovedCallbackBody { interact_ref, hash };
-        Ok(Json(requester.continue_req(id, payload).await?))
+    ) -> AppResult<Json<Value>> {
+        Ok(Json(requester.get_by_id_with_details(id).await?))
+    }
+
+    async fn get_callback(
+        State(requester): State<Arc<dyn VcRequesterModule>>,
+        Path(id): Path<String>,
+        Query(payload): Query<CallbackBody>,
+    ) -> AppResult<()> {
+        requester.manage_interaction_finish(id, payload).await
     }
 
     async fn post_callback(
-        State(requester): State<Arc<dyn CoreVcRequesterTrait>>,
+        State(requester): State<Arc<dyn VcRequesterModule>>,
         Path(id): Path<String>,
         payload: Result<Json<CallbackBody>, JsonRejection>,
-    ) -> AppResult {
+    ) -> AppResult<()> {
         let payload = extract_payload(payload)?;
-        Ok(match payload {
-            CallbackBody::Approved(data) => requester
-                .continue_req(id, data)
-                .await
-                .map(Json)
-                .into_response(),
-            CallbackBody::Rejected(_) => requester.manage_rejection(id).await.into_response(),
-        })
+        requester.manage_interaction_finish(id, payload).await
     }
-    async fn oidc4vci(
-        State(requester): State<Arc<dyn CoreVcRequesterTrait>>,
-        payload: Result<Json<ProcessUriOid4VCI>, JsonRejection>,
-    ) -> AppResult {
+
+    async fn manage_oid4vci(
+        State(requester): State<Arc<dyn VcRequesterModule>>,
+        Path(id): Path<String>,
+        payload: Result<Json<OidcUri>, JsonRejection>,
+    ) -> AppResult<()> {
         let payload = extract_payload(payload)?;
-        Ok(requester.process_oid4vci(&payload).await?.into_response())
+        requester.process_oid4vci(id, payload).await
     }
-    async fn oidc4vp(
-        State(requester): State<Arc<dyn CoreVcRequesterTrait>>,
-        payload: Result<Json<ProcessUriOid4VP>, JsonRejection>,
-    ) -> AppResult {
+
+    async fn manage_oid4vp(
+        State(requester): State<Arc<dyn VcRequesterModule>>,
+        Path(id): Path<String>,
+        payload: Result<Json<OidcUri>, JsonRejection>,
+    ) -> AppResult<()> {
         let payload = extract_payload(payload)?;
-        Ok(requester.process_oid4vp(&payload).await?.into_response())
+        requester.process_oid4vp(id, payload).await
     }
 }

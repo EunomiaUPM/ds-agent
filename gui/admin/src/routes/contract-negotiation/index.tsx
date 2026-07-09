@@ -48,7 +48,7 @@ const RouteComponent = () => {
   //     toast("Contract Request Sent", {
   //       description: (
   //         <span>
-  //           You sent a contract negotiation request for <b>{currentDatasetNegoc?.title}</b> to participant <b>{currentParticipantNegoc?.participant_slug}</b>.
+  //           You sent a contract negotiation request for <b>{currentDatasetNegoc?.title}</b> to participant <b>{currentParticipantNegoc?.participant_nick}</b>.
   //         </span>
   //       ),
   //       position: "top-center",
@@ -69,7 +69,7 @@ const RouteComponent = () => {
     });
   }, [requestedParticipantId, requestedDatasetId, mutate]);
 
-  console.log(currentParticipantNegoc?.participant_slug, " currentParticipantNegoc?");
+  console.log(currentParticipantNegoc?.participant_nick, " currentParticipantNegoc?");
   console.log(currentDatasetNegoc, " currentDatasetNegoc?");
 
   //obtener de local storage la info de la acción que se acaba de hacer

@@ -6,11 +6,11 @@ use crate::protocols::dsp::entities::context_common::{
 };
 use crate::protocols::dsp::entities::data_address::DataAddressDto;
 use crate::protocols::dsp::entities::message_types::TransferDSPMessageType;
-use common::facades::Mates;
 use http::request::Parts;
 use oauth::entities::user::User;
 use serde::Deserialize;
 use ymir::errors::{BadFormat, Errors, Outcome};
+use ymir::data::entities::shared::participant::Model as Mates;
 
 /// Context Created from RPC controllers
 /// The context is used for validation at several steps, command for Manager creation

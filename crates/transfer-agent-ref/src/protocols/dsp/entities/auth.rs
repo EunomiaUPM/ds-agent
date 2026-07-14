@@ -1,4 +1,4 @@
-use common::facades::Mates;
+use ymir::data::entities::shared::participant::Model as Mates;
 use oauth::entities::user::User;
 
 /// Authentication info por Context

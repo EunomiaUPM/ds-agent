@@ -52,7 +52,7 @@ impl KeystoreSetup {
     where
         C: CommonConfigTrait + Send + Sync,
     {
-        let db = vault.get_db_connection(config.common()).await;
+        let db = vault.get_db_connection(config.common()).await.unwrap();
         let parameter_repo = Arc::new(SeaOrmParameterRepo::new(db.clone()));
         let secret_repo: Arc<dyn SecretRepoTrait> = match &*vault {
             VaultService::Real(_) => Arc::new(VaultSecretRepo::new(

@@ -30,6 +30,7 @@ pub(crate) mod views;
 
 /// All methods take the caller's [`AccessScope`] and own every tenant-scoping and
 /// ownership rule, so the HTTP and gRPC transports only translate wire formats.
+#[cfg_attr(test, mockall::automock)]
 #[async_trait::async_trait]
 pub(crate) trait TransferProcessServiceTrait: Send + Sync + 'static {
     async fn get_all(

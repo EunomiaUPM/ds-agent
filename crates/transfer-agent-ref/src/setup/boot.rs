@@ -67,11 +67,11 @@ impl BootstrapServiceTrait for TransferBoot {
     async fn seed_users(config: &Self::Config) -> Outcome<()> {
         use common::config::types::traits::CommonConfigTrait;
         let vault = if config.is_vault_real() {
-            VaultService::Real(RealVaultService::new())
+            VaultService::Real(RealVaultService::new()?)
         } else {
-            VaultService::Fake(FakeVaultService::new())
+            VaultService::Fake(FakeVaultService::new()?)
         };
-        let db = vault.get_db_connection(config.common()).await;
+        let db = vault.get_db_connection(config.common()).await?;
         oauth::services::seed_admin_user(db, "admin", "admin@admin.local", "admin").await
     }
 

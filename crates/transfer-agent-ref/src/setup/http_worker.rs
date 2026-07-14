@@ -59,11 +59,7 @@ impl TransferHttpWorker {
             .await?
             .merge(well_known_router);
 
-        let host = if config.common().is_local() {
-            "127.0.0.1"
-        } else {
-            "0.0.0.0"
-        };
+        let host = "0.0.0.0";
         let port = config.common().get_internal_port(HostType::Http);
         let addr = format!("{host}:{port}");
 
@@ -127,7 +123,7 @@ pub(crate) async fn create_root_http_router(
     config: &TransferConfig,
     vault: Arc<VaultService>,
 ) -> Outcome<Router> {
-    let db_connection = vault.get_db_connection(config.common()).await;
+    let db_connection = vault.get_db_connection(config.common()).await?;
 
     let oauth_config = OAuthConfig::new(
         config.jwt_secret(),

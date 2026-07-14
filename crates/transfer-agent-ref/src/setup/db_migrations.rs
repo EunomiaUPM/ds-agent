@@ -38,7 +38,7 @@ impl MigratorTrait for TransferAgentRefMigration {
 
 impl TransferAgentRefMigration {
     pub async fn run(config: &TransferConfig, vault: Arc<VaultService>) -> Outcome<()> {
-        let db_connection = vault.get_db_connection(config.common()).await;
+        let db_connection = vault.get_db_connection(config.common()).await?;
         Self::refresh(&db_connection)
             .await
             .map_err(|e| Errors::crazy("Not able to run migration", Some(Box::new(e))))?;

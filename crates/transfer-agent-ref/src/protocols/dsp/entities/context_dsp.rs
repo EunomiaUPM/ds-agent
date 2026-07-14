@@ -9,7 +9,7 @@ use crate::protocols::dsp::entities::rdf_extractor_dsp::DspTransferRdfExtractor;
 use common::dsp_common::data_address::DataAddress;
 use common::dsp_common::odrl::OdrlAgreement;
 use common::dsp_common::well_known_types::DSPProtocolVersions;
-use common::facades::Mates;
+use ymir::data::entities::shared::participant::Model as Mates;
 use common::rdf::dsp::DspCanonicalizer;
 use http::request::Parts;
 use sha2::{Digest, Sha256};
@@ -189,19 +189,19 @@ mod tests {
     use crate::entities::message_envelope::Direction;
     use axum::extract::Request;
     use chrono::Utc;
+    use serde_json::Value;
 
     fn mate() -> Mates {
         let t = Utc::now().naive_utc();
         Mates {
-            participant_id: "urn:example:provider".into(),
-            participant_slug: "provider".into(),
-            participant_type: "provider".into(),
-            base_url: None,
+            participant_id: "did:example:provider".into(),
+            participant_type: "agent".into(),
+            participant_nick: "provider".to_string(),
+            base_url: "http://127.0.0.1:122".to_string(),
             token: None,
-            token_actions: None,
-            saved_at: t,
-            last_interaction: t,
-            extra_fields: None,
+            saved_at: t.into(),
+            last_interaction: t.into(),
+            extra_fields: Value::Null,
             is_me: false,
         }
     }
@@ -230,7 +230,7 @@ mod tests {
         assert_eq!(raw.authn.token_type, "Bearer");
         assert_eq!(raw.authn.token_content, "eyJabc");
         assert_eq!(
-            raw.authn.associated_participant.participant_slug,
+            raw.authn.associated_participant.participant_nick,
             "provider"
         );
         assert!(matches!(raw.direction, Direction::Inbound));

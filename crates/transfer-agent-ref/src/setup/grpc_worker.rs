@@ -42,11 +42,7 @@ impl TransferGrpcWorker {
     ) -> Outcome<JoinHandle<()>> {
         let router = Self::create_root_grpc_router(config, vault).await?;
 
-        let host = if config.common().is_local() {
-            "127.0.0.1"
-        } else {
-            "0.0.0.0"
-        };
+        let host =  "0.0.0.0";
         let port = config.common().get_internal_port(HostType::Grpc);
         let addr = format!("{host}:{port}");
 
@@ -75,7 +71,7 @@ impl TransferGrpcWorker {
         config: &TransferConfig,
         vault: Arc<VaultService>,
     ) -> Outcome<tonic::transport::server::Router> {
-        let db = vault.get_db_connection(config.common()).await;
+        let db = vault.get_db_connection(config.common()).await?;
         let factory = SeaOrmDataFactory::new(db);
 
         let validator = oauth::setup::OAuthSetup::new().build_validator(config.jwt_secret());

@@ -37,14 +37,14 @@ use std::sync::Arc;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 
-// ─── AgreementEnricher (helper for build_message) ─────────────────────────────
+// AgreementEnricher (helper for build_message) ─────────────────────────────
 
 /// Unit struct that implements [`OrchestrationHelpers`] to gain access to the
 /// `create_entity_urn` helper needed in `send_and_persist`.
 struct AgreementEnricher;
 impl OrchestrationHelpers for AgreementEnricher {}
 
-// ─── RpcAgreementStep ─────────────────────────────────────────────────────────
+// RpcAgreementStep ─────────────────────────────────────────────────────────
 
 /// Sends a `ContractAgreementMessage` to the Consumer (Provider - Consumer).
 ///

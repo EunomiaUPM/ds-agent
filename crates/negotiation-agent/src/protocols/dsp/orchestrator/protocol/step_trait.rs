@@ -24,7 +24,7 @@ use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDs
 use std::sync::Arc;
 use ymir::data::entities::shared::participant::Model as Mates;
 use ymir::errors::Outcome;
-// ─── Contexts ─────────────────────────────────────────────────────────────────
+// Contexts ─────────────────────────────────────────────────────────────────
 
 /// Context for steps that create a new negotiation process (initial request and
 /// initial offer).
@@ -45,7 +45,7 @@ pub(super) struct NegotiationContinuationContext {
     pub id: String,
 }
 
-// ─── Lifecycle step template ──────────────────────────────────────────────────
+// Lifecycle step template ──────────────────────────────────────────────────
 
 /// Template trait for a single inbound DSP negotiation protocol lifecycle step.
 ///
@@ -115,7 +115,7 @@ pub(super) trait NegotiationProtocolStep: Send + Sync + 'static {
     ) -> Outcome<NegotiationProcessDto>;
 }
 
-// ─── Shared helpers for continuation steps ────────────────────────────────────
+// Shared helpers for continuation steps ────────────────────────────────────
 
 /// Build the continuation context by verifying the process identified by `id` exists.
 ///

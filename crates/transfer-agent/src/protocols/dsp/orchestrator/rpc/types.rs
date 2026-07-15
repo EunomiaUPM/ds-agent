@@ -27,7 +27,7 @@ use std::fmt::Debug;
 use std::str::FromStr;
 use urn::Urn;
 
-// ─── Trait ────────────────────────────────────────────────────────────────────
+// Trait ────────────────────────────────────────────────────────────────────
 
 /// Uniform accessor interface over every inbound RPC message DTO.
 ///
@@ -49,7 +49,7 @@ pub trait RpcTransferProcessMessageTrait: Debug + Send + Sync {
     fn get_message(&self) -> TransferProcessMessageType;
 }
 
-// ─── TransferRequestMessage ───────────────────────────────────────────────────
+// TransferRequestMessage ───────────────────────────────────────────────────
 
 /// RPC payload for initiating a new transfer process (Consumer - Provider).
 ///
@@ -138,7 +138,7 @@ impl RpcTransferProcessMessageTrait for RpcTransferRequestMessageDto {
     }
 }
 
-// ─── TransferStartMessage ─────────────────────────────────────────────────────
+// TransferStartMessage ─────────────────────────────────────────────────────
 
 /// RPC payload for starting an already-requested transfer process.
 ///
@@ -215,7 +215,7 @@ impl RpcTransferProcessMessageTrait for RpcTransferStartMessageDto {
     }
 }
 
-// ─── TransferSuspensionMessage ────────────────────────────────────────────────
+// TransferSuspensionMessage ────────────────────────────────────────────────
 
 /// RPC payload for temporarily suspending an active transfer.
 ///
@@ -296,7 +296,7 @@ impl RpcTransferProcessMessageTrait for RpcTransferSuspensionMessageDto {
     }
 }
 
-// ─── TransferCompletionMessage ────────────────────────────────────────────────
+// TransferCompletionMessage ────────────────────────────────────────────────
 
 /// RPC payload for marking a transfer as successfully completed.
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -370,7 +370,7 @@ impl RpcTransferProcessMessageTrait for RpcTransferCompletionMessageDto {
     }
 }
 
-// ─── TransferTerminationMessage ───────────────────────────────────────────────
+// TransferTerminationMessage ───────────────────────────────────────────────
 
 /// RPC payload for permanently terminating a transfer (abnormal end).
 ///
@@ -449,7 +449,7 @@ impl RpcTransferProcessMessageTrait for RpcTransferTerminationMessageDto {
     }
 }
 
-// ─── Response wrappers ────────────────────────────────────────────────────────
+// Response wrappers ────────────────────────────────────────────────────────
 
 /// Successful RPC response: echoes the original request, the DSP acknowledgement,
 /// and the updated transfer process model.

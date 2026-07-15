@@ -315,7 +315,7 @@ mod tests {
         }
     }
 
-    // ─── SetInit ───────────────────────────────────────────────────────────────
+    // SetInit ───────────────────────────────────────────────────────────────
 
     #[tokio::test]
     async fn test_set_init_consumer_pull() {
@@ -531,7 +531,7 @@ mod tests {
         assert!(result.is_ok());
     }
 
-    // ─── Continuation commands ─────────────────────────────────────────────────
+    // Continuation commands ─────────────────────────────────────────────────
 
     #[tokio::test]
     async fn test_set_started() {
@@ -750,7 +750,7 @@ mod tests {
         assert!(result.is_ok());
     }
 
-    // ─── Error paths ───────────────────────────────────────────────────────────
+    // Error paths ───────────────────────────────────────────────────────────
 
     #[tokio::test]
     async fn test_unexpected_command_returns_err_response() {
@@ -792,7 +792,7 @@ mod tests {
         assert!(result.is_err());
     }
 
-    // ─── Provider/Pull ────────────────────────────────────────────────────────
+    // Provider/Pull ────────────────────────────────────────────────────────
 
     #[tokio::test]
     async fn test_set_started_provider_pull() {
@@ -1077,7 +1077,7 @@ mod tests {
         assert!(result.is_ok());
     }
 
-    // ─── Provider/Push ────────────────────────────────────────────────────────
+    // Provider/Push ────────────────────────────────────────────────────────
 
     #[tokio::test]
     async fn test_set_subscribing_provider_push() {

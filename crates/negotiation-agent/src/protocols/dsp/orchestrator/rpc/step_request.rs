@@ -34,7 +34,7 @@ use std::sync::Arc;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 
-// ─── RpcRequestStep ───────────────────────────────────────────────────────────
+// RpcRequestStep ───────────────────────────────────────────────────────────
 
 /// Sends a continuation `ContractRequestMessage` on an existing negotiation
 /// (Consumer counter-offer).

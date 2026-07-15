@@ -38,7 +38,7 @@ use common::config::services::ContractsConfig;
 use std::sync::Arc;
 use ymir::data::entities::shared::participant::Model as Mates;
 use ymir::errors::Outcome;
-// ─── Service ──────────────────────────────────────────────────────────────────
+// Service ──────────────────────────────────────────────────────────────────
 
 /// DSP protocol orchestrator for inbound negotiation operations.
 ///
@@ -75,7 +75,7 @@ impl ProtocolOrchestratorService {
     }
 }
 
-// ─── Trait implementation ──────────────────────────────────────────────────────
+// Trait implementation ──────────────────────────────────────────────────────
 
 #[async_trait::async_trait]
 impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
@@ -185,7 +185,7 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
     }
 }
 
-// ─── Template engine ───────────────────────────────────────────────────────────
+// Template engine ───────────────────────────────────────────────────────────
 
 impl ProtocolOrchestratorService {
     /// Execute any inbound DSP negotiation lifecycle step using the

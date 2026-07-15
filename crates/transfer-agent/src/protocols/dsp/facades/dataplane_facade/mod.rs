@@ -91,7 +91,7 @@ impl From<DataplaneAddress> for DataAddressDto {
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait DataPlaneFacadeTrait: Send + Sync {
-    // ─── TransferRequest ───
+    // TransferRequest ───
     async fn on_transfer_request_pre(
         &self,
         ctx: &DspTransferContext,
@@ -102,7 +102,7 @@ pub trait DataPlaneFacadeTrait: Send + Sync {
         ctx: &DspTransferContext,
     ) -> Outcome<Option<DataAddressDto>>;
 
-    // ─── TransferStart ───
+    // TransferStart ───
 
     async fn on_transfer_start_pre(
         &self,
@@ -114,7 +114,7 @@ pub trait DataPlaneFacadeTrait: Send + Sync {
         ctx: &DspTransferContext,
     ) -> Outcome<Option<DataAddressDto>>;
 
-    // ─── TransferSuspension ───
+    // TransferSuspension ───
 
     async fn on_transfer_suspension_pre(
         &self,
@@ -126,7 +126,7 @@ pub trait DataPlaneFacadeTrait: Send + Sync {
         ctx: &DspTransferContext,
     ) -> Outcome<Option<DataAddressDto>>;
 
-    // ─── TransferCompletion ───
+    // TransferCompletion ───
 
     async fn on_transfer_completion_pre(
         &self,
@@ -138,7 +138,7 @@ pub trait DataPlaneFacadeTrait: Send + Sync {
         ctx: &DspTransferContext,
     ) -> Outcome<Option<DataAddressDto>>;
 
-    // ─── TransferTermination ───
+    // TransferTermination ───
 
     async fn on_transfer_termination_pre(
         &self,

@@ -42,7 +42,7 @@ use tracing::error;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 
-// ─── Service ─────────────────────────────────────────────────────────────────
+// Service ─────────────────────────────────────────────────────────────────
 
 /// Persistence service for the outbound RPC negotiation path.
 ///
@@ -76,7 +76,7 @@ impl NegotiationPersistenceForRpcService {
     }
 }
 
-// ─── Trait implementation ─────────────────────────────────────────────────────
+// Trait implementation ─────────────────────────────────────────────────────
 
 #[async_trait::async_trait]
 impl NegotiationRpcPersistenceTrait for NegotiationPersistenceForRpcService {
@@ -207,7 +207,7 @@ impl NegotiationRpcPersistenceTrait for NegotiationPersistenceForRpcService {
     }
 }
 
-// ─── Private helpers ──────────────────────────────────────────────────────────
+// Private helpers ──────────────────────────────────────────────────────────
 
 impl NegotiationPersistenceForRpcService {
     async fn create_process(
@@ -404,7 +404,7 @@ impl NegotiationPersistenceForRpcService {
     }
 }
 
-// ─── Blanket trait impls ──────────────────────────────────────────────────────
+// Blanket trait impls ──────────────────────────────────────────────────────
 
 impl OrchestrationHelpers for NegotiationPersistenceForRpcService {}
 

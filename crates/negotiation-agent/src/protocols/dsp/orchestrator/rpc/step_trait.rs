@@ -31,7 +31,7 @@ use std::sync::Arc;
 use urn::Urn;
 use ymir::errors::Outcome;
 
-// ─── Contexts ─────────────────────────────────────────────────────────────────
+// Contexts ─────────────────────────────────────────────────────────────────
 
 /// Routing context for steps that create a brand-new negotiation process
 /// (initial request and initial offer).
@@ -84,7 +84,7 @@ pub(super) struct NegotiationRpcAgreementContext {
     pub last_offer: OdrlMessageOffer,
 }
 
-// ─── Lifecycle step template ──────────────────────────────────────────────────
+// Lifecycle step template ──────────────────────────────────────────────────
 
 /// Template trait for a single RPC-initiated negotiation lifecycle step.
 ///
@@ -148,7 +148,7 @@ pub(super) trait NegotiationRpcStep: Send + Sync + 'static {
         NegotiationProcessDto,
     )>;
 
-    // ─── Default helpers ──────────────────────────────────────────────────────
+    // Default helpers ──────────────────────────────────────────────────────
 
     /// Attach the peer's stored bearer token to the HTTP client.
     ///
@@ -167,7 +167,7 @@ pub(super) trait NegotiationRpcStep: Send + Sync + 'static {
     }
 }
 
-// ─── Shared helpers for continuation steps ────────────────────────────────────
+// Shared helpers for continuation steps ────────────────────────────────────
 
 /// Fetch the negotiation process and derive the peer routing fields.
 ///

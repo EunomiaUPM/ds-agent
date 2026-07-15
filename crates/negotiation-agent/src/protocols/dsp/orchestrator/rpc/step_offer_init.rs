@@ -32,7 +32,7 @@ use common::http_client::HttpClient;
 use std::sync::Arc;
 use ymir::errors::Outcome;
 
-// ─── RpcOfferInitStep ─────────────────────────────────────────────────────────
+// RpcOfferInitStep ─────────────────────────────────────────────────────────
 
 /// Initiates a brand-new negotiation by sending a `ContractOfferMessage` to
 /// the Consumer (Provider-initiated flow, first message).

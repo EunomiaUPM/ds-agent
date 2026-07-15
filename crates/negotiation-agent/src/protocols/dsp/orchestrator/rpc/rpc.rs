@@ -45,7 +45,7 @@ use common::http_client::HttpClient;
 use std::sync::Arc;
 use ymir::errors::Outcome;
 
-// ─── Service ──────────────────────────────────────────────────────────────────
+// Service ──────────────────────────────────────────────────────────────────
 
 /// RPC orchestrator for outbound negotiation operations.
 ///
@@ -82,7 +82,7 @@ impl RPCOrchestratorService {
     }
 }
 
-// ─── Trait implementation ──────────────────────────────────────────────────────
+// Trait implementation ──────────────────────────────────────────────────────
 
 #[async_trait::async_trait]
 impl RPCOrchestratorTrait for RPCOrchestratorService {
@@ -208,7 +208,7 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
     }
 }
 
-// ─── Template engine ───────────────────────────────────────────────────────────
+// Template engine ───────────────────────────────────────────────────────────
 
 impl RPCOrchestratorService {
     /// Execute any RPC negotiation lifecycle step using the

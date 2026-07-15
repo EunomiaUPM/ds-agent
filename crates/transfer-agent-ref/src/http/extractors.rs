@@ -77,6 +77,7 @@ impl ExtractedHeaders {
     }
 }
 
+/// Automatic extractor from headers from request to ExtractedHeaders
 impl<S: Send + Sync> FromRequestParts<S> for ExtractedHeaders {
     type Rejection = Errors;
 
@@ -96,14 +97,11 @@ impl<S: Send + Sync> FromRequestParts<S> for ExtractedHeaders {
             ));
         }
         let tenant_id = tenant_raw.to_string();
-
         let request_id = get_header_str(&parts.headers, "x-request-id")
             .map(RequestId::new)
             .unwrap_or_else(RequestId::generate);
-
         let correlation_id =
             get_header_str(&parts.headers, "x-correlation-id").map(CorrelationId::new);
-
         Ok(Self {
             tenant_id,
             request_id,

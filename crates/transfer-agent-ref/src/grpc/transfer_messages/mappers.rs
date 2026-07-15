@@ -37,7 +37,7 @@ use sha2::{Digest, Sha256};
 use tonic::Status;
 use urn::Urn;
 
-// ─── Request to Domain ───────────────────────────────────────────────────────
+// Request to Domain ───────────────────────────────────────────────────────
 
 pub fn into_list_params(
     req: ListTransferMessagesRequest,
@@ -135,7 +135,7 @@ pub fn into_create_cmd(
     })
 }
 
-// ─── Domain to Response ──────────────────────────────────────────────────────
+// Domain to Response ──────────────────────────────────────────────────────
 
 pub fn from_view(view: TransferMessageView) -> TransferMessageResponse {
     let direction = domain_direction_to_proto(view.direction) as i32;
@@ -167,7 +167,7 @@ pub fn from_paginated(result: Paginated<TransferMessageView>) -> TransferMessage
     }
 }
 
-// ─── Nested type conversions ─────────────────────────────────────────────────
+// Nested type conversions ─────────────────────────────────────────────────
 
 fn bytes_to_hex(h: &[u8; 32]) -> String {
     use std::fmt::Write;
@@ -191,7 +191,7 @@ fn from_envelope(env: &MessageEnvelope) -> ProtoEnvelope {
     }
 }
 
-// ─── Envelope builder ────────────────────────────────────────────────────────
+// Envelope builder ────────────────────────────────────────────────────────
 
 fn build_envelope(payload_json: String, canonical_form: String) -> Result<MessageEnvelope, Status> {
     let payload: Json = if payload_json.is_empty() {
@@ -214,7 +214,7 @@ fn build_envelope(payload_json: String, canonical_form: String) -> Result<Messag
     })
 }
 
-// ─── Enum conversions ────────────────────────────────────────────────────────
+// Enum conversions ────────────────────────────────────────────────────────
 
 fn parse_proto_direction(value: i32) -> Result<Direction, Status> {
     match ProtoDirection::try_from(value) {
@@ -253,7 +253,7 @@ fn parse_protocol_id(s: &str) -> Result<ProtocolId, Status> {
     }
 }
 
-// ─── Pagination / sort ───────────────────────────────────────────────────────
+// Pagination / sort ───────────────────────────────────────────────────────
 
 fn parse_sort(s: &str) -> Result<Sort, Status> {
     match s {

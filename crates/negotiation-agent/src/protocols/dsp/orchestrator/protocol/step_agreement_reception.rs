@@ -27,7 +27,7 @@ use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDs
 use std::sync::Arc;
 use ymir::data::entities::shared::participant::Model as Mates;
 use ymir::errors::Outcome;
-// ─── AgreementReceptionStep ───────────────────────────────────────────────────
+// AgreementReceptionStep ───────────────────────────────────────────────────
 
 /// Handles an inbound `ContractAgreementMessage` from the Provider.
 ///

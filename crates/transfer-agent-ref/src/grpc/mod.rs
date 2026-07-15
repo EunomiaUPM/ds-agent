@@ -23,7 +23,7 @@ pub(crate) mod transfer_messages;
 pub(crate) mod transfer_process;
 mod utils;
 
-// Extracts public gRPC API from build stage
+/// Extracts public gRPC API from build stage
 pub mod api {
     pub mod transfer_processes {
         tonic::include_proto!("transfer_processes_ref");

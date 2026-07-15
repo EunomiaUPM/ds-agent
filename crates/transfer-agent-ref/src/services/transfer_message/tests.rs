@@ -53,7 +53,7 @@ fn tenant_scope(tenant: &str) -> AccessScope {
 // Unit tests for TransferMessageService. The single repository dependency
 // (TransferMessageRepoTrait) is replaced with a mockall mock.
 
-// ─── Fixtures ────────────────────────────────────────────────────────────────
+// Fixtures ────────────────────────────────────────────────────────────────
 
 fn p_urn(n: u32) -> Urn {
     Urn::from_str(&format!("urn:uuid:{:08x}-0000-0000-0000-000000000000", n)).expect("static URN")
@@ -122,7 +122,7 @@ fn io_err() -> Box<dyn std::error::Error + Send + Sync> {
     Box::new(std::io::Error::from(std::io::ErrorKind::Other))
 }
 
-// ─── get_all ─────────────────────────────────────────────────────────────────
+// get_all ─────────────────────────────────────────────────────────────────
 // Like the process service, get_all fires get_all_transfer_messages and
 // count_transfer_messages concurrently via tokio::try_join!. The cursor for
 // messages is always based on occurred_at, regardless of the sort field.
@@ -450,7 +450,7 @@ async fn get_all_propagates_count_repo_error() {
     );
 }
 
-// ─── get_all_by_process ──────────────────────────────────────────────────────
+// get_all_by_process ──────────────────────────────────────────────────────
 // get_all_by_process delegates to get_messages_by_process_id for the items, but
 // still calls count_transfer_messages (without process_id) for the total. The
 // cursor logic and filter pass-through are identical to get_all.
@@ -634,7 +634,7 @@ async fn get_all_by_process_propagates_repo_error() {
     );
 }
 
-// ─── get_one ─────────────────────────────────────────────────────────────────
+// get_one ─────────────────────────────────────────────────────────────────
 // get_one converts Option::None from the repo into a not-found error using
 // TransferMessageRepoErrors::TransferMessageNotFound.
 
@@ -693,7 +693,7 @@ async fn get_one_propagates_repo_error() {
     assert!(svc.get_one(&admin_scope(), &p_urn(1)).await.is_err());
 }
 
-// ─── tenant isolation (AccessScope) ───────────────────────────────────────────
+// tenant isolation (AccessScope) ───────────────────────────────────────────
 
 #[tokio::test]
 async fn get_one_foreign_tenant_returns_not_found() {
@@ -746,7 +746,7 @@ async fn delete_foreign_tenant_returns_not_found() {
     );
 }
 
-// ─── create ──────────────────────────────────────────────────────────────────
+// create ──────────────────────────────────────────────────────────────────
 // create delegates entirely to the repo and assembles the view from whatever
 // the repo returns — not from the command fields.
 
@@ -800,7 +800,7 @@ async fn create_propagates_repo_error() {
     assert!(svc.create(&admin_scope(), &make_cmd()).await.is_err());
 }
 
-// ─── delete ──────────────────────────────────────────────────────────────────
+// delete ──────────────────────────────────────────────────────────────────
 
 #[tokio::test]
 async fn delete_happy_path() {

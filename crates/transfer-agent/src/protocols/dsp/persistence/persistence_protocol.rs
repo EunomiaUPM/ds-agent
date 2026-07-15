@@ -172,7 +172,7 @@ impl TransferPersistenceTrait for TransferPersistenceForProtocolService {
     }
 }
 
-// ─── State attribute helpers ──────────────────────────────────────────────────
+// State attribute helpers ──────────────────────────────────────────────────
 
 /// Derives the new state attribute for a message **received** from the peer.
 fn resolve_inbound_state_attribute(

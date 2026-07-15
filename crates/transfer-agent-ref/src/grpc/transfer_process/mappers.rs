@@ -35,7 +35,7 @@ use common::query::{Page, Paginated, Sort};
 use serde_json::Value as Json;
 use tonic::Status;
 
-// Request → Domain ───────────────────────────────────────────────────────
+// Request to Domain ───────────────────────────────────────────────────────
 
 pub fn into_list_params(
     req: ListTransferProcessesRequest,
@@ -194,7 +194,7 @@ pub fn into_edit_cmd(
     })
 }
 
-// Domain → Response ──────────────────────────────────────────────────────
+// Domain to Response ──────────────────────────────────────────────────────
 
 pub fn from_view(view: TransferProcessView) -> TransferProcessResponse {
     let role = domain_role_to_proto(view.role) as i32;

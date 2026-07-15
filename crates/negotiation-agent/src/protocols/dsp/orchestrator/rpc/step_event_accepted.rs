@@ -32,7 +32,7 @@ use common::http_client::HttpClient;
 use std::sync::Arc;
 use ymir::errors::{Errors, Outcome};
 
-// ─── RpcEventAcceptedStep ─────────────────────────────────────────────────────
+// RpcEventAcceptedStep ─────────────────────────────────────────────────────
 
 /// Sends a `ContractNegotiationEventMessage` with event type `ACCEPTED`.
 ///

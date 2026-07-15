@@ -32,7 +32,7 @@ use common::http_client::HttpClient;
 use std::sync::Arc;
 use ymir::errors::{Errors, Outcome};
 
-// ─── RpcOfferStep ─────────────────────────────────────────────────────────────
+// RpcOfferStep ─────────────────────────────────────────────────────────────
 
 /// Sends a continuation `ContractOfferMessage` on an existing negotiation
 /// (Provider counter-offer).

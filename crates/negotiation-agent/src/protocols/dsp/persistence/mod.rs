@@ -24,7 +24,7 @@ use crate::protocols::dsp::orchestrator::rpc::types::RpcNegotiationProcessMessag
 use crate::protocols::dsp::protocol_types::NegotiationProcessMessageTrait;
 use ymir::errors::Outcome;
 
-// ─── Design notes ─────────────────────────────────────────────────────────────
+// Design notes ─────────────────────────────────────────────────────────────
 //
 // This module provides the persistence abstraction for the **RPC orchestrator**
 // (outbound, Consumer- or Provider-initiated messages).
@@ -44,7 +44,7 @@ use ymir::errors::Outcome;
 //   INBOUND  (protocol) - peer sent the message; local agent responds
 //   OUTBOUND (RPC)      - local agent initiates; peer acknowledges
 
-// ─── Trait ────────────────────────────────────────────────────────────────────
+// Trait ────────────────────────────────────────────────────────────────────
 
 /// Persistence contract for the outbound DSP negotiation RPC path.
 ///

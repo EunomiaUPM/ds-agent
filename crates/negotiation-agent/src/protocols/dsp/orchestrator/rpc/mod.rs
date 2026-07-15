@@ -27,7 +27,7 @@ use ymir::errors::Outcome;
 pub(crate) mod rpc;
 pub(crate) mod types;
 
-// ─── Step modules (Template Method pattern) ───────────────────────────────────
+// Step modules (Template Method pattern) ───────────────────────────────────
 // Each step encodes one DSP negotiation lifecycle operation.  The orchestrator
 // in `rpc.rs` dispatches through `run_lifecycle<S: NegotiationRpcStep>` so the
 // algorithm (validate - prepare context - auth - send + persist) is written once.

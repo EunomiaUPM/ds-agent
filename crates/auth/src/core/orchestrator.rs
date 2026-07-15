@@ -8,11 +8,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 use common::config::services::SsiAuthConfig;
@@ -20,12 +20,12 @@ use std::sync::Arc;
 use ymir::modules::WalletModuleTrait;
 
 use crate::modules::{
-    ParticipantModule, GaiaSelfAttesterModule, GateKeeperModule, PeerConnectorModule,
+    GaiaSelfAttesterModule, GateKeeperModule, ParticipantModule, PeerConnectorModule,
     VcRequesterModule, VerifierModule,
 };
 
 pub trait AuthOrchestratorTrait:
-PeerConnectorModule
+    PeerConnectorModule
     + WalletModuleTrait
     + ParticipantModule
     + GaiaSelfAttesterModule

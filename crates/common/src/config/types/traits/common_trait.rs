@@ -16,10 +16,14 @@
  */
 
 use crate::config::services::CommonConfig;
+use crate::config::types::AdminSeedConfig;
 
 pub trait CommonConfigTrait {
     fn common(&self) -> &CommonConfig;
     fn jwt_secret(&self) -> &str {
         &self.common().jwt_secret
+    }
+    fn admin_seed(&self) -> &AdminSeedConfig {
+        &self.common().admin_seed
     }
 }

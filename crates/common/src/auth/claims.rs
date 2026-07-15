@@ -19,30 +19,30 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
-pub enum Role {
+pub enum RbacRole {
     Admin,
     Owner,
     Reader,
 }
 
-impl std::fmt::Display for Role {
+impl std::fmt::Display for RbacRole {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Role::Admin => write!(f, "admin"),
-            Role::Owner => write!(f, "owner"),
-            Role::Reader => write!(f, "reader"),
+            RbacRole::Admin => write!(f, "admin"),
+            RbacRole::Owner => write!(f, "owner"),
+            RbacRole::Reader => write!(f, "reader"),
         }
     }
 }
 
-impl std::str::FromStr for Role {
+impl std::str::FromStr for RbacRole {
     type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "admin" => Ok(Role::Admin),
-            "owner" => Ok(Role::Owner),
-            "reader" => Ok(Role::Reader),
-            other => Err(format!("unknown role: {other}")),
+            "admin" => Ok(RbacRole::Admin),
+            "owner" => Ok(RbacRole::Owner),
+            "reader" => Ok(RbacRole::Reader),
+            other => Err(format!("unknown Rbac role: {other}")),
         }
     }
 }
@@ -52,7 +52,7 @@ impl std::str::FromStr for Role {
 pub struct Claims {
     /// Tenant ID (subject).
     pub sub: String,
-    pub role: Role,
+    pub role: RbacRole,
     pub iat: i64,
     pub exp: i64,
 }

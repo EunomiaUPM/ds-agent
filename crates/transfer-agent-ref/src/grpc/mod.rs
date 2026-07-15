@@ -5,6 +5,14 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 use axum::http::StatusCode;
@@ -13,6 +21,7 @@ use ymir::errors::Errors;
 
 pub(crate) mod transfer_messages;
 pub(crate) mod transfer_process;
+mod utils;
 
 // Extracts public gRPC API from build stage
 pub mod api {
@@ -26,10 +35,7 @@ pub mod api {
         tonic::include_file_descriptor_set!("transfer_ref_descriptor");
 }
 
-/// Translates a domain [`Errors`] into a gRPC [`Status`], preserving the HTTP
-/// status the service assigned (404/403/401/400/…) instead of collapsing
-/// everything to `internal`. Shared by both gRPC services so error semantics
-/// stay aligned with the HTTP transport.
+/// Translates a domain [`Errors`] into a gRPC [`Status`]
 pub(crate) fn to_status(err: Errors) -> Status {
     let message = err.reason().to_string();
     match err.info().status_code {

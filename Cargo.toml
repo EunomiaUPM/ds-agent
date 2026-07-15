@@ -36,7 +36,7 @@ clap = { version = "4.4.9", features = [
 base64 = "0.22.1"
 tokio = { version = "1.35.0", features = ["full"] }
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 axum = { version = "0.8.8", features = ["ws"] }
 tower-http = { version = "0.6.2", features = ["trace", "cors", "fs"] }
 reqwest = { version = "0.13.3", default-features = false, features = ["json", "form", "rustls", "http2"] }

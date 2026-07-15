@@ -5,17 +5,20 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 mod mappers;
 
 use std::str::FromStr;
 use std::sync::Arc;
-
-use common::auth::claims::Claims;
-use common::auth::middleware::TokenValidator;
-use tonic::{Request, Response, Status};
-use urn::Urn;
 
 use crate::entities::ids::TenantId;
 use crate::grpc::api::transfer_messages::{
@@ -24,8 +27,12 @@ use crate::grpc::api::transfer_messages::{
     TransferMessageResponse, transfer_messages_ref_server::TransferMessagesRef,
 };
 use crate::grpc::to_status;
-use crate::services::access::AccessScope;
 use crate::services::transfer_message::TransferMessageServiceTrait;
+use common::auth::access::AccessScope;
+use common::auth::claims::Claims;
+use common::auth::middleware::TokenValidator;
+use tonic::{Request, Response, Status};
+use urn::Urn;
 
 pub struct TransferMessagesGrpc {
     service: Arc<dyn TransferMessageServiceTrait>,
@@ -43,7 +50,7 @@ impl TransferMessagesGrpc {
     async fn extract_auth(
         &self,
         meta: &tonic::metadata::MetadataMap,
-    ) -> Result<(Claims, TenantId), Status> {
+    ) -> Result<(Claims, String), Status> {
         let token = meta
             .get("authorization")
             .and_then(|v| v.to_str().ok())
@@ -61,7 +68,7 @@ impl TransferMessagesGrpc {
             .and_then(|v| v.to_str().ok())
             .ok_or_else(|| Status::invalid_argument("missing x-tenant-id metadata"))?;
 
-        Ok((claims, TenantId::new(tenant_raw)))
+        Ok((claims, tenant_raw.to_string()))
     }
 
     /// Builds the caller's read scope (RBAC + tenant) from request metadata.

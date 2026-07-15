@@ -36,13 +36,13 @@ use async_trait::async_trait;
 use common::config::types::roles::RoleConfig;
 use common::dsp_common::odrl::ContractRequestMessageOfferTypes;
 use common::errors::{CommonErrors, ErrorLog};
-use ymir::data::entities::shared::participant::Model as Mates;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::sync::Arc;
 use tracing::error;
 use urn::Urn;
+use ymir::data::entities::shared::participant::Model as Mates;
 use ymir::errors::{Errors, Outcome};
 
 pub struct OrchestrationPersistenceForProtocol {

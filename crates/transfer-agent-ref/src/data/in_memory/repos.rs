@@ -18,23 +18,23 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use base64::Engine;
-use chrono::{DateTime, Utc};
-use urn::Urn;
-use ymir::errors::{Outcome, RepoIntoErrors};
-
 use crate::data::repo::transfer_message::TransferMessageRepoTrait;
 use crate::data::repo::transfer_process::{TransferProcessRepoErrors, TransferProcessRepoTrait};
 use crate::data::repo::transfer_process_identifier::TransferIdentifierRepoTrait;
 use crate::entities::commands::{
     EditTransferProcessCommand, NewTransferMessageCommand, NewTransferProcessCommand,
 };
+use crate::entities::filters::{TransferMessageFilter, TransferProcessFilter};
 use crate::entities::ids::TransferProcessId;
 use crate::entities::protocol::TransferCorrelation;
-use crate::entities::query::{Page, Sort, TransferMessageFilter, TransferProcessFilter};
 use crate::entities::transfer_message::TransferMessage;
 use crate::entities::transfer_process::TransferProcess;
 use crate::entities::transfer_process_identifier::TransferProcessIdentifier;
+use base64::Engine;
+use chrono::{DateTime, Utc};
+use common::query::{Page, Sort};
+use urn::Urn;
+use ymir::errors::{Outcome, RepoIntoErrors};
 
 // Shared store types ────────────────────────────────────────────────────────
 
@@ -475,7 +475,7 @@ fn filter_messages<'a>(
                 }
             }
             if let Some(state) = &filters.state_transition_to {
-                if m.resulting_state() != Some(state) {
+                if m.state_transition_to() != state.0.as_str() {
                     return false;
                 }
             }
@@ -552,8 +552,6 @@ fn process_from_cmd(cmd: &NewTransferProcessCommand) -> Outcome<TransferProcess>
         cmd.initial_state_metadata.clone(),
         correlation,
         cmd.properties.clone().unwrap_or(serde_json::json!({})),
-        None,
-        None,
         None,
     ))
 }

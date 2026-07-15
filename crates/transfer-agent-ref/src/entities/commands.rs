@@ -15,25 +15,24 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::ids::{
-    CorrelationId, MessageId, ParticipantId, RequestId, TenantId, TransferProcessId,
-};
-use crate::entities::message_envelope::Direction;
+use crate::entities::ids::{MessageId, ParticipantId, TenantId, TransferProcessId};
+use crate::entities::message_envelope::MessageEnvelope;
 use crate::entities::protocol::{
     ProtocolId, ProtocolMessageType, ProtocolState, StateMetadata, TransferRole,
 };
-use crate::entities::transfer_message::MessageEnvelope;
+use crate::entities::transfer_message::Direction;
 use serde::Deserialize;
 use serde_json::Value as Json;
 use std::collections::HashMap;
 use url::Url;
 use urn::Urn;
 
+/// CommandType for creating a new `TransferProcess`
 #[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct NewTransferProcessCommand {
     pub id: Option<TransferProcessId>,
-    pub tenant_id: Option<TenantId>,
+    pub tenant_id: Option<String>,
     pub role: TransferRole,
     pub protocol: ProtocolId,
     pub initial_state: ProtocolState,
@@ -47,6 +46,7 @@ pub(crate) struct NewTransferProcessCommand {
     pub properties: Option<Json>,
 }
 
+/// CommandType for editing a new `TransferProcess`
 #[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct EditTransferProcessCommand {
@@ -57,21 +57,17 @@ pub(crate) struct EditTransferProcessCommand {
     pub error_details: Option<Json>,
 }
 
+/// CommandType for creating a new `TransferMessage`
 #[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct NewTransferMessageCommand {
     pub id: Option<MessageId>,
     pub transfer_process_id: TransferProcessId,
-    pub tenant_id: Option<TenantId>,
+    pub tenant_id: Option<String>,
     pub direction: Direction,
     pub protocol: ProtocolId,
     pub message_type: ProtocolMessageType,
-    pub protocol_version: Option<String>,
-    #[allow(dead_code)]
     pub state_transition_from: ProtocolState,
     pub state_transition_to: ProtocolState,
     pub envelope: MessageEnvelope,
-    pub peer_participant_id: Option<ParticipantId>,
-    pub correlation_id: Option<CorrelationId>,
-    pub request_id: Option<RequestId>,
 }

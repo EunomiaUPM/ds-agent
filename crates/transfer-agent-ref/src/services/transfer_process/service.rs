@@ -21,35 +21,18 @@ use chrono::DateTime;
 use crate::data::repo::transfer_process::TransferProcessRepoTrait;
 use crate::data::repo::transfer_process_identifier::TransferIdentifierRepoTrait;
 use crate::entities::commands::{EditTransferProcessCommand, NewTransferProcessCommand};
-use crate::entities::query::{
-    MAX_BATCH_IDS, Page, Paginated, Sort, TransferProcessFilter, clamp_page_limit,
-    validate_date_range,
-};
+use crate::entities::filters::TransferProcessFilter;
 use crate::entities::transfer_process::TransferProcess;
 use crate::entities::transfer_process_identifier::TransferProcessIdentifier;
-use crate::services::access::AccessScope;
 use crate::services::transfer_process::TransferProcessServiceTrait;
 use crate::services::transfer_process::views::TransferProcessView;
+use common::auth::access::AccessScope;
 use common::batch_requests::BatchRequests;
+use common::query::{MAX_BATCH_IDS, Page, Paginated, Sort, clamp_page_limit, validate_date_range};
 use std::collections::HashMap;
 use std::sync::Arc;
 use urn::Urn;
 use ymir::errors::{BadFormat, Errors, Outcome};
-
-/// 404 used both for genuinely missing records and for records that belong to
-/// another tenant — the two are deliberately indistinguishable to the caller.
-#[allow(clippy::result_large_err)]
-fn not_found(id: &Urn) -> Errors {
-    Errors::missing_resource(id.to_string(), "transfer process not found", None)
-}
-
-fn encode_cursor(process: &TransferProcess, sort: &Sort) -> String {
-    let dt: DateTime<chrono::Utc> = match sort {
-        Sort::UpdatedAtDesc => process.updated_at(),
-        _ => process.created_at(),
-    };
-    base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(dt.to_rfc3339())
-}
 
 pub(crate) struct TransferProcessService {
     process_repo: Arc<dyn TransferProcessRepoTrait>,
@@ -67,6 +50,8 @@ impl TransferProcessService {
         }
     }
 
+    // Refactors
+
     /// Confirms a restricted scope owns `id`, mapping a missing or foreign record
     /// to a 404. Admins (unrestricted) skip the lookup entirely.
     async fn ensure_access(&self, scope: &AccessScope, id: &Urn) -> Outcome<()> {
@@ -75,17 +60,42 @@ impl TransferProcessService {
                 .process_repo
                 .get_transfer_process_by_id(id)
                 .await?
-                .ok_or_else(|| not_found(id))?;
+                .ok_or_else(|| self.not_found(id))?;
             if !scope.permits(process.tenant_id()) {
-                return Err(not_found(id));
+                return Err(self.not_allowed());
             }
         }
         Ok(())
+    }
+
+    // Helpers
+
+    /// 404 used for missing records
+    #[allow(clippy::result_large_err)]
+    fn not_found(&self, id: &Urn) -> Errors {
+        Errors::missing_resource(id.to_string(), "transfer process not found", None)
+    }
+
+    /// 403 used for unauthorized access
+    #[allow(clippy::result_large_err)]
+    fn not_allowed(&self) -> Errors {
+        Errors::unauthorized("User not allowed for this action", None)
+    }
+
+    /// Encode next cursors
+    fn encode_cursor(&self, process: &TransferProcess, sort: &Sort) -> String {
+        let dt: DateTime<chrono::Utc> = match sort {
+            Sort::UpdatedAtDesc => process.updated_at(),
+            _ => process.created_at(),
+        };
+        base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(dt.to_rfc3339())
     }
 }
 
 #[async_trait::async_trait]
 impl TransferProcessServiceTrait for TransferProcessService {
+    /// Get all TransferProcess services
+    /// Validate filtering based in tenant-id
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn get_all(
         &self,
@@ -94,28 +104,32 @@ impl TransferProcessServiceTrait for TransferProcessService {
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<TransferProcessView>> {
+        // input range validation
         validate_date_range(filters.created_after, filters.created_before)?;
+        // tenant filters
         let mut filters = filters.clone();
         if let Some(tenant) = scope.tenant_filter() {
             filters.tenant_id = Some(tenant);
         }
+        // pagination
         let page = Page {
             limit: clamp_page_limit(page.limit),
             cursor: page.cursor.clone(),
         };
+        // get entities
         let (processes, total) = tokio::try_join!(
             self.process_repo
                 .get_all_transfer_processes(&filters, &page, sort),
             self.process_repo.count_transfer_processes(&filters),
         )?;
-
+        // get urns
         let urns: Vec<Urn> = processes.iter().map(|p| p.id().as_urn().clone()).collect();
-
+        // get extra identifiers
         let raw_identifiers = self
             .identifiers_repo
             .get_identifiers_by_batch_process_id(&urns)
             .await?;
-
+        // zip extra identifiers into entities
         let mut grouped: HashMap<Urn, HashMap<String, String>> = HashMap::new();
         for id in raw_identifiers {
             grouped
@@ -123,12 +137,13 @@ impl TransferProcessServiceTrait for TransferProcessService {
                 .or_default()
                 .insert(id.key, id.value.unwrap_or_default());
         }
+        // calculate next cursor
         let next_cursor = if processes.len() == page.limit as usize {
-            processes.last().map(|p| encode_cursor(p, sort))
+            processes.last().map(|p| self.encode_cursor(p, sort))
         } else {
             None
         };
-
+        // assemble transfer process view
         let items = processes
             .into_iter()
             .map(|p| {
@@ -136,7 +151,7 @@ impl TransferProcessServiceTrait for TransferProcessService {
                 TransferProcessView::assemble(p, extra)
             })
             .collect();
-
+        // return paginated view
         Ok(Paginated {
             items,
             next_cursor,
@@ -144,14 +159,17 @@ impl TransferProcessServiceTrait for TransferProcessService {
         })
     }
 
+    /// Get single transfer process entity
+    /// If tenant-id is coincident ok, otherwise not_found
     #[tracing::instrument(level = "info", skip(self, scope), fields(id = %id), err)]
     async fn get_one(&self, scope: &AccessScope, id: &Urn) -> Outcome<TransferProcessView> {
         let process = self
             .process_repo
             .get_transfer_process_by_id(id)
             .await?
+            // Filter by tenancy
             .filter(|p| scope.permits(p.tenant_id()))
-            .ok_or_else(|| not_found(id))?;
+            .ok_or_else(|| self.not_found(id))?;
 
         let raw_identifiers = self
             .identifiers_repo
@@ -166,12 +184,14 @@ impl TransferProcessServiceTrait for TransferProcessService {
         Ok(TransferProcessView::assemble(process, extra))
     }
 
+    /// Batch transfer processes
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn batch(
         &self,
         scope: &AccessScope,
         batch_request: &BatchRequests,
     ) -> Outcome<Vec<TransferProcessView>> {
+        // Validate max batch
         if batch_request.ids.len() > MAX_BATCH_IDS {
             return Err(Errors::format(
                 BadFormat::Received,
@@ -179,23 +199,23 @@ impl TransferProcessServiceTrait for TransferProcessService {
                 None,
             ));
         }
+        // Get data from db
         let processes = self
             .process_repo
             .get_batch_transfer_processes(&batch_request.ids)
             .await?;
-        // Non-admins only ever see their own tenant's records, even when ids leak across tenants.
+        // Filter by tenant-id
         let processes: Vec<TransferProcess> = processes
             .into_iter()
             .filter(|p| scope.permits(p.tenant_id()))
             .collect();
-
+        // Fetch extra identifiers
         let urns: Vec<Urn> = processes.iter().map(|p| p.id().as_urn().clone()).collect();
-
         let raw_identifiers = self
             .identifiers_repo
             .get_identifiers_by_batch_process_id(&urns)
             .await?;
-
+        // Zip extra identifiers
         let mut grouped: HashMap<Urn, HashMap<String, String>> = HashMap::new();
         for id in raw_identifiers {
             grouped
@@ -203,7 +223,7 @@ impl TransferProcessServiceTrait for TransferProcessService {
                 .or_default()
                 .insert(id.key, id.value.unwrap_or_default());
         }
-
+        // Assemble TransferProcessView
         let views = processes
             .into_iter()
             .map(|p| {
@@ -211,10 +231,10 @@ impl TransferProcessServiceTrait for TransferProcessService {
                 TransferProcessView::assemble(p, extra)
             })
             .collect();
-
         Ok(views)
     }
 
+    /// Create a new transfer process entity
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn create(
         &self,
@@ -227,9 +247,10 @@ impl TransferProcessServiceTrait for TransferProcessService {
         if scope.tenant_filter().is_some() || cmd.tenant_id.is_none() {
             cmd.tenant_id = Some(scope.acting_tenant().clone());
         }
+        // Create in db
         let cmd = &cmd;
         let process = self.process_repo.create_transfer_process(cmd).await?;
-
+        // if extra identifiers in cmd upsert identifiers
         if let Some(identifiers) = &cmd.identifiers {
             for (key, value) in identifiers {
                 let identifier = TransferProcessIdentifier::new(
@@ -242,12 +263,13 @@ impl TransferProcessServiceTrait for TransferProcessService {
                     .await?;
             }
         }
-
+        // Zip identifiers
         let extra: HashMap<String, String> = cmd.identifiers.clone().unwrap_or_default();
-
+        // Assemble and serve view
         Ok(TransferProcessView::assemble(process, extra))
     }
 
+    /// Edit a transfer process
     #[tracing::instrument(level = "info", skip(self, scope, cmd), fields(id = %id), err)]
     async fn edit(
         &self,
@@ -255,9 +277,11 @@ impl TransferProcessServiceTrait for TransferProcessService {
         id: &Urn,
         cmd: &EditTransferProcessCommand,
     ) -> Outcome<TransferProcessView> {
+        // Validate access
         self.ensure_access(scope, id).await?;
+        // Hit db
         let process = self.process_repo.put_transfer_process(id, cmd).await?;
-
+        // if extra identifiers in cmd upsert identifiers
         if let Some(identifiers) = &cmd.identifiers {
             for (key, value) in identifiers {
                 let identifier =
@@ -267,23 +291,26 @@ impl TransferProcessServiceTrait for TransferProcessService {
                     .await?;
             }
         }
-
+        // if extra identifiers in cmd upsert identifiers
         let raw_identifiers = self
             .identifiers_repo
             .get_identifiers_by_process_id(id)
             .await?;
-
+        // Zip identifiers
         let extra: HashMap<String, String> = raw_identifiers
             .into_iter()
             .filter_map(|i| i.value.map(|v| (i.key, v)))
             .collect();
-
+        // Assemble and serve view
         Ok(TransferProcessView::assemble(process, extra))
     }
 
+    /// Delete a transfer process
     #[tracing::instrument(level = "info", skip(self, scope), fields(id = %id), err)]
     async fn delete(&self, scope: &AccessScope, id: &Urn) -> Outcome<()> {
+        // Validate access
         self.ensure_access(scope, id).await?;
+        // Hit db
         self.process_repo.delete_transfer_process(id).await
     }
 }

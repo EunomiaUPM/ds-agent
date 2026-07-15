@@ -27,7 +27,7 @@ use crate::data::repositories::refresh_token::RefreshTokenRepository;
 use crate::data::repositories::user::{UserRepository, UserRepositoryError};
 use crate::entities::query::{Page, Sort, UserFilter};
 use crate::entities::refresh_token::RefreshToken;
-use crate::entities::role::Role;
+use crate::entities::role::RbacRole;
 use crate::entities::user::User;
 
 // User ──────────────────────────────────────────────────────────────────────
@@ -136,7 +136,7 @@ impl UserRepository for InMemoryUserRepository {
         &self,
         tenant_id: &str,
         email: Option<String>,
-        role: Option<Role>,
+        role: Option<RbacRole>,
         extra_fields: Option<serde_json::Value>,
     ) -> Outcome<User> {
         let mut store = self.store.lock().unwrap();

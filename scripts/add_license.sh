@@ -1,12 +1,30 @@
 #!/usr/bin/env bash
-# Prepends the GPL-2 copyright banner to every .rs file that doesn't already have it.
-# Usage: ./add_license.sh [directory]   (defaults to the script's own directory)
+# Normalises the GPL-3 licence banner at the top of every .rs and .proto file.
+#
+#   - If the file starts with a /* ... */ block containing "Copyright", that
+#     block is REPLACED (this is what fixes the drifted variants).
+#   - If it has no leading block comment, the banner is prepended.
+#   - A leading block comment that is NOT a licence is left untouched (the
+#     banner goes above it).
+#   - Idempotent: running it twice changes nothing.
+#
+# Usage:
+#   scripts/add_license.sh [dir]            # rewrite in place (default: crates)
+#   scripts/add_license.sh [dir] --check    # report only, exit 1 if any drift
 
 set -euo pipefail
 
-ROOT="${1:-$(dirname "$(realpath "$0")")}"
+ROOT="crates"
+CHECK=0
+for arg in "$@"; do
+    case "$arg" in
+        --check) CHECK=1 ;;
+        *) ROOT="$arg" ;;
+    esac
+done
 
-BANNER='/*
+read -r -d '' BANNER <<'EOF' || true
+/*
  * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
  * This program is free software: you can redistribute it and/or modify
@@ -22,23 +40,44 @@ BANNER='/*
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
+EOF
+export BANNER
+
+# Strips a leading licence block (if any), then re-prepends the canonical banner
+# followed by exactly one blank line.
+NORMALISE='
+    BEGIN { $b = $ENV{BANNER}; $b =~ s/\s+\z//; }
+    s{\A/\*.*?\*/}{}s if m{\A(/\*.*?\*/)}s && $1 =~ /Copyright/i;
+    s{\A\s+}{};
+    $_ = $b . "\n\n" . $_;
 '
 
-added=0
-skipped=0
+changed=0
+ok=0
 
 while IFS= read -r -d '' file; do
-    if head -n 5 "$file" | grep -q "Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM"; then
-        skipped=$((skipped + 1))
+    before=$(md5 -q "$file")
+
+    if [ "$CHECK" -eq 1 ]; then
+        after=$(perl -0777 -pe "$NORMALISE" "$file" | md5 -q)
     else
-        tmp=$(mktemp)
-        printf '%s\n' "$BANNER" > "$tmp"
-        cat "$file" >> "$tmp"
-        mv "$tmp" "$file"
-        added=$((added + 1))
-        echo "  + $file"
+        perl -0777 -i -pe "$NORMALISE" "$file"
+        after=$(md5 -q "$file")
     fi
-done < <(find "$ROOT" -name "*.rs" -not -path "*/target/*" -print0)
+
+    if [ "$before" = "$after" ]; then
+        ok=$((ok + 1))
+    else
+        changed=$((changed + 1))
+        echo "  ~ $file"
+    fi
+done < <(find "$ROOT" \( -name "*.rs" -o -name "*.proto" \) -not -path "*/target/*" -print0)
 
 echo ""
-echo "Done. Added banner to $added file(s), skipped $skipped file(s) (already had it)."
+if [ "$CHECK" -eq 1 ]; then
+    echo "Check: $changed file(s) would change, $ok already canonical."
+    [ "$changed" -gt 0 ] && exit 1
+    exit 0
+else
+    echo "Done: rewrote $changed file(s), $ok already canonical."
+fi

@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -14,29 +31,30 @@ use crate::data::repo::transfer_process_identifier::{
     MockTransferIdentifierRepoTrait, TransferIdentifierRepoErrors,
 };
 use crate::entities::commands::{EditTransferProcessCommand, NewTransferProcessCommand};
+use crate::entities::filters::TransferProcessFilter;
 use crate::entities::ids::{ParticipantId, TenantId, TransferProcessId};
 use crate::entities::protocol::{
     ProtocolId, ProtocolState, StateMetadata, TransferCorrelation, TransferRole,
 };
-use crate::entities::query::{Page, Sort, TransferProcessFilter};
 use crate::entities::transfer_process::TransferProcess;
 use crate::entities::transfer_process_identifier::TransferProcessIdentifier;
-use crate::services::access::AccessScope;
 use crate::services::transfer_process::TransferProcessServiceTrait;
 use crate::services::transfer_process::service::TransferProcessService;
-use common::auth::claims::Role;
+use common::auth::access::AccessScope;
+use common::auth::claims::RbacRole;
 use common::batch_requests::BatchRequests;
+use common::query::{Page, Sort};
 use ymir::errors::RepoIntoErrors;
 
 /// Unrestricted scope used by the bulk of the tests, which exercise behaviour
 /// unrelated to tenant isolation.
 fn admin_scope() -> AccessScope {
-    AccessScope::from_role(Role::Admin, &TenantId::new("tenant-1"))
+    AccessScope::from_role(RbacRole::Admin, &"tenant-1".to_string())
 }
 
 /// Scope restricted to a single tenant, for the isolation-specific tests.
 fn tenant_scope(tenant: &str) -> AccessScope {
-    AccessScope::from_role(Role::Owner, &TenantId::new(tenant))
+    AccessScope::from_role(RbacRole::Owner, &tenant.to_string())
 }
 
 // Unit tests for TransferProcessService. Both repository dependencies
@@ -66,7 +84,7 @@ fn make_process(n: u32) -> TransferProcess {
     let now = Utc::now();
     TransferProcess::rehydrate(
         TransferProcessId::new(p_urn(n)),
-        TenantId::new("tenant-1"),
+        "tenant-1".to_string(),
         TransferRole::Provider,
         now - Duration::seconds(n as i64 * 10),
         now - Duration::seconds(n as i64 * 5),
@@ -76,8 +94,6 @@ fn make_process(n: u32) -> TransferProcess {
         StateMetadata::empty(),
         empty_correlation(),
         serde_json::json!({}),
-        None,
-        None,
         None,
     )
 }
@@ -109,7 +125,7 @@ fn default_page() -> Page {
 fn make_new_cmd(identifiers: Option<HashMap<String, String>>) -> NewTransferProcessCommand {
     NewTransferProcessCommand {
         id: None,
-        tenant_id: Some(TenantId::new("tenant-1")),
+        tenant_id: Some("tenant-1".to_string()),
         role: TransferRole::Consumer,
         protocol: ProtocolId::Dsp2024,
         initial_state: ProtocolState(CompactString::from("INITIATED")),
@@ -264,7 +280,7 @@ async fn get_all_cursor_uses_updated_at_for_sort_updated_at_desc() {
     let updated = now - Duration::hours(1);
     let process = TransferProcess::rehydrate(
         TransferProcessId::new(p_urn(1)),
-        TenantId::new("t"),
+        "t".to_string(),
         TransferRole::Provider,
         created,
         updated,
@@ -274,8 +290,6 @@ async fn get_all_cursor_uses_updated_at_for_sort_updated_at_desc() {
         StateMetadata::empty(),
         empty_correlation(),
         serde_json::json!({}),
-        None,
-        None,
         None,
     );
     let expected = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(updated.to_rfc3339());
@@ -316,7 +330,7 @@ async fn get_all_cursor_uses_created_at_for_sort_created_at_asc() {
     let updated = now - Duration::hours(1);
     let process = TransferProcess::rehydrate(
         TransferProcessId::new(p_urn(1)),
-        TenantId::new("t"),
+        "tenant-2".to_string(),
         TransferRole::Provider,
         created,
         updated,
@@ -326,8 +340,6 @@ async fn get_all_cursor_uses_created_at_for_sort_created_at_asc() {
         StateMetadata::empty(),
         empty_correlation(),
         serde_json::json!({}),
-        None,
-        None,
         None,
     );
     let expected = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(created.to_rfc3339());
@@ -537,7 +549,7 @@ async fn get_all_filter_by_tenant_id_passed_through() {
         .returning(|_| Ok(vec![]));
 
     let filter = TransferProcessFilter {
-        tenant_id: Some(TenantId::new("acme")),
+        tenant_id: Some("acme".to_string()),
         ..empty_filter()
     };
     let svc = make_svc(proc_repo, id_repo);

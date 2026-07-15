@@ -1,13 +1,28 @@
-use std::collections::BTreeMap;
+/*
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 use std::str::FromStr;
 
-use bytes::Bytes;
-use sha2::{Digest, Sha256};
+use serde_json::Value as Json;
 use urn::Urn;
 use ymir::errors::{BadFormat, Errors, Outcome};
 
+use crate::entities::message_envelope::MessageEnvelope;
 use crate::entities::protocol::{TransferDirection, TransferRole};
-use crate::entities::transfer_message::MessageEnvelope;
 use crate::protocols::dsp::entities::context_common::{
     TransferContextConnectorRole, TransferContextProcessSlot,
 };
@@ -63,9 +78,9 @@ pub trait ExtractCommand {
 impl ExtractCommand for TransferDSPContextDomain {
     fn extract(self) -> Outcome<TransferManagerCommand> {
         // DSP carries a real canonical form (n-quads + hash) from the RDF stage.
-        let raw = self.typed.rdf.parsed.raw.body_bytes.clone();
+        let payload = self.typed.rdf.parsed.json_value.clone();
         let canonical = Some((
-            Bytes::from(self.typed.rdf.canonical_n_quads.clone().into_bytes()),
+            self.typed.rdf.canonical_n_quads.clone(),
             self.typed.rdf.canonical_hash,
         ));
         Ok(TransferManagerCommand {
@@ -76,7 +91,7 @@ impl ExtractCommand for TransferDSPContextDomain {
             data_address: self.typed.data_address.clone(),
             is_restart: self.is_restart,
             agreement_id: Some(self.agreement.id.clone()),
-            envelope: build_envelope(raw, "application/ld+json", canonical),
+            envelope: build_envelope(payload, canonical),
             connector_instance: self.connector_instance,
             process: self.process,
         })
@@ -86,15 +101,7 @@ impl ExtractCommand for TransferDSPContextDomain {
 impl ExtractCommand for TransferRPCContextDomain {
     fn extract(self) -> Outcome<TransferManagerCommand> {
         // RPC is plain JSON — no canonical form.
-        let raw = Bytes::from(
-            serde_json::to_vec(&self.typed.parsed.json_value).map_err(|_| {
-                Errors::format(
-                    BadFormat::Received,
-                    "RPC body is not serializable JSON",
-                    None,
-                )
-            })?,
-        );
+        let payload = self.typed.parsed.json_value.clone();
         let agreement_id = self
             .typed
             .agreement_id
@@ -110,7 +117,7 @@ impl ExtractCommand for TransferRPCContextDomain {
             data_address: self.typed.data_address.clone().map(dto_to_data_address),
             is_restart: self.is_restart,
             agreement_id,
-            envelope: build_envelope(raw, "application/json", None),
+            envelope: build_envelope(payload, None),
             connector_instance: self.connector_instance,
             process: self.process,
         })
@@ -119,27 +126,17 @@ impl ExtractCommand for TransferRPCContextDomain {
 
 // Helpers
 
-/// Assemble a [`MessageEnvelope`] from the raw bytes and an optional canonical
-/// form. Headers/signature are left empty here; the persist stage fills them if
-/// the protocol requires signing.
-fn build_envelope(
-    raw_bytes: Bytes,
-    content_type: &str,
-    canonical: Option<(Bytes, [u8; 32])>,
-) -> MessageEnvelope {
-    let content_hash: [u8; 32] = Sha256::digest(&raw_bytes).into();
+/// Assemble a [`MessageEnvelope`] from the JSON payload and an optional
+/// canonical form (present only for RDF/DSP messages).
+fn build_envelope(payload: Json, canonical: Option<(String, [u8; 32])>) -> MessageEnvelope {
     let (canonical_form, canonical_hash) = match canonical {
         Some((form, hash)) => (Some(form), Some(hash)),
         None => (None, None),
     };
     MessageEnvelope {
-        raw_bytes,
-        content_type: content_type.into(),
-        content_hash,
-        headers: BTreeMap::new(),
         canonical_form,
         canonical_hash,
-        signature: None,
+        payload,
     }
 }
 

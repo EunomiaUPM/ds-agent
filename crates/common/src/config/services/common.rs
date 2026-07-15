@@ -15,6 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::config::types::AdminSeedConfig;
 use serde::{Deserialize, Serialize};
 use ymir::config::traits::{
     ApiConfigTrait, ConnectionConfigTrait, DatabaseConfigTrait, HostsConfigTrait,
@@ -29,6 +30,8 @@ pub struct CommonConfig {
     pub connection: ConnectionConfig,
     #[serde(default)]
     pub jwt_secret: String,
+    #[serde(default)]
+    pub admin_seed: AdminSeedConfig,
 }
 
 impl HostsConfigTrait for CommonConfig {

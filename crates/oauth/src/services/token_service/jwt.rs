@@ -17,12 +17,12 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::entities::role::Role;
+use crate::entities::role::RbacRole;
 
 #[derive(Serialize, Deserialize)]
 pub(crate) struct AccessClaims {
     pub sub: String,
-    pub role: Role,
+    pub role: RbacRole,
     pub iat: i64,
     pub exp: i64,
 }
@@ -30,7 +30,7 @@ pub(crate) struct AccessClaims {
 #[derive(Serialize, Deserialize)]
 pub(crate) struct RefreshClaims {
     pub sub: String,
-    pub role: Role,
+    pub role: RbacRole,
     pub jti: String,
     pub iat: i64,
     pub exp: i64,
@@ -44,7 +44,7 @@ pub(crate) struct IdTokenClaims {
     pub exp: i64,
     pub iat: i64,
     pub email: String,
-    pub role: Role,
+    pub role: RbacRole,
     #[serde(flatten)]
     pub extra: serde_json::Map<String, serde_json::Value>,
 }

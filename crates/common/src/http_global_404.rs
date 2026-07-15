@@ -15,30 +15,11 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::sync::Arc;
+use crate::errors::CommonErrors;
+use axum::response::IntoResponse;
 
-use axum::extract::Request;
-use axum::http::StatusCode;
-use axum::middleware::Next;
-use axum::response::Response;
-
-#[derive(Debug, Clone)]
-pub struct RequestInfo {
-    pub token: String,
-}
-
-pub async fn extract_request_info(
-    mut request: Request,
-    next: Next,
-) -> Result<Response, StatusCode> {
-    let headers = request.headers();
-    let token = headers
-        .get("Authorization")
-        .and_then(|value| value.to_str().ok())
-        .map(String::from)
-        .unwrap_or_else(|| "".to_string())
-        .replace("Bearer ", "");
-    let request_info = RequestInfo { token };
-    request.extensions_mut().insert(Arc::new(request_info));
-    Ok(next.run(request).await)
+pub async fn global_handler_404(uri: axum::http::Uri) -> impl IntoResponse {
+    tracing::info!("404 Not Found: {}", uri);
+    CommonErrors::missing_resource_new(&uri.to_string(), "Route not found or Method not allowed")
+        .into_response()
 }

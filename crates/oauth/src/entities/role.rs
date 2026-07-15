@@ -15,4 +15,4 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub use common::auth::claims::Role;
+pub use common::auth::claims::RbacRole;

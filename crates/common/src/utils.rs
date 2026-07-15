@@ -14,8 +14,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
+
 use serde::de::DeserializeOwned;
 use serde::Serialize;
+use std::str::FromStr;
 use tracing::info;
 use urn::Urn;
 use uuid::Uuid;
@@ -30,6 +32,11 @@ pub fn get_urn(optional_urn: Option<Urn>) -> Urn {
         let urn = id_string.parse::<Urn>().unwrap();
         urn
     })
+}
+
+pub fn generate_uuid_urn(prefix: &str) -> Urn {
+    Urn::from_str(&format!("urn:{}:{}", prefix, uuid::Uuid::new_v4()))
+        .expect("UUID URN is always valid")
 }
 
 pub fn get_urn_from_string(string_in: &String) -> Outcome<Urn> {
@@ -71,4 +78,14 @@ pub fn show_table(config: &impl Serialize) -> Outcome<()> {
 pub fn parse_yaml<T: DeserializeOwned>(path: &str) -> Outcome<T> {
     serde_norway::from_str(path)
         .map_err(|e| Errors::parse("Unable to parse config file", Some(Box::new(e))))
+}
+
+pub fn json_merge(base: &mut serde_json::Value, patch: serde_json::Value) {
+    if let (serde_json::Value::Object(base_map), serde_json::Value::Object(patch_map)) =
+        (base, patch)
+    {
+        for (k, v) in patch_map {
+            base_map.insert(k, v);
+        }
+    }
 }

@@ -14,6 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
+
 use crate::entities::commands::{EditParameterCommand, NewParameterCommand};
 use crate::entities::entry::Entry;
 use crate::entities::key::Key;

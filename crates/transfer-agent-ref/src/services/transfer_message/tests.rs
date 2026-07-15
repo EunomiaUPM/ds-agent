@@ -1,9 +1,24 @@
-use std::collections::BTreeMap;
+/*
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 use std::str::FromStr;
 use std::sync::Arc;
 
 use base64::Engine;
-use bytes::Bytes;
 use chrono::{Duration, Utc};
 use compact_str::CompactString;
 use urn::Urn;
@@ -12,28 +27,27 @@ use crate::data::repo::transfer_message::{
     MockTransferMessageRepoTrait, TransferMessageRepoErrors,
 };
 use crate::entities::commands::NewTransferMessageCommand;
-use crate::entities::ids::{MessageId, ParticipantId, RequestId, TenantId, TransferProcessId};
-use crate::entities::message_envelope::Direction;
+use crate::entities::filters::TransferMessageFilter;
+use crate::entities::ids::{MessageId, TransferProcessId};
+use crate::entities::message_envelope::MessageEnvelope;
 use crate::entities::protocol::{ProtocolId, ProtocolMessageType, ProtocolState};
-use crate::entities::query::{Page, Sort, TransferMessageFilter};
-use crate::entities::transfer_message::{
-    MessageEnvelope, MessageProcessingResult, TransferMessage,
-};
-use crate::services::access::AccessScope;
+use crate::entities::transfer_message::{Direction, TransferMessage};
 use crate::services::transfer_message::TransferMessageServiceTrait;
 use crate::services::transfer_message::service::TransferMessageService;
-use common::auth::claims::Role;
+use common::auth::access::AccessScope;
+use common::auth::claims::RbacRole;
+use common::query::{Page, Sort};
 use ymir::errors::RepoIntoErrors;
 
 /// Unrestricted scope used by the bulk of the tests, which exercise behaviour
 /// unrelated to tenant isolation.
 fn admin_scope() -> AccessScope {
-    AccessScope::from_role(Role::Admin, &TenantId::new("tenant-1"))
+    AccessScope::from_role(RbacRole::Admin, &"tenant-1".to_string())
 }
 
 /// Scope restricted to a single tenant, for the isolation-specific tests.
 fn tenant_scope(tenant: &str) -> AccessScope {
-    AccessScope::from_role(Role::Owner, &TenantId::new(tenant))
+    AccessScope::from_role(RbacRole::Owner, &tenant.to_string())
 }
 
 // Unit tests for TransferMessageService. The single repository dependency
@@ -47,13 +61,9 @@ fn p_urn(n: u32) -> Urn {
 
 fn make_envelope() -> MessageEnvelope {
     MessageEnvelope {
-        raw_bytes: Bytes::from_static(b"{}"),
-        content_type: CompactString::from("application/json"),
-        content_hash: [0u8; 32],
-        headers: BTreeMap::new(),
         canonical_form: None,
         canonical_hash: None,
-        signature: None,
+        payload: serde_json::json!({}),
     }
 }
 
@@ -61,19 +71,14 @@ fn make_message(n: u32) -> TransferMessage {
     TransferMessage {
         id: MessageId::new(p_urn(n + 1000)),
         transfer_process_id: TransferProcessId::new(p_urn(1)),
-        tenant_id: TenantId::new("tenant-1"),
+        tenant_id: "tenant-1".to_string(),
         direction: Direction::Inbound,
         protocol: ProtocolId::Dsp2024,
         message_type: ProtocolMessageType(CompactString::from("TransferRequestMessage")),
-        protocol_version: CompactString::from("1.0"),
+        state_transition_from: "INITIAL".to_string(),
+        state_transition_to: "STARTED".to_string(),
         envelope: make_envelope(),
         occurred_at: Utc::now() - Duration::seconds(n as i64 * 10),
-        correlation_id: None,
-        request_id: RequestId::generate(),
-        peer_participant_id: ParticipantId::new(p_urn(100)),
-        processing_result: MessageProcessingResult::Accepted {
-            resulting_state: ProtocolState(CompactString::from("STARTED")),
-        },
     }
 }
 
@@ -99,17 +104,13 @@ fn make_cmd() -> NewTransferMessageCommand {
     NewTransferMessageCommand {
         id: None,
         transfer_process_id: TransferProcessId::new(p_urn(1)),
-        tenant_id: Some(TenantId::new("tenant-1")),
+        tenant_id: Some("tenant-1".to_string()),
         direction: Direction::Inbound,
         protocol: ProtocolId::Dsp2024,
         message_type: ProtocolMessageType(CompactString::from("TransferRequestMessage")),
-        protocol_version: Some("1.0".to_string()),
         state_transition_from: ProtocolState(CompactString::from("INITIAL")),
         state_transition_to: ProtocolState(CompactString::from("STARTED")),
         envelope: make_envelope(),
-        peer_participant_id: None,
-        correlation_id: None,
-        request_id: None,
     }
 }
 
@@ -305,7 +306,7 @@ async fn get_all_filter_by_tenant_id_passed_through() {
     repo.expect_count_transfer_messages().returning(|_| Ok(0));
 
     let filter = TransferMessageFilter {
-        tenant_id: Some(TenantId::new("t1")),
+        tenant_id: Some("t1".to_string()),
         ..empty_filter()
     };
     let svc = make_svc(repo);
@@ -666,12 +667,9 @@ async fn get_one_returns_view_fields_correctly() {
     let svc = make_svc(repo);
     let view = svc.get_one(&admin_scope(), &id_urn).await.unwrap();
 
-    assert_eq!(view.tenant_id, TenantId::new("tenant-1"));
-    assert_eq!(view.protocol_version, "1.0");
-    assert!(matches!(
-        view.processing_result,
-        MessageProcessingResult::Accepted { .. }
-    ));
+    assert_eq!(view.tenant_id, "tenant-1");
+    assert_eq!(view.state_transition_from, "INITIAL");
+    assert_eq!(view.state_transition_to, "STARTED");
 }
 
 #[tokio::test]

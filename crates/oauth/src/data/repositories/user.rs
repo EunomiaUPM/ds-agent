@@ -19,7 +19,7 @@ use thiserror::Error;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
 use crate::entities::query::{Page, Sort, UserFilter};
-use crate::entities::role::Role;
+use crate::entities::role::RbacRole;
 use crate::entities::user::User;
 
 #[mockall::automock]
@@ -33,7 +33,7 @@ pub(crate) trait UserRepository: Send + Sync {
         &self,
         tenant_id: &str,
         email: Option<String>,
-        role: Option<Role>,
+        role: Option<RbacRole>,
         extra_fields: Option<serde_json::Value>,
     ) -> Outcome<User>;
     async fn delete(&self, tenant_id: &str) -> Outcome<()>;

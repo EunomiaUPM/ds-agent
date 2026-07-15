@@ -17,21 +17,21 @@
 
 use std::sync::Arc;
 
+use crate::entities::commands::NewTransferMessageCommand;
+use crate::entities::filters::TransferMessageFilter;
+use crate::http::extractors::{AuthClaims, ExtractedHeaders};
+use crate::services::transfer_message::TransferMessageServiceTrait;
+use crate::services::transfer_message::views::TransferMessageView;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{FromRef, OriginalUri, Path, Query, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::routing::get;
 use axum::{Json, Router};
+use common::auth::access::AccessScope;
+use common::query::{Page, Paginated, Sort, default_limit};
 use serde::Deserialize;
 use ymir::errors::AppResult;
 use ymir::utils::{extract_path_urn, extract_payload};
-
-use crate::entities::commands::NewTransferMessageCommand;
-use crate::entities::query::{Page, Paginated, Sort, TransferMessageFilter};
-use crate::http::extractors::{AuthClaims, ExtractedHeaders};
-use crate::services::access::AccessScope;
-use crate::services::transfer_message::TransferMessageServiceTrait;
-use crate::services::transfer_message::views::TransferMessageView;
 
 // Router ────────────────────────────────────────────────────────────────────
 
@@ -115,8 +115,7 @@ impl TransferMessageRouter {
         let scope = AccessScope::for_write(&auth, &headers.tenant_id)?;
         let payload = extract_payload(payload)?;
         let view = state.service.create(&scope, &payload).await?;
-        let mut response_headers = headers.response_headers();
-        insert_location(&mut response_headers, uri.path(), &view.id.to_string());
+        let response_headers = headers.response_headers();
         Ok((StatusCode::CREATED, response_headers, Json(view)))
     }
 
@@ -133,19 +132,8 @@ impl TransferMessageRouter {
     }
 }
 
-/// Sets `Location: <collection-path>/<id>` on a 201 response.
-fn insert_location(headers: &mut HeaderMap, collection_path: &str, id: &str) {
-    let path = format!("{}/{}", collection_path.trim_end_matches('/'), id);
-    if let Ok(value) = axum::http::HeaderValue::from_str(&path) {
-        headers.insert(axum::http::header::LOCATION, value);
-    }
-}
-
 // Query params ──────────────────────────────────────────────────────────────
 
-/// Tenant is intentionally absent from the query string — the service injects it
-/// from the caller's [`AccessScope`]. Date-range validation and limit clamping
-/// also live in the service so both transports share them.
 #[derive(Deserialize)]
 pub struct TransferMessageQuery {
     #[serde(flatten)]
@@ -155,10 +143,6 @@ pub struct TransferMessageQuery {
     cursor: Option<String>,
     #[serde(default)]
     sort: Sort,
-}
-
-fn default_limit() -> u32 {
-    crate::entities::query::DEFAULT_PAGE_LIMIT
 }
 
 impl TransferMessageQuery {

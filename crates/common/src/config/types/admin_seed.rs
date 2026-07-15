@@ -17,8 +17,20 @@
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct BusinessLoginRequest {
-    #[serde(rename = "authRequestId")]
-    pub auth_request_id: String,
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(default)]
+pub struct AdminSeedConfig {
+    pub tenant_id: String,
+    pub email: String,
+    pub password: String,
+}
+
+impl Default for AdminSeedConfig {
+    fn default() -> Self {
+        Self {
+            tenant_id: "admin".to_string(),
+            email: "admin@admin.local".to_string(),
+            password: "admin".to_string(),
+        }
+    }
 }

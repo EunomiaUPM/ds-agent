@@ -24,6 +24,7 @@ use ymir::errors::{BadFormat, Errors};
 use crate::entities::ids::{CorrelationId, RequestId, TenantId};
 
 /// Validated JWT claims injected by the auth middleware.
+/// Newtype pattern over `Claims`
 pub(crate) struct AuthClaims(pub Claims);
 
 impl std::ops::Deref for AuthClaims {
@@ -33,6 +34,8 @@ impl std::ops::Deref for AuthClaims {
     }
 }
 
+/// Automatic extractor for extensions to get Claims out of it
+/// Takes `Claims` from extensions and maps it into `AuthClaims`
 impl<S: Send + Sync> FromRequestParts<S> for AuthClaims {
     type Rejection = Errors;
 
@@ -48,10 +51,8 @@ impl<S: Send + Sync> FromRequestParts<S> for AuthClaims {
 
 /// Important headers to be extracted
 pub(crate) struct ExtractedHeaders {
-    pub tenant_id: TenantId,
-    /// Echoed from X-Request-ID or generated if absent.
+    pub tenant_id: String,
     pub request_id: RequestId,
-    /// Echoed from X-Correlation-ID or generated if absent.
     pub correlation_id: Option<CorrelationId>,
 }
 
@@ -94,7 +95,7 @@ impl<S: Send + Sync> FromRequestParts<S> for ExtractedHeaders {
                 None,
             ));
         }
-        let tenant_id = TenantId::new(tenant_raw);
+        let tenant_id = tenant_raw.to_string();
 
         let request_id = get_header_str(&parts.headers, "x-request-id")
             .map(RequestId::new)

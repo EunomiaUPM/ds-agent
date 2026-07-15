@@ -27,7 +27,7 @@ use crate::config::OAuthConfig;
 use crate::data::repositories::refresh_token::RefreshTokenRepository;
 use crate::data::repositories::user::UserRepository;
 use crate::entities::refresh_token::RefreshToken;
-use crate::entities::role::Role;
+use crate::entities::role::RbacRole;
 use crate::services::password;
 use crate::services::token_service::jwt::{AccessClaims, IdTokenClaims, RefreshClaims, as_map};
 use crate::services::token_service::views::TokenResponse;
@@ -80,7 +80,7 @@ impl TokenService {
         })
     }
 
-    fn encode_access(&self, tenant_id: &str, role: Role) -> Outcome<String> {
+    fn encode_access(&self, tenant_id: &str, role: RbacRole) -> Outcome<String> {
         let now = Utc::now().timestamp();
         self.sign(&AccessClaims {
             sub: tenant_id.to_string(),
@@ -94,7 +94,7 @@ impl TokenService {
         &self,
         tenant_id: &str,
         email: &str,
-        role: Role,
+        role: RbacRole,
         extra: serde_json::Map<String, serde_json::Value>,
     ) -> Outcome<String> {
         let now = Utc::now().timestamp();
@@ -110,7 +110,7 @@ impl TokenService {
         })
     }
 
-    async fn mint_refresh(&self, tenant_id: &str, role: Role) -> Outcome<String> {
+    async fn mint_refresh(&self, tenant_id: &str, role: RbacRole) -> Outcome<String> {
         let jti = Uuid::new_v4().to_string();
         let now = Utc::now();
         self.refresh_repo

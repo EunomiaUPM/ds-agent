@@ -5,7 +5,16 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
+
 syntax = "proto3";
 package transfer_messages_ref;
 
@@ -16,28 +25,12 @@ enum Direction {
   OUTBOUND = 1;
 }
 
-enum MessageStatus {
-  ACCEPTED = 0;
-  REJECTED = 1;
-  IDEMPOTENT_REPLAY = 2;
-}
-
 // Nested types ───────────────────────────────────────────────────────────
 
 message MessageEnvelope {
-  bytes raw_bytes = 1;
-  string content_type = 2;
-  string content_hash = 3;         // hex SHA-256
-  string headers = 4;              // JSON blob; "" = absent
-  bytes canonical_form = 5;        // empty = absent
-  string canonical_hash = 6;       // "" = absent; hex SHA-256
-}
-
-message MessageProcessingResult {
-  MessageStatus status = 1;
-  string resulting_state = 2;   // "" = absent
-  string rejection_reason = 3;  // "" = absent
-  string error_code = 4;        // "" = absent
+  string payload = 1;              // protocol message as JSON, verbatim
+  string canonical_form = 2;       // N-Quads text; "" = absent (non-RDF protocols)
+  string canonical_hash = 3;       // "" = absent; hex SHA-256
 }
 
 // Response types ─────────────────────────────────────────────────────────
@@ -49,13 +42,10 @@ message TransferMessageResponse {
   Direction direction = 4;
   string protocol = 5;
   string message_type = 6;
-  string protocol_version = 7;
-  MessageEnvelope envelope = 8;
-  string occurred_at = 9;       // RFC3339
-  string correlation_id = 10;   // "" = absent
-  string request_id = 11;
-  string peer_participant_id = 12;
-  MessageProcessingResult processing_result = 13;
+  string state_transition_from = 7;
+  string state_transition_to = 8;
+  MessageEnvelope envelope = 9;
+  string occurred_at = 10;      // RFC3339
 }
 
 message TransferMessageListResponse {
@@ -104,14 +94,8 @@ message CreateTransferMessageRequest {
   string message_type = 4;
   string state_transition_from = 5;
   string state_transition_to = 6;
-  bytes raw_bytes = 7;
-  string content_type = 8;
-  string headers = 9;              // JSON blob; "" = absent
-  bytes canonical_form = 10;          // empty = absent
-  string peer_participant_id = 11;    // "" = absent
-  string correlation_id = 12;         // "" = absent
-  string request_id = 13;             // "" = absent
-  string protocol_version = 14;       // "" = absent
+  string payload = 7;              // protocol message as JSON; "" = absent
+  string canonical_form = 8;       // N-Quads text; "" = absent
 }
 
 // Service ────────────────────────────────────────────────────────────────

@@ -29,7 +29,7 @@ use ymir::errors::{Outcome, RepoIntoErrors};
 use crate::data::repositories::user::{UserRepository, UserRepositoryError};
 use crate::data::sea_orm::orm::user as orm;
 use crate::entities::query::{Page, Sort, UserFilter};
-use crate::entities::role::Role;
+use crate::entities::role::RbacRole;
 use crate::entities::user::User;
 
 pub(crate) struct SeaOrmUserRepository {
@@ -121,7 +121,7 @@ impl UserRepository for SeaOrmUserRepository {
         &self,
         tenant_id: &str,
         email: Option<String>,
-        role: Option<Role>,
+        role: Option<RbacRole>,
         extra_fields: Option<serde_json::Value>,
     ) -> Outcome<User> {
         let existing = orm::Entity::find_by_id(tenant_id)

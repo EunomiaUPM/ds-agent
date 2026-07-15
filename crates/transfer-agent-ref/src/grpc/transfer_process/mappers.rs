@@ -5,30 +5,37 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 use std::str::FromStr;
 
-use chrono::{DateTime, Utc};
-use common::batch_requests::BatchRequests;
-use serde_json::Value as Json;
-use tonic::Status;
-use urn::Urn;
-
 use crate::entities::commands::{EditTransferProcessCommand, NewTransferProcessCommand};
+use crate::entities::filters::TransferProcessFilter;
 use crate::entities::protocol::{
     ProtocolId, ProtocolState, StateMetadata, TransferCorrelation, TransferRole,
 };
-use crate::entities::query::{Page, Paginated, Sort, TransferProcessFilter};
 use crate::grpc::api::transfer_processes::{
     BatchTransferProcessesRequest, CreateTransferProcessRequest, EditTransferProcessRequest,
     ListTransferProcessesRequest, ProtocolId as ProtoProtocolId,
     TransferCorrelation as ProtoCorrelation, TransferProcessListResponse, TransferProcessResponse,
     TransferRole as ProtoTransferRole,
 };
+use crate::grpc::utils::{non_empty, parse_dt, parse_urn};
 use crate::services::transfer_process::views::TransferProcessView;
+use common::batch_requests::BatchRequests;
+use common::query::{Page, Paginated, Sort};
+use serde_json::Value as Json;
+use tonic::Status;
 
-// ─── Request → Domain ───────────────────────────────────────────────────────
+// Request → Domain ───────────────────────────────────────────────────────
 
 pub fn into_list_params(
     req: ListTransferProcessesRequest,
@@ -187,7 +194,7 @@ pub fn into_edit_cmd(
     })
 }
 
-// ─── Domain → Response ──────────────────────────────────────────────────────
+// Domain → Response ──────────────────────────────────────────────────────
 
 pub fn from_view(view: TransferProcessView) -> TransferProcessResponse {
     let role = domain_role_to_proto(view.role) as i32;
@@ -232,7 +239,7 @@ pub fn from_vec(views: Vec<TransferProcessView>) -> TransferProcessListResponse 
     }
 }
 
-// ─── Nested type conversions ─────────────────────────────────────────────────
+// Nested type conversions ─────────────────────────────────────────────────
 
 fn from_state_metadata(meta: StateMetadata) -> crate::grpc::api::transfer_processes::StateMetadata {
     crate::grpc::api::transfer_processes::StateMetadata {
@@ -259,7 +266,7 @@ fn from_correlation(corr: TransferCorrelation) -> ProtoCorrelation {
     }
 }
 
-// ─── Enum conversions ────────────────────────────────────────────────────────
+// Enum conversions ────────────────────────────────────────────────────────
 
 fn parse_proto_role(value: i32) -> Result<TransferRole, Status> {
     match ProtoTransferRole::try_from(value) {
@@ -316,7 +323,7 @@ fn domain_protocol_to_proto(protocol: &ProtocolId) -> ProtoProtocolId {
     }
 }
 
-// ─── Pagination / sort ──────────────────────────────────────────────────────
+// Pagination / sort ──────────────────────────────────────────────────────
 
 fn parse_sort(s: &str) -> Result<Sort, Status> {
     match s {
@@ -325,21 +332,4 @@ fn parse_sort(s: &str) -> Result<Sort, Status> {
         "updated_at_desc" => Ok(Sort::UpdatedAtDesc),
         other => Err(Status::invalid_argument(format!("unknown sort: {other}"))),
     }
-}
-
-// ─── Primitives ──────────────────────────────────────────────────────────────
-
-/// Returns `Some(s)` if `s` is non-empty, `None` if it is `""`.
-fn non_empty(s: &str) -> Option<&str> {
-    if s.is_empty() { None } else { Some(s) }
-}
-
-fn parse_urn(s: &str, field: &str) -> Result<Urn, Status> {
-    Urn::from_str(s).map_err(|e| Status::invalid_argument(format!("{field}: invalid URN — {e}")))
-}
-
-fn parse_dt(s: &str, field: &str) -> Result<DateTime<Utc>, Status> {
-    DateTime::parse_from_rfc3339(s)
-        .map(|dt| dt.with_timezone(&Utc))
-        .map_err(|e| Status::invalid_argument(format!("{field}: invalid RFC3339 — {e}")))
 }

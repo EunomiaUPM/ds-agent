@@ -30,7 +30,7 @@ use std::collections::HashMap;
 #[serde(rename_all = "camelCase")]
 pub(crate) struct TransferProcessView {
     pub id: TransferProcessId,
-    pub tenant_id: TenantId,
+    pub tenant_id: String,
     pub role: TransferRole,
     pub protocol: ProtocolId,
     pub state: ProtocolState,

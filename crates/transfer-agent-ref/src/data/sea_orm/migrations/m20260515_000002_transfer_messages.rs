@@ -65,10 +65,14 @@ impl MigrationTrait for Migration {
                             .not_null(),
                     )
                     .col(
-                        ColumnDef::new(TransferMessages::ProtocolVersion)
+                        ColumnDef::new(TransferMessages::StateTransitionFrom)
                             .string()
-                            .not_null()
-                            .default("1.0"),
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(TransferMessages::StateTransitionTo)
+                            .string()
+                            .not_null(),
                     )
                     .col(
                         ColumnDef::new(TransferMessages::Envelope)
@@ -79,31 +83,6 @@ impl MigrationTrait for Migration {
                         ColumnDef::new(TransferMessages::OccurredAt)
                             .timestamp_with_time_zone()
                             .not_null(),
-                    )
-                    .col(
-                        ColumnDef::new(TransferMessages::CorrelationId)
-                            .string()
-                            .null(),
-                    )
-                    .col(
-                        ColumnDef::new(TransferMessages::RequestId)
-                            .string()
-                            .not_null(),
-                    )
-                    .col(
-                        ColumnDef::new(TransferMessages::PeerParticipantId)
-                            .string()
-                            .not_null(),
-                    )
-                    .col(
-                        ColumnDef::new(TransferMessages::ProcessingResult)
-                            .json_binary()
-                            .not_null(),
-                    )
-                    .col(
-                        ColumnDef::new(TransferMessages::StateTransitionTo)
-                            .string()
-                            .null(),
                     )
                     .to_owned(),
             )
@@ -146,12 +125,8 @@ pub enum TransferMessages {
     Direction,
     Protocol,
     MessageType,
-    ProtocolVersion,
+    StateTransitionFrom,
+    StateTransitionTo,
     Envelope,
     OccurredAt,
-    CorrelationId,
-    RequestId,
-    PeerParticipantId,
-    ProcessingResult,
-    StateTransitionTo,
 }

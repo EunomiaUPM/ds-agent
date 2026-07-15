@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::role::Role;
+use crate::entities::role::RbacRole;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -24,7 +24,7 @@ pub(crate) struct CreateUserCommand {
     pub tenant_id: String,
     pub email: String,
     pub password: String,
-    pub role: Role,
+    pub role: RbacRole,
     #[serde(default)]
     pub extra_fields: serde_json::Value,
 }
@@ -33,6 +33,6 @@ pub(crate) struct CreateUserCommand {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct PatchUserCommand {
     pub email: Option<String>,
-    pub role: Option<Role>,
+    pub role: Option<RbacRole>,
     pub extra_fields: Option<serde_json::Value>,
 }

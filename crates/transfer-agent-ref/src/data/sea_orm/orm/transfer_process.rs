@@ -23,7 +23,7 @@ use ymir::errors::Outcome;
 
 use crate::data::sea_orm::orm::helpers::{deser_enum, deser_json, parse_urn, ser_enum, ser_json};
 use crate::entities::commands::NewTransferProcessCommand;
-use crate::entities::ids::{TenantId, TransferProcessId};
+use crate::entities::ids::TransferProcessId;
 use crate::entities::protocol::{
     ProtocolId, ProtocolState, StateMetadata, TransferCorrelation, TransferRole,
 };
@@ -49,17 +49,13 @@ pub struct Model {
     pub correlation: Json,
     pub properties: Json,
     pub error_details: Option<Json>,
-    pub last_inbound_envelope: Option<Json>,
-    pub last_outbound_envelope: Option<Json>,
 }
 
 #[allow(clippy::result_large_err)]
 impl Model {
     pub(crate) fn into_domain(self) -> Outcome<TransferProcess> {
-        use crate::entities::message_envelope::MessageEnvelopeRef;
-
         let id = TransferProcessId::new(parse_urn(&self.id, "transfer_process.id")?);
-        let tenant_id = TenantId::new(self.tenant_id);
+        let tenant_id = self.tenant_id;
         let role = deser_enum::<TransferRole>(&self.role)?;
         let created_at = self.created_at.with_timezone(&Utc);
         let updated_at = self.updated_at.with_timezone(&Utc);
@@ -70,14 +66,6 @@ impl Model {
             deser_json::<StateMetadata>(self.state_metadata, "transfer_process.state_metadata")?;
         let correlation =
             deser_json::<TransferCorrelation>(self.correlation, "transfer_process.correlation")?;
-        let last_inbound_envelope = self
-            .last_inbound_envelope
-            .map(|v| deser_json::<MessageEnvelopeRef>(v, "transfer_process.last_inbound_envelope"))
-            .transpose()?;
-        let last_outbound_envelope = self
-            .last_outbound_envelope
-            .map(|v| deser_json::<MessageEnvelopeRef>(v, "transfer_process.last_outbound_envelope"))
-            .transpose()?;
 
         Ok(TransferProcess::rehydrate(
             id,
@@ -92,8 +80,6 @@ impl Model {
             correlation,
             self.properties,
             self.error_details,
-            last_inbound_envelope,
-            last_outbound_envelope,
         ))
     }
 }
@@ -127,8 +113,6 @@ impl ActiveModel {
             correlation,
             cmd.properties.clone().unwrap_or(serde_json::json!({})),
             None,
-            None,
-            None,
         );
         Ok(Self::from_domain(&process))
     }
@@ -153,8 +137,6 @@ impl ActiveModel {
             correlation: Set(ser_json(correlation)),
             properties: Set(process.properties().clone()),
             error_details: Set(process.error_details().cloned()),
-            last_inbound_envelope: Set(process.last_inbound_envelope().map(ser_json)),
-            last_outbound_envelope: Set(process.last_outbound_envelope().map(ser_json)),
         }
     }
 }

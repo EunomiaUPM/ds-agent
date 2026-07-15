@@ -20,7 +20,7 @@ use sea_orm::ActiveValue::Set;
 use sea_orm::entity::prelude::*;
 use ymir::errors::{Errors, Outcome};
 
-use crate::entities::role::Role;
+use crate::entities::role::RbacRole;
 use crate::entities::user::User;
 
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
@@ -38,7 +38,7 @@ pub struct Model {
 
 impl Model {
     pub(crate) fn into_domain(self) -> Outcome<User> {
-        let role = self.role.parse::<Role>().map_err(|e| {
+        let role = self.role.parse::<RbacRole>().map_err(|e| {
             Errors::crazy(
                 "invalid role stored in database",
                 Some(e.to_string().into()),

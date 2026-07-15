@@ -18,7 +18,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::entities::role::Role;
+use crate::entities::role::RbacRole;
 
 // Pagination ────────────────────────────────────────────────────────────────
 
@@ -62,7 +62,7 @@ pub(crate) enum Sort {
 #[derive(Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct UserFilter {
-    pub role: Option<Role>,
+    pub role: Option<RbacRole>,
     pub email: Option<String>,
     pub created_after: Option<DateTime<Utc>>,
     pub created_before: Option<DateTime<Utc>>,

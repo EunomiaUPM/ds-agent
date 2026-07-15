@@ -1,26 +1,25 @@
 /*
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
  *
- *  * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
- *  *
- *  * This program is free software: you can redistribute it and/or modify
- *  * it under the terms of the GNU General Public License as published by
- *  * the Free Software Foundation, either version 3 of the License, or
- *  * (at your option) any later version.
- *  *
- *  * This program is distributed in the hope that it will be useful,
- *  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  * GNU General Public License for more details.
- *  *
- *  * You should have received a copy of the GNU General Public License
- *  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
+
 use crate::setup::grpc_worker::TransferGrpcWorker;
 use crate::setup::http_worker::TransferHttpWorker;
 use common::boot::BootstrapServiceTrait;
 use common::config::services::TransferConfig;
-use common::config::types::traits::ConfigLoader;
+use common::config::types::traits::{CommonConfigTrait, ConfigLoader};
 use std::sync::Arc;
 use tokio::sync::broadcast;
 use tokio::sync::broadcast::Sender;
@@ -72,7 +71,8 @@ impl BootstrapServiceTrait for TransferBoot {
             VaultService::Fake(FakeVaultService::new()?)
         };
         let db = vault.get_db_connection(config.common()).await?;
-        oauth::services::seed_admin_user(db, "admin", "admin@admin.local", "admin").await
+        let admin = config.admin_seed();
+        oauth::services::seed_admin_user(db, &admin.tenant_id, &admin.email, &admin.password).await
     }
 
     async fn start_services_background(
@@ -81,10 +81,8 @@ impl BootstrapServiceTrait for TransferBoot {
     ) -> Outcome<Sender<()>> {
         let (shutdown_tx, mut shutdown_rx) = broadcast::channel(1);
         let cancel_token = CancellationToken::new();
-
         tracing::info!("Spawning HTTP subsystem...");
         let http_handle = TransferHttpWorker::spawn(config, vault.clone(), &cancel_token).await?;
-
         tracing::info!("Spawning gRPC subsystem...");
         let grpc_handle = TransferGrpcWorker::spawn(config, vault.clone(), &cancel_token).await?;
 
@@ -101,12 +99,10 @@ impl BootstrapServiceTrait for TransferBoot {
                     tracing::error!("gRPC subsystem failed or stopped unexpectedly!");
                 }
             }
-
             tracing::info!("Initiating internal graceful shutdown sequence...");
             token_clone.cancel();
             tracing::info!("Background services stopped.");
         });
-
         Ok(shutdown_tx)
     }
 }

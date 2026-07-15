@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::role::Role;
+use crate::entities::role::RbacRole;
 use chrono::{DateTime, Utc};
 
 /// One user per tenant. `tenant_id` IS the primary key.
@@ -25,7 +25,7 @@ pub struct User {
     pub email: String,
     pub password_hash: String,
     pub password_salt: String,
-    pub role: Role,
+    pub role: RbacRole,
     pub created_at: DateTime<Utc>,
     pub extra_fields: serde_json::Value,
 }

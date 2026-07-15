@@ -16,7 +16,7 @@
  */
 
 use crate::entities::ids::TransferProcessId;
-use crate::entities::message_envelope::MessageEnvelopeRef;
+use crate::entities::message_envelope::MessageEnvelope;
 use crate::entities::protocol::{ProtocolState, StateMetadata};
 use chrono::{DateTime, Utc};
 
@@ -35,12 +35,12 @@ pub(crate) enum TransferProcessEvent {
     },
     InboundEnvelopeRecorded {
         transfer_id: TransferProcessId,
-        envelope: MessageEnvelopeRef,
+        envelope: MessageEnvelope,
         occurred_at: DateTime<Utc>,
     },
     OutboundEnvelopeRecorded {
         transfer_id: TransferProcessId,
-        envelope: MessageEnvelopeRef,
+        envelope: MessageEnvelope,
         occurred_at: DateTime<Utc>,
     },
 }

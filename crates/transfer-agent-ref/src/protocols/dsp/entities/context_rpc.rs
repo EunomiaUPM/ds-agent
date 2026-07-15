@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 use crate::entities::protocol::{TransferDirection, TransferRole};
 use crate::protocols::dsp::entities::auth::TransferRPCAuthn;
 use crate::protocols::dsp::entities::context_common::{BuildAuthn, TransferContextRaw, header};
@@ -9,8 +26,8 @@ use crate::protocols::dsp::entities::message_types::TransferDSPMessageType;
 use http::request::Parts;
 use oauth::entities::user::User;
 use serde::Deserialize;
-use ymir::errors::{BadFormat, Errors, Outcome};
 use ymir::data::entities::shared::participant::Model as Mates;
+use ymir::errors::{BadFormat, Errors, Outcome};
 
 /// Context Created from RPC controllers
 /// The context is used for validation at several steps, command for Manager creation

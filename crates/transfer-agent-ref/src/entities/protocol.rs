@@ -21,6 +21,10 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use urn::Urn;
 
+// Common Transfer process related protocol fields
+// Such as direction, role, protocolId, loose protocolState, loose protocolMessageType
+// And Protocol correlation which is a identifiers DSP-loosely-related correlation for convenience
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub(crate) enum TransferDirection {

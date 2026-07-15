@@ -16,8 +16,9 @@
  */
 
 use crate::entities::commands::{EditTransferProcessCommand, NewTransferProcessCommand};
-use crate::entities::query::{Page, Sort, TransferProcessFilter};
+use crate::entities::filters::TransferProcessFilter;
 use crate::entities::transfer_process::TransferProcess;
+use common::query::{Page, Sort};
 use thiserror::Error;
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};

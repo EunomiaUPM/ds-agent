@@ -32,7 +32,7 @@ use ymir::utils::extract_payload;
 
 use crate::entities::commands::{CreateUserCommand, PatchUserCommand};
 use crate::entities::query::Paginated;
-use crate::entities::role::Role;
+use crate::entities::role::RbacRole;
 use crate::http::forms::UserListQuery;
 use crate::services::token_service::TokenServiceTrait;
 use crate::services::user_service::UserServiceTrait;
@@ -124,8 +124,8 @@ impl UsersRouter {
     ) -> AppResult<Json<UserView>> {
         let cmd = extract_payload(payload)?;
         match claims.role {
-            Role::Admin => {}
-            Role::Owner if claims.sub == id => {
+            RbacRole::Admin => {}
+            RbacRole::Owner if claims.sub == id => {
                 if cmd.role.is_some() {
                     return Err(Errors::format(
                         BadFormat::Received,

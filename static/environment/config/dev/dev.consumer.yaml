@@ -1,6 +1,11 @@
 # ==========================
 # COMMON ANCHORS
 # ==========================
+admin_credentials: &admin_seed
+  tenant_id: 'admin'
+  email: 'admin@admin.local'
+  password: 'admin'
+
 http_host: &http_host
   protocol: 'http'
   url: '127.0.0.1'
@@ -54,6 +59,7 @@ common_config: &common_config
     is_prod: false
     is_vault_real: false
     has_tls_proxy: false
+  admin_seed: *admin_seed
 
 # ==========================
 # MONOLITH

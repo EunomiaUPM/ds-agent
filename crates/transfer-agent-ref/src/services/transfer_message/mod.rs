@@ -21,14 +21,13 @@ mod tests;
 pub(crate) mod views;
 
 use crate::entities::commands::NewTransferMessageCommand;
-use crate::entities::query::{Page, Paginated, Sort, TransferMessageFilter};
-use crate::services::access::AccessScope;
+use crate::entities::filters::TransferMessageFilter;
 use crate::services::transfer_message::views::TransferMessageView;
+use common::auth::access::AccessScope;
+use common::query::{Page, Paginated, Sort};
 use urn::Urn;
 use ymir::errors::Outcome;
 
-/// All methods take the caller's [`AccessScope`] and own every tenant-scoping and
-/// ownership rule, so the HTTP and gRPC transports only translate wire formats.
 #[cfg_attr(test, mockall::automock)]
 #[async_trait::async_trait]
 pub(crate) trait TransferMessageServiceTrait: Send + Sync + 'static {

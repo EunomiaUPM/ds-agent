@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 use crate::entities::protocol::{TransferDirection, TransferRole};
 use crate::protocols::dsp::entities::auth::TransferDSPAuthn;
 use crate::protocols::dsp::entities::context_common::{BuildAuthn, TransferContextRaw, header};
@@ -9,12 +26,12 @@ use crate::protocols::dsp::entities::rdf_extractor_dsp::DspTransferRdfExtractor;
 use common::dsp_common::data_address::DataAddress;
 use common::dsp_common::odrl::OdrlAgreement;
 use common::dsp_common::well_known_types::DSPProtocolVersions;
-use ymir::data::entities::shared::participant::Model as Mates;
 use common::rdf::dsp::DspCanonicalizer;
 use http::request::Parts;
 use sha2::{Digest, Sha256};
 use std::str::FromStr;
 use urn::Urn;
+use ymir::data::entities::shared::participant::Model as Mates;
 use ymir::errors::{Errors, Outcome};
 
 /// Context Created from DSP controllers
@@ -186,16 +203,17 @@ impl TransferDSPContextDomain {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::entities::message_envelope::Direction;
+    use crate::entities::transfer_message::Direction;
     use axum::extract::Request;
     use chrono::Utc;
     use serde_json::Value;
+    use ymir::types::participants::ParticipantType;
 
     fn mate() -> Mates {
-        let t = Utc::now().naive_utc();
+        let t = Utc::now();
         Mates {
             participant_id: "did:example:provider".into(),
-            participant_type: "agent".into(),
+            participant_type: ParticipantType::Agent,
             participant_nick: "provider".to_string(),
             base_url: "http://127.0.0.1:122".to_string(),
             token: None,

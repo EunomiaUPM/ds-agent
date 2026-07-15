@@ -44,7 +44,10 @@ impl ConnectorSetup {
         config: &CatalogConfig,
         vault: Arc<VaultService>,
     ) -> Arc<dyn ConnectorRepoTrait> {
-        let db_connection = vault.get_db_connection(config.common()).await.expect("Unable to retrieve db connection");
+        let db_connection = vault
+            .get_db_connection(config.common())
+            .await
+            .expect("Unable to retrieve db connection");
         Arc::new(ConnectorRepoForSql::create_repo(db_connection))
     }
 
@@ -54,7 +57,10 @@ impl ConnectorSetup {
         vault: Arc<VaultService>,
         http_client: Arc<HttpClient>,
     ) -> Arc<dyn ConnectorInstanceTrait> {
-        let db_connection = vault.get_db_connection(config.common()).await.expect("Unable to retrieve db connection");
+        let db_connection = vault
+            .get_db_connection(config.common())
+            .await
+            .expect("Unable to retrieve db connection");
         let connector_repo: Arc<dyn ConnectorRepoTrait> =
             Arc::new(ConnectorRepoForSql::create_repo(db_connection));
         let distribution_facade = Arc::new(DistributionFacadeServiceForConnector::new(

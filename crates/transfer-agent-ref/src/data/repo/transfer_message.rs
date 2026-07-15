@@ -16,8 +16,9 @@
  */
 
 use crate::entities::commands::NewTransferMessageCommand;
-use crate::entities::query::{Page, Sort, TransferMessageFilter};
+use crate::entities::filters::TransferMessageFilter;
 use crate::entities::transfer_message::TransferMessage;
+use common::query::{Page, Sort};
 use thiserror::Error;
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};

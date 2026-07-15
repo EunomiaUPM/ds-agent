@@ -17,18 +17,18 @@
 
 use crate::entities::commands::EditTransferProcessCommand;
 use crate::entities::ids::{TenantId, TransferProcessId};
-use crate::entities::message_envelope::MessageEnvelopeRef;
 use crate::entities::protocol::{
     ProtocolId, ProtocolState, StateMetadata, TransferCorrelation, TransferRole,
 };
 use chrono::{DateTime, Duration, Utc};
-use serde_json::Value as Json;
+use common::utils::json_merge;
 
+/// TransferProcess domain entity
 #[derive(Debug, Clone)]
 pub(crate) struct TransferProcess {
     // Common
     transfer_id: TransferProcessId,
-    tenant_id: TenantId,
+    tenant_id: String,
     role: TransferRole,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
@@ -40,17 +40,17 @@ pub(crate) struct TransferProcess {
     state_metadata: StateMetadata,
     correlation: TransferCorrelation,
 
-    properties: Json,
-    error_details: Option<Json>,
-
-    last_inbound_envelope: Option<MessageEnvelopeRef>,
-    last_outbound_envelope: Option<MessageEnvelopeRef>,
+    // Opened
+    properties: serde_json::Value,
+    error_details: Option<serde_json::Value>,
 }
 
 #[allow(dead_code)]
 impl TransferProcess {
+    // Constructors  ─────────────────────────────────────────────────────────────
+    /// TransferProcess entity constructor
     pub fn new(
-        tenant_id: TenantId,
+        tenant_id: String,
         role: TransferRole,
         protocol: ProtocolId,
         protocol_state: ProtocolState,
@@ -70,15 +70,16 @@ impl TransferProcess {
             correlation,
             properties: serde_json::json!({}),
             error_details: None,
-            last_inbound_envelope: None,
-            last_outbound_envelope: None,
         }
     }
 
+    /// TransferProcess entity constructor from arguments
+    /// Is same as having all pub(crate) in struct definition
+    /// But protecting version
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn rehydrate(
         transfer_id: TransferProcessId,
-        tenant_id: TenantId,
+        tenant_id: String,
         role: TransferRole,
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
@@ -87,10 +88,8 @@ impl TransferProcess {
         protocol_state: ProtocolState,
         state_metadata: StateMetadata,
         correlation: TransferCorrelation,
-        properties: Json,
-        error_details: Option<Json>,
-        last_inbound_envelope: Option<MessageEnvelopeRef>,
-        last_outbound_envelope: Option<MessageEnvelopeRef>,
+        properties: serde_json::Value,
+        error_details: Option<serde_json::Value>,
     ) -> Self {
         Self {
             transfer_id,
@@ -105,13 +104,13 @@ impl TransferProcess {
             correlation,
             properties,
             error_details,
-            last_inbound_envelope,
-            last_outbound_envelope,
         }
     }
 
     // Mutators ──────────────────────────────────────────────────────────────
 
+    /// Mutates TransferProcess entity with a `EditTransferProcessCommand`
+    /// Useful when comes to mutate process to be persisted
     pub fn apply_edit(&mut self, cmd: EditTransferProcessCommand) {
         if let Some(state) = cmd.state {
             self.protocol_state = state;
@@ -129,13 +128,9 @@ impl TransferProcess {
         self.bump();
     }
 
-    pub fn record_inbound_envelope(&mut self, env_ref: MessageEnvelopeRef) {
-        self.last_inbound_envelope = Some(env_ref);
-        self.updated_at = Utc::now();
-    }
-
-    pub fn record_outbound_envelope(&mut self, env_ref: MessageEnvelopeRef) {
-        self.last_outbound_envelope = Some(env_ref);
+    // Bump version and update_at field at once
+    fn bump(&mut self) {
+        self.version = self.version.saturating_add(1);
         self.updated_at = Utc::now();
     }
 
@@ -144,7 +139,7 @@ impl TransferProcess {
     pub fn id(&self) -> &TransferProcessId {
         &self.transfer_id
     }
-    pub fn tenant_id(&self) -> &TenantId {
+    pub fn tenant_id(&self) -> &String {
         &self.tenant_id
     }
     pub fn protocol(&self) -> &ProtocolId {
@@ -165,17 +160,11 @@ impl TransferProcess {
     pub fn correlation(&self) -> &TransferCorrelation {
         &self.correlation
     }
-    pub fn properties(&self) -> &Json {
+    pub fn properties(&self) -> &serde_json::Value {
         &self.properties
     }
-    pub fn error_details(&self) -> Option<&Json> {
+    pub fn error_details(&self) -> Option<&serde_json::Value> {
         self.error_details.as_ref()
-    }
-    pub fn last_inbound_envelope(&self) -> Option<&MessageEnvelopeRef> {
-        self.last_inbound_envelope.as_ref()
-    }
-    pub fn last_outbound_envelope(&self) -> Option<&MessageEnvelopeRef> {
-        self.last_outbound_envelope.as_ref()
     }
     pub fn created_at(&self) -> DateTime<Utc> {
         self.created_at
@@ -186,7 +175,7 @@ impl TransferProcess {
 
     // Predicates ────────────────────────────────────────────────────────────
 
-    pub fn belongs_to(&self, tenant: &TenantId) -> bool {
+    pub fn belongs_to(&self, tenant: &String) -> bool {
         &self.tenant_id == tenant
     }
     pub fn uses_protocol(&self, protocol: &ProtocolId) -> bool {
@@ -194,18 +183,5 @@ impl TransferProcess {
     }
     pub fn age(&self) -> Duration {
         Utc::now() - self.created_at
-    }
-
-    fn bump(&mut self) {
-        self.version = self.version.saturating_add(1);
-        self.updated_at = Utc::now();
-    }
-}
-
-fn json_merge(base: &mut Json, patch: Json) {
-    if let (Json::Object(base_map), Json::Object(patch_map)) = (base, patch) {
-        for (k, v) in patch_map {
-            base_map.insert(k, v);
-        }
     }
 }

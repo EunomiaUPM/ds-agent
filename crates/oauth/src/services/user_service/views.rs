@@ -17,7 +17,7 @@
 
 use serde::Serialize;
 
-use crate::entities::role::Role;
+use crate::entities::role::RbacRole;
 use crate::entities::user::User;
 
 #[derive(Debug, Clone, Serialize)]
@@ -25,7 +25,7 @@ use crate::entities::user::User;
 pub(crate) struct UserView {
     pub tenant_id: String,
     pub email: String,
-    pub role: Role,
+    pub role: RbacRole,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub extra_fields: serde_json::Value,
 }
@@ -46,7 +46,7 @@ impl UserView {
 pub(crate) struct UserInfo {
     pub sub: String,
     pub email: String,
-    pub role: Role,
+    pub role: RbacRole,
     #[serde(flatten)]
     pub extra: serde_json::Map<String, serde_json::Value>,
 }

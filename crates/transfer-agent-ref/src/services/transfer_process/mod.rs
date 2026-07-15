@@ -16,10 +16,11 @@
  */
 
 use crate::entities::commands::{EditTransferProcessCommand, NewTransferProcessCommand};
-use crate::entities::query::{Page, Paginated, Sort, TransferProcessFilter};
-use crate::services::access::AccessScope;
+use crate::entities::filters::TransferProcessFilter;
 use crate::services::transfer_process::views::TransferProcessView;
+use common::auth::access::AccessScope;
 use common::batch_requests::BatchRequests;
+use common::query::{Page, Paginated, Sort};
 use urn::Urn;
 use ymir::errors::Outcome;
 
@@ -28,8 +29,6 @@ pub(crate) mod service;
 mod tests;
 pub(crate) mod views;
 
-/// All methods take the caller's [`AccessScope`] and own every tenant-scoping and
-/// ownership rule, so the HTTP and gRPC transports only translate wire formats.
 #[cfg_attr(test, mockall::automock)]
 #[async_trait::async_trait]
 pub(crate) trait TransferProcessServiceTrait: Send + Sync + 'static {

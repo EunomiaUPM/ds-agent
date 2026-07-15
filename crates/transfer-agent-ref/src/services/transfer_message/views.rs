@@ -15,14 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::ids::{
-    CorrelationId, MessageId, ParticipantId, RequestId, TenantId, TransferProcessId,
-};
-use crate::entities::message_envelope::Direction;
+use crate::entities::ids::{MessageId, TenantId, TransferProcessId};
+use crate::entities::message_envelope::MessageEnvelope;
 use crate::entities::protocol::{ProtocolId, ProtocolMessageType};
-use crate::entities::transfer_message::{
-    MessageEnvelope, MessageProcessingResult, TransferMessage,
-};
+use crate::entities::transfer_message::{Direction, TransferMessage};
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 
@@ -31,17 +27,14 @@ use serde::Serialize;
 pub(crate) struct TransferMessageView {
     pub id: MessageId,
     pub transfer_process_id: TransferProcessId,
-    pub tenant_id: TenantId,
+    pub tenant_id: String,
     pub direction: Direction,
     pub protocol: ProtocolId,
     pub message_type: ProtocolMessageType,
-    pub protocol_version: String,
+    pub state_transition_from: String,
+    pub state_transition_to: String,
     pub envelope: MessageEnvelope,
     pub occurred_at: DateTime<Utc>,
-    pub correlation_id: Option<CorrelationId>,
-    pub request_id: RequestId,
-    pub peer_participant_id: ParticipantId,
-    pub processing_result: MessageProcessingResult,
 }
 
 impl TransferMessageView {
@@ -53,13 +46,10 @@ impl TransferMessageView {
             direction: msg.direction,
             protocol: msg.protocol,
             message_type: msg.message_type,
-            protocol_version: msg.protocol_version.to_string(),
+            state_transition_from: msg.state_transition_from,
+            state_transition_to: msg.state_transition_to,
             envelope: msg.envelope,
             occurred_at: msg.occurred_at,
-            correlation_id: msg.correlation_id,
-            request_id: msg.request_id,
-            peer_participant_id: msg.peer_participant_id,
-            processing_result: msg.processing_result,
         }
     }
 }

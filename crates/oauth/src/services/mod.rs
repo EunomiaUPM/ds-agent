@@ -31,7 +31,7 @@ pub async fn seed_admin_user(
 ) -> ymir::errors::Outcome<()> {
     use crate::data::factory::OAuthDataFactory;
     use crate::data::sea_orm::factory::SeaOrmDataFactory;
-    use crate::entities::role::Role;
+    use crate::entities::role::RbacRole;
     use crate::entities::user::User;
     use chrono::Utc;
 
@@ -49,7 +49,7 @@ pub async fn seed_admin_user(
         email: email.to_string(),
         password_hash,
         password_salt,
-        role: Role::Admin,
+        role: RbacRole::Admin,
         created_at: Utc::now(),
         extra_fields: serde_json::Value::Object(Default::default()),
     };

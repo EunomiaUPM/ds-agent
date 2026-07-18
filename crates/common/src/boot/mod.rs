@@ -24,9 +24,7 @@ use std::sync::Arc;
 use tokio::sync::broadcast;
 use ymir::config::traits::ConnectionConfigTrait;
 use ymir::errors::{Errors, Outcome};
-use ymir::services::vault::fake_vault::FakeVaultService;
 use ymir::services::vault::global::VaultService;
-use ymir::services::vault::vault_rs::RealVaultService;
 
 #[async_trait::async_trait]
 pub trait BootstrapServiceTrait: Send + Sync {
@@ -202,11 +200,7 @@ impl<S: BootstrapServiceTrait> BootstrapStepTrait for BootstrapConfigLoaded<S> {
         tracing::info!("Step [2/9]: Configuration loading");
         let config = S::load_config(self.env_file).await?;
 
-        let vault = match config.is_vault_real() {
-            true => VaultService::Real(RealVaultService::new()?),
-            false => VaultService::Fake(FakeVaultService::new()?),
-        };
-        let vault = Arc::new(vault);
+        let vault = Arc::new(crate::vault_utils::vault(&config)?);
 
         tracing::info!("Step [3/9]: Starting Services in Background");
         S::cleanup_cache(&config).await?;

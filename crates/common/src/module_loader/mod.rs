@@ -18,29 +18,27 @@
 //! Composable service modules.
 //!
 //! A module is one self-contained slice of an agent (OAuth, the admin API,
-//! a protocol surface, …). Implementing [`ServiceModule`] is the contract
-//! that makes it composable: it declares its DB migrations and contributes
-//! its HTTP and/or gRPC surface, all built from a shared, agent-defined
-//! context `Ctx` (config + already-wired services) that acts as dependency
-//! injection.
+//! a protocol surface, …). Implementing `ServiceModuleTrait` is the contract
+//! that makes it composable: a module is constructed with its dependencies
+//! (constructor injection) and contributes its DB migrations and its HTTP
+//! and/or gRPC surface.
 //!
-//! [`ServiceComposer`] collects registered modules and exposes each plane:
+//! [`service_composer::ServiceComposer`] collects registered modules and
+//! exposes each plane:
 //!
 //! ```ignore
-//! let composer = ServiceComposer::new(ctx)
-//!     .register(OAuthModule)
-//!     .register(ApiModule)
-//!     .register(DspModule);
+//! let composer = ServiceComposer::new()
+//!     .register(OAuthModule::new(oauth_config, db))
+//!     .register(ApiModule::new(process, message, validator))
+//!     .register(DspModule::new(ssi_auth));
 //! let http = composer.http_router();          // axum Router, all modules nested
 //! let grpc = composer.grpc_routes();          // tonic Routes, all services added
 //! let migs = composer.migrations();           // every module's migrations, in order
 //! ```
 //!
-//! Migrations are deliberately context-free: `sea_orm_migration`'s
-//! `MigratorTrait::migrations()` is a static fn, so an agent's migrator can
-//! call `module.migrations()` on cheap unit modules without any config.
-
-use axum::Router;
+//! `sea_orm_migration`'s `MigratorTrait::migrations()` is a static fn, so an
+//! agent's migrator concatenates each module's migration list directly
+//! (e.g. `oauth::get_oauth_migrations()`) without building any module.
 
 pub mod module_group;
 pub mod service_composer;

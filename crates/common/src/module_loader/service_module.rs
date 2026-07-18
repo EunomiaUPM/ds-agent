@@ -19,25 +19,26 @@ use axum::Router;
 use sea_orm_migration::MigrationTrait;
 use tonic::service::RoutesBuilder;
 
-/// One composable slice of an agent. Every hook has a no-op default:
-/// implement only the planes the module actually has.
-pub trait ServiceModuleTrait<Ctx>: Send + Sync {
+/// One composable slice of an agent. A module owns its dependencies
+/// (constructor injection) and every hook has a no-op default: implement
+/// only the planes the module actually has.
+pub trait ServiceModuleTrait: Send + Sync {
     /// Stable identifier, used for logging/diagnostics.
     fn name(&self) -> &'static str;
 
-    /// The DB migrations this module owns. Context-free by design (see
-    /// module docs). Order within the module is preserved.
+    /// The DB migrations this module owns. Order within the module is
+    /// preserved.
     fn migrations(&self) -> Vec<Box<dyn MigrationTrait>> {
         vec![]
     }
 
     /// The module's HTTP surface: absolute mount prefix + router.
     /// `None` when the module has no HTTP plane.
-    fn http(&self, _ctx: &Ctx) -> Option<(String, Router)> {
+    fn http(&self) -> Option<(String, Router)> {
         None
     }
 
     /// Register the module's gRPC services into the shared builder.
     /// Default: contributes nothing.
-    fn grpc(&self, _ctx: &Ctx, _routes: &mut RoutesBuilder) {}
+    fn grpc(&self, _routes: &mut RoutesBuilder) {}
 }

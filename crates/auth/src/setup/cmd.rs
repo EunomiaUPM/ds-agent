@@ -23,11 +23,8 @@ use common::config::services::SsiAuthConfig;
 use common::config::types::traits::{CommonConfigTrait, ConfigLoader};
 use common::utils::show_table;
 use tracing::debug;
-use ymir::config::traits::ConnectionConfigTrait;
 use ymir::errors::Outcome;
-use ymir::services::vault::fake_vault::FakeVaultService;
 use ymir::services::vault::global::VaultService;
-use ymir::services::vault::vault_rs::RealVaultService;
 use ymir::services::vault::VaultTrait;
 
 use super::app::AuthApplication;
@@ -80,11 +77,7 @@ impl AuthCommands {
 
     fn bootstrap(args: AuthCliArgs) -> Outcome<(SsiAuthConfig, VaultService)> {
         let config = SsiAuthConfig::load(&args.env_file)?;
-        let vault = if config.common().is_vault_real() {
-            VaultService::Real(RealVaultService::new()?)
-        } else {
-            VaultService::Fake(FakeVaultService::new()?)
-        };
+        let vault = common::vault_utils::vault(config.common())?;
         show_table(&config)?;
         Ok((config, vault))
     }

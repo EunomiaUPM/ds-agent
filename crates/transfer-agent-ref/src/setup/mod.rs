@@ -17,7 +17,8 @@
 
 mod boot;
 pub mod cmd;
-mod composition;
-pub(crate) mod context;
 mod grpc_worker;
 mod http_worker;
+mod migrations;
+mod module_composition;
+mod root_api;

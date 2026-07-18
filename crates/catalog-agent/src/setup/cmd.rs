@@ -64,11 +64,7 @@ impl CatalogCommands {
             }
             CatalogCliCommands::Setup(args) => {
                 let config = CatalogConfig::load(&*args.env_file)?;
-                let vault = if config.common().is_vault_real() {
-                    VaultService::Real(RealVaultService::new()?)
-                } else {
-                    VaultService::Fake(FakeVaultService::new()?)
-                };
+                let vault = common::vault_utils::vault(config.common())?;
                 let table = json_to_table::json_to_table(&serde_json::to_value(&config)?)
                     .collapse()
                     .to_string();

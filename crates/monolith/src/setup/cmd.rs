@@ -22,11 +22,7 @@ use common::boot::BootstrapInit;
 use common::config::types::traits::CommonConfigTrait;
 use common::config::ApplicationConfig;
 use tracing::{debug, info};
-use ymir::config::traits::ConnectionConfigTrait;
 use ymir::errors::Outcome;
-use ymir::services::vault::fake_vault::FakeVaultService;
-use ymir::services::vault::global::VaultService;
-use ymir::services::vault::vault_rs::RealVaultService;
 use ymir::services::vault::VaultTrait;
 
 use crate::setup::boot::CoreBoot;
@@ -67,11 +63,7 @@ impl CoreCommands {
             }
             CoreCliCommands::Setup(args) => {
                 let config = ApplicationConfig::load(&args.env_file)?;
-                let vault = if config.monolith().common().is_vault_real() {
-                    VaultService::Real(RealVaultService::new()?)
-                } else {
-                    VaultService::Fake(FakeVaultService::new()?)
-                };
+                let vault = common::vault_utils::vault(config.monolith().common())?;
                 let table = json_to_table::json_to_table(&serde_json::to_value(&config)?)
                     .collapse()
                     .to_string();

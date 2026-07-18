@@ -27,14 +27,14 @@ use crate::auth::claims::Claims;
 
 /// Implemented by any service that can validate a bearer token and return decoded claims.
 #[async_trait::async_trait]
-pub trait TokenValidator: Send + Sync + 'static {
+pub trait OauthTokenValidator: Send + Sync + 'static {
     async fn validate_token(&self, token: &str) -> Outcome<Claims>;
 }
 
 /// Axum middleware: extracts the bearer token, validates it, and inserts [`Claims`] into
 /// request extensions. Must be applied before any handler that calls [`super::rbac::Rbac`].
 pub async fn auth_middleware(
-    State(validator): State<Arc<dyn TokenValidator>>,
+    State(validator): State<Arc<dyn OauthTokenValidator>>,
     mut req: Request,
     next: Next,
 ) -> AppResult<Response> {

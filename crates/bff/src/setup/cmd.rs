@@ -29,11 +29,7 @@ use std::path::Path;
 use std::process::Command;
 use std::sync::Arc;
 use tracing::debug;
-use ymir::config::traits::ConnectionConfigTrait;
 use ymir::errors::{Errors, Outcome};
-use ymir::services::vault::fake_vault::FakeVaultService;
-use ymir::services::vault::global::VaultService;
-use ymir::services::vault::vault_rs::RealVaultService;
 
 #[derive(Parser, Debug)]
 #[command(name = "Eunomia Dataspace Connector Gateway Server")]
@@ -68,11 +64,7 @@ impl GatewayCommands {
         match cli.command {
             GatewayCliCommands::Start(args) => {
                 let config = GatewayBoot::load_config(args.env_file).await?;
-                let vault = if config.common().is_vault_real() {
-                    VaultService::Real(RealVaultService::new()?)
-                } else {
-                    VaultService::Fake(FakeVaultService::new()?)
-                };
+                let vault = common::vault_utils::vault(config.common())?;
                 GatewayBoot::start_services(&config, Arc::new(vault)).await?;
             }
             GatewayCliCommands::Subscribe(args) => {

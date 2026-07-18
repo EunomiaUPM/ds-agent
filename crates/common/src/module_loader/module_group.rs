@@ -24,13 +24,13 @@ use tonic::service::RoutesBuilder;
 /// A named collection of modules that is itself a [`ServiceModuleTrait`] — the
 /// composite that makes composition recursive: groups can contain groups.
 /// An optional `prefix` nests every child's HTTP surface under it.
-pub struct ModuleGroup<Ctx> {
+pub struct ModuleGroup {
     name: &'static str,
     prefix: Option<String>,
-    modules: Vec<Box<dyn ServiceModuleTrait<Ctx>>>,
+    modules: Vec<Box<dyn ServiceModuleTrait>>,
 }
 
-impl<Ctx> ModuleGroup<Ctx> {
+impl ModuleGroup {
     pub fn new(name: &'static str) -> Self {
         Self {
             name,
@@ -46,13 +46,13 @@ impl<Ctx> ModuleGroup<Ctx> {
     }
 
     /// Add a module — or another group. Chainable.
-    pub fn register(mut self, module: impl ServiceModuleTrait<Ctx> + 'static) -> Self {
+    pub fn register(mut self, module: impl ServiceModuleTrait + 'static) -> Self {
         self.modules.push(Box::new(module));
         self
     }
 }
 
-impl<Ctx> ServiceModuleTrait<Ctx> for ModuleGroup<Ctx> {
+impl ServiceModuleTrait for ModuleGroup {
     fn name(&self) -> &'static str {
         self.name
     }
@@ -61,11 +61,11 @@ impl<Ctx> ServiceModuleTrait<Ctx> for ModuleGroup<Ctx> {
         self.modules.iter().flat_map(|m| m.migrations()).collect()
     }
 
-    fn http(&self, ctx: &Ctx) -> Option<(String, Router)> {
+    fn http(&self) -> Option<(String, Router)> {
         let mut router = Router::new();
         let mut mounted = false;
         for module in &self.modules {
-            if let Some((path, sub)) = module.http(ctx) {
+            if let Some((path, sub)) = module.http() {
                 tracing::debug!(
                     group = self.name,
                     module = module.name(),
@@ -79,9 +79,9 @@ impl<Ctx> ServiceModuleTrait<Ctx> for ModuleGroup<Ctx> {
         mounted.then(|| (self.prefix.clone().unwrap_or_default(), router))
     }
 
-    fn grpc(&self, ctx: &Ctx, routes: &mut RoutesBuilder) {
+    fn grpc(&self, routes: &mut RoutesBuilder) {
         for module in &self.modules {
-            module.grpc(ctx, routes);
+            module.grpc(routes);
         }
     }
 }

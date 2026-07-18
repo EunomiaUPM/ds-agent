@@ -30,19 +30,19 @@ use crate::grpc::to_status;
 use crate::services::transfer_message::TransferMessageServiceTrait;
 use common::auth::access::AccessScope;
 use common::auth::claims::Claims;
-use common::auth::middleware::TokenValidator;
+use common::auth::middleware::OauthTokenValidator;
 use tonic::{Request, Response, Status};
 use urn::Urn;
 
 pub struct TransferMessagesGrpc {
     service: Arc<dyn TransferMessageServiceTrait>,
-    validator: Arc<dyn TokenValidator>,
+    validator: Arc<dyn OauthTokenValidator>,
 }
 
 impl TransferMessagesGrpc {
     pub fn new(
         service: Arc<dyn TransferMessageServiceTrait>,
-        validator: Arc<dyn TokenValidator>,
+        validator: Arc<dyn OauthTokenValidator>,
     ) -> Self {
         Self { service, validator }
     }

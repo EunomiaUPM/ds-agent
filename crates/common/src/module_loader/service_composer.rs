@@ -22,24 +22,22 @@ use axum::Router;
 use sea_orm_migration::MigrationTrait;
 use tonic::service::{Routes, RoutesBuilder};
 
-/// Root of the composition: owns the shared `Ctx` and exposes each composed
-/// plane. Structurally it is just `Ctx` + a [`ModuleGroup`].
-pub struct ServiceComposer<Ctx> {
-    ctx: Ctx,
-    root: ModuleGroup<Ctx>,
+/// Root of the composition: a [`ModuleGroup`] of already-wired modules,
+/// exposing each composed plane.
+pub struct ServiceComposer {
+    root: ModuleGroup,
 }
 
-impl<Ctx> ServiceComposer<Ctx> {
-    pub fn new(ctx: Ctx) -> Self {
+impl ServiceComposer {
+    pub fn new() -> Self {
         Self {
-            ctx,
             root: ModuleGroup::new("root"),
         }
     }
 
     /// Add a module — or a whole [`ModuleGroup`]. Chainable; composition
     /// order = registration order.
-    pub fn register(mut self, module: impl ServiceModuleTrait<Ctx> + 'static) -> Self {
+    pub fn register(mut self, module: impl ServiceModuleTrait + 'static) -> Self {
         self.root = self.root.register(module);
         self
     }
@@ -51,7 +49,7 @@ impl<Ctx> ServiceComposer<Ctx> {
 
     /// One axum router with every module's HTTP surface mounted.
     pub fn http_router(&self) -> Router {
-        match self.root.http(&self.ctx) {
+        match self.root.http() {
             Some((path, router)) => mount(Router::new(), &path, router),
             None => Router::new(),
         }
@@ -60,7 +58,13 @@ impl<Ctx> ServiceComposer<Ctx> {
     /// One tonic [`Routes`] with every module's gRPC services registered.
     pub fn grpc_routes(&self) -> Routes {
         let mut builder = RoutesBuilder::default();
-        self.root.grpc(&self.ctx, &mut builder);
+        self.root.grpc(&mut builder);
         builder.routes()
+    }
+}
+
+impl Default for ServiceComposer {
+    fn default() -> Self {
+        Self::new()
     }
 }

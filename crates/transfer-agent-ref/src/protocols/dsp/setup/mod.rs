@@ -10,28 +10,51 @@
 use std::sync::Arc;
 
 use crate::protocols::dsp::http::dsp::DspRouter;
-use crate::setup::context::ModuleCtx;
+use crate::services::transfer_message::service::TransferMessageService;
+use crate::services::transfer_process::service::TransferProcessService;
 use axum::Router;
-use common::config::services::traits::TransferConfigTrait;
+use common::auth::middleware::OauthTokenValidator;
+use common::config::services::TransferConfig;
 use common::facades::ssi_auth_facade::ssi_auth_facade::SSIAuthFacadeService;
-use common::http_client::HttpClient;
 use common::module_loader::service_module::ServiceModuleTrait;
 
 const DSP_BASE_PATH: &str = "/dsp/current/transfers";
 
-pub(crate) struct DspModule;
+pub(crate) struct DspModule {
+    config: Arc<TransferConfig>,
+    process: Arc<TransferProcessService>,
+    message: Arc<TransferMessageService>,
+    oauth_validator: Arc<dyn OauthTokenValidator>,
+    ssi_auth: Arc<SSIAuthFacadeService>,
+}
 
-impl ServiceModuleTrait<ModuleCtx> for DspModule {
+impl DspModule {
+    pub fn new(
+        config: Arc<TransferConfig>,
+        process: Arc<TransferProcessService>,
+        message: Arc<TransferMessageService>,
+        validator: Arc<dyn OauthTokenValidator>,
+        ssi_auth: Arc<SSIAuthFacadeService>,
+    ) -> Self {
+        Self {
+            config,
+            process,
+            message,
+            oauth_validator: validator,
+            ssi_auth,
+        }
+    }
+}
+
+impl ServiceModuleTrait for DspModule {
     fn name(&self) -> &'static str {
         "dsp-transfers"
     }
 
-    fn http(&self, ctx: &ModuleCtx) -> Option<(String, Router)> {
-        let http_client = Arc::new(HttpClient::new(10, 10));
-        let ssi_auth = Arc::new(SSIAuthFacadeService::new(
-            Arc::new(ctx.config.ssi_auth().clone()),
-            http_client,
-        ));
-        Some((DSP_BASE_PATH.to_string(), DspRouter::new(ssi_auth).router()))
+    fn http(&self) -> Option<(String, Router)> {
+        Some((
+            DSP_BASE_PATH.to_string(),
+            DspRouter::new(self.ssi_auth.clone()).router(),
+        ))
     }
 }

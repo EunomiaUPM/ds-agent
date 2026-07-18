@@ -31,7 +31,7 @@ use crate::entities::role::RbacRole;
 use crate::services::password;
 use crate::services::token_service::jwt::{AccessClaims, IdTokenClaims, RefreshClaims, as_map};
 use crate::services::token_service::views::TokenResponse;
-use crate::services::token_service::{Claims, TokenServiceTrait, TokenValidator};
+use crate::services::token_service::{Claims, OauthTokenValidator, TokenServiceTrait};
 
 pub(crate) struct TokenService {
     user_repo: Arc<dyn UserRepository>,
@@ -134,7 +134,7 @@ impl TokenService {
 }
 
 #[async_trait::async_trait]
-impl TokenValidator for TokenService {
+impl OauthTokenValidator for TokenService {
     async fn validate_token(&self, access_token: &str) -> Outcome<Claims> {
         let ac: AccessClaims = self.verify(access_token)?;
         Ok(Claims {

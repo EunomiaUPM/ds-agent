@@ -23,11 +23,7 @@ use common::config::services::ContractsConfig;
 use common::config::types::traits::{CommonConfigTrait, ConfigLoader};
 use std::sync::Arc;
 use tracing::{debug, info};
-use ymir::config::traits::ConnectionConfigTrait;
 use ymir::errors::Outcome;
-use ymir::services::vault::fake_vault::FakeVaultService;
-use ymir::services::vault::global::VaultService;
-use ymir::services::vault::vault_rs::RealVaultService;
 
 #[derive(Parser, Debug)]
 #[command(name = "Eunomia DS-Agent Negotiation Agent")]
@@ -63,11 +59,7 @@ impl NegotiationCommands {
             }
             NegotiationCliCommands::Setup(args) => {
                 let config = ContractsConfig::load(&*args.env_file)?;
-                let vault = if config.common().is_vault_real() {
-                    VaultService::Real(RealVaultService::new()?)
-                } else {
-                    VaultService::Fake(FakeVaultService::new()?)
-                };
+                let vault = common::vault_utils::vault(config.common())?;
                 let table = json_to_table::json_to_table(&serde_json::to_value(&config)?)
                     .collapse()
                     .to_string();

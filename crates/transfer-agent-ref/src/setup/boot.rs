@@ -15,9 +15,9 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::setup::composition::TransferAgentRefCompositionRoot;
 use crate::setup::grpc_worker::TransferGrpcWorker;
 use crate::setup::http_worker::TransferHttpWorker;
+use crate::setup::module_composition::TransferAgentRefCompositionRoot;
 use common::boot::BootstrapServiceTrait;
 use common::config::services::TransferConfig;
 use common::config::types::traits::{CommonConfigTrait, ConfigLoader};
@@ -25,12 +25,9 @@ use std::sync::Arc;
 use tokio::sync::broadcast;
 use tokio::sync::broadcast::Sender;
 use tokio_util::sync::CancellationToken;
-use ymir::config::traits::ConnectionConfigTrait;
 use ymir::errors::Outcome;
 use ymir::services::vault::VaultTrait;
-use ymir::services::vault::fake_vault::FakeVaultService;
 use ymir::services::vault::global::VaultService;
-use ymir::services::vault::vault_rs::RealVaultService;
 
 pub struct TransferBoot;
 
@@ -65,11 +62,7 @@ impl BootstrapServiceTrait for TransferBoot {
     }
 
     async fn seed_users(config: &Self::Config) -> Outcome<()> {
-        let vault = if config.is_vault_real() {
-            VaultService::Real(RealVaultService::new()?)
-        } else {
-            VaultService::Fake(FakeVaultService::new()?)
-        };
+        let vault = common::vault_utils::vault(config)?;
         let db = vault.get_db_connection(config.common()).await?;
         let admin = config.admin_seed();
         oauth::services::seed_admin_user(db, &admin.tenant_id, &admin.email, &admin.password).await

@@ -35,5 +35,6 @@ pub mod serde_utils;
 pub mod telemetry;
 pub mod test_utils;
 pub mod utils;
+pub mod vault_utils;
 pub mod well_known;
 pub mod worker_utils;

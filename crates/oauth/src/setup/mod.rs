@@ -23,22 +23,24 @@ use sea_orm::DatabaseConnection;
 use sea_orm_migration::MigrationTrait;
 
 use crate::config::OAuthConfig;
-use crate::services::token_service::{TokenServiceTrait, TokenValidator};
+use crate::services::token_service::{OauthTokenValidator, TokenServiceTrait};
 use crate::services::user_service::UserServiceTrait;
 
-/// What a host agent's module context must provide for [`OAuthModule`] to
-/// compose itself. Implement this on your agent's `Ctx`.
-pub trait OAuthModuleCtx {
-    fn oauth_config(&self) -> OAuthConfig;
-    fn oauth_db(&self) -> DatabaseConnection;
+/// OAuth as a composable service module: `/oauth` endpoints (login / token /
+/// refresh / users) plus the users tables. Construct it with the config and
+/// DB connection it should serve from.
+pub struct OAuthModule {
+    config: OAuthConfig,
+    db: DatabaseConnection,
 }
 
-/// OAuth as a composable service module: `/oauth` endpoints (login / token /
-/// refresh / users) plus the users tables. Works with any agent whose `Ctx`
-/// implements [`OAuthModuleCtx`].
-pub struct OAuthModule;
+impl OAuthModule {
+    pub fn new(config: OAuthConfig, db: DatabaseConnection) -> Self {
+        Self { config, db }
+    }
+}
 
-impl<Ctx: OAuthModuleCtx + Send + Sync> ServiceModuleTrait<Ctx> for OAuthModule {
+impl ServiceModuleTrait for OAuthModule {
     fn name(&self) -> &'static str {
         "oauth"
     }
@@ -47,8 +49,8 @@ impl<Ctx: OAuthModuleCtx + Send + Sync> ServiceModuleTrait<Ctx> for OAuthModule 
         crate::get_oauth_migrations()
     }
 
-    fn http(&self, ctx: &Ctx) -> Option<(String, Router)> {
-        let router = OAuthSetup::new().build_router(ctx.oauth_config(), ctx.oauth_db());
+    fn http(&self) -> Option<(String, Router)> {
+        let router = OAuthSetup::new().build_router(self.config.clone(), self.db.clone());
         Some(("/oauth".to_string(), router))
     }
 }
@@ -63,7 +65,7 @@ impl OAuthSetup {
     /// Validate-only service backed by in-memory stubs.
     /// Only `validate_token` is functional; all other methods will fail because
     /// the backing repos are empty.
-    pub fn build_validator(&self, jwt_secret: &str) -> Arc<dyn TokenValidator> {
+    pub fn build_validator(&self, jwt_secret: &str) -> Arc<dyn OauthTokenValidator> {
         use crate::data::in_memory::repos::{
             InMemoryRefreshTokenRepository, InMemoryUserRepository,
         };

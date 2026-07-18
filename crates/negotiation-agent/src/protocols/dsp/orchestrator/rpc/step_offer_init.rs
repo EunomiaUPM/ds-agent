@@ -40,8 +40,8 @@ use ymir::errors::Outcome;
 /// Symmetric to [`RpcRequestInitStep`]: the Provider drives the negotiation
 /// by sending the first offer.  The step:
 /// 1. Reads routing info from the RPC input.
-/// 2. Converts the input into a DSP-enveloped message (generating a fresh
-///    `providerPid` via the `Into` impl on [`RpcNegotiationOfferInitMessageDto`]).
+/// 2. Converts the input into a DSP-enveloped message (generating a fresh `providerPid` via the
+///    `Into` impl on [`RpcNegotiationOfferInitMessageDto`]).
 /// 3. POSTs to `{provider_address}/negotiations/offers`.
 /// 4. Persists the new process using the PIDs returned in the ack.
 pub(super) struct RpcOfferInitStep;

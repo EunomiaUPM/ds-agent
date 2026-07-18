@@ -358,7 +358,8 @@ mod tests {
 
     // set_subscribing ───────────────────────────────────────────────────────
 
-    // With a driver carrying a subscriber: put(Subscribing) - subscribe - set_started - put(Started).
+    // With a driver carrying a subscriber: put(Subscribing) - subscribe - set_started -
+    // put(Started).
     #[tokio::test]
     async fn test_set_subscribing_with_driver_activates_push() {
         let mut mock = MockDataplaneTransfersEntitiesTrait::new();
@@ -399,7 +400,8 @@ mod tests {
 
     // set_unsubscribing ─────────────────────────────────────────────────────
 
-    // With a driver carrying a subscriber: put(Unsubscribing) - unsubscribe - set_stopped - put(Stopped).
+    // With a driver carrying a subscriber: put(Unsubscribing) - unsubscribe - set_stopped -
+    // put(Stopped).
     #[tokio::test]
     async fn test_set_unsubscribing_with_driver_deactivates_push() {
         let mut mock = MockDataplaneTransfersEntitiesTrait::new();

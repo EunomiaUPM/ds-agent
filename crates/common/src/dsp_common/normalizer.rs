@@ -42,12 +42,10 @@
 //!
 //! 1. Reads the raw request body (only when `Content-Type` is JSON/JSON-LD).
 //! 2. Parses it as `serde_json::Value`.
-//! 3. Recursively strips `dspace:`, `odrl:`, `dct:` and `xsd:` prefixes from
-//!    object keys (leaving JSON-LD keywords such as `@context`, `@type`, `@id`
-//!    intact).
+//! 3. Recursively strips `dspace:`, `odrl:`, `dct:` and `xsd:` prefixes from object keys (leaving
+//!    JSON-LD keywords such as `@context`, `@type`, `@id` intact).
 //! 4. Strips the same prefixes from the *values* of any `@type` key.
-//! 5. Puts the normalised JSON back as the request body for downstream
-//!    handlers.
+//! 5. Puts the normalised JSON back as the request body for downstream handlers.
 
 use axum::{body::Body, extract::Request, middleware::Next, response::Response};
 

@@ -74,8 +74,11 @@ impl GatewayCommands {
                     .subscribe_to_microservice(MicroserviceSubscriptionKey::Catalog)
                     .await?;
                 // TODO when pubsub refactor
-                // microservices_subs.subscribe_to_microservice(MicroserviceSubscriptionKey::ContractNegotiation).await?;
-                // microservices_subs.subscribe_to_microservice(MicroserviceSubscriptionKey::TransferControlPlane).await?;
+                // microservices_subs.
+                // subscribe_to_microservice(MicroserviceSubscriptionKey::ContractNegotiation).
+                // await?; microservices_subs.
+                // subscribe_to_microservice(MicroserviceSubscriptionKey::TransferControlPlane).
+                // await?;
             }
             GatewayCliCommands::Build(args) => {
                 Self::build_frontend(args.env_file)?;

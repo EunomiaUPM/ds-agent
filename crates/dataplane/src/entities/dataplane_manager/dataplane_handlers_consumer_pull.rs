@@ -336,7 +336,8 @@ mod tests {
 
     // set_terminating ───────────────────────────────────────────────────────
 
-    // set_terminating must call put exactly once with state=Terminated and return the updated context.
+    // set_terminating must call put exactly once with state=Terminated and return the updated
+    // context.
     #[tokio::test]
     async fn test_set_terminating_persists_state() {
         let mut mock = MockDataplaneTransfersEntitiesTrait::new();

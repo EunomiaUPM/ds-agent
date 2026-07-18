@@ -85,7 +85,8 @@ pub trait VcRequesterModule:
             "verification": verification,
         }))
     }
-    // ========================================= PROCESS OID4VC =========================================
+    // ========================================= PROCESS OID4VC
+    // =========================================
     async fn process_oid4vci(&self, id: String, payload: OidcUri) -> Outcome<()> {
         let mut grant = self.repo().sent_grant().get_by_id(&id).await?;
         self.wallet().process_oid4vci(&payload.uri).await?;

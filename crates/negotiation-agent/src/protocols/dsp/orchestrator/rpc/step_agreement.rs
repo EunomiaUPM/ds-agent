@@ -51,8 +51,7 @@ impl OrchestrationHelpers for AgreementEnricher {}
 /// This is the most complex RPC step because the outgoing agreement body must
 /// be enriched before transmission:
 /// - The last offer stored for this process is copied into the agreement policy.
-/// - Participant IDs (`assigner` / `assignee`) are resolved from the mates
-///   directory.
+/// - Participant IDs (`assigner` / `assignee`) are resolved from the mates directory.
 ///
 /// These lookups are performed in `prepare_context` so that `send_and_persist`
 /// stays a focused POST + persist call.

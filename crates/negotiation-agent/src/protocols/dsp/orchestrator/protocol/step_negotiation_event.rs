@@ -33,10 +33,10 @@ use ymir::errors::Outcome;
 /// Handles an inbound `ContractNegotiationEventMessage`.
 ///
 /// The behaviour branches on the `event_type` field:
-/// - **`ACCEPTED`** – the peer acknowledges the latest offer; only the process
-///   state is advanced (no new offer or agreement record is created).
-/// - **`FINALIZED`** – the negotiation is complete; the existing agreement record
-///   is activated by setting its state to `ACTIVE`.
+/// - **`ACCEPTED`** – the peer acknowledges the latest offer; only the process state is advanced
+///   (no new offer or agreement record is created).
+/// - **`FINALIZED`** – the negotiation is complete; the existing agreement record is activated by
+///   setting its state to `ACTIVE`.
 pub(super) struct NegotiationEventStep;
 
 #[async_trait::async_trait]

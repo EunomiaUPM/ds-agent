@@ -39,8 +39,8 @@ use ymir::errors::Outcome;
 ///
 /// No process record exists yet.  The step:
 /// 1. Reads routing info from the RPC input.
-/// 2. Converts the input into a DSP-enveloped message (generating a fresh
-///    `consumerPid` via the `Into` impl on [`RpcNegotiationRequestInitMessageDto`]).
+/// 2. Converts the input into a DSP-enveloped message (generating a fresh `consumerPid` via the
+///    `Into` impl on [`RpcNegotiationRequestInitMessageDto`]).
 /// 3. POSTs to `{provider_address}/negotiations/request`.
 /// 4. Persists the new process using the `providerPid` returned in the ack.
 pub(super) struct RpcRequestInitStep;

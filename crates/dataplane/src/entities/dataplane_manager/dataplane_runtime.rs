@@ -61,11 +61,12 @@ pub enum ResolvedAuthCredentials {
 
 /// Handles transparent vaulting of sensitive fields in a [`DataplaneRuntime`].
 ///
-/// - [`export`](RuntimeSecretVault::export): writes plaintext credentials to the secret store
-///   and replaces them with `{{__RUNTIME_SECRET_{path}__}}` placeholders before DB persistence.
-/// - [`resolve`](RuntimeSecretVault::resolve): reads the stored values back and substitutes
-///   the placeholders with the real credentials before use.
-/// - [`cleanup`](RuntimeSecretVault::cleanup): deletes all vault entries for a transfer on termination.
+/// - [`export`](RuntimeSecretVault::export): writes plaintext credentials to the secret store and
+///   replaces them with `{{__RUNTIME_SECRET_{path}__}}` placeholders before DB persistence.
+/// - [`resolve`](RuntimeSecretVault::resolve): reads the stored values back and substitutes the
+///   placeholders with the real credentials before use.
+/// - [`cleanup`](RuntimeSecretVault::cleanup): deletes all vault entries for a transfer on
+///   termination.
 pub struct RuntimeSecretVault<'a> {
     store: &'a dyn SecretStore,
 }

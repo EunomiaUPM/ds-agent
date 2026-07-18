@@ -822,7 +822,8 @@ mod tests {
             .times(1)
             .returning(move |_| Ok(Some(dummy_pull_connector(&connector_urn))));
 
-        // mock_factory is used by from_continuation; set_configuring uses the real DataplaneDriverFactory
+        // mock_factory is used by from_continuation; set_configuring uses the real
+        // DataplaneDriverFactory
         mock_factory
             .expect_get_or_create_driver()
             .times(1)
@@ -1113,7 +1114,8 @@ mod tests {
             .times(1)
             .returning(move |_| Ok(dummy_driver()));
 
-        // set_subscribing with subscriber: put(Subscribing) - subscribe - set_started - put(Started)
+        // set_subscribing with subscriber: put(Subscribing) - subscribe - set_started -
+        // put(Started)
         mock_entity
             .expect_put_dataplane_transfer_by_id()
             .times(1)
@@ -1192,7 +1194,8 @@ mod tests {
             .times(1)
             .returning(move |_| Ok(dummy_driver()));
 
-        // set_unsubscribing with subscriber: put(Unsubscribing) - unsubscribe - set_stopped - put(Stopped)
+        // set_unsubscribing with subscriber: put(Unsubscribing) - unsubscribe - set_stopped -
+        // put(Stopped)
         mock_entity
             .expect_put_dataplane_transfer_by_id()
             .times(1)

@@ -22,13 +22,12 @@
 //!
 //! # Lifecycle
 //!
-//! 1. A caller submits a [`ConnectorInstantiationDto`] that names the template
-//!    and supplies parameter values.
-//! 2. [`ConnectorInstanceTrait::upsert_instance`] validates the parameters,
-//!    enriches them with system defaults, resolves all `{{__PARAM__}}`
-//!    placeholders, and persists the result.
-//! 3. The resolved [`ConnectorInstanceDto`] is returned and stored in the
-//!    database for the dataplane to query at transfer time.
+//! 1. A caller submits a [`ConnectorInstantiationDto`] that names the template and supplies
+//!    parameter values.
+//! 2. [`ConnectorInstanceTrait::upsert_instance`] validates the parameters, enriches them with
+//!    system defaults, resolves all `{{__PARAM__}}` placeholders, and persists the result.
+//! 3. The resolved [`ConnectorInstanceDto`] is returned and stored in the database for the
+//!    dataplane to query at transfer time.
 
 pub mod service;
 

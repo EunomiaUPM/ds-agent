@@ -29,10 +29,13 @@ impl NewPolicyInstantiationDto {
     ) -> Outcome<()> {
         for req_key in self.parameters.keys() {
             if !policy_template.parameters.contains_key(req_key) {
-                let err = Errors::parse(&format!(
-                    "Validation Error: Unknown parameter '{}' provided. It is not defined in the template.",
-                    req_key
-                ), None);
+                let err = Errors::parse(
+                    &format!(
+                        "Validation Error: Unknown parameter '{}' provided. It is not defined in the template.",
+                        req_key
+                    ),
+                    None,
+                );
                 return Err(err);
             }
         }

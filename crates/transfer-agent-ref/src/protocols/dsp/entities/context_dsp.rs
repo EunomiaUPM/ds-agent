@@ -320,10 +320,8 @@ mod tests {
     #[tokio::test]
     async fn extractor_tolerates_missing_optional_fields() {
         // A message without dataAddress or pids extracts to None, not an error.
-        let rdf = rdf_from(
-            r#"{"@context":"https://w3id.org/dspace/2025/1/context.jsonld","@type":"TransferProcess"}"#,
-        )
-        .await;
+        let rdf =
+            rdf_from(r#"{"@context":"https://w3id.org/dspace/2025/1/context.jsonld","@type":"TransferProcess"}"#).await;
         let typed = TransferDSPContextTyped::from_rdf(rdf).unwrap();
         assert!(typed.provider_pid.is_none());
         assert!(typed.data_address.is_none());

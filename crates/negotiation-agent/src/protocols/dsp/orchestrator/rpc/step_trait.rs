@@ -94,11 +94,11 @@ pub(super) struct NegotiationRpcAgreementContext {
 /// algorithm lives in [`RPCOrchestratorService::run_lifecycle`] and executes:
 ///
 /// 1. **`validate`**         – reject malformed input early (default: no-op)
-/// 2. **`prepare_context`**  – resolve or allocate routing state (may access
-///                             persistence and mates service)
+/// 2. **`prepare_context`**  – resolve or allocate routing state (may access persistence and mates
+///    service)
 /// 3. **`apply_auth_token`** – attach bearer token to the HTTP client (default)
-/// 4. **`send_and_persist`** – build the DSP message, POST to peer, and persist
-///                             the state transition
+/// 4. **`send_and_persist`** – build the DSP message, POST to peer, and persist the state
+///    transition
 ///
 /// Unlike the transfer RPC template, there is no `pre_hook` / `post_hook`
 /// because negotiation does not involve a data-plane session.

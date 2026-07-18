@@ -26,7 +26,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase", try_from = "MessageEnvelopeInput")]
 pub(crate) struct MessageEnvelope {
-    /// URDNA2015 canonical form (N-Quads text) for DSP JSON-LD messages; None for non-RDF protocols.
+    /// URDNA2015 canonical form (N-Quads text) for DSP JSON-LD messages; None for non-RDF
+    /// protocols.
     pub canonical_form: Option<String>,
     #[serde(serialize_with = "serialize_opt_hash_hex")]
     pub canonical_hash: Option<[u8; 32]>,

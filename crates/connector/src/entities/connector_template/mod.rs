@@ -23,8 +23,8 @@
 //! - [`ConnectorMetadata`] — name, version, author, description.
 //! - An [`AuthenticationConfig`] section with `{{__PARAM__}}` placeholders.
 //! - An [`InteractionConfig`] section with `{{__PARAM__}}` placeholders.
-//! - A `parameters` list ([`ParameterDefinition`]) that declares the name, type,
-//!   and optional default for every placeholder used in the template.
+//! - A `parameters` list ([`ParameterDefinition`]) that declares the name, type, and optional
+//!   default for every placeholder used in the template.
 //!
 //! When a template is created the engine validates that every placeholder in
 //! the auth/interaction sections has a matching declaration in `parameters`, and

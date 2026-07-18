@@ -248,7 +248,8 @@ impl DataplaneTransfersEntitiesTrait for DataplaneTransfersEntityService {
             // Handle case where previous is None (should not happen for existing process)
             let changed = match &previous_state {
                 Some(prev) => prev != new_state,
-                None => true, // If we couldn't fetch previous, assume changed to be safe? Or valid transition from nothing?
+                None => true, /* If we couldn't fetch previous, assume changed to be safe? Or
+                               * valid transition from nothing? */
             };
 
             if changed {

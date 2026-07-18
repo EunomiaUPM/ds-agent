@@ -56,8 +56,8 @@ pub(super) struct NegotiationContinuationContext {
 /// [`ProtocolOrchestratorService::run_lifecycle`]:
 ///
 /// 1. **`validate`**        – reject malformed or out-of-sequence input
-/// 2. **`prepare_context`** – resolve routing info; may return an early ack
-///                            (idempotency hook for future use)
+/// 2. **`prepare_context`** – resolve routing info; may return an early ack (idempotency hook for
+///    future use)
 /// 3. **`persist`**         – record the state transition in the database
 ///
 /// Unlike the transfer agent's [`ProtocolStep`], there is no `post_hook` because

@@ -160,7 +160,10 @@ impl ValidatePayload for ValidatePayloadService {
         if is_data_address_in_payload == true {
             if role == RoleConfig::Consumer {
                 if state_attribute != TransferStateAttribute::OnRequest {
-                    return Err(Errors::crazy("Data address should be defined only in the first TransferStart message from provider", None));
+                    return Err(Errors::crazy(
+                        "Data address should be defined only in the first TransferStart message from provider",
+                        None,
+                    ));
                 }
             }
         }

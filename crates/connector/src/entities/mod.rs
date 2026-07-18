@@ -24,12 +24,12 @@
 //!
 //! The connector system follows a "blueprint and instance" pattern:
 //!
-//! 1. **Connector Template** ([`connector_template`]): A reusable blueprint
-//!    defining metadata, authentication, and interaction protocols. It uses
-//!    `{{__PARAM__}}` placeholders for configuration.
-//! 2. **Connector Instance** ([`connector_instance`]): A concrete deployment of a
-//!    template. It binds values to the template's parameters, resulting in a
-//!    fully resolved configuration ready for the dataplane.
+//! 1. **Connector Template** ([`connector_template`]): A reusable blueprint defining metadata,
+//!    authentication, and interaction protocols. It uses `{{__PARAM__}}` placeholders for
+//!    configuration.
+//! 2. **Connector Instance** ([`connector_instance`]): A concrete deployment of a template. It
+//!    binds values to the template's parameters, resulting in a fully resolved configuration ready
+//!    for the dataplane.
 //!
 //! # The Resolution Pipeline
 //!
@@ -39,8 +39,8 @@
 //! - **Extraction**: Discovering all placeholders referenced in the template.
 //! - **Validation**: Ensuring user-supplied values match the template's requirements.
 //! - **Enrichment**: Injecting system-level parameters (e.g., URNs, timestamps).
-//! - **Resolution**: Performing the final interpolation, replacing all placeholders
-//!   with their concrete values.
+//! - **Resolution**: Performing the final interpolation, replacing all placeholders with their
+//!   concrete values.
 //!
 //! # Sub-module overview
 //!

@@ -194,7 +194,7 @@ impl BootstrapServiceTrait for CoreBoot {
         Ok(())
     }
 
-    async fn start_services_background(
+    async fn start_services(
         config: &Self::Config,
         vault: Arc<VaultService>,
     ) -> Outcome<Sender<()>> {

@@ -15,4 +15,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod dsp;
+use axum::Router;
+
+/// Mount `sub` on `router`: nested under `path`, or merged when `path` is
+/// empty (axum forbids nesting at `/`; an empty path means "at this level").
+pub(crate) fn mount(router: Router, path: &str, sub: Router) -> Router {
+    if path.is_empty() {
+        router.merge(sub)
+    } else {
+        router.nest(path, sub)
+    }
+}

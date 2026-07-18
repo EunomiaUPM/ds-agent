@@ -17,4 +17,6 @@
 
 mod entities;
 mod facades;
+pub(crate) mod http;
 mod services;
+pub(crate) mod setup;

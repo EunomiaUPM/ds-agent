@@ -18,11 +18,40 @@
 use std::sync::Arc;
 
 use axum::Router;
+use common::module_loader::service_module::ServiceModuleTrait;
 use sea_orm::DatabaseConnection;
+use sea_orm_migration::MigrationTrait;
 
 use crate::config::OAuthConfig;
 use crate::services::token_service::{TokenServiceTrait, TokenValidator};
 use crate::services::user_service::UserServiceTrait;
+
+/// What a host agent's module context must provide for [`OAuthModule`] to
+/// compose itself. Implement this on your agent's `Ctx`.
+pub trait OAuthModuleCtx {
+    fn oauth_config(&self) -> OAuthConfig;
+    fn oauth_db(&self) -> DatabaseConnection;
+}
+
+/// OAuth as a composable service module: `/oauth` endpoints (login / token /
+/// refresh / users) plus the users tables. Works with any agent whose `Ctx`
+/// implements [`OAuthModuleCtx`].
+pub struct OAuthModule;
+
+impl<Ctx: OAuthModuleCtx + Send + Sync> ServiceModuleTrait<Ctx> for OAuthModule {
+    fn name(&self) -> &'static str {
+        "oauth"
+    }
+
+    fn migrations(&self) -> Vec<Box<dyn MigrationTrait>> {
+        crate::get_oauth_migrations()
+    }
+
+    fn http(&self, ctx: &Ctx) -> Option<(String, Router)> {
+        let router = OAuthSetup::new().build_router(ctx.oauth_config(), ctx.oauth_db());
+        Some(("/oauth".to_string(), router))
+    }
+}
 
 pub struct OAuthSetup {}
 

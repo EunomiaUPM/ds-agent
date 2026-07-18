@@ -19,10 +19,8 @@ use common::info_banner::banner;
 use common::telemetry;
 use tracing::info;
 use transfer_agent_ref::setup::cmd::TransferCommands;
+use transfer_agent_ref::{SERVICE_BIG_NAME, SERVICE_NAME};
 use ymir::errors::{Errors, Outcome};
-
-const SERVICE_NAME: &str = "transfer-agent-ref";
-const SERVICE_BIG_NAME: &str = "Transfer Agent Ref";
 
 #[allow(clippy::result_large_err)]
 #[tokio::main]

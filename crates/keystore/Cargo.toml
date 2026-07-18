@@ -1,6 +1,6 @@
 [package]
 name = "keystore"
-version = "0.1.0"
+version = "0.4.0"
 edition = "2024"
 
 [lib]
@@ -9,8 +9,8 @@ path = "src/lib.rs"
 
 
 [dependencies]
-common = { version = "0.3.1", path = "../common", default-features = true }
-connector = { version = "0.3.1", path = "../connector", default-features = true }
+common = { version = "0.4.0", path = "../common", default-features = true }
+connector = { version = "0.4.0", path = "../connector", default-features = true }
 
 serde = { workspace = true }
 serde_json = { workspace = true }

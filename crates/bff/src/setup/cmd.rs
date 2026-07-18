@@ -73,7 +73,7 @@ impl GatewayCommands {
                 } else {
                     VaultService::Fake(FakeVaultService::new()?)
                 };
-                GatewayBoot::start_services_background(&config, Arc::new(vault)).await?;
+                GatewayBoot::start_services(&config, Arc::new(vault)).await?;
             }
             GatewayCliCommands::Subscribe(args) => {
                 let config = GatewayConfig::load(&*args.env_file)?;

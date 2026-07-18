@@ -92,7 +92,7 @@ pub trait BootstrapServiceTrait: Send + Sync {
         Ok(())
     }
 
-    async fn start_services_background(
+    async fn start_services(
         config: &Self::Config,
         vault_service: Arc<VaultService>,
     ) -> Outcome<broadcast::Sender<()>>;
@@ -210,7 +210,7 @@ impl<S: BootstrapServiceTrait> BootstrapStepTrait for BootstrapConfigLoaded<S> {
 
         tracing::info!("Step [3/9]: Starting Services in Background");
         S::cleanup_cache(&config).await?;
-        let shutdown_tx = S::start_services_background(&config, vault.clone()).await?;
+        let shutdown_tx = S::start_services(&config, vault.clone()).await?;
 
         // waiting for port setup
         tokio::time::sleep(std::time::Duration::from_millis(200)).await;

@@ -41,7 +41,7 @@ impl BootstrapServiceTrait for GatewayBoot {
         Ok(config)
     }
 
-    async fn start_services_background(
+    async fn start_services(
         config: &Self::Config,
         _vault_service: Arc<VaultService>,
     ) -> Outcome<Sender<()>> {

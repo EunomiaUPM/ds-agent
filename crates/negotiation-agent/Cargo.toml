@@ -1,6 +1,6 @@
 [package]
 name = "negotiation_agent"
-version = "0.3.8"
+version = "0.4.0"
 edition = "2024"
 
 [lib]
@@ -12,7 +12,7 @@ name = "negotiation_agent"
 path = "src/main.rs"
 
 [dependencies]
-common = { version = "0.3.8", path = "../common", default-features = false }
+common = { version = "0.4.0", path = "../common", default-features = false }
 
 serde = { workspace = true }
 serde_json = { workspace = true }

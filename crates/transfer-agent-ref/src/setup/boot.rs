@@ -15,6 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::setup::composition::TransferAgentRefCompositionRoot;
 use crate::setup::grpc_worker::TransferGrpcWorker;
 use crate::setup::http_worker::TransferHttpWorker;
 use common::boot::BootstrapServiceTrait;
@@ -64,7 +65,6 @@ impl BootstrapServiceTrait for TransferBoot {
     }
 
     async fn seed_users(config: &Self::Config) -> Outcome<()> {
-        use common::config::types::traits::CommonConfigTrait;
         let vault = if config.is_vault_real() {
             VaultService::Real(RealVaultService::new()?)
         } else {
@@ -75,16 +75,22 @@ impl BootstrapServiceTrait for TransferBoot {
         oauth::services::seed_admin_user(db, &admin.tenant_id, &admin.email, &admin.password).await
     }
 
-    async fn start_services_background(
+    async fn start_services(
         config: &Self::Config,
         vault: Arc<VaultService>,
     ) -> Outcome<Sender<()>> {
         let (shutdown_tx, mut shutdown_rx) = broadcast::channel(1);
         let cancel_token = CancellationToken::new();
+
+        tracing::info!("Composing service graph...");
+        let root = TransferAgentRefCompositionRoot::compose(config, &vault).await?;
+
         tracing::info!("Spawning HTTP subsystem...");
-        let http_handle = TransferHttpWorker::spawn(config, vault.clone(), &cancel_token).await?;
+        let http_handle =
+            TransferHttpWorker::spawn(config, root.http_router, &cancel_token).await?;
         tracing::info!("Spawning gRPC subsystem...");
-        let grpc_handle = TransferGrpcWorker::spawn(config, vault.clone(), &cancel_token).await?;
+        let grpc_handle =
+            TransferGrpcWorker::spawn(config, root.grpc_routes, &cancel_token).await?;
 
         let token_clone = cancel_token.clone();
         tokio::spawn(async move {

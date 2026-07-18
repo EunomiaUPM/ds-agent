@@ -15,14 +15,15 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::SERVICE_BIG_NAME;
 use crate::setup::boot::TransferBoot;
-use crate::setup::db_migrations::TransferAgentRefMigration;
+use crate::setup::composition::TransferAgentRefMigration;
 use clap::{Parser, Subcommand};
 use common::boot::BootstrapInit;
 use common::config::services::TransferConfig;
 use common::config::types::traits::{CommonConfigTrait, ConfigLoader};
 use std::sync::Arc;
-use tracing::{debug, info};
+use tracing::info;
 use ymir::config::traits::ConnectionConfigTrait;
 use ymir::errors::Outcome;
 use ymir::services::vault::fake_vault::FakeVaultService;
@@ -30,8 +31,8 @@ use ymir::services::vault::global::VaultService;
 use ymir::services::vault::vault_rs::RealVaultService;
 
 #[derive(Parser, Debug)]
-#[command(name = "Eunomia DS-Agent Transfer Agent Ref")]
-#[command(version = "0.1")]
+#[command(name = SERVICE_BIG_NAME)]
+#[command(version)]
 struct TransferCli {
     #[clap(subcommand)]
     command: TransferCliCommands,

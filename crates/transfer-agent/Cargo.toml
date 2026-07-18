@@ -1,6 +1,6 @@
 [package]
 name = "transfer_agent"
-version = "0.3.8"
+version = "0.4.0"
 edition = "2021"
 
 [lib]
@@ -12,12 +12,12 @@ name = "transfer_agent"
 path = "src/main.rs"
 
 [dependencies]
-common = { version = "0.3.8", path = "../common", default-features = false }
-events = { version = "0.3.8", path = "../events", default-features = false }
-dataplane = { version = "0.3.8", path = "../dataplane", default-features = false }
-negotiation_agent = { version = "0.3.8", path = "../negotiation-agent", default-features = false }
-catalog_agent = { version = "0.3.8", path = "../catalog-agent", default-features = false }
-connector = { version = "0.3.8", path = "../connector", default-features = false }
+common = { version = "0.4.0", path = "../common", default-features = false }
+events = { version = "0.4.0", path = "../events", default-features = false }
+dataplane = { version = "0.4.0", path = "../dataplane", default-features = false }
+negotiation_agent = { version = "0.4.0", path = "../negotiation-agent", default-features = false }
+catalog_agent = { version = "0.4.0", path = "../catalog-agent", default-features = false }
+connector = { version = "0.4.0", path = "../connector", default-features = false }
 
 serde = { workspace = true }
 serde_json = { workspace = true }

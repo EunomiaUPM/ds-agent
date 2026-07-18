@@ -15,6 +15,9 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+pub const SERVICE_NAME: &str = "transfer-agent-ref";
+pub const SERVICE_BIG_NAME: &str = "Transfer Agent Ref";
+
 mod data;
 mod entities;
 mod grpc;

@@ -15,62 +15,38 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::sync::Arc;
-
+use crate::grpc::api::FILE_DESCRIPTOR_SET;
 use common::config::services::TransferConfig;
 use common::config::types::traits::CommonConfigTrait;
+use common::worker_utils::{bind_listener, shutdown_signal, spawn_server};
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 use tonic::codegen::tokio_stream::wrappers::TcpListenerStream;
+use tonic::service::Routes;
 use tonic::transport::Server;
 use ymir::config::traits::HostsConfigTrait;
 use ymir::config::types::HostType;
 use ymir::errors::{Errors, Outcome};
-use ymir::services::vault::global::VaultService;
-
-use crate::grpc::api::FILE_DESCRIPTOR_SET;
-use crate::grpc::api::transfer_messages::transfer_messages_ref_server::TransferMessagesRefServer;
-use crate::grpc::api::transfer_processes::transfer_processes_ref_server::TransferProcessesRefServer;
-use crate::grpc::transfer_messages::TransferMessagesGrpc;
-use crate::grpc::transfer_process::TransferProcessGrpc;
-use crate::setup::common_worker::{
-    bind_listener, build_domain_services, shutdown_signal, spawn_server,
-};
-
-const SERVICE: &str = "gRPC";
 
 pub struct TransferGrpcWorker {}
 
 impl TransferGrpcWorker {
     pub async fn spawn(
         config: &TransferConfig,
-        vault: Arc<VaultService>,
+        routes: Routes,
         token: &CancellationToken,
     ) -> Outcome<JoinHandle<()>> {
-        let router = Self::create_root_grpc_router(config, vault).await?;
-        let listener =
-            bind_listener(config.common().get_internal_port(HostType::Grpc), SERVICE).await?;
-        let incoming = TcpListenerStream::new(listener);
-        let server =
-            router.serve_with_incoming_shutdown(incoming, shutdown_signal(token.clone(), SERVICE));
-        Ok(spawn_server(SERVICE, server))
-    }
-
-    pub async fn create_root_grpc_router(
-        config: &TransferConfig,
-        vault: Arc<VaultService>,
-    ) -> Outcome<tonic::transport::server::Router> {
-        let svc = build_domain_services(config, &vault).await?;
-        let process_handler = TransferProcessGrpc::new(svc.process, svc.validator.clone());
-        let message_handler = TransferMessagesGrpc::new(svc.message, svc.validator);
         let reflection = tonic_reflection::server::Builder::configure()
             .register_encoded_file_descriptor_set(FILE_DESCRIPTOR_SET)
             .build_v1()
             .map_err(|e| Errors::crazy("Error building gRPC reflection", Some(Box::new(e))))?;
-        let router = Server::builder()
-            .add_service(reflection)
-            .add_service(TransferProcessesRefServer::new(process_handler))
-            .add_service(TransferMessagesRefServer::new(message_handler));
-        Ok(router)
+        let router = Server::builder().add_routes(routes).add_service(reflection);
+
+        let listener =
+            bind_listener(config.common().get_internal_port(HostType::Grpc), "gRPC").await?;
+        let incoming = TcpListenerStream::new(listener);
+        let server =
+            router.serve_with_incoming_shutdown(incoming, shutdown_signal(token.clone(), "gRPC"));
+        Ok(spawn_server("gRPC", server))
     }
 }

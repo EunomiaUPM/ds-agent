@@ -40,13 +40,17 @@ impl TransferGrpcWorker {
             .register_encoded_file_descriptor_set(FILE_DESCRIPTOR_SET)
             .build_v1()
             .map_err(|e| Errors::crazy("Error building gRPC reflection", Some(Box::new(e))))?;
+
         let router = Server::builder().add_routes(routes).add_service(reflection);
 
         let listener =
             bind_listener(config.common().get_internal_port(HostType::Grpc), "gRPC").await?;
+
         let incoming = TcpListenerStream::new(listener);
+
         let server =
             router.serve_with_incoming_shutdown(incoming, shutdown_signal(token.clone(), "gRPC"));
+
         Ok(spawn_server("gRPC", server))
     }
 }

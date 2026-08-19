@@ -21,7 +21,7 @@ pub struct Migration;
 
 impl MigrationName for Migration {
     fn name(&self) -> &str {
-        "m20260514_000002_oauth_refresh_tokens"
+        "m20260514_000002_oauth_tokens"
     }
 }
 
@@ -31,38 +31,34 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(OauthRefreshTokens::Table)
+                    .table(OauthTokens::Table)
                     .if_not_exists()
                     .col(
-                        ColumnDef::new(OauthRefreshTokens::Id)
+                        ColumnDef::new(OauthTokens::Id)
                             .uuid()
                             .not_null()
                             .primary_key(),
                     )
-                    .col(
-                        ColumnDef::new(OauthRefreshTokens::TenantId)
-                            .string()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(OauthTokens::TenantId).string().not_null())
                     // JWT ID stored for revocation — unique per issued token.
                     .col(
-                        ColumnDef::new(OauthRefreshTokens::Jti)
+                        ColumnDef::new(OauthTokens::Jti)
                             .string()
                             .not_null()
                             .unique_key(),
                     )
                     .col(
-                        ColumnDef::new(OauthRefreshTokens::ExpiresAt)
+                        ColumnDef::new(OauthTokens::ExpiresAt)
                             .timestamp_with_time_zone()
                             .not_null(),
                     )
                     .col(
-                        ColumnDef::new(OauthRefreshTokens::CreatedAt)
+                        ColumnDef::new(OauthTokens::CreatedAt)
                             .timestamp_with_time_zone()
                             .not_null(),
                     )
                     .col(
-                        ColumnDef::new(OauthRefreshTokens::Revoked)
+                        ColumnDef::new(OauthTokens::Revoked)
                             .boolean()
                             .not_null()
                             .default(false),
@@ -74,13 +70,13 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(OauthRefreshTokens::Table).to_owned())
+            .drop_table(Table::drop().table(OauthTokens::Table).to_owned())
             .await
     }
 }
 
 #[derive(Iden)]
-pub enum OauthRefreshTokens {
+pub enum OauthTokens {
     Table,
     Id,
     TenantId,

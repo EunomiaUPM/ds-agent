@@ -17,7 +17,7 @@
 
 use crate::SERVICE_BIG_NAME;
 use crate::setup::boot::TransferBoot;
-use crate::setup::migrations::TransferAgentRefMigration;
+use crate::setup::db_migrations::TransferAgentRefMigration;
 use clap::{Parser, Subcommand};
 use common::boot::BootstrapInit;
 use common::config::services::TransferConfig;

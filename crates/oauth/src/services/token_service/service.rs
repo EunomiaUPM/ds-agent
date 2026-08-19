@@ -24,7 +24,7 @@ use uuid::Uuid;
 use ymir::errors::{BadFormat, Errors, Outcome};
 
 use crate::config::OAuthConfig;
-use crate::data::repositories::refresh_token::RefreshTokenRepository;
+use crate::data::repositories::token::TokenRepository;
 use crate::data::repositories::user::UserRepository;
 use crate::entities::refresh_token::RefreshToken;
 use crate::entities::role::RbacRole;
@@ -35,14 +35,14 @@ use crate::services::token_service::{Claims, OauthTokenValidator, TokenServiceTr
 
 pub(crate) struct TokenService {
     user_repo: Arc<dyn UserRepository>,
-    refresh_repo: Arc<dyn RefreshTokenRepository>,
+    refresh_repo: Arc<dyn TokenRepository>,
     config: OAuthConfig,
 }
 
 impl TokenService {
     pub fn new(
         user_repo: Arc<dyn UserRepository>,
-        refresh_repo: Arc<dyn RefreshTokenRepository>,
+        refresh_repo: Arc<dyn TokenRepository>,
         config: OAuthConfig,
     ) -> Self {
         Self {

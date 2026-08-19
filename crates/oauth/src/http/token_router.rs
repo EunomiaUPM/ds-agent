@@ -36,7 +36,7 @@ use crate::services::user_service::views::UserInfo;
 pub(crate) struct TokenRouter {
     token_svc: Arc<dyn TokenServiceTrait>,
     user_svc: Arc<dyn UserServiceTrait>,
-    discovery: OpenIdConfiguration,
+    oidc_config: OpenIdConfiguration,
 }
 
 impl TokenRouter {
@@ -49,24 +49,26 @@ impl TokenRouter {
         Self {
             token_svc,
             user_svc,
-            discovery: OpenIdConfiguration::build(&issuer),
+            oidc_config: OpenIdConfiguration::build(&issuer),
         }
     }
 
     pub(crate) fn router(self) -> Router {
         Router::new()
-            .route("/token", post(Self::handle_token))
-            .route("/refresh", post(Self::handle_refresh))
-            .route("/revoke", post(Self::handle_revoke))
-            .route("/userinfo", get(Self::handle_userinfo))
+            .route("/token", post(Self::handle_token_issuance))
+            .route("/refresh", post(Self::handle_token_refresh))
+            .route("/revoke", post(Self::handle_token_revoke))
+            .route("/userinfo", get(Self::handle_user_info))
+            .route("/user-info", get(Self::handle_user_info))
+            .route("/user_info", get(Self::handle_user_info))
             .route(
                 "/.well-known/openid-configuration",
-                get(Self::handle_discovery),
+                get(Self::handle_oidc_config),
             )
             .with_state(self)
     }
 
-    async fn handle_token(
+    async fn handle_token_issuance(
         State(s): State<Self>,
         Form(r): Form<PasswordGrantRequest>,
     ) -> AppResult<Json<TokenResponse>> {
@@ -75,14 +77,14 @@ impl TokenRouter {
         ))
     }
 
-    async fn handle_refresh(
+    async fn handle_token_refresh(
         State(s): State<Self>,
         Form(r): Form<RefreshRequest>,
     ) -> AppResult<Json<TokenResponse>> {
         Ok(Json(s.token_svc.refresh_token(&r.refresh_token).await?))
     }
 
-    async fn handle_revoke(
+    async fn handle_token_revoke(
         State(s): State<Self>,
         Form(r): Form<RevokeRequest>,
     ) -> AppResult<StatusCode> {
@@ -90,15 +92,15 @@ impl TokenRouter {
         Ok(StatusCode::OK)
     }
 
-    async fn handle_userinfo(
+    async fn handle_user_info(
         State(s): State<Self>,
         headers: HeaderMap,
     ) -> AppResult<Json<UserInfo>> {
         let claims = s.token_svc.validate_token(bearer(&headers)?).await?;
-        Ok(Json(s.user_svc.userinfo(&claims.sub).await?))
+        Ok(Json(s.user_svc.user_info(&claims.sub).await?))
     }
 
-    async fn handle_discovery(State(s): State<Self>) -> Json<OpenIdConfiguration> {
-        Json(s.discovery.clone())
+    async fn handle_oidc_config(State(s): State<Self>) -> Json<OpenIdConfiguration> {
+        Json(s.oidc_config.clone())
     }
 }

@@ -35,7 +35,7 @@ pub(crate) trait UserServiceTrait: Send + Sync + 'static {
         sort: &Sort,
     ) -> Outcome<Paginated<UserView>>;
     async fn get_user(&self, tenant_id: &str) -> Outcome<UserView>;
-    async fn userinfo(&self, tenant_id: &str) -> Outcome<UserInfo>;
+    async fn user_info(&self, tenant_id: &str) -> Outcome<UserInfo>;
     async fn create_user(&self, cmd: &CreateUserCommand) -> Outcome<UserView>;
     async fn patch_user(&self, tenant_id: &str, cmd: &PatchUserCommand) -> Outcome<UserView>;
     async fn delete_user(&self, tenant_id: &str) -> Outcome<()>;

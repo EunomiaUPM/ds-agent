@@ -15,19 +15,27 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use ymir::errors::Outcome;
+use thiserror::Error;
+use uuid::Uuid;
+use ymir::errors::{Outcome, RepoIntoErrors};
 
-use crate::data::unit_of_work::UnitOfWork;
+use crate::entities::refresh_token::RefreshToken;
 
-pub(crate) struct InMemoryUow;
-
+#[mockall::automock]
 #[async_trait::async_trait]
-impl UnitOfWork for InMemoryUow {
-    async fn commit(&self) -> Outcome<()> {
-        Ok(())
-    }
-
-    async fn rollback(&self) -> Outcome<()> {
-        Ok(())
-    }
+pub(crate) trait TokenRepository: Send + Sync {
+    async fn create(&self, token: &RefreshToken) -> Outcome<RefreshToken>;
+    async fn get_by_jti(&self, jti: &str) -> Outcome<Option<RefreshToken>>;
+    async fn revoke(&self, id: Uuid) -> Outcome<()>;
+    async fn revoke_all_for_tenant(&self, tenant_id: &str) -> Outcome<()>;
 }
+
+#[derive(Debug, Error)]
+pub(crate) enum TokenRepositoryError {
+    #[error("token not found")]
+    NotFound,
+    #[error("database error: {0}")]
+    Db(Box<dyn std::error::Error + Send + Sync>),
+}
+
+impl RepoIntoErrors for TokenRepositoryError {}

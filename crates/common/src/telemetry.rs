@@ -28,7 +28,8 @@ pub fn init(service_name: &str) {
     let json = std::env::var("LOG_FORMAT").as_deref() == Ok("json");
 
     let fmt = tracing_subscriber::fmt::layer()
-        .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
+        //.with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
+        .with_span_events(FmtSpan::CLOSE)
         .with_line_number(true);
 
     let fmt: Box<dyn Layer<_> + Send + Sync> = if json {

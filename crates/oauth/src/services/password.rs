@@ -20,6 +20,7 @@ use argon2::password_hash::rand_core::OsRng;
 use argon2::password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString};
 use ymir::errors::{BadFormat, Errors, Outcome};
 
+/// Hash utils for hashing password before persist layers
 pub(crate) fn hash_password(password: &str) -> Outcome<(String, String)> {
     let salt = SaltString::generate(&mut OsRng);
     let phc = Argon2::default()
@@ -29,6 +30,7 @@ pub(crate) fn hash_password(password: &str) -> Outcome<(String, String)> {
     Ok((phc.to_string(), salt_str))
 }
 
+/// Hash utils for verify password against password hash
 pub(crate) fn verify_password(password: &str, password_hash: &str) -> Outcome<()> {
     let hash = PasswordHash::new(password_hash)
         .map_err(|e| Errors::crazy("password hash error", Some(e.to_string().into())))?;

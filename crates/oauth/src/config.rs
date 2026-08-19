@@ -14,9 +14,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
+use common::config::services::CommonConfig;
+use serde::Deserialize;
+use ymir::config::traits::HostsConfigTrait;
+use ymir::config::types::HostType;
 
 /// Runtime configuration for the OAuth / OIDC service.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct OAuthConfig {
     /// HS256 signing secret for access, refresh, and ID tokens.
     pub jwt_secret: String,
@@ -55,5 +59,17 @@ impl OAuthConfig {
     pub fn with_refresh_ttl(mut self, secs: i64) -> Self {
         self.refresh_token_ttl_secs = secs;
         self
+    }
+}
+
+impl From<CommonConfig> for OAuthConfig {
+    fn from(value: CommonConfig) -> Self {
+        Self {
+            jwt_secret: value.jwt_secret,
+            access_token_ttl_secs: value.access_token_ttl,
+            refresh_token_ttl_secs: value.refresh_token_ttl,
+            issuer: value.hosts.get_host(HostType::Http),
+            audience: "client".to_string(),
+        }
     }
 }

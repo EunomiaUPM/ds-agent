@@ -44,8 +44,10 @@ impl TransferHttpWorker {
 
         let listener =
             bind_listener(config.common().get_internal_port(HostType::Http), "HTTP").await?;
+
         let server =
             serve(listener, router).with_graceful_shutdown(shutdown_signal(token.clone(), "HTTP"));
+
         Ok(spawn_server("HTTP", server))
     }
 }

@@ -22,29 +22,27 @@ use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, Qu
 use uuid::Uuid;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
-use crate::data::repositories::refresh_token::{
-    RefreshTokenRepository, RefreshTokenRepositoryError,
-};
-use crate::data::sea_orm::orm::refresh_token as orm;
+use crate::data::repositories::token::{TokenRepository, TokenRepositoryError};
+use crate::data::sea_orm::orm::token as orm;
 use crate::entities::refresh_token::RefreshToken;
 
-pub(crate) struct SeaOrmRefreshTokenRepository {
+pub(crate) struct SeaOrmTokenRepository {
     db: Arc<DatabaseConnection>,
 }
 
-impl SeaOrmRefreshTokenRepository {
+impl SeaOrmTokenRepository {
     pub fn new(db: Arc<DatabaseConnection>) -> Self {
         Self { db }
     }
 }
 
 #[async_trait::async_trait]
-impl RefreshTokenRepository for SeaOrmRefreshTokenRepository {
+impl TokenRepository for SeaOrmTokenRepository {
     async fn create(&self, token: &RefreshToken) -> Outcome<RefreshToken> {
         orm::ActiveModel::from_domain(token)
             .insert(self.db.as_ref())
             .await
-            .map_err(|e| RefreshTokenRepositoryError::Db(Box::new(e)).into_errors())
+            .map_err(|e| TokenRepositoryError::Db(Box::new(e)).into_errors())
             .and_then(orm::Model::into_domain)
     }
 
@@ -53,7 +51,7 @@ impl RefreshTokenRepository for SeaOrmRefreshTokenRepository {
             .filter(orm::Column::Jti.eq(jti))
             .one(self.db.as_ref())
             .await
-            .map_err(|e| RefreshTokenRepositoryError::Db(Box::new(e)).into_errors())?
+            .map_err(|e| TokenRepositoryError::Db(Box::new(e)).into_errors())?
             .map(orm::Model::into_domain)
             .transpose()
     }
@@ -62,15 +60,15 @@ impl RefreshTokenRepository for SeaOrmRefreshTokenRepository {
         let token = orm::Entity::find_by_id(id)
             .one(self.db.as_ref())
             .await
-            .map_err(|e| RefreshTokenRepositoryError::Db(Box::new(e)).into_errors())?
-            .ok_or_else(|| RefreshTokenRepositoryError::NotFound.into_errors())?;
+            .map_err(|e| TokenRepositoryError::Db(Box::new(e)).into_errors())?
+            .ok_or_else(|| TokenRepositoryError::NotFound.into_errors())?;
 
         let mut active: orm::ActiveModel = token.into();
         active.revoked = Set(true);
         active
             .update(self.db.as_ref())
             .await
-            .map_err(|e| RefreshTokenRepositoryError::Db(Box::new(e)).into_errors())?;
+            .map_err(|e| TokenRepositoryError::Db(Box::new(e)).into_errors())?;
         Ok(())
     }
 
@@ -81,7 +79,7 @@ impl RefreshTokenRepository for SeaOrmRefreshTokenRepository {
             .filter(orm::Column::TenantId.eq(tenant_id))
             .exec(self.db.as_ref())
             .await
-            .map_err(|e| RefreshTokenRepositoryError::Db(Box::new(e)).into_errors())?;
+            .map_err(|e| TokenRepositoryError::Db(Box::new(e)).into_errors())?;
         Ok(())
     }
 }

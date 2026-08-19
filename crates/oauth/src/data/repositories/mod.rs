@@ -15,5 +15,5 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod refresh_token;
+pub(crate) mod token;
 pub(crate) mod user;

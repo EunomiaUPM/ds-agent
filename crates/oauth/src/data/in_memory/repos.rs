@@ -23,7 +23,7 @@ use chrono::{DateTime, Utc};
 use uuid::Uuid;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
-use crate::data::repositories::refresh_token::RefreshTokenRepository;
+use crate::data::repositories::token::TokenRepository;
 use crate::data::repositories::user::{UserRepository, UserRepositoryError};
 use crate::entities::query::{Page, Sort, UserFilter};
 use crate::entities::refresh_token::RefreshToken;
@@ -176,7 +176,7 @@ impl InMemoryRefreshTokenRepository {
 }
 
 #[async_trait::async_trait]
-impl RefreshTokenRepository for InMemoryRefreshTokenRepository {
+impl TokenRepository for InMemoryRefreshTokenRepository {
     async fn create(&self, token: &RefreshToken) -> Outcome<RefreshToken> {
         self.store.lock().unwrap().insert(token.id, token.clone());
         Ok(token.clone())

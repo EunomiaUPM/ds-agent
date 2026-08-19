@@ -15,29 +15,28 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::data::factory::OAuthDataFactory;
+use crate::data::sea_orm::factory::SeaOrmDataFactory;
+use crate::entities::role::RbacRole;
+use crate::entities::user::User;
+use chrono::Utc;
+
 pub(crate) mod password;
 pub mod token_service;
 pub mod user_service;
 
-// Admin seeding ─────────────────────────────────────────────────────────────
-
-/// Ensures an admin user with the given credentials exists in the database.
-/// Idempotent: does nothing if a user with `email` already exists.
+/// Admin user seeder.
+/// On boot procedures, an admin taken by config info is seeded into the database.
+/// This admin has token against, applications via REST-API can perform actions
 pub async fn seed_admin_user(
     db: sea_orm::DatabaseConnection,
     tenant_id: &str,
     email: &str,
     default_password: &str,
 ) -> ymir::errors::Outcome<()> {
-    use crate::data::factory::OAuthDataFactory;
-    use crate::data::sea_orm::factory::SeaOrmDataFactory;
-    use crate::entities::role::RbacRole;
-    use crate::entities::user::User;
-    use chrono::Utc;
-
     let factory = SeaOrmDataFactory::new(db);
-    let user_repo = factory.user_repository();
 
+    let user_repo = factory.user_repository();
     if user_repo.get_by_email(email).await?.is_some() {
         tracing::info!("Admin user '{}' already exists — skipping seed.", email);
         return Ok(());
@@ -54,6 +53,7 @@ pub async fn seed_admin_user(
         extra_fields: serde_json::Value::Object(Default::default()),
     };
     user_repo.create(&user).await?;
+
     tracing::info!("Admin user '{}' seeded successfully.", email);
     Ok(())
 }

@@ -48,18 +48,6 @@ pub(crate) struct OpenIdConfiguration {
     pub claims_supported: Vec<String>,
 }
 
-// User list query params ────────────────────────────────────────────────────
-
-#[derive(Deserialize, Default)]
-pub(crate) struct UserListQuery {
-    #[serde(flatten)]
-    pub filter: UserFilter,
-    #[serde(flatten)]
-    pub page: Page,
-    #[serde(default)]
-    pub sort: Sort,
-}
-
 impl OpenIdConfiguration {
     pub(crate) fn build(issuer: &str) -> Self {
         Self {
@@ -82,4 +70,14 @@ impl OpenIdConfiguration {
             ],
         }
     }
+}
+
+#[derive(Deserialize, Default)]
+pub(crate) struct UserListQuery {
+    #[serde(flatten)]
+    pub filter: UserFilter,
+    #[serde(flatten)]
+    pub page: Page,
+    #[serde(default)]
+    pub sort: Sort,
 }

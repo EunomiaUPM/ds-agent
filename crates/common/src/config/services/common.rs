@@ -30,8 +30,20 @@ pub struct CommonConfig {
     pub connection: ConnectionConfig,
     #[serde(default)]
     pub jwt_secret: String,
+    #[serde(default = "default_access_token_ttl")]
+    pub access_token_ttl: i64,
+    #[serde(default = "default_refresh_token_ttl")]
+    pub refresh_token_ttl: i64,
     #[serde(default)]
     pub admin_seed: AdminSeedConfig,
+}
+
+fn default_access_token_ttl() -> i64 {
+    3_600
+}
+
+fn default_refresh_token_ttl() -> i64 {
+    2_592_000
 }
 
 impl HostsConfigTrait for CommonConfig {

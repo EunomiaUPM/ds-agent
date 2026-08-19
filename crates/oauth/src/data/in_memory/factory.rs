@@ -19,12 +19,12 @@ use std::sync::Arc;
 
 use crate::data::factory::OAuthDataFactory;
 use crate::data::in_memory::repos::{InMemoryRefreshTokenRepository, InMemoryUserRepository};
-use crate::data::repositories::refresh_token::RefreshTokenRepository;
+use crate::data::repositories::token::TokenRepository;
 use crate::data::repositories::user::UserRepository;
 
 pub(crate) struct InMemoryDataFactory {
     user_repo: Arc<dyn UserRepository>,
-    refresh_token_repo: Arc<dyn RefreshTokenRepository>,
+    refresh_token_repo: Arc<dyn TokenRepository>,
 }
 
 impl InMemoryDataFactory {
@@ -41,7 +41,7 @@ impl OAuthDataFactory for InMemoryDataFactory {
         self.user_repo.clone()
     }
 
-    fn refresh_token_repository(&self) -> Arc<dyn RefreshTokenRepository> {
+    fn token_repository(&self) -> Arc<dyn TokenRepository> {
         self.refresh_token_repo.clone()
     }
 }

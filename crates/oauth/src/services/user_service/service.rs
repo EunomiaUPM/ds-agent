@@ -81,7 +81,9 @@ impl UserServiceTrait for UserService {
             .ok_or_else(|| Errors::format(BadFormat::Received, "user not found", None))
     }
 
-    async fn userinfo(&self, tenant_id: &str) -> Outcome<UserInfo> {
+    /// A convenience method for token service management
+    /// Only difference to `get_user` is the [`UserInfo`] struct
+    async fn user_info(&self, tenant_id: &str) -> Outcome<UserInfo> {
         self.user_repo
             .get_by_tenant_id(tenant_id)
             .await?

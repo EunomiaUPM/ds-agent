@@ -17,8 +17,11 @@
 
 mod boot;
 pub mod cmd;
+mod composition;
+mod context;
+mod db_migrations;
+mod domain;
 mod grpc_worker;
 mod http_worker;
-mod migrations;
-mod module_composition;
-mod root_api;
+
+pub use composition::TransferAgentModule;

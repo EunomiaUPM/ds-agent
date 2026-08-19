@@ -23,8 +23,14 @@ use sea_orm::DatabaseConnection;
 use sea_orm_migration::MigrationTrait;
 
 use crate::config::OAuthConfig;
+use crate::data::factory::OAuthDataFactory;
+use crate::data::sea_orm::factory::SeaOrmDataFactory;
+use crate::http::token_router::TokenRouter;
+use crate::http::users_router::UsersRouter;
+use crate::services::token_service::service::TokenService;
 use crate::services::token_service::{OauthTokenValidator, TokenServiceTrait};
 use crate::services::user_service::UserServiceTrait;
+use crate::services::user_service::service::UserService;
 
 /// OAuth as a composable service module: `/oauth` endpoints (login / token /
 /// refresh / users) plus the users tables. Construct it with the config and
@@ -62,58 +68,29 @@ impl OAuthSetup {
         OAuthSetup {}
     }
 
-    /// Validate-only service backed by in-memory stubs.
-    /// Only `validate_token` is functional; all other methods will fail because
-    /// the backing repos are empty.
-    pub fn build_validator(&self, jwt_secret: &str) -> Arc<dyn OauthTokenValidator> {
-        use crate::data::in_memory::repos::{
-            InMemoryRefreshTokenRepository, InMemoryUserRepository,
-        };
-        use crate::services::token_service::service::TokenService;
-        Arc::new(TokenService::new(
-            Arc::new(InMemoryUserRepository::new()),
-            Arc::new(InMemoryRefreshTokenRepository::new()),
-            OAuthConfig::new(jwt_secret, "", ""),
-        ))
-    }
-
-    /// Full token service backed by a real database.
-    pub fn build_full(
+    /// Token services for OAuth token validation
+    pub fn build_token_service(
         &self,
         config: OAuthConfig,
         db: DatabaseConnection,
     ) -> Arc<dyn TokenServiceTrait> {
-        use crate::data::factory::OAuthDataFactory;
-        use crate::data::sea_orm::factory::SeaOrmDataFactory;
-        use crate::services::token_service::service::TokenService;
         let factory = SeaOrmDataFactory::new(db);
         Arc::new(TokenService::new(
             factory.user_repository(),
-            factory.refresh_token_repository(),
+            factory.token_repository(),
             config,
         ))
     }
 
-    /// Builds the full OAuth router (token, users) backed by a real database.
+    /// Builds the full OAuth router (token, users)
     /// Mount this under an appropriate prefix (e.g. `/oauth`) in the host service.
     pub fn build_router(&self, config: OAuthConfig, db: DatabaseConnection) -> Router {
-        use crate::data::factory::OAuthDataFactory;
-        use crate::data::sea_orm::factory::SeaOrmDataFactory;
-        use crate::http::token_router::TokenRouter;
-        use crate::http::users_router::UsersRouter;
-        use crate::services::token_service::service::TokenService;
-        use crate::services::user_service::service::UserService;
-
-        let factory = SeaOrmDataFactory::new(db);
-        let token_svc: Arc<dyn TokenServiceTrait> = Arc::new(TokenService::new(
-            factory.user_repository(),
-            factory.refresh_token_repository(),
-            config.clone(),
-        ));
+        let factory = SeaOrmDataFactory::new(db.clone());
+        let token_svc: Arc<dyn TokenServiceTrait> =
+            self.build_token_service(config.clone(), db.clone());
         let user_svc: Arc<dyn UserServiceTrait> =
             Arc::new(UserService::new(factory.user_repository()));
         let issuer = config.issuer.clone();
-
         let token_router = TokenRouter::new(token_svc.clone(), user_svc.clone(), issuer).router();
         let users_router = UsersRouter::new(token_svc, user_svc).router();
 

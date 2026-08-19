@@ -15,12 +15,13 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::setup::TransferAgentModule;
 use crate::setup::grpc_worker::TransferGrpcWorker;
 use crate::setup::http_worker::TransferHttpWorker;
-use crate::setup::module_composition::TransferAgentRefCompositionRoot;
 use common::boot::BootstrapServiceTrait;
 use common::config::services::TransferConfig;
 use common::config::types::traits::{CommonConfigTrait, ConfigLoader};
+use common::module_loader::service_composer::ServiceComposer;
 use std::sync::Arc;
 use tokio::sync::broadcast;
 use tokio::sync::broadcast::Sender;
@@ -76,14 +77,14 @@ impl BootstrapServiceTrait for TransferBoot {
         let cancel_token = CancellationToken::new();
 
         tracing::info!("Composing service graph...");
-        let root = TransferAgentRefCompositionRoot::compose(config, &vault).await?;
-
+        let composer =
+            ServiceComposer::new().register(TransferAgentModule::compose(config, &vault).await?);
         tracing::info!("Spawning HTTP subsystem...");
         let http_handle =
-            TransferHttpWorker::spawn(config, root.http_router, &cancel_token).await?;
+            TransferHttpWorker::spawn(config, composer.http_router(), &cancel_token).await?;
         tracing::info!("Spawning gRPC subsystem...");
         let grpc_handle =
-            TransferGrpcWorker::spawn(config, root.grpc_routes, &cancel_token).await?;
+            TransferGrpcWorker::spawn(config, composer.grpc_routes(), &cancel_token).await?;
 
         let token_clone = cancel_token.clone();
         tokio::spawn(async move {

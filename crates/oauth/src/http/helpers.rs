@@ -18,6 +18,7 @@
 use axum::http::HeaderMap;
 use ymir::errors::{BadFormat, Errors, Outcome};
 
+/// Helper function to get Bearer JWT from Authorization header in HTTP requests
 pub(crate) fn bearer(headers: &HeaderMap) -> Outcome<&str> {
     headers
         .get(axum::http::header::AUTHORIZATION)

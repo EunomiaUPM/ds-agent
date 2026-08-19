@@ -23,7 +23,7 @@ use ymir::errors::Outcome;
 use crate::entities::refresh_token::RefreshToken;
 
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
-#[sea_orm(table_name = "oauth_refresh_tokens")]
+#[sea_orm(table_name = "oauth_tokens")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,

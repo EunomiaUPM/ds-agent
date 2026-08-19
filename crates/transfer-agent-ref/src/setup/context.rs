@@ -34,11 +34,8 @@ use crate::data::sea_orm::factory::SeaOrmDataFactory;
 use crate::services::transfer_message::service::TransferMessageService;
 use crate::services::transfer_process::service::TransferProcessService;
 
-/// Shared infrastructure and domain services, provisioned once and handed to
-/// every module. Building modules reads from here instead of threading a fresh
-/// bag of dependencies through each constructor — add a field once, use it in
-/// as many modules as you like.
-pub(crate) struct AppContext {
+#[derive(Clone)]
+pub struct AppContext {
     pub config: Arc<TransferConfig>,
     pub db: DatabaseConnection,
     pub transfer_process_svc: Arc<TransferProcessService>,

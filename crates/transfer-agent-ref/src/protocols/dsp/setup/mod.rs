@@ -12,6 +12,7 @@ use std::sync::Arc;
 use crate::protocols::dsp::http::dsp::DspRouter;
 use crate::services::transfer_message::service::TransferMessageService;
 use crate::services::transfer_process::service::TransferProcessService;
+use crate::setup::context::AppContext;
 use axum::Router;
 use common::auth::middleware::OauthTokenValidator;
 use common::config::services::TransferConfig;
@@ -21,28 +22,12 @@ use common::module_loader::service_module::ServiceModuleTrait;
 const DSP_BASE_PATH: &str = "/dsp/current/transfers";
 
 pub(crate) struct DspModule {
-    config: Arc<TransferConfig>,
-    process: Arc<TransferProcessService>,
-    message: Arc<TransferMessageService>,
-    oauth_validator: Arc<dyn OauthTokenValidator>,
-    ssi_auth: Arc<SSIAuthFacadeService>,
+    ctx: Arc<AppContext>,
 }
 
 impl DspModule {
-    pub fn new(
-        config: Arc<TransferConfig>,
-        process: Arc<TransferProcessService>,
-        message: Arc<TransferMessageService>,
-        validator: Arc<dyn OauthTokenValidator>,
-        ssi_auth: Arc<SSIAuthFacadeService>,
-    ) -> Self {
-        Self {
-            config,
-            process,
-            message,
-            oauth_validator: validator,
-            ssi_auth,
-        }
+    pub fn new(ctx: Arc<AppContext>) -> Self {
+        Self { ctx }
     }
 }
 
@@ -54,7 +39,7 @@ impl ServiceModuleTrait for DspModule {
     fn http(&self) -> Option<(String, Router)> {
         Some((
             DSP_BASE_PATH.to_string(),
-            DspRouter::new(self.ssi_auth.clone()).router(),
+            DspRouter::new(self.ctx.ssi_auth_facade.clone()).router(),
         ))
     }
 }

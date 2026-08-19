@@ -14,7 +14,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
-
 use axum::Router;
 use common::config::services::TransferConfig;
 use common::config::types::traits::CommonConfigTrait;
@@ -22,14 +21,15 @@ use common::module_loader::module_group::ModuleGroup;
 use common::module_loader::service_module::ServiceModuleTrait;
 use oauth::setup::OAuthModule;
 use sea_orm_migration::MigrationTrait;
+use std::sync::Arc;
 use tonic::service::RoutesBuilder;
 use ymir::errors::Outcome;
 use ymir::services::vault::global::VaultService;
 
 use crate::SERVICE_NAME;
 use crate::protocols::dsp::setup::DspModule;
+use crate::setup::admin_module::TransferAdminModule;
 use crate::setup::context::AppContext;
-use crate::setup::domain::TransferDomainModule;
 
 /// The transfer agent as one composable [`ServiceModuleTrait`]: it hosts OAuth,
 /// the DSP transfer protocol, and its own transfer-processes / transfer-messages
@@ -41,42 +41,22 @@ pub struct TransferAgentModule {
 }
 
 impl TransferAgentModule {
-    /// Provision the shared context (DB, domain services, validators) once. The
-    /// resulting module can then be registered into a composer.
     pub async fn compose(config: &TransferConfig, vault: &VaultService) -> Outcome<Self> {
         Ok(Self {
             ctx: AppContext::build(config, vault).await?,
         })
     }
 
-    /// The hosted modules in mount order: OAuth, DSP, then this agent's native
-    /// API. Rebuilt per call from the shared [`AppContext`] — the modules hold
-    /// only `Arc` clones, so this is cheap — because the [`ServiceModuleTrait`]
-    /// hooks borrow `&self` while [`ModuleGroup::register`] takes ownership.
     fn modules(&self) -> ModuleGroup {
         ModuleGroup::new(SERVICE_NAME)
             .register(OAuthModule::new(
                 self.ctx.config.common().clone().into(),
                 self.ctx.db.clone(),
             ))
-            .register(DspModule::new(
-                self.ctx.config.clone(),
-                self.ctx.transfer_process_svc.clone(),
-                self.ctx.transfer_message_svc.clone(),
-                self.ctx.oauth_validator.clone(),
-                self.ctx.ssi_auth_facade.clone(),
-            ))
-            .register(TransferDomainModule::new(
-                self.ctx.config.clone(),
-                self.ctx.transfer_process_svc.clone(),
-                self.ctx.transfer_message_svc.clone(),
-                self.ctx.oauth_validator.clone(),
-            ))
+            .register(DspModule::new(Arc::new(self.ctx.clone())))
+            .register(TransferAdminModule::new(Arc::new(self.ctx.clone())))
     }
 
-    /// Static migration list for the sea_orm migrator, which runs without a live
-    /// [`AppContext`]. Mirrors the migrations owned by the modules in
-    /// [`Self::modules`]; keep the two in sync when adding a hosted module.
     pub fn migrations() -> Vec<Box<dyn MigrationTrait>> {
         [
             oauth::get_oauth_migrations(),

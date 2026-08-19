@@ -15,12 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+mod admin_module;
 mod boot;
 pub mod cmd;
 mod composition;
-mod context;
+pub(crate) mod context;
 mod db_migrations;
-mod domain;
 mod grpc_worker;
 mod http_worker;
 

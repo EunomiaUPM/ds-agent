@@ -31,18 +31,19 @@ use crate::services::secrets::service::SecretStoreImpl;
 use axum::Router;
 use common::config::ApplicationConfig;
 use common::config::types::traits::CommonConfigTrait;
+use common::module_loader::service_module::ServiceModuleTrait;
+use sea_orm_migration::MigrationTrait;
+use ymir::config::traits::ApiConfigTrait;
 use ymir::services::vault::VaultService;
 use ymir::services::vault::VaultTrait;
 
-pub struct KeystoreSetup;
+pub struct KeystoreModule {
+    prefix: String,
+    router: Router,
+}
 
-impl KeystoreSetup {
-    pub fn new() -> Self {
-        Self
-    }
-
-    pub async fn build_keystore_stores<C>(
-        &self,
+impl KeystoreModule {
+    pub async fn build_stores<C>(
         config: &C,
         vault: Arc<VaultService>,
     ) -> (
@@ -52,7 +53,10 @@ impl KeystoreSetup {
     where
         C: CommonConfigTrait + Send + Sync,
     {
-        let db = vault.get_db_connection(config.common()).await.unwrap();
+        let db = vault
+            .get_db_connection(config.common())
+            .await
+            .expect("Unable to retrieve db connection");
         let parameter_repo = Arc::new(SeaOrmParameterRepo::new(db.clone()));
         let secret_repo: Arc<dyn SecretRepoTrait> = match &*vault {
             VaultService::Real(_) => Arc::new(VaultSecretRepo::new(
@@ -67,34 +71,39 @@ impl KeystoreSetup {
         )
     }
 
-    pub async fn build_keystore_router<C>(
-        &self,
+    pub async fn build<C>(
         config: &C,
         app_config: Arc<ApplicationConfig>,
         vault: Arc<VaultService>,
-    ) -> Router
+    ) -> Self
     where
         C: CommonConfigTrait + Send + Sync,
     {
-        let db = vault
-            .get_db_connection(config.common())
-            .await
-            .expect("Unable to retrieve db connection");
+        let prefix = format!("{}/keystore", config.common().get_api_version());
+        let (parameter_service, secret_service) = Self::build_stores(config, vault).await;
+        let config_service =
+            Arc::new(ConfigStoreImpl::new(Arc::new(ConfigPassthroughRepo::new(app_config))));
 
-        let config_repo = Arc::new(ConfigPassthroughRepo::new(app_config));
-        let parameter_repo = Arc::new(SeaOrmParameterRepo::new(db.clone()));
-        let secret_repo: Arc<dyn SecretRepoTrait> = match &*vault {
-            VaultService::Real(_) => Arc::new(VaultSecretRepo::new(
-                vault.clone(),
-                Arc::new(SeaOrmSecretRepo::new(db.clone())),
-            )),
-            VaultService::Fake(_) => Arc::new(SeaOrmSecretRepo::new(db.clone())),
-        };
+        let router =
+            KeystoreRouter::new(parameter_service, secret_service, config_service).router();
+        Self { prefix, router }
+    }
 
-        let config_service = Arc::new(ConfigStoreImpl::new(config_repo));
-        let parameter_service = Arc::new(ParameterStoreImpl::new(parameter_repo));
-        let secret_service = Arc::new(SecretStoreImpl::new(secret_repo));
+    pub fn migrations() -> Vec<Box<dyn MigrationTrait>> {
+        crate::get_keystore_migrations()
+    }
+}
 
-        KeystoreRouter::new(parameter_service, secret_service, config_service).router()
+impl ServiceModuleTrait for KeystoreModule {
+    fn name(&self) -> &'static str {
+        "keystore"
+    }
+
+    fn migrations(&self) -> Vec<Box<dyn MigrationTrait>> {
+        Self::migrations()
+    }
+
+    fn http(&self) -> Option<(String, Router)> {
+        Some((self.prefix.clone(), self.router.clone()))
     }
 }

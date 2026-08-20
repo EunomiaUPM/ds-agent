@@ -25,7 +25,7 @@ use common::module_loader::service_module::ServiceModuleTrait;
 use connector::get_connector_migrations;
 use dataplane::get_dataplane_migrations;
 use events::data::migrations::get_events_migrations;
-use keystore::get_keystore_migrations;
+use keystore::KeystoreModule;
 use negotiation_agent::get_negotiation_agent_migrations;
 use oauth::get_oauth_migrations;
 use oauth::setup::OAuthModule;
@@ -56,14 +56,6 @@ impl ToBeDeprecatedRouterModule {
             router,
         }
     }
-
-    fn nested(name: &'static str, prefix: String, router: Router) -> Self {
-        Self {
-            name,
-            prefix,
-            router,
-        }
-    }
 }
 
 impl ServiceModuleTrait for ToBeDeprecatedRouterModule {
@@ -87,11 +79,11 @@ impl MonolithModule {
 
         let transfer_cfg = config.transfer();
         let transfer = TransferAgentModule::compose(&transfer_cfg, &vault).await?;
-
-        // OAuth is process-wide: mount the `/oauth` routes once at the root, from
-        // the transfer agent's OAuth config, so no agent re-mounts them.
         let oauth_db = vault.get_db_connection(transfer_cfg.common()).await?;
         let oauth = OAuthModule::new(transfer_cfg.common().clone().into(), oauth_db);
+
+        let keystore =
+            KeystoreModule::build(config.monolith(), Arc::new(config.clone()), vault.clone()).await;
 
         // Preserve the previous `create_core_router` mount layout: each agent
         // merged at the root, keystore nested under `{api}/keystore`.
@@ -102,11 +94,7 @@ impl MonolithModule {
             .register(oauth)
             .register(transfer)
             .register(ToBeDeprecatedRouterModule::merged("gateway", ctx.gateway_router))
-            .register(ToBeDeprecatedRouterModule::nested(
-                "keystore",
-                ctx.keystore_prefix,
-                ctx.keystore_router,
-            ));
+            .register(keystore);
 
         Ok(Self { group })
     }
@@ -121,7 +109,7 @@ impl MonolithModule {
             get_dataplane_migrations(),
             get_oauth_migrations(),
             TransferAgentModule::migrations(),
-            get_keystore_migrations(),
+            KeystoreModule::migrations(),
         ]
         .into_iter()
         .flatten()

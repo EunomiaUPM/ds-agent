@@ -33,7 +33,7 @@ use common::config::services::TransferConfig;
 use common::config::types::traits::{CacheConfigTrait, CommonConfigTrait};
 use common::http_client::HttpClient;
 use connector::ConnectorInstanceTrait;
-use keystore::setup::KeystoreSetup;
+use keystore::KeystoreModule;
 use keystore::SecretStore;
 use std::sync::Arc;
 use ymir::services::vault::global::VaultService;
@@ -115,9 +115,7 @@ impl DataplaneSetup {
         config: &TransferConfig,
         vault: Arc<VaultService>,
     ) -> (Arc<KeystoreClientImpl>, Arc<dyn SecretStore>) {
-        let (parameter_store, secret_store) = KeystoreSetup::new()
-            .build_keystore_stores(config, vault)
-            .await;
+        let (parameter_store, secret_store) = KeystoreModule::build_stores(config, vault).await;
         let lookup = Arc::new(KeystoreClientImpl::new(
             parameter_store,
             secret_store.clone(),

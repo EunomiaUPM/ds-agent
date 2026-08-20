@@ -18,13 +18,18 @@
 use std::net::SocketAddr;
 use std::sync::Arc;
 
+use axum::extract::Request;
+use axum::Router;
 use axum_server::tls_rustls::RustlsConfig;
 use common::config::types::traits::CommonConfigTrait;
 use common::config::ApplicationConfig;
+use common::well_known::WellKnownRoot;
 use tokio::net::TcpListener;
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
+use tower_http::trace::{DefaultOnResponse, TraceLayer};
 use tracing::{error, info};
+use uuid::Uuid;
 use ymir::config::traits::{ConnectionConfigTrait, HostsConfigTrait};
 use ymir::config::types::HostType;
 use ymir::errors::{Errors, Outcome};
@@ -33,14 +38,13 @@ use ymir::services::vault::VaultTrait;
 use ymir::types::secrets::StringHelper;
 use ymir::utils::expect_from_env;
 
-use crate::setup::router::create_core_router;
-
 pub struct CoreHttpWorker;
 
 impl CoreHttpWorker {
     pub async fn spawn(
         config: &ApplicationConfig,
         vault: Arc<VaultService>,
+        api_router: Router,
         token: &CancellationToken,
     ) -> Outcome<JoinHandle<()>> {
         let server_message = format!(
@@ -49,18 +53,37 @@ impl CoreHttpWorker {
         );
         info!("{}", server_message);
 
+        let router = Self::finalize_router(config, api_router)?;
+
         if config.monolith().common().is_prod() && !config.monolith().common().has_tls_proxy() {
             info!("Running with TLS active");
-            Self::run_tls(config, vault, token).await
+            Self::run_tls(config, vault, router, token).await
         } else {
             info!("Running without TLS");
-            Self::run(config, vault, token).await
+            Self::run(config, router, token).await
         }
+    }
+
+    /// Add the process-wide planes on top of the composed agent surface: the
+    /// dataspace well-known routes and the request-tracing layer.
+    fn finalize_router(config: &ApplicationConfig, api_router: Router) -> Outcome<Router> {
+        let well_known = WellKnownRoot::get_well_known_router(&config.into())?;
+        Ok(api_router.merge(well_known).layer(
+            TraceLayer::new_for_http()
+                .make_span_with(|_req: &Request<_>| {
+                    tracing::info_span!("request", id = %Uuid::new_v4())
+                })
+                .on_request(|request: &Request<_>, _span: &tracing::Span| {
+                    tracing::info!("{} {}", request.method(), request.uri());
+                })
+                .on_response(DefaultOnResponse::new().level(tracing::Level::TRACE)),
+        ))
     }
 
     pub async fn run_tls(
         config: &ApplicationConfig,
         vault: Arc<VaultService>,
+        router: Router,
         token: &CancellationToken,
     ) -> Outcome<JoinHandle<()>> {
         let cert_key = expect_from_env("VAULT_APP_ROOT_CLIENT_KEY");
@@ -77,7 +100,6 @@ impl CoreHttpWorker {
         .await
         .map_err(|e| Errors::crazy("Errors parsing certificate stuff", Some(Box::new(e))))?;
 
-        let router = create_core_router(config, vault.clone()).await;
         let port = config
             .monolith()
             .common()
@@ -119,11 +141,9 @@ impl CoreHttpWorker {
 
     pub async fn run(
         config: &ApplicationConfig,
-        vault: Arc<VaultService>,
+        router: Router,
         token: &CancellationToken,
     ) -> Outcome<JoinHandle<()>> {
-        let router = create_core_router(config, vault.clone()).await;
-
         let port = config
             .monolith()
             .common()

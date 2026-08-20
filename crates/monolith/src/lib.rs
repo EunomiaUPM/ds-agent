@@ -15,4 +15,6 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+pub const SERVICE_NAME: &str = "agent";
+pub const SERVICE_BIG_NAME: &str = "Monolith Agent";
 pub mod setup;

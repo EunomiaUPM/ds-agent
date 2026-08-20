@@ -17,9 +17,7 @@ use crate::http::transfer_message_router::TransferMessageRouter;
 use crate::http::transfer_process_router::TransferProcessRouter;
 use crate::setup::context::AppContext;
 
-/// This agent's own transfer-processes / transfer-messages surface, behind OAuth
-/// token validation. Split out as its own module so it composes as a peer of the
-/// hosted OAuth and DSP modules rather than as special-cased glue.
+
 pub struct TransferAdminModule {
     ctx: Arc<AppContext>,
 }
@@ -41,7 +39,7 @@ impl TransferAdminModule {
 
 impl ServiceModuleTrait for TransferAdminModule {
     fn name(&self) -> &'static str {
-        "transfer-agent-native"
+        "transfer-agent"
     }
 
     fn migrations(&self) -> Vec<Box<dyn MigrationTrait>> {

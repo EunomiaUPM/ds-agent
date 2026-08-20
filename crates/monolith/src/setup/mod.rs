@@ -17,8 +17,10 @@
 
 pub mod boot;
 pub mod cmd;
+mod composition;
+pub(crate) mod context;
 pub mod db_migrations;
 mod http_worker;
-pub mod router;
 
+pub use composition::MonolithModule;
 pub use http_worker::CoreHttpWorker;

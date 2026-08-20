@@ -15,57 +15,19 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use monolith::setup::cmd::CoreCommands;
+use monolith::setup::cmd::MonolithAgentCommands;
 use tracing::info;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 use ymir::errors::{Errors, Outcome};
-
-const INFO: &str = r"
-----------
- /$$$$$$$$                                             /$$
-| $$_____/                                            |__/
-| $$       /$$   /$$ /$$$$$$$   /$$$$$$  /$$$$$$/$$$$  /$$  /$$$$$$
-| $$$$$   | $$  | $$| $$__  $$ /$$__  $$| $$_  $$_  $$| $$ |____  $$
-| $$__/   | $$  | $$| $$  \ $$| $$  \ $$| $$ \ $$ \ $$| $$  /$$$$$$$
-| $$      | $$  | $$| $$  | $$| $$  | $$| $$ | $$ | $$| $$ /$$__  $$
-| $$$$$$$$|  $$$$$$/| $$  | $$|  $$$$$$/| $$ | $$ | $$| $$|  $$$$$$$
-|________/ \______/ |__/  |__/ \______/ |__/ |__/ |__/|__/ \_______/
-
-
-
- /$$$$$$$   /$$$$$$           /$$$$$$                                  /$$
-| $$__  $$ /$$__  $$         /$$__  $$                                | $$
-| $$  \ $$| $$  \__/        | $$  \ $$  /$$$$$$   /$$$$$$  /$$$$$$$  /$$$$$$
-| $$  | $$|  $$$$$$  /$$$$$$| $$$$$$$$ /$$__  $$ /$$__  $$| $$__  $$|_  $$_/
-| $$  | $$ \____  $$|______/| $$__  $$| $$  \ $$| $$$$$$$$| $$  \ $$  | $$
-| $$  | $$ /$$  \ $$        | $$  | $$| $$  | $$| $$_____/| $$  | $$  | $$ /$$
-| $$$$$$$/|  $$$$$$/        | $$  | $$|  $$$$$$$|  $$$$$$$| $$  | $$  |  $$$$/
-|_______/  \______/         |__/  |__/ \____  $$ \_______/|__/  |__/   \___/
-                                       /$$  \ $$
-                                      |  $$$$$$/
-                                       \______/
-
-Starting Eunomia DS-Agent Core Server 🌈🌈
-UPM Dataspace multistack agent
-Show some love on https://github.com/EunomiaUPM/ds-agent
-----------
-
-";
+use common::info_banner::banner;
+use common::telemetry;
+use monolith::{SERVICE_BIG_NAME, SERVICE_NAME};
 
 #[tokio::main]
 async fn main() -> Outcome<()> {
-    let filter = EnvFilter::builder()
-        .with_default_directive(LevelFilter::INFO.into())
-        .parse("debug,sqlx::query=off")
-        .map_err(|e| Errors::crazy(e.to_string(), Some(Box::new(e))))?;
-    tracing_subscriber::fmt()
-        .event_format(tracing_subscriber::fmt::format().with_line_number(true))
-        .with_env_filter(filter)
-        .init();
-    info!("{}", INFO);
-    CoreCommands::init_command_line().await.map_err(|e| {
-        e.log();
-        e
-    })
+    telemetry::init(SERVICE_NAME);
+    info!("{}", banner(SERVICE_BIG_NAME));
+    MonolithAgentCommands::init_command_line().await?;
+    Ok(())
 }

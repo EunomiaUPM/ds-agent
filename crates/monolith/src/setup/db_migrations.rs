@@ -15,42 +15,18 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use auth::data::migrations::get_auth_migrations;
-use catalog_agent::get_catalog_migrations;
-use connector::get_connector_migrations;
-use dataplane::get_dataplane_migrations;
-use events::data::migrations::get_events_migrations;
-use keystore::get_keystore_migrations;
-use negotiation_agent::get_negotiation_agent_migrations;
 use sea_orm::sea_query::{Alias, DynIden, IntoIden};
 use sea_orm::DatabaseConnection;
 use sea_orm_migration::{MigrationTrait, MigratorTrait};
-use transfer_agent::get_transfer_agent_migrations;
 use ymir::errors::{Errors, Outcome};
+
+use crate::setup::composition::MonolithModule;
 
 pub struct CoreProviderMigration;
 
 impl MigratorTrait for CoreProviderMigration {
     fn migrations() -> Vec<Box<dyn MigrationTrait>> {
-        let mut migrations: Vec<Box<dyn MigrationTrait>> = vec![];
-        let mut catalog_migrations = get_catalog_migrations();
-        let mut connector_migrations = get_connector_migrations();
-        let mut contract_negotiation_provider_migrations = get_negotiation_agent_migrations();
-        let mut pub_sub_migrations = get_events_migrations();
-        let mut auth_migrations = get_auth_migrations();
-        let mut dataplane_migrations = get_dataplane_migrations();
-        let mut transfer_agent_migrations = get_transfer_agent_migrations();
-        let mut keystore_migrations = get_keystore_migrations();
-
-        migrations.append(&mut catalog_migrations);
-        migrations.append(&mut connector_migrations);
-        migrations.append(&mut contract_negotiation_provider_migrations);
-        migrations.append(&mut pub_sub_migrations);
-        migrations.append(&mut auth_migrations);
-        migrations.append(&mut dataplane_migrations);
-        migrations.append(&mut transfer_agent_migrations);
-        migrations.append(&mut keystore_migrations);
-        migrations
+        MonolithModule::migrations()
     }
 
     fn migration_table_name() -> DynIden {

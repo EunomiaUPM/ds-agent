@@ -16,7 +16,8 @@ common = { version = "0.4.0", path = "../common", default-features = false }
 dataplane = { version = "0.4.0", path = "../dataplane", default-features = false }
 auth = { version = "0.4.0", path = "../auth", default-features = false }
 events = { version = "0.4.0", path = "../events", default-features = false }
-transfer_agent = { version = "0.4.0", path = "../transfer-agent", default-features = false }
+transfer_agent_ref = { version = "0.4.0", path = "../transfer-agent-ref" }
+oauth = { version = "0.4.0", path = "../oauth" }
 catalog_agent = { version = "0.4.0", path = "../catalog-agent", default-features = false }
 connector = { version = "0.4.0", path = "../connector", default-features = false }
 bff = { version = "0.4.0", path = "../bff", default-features = false }

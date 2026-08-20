@@ -37,6 +37,9 @@ use ymir::data::entities::shared::participant;
 use ymir::errors::{Errors, Outcome};
 use ymir::services::vault::global::VaultService;
 
+use common::module_loader::service_composer::ServiceComposer;
+
+use crate::setup::composition::MonolithModule;
 use crate::setup::CoreHttpWorker;
 
 pub struct CoreBoot;
@@ -185,11 +188,11 @@ impl BootstrapServiceTrait for CoreBoot {
 
     async fn cleanup_cache(config: &Self::Config) -> Outcome<()> {
         let url = config.monolith().get_full_cache_url();
-        tracing::info!("Flushing Redis at {}...", url);
+        info!("Flushing Redis at {}...", url);
         if let Err(e) = flush_redis_cache(&url).await {
-            tracing::warn!("Failed to flush Redis at {}: {}", url, e);
+            warn!("Failed to flush Redis at {}: {}", url, e);
         } else {
-            tracing::info!("Redis cache flushed successfully.");
+            info!("Redis cache flushed successfully.");
         }
         Ok(())
     }
@@ -202,23 +205,24 @@ impl BootstrapServiceTrait for CoreBoot {
         let (shutdown_tx, mut shutdown_rx) = broadcast::channel::<()>(1);
         let cancel_token = CancellationToken::new();
 
+        // compose the service graph: every hosted agent as a module behind one composer
+        info!("Composing service graph...");
+        let composer =
+            ServiceComposer::new().register(MonolithModule::compose(config, vault.clone()).await?);
+
         // workers
         info!("Spawning HTTP subsystem...");
-        let http_handle = CoreHttpWorker::spawn(config, vault.clone(), &cancel_token).await?;
+        let http_handle =
+            CoreHttpWorker::spawn(config, vault.clone(), composer.http_router(), &cancel_token)
+                .await?;
 
         // non-blocking thread supervisor
         let token_clone = cancel_token.clone();
         tokio::spawn(async move {
             tokio::select! {
-                // Caso 1: Recibimos la señal de apagado externa (ej. desde el Main)
-                // Usamos un match porque recv() devuelve un Result
                 _msg = shutdown_rx.recv() => {
                     info!("Shutdown command received from Main Pipeline.");
                 }
-
-                // Caso 2: El servidor HTTP muere por su cuenta.
-                // IMPORTANTE: Aquí se pasa el handle directamente.
-                // El select! esperará a que el JoinHandle se resuelva (que la tarea termine).
                 res = http_handle => {
                     match res {
                         Ok(_) => error!("HTTP subsystem stopped unexpectedly (task finished)."),
@@ -226,12 +230,8 @@ impl BootstrapServiceTrait for CoreBoot {
                     }
                 }
             }
-
-            // Si llegamos aquí, es que uno de los dos se ha disparado
             info!("Initiating internal graceful shutdown sequence...");
             token_clone.cancel();
-
-            // Damos un pequeño margen para que los workers limpien antes de loguear el final
             tokio::time::sleep(std::time::Duration::from_millis(500)).await;
             info!("Background services supervisor finished.");
         });

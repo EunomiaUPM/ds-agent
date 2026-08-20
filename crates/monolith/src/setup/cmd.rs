@@ -48,9 +48,9 @@ pub struct CoreCliArgs {
     env_file: String,
 }
 
-pub struct CoreCommands;
+pub struct MonolithAgentCommands;
 
-impl CoreCommands {
+impl MonolithAgentCommands {
     pub async fn init_command_line() -> Outcome<()> {
         // parse command line
         debug!("Init the command line application");

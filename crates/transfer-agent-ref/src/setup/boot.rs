@@ -16,12 +16,14 @@
  */
 
 use crate::setup::TransferAgentModule;
+use crate::setup::context::AppContext;
 use crate::setup::grpc_worker::TransferGrpcWorker;
 use crate::setup::http_worker::TransferHttpWorker;
 use common::boot::BootstrapServiceTrait;
 use common::config::services::TransferConfig;
 use common::config::types::traits::{CommonConfigTrait, ConfigLoader};
 use common::module_loader::service_composer::ServiceComposer;
+use oauth::setup::OAuthModule;
 use std::sync::Arc;
 use tokio::sync::broadcast;
 use tokio::sync::broadcast::Sender;
@@ -77,9 +79,15 @@ impl BootstrapServiceTrait for TransferBoot {
         let cancel_token = CancellationToken::new();
 
         tracing::info!("Composing service graph...");
-        let composer =
-            ServiceComposer::new().register(TransferAgentModule::compose(config, &vault).await?);
+        let ctx = AppContext::build(config, &vault).await?;
+        let composer = ServiceComposer::new()
+            .register(OAuthModule::new(
+                config.common().clone().into(),
+                ctx.db.clone(),
+            ))
+            .register(TransferAgentModule::new(ctx));
         tracing::info!("Spawning HTTP subsystem...");
+
         let http_handle =
             TransferHttpWorker::spawn(config, composer.http_router(), &cancel_token).await?;
         tracing::info!("Spawning gRPC subsystem...");

@@ -27,7 +27,13 @@ pub struct TransferAgentRefMigration;
 
 impl MigratorTrait for TransferAgentRefMigration {
     fn migrations() -> Vec<Box<dyn MigrationTrait>> {
-        crate::setup::TransferAgentModule::migrations()
+        [
+            oauth::get_oauth_migrations(),
+            crate::setup::TransferAgentModule::migrations(),
+        ]
+        .into_iter()
+        .flatten()
+        .collect()
     }
 }
 

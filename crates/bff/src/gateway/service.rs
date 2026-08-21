@@ -28,7 +28,7 @@ use common::config::services::traits::GatewayConfigTrait;
 use common::config::types::traits::{CommonConfigTrait, MinKnownConfigTrait};
 use std::time::Duration;
 use tokio::sync::broadcast;
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, info};
 use ymir::config::traits::SingleHostTrait;
 use ymir::config::types::HostType;
 
@@ -150,7 +150,7 @@ impl GatewayServiceTrait for GatewayService {
             extra_opt,
             req,
         )
-        .await
+            .await
     }
 
     async fn proxy_dsp_request(
@@ -182,7 +182,7 @@ impl GatewayServiceTrait for GatewayService {
             extra_opt,
             req,
         )
-        .await
+            .await
     }
 
     async fn proxy_well_known_rpc_request(&self, extra: String, req: Request<Body>) -> Response {
@@ -196,7 +196,7 @@ impl GatewayServiceTrait for GatewayService {
             None,
             req,
         )
-        .await
+            .await
     }
 }
 
@@ -256,14 +256,7 @@ pub async fn execute_proxy(
     for header_name in headers_to_remove.iter() {
         original_headers.remove(*header_name);
     }
-    if let Ok(host_val) = HeaderValue::from_str(&microservice_base_url) {
-        original_headers.insert(axum::http::header::HOST, host_val);
-    } else {
-        warn!(
-            "Host header not possible to be created Host: {}",
-            microservice_base_url
-        );
-    }
+
     // X-Forwarded-*
     if let Some(client_ip) = req
         .extensions()
@@ -273,6 +266,7 @@ pub async fn execute_proxy(
             original_headers.insert("x-forwarded-for", x_forwarded_for_val);
         }
     }
+
     // X-Forwarded-Proto & X-Forwarded-Host
     if let Ok(val) = HeaderValue::try_from("http") {
         original_headers.insert("x-forwarded-proto", val);

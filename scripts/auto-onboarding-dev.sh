@@ -4,8 +4,6 @@ set -euo pipefail
 # ----------------------------
 # Configuración de URLs
 # ----------------------------
-# En dev todo corre nativo (sin docker), así que las URLs "internas" que se
-# mandan en los payloads apuntan también a 127.0.0.1.
 AUTHORITY_URL="${AUTHORITY_URL:-http://127.0.0.1:1500}"
 CONSUMER_URL="${CONSUMER_URL:-http://127.0.0.1:1100}"
 PROVIDER_URL="${PROVIDER_URL:-http://127.0.0.1:1200}"
@@ -91,13 +89,8 @@ log_success "Provider DID: $PROVIDER_DID"
 # ----------------------------
 # Payload = ReachAuthority (crates/auth/src/types/entities/reacher.rs):
 #   { id, nick, url, vc_type, method, auto }
-# El campo es "nick", NO "slug" (mandar "slug" da HTTP 400 "Error extracting
-# Json payload"). Con auto:true el servidor completa el flujo OIDC4VCI solo,
-# así que ya no hace falta procesar la URI a mano.
 log_step "STEP 3 - Consumer requests credential"
 
-# /vc-request/beg nunca deduplica: cada llamada crea una petición nueva. Si el
-# consumer ya tiene la credencial finalizada, saltamos el paso.
 if curl_raw GET "$CONSUMER_URL/api/v1/vc-request/all" \
     | jq -e --arg id "$AUTH_DID" --arg vc "$VC_TYPE" \
         'any(.[]?; .participant_id == $id
@@ -121,9 +114,6 @@ fi
 # ----------------------------
 # Payload = ReachProvider (crates/auth/src/types/entities/reacher.rs):
 #   { id, nick, url, actions, auto }
-# Endpoint nuevo: /api/v1/peer-connection/connect (antes /onboard/provider).
-# Este es el handshake GNAP que acuña el token del mate; con auto:true el
-# servidor lo completa entero, sin OIDC4VP manual.
 log_step "STEP 4 - Consumer authenticates with provider"
 
 if curl_raw GET "$CONSUMER_URL/api/v1/mates/all" \

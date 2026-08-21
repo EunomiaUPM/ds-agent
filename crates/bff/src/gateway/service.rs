@@ -106,6 +106,8 @@ impl GatewayServiceTrait for GatewayService {
             "wallet" => self.config.ssi_auth().get_host(HostType::Http),
             "vc-request" => self.config.ssi_auth().get_host(HostType::Http),
             "peer-connection" => self.config.ssi_auth().get_host(HostType::Http),
+            // legacy alias for "peer-connection" (pre-refactor name)
+            "onboard" => self.config.ssi_auth().get_host(HostType::Http),
             "gate" => self.config.ssi_auth().get_host(HostType::Http),
             "subscriptions" => self.config.transfer().get_host(HostType::Http),
             "notifications" => self.config.transfer().get_host(HostType::Http),
@@ -131,6 +133,8 @@ impl GatewayServiceTrait for GatewayService {
             "wallet" => "api/v1/wallet",
             "vc-request" => "api/v1/vc-request",
             "peer-connection" => "api/v1/peer-connection",
+            // legacy alias for "peer-connection" (pre-refactor name)
+            "onboard" => "api/v1/peer-connection",
             "gate" => "api/v1/gate",
             "notifications" => "api/v1/contract-negotiation/notifications",
             "subscriptions" => "api/v1/contract-negotiation/subscriptions",

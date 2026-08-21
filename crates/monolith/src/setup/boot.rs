@@ -36,7 +36,7 @@ use ymir::config::types::HostType;
 use ymir::data::entities::shared::participant;
 use ymir::errors::{Errors, Outcome};
 use ymir::services::vault::global::VaultService;
-
+use ymir::services::vault::VaultTrait;
 use common::module_loader::service_composer::ServiceComposer;
 
 use crate::setup::composition::MonolithModule;
@@ -195,6 +195,17 @@ impl BootstrapServiceTrait for CoreBoot {
             info!("Redis cache flushed successfully.");
         }
         Ok(())
+    }
+
+    fn enable_user_seed() -> bool {
+        true
+    }
+
+    async fn seed_users(config: &Self::Config) -> Outcome<()> {
+        let vault = common::vault_utils::vault(config)?;
+        let db = vault.get_db_connection(config.transfer().common()).await?;
+        let admin = config.transfer().admin_seed();
+        oauth::services::seed_admin_user(db, &admin.tenant_id, &admin.email, &admin.password).await
     }
 
     async fn start_services(

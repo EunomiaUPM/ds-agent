@@ -4,13 +4,14 @@ set -euo pipefail
 # ----------------------------
 # Configuración de URLs
 # ----------------------------
+# En dev todo corre nativo (sin docker), así que las URLs "internas" que se
+# mandan en los payloads apuntan también a 127.0.0.1.
 AUTHORITY_URL="${AUTHORITY_URL:-http://127.0.0.1:1500}"
 CONSUMER_URL="${CONSUMER_URL:-http://127.0.0.1:1100}"
 PROVIDER_URL="${PROVIDER_URL:-http://127.0.0.1:1200}"
 
-DOCKER_AUTHORITY_URL="${DOCKER_AUTHORITY_URL:-http://127.0.0.1:1500}"
-DOCKER_CONSUMER_URL="${DOCKER_CONSUMER_URL:-http://127.0.0.1:1100}"
-DOCKER_PROVIDER_URL="${DOCKER_PROVIDER_URL:-http://127.0.0.1:1200}"
+INTERNAL_AUTHORITY_URL="${INTERNAL_AUTHORITY_URL:-$AUTHORITY_URL}"
+INTERNAL_PROVIDER_URL="${INTERNAL_PROVIDER_URL:-$PROVIDER_URL}"
 
 # ----------------------------
 # Logging (solo stderr)
@@ -21,115 +22,123 @@ log_error()   { echo -e "\033[31m$1\033[0m" >&2; exit 1; }
 log_info()    { echo -e "\033[33m$1\033[0m" >&2; }
 
 # ----------------------------
-# CURL RAW (SIEMPRE JSON LIMPIO)
+# CURL
 # ----------------------------
 curl_raw() {
     local method=${1:-GET}
     local url=$2
     local body=${3:-}
-
     if [ -n "$body" ]; then
-        curl -s -X "$method" "$url" \
-            -H "Content-Type: application/json" \
-            -d "$body"
+        curl -s -X "$method" "$url" -H "Content-Type: application/json" -d "$body"
     else
-        curl -s -X "$method" "$url" \
-            -H "Content-Type: application/json"
+        curl -s -X "$method" "$url" -H "Content-Type: application/json"
     fi
+}
+
+# Como curl_raw pero aborta ante cualquier respuesta no-2xx. Úsalo para todo lo
+# que muta estado: curl_raw se traga los errores y el script reportaría éxito
+# aunque un paso hubiese fallado.
+curl_checked() {
+    local method=${1:-GET}
+    local url=$2
+    local body=${3:-}
+    local out code
+    out=$(mktemp)
+    if [ -n "$body" ]; then
+        code=$(curl -s -o "$out" -w '%{http_code}' -X "$method" "$url" \
+            -H "Content-Type: application/json" -d "$body")
+    else
+        code=$(curl -s -o "$out" -w '%{http_code}' -X "$method" "$url" \
+            -H "Content-Type: application/json")
+    fi
+    if [[ ! "$code" =~ ^2 ]]; then
+        log_error "$method $url -> HTTP $code
+$(head -c 400 "$out")"
+    fi
+    cat "$out"
+    rm -f "$out"
 }
 
 # ----------------------------
 # HEADER
 # ----------------------------
 echo -e "\n======================================"
-echo "      AUTO ONBOARDING SCRIPT"
+echo "      AUTO ONBOARDING (DEV)"
 echo "======================================"
+
+VC_TYPE="DataSpaceParticipant_jwt_vc_json"
 
 # ----------------------------
 # STEP 1 - Link wallets
 # ----------------------------
-log_step "STEP 1 - Linking Authority wallet"
-curl_raw POST "$AUTHORITY_URL/api/v1/wallet/link" >/dev/null
-
-log_step "STEP 2 - Linking Consumer wallet"
-curl_raw POST "$CONSUMER_URL/api/v1/wallet/link" >/dev/null
-
-log_step "STEP 3 - Linking Provider wallet"
-curl_raw POST "$PROVIDER_URL/api/v1/wallet/link" >/dev/null
+log_step "STEP 1 - Linking wallets"
+curl_checked POST "$AUTHORITY_URL/api/v1/wallet/link" >/dev/null
+curl_checked POST "$CONSUMER_URL/api/v1/wallet/link" >/dev/null
+curl_checked POST "$PROVIDER_URL/api/v1/wallet/link" >/dev/null
+log_success "Wallets linked"
 
 # ----------------------------
-# STEP 4 - DIDs (FIXED jq)
+# STEP 2 - DIDs
 # ----------------------------
-log_step "STEP 4 - Retrieving DIDs"
-
+log_step "STEP 2 - Retrieving DIDs"
 AUTH_DID=$(curl_raw GET "$AUTHORITY_URL/.well-known/did.json" | jq -r '.id')
-CONSUMER_DID=$(curl_raw GET "$CONSUMER_URL/.well-known/did.json" | jq -r '.id')
 PROVIDER_DID=$(curl_raw GET "$PROVIDER_URL/.well-known/did.json" | jq -r '.id')
-
 log_success "Authority DID: $AUTH_DID"
-log_success "Consumer DID: $CONSUMER_DID"
 log_success "Provider DID: $PROVIDER_DID"
 
 # ----------------------------
-# STEP 5 - Consumer request credential
+# STEP 3 - Consumer requests credential from authority
 # ----------------------------
-log_step "STEP 5 - Consumer requests credential"
+# Payload = ReachAuthority (crates/auth/src/types/entities/reacher.rs):
+#   { id, nick, url, vc_type, method, auto }
+# El campo es "nick", NO "slug" (mandar "slug" da HTTP 400 "Error extracting
+# Json payload"). Con auto:true el servidor completa el flujo OIDC4VCI solo,
+# así que ya no hace falta procesar la URI a mano.
+log_step "STEP 3 - Consumer requests credential"
 
-C_BEG_BODY=$(jq -n \
-    --arg url "$DOCKER_AUTHORITY_URL/api/v1/gate/access" \
-    --arg id "$AUTH_DID" \
-    --arg slug "authority" \
-    --arg vc_type "DataSpaceParticipant_jwt_vc_json" \
-    --arg method "cert" \
-    '{url:$url,id:$id,slug:$slug,vc_type:$vc_type,method:$method}')
-
-curl_raw POST "$CONSUMER_URL/api/v1/vc-request/beg" "$C_BEG_BODY" >/dev/null
-log_success "Credential request sent"
-
-# ----------------------------
-# STEP 8 - OIDC4VCI URI
-# ----------------------------
-log_step "STEP 8 - Retrieving OIDC4VCI URI"
-
-ALL_AUTHORITY=$(curl_raw GET "$CONSUMER_URL/api/v1/vc-request/all")
-OIDC4VCI_URI=$(echo "$ALL_AUTHORITY" | jq -r '.[-1].vc_uri')
-
-log_info "OIDC4VCI URI: $OIDC4VCI_URI"
-
-# ----------------------------
-# STEP 9 - Process credential
-# ----------------------------
-log_step "STEP 9 - Processing credential"
-
-curl_raw POST "$CONSUMER_URL/api/v1/wallet/oidc4vci" \
-"{\"uri\":\"$OIDC4VCI_URI\"}" >/dev/null
-
-log_success "OIDC4VCI processed"
+# /vc-request/beg nunca deduplica: cada llamada crea una petición nueva. Si el
+# consumer ya tiene la credencial finalizada, saltamos el paso.
+if curl_raw GET "$CONSUMER_URL/api/v1/vc-request/all" \
+    | jq -e --arg id "$AUTH_DID" --arg vc "$VC_TYPE" \
+        'any(.[]?; .participant_id == $id
+                   and .status == "Finalized"
+                   and (.vc_type_config // [] | index($vc)))' >/dev/null; then
+    log_info "Consumer ya tiene la credencial, saltando"
+else
+    BEG_BODY=$(jq -n \
+        --arg url "$INTERNAL_AUTHORITY_URL/api/v1/gate/access" \
+        --arg id "$AUTH_DID" \
+        --arg nick "authority" \
+        --arg vc_type "$VC_TYPE" \
+        --arg method "cert" \
+        '{url:$url, id:$id, nick:$nick, vc_type:$vc_type, method:$method, auto:true}')
+    curl_checked POST "$CONSUMER_URL/api/v1/vc-request/beg" "$BEG_BODY" >/dev/null
+    log_success "Credential request finished"
+fi
 
 # ----------------------------
-# STEP 10 - Provider access
+# STEP 4 - Consumer authenticates with provider
 # ----------------------------
-log_step "STEP 10 - Provider request"
+# Payload = ReachProvider (crates/auth/src/types/entities/reacher.rs):
+#   { id, nick, url, actions, auto }
+# Endpoint nuevo: /api/v1/peer-connection/connect (antes /onboard/provider).
+# Este es el handshake GNAP que acuña el token del mate; con auto:true el
+# servidor lo completa entero, sin OIDC4VP manual.
+log_step "STEP 4 - Consumer authenticates with provider"
 
-OIDC4VP_BODY=$(jq -n \
-    --arg url "$DOCKER_PROVIDER_URL/api/v1/gate/access" \
-    --arg id "$PROVIDER_DID" \
-    --arg slug "provider" \
-    '{url:$url,id:$id,slug:$slug,actions:["talk"]}')
-
-OIDC4VP_URI=$(curl_raw POST "$CONSUMER_URL/api/v1/onboard/provider" "$OIDC4VP_BODY")
-
-log_info "OIDC4VP URI: $OIDC4VP_URI"
-
-# ----------------------------
-# STEP 11 - Process VP
-# ----------------------------
-log_step "STEP 11 - Processing OIDC4VP"
-
-curl_raw POST "$CONSUMER_URL/api/v1/wallet/oidc4vp" \
-"{\"uri\":\"$OIDC4VP_URI\"}" >/dev/null
-
-log_success "OIDC4VP processed"
+if curl_raw GET "$CONSUMER_URL/api/v1/mates/all" \
+    | jq -e --arg id "$PROVIDER_DID" \
+        'any(.[]?; .participant_id == $id and (.token // "") != "")' >/dev/null; then
+    log_info "Consumer ya está autenticado con el provider, saltando"
+else
+    CONNECT_BODY=$(jq -n \
+        --arg id "$PROVIDER_DID" \
+        --arg nick "provider" \
+        --arg url "$INTERNAL_PROVIDER_URL/api/v1/gate/access" \
+        '{id:$id, nick:$nick, url:$url, actions:["talk"], auto:true}')
+    curl_checked POST "$CONSUMER_URL/api/v1/peer-connection/connect" "$CONNECT_BODY" >/dev/null
+    log_success "Authentication complete"
+fi
 
 echo -e "\n======================================"
 echo "   ONBOARDING FINISHED SUCCESSFULLY"

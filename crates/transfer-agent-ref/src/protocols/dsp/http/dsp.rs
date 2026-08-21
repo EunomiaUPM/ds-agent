@@ -82,6 +82,7 @@ impl DspRouter {
         // Wire extraction: reads body + headers and the `Mates` the auth
         // middleware resolved into the request extensions.
         let raw = TransferContextRaw::<TransferDSPAuthn>::from_request(request).await?;
+        dbg!("Raw: {}", &raw);
 
         // Parse stage: this endpoint is always a TransferRequestMessage. The JSON
         // body is parsed here; DSP protocol-version detection is not implemented
@@ -90,16 +91,22 @@ impl DspRouter {
         let json: serde_json::Value = serde_json::from_slice(&raw.body_bytes).map_err(|e| {
             Errors::format(BadFormat::Received, format!("body is not JSON: {e}"), None)
         })?;
+        dbg!("JSON: {}", &json);
+
         let parsed = TransferDSPContextParsed::from_raw(
             raw,
             DSPProtocolVersions::V2025_1,
             TransferDSPMessageType::TransferRequestMessage,
             json,
         )?;
+        dbg!("Parsed: {}", &parsed);
 
         // RDF stage (canonicalize) → typed stage (extract pids / data address).
         let rdf = TransferDSPContextRdf::from_parsed(parsed).await?;
+        dbg!("Rdf: {}", &rdf);
+
         let typed = TransferDSPContextTyped::from_rdf(rdf)?;
+        dbg!("Typed: {}", &typed);
 
         // TODO(loader): `typed` → `TransferDSPContextDomain` via `DspDomainLoader::load`.
         // Blocked on: (1) a `DspDomainLoaderTrait` impl (agreement/role resolution),

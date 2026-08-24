@@ -37,6 +37,7 @@ use ymir::utils::extract_payload;
 pub struct DataPlaneProcessesRouter {
     data_plane_process_entity: Arc<dyn DataplaneTransfersEntitiesTrait>,
     transfer_event_entity: Arc<dyn TransferEventEntitiesTrait>,
+    public_base_url: String,
 }
 
 impl FromRef<DataPlaneProcessesRouter> for Arc<dyn DataplaneTransfersEntitiesTrait> {
@@ -55,10 +56,12 @@ impl DataPlaneProcessesRouter {
     pub fn new(
         data_plane_process_entity: Arc<dyn DataplaneTransfersEntitiesTrait>,
         transfer_event_entity: Arc<dyn TransferEventEntitiesTrait>,
+        public_base_url: String,
     ) -> Self {
         Self {
             data_plane_process_entity,
             transfer_event_entity,
+            public_base_url,
         }
     }
     pub fn router(self) -> Router {
@@ -236,7 +239,6 @@ impl DataPlaneProcessesRouter {
     async fn handle_get_dataplane_info(
         State(state): State<DataPlaneProcessesRouter>,
         Path(dataplane_id): Path<String>,
-        headers: axum::http::HeaderMap,
     ) -> impl IntoResponse {
         let data_plane_id = match parse_urn(&dataplane_id) {
             Ok(urn) => urn,
@@ -253,9 +255,10 @@ impl DataPlaneProcessesRouter {
                 if transfer.inner.interaction_mode
                     == crate::entities::dataplane_transfers::InteractionMode::Pull
                 {
-                    if let Some(host) = headers.get("host").and_then(|h| h.to_str().ok()) {
-                        ingress_url = Some(format!("{}/dataplane/proxy/{}", host, data_plane_id));
-                    }
+                    ingress_url = Some(format!(
+                        "{}/dataplane/proxy/{}",
+                        state.public_base_url, data_plane_id
+                    ));
                 }
 
                 let response = DataplaneInfoResponse {

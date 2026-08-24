@@ -17,16 +17,16 @@
  *
  */
 
-use std::str::FromStr;
-use std::sync::Arc;
-
+use crate::setup::CoreHttpWorker;
 use catalog_agent::{CatalogDto, DataServiceDto, NewCatalogDto, NewDataServiceDto};
 use common::boot::BootstrapServiceTrait;
-use common::config::services::traits::CatalogConfigTrait;
-use common::config::types::traits::{CacheConfigTrait, CommonConfigTrait};
+use common::config::services::traits::{CatalogConfigTrait, TransferConfigTrait};
+use common::config::types::traits::{CacheConfigTrait, CommonConfigTrait, MinKnownConfigTrait};
 use common::config::ApplicationConfig;
-use common::http_client::{HttpClient, HttpClientError};
+use common::http_client::HttpClient;
 use common::utils::flush_redis_cache;
+use std::str::FromStr;
+use std::sync::Arc;
 use tokio::fs;
 use tokio::sync::broadcast;
 use tokio::sync::broadcast::Sender;
@@ -36,10 +36,11 @@ use urn::Urn;
 use ymir::config::traits::{ApiConfigTrait, HostsConfigTrait};
 use ymir::config::types::HostType;
 use ymir::data::entities::shared::participant;
-use ymir::errors::{Errors, Outcome};
+use ymir::errors::{Errors, Outcome, PetitionFailure};
+use ymir::services::client::ClientTrait;
 use ymir::services::vault::global::VaultService;
-
-use crate::setup::CoreHttpWorker;
+use ymir::types::http::HttpBody;
+use ymir::utils::{http_client, ResponseExt};
 
 pub struct CoreBoot;
 
@@ -57,35 +58,25 @@ impl BootstrapServiceTrait for CoreBoot {
     }
 
     async fn create_participant(config: &Self::Config) -> Outcome<String> {
-        let client = HttpClient::new(1, 30);
-        let base_url = config.ssi_auth().common().get_host(HostType::Http);
-        let api = config.ssi_auth().common().get_api_version();
+        let base_url = config.transfer().ssi_auth().get_host(HostType::Http);
+        let api = config.transfer().ssi_auth().get_api_version();
 
-        // attempt first
         let url = format!("{}{}/mates/myself", base_url, api);
         let url = url.replace("host.docker.internal", "127.0.0.1");
-        let participant = client.get_json::<participant::Model>(url.as_str()).await;
+        let res = http_client().get(&url, None).await?;
 
-        // catch error
-        if let Err(err) = participant {
-            match err {
-                // if mate not found
-                HttpClientError::HttpError { status, .. } if status.as_u16() == 404 => {
-                    // onboard mate with wallet
-                    let url = format!("{}{}/wallet/link", base_url, api);
-                    client.post_void::<()>(url.as_str()).await?;
-                }
-                _ => return Err(err.into()),
-            }
-            // attempt again
-            let url = format!("{}{}/mates/myself", base_url, api);
-            let participant = client.get_json::<participant::Model>(url.as_str()).await?;
-            // and return id
+        if res.status().is_success() {
+            let participant: participant::Model = res.parse_json().await?;
             Ok(participant.participant_id)
         } else {
-            // if mate exists, just return id
-            let participant = participant?;
-            Ok(participant.participant_id)
+            Err(Errors::petition(
+                url,
+                "GET",
+                Some(res.status()),
+                PetitionFailure::HttpStatus(res.status()),
+                "Unable to get myself",
+                None,
+            ))
         }
     }
 
@@ -94,20 +85,33 @@ impl BootstrapServiceTrait for CoreBoot {
         config: &Self::Config,
     ) -> Outcome<String> {
         let participant_id = participant_id.clone().unwrap_or_default();
-        let client = HttpClient::new(1, 3);
-        let base_url = config.catalog().common().get_host(HostType::Http);
-        let api = config.catalog().common().get_api_version();
+
+        let base_url = config.transfer().catalog().get_host(HostType::Http);
+        let api = config.transfer().catalog().get_api_version();
         let url = format!("{}{}/catalog-agent/catalogs/main", base_url, api);
-        let catalog = client
-            .post_json::<NewCatalogDto, CatalogDto>(
-                url.as_str(),
-                &NewCatalogDto {
-                    dspace_participant_id: Some(participant_id),
-                    ..NewCatalogDto::default()
-                },
-            )
+        let url = url.replace("host.docker.internal", "127.0.0.1");
+        let body = NewCatalogDto {
+            dspace_participant_id: Some(participant_id),
+            ..NewCatalogDto::default()
+        };
+
+        let res = http_client()
+            .post(&url, None, HttpBody::json(&body)?)
             .await?;
-        Ok(catalog.inner.id)
+
+        if res.status().is_success() {
+            let catalog: CatalogDto = res.parse_json().await?;
+            Ok(catalog.inner.id)
+        } else {
+            Err(Errors::petition(
+                url,
+                "POST",
+                Some(res.status()),
+                PetitionFailure::HttpStatus(res.status()),
+                "Unable to load catalog",
+                None,
+            ))
+        }
     }
 
     async fn load_dataservice(
@@ -115,35 +119,51 @@ impl BootstrapServiceTrait for CoreBoot {
         config: &Self::Config,
     ) -> Outcome<String> {
         let catalog_id = catalog_id.clone().unwrap_or_default();
-        let client = HttpClient::new(1, 3);
-        let base_url = config.catalog().common().get_host(HostType::Http);
+        let base_url = config.transfer().catalog().get_host(HostType::Http);
+        // NOTE: negotiation_url stays on the public domain: it is only stored as the
+        // dataservice's public dcat_endpoint_url (announced to peers), never called here.
         let negotiation_url = config.contracts().common().get_host(HostType::Http);
 
-        let api = config.catalog().common().get_api_version();
+        let api = config.transfer().catalog().get_api_version();
         let url = format!("{}{}/catalog-agent/data-services/main", base_url, api);
-        let catalog = client
-            .post_json::<NewDataServiceDto, DataServiceDto>(
-                url.as_str(),
-                &NewDataServiceDto {
-                    dcat_endpoint_url: format!("{}/dsp/current", negotiation_url),
-                    catalog_id: Urn::from_str(catalog_id.as_str()).map_err(|e| {
-                        Errors::parse("Error parsing urn catalog_id", Some(Box::new(e)))
-                    })?,
-                    ..Default::default()
-                },
-            )
+        let url = url.replace("host.docker.internal", "127.0.0.1");
+
+        let body = NewDataServiceDto {
+            dcat_endpoint_url: format!("{}/dsp/current", negotiation_url),
+            catalog_id: Urn::from_str(catalog_id.as_str())
+                .map_err(|e| Errors::parse("Error parsing urn catalog_id", Some(Box::new(e))))?,
+            ..Default::default()
+        };
+
+        let res = http_client()
+            .post(&url, None, HttpBody::json(&body)?)
             .await?;
-        Ok(catalog.inner.id)
+
+        if res.status().is_success() {
+            let catalog: DataServiceDto = res.parse_json().await?;
+            Ok(catalog.inner.id)
+        } else {
+            Err(Errors::petition(
+                url,
+                "POST",
+                Some(res.status()),
+                PetitionFailure::HttpStatus(res.status()),
+                "Unable to load dataservice",
+                None,
+            ))
+        }
+
     }
 
     async fn load_policy_templates(config: &Self::Config) -> Outcome<()> {
         let client = HttpClient::new(1, 3);
-        let base_url = config.catalog().common().get_host(HostType::Http);
-        let api = config.catalog().common().get_api_version();
+        let base_url = config.transfer().catalog().get_host(HostType::Http);
+        let api = config.transfer().catalog().get_api_version();
         let url = format!(
             "{}{}/catalog-agent/policy-templates?silent=true",
             base_url, api
         );
+        let url = url.replace("host.docker.internal", "127.0.0.1");
         // load files
         let policies_folder = config.catalog().get_policy_templates_folder();
         let mut read_dir = match fs::read_dir(&policies_folder).await {

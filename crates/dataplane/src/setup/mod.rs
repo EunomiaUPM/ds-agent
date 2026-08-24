@@ -36,6 +36,7 @@ use sea_orm::Database;
 use std::ops::Deref;
 use std::sync::Arc;
 use ymir::config::traits::HostsConfigTrait;
+use ymir::config::types::HostType;
 use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
 
@@ -120,9 +121,11 @@ impl DataplaneSetup {
             dataplane_repo.clone(),
             cache,
         ));
+        let public_base_url = config.common().get_host(HostType::Http);
         let dataplane_processes_router = DataPlaneProcessesRouter::new(
             dataplane_process_entity.clone(),
             transfer_event_entity.clone(),
+            public_base_url,
         )
         .router();
 

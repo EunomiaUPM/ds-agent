@@ -42,7 +42,9 @@ pub(super) fn to_dataplane_address(addr: &DataAddress) -> DataplaneAddress {
     };
     DataplaneAddress {
         endpoint_type: addr.endpoint_type.clone(),
-        endpoint: addr.endpoint.clone(),
+        // Optional on the wire (DSP Appendix A), required by the data plane. The
+        // domain rule that demands it for push transfers is what makes this safe.
+        endpoint: addr.endpoint.clone().unwrap_or_default(),
         authorization_type: prop("authType"),
         authorization: prop("authorization"),
     }

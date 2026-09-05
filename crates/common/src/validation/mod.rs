@@ -14,3 +14,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
+
+//! Protocol-neutral validation: rules, stages, and the failures they report.
+//! Rendering a failure onto a wire error belongs to whichever protocol answers.
+
+pub mod rule;
+pub mod validator;
+pub mod violation;
+
+pub use rule::Rule;
+pub use validator::{Validator, ValidatorRegistry};
+pub use violation::{codes, violation, Path, Violation, ViolationCode, Violations};

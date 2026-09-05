@@ -43,10 +43,8 @@ impl DspManager {
         }
     }
 
-    /// Deterministic template: same phase order for every message; the strategy
-    /// fills each phase. Takes `Arc<Self>` so the manager can hand a clone of
-    /// itself to the strategies (re-entrancy: a strategy can `run` a follow-up
-    /// command — e.g. a dataplane error → a fresh termination).
+    /// Same phase order for every message; the strategy fills each phase. Takes
+    /// `Arc<Self>` so a strategy can `run` a follow-up command re-entrantly.
     pub async fn run(
         self: Arc<Self>,
         mut command: TransferManagerCommand,
@@ -61,9 +59,8 @@ impl DspManager {
         strategy.build_response(&command).await
     }
 
-    /// The strategy axis is the incoming DSP message. Each strategy is built with
-    /// the manager's injected deps (constructor injection), including a handle
-    /// back to the manager for re-entrant runs.
+    /// The strategy axis is the incoming DSP message. Each is built with the
+    /// manager's deps, plus a handle back for re-entrant runs.
     fn select(
         &self,
         command: &TransferManagerCommand,

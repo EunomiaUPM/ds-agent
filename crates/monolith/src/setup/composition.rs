@@ -68,7 +68,6 @@ impl ServiceModuleTrait for ToBeDeprecatedRouterModule {
     }
 }
 
-
 pub struct MonolithModule {
     group: ModuleGroup,
 }
@@ -88,12 +87,21 @@ impl MonolithModule {
         // Preserve the previous `create_core_router` mount layout: each agent
         // merged at the root, keystore nested under `{api}/keystore`.
         let group = ModuleGroup::new("monolith")
-            .register(ToBeDeprecatedRouterModule::merged("catalog-agent", ctx.catalog_router))
+            .register(ToBeDeprecatedRouterModule::merged(
+                "catalog-agent",
+                ctx.catalog_router,
+            ))
             .register(ToBeDeprecatedRouterModule::merged("auth", ctx.auth_router))
-            .register(ToBeDeprecatedRouterModule::merged("negotiation-agent", ctx.negotiation_router))
+            .register(ToBeDeprecatedRouterModule::merged(
+                "negotiation-agent",
+                ctx.negotiation_router,
+            ))
             .register(oauth)
             .register(transfer)
-            .register(ToBeDeprecatedRouterModule::merged("gateway", ctx.gateway_router))
+            .register(ToBeDeprecatedRouterModule::merged(
+                "gateway",
+                ctx.gateway_router,
+            ))
             .register(keystore);
 
         Ok(Self { group })

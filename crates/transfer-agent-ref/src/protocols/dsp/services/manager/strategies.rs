@@ -21,8 +21,7 @@ use crate::services::transfer_message::TransferMessageServiceTrait;
 use crate::services::transfer_process::TransferProcessServiceTrait;
 use std::sync::Arc;
 
-/// Every strategy needs, cloned in from the manager at selection time.
-
+/// What every strategy needs, cloned in from the manager at selection time.
 #[derive(Clone)]
 pub(super) struct StrategyDeps {
     pub facades: Arc<dyn FacadeTrait>,

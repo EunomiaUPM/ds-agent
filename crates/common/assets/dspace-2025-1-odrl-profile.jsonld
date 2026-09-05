@@ -1,6 +1,7 @@
 {
   "@context": {
     "odrl": "http://www.w3.org/ns/odrl/2/",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
     "Policy": "odrl:Policy",
     "Rule": "odrl:Rule",
     "profile": {

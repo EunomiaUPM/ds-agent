@@ -15,9 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! The outbound RPC context, stage by stage: raw -> parsed -> typed -> domain.
+//! Plain JSON, so the typed stage is a single serde pass.
+
 use crate::entities::protocol::{TransferDirection, TransferRole};
 use crate::protocols::dsp::entities::auth::TransferRPCAuthn;
-use crate::protocols::dsp::entities::context_common::{BuildAuthn, TransferContextRaw, header};
+use crate::protocols::dsp::entities::context_common::{BuildAuthn, TransferContextRaw};
 use crate::protocols::dsp::entities::context_common::{
     TransferContextConnectorRole, TransferContextProcessSlot,
 };
@@ -28,9 +31,6 @@ use oauth::entities::user::User;
 use serde::Deserialize;
 use ymir::data::entities::shared::participant::Model as Mates;
 use ymir::errors::{BadFormat, Errors, Outcome};
-
-/// Context Created from RPC controllers
-/// The context is used for validation at several steps, command for Manager creation
 
 // TransferContextRaw --
 
@@ -45,7 +45,7 @@ impl BuildAuthn for TransferRPCAuthn {
         let me_user = parts.extensions.get::<User>().cloned().ok_or_else(|| {
             Errors::crazy("auth middleware did not resolve user (User missing)", None)
         })?;
-        let raw = header(&parts.headers, "authorization").unwrap_or_default();
+        let raw = Self::header(&parts.headers, "authorization").unwrap_or_default();
         let (token_type, token_content) = raw
             .split_once(' ')
             .map(|(t, c)| (t.to_string(), c.trim().to_string()))

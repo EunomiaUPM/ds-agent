@@ -24,6 +24,7 @@ use common::config::services::traits::CatalogConfigTrait;
 use common::config::types::traits::{CacheConfigTrait, CommonConfigTrait};
 use common::config::ApplicationConfig;
 use common::http_client::{HttpClient, HttpClientError};
+use common::module_loader::service_composer::ServiceComposer;
 use common::utils::flush_redis_cache;
 use tokio::fs;
 use tokio::sync::broadcast;
@@ -37,7 +38,6 @@ use ymir::data::entities::shared::participant;
 use ymir::errors::{Errors, Outcome};
 use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
-use common::module_loader::service_composer::ServiceComposer;
 
 use crate::setup::composition::MonolithModule;
 use crate::setup::CoreHttpWorker;

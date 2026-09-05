@@ -18,3 +18,5 @@
 //! RDF utilities shared across protocol crates.
 
 pub mod dsp;
+pub mod expanded;
+pub mod extract;

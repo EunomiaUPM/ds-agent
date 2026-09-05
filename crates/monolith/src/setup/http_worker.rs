@@ -70,9 +70,9 @@ impl CoreHttpWorker {
         let well_known = WellKnownRoot::get_well_known_router(&config.into())?;
         Ok(api_router.merge(well_known).layer(
             TraceLayer::new_for_http()
-                .make_span_with(|_req: &Request<_>| {
-                    tracing::info_span!("request", id = %Uuid::new_v4())
-                })
+                .make_span_with(
+                    |_req: &Request<_>| tracing::info_span!("request", id = %Uuid::new_v4()),
+                )
                 .on_request(|request: &Request<_>, _span: &tracing::Span| {
                     tracing::info!("{} {}", request.method(), request.uri());
                 })

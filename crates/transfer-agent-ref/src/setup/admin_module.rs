@@ -17,7 +17,6 @@ use crate::http::transfer_message_router::TransferMessageRouter;
 use crate::http::transfer_process_router::TransferProcessRouter;
 use crate::setup::context::AppContext;
 
-
 pub struct TransferAdminModule {
     ctx: Arc<AppContext>,
 }

@@ -58,3 +58,8 @@ static/environment/envs/**
 cache/
 *.log
 .dirty
+/crates/catalog-agent/INFORME_IMPLEMENTACION.md
+
+# local cargo config (warnings silenciados)
+/.cargo/config.toml
+/CLAUDE.md

@@ -35,6 +35,18 @@ pub enum DSPProtocolVersions {
     V2025_1,
 }
 
+impl std::fmt::Display for DSPProtocolVersions {
+    /// The version tag as it appears on the wire (DSP 4.3), not the Rust variant
+    /// name — this string is protocol-stable, so it is safe to build identifiers
+    /// out of.
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::V2024_1 => "2024-1",
+            Self::V2025_1 => "2025-1",
+        })
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum DSPIdentifierTypes {
     #[serde(rename = "did:web")]

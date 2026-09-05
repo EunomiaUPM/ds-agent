@@ -41,3 +41,12 @@ sophia_term = "0.10"
 sophia_iri = "0.10"
 json-syntax = "=0.9.6"
 locspan = "0.7"
+# Pinned to the versions `sophia_jsonld` 0.10 resolves to: the JSON-LD expansion
+# below drives `sophia_jsonld`'s own loader and vocabulary types, so a mismatch
+# here is a type error, not a silent behaviour change.
+rdf-types = "=0.15.4"
+contextual = "=0.1.6"
+
+[dev-dependencies]
+sha2 = { workspace = true }
+tower = { workspace = true, features = ["util"] }

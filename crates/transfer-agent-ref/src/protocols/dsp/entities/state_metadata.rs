@@ -15,6 +15,9 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Why a Transfer Process reached its current state. Persisted alongside it and
+//! used by the transition validator.
+
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::str::FromStr;

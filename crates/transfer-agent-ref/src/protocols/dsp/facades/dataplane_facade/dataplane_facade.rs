@@ -49,7 +49,7 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
         &self,
         ctx: &TransferDSPContextDomain,
     ) -> Outcome<Option<DataAddressDto>> {
-        strategy_for_request_pre(&ctx.typed.data_address)
+        strategy_for_request_pre(&ctx.typed.fields.data_address)
             .on_request_pre(ctx, &self.dataplane_manager)
             .await
     }

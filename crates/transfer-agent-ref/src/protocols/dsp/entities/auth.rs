@@ -15,15 +15,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Who authenticated on a transfer context: an inbound DSP peer, or the user
+//! behind an outbound RPC call.
+
 use oauth::entities::user::User;
 use ymir::data::entities::shared::participant::Model as Mates;
 
-/// Authentication info por Context
-
-/// Common view over the auth attached to any transfer context, whatever the
-/// source. Lets the shared context / command code read identity and token
-/// without knowing whether it came from an inbound DSP peer or an outbound RPC
-/// caller.
+/// The auth on any transfer context, whatever the source. Lets shared code read
+/// identity and token without knowing which side authenticated.
 pub trait TransferAuthn {
     fn raw(&self) -> &str;
     fn token_type(&self) -> &str;

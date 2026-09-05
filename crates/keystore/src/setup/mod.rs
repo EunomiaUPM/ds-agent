@@ -81,8 +81,9 @@ impl KeystoreModule {
     {
         let prefix = format!("{}/keystore", config.common().get_api_version());
         let (parameter_service, secret_service) = Self::build_stores(config, vault).await;
-        let config_service =
-            Arc::new(ConfigStoreImpl::new(Arc::new(ConfigPassthroughRepo::new(app_config))));
+        let config_service = Arc::new(ConfigStoreImpl::new(Arc::new(ConfigPassthroughRepo::new(
+            app_config,
+        ))));
 
         let router =
             KeystoreRouter::new(parameter_service, secret_service, config_service).router();

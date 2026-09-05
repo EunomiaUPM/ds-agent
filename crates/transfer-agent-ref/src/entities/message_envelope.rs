@@ -35,6 +35,22 @@ pub(crate) struct MessageEnvelope {
     pub payload: Json,
 }
 
+impl MessageEnvelope {
+    /// The canonical pair is present only for RDF protocols; plain-JSON ones
+    /// have no canonical form to record.
+    pub(crate) fn new(payload: Json, canonical: Option<(String, [u8; 32])>) -> Self {
+        let (canonical_form, canonical_hash) = match canonical {
+            Some((form, hash)) => (Some(form), Some(hash)),
+            None => (None, None),
+        };
+        Self {
+            canonical_form,
+            canonical_hash,
+            payload,
+        }
+    }
+}
+
 /// Deserialization input: `canonical_form` as string, `canonical_hash` as hex.
 /// Matches the serialized form produced by the `serialize_with` helpers.
 #[derive(Deserialize)]

@@ -73,6 +73,7 @@ impl DataPlaneStrategy for ConsumerPullStrategy {
         if !ctx.is_restart {
             let dataplane: DataplaneAddress = ctx
                 .typed
+                .fields
                 .data_address
                 .clone()
                 .map(|addr| to_dataplane_address(&addr))

@@ -15,6 +15,9 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! The transfer lifecycle manager: one ordered template, one strategy per DSP
+//! message type.
+
 mod complete_strategy;
 mod manager;
 mod request_strategy;

@@ -15,9 +15,11 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use common::dsp_common::data_address::{DataAddress, EndpointProperty};
 use serde::{Deserialize, Serialize};
 
-/// Pure DataAddress as defined in DSP
+/// Internal DTO for RPC bodies and the data-plane facades. The wire form is
+/// `common::dsp_common::data_address::DataAddress`.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct DataAddressDto {
@@ -31,4 +33,26 @@ pub struct DataAddressDto {
 pub struct EndpointPropertyDto {
     pub name: String,
     pub value: String,
+}
+
+/// Widen to the wire `DataAddress`. The `@type` tags are not in the DTO, so they
+/// are defaulted: only the endpoint and its properties matter downstream.
+impl From<DataAddressDto> for DataAddress {
+    fn from(dto: DataAddressDto) -> Self {
+        Self {
+            _type: "DataAddress".to_string(),
+            endpoint_type: dto.endpoint_type,
+            endpoint: dto.endpoint,
+            endpoint_properties: dto
+                .endpoint_properties
+                .unwrap_or_default()
+                .into_iter()
+                .map(|p| EndpointProperty {
+                    _type: "EndpointProperty".to_string(),
+                    name: p.name,
+                    value: p.value,
+                })
+                .collect(),
+        }
+    }
 }

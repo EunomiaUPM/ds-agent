@@ -15,6 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+pub mod ack;
 pub mod auth;
 pub mod command;
 pub mod context_common;
@@ -22,7 +23,9 @@ pub mod context_dsp;
 pub mod context_rpc;
 pub mod data_address;
 mod dataplane_signal;
+pub mod idempotency;
 pub mod message_types;
+pub mod protocol_fields;
 mod rdf_extractor_dsp;
 pub mod state;
 pub mod state_metadata;

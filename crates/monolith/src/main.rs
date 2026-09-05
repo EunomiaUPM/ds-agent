@@ -15,14 +15,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use common::info_banner::banner;
+use common::telemetry;
 use monolith::setup::cmd::MonolithAgentCommands;
+use monolith::{SERVICE_BIG_NAME, SERVICE_NAME};
 use tracing::info;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 use ymir::errors::{Errors, Outcome};
-use common::info_banner::banner;
-use common::telemetry;
-use monolith::{SERVICE_BIG_NAME, SERVICE_NAME};
 
 #[tokio::main]
 async fn main() -> Outcome<()> {

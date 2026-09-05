@@ -46,7 +46,11 @@ impl Into<DataplaneAddress> for DataAddress {
     fn into(self) -> DataplaneAddress {
         DataplaneAddress {
             endpoint_type: self.endpoint_type,
-            endpoint: self.endpoint,
+            // The wire `endpoint` is optional (DSP Appendix A); the data plane
+            // cannot work without one. That it is present here is guaranteed by
+            // the domain rule that requires it for the transfer kinds that reach
+            // this conversion, not by the wire shape.
+            endpoint: self.endpoint.unwrap_or_default(),
             authorization_type: self
                 .endpoint_properties
                 .iter()
@@ -89,7 +93,7 @@ impl Into<DataAddress> for DataplaneAddress {
         DataAddress {
             _type: "DataAddress".to_string(),
             endpoint_type: self.endpoint_type.to_string(),
-            endpoint: self.endpoint.to_string(),
+            endpoint: Some(self.endpoint.to_string()),
             endpoint_properties,
         }
     }

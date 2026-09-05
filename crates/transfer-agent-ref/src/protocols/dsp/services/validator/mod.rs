@@ -15,5 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! The checks a message must pass before the manager runs it: payload shape and
+//! state-machine legality.
+
 pub mod payload;
 pub mod transition;

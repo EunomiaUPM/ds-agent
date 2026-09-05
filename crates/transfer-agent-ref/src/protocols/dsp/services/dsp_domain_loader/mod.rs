@@ -15,6 +15,9 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Resolving the domain facts an inbound message needs before the manager can
+//! act on it: the process, the agreement, the connector and the role.
+
 use crate::entities::protocol::TransferRole;
 use crate::protocols::dsp::entities::context_dsp::TransferDSPContextTyped;
 use common::dsp_common::odrl::OdrlAgreement;

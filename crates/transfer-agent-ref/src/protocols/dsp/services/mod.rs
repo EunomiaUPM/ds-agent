@@ -15,8 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! What runs between the HTTP edge and the domain: the inbound pipeline, the
+//! domain loader, the validators and the lifecycle manager.
+
 pub mod dsp_domain_loader;
-pub mod dsp_http_middleware;
+pub mod dsp_handler_pipeline;
 mod manager;
-pub mod rpc_domain_loader;
 pub mod validator;

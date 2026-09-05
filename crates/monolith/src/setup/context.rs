@@ -26,7 +26,6 @@ use negotiation_agent::create_negotiations_http_router;
 use ymir::errors::Outcome;
 use ymir::services::vault::global::VaultService;
 
-
 pub struct CoreContext {
     pub catalog_router: Router,
     pub auth_router: Router,

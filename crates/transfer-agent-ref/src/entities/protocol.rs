@@ -17,10 +17,11 @@
 
 use crate::entities::ids::ParticipantId;
 use compact_str::CompactString;
+use events::core::notification::notification_types::EventsNotificationMessageTypes;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fmt::{Display, Formatter};
 use urn::Urn;
-
 // Common Transfer process related protocol fields
 // Such as direction, role, protocolId, loose protocolState, loose protocolMessageType
 // And Protocol correlation which is a identifiers DSP-loosely-related correlation for convenience
@@ -46,6 +47,15 @@ pub(crate) enum ProtocolId {
     Dsp2024,
     #[serde(rename = "dsp2025_1")]
     Dsp2025_1,
+}
+
+impl Display for ProtocolId {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ProtocolId::Dsp2024 => f.write_str("dsp2024"),
+            ProtocolId::Dsp2025_1 => f.write_str("dsp2025_1"),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

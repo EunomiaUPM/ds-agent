@@ -37,6 +37,7 @@ impl DataPlaneStrategy for ConsumerPushStrategy {
         let transfer_id = ctx.process_urn("consumer push request_pre")?;
         let data_address_dto = ctx
             .typed
+            .fields
             .data_address
             .as_ref()
             .ok_or_else(|| Errors::crazy("Data address instance should be defined", None))?;

@@ -23,8 +23,13 @@ pub struct DataAddress {
     pub _type: String,
     #[serde(rename = "endpointType")] // TODO define this
     pub endpoint_type: String,
-    #[serde(rename = "endpoint")]
-    pub endpoint: String,
+    /// OPTIONAL per DSP Appendix A. A pull `dataAddress` sent with a
+    /// `TransferRequestMessage` may legitimately carry none — the provider
+    /// supplies the endpoint later, in the `TransferStartMessage`. Whether a
+    /// given message *needs* one is a domain rule (it depends on the connector
+    /// behind the `format`), not a shape rule.
+    #[serde(rename = "endpoint", skip_serializing_if = "Option::is_none")]
+    pub endpoint: Option<String>,
     #[serde(rename = "endpointProperties")]
     pub endpoint_properties: Vec<EndpointProperty>,
 }

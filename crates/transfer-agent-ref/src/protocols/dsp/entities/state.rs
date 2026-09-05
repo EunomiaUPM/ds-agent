@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! The Transfer Process states (DSP 9.1), as they travel on the wire.
+
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::str::FromStr;

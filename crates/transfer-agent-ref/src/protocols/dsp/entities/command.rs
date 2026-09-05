@@ -15,9 +15,11 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! The manager's input, and how each context distils itself into one. Unifies
+//! inbound DSP, outbound RPC and data-plane signals behind a single shape.
+
 use std::str::FromStr;
 
-use serde_json::Value as Json;
 use urn::Urn;
 use ymir::errors::{BadFormat, Errors, Outcome};
 
@@ -28,18 +30,12 @@ use crate::protocols::dsp::entities::context_common::{
 };
 use crate::protocols::dsp::entities::context_dsp::TransferDSPContextDomain;
 use crate::protocols::dsp::entities::context_rpc::TransferRPCContextDomain;
-use crate::protocols::dsp::entities::data_address::DataAddressDto;
 use crate::protocols::dsp::entities::dataplane_signal::DataplaneSignal;
 use crate::protocols::dsp::entities::message_types::TransferDSPMessageType;
-use common::dsp_common::data_address::{DataAddress, EndpointProperty};
+use common::dsp_common::data_address::DataAddress;
 
-/// Command data for manager.
-/// Each context such as DSP or RPC contexts, even Dataplane signaling turns
-/// into a TransferManagerCommand when it comes to reach the manager
-/// It works as a more suitable and unified view for the Manager
-
-/// The distilled, normalized input the manager runs its template over.
-/// Every source (inbound DSP, outbound RPC, dataplane signal) produces one of these
+/// The distilled, normalized input the manager runs its template over. Every
+/// source (inbound DSP, outbound RPC, dataplane signal) produces one of these.
 #[derive(Debug)]
 pub struct TransferManagerCommand {
     // identity / routing
@@ -88,10 +84,10 @@ impl ExtractCommand for TransferDSPContextDomain {
             direction: TransferCommandDirection::Inbound,
             role: self.role,
             transfer_direction: self.transfer_direction,
-            data_address: self.typed.data_address.clone(),
+            data_address: self.typed.fields.data_address.clone(),
             is_restart: self.is_restart,
             agreement_id: Some(self.agreement.id.clone()),
-            envelope: build_envelope(payload, canonical),
+            envelope: MessageEnvelope::new(payload, canonical),
             connector_instance: self.connector_instance,
             process: self.process,
         })
@@ -114,49 +110,12 @@ impl ExtractCommand for TransferRPCContextDomain {
             direction: TransferCommandDirection::Outbound,
             role: self.role,
             transfer_direction: self.transfer_direction,
-            data_address: self.typed.data_address.clone().map(dto_to_data_address),
+            data_address: self.typed.data_address.clone().map(DataAddress::from),
             is_restart: self.is_restart,
             agreement_id,
-            envelope: build_envelope(payload, None),
+            envelope: MessageEnvelope::new(payload, None),
             connector_instance: self.connector_instance,
             process: self.process,
         })
-    }
-}
-
-// Helpers
-
-/// Assemble a [`MessageEnvelope`] from the JSON payload and an optional
-/// canonical form (present only for RDF/DSP messages).
-fn build_envelope(payload: Json, canonical: Option<(String, [u8; 32])>) -> MessageEnvelope {
-    let (canonical_form, canonical_hash) = match canonical {
-        Some((form, hash)) => (Some(form), Some(hash)),
-        None => (None, None),
-    };
-    MessageEnvelope {
-        canonical_form,
-        canonical_hash,
-        payload,
-    }
-}
-
-/// Widen the RPC data-plane DTO into the common wire `DataAddress`. Lossy on the
-/// `@type` tags (not present in the DTO); defaulted, since only the endpoint and
-/// properties matter downstream.
-fn dto_to_data_address(dto: DataAddressDto) -> DataAddress {
-    DataAddress {
-        _type: "DataAddress".to_string(),
-        endpoint_type: dto.endpoint_type,
-        endpoint: dto.endpoint.unwrap_or_default(),
-        endpoint_properties: dto
-            .endpoint_properties
-            .unwrap_or_default()
-            .into_iter()
-            .map(|p| EndpointProperty {
-                _type: "EndpointProperty".to_string(),
-                name: p.name,
-                value: p.value,
-            })
-            .collect(),
     }
 }

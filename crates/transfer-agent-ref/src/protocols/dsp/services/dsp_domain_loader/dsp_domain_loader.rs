@@ -75,9 +75,12 @@ impl DspDomainLoader {
         &self,
         typed: &TransferDSPContextTyped,
     ) -> Outcome<TransferContextProcessSlot> {
-        for pid in [typed.provider_pid.as_deref(), typed.consumer_pid.as_deref()]
-            .into_iter()
-            .flatten()
+        for pid in [
+            typed.fields.provider_pid.as_deref(),
+            typed.fields.consumer_pid.as_deref(),
+        ]
+        .into_iter()
+        .flatten()
         {
             let urn: Urn = pid.parse().map_err(|_| {
                 Errors::format(
@@ -94,7 +97,7 @@ impl DspDomainLoader {
                 return Ok(TransferContextProcessSlot::Existing(found));
             }
         }
-        let consumer_pid = typed.consumer_pid.clone().ok_or_else(|| {
+        let consumer_pid = typed.fields.consumer_pid.clone().ok_or_else(|| {
             Errors::format(
                 BadFormat::Received,
                 "new transfer requires a consumerPid",
@@ -149,7 +152,7 @@ impl DspDomainLoader {
         if is_restart {
             return TransferDirection::Pull;
         }
-        if typed.data_address.is_some() {
+        if typed.fields.data_address.is_some() {
             TransferDirection::Push
         } else {
             TransferDirection::Pull

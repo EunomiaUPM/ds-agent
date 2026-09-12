@@ -83,7 +83,9 @@ impl GatewayServiceTrait for GatewayService {
         extra_opt: Option<String>,
         req: Request<Body>,
     ) -> Response {
-        self.proxy.proxy_request(service_prefix, extra_opt, req).await
+        self.proxy
+            .proxy_request(service_prefix, extra_opt, req)
+            .await
     }
 
     async fn proxy_dsp_request(
@@ -92,7 +94,9 @@ impl GatewayServiceTrait for GatewayService {
         extra_opt: Option<String>,
         req: Request<Body>,
     ) -> Response {
-        self.proxy.proxy_dsp_request(service_prefix, extra_opt, req).await
+        self.proxy
+            .proxy_dsp_request(service_prefix, extra_opt, req)
+            .await
     }
 
     async fn proxy_well_known_rpc_request(&self, extra: String, req: Request<Body>) -> Response {

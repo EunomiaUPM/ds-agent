@@ -101,8 +101,7 @@ impl OAuthSetup {
             Arc::new(UserService::new(factory.user_repository()));
         let client_svc: Arc<dyn ClientServiceTrait> =
             Arc::new(ClientService::new(factory.client_repository()));
-        let pat_svc: Arc<dyn PatServiceTrait> =
-            Arc::new(PatService::new(factory.pat_repository()));
+        let pat_svc: Arc<dyn PatServiceTrait> = Arc::new(PatService::new(factory.pat_repository()));
         let issuer = config.issuer.clone();
         let token_router = TokenRouter::new(token_svc.clone(), user_svc.clone(), issuer).router();
         let users_router = UsersRouter::new(token_svc.clone(), user_svc).router();

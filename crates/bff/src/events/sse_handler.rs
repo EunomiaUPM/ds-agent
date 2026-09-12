@@ -49,9 +49,7 @@ impl SseStreamHandler {
                 match rx.recv().await {
                     Ok(envelope) if pattern.matches(&envelope.topic) => {
                         if let Ok(data) = serde_json::to_string(&envelope) {
-                            let event = Event::default()
-                                .event(envelope.topic.as_str())
-                                .data(data);
+                            let event = Event::default().event(envelope.topic.as_str()).data(data);
                             return Some((Ok(event), (rx, pattern)));
                         }
                     }

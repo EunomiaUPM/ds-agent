@@ -59,7 +59,12 @@ pub struct GatewayHttpRouter {
 impl GatewayHttpRouter {
     /// Construct router using legacy GatewayConfig.
     pub fn new(config: GatewayConfig) -> Self {
-        let ctx = Arc::new(AppContext::new(config.clone(), None, None));
+        let events_ctx = events::setup::context::AppContext::in_memory(None);
+        let ctx = Arc::new(AppContext::new(
+            config.clone(),
+            Some(events_ctx.event_bus),
+            None,
+        ));
         let service = Arc::new(GatewayService::new(config));
         Self { ctx, service }
     }
@@ -85,31 +90,63 @@ impl GatewayHttpRouter {
         ));
 
         let api_router = Router::new()
-            .route("/ws", get({
-                let handler = ws_handler.clone();
-                move |ws: WebSocketUpgrade| {
-                    let h = handler.clone();
-                    async move { h.upgrade(ws).await }
-                }
-            }))
+            .route(
+                "/ws",
+                get({
+                    let handler = ws_handler.clone();
+                    move |ws: WebSocketUpgrade| {
+                        let h = handler.clone();
+                        async move { h.upgrade(ws).await }
+                    }
+                }),
+            )
             .route("/fe-config", get(Self::config_handler))
             .route("/events/stream", get(Self::handle_sse_stream))
-            .route("/events/subscriptions", get(Self::handle_list_subscriptions).post(Self::handle_create_subscription))
-            .route("/events/subscriptions/{id}", get(Self::handle_get_subscription).put(Self::handle_update_subscription).delete(Self::handle_delete_subscription))
+            .route(
+                "/events/subscriptions",
+                get(Self::handle_list_subscriptions).post(Self::handle_create_subscription),
+            )
+            .route(
+                "/events/subscriptions/{id}",
+                get(Self::handle_get_subscription)
+                    .put(Self::handle_update_subscription)
+                    .delete(Self::handle_delete_subscription),
+            )
             .route("/events/dlq", get(Self::handle_list_dlq))
             .route("/events/dlq/replay-all", post(Self::handle_replay_all_dlq))
-            .route("/events/dlq/{id}", get(Self::handle_get_dlq).delete(Self::handle_delete_dlq))
+            .route(
+                "/events/dlq/{id}",
+                get(Self::handle_get_dlq).delete(Self::handle_delete_dlq),
+            )
             .route("/events/dlq/{id}/replay", post(Self::handle_replay_dlq))
-            .route("/events", get(Self::handle_list_events).post(Self::handle_publish_event))
+            .route(
+                "/events",
+                get(Self::handle_list_events).post(Self::handle_publish_event),
+            )
             .route("/events/{id}", get(Self::handle_get_event))
             .route("/incoming-notification", post(Self::incoming_notification))
-            .route("/catalog-offerings", post(Self::handle_create_dataset_offering))
+            .route(
+                "/catalog-offerings",
+                post(Self::handle_create_dataset_offering),
+            )
             .route("/did-json/{url}", get(Self::fetch_did_json))
-            .route("/federated-catalog/{url}", get(Self::fetch_federated_catalog))
+            .route(
+                "/federated-catalog/{url}",
+                get(Self::fetch_federated_catalog),
+            )
             .route("/{service_prefix}", any(Self::proxy_handler_without_extra))
-            .route("/{service_prefix}/{*extra}", any(Self::proxy_handler_with_extra))
-            .route("/dsp/current/{service_prefix}/{*extra}", any(Self::proxy_dsp_handler))
-            .route("/well-known/rpc/{*extra}", any(Self::proxy_well_known_rpc_handler));
+            .route(
+                "/{service_prefix}/{*extra}",
+                any(Self::proxy_handler_with_extra),
+            )
+            .route(
+                "/dsp/current/{service_prefix}/{*extra}",
+                any(Self::proxy_dsp_handler),
+            )
+            .route(
+                "/well-known/rpc/{*extra}",
+                any(Self::proxy_well_known_rpc_handler),
+            );
 
         let protected_api = api_router
             .layer(middleware::from_fn(move |req, next| {
@@ -164,17 +201,27 @@ impl GatewayHttpRouter {
     ) -> Response {
         let bus = match &state.ctx.event_bus {
             Some(b) => b,
-            None => return (StatusCode::NOT_IMPLEMENTED, "event bus not configured").into_response(),
+            None => {
+                return (StatusCode::NOT_IMPLEMENTED, "event bus not configured").into_response()
+            }
         };
 
         let topic = match Topic::new(&req.topic) {
             Ok(t) => t,
-            Err(e) => return (StatusCode::BAD_REQUEST, Json(json!({ "error": format!("{e:?}") }))).into_response(),
+            Err(e) => {
+                return (
+                    StatusCode::BAD_REQUEST,
+                    Json(json!({ "error": format!("{e:?}") })),
+                )
+                    .into_response()
+            }
         };
 
         let source = req.source_crate.unwrap_or_else(|| "bff".to_string());
         let correlation_id = req.correlation_id.and_then(|s| {
-            urn::Urn::from_str(&s).ok().or_else(|| urn::Urn::from_str(&format!("urn:uuid:{s}")).ok())
+            urn::Urn::from_str(&s)
+                .ok()
+                .or_else(|| urn::Urn::from_str(&format!("urn:uuid:{s}")).ok())
         });
         let envelope = EventEnvelope::new(
             topic,
@@ -186,18 +233,28 @@ impl GatewayHttpRouter {
 
         match bus.publish(envelope).await {
             Ok(record) => (StatusCode::CREATED, Json(record)).into_response(),
-            Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": format!("{e:?}") }))).into_response(),
+            Err(e) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": format!("{e:?}") })),
+            )
+                .into_response(),
         }
     }
 
     async fn handle_list_subscriptions(State(state): State<GatewayHttpRouter>) -> Response {
         let bus = match &state.ctx.event_bus {
             Some(b) => b,
-            None => return (StatusCode::NOT_IMPLEMENTED, "event bus not configured").into_response(),
+            None => {
+                return (StatusCode::NOT_IMPLEMENTED, "event bus not configured").into_response()
+            }
         };
         match bus.subscription_repo().list_subscriptions().await {
             Ok(subs) => (StatusCode::OK, Json(subs)).into_response(),
-            Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": format!("{e:?}") }))).into_response(),
+            Err(e) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": format!("{e:?}") })),
+            )
+                .into_response(),
         }
     }
 
@@ -207,11 +264,17 @@ impl GatewayHttpRouter {
     ) -> Response {
         let bus = match &state.ctx.event_bus {
             Some(b) => b,
-            None => return (StatusCode::NOT_IMPLEMENTED, "event bus not configured").into_response(),
+            None => {
+                return (StatusCode::NOT_IMPLEMENTED, "event bus not configured").into_response()
+            }
         };
         match bus.subscription_repo().create_subscription(dto).await {
             Ok(sub) => (StatusCode::CREATED, Json(sub)).into_response(),
-            Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": format!("{e:?}") }))).into_response(),
+            Err(e) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": format!("{e:?}") })),
+            )
+                .into_response(),
         }
     }
 
@@ -221,12 +284,18 @@ impl GatewayHttpRouter {
     ) -> Response {
         let bus = match &state.ctx.event_bus {
             Some(b) => b,
-            None => return (StatusCode::NOT_IMPLEMENTED, "event bus not configured").into_response(),
+            None => {
+                return (StatusCode::NOT_IMPLEMENTED, "event bus not configured").into_response()
+            }
         };
         match bus.subscription_repo().get_subscription(&id).await {
             Ok(Some(sub)) => (StatusCode::OK, Json(sub)).into_response(),
             Ok(None) => (StatusCode::NOT_FOUND, "subscription not found").into_response(),
-            Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": format!("{e:?}") }))).into_response(),
+            Err(e) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": format!("{e:?}") })),
+            )
+                .into_response(),
         }
     }
 
@@ -237,11 +306,17 @@ impl GatewayHttpRouter {
     ) -> Response {
         let bus = match &state.ctx.event_bus {
             Some(b) => b,
-            None => return (StatusCode::NOT_IMPLEMENTED, "event bus not configured").into_response(),
+            None => {
+                return (StatusCode::NOT_IMPLEMENTED, "event bus not configured").into_response()
+            }
         };
         match bus.subscription_repo().update_subscription(&id, dto).await {
             Ok(sub) => (StatusCode::OK, Json(sub)).into_response(),
-            Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": format!("{e:?}") }))).into_response(),
+            Err(e) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": format!("{e:?}") })),
+            )
+                .into_response(),
         }
     }
 
@@ -251,11 +326,17 @@ impl GatewayHttpRouter {
     ) -> Response {
         let bus = match &state.ctx.event_bus {
             Some(b) => b,
-            None => return (StatusCode::NOT_IMPLEMENTED, "event bus not configured").into_response(),
+            None => {
+                return (StatusCode::NOT_IMPLEMENTED, "event bus not configured").into_response()
+            }
         };
         match bus.subscription_repo().delete_subscription(&id).await {
             Ok(()) => StatusCode::NO_CONTENT.into_response(),
-            Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": format!("{e:?}") }))).into_response(),
+            Err(e) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": format!("{e:?}") })),
+            )
+                .into_response(),
         }
     }
 
@@ -265,13 +346,23 @@ impl GatewayHttpRouter {
     ) -> Response {
         let bus = match &state.ctx.event_bus {
             Some(b) => b,
-            None => return (StatusCode::NOT_IMPLEMENTED, "event bus not configured").into_response(),
+            None => {
+                return (StatusCode::NOT_IMPLEMENTED, "event bus not configured").into_response()
+            }
         };
         let limit = q.limit.unwrap_or(50).min(100);
         let offset = q.offset.unwrap_or(0);
-        match bus.dlq_repo().list_dead_letters(q.status.as_deref(), limit, offset).await {
+        match bus
+            .dlq_repo()
+            .list_dead_letters(q.status.as_deref(), limit, offset)
+            .await
+        {
             Ok(records) => (StatusCode::OK, Json(records)).into_response(),
-            Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": format!("{e:?}") }))).into_response(),
+            Err(e) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": format!("{e:?}") })),
+            )
+                .into_response(),
         }
     }
 
@@ -281,12 +372,18 @@ impl GatewayHttpRouter {
     ) -> Response {
         let bus = match &state.ctx.event_bus {
             Some(b) => b,
-            None => return (StatusCode::NOT_IMPLEMENTED, "event bus not configured").into_response(),
+            None => {
+                return (StatusCode::NOT_IMPLEMENTED, "event bus not configured").into_response()
+            }
         };
         match bus.dlq_repo().get_dead_letter(&id).await {
             Ok(Some(record)) => (StatusCode::OK, Json(record)).into_response(),
             Ok(None) => (StatusCode::NOT_FOUND, "dead letter record not found").into_response(),
-            Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": format!("{e:?}") }))).into_response(),
+            Err(e) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": format!("{e:?}") })),
+            )
+                .into_response(),
         }
     }
 
@@ -296,24 +393,34 @@ impl GatewayHttpRouter {
     ) -> Response {
         let bus = match &state.ctx.event_bus {
             Some(b) => b,
-            None => return (StatusCode::NOT_IMPLEMENTED, "event bus not configured").into_response(),
+            None => {
+                return (StatusCode::NOT_IMPLEMENTED, "event bus not configured").into_response()
+            }
         };
         match bus.replay_dead_letter(&id).await {
             Ok(delivery) => (StatusCode::OK, Json(delivery)).into_response(),
-            Err(e) => (StatusCode::BAD_REQUEST, Json(json!({ "error": format!("{e:?}") }))).into_response(),
+            Err(e) => (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": format!("{e:?}") })),
+            )
+                .into_response(),
         }
     }
 
-    async fn handle_replay_all_dlq(
-        State(state): State<GatewayHttpRouter>,
-    ) -> Response {
+    async fn handle_replay_all_dlq(State(state): State<GatewayHttpRouter>) -> Response {
         let bus = match &state.ctx.event_bus {
             Some(b) => b,
-            None => return (StatusCode::NOT_IMPLEMENTED, "event bus not configured").into_response(),
+            None => {
+                return (StatusCode::NOT_IMPLEMENTED, "event bus not configured").into_response()
+            }
         };
         match bus.replay_all_dead_letters().await {
             Ok(count) => (StatusCode::OK, Json(json!({ "replayed_count": count }))).into_response(),
-            Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": format!("{e:?}") }))).into_response(),
+            Err(e) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": format!("{e:?}") })),
+            )
+                .into_response(),
         }
     }
 
@@ -323,11 +430,17 @@ impl GatewayHttpRouter {
     ) -> Response {
         let bus = match &state.ctx.event_bus {
             Some(b) => b,
-            None => return (StatusCode::NOT_IMPLEMENTED, "event bus not configured").into_response(),
+            None => {
+                return (StatusCode::NOT_IMPLEMENTED, "event bus not configured").into_response()
+            }
         };
         match bus.dlq_repo().delete_dead_letter(&id).await {
             Ok(()) => StatusCode::NO_CONTENT.into_response(),
-            Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({ "error": format!("{e:?}") }))).into_response(),
+            Err(e) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": format!("{e:?}") })),
+            )
+                .into_response(),
         }
     }
 
@@ -374,7 +487,11 @@ impl GatewayHttpRouter {
         Path((service_prefix, extra)): Path<(String, String)>,
         req: Request<Body>,
     ) -> impl IntoResponse {
-        state.ctx.proxy.proxy_request(service_prefix, Some(extra), req).await
+        state
+            .ctx
+            .proxy
+            .proxy_request(service_prefix, Some(extra), req)
+            .await
     }
 
     async fn proxy_handler_without_extra(
@@ -382,7 +499,11 @@ impl GatewayHttpRouter {
         Path(service_prefix): Path<String>,
         req: Request<Body>,
     ) -> impl IntoResponse {
-        state.ctx.proxy.proxy_request(service_prefix, None, req).await
+        state
+            .ctx
+            .proxy
+            .proxy_request(service_prefix, None, req)
+            .await
     }
 
     async fn proxy_dsp_handler(
@@ -390,7 +511,11 @@ impl GatewayHttpRouter {
         Path((service_prefix, extra)): Path<(String, String)>,
         req: Request<Body>,
     ) -> impl IntoResponse {
-        state.ctx.proxy.proxy_dsp_request(service_prefix, Some(extra), req).await
+        state
+            .ctx
+            .proxy
+            .proxy_dsp_request(service_prefix, Some(extra), req)
+            .await
     }
 
     async fn proxy_well_known_rpc_handler(
@@ -398,7 +523,11 @@ impl GatewayHttpRouter {
         Path(extra): Path<String>,
         req: Request<Body>,
     ) -> impl IntoResponse {
-        state.ctx.proxy.proxy_well_known_rpc_request(extra, req).await
+        state
+            .ctx
+            .proxy
+            .proxy_well_known_rpc_request(extra, req)
+            .await
     }
 
     async fn incoming_notification(
@@ -407,11 +536,14 @@ impl GatewayHttpRouter {
     ) -> impl IntoResponse {
         let value_str = match serde_json::to_string(&input) {
             Ok(s) => s,
-            Err(_) => return (StatusCode::BAD_REQUEST, "invalid notification payload").into_response(),
+            Err(_) => {
+                return (StatusCode::BAD_REQUEST, "invalid notification payload").into_response()
+            }
         };
 
         if let Some(bus) = &state.ctx.event_bus {
-            let topic = Topic::new("incoming.notification").unwrap_or_else(|_| Topic::new("notification").unwrap());
+            let topic = Topic::new("incoming.notification")
+                .unwrap_or_else(|_| Topic::new("notification").unwrap());
             let envelope = EventEnvelope::new(topic, "bff", 1, None, input);
             let _ = bus.publish(envelope).await;
         }
@@ -425,20 +557,39 @@ impl GatewayHttpRouter {
         match reqwest::get(&target_url).await {
             Ok(resp) => match resp.json::<Value>().await {
                 Ok(json) => (StatusCode::OK, Json(json)).into_response(),
-                Err(e) => (StatusCode::BAD_GATEWAY, format!("Failed to parse DID JSON: {e}")).into_response(),
+                Err(e) => (
+                    StatusCode::BAD_GATEWAY,
+                    format!("Failed to parse DID JSON: {e}"),
+                )
+                    .into_response(),
             },
-            Err(e) => (StatusCode::BAD_GATEWAY, format!("Failed to fetch DID JSON: {e}")).into_response(),
+            Err(e) => (
+                StatusCode::BAD_GATEWAY,
+                format!("Failed to fetch DID JSON: {e}"),
+            )
+                .into_response(),
         }
     }
 
     async fn fetch_federated_catalog(Path(url): Path<String>) -> impl IntoResponse {
-        let target_url = format!("{}/.well-known/federated-catalog", url.trim_end_matches('/'));
+        let target_url = format!(
+            "{}/.well-known/federated-catalog",
+            url.trim_end_matches('/')
+        );
         match reqwest::get(&target_url).await {
             Ok(resp) => match resp.json::<Value>().await {
                 Ok(json) => (StatusCode::OK, Json(json)).into_response(),
-                Err(e) => (StatusCode::BAD_GATEWAY, format!("Failed to parse catalog JSON: {e}")).into_response(),
+                Err(e) => (
+                    StatusCode::BAD_GATEWAY,
+                    format!("Failed to parse catalog JSON: {e}"),
+                )
+                    .into_response(),
             },
-            Err(e) => (StatusCode::BAD_GATEWAY, format!("Failed to fetch federated catalog: {e}")).into_response(),
+            Err(e) => (
+                StatusCode::BAD_GATEWAY,
+                format!("Failed to fetch federated catalog: {e}"),
+            )
+                .into_response(),
         }
     }
 

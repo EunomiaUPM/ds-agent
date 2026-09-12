@@ -20,17 +20,18 @@ use std::sync::Arc;
 use sea_orm::DatabaseConnection;
 use tokio_util::sync::CancellationToken;
 
-use crate::bus::policy::RetryPolicy;
-use crate::bus::worker::RetryWorker;
-use crate::bus::EventBus;
-use crate::data::repo::in_memory::InMemoryEventBusRepo;
-use crate::data::repo::sea_orm_repo::SeaOrmEventBusRepo;
+use crate::data::factory::DataFactory;
+use crate::data::in_memory::InMemoryDataFactory;
 use crate::data::repo::{
     EventDeadLetterRepo, EventDeliveryRepo, EventStoreRepo, EventSubscriptionRepo,
 };
+use crate::data::sea_orm::SeaOrmDataFactory;
+use crate::services::event_bus::policy::RetryPolicy;
+use crate::services::event_bus::worker::RetryWorker;
+use crate::services::event_bus::EventBus;
 use crate::setup::workers::RetryWorkerHandle;
 
-/// Shared application context holding the event bus, repositories, and worker handles.
+// Application context bundling persistence factories, domain services, and worker lifecycles.
 #[derive(Clone)]
 pub struct AppContext {
     pub db: Option<DatabaseConnection>,
@@ -44,15 +45,15 @@ pub struct AppContext {
 }
 
 impl AppContext {
-    /// Build context with real SeaORM database connection.
+    // Build context with live SeaORM database connection.
     pub fn build(db: DatabaseConnection, policy: Option<RetryPolicy>) -> Self {
         let policy = policy.unwrap_or_default();
-        let sea_repo = Arc::new(SeaOrmEventBusRepo::new(db.clone()));
+        let factory = SeaOrmDataFactory::new(db.clone());
 
-        let event_repo: Arc<dyn EventStoreRepo> = sea_repo.clone();
-        let subscription_repo: Arc<dyn EventSubscriptionRepo> = sea_repo.clone();
-        let delivery_repo: Arc<dyn EventDeliveryRepo> = sea_repo.clone();
-        let dlq_repo: Arc<dyn EventDeadLetterRepo> = sea_repo;
+        let event_repo = factory.event_repository();
+        let subscription_repo = factory.subscription_repository();
+        let delivery_repo = factory.delivery_repository();
+        let dlq_repo = factory.dlq_repository();
 
         let event_bus = Arc::new(EventBus::new(
             event_repo.clone(),
@@ -84,15 +85,15 @@ impl AppContext {
         }
     }
 
-    /// Build context with in-memory repositories for testing.
+    // Build context with in-memory persistence for testing.
     pub fn in_memory(policy: Option<RetryPolicy>) -> Self {
         let policy = policy.unwrap_or_default();
-        let mem_repo = Arc::new(InMemoryEventBusRepo::new());
+        let factory = InMemoryDataFactory::new();
 
-        let event_repo: Arc<dyn EventStoreRepo> = mem_repo.clone();
-        let subscription_repo: Arc<dyn EventSubscriptionRepo> = mem_repo.clone();
-        let delivery_repo: Arc<dyn EventDeliveryRepo> = mem_repo.clone();
-        let dlq_repo: Arc<dyn EventDeadLetterRepo> = mem_repo;
+        let event_repo = factory.event_repository();
+        let subscription_repo = factory.subscription_repository();
+        let delivery_repo = factory.delivery_repository();
+        let dlq_repo = factory.dlq_repository();
 
         let event_bus = Arc::new(EventBus::new(
             event_repo.clone(),
@@ -124,7 +125,7 @@ impl AppContext {
         }
     }
 
-    /// Spawn the background retry worker task.
+    // Spawn the background retry worker task.
     pub fn spawn_retry_worker(&self) -> RetryWorkerHandle {
         RetryWorkerHandle::spawn(self.retry_worker.clone(), self.cancel_token.clone())
     }

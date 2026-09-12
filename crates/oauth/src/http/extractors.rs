@@ -68,7 +68,9 @@ impl ClientAuth {
         body_id: Option<&str>,
         body_secret: Option<&str>,
     ) -> Option<Self> {
-        if let Some(auth_header) = headers.get(header::AUTHORIZATION).and_then(|h| h.to_str().ok())
+        if let Some(auth_header) = headers
+            .get(header::AUTHORIZATION)
+            .and_then(|h| h.to_str().ok())
         {
             if let Some(encoded) = auth_header.strip_prefix("Basic ") {
                 if let Ok(decoded) =

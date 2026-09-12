@@ -32,9 +32,7 @@ use crate::entities::commands::{CreateClientCommand, CreateUserCommand};
 use crate::entities::role::RbacRole;
 use crate::http::clients_router::ClientsRouter;
 use crate::http::errors::{OAuthError, OAuthErrorCode};
-use crate::http::forms::{
-    AuthorizeResponse, ClientView, IntrospectResponse, OpenIdConfiguration,
-};
+use crate::http::forms::{AuthorizeResponse, ClientView, IntrospectResponse, OpenIdConfiguration};
 use crate::http::pats_router::PatsRouter;
 use crate::http::token_router::TokenRouter;
 use crate::http::users_router::UsersRouter;
@@ -79,8 +77,7 @@ impl TestEnv {
             Arc::new(UserService::new(factory.user_repository()));
         let client_svc: Arc<dyn ClientServiceTrait> =
             Arc::new(ClientService::new(factory.client_repository()));
-        let pat_svc: Arc<dyn PatServiceTrait> =
-            Arc::new(PatService::new(factory.pat_repository()));
+        let pat_svc: Arc<dyn PatServiceTrait> = Arc::new(PatService::new(factory.pat_repository()));
 
         let token_router =
             TokenRouter::new(token_svc.clone(), user_svc.clone(), config.issuer.clone()).router();
@@ -170,7 +167,11 @@ async fn test_password_grant_form_and_json() {
     assert!(token.refresh_token.is_some());
     assert!(token.id_token.is_some());
 
-    let claims = env.token_svc.validate_token(&token.access_token).await.unwrap();
+    let claims = env
+        .token_svc
+        .validate_token(&token.access_token)
+        .await
+        .unwrap();
     assert_eq!(claims.sub, "tenant-1");
     assert_eq!(claims.role, RbacRole::Owner);
 
@@ -266,7 +267,11 @@ async fn test_client_credentials_basic_auth_and_body() {
     assert!(token.refresh_token.is_none());
     assert!(token.id_token.is_none());
 
-    let claims = env.token_svc.validate_token(&token.access_token).await.unwrap();
+    let claims = env
+        .token_svc
+        .validate_token(&token.access_token)
+        .await
+        .unwrap();
     assert_eq!(claims.sub, "agent-connector-1");
     assert_eq!(claims.role, RbacRole::Admin);
 
@@ -514,7 +519,10 @@ async fn test_client_crud_admin_endpoints() {
     let req_create = Request::builder()
         .method("POST")
         .uri("/clients")
-        .header(header::AUTHORIZATION, format!("Bearer {}", token.access_token))
+        .header(
+            header::AUTHORIZATION,
+            format!("Bearer {}", token.access_token),
+        )
         .header(header::CONTENT_TYPE, "application/json")
         .body(Body::from(
             serde_json::to_vec(&serde_json::json!({
@@ -537,7 +545,10 @@ async fn test_client_crud_admin_endpoints() {
     let req_list = Request::builder()
         .method("GET")
         .uri("/clients")
-        .header(header::AUTHORIZATION, format!("Bearer {}", token.access_token))
+        .header(
+            header::AUTHORIZATION,
+            format!("Bearer {}", token.access_token),
+        )
         .body(Body::empty())
         .unwrap();
 
@@ -550,7 +561,10 @@ async fn test_client_crud_admin_endpoints() {
     let req_get = Request::builder()
         .method("GET")
         .uri("/clients/client-test-1")
-        .header(header::AUTHORIZATION, format!("Bearer {}", token.access_token))
+        .header(
+            header::AUTHORIZATION,
+            format!("Bearer {}", token.access_token),
+        )
         .body(Body::empty())
         .unwrap();
 
@@ -561,7 +575,10 @@ async fn test_client_crud_admin_endpoints() {
     let req_del = Request::builder()
         .method("DELETE")
         .uri("/clients/client-test-1")
-        .header(header::AUTHORIZATION, format!("Bearer {}", token.access_token))
+        .header(
+            header::AUTHORIZATION,
+            format!("Bearer {}", token.access_token),
+        )
         .body(Body::empty())
         .unwrap();
 
@@ -677,7 +694,10 @@ async fn test_personal_access_tokens() {
     let req_create = Request::builder()
         .method("POST")
         .uri("/pats")
-        .header(header::AUTHORIZATION, format!("Bearer {}", user_token.access_token))
+        .header(
+            header::AUTHORIZATION,
+            format!("Bearer {}", user_token.access_token),
+        )
         .header(header::CONTENT_TYPE, "application/json")
         .body(Body::from(
             serde_json::to_vec(&serde_json::json!({
@@ -696,7 +716,10 @@ async fn test_personal_access_tokens() {
     let req_userinfo = Request::builder()
         .method("GET")
         .uri("/userinfo")
-        .header(header::AUTHORIZATION, format!("Bearer {}", pat_created.token))
+        .header(
+            header::AUTHORIZATION,
+            format!("Bearer {}", pat_created.token),
+        )
         .body(Body::empty())
         .unwrap();
     let resp_userinfo = env.router.clone().oneshot(req_userinfo).await.unwrap();
@@ -730,7 +753,10 @@ async fn test_personal_access_tokens() {
     let req_after = Request::builder()
         .method("GET")
         .uri("/userinfo")
-        .header(header::AUTHORIZATION, format!("Bearer {}", pat_created.token))
+        .header(
+            header::AUTHORIZATION,
+            format!("Bearer {}", pat_created.token),
+        )
         .body(Body::empty())
         .unwrap();
     let resp_after = env.router.clone().oneshot(req_after).await.unwrap();
@@ -753,7 +779,9 @@ async fn test_rfc7523_jwt_bearer_m2m() {
     let assertion_claims = JwtAssertionClaims {
         iss: "m2m-service".to_string(),
         sub: "m2m-service".to_string(),
-        aud: Some(serde_json::Value::String("http://localhost:8080".to_string())),
+        aud: Some(serde_json::Value::String(
+            "http://localhost:8080".to_string(),
+        )),
         exp: now + 3600,
         iat: Some(now),
         jti: Some("jwt-assertion-123".to_string()),
@@ -795,4 +823,3 @@ async fn test_rfc7523_jwt_bearer_m2m() {
     let token_res_jwt: TokenResponse = response_json(resp_client_jwt).await;
     assert!(!token_res_jwt.access_token.is_empty());
 }
-

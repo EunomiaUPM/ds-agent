@@ -57,7 +57,11 @@ pub async fn seed_admin_user(
     }
 
     let client_repo = factory.client_repository();
-    if client_repo.get_by_client_id("eunomia-admin-gui").await?.is_none() {
+    if client_repo
+        .get_by_client_id("eunomia-admin-gui")
+        .await?
+        .is_none()
+    {
         let (password_hash, _) = password::hash_password("eunomia-admin-gui-secret")?;
         let client = crate::entities::client::Client {
             client_id: "eunomia-admin-gui".to_string(),

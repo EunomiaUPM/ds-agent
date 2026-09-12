@@ -46,10 +46,7 @@ impl PatsRouter {
         token_svc: Arc<dyn TokenServiceTrait>,
         pat_svc: Arc<dyn PatServiceTrait>,
     ) -> Self {
-        Self {
-            token_svc,
-            pat_svc,
-        }
+        Self { token_svc, pat_svc }
     }
 
     pub(crate) fn router(self) -> Router {

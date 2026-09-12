@@ -76,7 +76,9 @@ impl ClientServiceTrait for ClientService {
             created_at: Utc::now(),
         };
 
-        Ok(ClientView::assemble(self.client_repo.create(&client).await?))
+        Ok(ClientView::assemble(
+            self.client_repo.create(&client).await?,
+        ))
     }
 
     async fn delete_client(&self, client_id: &str) -> Outcome<()> {

@@ -17,6 +17,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { EventEnvelope } from "../data/orval/model";
+import { getApiGatewayBase } from "../data/orval-mutator";
 
 export interface UseEventStreamOptions {
   topic?: string;
@@ -24,6 +25,7 @@ export interface UseEventStreamOptions {
   onEvent?: (event: EventEnvelope) => void;
   maxBuffer?: number;
   useWebSocket?: boolean;
+  baseUrl?: string;
 }
 
 export interface UseEventStreamResult {
@@ -70,10 +72,19 @@ export function useEventStream(options: UseEventStreamOptions = {}): UseEventStr
           localStorage.getItem("pat_token")
         : null;
 
+    const rawBase = (options.baseUrl ?? getApiGatewayBase()) || "";
+    const cleanBase = rawBase.endsWith("/") ? rawBase.slice(0, -1) : rawBase;
+
     if (useWebSocket) {
-      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const host = window.location.host;
-      const wsUrl = `${protocol}//${host}/api/ws${token ? `?token=${encodeURIComponent(token)}` : ""}`;
+      let wsUrl: string;
+      if (cleanBase.startsWith("http")) {
+        const wsPrefix = cleanBase.replace(/^http/, "ws");
+        wsUrl = `${wsPrefix}/admin/api/ws${token ? `?token=${encodeURIComponent(token)}` : ""}`;
+      } else {
+        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        const host = window.location.host;
+        wsUrl = `${protocol}//${host}/admin/api/ws${token ? `?token=${encodeURIComponent(token)}` : ""}`;
+      }
 
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
@@ -113,12 +124,13 @@ export function useEventStream(options: UseEventStreamOptions = {}): UseEventStr
         wsRef.current = null;
       };
     } else {
-      // Use SSE (/api/events/stream)
+      // Use SSE (/admin/api/events/stream)
       const queryParams = new URLSearchParams();
       if (topic) queryParams.set("topic", topic);
       if (token) queryParams.set("token", token);
 
-      const sseUrl = `/api/events/stream${queryParams.toString() ? `?${queryParams.toString()}` : ""}`;
+      const streamPath = cleanBase ? `${cleanBase}/admin/api/events/stream` : "/admin/api/events/stream";
+      const sseUrl = `${streamPath}${queryParams.toString() ? `?${queryParams.toString()}` : ""}`;
       const eventSource = new EventSource(sseUrl);
 
       eventSource.onopen = () => {

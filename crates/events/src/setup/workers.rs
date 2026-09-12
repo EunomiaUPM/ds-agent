@@ -19,16 +19,16 @@ use std::sync::Arc;
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 
-use crate::bus::worker::RetryWorker;
+use crate::services::event_bus::worker::RetryWorker;
 
-/// Handle for the background retry worker task providing cooperative shutdown.
+// Handle for the background retry worker task providing cooperative shutdown.
 pub struct RetryWorkerHandle {
     cancel_token: CancellationToken,
     handle: JoinHandle<()>,
 }
 
 impl RetryWorkerHandle {
-    /// Spawn a new background task running the RetryWorker.
+    // Spawn a new background task running the RetryWorker.
     pub fn spawn(worker: Arc<RetryWorker>, cancel_token: CancellationToken) -> Self {
         let token_clone = cancel_token.clone();
         let handle = tokio::spawn(async move {
@@ -41,7 +41,7 @@ impl RetryWorkerHandle {
         }
     }
 
-    /// Signal cooperative cancellation and await background task termination.
+    // Signal cooperative cancellation and await background task termination.
     pub async fn stop(self) {
         self.cancel_token.cancel();
         let _ = self.handle.await;

@@ -39,7 +39,11 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(OauthClients::ClientSecretHash).string().not_null())
+                    .col(
+                        ColumnDef::new(OauthClients::ClientSecretHash)
+                            .string()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(OauthClients::ClientName).string().not_null())
                     .col(ColumnDef::new(OauthClients::Role).string().not_null())
                     .col(

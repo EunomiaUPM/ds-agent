@@ -70,6 +70,9 @@ pub trait TokenServiceTrait: OauthTokenValidator + Send + Sync + 'static {
     ) -> Outcome<TokenResponse>;
     async fn revoke_refresh_token(&self, refresh_jwt: &str) -> Outcome<()>;
     async fn revoke_token(&self, token: &str, hint: Option<&str>) -> Outcome<()>;
-    async fn introspect_token(&self, token: &str, hint: Option<&str>)
-    -> Outcome<IntrospectResponse>;
+    async fn introspect_token(
+        &self,
+        token: &str,
+        hint: Option<&str>,
+    ) -> Outcome<IntrospectResponse>;
 }

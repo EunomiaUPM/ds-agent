@@ -109,4 +109,3 @@ pub async fn create_gateway_http_router_with_context(
     let gateway_router = GatewayHttpRouter::with_context(ctx).router();
     Router::new().nest("/admin", gateway_router)
 }
-

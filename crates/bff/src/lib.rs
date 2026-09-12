@@ -27,7 +27,4 @@ pub use proxy::HttpProxyDispatcher;
 pub use setup::cmd::GatewayCommands;
 pub use setup::composition::BffModule;
 pub use setup::context::AppContext;
-pub use setup::http_worker::{
-    create_gateway_http_router, create_gateway_http_router_with_context,
-};
-
+pub use setup::http_worker::{create_gateway_http_router, create_gateway_http_router_with_context};

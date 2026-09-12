@@ -15,4 +15,4 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod error_adapter;
+pub use crate::bus::error::EventBusError;

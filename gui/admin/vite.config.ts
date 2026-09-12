@@ -23,19 +23,19 @@ export default defineConfig(() => {
       port: 5174,
       proxy: {
         "/admin/api": {
-          target: "http://127.0.0.1:1200",
+          target: process.env.VITE_GATEWAY_TARGET || `http://127.0.0.1:${process.env.VITE_GATEWAY_PORT || "1100"}`,
           changeOrigin: true,
         },
         "/api": {
-          target: "http://127.0.0.1:1200",
+          target: process.env.VITE_GATEWAY_TARGET || `http://127.0.0.1:${process.env.VITE_GATEWAY_PORT || "1100"}`,
           changeOrigin: true,
         },
         "/oauth": {
-          target: "http://127.0.0.1:1200",
+          target: process.env.VITE_GATEWAY_TARGET || `http://127.0.0.1:${process.env.VITE_GATEWAY_PORT || "1100"}`,
           changeOrigin: true,
         },
         "/.well-known": {
-          target: "http://127.0.0.1:1200",
+          target: process.env.VITE_GATEWAY_TARGET || `http://127.0.0.1:${process.env.VITE_GATEWAY_PORT || "1100"}`,
           changeOrigin: true,
         },
       },

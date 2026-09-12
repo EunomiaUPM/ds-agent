@@ -37,6 +37,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "shared/src/components/ui/dialog";
 import { Radio, Send, RefreshCw, Eye, Trash2, Filter } from "lucide-react";
@@ -47,12 +48,57 @@ interface PublishDialogProps {
   onClose: () => void;
 }
 
+const publishPresets = [
+  {
+    label: "transfers:bla",
+    topic: "transfers:bla",
+    source: "gui-admin",
+    payload: JSON.stringify(
+      {
+        transfer_id: "urn:uuid:11111111-1111-1111-1111-111111111111",
+        state: "COMPLETED",
+        message: "Transfer completed successfully",
+      },
+      null,
+      2,
+    ),
+  },
+  {
+    label: "transfers:created",
+    topic: "transfers:created",
+    source: "transfer-agent",
+    payload: JSON.stringify(
+      {
+        transfer_id: "urn:uuid:22222222-2222-2222-2222-222222222222",
+        dataset_id: "urn:uuid:33333333-3333-3333-3333-333333333333",
+        state: "REQUESTED",
+      },
+      null,
+      2,
+    ),
+  },
+  {
+    label: "catalog:dataset:published",
+    topic: "catalog:dataset:published",
+    source: "catalog-service",
+    payload: JSON.stringify(
+      {
+        dataset_id: "urn:uuid:44444444-4444-4444-4444-444444444444",
+        title: "European Energy Mobility Dataset",
+        version: "1.0.0",
+      },
+      null,
+      2,
+    ),
+  },
+];
+
 const PublishDialog = ({ open, onClose }: PublishDialogProps) => {
   const queryClient = useQueryClient();
-  const [topic, setTopic] = useState("transfers.test.notification");
+  const [topic, setTopic] = useState("transfers:bla");
   const [sourceCrate, setSourceCrate] = useState("gui-admin");
   const [payloadStr, setPayloadStr] = useState(
-    '{\n  "message": "Hello from Admin UI",\n  "status": "active"\n}',
+    publishPresets[0].payload,
   );
 
   const { mutate: publish, isPending } = usePublishEvent({
@@ -95,6 +141,9 @@ const PublishDialog = ({ open, onClose }: PublishDialogProps) => {
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Publish Event to Bus</DialogTitle>
+          <DialogDescription className="text-xs text-muted-foreground">
+            Emit an event envelope into the event bus for subscriber testing and live streaming.
+          </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-4 py-2">
           <div className="flex flex-col gap-1.5">
@@ -104,8 +153,27 @@ const PublishDialog = ({ open, onClose }: PublishDialogProps) => {
             <Input
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
-              placeholder="e.g. transfers.initiated"
+              placeholder="e.g. transfers:bla or transfers:created"
             />
+            <div className="flex flex-wrap items-center gap-1.5 mt-1">
+              <span className="text-[11px] text-muted-foreground">Presets:</span>
+              {publishPresets.map((p) => (
+                <Button
+                  key={p.topic}
+                  type="button"
+                  variant={topic === p.topic ? "default" : "outline"}
+                  size="xs"
+                  className="text-[11px] h-5 px-2 font-mono"
+                  onClick={() => {
+                    setTopic(p.topic);
+                    setSourceCrate(p.source);
+                    setPayloadStr(p.payload);
+                  }}
+                >
+                  {p.label}
+                </Button>
+              ))}
+            </div>
           </div>
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -239,26 +307,48 @@ const FeedComponent = () => {
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[240px] max-w-sm">
           <Filter className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             value={filterTopic}
             onChange={(e) => setFilterTopic(e.target.value)}
-            placeholder="Filter by topic pattern (e.g. transfers.*)..."
+            placeholder="Filter by topic pattern (e.g. transfers:*, transfers:bla)..."
             className="pl-9 text-xs"
           />
         </div>
-        {filterTopic && (
+        <div className="flex items-center gap-1.5">
           <Button
-            variant="ghost"
+            variant={filterTopic === "" ? "default" : "outline"}
             size="sm"
+            className="text-xs h-8"
             onClick={() => setFilterTopic("")}
-            className="text-xs text-muted-foreground"
           >
-            Clear filter
+            All
           </Button>
-        )}
+          {["transfers:*", "transfers:bla", "transfers:**", "catalog:*"].map((pat) => (
+            <Button
+              key={pat}
+              variant={filterTopic === pat ? "default" : "outline"}
+              size="sm"
+              className="text-xs h-8 font-mono"
+              onClick={() => setFilterTopic(filterTopic === pat ? "" : pat)}
+            >
+              {pat}
+            </Button>
+          ))}
+          {filterTopic &&
+            !["transfers:*", "transfers:bla", "transfers:**", "catalog:*"].includes(filterTopic) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setFilterTopic("")}
+                className="text-xs text-muted-foreground"
+              >
+                Clear
+              </Button>
+            )}
+        </div>
       </div>
 
       <PageSection>
@@ -322,6 +412,9 @@ const FeedComponent = () => {
             <DialogTitle className="flex items-center gap-2 text-sm font-mono">
               <span className="text-primary">{selectedEvent?.topic}</span>
             </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Event envelope metadata, payload, and schema details.
+            </DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto rounded bg-muted/40 p-4 font-mono text-xs">
             <pre className="whitespace-pre-wrap break-all">

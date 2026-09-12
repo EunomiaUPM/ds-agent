@@ -42,7 +42,11 @@ impl BffAuthMiddleware {
 
     /// Extract bearer token from Authorization header or URL query string.
     pub fn extract_token(req: &Request) -> Option<String> {
-        if let Some(auth_val) = req.headers().get(AUTHORIZATION).and_then(|v| v.to_str().ok()) {
+        if let Some(auth_val) = req
+            .headers()
+            .get(AUTHORIZATION)
+            .and_then(|v| v.to_str().ok())
+        {
             if let Some(token) = auth_val.strip_prefix("Bearer ") {
                 return Some(token.trim().to_string());
             }
@@ -90,10 +94,7 @@ impl BffAuthMiddleware {
             "x-content-type-options",
             HeaderValue::from_static("nosniff"),
         );
-        headers.insert(
-            "x-frame-options",
-            HeaderValue::from_static("SAMEORIGIN"),
-        );
+        headers.insert("x-frame-options", HeaderValue::from_static("SAMEORIGIN"));
         headers.insert(
             "x-xss-protection",
             HeaderValue::from_static("1; mode=block"),

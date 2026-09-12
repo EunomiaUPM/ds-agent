@@ -43,7 +43,10 @@ pub struct Model {
 impl Model {
     pub(crate) fn into_domain(self) -> Outcome<PersonalAccessToken> {
         let role = self.role.parse::<RbacRole>().map_err(|e| {
-            Errors::crazy("invalid role in personal access token", Some(e.to_string().into()))
+            Errors::crazy(
+                "invalid role in personal access token",
+                Some(e.to_string().into()),
+            )
         })?;
         let scopes: Vec<String> = serde_json::from_value(self.scopes).unwrap_or_default();
         Ok(PersonalAccessToken {

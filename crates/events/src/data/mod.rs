@@ -15,7 +15,18 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod entities;
-pub mod entity_mappers;
+pub mod factory;
+pub mod in_memory;
 pub mod migrations;
 pub mod repo;
+pub mod sea_orm;
+
+pub use factory::DataFactory;
+pub use in_memory::{InMemoryDataFactory, InMemoryEventBusRepo};
+pub use migrations::get_events_migrations;
+pub use sea_orm::{SeaOrmDataFactory, SeaOrmEventBusRepo};
+
+// Backward-compatible module alias for legacy entity references
+pub mod entities {
+    pub use crate::data::sea_orm::orm::*;
+}

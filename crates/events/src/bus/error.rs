@@ -52,6 +52,12 @@ pub enum EventBusError {
     #[error("Invalid topic pattern: {0}")]
     InvalidTopicPattern(String),
 
+    #[error("Invalid URN: {0}")]
+    InvalidUrn(String),
+
+    #[error("Bad request: {0}")]
+    BadRequest(String),
+
     #[error("Broadcast channel error: {0}")]
     BroadcastError(String),
 }
@@ -63,10 +69,12 @@ impl IntoResponse for EventBusError {
             | Self::EventNotFound(_)
             | Self::DeliveryNotFound(_)
             | Self::DeadLetterNotFound(_) => (StatusCode::NOT_FOUND, 4040),
-            Self::InvalidTopic(_) | Self::InvalidTopicPattern(_) => {
-                (StatusCode::BAD_REQUEST, 4000)
-            }
+            Self::InvalidTopic(_)
+            | Self::InvalidTopicPattern(_)
+            | Self::InvalidUrn(_)
+            | Self::BadRequest(_) => (StatusCode::BAD_REQUEST, 4000),
             Self::Serialization(_) => (StatusCode::BAD_REQUEST, 4001),
+            Self::DispatchFailed(_) => (StatusCode::BAD_GATEWAY, 5020),
             _ => (StatusCode::INTERNAL_SERVER_ERROR, 5000),
         };
 

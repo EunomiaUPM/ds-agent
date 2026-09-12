@@ -28,9 +28,7 @@ use events::bus::dispatcher::EventDispatcher;
 use events::bus::envelope::{EventEnvelope, Topic, TopicPattern};
 use events::bus::policy::RetryPolicy;
 use events::bus::{EventBus, EventBusTrait};
-use events::data::repo::{
-    CreateSubscriptionDto, DeadLetterStatus, DeliveryStatus,
-};
+use events::data::repo::{CreateSubscriptionDto, DeadLetterStatus, DeliveryStatus};
 use events::setup::AppContext;
 use serde_json::json;
 use tokio::net::TcpListener;
@@ -40,7 +38,10 @@ use tokio::sync::Mutex;
 async fn test_topic_and_pattern_matching() {
     let valid_topic = Topic::new("transfer.process.started").expect("valid topic");
     assert_eq!(valid_topic.as_str(), "transfer.process.started");
-    assert_eq!(valid_topic.segments(), vec!["transfer", "process", "started"]);
+    assert_eq!(
+        valid_topic.segments(),
+        vec!["transfer", "process", "started"]
+    );
 
     assert!(Topic::new("").is_err());
     assert!(Topic::new("transfer.*.started").is_err());
@@ -114,7 +115,11 @@ async fn test_in_memory_event_bus_broadcast() {
     let payload = json!({ "contract_id": "c-12345", "status": "Agreed" });
     let envelope = EventEnvelope::new(topic.clone(), "negotiation", 1, None, payload.clone());
 
-    let published = ctx.event_bus.publish(envelope).await.expect("publish succeeds");
+    let published = ctx
+        .event_bus
+        .publish(envelope)
+        .await
+        .expect("publish succeeds");
     assert_eq!(published.topic, topic);
 
     let received = rx.recv().await.expect("received from broadcast");
@@ -187,7 +192,10 @@ async fn test_webhook_delivery_with_hmac_and_headers() {
     let payload = json!({ "process_id": "tp-999", "state": "COMPLETED" });
     let envelope = EventEnvelope::new(topic.clone(), "dataplane", 1, None, payload.clone());
 
-    ctx.event_bus.publish(envelope).await.expect("publish succeeds");
+    ctx.event_bus
+        .publish(envelope.clone())
+        .await
+        .expect("publish succeeds");
 
     // Allow immediate dispatch background task to complete
     tokio::time::sleep(Duration::from_millis(200)).await;
@@ -199,9 +207,27 @@ async fn test_webhook_delivery_with_hmac_and_headers() {
     let headers_list = capture.received_headers.lock().await;
     let headers = &headers_list[0];
     assert!(headers.contains_key("x-hub-signature-256"));
-    assert!(headers.get("x-hub-signature-256").unwrap().starts_with("sha256="));
-    assert_eq!(headers.get("x-event-topic").unwrap(), "transfer.process.completed");
+    assert!(headers
+        .get("x-hub-signature-256")
+        .unwrap()
+        .starts_with("sha256="));
+    assert_eq!(
+        headers.get("x-event-topic").unwrap(),
+        "transfer.process.completed"
+    );
     assert_eq!(headers.get("x-custom-tenant").unwrap(), "tenant-alpha");
+
+    let deliveries = ctx
+        .delivery_repo
+        .list_by_event(envelope.id.as_str())
+        .await
+        .unwrap();
+    assert_eq!(deliveries.len(), 1);
+    assert_eq!(deliveries[0].status, DeliveryStatus::Delivered);
+    assert_eq!(deliveries[0].attempts, 1);
+    assert!(deliveries[0].last_attempt_at.is_some());
+    assert!(deliveries[0].delivered_at.is_some());
+    assert_eq!(deliveries[0].response_status_code, Some(200));
 }
 
 #[tokio::test]
@@ -263,7 +289,11 @@ async fn test_retry_and_dead_letter_queue_flow() {
     tokio::time::sleep(Duration::from_millis(200)).await;
 
     // Delivery failed attempt 1, scheduled for retry
-    let deliveries = ctx.delivery_repo.list_by_event(envelope.id.as_str()).await.unwrap();
+    let deliveries = ctx
+        .delivery_repo
+        .list_by_event(envelope.id.as_str())
+        .await
+        .unwrap();
     assert_eq!(deliveries.len(), 1);
     assert_eq!(deliveries[0].status, DeliveryStatus::Failed);
     assert_eq!(deliveries[0].attempts, 1);
@@ -273,22 +303,40 @@ async fn test_retry_and_dead_letter_queue_flow() {
     assert_eq!(processed, 1);
 
     // Verify delivery transitioned to DeadLetter
-    let updated_delivery = ctx.delivery_repo.get_delivery(&deliveries[0].id).await.unwrap().unwrap();
+    let updated_delivery = ctx
+        .delivery_repo
+        .get_delivery(&deliveries[0].id)
+        .await
+        .unwrap()
+        .unwrap();
     assert_eq!(updated_delivery.status, DeliveryStatus::DeadLetter);
 
     // Verify record in Dead Letter Queue
-    let dead_letters = ctx.dlq_repo.list_dead_letters(Some("Unresolved"), 10, 0).await.unwrap();
+    let dead_letters = ctx
+        .dlq_repo
+        .list_dead_letters(Some("Unresolved"), 10, 0)
+        .await
+        .unwrap();
     assert_eq!(dead_letters.len(), 1);
     assert_eq!(dead_letters[0].status, DeadLetterStatus::Unresolved);
     assert_eq!(dead_letters[0].topic, "data.transfer.failed");
 
     // Test DLQ Replay: Webhook recovers and returns 200 OK
     capture.status_to_return.store(200, Ordering::SeqCst);
-    let replayed = ctx.event_bus.replay_dead_letter(&dead_letters[0].id).await.expect("replay succeeds");
+    let replayed = ctx
+        .event_bus
+        .replay_dead_letter(&dead_letters[0].id)
+        .await
+        .expect("replay succeeds");
     assert_eq!(replayed.status, DeliveryStatus::Delivered);
 
     // Dead letter is now marked Replayed
-    let resolved_dl = ctx.dlq_repo.get_dead_letter(&dead_letters[0].id).await.unwrap().unwrap();
+    let resolved_dl = ctx
+        .dlq_repo
+        .get_dead_letter(&dead_letters[0].id)
+        .await
+        .unwrap()
+        .unwrap();
     assert_eq!(resolved_dl.status, DeadLetterStatus::Replayed);
 }
 
@@ -358,6 +406,39 @@ async fn test_http_api_endpoints() {
     assert_eq!(dlq_resp.status(), StatusCode::OK);
     let dlq: Vec<events::data::repo::DeadLetterRecord> = dlq_resp.json().await.unwrap();
     assert!(dlq.is_empty());
+
+    // Direct root /publish route
+    let direct_pub = client
+        .post(format!("{base}/publish"))
+        .json(&json!({
+            "topic": "catalog.dataset.updated",
+            "payload": { "dataset_id": "ds-100" }
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(direct_pub.status(), StatusCode::CREATED);
+
+    // Updating non-existent subscription returns 404
+    let update_404_resp = client
+        .put(format!(
+            "{base}/subscriptions/urn:uuid:00000000-0000-0000-0000-000000000000"
+        ))
+        .json(&json!({
+            "callback_address": "https://example.com/changed"
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(update_404_resp.status(), StatusCode::NOT_FOUND);
+
+    // Invalid URN returns 400 Bad Request
+    let invalid_urn_resp = client
+        .get(format!("{base}/not-valid-urn!@#"))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(invalid_urn_resp.status(), StatusCode::BAD_REQUEST);
 }
 
 #[tokio::test]
@@ -371,4 +452,3 @@ async fn test_events_module_metadata_and_routes() {
     let http = module.http().expect("has http routes");
     assert_eq!(http.0, "/api/v1/events");
 }
-

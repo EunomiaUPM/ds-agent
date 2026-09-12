@@ -25,12 +25,12 @@ use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use bff::auth::BffAuthMiddleware;
+use bff::create_gateway_http_router;
 use bff::events::feed_router::ListEventsQuery;
 use bff::events::sse_handler::SseQuery;
 use bff::events::{BffEventFeedRouter, SseStreamHandler};
 use bff::proxy::HttpProxyDispatcher;
 use bff::setup::context::AppContext;
-use bff::create_gateway_http_router;
 use bff::setup::BffModule;
 use bff::GatewayHttpRouter;
 use common::auth::claims::{Claims, RbacRole};
@@ -145,7 +145,11 @@ async fn test_bff_auth_middleware_bearer_and_query() {
     let base = format!("http://127.0.0.1:{port}");
 
     // 1. Missing token -> 401 Unauthorized
-    let unauth_resp = client.get(format!("{base}/protected")).send().await.unwrap();
+    let unauth_resp = client
+        .get(format!("{base}/protected"))
+        .send()
+        .await
+        .unwrap();
     assert_eq!(unauth_resp.status(), StatusCode::UNAUTHORIZED);
     assert_eq!(
         unauth_resp.headers().get("x-content-type-options").unwrap(),
@@ -405,8 +409,11 @@ async fn test_bff_create_dataset_offering() {
     assert!(body["connector"].is_object());
 
     // Verify event was published
-    let events = event_bus.event_repo().list_events(Some("catalog.dataset.created"), 10, 0).await.unwrap();
+    let events = event_bus
+        .event_repo()
+        .list_events(Some("catalog.dataset.created"), 10, 0)
+        .await
+        .unwrap();
     assert_eq!(events.len(), 1);
     assert_eq!(events[0].topic.as_str(), "catalog.dataset.created");
 }
-

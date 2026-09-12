@@ -41,6 +41,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "shared/src/components/ui/dialog";
 import { AlertTriangle, RefreshCw, Trash2, Eye, RotateCcw } from "lucide-react";
@@ -280,6 +281,9 @@ const DlqComponent = () => {
               <AlertTriangle className="h-4 w-4" />
               Dead Letter: {selectedDlq?.id}
             </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Dead letter queue inspection for failed event delivery.
+            </DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto rounded bg-muted/40 p-4 font-mono text-xs flex flex-col gap-3">
             <div>

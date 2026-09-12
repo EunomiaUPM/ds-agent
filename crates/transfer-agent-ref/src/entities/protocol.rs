@@ -17,7 +17,6 @@
 
 use crate::entities::ids::ParticipantId;
 use compact_str::CompactString;
-use events::core::notification::notification_types::EventsNotificationMessageTypes;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};

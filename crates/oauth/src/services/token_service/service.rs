@@ -171,14 +171,14 @@ impl OauthTokenValidator for TokenService {
                 .await?
                 .ok_or_else(|| Errors::unauthorized("invalid or revoked PAT", None))?;
             if !pat.is_active() {
-                return Err(Errors::unauthorized(
-                    "PAT is expired or revoked",
-                    None,
-                ));
+                return Err(Errors::unauthorized("PAT is expired or revoked", None));
             }
             let _ = self.pat_repo.update_last_used(pat.id).await;
             let now = Utc::now().timestamp();
-            let exp = pat.expires_at.map(|dt| dt.timestamp()).unwrap_or(now + 31_536_000);
+            let exp = pat
+                .expires_at
+                .map(|dt| dt.timestamp())
+                .unwrap_or(now + 31_536_000);
             return Ok(Claims {
                 sub: pat.tenant_id,
                 role: pat.role,
@@ -223,7 +223,12 @@ impl TokenServiceTrait for TokenService {
         let extra = as_map(user.extra_fields);
         let scope_str = scope.map(ToString::to_string);
         Ok(TokenResponse {
-            access_token: self.encode_access(&user.tenant_id, user.role, scope_str.clone(), None)?,
+            access_token: self.encode_access(
+                &user.tenant_id,
+                user.role,
+                scope_str.clone(),
+                None,
+            )?,
             id_token: Some(self.encode_id_token(&user.tenant_id, &user.email, user.role, extra)?),
             refresh_token: Some(self.mint_refresh(&user.tenant_id, user.role).await?),
             token_type: "Bearer".to_string(),
@@ -242,7 +247,9 @@ impl TokenServiceTrait for TokenService {
             .client_repo
             .get_by_client_id(client_id)
             .await?
-            .ok_or_else(|| Errors::format(BadFormat::Received, "invalid client credentials", None))?;
+            .ok_or_else(|| {
+                Errors::format(BadFormat::Received, "invalid client credentials", None)
+            })?;
 
         password::verify_password(client_secret, &client.client_secret_hash)?;
 
@@ -368,7 +375,9 @@ impl TokenServiceTrait for TokenService {
             .auth_code_repo
             .get_by_code(code)
             .await?
-            .ok_or_else(|| Errors::format(BadFormat::Received, "invalid authorization code", None))?;
+            .ok_or_else(|| {
+                Errors::format(BadFormat::Received, "invalid authorization code", None)
+            })?;
 
         if record.used {
             return Err(Errors::format(
@@ -391,11 +400,19 @@ impl TokenServiceTrait for TokenService {
         }
         if let Some(r_uri) = record.redirect_uri.as_deref() {
             if redirect_uri != Some(r_uri) {
-                return Err(Errors::format(BadFormat::Received, "redirect_uri mismatch", None));
+                return Err(Errors::format(
+                    BadFormat::Received,
+                    "redirect_uri mismatch",
+                    None,
+                ));
             }
         }
         if !record.verify_pkce(code_verifier) {
-            return Err(Errors::format(BadFormat::Received, "invalid PKCE code_verifier", None));
+            return Err(Errors::format(
+                BadFormat::Received,
+                "invalid PKCE code_verifier",
+                None,
+            ));
         }
 
         self.auth_code_repo.mark_used(code).await?;
@@ -415,7 +432,8 @@ impl TokenServiceTrait for TokenService {
 
         let refresh_token = Some(self.mint_refresh(&record.tenant_id, record.role).await?);
 
-        let id_token = if let Ok(Some(u)) = self.user_repo.get_by_tenant_id(&record.tenant_id).await {
+        let id_token = if let Ok(Some(u)) = self.user_repo.get_by_tenant_id(&record.tenant_id).await
+        {
             Some(self.encode_id_token(&u.tenant_id, &u.email, u.role, as_map(u.extra_fields))?)
         } else {
             None
@@ -438,17 +456,31 @@ impl TokenServiceTrait for TokenService {
     ) -> Outcome<TokenResponse> {
         let claims: JwtAssertionClaims = self.verify(assertion)?;
 
-        let (tenant_id, role, client_scopes, client_id) = if let Ok(Some(client)) =
-            self.client_repo.get_by_client_id(&claims.iss).await
-        {
-            (client.client_id.clone(), client.role, client.scopes, Some(client.client_id))
-        } else if let Ok(Some(client)) = self.client_repo.get_by_client_id(&claims.sub).await {
-            (client.client_id.clone(), client.role, client.scopes, Some(client.client_id))
-        } else if let Ok(Some(user)) = self.user_repo.get_by_tenant_id(&claims.sub).await {
-            (user.tenant_id, user.role, vec![], None)
-        } else {
-            (claims.sub.clone(), RbacRole::Reader, vec![], Some(claims.iss.clone()))
-        };
+        let (tenant_id, role, client_scopes, client_id) =
+            if let Ok(Some(client)) = self.client_repo.get_by_client_id(&claims.iss).await {
+                (
+                    client.client_id.clone(),
+                    client.role,
+                    client.scopes,
+                    Some(client.client_id),
+                )
+            } else if let Ok(Some(client)) = self.client_repo.get_by_client_id(&claims.sub).await {
+                (
+                    client.client_id.clone(),
+                    client.role,
+                    client.scopes,
+                    Some(client.client_id),
+                )
+            } else if let Ok(Some(user)) = self.user_repo.get_by_tenant_id(&claims.sub).await {
+                (user.tenant_id, user.role, vec![], None)
+            } else {
+                (
+                    claims.sub.clone(),
+                    RbacRole::Reader,
+                    vec![],
+                    Some(claims.iss.clone()),
+                )
+            };
 
         let requested = scope.or(claims.scope.as_deref());
         let scope_str = match requested {
@@ -475,12 +507,7 @@ impl TokenServiceTrait for TokenService {
             }
         };
 
-        let access_token = self.encode_access(
-            &tenant_id,
-            role,
-            scope_str.clone(),
-            client_id,
-        )?;
+        let access_token = self.encode_access(&tenant_id, role, scope_str.clone(), client_id)?;
 
         Ok(TokenResponse {
             access_token,
@@ -525,7 +552,12 @@ impl TokenServiceTrait for TokenService {
         let extra = as_map(user.extra_fields);
         let scope_str = scope.map(ToString::to_string);
         Ok(TokenResponse {
-            access_token: self.encode_access(&user.tenant_id, user.role, scope_str.clone(), None)?,
+            access_token: self.encode_access(
+                &user.tenant_id,
+                user.role,
+                scope_str.clone(),
+                None,
+            )?,
             id_token: Some(self.encode_id_token(&user.tenant_id, &user.email, user.role, extra)?),
             refresh_token: Some(self.mint_refresh(&user.tenant_id, user.role).await?),
             token_type: "Bearer".to_string(),

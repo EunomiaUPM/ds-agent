@@ -107,28 +107,94 @@ impl HttpProxyDispatcher {
 
     fn resolve_upstream(&self, prefix: &str) -> Option<(String, String)> {
         match prefix {
-            "catalogs" => Some((self.config.catalog().get_host(HostType::Http), "api/v1/catalog-agent/catalogs".to_string())),
-            "datasets" => Some((self.config.catalog().get_host(HostType::Http), "api/v1/catalog-agent/datasets".to_string())),
-            "data-services" => Some((self.config.catalog().get_host(HostType::Http), "api/v1/catalog-agent/data-services".to_string())),
-            "distributions" => Some((self.config.catalog().get_host(HostType::Http), "api/v1/catalog-agent/distributions".to_string())),
-            "odrl-policies" => Some((self.config.catalog().get_host(HostType::Http), "api/v1/catalog-agent/odrl-policies".to_string())),
-            "connector" => Some((self.config.catalog().get_host(HostType::Http), "api/v1/connector".to_string())),
-            "datahub" => Some((self.config.catalog().get_host(HostType::Http), "api/v1/catalog-agent/datahub".to_string())),
-            "peer-catalogs" => Some((self.config.catalog().get_host(HostType::Http), "api/v1/catalog-agent/peer-catalogs".to_string())),
-            "negotiations" => Some((self.config.contracts().get_host(HostType::Http), "api/v1/negotiation-agent".to_string())),
-            "transfers" => Some((self.config.transfer().get_host(HostType::Http), "api/v1/transfer-agent".to_string())),
-            "dataplane" => Some((self.config.transfer().get_host(HostType::Http), "api/v1/dataplane".to_string())),
-            "mates" => Some((self.config.ssi_auth().get_host(HostType::Http), "api/v1/mates".to_string())),
-            "wallet" => Some((self.config.ssi_auth().get_host(HostType::Http), "api/v1/wallet".to_string())),
-            "vc-request" => Some((self.config.ssi_auth().get_host(HostType::Http), "api/v1/vc-request".to_string())),
-            "peer-connection" | "onboard" => Some((self.config.ssi_auth().get_host(HostType::Http), "api/v1/peer-connection".to_string())),
-            "gate" => Some((self.config.ssi_auth().get_host(HostType::Http), "api/v1/gate".to_string())),
-            "gaia" => Some((self.config.ssi_auth().get_host(HostType::Http), "api/v1/gaia".to_string())),
-            "subscriptions" => Some((self.config.transfer().get_host(HostType::Http), "api/v1/contract-negotiation/subscriptions".to_string())),
-            "notifications" => Some((self.config.transfer().get_host(HostType::Http), "api/v1/contract-negotiation/notifications".to_string())),
-            "oauth" | "auth" => Some((self.config.common().hosts.http.get_host(), "oauth".to_string())),
-            "well-known" => Some((self.config.common().hosts.http.get_host(), ".well-known".to_string())),
-            "v1" => Some((self.config.common().hosts.http.get_host(), "api/v1".to_string())),
+            "catalogs" => Some((
+                self.config.catalog().get_host(HostType::Http),
+                "api/v1/catalog-agent/catalogs".to_string(),
+            )),
+            "datasets" => Some((
+                self.config.catalog().get_host(HostType::Http),
+                "api/v1/catalog-agent/datasets".to_string(),
+            )),
+            "data-services" => Some((
+                self.config.catalog().get_host(HostType::Http),
+                "api/v1/catalog-agent/data-services".to_string(),
+            )),
+            "distributions" => Some((
+                self.config.catalog().get_host(HostType::Http),
+                "api/v1/catalog-agent/distributions".to_string(),
+            )),
+            "odrl-policies" => Some((
+                self.config.catalog().get_host(HostType::Http),
+                "api/v1/catalog-agent/odrl-policies".to_string(),
+            )),
+            "connector" => Some((
+                self.config.catalog().get_host(HostType::Http),
+                "api/v1/connector".to_string(),
+            )),
+            "datahub" => Some((
+                self.config.catalog().get_host(HostType::Http),
+                "api/v1/catalog-agent/datahub".to_string(),
+            )),
+            "peer-catalogs" => Some((
+                self.config.catalog().get_host(HostType::Http),
+                "api/v1/catalog-agent/peer-catalogs".to_string(),
+            )),
+            "negotiations" => Some((
+                self.config.contracts().get_host(HostType::Http),
+                "api/v1/negotiation-agent".to_string(),
+            )),
+            "transfers" => Some((
+                self.config.transfer().get_host(HostType::Http),
+                "api/v1/transfer-agent".to_string(),
+            )),
+            "dataplane" => Some((
+                self.config.transfer().get_host(HostType::Http),
+                "api/v1/dataplane".to_string(),
+            )),
+            "mates" => Some((
+                self.config.ssi_auth().get_host(HostType::Http),
+                "api/v1/mates".to_string(),
+            )),
+            "wallet" => Some((
+                self.config.ssi_auth().get_host(HostType::Http),
+                "api/v1/wallet".to_string(),
+            )),
+            "vc-request" => Some((
+                self.config.ssi_auth().get_host(HostType::Http),
+                "api/v1/vc-request".to_string(),
+            )),
+            "peer-connection" | "onboard" => Some((
+                self.config.ssi_auth().get_host(HostType::Http),
+                "api/v1/peer-connection".to_string(),
+            )),
+            "gate" => Some((
+                self.config.ssi_auth().get_host(HostType::Http),
+                "api/v1/gate".to_string(),
+            )),
+            "gaia" => Some((
+                self.config.ssi_auth().get_host(HostType::Http),
+                "api/v1/gaia".to_string(),
+            )),
+            "subscriptions" => Some((
+                self.config.transfer().get_host(HostType::Http),
+                "api/v1/contract-negotiation/subscriptions".to_string(),
+            )),
+            "notifications" => Some((
+                self.config.transfer().get_host(HostType::Http),
+                "api/v1/contract-negotiation/notifications".to_string(),
+            )),
+            "oauth" | "auth" => Some((
+                self.config.common().hosts.http.get_host(),
+                "oauth".to_string(),
+            )),
+            "well-known" => Some((
+                self.config.common().hosts.http.get_host(),
+                ".well-known".to_string(),
+            )),
+            "v1" => Some((
+                self.config.common().hosts.http.get_host(),
+                "api/v1".to_string(),
+            )),
             _ => None,
         }
     }
@@ -140,7 +206,11 @@ impl HttpProxyDispatcher {
         extra_opt: Option<String>,
         req: Request<Body>,
     ) -> Response {
-        let mut target_url = format!("{}/{}", base_url.trim_end_matches('/'), api_path.trim_matches('/'));
+        let mut target_url = format!(
+            "{}/{}",
+            base_url.trim_end_matches('/'),
+            api_path.trim_matches('/')
+        );
         if let Some(extra) = extra_opt {
             let trimmed = extra.trim_matches('/');
             if !trimmed.is_empty() {
@@ -166,8 +236,15 @@ impl HttpProxyDispatcher {
         let request_id = Uuid::new_v4().to_string();
 
         let hop_by_hop = [
-            "connection", "keep-alive", "proxy-authenticate", "proxy-authorization",
-            "te", "trailers", "transfer-encoding", "upgrade", "host",
+            "connection",
+            "keep-alive",
+            "proxy-authenticate",
+            "proxy-authorization",
+            "te",
+            "trailers",
+            "transfer-encoding",
+            "upgrade",
+            "host",
         ];
         for h in hop_by_hop {
             headers.remove(h);
@@ -195,7 +272,14 @@ impl HttpProxyDispatcher {
 
         let reqwest_body = reqwest::Body::wrap_stream(body_stream);
 
-        match self.client.request(method, &target_url).headers(headers).body(reqwest_body).send().await {
+        match self
+            .client
+            .request(method, &target_url)
+            .headers(headers)
+            .body(reqwest_body)
+            .send()
+            .await
+        {
             Ok(upstream_res) => {
                 let status = upstream_res.status();
                 let version = upstream_res.version();
@@ -221,7 +305,11 @@ impl HttpProxyDispatcher {
             }
             Err(e) => {
                 error!(target = %target_url, error = %e, "Upstream microservice request failed");
-                (StatusCode::BAD_GATEWAY, format!("Upstream microservice unreachable: {e}")).into_response()
+                (
+                    StatusCode::BAD_GATEWAY,
+                    format!("Upstream microservice unreachable: {e}"),
+                )
+                    .into_response()
             }
         }
     }

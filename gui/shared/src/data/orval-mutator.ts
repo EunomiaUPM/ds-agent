@@ -5,6 +5,8 @@ export const setApiGatewayBase = (url: string) => {
   API_GATEWAY_BASE = url;
 };
 
+export const getApiGatewayBase = (): string => API_GATEWAY_BASE;
+
 export type RequestConfig = RequestInit;
 
 // NOTE: Adjusted signature to match Orval's default generation: (url, config)

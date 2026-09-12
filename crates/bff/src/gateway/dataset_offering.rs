@@ -256,7 +256,9 @@ pub async fn orchestrate_dataset_offering(
                 .name
                 .unwrap_or_else(|| format!("{}-connector", req.dataset.title));
             let conn_protocol = conn_input.protocol.unwrap_or_else(|| "HTTP".to_string());
-            let conn_auth = conn_input.auth.unwrap_or_else(|| json!({ "type": "NO_AUTH" }));
+            let conn_auth = conn_input
+                .auth
+                .unwrap_or_else(|| json!({ "type": "NO_AUTH" }));
 
             let conn_body = json!({
                 "id": format!("urn:uuid:{}", Uuid::new_v4()),
@@ -320,7 +322,12 @@ pub async fn orchestrate_dataset_offering(
         });
 
         let create_policy_url = format!("{catalog_base}/api/v1/catalog-agent/odrl-policies");
-        match client.post(&create_policy_url).json(&policy_body).send().await {
+        match client
+            .post(&create_policy_url)
+            .json(&policy_body)
+            .send()
+            .await
+        {
             Ok(res) if res.status().is_success() => res.json::<Value>().await.ok(),
             Ok(res) => {
                 let err = res.text().await.unwrap_or_default();

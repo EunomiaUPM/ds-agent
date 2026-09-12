@@ -37,6 +37,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "shared/src/components/ui/dialog";
 import { Plus, Trash2, ShieldCheck } from "lucide-react";
@@ -49,10 +50,18 @@ interface CreateSubscriptionDialogProps {
 
 const CreateSubscriptionDialog = ({ open, onClose }: CreateSubscriptionDialogProps) => {
   const queryClient = useQueryClient();
-  const [topicPattern, setTopicPattern] = useState("transfers.*");
+  const [topicPattern, setTopicPattern] = useState("transfers:*");
   const [callbackAddress, setCallbackAddress] = useState("https://");
   const [secret, setSecret] = useState("");
   const [retryLimit, setRetryLimit] = useState("5");
+
+  const topicPresets = [
+    { label: "transfers:*", pattern: "transfers:*" },
+    { label: "transfers:bla", pattern: "transfers:bla" },
+    { label: "transfers:**", pattern: "transfers:**" },
+    { label: "catalog:*", pattern: "catalog:*" },
+    { label: "* (All)", pattern: "*" },
+  ];
 
   const { mutate: createSub, isPending } = useCreateEventSubscription({
     mutation: {
@@ -95,6 +104,9 @@ const CreateSubscriptionDialog = ({ open, onClose }: CreateSubscriptionDialogPro
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Add Webhook Subscription</DialogTitle>
+          <DialogDescription className="text-xs text-muted-foreground">
+            Configure an external webhook listener with automated retry policy and HMAC signing.
+          </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-4 py-2">
           <div className="flex flex-col gap-1.5">
@@ -104,8 +116,26 @@ const CreateSubscriptionDialog = ({ open, onClose }: CreateSubscriptionDialogPro
             <Input
               value={topicPattern}
               onChange={(e) => setTopicPattern(e.target.value)}
-              placeholder="e.g. transfers.* or catalog.dataset.*"
+              placeholder="e.g. transfers:*, transfers:bla, or catalog:*"
             />
+            <div className="flex flex-wrap items-center gap-1.5 mt-1">
+              <span className="text-[11px] text-muted-foreground">Presets:</span>
+              {topicPresets.map((p) => (
+                <Button
+                  key={p.pattern}
+                  type="button"
+                  variant={topicPattern === p.pattern ? "default" : "outline"}
+                  size="xs"
+                  className="text-[11px] h-5 px-2 font-mono"
+                  onClick={() => setTopicPattern(p.pattern)}
+                >
+                  {p.label}
+                </Button>
+              ))}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              Supports <code className="font-mono">:</code> and <code className="font-mono">.</code> delimiters with <code className="font-mono">*</code> (single segment) and <code className="font-mono">**</code> (multi-segment) wildcards.
+            </p>
           </div>
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -157,11 +187,18 @@ const CreateSubscriptionDialog = ({ open, onClose }: CreateSubscriptionDialogPro
 const SubscriptionsComponent = () => {
   const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
+  const [patternFilter, setPatternFilter] = useState("");
 
   const { data, isLoading, isError } = useListEventSubscriptions();
   const subscriptions: EventSubscription[] = Array.isArray(data?.data)
     ? (data.data as EventSubscription[])
     : [];
+
+  const filteredSubscriptions = patternFilter
+    ? subscriptions.filter((sub) =>
+        sub.topic_pattern.toLowerCase().includes(patternFilter.toLowerCase()),
+      )
+    : subscriptions;
 
   const { mutate: deleteSub } = useDeleteEventSubscription({
     mutation: {
@@ -190,6 +227,29 @@ const SubscriptionsComponent = () => {
         </Button>
       </div>
 
+      {/* Quick Pattern Filter Chips */}
+      <div className="flex items-center gap-2">
+        <Button
+          variant={patternFilter === "" ? "default" : "outline"}
+          size="sm"
+          className="text-xs h-7"
+          onClick={() => setPatternFilter("")}
+        >
+          All
+        </Button>
+        {["transfers:*", "transfers:bla", "transfers:**", "catalog:*"].map((tag) => (
+          <Button
+            key={tag}
+            variant={patternFilter === tag ? "default" : "outline"}
+            size="sm"
+            className="text-xs h-7 font-mono"
+            onClick={() => setPatternFilter(patternFilter === tag ? "" : tag)}
+          >
+            {tag}
+          </Button>
+        ))}
+      </div>
+
       <PageSection>
         {isLoading ? (
           <div className="flex flex-col gap-3 p-4">
@@ -203,7 +263,7 @@ const SubscriptionsComponent = () => {
         ) : (
           <DataTable
             className="text-sm"
-            data={subscriptions}
+            data={filteredSubscriptions}
             keyExtractor={(sub) => sub.id}
             searchPlaceholder="Filter subscriptions by topic or callback URL..."
             emptyMessage="No webhook subscriptions configured yet."

@@ -48,7 +48,8 @@ impl PatServiceTrait for PatService {
         scopes: Vec<String>,
         expires_at: Option<DateTime<Utc>>,
     ) -> Outcome<CreatePatResponse> {
-        let (pat, raw_token) = PersonalAccessToken::generate(tenant_id, name, role, scopes, expires_at);
+        let (pat, raw_token) =
+            PersonalAccessToken::generate(tenant_id, name, role, scopes, expires_at);
         let created = self.pat_repo.create(&pat).await?;
 
         Ok(CreatePatResponse {
@@ -101,7 +102,10 @@ impl PatServiceTrait for PatService {
         let _ = self.pat_repo.update_last_used(pat.id).await;
 
         let now = Utc::now().timestamp();
-        let exp = pat.expires_at.map(|dt| dt.timestamp()).unwrap_or(now + 31_536_000);
+        let exp = pat
+            .expires_at
+            .map(|dt| dt.timestamp())
+            .unwrap_or(now + 31_536_000);
 
         Ok(Claims {
             sub: pat.tenant_id,

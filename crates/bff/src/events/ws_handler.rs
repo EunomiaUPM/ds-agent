@@ -132,19 +132,19 @@ impl BffWebSocketHandler {
         patterns: &mut Vec<TopicPattern>,
     ) {
         match serde_json::from_str::<ClientWsMessage>(text) {
-            Ok(ClientWsMessage::Subscribe { topic }) => {
-                match TopicPattern::new(&topic) {
-                    Ok(pat) => {
-                        patterns.push(pat);
-                        let resp = json!({ "type": "subscribed", "topic": topic }).to_string();
-                        let _ = socket.send(Message::Text(Utf8Bytes::from(resp))).await;
-                    }
-                    Err(e) => {
-                        let resp = json!({ "type": "error", "message": format!("invalid pattern: {e}") }).to_string();
-                        let _ = socket.send(Message::Text(Utf8Bytes::from(resp))).await;
-                    }
+            Ok(ClientWsMessage::Subscribe { topic }) => match TopicPattern::new(&topic) {
+                Ok(pat) => {
+                    patterns.push(pat);
+                    let resp = json!({ "type": "subscribed", "topic": topic }).to_string();
+                    let _ = socket.send(Message::Text(Utf8Bytes::from(resp))).await;
                 }
-            }
+                Err(e) => {
+                    let resp =
+                        json!({ "type": "error", "message": format!("invalid pattern: {e}") })
+                            .to_string();
+                    let _ = socket.send(Message::Text(Utf8Bytes::from(resp))).await;
+                }
+            },
             Ok(ClientWsMessage::Unsubscribe { topic }) => {
                 patterns.retain(|p| p.as_str() != topic);
                 let resp = json!({ "type": "unsubscribed", "topic": topic }).to_string();

@@ -98,6 +98,9 @@ impl MonolithModule {
             ))
             .register(oauth)
             .register(transfer)
+            .register(events::setup::composition::EventsModule::new(
+                ctx.events_ctx.clone(),
+            ))
             .register(ToBeDeprecatedRouterModule::merged(
                 "gateway",
                 ctx.gateway_router,

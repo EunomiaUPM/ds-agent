@@ -41,7 +41,11 @@ impl BffEventFeedRouter {
         let limit = q.limit.unwrap_or(50).min(100);
         let offset = q.offset.unwrap_or(0);
 
-        match bus.event_repo().list_events(q.topic.as_deref(), limit, offset).await {
+        match bus
+            .event_repo()
+            .list_events(q.topic.as_deref(), limit, offset)
+            .await
+        {
             Ok(events) => (StatusCode::OK, Json(events)).into_response(),
             Err(e) => (
                 StatusCode::INTERNAL_SERVER_ERROR,

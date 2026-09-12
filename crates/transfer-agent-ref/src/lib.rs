@@ -17,6 +17,8 @@
 
 pub const SERVICE_NAME: &str = "transfer-agent-ref";
 pub const SERVICE_BIG_NAME: &str = "Transfer Agent Ref";
+pub const EVENT_DOMAIN: &str = "transfers";
+pub const EVENT_PREFIX: &str = "transfers:";
 
 mod data;
 mod entities;

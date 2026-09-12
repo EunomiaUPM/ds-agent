@@ -11,6 +11,7 @@ path = "src/lib.rs"
 [dependencies]
 common = { version = "0.4.0", path = "../common", default-features = true }
 connector = { version = "0.4.0", path = "../connector", default-features = true }
+events = { version = "0.4.0", path = "../events", default-features = false }
 
 serde = { workspace = true }
 serde_json = { workspace = true }

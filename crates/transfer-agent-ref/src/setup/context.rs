@@ -46,6 +46,14 @@ pub struct AppContext {
 
 impl AppContext {
     pub async fn build(config: &TransferConfig, vault: &VaultService) -> Outcome<Self> {
+        Self::build_with_bus(config, vault, None).await
+    }
+
+    pub async fn build_with_bus(
+        config: &TransferConfig,
+        vault: &VaultService,
+        event_bus: Option<events::EventBus>,
+    ) -> Outcome<Self> {
         let config = Arc::new(config.clone());
 
         // Shared infrastructure
@@ -58,13 +66,17 @@ impl AppContext {
             OAuthSetup::new().build_token_service(config.common().clone().into(), db.clone());
 
         // Domain services
-        let transfer_process_svc = Arc::new(TransferProcessService::new(
-            db_factory.transfer_process_repo(),
-            db_factory.transfer_identifier_repo(),
-        ));
-        let transfer_message_svc = Arc::new(TransferMessageService::new(
-            db_factory.transfer_message_repo(),
-        ));
+        let transfer_process_svc = Arc::new(
+            TransferProcessService::new(
+                db_factory.transfer_process_repo(),
+                db_factory.transfer_identifier_repo(),
+            )
+            .with_event_bus(event_bus.clone()),
+        );
+        let transfer_message_svc = Arc::new(
+            TransferMessageService::new(db_factory.transfer_message_repo())
+                .with_event_bus(event_bus.clone()),
+        );
         let ssi_auth_facade = Arc::new(SSIAuthFacadeService::new(
             Arc::new(config.ssi_auth().clone()),
             http_client,

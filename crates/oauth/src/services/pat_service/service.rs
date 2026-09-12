@@ -30,11 +30,20 @@ use crate::services::pat_service::views::{CreatePatResponse, PatView};
 
 pub(crate) struct PatService {
     pat_repo: Arc<dyn PatRepository>,
+    event_bus: Option<events::EventBus>,
 }
 
 impl PatService {
     pub fn new(pat_repo: Arc<dyn PatRepository>) -> Self {
-        Self { pat_repo }
+        Self {
+            pat_repo,
+            event_bus: None,
+        }
+    }
+
+    pub fn with_event_bus(mut self, event_bus: Option<events::EventBus>) -> Self {
+        self.event_bus = event_bus;
+        self
     }
 }
 
@@ -52,7 +61,7 @@ impl PatServiceTrait for PatService {
             PersonalAccessToken::generate(tenant_id, name, role, scopes, expires_at);
         let created = self.pat_repo.create(&pat).await?;
 
-        Ok(CreatePatResponse {
+        let res = CreatePatResponse {
             id: created.id,
             name: created.name,
             token: raw_token,
@@ -61,7 +70,9 @@ impl PatServiceTrait for PatService {
             scopes: created.scopes,
             expires_at: created.expires_at,
             created_at: created.created_at,
-        })
+        };
+        events::emit_action!(self.event_bus, crate::EVENT_PREFIX, "pat", "create", &res);
+        Ok(res)
     }
 
     async fn list_pats(&self, tenant_id: &str) -> Outcome<Vec<PatView>> {
@@ -84,7 +95,15 @@ impl PatServiceTrait for PatService {
             ));
         }
 
-        self.pat_repo.revoke(id).await
+        self.pat_repo.revoke(id).await?;
+        events::emit_action!(
+            self.event_bus,
+            crate::EVENT_PREFIX,
+            "pat",
+            "delete",
+            &events::EntityDeletedDto::new(id)
+        );
+        Ok(())
     }
 
     async fn validate_pat(&self, raw_token: &str) -> Outcome<Claims> {

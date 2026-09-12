@@ -237,6 +237,27 @@ impl TransferService {
 }
 ```
 
+#### CRUD Entity Event Emission (`emit_action!`)
+
+For entity operations (create, edit, delete), crates define an `EVENT_PREFIX` (e.g., `transfers:`, `negotiations:`, `catalog:`, `oauth:`, `keystore:`, `connector:`) and emit structured DTOs using `emit_action!`:
+
+```rust
+use events::emit_action;
+use events::EntityDeletedDto;
+
+// Emitting an entity creation event: topic becomes "transfers:process:create"
+emit_action!(self.event_bus, crate::EVENT_PREFIX, "process", "create", &process_view);
+
+// Emitting an entity edit/update event: topic becomes "transfers:process:edit"
+emit_action!(self.event_bus, crate::EVENT_PREFIX, "process", "edit", &process_view);
+
+// Emitting an entity deletion event: topic becomes "transfers:process:delete"
+let deleted_dto = EntityDeletedDto::new(id.to_string());
+emit_action!(self.event_bus, crate::EVENT_PREFIX, "process", "delete", &deleted_dto);
+```
+
+When `self.event_bus` is `None` (e.g. in standalone unit tests), `emit_action!` is a zero-overhead no-op.
+
 ---
 
 ### 4. In-Process Consumption (Typed Deserialization)

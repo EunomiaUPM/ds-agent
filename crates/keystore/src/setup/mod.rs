@@ -53,6 +53,20 @@ impl KeystoreModule {
     where
         C: CommonConfigTrait + Send + Sync,
     {
+        Self::build_stores_with_bus(config, vault, None).await
+    }
+
+    pub async fn build_stores_with_bus<C>(
+        config: &C,
+        vault: Arc<VaultService>,
+        event_bus: Option<events::EventBus>,
+    ) -> (
+        Arc<dyn ParameterStore<serde_json::Value>>,
+        Arc<dyn SecretStore>,
+    )
+    where
+        C: CommonConfigTrait + Send + Sync,
+    {
         let db = vault
             .get_db_connection(config.common())
             .await
@@ -66,8 +80,8 @@ impl KeystoreModule {
             VaultService::Fake(_) => Arc::new(SeaOrmSecretRepo::new(db.clone())),
         };
         (
-            Arc::new(ParameterStoreImpl::new(parameter_repo)),
-            Arc::new(SecretStoreImpl::new(secret_repo)),
+            Arc::new(ParameterStoreImpl::new(parameter_repo).with_event_bus(event_bus.clone())),
+            Arc::new(SecretStoreImpl::new(secret_repo).with_event_bus(event_bus)),
         )
     }
 
@@ -79,8 +93,21 @@ impl KeystoreModule {
     where
         C: CommonConfigTrait + Send + Sync,
     {
+        Self::build_with_bus(config, app_config, vault, None).await
+    }
+
+    pub async fn build_with_bus<C>(
+        config: &C,
+        app_config: Arc<ApplicationConfig>,
+        vault: Arc<VaultService>,
+        event_bus: Option<events::EventBus>,
+    ) -> Self
+    where
+        C: CommonConfigTrait + Send + Sync,
+    {
         let prefix = format!("{}/keystore", config.common().get_api_version());
-        let (parameter_service, secret_service) = Self::build_stores(config, vault).await;
+        let (parameter_service, secret_service) =
+            Self::build_stores_with_bus(config, vault, event_bus).await;
         let config_service = Arc::new(ConfigStoreImpl::new(Arc::new(ConfigPassthroughRepo::new(
             app_config,
         ))));

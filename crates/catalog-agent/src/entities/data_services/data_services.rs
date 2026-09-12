@@ -31,6 +31,7 @@ use ymir::errors::Outcome;
 pub struct DataServiceEntities {
     repo: Arc<dyn CatalogAgentRepoTrait>,
     cache: Arc<dyn CatalogAgentCacheTrait>,
+    event_bus: Option<events::EventBus>,
 }
 
 impl DataServiceEntities {
@@ -38,7 +39,16 @@ impl DataServiceEntities {
         repo: Arc<dyn CatalogAgentRepoTrait>,
         cache: Arc<dyn CatalogAgentCacheTrait>,
     ) -> Self {
-        Self { repo, cache }
+        Self {
+            repo,
+            cache,
+            event_bus: None,
+        }
+    }
+
+    pub fn with_event_bus(mut self, event_bus: Option<events::EventBus>) -> Self {
+        self.event_bus = event_bus;
+        self
     }
 }
 
@@ -236,6 +246,13 @@ impl DataServiceEntityTrait for DataServiceEntities {
             .add_to_collection(&ds_urn, dto.inner.dct_issued.timestamp() as f64)
             .await;
 
+        events::emit_action!(
+            self.event_bus,
+            crate::EVENT_PREFIX,
+            "dataservice",
+            "edit",
+            &dto
+        );
         Ok(dto)
     }
 
@@ -267,6 +284,13 @@ impl DataServiceEntityTrait for DataServiceEntities {
                 .await;
         }
 
+        events::emit_action!(
+            self.event_bus,
+            crate::EVENT_PREFIX,
+            "dataservice",
+            "create",
+            &dto
+        );
         Ok(dto)
     }
 
@@ -287,6 +311,14 @@ impl DataServiceEntityTrait for DataServiceEntities {
         if let Ok(id) = Urn::from_str(dto.inner.id.as_str()) {
             let _ = self.cache.get_dataservice_cache().set_main(&id, &dto).await;
         }
+
+        events::emit_action!(
+            self.event_bus,
+            crate::EVENT_PREFIX,
+            "dataservice",
+            "create",
+            &dto
+        );
         Ok(dto)
     }
 
@@ -314,6 +346,13 @@ impl DataServiceEntityTrait for DataServiceEntities {
             }
         }
 
+        events::emit_action!(
+            self.event_bus,
+            crate::EVENT_PREFIX,
+            "dataservice",
+            "delete",
+            &events::EntityDeletedDto::new(data_service_id)
+        );
         Ok(())
     }
 }

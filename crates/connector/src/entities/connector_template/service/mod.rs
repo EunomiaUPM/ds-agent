@@ -33,11 +33,20 @@ use ymir::errors::{Errors, Outcome};
 
 pub struct ConnectorTemplateEntitiesService {
     repo: Arc<dyn ConnectorRepoTrait>,
+    event_bus: Option<events::EventBus>,
 }
 
 impl ConnectorTemplateEntitiesService {
     pub fn new(repo: Arc<dyn ConnectorRepoTrait>) -> Self {
-        Self { repo }
+        Self {
+            repo,
+            event_bus: None,
+        }
+    }
+
+    pub fn with_event_bus(mut self, event_bus: Option<events::EventBus>) -> Self {
+        self.event_bus = event_bus;
+        self
     }
 
     fn map_model_to_dto(model: connector_templates::Model) -> Outcome<ConnectorTemplateDto> {
@@ -185,7 +194,15 @@ impl ConnectorTemplateEntitiesTrait for ConnectorTemplateEntitiesService {
                 Errors::db(&e.to_string(), None)
             })?;
         // create output
-        Self::map_model_to_dto(saved_model)
+        let result = Self::map_model_to_dto(saved_model)?;
+        events::emit_action!(
+            self.event_bus,
+            crate::EVENT_PREFIX,
+            "template",
+            "create",
+            &result
+        );
+        Ok(result)
     }
 
     async fn delete_template_by_name_and_version(
@@ -201,6 +218,15 @@ impl ConnectorTemplateEntitiesTrait for ConnectorTemplateEntitiesService {
                 error!("{}", e);
                 Errors::db(&e.to_string(), None)
             })?;
+
+        let deleted = events::EntityDeletedDto::new(format!("{}:{}", name, version));
+        events::emit_action!(
+            self.event_bus,
+            crate::EVENT_PREFIX,
+            "template",
+            "delete",
+            &deleted
+        );
 
         Ok(())
     }

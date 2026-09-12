@@ -36,7 +36,17 @@ pub struct TransferAgentModule {
 
 impl TransferAgentModule {
     pub async fn compose(config: &TransferConfig, vault: &VaultService) -> Outcome<Self> {
-        Ok(Self::new(AppContext::build(config, vault).await?))
+        Self::compose_with_bus(config, vault, None).await
+    }
+
+    pub async fn compose_with_bus(
+        config: &TransferConfig,
+        vault: &VaultService,
+        event_bus: Option<events::EventBus>,
+    ) -> Outcome<Self> {
+        Ok(Self::new(
+            AppContext::build_with_bus(config, vault, event_bus).await?,
+        ))
     }
 
     pub(crate) fn new(ctx: AppContext) -> Self {

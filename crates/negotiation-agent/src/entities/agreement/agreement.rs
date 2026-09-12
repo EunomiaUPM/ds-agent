@@ -27,11 +27,20 @@ use ymir::errors::{Errors, Outcome};
 
 pub struct NegotiationAgentAgreementsService {
     pub negotiation_repo: Arc<dyn NegotiationAgentRepoTrait>,
+    pub event_bus: Option<events::EventBus>,
 }
 
 impl NegotiationAgentAgreementsService {
     pub fn new(negotiation_repo: Arc<dyn NegotiationAgentRepoTrait>) -> Self {
-        Self { negotiation_repo }
+        Self {
+            negotiation_repo,
+            event_bus: None,
+        }
+    }
+
+    pub fn with_event_bus(mut self, event_bus: Option<events::EventBus>) -> Self {
+        self.event_bus = event_bus;
+        self
     }
 }
 
@@ -178,7 +187,15 @@ impl NegotiationAgentAgreementsTrait for NegotiationAgentAgreementsService {
                 err
             })?;
 
-        Ok(AgreementDto { inner: created })
+        let dto = AgreementDto { inner: created };
+        events::emit_action!(
+            self.event_bus,
+            crate::EVENT_PREFIX,
+            "agreement",
+            "create",
+            &dto
+        );
+        Ok(dto)
     }
 
     async fn put_agreement(
@@ -195,7 +212,15 @@ impl NegotiationAgentAgreementsTrait for NegotiationAgentAgreementsService {
             .await
             .inspect_err(|e| error!("{}", e))?;
 
-        Ok(AgreementDto { inner: updated })
+        let dto = AgreementDto { inner: updated };
+        events::emit_action!(
+            self.event_bus,
+            crate::EVENT_PREFIX,
+            "agreement",
+            "edit",
+            &dto
+        );
+        Ok(dto)
     }
 
     async fn delete_agreement(&self, id: &Urn) -> Outcome<()> {
@@ -204,6 +229,13 @@ impl NegotiationAgentAgreementsTrait for NegotiationAgentAgreementsService {
             .delete_agreement(id)
             .await
             .inspect_err(|e| error!("{}", e))?;
+        events::emit_action!(
+            self.event_bus,
+            crate::EVENT_PREFIX,
+            "agreement",
+            "delete",
+            &events::EntityDeletedDto::new(id)
+        );
         Ok(())
     }
 }

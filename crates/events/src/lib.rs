@@ -26,6 +26,7 @@ pub mod setup;
 pub mod bus;
 pub(crate) mod errors;
 
+pub use entities::dto::EntityDeletedDto;
 pub use entities::envelope::EventEnvelope;
 pub use entities::topic::{Topic, TopicPattern};
 pub use entities::traits::{Event, IntoEvent};

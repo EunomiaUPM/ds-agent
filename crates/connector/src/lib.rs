@@ -22,6 +22,9 @@ pub(crate) mod grpc;
 pub(crate) mod http;
 pub(crate) mod setup;
 
+pub const EVENT_DOMAIN: &str = "connector";
+pub const EVENT_PREFIX: &str = "connector:";
+
 pub use data::entities::connector_instances::Model as ConnectorInstanceModel;
 pub use data::migrations::get_connector_migrations;
 pub use data::repo_traits::connector_instance_repo::ConnectorInstanceRepoTrait;

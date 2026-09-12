@@ -89,6 +89,21 @@ impl EventBus {
         <Self as EventPublisherTrait>::publish_event(self, event).await
     }
 
+    // Publish a serializable payload to a topic with automatic envelope packaging.
+    pub async fn emit_payload<T: serde::Serialize + ?Sized>(
+        &self,
+        topic: &str,
+        source: &str,
+        payload: &T,
+    ) -> Result<EventEnvelope, EventBusError> {
+        let topic_obj =
+            crate::entities::topic::Topic::new(topic).map_err(EventBusError::InvalidTopic)?;
+        let payload_val = serde_json::to_value(payload)
+            .map_err(|e| EventBusError::Serialization(e.to_string()))?;
+        let envelope = EventEnvelope::new(topic_obj, source, 1, None, payload_val);
+        self.publish(envelope).await
+    }
+
     // Subscribe to the in-process event broadcast stream.
     pub fn subscribe(&self) -> broadcast::Receiver<EventEnvelope> {
         <Self as EventBusTrait>::subscribe(self)
@@ -434,5 +449,14 @@ impl EventBusTrait for EventBus {
 impl EventPublisherTrait for EventBus {
     async fn publish_event<E: Event>(&self, event: E) -> Result<EventEnvelope, EventBusError> {
         self.publish(event.into_envelope()).await
+    }
+
+    async fn emit_payload(
+        &self,
+        topic: &str,
+        source: &str,
+        payload: &serde_json::Value,
+    ) -> Result<EventEnvelope, EventBusError> {
+        Self::emit_payload(self, topic, source, payload).await
     }
 }

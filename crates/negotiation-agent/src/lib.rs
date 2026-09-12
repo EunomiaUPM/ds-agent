@@ -24,8 +24,12 @@ pub(crate) mod http;
 pub(crate) mod protocols;
 pub(crate) mod setup;
 
+pub const EVENT_DOMAIN: &str = "negotiations";
+pub const EVENT_PREFIX: &str = "negotiations:";
+
 pub use data::migrations::get_negotiation_agent_migrations;
 pub use entities::agreement::AgreementDto;
 pub use entities::offer::OfferDto;
 pub use setup::cmd::NegotiationCommands;
 pub use setup::http_worker::create_root_http_router as create_negotiations_http_router;
+pub use setup::http_worker::create_root_http_router_with_bus as create_negotiations_http_router_with_bus;

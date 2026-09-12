@@ -30,11 +30,20 @@ use ymir::errors::{Errors, Outcome};
 
 pub struct NegotiationAgentMessagesService {
     pub negotiation_repo: Arc<dyn NegotiationAgentRepoTrait>,
+    pub event_bus: Option<events::EventBus>,
 }
 
 impl NegotiationAgentMessagesService {
     pub fn new(negotiation_repo: Arc<dyn NegotiationAgentRepoTrait>) -> Self {
-        Self { negotiation_repo }
+        Self {
+            negotiation_repo,
+            event_bus: None,
+        }
+    }
+
+    pub fn with_event_bus(mut self, event_bus: Option<events::EventBus>) -> Self {
+        self.event_bus = event_bus;
+        self
     }
 
     async fn enrich_message(
@@ -152,11 +161,19 @@ impl NegotiationAgentMessagesTrait for NegotiationAgentMessagesService {
             .create_negotiation_message(&new_model)
             .await?;
 
-        Ok(NegotiationMessageDto {
+        let dto = NegotiationMessageDto {
             inner: created,
             offer: None,
             agreement: None,
-        })
+        };
+        events::emit_action!(
+            self.event_bus,
+            crate::EVENT_PREFIX,
+            "message",
+            "create",
+            &dto
+        );
+        Ok(dto)
     }
 
     async fn delete_negotiation_message(&self, id: &Urn) -> Outcome<()> {
@@ -164,6 +181,13 @@ impl NegotiationAgentMessagesTrait for NegotiationAgentMessagesService {
             .get_negotiation_message_repo()
             .delete_negotiation_message(id)
             .await?;
+        events::emit_action!(
+            self.event_bus,
+            crate::EVENT_PREFIX,
+            "message",
+            "delete",
+            &events::EntityDeletedDto::new(id)
+        );
         Ok(())
     }
 }

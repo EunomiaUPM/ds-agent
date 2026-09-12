@@ -15,21 +15,17 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod data;
-pub mod entities;
-pub(crate) mod error;
-pub(crate) mod http;
-pub mod services;
-pub mod setup;
-pub(crate) mod utils;
+use serde::{Deserialize, Serialize};
 
-pub const EVENT_DOMAIN: &str = "keystore";
-pub const EVENT_PREFIX: &str = "keystore:";
+// Standard DTO payload for entity deletion events across services.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct EntityDeletedDto {
+    pub id: String,
+}
 
-pub use data::sea_orm::migrations::get_keystore_migrations;
-pub use entities::entry::{Entry, SecretEntry};
-pub use entities::key::{Key, KeyPrefix};
-pub use entities::secret_value::SecretValue;
-pub use services::parameters::ParameterStore;
-pub use services::secrets::SecretStore;
-pub use setup::KeystoreModule;
+impl EntityDeletedDto {
+    // Create new EntityDeletedDto instance from any stringable identifier.
+    pub fn new(id: impl ToString) -> Self {
+        Self { id: id.to_string() }
+    }
+}

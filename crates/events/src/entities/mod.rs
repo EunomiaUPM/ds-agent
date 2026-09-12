@@ -18,6 +18,7 @@
 pub mod commands;
 pub mod dead_letter;
 pub mod delivery;
+pub mod dto;
 pub mod envelope;
 pub mod queries;
 pub mod subscription;
@@ -27,6 +28,7 @@ pub mod traits;
 pub use commands::*;
 pub use dead_letter::*;
 pub use delivery::*;
+pub use dto::*;
 pub use envelope::*;
 pub use queries::*;
 pub use subscription::*;

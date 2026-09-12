@@ -28,11 +28,20 @@ use ymir::errors::Outcome;
 
 pub struct PolicyTemplateEntities {
     repo: Arc<dyn CatalogAgentRepoTrait>,
+    event_bus: Option<events::EventBus>,
 }
 
 impl PolicyTemplateEntities {
     pub fn new(repo: Arc<dyn CatalogAgentRepoTrait>) -> Self {
-        Self { repo }
+        Self {
+            repo,
+            event_bus: None,
+        }
+    }
+
+    pub fn with_event_bus(mut self, event_bus: Option<events::EventBus>) -> Self {
+        self.event_bus = event_bus;
+        self
     }
 }
 
@@ -116,6 +125,13 @@ impl PolicyTemplateEntityTrait for PolicyTemplateEntities {
             .create_policy_template(&new_model)
             .await?;
         let dto: PolicyTemplateDto = PolicyTemplateDto::try_from(policy_template)?;
+        events::emit_action!(
+            self.event_bus,
+            crate::EVENT_PREFIX,
+            "policy_template",
+            "create",
+            &dto
+        );
         Ok(dto)
     }
 
@@ -129,6 +145,13 @@ impl PolicyTemplateEntityTrait for PolicyTemplateEntities {
             .get_policy_template_repo()
             .delete_policy_template_by_id_and_version(template_id, version_id)
             .await?;
+        events::emit_action!(
+            self.event_bus,
+            crate::EVENT_PREFIX,
+            "policy_template",
+            "delete",
+            &events::EntityDeletedDto::new(format!("{template_id}:{version_id}"))
+        );
         Ok(())
     }
 }

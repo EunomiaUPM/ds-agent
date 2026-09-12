@@ -130,6 +130,14 @@ pub async fn create_root_http_router(
     config: &CatalogConfig,
     vault: Arc<VaultService>,
 ) -> Outcome<Router> {
+    create_root_http_router_with_bus(config, vault, None).await
+}
+
+pub async fn create_root_http_router_with_bus(
+    config: &CatalogConfig,
+    vault: Arc<VaultService>,
+    event_bus: Option<events::EventBus>,
+) -> Outcome<Router> {
     // ROOT Dependency Injection
     let db_connection = vault.get_db_connection(config.common()).await?;
     let config = Arc::new(config.clone());
@@ -154,39 +162,40 @@ pub async fn create_root_http_router(
     ));
 
     // entities
-    let catalog_controller_service = Arc::new(CatalogEntities::new(
-        catalog_agent_repo.clone(),
-        catalog_agent_cache.clone(),
-    ));
+    let catalog_controller_service = Arc::new(
+        CatalogEntities::new(catalog_agent_repo.clone(), catalog_agent_cache.clone())
+            .with_event_bus(event_bus.clone()),
+    );
     let catalog_router =
         CatalogEntityRouter::new(catalog_controller_service.clone(), config.clone());
-    let data_services_controller_service = Arc::new(DataServiceEntities::new(
-        catalog_agent_repo.clone(),
-        catalog_agent_cache.clone(),
-    ));
+    let data_services_controller_service = Arc::new(
+        DataServiceEntities::new(catalog_agent_repo.clone(), catalog_agent_cache.clone())
+            .with_event_bus(event_bus.clone()),
+    );
     let data_services_router =
         DataServiceEntityRouter::new(data_services_controller_service.clone(), config.clone());
-    let datasets_controller_service = Arc::new(DatasetEntities::new(
-        catalog_agent_repo.clone(),
-        catalog_agent_cache.clone(),
-    ));
+    let datasets_controller_service = Arc::new(
+        DatasetEntities::new(catalog_agent_repo.clone(), catalog_agent_cache.clone())
+            .with_event_bus(event_bus.clone()),
+    );
     let datasets_router =
         DatasetEntityRouter::new(datasets_controller_service.clone(), config.clone());
-    let distributions_controller_service = Arc::new(DistributionEntities::new(
-        catalog_agent_repo.clone(),
-        catalog_agent_cache.clone(),
-    ));
+    let distributions_controller_service = Arc::new(
+        DistributionEntities::new(catalog_agent_repo.clone(), catalog_agent_cache.clone())
+            .with_event_bus(event_bus.clone()),
+    );
     let distributions_router =
         DistributionEntityRouter::new(distributions_controller_service.clone(), config.clone());
-    let odrl_offer_controller_service = Arc::new(OdrlPolicyEntities::new(
-        catalog_agent_repo.clone(),
-        catalog_agent_cache.clone(),
-    ));
+    let odrl_offer_controller_service = Arc::new(
+        OdrlPolicyEntities::new(catalog_agent_repo.clone(), catalog_agent_cache.clone())
+            .with_event_bus(event_bus.clone()),
+    );
     let odrl_offer_router =
         OdrlOfferEntityRouter::new(odrl_offer_controller_service.clone(), config.clone());
 
-    let policy_templates_controller_service =
-        Arc::new(PolicyTemplateEntities::new(catalog_agent_repo.clone()));
+    let policy_templates_controller_service = Arc::new(
+        PolicyTemplateEntities::new(catalog_agent_repo.clone()).with_event_bus(event_bus.clone()),
+    );
     let policy_engine_service = Arc::new(PolicyInstantiationEngine::new(
         odrl_offer_controller_service.clone(),
         policy_templates_controller_service.clone(),
@@ -204,7 +213,7 @@ pub async fn create_root_http_router(
 
     // connector module
     let connector_router = ConnectorSetup::new()
-        .build_control_router(config.deref(), vault.clone())
+        .build_control_router_with_bus(config.deref(), vault.clone(), event_bus.clone())
         .await;
 
     // dsp

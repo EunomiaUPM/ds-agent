@@ -29,6 +29,7 @@ use ymir::errors::Outcome;
 pub struct CatalogEntities {
     repo: Arc<dyn CatalogAgentRepoTrait>,
     cache: Arc<dyn CatalogAgentCacheTrait>,
+    event_bus: Option<events::EventBus>,
 }
 
 impl CatalogEntities {
@@ -36,7 +37,16 @@ impl CatalogEntities {
         repo: Arc<dyn CatalogAgentRepoTrait>,
         cache: Arc<dyn CatalogAgentCacheTrait>,
     ) -> Self {
-        Self { repo, cache }
+        Self {
+            repo,
+            cache,
+            event_bus: None,
+        }
+    }
+
+    pub fn with_event_bus(mut self, event_bus: Option<events::EventBus>) -> Self {
+        self.event_bus = event_bus;
+        self
     }
 }
 
@@ -180,6 +190,7 @@ impl CatalogEntityTrait for CatalogEntities {
             .add_to_collection(&catalog_urn, dto.inner.dct_issued.timestamp() as f64)
             .await;
 
+        events::emit_action!(self.event_bus, crate::EVENT_PREFIX, "catalog", "edit", &dto);
         Ok(dto)
     }
 
@@ -201,6 +212,13 @@ impl CatalogEntityTrait for CatalogEntities {
             .add_to_collection(&catalog_urn, dto.inner.dct_issued.timestamp() as f64)
             .await;
 
+        events::emit_action!(
+            self.event_bus,
+            crate::EVENT_PREFIX,
+            "catalog",
+            "create",
+            &dto
+        );
         Ok(dto)
     }
 
@@ -212,13 +230,21 @@ impl CatalogEntityTrait for CatalogEntities {
             .create_main_catalog(&new_model)
             .await?;
         let catalog_urn = Urn::from_str(&*catalog.id)?;
-        let dto = catalog.into();
+        let dto: CatalogDto = catalog.into();
 
         // cache
         self.cache
             .get_catalog_cache()
             .set_main(&catalog_urn, &dto)
             .await;
+
+        events::emit_action!(
+            self.event_bus,
+            crate::EVENT_PREFIX,
+            "catalog",
+            "create",
+            &dto
+        );
         Ok(dto)
     }
 
@@ -240,6 +266,13 @@ impl CatalogEntityTrait for CatalogEntities {
             .remove_from_collection(catalog_id)
             .await;
 
+        events::emit_action!(
+            self.event_bus,
+            crate::EVENT_PREFIX,
+            "catalog",
+            "delete",
+            &events::EntityDeletedDto::new(catalog_id)
+        );
         Ok(())
     }
 }

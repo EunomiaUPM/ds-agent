@@ -37,6 +37,7 @@ use ymir::errors::{BadFormat, Errors, Outcome};
 pub(crate) struct TransferProcessService {
     process_repo: Arc<dyn TransferProcessRepoTrait>,
     identifiers_repo: Arc<dyn TransferIdentifierRepoTrait>,
+    event_bus: Option<events::EventBus>,
 }
 
 impl TransferProcessService {
@@ -47,7 +48,13 @@ impl TransferProcessService {
         Self {
             process_repo,
             identifiers_repo,
+            event_bus: None,
         }
+    }
+
+    pub fn with_event_bus(mut self, event_bus: Option<events::EventBus>) -> Self {
+        self.event_bus = event_bus;
+        self
     }
 
     // Refactors
@@ -266,7 +273,15 @@ impl TransferProcessServiceTrait for TransferProcessService {
         // Zip identifiers
         let extra: HashMap<String, String> = cmd.identifiers.clone().unwrap_or_default();
         // Assemble and serve view
-        Ok(TransferProcessView::assemble(process, extra))
+        let view = TransferProcessView::assemble(process, extra);
+        events::emit_action!(
+            self.event_bus,
+            crate::EVENT_PREFIX,
+            "process",
+            "create",
+            &view
+        );
+        Ok(view)
     }
 
     /// Edit a transfer process
@@ -302,7 +317,15 @@ impl TransferProcessServiceTrait for TransferProcessService {
             .filter_map(|i| i.value.map(|v| (i.key, v)))
             .collect();
         // Assemble and serve view
-        Ok(TransferProcessView::assemble(process, extra))
+        let view = TransferProcessView::assemble(process, extra);
+        events::emit_action!(
+            self.event_bus,
+            crate::EVENT_PREFIX,
+            "process",
+            "edit",
+            &view
+        );
+        Ok(view)
     }
 
     /// Delete a transfer process
@@ -311,6 +334,14 @@ impl TransferProcessServiceTrait for TransferProcessService {
         // Validate access
         self.ensure_access(scope, id).await?;
         // Hit db
-        self.process_repo.delete_transfer_process(id).await
+        self.process_repo.delete_transfer_process(id).await?;
+        events::emit_action!(
+            self.event_bus,
+            crate::EVENT_PREFIX,
+            "process",
+            "delete",
+            &events::EntityDeletedDto::new(id)
+        );
+        Ok(())
     }
 }

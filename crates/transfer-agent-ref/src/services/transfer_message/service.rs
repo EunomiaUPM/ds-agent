@@ -31,11 +31,20 @@ use ymir::errors::{Errors, Outcome};
 
 pub(crate) struct TransferMessageService {
     message_repo: Arc<dyn TransferMessageRepoTrait>,
+    event_bus: Option<events::EventBus>,
 }
 
 impl TransferMessageService {
     pub fn new(message_repo: Arc<dyn TransferMessageRepoTrait>) -> Self {
-        Self { message_repo }
+        Self {
+            message_repo,
+            event_bus: None,
+        }
+    }
+
+    pub fn with_event_bus(mut self, event_bus: Option<events::EventBus>) -> Self {
+        self.event_bus = event_bus;
+        self
     }
 
     // Refactors
@@ -202,7 +211,15 @@ impl TransferMessageServiceTrait for TransferMessageService {
         // Create in db
         let message = self.message_repo.create_transfer_message(&cmd).await?;
         // Assemble into view
-        Ok(TransferMessageView::assemble(message))
+        let view = TransferMessageView::assemble(message);
+        events::emit_action!(
+            self.event_bus,
+            crate::EVENT_PREFIX,
+            "message",
+            "create",
+            &view
+        );
+        Ok(view)
     }
 
     /// Delete a transfer message
@@ -211,6 +228,14 @@ impl TransferMessageServiceTrait for TransferMessageService {
         // Validate access
         self.ensure_access(scope, id).await?;
         // Hit db
-        self.message_repo.delete_transfer_message(id).await
+        self.message_repo.delete_transfer_message(id).await?;
+        events::emit_action!(
+            self.event_bus,
+            crate::EVENT_PREFIX,
+            "message",
+            "delete",
+            &events::EntityDeletedDto::new(id)
+        );
+        Ok(())
     }
 }

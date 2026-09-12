@@ -28,6 +28,7 @@ use ymir::errors::Outcome;
 pub struct OdrlPolicyEntities {
     repo: Arc<dyn CatalogAgentRepoTrait>,
     cache: Arc<dyn CatalogAgentCacheTrait>,
+    event_bus: Option<events::EventBus>,
 }
 
 impl OdrlPolicyEntities {
@@ -35,7 +36,16 @@ impl OdrlPolicyEntities {
         repo: Arc<dyn CatalogAgentRepoTrait>,
         cache: Arc<dyn CatalogAgentCacheTrait>,
     ) -> Self {
-        Self { repo, cache }
+        Self {
+            repo,
+            cache,
+            event_bus: None,
+        }
+    }
+
+    pub fn with_event_bus(mut self, event_bus: Option<events::EventBus>) -> Self {
+        self.event_bus = event_bus;
+        self
     }
 }
 
@@ -199,6 +209,7 @@ impl OdrlPolicyEntityTrait for OdrlPolicyEntities {
                 .await;
         }
 
+        events::emit_action!(self.event_bus, crate::EVENT_PREFIX, "offer", "create", &dto);
         Ok(dto)
     }
 
@@ -225,6 +236,13 @@ impl OdrlPolicyEntityTrait for OdrlPolicyEntities {
             }
         }
 
+        events::emit_action!(
+            self.event_bus,
+            crate::EVENT_PREFIX,
+            "offer",
+            "delete",
+            &events::EntityDeletedDto::new(odrl_offer_id)
+        );
         Ok(())
     }
 
@@ -240,10 +258,17 @@ impl OdrlPolicyEntityTrait for OdrlPolicyEntities {
 
         // invalidation
         let cache = self.cache.get_odrl_offer_cache();
-        for policy in current_policies {
+        for policy in &current_policies {
             if let Ok(id) = Urn::from_str(policy.inner.id.as_str()) {
                 let _ = cache.delete_single(&id).await;
                 let _ = cache.remove_from_collection(&id).await;
+                events::emit_action!(
+                    self.event_bus,
+                    crate::EVENT_PREFIX,
+                    "offer",
+                    "delete",
+                    &events::EntityDeletedDto::new(&id)
+                );
             }
         }
 

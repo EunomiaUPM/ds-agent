@@ -31,11 +31,20 @@ use crate::services::user_service::views::{UserInfo, UserView};
 
 pub(crate) struct UserService {
     user_repo: Arc<dyn UserRepository>,
+    event_bus: Option<events::EventBus>,
 }
 
 impl UserService {
     pub fn new(user_repo: Arc<dyn UserRepository>) -> Self {
-        Self { user_repo }
+        Self {
+            user_repo,
+            event_bus: None,
+        }
+    }
+
+    pub fn with_event_bus(mut self, event_bus: Option<events::EventBus>) -> Self {
+        self.event_bus = event_bus;
+        self
     }
 }
 
@@ -121,11 +130,13 @@ impl UserServiceTrait for UserService {
             created_at: Utc::now(),
             extra_fields: cmd.extra_fields.clone(),
         };
-        Ok(UserView::assemble(self.user_repo.create(&user).await?))
+        let view = UserView::assemble(self.user_repo.create(&user).await?);
+        events::emit_action!(self.event_bus, crate::EVENT_PREFIX, "user", "create", &view);
+        Ok(view)
     }
 
     async fn patch_user(&self, tenant_id: &str, cmd: &PatchUserCommand) -> Outcome<UserView> {
-        Ok(UserView::assemble(
+        let view = UserView::assemble(
             self.user_repo
                 .patch(
                     tenant_id,
@@ -134,10 +145,20 @@ impl UserServiceTrait for UserService {
                     cmd.extra_fields.clone(),
                 )
                 .await?,
-        ))
+        );
+        events::emit_action!(self.event_bus, crate::EVENT_PREFIX, "user", "edit", &view);
+        Ok(view)
     }
 
     async fn delete_user(&self, tenant_id: &str) -> Outcome<()> {
-        self.user_repo.delete(tenant_id).await
+        self.user_repo.delete(tenant_id).await?;
+        events::emit_action!(
+            self.event_bus,
+            crate::EVENT_PREFIX,
+            "user",
+            "delete",
+            &events::EntityDeletedDto::new(tenant_id)
+        );
+        Ok(())
     }
 }

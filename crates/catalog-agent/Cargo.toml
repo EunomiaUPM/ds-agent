@@ -14,6 +14,7 @@ path = "src/main.rs"
 [dependencies]
 common = { version = "0.4.0", path = "../common", default-features = false }
 connector = { version = "0.4.0", path = "../connector", default-features = false }
+events = { version = "0.4.0", path = "../events", default-features = false }
 
 serde = { workspace = true }
 serde_json = { workspace = true }

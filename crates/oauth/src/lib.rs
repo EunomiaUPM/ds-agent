@@ -22,6 +22,9 @@ pub mod http;
 pub mod services;
 pub mod setup;
 
+pub const EVENT_DOMAIN: &str = "oauth";
+pub const EVENT_PREFIX: &str = "oauth:";
+
 pub use data::sea_orm::migrations::get_oauth_migrations;
 
 #[cfg(test)]

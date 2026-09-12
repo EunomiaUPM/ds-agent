@@ -114,6 +114,14 @@ impl NegotiationHttpWorker {
 }
 
 pub async fn create_root_http_router(config: &ContractsConfig, vault: Arc<VaultService>) -> Router {
+    create_root_http_router_with_bus(config, vault, None).await
+}
+
+pub async fn create_root_http_router_with_bus(
+    config: &ContractsConfig,
+    vault: Arc<VaultService>,
+    event_bus: Option<events::EventBus>,
+) -> Router {
     // ROOT Dependency Injection
     let db_connection = vault
         .get_db_connection(config.common())
@@ -125,23 +133,28 @@ pub async fn create_root_http_router(config: &ContractsConfig, vault: Arc<VaultS
     ));
 
     // entities
-    let messages_controller_service = Arc::new(NegotiationAgentMessagesService::new(
-        negotiation_repo.clone(),
-    ));
+    let messages_controller_service = Arc::new(
+        NegotiationAgentMessagesService::new(negotiation_repo.clone())
+            .with_event_bus(event_bus.clone()),
+    );
     let messages_router =
         NegotiationAgentMessagesRouter::new(messages_controller_service.clone(), config.clone());
-    let entities_controller_service = Arc::new(NegotiationAgentProcessesService::new(
-        negotiation_repo.clone(),
-    ));
+    let entities_controller_service = Arc::new(
+        NegotiationAgentProcessesService::new(negotiation_repo.clone())
+            .with_event_bus(event_bus.clone()),
+    );
     let entities_router =
         NegotiationAgentProcessesRouter::new(entities_controller_service.clone(), config.clone());
-    let offer_controller_service =
-        Arc::new(NegotiationAgentOffersService::new(negotiation_repo.clone()));
+    let offer_controller_service = Arc::new(
+        NegotiationAgentOffersService::new(negotiation_repo.clone())
+            .with_event_bus(event_bus.clone()),
+    );
     let offer_router =
         NegotiationAgentOffersRouter::new(offer_controller_service.clone(), config.clone());
-    let agreement_controller_service = Arc::new(NegotiationAgentAgreementsService::new(
-        negotiation_repo.clone(),
-    ));
+    let agreement_controller_service = Arc::new(
+        NegotiationAgentAgreementsService::new(negotiation_repo.clone())
+            .with_event_bus(event_bus.clone()),
+    );
     let agreement_router =
         NegotiationAgentAgreementsRouter::new(agreement_controller_service.clone(), config.clone());
 

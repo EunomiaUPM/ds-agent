@@ -76,13 +76,22 @@ impl MonolithModule {
     pub async fn compose(config: &ApplicationConfig, vault: Arc<VaultService>) -> Outcome<Self> {
         let ctx = CoreContext::build(config, vault.clone()).await?;
 
-        let transfer_cfg = config.transfer();
-        let transfer = TransferAgentModule::compose(&transfer_cfg, &vault).await?;
-        let oauth_db = vault.get_db_connection(transfer_cfg.common()).await?;
-        let oauth = OAuthModule::new(transfer_cfg.common().clone().into(), oauth_db);
+        let bus = (*ctx.events_ctx.event_bus).clone();
 
-        let keystore =
-            KeystoreModule::build(config.monolith(), Arc::new(config.clone()), vault.clone()).await;
+        let transfer_cfg = config.transfer();
+        let transfer =
+            TransferAgentModule::compose_with_bus(&transfer_cfg, &vault, Some(bus.clone())).await?;
+        let oauth_db = vault.get_db_connection(transfer_cfg.common()).await?;
+        let oauth = OAuthModule::new(transfer_cfg.common().clone().into(), oauth_db)
+            .with_event_bus(Some(bus.clone()));
+
+        let keystore = KeystoreModule::build_with_bus(
+            config.monolith(),
+            Arc::new(config.clone()),
+            vault.clone(),
+            Some(bus),
+        )
+        .await;
 
         // Preserve the previous `create_core_router` mount layout: each agent
         // merged at the root, keystore nested under `{api}/keystore`.

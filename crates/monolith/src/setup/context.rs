@@ -20,10 +20,10 @@ use std::sync::Arc;
 use auth::setup::app::AuthApplication;
 use axum::Router;
 use bff::create_gateway_http_router;
-use catalog_agent::setup::create_root_http_router as catalog_http_router;
+use catalog_agent::setup::create_root_http_router_with_bus as catalog_http_router_with_bus;
 use common::config::types::traits::CommonConfigTrait;
 use common::config::ApplicationConfig;
-use negotiation_agent::create_negotiations_http_router;
+use negotiation_agent::create_negotiations_http_router_with_bus;
 use ymir::errors::Outcome;
 use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
@@ -64,10 +64,19 @@ impl CoreContext {
         ));
 
         // Build every free-function agent's HTTP surface once.
-        let catalog_router = catalog_http_router(&config.catalog(), vault.clone()).await?;
+        let catalog_router = catalog_http_router_with_bus(
+            &config.catalog(),
+            vault.clone(),
+            Some((*events_ctx.event_bus).clone()),
+        )
+        .await?;
         let auth_router = AuthApplication::create_router(&config.ssi_auth(), vault.clone()).await?;
-        let negotiation_router =
-            create_negotiations_http_router(&config.contracts(), vault.clone()).await;
+        let negotiation_router = create_negotiations_http_router_with_bus(
+            &config.contracts(),
+            vault.clone(),
+            Some((*events_ctx.event_bus).clone()),
+        )
+        .await;
         let gateway_router = bff::create_gateway_http_router_with_context(gateway_ctx).await;
 
         Ok(Self {

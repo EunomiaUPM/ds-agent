@@ -163,3 +163,17 @@ macro_rules! impl_into_event {
         $crate::event!($($arg)*);
     };
 }
+
+// Ergonomic macro to publish events using hierarchical topics (<prefix>:<service>:<action>).
+#[macro_export]
+macro_rules! emit_action {
+    ($bus:expr, $prefix:expr, $service:expr, $action:expr, $payload:expr) => {
+        if let Some(bus) = &$bus {
+            let topic = format!("{}{}:{}", $prefix, $service, $action);
+            let source = $prefix.trim_end_matches(':');
+            if let Err(e) = bus.emit_payload(&topic, source, $payload).await {
+                tracing::warn!("Failed to emit event {topic}: {e}");
+            }
+        }
+    };
+}

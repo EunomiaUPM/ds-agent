@@ -51,11 +51,12 @@ impl ConnectorSetup {
         Arc::new(ConnectorRepoForSql::create_repo(db_connection))
     }
 
-    pub async fn get_connector_instance_entity<C: CommonConfigTrait + Send + Sync>(
+    pub async fn get_connector_instance_entity_with_bus<C: CommonConfigTrait + Send + Sync>(
         &self,
         config: &C,
         vault: Arc<VaultService>,
         http_client: Arc<HttpClient>,
+        event_bus: Option<events::EventBus>,
     ) -> Arc<dyn ConnectorInstanceTrait> {
         let db_connection = vault
             .get_db_connection(config.common())
@@ -68,17 +69,27 @@ impl ConnectorSetup {
             http_client,
         ));
         let own_url = config.common().get_host(HostType::Http);
-        Arc::new(ConnectorInstanceEntitiesService::new(
-            connector_repo,
-            distribution_facade,
-            own_url,
-        ))
+        Arc::new(
+            ConnectorInstanceEntitiesService::new(connector_repo, distribution_facade, own_url)
+                .with_event_bus(event_bus),
+        )
     }
 
-    pub async fn build_control_router(
+    pub async fn get_connector_instance_entity<C: CommonConfigTrait + Send + Sync>(
+        &self,
+        config: &C,
+        vault: Arc<VaultService>,
+        http_client: Arc<HttpClient>,
+    ) -> Arc<dyn ConnectorInstanceTrait> {
+        self.get_connector_instance_entity_with_bus(config, vault, http_client, None)
+            .await
+    }
+
+    pub async fn build_control_router_with_bus(
         &self,
         config: &CatalogConfig,
         vault: Arc<VaultService>,
+        event_bus: Option<events::EventBus>,
     ) -> Router {
         let connector_repo = self.get_connector_repo(config, vault.clone()).await;
         let config_arc = Arc::new(config.clone());
@@ -89,22 +100,35 @@ impl ConnectorSetup {
             http_client.clone(),
         ));
 
-        let connector_template_service = Arc::new(ConnectorTemplateEntitiesService::new(
-            connector_repo.clone(),
-        ));
+        let connector_template_service = Arc::new(
+            ConnectorTemplateEntitiesService::new(connector_repo.clone())
+                .with_event_bus(event_bus.clone()),
+        );
         let connector_template_router =
             ConnectorTemplateRouter::new(connector_template_service.clone(), config_arc.clone())
                 .router();
         let own_url = config.common().get_host(HostType::Http);
-        let connector_instance_service = Arc::new(ConnectorInstanceEntitiesService::new(
-            connector_repo.clone(),
-            distribution_facade.clone(),
-            own_url,
-        ));
+        let connector_instance_service = Arc::new(
+            ConnectorInstanceEntitiesService::new(
+                connector_repo.clone(),
+                distribution_facade.clone(),
+                own_url,
+            )
+            .with_event_bus(event_bus),
+        );
         let connector_instance_router =
             ConnectorInstanceRouter::new(connector_instance_service.clone()).router();
         Router::new()
             .nest("/templates", connector_template_router)
             .nest("/instances", connector_instance_router)
+    }
+
+    pub async fn build_control_router(
+        &self,
+        config: &CatalogConfig,
+        vault: Arc<VaultService>,
+    ) -> Router {
+        self.build_control_router_with_bus(config, vault, None)
+            .await
     }
 }

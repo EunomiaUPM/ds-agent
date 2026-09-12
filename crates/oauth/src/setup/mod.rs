@@ -43,11 +43,21 @@ use crate::services::user_service::service::UserService;
 pub struct OAuthModule {
     config: OAuthConfig,
     db: DatabaseConnection,
+    event_bus: Option<events::EventBus>,
 }
 
 impl OAuthModule {
     pub fn new(config: OAuthConfig, db: DatabaseConnection) -> Self {
-        Self { config, db }
+        Self {
+            config,
+            db,
+            event_bus: None,
+        }
+    }
+
+    pub fn with_event_bus(mut self, event_bus: Option<events::EventBus>) -> Self {
+        self.event_bus = event_bus;
+        self
     }
 }
 
@@ -61,7 +71,11 @@ impl ServiceModuleTrait for OAuthModule {
     }
 
     fn http(&self) -> Option<(String, Router)> {
-        let router = OAuthSetup::new().build_router(self.config.clone(), self.db.clone());
+        let router = OAuthSetup::new().build_router_with_bus(
+            self.config.clone(),
+            self.db.clone(),
+            self.event_bus.clone(),
+        );
         Some(("/oauth".to_string(), router))
     }
 }
@@ -94,14 +108,25 @@ impl OAuthSetup {
     /// Builds the full OAuth router (token, users, clients, pats)
     /// Mount this under an appropriate prefix (e.g. `/oauth`) in the host service.
     pub fn build_router(&self, config: OAuthConfig, db: DatabaseConnection) -> Router {
+        self.build_router_with_bus(config, db, None)
+    }
+
+    pub fn build_router_with_bus(
+        &self,
+        config: OAuthConfig,
+        db: DatabaseConnection,
+        event_bus: Option<events::EventBus>,
+    ) -> Router {
         let factory = SeaOrmDataFactory::new(db.clone());
         let token_svc: Arc<dyn TokenServiceTrait> =
             self.build_token_service(config.clone(), db.clone());
         let user_svc: Arc<dyn UserServiceTrait> =
-            Arc::new(UserService::new(factory.user_repository()));
-        let client_svc: Arc<dyn ClientServiceTrait> =
-            Arc::new(ClientService::new(factory.client_repository()));
-        let pat_svc: Arc<dyn PatServiceTrait> = Arc::new(PatService::new(factory.pat_repository()));
+            Arc::new(UserService::new(factory.user_repository()).with_event_bus(event_bus.clone()));
+        let client_svc: Arc<dyn ClientServiceTrait> = Arc::new(
+            ClientService::new(factory.client_repository()).with_event_bus(event_bus.clone()),
+        );
+        let pat_svc: Arc<dyn PatServiceTrait> =
+            Arc::new(PatService::new(factory.pat_repository()).with_event_bus(event_bus));
         let issuer = config.issuer.clone();
         let token_router = TokenRouter::new(token_svc.clone(), user_svc.clone(), issuer).router();
         let users_router = UsersRouter::new(token_svc.clone(), user_svc).router();

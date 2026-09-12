@@ -36,11 +36,20 @@ use ymir::errors::{Errors, Outcome};
 
 pub struct NegotiationAgentProcessesService {
     pub negotiation_repo: Arc<dyn NegotiationAgentRepoTrait>,
+    pub event_bus: Option<events::EventBus>,
 }
 
 impl NegotiationAgentProcessesService {
     pub fn new(negotiation_repo: Arc<dyn NegotiationAgentRepoTrait>) -> Self {
-        Self { negotiation_repo }
+        Self {
+            negotiation_repo,
+            event_bus: None,
+        }
+    }
+
+    pub fn with_event_bus(mut self, event_bus: Option<events::EventBus>) -> Self {
+        self.event_bus = event_bus;
+        self
     }
 
     async fn enrich_process(
@@ -225,7 +234,15 @@ impl NegotiationAgentProcessesTrait for NegotiationAgentProcessesService {
             }
         }
 
-        self.enrich_process(created_process).await
+        let dto = self.enrich_process(created_process).await?;
+        events::emit_action!(
+            self.event_bus,
+            crate::EVENT_PREFIX,
+            "process",
+            "create",
+            &dto
+        );
+        Ok(dto)
     }
 
     async fn put_negotiation_process(
@@ -287,7 +304,9 @@ impl NegotiationAgentProcessesTrait for NegotiationAgentProcessesService {
             }
         }
 
-        self.enrich_process(updated_process).await
+        let dto = self.enrich_process(updated_process).await?;
+        events::emit_action!(self.event_bus, crate::EVENT_PREFIX, "process", "edit", &dto);
+        Ok(dto)
     }
 
     async fn delete_negotiation_process(&self, id: &Urn) -> Outcome<()> {
@@ -295,6 +314,13 @@ impl NegotiationAgentProcessesTrait for NegotiationAgentProcessesService {
             .get_negotiation_process_repo()
             .delete_negotiation_process(id)
             .await?;
+        events::emit_action!(
+            self.event_bus,
+            crate::EVENT_PREFIX,
+            "process",
+            "delete",
+            &events::EntityDeletedDto::new(id)
+        );
         Ok(())
     }
 }

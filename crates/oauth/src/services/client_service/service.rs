@@ -29,11 +29,20 @@ use crate::services::password;
 
 pub(crate) struct ClientService {
     client_repo: Arc<dyn ClientRepository>,
+    event_bus: Option<events::EventBus>,
 }
 
 impl ClientService {
     pub fn new(client_repo: Arc<dyn ClientRepository>) -> Self {
-        Self { client_repo }
+        Self {
+            client_repo,
+            event_bus: None,
+        }
+    }
+
+    pub fn with_event_bus(mut self, event_bus: Option<events::EventBus>) -> Self {
+        self.event_bus = event_bus;
+        self
     }
 }
 
@@ -76,12 +85,26 @@ impl ClientServiceTrait for ClientService {
             created_at: Utc::now(),
         };
 
-        Ok(ClientView::assemble(
-            self.client_repo.create(&client).await?,
-        ))
+        let view = ClientView::assemble(self.client_repo.create(&client).await?);
+        events::emit_action!(
+            self.event_bus,
+            crate::EVENT_PREFIX,
+            "client",
+            "create",
+            &view
+        );
+        Ok(view)
     }
 
     async fn delete_client(&self, client_id: &str) -> Outcome<()> {
-        self.client_repo.delete(client_id).await
+        self.client_repo.delete(client_id).await?;
+        events::emit_action!(
+            self.event_bus,
+            crate::EVENT_PREFIX,
+            "client",
+            "delete",
+            &events::EntityDeletedDto::new(client_id)
+        );
+        Ok(())
     }
 }

@@ -26,6 +26,9 @@ pub(crate) mod http;
 pub(crate) mod protocols;
 pub mod setup;
 
+pub const EVENT_DOMAIN: &str = "catalog";
+pub const EVENT_PREFIX: &str = "catalog:";
+
 pub use data::migrations::get_catalog_migrations;
 pub use data::repo_traits::catalog_repo::CatalogRepositoryTrait;
 pub use data::repos_sql::catalog_repo::CatalogRepositoryForSql;

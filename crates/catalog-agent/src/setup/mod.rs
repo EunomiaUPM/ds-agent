@@ -22,3 +22,4 @@ mod grpc_worker;
 mod http_worker;
 
 pub use http_worker::create_root_http_router;
+pub use http_worker::create_root_http_router_with_bus;

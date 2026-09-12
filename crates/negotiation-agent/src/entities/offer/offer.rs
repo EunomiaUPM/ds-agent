@@ -24,11 +24,20 @@ use ymir::errors::Outcome;
 
 pub struct NegotiationAgentOffersService {
     pub negotiation_repo: Arc<dyn NegotiationAgentRepoTrait>,
+    pub event_bus: Option<events::EventBus>,
 }
 
 impl NegotiationAgentOffersService {
     pub fn new(negotiation_repo: Arc<dyn NegotiationAgentRepoTrait>) -> Self {
-        Self { negotiation_repo }
+        Self {
+            negotiation_repo,
+            event_bus: None,
+        }
+    }
+
+    pub fn with_event_bus(mut self, event_bus: Option<events::EventBus>) -> Self {
+        self.event_bus = event_bus;
+        self
     }
 }
 
@@ -117,7 +126,9 @@ impl NegotiationAgentOffersTrait for NegotiationAgentOffersService {
             .create_offer(&new_model)
             .await?;
 
-        Ok(OfferDto { inner: created })
+        let dto = OfferDto { inner: created };
+        events::emit_action!(self.event_bus, crate::EVENT_PREFIX, "offer", "create", &dto);
+        Ok(dto)
     }
 
     async fn delete_offer(&self, id: &Urn) -> Outcome<()> {
@@ -125,6 +136,13 @@ impl NegotiationAgentOffersTrait for NegotiationAgentOffersService {
             .get_offer_repo()
             .delete_offer(id)
             .await?;
+        events::emit_action!(
+            self.event_bus,
+            crate::EVENT_PREFIX,
+            "offer",
+            "delete",
+            &events::EntityDeletedDto::new(id)
+        );
         Ok(())
     }
 }

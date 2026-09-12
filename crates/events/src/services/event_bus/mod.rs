@@ -45,4 +45,11 @@ pub trait EventBusTrait: Send + Sync + 'static {
 #[async_trait]
 pub trait EventPublisherTrait: Send + Sync {
     async fn publish_event<E: Event>(&self, event: E) -> Result<EventEnvelope, EventBusError>;
+
+    async fn emit_payload(
+        &self,
+        topic: &str,
+        source: &str,
+        payload: &serde_json::Value,
+    ) -> Result<EventEnvelope, EventBusError>;
 }

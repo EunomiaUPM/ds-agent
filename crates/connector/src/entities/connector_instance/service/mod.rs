@@ -38,6 +38,7 @@ pub struct ConnectorInstanceEntitiesService {
     /// The service's own base URL, used to resolve `{{__SYS_OWN_URL__}}` and
     /// `{{__SYS_OWN_URL_DOCKER__}}` placeholders during instance creation.
     own_url: String,
+    event_bus: Option<events::EventBus>,
 }
 
 impl ConnectorInstanceEntitiesService {
@@ -50,7 +51,13 @@ impl ConnectorInstanceEntitiesService {
             repo,
             distribution_facade,
             own_url,
+            event_bus: None,
         }
+    }
+
+    pub fn with_event_bus(mut self, event_bus: Option<events::EventBus>) -> Self {
+        self.event_bus = event_bus;
+        self
     }
 
     fn map_model_to_dto(model: connector_instances::Model) -> Outcome<ConnectorInstanceDto> {
@@ -240,7 +247,15 @@ impl ConnectorInstanceTrait for ConnectorInstanceEntitiesService {
             }
         };
 
-        Self::map_model_to_dto(saved_model)
+        let result = Self::map_model_to_dto(saved_model)?;
+        events::emit_action!(
+            self.event_bus,
+            crate::EVENT_PREFIX,
+            "instance",
+            "create",
+            &result
+        );
+        Ok(result)
     }
 
     async fn delete_instance_by_id(&self, id: &Urn) -> Outcome<()> {
@@ -249,6 +264,14 @@ impl ConnectorInstanceTrait for ConnectorInstanceEntitiesService {
             .get_instances_repo()
             .delete_instance_by_id(&id_str)
             .await?;
+        let deleted = events::EntityDeletedDto::new(id_str);
+        events::emit_action!(
+            self.event_bus,
+            crate::EVENT_PREFIX,
+            "instance",
+            "delete",
+            &deleted
+        );
         Ok(())
     }
 }

@@ -30,6 +30,7 @@ use ymir::errors::Outcome;
 pub struct DistributionEntities {
     repo: Arc<dyn CatalogAgentRepoTrait>,
     cache: Arc<dyn CatalogAgentCacheTrait>,
+    event_bus: Option<events::EventBus>,
 }
 
 impl DistributionEntities {
@@ -37,7 +38,16 @@ impl DistributionEntities {
         repo: Arc<dyn CatalogAgentRepoTrait>,
         cache: Arc<dyn CatalogAgentCacheTrait>,
     ) -> Self {
-        Self { repo, cache }
+        Self {
+            repo,
+            cache,
+            event_bus: None,
+        }
+    }
+
+    pub fn with_event_bus(mut self, event_bus: Option<events::EventBus>) -> Self {
+        self.event_bus = event_bus;
+        self
     }
 }
 
@@ -232,6 +242,13 @@ impl DistributionEntityTrait for DistributionEntities {
             .add_to_collection(&dist_urn, dto.inner.dct_issued.timestamp() as f64)
             .await;
 
+        events::emit_action!(
+            self.event_bus,
+            crate::EVENT_PREFIX,
+            "distribution",
+            "edit",
+            &dto
+        );
         Ok(dto)
     }
 
@@ -262,6 +279,13 @@ impl DistributionEntityTrait for DistributionEntities {
                 .await;
         }
 
+        events::emit_action!(
+            self.event_bus,
+            crate::EVENT_PREFIX,
+            "distribution",
+            "create",
+            &dto
+        );
         Ok(dto)
     }
 
@@ -288,6 +312,13 @@ impl DistributionEntityTrait for DistributionEntities {
             }
         }
 
+        events::emit_action!(
+            self.event_bus,
+            crate::EVENT_PREFIX,
+            "distribution",
+            "delete",
+            &events::EntityDeletedDto::new(distribution_id)
+        );
         Ok(())
     }
 }

@@ -28,11 +28,20 @@ use crate::services::parameters::ParameterStore;
 
 pub struct ParameterStoreImpl {
     repo: Arc<dyn ParameterRepoTrait<Value = serde_json::Value>>,
+    event_bus: Option<events::EventBus>,
 }
 
 impl ParameterStoreImpl {
     pub fn new(repo: Arc<dyn ParameterRepoTrait<Value = serde_json::Value>>) -> Self {
-        Self { repo }
+        Self {
+            repo,
+            event_bus: None,
+        }
+    }
+
+    pub fn with_event_bus(mut self, event_bus: Option<events::EventBus>) -> Self {
+        self.event_bus = event_bus;
+        self
     }
 }
 
@@ -43,7 +52,15 @@ impl ParameterStore<serde_json::Value> for ParameterStoreImpl {
         &self,
         cmd: &NewParameterCommand<serde_json::Value>,
     ) -> Outcome<Entry<serde_json::Value>> {
-        self.repo.create_parameter(cmd).await
+        let entry = self.repo.create_parameter(cmd).await?;
+        events::emit_action!(
+            self.event_bus,
+            crate::EVENT_PREFIX,
+            "parameter",
+            "create",
+            &entry
+        );
+        Ok(entry)
     }
 
     #[tracing::instrument(level = "info", skip(self), fields(key = %key), err)]
@@ -63,12 +80,27 @@ impl ParameterStore<serde_json::Value> for ParameterStoreImpl {
     ) -> Outcome<Version> {
         let _ = actor;
         let entry = self.repo.put_parameter(key, cmd).await?;
+        events::emit_action!(
+            self.event_bus,
+            crate::EVENT_PREFIX,
+            "parameter",
+            "edit",
+            &entry
+        );
         Ok(entry.metadata.version)
     }
 
     #[tracing::instrument(level = "info", skip(self), fields(key = %key), err)]
     async fn delete(&self, key: &Key) -> Outcome<()> {
-        self.repo.delete_parameter(key).await
+        self.repo.delete_parameter(key).await?;
+        events::emit_action!(
+            self.event_bus,
+            crate::EVENT_PREFIX,
+            "parameter",
+            "delete",
+            &events::EntityDeletedDto::new(key.as_str())
+        );
+        Ok(())
     }
 
     #[tracing::instrument(level = "info", skip(self), err)]

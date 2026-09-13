@@ -21,13 +21,17 @@ use crate::data::repo_traits::catalog_db_errors::CatalogAgentRepoErrors;
 use urn::Urn;
 use ymir::errors::Outcome;
 
+use crate::entities::filters::DistributionFilter;
+use common::paginated_spec::{Page, Sort};
+
 #[async_trait::async_trait]
 pub trait DistributionRepositoryTrait: Send + Sync {
     async fn get_all_distributions(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<distribution::Model>>;
+        filters: &DistributionFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<(Vec<distribution::Model>, Option<u64>)>;
     async fn get_batch_distributions(&self, ids: &Vec<Urn>) -> Outcome<Vec<distribution::Model>>;
 
     async fn get_distributions_by_dataset_id(

@@ -15,8 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use base64::Engine;
 use chrono::DateTime;
+use common::paginated_spec::Cursor;
 
 use crate::data::repo::transfer_process::TransferProcessRepoTrait;
 use crate::data::repo::transfer_process_identifier::TransferIdentifierRepoTrait;
@@ -95,7 +95,7 @@ impl TransferProcessService {
             Sort::UpdatedAtDesc => process.updated_at(),
             _ => process.created_at(),
         };
-        base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(dt.to_rfc3339())
+        Cursor::encode_timestamp(&dt)
     }
 }
 

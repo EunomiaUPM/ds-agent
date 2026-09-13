@@ -15,8 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::entities::filters::NegotiationProcessFilter;
 use crate::entities::negotiation_process::{
-    EditNegotiationProcessDto, NegotiationAgentProcessesTrait, NewNegotiationProcessDto,
+    EditNegotiationProcessDto, NegotiationAgentProcessesTrait, NegotiationProcessDto,
+    NewNegotiationProcessDto,
 };
 use crate::errors::error_adapter::CustomToResponse;
 use crate::http::common::{extract_payload, parse_urn};
@@ -28,6 +30,7 @@ use axum::routing::{get, post};
 use axum::{Json, Router};
 use common::batch_requests::BatchRequests;
 use common::config::services::ContractsConfig;
+use common::query::QuerySpec;
 use serde::Deserialize;
 use std::sync::Arc;
 
@@ -37,11 +40,8 @@ pub struct NegotiationAgentProcessesRouter {
     config: Arc<ContractsConfig>,
 }
 
-#[derive(Deserialize)]
-pub struct PaginationParams {
-    pub limit: Option<u64>,
-    pub page: Option<u64>,
-}
+pub use common::paginated_spec::PaginationParams;
+pub type NegotiationProcessQuery = QuerySpec<NegotiationProcessFilter>;
 
 impl FromRef<NegotiationAgentProcessesRouter> for Arc<dyn NegotiationAgentProcessesTrait> {
     fn from_ref(state: &NegotiationAgentProcessesRouter) -> Self {
@@ -85,11 +85,11 @@ impl NegotiationAgentProcessesRouter {
 
     async fn handle_get_all_processes(
         State(state): State<NegotiationAgentProcessesRouter>,
-        Query(params): Query<PaginationParams>,
+        Query(query): Query<NegotiationProcessQuery>,
     ) -> impl IntoResponse {
         match state
             .service
-            .get_all_negotiation_processes(params.limit, params.page)
+            .get_all_negotiation_processes(&query.filter, &query.page, &query.sort)
             .await
         {
             Ok(processes) => (StatusCode::OK, Json(processes)).into_response(),

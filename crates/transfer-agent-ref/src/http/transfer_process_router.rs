@@ -29,7 +29,7 @@ use axum::routing::{get, post};
 use axum::{Json, Router};
 use common::auth::access::AccessScope;
 use common::batch_requests::BatchRequests;
-use common::query::{Page, Paginated, Sort, default_limit};
+use common::query::{Page, Paginated, QuerySpec, Sort, default_limit};
 use serde::Deserialize;
 use ymir::errors::AppResult;
 use ymir::utils::{extract_path_urn, extract_payload};
@@ -146,23 +146,4 @@ impl TransferProcessRouter {
 
 // Query params ──────────────────────────────────────────────────────────────
 
-#[derive(Deserialize)]
-pub struct TransferProcessQuery {
-    #[serde(flatten)]
-    filter: TransferProcessFilter,
-    #[serde(default = "default_limit")]
-    limit: u32,
-    cursor: Option<String>,
-    #[serde(default)]
-    sort: Sort,
-}
-
-impl TransferProcessQuery {
-    fn into_domain(self) -> (TransferProcessFilter, Page, Sort) {
-        let page = Page {
-            limit: self.limit,
-            cursor: self.cursor,
-        };
-        (self.filter, page, self.sort)
-    }
-}
+pub type TransferProcessQuery = QuerySpec<TransferProcessFilter, Sort>;

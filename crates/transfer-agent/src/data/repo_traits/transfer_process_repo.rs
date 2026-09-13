@@ -17,6 +17,8 @@
 
 use crate::data::entities::transfer_process;
 use crate::data::entities::transfer_process::{EditTransferProcessModel, NewTransferProcessModel};
+use crate::entities::filters::TransferProcessFilter;
+use common::paginated_spec::{Page, Sort};
 use thiserror::Error;
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
@@ -26,9 +28,10 @@ use ymir::errors::{Outcome, RepoIntoErrors};
 pub trait TransferProcessRepoTrait: Send + Sync {
     async fn get_all_transfer_processes(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<transfer_process::Model>>;
+        filters: &TransferProcessFilter,
+        page: &Page,
+        sort: Sort,
+    ) -> Outcome<(Vec<transfer_process::Model>, Option<u64>)>;
     async fn get_batch_transfer_processes(
         &self,
         ids: &Vec<Urn>,

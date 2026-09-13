@@ -18,6 +18,8 @@
 use crate::data::entities::dataservice;
 use crate::data::entities::dataservice::{EditDataServiceModel, NewDataServiceModel};
 use crate::data::repo_traits::catalog_db_errors::CatalogAgentRepoErrors;
+use crate::entities::filters::DataServiceFilter;
+use common::paginated_spec::{Page, Sort};
 use urn::Urn;
 use ymir::errors::Outcome;
 
@@ -25,9 +27,10 @@ use ymir::errors::Outcome;
 pub trait DataServiceRepositoryTrait: Send + Sync {
     async fn get_all_data_services(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<dataservice::Model>>;
+        filters: &DataServiceFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<(Vec<dataservice::Model>, Option<u64>)>;
     async fn get_batch_data_services(&self, ids: &Vec<Urn>) -> Outcome<Vec<dataservice::Model>>;
 
     async fn get_data_services_by_catalog_id(

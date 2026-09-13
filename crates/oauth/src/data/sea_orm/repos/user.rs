@@ -17,8 +17,7 @@
 
 use std::sync::Arc;
 
-use base64::Engine;
-use chrono::DateTime;
+use common::paginated_spec::Cursor;
 use sea_orm::ActiveValue::Set;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder,
@@ -41,11 +40,7 @@ impl SeaOrmUserRepository {
         Self { db }
     }
     fn decode_cursor(&self, cursor: &str) -> Result<chrono::DateTime<chrono::FixedOffset>, ()> {
-        let bytes = base64::engine::general_purpose::URL_SAFE_NO_PAD
-            .decode(cursor)
-            .map_err(|_| ())?;
-        let s = String::from_utf8(bytes).map_err(|_| ())?;
-        DateTime::parse_from_rfc3339(&s).map_err(|_| ())
+        Cursor::decode_timestamp(cursor).map_err(|_| ())
     }
 }
 
@@ -71,14 +66,14 @@ impl UserRepository for SeaOrmUserRepository {
             if let Ok(cursor_dt) = self.decode_cursor(cursor) {
                 q = match sort {
                     Sort::CreatedAtAsc => q.filter(orm::Column::CreatedAt.gt(cursor_dt)),
-                    Sort::CreatedAtDesc => q.filter(orm::Column::CreatedAt.lt(cursor_dt)),
+                    _ => q.filter(orm::Column::CreatedAt.lt(cursor_dt)),
                 };
             }
         }
 
         q = match sort {
             Sort::CreatedAtAsc => q.order_by_asc(orm::Column::CreatedAt),
-            Sort::CreatedAtDesc => q.order_by_desc(orm::Column::CreatedAt),
+            _ => q.order_by_desc(orm::Column::CreatedAt),
         };
 
         q.limit(page.limit as u64)

@@ -80,14 +80,18 @@ impl From<distribution::Model> for DistributionDto {
     }
 }
 
+use crate::entities::filters::DistributionFilter;
+use common::paginated_spec::{Page, Paginated, Sort};
+
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait DistributionEntityTrait: Send + Sync {
     async fn get_all_distributions(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<DistributionDto>>;
+        filters: &DistributionFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<Paginated<DistributionDto>>;
     async fn get_batch_distributions(&self, ids: &Vec<Urn>) -> Outcome<Vec<DistributionDto>>;
 
     async fn get_distributions_by_dataset_id(

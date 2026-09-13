@@ -16,6 +16,7 @@
  */
 
 pub(crate) mod agreement;
+pub mod filters;
 pub(crate) mod negotiation_message;
 pub(crate) mod negotiation_process;
 pub(crate) mod offer;

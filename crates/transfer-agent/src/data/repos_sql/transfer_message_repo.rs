@@ -20,9 +20,39 @@ use crate::data::entities::transfer_message::NewTransferMessageModel;
 use crate::data::repo_traits::transfer_message_repo::{
     TransferMessageRepoErrors, TransferMessageRepoTrait,
 };
-use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, QuerySelect};
+use crate::entities::filters::TransferMessageFilter;
+use common::paginated_spec::{Page, SelectCursorExt, Sort};
+use common::query::FilterApplier;
+use sea_orm::{
+    ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder,
+    QuerySelect, Select,
+};
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
+
+impl FilterApplier<Select<transfer_message::Entity>> for TransferMessageFilter {
+    fn apply_to(&self, mut select: Select<transfer_message::Entity>) -> Select<transfer_message::Entity> {
+        if let Some(process_id) = &self.process_id {
+            select = select.filter(transfer_message::Column::TransferAgentProcessId.eq(process_id));
+        }
+        if let Some(protocol) = &self.protocol {
+            select = select.filter(transfer_message::Column::Protocol.eq(protocol));
+        }
+        if let Some(message_type) = &self.message_type {
+            select = select.filter(transfer_message::Column::MessageType.eq(message_type));
+        }
+        if let Some(direction) = &self.direction {
+            select = select.filter(transfer_message::Column::Direction.eq(direction));
+        }
+        if let Some(created_after) = self.created_after {
+            select = select.filter(transfer_message::Column::CreatedAt.gte(created_after));
+        }
+        if let Some(created_before) = self.created_before {
+            select = select.filter(transfer_message::Column::CreatedAt.lte(created_before));
+        }
+        select
+    }
+}
 
 pub struct TransferMessageRepoForSql {
     db_connection: DatabaseConnection,
@@ -38,22 +68,29 @@ impl TransferMessageRepoForSql {
 impl TransferMessageRepoTrait for TransferMessageRepoForSql {
     async fn get_all_transfer_messages(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<transfer_message::Model>> {
-        let messages = transfer_message::Entity::find()
-            .limit(limit.unwrap_or(20))
-            .offset(page.map(|p| p * limit.unwrap_or(20)).unwrap_or(0))
-            .order_by_desc(transfer_message::Column::CreatedAt) // Default: los más nuevos primero
-            .all(&self.db_connection)
-            .await;
+        filters: &TransferMessageFilter,
+        page: &Page,
+        sort: Sort,
+    ) -> Outcome<(Vec<transfer_message::Model>, Option<u64>)> {
+        let q = filters.apply_to(transfer_message::Entity::find());
+        let total = q
+            .clone()
+            .count(&self.db_connection)
+            .await
+            .map_err(|e| TransferMessageRepoErrors::ErrorFetchingTransferMessage(e.into()).into_errors())?;
 
-        match messages {
-            Ok(messages) => Ok(messages),
-            Err(e) => {
-                Err(TransferMessageRepoErrors::ErrorFetchingTransferMessage(e.into()).into_errors())
-            }
-        }
+        let items = q
+            .apply_cursor_pagination_with_tie_break(
+                page,
+                sort,
+                transfer_message::Column::CreatedAt,
+                transfer_message::Column::Id,
+            )
+            .all(&self.db_connection)
+            .await
+            .map_err(|e| TransferMessageRepoErrors::ErrorFetchingTransferMessage(e.into()).into_errors())?;
+
+        Ok((items, Some(total)))
     }
 
     async fn get_messages_by_process_id(

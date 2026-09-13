@@ -17,6 +17,8 @@
 
 use crate::data::entities::catalog;
 use crate::data::entities::catalog::{EditCatalogModel, Model, NewCatalogModel};
+use crate::entities::filters::CatalogFilter;
+use common::paginated_spec::{Page, Paginated, Sort};
 use serde::{Deserialize, Serialize};
 use urn::Urn;
 use ymir::errors::Outcome;
@@ -100,10 +102,10 @@ impl From<catalog::Model> for CatalogDto {
 pub trait CatalogEntityTrait: Send + Sync {
     async fn get_all_catalogs(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-        with_main_catalog: bool,
-    ) -> Outcome<Vec<CatalogDto>>;
+        filters: &CatalogFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<Paginated<CatalogDto>>;
     async fn get_batch_catalogs(&self, ids: &Vec<Urn>) -> Outcome<Vec<CatalogDto>>;
     async fn get_catalog_by_id(&self, catalog_id: &Urn) -> Outcome<Option<CatalogDto>>;
     async fn get_main_catalog(&self) -> Outcome<Option<CatalogDto>>;

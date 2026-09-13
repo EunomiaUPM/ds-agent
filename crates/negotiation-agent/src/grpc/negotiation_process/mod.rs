@@ -27,6 +27,7 @@ use crate::grpc::api::negotiation_agent::{
     NegotiationProcessResponse, PutNegotiationProcessRequest,
 };
 
+use common::paginated_spec::Page;
 use std::str::FromStr;
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
@@ -49,16 +50,15 @@ impl NegotiationAgentProcessesService for NegotiationAgentProcessesGrpc {
         request: Request<GetAllNegotiationProcessesRequest>,
     ) -> Result<Response<NegotiationProcessListResponse>, Status> {
         let req = request.into_inner();
-
-        let processes = self
+        let page = Page::new(req.limit.unwrap_or(20) as u32, None);
+        let paginated = self
             .service
-            .get_all_negotiation_processes(req.limit, req.page)
+            .get_all_negotiation_processes(&Default::default(), &page, &Default::default())
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 
-        // Convertimos DTOs a Protos.
-        // Usamos la conversión Dto -> Response definida en mappers y extraemos el inner process.
-        let proto_processes = processes
+        let proto_processes = paginated
+            .items
             .into_iter()
             .map(|dto| {
                 let response: NegotiationProcessResponse = dto.into();

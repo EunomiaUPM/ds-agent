@@ -19,6 +19,8 @@ use crate::data::entities::negotiation_process;
 use crate::data::entities::negotiation_process::{
     EditNegotiationProcessModel, NewNegotiationProcessModel,
 };
+use crate::entities::filters::NegotiationProcessFilter;
+use common::paginated_spec::{Page, Sort};
 use thiserror::Error;
 use urn::Urn;
 use ymir::errors::Outcome;
@@ -28,9 +30,10 @@ use ymir::errors::RepoIntoErrors;
 pub trait NegotiationProcessRepoTrait: Send + Sync {
     async fn get_all_negotiation_processes(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<negotiation_process::Model>>;
+        filters: &NegotiationProcessFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<(Vec<negotiation_process::Model>, Option<u64>)>;
     async fn get_batch_negotiation_processes(
         &self,
         ids: &Vec<Urn>,

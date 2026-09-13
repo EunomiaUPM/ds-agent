@@ -21,6 +21,7 @@ use crate::grpc::api::catalog_agent::{
     CreateDatasetRequest, Dataset, DatasetListResponse, DatasetResponse, DeleteByIdRequest,
     GetAllRequest, GetBatchRequest, GetByIdRequest, GetByParentIdRequest, PutDatasetRequest,
 };
+use common::paginated_spec::Page;
 use std::str::FromStr;
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
@@ -43,13 +44,14 @@ impl DatasetEntityService for DatasetEntityGrpc {
         request: Request<GetAllRequest>,
     ) -> Result<Response<DatasetListResponse>, Status> {
         let req = request.into_inner();
-        let datasets = self
+        let page = Page::new(req.limit.unwrap_or(20) as u32, None);
+        let paginated = self
             .service
-            .get_all_datasets(req.limit, req.page)
+            .get_all_datasets(&Default::default(), &page, &Default::default())
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 
-        let proto_datasets: Vec<Dataset> = datasets.into_iter().map(Into::into).collect();
+        let proto_datasets: Vec<Dataset> = paginated.items.into_iter().map(Into::into).collect();
 
         Ok(Response::new(DatasetListResponse {
             datasets: proto_datasets,

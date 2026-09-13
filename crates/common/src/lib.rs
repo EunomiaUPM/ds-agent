@@ -29,6 +29,7 @@ pub mod id_mac;
 pub mod info_banner;
 pub mod middleware;
 pub mod module_loader;
+pub mod paginated_spec;
 pub mod query;
 pub mod rdf;
 pub mod serde_utils;

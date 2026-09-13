@@ -22,6 +22,8 @@ use crate::data::entities::negotiation_process::{
     EditNegotiationProcessModel, NewNegotiationProcessModel,
 };
 use crate::data::entities::offer as offer_model;
+use crate::entities::filters::NegotiationProcessFilter;
+use common::paginated_spec::{Page, Paginated, Sort};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use urn::Urn;
@@ -98,9 +100,10 @@ impl From<EditNegotiationProcessDto> for EditNegotiationProcessModel {
 pub trait NegotiationAgentProcessesTrait: Send + Sync + 'static {
     async fn get_all_negotiation_processes(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<NegotiationProcessDto>>;
+        filters: &NegotiationProcessFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<Paginated<NegotiationProcessDto>>;
 
     async fn get_batch_negotiation_processes(
         &self,

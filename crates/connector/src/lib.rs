@@ -16,7 +16,7 @@
  */
 
 pub(crate) mod data;
-pub(crate) mod entities;
+pub mod entities;
 pub(crate) mod facades;
 pub(crate) mod grpc;
 pub(crate) mod http;

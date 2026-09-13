@@ -17,6 +17,8 @@
 
 use crate::data::entities::agreement;
 use crate::data::entities::agreement::{EditAgreementModel, NewAgreementModel};
+use crate::entities::filters::AgreementFilter;
+use common::paginated_spec::{Page, Sort};
 use thiserror::Error;
 use urn::Urn;
 use ymir::errors::Outcome;
@@ -26,9 +28,10 @@ use ymir::errors::RepoIntoErrors;
 pub trait AgreementRepoTrait: Send + Sync {
     async fn get_all_agreements(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<agreement::Model>>;
+        filters: &AgreementFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<(Vec<agreement::Model>, Option<u64>)>;
     async fn get_batch_agreements(&self, ids: &Vec<Urn>) -> Outcome<Vec<agreement::Model>>;
     async fn get_agreement_by_id(&self, id: &Urn) -> Outcome<Option<agreement::Model>>;
     async fn get_agreement_by_negotiation_process(

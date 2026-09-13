@@ -16,19 +16,21 @@
  */
 
 use crate::entities::agreement::{
-    EditAgreementDto, NegotiationAgentAgreementsTrait, NewAgreementDto,
+    AgreementDto, EditAgreementDto, NegotiationAgentAgreementsTrait,
+    NewAgreementDto,
 };
+use crate::entities::filters::AgreementFilter;
 use crate::errors::error_adapter::CustomToResponse;
 use crate::http::common::{extract_payload, parse_urn};
-use axum::{
-    Json, Router,
-    extract::{FromRef, Path, Query, State, rejection::JsonRejection},
-    http::StatusCode,
-    response::IntoResponse,
-    routing::{get, post},
-};
+use axum::extract::rejection::JsonRejection;
+use axum::extract::{FromRef, Path, Query, State};
+use axum::http::StatusCode;
+use axum::response::IntoResponse;
+use axum::routing::{delete, get, post, put};
+use axum::{Json, Router};
 use common::batch_requests::BatchRequests;
 use common::config::services::ContractsConfig;
+use common::query::QuerySpec;
 use serde::Deserialize;
 use std::sync::Arc;
 
@@ -38,11 +40,8 @@ pub struct NegotiationAgentAgreementsRouter {
     config: Arc<ContractsConfig>,
 }
 
-#[derive(Deserialize)]
-pub struct PaginationParams {
-    pub limit: Option<u64>,
-    pub page: Option<u64>,
-}
+pub use common::paginated_spec::PaginationParams;
+pub type AgreementQuery = QuerySpec<AgreementFilter>;
 
 impl FromRef<NegotiationAgentAgreementsRouter> for Arc<dyn NegotiationAgentAgreementsTrait> {
     fn from_ref(state: &NegotiationAgentAgreementsRouter) -> Self {
@@ -98,11 +97,11 @@ impl NegotiationAgentAgreementsRouter {
 
     async fn handle_get_all_agreements(
         State(state): State<NegotiationAgentAgreementsRouter>,
-        Query(params): Query<PaginationParams>,
+        Query(query): Query<AgreementQuery>,
     ) -> impl IntoResponse {
         match state
             .service
-            .get_all_agreements(params.limit, params.page)
+            .get_all_agreements(&query.filter, &query.page, &query.sort)
             .await
         {
             Ok(agreements) => (StatusCode::OK, Json(agreements)).into_response(),

@@ -21,13 +21,17 @@ use crate::data::repo_traits::catalog_db_errors::CatalogAgentRepoErrors;
 use urn::Urn;
 use ymir::errors::Outcome;
 
+use crate::entities::filters::DatasetFilter;
+use common::paginated_spec::{Page, Sort};
+
 #[async_trait::async_trait]
 pub trait DatasetRepositoryTrait: Send + Sync {
     async fn get_all_datasets(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<dataset::Model>>;
+        filters: &DatasetFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<(Vec<dataset::Model>, Option<u64>)>;
     async fn get_batch_datasets(&self, ids: &Vec<Urn>) -> Outcome<Vec<dataset::Model>>;
     async fn get_datasets_by_catalog_id(&self, catalog_id: &Urn) -> Outcome<Vec<dataset::Model>>;
     async fn get_dataset_by_id(&self, dataset_id: &Urn) -> Outcome<Option<dataset::Model>>;

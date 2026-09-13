@@ -22,6 +22,7 @@ use crate::grpc::api::negotiation_agent::{
     GetOfferByIdRequest, GetOfferByNegotiationMessageRequest, GetOfferByOfferIdRequest,
     GetOffersByNegotiationProcessRequest, OfferListResponse, OfferResponse,
 };
+use common::paginated_spec::Page;
 use std::str::FromStr;
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
@@ -44,14 +45,15 @@ impl NegotiationAgentOffersService for NegotiationAgentOfferGrpc {
         request: Request<GetAllOffersRequest>,
     ) -> Result<Response<OfferListResponse>, Status> {
         let req = request.into_inner();
-
-        let offers = self
+        let page = Page::new(req.limit.unwrap_or(20) as u32, None);
+        let paginated = self
             .service
-            .get_all_offers(req.limit, req.page)
+            .get_all_offers(&Default::default(), &page, &Default::default())
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 
-        let proto_offers = offers
+        let proto_offers = paginated
+            .items
             .into_iter()
             .map(|dto| {
                 let response: OfferResponse = dto.into();

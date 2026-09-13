@@ -17,6 +17,7 @@
 
 mod mappers;
 
+use crate::entities::filters::TransferProcessFilter;
 use crate::entities::transfer_process::{NewTransferProcessDto, TransferAgentProcessesTrait};
 use crate::grpc::api::transfer_processes::transfer_agent_processes_server::TransferAgentProcesses;
 use crate::grpc::api::transfer_processes::{
@@ -24,6 +25,7 @@ use crate::grpc::api::transfer_processes::{
     ResourceIdRequestProcesses, TransferProcessListResponse, TransferProcessResponse,
     UpdateProcessRequest,
 };
+use common::paginated_spec::{Page, Sort};
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
 
@@ -45,14 +47,16 @@ impl TransferAgentProcesses for TransferAgentProcessesGrpc {
     ) -> Result<Response<TransferProcessListResponse>, Status> {
         let proto_req = request.into_inner();
         let params: PaginationRequestProcesses = proto_req.into();
-        let processes = self
+        let page = Page::new(params.limit.unwrap_or(20) as u32, None);
+        let paginated = self
             .service
-            .get_all_transfer_processes(params.limit, params.page)
+            .get_all_transfer_processes(&TransferProcessFilter::default(), &page, Sort::default())
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
-        let proto_processes = processes
+        let proto_processes = paginated
+            .items
             .into_iter()
-            .map(|m| m.into()) // Llama a From<TransferMessageDto>
+            .map(|m| m.into())
             .collect();
         Ok(Response::new(TransferProcessListResponse {
             processes: proto_processes,

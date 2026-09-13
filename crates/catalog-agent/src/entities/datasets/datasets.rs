@@ -18,7 +18,10 @@
 use crate::cache::factory_trait::CatalogAgentCacheTrait;
 use crate::data::factory_trait::CatalogAgentRepoTrait;
 use crate::entities::datasets::{DatasetDto, DatasetEntityTrait, EditDatasetDto, NewDatasetDto};
+use crate::entities::filters::DatasetFilter;
 use common::errors::{CommonErrors, ErrorLog};
+use common::paginated_spec::{Cursor, Page, Paginated, Sort};
+use common::query::QueryFilter;
 use log::error;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -53,40 +56,24 @@ impl DatasetEntities {
 impl DatasetEntityTrait for DatasetEntities {
     async fn get_all_datasets(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<DatasetDto>> {
-        // cache
-        if let Ok(dtos) = self
-            .cache
-            .get_dataset_cache()
-            .get_collection(limit, page)
-            .await
-        {
-            if !dtos.is_empty() {
-                return Ok(dtos);
-            }
-        }
+        filters: &DatasetFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<Paginated<DatasetDto>> {
+        filters.validate()?;
+        let page = page.clamped();
 
-        // db
-        let datasets = self
+        let (datasets, total) = self
             .repo
             .get_dataset_repo()
-            .get_all_datasets(limit, page)
+            .get_all_datasets(filters, &page, sort)
             .await?;
 
         let dtos: Vec<DatasetDto> = datasets.into_iter().map(Into::into).collect();
 
-        // hydration
-        let cache = self.cache.get_dataset_cache();
-        for dto in &dtos {
-            if let Ok(id) = Urn::from_str(dto.inner.id.as_str()) {
-                let score = dto.inner.dct_issued.timestamp() as f64;
-                let _ = cache.set_single(&id, dto).await;
-                let _ = cache.add_to_collection(&id, score).await;
-            }
-        }
-        Ok(dtos)
+        Ok(Paginated::from_page(dtos, &page, total, |d| {
+            Cursor::encode_composite(&d.inner.dct_issued, &d.inner.id)
+        }))
     }
 
     async fn get_batch_datasets(&self, ids: &Vec<Urn>) -> Outcome<Vec<DatasetDto>> {

@@ -21,7 +21,10 @@ use crate::data::factory_trait::CatalogAgentRepoTrait;
 use crate::entities::data_services::{
     DataServiceDto, DataServiceEntityTrait, EditDataServiceDto, NewDataServiceDto,
 };
+use crate::entities::filters::DataServiceFilter;
 use common::errors::{CommonErrors, ErrorLog};
+use common::paginated_spec::{Cursor, Page, Paginated, Sort};
+use common::query::QueryFilter;
 use log::error;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -56,26 +59,17 @@ impl DataServiceEntities {
 impl DataServiceEntityTrait for DataServiceEntities {
     async fn get_all_data_services(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<DataServiceDto>> {
-        // cache
-        if let Ok(dtos) = self
-            .cache
-            .get_dataservice_cache()
-            .get_collection(limit, page)
-            .await
-        {
-            if !dtos.is_empty() {
-                return Ok(dtos);
-            }
-        }
+        filters: &DataServiceFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<Paginated<DataServiceDto>> {
+        filters.validate()?;
+        let page = page.clamped();
 
-        // db
-        let data_services = self
+        let (data_services, total) = self
             .repo
             .get_dataservice_repo()
-            .get_all_data_services(limit, page)
+            .get_all_data_services(filters, &page, sort)
             .await?;
 
         let dtos: Vec<DataServiceDto> = data_services.into_iter().map(Into::into).collect();
@@ -90,7 +84,9 @@ impl DataServiceEntityTrait for DataServiceEntities {
             }
         }
 
-        Ok(dtos)
+        Ok(Paginated::from_page(dtos, &page, total, |d| {
+            Cursor::encode_composite(&d.inner.dct_issued, &d.inner.id)
+        }))
     }
 
     async fn get_batch_data_services(&self, ids: &Vec<Urn>) -> Outcome<Vec<DataServiceDto>> {

@@ -20,9 +20,39 @@ use crate::data::entities::negotiation_message::{Model, NewNegotiationMessageMod
 use crate::data::repo_traits::negotiation_message_repo::{
     NegotiationMessageRepoErrors, NegotiationMessageRepoTrait,
 };
-use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, QuerySelect};
+use crate::entities::filters::NegotiationMessageFilter;
+use common::paginated_spec::{Page, SelectCursorExt, Sort};
+use common::query::FilterApplier;
+use sea_orm::{
+    ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder,
+    QuerySelect, Select,
+};
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
+
+impl FilterApplier<Select<negotiation_message::Entity>> for NegotiationMessageFilter {
+    fn apply_to(&self, mut q: Select<negotiation_message::Entity>) -> Select<negotiation_message::Entity> {
+        if let Some(ref process_id) = self.process_id {
+            q = q.filter(negotiation_message::Column::NegotiationAgentProcessId.eq(process_id));
+        }
+        if let Some(ref protocol) = self.protocol {
+            q = q.filter(negotiation_message::Column::Protocol.eq(protocol));
+        }
+        if let Some(ref message_type) = self.message_type {
+            q = q.filter(negotiation_message::Column::MessageType.eq(message_type));
+        }
+        if let Some(ref direction) = self.direction {
+            q = q.filter(negotiation_message::Column::Direction.eq(direction));
+        }
+        if let Some(after) = self.created_after {
+            q = q.filter(negotiation_message::Column::CreatedAt.gte(after));
+        }
+        if let Some(before) = self.created_before {
+            q = q.filter(negotiation_message::Column::CreatedAt.lte(before));
+        }
+        q
+    }
+}
 
 pub struct NegotiationMessageRepoForSql {
     db_connection: DatabaseConnection,
@@ -38,23 +68,37 @@ impl NegotiationMessageRepoForSql {
 impl NegotiationMessageRepoTrait for NegotiationMessageRepoForSql {
     async fn get_all_negotiation_messages(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<Model>> {
-        let messages = negotiation_message::Entity::find()
-            .limit(limit.unwrap_or(20))
-            .offset(page.map(|p| p * limit.unwrap_or(20)).unwrap_or(0))
-            .order_by_desc(negotiation_message::Column::CreatedAt)
-            .all(&self.db_connection)
-            .await;
+        filters: &NegotiationMessageFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<(Vec<Model>, Option<u64>)> {
+        let mut q = negotiation_message::Entity::find();
+        q = filters.apply_to(q);
 
-        match messages {
-            Ok(messages) => Ok(messages),
-            Err(e) => Err(
+        let total = q
+            .clone()
+            .count(&self.db_connection)
+            .await
+            .map_err(|e| {
                 NegotiationMessageRepoErrors::ErrorFetchingNegotiationMessage(e.into())
-                    .into_errors(),
-            ),
-        }
+                    .into_errors()
+            })?;
+
+        let items = q
+            .apply_cursor_pagination_with_tie_break(
+                page,
+                sort,
+                negotiation_message::Column::CreatedAt,
+                negotiation_message::Column::Id,
+            )
+            .all(&self.db_connection)
+            .await
+            .map_err(|e| {
+                NegotiationMessageRepoErrors::ErrorFetchingNegotiationMessage(e.into())
+                    .into_errors()
+            })?;
+
+        Ok((items, Some(total)))
     }
 
     async fn get_messages_by_process_id(&self, process_id: &Urn) -> Outcome<Vec<Model>> {

@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use base64::Engine;
+use common::paginated_spec::Cursor;
 
 use crate::data::repo::transfer_message::TransferMessageRepoTrait;
 use crate::entities::commands::NewTransferMessageCommand;
@@ -101,7 +101,7 @@ impl TransferMessageService {
 
     /// Encode next cursors
     fn encode_cursor(&self, msg: &TransferMessage) -> String {
-        base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(msg.occurred_at().to_rfc3339())
+        Cursor::encode_timestamp(&msg.occurred_at())
     }
 }
 

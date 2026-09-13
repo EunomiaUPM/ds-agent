@@ -18,12 +18,42 @@
 use crate::data::entities::agreement;
 use crate::data::entities::agreement::{EditAgreementModel, Model, NewAgreementModel};
 use crate::data::repo_traits::agreement_repo::{AgreementRepoErrors, AgreementRepoTrait};
+use crate::entities::filters::AgreementFilter;
+use common::paginated_spec::{Page, SelectCursorExt, Sort};
+use common::query::FilterApplier;
 use sea_orm::{
-    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
-    QuerySelect,
+    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait,
+    QueryFilter, QueryOrder, QuerySelect, Select,
 };
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
+
+impl FilterApplier<Select<agreement::Entity>> for AgreementFilter {
+    fn apply_to(&self, mut q: Select<agreement::Entity>) -> Select<agreement::Entity> {
+        if let Some(ref process_id) = self.process_id {
+            q = q.filter(agreement::Column::NegotiationAgentProcessId.eq(process_id));
+        }
+        if let Some(ref consumer_id) = self.consumer_id {
+            q = q.filter(agreement::Column::ConsumerParticipantId.eq(consumer_id));
+        }
+        if let Some(ref provider_id) = self.provider_id {
+            q = q.filter(agreement::Column::ProviderParticipantId.eq(provider_id));
+        }
+        if let Some(ref target) = self.target {
+            q = q.filter(agreement::Column::Target.eq(target));
+        }
+        if let Some(ref state) = self.state {
+            q = q.filter(agreement::Column::State.eq(state));
+        }
+        if let Some(after) = self.created_after {
+            q = q.filter(agreement::Column::CreatedAt.gte(after));
+        }
+        if let Some(before) = self.created_before {
+            q = q.filter(agreement::Column::CreatedAt.lte(before));
+        }
+        q
+    }
+}
 
 pub struct AgreementRepoForSql {
     db_connection: DatabaseConnection,
@@ -39,19 +69,31 @@ impl AgreementRepoForSql {
 impl AgreementRepoTrait for AgreementRepoForSql {
     async fn get_all_agreements(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<Model>> {
-        let agreements = agreement::Entity::find()
-            .limit(limit.unwrap_or(20))
-            .offset(page.map(|p| p * limit.unwrap_or(20)).unwrap_or(0))
-            .all(&self.db_connection)
-            .await;
+        filters: &AgreementFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<(Vec<Model>, Option<u64>)> {
+        let mut q = agreement::Entity::find();
+        q = filters.apply_to(q);
 
-        match agreements {
-            Ok(agreements) => Ok(agreements),
-            Err(e) => Err(AgreementRepoErrors::ErrorFetchingAgreement(e.into()).into_errors()),
-        }
+        let total = q
+            .clone()
+            .count(&self.db_connection)
+            .await
+            .map_err(|e| AgreementRepoErrors::ErrorFetchingAgreement(e.into()).into_errors())?;
+
+        let items = q
+            .apply_cursor_pagination_with_tie_break(
+                page,
+                sort,
+                agreement::Column::CreatedAt,
+                agreement::Column::Id,
+            )
+            .all(&self.db_connection)
+            .await
+            .map_err(|e| AgreementRepoErrors::ErrorFetchingAgreement(e.into()).into_errors())?;
+
+        Ok((items, Some(total)))
     }
 
     async fn get_batch_agreements(&self, ids: &Vec<Urn>) -> Outcome<Vec<Model>> {

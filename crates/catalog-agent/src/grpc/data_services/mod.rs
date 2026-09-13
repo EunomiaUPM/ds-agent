@@ -24,6 +24,7 @@ use crate::grpc::api::catalog_agent::{
     DeleteByIdRequest, GetAllRequest, GetBatchRequest, GetByIdRequest, GetByParentIdRequest,
     PutDataServiceRequest,
 };
+use common::paginated_spec::Page;
 use std::str::FromStr;
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
@@ -46,13 +47,14 @@ impl DataServiceEntityService for DataServiceEntityGrpc {
         request: Request<GetAllRequest>,
     ) -> Result<Response<DataServiceListResponse>, Status> {
         let req = request.into_inner();
-        let data_services = self
+        let page = Page::new(req.limit.unwrap_or(20) as u32, None);
+        let paginated = self
             .service
-            .get_all_data_services(req.limit, req.page)
+            .get_all_data_services(&Default::default(), &page, &Default::default())
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 
-        let proto_services: Vec<DataService> = data_services.into_iter().map(Into::into).collect();
+        let proto_services: Vec<DataService> = paginated.items.into_iter().map(Into::into).collect();
 
         Ok(Response::new(DataServiceListResponse {
             data_services: proto_services,

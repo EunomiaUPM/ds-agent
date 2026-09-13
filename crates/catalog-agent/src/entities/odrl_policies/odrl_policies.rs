@@ -17,8 +17,11 @@
 
 use crate::cache::factory_trait::CatalogAgentCacheTrait;
 use crate::data::factory_trait::CatalogAgentRepoTrait;
+use crate::entities::filters::OdrlPolicyFilter;
 use crate::entities::odrl_policies::{NewOdrlPolicyDto, OdrlPolicyDto, OdrlPolicyEntityTrait};
 use common::errors::{CommonErrors, ErrorLog};
+use common::paginated_spec::{Cursor, Page, Paginated, Sort};
+use common::query::QueryFilter;
 use std::str::FromStr;
 use std::sync::Arc;
 use tracing::error;
@@ -53,40 +56,34 @@ impl OdrlPolicyEntities {
 impl OdrlPolicyEntityTrait for OdrlPolicyEntities {
     async fn get_all_odrl_offers(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<OdrlPolicyDto>> {
-        // 1. Cache hit
-        if let Ok(dtos) = self
-            .cache
-            .get_odrl_offer_cache()
-            .get_collection(limit, page)
-            .await
-        {
-            if !dtos.is_empty() {
-                return Ok(dtos);
-            }
-        }
+        filters: &OdrlPolicyFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<Paginated<OdrlPolicyDto>> {
+        filters.validate()?;
+        let page = page.clamped();
 
-        // 2. Database fetch
-        let odrl_policies = self
+        let (odrl_policies, total) = self
             .repo
             .get_odrl_offer_repo()
-            .get_all_odrl_offers(limit, page)
+            .get_all_odrl_offers(filters, &page, sort)
             .await?;
 
         let dtos: Vec<OdrlPolicyDto> = odrl_policies.into_iter().map(Into::into).collect();
 
-        // 3. Safe hydration
+        // Safe hydration
         let cache = self.cache.get_odrl_offer_cache();
         for dto in &dtos {
             if let Ok(id) = Urn::from_str(dto.inner.id.as_str()) {
-                // We use a default score or timestamp if available
+                let score = dto.inner.created_at.timestamp() as f64;
                 let _ = cache.set_single(&id, dto).await;
-                let _ = cache.add_to_collection(&id, 0.0).await;
+                let _ = cache.add_to_collection(&id, score).await;
             }
         }
-        Ok(dtos)
+
+        Ok(Paginated::from_page(dtos, &page, total, |d| {
+            Cursor::encode_composite(&d.inner.created_at, &d.inner.id)
+        }))
     }
 
     async fn get_batch_odrl_offers(&self, ids: &Vec<Urn>) -> Outcome<Vec<OdrlPolicyDto>> {

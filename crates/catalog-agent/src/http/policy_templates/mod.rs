@@ -16,7 +16,10 @@
  */
 
 use crate::entities::instantiation_engine::{NewPolicyInstantiationDto, PolicyInstantiationTrait};
-use crate::entities::policy_templates::{NewPolicyTemplateDto, PolicyTemplateEntityTrait};
+use crate::entities::filters::PolicyTemplateFilter;
+use crate::entities::policy_templates::{
+    NewPolicyTemplateDto, PolicyTemplateDto, PolicyTemplateEntityTrait,
+};
 use crate::http::common::to_camel_case::ToCamelCase;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{FromRef, Path, Query, State};
@@ -27,6 +30,7 @@ use axum::{Json, Router};
 use common::batch_requests::BatchRequestsAsString;
 use common::config::services::CatalogConfig;
 use common::errors::CommonErrors;
+use common::query::QuerySpec;
 use serde::Deserialize;
 use std::sync::Arc;
 use ymir::errors::Errors;
@@ -39,11 +43,8 @@ pub struct PolicyTemplateEntityRouter {
     config: Arc<CatalogConfig>,
 }
 
-#[derive(Deserialize)]
-pub struct PaginationParams {
-    pub limit: Option<u64>,
-    pub page: Option<u64>,
-}
+pub use common::paginated_spec::PaginationParams;
+pub type PolicyTemplateQuery = QuerySpec<PolicyTemplateFilter>;
 
 #[derive(Deserialize)]
 pub struct SilentParams {
@@ -104,11 +105,11 @@ impl PolicyTemplateEntityRouter {
 
     async fn handle_get_all_policy_templates(
         State(state): State<PolicyTemplateEntityRouter>,
-        Query(params): Query<PaginationParams>,
+        Query(query): Query<PolicyTemplateQuery>,
     ) -> impl IntoResponse {
         match state
             .service
-            .get_all_policy_templates(params.limit, params.page)
+            .get_all_policy_templates(&query.filter, &query.page, &query.sort)
             .await
         {
             Ok(templates) => (StatusCode::OK, Json(ToCamelCase(templates))).into_response(),

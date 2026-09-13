@@ -22,10 +22,13 @@ use crate::data::entities::negotiation_process_identifier::{
     EditNegotiationIdentifierModel, NewNegotiationIdentifierModel,
 };
 use crate::data::factory_trait::NegotiationAgentRepoTrait;
+use crate::entities::filters::NegotiationProcessFilter;
 use crate::entities::negotiation_process::{
     EditNegotiationProcessDto, NegotiationAgentProcessesTrait, NegotiationProcessDto,
     NewNegotiationProcessDto,
 };
+use common::paginated_spec::{Cursor, Page, Paginated, Sort};
+use common::query::QueryFilter;
 use common::utils::get_urn;
 use log::error;
 use std::collections::HashMap;
@@ -114,13 +117,17 @@ impl NegotiationAgentProcessesService {
 impl NegotiationAgentProcessesTrait for NegotiationAgentProcessesService {
     async fn get_all_negotiation_processes(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<NegotiationProcessDto>> {
-        let processes = self
+        filters: &NegotiationProcessFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<Paginated<NegotiationProcessDto>> {
+        filters.validate()?;
+        let page = page.clamped();
+
+        let (processes, total) = self
             .negotiation_repo
             .get_negotiation_process_repo()
-            .get_all_negotiation_processes(limit, page)
+            .get_all_negotiation_processes(filters, &page, sort)
             .await?;
 
         let mut dtos = Vec::with_capacity(processes.len());
@@ -129,7 +136,9 @@ impl NegotiationAgentProcessesTrait for NegotiationAgentProcessesService {
             dtos.push(dto);
         }
 
-        Ok(dtos)
+        Ok(Paginated::from_page(dtos, &page, total, |d| {
+            Cursor::encode_composite(&d.inner.created_at, &d.inner.id)
+        }))
     }
 
     async fn get_batch_negotiation_processes(

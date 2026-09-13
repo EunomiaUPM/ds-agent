@@ -16,8 +16,9 @@
  */
 
 use crate::entities::distributions::{
-    DistributionEntityTrait, EditDistributionDto, NewDistributionDto,
+    DistributionDto, DistributionEntityTrait, EditDistributionDto, NewDistributionDto,
 };
+use crate::entities::filters::DistributionFilter;
 use crate::http::common::to_camel_case::ToCamelCase;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{FromRef, Path, Query, State};
@@ -28,6 +29,7 @@ use axum::{Json, Router};
 use common::batch_requests::BatchRequests;
 use common::config::services::CatalogConfig;
 use common::errors::CommonErrors;
+use common::query::QuerySpec;
 use serde::Deserialize;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -39,11 +41,8 @@ pub struct DistributionEntityRouter {
     config: Arc<CatalogConfig>,
 }
 
-#[derive(Deserialize)]
-pub struct PaginationParams {
-    pub limit: Option<u64>,
-    pub page: Option<u64>,
-}
+pub use common::paginated_spec::PaginationParams;
+pub type DistributionQuery = QuerySpec<DistributionFilter>;
 
 impl FromRef<DistributionEntityRouter> for Arc<dyn DistributionEntityTrait> {
     fn from_ref(state: &DistributionEntityRouter) -> Self {
@@ -83,15 +82,16 @@ impl DistributionEntityRouter {
 
     async fn handle_get_all_distributions(
         State(state): State<DistributionEntityRouter>,
-        Query(params): Query<PaginationParams>,
+        Query(query): Query<DistributionQuery>,
     ) -> impl IntoResponse {
+        let (filter, page, sort) = query.into_domain();
         match state
             .service
-            .get_all_distributions(params.limit, params.page)
+            .get_all_distributions(&filter, &page, &sort)
             .await
         {
             Ok(distributions) => (StatusCode::OK, Json(ToCamelCase(distributions))).into_response(),
-            Err(e) => return e.into_response(),
+            Err(e) => e.into_response(),
         }
     }
     async fn handle_get_batch_distributions(

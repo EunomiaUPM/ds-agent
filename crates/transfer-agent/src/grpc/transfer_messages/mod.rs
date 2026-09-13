@@ -17,6 +17,7 @@
 
 mod mappers;
 
+use crate::entities::filters::TransferMessageFilter;
 use crate::entities::transfer_messages::TransferAgentMessagesTrait;
 use crate::grpc::api::transfer_messages::transfer_agent_messages_server::TransferAgentMessages;
 use crate::grpc::api::transfer_messages::{
@@ -24,6 +25,7 @@ use crate::grpc::api::transfer_messages::{
     TransferMessageListResponse, TransferMessageResponse,
 };
 use crate::http::transfer_messages::PaginationParams;
+use common::paginated_spec::{Page, Sort};
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
 
@@ -45,14 +47,16 @@ impl TransferAgentMessages for TransferAgentMessagesGrpc {
     ) -> Result<Response<TransferMessageListResponse>, Status> {
         let proto_req = request.into_inner();
         let params: PaginationParams = proto_req.into();
-        let messages = self
+        let page = Page::new(params.limit.unwrap_or(20) as u32, None);
+        let paginated = self
             .service
-            .get_all_transfer_messages(params.limit, params.page)
+            .get_all_transfer_messages(&TransferMessageFilter::default(), &page, Sort::default())
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
-        let proto_messages = messages
+        let proto_messages = paginated
+            .items
             .into_iter()
-            .map(|m| m.into()) // Llama a From<TransferMessageDto>
+            .map(|m| m.into())
             .collect();
         Ok(Response::new(TransferMessageListResponse {
             messages: proto_messages,

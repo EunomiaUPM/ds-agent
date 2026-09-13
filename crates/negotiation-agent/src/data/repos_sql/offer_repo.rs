@@ -18,9 +18,32 @@
 use crate::data::entities::offer;
 use crate::data::entities::offer::{Model, NewOfferModel};
 use crate::data::repo_traits::offer_repo::{OfferRepoErrors, OfferRepoTrait};
-use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, QuerySelect};
+use crate::entities::filters::OfferFilter;
+use common::paginated_spec::{Page, SelectCursorExt, Sort};
+use common::query::FilterApplier;
+use sea_orm::{
+    ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, Select,
+};
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
+
+impl FilterApplier<Select<offer::Entity>> for OfferFilter {
+    fn apply_to(&self, mut q: Select<offer::Entity>) -> Select<offer::Entity> {
+        if let Some(ref process_id) = self.process_id {
+            q = q.filter(offer::Column::NegotiationAgentProcessId.eq(process_id));
+        }
+        if let Some(ref offer_id) = self.offer_id {
+            q = q.filter(offer::Column::OfferId.eq(offer_id));
+        }
+        if let Some(after) = self.created_after {
+            q = q.filter(offer::Column::CreatedAt.gte(after));
+        }
+        if let Some(before) = self.created_before {
+            q = q.filter(offer::Column::CreatedAt.lte(before));
+        }
+        q
+    }
+}
 
 pub struct OfferRepoForSql {
     db_connection: DatabaseConnection,
@@ -34,18 +57,32 @@ impl OfferRepoForSql {
 
 #[async_trait::async_trait]
 impl OfferRepoTrait for OfferRepoForSql {
-    async fn get_all_offers(&self, limit: Option<u64>, page: Option<u64>) -> Outcome<Vec<Model>> {
-        let offers = offer::Entity::find()
-            .limit(limit.unwrap_or(20))
-            .offset(page.map(|p| p * limit.unwrap_or(20)).unwrap_or(0))
-            .order_by_desc(offer::Column::CreatedAt)
-            .all(&self.db_connection)
-            .await;
+    async fn get_all_offers(
+        &self,
+        filters: &OfferFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<(Vec<Model>, Option<u64>)> {
+        let q = filters.apply_to(offer::Entity::find());
 
-        match offers {
-            Ok(offers) => Ok(offers),
-            Err(e) => Err(OfferRepoErrors::ErrorFetchingOffer(e.into()).into_errors()),
-        }
+        let total = q
+            .clone()
+            .count(&self.db_connection)
+            .await
+            .map_err(|e| OfferRepoErrors::ErrorFetchingOffer(e.into()).into_errors())?;
+
+        let items = q
+            .apply_cursor_pagination_with_tie_break(
+                page,
+                sort,
+                offer::Column::CreatedAt,
+                offer::Column::Id,
+            )
+            .all(&self.db_connection)
+            .await
+            .map_err(|e| OfferRepoErrors::ErrorFetchingOffer(e.into()).into_errors())?;
+
+        Ok((items, Some(total)))
     }
 
     async fn get_batch_offers(&self, ids: &Vec<Urn>) -> Outcome<Vec<Model>> {

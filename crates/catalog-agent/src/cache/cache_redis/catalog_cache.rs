@@ -129,6 +129,13 @@ mod test_catalog_complete {
     #[tokio::test]
     async fn test_collection_pagination() {
         let mut cache = setup().await;
+        let all_key = cache.format_key_name_all("catalogs");
+        let _: () = redis::cmd("DEL")
+            .arg(&all_key)
+            .query_async(&mut cache.redis_connection)
+            .await
+            .unwrap();
+
         let (id1, dto1) = mock_catalog("Oldest");
         let (id2, dto2) = mock_catalog("Newest");
 

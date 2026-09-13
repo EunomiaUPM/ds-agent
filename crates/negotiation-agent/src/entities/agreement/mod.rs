@@ -19,6 +19,8 @@ pub(crate) mod agreement;
 
 use crate::data::entities::agreement as agreement_model;
 use crate::data::entities::agreement::{EditAgreementModel, NewAgreementModel};
+use crate::entities::filters::AgreementFilter;
+use common::paginated_spec::{Page, Paginated, Sort};
 use serde::{Deserialize, Serialize};
 use urn::Urn;
 use ymir::errors::Outcome;
@@ -75,9 +77,10 @@ impl From<EditAgreementDto> for EditAgreementModel {
 pub trait NegotiationAgentAgreementsTrait: Send + Sync + 'static {
     async fn get_all_agreements(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<AgreementDto>>;
+        filters: &AgreementFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<Paginated<AgreementDto>>;
 
     async fn get_batch_agreements(&self, ids: &Vec<Urn>) -> Outcome<Vec<AgreementDto>>;
 

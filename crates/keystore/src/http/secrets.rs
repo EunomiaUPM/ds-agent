@@ -27,17 +27,16 @@ use ymir::errors::AppResult;
 use crate::entities::commands::{EditSecretCommand, NewSecretCommand};
 use crate::entities::key::{Key, KeyPrefix};
 use crate::services::secrets::SecretStore;
+use crate::entities::filters::PrefixFilter;
 use crate::services::secrets::views::{SecretView, VersionResponse};
+use common::query::QuerySpec;
 
 #[derive(Clone)]
 pub struct SecretRouter {
     service: Arc<dyn SecretStore>,
 }
 
-#[derive(Deserialize)]
-pub struct PrefixQuery {
-    pub prefix: Option<String>,
-}
+pub type PrefixQuery = QuerySpec<PrefixFilter>;
 
 impl SecretRouter {
     pub fn new(service: Arc<dyn SecretStore>) -> Self {
@@ -58,7 +57,7 @@ impl SecretRouter {
         State(state): State<SecretRouter>,
         Query(params): Query<PrefixQuery>,
     ) -> AppResult<Json<Vec<SecretView>>> {
-        let prefix = KeyPrefix::new(params.prefix.unwrap_or_default());
+        let prefix = KeyPrefix::new(params.filter.prefix.unwrap_or_default());
         let items = state.service.list(&prefix).await?;
         Ok(Json(items.into_iter().map(SecretView::from).collect()))
     }

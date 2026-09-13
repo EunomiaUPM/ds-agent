@@ -15,5 +15,6 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+pub mod filters;
 pub(crate) mod transfer_messages;
 pub(crate) mod transfer_process;

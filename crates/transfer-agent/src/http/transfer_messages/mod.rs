@@ -15,7 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::transfer_messages::{NewTransferMessageDto, TransferAgentMessagesTrait};
+use crate::entities::filters::TransferMessageFilter;
+use crate::entities::transfer_messages::{
+    NewTransferMessageDto, TransferAgentMessagesTrait, TransferMessageDto,
+};
 use axum::{
     extract::{rejection::JsonRejection, FromRef, Path, Query, State},
     http::StatusCode,
@@ -24,6 +27,7 @@ use axum::{
     Json, Router,
 };
 use common::config::services::TransferConfig;
+use common::query::QuerySpec;
 use serde::Deserialize;
 use std::sync::Arc;
 use ymir::utils::{extract_path_urn, extract_payload};
@@ -34,11 +38,8 @@ pub struct TransferAgentMessagesRouter {
     config: Arc<TransferConfig>,
 }
 
-#[derive(Deserialize)]
-pub struct PaginationParams {
-    pub limit: Option<u64>,
-    pub page: Option<u64>,
-}
+pub use common::paginated_spec::PaginationParams;
+pub type TransferMessageQuery = QuerySpec<TransferMessageFilter>;
 
 impl FromRef<TransferAgentMessagesRouter> for Arc<dyn TransferAgentMessagesTrait> {
     fn from_ref(state: &TransferAgentMessagesRouter) -> Self {
@@ -76,11 +77,11 @@ impl TransferAgentMessagesRouter {
 
     async fn handle_get_all_messages(
         State(state): State<TransferAgentMessagesRouter>,
-        Query(params): Query<PaginationParams>,
+        Query(query): Query<TransferMessageQuery>,
     ) -> impl IntoResponse {
         match state
             .service
-            .get_all_transfer_messages(params.limit, params.page)
+            .get_all_transfer_messages(&query.filter, &query.page, query.sort)
             .await
         {
             Ok(messages) => (StatusCode::OK, Json(messages)).into_response(),

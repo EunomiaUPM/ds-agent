@@ -17,6 +17,7 @@
 
 pub mod commands;
 pub mod entry;
+pub mod filters;
 pub mod key;
 pub(crate) mod metadata;
 pub mod secret_value;

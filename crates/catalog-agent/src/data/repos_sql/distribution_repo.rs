@@ -21,12 +21,39 @@ use crate::data::repo_traits::catalog_db_errors::{
     CatalogAgentRepoErrors, DataServiceRepoErrors, DatasetRepoErrors, DistributionRepoErrors,
 };
 use crate::data::repo_traits::distribution_repo::DistributionRepositoryTrait;
+use crate::entities::filters::DistributionFilter;
+use common::paginated_spec::{Page, SelectCursorExt, Sort};
+use common::query::FilterApplier;
 use sea_orm::{
-    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
-    QuerySelect,
+    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait,
+    QueryFilter, QueryOrder, QuerySelect,
 };
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
+
+impl FilterApplier<sea_orm::Select<distribution::Entity>> for DistributionFilter {
+    fn apply_to(&self, mut q: sea_orm::Select<distribution::Entity>) -> sea_orm::Select<distribution::Entity> {
+        if let Some(dataset_id) = &self.dataset_id {
+            q = q.filter(distribution::Column::DatasetId.eq(dataset_id));
+        }
+        if let Some(access_service) = &self.access_service {
+            q = q.filter(distribution::Column::DcatAccessService.eq(access_service));
+        }
+        if let Some(format) = &self.format {
+            q = q.filter(distribution::Column::DctFormat.eq(format));
+        }
+        if let Some(title) = &self.title {
+            q = q.filter(distribution::Column::DctTitle.contains(title));
+        }
+        if let Some(after) = self.created_after {
+            q = q.filter(distribution::Column::DctIssued.gt(after));
+        }
+        if let Some(before) = self.created_before {
+            q = q.filter(distribution::Column::DctIssued.lt(before));
+        }
+        q
+    }
+}
 
 pub struct DistributionRepositoryForSql {
     db_connection: DatabaseConnection,
@@ -42,24 +69,39 @@ impl DistributionRepositoryForSql {
 impl DistributionRepositoryTrait for DistributionRepositoryForSql {
     async fn get_all_distributions(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<distribution::Model>> {
-        let page_limit = limit.unwrap_or(25);
-        let page_number = page.unwrap_or(1);
-        let calculated_offset = (page_number.max(1) - 1) * page_limit;
-        let distributions = distribution::Entity::find()
-            .limit(page_limit)
-            .offset(calculated_offset)
-            .all(&self.db_connection)
-            .await;
-        match distributions {
-            Ok(distributions) => Ok(distributions),
-            Err(err) => Err(CatalogAgentRepoErrors::DistributionRepoErrors(
-                DistributionRepoErrors::ErrorFetchingDistribution(err.into()),
+        filters: &DistributionFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<(Vec<distribution::Model>, Option<u64>)> {
+        let mut q = filters.apply_to(distribution::Entity::find());
+        let total = q
+            .clone()
+            .count(&self.db_connection)
+            .await
+            .map_err(|err| {
+                CatalogAgentRepoErrors::DistributionRepoErrors(
+                    DistributionRepoErrors::ErrorFetchingDistribution(err.into()),
+                )
+                .into_errors()
+            })?;
+
+        let distributions = q
+            .apply_cursor_pagination_with_tie_break(
+                page,
+                sort,
+                distribution::Column::DctIssued,
+                distribution::Column::Id,
             )
-            .into_errors()),
-        }
+            .all(&self.db_connection)
+            .await
+            .map_err(|err| {
+                CatalogAgentRepoErrors::DistributionRepoErrors(
+                    DistributionRepoErrors::ErrorFetchingDistribution(err.into()),
+                )
+                .into_errors()
+            })?;
+
+        Ok((distributions, Some(total)))
     }
 
     async fn get_batch_distributions(&self, ids: &Vec<Urn>) -> Outcome<Vec<distribution::Model>> {

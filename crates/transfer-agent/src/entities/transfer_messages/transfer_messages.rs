@@ -34,23 +34,31 @@ impl TransferAgentMessagesService {
     }
 }
 
+use crate::entities::filters::TransferMessageFilter;
+use common::paginated_spec::{Cursor, Page, Paginated, Sort};
+
 #[async_trait::async_trait]
 impl TransferAgentMessagesTrait for TransferAgentMessagesService {
     async fn get_all_transfer_messages(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<TransferMessageDto>> {
-        let messages = self
+        filters: &TransferMessageFilter,
+        page: &Page,
+        sort: Sort,
+    ) -> Outcome<Paginated<TransferMessageDto>> {
+        let (messages, total) = self
             .transfer_repo
-            .get_transfer_message_repo() // Asumo que existe este método en el Factory
-            .get_all_transfer_messages(limit, page)
+            .get_transfer_message_repo()
+            .get_all_transfer_messages(filters, page, sort)
             .await?;
 
-        Ok(messages
+        let items: Vec<_> = messages
             .into_iter()
             .map(|m| TransferMessageDto { inner: m })
-            .collect())
+            .collect();
+
+        Ok(Paginated::from_page(items, page, total, |last| {
+            Cursor::encode_composite(&last.inner.created_at, &last.inner.id)
+        }))
     }
 
     async fn get_messages_by_process_id(

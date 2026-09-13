@@ -19,7 +19,10 @@ use crate::cache::factory_trait::CatalogAgentCacheTrait;
 use crate::data::entities::catalog::{EditCatalogModel, NewCatalogModel};
 use crate::data::factory_trait::CatalogAgentRepoTrait;
 use crate::entities::catalogs::{CatalogDto, CatalogEntityTrait, EditCatalogDto, NewCatalogDto};
+use crate::entities::filters::CatalogFilter;
 use common::errors::{CommonErrors, ErrorLog};
+use common::paginated_spec::{Cursor, Page, Paginated, Sort};
+use common::query::QueryFilter;
 use log::error;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -54,29 +57,17 @@ impl CatalogEntities {
 impl CatalogEntityTrait for CatalogEntities {
     async fn get_all_catalogs(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-        with_main_catalog: bool,
-    ) -> Outcome<Vec<CatalogDto>> {
-        // cache
-        if !with_main_catalog {
-            if let Ok(dtos) = self
-                .cache
-                .get_catalog_cache()
-                .get_collection(limit, page)
-                .await
-            {
-                if !dtos.is_empty() {
-                    return Ok(dtos);
-                }
-            }
-        }
+        filters: &CatalogFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<Paginated<CatalogDto>> {
+        filters.validate()?;
+        let page = page.clamped();
 
-        // db
-        let catalogs = self
+        let (catalogs, total) = self
             .repo
             .get_catalog_repo()
-            .get_all_catalogs(limit, page, with_main_catalog)
+            .get_all_catalogs(filters, &page, sort)
             .await?;
 
         let dtos: Vec<CatalogDto> = catalogs.into_iter().map(Into::into).collect();
@@ -91,7 +82,9 @@ impl CatalogEntityTrait for CatalogEntities {
             }
         }
 
-        Ok(dtos)
+        Ok(Paginated::from_page(dtos, &page, total, |d| {
+            Cursor::encode_composite(&d.inner.dct_issued, &d.inner.id)
+        }))
     }
 
     async fn get_batch_catalogs(&self, ids: &Vec<Urn>) -> Outcome<Vec<CatalogDto>> {

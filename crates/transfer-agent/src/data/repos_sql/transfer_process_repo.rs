@@ -21,12 +21,48 @@ use crate::data::entities::transfer_process_identifier;
 use crate::data::repo_traits::transfer_process_repo::{
     TransferProcessRepoErrors, TransferProcessRepoTrait,
 };
+use crate::entities::filters::TransferProcessFilter;
+use common::paginated_spec::{Page, SelectCursorExt, Sort};
+use common::query::FilterApplier;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, JoinType,
-    QueryFilter, QuerySelect, RelationTrait,
+    PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, RelationTrait, Select,
 };
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
+
+impl FilterApplier<Select<transfer_process::Entity>> for TransferProcessFilter {
+    fn apply_to(&self, mut select: Select<transfer_process::Entity>) -> Select<transfer_process::Entity> {
+        if let Some(state) = &self.state {
+            select = select.filter(transfer_process::Column::State.eq(state));
+        }
+        if let Some(role) = &self.role {
+            select = select.filter(transfer_process::Column::Role.eq(role));
+        }
+        if let Some(protocol) = &self.protocol {
+            select = select.filter(transfer_process::Column::Protocol.eq(protocol));
+        }
+        if let Some(agreement_id) = &self.agreement_id {
+            select = select.filter(transfer_process::Column::AgreementId.eq(agreement_id));
+        }
+        if let Some(associated_agent_peer) = &self.associated_agent_peer {
+            select = select.filter(transfer_process::Column::AssociatedAgentPeer.eq(associated_agent_peer));
+        }
+        if let Some(connector_instance_id) = &self.connector_instance_id {
+            select = select.filter(transfer_process::Column::ConnectorInstanceId.eq(connector_instance_id));
+        }
+        if let Some(transfer_direction) = &self.transfer_direction {
+            select = select.filter(transfer_process::Column::TransferDirection.eq(transfer_direction));
+        }
+        if let Some(created_after) = self.created_after {
+            select = select.filter(transfer_process::Column::CreatedAt.gte(created_after));
+        }
+        if let Some(created_before) = self.created_before {
+            select = select.filter(transfer_process::Column::CreatedAt.lte(created_before));
+        }
+        select
+    }
+}
 
 pub struct TransferProcessRepoForSql {
     db_connection: DatabaseConnection,
@@ -42,20 +78,29 @@ impl TransferProcessRepoForSql {
 impl TransferProcessRepoTrait for TransferProcessRepoForSql {
     async fn get_all_transfer_processes(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<transfer_process::Model>> {
-        let processes = transfer_process::Entity::find()
-            .limit(limit.unwrap_or(100))
-            .offset(page.map(|p| p * limit.unwrap_or(100)).unwrap_or(0))
+        filters: &TransferProcessFilter,
+        page: &Page,
+        sort: Sort,
+    ) -> Outcome<(Vec<transfer_process::Model>, Option<u64>)> {
+        let q = filters.apply_to(transfer_process::Entity::find());
+        let total = q
+            .clone()
+            .count(&self.db_connection)
+            .await
+            .map_err(|e| TransferProcessRepoErrors::ErrorFetchingTransferProcess(e.into()).into_errors())?;
+
+        let items = q
+            .apply_cursor_pagination_with_tie_break(
+                page,
+                sort,
+                transfer_process::Column::CreatedAt,
+                transfer_process::Column::Id,
+            )
             .all(&self.db_connection)
-            .await;
-        match processes {
-            Ok(processes) => Ok(processes),
-            Err(e) => {
-                Err(TransferProcessRepoErrors::ErrorFetchingTransferProcess(e.into()).into_errors())
-            }
-        }
+            .await
+            .map_err(|e| TransferProcessRepoErrors::ErrorFetchingTransferProcess(e.into()).into_errors())?;
+
+        Ok((items, Some(total)))
     }
 
     async fn get_batch_transfer_processes(

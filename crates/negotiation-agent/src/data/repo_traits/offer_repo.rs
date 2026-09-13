@@ -17,6 +17,8 @@
 
 use crate::data::entities::offer;
 use crate::data::entities::offer::NewOfferModel;
+use crate::entities::filters::OfferFilter;
+use common::paginated_spec::{Page, Sort};
 use thiserror::Error;
 use urn::Urn;
 use ymir::errors::Outcome;
@@ -26,9 +28,10 @@ use ymir::errors::RepoIntoErrors;
 pub trait OfferRepoTrait: Send + Sync {
     async fn get_all_offers(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<offer::Model>>;
+        filters: &OfferFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<(Vec<offer::Model>, Option<u64>)>;
     async fn get_batch_offers(&self, ids: &Vec<Urn>) -> Outcome<Vec<offer::Model>>;
     async fn get_offers_by_negotiation_process(&self, id: &Urn) -> Outcome<Vec<offer::Model>>;
     async fn get_last_offer_by_negotiation_process(

@@ -21,6 +21,7 @@ use serde::{Deserialize, Serialize};
 use crate::entities::client::Client;
 use crate::entities::query::{Page, Sort, UserFilter};
 use crate::entities::role::RbacRole;
+use common::query::QuerySpec;
 
 /// Unified OAuth 2.0 token request supporting multiple grant types.
 #[derive(Debug, Clone, Deserialize, Default)]
@@ -218,12 +219,4 @@ impl OpenIdConfiguration {
     }
 }
 
-#[derive(Deserialize, Default)]
-pub(crate) struct UserListQuery {
-    #[serde(flatten)]
-    pub filter: UserFilter,
-    #[serde(flatten)]
-    pub page: Page,
-    #[serde(default)]
-    pub sort: Sort,
-}
+pub(crate) type UserListQuery = QuerySpec<UserFilter, Sort>;

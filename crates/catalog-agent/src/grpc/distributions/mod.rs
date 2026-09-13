@@ -24,6 +24,7 @@ use crate::grpc::api::catalog_agent::{
     DistributionResponse, GetAllRequest, GetBatchRequest, GetByIdRequest, GetByParentIdRequest,
     GetDistributionByFormatRequest, PutDistributionRequest,
 };
+use common::paginated_spec::Page;
 use std::str::FromStr;
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
@@ -46,14 +47,15 @@ impl DistributionEntityService for DistributionEntityGrpc {
         request: Request<GetAllRequest>,
     ) -> Result<Response<DistributionListResponse>, Status> {
         let req = request.into_inner();
-        let distributions = self
+        let page = Page::new(req.limit.unwrap_or(20) as u32, None);
+        let paginated = self
             .service
-            .get_all_distributions(req.limit, req.page)
+            .get_all_distributions(&Default::default(), &page, &Default::default())
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 
         let proto_distributions: Vec<Distribution> =
-            distributions.into_iter().map(Into::into).collect();
+            paginated.items.into_iter().map(Into::into).collect();
 
         Ok(Response::new(DistributionListResponse {
             distributions: proto_distributions,

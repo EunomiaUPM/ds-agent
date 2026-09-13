@@ -21,12 +21,42 @@ use crate::data::repo_traits::catalog_db_errors::{
     CatalogAgentRepoErrors, CatalogRepoErrors, DataServiceRepoErrors, DistributionRepoErrors,
 };
 use crate::data::repo_traits::dataservice_repo::DataServiceRepositoryTrait;
+use crate::entities::filters::DataServiceFilter;
+use common::paginated_spec::{Page, SelectCursorExt, Sort};
+use common::query::FilterApplier;
 use sea_orm::{
-    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
-    QuerySelect,
+    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait,
+    QueryFilter, QueryOrder, QuerySelect, Select,
 };
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
+
+impl FilterApplier<Select<dataservice::Entity>> for DataServiceFilter {
+    fn apply_to(&self, mut q: Select<dataservice::Entity>) -> Select<dataservice::Entity> {
+        if let Some(ref catalog_id) = self.catalog_id {
+            q = q.filter(dataservice::Column::CatalogId.eq(catalog_id));
+        }
+        if let Some(ref endpoint_url) = self.endpoint_url {
+            q = q.filter(dataservice::Column::DcatEndpointUrl.contains(endpoint_url));
+        }
+        if let Some(ref title) = self.title {
+            q = q.filter(dataservice::Column::DctTitle.contains(title));
+        }
+        if let Some(ref creator) = self.creator {
+            q = q.filter(dataservice::Column::DctCreator.eq(creator));
+        }
+        if let Some(main) = self.main_data_service {
+            q = q.filter(dataservice::Column::DspaceMainDataService.eq(main));
+        }
+        if let Some(after) = self.created_after {
+            q = q.filter(dataservice::Column::DctIssued.gte(after));
+        }
+        if let Some(before) = self.created_before {
+            q = q.filter(dataservice::Column::DctIssued.lte(before));
+        }
+        q
+    }
+}
 
 pub struct DataServiceRepositoryForSql {
     db_connection: DatabaseConnection,
@@ -42,24 +72,41 @@ impl DataServiceRepositoryForSql {
 impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
     async fn get_all_data_services(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<dataservice::Model>> {
-        let page_limit = limit.unwrap_or(25);
-        let page_number = page.unwrap_or(1);
-        let calculated_offset = (page_number.max(1) - 1) * page_limit;
-        let data_services = dataservice::Entity::find()
-            .limit(page_limit)
-            .offset(calculated_offset)
-            .all(&self.db_connection)
-            .await;
-        match data_services {
-            Ok(data_services) => Ok(data_services),
-            Err(err) => Err(CatalogAgentRepoErrors::DataServiceRepoErrors(
-                DataServiceRepoErrors::ErrorFetchingDataService(err.into()),
+        filters: &DataServiceFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<(Vec<dataservice::Model>, Option<u64>)> {
+        let mut q = dataservice::Entity::find();
+        q = filters.apply_to(q);
+
+        let total = q
+            .clone()
+            .count(&self.db_connection)
+            .await
+            .map_err(|err| {
+                CatalogAgentRepoErrors::DataServiceRepoErrors(
+                    DataServiceRepoErrors::ErrorFetchingDataService(err.into()),
+                )
+                .into_errors()
+            })?;
+
+        let items = q
+            .apply_cursor_pagination_with_tie_break(
+                page,
+                sort,
+                dataservice::Column::DctIssued,
+                dataservice::Column::Id,
             )
-            .into_errors()),
-        }
+            .all(&self.db_connection)
+            .await
+            .map_err(|err| {
+                CatalogAgentRepoErrors::DataServiceRepoErrors(
+                    DataServiceRepoErrors::ErrorFetchingDataService(err.into()),
+                )
+                .into_errors()
+            })?;
+
+        Ok((items, Some(total)))
     }
 
     async fn get_batch_data_services(&self, ids: &Vec<Urn>) -> Outcome<Vec<dataservice::Model>> {

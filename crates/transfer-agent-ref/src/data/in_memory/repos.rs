@@ -32,7 +32,7 @@ use crate::entities::transfer_process::TransferProcess;
 use crate::entities::transfer_process_identifier::TransferProcessIdentifier;
 use base64::Engine;
 use chrono::{DateTime, Utc};
-use common::query::{Page, Sort};
+use common::query::{Cursor, Page, Sort};
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
@@ -431,15 +431,7 @@ impl TransferIdentifierRepoTrait for InMemoryTransferIdentifierRepo {
 
 #[allow(dead_code)]
 fn decode_cursor(cursor: Option<&str>) -> Option<DateTime<Utc>> {
-    cursor
-        .and_then(|c| {
-            base64::engine::general_purpose::URL_SAFE_NO_PAD
-                .decode(c)
-                .ok()
-        })
-        .and_then(|b| String::from_utf8(b).ok())
-        .and_then(|s| DateTime::parse_from_rfc3339(&s).ok())
-        .map(|dt| dt.with_timezone(&Utc))
+    cursor.and_then(|c| Cursor::decode_utc_timestamp(c).ok())
 }
 
 #[allow(dead_code)]

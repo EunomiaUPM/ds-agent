@@ -58,6 +58,7 @@ pub mod auth_config;
 pub mod common;
 pub mod connector_instance;
 pub mod connector_template;
+pub mod filters;
 pub mod interaction;
 pub(crate) mod parameters;
 pub mod resource;

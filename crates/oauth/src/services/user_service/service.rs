@@ -17,8 +17,8 @@
 
 use std::sync::Arc;
 
-use base64::Engine;
 use chrono::Utc;
+use common::paginated_spec::Cursor;
 use ymir::errors::{BadFormat, Errors, Outcome};
 
 use crate::data::repositories::user::UserRepository;
@@ -60,26 +60,13 @@ impl UserServiceTrait for UserService {
             limit: page.limit + 1,
             cursor: page.cursor.clone(),
         };
-        let mut users = self.user_repo.get_all(filter, &fetch_page, sort).await?;
+        let users = self.user_repo.get_all(filter, &fetch_page, sort).await?;
 
-        let has_more = users.len() > page.limit as usize;
-        if has_more {
-            users.truncate(page.limit as usize);
-        }
-
-        let next_cursor = if has_more {
-            users.last().map(|u| {
-                base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(u.created_at.to_rfc3339())
-            })
-        } else {
-            None
-        };
-
-        Ok(Paginated {
-            items: users.into_iter().map(UserView::assemble).collect(),
-            next_cursor,
-            total: None,
-        })
+        Ok(Paginated::from_window(
+            users.into_iter().map(UserView::assemble).collect(),
+            page.limit as usize,
+            |u| Cursor::encode_timestamp(&u.created_at),
+        ))
     }
 
     async fn get_user(&self, tenant_id: &str) -> Outcome<UserView> {

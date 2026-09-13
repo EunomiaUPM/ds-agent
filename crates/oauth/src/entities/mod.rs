@@ -18,6 +18,7 @@
 pub mod auth_code;
 pub mod client;
 pub(crate) mod commands;
+pub mod filters;
 pub mod pat;
 pub(crate) mod query;
 pub(crate) mod refresh_token;

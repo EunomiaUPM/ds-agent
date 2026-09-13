@@ -16,7 +16,7 @@
  */
 
 mod data;
-mod entities;
+pub mod entities;
 mod grpc;
 mod http;
 mod protocols;

@@ -19,9 +19,10 @@ pub(crate) mod data_services;
 
 use crate::data::entities::dataservice;
 use crate::data::entities::dataservice::{EditDataServiceModel, Model, NewDataServiceModel};
+use crate::entities::filters::DataServiceFilter;
+use common::paginated_spec::{Page, Paginated, Sort};
 use serde::{Deserialize, Serialize};
-use std::str::FromStr;
-use urn::{Urn, UrnBuilder};
+use urn::Urn;
 use ymir::errors::Outcome;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -55,7 +56,7 @@ impl Default for NewDataServiceDto {
             dct_creator: None,
             dct_title: None,
             dct_description: None,
-            catalog_id: Urn::from_str("urn:fake-urn:000").unwrap(),
+            catalog_id: std::str::FromStr::from_str("urn:fake-urn:000").unwrap(),
         }
     }
 }
@@ -112,9 +113,10 @@ impl From<dataservice::Model> for DataServiceDto {
 pub trait DataServiceEntityTrait: Send + Sync {
     async fn get_all_data_services(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<DataServiceDto>>;
+        filters: &DataServiceFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<Paginated<DataServiceDto>>;
     async fn get_batch_data_services(&self, ids: &Vec<Urn>) -> Outcome<Vec<DataServiceDto>>;
 
     async fn get_data_services_by_catalog_id(

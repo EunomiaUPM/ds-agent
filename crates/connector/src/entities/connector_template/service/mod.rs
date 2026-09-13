@@ -97,17 +97,21 @@ impl ConnectorTemplateEntitiesService {
     }
 }
 
+use crate::entities::filters::ConnectorTemplateFilter;
+use common::paginated_spec::{Cursor, Page, Paginated, Sort};
+
 #[async_trait::async_trait]
 impl ConnectorTemplateEntitiesTrait for ConnectorTemplateEntitiesService {
     async fn get_all_templates(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<ConnectorTemplateDto>> {
-        let models = self
+        filters: &ConnectorTemplateFilter,
+        page: &Page,
+        sort: Sort,
+    ) -> Outcome<Paginated<ConnectorTemplateDto>> {
+        let (models, total) = self
             .repo
             .get_templates_repo()
-            .get_all_templates(limit, page)
+            .get_all_templates(filters, page, sort)
             .await
             .map_err(|e| {
                 error!("{}", e);
@@ -119,7 +123,12 @@ impl ConnectorTemplateEntitiesTrait for ConnectorTemplateEntitiesService {
             dtos.push(Self::map_model_to_dto(model)?);
         }
 
-        Ok(dtos)
+        Ok(Paginated::from_page(dtos, page, total, |last| {
+            Cursor::encode_composite(
+                &last.metadata.created_at.unwrap_or_else(|| chrono::Utc::now().into()),
+                last.metadata.name.as_deref().unwrap_or_default(),
+            )
+        }))
     }
 
     async fn get_templates_by_id(

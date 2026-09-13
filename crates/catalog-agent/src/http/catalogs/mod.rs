@@ -16,6 +16,7 @@
  */
 
 use crate::entities::catalogs::{CatalogEntityTrait, EditCatalogDto, NewCatalogDto};
+use crate::entities::filters::CatalogFilter;
 use crate::http::common::to_camel_case::ToCamelCase;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{FromRef, Path, Query, State};
@@ -25,6 +26,7 @@ use axum::{Json, Router};
 use common::batch_requests::BatchRequests;
 use common::config::services::CatalogConfig;
 use common::errors::CommonErrors;
+use common::query::QuerySpec;
 use reqwest::StatusCode;
 use serde::Deserialize;
 use std::str::FromStr;
@@ -39,12 +41,7 @@ pub struct CatalogEntityRouter {
     config: Arc<CatalogConfig>,
 }
 
-#[derive(Deserialize)]
-pub struct PaginationParams {
-    pub limit: Option<u64>,
-    pub page: Option<u64>,
-    pub with_main_catalog: Option<bool>,
-}
+pub type CatalogQuery = QuerySpec<CatalogFilter>;
 
 impl FromRef<CatalogEntityRouter> for Arc<dyn CatalogEntityTrait> {
     fn from_ref(state: &CatalogEntityRouter) -> Self {
@@ -78,12 +75,11 @@ impl CatalogEntityRouter {
 
     async fn handle_get_all_catalogs(
         State(state): State<CatalogEntityRouter>,
-        Query(params): Query<PaginationParams>,
+        Query(query): Query<CatalogQuery>,
     ) -> impl IntoResponse {
-        let with_main_catalog = params.with_main_catalog.unwrap_or(true);
         match state
             .service
-            .get_all_catalogs(params.limit, params.page, with_main_catalog)
+            .get_all_catalogs(&query.filter, &query.page, &query.sort)
             .await
         {
             Ok(catalogs) => (StatusCode::OK, Json(ToCamelCase(catalogs))).into_response(),

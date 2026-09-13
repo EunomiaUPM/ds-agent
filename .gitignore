@@ -63,3 +63,4 @@ cache/
 # local cargo config (warnings silenciados)
 /.cargo/config.toml
 /CLAUDE.md
+/AUDITORIA_ARQUITECTURA_Y_DISENO.md

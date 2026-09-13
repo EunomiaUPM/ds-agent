@@ -17,7 +17,10 @@
 
 use crate::data::entities::offer::NewOfferModel;
 use crate::data::factory_trait::NegotiationAgentRepoTrait;
+use crate::entities::filters::OfferFilter;
 use crate::entities::offer::{NegotiationAgentOffersTrait, NewOfferDto, OfferDto};
+use common::paginated_spec::{Cursor, Page, Paginated, Sort};
+use common::query::QueryFilter;
 use std::sync::Arc;
 use urn::Urn;
 use ymir::errors::Outcome;
@@ -45,16 +48,24 @@ impl NegotiationAgentOffersService {
 impl NegotiationAgentOffersTrait for NegotiationAgentOffersService {
     async fn get_all_offers(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<OfferDto>> {
-        let offers = self
+        filters: &OfferFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<Paginated<OfferDto>> {
+        filters.validate()?;
+        let page = page.clamped();
+
+        let (offers, total) = self
             .negotiation_repo
             .get_offer_repo()
-            .get_all_offers(limit, page)
+            .get_all_offers(filters, &page, sort)
             .await?;
 
-        Ok(offers.into_iter().map(|m| OfferDto { inner: m }).collect())
+        let dtos: Vec<OfferDto> = offers.into_iter().map(|m| OfferDto { inner: m }).collect();
+
+        Ok(Paginated::from_page(dtos, &page, total, |d| {
+            Cursor::encode_composite(&d.inner.created_at, &d.inner.id)
+        }))
     }
 
     async fn get_batch_offers(&self, ids: &Vec<Urn>) -> Outcome<Vec<OfferDto>> {

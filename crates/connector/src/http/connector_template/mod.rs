@@ -25,6 +25,8 @@ use axum::routing::{delete, get, post};
 use axum::{Json, Router};
 use common::config::services::CatalogConfig;
 use common::errors::CommonErrors;
+use common::query::QuerySpec;
+use crate::entities::filters::ConnectorTemplateFilter;
 use serde::Deserialize;
 use std::sync::Arc;
 use ymir::utils::extract_payload;
@@ -35,11 +37,8 @@ pub struct ConnectorTemplateRouter {
     config: Arc<CatalogConfig>,
 }
 
-#[derive(Deserialize)]
-pub struct PaginationParams {
-    pub limit: Option<u64>,
-    pub page: Option<u64>,
-}
+pub use common::paginated_spec::PaginationParams;
+pub type ConnectorTemplateQuery = QuerySpec<ConnectorTemplateFilter>;
 
 impl FromRef<ConnectorTemplateRouter> for Arc<dyn ConnectorTemplateEntitiesTrait> {
     fn from_ref(state: &ConnectorTemplateRouter) -> Self {
@@ -72,11 +71,11 @@ impl ConnectorTemplateRouter {
 
     async fn handle_get_all_templates(
         State(state): State<ConnectorTemplateRouter>,
-        Query(params): Query<PaginationParams>,
+        Query(query): Query<ConnectorTemplateQuery>,
     ) -> impl IntoResponse {
         match state
             .service
-            .get_all_templates(params.limit, params.page)
+            .get_all_templates(&query.filter, &query.page, query.sort)
             .await
         {
             Ok(templates) => (StatusCode::OK, Json(templates)).into_response(),

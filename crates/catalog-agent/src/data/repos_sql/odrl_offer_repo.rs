@@ -22,10 +22,40 @@ use crate::data::repo_traits::catalog_db_errors::{
     DistributionRepoErrors, OdrlOfferRepoErrors,
 };
 use crate::data::repo_traits::odrl_offer_repo::OdrlOfferRepositoryTrait;
+use crate::entities::filters::OdrlPolicyFilter;
 use crate::entities::odrl_policies::CatalogEntityTypes;
-use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QuerySelect};
+use common::paginated_spec::{Page, SelectCursorExt, Sort};
+use common::query::FilterApplier;
+use sea_orm::{
+    ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder,
+    QuerySelect, Select,
+};
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
+
+impl FilterApplier<Select<odrl_offer::Entity>> for OdrlPolicyFilter {
+    fn apply_to(&self, mut q: Select<odrl_offer::Entity>) -> Select<odrl_offer::Entity> {
+        if let Some(ref entity) = self.entity {
+            q = q.filter(odrl_offer::Column::Entity.eq(entity));
+        }
+        if let Some(ref entity_type) = self.entity_type {
+            q = q.filter(odrl_offer::Column::EntityType.eq(entity_type));
+        }
+        if let Some(ref source_template_id) = self.source_template_id {
+            q = q.filter(odrl_offer::Column::SourceTemplateId.eq(source_template_id));
+        }
+        if let Some(ref source_template_version) = self.source_template_version {
+            q = q.filter(odrl_offer::Column::SourceTemplateVersion.eq(source_template_version));
+        }
+        if let Some(after) = self.created_after {
+            q = q.filter(odrl_offer::Column::CreatedAt.gte(after));
+        }
+        if let Some(before) = self.created_before {
+            q = q.filter(odrl_offer::Column::CreatedAt.lte(before));
+        }
+        q
+    }
+}
 
 pub struct OdrlOfferRepositoryForSql {
     db_connection: DatabaseConnection,
@@ -41,24 +71,41 @@ impl OdrlOfferRepositoryForSql {
 impl OdrlOfferRepositoryTrait for OdrlOfferRepositoryForSql {
     async fn get_all_odrl_offers(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<odrl_offer::Model>> {
-        let page_limit = limit.unwrap_or(25);
-        let page_number = page.unwrap_or(1);
-        let calculated_offset = (page_number.max(1) - 1) * page_limit;
-        let odrl_offers = odrl_offer::Entity::find()
-            .limit(page_limit)
-            .offset(calculated_offset)
-            .all(&self.db_connection)
-            .await;
-        match odrl_offers {
-            Ok(odrl_offers) => Ok(odrl_offers),
-            Err(err) => Err(CatalogAgentRepoErrors::OdrlOfferRepoErrors(
-                OdrlOfferRepoErrors::ErrorFetchingOdrlOffer(err.into()),
+        filters: &OdrlPolicyFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<(Vec<odrl_offer::Model>, Option<u64>)> {
+        let mut q = odrl_offer::Entity::find();
+        q = filters.apply_to(q);
+
+        let total = q
+            .clone()
+            .count(&self.db_connection)
+            .await
+            .map_err(|err| {
+                CatalogAgentRepoErrors::OdrlOfferRepoErrors(
+                    OdrlOfferRepoErrors::ErrorFetchingOdrlOffer(err.into()),
+                )
+                .into_errors()
+            })?;
+
+        let items = q
+            .apply_cursor_pagination_with_tie_break(
+                page,
+                sort,
+                odrl_offer::Column::CreatedAt,
+                odrl_offer::Column::Id,
             )
-            .into_errors()),
-        }
+            .all(&self.db_connection)
+            .await
+            .map_err(|err| {
+                CatalogAgentRepoErrors::OdrlOfferRepoErrors(
+                    OdrlOfferRepoErrors::ErrorFetchingOdrlOffer(err.into()),
+                )
+                .into_errors()
+            })?;
+
+        Ok((items, Some(total)))
     }
 
     async fn get_batch_odrl_offers(&self, ids: &Vec<Urn>) -> Outcome<Vec<odrl_offer::Model>> {

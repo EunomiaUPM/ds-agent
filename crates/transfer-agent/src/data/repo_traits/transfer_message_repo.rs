@@ -17,6 +17,8 @@
 
 use crate::data::entities::transfer_message;
 use crate::data::entities::transfer_message::NewTransferMessageModel;
+use crate::entities::filters::TransferMessageFilter;
+use common::paginated_spec::{Page, Sort};
 use thiserror::Error;
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
@@ -24,12 +26,12 @@ use ymir::errors::{Outcome, RepoIntoErrors};
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait TransferMessageRepoTrait: Send + Sync {
-    // Obtener todos (paginado)
     async fn get_all_transfer_messages(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<transfer_message::Model>>;
+        filters: &TransferMessageFilter,
+        page: &Page,
+        sort: Sort,
+    ) -> Outcome<(Vec<transfer_message::Model>, Option<u64>)>;
 
     async fn get_messages_by_process_id(
         &self,

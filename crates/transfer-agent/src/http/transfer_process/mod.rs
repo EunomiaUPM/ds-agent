@@ -15,6 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::entities::filters::TransferProcessFilter;
 use crate::entities::transfer_process::{
     EditTransferProcessDto, NewTransferProcessDto, TransferAgentProcessesTrait,
 };
@@ -26,6 +27,7 @@ use axum::routing::{get, post};
 use axum::{Json, Router};
 use common::batch_requests::BatchRequests;
 use common::config::services::TransferConfig;
+use common::query::QuerySpec;
 use serde::Deserialize;
 use std::sync::Arc;
 use ymir::utils::{extract_path_urn, extract_payload};
@@ -36,11 +38,8 @@ pub struct TransferAgentProcessesRouter {
     config: Arc<TransferConfig>,
 }
 
-#[derive(Deserialize)]
-pub struct PaginationParams {
-    pub limit: Option<u64>,
-    pub page: Option<u64>,
-}
+pub use common::paginated_spec::PaginationParams;
+pub type TransferProcessQuery = QuerySpec<TransferProcessFilter>;
 
 impl FromRef<TransferAgentProcessesRouter> for Arc<dyn TransferAgentProcessesTrait> {
     fn from_ref(state: &TransferAgentProcessesRouter) -> Self {
@@ -81,11 +80,11 @@ impl TransferAgentProcessesRouter {
 
     async fn handle_get_all_processes(
         State(state): State<TransferAgentProcessesRouter>,
-        Query(params): Query<PaginationParams>,
+        Query(query): Query<TransferProcessQuery>,
     ) -> impl IntoResponse {
         match state
             .service
-            .get_all_transfer_processes(params.limit, params.page)
+            .get_all_transfer_processes(&query.filter, &query.page, query.sort)
             .await
         {
             Ok(processes) => (StatusCode::OK, Json(processes)).into_response(),

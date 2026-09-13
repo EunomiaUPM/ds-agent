@@ -20,6 +20,9 @@ use crate::data::factory_trait::NegotiationAgentRepoTrait;
 use crate::entities::agreement::{
     AgreementDto, EditAgreementDto, NegotiationAgentAgreementsTrait, NewAgreementDto,
 };
+use crate::entities::filters::AgreementFilter;
+use common::paginated_spec::{Cursor, Page, Paginated, Sort};
+use common::query::QueryFilter;
 use std::sync::Arc;
 use tracing::error;
 use urn::Urn;
@@ -48,13 +51,17 @@ impl NegotiationAgentAgreementsService {
 impl NegotiationAgentAgreementsTrait for NegotiationAgentAgreementsService {
     async fn get_all_agreements(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<AgreementDto>> {
-        let agreements = self
+        filters: &AgreementFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<Paginated<AgreementDto>> {
+        filters.validate()?;
+        let page = page.clamped();
+
+        let (agreements, total) = self
             .negotiation_repo
             .get_agreement_repo()
-            .get_all_agreements(limit, page)
+            .get_all_agreements(filters, &page, sort)
             .await
             .map_err(|e| {
                 let err = Errors::db(e.to_string(), None);
@@ -62,10 +69,14 @@ impl NegotiationAgentAgreementsTrait for NegotiationAgentAgreementsService {
                 err
             })?;
 
-        Ok(agreements
+        let dtos: Vec<AgreementDto> = agreements
             .into_iter()
             .map(|m| AgreementDto { inner: m })
-            .collect())
+            .collect();
+
+        Ok(Paginated::from_page(dtos, &page, total, |d| {
+            Cursor::encode_composite(&d.inner.created_at, &d.inner.id)
+        }))
     }
 
     async fn get_batch_agreements(&self, ids: &Vec<Urn>) -> Outcome<Vec<AgreementDto>> {

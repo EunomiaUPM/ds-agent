@@ -18,6 +18,7 @@
 pub(crate) mod catalogs;
 pub(crate) mod common;
 pub(crate) mod data_services;
+pub mod filters;
 pub(crate) mod datasets;
 pub(crate) mod distributions;
 pub(crate) mod instantiation_engine;

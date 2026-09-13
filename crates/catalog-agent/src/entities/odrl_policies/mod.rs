@@ -19,8 +19,10 @@ pub(crate) mod odrl_policies;
 
 use crate::data::entities::odrl_offer;
 use crate::data::entities::odrl_offer::NewOdrlOfferModel;
+use crate::entities::filters::OdrlPolicyFilter;
 use crate::entities::policy_templates::types::ParameterDefinition;
 use common::dsp_common::odrl::OdrlPolicyInfo;
+use common::paginated_spec::{Page, Paginated, Sort};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use urn::Urn;
@@ -98,9 +100,10 @@ impl From<odrl_offer::Model> for OdrlPolicyDto {
 pub trait OdrlPolicyEntityTrait: Sync + Send {
     async fn get_all_odrl_offers(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<OdrlPolicyDto>>;
+        filters: &OdrlPolicyFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<Paginated<OdrlPolicyDto>>;
     async fn get_batch_odrl_offers(&self, ids: &Vec<Urn>) -> Outcome<Vec<OdrlPolicyDto>>;
     async fn get_all_odrl_offers_by_entity(&self, entity: &Urn) -> Outcome<Vec<OdrlPolicyDto>>;
     async fn get_odrl_offer_by_id(&self, odrl_offer_id: &Urn) -> Outcome<Option<OdrlPolicyDto>>;

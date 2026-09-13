@@ -17,6 +17,8 @@
 
 use crate::data::entities::negotiation_message;
 use crate::data::entities::negotiation_message::NewNegotiationMessageModel;
+use crate::entities::filters::NegotiationMessageFilter;
+use common::paginated_spec::{Page, Sort};
 use thiserror::Error;
 use urn::Urn;
 use ymir::errors::Outcome;
@@ -26,9 +28,10 @@ use ymir::errors::RepoIntoErrors;
 pub trait NegotiationMessageRepoTrait: Send + Sync {
     async fn get_all_negotiation_messages(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<negotiation_message::Model>>;
+        filters: &NegotiationMessageFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<(Vec<negotiation_message::Model>, Option<u64>)>;
 
     async fn get_messages_by_process_id(
         &self,

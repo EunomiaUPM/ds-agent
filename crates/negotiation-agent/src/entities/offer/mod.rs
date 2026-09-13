@@ -19,6 +19,8 @@ pub(crate) mod offer;
 
 use crate::data::entities::offer as offer_model;
 use crate::data::entities::offer::NewOfferModel;
+use crate::entities::filters::OfferFilter;
+use common::paginated_spec::{Page, Paginated, Sort};
 use serde::{Deserialize, Serialize};
 use urn::Urn;
 use ymir::errors::Outcome;
@@ -56,8 +58,12 @@ impl From<NewOfferDto> for NewOfferModel {
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait NegotiationAgentOffersTrait: Send + Sync + 'static {
-    async fn get_all_offers(&self, limit: Option<u64>, page: Option<u64>)
-    -> Outcome<Vec<OfferDto>>;
+    async fn get_all_offers(
+        &self,
+        filters: &OfferFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<Paginated<OfferDto>>;
 
     async fn get_batch_offers(&self, ids: &Vec<Urn>) -> Outcome<Vec<OfferDto>>;
 

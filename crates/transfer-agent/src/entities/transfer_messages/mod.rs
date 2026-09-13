@@ -61,14 +61,18 @@ impl From<NewTransferMessageDto> for NewTransferMessageModel {
     }
 }
 
+use crate::entities::filters::TransferMessageFilter;
+use common::paginated_spec::{Page, Paginated, Sort};
+
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait TransferAgentMessagesTrait: Send + Sync + 'static {
     async fn get_all_transfer_messages(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<TransferMessageDto>>;
+        filters: &TransferMessageFilter,
+        page: &Page,
+        sort: Sort,
+    ) -> Outcome<Paginated<TransferMessageDto>>;
 
     async fn get_messages_by_process_id(
         &self,

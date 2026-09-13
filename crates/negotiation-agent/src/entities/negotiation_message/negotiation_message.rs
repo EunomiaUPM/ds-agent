@@ -19,9 +19,12 @@ use crate::data::entities::negotiation_message::{
     self as negotiation_message_model, NewNegotiationMessageModel,
 };
 use crate::data::factory_trait::NegotiationAgentRepoTrait;
+use crate::entities::filters::NegotiationMessageFilter;
 use crate::entities::negotiation_message::{
     NegotiationAgentMessagesTrait, NegotiationMessageDto, NewNegotiationMessageDto,
 };
+use common::paginated_spec::{Cursor, Page, Paginated, Sort};
+use common::query::QueryFilter;
 use std::str::FromStr;
 use std::sync::Arc;
 use tracing::error;
@@ -96,13 +99,17 @@ impl NegotiationAgentMessagesService {
 impl NegotiationAgentMessagesTrait for NegotiationAgentMessagesService {
     async fn get_all_negotiation_messages(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<NegotiationMessageDto>> {
-        let messages = self
+        filters: &NegotiationMessageFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<Paginated<NegotiationMessageDto>> {
+        filters.validate()?;
+        let page = page.clamped();
+
+        let (messages, total) = self
             .negotiation_repo
             .get_negotiation_message_repo()
-            .get_all_negotiation_messages(limit, page)
+            .get_all_negotiation_messages(filters, &page, sort)
             .await?;
 
         let mut dtos = Vec::with_capacity(messages.len());
@@ -111,7 +118,9 @@ impl NegotiationAgentMessagesTrait for NegotiationAgentMessagesService {
             dtos.push(dto);
         }
 
-        Ok(dtos)
+        Ok(Paginated::from_page(dtos, &page, total, |d| {
+            Cursor::encode_composite(&d.inner.created_at, &d.inner.id)
+        }))
     }
 
     async fn get_messages_by_process_id(

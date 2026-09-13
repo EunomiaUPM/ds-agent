@@ -93,14 +93,18 @@ impl From<EditTransferProcessDto> for EditTransferProcessModel {
     }
 }
 
+use crate::entities::filters::TransferProcessFilter;
+use common::paginated_spec::{Page, Paginated, Sort};
+
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait TransferAgentProcessesTrait: Send + Sync + 'static {
     async fn get_all_transfer_processes(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<TransferProcessDto>>;
+        filters: &TransferProcessFilter,
+        page: &Page,
+        sort: Sort,
+    ) -> Outcome<Paginated<TransferProcessDto>>;
     async fn get_batch_transfer_processes(
         &self,
         ids: &Vec<Urn>,

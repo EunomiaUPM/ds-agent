@@ -25,6 +25,7 @@ use crate::grpc::api::negotiation_agent::{
     GetAgreementByNegotiationProcessRequest, GetAllAgreementsRequest, GetBatchAgreementsRequest,
     PutAgreementRequest,
 };
+use common::paginated_spec::Page;
 use std::str::FromStr;
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
@@ -47,14 +48,15 @@ impl NegotiationAgentAgreementsService for NegotiationAgentAgreementGrpc {
         request: Request<GetAllAgreementsRequest>,
     ) -> Result<Response<AgreementListResponse>, Status> {
         let req = request.into_inner();
-
-        let agreements = self
+        let page = Page::new(req.limit.unwrap_or(20) as u32, None);
+        let paginated = self
             .service
-            .get_all_agreements(req.limit, req.page)
+            .get_all_agreements(&Default::default(), &page, &Default::default())
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 
-        let proto_agreements = agreements
+        let proto_agreements = paginated
+            .items
             .into_iter()
             .map(|dto| {
                 let response: AgreementResponse = dto.into();

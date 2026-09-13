@@ -15,7 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::odrl_policies::{NewOdrlPolicyDto, OdrlPolicyEntityTrait};
+use crate::entities::filters::OdrlPolicyFilter;
+use crate::entities::odrl_policies::{NewOdrlPolicyDto, OdrlPolicyDto, OdrlPolicyEntityTrait};
 use crate::http::common::to_camel_case::ToCamelCase;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{FromRef, Path, Query, State};
@@ -26,6 +27,7 @@ use axum::{Json, Router};
 use common::batch_requests::BatchRequests;
 use common::config::services::CatalogConfig;
 use common::errors::CommonErrors;
+use common::query::QuerySpec;
 use serde::Deserialize;
 use std::sync::Arc;
 use ymir::utils::{extract_path_urn, extract_payload};
@@ -36,11 +38,8 @@ pub struct OdrlOfferEntityRouter {
     config: Arc<CatalogConfig>,
 }
 
-#[derive(Deserialize)]
-pub struct PaginationParams {
-    pub limit: Option<u64>,
-    pub page: Option<u64>,
-}
+pub use common::paginated_spec::PaginationParams;
+pub type OdrlPolicyQuery = QuerySpec<OdrlPolicyFilter>;
 
 impl FromRef<OdrlOfferEntityRouter> for Arc<dyn OdrlPolicyEntityTrait> {
     fn from_ref(state: &OdrlOfferEntityRouter) -> Self {
@@ -79,11 +78,11 @@ impl OdrlOfferEntityRouter {
 
     async fn handle_get_all_odrl_offers(
         State(state): State<OdrlOfferEntityRouter>,
-        Query(params): Query<PaginationParams>,
+        Query(query): Query<OdrlPolicyQuery>,
     ) -> impl IntoResponse {
         match state
             .service
-            .get_all_odrl_offers(params.limit, params.page)
+            .get_all_odrl_offers(&query.filter, &query.page, &query.sort)
             .await
         {
             Ok(offers) => (StatusCode::OK, Json(ToCamelCase(offers))).into_response(),

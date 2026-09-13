@@ -27,17 +27,16 @@ use ymir::errors::AppResult;
 use crate::entities::commands::{EditParameterCommand, NewParameterCommand};
 use crate::entities::key::{Key, KeyPrefix};
 use crate::services::parameters::ParameterStore;
+use crate::entities::filters::PrefixFilter;
 use crate::services::parameters::views::{ParameterView, VersionResponse};
+use common::query::QuerySpec;
 
 #[derive(Clone)]
 pub struct ParameterRouter {
     service: Arc<dyn ParameterStore<serde_json::Value>>,
 }
 
-#[derive(Deserialize)]
-pub struct PrefixQuery {
-    pub prefix: Option<String>,
-}
+pub type PrefixQuery = QuerySpec<PrefixFilter>;
 
 impl ParameterRouter {
     pub fn new(service: Arc<dyn ParameterStore<serde_json::Value>>) -> Self {
@@ -58,7 +57,7 @@ impl ParameterRouter {
         State(state): State<ParameterRouter>,
         Query(params): Query<PrefixQuery>,
     ) -> AppResult<Json<Vec<ParameterView>>> {
-        let prefix = KeyPrefix::new(params.prefix.unwrap_or_default());
+        let prefix = KeyPrefix::new(params.filter.prefix.unwrap_or_default());
         let items = state.service.list(&prefix).await?;
         Ok(Json(items.into_iter().map(ParameterView::from).collect()))
     }

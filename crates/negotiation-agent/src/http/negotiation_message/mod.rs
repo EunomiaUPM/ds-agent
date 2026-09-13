@@ -15,8 +15,9 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::entities::filters::NegotiationMessageFilter;
 use crate::entities::negotiation_message::{
-    NegotiationAgentMessagesTrait, NewNegotiationMessageDto,
+    NegotiationAgentMessagesTrait, NegotiationMessageDto, NewNegotiationMessageDto,
 };
 use crate::errors::error_adapter::CustomToResponse;
 use crate::http::common::{extract_payload, parse_urn};
@@ -28,6 +29,7 @@ use axum::{
     routing::get,
 };
 use common::config::services::ContractsConfig;
+use common::query::QuerySpec;
 use serde::Deserialize;
 use std::sync::Arc;
 
@@ -37,11 +39,8 @@ pub struct NegotiationAgentMessagesRouter {
     config: Arc<ContractsConfig>,
 }
 
-#[derive(Deserialize)]
-pub struct PaginationParams {
-    pub limit: Option<u64>,
-    pub page: Option<u64>,
-}
+pub use common::paginated_spec::PaginationParams;
+pub type NegotiationMessageQuery = QuerySpec<NegotiationMessageFilter>;
 
 impl FromRef<NegotiationAgentMessagesRouter> for Arc<dyn NegotiationAgentMessagesTrait> {
     fn from_ref(state: &NegotiationAgentMessagesRouter) -> Self {
@@ -82,11 +81,11 @@ impl NegotiationAgentMessagesRouter {
 
     async fn handle_get_all_messages(
         State(state): State<NegotiationAgentMessagesRouter>,
-        Query(params): Query<PaginationParams>,
+        Query(query): Query<NegotiationMessageQuery>,
     ) -> impl IntoResponse {
         match state
             .service
-            .get_all_negotiation_messages(params.limit, params.page)
+            .get_all_negotiation_messages(&query.filter, &query.page, &query.sort)
             .await
         {
             Ok(messages) => (StatusCode::OK, Json(messages)).into_response(),

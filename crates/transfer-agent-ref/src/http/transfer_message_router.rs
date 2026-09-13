@@ -28,7 +28,7 @@ use axum::http::{HeaderMap, StatusCode};
 use axum::routing::get;
 use axum::{Json, Router};
 use common::auth::access::AccessScope;
-use common::query::{Page, Paginated, Sort, default_limit};
+use common::query::{Page, Paginated, QuerySpec, Sort, default_limit};
 use serde::Deserialize;
 use ymir::errors::AppResult;
 use ymir::utils::{extract_path_urn, extract_payload};
@@ -134,23 +134,4 @@ impl TransferMessageRouter {
 
 // Query params ──────────────────────────────────────────────────────────────
 
-#[derive(Deserialize)]
-pub struct TransferMessageQuery {
-    #[serde(flatten)]
-    filter: TransferMessageFilter,
-    #[serde(default = "default_limit")]
-    limit: u32,
-    cursor: Option<String>,
-    #[serde(default)]
-    sort: Sort,
-}
-
-impl TransferMessageQuery {
-    fn into_domain(self) -> (TransferMessageFilter, Page, Sort) {
-        let page = Page {
-            limit: self.limit,
-            cursor: self.cursor,
-        };
-        (self.filter, page, self.sort)
-    }
-}
+pub type TransferMessageQuery = QuerySpec<TransferMessageFilter, Sort>;

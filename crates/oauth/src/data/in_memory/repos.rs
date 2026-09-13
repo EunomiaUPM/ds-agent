@@ -18,8 +18,8 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use base64::Engine;
 use chrono::{DateTime, Utc};
+use common::paginated_spec::Cursor;
 use uuid::Uuid;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
@@ -55,14 +55,10 @@ impl UserRepository for InMemoryUserRepository {
     async fn get_all(&self, filter: &UserFilter, page: &Page, sort: &Sort) -> Outcome<Vec<User>> {
         let store = self.store.lock().unwrap();
 
-        let cursor_dt = page.cursor.as_ref().and_then(|c| {
-            base64::engine::general_purpose::URL_SAFE_NO_PAD
-                .decode(c)
-                .ok()
-                .and_then(|b| String::from_utf8(b).ok())
-                .and_then(|s| DateTime::parse_from_rfc3339(&s).ok())
-                .map(|dt| dt.with_timezone(&Utc))
-        });
+        let cursor_dt = page
+            .cursor
+            .as_deref()
+            .and_then(|c| Cursor::decode_utc_timestamp(c).ok());
 
         let mut users: Vec<User> = store
             .values()
@@ -94,7 +90,7 @@ impl UserRepository for InMemoryUserRepository {
                                 return false;
                             }
                         }
-                        Sort::CreatedAtDesc => {
+                        _ => {
                             if u.created_at >= cursor {
                                 return false;
                             }
@@ -108,7 +104,7 @@ impl UserRepository for InMemoryUserRepository {
 
         match sort {
             Sort::CreatedAtAsc => users.sort_by(|a, b| a.created_at.cmp(&b.created_at)),
-            Sort::CreatedAtDesc => users.sort_by(|a, b| b.created_at.cmp(&a.created_at)),
+            _ => users.sort_by(|a, b| b.created_at.cmp(&a.created_at)),
         }
 
         users.truncate(page.limit as usize);

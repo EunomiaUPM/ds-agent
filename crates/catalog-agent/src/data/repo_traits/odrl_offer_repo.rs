@@ -18,6 +18,8 @@
 use crate::data::entities::odrl_offer;
 use crate::data::entities::odrl_offer::NewOdrlOfferModel;
 use crate::data::repo_traits::catalog_db_errors::CatalogAgentRepoErrors;
+use crate::entities::filters::OdrlPolicyFilter;
+use common::paginated_spec::{Page, Sort};
 use urn::Urn;
 use ymir::errors::Outcome;
 
@@ -25,9 +27,10 @@ use ymir::errors::Outcome;
 pub trait OdrlOfferRepositoryTrait: Send + Sync {
     async fn get_all_odrl_offers(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<odrl_offer::Model>>;
+        filters: &OdrlPolicyFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<(Vec<odrl_offer::Model>, Option<u64>)>;
     async fn get_batch_odrl_offers(&self, ids: &Vec<Urn>) -> Outcome<Vec<odrl_offer::Model>>;
     async fn get_all_odrl_offers_by_entity(&self, entity: &Urn) -> Outcome<Vec<odrl_offer::Model>>;
     async fn get_odrl_offer_by_id(&self, odrl_offer_id: &Urn)

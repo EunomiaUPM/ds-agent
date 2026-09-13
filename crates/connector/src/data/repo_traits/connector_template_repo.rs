@@ -17,6 +17,8 @@
 
 use crate::data::entities::connector_templates;
 use crate::data::entities::connector_templates::NewConnectorTemplateModel;
+use crate::entities::filters::ConnectorTemplateFilter;
+use common::paginated_spec::{Page, Sort};
 use ymir::errors::Outcome;
 
 #[cfg_attr(test, mockall::automock)]
@@ -40,9 +42,10 @@ pub trait ConnectorTemplateRepoTrait: Send + Sync {
 
     async fn get_all_templates(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<connector_templates::Model>>;
+        filters: &ConnectorTemplateFilter,
+        page: &Page,
+        sort: Sort,
+    ) -> Outcome<(Vec<connector_templates::Model>, Option<u64>)>;
 
     async fn delete_template_by_name_and_version(
         &self,

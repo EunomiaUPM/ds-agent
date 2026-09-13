@@ -21,8 +21,35 @@ use crate::data::repo_traits::connector_repo_errors::{
     ConnectorAgentRepoErrors, ConnectorTemplateRepoErrors,
 };
 use crate::data::repo_traits::connector_template_repo::ConnectorTemplateRepoTrait;
-use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QuerySelect};
+use crate::entities::filters::ConnectorTemplateFilter;
+use common::paginated_spec::{Page, SelectCursorExt, Sort};
+use common::query::FilterApplier;
+use sea_orm::{
+    ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder,
+    QuerySelect, Select,
+};
 use ymir::errors::{Outcome, RepoIntoErrors};
+
+impl FilterApplier<Select<connector_templates::Entity>> for ConnectorTemplateFilter {
+    fn apply_to(&self, mut select: Select<connector_templates::Entity>) -> Select<connector_templates::Entity> {
+        if let Some(name) = &self.name {
+            select = select.filter(connector_templates::Column::Name.eq(name));
+        }
+        if let Some(author) = &self.author {
+            select = select.filter(connector_templates::Column::Author.eq(author));
+        }
+        if let Some(version) = &self.version {
+            select = select.filter(connector_templates::Column::Version.eq(version));
+        }
+        if let Some(created_after) = self.created_after {
+            select = select.filter(connector_templates::Column::CreatedAt.gte(created_after));
+        }
+        if let Some(created_before) = self.created_before {
+            select = select.filter(connector_templates::Column::CreatedAt.lte(created_before));
+        }
+        select
+    }
+}
 
 pub struct ConnectorTemplateRepoForSql {
     db_connection: DatabaseConnection,
@@ -92,24 +119,39 @@ impl ConnectorTemplateRepoTrait for ConnectorTemplateRepoForSql {
 
     async fn get_all_templates(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<connector_templates::Model>> {
-        let page_limit = limit.unwrap_or(25);
-        let page_number = page.unwrap_or(1);
-        let calculated_offset = (page_number.max(1) - 1) * page_limit;
-        let result = connector_templates::Entity::find()
-            .limit(page_limit)
-            .offset(calculated_offset)
-            .all(&self.db_connection)
-            .await;
-        match result {
-            Ok(list) => Ok(list),
-            Err(err) => Err(ConnectorAgentRepoErrors::ConnectorTemplateRepoErrors(
-                ConnectorTemplateRepoErrors::ErrorFetchingTemplate(err.to_string()),
+        filters: &ConnectorTemplateFilter,
+        page: &Page,
+        sort: Sort,
+    ) -> Outcome<(Vec<connector_templates::Model>, Option<u64>)> {
+        let q = filters.apply_to(connector_templates::Entity::find());
+        let total = q
+            .clone()
+            .count(&self.db_connection)
+            .await
+            .map_err(|err| {
+                ConnectorAgentRepoErrors::ConnectorTemplateRepoErrors(
+                    ConnectorTemplateRepoErrors::ErrorFetchingTemplate(err.to_string()),
+                )
+                .into_errors()
+            })?;
+
+        let list = q
+            .apply_cursor_pagination_with_tie_break(
+                page,
+                sort,
+                connector_templates::Column::CreatedAt,
+                connector_templates::Column::Name,
             )
-            .into_errors()),
-        }
+            .all(&self.db_connection)
+            .await
+            .map_err(|err| {
+                ConnectorAgentRepoErrors::ConnectorTemplateRepoErrors(
+                    ConnectorTemplateRepoErrors::ErrorFetchingTemplate(err.to_string()),
+                )
+                .into_errors()
+            })?;
+
+        Ok((list, Some(total)))
     }
 
     async fn delete_template_by_name_and_version(

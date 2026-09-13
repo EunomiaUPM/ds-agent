@@ -80,26 +80,32 @@ impl TransferAgentProcessesService {
     }
 }
 
+use crate::entities::filters::TransferProcessFilter;
+use common::paginated_spec::{Cursor, Page, Paginated, Sort};
+
 #[async_trait::async_trait]
 impl TransferAgentProcessesTrait for TransferAgentProcessesService {
     async fn get_all_transfer_processes(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<TransferProcessDto>> {
-        let processes = self
+        filters: &TransferProcessFilter,
+        page: &Page,
+        sort: Sort,
+    ) -> Outcome<Paginated<TransferProcessDto>> {
+        let (processes, total) = self
             .transfer_repo
             .get_transfer_process_repo()
-            .get_all_transfer_processes(limit, page)
+            .get_all_transfer_processes(filters, page, sort)
             .await?;
 
         let mut dtos = Vec::with_capacity(processes.len());
-        for p in processes {
-            let dto = self.enrich_process(p).await?;
+        for p in &processes {
+            let dto = self.enrich_process(p.clone()).await?;
             dtos.push(dto);
         }
 
-        Ok(dtos)
+        Ok(Paginated::from_page(dtos, page, total, |last| {
+            Cursor::encode_composite(&last.inner.created_at, &last.inner.id)
+        }))
     }
 
     async fn get_batch_transfer_processes(

@@ -15,8 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::datasets::DatasetEntityTrait;
-use crate::entities::datasets::{EditDatasetDto, NewDatasetDto};
+use crate::entities::datasets::{DatasetEntityTrait, EditDatasetDto, NewDatasetDto};
+use crate::entities::filters::DatasetFilter;
 use crate::http::common::to_camel_case::ToCamelCase;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{FromRef, Path, Query, State};
@@ -27,6 +27,7 @@ use axum::{Json, Router};
 use common::batch_requests::BatchRequests;
 use common::config::services::CatalogConfig;
 use common::errors::CommonErrors;
+use common::query::QuerySpec;
 use serde::Deserialize;
 use std::sync::Arc;
 use ymir::utils::{extract_path_urn, extract_payload};
@@ -37,11 +38,8 @@ pub struct DatasetEntityRouter {
     config: Arc<CatalogConfig>,
 }
 
-#[derive(Deserialize)]
-pub struct PaginationParams {
-    pub limit: Option<u64>,
-    pub page: Option<u64>,
-}
+pub use common::paginated_spec::PaginationParams;
+pub type DatasetQuery = QuerySpec<DatasetFilter>;
 
 impl FromRef<DatasetEntityRouter> for Arc<dyn DatasetEntityTrait> {
     fn from_ref(state: &DatasetEntityRouter) -> Self {
@@ -77,15 +75,16 @@ impl DatasetEntityRouter {
 
     async fn handle_get_all_datasets(
         State(state): State<DatasetEntityRouter>,
-        Query(params): Query<PaginationParams>,
+        Query(query): Query<DatasetQuery>,
     ) -> impl IntoResponse {
+        let (filter, page, sort) = query.into_domain();
         match state
             .service
-            .get_all_datasets(params.limit, params.page)
+            .get_all_datasets(&filter, &page, &sort)
             .await
         {
             Ok(datasets) => (StatusCode::OK, Json(ToCamelCase(datasets))).into_response(),
-            Err(e) => return e.into_response(),
+            Err(e) => e.into_response(),
         }
     }
     async fn handle_get_batch_datasets(

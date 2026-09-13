@@ -20,7 +20,10 @@ use crate::data::factory_trait::CatalogAgentRepoTrait;
 use crate::entities::distributions::{
     DistributionDto, DistributionEntityTrait, EditDistributionDto, NewDistributionDto,
 };
+use crate::entities::filters::DistributionFilter;
 use common::errors::{CommonErrors, ErrorLog};
+use common::paginated_spec::{Cursor, Page, Paginated, Sort};
+use common::query::QueryFilter;
 use std::str::FromStr;
 use std::sync::Arc;
 use tracing::error;
@@ -55,40 +58,24 @@ impl DistributionEntities {
 impl DistributionEntityTrait for DistributionEntities {
     async fn get_all_distributions(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<DistributionDto>> {
-        // cache
-        if let Ok(dtos) = self
-            .cache
-            .get_distribution_cache()
-            .get_collection(limit, page)
-            .await
-        {
-            if !dtos.is_empty() {
-                return Ok(dtos);
-            }
-        }
+        filters: &DistributionFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<Paginated<DistributionDto>> {
+        filters.validate()?;
+        let page = page.clamped();
 
-        // db
-        let distributions = self
+        let (distributions, total) = self
             .repo
             .get_distribution_repo()
-            .get_all_distributions(limit, page)
+            .get_all_distributions(filters, &page, sort)
             .await?;
 
         let dtos: Vec<DistributionDto> = distributions.into_iter().map(Into::into).collect();
 
-        // hydration
-        let cache = self.cache.get_distribution_cache();
-        for dto in &dtos {
-            if let Ok(id) = Urn::from_str(dto.inner.id.as_str()) {
-                let score = dto.inner.dct_issued.timestamp() as f64;
-                let _ = cache.set_single(&id, dto).await;
-                let _ = cache.add_to_collection(&id, score).await;
-            }
-        }
-        Ok(dtos)
+        Ok(Paginated::from_page(dtos, &page, total, |d| {
+            Cursor::encode_composite(&d.inner.dct_issued, &d.inner.id)
+        }))
     }
 
     async fn get_batch_distributions(&self, ids: &Vec<Urn>) -> Outcome<Vec<DistributionDto>> {

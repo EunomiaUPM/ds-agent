@@ -15,16 +15,23 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::connector_instance::{ConnectorInstanceTrait, ConnectorInstantiationDto};
+use crate::entities::connector_instance::{
+    ConnectorInstanceDto, ConnectorInstanceTrait, ConnectorInstantiationDto,
+};
+use crate::entities::filters::ConnectorInstanceFilter;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{FromRef, Path, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::routing::{delete, get, post};
 use axum::{Json, Router};
+use common::query::QuerySpec;
 use std::sync::Arc;
 use ymir::errors::Errors;
 use ymir::utils::{extract_path_urn, extract_payload};
+
+pub use common::paginated_spec::PaginationParams;
+pub type ConnectorInstanceQuery = QuerySpec<ConnectorInstanceFilter>;
 
 #[derive(Clone)]
 pub struct ConnectorInstanceRouter {

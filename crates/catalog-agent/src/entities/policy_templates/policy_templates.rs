@@ -17,10 +17,13 @@
 
 use crate::data::entities::policy_template::NewPolicyTemplateModel;
 use crate::data::factory_trait::CatalogAgentRepoTrait;
+use crate::entities::filters::PolicyTemplateFilter;
 use crate::entities::policy_templates::{
     NewPolicyTemplateDto, PolicyTemplateDto, PolicyTemplateEntityTrait,
 };
 use common::errors::{CommonErrors, ErrorLog};
+use common::paginated_spec::{Cursor, Page, Paginated, Sort};
+use common::query::QueryFilter;
 use std::sync::Arc;
 use tracing::error;
 use urn::Urn;
@@ -49,20 +52,28 @@ impl PolicyTemplateEntities {
 impl PolicyTemplateEntityTrait for PolicyTemplateEntities {
     async fn get_all_policy_templates(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<PolicyTemplateDto>> {
-        let policy_templates = self
+        filters: &PolicyTemplateFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<Paginated<PolicyTemplateDto>> {
+        filters.validate()?;
+        let page = page.clamped();
+
+        let (policy_templates, total) = self
             .repo
             .get_policy_template_repo()
-            .get_all_policy_templates(limit, page)
+            .get_all_policy_templates(filters, &page, sort)
             .await?;
+
         let mut dtos = Vec::with_capacity(policy_templates.len());
         for c in policy_templates {
             let dto: PolicyTemplateDto = PolicyTemplateDto::try_from(c)?;
             dtos.push(dto);
         }
-        Ok(dtos)
+
+        Ok(Paginated::from_page(dtos, &page, total, |d| {
+            Cursor::encode_composite(&d.date, &d.id)
+        }))
     }
 
     async fn get_batch_policy_templates(

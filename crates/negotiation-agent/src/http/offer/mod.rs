@@ -15,7 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::offer::{NegotiationAgentOffersTrait, NewOfferDto};
+use crate::entities::filters::OfferFilter;
+use crate::entities::offer::{
+    NegotiationAgentOffersTrait, NewOfferDto, OfferDto,
+};
 use crate::errors::error_adapter::CustomToResponse;
 use crate::http::common::{extract_payload, parse_urn};
 use axum::{
@@ -27,6 +30,7 @@ use axum::{
 };
 use common::batch_requests::BatchRequests;
 use common::config::services::ContractsConfig;
+use common::query::QuerySpec;
 use serde::Deserialize;
 use std::sync::Arc;
 
@@ -36,11 +40,8 @@ pub struct NegotiationAgentOffersRouter {
     config: Arc<ContractsConfig>,
 }
 
-#[derive(Deserialize)]
-pub struct PaginationParams {
-    pub limit: Option<u64>,
-    pub page: Option<u64>,
-}
+pub use common::paginated_spec::PaginationParams;
+pub type OfferQuery = QuerySpec<OfferFilter>;
 
 impl FromRef<NegotiationAgentOffersRouter> for Arc<dyn NegotiationAgentOffersTrait> {
     fn from_ref(state: &NegotiationAgentOffersRouter) -> Self {
@@ -90,11 +91,11 @@ impl NegotiationAgentOffersRouter {
 
     async fn handle_get_all_offers(
         State(state): State<NegotiationAgentOffersRouter>,
-        Query(params): Query<PaginationParams>,
+        Query(query): Query<OfferQuery>,
     ) -> impl IntoResponse {
         match state
             .service
-            .get_all_offers(params.limit, params.page)
+            .get_all_offers(&query.filter, &query.page, &query.sort)
             .await
         {
             Ok(offers) => (StatusCode::OK, Json(offers)).into_response(),

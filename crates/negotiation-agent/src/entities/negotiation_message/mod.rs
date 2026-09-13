@@ -21,6 +21,8 @@ use crate::data::entities::agreement as agreement_model;
 use crate::data::entities::negotiation_message as negotiation_message_model;
 use crate::data::entities::negotiation_message::NewNegotiationMessageModel;
 use crate::data::entities::offer as offer_model;
+use crate::entities::filters::NegotiationMessageFilter;
+use common::paginated_spec::{Page, Paginated, Sort};
 use serde::{Deserialize, Serialize};
 use urn::Urn;
 use ymir::errors::Outcome;
@@ -68,9 +70,10 @@ impl From<NewNegotiationMessageDto> for NewNegotiationMessageModel {
 pub trait NegotiationAgentMessagesTrait: Send + Sync + 'static {
     async fn get_all_negotiation_messages(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<NegotiationMessageDto>>;
+        filters: &NegotiationMessageFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<Paginated<NegotiationMessageDto>>;
 
     async fn get_messages_by_process_id(
         &self,

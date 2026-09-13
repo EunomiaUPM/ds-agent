@@ -82,14 +82,18 @@ impl From<dataset::Model> for DatasetDto {
     }
 }
 
+use crate::entities::filters::DatasetFilter;
+use common::paginated_spec::{Page, Paginated, Sort};
+
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait DatasetEntityTrait: Send + Sync {
     async fn get_all_datasets(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<DatasetDto>>;
+        filters: &DatasetFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<Paginated<DatasetDto>>;
     async fn get_batch_datasets(&self, ids: &Vec<Urn>) -> Outcome<Vec<DatasetDto>>;
     async fn get_datasets_by_catalog_id(&self, catalog_id: &Urn) -> Outcome<Vec<DatasetDto>>;
     async fn get_dataset_by_id(&self, dataset_id: &Urn) -> Outcome<Option<DatasetDto>>;

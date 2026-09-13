@@ -18,6 +18,7 @@
 use crate::entities::data_services::{
     DataServiceEntityTrait, EditDataServiceDto, NewDataServiceDto,
 };
+use crate::entities::filters::DataServiceFilter;
 use crate::http::common::to_camel_case::ToCamelCase;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{FromRef, Path, Query, State};
@@ -27,6 +28,7 @@ use axum::routing::{delete, get, post, put};
 use axum::{Json, Router};
 use common::batch_requests::BatchRequests;
 use common::config::services::CatalogConfig;
+use common::query::QuerySpec;
 use serde::Deserialize;
 use std::sync::Arc;
 use ymir::errors::Errors;
@@ -38,11 +40,8 @@ pub struct DataServiceEntityRouter {
     config: Arc<CatalogConfig>,
 }
 
-#[derive(Deserialize)]
-pub struct PaginationParams {
-    pub limit: Option<u64>,
-    pub page: Option<u64>,
-}
+pub use common::paginated_spec::PaginationParams;
+pub type DataServiceQuery = QuerySpec<DataServiceFilter>;
 
 impl FromRef<DataServiceEntityRouter> for Arc<dyn DataServiceEntityTrait> {
     fn from_ref(state: &DataServiceEntityRouter) -> Self {
@@ -80,11 +79,11 @@ impl DataServiceEntityRouter {
 
     async fn handle_get_all_data_services(
         State(state): State<DataServiceEntityRouter>,
-        Query(params): Query<PaginationParams>,
+        Query(query): Query<DataServiceQuery>,
     ) -> impl IntoResponse {
         match state
             .service
-            .get_all_data_services(params.limit, params.page)
+            .get_all_data_services(&query.filter, &query.page, &query.sort)
             .await
         {
             Ok(data_services) => (StatusCode::OK, Json(ToCamelCase(data_services))).into_response(),

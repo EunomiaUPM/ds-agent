@@ -19,12 +19,39 @@ use crate::data::entities::catalog;
 use crate::data::entities::catalog::{EditCatalogModel, NewCatalogModel};
 use crate::data::repo_traits::catalog_db_errors::{CatalogAgentRepoErrors, CatalogRepoErrors};
 use crate::data::repo_traits::catalog_repo::CatalogRepositoryTrait;
+use crate::entities::filters::CatalogFilter;
+use common::paginated_spec::{Page, SelectCursorExt, Sort};
+use common::query::FilterApplier;
 use sea_orm::{
-    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
-    QuerySelect,
+    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait,
+    QueryFilter, QueryOrder, QuerySelect, Select,
 };
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
+
+impl FilterApplier<Select<catalog::Entity>> for CatalogFilter {
+    fn apply_to(&self, mut q: Select<catalog::Entity>) -> Select<catalog::Entity> {
+        if let Some(ref title) = self.title {
+            q = q.filter(catalog::Column::DctTitle.contains(title));
+        }
+        if let Some(ref creator) = self.creator {
+            q = q.filter(catalog::Column::DctCreator.eq(creator));
+        }
+        if let Some(ref participant_id) = self.participant_id {
+            q = q.filter(catalog::Column::DspaceParticipantId.eq(participant_id));
+        }
+        if let Some(false) = self.with_main_catalog {
+            q = q.filter(catalog::Column::DspaceMainCatalog.eq(false));
+        }
+        if let Some(after) = self.created_after {
+            q = q.filter(catalog::Column::DctIssued.gte(after));
+        }
+        if let Some(before) = self.created_before {
+            q = q.filter(catalog::Column::DctIssued.lte(before));
+        }
+        q
+    }
+}
 
 pub struct CatalogRepositoryForSql {
     db_connection: DatabaseConnection,
@@ -40,38 +67,40 @@ impl CatalogRepositoryForSql {
 impl CatalogRepositoryTrait for CatalogRepositoryForSql {
     async fn get_all_catalogs(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-        with_main_catalog: bool,
-    ) -> Outcome<Vec<catalog::Model>> {
-        let page_limit = limit.unwrap_or(25);
-        let page_number = page.unwrap_or(1);
-        let calculated_offset = (page_number.max(1) - 1) * page_limit;
-        let catalogs = match with_main_catalog {
-            false => {
-                catalog::Entity::find()
-                    .filter(catalog::Column::DspaceMainCatalog.eq(false))
-                    .limit(page_limit)
-                    .offset(calculated_offset)
-                    .all(&self.db_connection)
-                    .await
-            }
-            true => {
-                catalog::Entity::find()
-                    .limit(page_limit)
-                    .offset(calculated_offset)
-                    .all(&self.db_connection)
-                    .await
-            }
-        };
+        filters: &CatalogFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<(Vec<catalog::Model>, Option<u64>)> {
+        let q = filters.apply_to(catalog::Entity::find());
 
-        match catalogs {
-            Ok(catalogs) => Ok(catalogs),
-            Err(err) => Err(CatalogAgentRepoErrors::CatalogRepoErrors(
-                CatalogRepoErrors::ErrorFetchingCatalog(err.into()),
+        let total = q
+            .clone()
+            .count(&self.db_connection)
+            .await
+            .map_err(|err| {
+                CatalogAgentRepoErrors::CatalogRepoErrors(CatalogRepoErrors::ErrorFetchingCatalog(
+                    err.into(),
+                ))
+                .into_errors()
+            })?;
+
+        let items = q
+            .apply_cursor_pagination_with_tie_break(
+                page,
+                sort,
+                catalog::Column::DctIssued,
+                catalog::Column::Id,
             )
-            .into_errors()),
-        }
+            .all(&self.db_connection)
+            .await
+            .map_err(|err| {
+                CatalogAgentRepoErrors::CatalogRepoErrors(CatalogRepoErrors::ErrorFetchingCatalog(
+                    err.into(),
+                ))
+                .into_errors()
+            })?;
+
+        Ok((items, Some(total)))
     }
 
     async fn get_batch_catalogs(&self, ids: &Vec<Urn>) -> Outcome<Vec<catalog::Model>> {

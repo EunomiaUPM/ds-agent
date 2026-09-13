@@ -16,11 +16,13 @@
  */
 
 use crate::entities::catalogs::{CatalogEntityTrait, EditCatalogDto, NewCatalogDto};
+use crate::entities::filters::CatalogFilter;
 use crate::grpc::api::catalog_agent::catalog_entity_service_server::CatalogEntityService;
 use crate::grpc::api::catalog_agent::{
     Catalog, CatalogListResponse, CatalogResponse, CreateCatalogRequest, DeleteByIdRequest,
     GetAllCatalogsRequest, GetBatchRequest, GetByIdRequest, PutCatalogRequest,
 };
+use common::paginated_spec::Page;
 use std::str::FromStr;
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
@@ -43,13 +45,16 @@ impl CatalogEntityService for CatalogEntityGrpc {
         request: Request<GetAllCatalogsRequest>,
     ) -> Result<Response<CatalogListResponse>, Status> {
         let req = request.into_inner();
-        let catalogs = self
+        let page = Page::new(req.limit.unwrap_or(20) as u32, None);
+        let mut filter = CatalogFilter::default();
+        filter.with_main_catalog = Some(req.with_main_catalog);
+        let paginated = self
             .service
-            .get_all_catalogs(req.limit, req.page, req.with_main_catalog)
+            .get_all_catalogs(&filter, &page, &Default::default())
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 
-        let proto_catalogs: Vec<Catalog> = catalogs.into_iter().map(Into::into).collect();
+        let proto_catalogs: Vec<Catalog> = paginated.items.into_iter().map(Into::into).collect();
 
         Ok(Response::new(CatalogListResponse {
             catalogs: proto_catalogs,

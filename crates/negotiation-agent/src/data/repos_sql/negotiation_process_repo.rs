@@ -23,12 +23,39 @@ use crate::data::entities::negotiation_process_identifier;
 use crate::data::repo_traits::negotiation_process_repo::{
     NegotiationProcessRepoErrors, NegotiationProcessRepoTrait,
 };
+use crate::entities::filters::NegotiationProcessFilter;
+use common::paginated_spec::{Page, SelectCursorExt, Sort};
+use common::query::FilterApplier;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, JoinType,
-    QueryFilter, QuerySelect, RelationTrait,
+    PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, RelationTrait, Select,
 };
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
+
+impl FilterApplier<Select<negotiation_process::Entity>> for NegotiationProcessFilter {
+    fn apply_to(&self, mut q: Select<negotiation_process::Entity>) -> Select<negotiation_process::Entity> {
+        if let Some(ref state) = self.state {
+            q = q.filter(negotiation_process::Column::State.eq(state));
+        }
+        if let Some(ref role) = self.role {
+            q = q.filter(negotiation_process::Column::Role.eq(role));
+        }
+        if let Some(ref protocol) = self.protocol {
+            q = q.filter(negotiation_process::Column::Protocol.eq(protocol));
+        }
+        if let Some(ref associated_agent_peer) = self.associated_agent_peer {
+            q = q.filter(negotiation_process::Column::AssociatedAgentPeer.eq(associated_agent_peer));
+        }
+        if let Some(after) = self.created_after {
+            q = q.filter(negotiation_process::Column::CreatedAt.gte(after));
+        }
+        if let Some(before) = self.created_before {
+            q = q.filter(negotiation_process::Column::CreatedAt.lte(before));
+        }
+        q
+    }
+}
 
 pub struct NegotiationProcessRepoForSql {
     db_connection: DatabaseConnection,
@@ -44,21 +71,37 @@ impl NegotiationProcessRepoForSql {
 impl NegotiationProcessRepoTrait for NegotiationProcessRepoForSql {
     async fn get_all_negotiation_processes(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<Model>> {
-        let processes = negotiation_process::Entity::find()
-            .limit(limit.unwrap_or(100))
-            .offset(page.map(|p| p * limit.unwrap_or(100)).unwrap_or(0))
-            .all(&self.db_connection)
-            .await;
-        match processes {
-            Ok(processes) => Ok(processes),
-            Err(e) => Err(
+        filters: &NegotiationProcessFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<(Vec<Model>, Option<u64>)> {
+        let mut q = negotiation_process::Entity::find();
+        q = filters.apply_to(q);
+
+        let total = q
+            .clone()
+            .count(&self.db_connection)
+            .await
+            .map_err(|e| {
                 NegotiationProcessRepoErrors::ErrorFetchingNegotiationProcess(e.into())
-                    .into_errors(),
-            ),
-        }
+                    .into_errors()
+            })?;
+
+        let items = q
+            .apply_cursor_pagination_with_tie_break(
+                page,
+                sort,
+                negotiation_process::Column::CreatedAt,
+                negotiation_process::Column::Id,
+            )
+            .all(&self.db_connection)
+            .await
+            .map_err(|e| {
+                NegotiationProcessRepoErrors::ErrorFetchingNegotiationProcess(e.into())
+                    .into_errors()
+            })?;
+
+        Ok((items, Some(total)))
     }
 
     async fn get_batch_negotiation_processes(&self, ids: &Vec<Urn>) -> Outcome<Vec<Model>> {

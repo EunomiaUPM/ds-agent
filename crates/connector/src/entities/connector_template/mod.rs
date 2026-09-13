@@ -88,14 +88,18 @@ impl TryFrom<ConnectorTemplateDto> for NewConnectorTemplateModel {
     }
 }
 
+use crate::entities::filters::ConnectorTemplateFilter;
+use common::paginated_spec::{Page, Paginated, Sort};
+
 /// Service interface for connector template CRUD operations.
 #[async_trait::async_trait]
 pub trait ConnectorTemplateEntitiesTrait: Send + Sync {
     async fn get_all_templates(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<ConnectorTemplateDto>>;
+        filters: &ConnectorTemplateFilter,
+        page: &Page,
+        sort: Sort,
+    ) -> Outcome<Paginated<ConnectorTemplateDto>>;
     async fn get_templates_by_id(&self, template_id: &String)
         -> Outcome<Vec<ConnectorTemplateDto>>;
     async fn get_template_by_name_and_version(

@@ -23,7 +23,7 @@ use crate::data::sea_orm::orm::transfer_message as orm;
 use crate::entities::commands::NewTransferMessageCommand;
 use crate::entities::filters::TransferMessageFilter;
 use crate::entities::transfer_message::TransferMessage;
-use base64::Engine;
+use common::paginated_spec::Cursor;
 use common::query::{Page, Sort};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
@@ -47,12 +47,7 @@ impl SeaOrmTransferMessageRepo {
 
     #[allow(clippy::result_large_err)]
     fn decode_cursor(&self, cursor: &str) -> Outcome<chrono::DateTime<chrono::FixedOffset>> {
-        let bytes = base64::engine::general_purpose::URL_SAFE_NO_PAD
-            .decode(cursor)
-            .map_err(|_| TransferMessageRepoErrors::InvalidCursor.into_errors())?;
-        let s = String::from_utf8(bytes)
-            .map_err(|_| TransferMessageRepoErrors::InvalidCursor.into_errors())?;
-        chrono::DateTime::parse_from_rfc3339(&s)
+        Cursor::decode_timestamp(cursor)
             .map_err(|_| TransferMessageRepoErrors::InvalidCursor.into_errors())
     }
 

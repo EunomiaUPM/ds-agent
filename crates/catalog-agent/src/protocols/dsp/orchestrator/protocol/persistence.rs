@@ -19,7 +19,9 @@ use crate::entities::catalogs::{CatalogDto, CatalogEntityTrait};
 use crate::entities::data_services::{DataServiceDto, DataServiceEntityTrait};
 use crate::entities::datasets::{DatasetDto, DatasetEntityTrait};
 use crate::entities::distributions::{DistributionDto, DistributionEntityTrait};
+use crate::entities::filters::CatalogFilter;
 use crate::entities::odrl_policies::{OdrlPolicyDto, OdrlPolicyEntityTrait};
+use common::paginated_spec::Page;
 use crate::protocols::dsp::types::catalog_definition::{
     Catalog, CatalogCatalogTypes, CatalogDSpaceDeclaration, CatalogDatasetTypes,
     CatalogDcatDeclaration, CatalogDctDeclaration, CatalogFoafDeclaration, CatalogMinimized,
@@ -108,9 +110,11 @@ impl OrchestrationPersistenceForProtocol {
     // Builders
     // =========================================================================
     async fn build_sub_catalogs(&self, exclude_id: &Urn) -> Outcome<Vec<CatalogMinimized>> {
+        let mut filter = CatalogFilter::default();
+        filter.with_main_catalog = Some(false);
         let catalogs_dtos = self
             .catalog_entities_service
-            .get_all_catalogs(None, None, false)
+            .get_all_catalogs(&filter, &Page::default(), &Default::default())
             .await?;
         let mut dcat_catalogs = Vec::with_capacity(catalogs_dtos.len());
         for catalog_dto in catalogs_dtos {

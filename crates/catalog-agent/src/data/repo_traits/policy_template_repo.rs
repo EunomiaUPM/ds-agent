@@ -18,6 +18,8 @@
 use crate::data::entities::policy_template;
 use crate::data::entities::policy_template::NewPolicyTemplateModel;
 use crate::data::repo_traits::catalog_db_errors::CatalogAgentRepoErrors;
+use crate::entities::filters::PolicyTemplateFilter;
+use common::paginated_spec::{Page, Sort};
 use urn::Urn;
 use ymir::errors::Outcome;
 
@@ -25,9 +27,10 @@ use ymir::errors::Outcome;
 pub trait PolicyTemplatesRepositoryTrait: Send + Sync {
     async fn get_all_policy_templates(
         &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<policy_template::Model>>;
+        filters: &PolicyTemplateFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<(Vec<policy_template::Model>, Option<u64>)>;
     async fn get_batch_policy_templates(
         &self,
         ids: &Vec<String>,

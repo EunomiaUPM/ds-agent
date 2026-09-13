@@ -23,10 +23,12 @@ use serde::{Deserialize, Serialize};
 use urn::Urn;
 use ymir::errors::{BadFormat, Errors, Outcome};
 
+use common::query::{QueryFilter, validate_date_range};
+
 // Filters ───────────────────────────────────────────────────────────────────
 
 /// Filter for `TransferProcess` related requests
-#[derive(Deserialize, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct TransferProcessFilter {
     /// `None` means no tenant restriction (admin queries). `Some` restricts to that tenant.
     pub tenant_id: Option<String>,
@@ -39,8 +41,14 @@ pub struct TransferProcessFilter {
     pub created_before: Option<DateTime<Utc>>,
 }
 
+impl QueryFilter for TransferProcessFilter {
+    fn validate(&self) -> Outcome<()> {
+        validate_date_range(self.created_after, self.created_before)
+    }
+}
+
 /// Filter for `TransferMessage` related requests
-#[derive(Deserialize, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct TransferMessageFilter {
     /// `None` means no tenant restriction (admin queries). `Some` restricts to that tenant.
     pub tenant_id: Option<String>,
@@ -49,4 +57,10 @@ pub struct TransferMessageFilter {
     pub state_transition_to: Option<ProtocolState>,
     pub created_after: Option<DateTime<Utc>>,
     pub created_before: Option<DateTime<Utc>>,
+}
+
+impl QueryFilter for TransferMessageFilter {
+    fn validate(&self) -> Outcome<()> {
+        validate_date_range(self.created_after, self.created_before)
+    }
 }

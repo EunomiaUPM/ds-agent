@@ -94,10 +94,7 @@ fn empty_filter() -> TransferMessageFilter {
 }
 
 fn default_page() -> Page {
-    Page {
-        limit: 20,
-        cursor: None,
-    }
+    Page::new(20, None)
 }
 
 fn make_cmd() -> NewTransferMessageCommand {
@@ -168,10 +165,7 @@ async fn get_all_full_page_produces_cursor_from_occurred_at() {
         .get_all(
             &admin_scope(),
             &empty_filter(),
-            &Page {
-                limit: 1,
-                cursor: None,
-            },
+            &Page::new(1, None),
             &Sort::CreatedAtDesc,
         )
         .await
@@ -195,10 +189,7 @@ async fn get_all_partial_page_no_cursor() {
         .get_all(
             &admin_scope(),
             &empty_filter(),
-            &Page {
-                limit: 5,
-                cursor: None,
-            },
+            &Page::new(5, None),
             &Sort::CreatedAtDesc,
         )
         .await
@@ -396,10 +387,7 @@ async fn get_all_page_limit_and_cursor_passed_through() {
     svc.get_all(
         &admin_scope(),
         &empty_filter(),
-        &Page {
-            limit: 5,
-            cursor: Some("abc".to_string()),
-        },
+        &Page::new(5, Some("abc".to_string())),
         &Sort::CreatedAtDesc,
     )
     .await
@@ -523,10 +511,7 @@ async fn get_all_by_process_full_page_produces_cursor() {
             &admin_scope(),
             &process_urn,
             &empty_filter(),
-            &Page {
-                limit: 1,
-                cursor: None,
-            },
+            &Page::new(1, None),
             &Sort::CreatedAtDesc,
         )
         .await
@@ -551,10 +536,7 @@ async fn get_all_by_process_partial_page_no_cursor() {
             &admin_scope(),
             &process_urn,
             &empty_filter(),
-            &Page {
-                limit: 5,
-                cursor: None,
-            },
+            &Page::new(5, None),
             &Sort::CreatedAtDesc,
         )
         .await

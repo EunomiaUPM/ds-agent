@@ -20,11 +20,11 @@
 pub mod filter;
 pub mod spec;
 
-pub use filter::{DateRange, FilterApplier, QueryFilter, validate_date_range};
+pub use filter::{validate_date_range, DateRange, FilterApplier, QueryFilter};
 pub use spec::QuerySpec;
 
 // Re-exports from paginated_spec for unified access and backwards compatibility.
 pub use crate::paginated_spec::{
-    Cursor, DEFAULT_PAGE_LIMIT, MAX_BATCH_IDS, MAX_PAGE_LIMIT, Page, Paginated,
-    PaginationParams, Sort, clamp_page_limit, default_limit,
+    clamp_page_limit, default_limit, Cursor, Page, Paginated, PaginationParams, Sort,
+    DEFAULT_PAGE_LIMIT, MAX_BATCH_IDS, MAX_PAGE_LIMIT,
 };

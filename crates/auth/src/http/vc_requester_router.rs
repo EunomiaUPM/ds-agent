@@ -28,8 +28,14 @@ use ymir::types::gnap::CallbackBody;
 use ymir::types::wallet::OidcUri;
 use ymir::utils::extract_payload;
 
+use crate::entities::filters::SentGrantFilter;
 use crate::modules::VcRequesterModule;
 use crate::types::entities::ReachAuthority;
+use common::paginated_spec::Paginated;
+use common::query::{QueryFilter, QuerySpec};
+
+pub use common::paginated_spec::PaginationParams;
+pub type VcRequesterQuery = QuerySpec<SentGrantFilter>;
 
 pub struct VcRequesterRouter {
     requester: Arc<dyn VcRequesterModule>,
@@ -65,8 +71,14 @@ impl VcRequesterRouter {
 
     async fn get_all(
         State(requester): State<Arc<dyn VcRequesterModule>>,
-    ) -> AppResult<Json<Vec<Model>>> {
-        Ok(Json(requester.get_all().await?))
+        Query(query): Query<VcRequesterQuery>,
+    ) -> AppResult<Json<Paginated<Model>>> {
+        query.filter.validate()?;
+        Ok(Json(
+            requester
+                .get_all(&query.filter, &query.page, &query.sort)
+                .await?,
+        ))
     }
 
     async fn get_one(

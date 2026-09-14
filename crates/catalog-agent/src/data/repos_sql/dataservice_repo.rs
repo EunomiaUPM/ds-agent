@@ -79,16 +79,12 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
         let mut q = dataservice::Entity::find();
         q = filters.apply_to(q);
 
-        let total = q
-            .clone()
-            .count(&self.db_connection)
-            .await
-            .map_err(|err| {
-                CatalogAgentRepoErrors::DataServiceRepoErrors(
-                    DataServiceRepoErrors::ErrorFetchingDataService(err.into()),
-                )
-                .into_errors()
-            })?;
+        let total = q.clone().count(&self.db_connection).await.map_err(|err| {
+            CatalogAgentRepoErrors::DataServiceRepoErrors(
+                DataServiceRepoErrors::ErrorFetchingDataService(err.into()),
+            )
+            .into_errors()
+        })?;
 
         let items = q
             .apply_cursor_pagination_with_tie_break(

@@ -16,6 +16,9 @@ import { PageHeader } from "shared/src/components/layout/PageHeader";
 import { PageSection } from "shared/src/components/layout/PageSection";
 import { useGetTransferProcesses } from "shared/src/data/orval/transfers/transfers";
 import { Skeleton } from "shared/components/ui/skeleton";
+import { useTableQueryParams } from "shared/src/hooks/useTableQueryParams";
+
+import { keepPreviousData } from "@tanstack/react-query";
 
 /**
  * Route for listing transfer processes.
@@ -26,18 +29,28 @@ export const Route = createFileRoute("/transfer-process/")({
 
 function RouteComponent() {
   const [mode, setMode] = useState<ActionsMode>("business");
-  const { data: transferProcessesResponse, isLoading: isTransferProcessesLoading } =
-    useGetTransferProcesses();
+  const { params: queryParams, apiParams, onQueryChange } = useTableQueryParams({
+    defaultLimit: 10,
+    defaultSort: "created_at_desc",
+  });
+
+  const {
+    data: transferProcessesResponse,
+    isLoading: isTransferProcessesLoading,
+    isFetching,
+  } = useGetTransferProcesses({
+    query: {
+      queryKey: ["/transfers/transfer-processes", apiParams],
+      placeholderData: keepPreviousData,
+    },
+    request: {
+      params: apiParams,
+    },
+  });
   const transferProcesses =
     transferProcessesResponse?.status === 200 ? transferProcessesResponse.data : undefined;
-  const transferProcessesSorted = useMemo(() => {
-    if (!transferProcesses) return [];
-    return [...transferProcesses].sort((a, b) => {
-      return new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime();
-    });
-  }, [transferProcesses]);
 
-  if (isTransferProcessesLoading) {
+  if (isTransferProcessesLoading && !transferProcesses) {
     return (
       <PageLayout>
         <PageHeader title="Transfer Processes" badge={<Skeleton className="h-8 w-48" />} />
@@ -75,9 +88,38 @@ function RouteComponent() {
       <PageSection>
         <DataTable
           className="text-sm"
-          data={transferProcesses ?? []}
+          data={transferProcesses}
+          serverSide={true}
+          loading={isFetching}
+          queryParams={queryParams}
+          onQueryChange={onQueryChange}
           keyExtractor={(tp) => tp.id!}
           searchPlaceholder="Filter transfers by process ID, role, or state..."
+          filters={[
+            {
+              id: "state",
+              label: "State",
+              options: [
+                { label: "All States", value: "all" },
+                { label: "Requested", value: "REQUESTED" },
+                { label: "Started", value: "STARTED" },
+                { label: "Completed", value: "COMPLETED" },
+                { label: "Suspended", value: "SUSPENDED" },
+                { label: "Terminated", value: "TERMINATED" },
+              ],
+              filterFn: (tp, val) => (tp.state ?? "").toUpperCase().includes(val),
+            },
+            {
+              id: "role",
+              label: "Role",
+              accessorKey: "role",
+              options: [
+                { label: "All Roles", value: "all" },
+                { label: "Provider", value: "Provider" },
+                { label: "Consumer", value: "Consumer" },
+              ],
+            },
+          ]}
           columns={[
             {
               header: "Process ID",
@@ -101,12 +143,14 @@ function RouteComponent() {
             {
               header: "Created at",
               accessorKey: "createdAt",
+              sortKey: "created_at",
               sortValue: (tp) => new Date(tp.createdAt!).getTime(),
               cell: (tp) => <FormatDate date={tp.createdAt} />,
             },
             {
               header: "Updated at",
               accessorKey: "updatedAt",
+              sortKey: "updated_at",
               sortValue: (tp) => new Date(tp.updatedAt!).getTime(),
               cell: (tp) => <FormatDate date={tp.updatedAt} />,
             },

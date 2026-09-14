@@ -34,18 +34,33 @@ use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
 impl FilterApplier<Select<negotiation_process::Entity>> for NegotiationProcessFilter {
-    fn apply_to(&self, mut q: Select<negotiation_process::Entity>) -> Select<negotiation_process::Entity> {
+    fn apply_to(
+        &self,
+        mut q: Select<negotiation_process::Entity>,
+    ) -> Select<negotiation_process::Entity> {
         if let Some(ref state) = self.state {
-            q = q.filter(negotiation_process::Column::State.eq(state));
+            let normalized = state.replace("dspace:", "");
+            let dspace_state = format!("dspace:{}", normalized);
+            q = q.filter(
+                negotiation_process::Column::State
+                    .eq(state.as_str())
+                    .or(negotiation_process::Column::State.eq(normalized.as_str()))
+                    .or(negotiation_process::Column::State.eq(dspace_state.as_str())),
+            );
         }
         if let Some(ref role) = self.role {
-            q = q.filter(negotiation_process::Column::Role.eq(role));
+            q = q.filter(
+                negotiation_process::Column::Role
+                    .eq(role.as_str())
+                    .or(negotiation_process::Column::Role.eq(role.to_lowercase())),
+            );
         }
         if let Some(ref protocol) = self.protocol {
             q = q.filter(negotiation_process::Column::Protocol.eq(protocol));
         }
         if let Some(ref associated_agent_peer) = self.associated_agent_peer {
-            q = q.filter(negotiation_process::Column::AssociatedAgentPeer.eq(associated_agent_peer));
+            q = q
+                .filter(negotiation_process::Column::AssociatedAgentPeer.eq(associated_agent_peer));
         }
         if let Some(after) = self.created_after {
             q = q.filter(negotiation_process::Column::CreatedAt.gte(after));
@@ -78,14 +93,9 @@ impl NegotiationProcessRepoTrait for NegotiationProcessRepoForSql {
         let mut q = negotiation_process::Entity::find();
         q = filters.apply_to(q);
 
-        let total = q
-            .clone()
-            .count(&self.db_connection)
-            .await
-            .map_err(|e| {
-                NegotiationProcessRepoErrors::ErrorFetchingNegotiationProcess(e.into())
-                    .into_errors()
-            })?;
+        let total = q.clone().count(&self.db_connection).await.map_err(|e| {
+            NegotiationProcessRepoErrors::ErrorFetchingNegotiationProcess(e.into()).into_errors()
+        })?;
 
         let items = q
             .apply_cursor_pagination_with_tie_break(

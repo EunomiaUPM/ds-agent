@@ -16,9 +16,7 @@
  */
 
 use crate::entities::filters::OfferFilter;
-use crate::entities::offer::{
-    NegotiationAgentOffersTrait, NewOfferDto, OfferDto,
-};
+use crate::entities::offer::{NegotiationAgentOffersTrait, NewOfferDto, OfferDto};
 use crate::errors::error_adapter::CustomToResponse;
 use crate::http::common::{extract_payload, parse_urn};
 use axum::{

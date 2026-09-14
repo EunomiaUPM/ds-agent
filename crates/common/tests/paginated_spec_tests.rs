@@ -16,7 +16,7 @@
  */
 
 use chrono::Utc;
-use common::paginated_spec::{Cursor, DEFAULT_PAGE_LIMIT, MAX_PAGE_LIMIT, Page, Paginated, Sort};
+use common::paginated_spec::{Cursor, Page, Paginated, Sort, DEFAULT_PAGE_LIMIT, MAX_PAGE_LIMIT};
 
 #[test]
 fn test_page_defaults_and_clamping() {
@@ -104,7 +104,8 @@ fn test_paginated_from_page() {
     assert_eq!(paginated.total, Some(10));
 
     let short_items = vec!["x".to_string()];
-    let short_paginated = Paginated::from_page(short_items, &page, Some(1), |s| format!("cursor_{s}"));
+    let short_paginated =
+        Paginated::from_page(short_items, &page, Some(1), |s| format!("cursor_{s}"));
     assert_eq!(short_paginated.items.len(), 1);
     assert_eq!(short_paginated.next_cursor, None);
     assert_eq!(short_paginated.total, Some(1));

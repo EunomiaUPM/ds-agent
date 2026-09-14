@@ -13,23 +13,24 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { formatIdentifier, formatUrn } from "shared/src/lib/utils";
 import { DataTable } from "shared/src/components/DataTable";
-import { useMemo, useState } from "react";
 import { Button } from "shared/src/components/ui/button.tsx";
 import { Badge, BadgeRole } from "shared/src/components/ui/badge";
 import { buttonVariants } from "shared/src/components/ui/button";
 
 // Icons
 import { ArrowRight } from "lucide-react";
-import { SortableHeader, SortConfig } from "shared/src/components/SortableHeader";
 import { PageLayout } from "shared/src/components/layout/PageLayout";
 import { PageHeader } from "shared/src/components/layout/PageHeader";
 import { PageSection } from "shared/src/components/layout/PageSection";
 import { useGetAllParticipants } from "shared/data/orval/participants/participants";
 import { GeneralErrorComponent } from "@/components/GeneralErrorComponent";
 import { ParticipantDto } from "shared/data/orval/model/participantDto";
+import { useTableQueryParams } from "shared/src/hooks/useTableQueryParams";
 import dayjs from "dayjs";
 import { Card, CardContent, CardHeader, CardTitle } from "shared/src/components/ui/card";
 import { Skeleton } from "shared/src/components/ui/skeleton";
+
+import { keepPreviousData } from "@tanstack/react-query";
 
 interface Participant extends ParticipantDto {
   last_interaction?: string;
@@ -42,54 +43,37 @@ interface Participant extends ParticipantDto {
 // =============================================================================
 
 /**
- * Route for listing participants with type-based layouts.
+ * Route definition for /participants/
  */
 export const Route = createFileRoute("/participants/")({
   component: RouteComponent,
 });
 
 function RouteComponent() {
-  const { data: participants, isLoading, isError, error } = useGetAllParticipants();
-  const [sortConfig, setSortConfig] = useState<SortConfig<string> | null>(null);
+  const { params: queryParams, apiParams, onQueryChange } = useTableQueryParams({
+    defaultLimit: 10,
+    defaultSort: "created_at_desc",
+  });
 
-  const rawParticipants = (participants?.data || []) as Participant[];
+  const {
+    data: participants,
+    isLoading,
+    isFetching,
+    isError,
+    error,
+  } = useGetAllParticipants(apiParams, {
+    query: {
+      placeholderData: keepPreviousData,
+    },
+  });
+  const rawParticipants = (
+    Array.isArray(participants?.data)
+      ? participants.data
+      : (participants?.data as any)?.items || []
+  ) as Participant[];
+  const allParticipants = rawParticipants;
 
-  const allParticipants = useMemo(() => {
-    let sortableParticipants = [...(rawParticipants || [])];
-    if (sortConfig !== null) {
-      sortableParticipants.sort((a: any, b: any) => {
-        const aVal = a[sortConfig.key];
-        const bVal = b[sortConfig.key];
-
-        if (aVal === bVal) return 0;
-
-        if (aVal === null || aVal === undefined) return sortConfig.direction === "asc" ? -1 : 1;
-        if (bVal === null || bVal === undefined) return sortConfig.direction === "asc" ? 1 : -1;
-
-        const aString = String(aVal).toLowerCase();
-        const bString = String(bVal).toLowerCase();
-
-        if (aString < bString) {
-          return sortConfig.direction === "asc" ? -1 : 1;
-        }
-        if (aString > bString) {
-          return sortConfig.direction === "asc" ? 1 : -1;
-        }
-        return 0;
-      });
-    }
-    return sortableParticipants;
-  }, [rawParticipants, sortConfig]);
-
-  const handleSort = (key: string) => {
-    let direction: "asc" | "desc" = "asc";
-    if (sortConfig && sortConfig.key === key && sortConfig.direction === "asc") {
-      direction = "desc";
-    }
-    setSortConfig({ key, direction });
-  };
-
-  if (isLoading) {
+  if (isLoading && !participants) {
     return (
       <PageLayout>
         <PageHeader title="Participants" />
@@ -178,18 +162,28 @@ function RouteComponent() {
       <PageSection title="Network Participants">
         <DataTable
           className="text-sm"
-          data={allParticipants}
+          data={participants?.data}
+          serverSide={true}
+          loading={isFetching}
+          queryParams={queryParams}
+          onQueryChange={onQueryChange}
           keyExtractor={(p) => p.participant_id!}
+          searchPlaceholder="Filter participants by name or DID..."
+          filters={[
+            {
+              id: "type",
+              label: "Type",
+              accessorKey: "participant_type",
+              options: [
+                { label: "All Types", value: "all" },
+                { label: "Agent", value: "Agent" },
+                { label: "Authority", value: "Authority" },
+              ],
+            },
+          ]}
           columns={[
             {
-              header: (
-                <SortableHeader
-                  label="Participant"
-                  sortKey="participant_nick"
-                  sortConfig={sortConfig}
-                  onSort={handleSort}
-                />
-              ),
+              header: "Participant",
               accessorKey: "participant_nick",
               cell: (p) => (
                 <div className="flex items-center gap-3">
@@ -208,14 +202,7 @@ function RouteComponent() {
               ),
             },
             {
-              header: (
-                <SortableHeader
-                  label="Participant Type"
-                  sortKey="participant_type"
-                  sortConfig={sortConfig}
-                  onSort={handleSort}
-                />
-              ),
+              header: "Participant Type",
               accessorKey: "participant_type",
               cell: (p) => (
                 <Badge variant="role" dsrole={p.participant_type as BadgeRole}>
@@ -224,29 +211,16 @@ function RouteComponent() {
               ),
             },
             {
-              header: (
-                <SortableHeader
-                  label="Participant DID"
-                  sortKey="participant_id"
-                  sortConfig={sortConfig}
-                  onSort={handleSort}
-                />
-              ),
+              header: "Participant DID",
               accessorKey: "participant_id",
               cell: (p) => (
                 <Badge variant="info">{formatIdentifier(p.participant_id, 0, true, 40)}</Badge>
               ),
             },
             {
-              header: (
-                <SortableHeader
-                  label="Last interaction"
-                  sortKey="last_interaction"
-                  sortConfig={sortConfig}
-                  onSort={handleSort}
-                />
-              ),
+              header: "Last interaction",
               accessorKey: "last_interaction",
+              sortKey: "last_interaction",
               cell: (p: Participant) => (
                 <p>
                   {p.last_interaction

@@ -21,7 +21,6 @@ use crate::entities::datasets::{DatasetDto, DatasetEntityTrait};
 use crate::entities::distributions::{DistributionDto, DistributionEntityTrait};
 use crate::entities::filters::CatalogFilter;
 use crate::entities::odrl_policies::{OdrlPolicyDto, OdrlPolicyEntityTrait};
-use common::paginated_spec::Page;
 use crate::protocols::dsp::types::catalog_definition::{
     Catalog, CatalogCatalogTypes, CatalogDSpaceDeclaration, CatalogDatasetTypes,
     CatalogDcatDeclaration, CatalogDctDeclaration, CatalogFoafDeclaration, CatalogMinimized,
@@ -40,6 +39,7 @@ use common::dsp_common::context_field::ContextField;
 use common::dsp_common::odrl::{OdrlOffer, OdrlPolicyInfo, OdrlTypes};
 use common::errors::ErrorLog;
 use common::facades::ssi_auth_facade::MatesFacadeTrait;
+use common::paginated_spec::Page;
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;

@@ -15,12 +15,6 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod core;
-pub mod data;
-pub mod entities;
-pub mod http;
-pub mod modules;
-pub mod services;
-pub mod setup;
-pub mod types;
-pub mod utils;
+//! Domain entities and filters for ssi-auth.
+
+pub mod filters;

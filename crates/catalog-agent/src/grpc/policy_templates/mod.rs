@@ -52,7 +52,8 @@ impl PolicyTemplateEntityService for PolicyTemplateEntityGrpc {
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 
-        let proto_templates: Vec<PolicyTemplate> = paginated.items.into_iter().map(Into::into).collect();
+        let proto_templates: Vec<PolicyTemplate> =
+            paginated.items.into_iter().map(Into::into).collect();
 
         Ok(Response::new(PolicyTemplateListResponse {
             policy_templates: proto_templates,

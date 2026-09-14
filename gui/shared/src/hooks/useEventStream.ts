@@ -75,11 +75,17 @@ export function useEventStream(options: UseEventStreamOptions = {}): UseEventStr
     const rawBase = (options.baseUrl ?? getApiGatewayBase()) || "";
     const cleanBase = rawBase.endsWith("/") ? rawBase.slice(0, -1) : rawBase;
 
+    const apiBase = cleanBase
+      ? cleanBase.endsWith("/admin/api")
+        ? cleanBase
+        : `${cleanBase}/admin/api`
+      : "/admin/api";
+
     if (useWebSocket) {
       let wsUrl: string;
-      if (cleanBase.startsWith("http")) {
-        const wsPrefix = cleanBase.replace(/^http/, "ws");
-        wsUrl = `${wsPrefix}/admin/api/ws${token ? `?token=${encodeURIComponent(token)}` : ""}`;
+      if (apiBase.startsWith("http")) {
+        const wsPrefix = apiBase.replace(/^http/, "ws");
+        wsUrl = `${wsPrefix}/ws${token ? `?token=${encodeURIComponent(token)}` : ""}`;
       } else {
         const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
         const host = window.location.host;
@@ -129,7 +135,7 @@ export function useEventStream(options: UseEventStreamOptions = {}): UseEventStr
       if (topic) queryParams.set("topic", topic);
       if (token) queryParams.set("token", token);
 
-      const streamPath = cleanBase ? `${cleanBase}/admin/api/events/stream` : "/admin/api/events/stream";
+      const streamPath = `${apiBase}/events/stream`;
       const sseUrl = `${streamPath}${queryParams.toString() ? `?${queryParams.toString()}` : ""}`;
       const eventSource = new EventSource(sseUrl);
 

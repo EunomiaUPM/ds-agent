@@ -15,11 +15,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::entities::filters::SentGrantFilter;
 use crate::services::{HasCallback, HasRepo, HasVcRequester};
 use crate::types::entities::ReachAuthority;
 use crate::types::response::VcWhatResponse;
+use crate::utils::pagination::AuthPagination;
 use async_trait::async_trait;
 use chrono::Utc;
+use common::paginated_spec::{Page, Paginated, Sort};
 use serde_json::{json, Value};
 use ymir::data::entities::sent::{grant, verification};
 use ymir::errors::Outcome;
@@ -63,12 +66,88 @@ pub trait VcRequesterModule:
         }
     }
     // =================================== GETTERS FOR FRONTEND ====================================
+    async fn get_all(
+        &self,
+        filter: &SentGrantFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<Paginated<grant::Model>> {
+        let kind = filter.kind.clone().unwrap_or(GrantKind::CredentialRequest);
+        let grants = self.repo().sent_grant().filter_by_type(kind).await?;
 
-    async fn get_all(&self) -> Outcome<Vec<grant::Model>> {
-        self.repo()
-            .sent_grant()
-            .filter_by_type(GrantKind::CredentialRequest)
-            .await
+        let mut filtered: Vec<grant::Model> = grants
+            .into_iter()
+            .filter(|g| {
+                if let Some(id) = &filter.participant_id {
+                    if !g.participant_id.contains(id) {
+                        return false;
+                    }
+                }
+                if let Some(nick) = &filter.participant_nick {
+                    if !g
+                        .participant_nick
+                        .to_lowercase()
+                        .contains(&nick.to_lowercase())
+                    {
+                        return false;
+                    }
+                }
+                if let Some(status) = &filter.status {
+                    if &g.status != status {
+                        return false;
+                    }
+                }
+                if let Some(after) = filter.created_after {
+                    if g.created_at < after {
+                        return false;
+                    }
+                }
+                if let Some(before) = filter.created_before {
+                    if g.created_at > before {
+                        return false;
+                    }
+                }
+                true
+            })
+            .collect();
+
+        match sort {
+            Sort::CreatedAtAsc => {
+                filtered.sort_by(|a, b| {
+                    a.created_at
+                        .cmp(&b.created_at)
+                        .then_with(|| a.id.cmp(&b.id))
+                });
+            }
+            Sort::UpdatedAtAsc => {
+                filtered.sort_by(|a, b| a.ended_at.cmp(&b.ended_at).then_with(|| a.id.cmp(&b.id)));
+            }
+            Sort::UpdatedAtDesc => {
+                filtered.sort_by(|a, b| b.ended_at.cmp(&a.ended_at).then_with(|| a.id.cmp(&b.id)));
+            }
+            _ => {
+                filtered.sort_by(|a, b| {
+                    b.created_at
+                        .cmp(&a.created_at)
+                        .then_with(|| a.id.cmp(&b.id))
+                });
+            }
+        }
+
+        Ok(AuthPagination::paginate(
+            &filtered,
+            page,
+            sort,
+            |item, s| {
+                let ts = match s {
+                    Sort::UpdatedAtAsc | Sort::UpdatedAtDesc => {
+                        item.ended_at.unwrap_or(item.created_at)
+                    }
+                    _ => item.created_at,
+                };
+                (ts, item.id.clone())
+            },
+        ))
     }
 
     async fn get_by_id(&self, id: String) -> Outcome<grant::Model> {

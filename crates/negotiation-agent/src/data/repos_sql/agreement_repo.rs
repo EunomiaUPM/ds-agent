@@ -43,7 +43,12 @@ impl FilterApplier<Select<agreement::Entity>> for AgreementFilter {
             q = q.filter(agreement::Column::Target.eq(target));
         }
         if let Some(ref state) = self.state {
-            q = q.filter(agreement::Column::State.eq(state));
+            q = q.filter(
+                agreement::Column::State
+                    .eq(state.as_str())
+                    .or(agreement::Column::State.eq(state.to_uppercase()))
+                    .or(agreement::Column::State.eq(state.to_lowercase())),
+            );
         }
         if let Some(after) = self.created_after {
             q = q.filter(agreement::Column::CreatedAt.gte(after));

@@ -18,7 +18,7 @@
 use std::sync::Arc;
 
 use axum::body::Bytes;
-use axum::extract::{Path, State};
+use axum::extract::{Path, Query, State};
 use axum::http::HeaderMap;
 use axum::routing::{get, post};
 use axum::{Json, Router};
@@ -27,7 +27,13 @@ use ymir::data::entities::received::grant;
 use ymir::errors::AppResult;
 use ymir::types::gnap::grant_response::GrantResponse;
 
+use crate::entities::filters::RecvGrantFilter;
 use crate::modules::GateKeeperModule;
+use common::paginated_spec::Paginated;
+use common::query::{QueryFilter, QuerySpec};
+
+pub use common::paginated_spec::PaginationParams;
+pub type GateKeeperQuery = QuerySpec<RecvGrantFilter>;
 
 pub struct GateKeeperRouter {
     gatekeeper: Arc<dyn GateKeeperModule>,
@@ -69,8 +75,14 @@ impl GateKeeperRouter {
 
     async fn get_all(
         State(gatekeeper): State<Arc<dyn GateKeeperModule>>,
-    ) -> AppResult<Json<Vec<grant::Model>>> {
-        Ok(Json(gatekeeper.get_all().await?))
+        Query(query): Query<GateKeeperQuery>,
+    ) -> AppResult<Json<Paginated<grant::Model>>> {
+        query.filter.validate()?;
+        Ok(Json(
+            gatekeeper
+                .get_all(&query.filter, &query.page, &query.sort)
+                .await?,
+        ))
     }
 
     async fn get_one(

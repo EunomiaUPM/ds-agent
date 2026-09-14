@@ -1,16 +1,16 @@
 import { ArrowRight, Plus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { DataTable } from "shared/src/components/DataTable";
-import { SortableHeader, SortConfig } from "shared/src/components/SortableHeader";
 import { PageHeader } from "shared/src/components/layout/PageHeader";
 import { PageLayout } from "shared/src/components/layout/PageLayout";
 import { PageSection } from "shared/src/components/layout/PageSection";
 import { Badge } from "shared/src/components/ui/badge";
 import { Button } from "shared/src/components/ui/button";
 import { FormatDate } from "shared/src/components/ui/format-date";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { customInstance } from "shared/src/data/orval-mutator";
 import { formatIdentifier, getFriendlyVCType } from "shared/src/lib/utils";
+import { useTableQueryParams } from "shared/src/hooks/useTableQueryParams";
 
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useGetAllParticipants } from "shared/src/data/orval/participants/participants";
@@ -36,11 +36,6 @@ interface SentGrant {
   ended_at?: string | null;
 }
 
-interface GrantsResponse {
-  status: number;
-  data: SentGrant[];
-}
-
 /**
  * Route for listing all VC requests to an authority.
  */
@@ -49,54 +44,41 @@ export const Route = createFileRoute("/authority/")({
 });
 
 function AuthorityRequestsPage() {
-  const { data: response } = useQuery({
-    queryKey: ["vc-requests-list"],
-    queryFn: () => customInstance<GrantsResponse>("/vc-request/all", { method: "GET" }),
+  const { params: queryParams, apiParams, onQueryChange } = useTableQueryParams({
+    defaultLimit: 10,
+    defaultSort: "created_at_desc",
+  });
+
+  const { data: response, isFetching } = useQuery({
+    queryKey: ["vc-requests-list", apiParams],
+    queryFn: () =>
+      customInstance<any>("/vc-request/all", {
+        method: "GET",
+        params: apiParams,
+      }),
+    placeholderData: keepPreviousData,
   });
   const { data: participantsResponse } = useGetAllParticipants();
 
   const [showCongrats, setShowCongrats] = useState(false);
-  const rawRequests = response?.status === 200 ? response.data : [];
-  const [sortConfig, setSortConfig] = useState<SortConfig<keyof SentGrant & string> | null>(null);
-
-  const requests = useMemo(() => {
-    const items = [...rawRequests];
-    if (sortConfig !== null) {
-      items.sort((a, b) => {
-        const aVal = a[sortConfig.key];
-        const bVal = b[sortConfig.key];
-        if (aVal === bVal) return 0;
-        if (aVal === null || aVal === undefined) return sortConfig.direction === "asc" ? -1 : 1;
-        if (bVal === null || bVal === undefined) return sortConfig.direction === "asc" ? 1 : -1;
-        const aString = String(aVal).toLowerCase();
-        const bString = String(bVal).toLowerCase();
-        if (aString < bString) return sortConfig.direction === "asc" ? -1 : 1;
-        if (aString > bString) return sortConfig.direction === "asc" ? 1 : -1;
-        return 0;
-      });
-    }
-    return items;
-  }, [rawRequests, sortConfig]);
-
-  const handleSort = (key: keyof SentGrant & string) => {
-    let direction: "asc" | "desc" = "asc";
-    if (sortConfig && sortConfig.key === key && sortConfig.direction === "asc") {
-      direction = "desc";
-    }
-    setSortConfig({ key, direction });
-  };
+  const requests = response?.status === 200 ? response.data : [];
+  const requestCount = Array.isArray(requests)
+    ? requests.length
+    : Array.isArray((requests as any)?.items)
+      ? (requests as any).items.length
+      : 0;
 
   useEffect(() => {
     try {
       const justJoined = sessionStorage.getItem("justJoinedDataspace");
-      if (justJoined === "true" && requests.length === 0) {
+      if (justJoined === "true" && requestCount === 0) {
         setShowCongrats(true);
         sessionStorage.removeItem("justJoinedDataspace");
       }
     } catch (e) {
       // ignore storage errors
     }
-  }, [participantsResponse, requests.length]);
+  }, [participantsResponse, requestCount]);
 
   return (
     <PageLayout>
@@ -127,22 +109,31 @@ function AuthorityRequestsPage() {
       </PageHeader>
 
       <PageSection>
-        <DataTable
+        <DataTable<SentGrant>
           className="text-sm"
           data={requests}
+          serverSide={true}
+          loading={isFetching}
+          queryParams={queryParams}
+          onQueryChange={onQueryChange}
           keyExtractor={(a) => a.id}
           emptyMessage="No credential requests yet"
           searchPlaceholder="Filter credential requests by authority, ID, or status..."
+          filters={[
+            {
+              id: "status",
+              label: "Status",
+              options: [
+                { label: "All Statuses", value: "all" },
+                { label: "Pending", value: "pending" },
+                { label: "Approved", value: "approved" },
+                { label: "Rejected", value: "rejected" },
+              ],
+            },
+          ]}
           columns={[
             {
-              header: (
-                <SortableHeader
-                  label="Authority"
-                  sortKey="participant_nick"
-                  sortConfig={sortConfig}
-                  onSort={handleSort}
-                />
-              ),
+              header: "Authority",
               accessorKey: "participant_nick",
               cell: (a) => a.participant_nick || "-",
             },
@@ -182,14 +173,7 @@ function AuthorityRequestsPage() {
                 ),
             },
             {
-              header: (
-                <SortableHeader
-                  label="Status"
-                  sortKey="status"
-                  sortConfig={sortConfig}
-                  onSort={handleSort}
-                />
-              ),
+              header: "Status",
               accessorKey: "status",
               cell: (a) => (
                 <Badge variant="status" state={a.status}>
@@ -198,15 +182,9 @@ function AuthorityRequestsPage() {
               ),
             },
             {
-              header: (
-                <SortableHeader
-                  label="Created at"
-                  sortKey="created_at"
-                  sortConfig={sortConfig}
-                  onSort={handleSort}
-                />
-              ),
+              header: "Created at",
               accessorKey: "created_at",
+              sortKey: "created_at",
               cell: (a) => (a.created_at ? <FormatDate date={a.created_at} /> : "-"),
             },
             {

@@ -18,7 +18,7 @@
 //! Domain filters for connector entities.
 
 use chrono::{DateTime, Utc};
-use common::query::{QueryFilter, validate_date_range};
+use common::query::{validate_date_range, QueryFilter};
 use serde::{Deserialize, Serialize};
 use urn::Urn;
 use ymir::errors::Outcome;

@@ -1,11 +1,11 @@
 /**
  * DataTable.tsx
  *
- * Enterprise-grade generic table component with built-in client-side
- * sorting, live search filtering, pagination, and status indicators.
+ * Enterprise generic table with client and server-side sorting, live search filtering,
+ * declarative filter selects, configurable pagination, and page size selection.
  */
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 import { Input } from "./ui/input";
 import { Badge } from "./ui/badge";
@@ -16,15 +16,57 @@ import {
   ArrowUpDown,
   ChevronLeft,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   Inbox,
   SearchX,
   X,
 } from "lucide-react";
 import { cn } from "shared/src/lib/utils";
+import { mapToSortParam, TableQueryParams } from "../hooks/useTableQueryParams";
 
 // =============================================================================
 // TYPES
 // =============================================================================
+
+/**
+ * Single option within a table filter.
+ */
+export interface TableFilterOption {
+  label: string;
+  value: string;
+}
+
+/**
+ * Declarative filter definition for the DataTable toolbar.
+ *
+ * @template T - The type of data items in the table
+ */
+export interface TableFilter<T = any> {
+  /** Unique identifier for the filter */
+  id: string;
+
+  /** Display label for the filter dropdown */
+  label: string;
+
+  /** Selectable options. Use value "all" for matching all items */
+  options: TableFilterOption[];
+
+  /** Controlled value for the filter */
+  value?: string;
+
+  /** Default selected value when uncontrolled */
+  defaultValue?: string;
+
+  /** Callback fired when the filter value changes */
+  onChange?: (value: string) => void;
+
+  /** Field key on data item to filter against when filterFn is omitted */
+  accessorKey?: keyof T;
+
+  /** Custom filter logic */
+  filterFn?: (item: T, selectedValue: string) => boolean;
+}
 
 /**
  * Column definition for the DataTable.
@@ -53,14 +95,14 @@ export interface Column<T> {
   /** Additional CSS class for the header cell */
   headerClassName?: string;
 
-  /** Whether this column is sortable. Defaults to true for string headers or when accessorKey/sortValue is set */
+  /** Whether this column is sortable. Defaults to true when accessorKey/sortKey/sortValue is set */
   sortable?: boolean;
 
   /** Custom sort key name */
   sortKey?: string;
 
   /** Custom sort value extractor */
-  sortValue?: (item: T) => string | number | boolean | null | undefined;
+  sortValue?: (item: T) => string | number | boolean | Date | null | undefined;
 
   /** Whether this column should be searched during filtering. Defaults to true */
   searchable?: boolean;
@@ -78,8 +120,8 @@ export interface DataTableProps<T> {
   /** Column definitions */
   columns: Column<T>[];
 
-  /** Array of data items to display */
-  data: T[];
+  /** Array of data items or Paginated response envelope */
+  data: T[] | { items: T[]; total?: number; nextCursor?: string } | null | undefined;
 
   /** Function to extract a unique key from each item */
   keyExtractor: (item: T) => string;
@@ -108,14 +150,17 @@ export interface DataTableProps<T> {
   /** Extra actions/buttons displayed on the toolbar */
   toolbarActions?: React.ReactNode;
 
-  /** Whether client-side search is enabled. Defaults to true if data is non-empty. */
+  /** Whether client-side search is enabled. Defaults to true. */
   searchable?: boolean;
 
   /** Custom placeholder for search input */
   searchPlaceholder?: string;
 
-  /** Custom filter function */
+  /** Custom filter function for live text search */
   filterFn?: (item: T, query: string) => boolean;
+
+  /** Available declarative filters displayed in the toolbar */
+  filters?: TableFilter<T>[];
 
   /** Default column key to sort by */
   defaultSortKey?: string;
@@ -123,14 +168,41 @@ export interface DataTableProps<T> {
   /** Default sort direction */
   defaultSortDirection?: "asc" | "desc";
 
-  /** Optional items per page for client-side pagination */
+  /** Whether client-side pagination is enabled. Defaults to true. */
+  paginated?: boolean;
+
+  /** Initial or fixed items per page. Defaults to 10. Pass -1 or Infinity to show all. */
   pageSize?: number;
+
+  /** Available options in the rows-per-page dropdown. Defaults to [10, 20, 50, 100]. */
+  pageSizeOptions?: number[];
 
   /** Whether to hide the search and filter toolbar */
   hideToolbar?: boolean;
 
   /** Whether to hide the record count badge */
   hideCount?: boolean;
+
+  /** Enable server-side pagination, sorting, and filtering via query parameters */
+  serverSide?: boolean;
+
+  /** Total number of records across all pages when using server-side pagination */
+  totalCount?: number;
+
+  /** Next cursor for cursor-based pagination */
+  nextCursor?: string;
+
+  /** Controlled query state object */
+  queryParams?: Partial<TableQueryParams>;
+
+  /** Callback fired when sorting, filtering, pagination, or search changes */
+  onQueryChange?: (params: Partial<TableQueryParams>) => void;
+
+  /** Automatically synchronize query parameters with the browser URL. Defaults to true */
+  syncUrlParams?: boolean;
+
+  /** Whether the table is currently fetching new data in background */
+  loading?: boolean;
 }
 
 // =============================================================================
@@ -138,7 +210,7 @@ export interface DataTableProps<T> {
 // =============================================================================
 
 /**
- * Enterprise table component with built-in client-side sorting, filtering, and pagination.
+ * Enterprise table component with built-in client/server sorting, filtering, and pagination.
  */
 export function DataTable<T extends Record<string, any> = any>({
   columns,
@@ -154,30 +226,214 @@ export function DataTable<T extends Record<string, any> = any>({
   searchable = true,
   searchPlaceholder = "Filter records...",
   filterFn,
+  filters,
   defaultSortKey,
   defaultSortDirection,
-  pageSize,
+  paginated = true,
+  pageSize = 10,
+  pageSizeOptions = [10, 20, 50, 100],
   hideToolbar = false,
   hideCount = false,
+  serverSide = false,
+  totalCount,
+  nextCursor,
+  queryParams,
+  onQueryChange,
+  syncUrlParams = true,
+  loading = false,
 }: DataTableProps<T>) {
-  const [searchQuery, setSearchQuery] = useState("");
+  // Extract items array and total count from either raw array or Paginated response envelope
+  const rawItems: T[] = useMemo(() => {
+    if (!data) return [];
+    if (Array.isArray(data)) return data;
+    if (typeof data === "object" && Array.isArray((data as any).items)) {
+      return (data as any).items;
+    }
+    return [];
+  }, [data]);
+
+  const totalCountValue = useMemo(() => {
+    if (totalCount !== undefined) return totalCount;
+    if (data && typeof data === "object" && typeof (data as any).total === "number") {
+      return (data as any).total;
+    }
+    return undefined;
+  }, [totalCount, data]);
+
+  const isServerDriven = serverSide || Boolean(onQueryChange);
+
+  // Search query state
+  const [searchQuery, setSearchQuery] = useState(queryParams?.search ?? "");
+  useEffect(() => {
+    if (queryParams?.search !== undefined && queryParams.search !== searchQuery) {
+      setSearchQuery(queryParams.search);
+    }
+  }, [queryParams?.search]);
+
+  // Sort configuration state
   const [sortConfig, setSortConfig] = useState<{
     key: string;
     direction: "asc" | "desc";
   } | null>(
     defaultSortKey ? { key: defaultSortKey, direction: defaultSortDirection ?? "asc" } : null,
   );
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState<number | undefined>(pageSize);
 
-  // Client-side live filtering
+  // Sync sort state from queryParams if provided
+  useEffect(() => {
+    if (queryParams?.sort) {
+      const s = queryParams.sort;
+      if (s.endsWith("_asc")) {
+        const key = s.slice(0, -4);
+        setSortConfig({ key, direction: "asc" });
+      } else if (s.endsWith("_desc")) {
+        const key = s.slice(0, -5);
+        setSortConfig({ key, direction: "desc" });
+      }
+    }
+  }, [queryParams?.sort]);
+
+  const [currentPage, setCurrentPage] = useState(queryParams?.page ?? 1);
+  useEffect(() => {
+    if (queryParams?.page !== undefined) {
+      setCurrentPage(queryParams.page);
+    }
+  }, [queryParams?.page]);
+
+  // Initialize and track active rows-per-page
+  const [itemsPerPage, setItemsPerPage] = useState<number | undefined>(() => {
+    if (!paginated) return undefined;
+    const initialLimit = queryParams?.limit ?? pageSize;
+    if (initialLimit <= 0 || initialLimit === Infinity) return undefined;
+    return initialLimit;
+  });
+
+  useEffect(() => {
+    if (!paginated) {
+      setItemsPerPage(undefined);
+    } else if (queryParams?.limit !== undefined) {
+      setItemsPerPage(queryParams.limit <= 0 ? undefined : queryParams.limit);
+    } else if (pageSize <= 0 || pageSize === Infinity) {
+      setItemsPerPage(undefined);
+    } else {
+      setItemsPerPage(pageSize);
+    }
+  }, [paginated, pageSize, queryParams?.limit]);
+
+  // Manage declarative toolbar filter states
+  const [filterValues, setFilterValues] = useState<Record<string, string>>(() => {
+    const initial: Record<string, string> = {};
+    filters?.forEach((f) => {
+      initial[f.id] = queryParams?.filters?.[f.id] ?? f.value ?? f.defaultValue ?? "all";
+    });
+    return initial;
+  });
+
+  // Sync controlled filter values
+  useEffect(() => {
+    if (filters || queryParams?.filters) {
+      setFilterValues((prev) => {
+        let changed = false;
+        const next = { ...prev };
+        filters?.forEach((f) => {
+          const targetVal =
+            queryParams?.filters?.[f.id] ?? f.value ?? f.defaultValue ?? "all";
+          if (prev[f.id] !== targetVal) {
+            next[f.id] = targetVal;
+            changed = true;
+          }
+        });
+        return changed ? next : prev;
+      });
+    }
+  }, [filters, queryParams?.filters]);
+
+  // Propagate filter selection changes
+  const handleFilterChange = useCallback(
+    (filter: TableFilter<T>, val: string) => {
+      setFilterValues((prev) => {
+        const next = { ...prev, [filter.id]: val };
+        if (onQueryChange) {
+          onQueryChange({ filters: next, page: 1 });
+        }
+        return next;
+      });
+      setCurrentPage(1);
+      if (filter.onChange) {
+        filter.onChange(val);
+      }
+    },
+    [onQueryChange],
+  );
+
+  // Propagate search input updates
+  const handleSearchChange = useCallback(
+    (val: string) => {
+      setSearchQuery(val);
+      setCurrentPage(1);
+      if (onQueryChange) {
+        onQueryChange({ search: val, page: 1 });
+      }
+    },
+    [onQueryChange],
+  );
+
+  // Propagate page size updates
+  const handlePageSizeChange = useCallback(
+    (newLimit: number) => {
+      setItemsPerPage(newLimit === -1 ? undefined : newLimit);
+      setCurrentPage(1);
+      if (onQueryChange) {
+        onQueryChange({ limit: newLimit === -1 ? 100 : newLimit, page: 1 });
+      }
+    },
+    [onQueryChange],
+  );
+
+  // Propagate page navigation updates
+  const handlePageChange = useCallback(
+    (newPage: number) => {
+      setCurrentPage(newPage);
+      if (onQueryChange) {
+        onQueryChange({ page: newPage });
+      }
+    },
+    [onQueryChange],
+  );
+
+  // Client-side filtering when not server-driven
   const filteredData = useMemo(() => {
+    if (isServerDriven) return rawItems;
+
+    let result = rawItems;
+
+    // Apply declarative select filters
+    if (filters && filters.length > 0) {
+      result = result.filter((item) => {
+        for (const f of filters) {
+          const selectedVal = f.value !== undefined ? f.value : (filterValues[f.id] ?? "all");
+          if (!selectedVal || selectedVal === "all") continue;
+
+          if (f.filterFn) {
+            if (!f.filterFn(item, selectedVal)) return false;
+          } else if (f.accessorKey) {
+            const raw = item[f.accessorKey];
+            if (raw === null || raw === undefined) return false;
+            if (String(raw).toLowerCase() !== selectedVal.toLowerCase()) {
+              return false;
+            }
+          }
+        }
+        return true;
+      });
+    }
+
+    // Apply live search text query
     const trimmed = searchQuery.trim().toLowerCase();
-    if (!trimmed) return data;
+    if (!trimmed) return result;
 
     const terms = trimmed.split(/\s+/).filter(Boolean);
 
-    return data.filter((item) => {
+    return result.filter((item) => {
       if (filterFn) return filterFn(item, trimmed);
 
       // Check each column's searchable value
@@ -207,10 +463,11 @@ export function DataTable<T extends Record<string, any> = any>({
 
       return terms.every((t) => itemValues.includes(t));
     });
-  }, [data, searchQuery, filterFn, columns]);
+  }, [rawItems, isServerDriven, filters, filterValues, searchQuery, filterFn, columns]);
 
-  // Client-side column sorting
+  // Client-side column sorting when not server-driven
   const sortedData = useMemo(() => {
+    if (isServerDriven) return filteredData;
     if (!sortConfig) return filteredData;
 
     const col = columns.find(
@@ -239,10 +496,19 @@ export function DataTable<T extends Record<string, any> = any>({
       if (aVal === null || aVal === undefined) return sortConfig.direction === "asc" ? 1 : -1;
       if (bVal === null || bVal === undefined) return sortConfig.direction === "asc" ? -1 : 1;
 
+      // Handle Date instances
+      if (aVal instanceof Date && bVal instanceof Date) {
+        return sortConfig.direction === "asc"
+          ? aVal.getTime() - bVal.getTime()
+          : bVal.getTime() - aVal.getTime();
+      }
+
+      // Handle numbers
       if (typeof aVal === "number" && typeof bVal === "number") {
         return sortConfig.direction === "asc" ? aVal - bVal : bVal - aVal;
       }
 
+      // Handle booleans
       if (typeof aVal === "boolean" && typeof bVal === "boolean") {
         return sortConfig.direction === "asc"
           ? aVal === bVal
@@ -257,55 +523,109 @@ export function DataTable<T extends Record<string, any> = any>({
               : 1;
       }
 
+      // Handle ISO date strings
+      if (typeof aVal === "string" && typeof bVal === "string") {
+        const isDateLike = /^\d{4}-\d{2}-\d{2}/.test(aVal) && /^\d{4}-\d{2}-\d{2}/.test(bVal);
+        if (isDateLike) {
+          const aTime = Date.parse(aVal);
+          const bTime = Date.parse(bVal);
+          if (!isNaN(aTime) && !isNaN(bTime)) {
+            return sortConfig.direction === "asc" ? aTime - bTime : bTime - aTime;
+          }
+        }
+      }
+
       const aStr = String(aVal).toLowerCase();
       const bStr = String(bVal).toLowerCase();
       return sortConfig.direction === "asc" ? aStr.localeCompare(bStr) : bStr.localeCompare(aStr);
     });
-  }, [filteredData, sortConfig, columns]);
+  }, [filteredData, isServerDriven, sortConfig, columns]);
 
-  // Reset page when search changes
-  React.useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery]);
+  // Total items calculation (uses server totalCount if available)
+  const totalItems = totalCountValue ?? sortedData.length;
+  const activeItemsPerPage = itemsPerPage ?? (isServerDriven ? rawItems.length || 10 : undefined);
+  const totalPages = activeItemsPerPage ? Math.ceil(totalItems / activeItemsPerPage) || 1 : 1;
+  const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
 
-  // Client-side pagination
-  const totalPages = itemsPerPage ? Math.ceil(sortedData.length / itemsPerPage) || 1 : 1;
+  // Clamp current page when total pages shrink
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  // In server-side mode display rawItems directly; in client mode slice current page
   const paginatedData = useMemo(() => {
+    if (isServerDriven) return rawItems;
     if (!itemsPerPage) return sortedData;
-    const start = (currentPage - 1) * itemsPerPage;
+    const start = (safeCurrentPage - 1) * itemsPerPage;
     return sortedData.slice(start, start + itemsPerPage);
-  }, [sortedData, currentPage, itemsPerPage]);
+  }, [isServerDriven, rawItems, sortedData, safeCurrentPage, itemsPerPage]);
+
+  const startItem =
+    totalItems === 0 ? 0 : (safeCurrentPage - 1) * (activeItemsPerPage ?? totalItems) + 1;
+  const endItem = activeItemsPerPage
+    ? Math.min(safeCurrentPage * activeItemsPerPage, totalItems)
+    : totalItems;
 
   const handleHeaderClick = (col: Column<T>, index: number) => {
-    // Only sort if sortable
-    const isStringHeader = typeof col.header === "string";
     const isSortable =
       col.sortable !== undefined
         ? col.sortable
-        : col.sortKey !== undefined ||
-          col.sortValue !== undefined ||
-          (col.accessorKey !== undefined && isStringHeader);
+        : isServerDriven
+          ? Boolean(col.sortKey)
+          : Boolean(col.sortKey || col.sortValue || col.accessorKey);
 
     if (!isSortable) return;
 
     const colKey =
       col.sortKey ??
       (col.accessorKey as string) ??
-      (isStringHeader ? (col.header as string) : `col_${index}`);
+      (typeof col.header === "string" ? col.header : `col_${index}`);
 
-    if (sortConfig?.key === colKey) {
-      if (sortConfig.direction === "asc") {
-        setSortConfig({ key: colKey, direction: "desc" });
-      } else {
-        setSortConfig(null);
-      }
-    } else {
-      setSortConfig({ key: colKey, direction: "asc" });
+    const isCurrentKey = sortConfig?.key === colKey;
+    const nextDirection: "asc" | "desc" =
+      isCurrentKey && sortConfig.direction === "asc" ? "desc" : "asc";
+
+    setSortConfig({ key: colKey, direction: nextDirection });
+
+    if (onQueryChange) {
+      const backendSort = mapToSortParam(String(colKey), nextDirection);
+      onQueryChange({ sort: backendSort, page: 1 });
     }
   };
 
-  const showToolbar = !hideToolbar && (searchable || title || toolbarActions || !hideCount);
-  const isFiltered = searchQuery.trim().length > 0;
+  const hasActiveFilter = Boolean(
+    filters?.some((f) => {
+      const val = f.value !== undefined ? f.value : filterValues[f.id];
+      return val && val !== "all";
+    }),
+  );
+
+  const isFiltered = searchQuery.trim().length > 0 || hasActiveFilter;
+  const showToolbar =
+    !hideToolbar &&
+    (searchable ||
+      title ||
+      toolbarActions ||
+      !hideCount ||
+      Boolean(filters && filters.length > 0));
+
+  const handleResetAll = useCallback(() => {
+    setSearchQuery("");
+    const resetVals: Record<string, string> = {};
+    if (filters) {
+      filters.forEach((f) => {
+        resetVals[f.id] = "all";
+        if (f.onChange) f.onChange("all");
+      });
+      setFilterValues(resetVals);
+    }
+    setCurrentPage(1);
+    if (onQueryChange) {
+      onQueryChange({ search: "", filters: resetVals, page: 1 });
+    }
+  }, [filters, onQueryChange]);
 
   return (
     <div className="flex flex-col gap-2.5 w-full">
@@ -325,11 +645,43 @@ export function DataTable<T extends Record<string, any> = any>({
                 <Input
                   type="search"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onClear={() => setSearchQuery("")}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  onClear={() => handleSearchChange("")}
                   placeholder={searchPlaceholder}
                   className="text-xs"
                 />
+              </div>
+            )}
+
+            {/* Declarative Filter Selects */}
+            {filters && filters.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                {filters.map((f) => {
+                  const currentVal =
+                    f.value !== undefined ? f.value : (filterValues[f.id] ?? "all");
+                  return (
+                    <div key={f.id} className="flex items-center gap-1.5">
+                      <select
+                        aria-label={f.label}
+                        value={currentVal}
+                        onChange={(e) => handleFilterChange(f, e.target.value)}
+                        className={cn(
+                          "h-8 rounded-md border bg-background-800/90 px-2.5 py-1 text-xs shadow-xs transition-colors focus:outline-none focus:ring-1 focus:ring-brand-sky/60 cursor-pointer",
+                          currentVal !== "all"
+                            ? "border-brand-sky/60 bg-brand-sky/10 text-brand-sky font-medium"
+                            : "border-ink/15 text-muted-foreground hover:text-foreground",
+                        )}
+                      >
+                        <option value="all">{f.label}: All</option>
+                        {f.options.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  );
+                })}
               </div>
             )}
 
@@ -341,14 +693,14 @@ export function DataTable<T extends Record<string, any> = any>({
                   className="font-mono text-xs"
                 >
                   {isFiltered
-                    ? `${filteredData.length} of ${data.length}`
-                    : `${data.length} records`}
+                    ? `${rawItems.length} of ${totalItems}`
+                    : `${totalItems} records`}
                 </Badge>
                 {isFiltered && (
                   <Button
                     variant="ghost"
                     size="xs"
-                    onClick={() => setSearchQuery("")}
+                    onClick={handleResetAll}
                     className="text-muted-foreground hover:text-ink gap-1"
                   >
                     <X className="h-3 w-3" />
@@ -370,18 +722,17 @@ export function DataTable<T extends Record<string, any> = any>({
         <TableHeader className="sticky top-0 z-10 bg-background-800/90 backdrop-blur border-b border-ink/10">
           <TableRow>
             {columns.map((col, index) => {
-              const isStringHeader = typeof col.header === "string";
               const isSortable =
                 col.sortable !== undefined
                   ? col.sortable
-                  : col.sortKey !== undefined ||
-                    col.sortValue !== undefined ||
-                    (col.accessorKey !== undefined && isStringHeader);
+                  : isServerDriven
+                    ? Boolean(col.sortKey)
+                    : Boolean(col.sortKey || col.sortValue || col.accessorKey);
 
               const colKey =
                 col.sortKey ??
                 (col.accessorKey as string) ??
-                (isStringHeader ? (col.header as string) : `col_${index}`);
+                (typeof col.header === "string" ? col.header : `col_${index}`);
 
               const isSortedAsc = sortConfig?.key === colKey && sortConfig.direction === "asc";
               const isSortedDesc = sortConfig?.key === colKey && sortConfig.direction === "desc";
@@ -417,7 +768,9 @@ export function DataTable<T extends Record<string, any> = any>({
           </TableRow>
         </TableHeader>
 
-        <TableBody>
+        <TableBody
+          className={cn("transition-opacity duration-200", loading && "opacity-50 pointer-events-none")}
+        >
           {paginatedData.length === 0 ? (
             <TableRow className="hover:bg-transparent">
               <TableCell colSpan={columns.length} className="text-center py-12">
@@ -430,12 +783,12 @@ export function DataTable<T extends Record<string, any> = any>({
                       No matching records found
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      No items matched &quot;{searchQuery}&quot;
+                      No items matched current search or filter criteria
                     </span>
                     <Button
                       variant="outline"
                       size="xs"
-                      onClick={() => setSearchQuery("")}
+                      onClick={handleResetAll}
                       className="mt-2"
                     >
                       Reset filter
@@ -454,9 +807,9 @@ export function DataTable<T extends Record<string, any> = any>({
               </TableCell>
             </TableRow>
           ) : (
-            paginatedData.map((item) => (
+            paginatedData.map((item, itemIndex) => (
               <TableRow
-                key={keyExtractor(item)}
+                key={keyExtractor ? (keyExtractor(item) || `row_${itemIndex}`) : `row_${itemIndex}`}
                 onClick={() => onRowClick && onRowClick(item)}
                 className={cn(
                   onRowClick &&
@@ -477,33 +830,85 @@ export function DataTable<T extends Record<string, any> = any>({
         </TableBody>
       </Table>
 
-      {/* Pagination Footer (if enabled) */}
-      {itemsPerPage && totalPages > 1 && (
-        <div className="flex items-center justify-between px-2 py-1.5 text-xs text-muted-foreground border-t border-ink/5">
-          <span>
-            Page {currentPage} of {totalPages} ({sortedData.length} total)
-          </span>
+      {/* Pagination Footer */}
+      {paginated && totalItems > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-3 py-2 text-xs text-muted-foreground border-t border-ink/10 bg-background-800/30 rounded-b-lg">
+          {/* Record range summary */}
           <div className="flex items-center gap-1.5">
-            <Button
-              variant="outline"
-              size="xs"
-              disabled={currentPage <= 1}
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              className="gap-1"
-            >
-              <ChevronLeft className="h-3 w-3" />
-              Prev
-            </Button>
-            <Button
-              variant="outline"
-              size="xs"
-              disabled={currentPage >= totalPages}
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              className="gap-1"
-            >
-              Next
-              <ChevronRight className="h-3 w-3" />
-            </Button>
+            <span>
+              Showing <span className="font-medium text-brand-snow">{startItem}</span> to{" "}
+              <span className="font-medium text-brand-snow">{endItem}</span> of{" "}
+              <span className="font-medium text-brand-snow">{totalItems}</span> records
+            </span>
+          </div>
+
+          {/* Rows per page selector & Page navigation */}
+          <div className="flex items-center gap-4 flex-wrap">
+            {/* Rows per page selector */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-muted-foreground">Rows per page:</span>
+              <select
+                aria-label="Rows per page"
+                value={activeItemsPerPage ?? -1}
+                onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                className="h-7 rounded-md border border-ink/15 bg-background-800 px-2 py-0.5 text-xs text-brand-snow shadow-xs focus:outline-none focus:ring-1 focus:ring-brand-sky/60 cursor-pointer"
+              >
+                {pageSizeOptions.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+                <option value={-1}>All</option>
+              </select>
+            </div>
+
+            {/* Page navigation */}
+            <div className="flex items-center gap-1">
+              <span className="text-xs mr-1">
+                Page <span className="font-medium text-brand-snow">{safeCurrentPage}</span> of{" "}
+                <span className="font-medium text-brand-snow">{totalPages}</span>
+              </span>
+              <Button
+                variant="outline"
+                size="xs"
+                disabled={safeCurrentPage <= 1}
+                onClick={() => handlePageChange(1)}
+                className="h-7 w-7 p-0"
+                title="First page"
+              >
+                <ChevronsLeft className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="outline"
+                size="xs"
+                disabled={safeCurrentPage <= 1}
+                onClick={() => handlePageChange(Math.max(1, safeCurrentPage - 1))}
+                className="h-7 w-7 p-0"
+                title="Previous page"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="outline"
+                size="xs"
+                disabled={safeCurrentPage >= totalPages}
+                onClick={() => handlePageChange(Math.min(totalPages, safeCurrentPage + 1))}
+                className="h-7 w-7 p-0"
+                title="Next page"
+              >
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="outline"
+                size="xs"
+                disabled={safeCurrentPage >= totalPages}
+                onClick={() => handlePageChange(totalPages)}
+                className="h-7 w-7 p-0"
+                title="Last page"
+              >
+                <ChevronsRight className="h-3.5 w-3.5" />
+              </Button>
+            </div>
           </div>
         </div>
       )}

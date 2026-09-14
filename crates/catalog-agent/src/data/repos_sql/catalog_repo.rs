@@ -73,16 +73,12 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
     ) -> Outcome<(Vec<catalog::Model>, Option<u64>)> {
         let q = filters.apply_to(catalog::Entity::find());
 
-        let total = q
-            .clone()
-            .count(&self.db_connection)
-            .await
-            .map_err(|err| {
-                CatalogAgentRepoErrors::CatalogRepoErrors(CatalogRepoErrors::ErrorFetchingCatalog(
-                    err.into(),
-                ))
-                .into_errors()
-            })?;
+        let total = q.clone().count(&self.db_connection).await.map_err(|err| {
+            CatalogAgentRepoErrors::CatalogRepoErrors(CatalogRepoErrors::ErrorFetchingCatalog(
+                err.into(),
+            ))
+            .into_errors()
+        })?;
 
         let items = q
             .apply_cursor_pagination_with_tie_break(

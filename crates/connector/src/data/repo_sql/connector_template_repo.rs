@@ -31,7 +31,10 @@ use sea_orm::{
 use ymir::errors::{Outcome, RepoIntoErrors};
 
 impl FilterApplier<Select<connector_templates::Entity>> for ConnectorTemplateFilter {
-    fn apply_to(&self, mut select: Select<connector_templates::Entity>) -> Select<connector_templates::Entity> {
+    fn apply_to(
+        &self,
+        mut select: Select<connector_templates::Entity>,
+    ) -> Select<connector_templates::Entity> {
         if let Some(name) = &self.name {
             select = select.filter(connector_templates::Column::Name.eq(name));
         }
@@ -124,16 +127,12 @@ impl ConnectorTemplateRepoTrait for ConnectorTemplateRepoForSql {
         sort: Sort,
     ) -> Outcome<(Vec<connector_templates::Model>, Option<u64>)> {
         let q = filters.apply_to(connector_templates::Entity::find());
-        let total = q
-            .clone()
-            .count(&self.db_connection)
-            .await
-            .map_err(|err| {
-                ConnectorAgentRepoErrors::ConnectorTemplateRepoErrors(
-                    ConnectorTemplateRepoErrors::ErrorFetchingTemplate(err.to_string()),
-                )
-                .into_errors()
-            })?;
+        let total = q.clone().count(&self.db_connection).await.map_err(|err| {
+            ConnectorAgentRepoErrors::ConnectorTemplateRepoErrors(
+                ConnectorTemplateRepoErrors::ErrorFetchingTemplate(err.to_string()),
+            )
+            .into_errors()
+        })?;
 
         let list = q
             .apply_cursor_pagination_with_tie_break(

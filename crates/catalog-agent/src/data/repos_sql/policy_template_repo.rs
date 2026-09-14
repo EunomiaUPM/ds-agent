@@ -73,16 +73,12 @@ impl PolicyTemplatesRepositoryTrait for PolicyTemplatesRepositoryForSql {
         let mut q = policy_template::Entity::find();
         q = filters.apply_to(q);
 
-        let total = q
-            .clone()
-            .count(&self.db_connection)
-            .await
-            .map_err(|err| {
-                CatalogAgentRepoErrors::PolicyTemplatesRepoErrors(
-                    PolicyTemplatesRepoErrors::ErrorFetchingPolicyTemplate(err.into()),
-                )
-                .into_errors()
-            })?;
+        let total = q.clone().count(&self.db_connection).await.map_err(|err| {
+            CatalogAgentRepoErrors::PolicyTemplatesRepoErrors(
+                PolicyTemplatesRepoErrors::ErrorFetchingPolicyTemplate(err.into()),
+            )
+            .into_errors()
+        })?;
 
         let items = q
             .apply_cursor_pagination_with_tie_break(

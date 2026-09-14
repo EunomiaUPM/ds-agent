@@ -17,5 +17,5 @@
 
 //! Backwards compatible re-exports of pagination and query types.
 
-pub use common::paginated_spec::{Page, Paginated, Sort};
 pub use crate::entities::filters::UserFilter;
+pub use common::paginated_spec::{Page, Paginated, Sort};

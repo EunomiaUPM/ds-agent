@@ -269,6 +269,19 @@ const SubscriptionsComponent = () => {
             emptyMessage="No webhook subscriptions configured yet."
             defaultSortKey="created_at"
             defaultSortDirection="desc"
+            filters={[
+              {
+                id: "status",
+                label: "Status",
+                options: [
+                  { label: "All Statuses", value: "all" },
+                  { label: "Active", value: "active" },
+                  { label: "Inactive", value: "inactive" },
+                ],
+                filterFn: (sub, val) =>
+                  val === "active" ? Boolean(sub.active) : !sub.active,
+              },
+            ]}
             columns={[
               {
                 header: "Topic pattern",

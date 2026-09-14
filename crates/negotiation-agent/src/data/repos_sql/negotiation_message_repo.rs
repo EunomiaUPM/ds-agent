@@ -31,7 +31,10 @@ use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
 impl FilterApplier<Select<negotiation_message::Entity>> for NegotiationMessageFilter {
-    fn apply_to(&self, mut q: Select<negotiation_message::Entity>) -> Select<negotiation_message::Entity> {
+    fn apply_to(
+        &self,
+        mut q: Select<negotiation_message::Entity>,
+    ) -> Select<negotiation_message::Entity> {
         if let Some(ref process_id) = self.process_id {
             q = q.filter(negotiation_message::Column::NegotiationAgentProcessId.eq(process_id));
         }
@@ -75,14 +78,9 @@ impl NegotiationMessageRepoTrait for NegotiationMessageRepoForSql {
         let mut q = negotiation_message::Entity::find();
         q = filters.apply_to(q);
 
-        let total = q
-            .clone()
-            .count(&self.db_connection)
-            .await
-            .map_err(|e| {
-                NegotiationMessageRepoErrors::ErrorFetchingNegotiationMessage(e.into())
-                    .into_errors()
-            })?;
+        let total = q.clone().count(&self.db_connection).await.map_err(|e| {
+            NegotiationMessageRepoErrors::ErrorFetchingNegotiationMessage(e.into()).into_errors()
+        })?;
 
         let items = q
             .apply_cursor_pagination_with_tie_break(

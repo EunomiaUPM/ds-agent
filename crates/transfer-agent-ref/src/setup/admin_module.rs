@@ -76,7 +76,11 @@ impl ServiceModuleTrait for TransferAdminModule {
             process_router,
             message_router,
         );
-        Some((self.base_path(), router))
+        let api_version = self.ctx.config.common().get_api_version();
+        let combined = Router::new()
+            .nest(&format!("{}/transfer-agent", api_version), router.clone())
+            .nest(&self.base_path(), router);
+        Some((String::new(), combined))
     }
 
     fn grpc(&self, routes: &mut RoutesBuilder) {

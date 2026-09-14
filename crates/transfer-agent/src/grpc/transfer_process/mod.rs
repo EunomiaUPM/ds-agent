@@ -53,11 +53,7 @@ impl TransferAgentProcesses for TransferAgentProcessesGrpc {
             .get_all_transfer_processes(&TransferProcessFilter::default(), &page, Sort::default())
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
-        let proto_processes = paginated
-            .items
-            .into_iter()
-            .map(|m| m.into())
-            .collect();
+        let proto_processes = paginated.items.into_iter().map(|m| m.into()).collect();
         Ok(Response::new(TransferProcessListResponse {
             processes: proto_processes,
         }))

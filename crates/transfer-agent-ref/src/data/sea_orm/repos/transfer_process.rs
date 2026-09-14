@@ -62,7 +62,13 @@ impl SeaOrmTransferProcessRepo {
             q = q.filter(orm::Column::Protocol.eq(ser_enum(protocol)));
         }
         if let Some(state) = &filters.state {
-            q = q.filter(orm::Column::ProtocolState.eq(state.0.as_str()));
+            let state_str = state.0.as_str();
+            let upper = state_str.to_uppercase();
+            q = q.filter(
+                orm::Column::ProtocolState
+                    .eq(state_str)
+                    .or(orm::Column::ProtocolState.eq(upper.as_str())),
+            );
         }
         if let Some(role) = &filters.role {
             q = q.filter(orm::Column::Role.eq(ser_enum(role)));
@@ -97,8 +103,9 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
             let cursor_dt = self.decode_cursor(cursor)?;
             q = match sort {
                 Sort::CreatedAtAsc => q.filter(orm::Column::CreatedAt.gt(cursor_dt)),
-                Sort::CreatedAtDesc => q.filter(orm::Column::CreatedAt.lt(cursor_dt)),
+                Sort::UpdatedAtAsc => q.filter(orm::Column::UpdatedAt.gt(cursor_dt)),
                 Sort::UpdatedAtDesc => q.filter(orm::Column::UpdatedAt.lt(cursor_dt)),
+                _ => q.filter(orm::Column::CreatedAt.lt(cursor_dt)),
             };
         }
 
@@ -106,11 +113,14 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
             Sort::CreatedAtAsc => q
                 .order_by_asc(orm::Column::CreatedAt)
                 .order_by_asc(orm::Column::Id),
-            Sort::CreatedAtDesc => q
-                .order_by_desc(orm::Column::CreatedAt)
-                .order_by_desc(orm::Column::Id),
+            Sort::UpdatedAtAsc => q
+                .order_by_asc(orm::Column::UpdatedAt)
+                .order_by_asc(orm::Column::Id),
             Sort::UpdatedAtDesc => q
                 .order_by_desc(orm::Column::UpdatedAt)
+                .order_by_desc(orm::Column::Id),
+            _ => q
+                .order_by_desc(orm::Column::CreatedAt)
                 .order_by_desc(orm::Column::Id),
         };
 

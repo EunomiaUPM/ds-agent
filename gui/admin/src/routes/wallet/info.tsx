@@ -84,6 +84,7 @@ const WalletInfoPage = () => {
           <span className="font-semibold text-primary">DID</span> tab.
         </p>
         <DataTable
+          searchable={false}
           data={info.dids}
           keyExtractor={(d) => d.did}
           columns={[

@@ -25,6 +25,7 @@ use super::MatesFacadeTrait;
 use crate::config::types::min_known_config::MinKnownConfig;
 use crate::config::types::traits::MinKnownConfigTrait;
 use crate::http_client::HttpClient;
+use crate::paginated_spec::Paginated;
 use ymir::data::entities::shared::participant::Model as Mates;
 
 pub struct MatesFacadeService {
@@ -64,10 +65,18 @@ impl MatesFacadeTrait for MatesFacadeService {
     async fn get_all_mates(&self) -> Outcome<Vec<Mates>> {
         let ssi_auth_url = self.config.get_host(HostType::Http);
         let mates_url = format!("{}/api/v1/mates/all", ssi_auth_url);
-        let mates = self
+        if let Ok(paginated) = self
             .client
-            .get_json::<Vec<Mates>>(mates_url.as_str())
-            .await?;
-        Ok(mates)
+            .get_json::<Paginated<Mates>>(mates_url.as_str())
+            .await
+        {
+            Ok(paginated.items)
+        } else {
+            let mates = self
+                .client
+                .get_json::<Vec<Mates>>(mates_url.as_str())
+                .await?;
+            Ok(mates)
+        }
     }
 }

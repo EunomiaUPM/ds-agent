@@ -18,6 +18,8 @@
 use url::Url;
 use ymir::errors::{Errors, Outcome};
 
+pub mod pagination;
+
 pub fn parse_url(str: &str) -> Outcome<Url> {
     Url::parse(str).map_err(|e| Errors::parse("Error parsing url", Some(Box::new(e))))
 }

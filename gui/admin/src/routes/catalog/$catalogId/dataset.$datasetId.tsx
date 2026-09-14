@@ -383,12 +383,18 @@ function RouteComponent() {
                   <Heading level="h2" className="!mb-0">
                     {dataset.dctTitle}
                   </Heading>
-                  <Badge variant="outline" className="font-mono text-xs border-brand-sky/40 text-brand-sky">
+                  <Badge
+                    variant="outline"
+                    className="font-mono text-xs border-brand-sky/40 text-brand-sky"
+                  >
                     {formatUrn(dataset.id || "")}
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Catalog: <span className="text-foreground font-medium">{catalog?.dctTitle || catalogId}</span>
+                  Catalog:{" "}
+                  <span className="text-foreground font-medium">
+                    {catalog?.dctTitle || catalogId}
+                  </span>
                 </p>
               </div>
 
@@ -492,6 +498,7 @@ function RouteComponent() {
                 </div>
               ) : (
                 <DataTable
+                  searchable={false}
                   data={filteredDistributions}
                   columns={distributionColumns}
                   keyExtractor={(d) => d.id || ""}
@@ -550,7 +557,9 @@ function RouteComponent() {
                   <div className="rounded-lg border border-ink/10 divide-y divide-ink/5 text-xs">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 gap-1">
                       <span className="text-muted-foreground">Identifier (@id)</span>
-                      <span className="font-mono text-brand-sky text-xs break-all">{dataset.id}</span>
+                      <span className="font-mono text-brand-sky text-xs break-all">
+                        {dataset.id}
+                      </span>
                     </div>
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 gap-1">
                       <span className="text-muted-foreground">Title (dct:title)</span>
@@ -563,12 +572,20 @@ function RouteComponent() {
                       </span>
                     </div>
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 gap-1">
-                      <span className="text-muted-foreground">Profile Standard (dct:conformsTo)</span>
-                      <span className="font-mono text-foreground/80">{dataset.dctConformsTo || "—"}</span>
+                      <span className="text-muted-foreground">
+                        Profile Standard (dct:conformsTo)
+                      </span>
+                      <span className="font-mono text-foreground/80">
+                        {dataset.dctConformsTo || "—"}
+                      </span>
                     </div>
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 gap-1">
-                      <span className="text-muted-foreground">Creator / Publisher DID (dct:creator)</span>
-                      <span className="font-mono text-foreground/80">{dataset.dctCreator || "—"}</span>
+                      <span className="text-muted-foreground">
+                        Creator / Publisher DID (dct:creator)
+                      </span>
+                      <span className="font-mono text-foreground/80">
+                        {dataset.dctCreator || "—"}
+                      </span>
                     </div>
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 gap-1">
                       <span className="text-muted-foreground">Issued Date (dct:issued)</span>
@@ -580,7 +597,9 @@ function RouteComponent() {
                     </div>
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 gap-1">
                       <span className="text-muted-foreground">Parent Catalog Reference</span>
-                      <span className="font-mono text-xs text-muted-foreground">{dataset.catalogId || catalogId}</span>
+                      <span className="font-mono text-xs text-muted-foreground">
+                        {dataset.catalogId || catalogId}
+                      </span>
                     </div>
                   </div>
                 </CardContent>

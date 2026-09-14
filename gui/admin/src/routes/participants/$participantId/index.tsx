@@ -183,6 +183,22 @@ function RouteComponent() {
                 keyExtractor={(a) => a.id}
                 searchPlaceholder="Filter agreements by ID or state..."
                 emptyMessage="No active agreements with this participant"
+                defaultSortKey="createdAt"
+                defaultSortDirection="desc"
+                pageSize={5}
+                filters={[
+                  {
+                    id: "state",
+                    label: "Status",
+                    options: [
+                      { label: "All Statuses", value: "all" },
+                      { label: "Finalized", value: "FINALIZED" },
+                      { label: "Active", value: "ACTIVE" },
+                      { label: "Terminated", value: "TERMINATED" },
+                    ],
+                    filterFn: (a, val) => a.state?.toUpperCase().includes(val) ?? false,
+                  },
+                ]}
                 columns={[
                   {
                     header: "Agreement Id",

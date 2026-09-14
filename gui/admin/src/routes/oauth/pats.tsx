@@ -279,6 +279,19 @@ const PatsComponent = () => {
             emptyMessage='No active Personal Access Tokens. Click "Generate New PAT" to create one.'
             defaultSortKey="created_at"
             defaultSortDirection="desc"
+            filters={[
+              {
+                id: "status",
+                label: "Status",
+                options: [
+                  { label: "All Statuses", value: "all" },
+                  { label: "Active", value: "active" },
+                  { label: "Revoked", value: "revoked" },
+                ],
+                filterFn: (pat, val) =>
+                  val === "active" ? !pat.revoked : Boolean(pat.revoked),
+              },
+            ]}
             columns={[
               {
                 header: "Name",

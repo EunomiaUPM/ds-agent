@@ -24,12 +24,16 @@ use ymir::errors::Outcome;
 
 /// Filter criteria for negotiation processes.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct NegotiationProcessFilter {
     pub state: Option<String>,
     pub role: Option<String>,
     pub protocol: Option<String>,
+    #[serde(alias = "associated_agent_peer")]
     pub associated_agent_peer: Option<String>,
+    #[serde(alias = "created_after")]
     pub created_after: Option<DateTime<Utc>>,
+    #[serde(alias = "created_before")]
     pub created_before: Option<DateTime<Utc>>,
 }
 
@@ -50,12 +54,17 @@ impl QueryFilter for NegotiationProcessFilter {
 
 /// Filter criteria for negotiation messages.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct NegotiationMessageFilter {
+    #[serde(alias = "process_id")]
     pub process_id: Option<String>,
     pub protocol: Option<String>,
+    #[serde(alias = "message_type")]
     pub message_type: Option<String>,
     pub direction: Option<String>,
+    #[serde(alias = "created_after")]
     pub created_after: Option<DateTime<Utc>>,
+    #[serde(alias = "created_before")]
     pub created_before: Option<DateTime<Utc>>,
 }
 
@@ -76,13 +85,27 @@ impl QueryFilter for NegotiationMessageFilter {
 
 /// Filter criteria for agreements.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct AgreementFilter {
+    #[serde(alias = "process_id")]
     pub process_id: Option<String>,
+    #[serde(
+        alias = "consumer_id",
+        alias = "consumerParticipantId",
+        alias = "consumer_participant_id"
+    )]
     pub consumer_id: Option<String>,
+    #[serde(
+        alias = "provider_id",
+        alias = "providerParticipantId",
+        alias = "provider_participant_id"
+    )]
     pub provider_id: Option<String>,
     pub target: Option<String>,
     pub state: Option<String>,
+    #[serde(alias = "created_after")]
     pub created_after: Option<DateTime<Utc>>,
+    #[serde(alias = "created_before")]
     pub created_before: Option<DateTime<Utc>>,
 }
 
@@ -104,11 +127,16 @@ impl QueryFilter for AgreementFilter {
 
 /// Filter criteria for offers.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct OfferFilter {
+    #[serde(alias = "process_id")]
     pub process_id: Option<String>,
+    #[serde(alias = "offer_id")]
     pub offer_id: Option<String>,
     pub target: Option<String>,
+    #[serde(alias = "created_after")]
     pub created_after: Option<DateTime<Utc>>,
+    #[serde(alias = "created_before")]
     pub created_before: Option<DateTime<Utc>>,
 }
 

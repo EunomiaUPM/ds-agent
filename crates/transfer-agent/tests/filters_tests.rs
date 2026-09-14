@@ -67,7 +67,10 @@ fn transfer_message_filter_deserialization() {
     });
     let spec: QuerySpec<TransferMessageFilter> = serde_json::from_value(json).unwrap();
     assert_eq!(spec.filter.process_id.as_deref(), Some("proc-456"));
-    assert_eq!(spec.filter.message_type.as_deref(), Some("TransferStartMessage"));
+    assert_eq!(
+        spec.filter.message_type.as_deref(),
+        Some("TransferStartMessage")
+    );
     assert_eq!(spec.filter.direction.as_deref(), Some("OUTGOING"));
     assert_eq!(spec.page.limit, 100);
     assert!(!spec.is_empty());

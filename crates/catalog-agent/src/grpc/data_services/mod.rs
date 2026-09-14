@@ -54,7 +54,8 @@ impl DataServiceEntityService for DataServiceEntityGrpc {
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
 
-        let proto_services: Vec<DataService> = paginated.items.into_iter().map(Into::into).collect();
+        let proto_services: Vec<DataService> =
+            paginated.items.into_iter().map(Into::into).collect();
 
         Ok(Response::new(DataServiceListResponse {
             data_services: proto_services,

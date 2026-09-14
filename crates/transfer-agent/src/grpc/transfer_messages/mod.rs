@@ -53,11 +53,7 @@ impl TransferAgentMessages for TransferAgentMessagesGrpc {
             .get_all_transfer_messages(&TransferMessageFilter::default(), &page, Sort::default())
             .await
             .map_err(|e| Status::internal(e.to_string()))?;
-        let proto_messages = paginated
-            .items
-            .into_iter()
-            .map(|m| m.into())
-            .collect();
+        let proto_messages = paginated.items.into_iter().map(|m| m.into()).collect();
         Ok(Response::new(TransferMessageListResponse {
             messages: proto_messages,
         }))

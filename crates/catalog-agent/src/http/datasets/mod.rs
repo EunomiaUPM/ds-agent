@@ -78,11 +78,7 @@ impl DatasetEntityRouter {
         Query(query): Query<DatasetQuery>,
     ) -> impl IntoResponse {
         let (filter, page, sort) = query.into_domain();
-        match state
-            .service
-            .get_all_datasets(&filter, &page, &sort)
-            .await
-        {
+        match state.service.get_all_datasets(&filter, &page, &sort).await {
             Ok(datasets) => (StatusCode::OK, Json(ToCamelCase(datasets))).into_response(),
             Err(e) => e.into_response(),
         }

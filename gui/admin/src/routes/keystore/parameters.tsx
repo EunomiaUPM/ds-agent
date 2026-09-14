@@ -285,6 +285,9 @@ const KeystoreParameters = () => {
           keyExtractor={(p) => p.key}
           searchPlaceholder="Filter parameters by key or description..."
           emptyMessage="No parameters yet"
+          defaultSortKey="key"
+          defaultSortDirection="asc"
+          pageSize={10}
           columns={[
             {
               header: "Key",

@@ -56,10 +56,7 @@ impl UserServiceTrait for UserService {
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<UserView>> {
-        let fetch_page = Page {
-            limit: page.limit + 1,
-            cursor: page.cursor.clone(),
-        };
+        let fetch_page = Page::new(page.limit + 1, page.cursor.clone());
         let users = self.user_repo.get_all(filter, &fetch_page, sort).await?;
 
         Ok(Paginated::from_window(

@@ -92,7 +92,7 @@ impl TransferProcessService {
     /// Encode next cursors
     fn encode_cursor(&self, process: &TransferProcess, sort: &Sort) -> String {
         let dt: DateTime<chrono::Utc> = match sort {
-            Sort::UpdatedAtDesc => process.updated_at(),
+            Sort::UpdatedAtDesc | Sort::UpdatedAtAsc => process.updated_at(),
             _ => process.created_at(),
         };
         Cursor::encode_timestamp(&dt)
@@ -119,10 +119,7 @@ impl TransferProcessServiceTrait for TransferProcessService {
             filters.tenant_id = Some(tenant);
         }
         // pagination
-        let page = Page {
-            limit: clamp_page_limit(page.limit),
-            cursor: page.cursor.clone(),
-        };
+        let page = page.clamped();
         // get entities
         let (processes, total) = tokio::try_join!(
             self.process_repo

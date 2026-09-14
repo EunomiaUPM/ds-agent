@@ -35,8 +35,11 @@ pub(crate) enum TransferDirection {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub(crate) enum TransferRole {
+    #[serde(alias = "Provider")]
     Provider,
+    #[serde(alias = "Consumer")]
     Consumer,
+    #[serde(alias = "Relay")]
     Relay,
 }
 

@@ -16,7 +16,7 @@
  */
 
 use chrono::{Duration, Utc};
-use common::query::{DateRange, Page, QueryFilter, QuerySpec, Sort, validate_date_range};
+use common::query::{validate_date_range, DateRange, Page, QueryFilter, QuerySpec, Sort};
 use serde::{Deserialize, Serialize};
 use ymir::errors::Outcome;
 
@@ -44,12 +44,37 @@ fn test_query_spec_serde_json_flat() {
         "sort": "created_at_asc"
     }"#;
 
-    let spec: QuerySpec<DummyFilter, Sort> = serde_json::from_str(json).expect("should deserialize");
+    let spec: QuerySpec<DummyFilter, Sort> =
+        serde_json::from_str(json).expect("should deserialize");
     assert_eq!(spec.filter.tenant_id, Some("tenant-1".to_string()));
     assert_eq!(spec.filter.status, Some("ACTIVE".to_string()));
     assert_eq!(spec.page.limit, 50);
     assert_eq!(spec.page.cursor, Some("token-123".to_string()));
     assert_eq!(spec.sort, Sort::CreatedAtAsc);
+}
+
+#[test]
+fn test_query_spec_serde_urlencoded() {
+    let qs = "limit=10&sort=created_at_desc";
+    let spec: QuerySpec<DummyFilter, Sort> =
+        serde_urlencoded::from_str(qs).expect("should deserialize urlencoded query string");
+    assert_eq!(spec.page.limit, 10);
+    assert_eq!(spec.page.cursor, None);
+    assert_eq!(spec.page.page, None);
+    assert_eq!(spec.sort, Sort::CreatedAtDesc);
+
+    let qs_with_page = "limit=25&page=3&sort=created_at_asc&status=ACTIVE";
+    let spec2: QuerySpec<DummyFilter, Sort> =
+        serde_urlencoded::from_str(qs_with_page).expect("should deserialize urlencoded with page");
+    assert_eq!(spec2.page.limit, 25);
+    assert_eq!(spec2.page.page, Some(3));
+    assert_eq!(spec2.filter.status, Some("ACTIVE".to_string()));
+    assert_eq!(spec2.sort, Sort::CreatedAtAsc);
+
+    let qs_unknown_sort = "limit=10&sort=state_asc";
+    let spec3: QuerySpec<DummyFilter, Sort> = serde_urlencoded::from_str(qs_unknown_sort)
+        .expect("should deserialize unknown sort to Other");
+    assert_eq!(spec3.sort, Sort::Other);
 }
 
 #[test]

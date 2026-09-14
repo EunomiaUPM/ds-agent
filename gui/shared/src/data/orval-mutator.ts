@@ -82,6 +82,20 @@ export const customInstance = <T>(
       }
     }
 
+    // If response is a Paginated envelope ({ items: [...], total }), attach envelope properties to the array
+    if (
+      data_1 &&
+      typeof data_1 === "object" &&
+      !Array.isArray(data_1) &&
+      Array.isArray(data_1.items)
+    ) {
+      const arr = [...data_1.items] as any;
+      arr.items = data_1.items;
+      arr.total = data_1.total;
+      arr.nextCursor = data_1.nextCursor;
+      data_1 = arr;
+    }
+
     // Return the response structure expected by Orval generated types
     return {
       status: response.status,

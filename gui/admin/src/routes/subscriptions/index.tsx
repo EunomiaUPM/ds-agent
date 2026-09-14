@@ -77,6 +77,7 @@ const RouteComponent = () => {
           emptyMessage="No notifications received for this subscription"
           defaultSortKey="createdAt"
           defaultSortDirection="desc"
+          pageSize={10}
           columns={[
             {
               header: "Notification Id",

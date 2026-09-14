@@ -15,11 +15,26 @@ import { PageSection } from "shared/src/components/layout/PageSection";
 import { useGetAllParticipants } from "shared/data/orval/participants/participants";
 import { Dataset, RpcCatalogResponseMessageDto } from "shared/data/orval/model";
 import { useRpcSetupCatalogRequest } from "shared/src/data/orval/catalog-rp-c/catalog-rp-c";
+import { keepPreviousData } from "@tanstack/react-query";
+import { useTableQueryParams } from "shared/src/hooks/useTableQueryParams";
 
 type ActionsMode = "business" | "standard";
 
 const RouteComponent = () => {
-  const { data: cnProcessesData } = useGetNegotiationProcesses();
+  const { params: queryParams, apiParams, onQueryChange } = useTableQueryParams({
+    defaultLimit: 10,
+    defaultSort: "created_at_desc",
+  });
+
+  const { data: cnProcessesData, isFetching } = useGetNegotiationProcesses({
+    query: {
+      queryKey: ["/negotiations/negotiation-processes", apiParams],
+      placeholderData: keepPreviousData,
+    },
+    request: {
+      params: apiParams,
+    },
+  });
   const { data: participants } = useGetAllParticipants();
   const [mode, setMode] = useState<ActionsMode>("business");
 
@@ -86,14 +101,7 @@ const RouteComponent = () => {
     }
   }, []);
 
-  const cnProcesses = cnProcessesData?.status === 200 ? cnProcessesData.data : [];
-  const cnProcessesSorted = useMemo(() => {
-    if (!cnProcesses) return [];
-    return [...cnProcesses].sort((a, b) => {
-      // @ts-ignore
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
-  }, [cnProcesses]);
+  const cnProcesses = cnProcessesData?.status === 200 ? cnProcessesData.data : undefined;
 
   return (
     <PageLayout>
@@ -125,9 +133,40 @@ const RouteComponent = () => {
       <PageSection>
         <DataTable
           className="text-sm"
-          data={cnProcessesSorted ?? []}
+          data={cnProcesses}
+          serverSide={true}
+          loading={isFetching}
+          queryParams={queryParams}
+          onQueryChange={onQueryChange}
           keyExtractor={(p) => p.id}
           searchPlaceholder="Filter negotiations by process ID, peer, or state..."
+          filters={[
+            {
+              id: "state",
+              label: "State",
+              options: [
+                { label: "All States", value: "all" },
+                { label: "Requested", value: "REQUESTED" },
+                { label: "Offered", value: "OFFERED" },
+                { label: "Accepted", value: "ACCEPTED" },
+                { label: "Agreed", value: "AGREED" },
+                { label: "Verified", value: "VERIFIED" },
+                { label: "Finalized", value: "FINALIZED" },
+                { label: "Terminated", value: "TERMINATED" },
+              ],
+              filterFn: (item, val) => item.state?.toUpperCase().includes(val) ?? false,
+            },
+            {
+              id: "role",
+              label: "Role",
+              accessorKey: "role",
+              options: [
+                { label: "All Roles", value: "all" },
+                { label: "Provider", value: "Provider" },
+                { label: "Consumer", value: "Consumer" },
+              ],
+            },
+          ]}
           columns={[
             {
               header: "Process ID",
@@ -159,6 +198,7 @@ const RouteComponent = () => {
             {
               header: "Created At",
               accessorKey: "createdAt",
+              sortKey: "created_at",
               sortValue: (p) => new Date(p.createdAt).getTime(),
               cell: (p) => <FormatDate date={p.createdAt} />,
             },

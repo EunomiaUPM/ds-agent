@@ -10,6 +10,9 @@ import { PageLayout } from "shared/src/components/layout/PageLayout";
 import { PageHeader } from "shared/src/components/layout/PageHeader";
 import { PageSection } from "shared/src/components/layout/PageSection";
 import { AgreementActions } from "shared/src/components/actions/AgreementActions";
+import { useTableQueryParams } from "shared/src/hooks/useTableQueryParams";
+
+import { keepPreviousData } from "@tanstack/react-query";
 
 /**
  * Route for listing all agreements.
@@ -19,7 +22,20 @@ export const Route = createFileRoute("/agreements/")({
 });
 
 function RouteComponent() {
-  const { data: response } = useGetAgreements();
+  const { params: queryParams, apiParams, onQueryChange } = useTableQueryParams({
+    defaultLimit: 10,
+    defaultSort: "created_at_desc",
+  });
+
+  const { data: response, isFetching } = useGetAgreements({
+    query: {
+      queryKey: ["/negotiations/agreements", apiParams],
+      placeholderData: keepPreviousData,
+    },
+    request: {
+      params: apiParams,
+    },
+  });
   const agreements = response?.status === 200 ? response.data : [];
 
   return (
@@ -29,8 +45,24 @@ function RouteComponent() {
         <DataTable
           className="text-sm"
           data={agreements ?? []}
+          serverSide={true}
+          loading={isFetching}
+          queryParams={queryParams}
+          onQueryChange={onQueryChange}
           keyExtractor={(a) => a.id}
           searchPlaceholder="Filter agreements by ID, participant, or state..."
+          filters={[
+            {
+              id: "state",
+              label: "Status",
+              options: [
+                { label: "All Statuses", value: "all" },
+                { label: "Finalized", value: "FINALIZED" },
+                { label: "Active", value: "ACTIVE" },
+                { label: "Terminated", value: "TERMINATED" },
+              ],
+            },
+          ]}
           columns={[
             {
               header: "Provider",
@@ -65,6 +97,7 @@ function RouteComponent() {
             {
               header: "Created at",
               accessorKey: "createdAt" as any,
+              sortKey: "created_at",
               sortValue: (a: any) => new Date(a.createdAt).getTime(),
               cell: (a: any) => <FormatDate date={a.createdAt} />,
             },

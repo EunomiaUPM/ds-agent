@@ -31,7 +31,10 @@ use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
 impl FilterApplier<Select<transfer_message::Entity>> for TransferMessageFilter {
-    fn apply_to(&self, mut select: Select<transfer_message::Entity>) -> Select<transfer_message::Entity> {
+    fn apply_to(
+        &self,
+        mut select: Select<transfer_message::Entity>,
+    ) -> Select<transfer_message::Entity> {
         if let Some(process_id) = &self.process_id {
             select = select.filter(transfer_message::Column::TransferAgentProcessId.eq(process_id));
         }
@@ -73,11 +76,9 @@ impl TransferMessageRepoTrait for TransferMessageRepoForSql {
         sort: Sort,
     ) -> Outcome<(Vec<transfer_message::Model>, Option<u64>)> {
         let q = filters.apply_to(transfer_message::Entity::find());
-        let total = q
-            .clone()
-            .count(&self.db_connection)
-            .await
-            .map_err(|e| TransferMessageRepoErrors::ErrorFetchingTransferMessage(e.into()).into_errors())?;
+        let total = q.clone().count(&self.db_connection).await.map_err(|e| {
+            TransferMessageRepoErrors::ErrorFetchingTransferMessage(e.into()).into_errors()
+        })?;
 
         let items = q
             .apply_cursor_pagination_with_tie_break(
@@ -88,7 +89,9 @@ impl TransferMessageRepoTrait for TransferMessageRepoForSql {
             )
             .all(&self.db_connection)
             .await
-            .map_err(|e| TransferMessageRepoErrors::ErrorFetchingTransferMessage(e.into()).into_errors())?;
+            .map_err(|e| {
+                TransferMessageRepoErrors::ErrorFetchingTransferMessage(e.into()).into_errors()
+            })?;
 
         Ok((items, Some(total)))
     }

@@ -16,8 +16,7 @@
  */
 
 use crate::entities::agreement::{
-    AgreementDto, EditAgreementDto, NegotiationAgentAgreementsTrait,
-    NewAgreementDto,
+    AgreementDto, EditAgreementDto, NegotiationAgentAgreementsTrait, NewAgreementDto,
 };
 use crate::entities::filters::AgreementFilter;
 use crate::errors::error_adapter::CustomToResponse;

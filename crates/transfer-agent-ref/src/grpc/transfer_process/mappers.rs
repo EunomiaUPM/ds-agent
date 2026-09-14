@@ -72,10 +72,7 @@ pub fn into_list_params(
         created_before,
     };
     let cursor = non_empty(&req.cursor).map(|s| s.to_owned());
-    let page = Page {
-        limit: if req.limit == 0 { 20 } else { req.limit },
-        cursor,
-    };
+    let page = Page::new(if req.limit == 0 { 20 } else { req.limit }, cursor);
     let sort = non_empty(&req.sort)
         .map(parse_sort)
         .transpose()?
@@ -329,6 +326,7 @@ fn parse_sort(s: &str) -> Result<Sort, Status> {
     match s {
         "created_at_asc" => Ok(Sort::CreatedAtAsc),
         "created_at_desc" => Ok(Sort::CreatedAtDesc),
+        "updated_at_asc" => Ok(Sort::UpdatedAtAsc),
         "updated_at_desc" => Ok(Sort::UpdatedAtDesc),
         other => Err(Status::invalid_argument(format!("unknown sort: {other}"))),
     }

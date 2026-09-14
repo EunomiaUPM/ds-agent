@@ -17,6 +17,7 @@
 
 #![allow(unused)]
 use crate::entities::connector_template::{ConnectorTemplateDto, ConnectorTemplateEntitiesTrait};
+use crate::entities::filters::ConnectorTemplateFilter;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{FromRef, Path, Query, State};
 use axum::http::StatusCode;
@@ -26,7 +27,6 @@ use axum::{Json, Router};
 use common::config::services::CatalogConfig;
 use common::errors::CommonErrors;
 use common::query::QuerySpec;
-use crate::entities::filters::ConnectorTemplateFilter;
 use serde::Deserialize;
 use std::sync::Arc;
 use ymir::utils::extract_payload;

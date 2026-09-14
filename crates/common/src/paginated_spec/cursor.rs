@@ -79,7 +79,11 @@ impl Cursor {
                 )
             })?;
         let s = String::from_utf8(bytes).map_err(|e| {
-            Errors::format(BadFormat::Received, "invalid cursor utf8", Some(Box::new(e)))
+            Errors::format(
+                BadFormat::Received,
+                "invalid cursor utf8",
+                Some(Box::new(e)),
+            )
         })?;
 
         if let Some((ts_str, id_str)) = s.split_once('#') {

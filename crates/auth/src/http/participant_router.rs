@@ -17,6 +17,7 @@
 
 use std::sync::Arc;
 
+use crate::entities::filters::ParticipantFilter;
 use crate::modules::ParticipantModule;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{Path, Query, State};
@@ -24,11 +25,16 @@ use axum::routing::{get, post, put};
 use axum::{Json, Router};
 use common::batch_requests::BatchRequestsAsString;
 use common::facades::VerifyTokenRequest;
+use common::paginated_spec::Paginated;
+use common::query::{QueryFilter, QuerySpec};
 use serde::Deserialize;
 use ymir::data::entities::shared::participant::{Model, Plan};
 use ymir::errors::AppResult;
 use ymir::types::participants::ParticipantType;
 use ymir::utils::extract_payload;
+
+pub use common::paginated_spec::PaginationParams;
+pub type ParticipantQuery = QuerySpec<ParticipantFilter>;
 
 pub struct ParticipantRouter {
     manager: Arc<dyn ParticipantModule>,
@@ -53,11 +59,14 @@ impl ParticipantRouter {
 
     async fn get_all(
         State(manager): State<Arc<dyn ParticipantModule>>,
-        query: Query<MateQuery>,
-    ) -> AppResult<Json<Vec<Model>>> {
-        let filter = query.r#type.clone().unwrap_or(ParticipantType::All);
-
-        Ok(Json(manager.get_all(filter, query.exclude_myself).await?))
+        Query(query): Query<ParticipantQuery>,
+    ) -> AppResult<Json<Paginated<Model>>> {
+        query.filter.validate()?;
+        Ok(Json(
+            manager
+                .get_all(&query.filter, &query.page, &query.sort)
+                .await?,
+        ))
     }
     async fn get_by_id(
         State(manager): State<Arc<dyn ParticipantModule>>,
@@ -107,11 +116,4 @@ impl ParticipantRouter {
     ) -> AppResult<Json<Model>> {
         Ok(Json(manager.update_myself().await?))
     }
-}
-
-#[derive(Deserialize)]
-struct MateQuery {
-    r#type: Option<ParticipantType>,
-    #[serde(default)]
-    exclude_myself: bool,
 }

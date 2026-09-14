@@ -39,3 +39,6 @@ rustls = {workspace = true}
 axum-server = {workspace = true}
 ymir = { workspace = true }
 json_value_merge = {workspace = true}
+
+[dev-dependencies]
+serde_urlencoded = { workspace = true }

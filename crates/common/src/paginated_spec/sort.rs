@@ -26,13 +26,16 @@ pub enum Sort {
     CreatedAtAsc,
     #[default]
     CreatedAtDesc,
+    UpdatedAtAsc,
     UpdatedAtDesc,
+    #[serde(other)]
+    Other,
 }
 
 impl Sort {
     /// Returns true if the sort order is ascending.
     pub fn is_ascending(&self) -> bool {
-        matches!(self, Self::CreatedAtAsc)
+        matches!(self, Self::CreatedAtAsc | Self::UpdatedAtAsc)
     }
 
     /// Returns true if the sort order is descending.

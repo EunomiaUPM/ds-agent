@@ -186,6 +186,19 @@ const DlqComponent = () => {
             emptyMessage="No dead letter messages found. All deliveries healthy."
             defaultSortKey="failed_at"
             defaultSortDirection="desc"
+            pageSize={10}
+            filters={[
+              {
+                id: "status",
+                label: "Status",
+                accessorKey: "status",
+                options: [
+                  { label: "All Statuses", value: "all" },
+                  { label: "Unresolved", value: "Unresolved" },
+                  { label: "Resolved", value: "Resolved" },
+                ],
+              },
+            ]}
             columns={[
               {
                 header: "Topic",

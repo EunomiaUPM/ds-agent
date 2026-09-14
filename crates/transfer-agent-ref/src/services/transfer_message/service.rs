@@ -62,10 +62,7 @@ impl TransferMessageService {
         if let Some(tenant) = scope.tenant_filter() {
             filters.tenant_id = Some(tenant);
         }
-        let page = Page {
-            limit: clamp_page_limit(page.limit),
-            cursor: page.cursor.clone(),
-        };
+        let page = page.clamped();
         Ok((filters, page))
     }
 

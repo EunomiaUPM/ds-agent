@@ -15,8 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::instantiation_engine::{NewPolicyInstantiationDto, PolicyInstantiationTrait};
 use crate::entities::filters::PolicyTemplateFilter;
+use crate::entities::instantiation_engine::{NewPolicyInstantiationDto, PolicyInstantiationTrait};
 use crate::entities::policy_templates::{
     NewPolicyTemplateDto, PolicyTemplateDto, PolicyTemplateEntityTrait,
 };

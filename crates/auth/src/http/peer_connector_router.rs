@@ -28,8 +28,14 @@ use ymir::types::gnap::CallbackBody;
 use ymir::types::wallet::OidcUri;
 use ymir::utils::extract_payload;
 
+use crate::entities::filters::SentGrantFilter;
 use crate::modules::PeerConnectorModule;
 use crate::types::entities::ReachProvider;
+use common::paginated_spec::Paginated;
+use common::query::{QueryFilter, QuerySpec};
+
+pub use common::paginated_spec::PaginationParams;
+pub type PeerConnectorQuery = QuerySpec<SentGrantFilter>;
 
 pub struct OnboarderRouter {
     peer_connector: Arc<dyn PeerConnectorModule>,
@@ -81,8 +87,14 @@ impl OnboarderRouter {
 
     async fn get_all(
         State(peer_connector): State<Arc<dyn PeerConnectorModule>>,
-    ) -> AppResult<Json<Vec<grant::Model>>> {
-        Ok(Json(peer_connector.get_all().await?))
+        Query(query): Query<PeerConnectorQuery>,
+    ) -> AppResult<Json<Paginated<grant::Model>>> {
+        query.filter.validate()?;
+        Ok(Json(
+            peer_connector
+                .get_all(&query.filter, &query.page, &query.sort)
+                .await?,
+        ))
     }
 
     async fn get_one(

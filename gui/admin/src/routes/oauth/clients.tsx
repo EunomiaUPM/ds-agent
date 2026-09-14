@@ -289,6 +289,20 @@ const ClientsComponent = () => {
             emptyMessage='No OAuth clients registered yet. Click "Register Client" to add one.'
             defaultSortKey="created_at"
             defaultSortDirection="desc"
+            pageSize={10}
+            filters={[
+              {
+                id: "role",
+                label: "Role",
+                accessorKey: "role",
+                options: [
+                  { label: "All Roles", value: "all" },
+                  { label: "Consumer", value: "Consumer" },
+                  { label: "Provider", value: "Provider" },
+                  { label: "Admin", value: "Admin" },
+                ],
+              },
+            ]}
             columns={[
               {
                 header: "Name",

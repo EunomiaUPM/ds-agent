@@ -32,7 +32,10 @@ use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
 impl FilterApplier<sea_orm::Select<dataset::Entity>> for DatasetFilter {
-    fn apply_to(&self, mut q: sea_orm::Select<dataset::Entity>) -> sea_orm::Select<dataset::Entity> {
+    fn apply_to(
+        &self,
+        mut q: sea_orm::Select<dataset::Entity>,
+    ) -> sea_orm::Select<dataset::Entity> {
         if let Some(catalog_id) = &self.catalog_id {
             q = q.filter(dataset::Column::CatalogId.eq(catalog_id));
         }
@@ -74,16 +77,12 @@ impl DatasetRepositoryTrait for DatasetRepositoryForSql {
         sort: &Sort,
     ) -> Outcome<(Vec<dataset::Model>, Option<u64>)> {
         let mut q = filters.apply_to(dataset::Entity::find());
-        let total = q
-            .clone()
-            .count(&self.db_connection)
-            .await
-            .map_err(|err| {
-                CatalogAgentRepoErrors::DatasetRepoErrors(
-                    DatasetRepoErrors::ErrorFetchingDataset(err.into()),
-                )
-                .into_errors()
-            })?;
+        let total = q.clone().count(&self.db_connection).await.map_err(|err| {
+            CatalogAgentRepoErrors::DatasetRepoErrors(DatasetRepoErrors::ErrorFetchingDataset(
+                err.into(),
+            ))
+            .into_errors()
+        })?;
 
         let datasets = q
             .apply_cursor_pagination_with_tie_break(
@@ -95,9 +94,9 @@ impl DatasetRepositoryTrait for DatasetRepositoryForSql {
             .all(&self.db_connection)
             .await
             .map_err(|err| {
-                CatalogAgentRepoErrors::DatasetRepoErrors(
-                    DatasetRepoErrors::ErrorFetchingDataset(err.into()),
-                )
+                CatalogAgentRepoErrors::DatasetRepoErrors(DatasetRepoErrors::ErrorFetchingDataset(
+                    err.into(),
+                ))
                 .into_errors()
             })?;
 

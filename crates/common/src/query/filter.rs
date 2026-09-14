@@ -66,7 +66,10 @@ impl DateRange {
     }
 
     /// Validates that an after timestamp precedes a before timestamp.
-    pub fn validate_bounds(after: Option<DateTime<Utc>>, before: Option<DateTime<Utc>>) -> Outcome<()> {
+    pub fn validate_bounds(
+        after: Option<DateTime<Utc>>,
+        before: Option<DateTime<Utc>>,
+    ) -> Outcome<()> {
         if let (Some(a), Some(b)) = (after, before) {
             if a >= b {
                 return Err(Errors::format(

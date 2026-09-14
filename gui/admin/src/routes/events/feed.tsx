@@ -358,6 +358,8 @@ const FeedComponent = () => {
           keyExtractor={(ev) => ev.id}
           searchPlaceholder="Filter events by topic, source, or payload..."
           emptyMessage='No events recorded yet. Click "Publish Event" to test.'
+          defaultSortKey="timestamp"
+          defaultSortDirection="desc"
           pageSize={25}
           columns={[
             {

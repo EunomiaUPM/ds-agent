@@ -32,7 +32,10 @@ use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
 impl FilterApplier<Select<transfer_process::Entity>> for TransferProcessFilter {
-    fn apply_to(&self, mut select: Select<transfer_process::Entity>) -> Select<transfer_process::Entity> {
+    fn apply_to(
+        &self,
+        mut select: Select<transfer_process::Entity>,
+    ) -> Select<transfer_process::Entity> {
         if let Some(state) = &self.state {
             select = select.filter(transfer_process::Column::State.eq(state));
         }
@@ -46,13 +49,16 @@ impl FilterApplier<Select<transfer_process::Entity>> for TransferProcessFilter {
             select = select.filter(transfer_process::Column::AgreementId.eq(agreement_id));
         }
         if let Some(associated_agent_peer) = &self.associated_agent_peer {
-            select = select.filter(transfer_process::Column::AssociatedAgentPeer.eq(associated_agent_peer));
+            select = select
+                .filter(transfer_process::Column::AssociatedAgentPeer.eq(associated_agent_peer));
         }
         if let Some(connector_instance_id) = &self.connector_instance_id {
-            select = select.filter(transfer_process::Column::ConnectorInstanceId.eq(connector_instance_id));
+            select = select
+                .filter(transfer_process::Column::ConnectorInstanceId.eq(connector_instance_id));
         }
         if let Some(transfer_direction) = &self.transfer_direction {
-            select = select.filter(transfer_process::Column::TransferDirection.eq(transfer_direction));
+            select =
+                select.filter(transfer_process::Column::TransferDirection.eq(transfer_direction));
         }
         if let Some(created_after) = self.created_after {
             select = select.filter(transfer_process::Column::CreatedAt.gte(created_after));
@@ -83,11 +89,9 @@ impl TransferProcessRepoTrait for TransferProcessRepoForSql {
         sort: Sort,
     ) -> Outcome<(Vec<transfer_process::Model>, Option<u64>)> {
         let q = filters.apply_to(transfer_process::Entity::find());
-        let total = q
-            .clone()
-            .count(&self.db_connection)
-            .await
-            .map_err(|e| TransferProcessRepoErrors::ErrorFetchingTransferProcess(e.into()).into_errors())?;
+        let total = q.clone().count(&self.db_connection).await.map_err(|e| {
+            TransferProcessRepoErrors::ErrorFetchingTransferProcess(e.into()).into_errors()
+        })?;
 
         let items = q
             .apply_cursor_pagination_with_tie_break(
@@ -98,7 +102,9 @@ impl TransferProcessRepoTrait for TransferProcessRepoForSql {
             )
             .all(&self.db_connection)
             .await
-            .map_err(|e| TransferProcessRepoErrors::ErrorFetchingTransferProcess(e.into()).into_errors())?;
+            .map_err(|e| {
+                TransferProcessRepoErrors::ErrorFetchingTransferProcess(e.into()).into_errors()
+            })?;
 
         Ok((items, Some(total)))
     }

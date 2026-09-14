@@ -25,8 +25,10 @@ pub mod sort;
 
 pub use cursor::{Cursor, DecodedCursor};
 pub use page::{
-    DEFAULT_PAGE_LIMIT, MAX_BATCH_IDS, MAX_PAGE_LIMIT, Page, PaginationParams, clamp_page_limit,
-    default_limit,
+    clamp_page_limit, default_limit, deserialize_opt_bool_from_str_or_bool,
+    deserialize_opt_u32_from_str_or_int, deserialize_opt_u64_from_str_or_int,
+    deserialize_u32_from_str_or_int, Page, PaginationParams, DEFAULT_PAGE_LIMIT, MAX_BATCH_IDS,
+    MAX_PAGE_LIMIT,
 };
 pub use paginated::Paginated;
 pub use sea_orm_ext::SelectCursorExt;

@@ -116,10 +116,7 @@ fn empty_filter() -> TransferProcessFilter {
 }
 
 fn default_page() -> Page {
-    Page {
-        limit: 20,
-        cursor: None,
-    }
+    Page::new(20, None)
 }
 
 fn make_new_cmd(identifiers: Option<HashMap<String, String>>) -> NewTransferProcessCommand {
@@ -222,10 +219,7 @@ async fn get_all_full_page_produces_cursor() {
         .get_all(
             &admin_scope(),
             &empty_filter(),
-            &Page {
-                limit: 1,
-                cursor: None,
-            },
+            &Page::new(1, None),
             &Sort::CreatedAtDesc,
         )
         .await
@@ -258,10 +252,7 @@ async fn get_all_partial_page_no_cursor() {
         .get_all(
             &admin_scope(),
             &empty_filter(),
-            &Page {
-                limit: 5,
-                cursor: None,
-            },
+            &Page::new(5, None),
             &Sort::CreatedAtDesc,
         )
         .await
@@ -311,10 +302,7 @@ async fn get_all_cursor_uses_updated_at_for_sort_updated_at_desc() {
         .get_all(
             &admin_scope(),
             &empty_filter(),
-            &Page {
-                limit: 1,
-                cursor: None,
-            },
+            &Page::new(1, None),
             &Sort::UpdatedAtDesc,
         )
         .await
@@ -361,10 +349,7 @@ async fn get_all_cursor_uses_created_at_for_sort_created_at_asc() {
         .get_all(
             &admin_scope(),
             &empty_filter(),
-            &Page {
-                limit: 1,
-                cursor: None,
-            },
+            &Page::new(1, None),
             &Sort::CreatedAtAsc,
         )
         .await
@@ -615,10 +600,7 @@ async fn get_all_page_cursor_passed_through() {
     svc.get_all(
         &admin_scope(),
         &empty_filter(),
-        &Page {
-            limit: 10,
-            cursor: Some("tok".to_string()),
-        },
+        &Page::new(10, Some("tok".to_string())),
         &Sort::CreatedAtDesc,
     )
     .await

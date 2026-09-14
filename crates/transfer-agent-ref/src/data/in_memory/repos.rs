@@ -129,13 +129,18 @@ impl TransferProcessRepoTrait for InMemoryTransferProcessRepo {
                                 return false;
                             }
                         }
-                        Sort::CreatedAtDesc => {
-                            if p.created_at() >= cursor {
+                        Sort::UpdatedAtAsc => {
+                            if p.updated_at() <= cursor {
                                 return false;
                             }
                         }
                         Sort::UpdatedAtDesc => {
                             if p.updated_at() >= cursor {
+                                return false;
+                            }
+                        }
+                        _ => {
+                            if p.created_at() >= cursor {
                                 return false;
                             }
                         }
@@ -154,17 +159,24 @@ impl TransferProcessRepoTrait for InMemoryTransferProcessRepo {
                         .then_with(|| a.id().to_string().cmp(&b.id().to_string()))
                 });
             }
-            Sort::CreatedAtDesc => {
+            Sort::UpdatedAtAsc => {
                 items.sort_by(|a, b| {
-                    b.created_at()
-                        .cmp(&a.created_at())
-                        .then_with(|| b.id().to_string().cmp(&a.id().to_string()))
+                    a.updated_at()
+                        .cmp(&b.updated_at())
+                        .then_with(|| a.id().to_string().cmp(&b.id().to_string()))
                 });
             }
             Sort::UpdatedAtDesc => {
                 items.sort_by(|a, b| {
                     b.updated_at()
                         .cmp(&a.updated_at())
+                        .then_with(|| b.id().to_string().cmp(&a.id().to_string()))
+                });
+            }
+            _ => {
+                items.sort_by(|a, b| {
+                    b.created_at()
+                        .cmp(&a.created_at())
                         .then_with(|| b.id().to_string().cmp(&a.id().to_string()))
                 });
             }

@@ -125,7 +125,10 @@ impl ConnectorTemplateEntitiesTrait for ConnectorTemplateEntitiesService {
 
         Ok(Paginated::from_page(dtos, page, total, |last| {
             Cursor::encode_composite(
-                &last.metadata.created_at.unwrap_or_else(|| chrono::Utc::now().into()),
+                &last
+                    .metadata
+                    .created_at
+                    .unwrap_or_else(|| chrono::Utc::now().into()),
                 last.metadata.name.as_deref().unwrap_or_default(),
             )
         }))

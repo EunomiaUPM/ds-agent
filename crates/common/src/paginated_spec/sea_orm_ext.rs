@@ -58,6 +58,10 @@ impl<E: EntityTrait> SelectCursorExt<E> for Select<E> {
                     _ => self.filter(time_col.lt(c.timestamp)),
                 };
             }
+        } else if let Some(p) = page.page {
+            if p > 1 {
+                self = self.offset(((p - 1) * page.limit) as u64);
+            }
         }
 
         self = match sort {
@@ -81,20 +85,18 @@ impl<E: EntityTrait> SelectCursorExt<E> for Select<E> {
                 match &c.id {
                     Some(id) => {
                         let cond = match sort {
-                            Sort::CreatedAtAsc => Condition::any()
-                                .add(time_col.gt(c.timestamp))
-                                .add(
+                            Sort::CreatedAtAsc => {
+                                Condition::any().add(time_col.gt(c.timestamp)).add(
                                     Condition::all()
                                         .add(time_col.eq(c.timestamp))
                                         .add(id_col.gt(id.clone())),
-                                ),
-                            _ => Condition::any()
-                                .add(time_col.lt(c.timestamp))
-                                .add(
-                                    Condition::all()
-                                        .add(time_col.eq(c.timestamp))
-                                        .add(id_col.lt(id.clone())),
-                                ),
+                                )
+                            }
+                            _ => Condition::any().add(time_col.lt(c.timestamp)).add(
+                                Condition::all()
+                                    .add(time_col.eq(c.timestamp))
+                                    .add(id_col.lt(id.clone())),
+                            ),
                         };
                         self = self.filter(cond);
                     }
@@ -105,6 +107,10 @@ impl<E: EntityTrait> SelectCursorExt<E> for Select<E> {
                         };
                     }
                 }
+            }
+        } else if let Some(p) = page.page {
+            if p > 1 {
+                self = self.offset(((p - 1) * page.limit) as u64);
             }
         }
 

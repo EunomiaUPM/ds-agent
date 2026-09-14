@@ -33,8 +33,19 @@ use events::data::repo::{CreateSubscriptionDto, UpdateSubscriptionDto};
 use events::http::dlq_router::ListDlqQuery;
 use events::http::events_router::PublishEventRequest;
 use rust_embed::Embed;
+use serde::Deserialize;
 use serde_json::{json, Value};
 use tower_http::cors::{Any, CorsLayer};
+
+// Query parameters for webhook subscriptions list filtering and pagination.
+#[derive(Debug, Deserialize, Default)]
+pub struct ListSubscriptionsQuery {
+    pub pattern: Option<String>,
+    pub status: Option<String>,
+    pub limit: Option<u64>,
+    pub offset: Option<u64>,
+    pub sort: Option<String>,
+}
 use ymir::config::traits::HostsConfigTrait;
 use ymir::config::types::HostType;
 
@@ -241,7 +252,10 @@ impl GatewayHttpRouter {
         }
     }
 
-    async fn handle_list_subscriptions(State(state): State<GatewayHttpRouter>) -> Response {
+    async fn handle_list_subscriptions(
+        State(state): State<GatewayHttpRouter>,
+        Query(q): Query<ListSubscriptionsQuery>,
+    ) -> Response {
         let bus = match &state.ctx.event_bus {
             Some(b) => b,
             None => {
@@ -249,7 +263,49 @@ impl GatewayHttpRouter {
             }
         };
         match bus.subscription_repo().list_subscriptions().await {
-            Ok(subs) => (StatusCode::OK, Json(subs)).into_response(),
+            Ok(mut subs) => {
+                if let Some(ref pat) = q.pattern {
+                    if pat != "all" {
+                        let pat_lower = pat.to_lowercase();
+                        subs.retain(|s| s.topic_pattern.as_str().to_lowercase().contains(&pat_lower));
+                    }
+                }
+                if let Some(ref status) = q.status {
+                    if status == "active" {
+                        subs.retain(|s| s.active);
+                    } else if status == "inactive" {
+                        subs.retain(|s| !s.active);
+                    }
+                }
+                if let Some(ref sort) = q.sort {
+                    match sort.as_str() {
+                        "created_at_asc" => subs.sort_by(|a, b| a.created_at.cmp(&b.created_at)),
+                        "created_at_desc" => subs.sort_by(|a, b| b.created_at.cmp(&a.created_at)),
+                        "topic_pattern_asc" => subs.sort_by(|a, b| a.topic_pattern.as_str().cmp(b.topic_pattern.as_str())),
+                        "topic_pattern_desc" => subs.sort_by(|a, b| b.topic_pattern.as_str().cmp(a.topic_pattern.as_str())),
+                        "active_asc" => subs.sort_by(|a, b| a.active.cmp(&b.active)),
+                        "active_desc" => subs.sort_by(|a, b| b.active.cmp(&a.active)),
+                        "callback_address_asc" => subs.sort_by(|a, b| a.callback_address.cmp(&b.callback_address)),
+                        "callback_address_desc" => subs.sort_by(|a, b| b.callback_address.cmp(&a.callback_address)),
+                        "retry_limit_asc" => subs.sort_by(|a, b| a.retry_limit.cmp(&b.retry_limit)),
+                        "retry_limit_desc" => subs.sort_by(|a, b| b.retry_limit.cmp(&a.retry_limit)),
+                        _ => subs.sort_by(|a, b| b.created_at.cmp(&a.created_at)),
+                    }
+                } else {
+                    subs.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+                }
+                if let Some(limit) = q.limit {
+                    let offset = q.offset.unwrap_or(0) as usize;
+                    let paged: Vec<_> = subs
+                        .into_iter()
+                        .skip(offset)
+                        .take(limit as usize)
+                        .collect();
+                    (StatusCode::OK, Json(paged)).into_response()
+                } else {
+                    (StatusCode::OK, Json(subs)).into_response()
+                }
+            }
             Err(e) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!({ "error": format!("{e:?}") })),
@@ -357,7 +413,22 @@ impl GatewayHttpRouter {
             .list_dead_letters(q.status.as_deref(), limit, offset)
             .await
         {
-            Ok(records) => (StatusCode::OK, Json(records)).into_response(),
+            Ok(mut records) => {
+                if let Some(ref sort) = q.sort {
+                    match sort.as_str() {
+                        "failed_at_asc" => records.sort_by(|a, b| a.failed_at.cmp(&b.failed_at)),
+                        "failed_at_desc" => records.sort_by(|a, b| b.failed_at.cmp(&a.failed_at)),
+                        "topic_asc" => records.sort_by(|a, b| a.topic.cmp(&b.topic)),
+                        "topic_desc" => records.sort_by(|a, b| b.topic.cmp(&a.topic)),
+                        "status_asc" => records.sort_by(|a, b| format!("{:?}", a.status).cmp(&format!("{:?}", b.status))),
+                        "status_desc" => records.sort_by(|a, b| format!("{:?}", b.status).cmp(&format!("{:?}", a.status))),
+                        "attempts_asc" => records.sort_by(|a, b| a.attempts.cmp(&b.attempts)),
+                        "attempts_desc" => records.sort_by(|a, b| b.attempts.cmp(&a.attempts)),
+                        _ => records.sort_by(|a, b| b.failed_at.cmp(&a.failed_at)),
+                    }
+                }
+                (StatusCode::OK, Json(records)).into_response()
+            }
             Err(e) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!({ "error": format!("{e:?}") })),

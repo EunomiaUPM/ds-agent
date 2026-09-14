@@ -31,6 +31,7 @@ pub struct ListEventsQuery {
     pub topic: Option<String>,
     pub limit: Option<u64>,
     pub offset: Option<u64>,
+    pub sort: Option<String>,
 }
 
 pub struct BffEventFeedRouter;
@@ -46,7 +47,32 @@ impl BffEventFeedRouter {
             .list_events(q.topic.as_deref(), limit, offset)
             .await
         {
-            Ok(events) => (StatusCode::OK, Json(events)).into_response(),
+            Ok(mut events) => {
+                if let Some(ref sort) = q.sort {
+                    match sort.as_str() {
+                        "created_at_asc" | "timestamp_asc" => {
+                            events.sort_by(|a, b| a.timestamp.cmp(&b.timestamp));
+                        }
+                        "created_at_desc" | "timestamp_desc" => {
+                            events.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+                        }
+                        "topic_asc" => {
+                            events.sort_by(|a, b| a.topic.as_str().cmp(b.topic.as_str()));
+                        }
+                        "topic_desc" => {
+                            events.sort_by(|a, b| b.topic.as_str().cmp(a.topic.as_str()));
+                        }
+                        "source_asc" | "source_crate_asc" => {
+                            events.sort_by(|a, b| a.source_crate.cmp(&b.source_crate));
+                        }
+                        "source_desc" | "source_crate_desc" => {
+                            events.sort_by(|a, b| b.source_crate.cmp(&a.source_crate));
+                        }
+                        _ => {}
+                    }
+                }
+                (StatusCode::OK, Json(events)).into_response()
+            }
             Err(e) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!({ "error": format!("{e:?}") })),

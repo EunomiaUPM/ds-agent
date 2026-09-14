@@ -16,7 +16,7 @@
  */
 
 import { createFileRoute } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
   useListDeadLetters,
@@ -44,17 +44,40 @@ import {
   DialogDescription,
   DialogFooter,
 } from "shared/src/components/ui/dialog";
+import { useTableQueryParams } from "shared/src/hooks/useTableQueryParams";
 import { AlertTriangle, RefreshCw, Trash2, Eye, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 
 const DlqComponent = () => {
   const queryClient = useQueryClient();
-  const [selectedStatus, setSelectedStatus] = useState<ListDeadLettersStatus | "">("");
   const [selectedDlq, setSelectedDlq] = useState<DeadLetterRecord | null>(null);
 
-  const { data, isLoading, isError, refetch, isFetching } = useListDeadLetters({
-    status: selectedStatus ? (selectedStatus as ListDeadLettersStatus) : undefined,
+  const { params: queryParams, onQueryChange } = useTableQueryParams({
+    defaultLimit: 10,
+    defaultSort: "failed_at_desc",
+    defaultFilters: { status: "all" },
   });
+
+  const selectedStatus =
+    queryParams.filters.status && queryParams.filters.status !== "all"
+      ? (queryParams.filters.status as ListDeadLettersStatus)
+      : undefined;
+
+  const offset = (queryParams.page - 1) * queryParams.limit;
+
+  const { data, isLoading, isError, refetch, isFetching } = useListDeadLetters(
+    {
+      status: selectedStatus,
+      limit: queryParams.limit,
+      offset,
+      sort: queryParams.sort,
+    } as any,
+    {
+      query: {
+        placeholderData: keepPreviousData,
+      },
+    },
+  );
 
   const deadLetters: DeadLetterRecord[] = Array.isArray(data?.data)
     ? (data.data as DeadLetterRecord[])
@@ -133,47 +156,31 @@ const DlqComponent = () => {
 
       {/* Filter Chips */}
       <div className="flex items-center gap-2">
-        <Button
-          variant={selectedStatus === "" ? "default" : "outline"}
-          size="sm"
-          className="text-xs h-7"
-          onClick={() => setSelectedStatus("")}
-        >
-          All
-        </Button>
-        <Button
-          variant={selectedStatus === "Unresolved" ? "default" : "outline"}
-          size="sm"
-          className="text-xs h-7"
-          onClick={() => setSelectedStatus("Unresolved")}
-        >
-          Unresolved
-        </Button>
-        <Button
-          variant={selectedStatus === "Replayed" ? "default" : "outline"}
-          size="sm"
-          className="text-xs h-7"
-          onClick={() => setSelectedStatus("Replayed")}
-        >
-          Replayed
-        </Button>
-        <Button
-          variant={selectedStatus === "Purged" ? "default" : "outline"}
-          size="sm"
-          className="text-xs h-7"
-          onClick={() => setSelectedStatus("Purged")}
-        >
-          Purged
-        </Button>
+        {[
+          { label: "All", value: "all" },
+          { label: "Unresolved", value: "Unresolved" },
+          { label: "Replayed", value: "Replayed" },
+          { label: "Purged", value: "Purged" },
+        ].map((item) => (
+          <Button
+            key={item.value}
+            variant={(queryParams.filters.status ?? "all") === item.value ? "default" : "outline"}
+            size="sm"
+            className="text-xs h-7"
+            onClick={() => onQueryChange({ filters: { status: item.value }, page: 1 })}
+          >
+            {item.label}
+          </Button>
+        ))}
       </div>
 
       <PageSection>
-        {isLoading ? (
+        {isLoading && !data ? (
           <div className="flex flex-col gap-3 p-4">
             <Skeleton className="h-12 w-full" />
             <Skeleton className="h-12 w-full" />
           </div>
-        ) : isError ? (
+        ) : isError && !data ? (
           <div className="p-8 text-center text-sm text-destructive">
             Failed to load Dead Letter Queue records.
           </div>
@@ -181,21 +188,27 @@ const DlqComponent = () => {
           <DataTable
             className="text-sm"
             data={deadLetters}
+            serverSide={true}
+            loading={isFetching}
+            queryParams={queryParams}
+            onQueryChange={onQueryChange}
             keyExtractor={(dlq) => dlq.id}
             searchPlaceholder="Filter dead letters by topic, status, or callback..."
             emptyMessage="No dead letter messages found. All deliveries healthy."
             defaultSortKey="failed_at"
             defaultSortDirection="desc"
             pageSize={10}
+            pageSizeOptions={[10, 20, 50, 100]}
             filters={[
               {
                 id: "status",
                 label: "Status",
-                accessorKey: "status",
+                value: queryParams.filters.status ?? "all",
                 options: [
                   { label: "All Statuses", value: "all" },
                   { label: "Unresolved", value: "Unresolved" },
-                  { label: "Resolved", value: "Resolved" },
+                  { label: "Replayed", value: "Replayed" },
+                  { label: "Purged", value: "Purged" },
                 ],
               },
             ]}

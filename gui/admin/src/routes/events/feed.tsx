@@ -16,7 +16,7 @@
  */
 
 import { createFileRoute } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
 import {
   useListEventsFeed,
@@ -25,6 +25,7 @@ import {
 } from "shared/src/data/orval/events/events";
 import { EventEnvelope } from "shared/src/data/orval/model";
 import { useEventStream } from "shared/src/hooks/useEventStream";
+import { useTableQueryParams } from "shared/src/hooks/useTableQueryParams";
 import { PageSection } from "shared/src/components/layout/PageSection";
 import { DataTable } from "shared/src/components/DataTable";
 import { FormatDate } from "shared/src/components/ui/format-date";
@@ -212,9 +213,23 @@ const PublishDialog = ({ open, onClose }: PublishDialogProps) => {
 };
 
 const FeedComponent = () => {
-  const [filterTopic, setFilterTopic] = useState("");
   const [publishOpen, setPublishOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<EventEnvelope | null>(null);
+
+  const { params: queryParams, onQueryChange } = useTableQueryParams({
+    defaultLimit: 25,
+    defaultSort: "timestamp_desc",
+    defaultFilters: { topic: "all", source: "all" },
+  });
+
+  const activeTopic =
+    queryParams.filters.topic && queryParams.filters.topic !== "all"
+      ? queryParams.filters.topic
+      : queryParams.search && !queryParams.search.includes(" ")
+        ? queryParams.search
+        : undefined;
+
+  const offset = (queryParams.page - 1) * queryParams.limit;
 
   // Live SSE stream
   const {
@@ -223,41 +238,71 @@ const FeedComponent = () => {
     clearEvents,
     connectionType,
   } = useEventStream({
-    topic: filterTopic ? filterTopic : undefined,
+    topic: activeTopic,
     maxBuffer: 200,
   });
 
-  // Historical query
+  // Historical query loaded dynamically from backend based on limit and offset
   const {
     data: histData,
     refetch,
     isFetching,
-  } = useListEventsFeed({
-    topic: filterTopic ? filterTopic : undefined,
-    limit: 50,
-  });
+  } = useListEventsFeed(
+    {
+      topic: activeTopic,
+      limit: queryParams.limit,
+      offset,
+      sort: queryParams.sort,
+    } as any,
+    {
+      query: {
+        placeholderData: keepPreviousData,
+      },
+    },
+  );
 
   const historicalEvents: EventEnvelope[] = Array.isArray(histData?.data)
     ? (histData.data as EventEnvelope[])
     : [];
 
-  // Combine and deduplicate
-  const combinedEvents = useMemo(() => {
-    const map = new Map<string, EventEnvelope>();
-    // Add live first
-    for (const ev of liveEvents) {
-      map.set(ev.id, ev);
-    }
-    // Add historical
-    for (const ev of historicalEvents) {
-      if (!map.has(ev.id)) {
+  // On page 1 combine live stream and historical events; on subsequent pages show historical pages
+  const displayEvents = useMemo(() => {
+    let list: EventEnvelope[];
+    if (queryParams.page > 1) {
+      list = historicalEvents;
+    } else {
+      const map = new Map<string, EventEnvelope>();
+      for (const ev of liveEvents) {
         map.set(ev.id, ev);
       }
+      for (const ev of historicalEvents) {
+        if (!map.has(ev.id)) {
+          map.set(ev.id, ev);
+        }
+      }
+      list = Array.from(map.values());
     }
-    return Array.from(map.values()).sort(
-      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-    );
-  }, [liveEvents, historicalEvents]);
+
+    const sortField = queryParams.sort;
+    return [...list].sort((a, b) => {
+      if (sortField === "timestamp_asc" || sortField === "created_at_asc") {
+        return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+      }
+      if (sortField === "topic_asc") {
+        return a.topic.localeCompare(b.topic);
+      }
+      if (sortField === "topic_desc") {
+        return b.topic.localeCompare(a.topic);
+      }
+      if (sortField === "source_asc") {
+        return a.source.localeCompare(b.source);
+      }
+      if (sortField === "source_desc") {
+        return b.source.localeCompare(a.source);
+      }
+      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+    });
+  }, [liveEvents, historicalEvents, queryParams.page, queryParams.sort]);
 
   return (
     <div className="flex flex-col gap-6 w-full">
@@ -311,56 +356,104 @@ const FeedComponent = () => {
         <div className="relative flex-1 min-w-[240px] max-w-sm">
           <Filter className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            value={filterTopic}
-            onChange={(e) => setFilterTopic(e.target.value)}
+            value={queryParams.search ?? ""}
+            onChange={(e) => onQueryChange({ search: e.target.value, page: 1 })}
             placeholder="Filter by topic pattern (e.g. transfers:*, transfers:bla)..."
             className="pl-9 text-xs"
           />
         </div>
         <div className="flex items-center gap-1.5">
           <Button
-            variant={filterTopic === "" ? "default" : "outline"}
+            variant={
+              !queryParams.search &&
+              (!queryParams.filters.topic || queryParams.filters.topic === "all")
+                ? "default"
+                : "outline"
+            }
             size="sm"
             className="text-xs h-8"
-            onClick={() => setFilterTopic("")}
+            onClick={() =>
+              onQueryChange({
+                search: "",
+                filters: { ...queryParams.filters, topic: "all" },
+                page: 1,
+              })
+            }
           >
             All
           </Button>
           {["transfers:*", "transfers:bla", "transfers:**", "catalog:*"].map((pat) => (
             <Button
               key={pat}
-              variant={filterTopic === pat ? "default" : "outline"}
+              variant={
+                queryParams.search === pat || queryParams.filters.topic === pat
+                  ? "default"
+                  : "outline"
+              }
               size="sm"
               className="text-xs h-8 font-mono"
-              onClick={() => setFilterTopic(filterTopic === pat ? "" : pat)}
+              onClick={() => {
+                const isSelected =
+                  queryParams.search === pat || queryParams.filters.topic === pat;
+                onQueryChange({
+                  search: isSelected ? "" : pat,
+                  filters: { ...queryParams.filters, topic: isSelected ? "all" : pat },
+                  page: 1,
+                });
+              }}
             >
               {pat}
             </Button>
           ))}
-          {filterTopic &&
-            !["transfers:*", "transfers:bla", "transfers:**", "catalog:*"].includes(filterTopic) && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setFilterTopic("")}
-                className="text-xs text-muted-foreground"
-              >
-                Clear
-              </Button>
-            )}
+          {(queryParams.search ||
+            (queryParams.filters.topic && queryParams.filters.topic !== "all")) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() =>
+                onQueryChange({
+                  search: "",
+                  filters: { ...queryParams.filters, topic: "all" },
+                  page: 1,
+                })
+              }
+              className="text-xs text-muted-foreground"
+            >
+              Clear
+            </Button>
+          )}
         </div>
       </div>
 
       <PageSection>
         <DataTable
           className="text-sm"
-          data={combinedEvents}
+          data={displayEvents}
+          serverSide={true}
+          loading={isFetching}
+          queryParams={queryParams}
+          onQueryChange={onQueryChange}
           keyExtractor={(ev) => ev.id}
           searchPlaceholder="Filter events by topic, source, or payload..."
           emptyMessage='No events recorded yet. Click "Publish Event" to test.'
           defaultSortKey="timestamp"
           defaultSortDirection="desc"
           pageSize={25}
+          pageSizeOptions={[10, 25, 50, 100]}
+          filters={[
+            {
+              id: "source",
+              label: "Source",
+              value: queryParams.filters.source ?? "all",
+              accessorKey: "source",
+              options: [
+                { label: "All Sources", value: "all" },
+                { label: "gui-admin", value: "gui-admin" },
+                { label: "transfer-agent", value: "transfer-agent" },
+                { label: "catalog-service", value: "catalog-service" },
+              ],
+            },
+          ]}
           columns={[
             {
               header: "Topic",

@@ -16,7 +16,7 @@
  */
 
 import { createFileRoute } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
   useListPersonalAccessTokens,
@@ -27,6 +27,7 @@ import {
 import { PatRecord, CreatePatCommandRole, CreatePatResponse } from "shared/src/data/orval/model";
 import { PageSection } from "shared/src/components/layout/PageSection";
 import { DataTable } from "shared/src/components/DataTable";
+import { useTableQueryParams } from "shared/src/hooks/useTableQueryParams";
 import { FormatDate } from "shared/src/components/ui/format-date";
 import { Skeleton } from "shared/src/components/ui/skeleton";
 import { Button } from "shared/src/components/ui/button";
@@ -230,7 +231,21 @@ const PatsComponent = () => {
   const [createOpen, setCreateOpen] = useState(false);
   const [tokenData, setTokenData] = useState<{ token: string; name: string } | null>(null);
 
-  const { data, isLoading, isError } = useListPersonalAccessTokens();
+  const { params: queryParams, apiParams, onQueryChange } = useTableQueryParams({
+    defaultLimit: 10,
+    defaultSort: "created_at_desc",
+    defaultFilters: { status: "all" },
+  });
+
+  const { data, isLoading, isError, isFetching } = useListPersonalAccessTokens({
+    query: {
+      queryKey: ["/oauth/pats", apiParams],
+      placeholderData: keepPreviousData,
+    },
+    request: {
+      params: apiParams,
+    },
+  });
   const pats: PatRecord[] = Array.isArray(data?.data) ? (data.data as PatRecord[]) : [];
 
   const { mutate: revokePat } = useRevokePersonalAccessToken({
@@ -261,12 +276,12 @@ const PatsComponent = () => {
       </div>
 
       <PageSection>
-        {isLoading ? (
+        {isLoading && !data ? (
           <div className="flex flex-col gap-3 p-4">
             <Skeleton className="h-12 w-full" />
             <Skeleton className="h-12 w-full" />
           </div>
-        ) : isError ? (
+        ) : isError && !data ? (
           <div className="p-8 text-center text-sm text-destructive">
             Failed to load Personal Access Tokens.
           </div>
@@ -274,22 +289,27 @@ const PatsComponent = () => {
           <DataTable
             className="text-sm"
             data={pats}
+            serverSide={true}
+            loading={isFetching}
+            queryParams={queryParams}
+            onQueryChange={onQueryChange}
             keyExtractor={(pat) => pat.id}
             searchPlaceholder="Filter tokens by name, prefix, or role..."
             emptyMessage='No active Personal Access Tokens. Click "Generate New PAT" to create one.'
             defaultSortKey="created_at"
             defaultSortDirection="desc"
+            pageSize={10}
+            pageSizeOptions={[10, 20, 50, 100]}
             filters={[
               {
                 id: "status",
                 label: "Status",
+                value: queryParams.filters.status ?? "all",
                 options: [
                   { label: "All Statuses", value: "all" },
                   { label: "Active", value: "active" },
                   { label: "Revoked", value: "revoked" },
                 ],
-                filterFn: (pat, val) =>
-                  val === "active" ? !pat.revoked : Boolean(pat.revoked),
               },
             ]}
             columns={[

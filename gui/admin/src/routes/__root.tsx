@@ -36,6 +36,16 @@ function RootComponent() {
   const isLogin = pathname.includes("/login");
 
   useEffect(() => {
+    const handleUnauthorized = () => {
+      setAuthed(false);
+    };
+    window.addEventListener("eunomia:unauthorized", handleUnauthorized);
+    return () => {
+      window.removeEventListener("eunomia:unauthorized", handleUnauthorized);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!authed && !isLogin) {
       navigate({ to: "/login/" });
     }

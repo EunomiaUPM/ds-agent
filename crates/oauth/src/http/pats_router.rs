@@ -18,7 +18,7 @@
 use std::sync::Arc;
 
 use axum::extract::rejection::JsonRejection;
-use axum::extract::{Extension, Path, Request, State};
+use axum::extract::{Extension, Path, Query, Request, State};
 use axum::http::StatusCode;
 use axum::middleware::Next;
 use axum::response::Response;
@@ -26,6 +26,7 @@ use axum::routing::get;
 use axum::{Json, Router, middleware};
 use common::auth::claims::Claims;
 use common::auth::middleware::bearer;
+use serde::Deserialize;
 use uuid::Uuid;
 use ymir::errors::AppResult;
 use ymir::utils::extract_payload;
@@ -34,6 +35,17 @@ use crate::entities::commands::CreatePatCommand;
 use crate::services::pat_service::PatServiceTrait;
 use crate::services::pat_service::views::{CreatePatResponse, PatView};
 use crate::services::token_service::TokenServiceTrait;
+
+#[derive(Debug, Deserialize, Default)]
+pub struct ListPatsQuery {
+    pub limit: Option<u64>,
+    pub page: Option<u64>,
+    pub offset: Option<u64>,
+    pub role: Option<String>,
+    pub status: Option<String>,
+    pub search: Option<String>,
+    pub sort: Option<String>,
+}
 
 #[derive(Clone)]
 pub(crate) struct PatsRouter {
@@ -75,8 +87,55 @@ impl PatsRouter {
     async fn handle_list(
         State(s): State<Self>,
         Extension(claims): Extension<Claims>,
+        Query(q): Query<ListPatsQuery>,
     ) -> AppResult<Json<Vec<PatView>>> {
-        Ok(Json(s.pat_svc.list_pats(&claims.sub).await?))
+        let mut pats = s.pat_svc.list_pats(&claims.sub).await?;
+
+        if let Some(ref status) = q.status {
+            if status == "active" {
+                pats.retain(|p| !p.revoked);
+            } else if status == "revoked" {
+                pats.retain(|p| p.revoked);
+            }
+        }
+        if let Some(ref role) = q.role {
+            if role != "all" {
+                pats.retain(|p| p.role.to_string().eq_ignore_ascii_case(role));
+            }
+        }
+        if let Some(ref search) = q.search {
+            let term = search.to_lowercase();
+            pats.retain(|p| {
+                p.name.to_lowercase().contains(&term)
+                    || p.token_prefix.to_lowercase().contains(&term)
+                    || p.role.to_string().to_lowercase().contains(&term)
+            });
+        }
+        if let Some(ref sort) = q.sort {
+            match sort.as_str() {
+                "created_at_asc" => pats.sort_by(|a, b| a.created_at.cmp(&b.created_at)),
+                "created_at_desc" => pats.sort_by(|a, b| b.created_at.cmp(&a.created_at)),
+                "name_asc" => pats.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase())),
+                "name_desc" => pats.sort_by(|a, b| b.name.to_lowercase().cmp(&a.name.to_lowercase())),
+                "token_prefix_asc" => pats.sort_by(|a, b| a.token_prefix.cmp(&b.token_prefix)),
+                "token_prefix_desc" => pats.sort_by(|a, b| b.token_prefix.cmp(&a.token_prefix)),
+                "expires_at_asc" => pats.sort_by(|a, b| a.expires_at.cmp(&b.expires_at)),
+                "expires_at_desc" => pats.sort_by(|a, b| b.expires_at.cmp(&a.expires_at)),
+                _ => pats.sort_by(|a, b| b.created_at.cmp(&a.created_at)),
+            }
+        } else {
+            pats.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+        }
+        if let Some(limit) = q.limit {
+            let offset = q
+                .offset
+                .or_else(|| q.page.map(|p| p.saturating_sub(1) * limit))
+                .unwrap_or(0) as usize;
+            let paged: Vec<PatView> = pats.into_iter().skip(offset).take(limit as usize).collect();
+            Ok(Json(paged))
+        } else {
+            Ok(Json(pats))
+        }
     }
 
     async fn handle_create(

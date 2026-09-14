@@ -25,6 +25,13 @@ import {
 import { cn } from "shared/src/lib/utils";
 import { mapToSortParam, TableQueryParams } from "../hooks/useTableQueryParams";
 
+const toSnakeCase = (str: string) => str.replace(/[A-Z]/g, (l) => `_${l.toLowerCase()}`);
+
+const isSortConfigMatch = (configKey: string | undefined | null, colKey: string) => {
+  if (!configKey) return false;
+  return configKey === colKey || configKey === toSnakeCase(colKey);
+};
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -274,9 +281,14 @@ export function DataTable<T extends Record<string, any> = any>({
   const [sortConfig, setSortConfig] = useState<{
     key: string;
     direction: "asc" | "desc";
-  } | null>(
-    defaultSortKey ? { key: defaultSortKey, direction: defaultSortDirection ?? "asc" } : null,
-  );
+  } | null>(() => {
+    if (queryParams?.sort) {
+      const s = queryParams.sort;
+      if (s.endsWith("_asc")) return { key: s.slice(0, -4), direction: "asc" };
+      if (s.endsWith("_desc")) return { key: s.slice(0, -5), direction: "desc" };
+    }
+    return defaultSortKey ? { key: defaultSortKey, direction: defaultSortDirection ?? "asc" } : null;
+  });
 
   // Sync sort state from queryParams if provided
   useEffect(() => {
@@ -470,12 +482,13 @@ export function DataTable<T extends Record<string, any> = any>({
     if (isServerDriven) return filteredData;
     if (!sortConfig) return filteredData;
 
-    const col = columns.find(
-      (c, index) =>
-        (c.sortKey ??
-          (c.accessorKey as string) ??
-          (typeof c.header === "string" ? c.header : `col_${index}`)) === sortConfig.key,
-    );
+    const col = columns.find((c, index) => {
+      const k =
+        c.sortKey ??
+        (c.accessorKey as string) ??
+        (typeof c.header === "string" ? c.header : `col_${index}`);
+      return isSortConfigMatch(sortConfig.key, String(k));
+    });
 
     return [...filteredData].sort((a, b) => {
       let aVal: any;
@@ -542,17 +555,53 @@ export function DataTable<T extends Record<string, any> = any>({
   }, [filteredData, isServerDriven, sortConfig, columns]);
 
   // Total items calculation (uses server totalCount if available)
-  const totalItems = totalCountValue ?? sortedData.length;
   const activeItemsPerPage = itemsPerPage ?? (isServerDriven ? rawItems.length || 10 : undefined);
-  const totalPages = activeItemsPerPage ? Math.ceil(totalItems / activeItemsPerPage) || 1 : 1;
-  const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
 
-  // Clamp current page when total pages shrink
+  // When server-side without totalCount, determine if more pages exist based on full page response
+  const hasMore = isServerDriven
+    ? totalCountValue !== undefined
+      ? currentPage < Math.ceil(totalCountValue / (activeItemsPerPage || 10))
+      : activeItemsPerPage
+        ? rawItems.length === activeItemsPerPage
+        : false
+    : safeCurrentPageCheck();
+
+  function safeCurrentPageCheck() {
+    const calcPages = activeItemsPerPage ? Math.ceil(sortedData.length / activeItemsPerPage) || 1 : 1;
+    return currentPage < calcPages;
+  }
+
+  const totalPages =
+    totalCountValue !== undefined
+      ? activeItemsPerPage
+        ? Math.ceil(totalCountValue / activeItemsPerPage) || 1
+        : 1
+      : isServerDriven
+        ? hasMore
+          ? currentPage + 1
+          : Math.max(1, currentPage)
+        : activeItemsPerPage
+          ? Math.ceil(sortedData.length / activeItemsPerPage) || 1
+          : 1;
+
+  const safeCurrentPage =
+    totalCountValue !== undefined || !isServerDriven
+      ? Math.min(Math.max(1, currentPage), totalPages)
+      : Math.max(1, currentPage);
+
+  const totalItems =
+    totalCountValue !== undefined
+      ? totalCountValue
+      : isServerDriven
+        ? (safeCurrentPage - 1) * (activeItemsPerPage || 10) + rawItems.length
+        : sortedData.length;
+
+  // Clamp current page when total pages shrink (only when total count is known or not server-driven)
   useEffect(() => {
-    if (currentPage > totalPages) {
+    if ((totalCountValue !== undefined || !isServerDriven) && currentPage > totalPages) {
       setCurrentPage(totalPages);
     }
-  }, [currentPage, totalPages]);
+  }, [currentPage, totalPages, totalCountValue, isServerDriven]);
 
   // In server-side mode display rawItems directly; in client mode slice current page
   const paginatedData = useMemo(() => {
@@ -563,34 +612,42 @@ export function DataTable<T extends Record<string, any> = any>({
   }, [isServerDriven, rawItems, sortedData, safeCurrentPage, itemsPerPage]);
 
   const startItem =
-    totalItems === 0 ? 0 : (safeCurrentPage - 1) * (activeItemsPerPage ?? totalItems) + 1;
-  const endItem = activeItemsPerPage
-    ? Math.min(safeCurrentPage * activeItemsPerPage, totalItems)
-    : totalItems;
+    rawItems.length === 0
+      ? 0
+      : (safeCurrentPage - 1) * (activeItemsPerPage ?? (isServerDriven ? rawItems.length : totalItems)) + 1;
+  const endItem =
+    rawItems.length === 0
+      ? 0
+      : isServerDriven && totalCountValue === undefined
+        ? startItem + rawItems.length - 1
+        : activeItemsPerPage
+          ? Math.min(safeCurrentPage * activeItemsPerPage, totalItems)
+          : totalItems;
+
+  const isColumnSortable = (col: Column<T>) => {
+    if (col.sortable !== undefined) return col.sortable;
+    return Boolean(col.sortKey || col.accessorKey || (!isServerDriven && col.sortValue));
+  };
 
   const handleHeaderClick = (col: Column<T>, index: number) => {
-    const isSortable =
-      col.sortable !== undefined
-        ? col.sortable
-        : isServerDriven
-          ? Boolean(col.sortKey)
-          : Boolean(col.sortKey || col.sortValue || col.accessorKey);
-
-    if (!isSortable) return;
+    if (!isColumnSortable(col)) return;
 
     const colKey =
       col.sortKey ??
       (col.accessorKey as string) ??
       (typeof col.header === "string" ? col.header : `col_${index}`);
 
-    const isCurrentKey = sortConfig?.key === colKey;
-    const nextDirection: "asc" | "desc" =
-      isCurrentKey && sortConfig.direction === "asc" ? "desc" : "asc";
+    const colKeyStr = String(colKey);
+    const colSnakeKey = toSnakeCase(colKeyStr);
 
-    setSortConfig({ key: colKey, direction: nextDirection });
+    const isCurrentKey = isSortConfigMatch(sortConfig?.key, colKeyStr);
+    const nextDirection: "asc" | "desc" =
+      isCurrentKey && sortConfig?.direction === "asc" ? "desc" : "asc";
+
+    setSortConfig({ key: colSnakeKey, direction: nextDirection });
 
     if (onQueryChange) {
-      const backendSort = mapToSortParam(String(colKey), nextDirection);
+      const backendSort = mapToSortParam(colKeyStr, nextDirection);
       onQueryChange({ sort: backendSort, page: 1 });
     }
   };
@@ -722,26 +779,26 @@ export function DataTable<T extends Record<string, any> = any>({
         <TableHeader className="sticky top-0 z-10 bg-background-800/90 backdrop-blur border-b border-ink/10">
           <TableRow>
             {columns.map((col, index) => {
-              const isSortable =
-                col.sortable !== undefined
-                  ? col.sortable
-                  : isServerDriven
-                    ? Boolean(col.sortKey)
-                    : Boolean(col.sortKey || col.sortValue || col.accessorKey);
+              const sortable = isColumnSortable(col);
 
               const colKey =
                 col.sortKey ??
                 (col.accessorKey as string) ??
                 (typeof col.header === "string" ? col.header : `col_${index}`);
+              const colKeyStr = String(colKey);
 
-              const isSortedAsc = sortConfig?.key === colKey && sortConfig.direction === "asc";
-              const isSortedDesc = sortConfig?.key === colKey && sortConfig.direction === "desc";
+              const isSortedAsc =
+                isSortConfigMatch(sortConfig?.key, colKeyStr) &&
+                sortConfig?.direction === "asc";
+              const isSortedDesc =
+                isSortConfigMatch(sortConfig?.key, colKeyStr) &&
+                sortConfig?.direction === "desc";
 
               return (
                 <TableHead
                   key={index}
                   className={cn(
-                    isSortable &&
+                    sortable &&
                       "cursor-pointer select-none hover:text-ink transition-colors group",
                     col.className,
                     col.headerClassName,
@@ -750,7 +807,7 @@ export function DataTable<T extends Record<string, any> = any>({
                 >
                   <div className="inline-flex items-center gap-1.5">
                     <span>{col.header}</span>
-                    {isSortable && (
+                    {sortable && (
                       <span className="shrink-0">
                         {isSortedAsc ? (
                           <ArrowUp className="h-3.5 w-3.5 text-brand-sky" />
@@ -831,14 +888,26 @@ export function DataTable<T extends Record<string, any> = any>({
       </Table>
 
       {/* Pagination Footer */}
-      {paginated && totalItems > 0 && (
+      {paginated && (totalItems > 0 || safeCurrentPage > 1) && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-3 py-2 text-xs text-muted-foreground border-t border-ink/10 bg-background-800/30 rounded-b-lg">
           {/* Record range summary */}
           <div className="flex items-center gap-1.5">
             <span>
               Showing <span className="font-medium text-brand-snow">{startItem}</span> to{" "}
-              <span className="font-medium text-brand-snow">{endItem}</span> of{" "}
-              <span className="font-medium text-brand-snow">{totalItems}</span> records
+              <span className="font-medium text-brand-snow">{endItem}</span>
+              {totalCountValue !== undefined ? (
+                <>
+                  {" of "}
+                  <span className="font-medium text-brand-snow">{totalItems}</span> records
+                </>
+              ) : hasMore ? (
+                <>
+                  {" of "}
+                  <span className="font-medium text-brand-snow">{endItem}+</span> records
+                </>
+              ) : (
+                " records"
+              )}
             </span>
           </div>
 
@@ -865,8 +934,18 @@ export function DataTable<T extends Record<string, any> = any>({
             {/* Page navigation */}
             <div className="flex items-center gap-1">
               <span className="text-xs mr-1">
-                Page <span className="font-medium text-brand-snow">{safeCurrentPage}</span> of{" "}
-                <span className="font-medium text-brand-snow">{totalPages}</span>
+                Page <span className="font-medium text-brand-snow">{safeCurrentPage}</span>
+                {totalCountValue !== undefined ? (
+                  <>
+                    {" of "}
+                    <span className="font-medium text-brand-snow">{totalPages}</span>
+                  </>
+                ) : hasMore ? null : (
+                  <>
+                    {" of "}
+                    <span className="font-medium text-brand-snow">{safeCurrentPage}</span>
+                  </>
+                )}
               </span>
               <Button
                 variant="outline"
@@ -891,23 +970,29 @@ export function DataTable<T extends Record<string, any> = any>({
               <Button
                 variant="outline"
                 size="xs"
-                disabled={safeCurrentPage >= totalPages}
-                onClick={() => handlePageChange(Math.min(totalPages, safeCurrentPage + 1))}
+                disabled={
+                  isServerDriven && totalCountValue === undefined
+                    ? !hasMore
+                    : safeCurrentPage >= totalPages
+                }
+                onClick={() => handlePageChange(safeCurrentPage + 1)}
                 className="h-7 w-7 p-0"
                 title="Next page"
               >
                 <ChevronRight className="h-3.5 w-3.5" />
               </Button>
-              <Button
-                variant="outline"
-                size="xs"
-                disabled={safeCurrentPage >= totalPages}
-                onClick={() => handlePageChange(totalPages)}
-                className="h-7 w-7 p-0"
-                title="Last page"
-              >
-                <ChevronsRight className="h-3.5 w-3.5" />
-              </Button>
+              {(!isServerDriven || totalCountValue !== undefined) && (
+                <Button
+                  variant="outline"
+                  size="xs"
+                  disabled={safeCurrentPage >= totalPages}
+                  onClick={() => handlePageChange(totalPages)}
+                  className="h-7 w-7 p-0"
+                  title="Last page"
+                >
+                  <ChevronsRight className="h-3.5 w-3.5" />
+                </Button>
+              )}
             </div>
           </div>
         </div>

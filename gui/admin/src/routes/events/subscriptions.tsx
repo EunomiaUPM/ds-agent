@@ -16,7 +16,7 @@
  */
 
 import { createFileRoute } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
   useListEventSubscriptions,
@@ -25,6 +25,7 @@ import {
   getListEventSubscriptionsQueryKey,
 } from "shared/src/data/orval/events/events";
 import { EventSubscription } from "shared/src/data/orval/model";
+import { useTableQueryParams } from "shared/src/hooks/useTableQueryParams";
 import { PageSection } from "shared/src/components/layout/PageSection";
 import { DataTable } from "shared/src/components/DataTable";
 import { FormatDate } from "shared/src/components/ui/format-date";
@@ -187,18 +188,50 @@ const CreateSubscriptionDialog = ({ open, onClose }: CreateSubscriptionDialogPro
 const SubscriptionsComponent = () => {
   const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
-  const [patternFilter, setPatternFilter] = useState("");
 
-  const { data, isLoading, isError } = useListEventSubscriptions();
+  const { params: queryParams, onQueryChange } = useTableQueryParams({
+    defaultLimit: 10,
+    defaultSort: "created_at_desc",
+    defaultFilters: { pattern: "all", status: "all" },
+  });
+
+  const offset = (queryParams.page - 1) * queryParams.limit;
+  const patternParam =
+    queryParams.filters.pattern && queryParams.filters.pattern !== "all"
+      ? queryParams.filters.pattern
+      : undefined;
+  const statusParam =
+    queryParams.filters.status && queryParams.filters.status !== "all"
+      ? queryParams.filters.status
+      : undefined;
+
+  const { data, isLoading, isError, isFetching } = useListEventSubscriptions({
+    query: {
+      queryKey: [
+        "/events/subscriptions",
+        {
+          limit: queryParams.limit,
+          offset,
+          pattern: patternParam,
+          status: statusParam,
+          sort: queryParams.sort,
+        },
+      ],
+      placeholderData: keepPreviousData,
+    },
+    request: {
+      params: {
+        limit: queryParams.limit,
+        offset,
+        pattern: patternParam,
+        status: statusParam,
+        sort: queryParams.sort,
+      },
+    },
+  });
   const subscriptions: EventSubscription[] = Array.isArray(data?.data)
     ? (data.data as EventSubscription[])
     : [];
-
-  const filteredSubscriptions = patternFilter
-    ? subscriptions.filter((sub) =>
-        sub.topic_pattern.toLowerCase().includes(patternFilter.toLowerCase()),
-      )
-    : subscriptions;
 
   const { mutate: deleteSub } = useDeleteEventSubscription({
     mutation: {
@@ -230,20 +263,37 @@ const SubscriptionsComponent = () => {
       {/* Quick Pattern Filter Chips */}
       <div className="flex items-center gap-2">
         <Button
-          variant={patternFilter === "" ? "default" : "outline"}
+          variant={
+            !queryParams.filters.pattern || queryParams.filters.pattern === "all"
+              ? "default"
+              : "outline"
+          }
           size="sm"
           className="text-xs h-7"
-          onClick={() => setPatternFilter("")}
+          onClick={() =>
+            onQueryChange({
+              filters: { ...queryParams.filters, pattern: "all" },
+              page: 1,
+            })
+          }
         >
           All
         </Button>
         {["transfers:*", "transfers:bla", "transfers:**", "catalog:*"].map((tag) => (
           <Button
             key={tag}
-            variant={patternFilter === tag ? "default" : "outline"}
+            variant={queryParams.filters.pattern === tag ? "default" : "outline"}
             size="sm"
             className="text-xs h-7 font-mono"
-            onClick={() => setPatternFilter(patternFilter === tag ? "" : tag)}
+            onClick={() =>
+              onQueryChange({
+                filters: {
+                  ...queryParams.filters,
+                  pattern: queryParams.filters.pattern === tag ? "all" : tag,
+                },
+                page: 1,
+              })
+            }
           >
             {tag}
           </Button>
@@ -251,35 +301,40 @@ const SubscriptionsComponent = () => {
       </div>
 
       <PageSection>
-        {isLoading ? (
+        {isLoading && !data ? (
           <div className="flex flex-col gap-3 p-4">
             <Skeleton className="h-12 w-full" />
             <Skeleton className="h-12 w-full" />
           </div>
-        ) : isError ? (
+        ) : isError && !data ? (
           <div className="p-8 text-center text-sm text-destructive">
             Failed to load event subscriptions.
           </div>
         ) : (
           <DataTable
             className="text-sm"
-            data={filteredSubscriptions}
+            data={subscriptions}
+            serverSide={true}
+            loading={isFetching}
+            queryParams={queryParams}
+            onQueryChange={onQueryChange}
             keyExtractor={(sub) => sub.id}
             searchPlaceholder="Filter subscriptions by topic or callback URL..."
             emptyMessage="No webhook subscriptions configured yet."
             defaultSortKey="created_at"
             defaultSortDirection="desc"
+            pageSize={10}
+            pageSizeOptions={[10, 20, 50, 100]}
             filters={[
               {
                 id: "status",
                 label: "Status",
+                value: queryParams.filters.status ?? "all",
                 options: [
                   { label: "All Statuses", value: "all" },
                   { label: "Active", value: "active" },
                   { label: "Inactive", value: "inactive" },
                 ],
-                filterFn: (sub, val) =>
-                  val === "active" ? Boolean(sub.active) : !sub.active,
               },
             ]}
             columns={[

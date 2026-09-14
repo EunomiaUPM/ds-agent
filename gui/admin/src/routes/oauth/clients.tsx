@@ -16,7 +16,7 @@
  */
 
 import { createFileRoute } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
   useListOAuthClients,
@@ -32,6 +32,7 @@ import {
 } from "shared/src/data/orval/model";
 import { PageSection } from "shared/src/components/layout/PageSection";
 import { DataTable } from "shared/src/components/DataTable";
+import { useTableQueryParams } from "shared/src/hooks/useTableQueryParams";
 import { FormatDate } from "shared/src/components/ui/format-date";
 import { Skeleton } from "shared/src/components/ui/skeleton";
 import { Button } from "shared/src/components/ui/button";
@@ -222,7 +223,21 @@ const ClientsComponent = () => {
     clientSecret: string;
   } | null>(null);
 
-  const { data, isLoading, isError } = useListOAuthClients();
+  const { params: queryParams, apiParams, onQueryChange } = useTableQueryParams({
+    defaultLimit: 10,
+    defaultSort: "created_at_desc",
+    defaultFilters: { role: "all" },
+  });
+
+  const { data, isLoading, isError, isFetching } = useListOAuthClients({
+    query: {
+      queryKey: ["/oauth/clients", apiParams],
+      placeholderData: keepPreviousData,
+    },
+    request: {
+      params: apiParams,
+    },
+  });
 
   const { mutate: deleteClient } = useDeleteOAuthClient({
     mutation: {
@@ -271,12 +286,12 @@ const ClientsComponent = () => {
       </div>
 
       <PageSection>
-        {isLoading ? (
+        {isLoading && !data ? (
           <div className="flex flex-col gap-3 p-4">
             <Skeleton className="h-12 w-full" />
             <Skeleton className="h-12 w-full" />
           </div>
-        ) : isError ? (
+        ) : isError && !data ? (
           <div className="p-8 text-center text-sm text-destructive">
             Failed to load registered OAuth clients.
           </div>
@@ -284,22 +299,28 @@ const ClientsComponent = () => {
           <DataTable
             className="text-sm"
             data={clients}
+            serverSide={true}
+            loading={isFetching}
+            queryParams={queryParams}
+            onQueryChange={onQueryChange}
             keyExtractor={(client) => client.client_id}
             searchPlaceholder="Filter clients by name, ID, or role..."
             emptyMessage='No OAuth clients registered yet. Click "Register Client" to add one.'
             defaultSortKey="created_at"
             defaultSortDirection="desc"
             pageSize={10}
+            pageSizeOptions={[10, 20, 50, 100]}
             filters={[
               {
                 id: "role",
                 label: "Role",
-                accessorKey: "role",
+                value: queryParams.filters.role ?? "all",
                 options: [
                   { label: "All Roles", value: "all" },
                   { label: "Consumer", value: "Consumer" },
                   { label: "Provider", value: "Provider" },
                   { label: "Admin", value: "Admin" },
+                  { label: "Service", value: "Service" },
                 ],
               },
             ]}

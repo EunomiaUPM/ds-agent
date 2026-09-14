@@ -23,6 +23,7 @@ pub struct ListEventsQuery {
     pub topic: Option<String>,
     pub limit: Option<u64>,
     pub offset: Option<u64>,
+    pub sort: Option<String>,
 }
 
 // Query parameters for Dead Letter Queue listing.
@@ -31,4 +32,5 @@ pub struct ListDeadLettersQuery {
     pub status: Option<String>,
     pub limit: Option<u64>,
     pub offset: Option<u64>,
+    pub sort: Option<String>,
 }

@@ -27,13 +27,12 @@ use crate::protocols::dsp::entities::context_common::{
 };
 use crate::protocols::dsp::entities::message_types::TransferDSPMessageType;
 use crate::protocols::dsp::entities::protocol_fields::TransferProtocolFields;
-use crate::protocols::dsp::entities::rdf_extractor_dsp::DspTransfer;
+use crate::protocols::dsp::entities::rdf_extractor_dsp::{DspTransfer, ExtractProtocolFields};
 use common::dsp_common::data_address::DataAddress;
 use common::dsp_common::odrl::OdrlAgreement;
+use common::dsp_common::rdf::DspCanonicalizer;
 use common::dsp_common::well_known_types::DSPProtocolVersions;
-use common::rdf::dsp::DspCanonicalizer;
-use common::rdf::expanded::ExpandedDoc;
-use common::rdf::extract::ExtractProtocolFields;
+use common::rdf::ExpandedDoc;
 use http::request::Parts;
 use sha2::{Digest, Sha256};
 use std::str::FromStr;

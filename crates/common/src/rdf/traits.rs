@@ -15,15 +15,17 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use serde_json::Value;
+//! Trait definition for deserializing typed domain structures from expanded RDF nodes.
 
-pub mod context_field;
-pub mod data_address;
-pub mod normalizer;
-pub mod odrl;
-pub mod rdf;
-pub mod well_known_types;
+use ymir::errors::Outcome;
 
-pub fn schema_compiler_util(schema_content: &str) -> Value {
-    serde_json::from_str::<Value>(schema_content).unwrap()
+use crate::rdf::node::RdfNode;
+
+/// Deserializes a typed domain model from an expanded RDF node.
+pub trait FromRdf: Sized {
+    /// Optional `@type` IRI used to automatically locate the root node in `@graph` documents.
+    const TYPE_IRI: Option<&'static str> = None;
+
+    /// Constructs an instance from an expanded RDF node.
+    fn from_rdf(node: &RdfNode<'_, '_>) -> Outcome<Self>;
 }

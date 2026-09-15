@@ -19,12 +19,44 @@
 //! message. Everything protocol-agnostic lives in `common::rdf`.
 
 use common::dsp_common::data_address::{DataAddress, EndpointProperty};
-use common::rdf::expanded::Node;
-use common::rdf::extract::ExtractProtocolFields;
+use common::rdf::{ExpandedDoc, RdfNode};
 use ymir::errors::{BadFormat, Errors, Outcome};
 
 use crate::protocols::dsp::entities::message_types::TransferDSPMessageType;
 use crate::protocols::dsp::entities::protocol_fields::TransferProtocolFields;
+
+/// Protocol-specific field extractor interface.
+pub trait ExtractProtocolFields {
+    type MessageType: std::fmt::Display;
+    type Fields;
+
+    fn type_iri(message: &Self::MessageType) -> String;
+    fn extract(node: &RdfNode<'_, '_>) -> Outcome<Self::Fields>;
+    fn message_type(node: &RdfNode<'_, '_>) -> Option<Self::MessageType>;
+
+    fn root_message<'d, 'a>(
+        doc: &'d ExpandedDoc<'a>,
+    ) -> Outcome<(Self::MessageType, RdfNode<'d, 'a>)> {
+        let mut matching = doc
+            .nodes()
+            .filter_map(|node| Self::message_type(&node).map(|kind| (kind, node)));
+        let found = matching.next().ok_or_else(|| {
+            Errors::format(
+                BadFormat::Received,
+                "expanded body declares no message type",
+                None,
+            )
+        })?;
+        if matching.next().is_some() {
+            return Err(Errors::format(
+                BadFormat::Received,
+                "expanded body declares more than one message node",
+                None,
+            ));
+        }
+        Ok(found)
+    }
+}
 
 /// Namespace every DSP term expands into.
 const DSPACE: &str = "https://w3id.org/dspace/2025/1/";
@@ -44,13 +76,13 @@ impl ExtractProtocolFields for DspTransfer {
 
     /// Only the DSP namespace counts: in expanded form every `@type` is a full
     /// IRI, so a same-named term from elsewhere is a different message.
-    fn message_type(node: &Node<'_, '_>) -> Option<TransferDSPMessageType> {
+    fn message_type(node: &RdfNode<'_, '_>) -> Option<TransferDSPMessageType> {
         node.types()
             .filter_map(|iri| iri.strip_prefix(DSPACE))
             .find_map(|term| term.parse().ok())
     }
 
-    fn extract(node: &Node<'_, '_>) -> Outcome<TransferProtocolFields> {
+    fn extract(node: &RdfNode<'_, '_>) -> Outcome<TransferProtocolFields> {
         Ok(TransferProtocolFields {
             consumer_pid: Self::owned(node, &Self::dspace("consumerPid")),
             provider_pid: Self::owned(node, &Self::dspace("providerPid")),
@@ -71,7 +103,7 @@ impl ExtractProtocolFields for DspTransfer {
 impl DspTransfer {
     /// A `dataAddress` is optional, but a present one missing a required member is
     /// malformed rather than absent.
-    fn data_address(node: &Node<'_, '_>) -> Outcome<Option<DataAddress>> {
+    fn data_address(node: &RdfNode<'_, '_>) -> Outcome<Option<DataAddress>> {
         let Some(address) = node.object(&Self::dspace("dataAddress")) else {
             return Ok(None);
         };
@@ -95,7 +127,7 @@ impl DspTransfer {
         }))
     }
 
-    fn endpoint_property(node: &Node<'_, '_>) -> Outcome<EndpointProperty> {
+    fn endpoint_property(node: &RdfNode<'_, '_>) -> Outcome<EndpointProperty> {
         Ok(EndpointProperty {
             _type: Self::term_of(node).unwrap_or_else(|| "EndpointProperty".to_string()),
             name: Self::owned(node, &Self::dspace("name"))
@@ -110,12 +142,12 @@ impl DspTransfer {
         format!("{DSPACE}{term}")
     }
 
-    fn owned(node: &Node<'_, '_>, predicate: &str) -> Option<String> {
+    fn owned(node: &RdfNode<'_, '_>, predicate: &str) -> Option<String> {
         node.iri_or_literal(predicate).map(str::to_string)
     }
 
     /// The node's `@type` back as the compact DSP term, the shape entities store.
-    fn term_of(node: &Node<'_, '_>) -> Option<String> {
+    fn term_of(node: &RdfNode<'_, '_>) -> Option<String> {
         let iri = node.types().next()?;
         Some(iri.strip_prefix(DSPACE).unwrap_or(iri).to_string())
     }
@@ -132,8 +164,8 @@ impl DspTransfer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use common::rdf::dsp::DspCanonicalizer;
-    use common::rdf::expanded::ExpandedDoc;
+    use common::dsp_common::rdf::DspCanonicalizer;
+    use common::rdf::ExpandedDoc;
     use serde_json::json;
 
     async fn fields_of(

@@ -47,7 +47,7 @@ locspan = "0.7"
 # here is a type error, not a silent behaviour change.
 rdf-types = "=0.15.4"
 contextual = "=0.1.6"
+sha2 = { workspace = true }
 
 [dev-dependencies]
-sha2 = { workspace = true }
 tower = { workspace = true, features = ["util"] }

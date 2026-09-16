@@ -17,7 +17,7 @@
 
 use std::sync::Arc;
 
-use common::auth::middleware::OauthTokenValidator;
+use common::auth::OauthTokenValidator;
 use common::config::services::GatewayConfig;
 use events::bus::EventBus;
 use tokio::sync::broadcast;

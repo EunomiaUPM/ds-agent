@@ -15,15 +15,11 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod events;
-pub(crate) mod gateway;
-pub mod proxy;
-pub mod setup;
-pub(crate) mod subscriptions;
+//! HTTP transport adapters for authentication and identity extraction.
 
-pub use gateway::GatewayHttpRouter;
-pub use proxy::HttpProxyDispatcher;
-pub use setup::cmd::GatewayCommands;
-pub use setup::composition::BffModule;
-pub use setup::context::AppContext;
-pub use setup::http_worker::{create_gateway_http_router, create_gateway_http_router_with_context};
+pub mod extractors;
+pub mod middleware;
+
+pub use extractors::{AuthClaims, ExtractedHeaders};
+pub use middleware::AuthHttpMiddleware;
+pub type AuthMiddleware = AuthHttpMiddleware;

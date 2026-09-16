@@ -26,6 +26,7 @@ use crate::entities::user::User;
 #[async_trait::async_trait]
 pub(crate) trait UserRepository: Send + Sync {
     async fn get_all(&self, filter: &UserFilter, page: &Page, sort: &Sort) -> Outcome<Vec<User>>;
+    async fn count(&self, filter: &UserFilter) -> Outcome<u64>;
     async fn get_by_tenant_id(&self, tenant_id: &str) -> Outcome<Option<User>>;
     async fn get_by_email(&self, email: &str) -> Outcome<Option<User>>;
     async fn create(&self, user: &User) -> Outcome<User>;

@@ -15,17 +15,29 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use common::auth::AccessScope;
 use ymir::errors::Outcome;
 
 use crate::entities::commands::CreateClientCommand;
+use crate::entities::query::{ClientFilter, Page, Paginated, Sort};
 use crate::http::forms::ClientView;
 
 pub(crate) mod service;
 
 #[async_trait::async_trait]
 pub(crate) trait ClientServiceTrait: Send + Sync + 'static {
-    async fn list_clients(&self) -> Outcome<Vec<ClientView>>;
-    async fn get_client(&self, client_id: &str) -> Outcome<ClientView>;
-    async fn create_client(&self, cmd: &CreateClientCommand) -> Outcome<ClientView>;
-    async fn delete_client(&self, client_id: &str) -> Outcome<()>;
+    async fn list_clients(
+        &self,
+        scope: &AccessScope,
+        filter: &ClientFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<Paginated<ClientView>>;
+    async fn get_client(&self, scope: &AccessScope, client_id: &str) -> Outcome<ClientView>;
+    async fn create_client(
+        &self,
+        scope: &AccessScope,
+        cmd: &CreateClientCommand,
+    ) -> Outcome<ClientView>;
+    async fn delete_client(&self, scope: &AccessScope, client_id: &str) -> Outcome<()>;
 }

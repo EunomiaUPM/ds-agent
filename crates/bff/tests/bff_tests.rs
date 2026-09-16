@@ -24,8 +24,8 @@ use axum::http::{HeaderMap, StatusCode};
 use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::{Json, Router};
-use bff::auth::BffAuthMiddleware;
 use bff::create_gateway_http_router;
+use common::auth::http::AuthHttpMiddleware;
 use bff::events::feed_router::ListEventsQuery;
 use bff::events::sse_handler::SseQuery;
 use bff::events::{BffEventFeedRouter, SseStreamHandler};
@@ -34,7 +34,7 @@ use bff::setup::context::AppContext;
 use bff::setup::BffModule;
 use bff::GatewayHttpRouter;
 use common::auth::claims::{Claims, RbacRole};
-use common::auth::middleware::OauthTokenValidator;
+use common::auth::OauthTokenValidator;
 use common::config::services::GatewayConfig;
 use common::module_loader::service_module::ServiceModuleTrait;
 use events::bus::envelope::{EventEnvelope, Topic};
@@ -116,7 +116,7 @@ fn dummy_gateway_config(upstream_port: u16) -> GatewayConfig {
 #[tokio::test]
 async fn test_bff_auth_middleware_bearer_and_query() {
     let validator: Arc<dyn OauthTokenValidator> = Arc::new(MockTokenValidator);
-    let auth = BffAuthMiddleware::new(Some(validator), true);
+    let auth = AuthHttpMiddleware::new(Some(validator), true);
 
     let app = Router::new()
         .route(
@@ -240,6 +240,7 @@ async fn test_bff_events_feed_and_sse() {
             topic: Some("transfer.process.started".to_string()),
             limit: None,
             offset: None,
+            sort: None,
         },
     )
     .await;

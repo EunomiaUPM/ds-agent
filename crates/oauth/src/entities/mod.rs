@@ -20,7 +20,7 @@ pub mod client;
 pub(crate) mod commands;
 pub mod filters;
 pub mod pat;
-pub(crate) mod query;
+pub mod query;
 pub(crate) mod refresh_token;
 pub mod role;
 pub mod user;

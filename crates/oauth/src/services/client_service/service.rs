@@ -18,11 +18,15 @@
 use std::sync::Arc;
 
 use chrono::Utc;
+use common::auth::AccessScope;
+use common::paginated_spec::Cursor;
+use common::query::QueryFilter;
 use ymir::errors::{BadFormat, Errors, Outcome};
 
 use crate::data::repositories::client::ClientRepository;
 use crate::entities::client::Client;
 use crate::entities::commands::CreateClientCommand;
+use crate::entities::query::{ClientFilter, Page, Paginated, Sort};
 use crate::http::forms::ClientView;
 use crate::services::client_service::ClientServiceTrait;
 use crate::services::password;
@@ -48,12 +52,29 @@ impl ClientService {
 
 #[async_trait::async_trait]
 impl ClientServiceTrait for ClientService {
-    async fn list_clients(&self) -> Outcome<Vec<ClientView>> {
-        let clients = self.client_repo.get_all().await?;
-        Ok(clients.into_iter().map(ClientView::assemble).collect())
+    async fn list_clients(
+        &self,
+        scope: &AccessScope,
+        filter: &ClientFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<Paginated<ClientView>> {
+        scope.require_admin()?;
+        filter.validate()?;
+        let page = page.clamped();
+        let (clients, total) = tokio::try_join!(
+            self.client_repo.get_all(filter, &page, sort),
+            self.client_repo.count(filter),
+        )?;
+        let views: Vec<ClientView> = clients.into_iter().map(ClientView::assemble).collect();
+        Ok(Paginated::from_page(views, &page, Some(total), |c| {
+            Cursor::encode_timestamp(&c.created_at)
+        }))
     }
 
-    async fn get_client(&self, client_id: &str) -> Outcome<ClientView> {
+    async fn get_client(&self, scope: &AccessScope, client_id: &str) -> Outcome<ClientView> {
+        scope.require_read()?;
+        scope.ensure_tenant_access(client_id)?;
         self.client_repo
             .get_by_client_id(client_id)
             .await?
@@ -61,7 +82,12 @@ impl ClientServiceTrait for ClientService {
             .ok_or_else(|| Errors::format(BadFormat::Received, "client not found", None))
     }
 
-    async fn create_client(&self, cmd: &CreateClientCommand) -> Outcome<ClientView> {
+    async fn create_client(
+        &self,
+        scope: &AccessScope,
+        cmd: &CreateClientCommand,
+    ) -> Outcome<ClientView> {
+        scope.require_admin()?;
         if self
             .client_repo
             .get_by_client_id(&cmd.client_id)
@@ -96,7 +122,8 @@ impl ClientServiceTrait for ClientService {
         Ok(view)
     }
 
-    async fn delete_client(&self, client_id: &str) -> Outcome<()> {
+    async fn delete_client(&self, scope: &AccessScope, client_id: &str) -> Outcome<()> {
+        scope.require_admin()?;
         self.client_repo.delete(client_id).await?;
         events::emit_action!(
             self.event_bus,

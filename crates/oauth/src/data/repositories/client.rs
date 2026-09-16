@@ -19,11 +19,13 @@ use thiserror::Error;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
 use crate::entities::client::Client;
+use crate::entities::query::{ClientFilter, Page, Sort};
 
 #[mockall::automock]
 #[async_trait::async_trait]
 pub(crate) trait ClientRepository: Send + Sync {
-    async fn get_all(&self) -> Outcome<Vec<Client>>;
+    async fn get_all(&self, filter: &ClientFilter, page: &Page, sort: &Sort) -> Outcome<Vec<Client>>;
+    async fn count(&self, filter: &ClientFilter) -> Outcome<u64>;
     async fn get_by_client_id(&self, client_id: &str) -> Outcome<Option<Client>>;
     async fn create(&self, client: &Client) -> Outcome<Client>;
     async fn delete(&self, client_id: &str) -> Outcome<()>;

@@ -18,22 +18,20 @@
 use std::sync::Arc;
 
 use axum::extract::rejection::JsonRejection;
-use axum::extract::{Extension, Path, Query, Request, State};
-use axum::http::StatusCode;
+use axum::extract::{Path, Query, Request, State};
+use axum::http::{HeaderMap, StatusCode};
 use axum::middleware::Next;
 use axum::response::Response;
 use axum::routing::get;
 use axum::{Json, Router, middleware};
-use common::auth::claims::Claims;
-use common::auth::middleware::bearer;
-use common::auth::rbac::Rbac;
-use ymir::errors::{AppResult, BadFormat, Errors};
+use common::auth::AccessScope;
+use common::auth::http::{AuthHttpMiddleware, ExtractedHeaders};
+use common::auth::validators::AuthValidators;
+use ymir::errors::{AppResult, Errors};
 use ymir::utils::extract_payload;
 
 use crate::entities::commands::{CreateUserCommand, PatchUserCommand};
-use crate::entities::query::Paginated;
-use crate::entities::role::RbacRole;
-use crate::http::forms::UserListQuery;
+use crate::entities::query::{Paginated, UserQuery};
 use crate::services::token_service::TokenServiceTrait;
 use crate::services::user_service::UserServiceTrait;
 use crate::services::user_service::views::UserView;
@@ -77,75 +75,65 @@ impl UsersRouter {
         mut req: Request,
         next: Next,
     ) -> AppResult<Response> {
-        let token = bearer(req.headers())?.to_owned();
+        let token = AuthHttpMiddleware::bearer(req.headers())?.to_owned();
         let claims = s.token_svc.validate_token(&token).await?;
+        AuthValidators::claims_validator()
+            .validate(&claims)
+            .map_err(|vs| Errors::unauthorized(vs.to_string(), None))?;
         req.extensions_mut().insert(claims);
-        Ok(next.run(req).await)
+        let mut resp = next.run(req).await;
+        AuthHttpMiddleware::apply_security_headers(&mut resp);
+        Ok(resp)
     }
 
     async fn handle_list(
         State(s): State<Self>,
-        Extension(claims): Extension<Claims>,
-        Query(q): Query<UserListQuery>,
-    ) -> AppResult<Json<Paginated<UserView>>> {
-        Rbac::require_admin(&claims)?;
-        Ok(Json(
-            s.user_svc.list_users(&q.filter, &q.page, &q.sort).await?,
-        ))
+        scope: AccessScope,
+        headers: ExtractedHeaders,
+        Query(q): Query<UserQuery>,
+    ) -> AppResult<(HeaderMap, Json<Paginated<UserView>>)> {
+        let (filter, page, sort) = q.into_domain();
+        let result = s.user_svc.list_users(&scope, &filter, &page, &sort).await?;
+        let response_headers = headers.response_headers_paged(result.total);
+        Ok((response_headers, Json(result)))
     }
 
     async fn handle_get_one(
         State(s): State<Self>,
-        Extension(claims): Extension<Claims>,
+        scope: AccessScope,
         Path(id): Path<String>,
     ) -> AppResult<Json<UserView>> {
-        Rbac::require_read(&claims, &id)?;
-        Ok(Json(s.user_svc.get_user(&id).await?))
+        Ok(Json(s.user_svc.get_user(&scope, &id).await?))
     }
 
     async fn handle_create(
         State(s): State<Self>,
-        Extension(claims): Extension<Claims>,
+        scope: AccessScope,
         payload: Result<Json<CreateUserCommand>, JsonRejection>,
     ) -> AppResult<(StatusCode, Json<UserView>)> {
-        Rbac::require_admin(&claims)?;
         let cmd = extract_payload(payload)?;
         Ok((
             StatusCode::CREATED,
-            Json(s.user_svc.create_user(&cmd).await?),
+            Json(s.user_svc.create_user(&scope, &cmd).await?),
         ))
     }
 
     async fn handle_patch(
         State(s): State<Self>,
-        Extension(claims): Extension<Claims>,
+        scope: AccessScope,
         Path(id): Path<String>,
         payload: Result<Json<PatchUserCommand>, JsonRejection>,
     ) -> AppResult<Json<UserView>> {
         let cmd = extract_payload(payload)?;
-        match claims.role {
-            RbacRole::Admin => {}
-            RbacRole::Owner if claims.sub == id => {
-                if cmd.role.is_some() {
-                    return Err(Errors::format(
-                        BadFormat::Received,
-                        "forbidden: only admins can change a user's role",
-                        None,
-                    ));
-                }
-            }
-            _ => Rbac::require_admin(&claims)?,
-        }
-        Ok(Json(s.user_svc.patch_user(&id, &cmd).await?))
+        Ok(Json(s.user_svc.patch_user(&scope, &id, &cmd).await?))
     }
 
     async fn handle_delete(
         State(s): State<Self>,
-        Extension(claims): Extension<Claims>,
+        scope: AccessScope,
         Path(id): Path<String>,
     ) -> AppResult<StatusCode> {
-        Rbac::require_admin(&claims)?;
-        s.user_svc.delete_user(&id).await?;
+        s.user_svc.delete_user(&scope, &id).await?;
         Ok(StatusCode::NO_CONTENT)
     }
 }

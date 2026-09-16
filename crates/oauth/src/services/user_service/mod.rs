@@ -15,6 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use common::auth::AccessScope;
 use ymir::errors::Outcome;
 
 use crate::entities::commands::{CreateUserCommand, PatchUserCommand};
@@ -30,13 +31,19 @@ pub(crate) mod views;
 pub(crate) trait UserServiceTrait: Send + Sync + 'static {
     async fn list_users(
         &self,
+        scope: &AccessScope,
         filter: &UserFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<UserView>>;
-    async fn get_user(&self, tenant_id: &str) -> Outcome<UserView>;
+    async fn get_user(&self, scope: &AccessScope, tenant_id: &str) -> Outcome<UserView>;
     async fn user_info(&self, tenant_id: &str) -> Outcome<UserInfo>;
-    async fn create_user(&self, cmd: &CreateUserCommand) -> Outcome<UserView>;
-    async fn patch_user(&self, tenant_id: &str, cmd: &PatchUserCommand) -> Outcome<UserView>;
-    async fn delete_user(&self, tenant_id: &str) -> Outcome<()>;
+    async fn create_user(&self, scope: &AccessScope, cmd: &CreateUserCommand) -> Outcome<UserView>;
+    async fn patch_user(
+        &self,
+        scope: &AccessScope,
+        tenant_id: &str,
+        cmd: &PatchUserCommand,
+    ) -> Outcome<UserView>;
+    async fn delete_user(&self, scope: &AccessScope, tenant_id: &str) -> Outcome<()>;
 }

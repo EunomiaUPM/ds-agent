@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Domain filters for User queries.
+//! Domain filters for User, Client, and PAT queries.
 
 use chrono::{DateTime, Utc};
 use common::query::{QueryFilter, validate_date_range};
@@ -40,6 +40,56 @@ impl QueryFilter for UserFilter {
         self.tenant_id.is_none()
             && self.role.is_none()
             && self.email.is_none()
+            && self.created_after.is_none()
+            && self.created_before.is_none()
+    }
+
+    fn validate(&self) -> Outcome<()> {
+        validate_date_range(self.created_after, self.created_before)
+    }
+}
+
+/// Filter criteria for querying OAuth clients.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct ClientFilter {
+    pub role: Option<RbacRole>,
+    pub search: Option<String>,
+    pub created_after: Option<DateTime<Utc>>,
+    pub created_before: Option<DateTime<Utc>>,
+}
+
+impl QueryFilter for ClientFilter {
+    fn is_empty(&self) -> bool {
+        self.role.is_none()
+            && self.search.is_none()
+            && self.created_after.is_none()
+            && self.created_before.is_none()
+    }
+
+    fn validate(&self) -> Outcome<()> {
+        validate_date_range(self.created_after, self.created_before)
+    }
+}
+
+/// Filter criteria for querying Personal Access Tokens (PATs).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct PatFilter {
+    pub user_id: Option<String>,
+    pub status: Option<String>,
+    pub role: Option<RbacRole>,
+    pub search: Option<String>,
+    pub created_after: Option<DateTime<Utc>>,
+    pub created_before: Option<DateTime<Utc>>,
+}
+
+impl QueryFilter for PatFilter {
+    fn is_empty(&self) -> bool {
+        self.user_id.is_none()
+            && self.status.is_none()
+            && self.role.is_none()
+            && self.search.is_none()
             && self.created_after.is_none()
             && self.created_before.is_none()
     }

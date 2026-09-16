@@ -15,7 +15,17 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Authentication, authorization, RBAC, and transport middleware.
+
 pub mod access;
 pub mod claims;
-pub mod middleware;
-pub mod rbac;
+pub mod http;
+pub mod rules;
+pub mod token;
+pub mod validators;
+
+pub use access::{AccessScope, Rbac};
+pub use claims::{Claims, RbacRole};
+pub use rules::AuthRules;
+pub use token::{OauthTokenValidator, TokenVerifier};
+pub use validators::AuthValidators;

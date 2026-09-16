@@ -20,10 +20,13 @@ use uuid::Uuid;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
 use crate::entities::pat::PersonalAccessToken;
+use crate::entities::query::{Page, PatFilter, Sort};
 
 #[mockall::automock]
 #[async_trait::async_trait]
 pub(crate) trait PatRepository: Send + Sync {
+    async fn get_all(&self, filter: &PatFilter, page: &Page, sort: &Sort) -> Outcome<Vec<PersonalAccessToken>>;
+    async fn count(&self, filter: &PatFilter) -> Outcome<u64>;
     async fn create(&self, pat: &PersonalAccessToken) -> Outcome<PersonalAccessToken>;
     async fn get_by_id(&self, id: Uuid) -> Outcome<Option<PersonalAccessToken>>;
     async fn get_by_hash(&self, token_hash: &str) -> Outcome<Option<PersonalAccessToken>>;

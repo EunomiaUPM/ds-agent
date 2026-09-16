@@ -48,8 +48,7 @@ pub struct ListSubscriptionsQuery {
 }
 use ymir::config::traits::HostsConfigTrait;
 use ymir::config::types::HostType;
-
-use crate::auth::BffAuthMiddleware;
+use common::auth::http::AuthHttpMiddleware;
 use crate::events::feed_router::{BffEventFeedRouter, ListEventsQuery};
 use crate::events::sse_handler::{SseQuery, SseStreamHandler};
 use crate::events::ws_handler::BffWebSocketHandler;
@@ -93,7 +92,7 @@ impl GatewayHttpRouter {
             .allow_origin(Any)
             .allow_headers(Any);
 
-        let auth_middleware = BffAuthMiddleware::new(self.ctx.oauth_validator.clone(), false);
+        let auth_middleware = AuthHttpMiddleware::new(self.ctx.oauth_validator.clone(), false);
 
         let ws_handler = Arc::new(BffWebSocketHandler::new(
             self.ctx.event_bus.clone(),

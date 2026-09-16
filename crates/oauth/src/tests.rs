@@ -23,6 +23,8 @@ use axum::http::{Request, StatusCode, header};
 use base64::Engine;
 use http_body_util::BodyExt;
 use sha2::{Digest, Sha256};
+use common::auth::AccessScope;
+use common::paginated_spec::Paginated;
 use tower::ServiceExt;
 
 use crate::config::OAuthConfig;
@@ -102,14 +104,18 @@ impl TestEnv {
     }
 
     async fn seed_user(&self, tenant_id: &str, email: &str, password: &str, role: RbacRole) {
+        let scope = AccessScope::from_role(RbacRole::Admin, "admin");
         self.user_svc
-            .create_user(&CreateUserCommand {
-                tenant_id: tenant_id.to_string(),
-                email: email.to_string(),
-                password: password.to_string(),
-                role,
-                extra_fields: serde_json::json!({}),
-            })
+            .create_user(
+                &scope,
+                &CreateUserCommand {
+                    tenant_id: tenant_id.to_string(),
+                    email: email.to_string(),
+                    password: password.to_string(),
+                    role,
+                    extra_fields: serde_json::json!({}),
+                },
+            )
             .await
             .unwrap();
     }
@@ -121,14 +127,18 @@ impl TestEnv {
         role: RbacRole,
         scopes: Vec<String>,
     ) {
+        let scope = AccessScope::from_role(RbacRole::Admin, "admin");
         self.client_svc
-            .create_client(&CreateClientCommand {
-                client_id: client_id.to_string(),
-                client_secret: client_secret.to_string(),
-                client_name: format!("Client {client_id}"),
-                role,
-                scopes,
-            })
+            .create_client(
+                &scope,
+                &CreateClientCommand {
+                    client_id: client_id.to_string(),
+                    client_secret: client_secret.to_string(),
+                    client_name: format!("Client {client_id}"),
+                    role,
+                    scopes,
+                },
+            )
             .await
             .unwrap();
     }
@@ -554,8 +564,8 @@ async fn test_client_crud_admin_endpoints() {
 
     let resp_list = env.router.clone().oneshot(req_list).await.unwrap();
     assert_eq!(resp_list.status(), StatusCode::OK);
-    let list: Vec<ClientView> = response_json(resp_list).await;
-    assert_eq!(list.len(), 1);
+    let paged: Paginated<ClientView> = response_json(resp_list).await;
+    assert_eq!(paged.items.len(), 1);
 
     // Get client by id
     let req_get = Request::builder()

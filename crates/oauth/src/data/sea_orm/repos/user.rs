@@ -20,8 +20,8 @@ use std::sync::Arc;
 use common::paginated_spec::Cursor;
 use sea_orm::ActiveValue::Set;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder,
-    QuerySelect,
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
+    QueryOrder, QuerySelect,
 };
 use ymir::errors::{Outcome, RepoIntoErrors};
 
@@ -39,16 +39,18 @@ impl SeaOrmUserRepository {
     pub fn new(db: Arc<DatabaseConnection>) -> Self {
         Self { db }
     }
+
     fn decode_cursor(&self, cursor: &str) -> Result<chrono::DateTime<chrono::FixedOffset>, ()> {
         Cursor::decode_timestamp(cursor).map_err(|_| ())
     }
-}
 
-#[async_trait::async_trait]
-impl UserRepository for SeaOrmUserRepository {
-    async fn get_all(&self, filter: &UserFilter, page: &Page, sort: &Sort) -> Outcome<Vec<User>> {
-        let mut q = orm::Entity::find();
-
+    fn apply_base_filters(
+        mut q: sea_orm::Select<orm::Entity>,
+        filter: &UserFilter,
+    ) -> sea_orm::Select<orm::Entity> {
+        if let Some(ref tenant_id) = filter.tenant_id {
+            q = q.filter(orm::Column::TenantId.eq(tenant_id.as_str()));
+        }
         if let Some(role) = filter.role {
             q = q.filter(orm::Column::Role.eq(role.to_string()));
         }
@@ -61,6 +63,14 @@ impl UserRepository for SeaOrmUserRepository {
         if let Some(before) = filter.created_before {
             q = q.filter(orm::Column::CreatedAt.lt(before));
         }
+        q
+    }
+}
+
+#[async_trait::async_trait]
+impl UserRepository for SeaOrmUserRepository {
+    async fn get_all(&self, filter: &UserFilter, page: &Page, sort: &Sort) -> Outcome<Vec<User>> {
+        let mut q = Self::apply_base_filters(orm::Entity::find(), filter);
 
         if let Some(ref cursor) = page.cursor {
             if let Ok(cursor_dt) = self.decode_cursor(cursor) {
@@ -83,6 +93,13 @@ impl UserRepository for SeaOrmUserRepository {
             .into_iter()
             .map(orm::Model::into_domain)
             .collect()
+    }
+
+    async fn count(&self, filter: &UserFilter) -> Outcome<u64> {
+        Self::apply_base_filters(orm::Entity::find(), filter)
+            .count(self.db.as_ref())
+            .await
+            .map_err(|e| UserRepositoryError::Db(Box::new(e)).into_errors())
     }
 
     async fn get_by_tenant_id(&self, tenant_id: &str) -> Outcome<Option<User>> {

@@ -15,7 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Backwards compatible re-exports of pagination and query types.
+//! Query, pagination, and sorting types for OAuth domain entities.
 
-pub use crate::entities::filters::UserFilter;
+pub use crate::entities::filters::{ClientFilter, PatFilter, UserFilter};
 pub use common::paginated_spec::{Page, Paginated, Sort};
+use common::query::QuerySpec;
+
+pub type ClientQuery = QuerySpec<ClientFilter, Sort>;
+pub type PatQuery = QuerySpec<PatFilter, Sort>;
+pub type UserQuery = QuerySpec<UserFilter, Sort>;

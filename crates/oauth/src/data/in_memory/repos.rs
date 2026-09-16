@@ -31,7 +31,7 @@ use crate::data::repositories::user::{UserRepository, UserRepositoryError};
 use crate::entities::auth_code::AuthCode;
 use crate::entities::client::Client;
 use crate::entities::pat::PersonalAccessToken;
-use crate::entities::query::{Page, Sort, UserFilter};
+use crate::entities::query::{ClientFilter, Page, PatFilter, Sort, UserFilter};
 use crate::entities::refresh_token::RefreshToken;
 use crate::entities::role::RbacRole;
 use crate::entities::user::User;
@@ -63,6 +63,11 @@ impl UserRepository for InMemoryUserRepository {
         let mut users: Vec<User> = store
             .values()
             .filter(|u| {
+                if let Some(ref tenant_id) = filter.tenant_id {
+                    if u.tenant_id != *tenant_id {
+                        return false;
+                    }
+                }
                 if let Some(role) = filter.role {
                     if u.role != role {
                         return false;
@@ -109,6 +114,42 @@ impl UserRepository for InMemoryUserRepository {
 
         users.truncate(page.limit as usize);
         Ok(users)
+    }
+
+    async fn count(&self, filter: &UserFilter) -> Outcome<u64> {
+        let store = self.store.lock().unwrap();
+        let count = store
+            .values()
+            .filter(|u| {
+                if let Some(ref tenant_id) = filter.tenant_id {
+                    if u.tenant_id != *tenant_id {
+                        return false;
+                    }
+                }
+                if let Some(role) = filter.role {
+                    if u.role != role {
+                        return false;
+                    }
+                }
+                if let Some(ref email) = filter.email {
+                    if !u.email.contains(email.as_str()) {
+                        return false;
+                    }
+                }
+                if let Some(after) = filter.created_after {
+                    if u.created_at <= after {
+                        return false;
+                    }
+                }
+                if let Some(before) = filter.created_before {
+                    if u.created_at >= before {
+                        return false;
+                    }
+                }
+                true
+            })
+            .count();
+        Ok(count as u64)
     }
 
     async fn get_by_tenant_id(&self, tenant_id: &str) -> Outcome<Option<User>> {
@@ -230,9 +271,100 @@ impl InMemoryClientRepository {
 
 #[async_trait::async_trait]
 impl ClientRepository for InMemoryClientRepository {
-    async fn get_all(&self) -> Outcome<Vec<Client>> {
+    async fn get_all(&self, filter: &ClientFilter, page: &Page, sort: &Sort) -> Outcome<Vec<Client>> {
         let store = self.store.lock().unwrap();
-        Ok(store.values().cloned().collect())
+
+        let cursor_dt = page
+            .cursor
+            .as_deref()
+            .and_then(|c| Cursor::decode_utc_timestamp(c).ok());
+
+        let mut clients: Vec<Client> = store
+            .values()
+            .filter(|c| {
+                if let Some(role) = filter.role {
+                    if c.role != role {
+                        return false;
+                    }
+                }
+                if let Some(ref search) = filter.search {
+                    let term = search.to_lowercase();
+                    if !c.client_name.to_lowercase().contains(&term)
+                        && !c.client_id.to_lowercase().contains(&term)
+                    {
+                        return false;
+                    }
+                }
+                if let Some(after) = filter.created_after {
+                    if c.created_at <= after {
+                        return false;
+                    }
+                }
+                if let Some(before) = filter.created_before {
+                    if c.created_at >= before {
+                        return false;
+                    }
+                }
+                if let Some(cursor) = cursor_dt {
+                    match sort {
+                        Sort::CreatedAtAsc => {
+                            if c.created_at <= cursor {
+                                return false;
+                            }
+                        }
+                        _ => {
+                            if c.created_at >= cursor {
+                                return false;
+                            }
+                        }
+                    }
+                }
+                true
+            })
+            .cloned()
+            .collect();
+
+        match sort {
+            Sort::CreatedAtAsc => clients.sort_by(|a, b| a.created_at.cmp(&b.created_at)),
+            _ => clients.sort_by(|a, b| b.created_at.cmp(&a.created_at)),
+        }
+
+        clients.truncate(page.limit as usize);
+        Ok(clients)
+    }
+
+    async fn count(&self, filter: &ClientFilter) -> Outcome<u64> {
+        let store = self.store.lock().unwrap();
+        let count = store
+            .values()
+            .filter(|c| {
+                if let Some(role) = filter.role {
+                    if c.role != role {
+                        return false;
+                    }
+                }
+                if let Some(ref search) = filter.search {
+                    let term = search.to_lowercase();
+                    if !c.client_name.to_lowercase().contains(&term)
+                        && !c.client_id.to_lowercase().contains(&term)
+                    {
+                        return false;
+                    }
+                }
+                if let Some(after) = filter.created_after {
+                    if c.created_at <= after {
+                        return false;
+                    }
+                }
+                if let Some(before) = filter.created_before {
+                    if c.created_at >= before {
+                        return false;
+                    }
+                }
+                true
+            })
+            .count();
+        Ok(count as u64)
     }
 
     async fn get_by_client_id(&self, client_id: &str) -> Outcome<Option<Client>> {
@@ -304,6 +436,133 @@ impl InMemoryPatRepository {
 
 #[async_trait::async_trait]
 impl PatRepository for InMemoryPatRepository {
+    async fn get_all(
+        &self,
+        filter: &PatFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<Vec<PersonalAccessToken>> {
+        let store = self.store.lock().unwrap();
+
+        let cursor_dt = page
+            .cursor
+            .as_deref()
+            .and_then(|c| Cursor::decode_utc_timestamp(c).ok());
+
+        let mut pats: Vec<PersonalAccessToken> = store
+            .values()
+            .filter(|p| {
+                if let Some(ref uid) = filter.user_id {
+                    if p.tenant_id != *uid {
+                        return false;
+                    }
+                }
+                if let Some(ref status) = filter.status {
+                    if status == "active" && !p.is_active() {
+                        return false;
+                    }
+                    if status == "revoked" && !p.revoked {
+                        return false;
+                    }
+                }
+                if let Some(role) = filter.role {
+                    if p.role != role {
+                        return false;
+                    }
+                }
+                if let Some(ref search) = filter.search {
+                    let term = search.to_lowercase();
+                    if !p.name.to_lowercase().contains(&term)
+                        && !p.token_prefix.to_lowercase().contains(&term)
+                    {
+                        return false;
+                    }
+                }
+                if let Some(after) = filter.created_after {
+                    if p.created_at <= after {
+                        return false;
+                    }
+                }
+                if let Some(before) = filter.created_before {
+                    if p.created_at >= before {
+                        return false;
+                    }
+                }
+                if let Some(cursor) = cursor_dt {
+                    match sort {
+                        Sort::CreatedAtAsc => {
+                            if p.created_at <= cursor {
+                                return false;
+                            }
+                        }
+                        _ => {
+                            if p.created_at >= cursor {
+                                return false;
+                            }
+                        }
+                    }
+                }
+                true
+            })
+            .cloned()
+            .collect();
+
+        match sort {
+            Sort::CreatedAtAsc => pats.sort_by(|a, b| a.created_at.cmp(&b.created_at)),
+            _ => pats.sort_by(|a, b| b.created_at.cmp(&a.created_at)),
+        }
+
+        pats.truncate(page.limit as usize);
+        Ok(pats)
+    }
+
+    async fn count(&self, filter: &PatFilter) -> Outcome<u64> {
+        let store = self.store.lock().unwrap();
+        let count = store
+            .values()
+            .filter(|p| {
+                if let Some(ref uid) = filter.user_id {
+                    if p.tenant_id != *uid {
+                        return false;
+                    }
+                }
+                if let Some(ref status) = filter.status {
+                    if status == "active" && !p.is_active() {
+                        return false;
+                    }
+                    if status == "revoked" && !p.revoked {
+                        return false;
+                    }
+                }
+                if let Some(role) = filter.role {
+                    if p.role != role {
+                        return false;
+                    }
+                }
+                if let Some(ref search) = filter.search {
+                    let term = search.to_lowercase();
+                    if !p.name.to_lowercase().contains(&term)
+                        && !p.token_prefix.to_lowercase().contains(&term)
+                    {
+                        return false;
+                    }
+                }
+                if let Some(after) = filter.created_after {
+                    if p.created_at <= after {
+                        return false;
+                    }
+                }
+                if let Some(before) = filter.created_before {
+                    if p.created_at >= before {
+                        return false;
+                    }
+                }
+                true
+            })
+            .count();
+        Ok(count as u64)
+    }
+
     async fn create(&self, pat: &PersonalAccessToken) -> Outcome<PersonalAccessToken> {
         let mut store = self.store.lock().unwrap();
         store.insert(pat.id, pat.clone());

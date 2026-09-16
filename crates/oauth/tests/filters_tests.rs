@@ -19,7 +19,8 @@
 
 use chrono::{Duration, Utc};
 use common::query::{QueryFilter, QuerySpec, Sort};
-use oauth::entities::filters::UserFilter;
+use oauth::entities::filters::{ClientFilter, PatFilter, UserFilter};
+use oauth::entities::query::{ClientQuery, PatQuery};
 use oauth::entities::role::RbacRole;
 
 #[test]
@@ -63,4 +64,48 @@ fn user_query_deserialization() {
     assert_eq!(spec.page.limit, 15);
     assert_eq!(spec.sort, Sort::CreatedAtDesc);
     assert!(!spec.is_empty());
+}
+
+#[test]
+fn client_filter_and_query() {
+    let empty = ClientFilter::default();
+    assert!(empty.is_empty());
+    assert!(empty.validate().is_ok());
+
+    let json = serde_json::json!({
+        "role": "admin",
+        "search": "test-client",
+        "limit": 20,
+        "sort": "created_at_asc"
+    });
+    let query: ClientQuery = serde_json::from_value(json).unwrap();
+    let (filter, page, sort) = query.into_domain();
+    assert_eq!(filter.role, Some(RbacRole::Admin));
+    assert_eq!(filter.search.as_deref(), Some("test-client"));
+    assert_eq!(page.limit, 20);
+    assert_eq!(sort, Sort::CreatedAtAsc);
+}
+
+#[test]
+fn pat_filter_and_query() {
+    let empty = PatFilter::default();
+    assert!(empty.is_empty());
+    assert!(empty.validate().is_ok());
+
+    let json = serde_json::json!({
+        "userId": "tenant-42",
+        "status": "active",
+        "role": "owner",
+        "search": "my-pat",
+        "limit": 10,
+        "sort": "created_at_desc"
+    });
+    let query: PatQuery = serde_json::from_value(json).unwrap();
+    let (filter, page, sort) = query.into_domain();
+    assert_eq!(filter.user_id.as_deref(), Some("tenant-42"));
+    assert_eq!(filter.status.as_deref(), Some("active"));
+    assert_eq!(filter.role, Some(RbacRole::Owner));
+    assert_eq!(filter.search.as_deref(), Some("my-pat"));
+    assert_eq!(page.limit, 10);
+    assert_eq!(sort, Sort::CreatedAtDesc);
 }

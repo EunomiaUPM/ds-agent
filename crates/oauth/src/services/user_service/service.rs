@@ -18,7 +18,9 @@
 use std::sync::Arc;
 
 use chrono::Utc;
+use common::auth::AccessScope;
 use common::paginated_spec::Cursor;
+use common::query::QueryFilter;
 use ymir::errors::{BadFormat, Errors, Outcome};
 
 use crate::data::repositories::user::UserRepository;
@@ -52,21 +54,28 @@ impl UserService {
 impl UserServiceTrait for UserService {
     async fn list_users(
         &self,
+        scope: &AccessScope,
         filter: &UserFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<UserView>> {
-        let fetch_page = Page::new(page.limit + 1, page.cursor.clone());
-        let users = self.user_repo.get_all(filter, &fetch_page, sort).await?;
+        scope.require_admin()?;
+        filter.validate()?;
+        let page = page.clamped();
+        let (users, total) = tokio::try_join!(
+            self.user_repo.get_all(filter, &page, sort),
+            self.user_repo.count(filter),
+        )?;
 
-        Ok(Paginated::from_window(
-            users.into_iter().map(UserView::assemble).collect(),
-            page.limit as usize,
-            |u| Cursor::encode_timestamp(&u.created_at),
-        ))
+        let views: Vec<UserView> = users.into_iter().map(UserView::assemble).collect();
+        Ok(Paginated::from_page(views, &page, Some(total), |u| {
+            Cursor::encode_timestamp(&u.created_at)
+        }))
     }
 
-    async fn get_user(&self, tenant_id: &str) -> Outcome<UserView> {
+    async fn get_user(&self, scope: &AccessScope, tenant_id: &str) -> Outcome<UserView> {
+        scope.require_read()?;
+        scope.ensure_tenant_access(tenant_id)?;
         self.user_repo
             .get_by_tenant_id(tenant_id)
             .await?
@@ -84,7 +93,8 @@ impl UserServiceTrait for UserService {
             .ok_or_else(|| Errors::format(BadFormat::Received, "user not found", None))
     }
 
-    async fn create_user(&self, cmd: &CreateUserCommand) -> Outcome<UserView> {
+    async fn create_user(&self, scope: &AccessScope, cmd: &CreateUserCommand) -> Outcome<UserView> {
+        scope.require_admin()?;
         if self
             .user_repo
             .get_by_tenant_id(&cmd.tenant_id)
@@ -119,7 +129,21 @@ impl UserServiceTrait for UserService {
         Ok(view)
     }
 
-    async fn patch_user(&self, tenant_id: &str, cmd: &PatchUserCommand) -> Outcome<UserView> {
+    async fn patch_user(
+        &self,
+        scope: &AccessScope,
+        tenant_id: &str,
+        cmd: &PatchUserCommand,
+    ) -> Outcome<UserView> {
+        scope.require_write()?;
+        scope.ensure_tenant_access(tenant_id)?;
+        if !scope.is_admin() && cmd.role.is_some() {
+            return Err(Errors::format(
+                BadFormat::Received,
+                "forbidden: only admins can change a user's role",
+                None,
+            ));
+        }
         let view = UserView::assemble(
             self.user_repo
                 .patch(
@@ -134,7 +158,8 @@ impl UserServiceTrait for UserService {
         Ok(view)
     }
 
-    async fn delete_user(&self, tenant_id: &str) -> Outcome<()> {
+    async fn delete_user(&self, scope: &AccessScope, tenant_id: &str) -> Outcome<()> {
+        scope.require_admin()?;
         self.user_repo.delete(tenant_id).await?;
         events::emit_action!(
             self.event_bus,

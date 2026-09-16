@@ -18,12 +18,16 @@
 use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
+use common::auth::AccessScope;
 use common::auth::claims::Claims;
+use common::paginated_spec::Cursor;
+use common::query::QueryFilter;
 use uuid::Uuid;
 use ymir::errors::{BadFormat, Errors, Outcome};
 
 use crate::data::repositories::pat::PatRepository;
 use crate::entities::pat::PersonalAccessToken;
+use crate::entities::query::{Page, Paginated, PatFilter, Sort};
 use crate::entities::role::RbacRole;
 use crate::services::pat_service::PatServiceTrait;
 use crate::services::pat_service::views::{CreatePatResponse, PatView};
@@ -51,14 +55,15 @@ impl PatService {
 impl PatServiceTrait for PatService {
     async fn create_pat(
         &self,
-        tenant_id: &str,
+        scope: &AccessScope,
         name: &str,
         role: RbacRole,
         scopes: Vec<String>,
         expires_at: Option<DateTime<Utc>>,
     ) -> Outcome<CreatePatResponse> {
+        scope.require_write()?;
         let (pat, raw_token) =
-            PersonalAccessToken::generate(tenant_id, name, role, scopes, expires_at);
+            PersonalAccessToken::generate(scope.acting_tenant(), name, role, scopes, expires_at);
         let created = self.pat_repo.create(&pat).await?;
 
         let res = CreatePatResponse {
@@ -75,25 +80,39 @@ impl PatServiceTrait for PatService {
         Ok(res)
     }
 
-    async fn list_pats(&self, tenant_id: &str) -> Outcome<Vec<PatView>> {
-        let pats = self.pat_repo.list_by_tenant(tenant_id).await?;
-        Ok(pats.into_iter().map(PatView::assemble).collect())
+    async fn list_pats(
+        &self,
+        scope: &AccessScope,
+        filter: &PatFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<Paginated<PatView>> {
+        scope.require_read()?;
+        filter.validate()?;
+        let mut filter = filter.clone();
+        if let Some(tenant) = scope.tenant_filter() {
+            filter.user_id = Some(tenant);
+        }
+        let page = page.clamped();
+        let (pats, total) = tokio::try_join!(
+            self.pat_repo.get_all(&filter, &page, sort),
+            self.pat_repo.count(&filter),
+        )?;
+        let views: Vec<PatView> = pats.into_iter().map(PatView::assemble).collect();
+        Ok(Paginated::from_page(views, &page, Some(total), |p| {
+            Cursor::encode_timestamp(&p.created_at)
+        }))
     }
 
-    async fn revoke_pat(&self, tenant_id: &str, id: Uuid) -> Outcome<()> {
+    async fn revoke_pat(&self, scope: &AccessScope, id: Uuid) -> Outcome<()> {
+        scope.require_write()?;
         let pat = self
             .pat_repo
             .get_by_id(id)
             .await?
             .ok_or_else(|| Errors::format(BadFormat::Received, "PAT not found", None))?;
 
-        if pat.tenant_id != tenant_id {
-            return Err(Errors::format(
-                BadFormat::Received,
-                "unauthorized to revoke this PAT",
-                None,
-            ));
-        }
+        scope.ensure_tenant_access(&pat.tenant_id)?;
 
         self.pat_repo.revoke(id).await?;
         events::emit_action!(

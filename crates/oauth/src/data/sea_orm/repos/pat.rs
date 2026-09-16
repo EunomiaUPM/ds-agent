@@ -18,14 +18,19 @@
 use std::sync::Arc;
 
 use chrono::Utc;
+use common::paginated_spec::Cursor;
 use sea_orm::ActiveValue::Set;
-use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
+    QueryOrder, QuerySelect,
+};
 use uuid::Uuid;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
 use crate::data::repositories::pat::{PatRepository, PatRepositoryError};
 use crate::data::sea_orm::orm::pat as orm;
 use crate::entities::pat::PersonalAccessToken;
+use crate::entities::query::{Page, PatFilter, Sort};
 
 pub(crate) struct SeaOrmPatRepository {
     db: Arc<DatabaseConnection>,
@@ -35,10 +40,89 @@ impl SeaOrmPatRepository {
     pub fn new(db: Arc<DatabaseConnection>) -> Self {
         Self { db }
     }
+
+    fn decode_cursor(&self, cursor: &str) -> Result<chrono::DateTime<chrono::FixedOffset>, ()> {
+        Cursor::decode_timestamp(cursor).map_err(|_| ())
+    }
+
+    fn apply_base_filters(
+        mut q: sea_orm::Select<orm::Entity>,
+        filter: &PatFilter,
+    ) -> sea_orm::Select<orm::Entity> {
+        if let Some(ref user_id) = filter.user_id {
+            q = q.filter(orm::Column::TenantId.eq(user_id.as_str()));
+        }
+        if let Some(ref status) = filter.status {
+            if status == "active" {
+                q = q.filter(orm::Column::Revoked.eq(false));
+                q = q.filter(
+                    orm::Column::ExpiresAt
+                        .is_null()
+                        .or(orm::Column::ExpiresAt.gt(chrono::Utc::now())),
+                );
+            } else if status == "revoked" {
+                q = q.filter(orm::Column::Revoked.eq(true));
+            }
+        }
+        if let Some(role) = filter.role {
+            q = q.filter(orm::Column::Role.eq(role.to_string()));
+        }
+        if let Some(ref search) = filter.search {
+            q = q.filter(
+                orm::Column::Name
+                    .contains(search.as_str())
+                    .or(orm::Column::TokenPrefix.contains(search.as_str())),
+            );
+        }
+        if let Some(after) = filter.created_after {
+            q = q.filter(orm::Column::CreatedAt.gt(after));
+        }
+        if let Some(before) = filter.created_before {
+            q = q.filter(orm::Column::CreatedAt.lt(before));
+        }
+        q
+    }
 }
 
 #[async_trait::async_trait]
 impl PatRepository for SeaOrmPatRepository {
+    async fn get_all(
+        &self,
+        filter: &PatFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<Vec<PersonalAccessToken>> {
+        let mut q = Self::apply_base_filters(orm::Entity::find(), filter);
+
+        if let Some(ref cursor) = page.cursor {
+            if let Ok(cursor_dt) = self.decode_cursor(cursor) {
+                q = match sort {
+                    Sort::CreatedAtAsc => q.filter(orm::Column::CreatedAt.gt(cursor_dt)),
+                    _ => q.filter(orm::Column::CreatedAt.lt(cursor_dt)),
+                };
+            }
+        }
+
+        q = match sort {
+            Sort::CreatedAtAsc => q.order_by_asc(orm::Column::CreatedAt),
+            _ => q.order_by_desc(orm::Column::CreatedAt),
+        };
+
+        q.limit(page.limit as u64)
+            .all(self.db.as_ref())
+            .await
+            .map_err(|e| PatRepositoryError::Db(Box::new(e)).into_errors())?
+            .into_iter()
+            .map(orm::Model::into_domain)
+            .collect()
+    }
+
+    async fn count(&self, filter: &PatFilter) -> Outcome<u64> {
+        Self::apply_base_filters(orm::Entity::find(), filter)
+            .count(self.db.as_ref())
+            .await
+            .map_err(|e| PatRepositoryError::Db(Box::new(e)).into_errors())
+    }
     async fn create(&self, pat: &PersonalAccessToken) -> Outcome<PersonalAccessToken> {
         orm::ActiveModel::from_domain(pat)
             .insert(self.db.as_ref())

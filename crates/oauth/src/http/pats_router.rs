@@ -18,34 +18,24 @@
 use std::sync::Arc;
 
 use axum::extract::rejection::JsonRejection;
-use axum::extract::{Extension, Path, Query, Request, State};
-use axum::http::StatusCode;
+use axum::extract::{Path, Query, Request, State};
+use axum::http::{HeaderMap, StatusCode};
 use axum::middleware::Next;
 use axum::response::Response;
 use axum::routing::get;
 use axum::{Json, Router, middleware};
-use common::auth::claims::Claims;
-use common::auth::middleware::bearer;
-use serde::Deserialize;
+use common::auth::AccessScope;
+use common::auth::http::{AuthHttpMiddleware, ExtractedHeaders};
+use common::auth::validators::AuthValidators;
 use uuid::Uuid;
-use ymir::errors::AppResult;
+use ymir::errors::{AppResult, Errors};
 use ymir::utils::extract_payload;
 
 use crate::entities::commands::CreatePatCommand;
+use crate::entities::query::{Paginated, PatQuery};
 use crate::services::pat_service::PatServiceTrait;
 use crate::services::pat_service::views::{CreatePatResponse, PatView};
 use crate::services::token_service::TokenServiceTrait;
-
-#[derive(Debug, Deserialize, Default)]
-pub struct ListPatsQuery {
-    pub limit: Option<u64>,
-    pub page: Option<u64>,
-    pub offset: Option<u64>,
-    pub role: Option<String>,
-    pub status: Option<String>,
-    pub search: Option<String>,
-    pub sort: Option<String>,
-}
 
 #[derive(Clone)]
 pub(crate) struct PatsRouter {
@@ -78,78 +68,41 @@ impl PatsRouter {
         mut req: Request,
         next: Next,
     ) -> AppResult<Response> {
-        let token = bearer(req.headers())?.to_owned();
+        let token = AuthHttpMiddleware::bearer(req.headers())?.to_owned();
         let claims = s.token_svc.validate_token(&token).await?;
+        AuthValidators::claims_validator()
+            .validate(&claims)
+            .map_err(|vs| Errors::unauthorized(vs.to_string(), None))?;
         req.extensions_mut().insert(claims);
-        Ok(next.run(req).await)
+        let mut resp = next.run(req).await;
+        AuthHttpMiddleware::apply_security_headers(&mut resp);
+        Ok(resp)
     }
 
     async fn handle_list(
         State(s): State<Self>,
-        Extension(claims): Extension<Claims>,
-        Query(q): Query<ListPatsQuery>,
-    ) -> AppResult<Json<Vec<PatView>>> {
-        let mut pats = s.pat_svc.list_pats(&claims.sub).await?;
-
-        if let Some(ref status) = q.status {
-            if status == "active" {
-                pats.retain(|p| !p.revoked);
-            } else if status == "revoked" {
-                pats.retain(|p| p.revoked);
-            }
-        }
-        if let Some(ref role) = q.role {
-            if role != "all" {
-                pats.retain(|p| p.role.to_string().eq_ignore_ascii_case(role));
-            }
-        }
-        if let Some(ref search) = q.search {
-            let term = search.to_lowercase();
-            pats.retain(|p| {
-                p.name.to_lowercase().contains(&term)
-                    || p.token_prefix.to_lowercase().contains(&term)
-                    || p.role.to_string().to_lowercase().contains(&term)
-            });
-        }
-        if let Some(ref sort) = q.sort {
-            match sort.as_str() {
-                "created_at_asc" => pats.sort_by(|a, b| a.created_at.cmp(&b.created_at)),
-                "created_at_desc" => pats.sort_by(|a, b| b.created_at.cmp(&a.created_at)),
-                "name_asc" => pats.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase())),
-                "name_desc" => pats.sort_by(|a, b| b.name.to_lowercase().cmp(&a.name.to_lowercase())),
-                "token_prefix_asc" => pats.sort_by(|a, b| a.token_prefix.cmp(&b.token_prefix)),
-                "token_prefix_desc" => pats.sort_by(|a, b| b.token_prefix.cmp(&a.token_prefix)),
-                "expires_at_asc" => pats.sort_by(|a, b| a.expires_at.cmp(&b.expires_at)),
-                "expires_at_desc" => pats.sort_by(|a, b| b.expires_at.cmp(&a.expires_at)),
-                _ => pats.sort_by(|a, b| b.created_at.cmp(&a.created_at)),
-            }
-        } else {
-            pats.sort_by(|a, b| b.created_at.cmp(&a.created_at));
-        }
-        if let Some(limit) = q.limit {
-            let offset = q
-                .offset
-                .or_else(|| q.page.map(|p| p.saturating_sub(1) * limit))
-                .unwrap_or(0) as usize;
-            let paged: Vec<PatView> = pats.into_iter().skip(offset).take(limit as usize).collect();
-            Ok(Json(paged))
-        } else {
-            Ok(Json(pats))
-        }
+        scope: AccessScope,
+        headers: ExtractedHeaders,
+        Query(q): Query<PatQuery>,
+    ) -> AppResult<(HeaderMap, Json<Paginated<PatView>>)> {
+        let (filter, page, sort) = q.into_domain();
+        let result = s.pat_svc.list_pats(&scope, &filter, &page, &sort).await?;
+        let response_headers = headers.response_headers_paged(result.total);
+        Ok((response_headers, Json(result)))
     }
 
     async fn handle_create(
         State(s): State<Self>,
-        Extension(claims): Extension<Claims>,
+        scope: AccessScope,
         payload: Result<Json<CreatePatCommand>, JsonRejection>,
     ) -> AppResult<(StatusCode, Json<CreatePatResponse>)> {
         let cmd = extract_payload(payload)?;
         let pat = s
             .pat_svc
             .create_pat(
-                &claims.sub,
+                &scope,
                 &cmd.name,
-                claims.role,
+                scope.role(),
                 cmd.scopes,
                 cmd.expires_at,
             )
@@ -159,10 +112,10 @@ impl PatsRouter {
 
     async fn handle_delete(
         State(s): State<Self>,
-        Extension(claims): Extension<Claims>,
+        scope: AccessScope,
         Path(id): Path<Uuid>,
     ) -> AppResult<StatusCode> {
-        s.pat_svc.revoke_pat(&claims.sub, id).await?;
+        s.pat_svc.revoke_pat(&scope, id).await?;
         Ok(StatusCode::NO_CONTENT)
     }
 }

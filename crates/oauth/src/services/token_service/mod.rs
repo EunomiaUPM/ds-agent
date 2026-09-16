@@ -24,7 +24,7 @@ pub(crate) mod views;
 use crate::http::forms::IntrospectResponse;
 use crate::services::token_service::views::TokenResponse;
 pub use common::auth::claims::Claims;
-pub use common::auth::middleware::OauthTokenValidator;
+pub use common::auth::OauthTokenValidator;
 
 #[async_trait::async_trait]
 pub trait TokenServiceTrait: OauthTokenValidator + Send + Sync + 'static {

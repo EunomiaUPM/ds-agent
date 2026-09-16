@@ -18,34 +18,23 @@
 use std::sync::Arc;
 
 use axum::extract::rejection::JsonRejection;
-use axum::extract::{Extension, Path, Query, Request, State};
-use axum::http::StatusCode;
+use axum::extract::{Path, Query, Request, State};
+use axum::http::{HeaderMap, StatusCode};
 use axum::middleware::Next;
 use axum::response::Response;
 use axum::routing::get;
 use axum::{Json, Router, middleware};
-use common::auth::claims::Claims;
-use common::auth::middleware::bearer;
-use common::auth::rbac::Rbac;
-use serde::Deserialize;
-use ymir::errors::AppResult;
+use common::auth::AccessScope;
+use common::auth::http::{AuthHttpMiddleware, ExtractedHeaders};
+use common::auth::validators::AuthValidators;
+use ymir::errors::{AppResult, Errors};
 use ymir::utils::extract_payload;
 
 use crate::entities::commands::CreateClientCommand;
+use crate::entities::query::{ClientQuery, Paginated};
 use crate::http::forms::ClientView;
 use crate::services::client_service::ClientServiceTrait;
 use crate::services::token_service::TokenServiceTrait;
-
-// Query parameters for listing and filtering registered OAuth clients.
-#[derive(Debug, Deserialize, Default)]
-pub struct ListClientsQuery {
-    pub limit: Option<u64>,
-    pub page: Option<u64>,
-    pub offset: Option<u64>,
-    pub role: Option<String>,
-    pub search: Option<String>,
-    pub sort: Option<String>,
-}
 
 #[derive(Clone)]
 pub(crate) struct ClientsRouter {
@@ -84,92 +73,58 @@ impl ClientsRouter {
         mut req: Request,
         next: Next,
     ) -> AppResult<Response> {
-        let token = bearer(req.headers())?.to_owned();
+        let token = AuthHttpMiddleware::bearer(req.headers())?.to_owned();
         let claims = s.token_svc.validate_token(&token).await?;
+        AuthValidators::claims_validator()
+            .validate(&claims)
+            .map_err(|vs| Errors::unauthorized(vs.to_string(), None))?;
         req.extensions_mut().insert(claims);
-        Ok(next.run(req).await)
+        let mut resp = next.run(req).await;
+        AuthHttpMiddleware::apply_security_headers(&mut resp);
+        Ok(resp)
     }
 
     async fn handle_list(
         State(s): State<Self>,
-        Extension(claims): Extension<Claims>,
-        Query(q): Query<ListClientsQuery>,
-    ) -> AppResult<Json<Vec<ClientView>>> {
-        Rbac::require_admin(&claims)?;
-        let mut clients = s.client_svc.list_clients().await?;
-
-        if let Some(ref role) = q.role {
-            if role != "all" {
-                clients.retain(|c| c.role.to_string().eq_ignore_ascii_case(role));
-            }
-        }
-        if let Some(ref search) = q.search {
-            let term = search.to_lowercase();
-            clients.retain(|c| {
-                c.client_name.to_lowercase().contains(&term)
-                    || c.client_id.to_lowercase().contains(&term)
-            });
-        }
-        if let Some(ref sort) = q.sort {
-            match sort.as_str() {
-                "created_at_asc" => clients.sort_by(|a, b| a.created_at.cmp(&b.created_at)),
-                "created_at_desc" => clients.sort_by(|a, b| b.created_at.cmp(&a.created_at)),
-                "client_name_asc" => clients.sort_by(|a, b| a.client_name.to_lowercase().cmp(&b.client_name.to_lowercase())),
-                "client_name_desc" => clients.sort_by(|a, b| b.client_name.to_lowercase().cmp(&a.client_name.to_lowercase())),
-                "client_id_asc" => clients.sort_by(|a, b| a.client_id.cmp(&b.client_id)),
-                "client_id_desc" => clients.sort_by(|a, b| b.client_id.cmp(&a.client_id)),
-                "role_asc" => clients.sort_by(|a, b| a.role.to_string().cmp(&b.role.to_string())),
-                "role_desc" => clients.sort_by(|a, b| b.role.to_string().cmp(&a.role.to_string())),
-                _ => clients.sort_by(|a, b| b.created_at.cmp(&a.created_at)),
-            }
-        } else {
-            clients.sort_by(|a, b| b.created_at.cmp(&a.created_at));
-        }
-        if let Some(limit) = q.limit {
-            let offset = q
-                .offset
-                .or_else(|| q.page.map(|p| p.saturating_sub(1) * limit))
-                .unwrap_or(0) as usize;
-            let paged: Vec<ClientView> = clients
-                .into_iter()
-                .skip(offset)
-                .take(limit as usize)
-                .collect();
-            Ok(Json(paged))
-        } else {
-            Ok(Json(clients))
-        }
+        scope: AccessScope,
+        headers: ExtractedHeaders,
+        Query(q): Query<ClientQuery>,
+    ) -> AppResult<(HeaderMap, Json<Paginated<ClientView>>)> {
+        let (filter, page, sort) = q.into_domain();
+        let result = s
+            .client_svc
+            .list_clients(&scope, &filter, &page, &sort)
+            .await?;
+        let response_headers = headers.response_headers_paged(result.total);
+        Ok((response_headers, Json(result)))
     }
 
     async fn handle_get_one(
         State(s): State<Self>,
-        Extension(claims): Extension<Claims>,
+        scope: AccessScope,
         Path(id): Path<String>,
     ) -> AppResult<Json<ClientView>> {
-        Rbac::require_read(&claims, &id)?;
-        Ok(Json(s.client_svc.get_client(&id).await?))
+        Ok(Json(s.client_svc.get_client(&scope, &id).await?))
     }
 
     async fn handle_create(
         State(s): State<Self>,
-        Extension(claims): Extension<Claims>,
+        scope: AccessScope,
         payload: Result<Json<CreateClientCommand>, JsonRejection>,
     ) -> AppResult<(StatusCode, Json<ClientView>)> {
-        Rbac::require_admin(&claims)?;
         let cmd = extract_payload(payload)?;
         Ok((
             StatusCode::CREATED,
-            Json(s.client_svc.create_client(&cmd).await?),
+            Json(s.client_svc.create_client(&scope, &cmd).await?),
         ))
     }
 
     async fn handle_delete(
         State(s): State<Self>,
-        Extension(claims): Extension<Claims>,
+        scope: AccessScope,
         Path(id): Path<String>,
     ) -> AppResult<StatusCode> {
-        Rbac::require_admin(&claims)?;
-        s.client_svc.delete_client(&id).await?;
+        s.client_svc.delete_client(&scope, &id).await?;
         Ok(StatusCode::NO_CONTENT)
     }
 }

@@ -15,15 +15,17 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod events;
-pub(crate) mod gateway;
-pub mod proxy;
-pub mod setup;
-pub(crate) mod subscriptions;
+//! Transport-agnostic token verification port for authenticating credentials into claims.
 
-pub use gateway::GatewayHttpRouter;
-pub use proxy::HttpProxyDispatcher;
-pub use setup::cmd::GatewayCommands;
-pub use setup::composition::BffModule;
-pub use setup::context::AppContext;
-pub use setup::http_worker::{create_gateway_http_router, create_gateway_http_router_with_context};
+use ymir::errors::Outcome;
+
+use crate::auth::claims::Claims;
+
+/// Port implemented by services capable of verifying bearer tokens and resolving claims.
+#[async_trait::async_trait]
+pub trait OauthTokenValidator: Send + Sync + 'static {
+    async fn validate_token(&self, token: &str) -> Outcome<Claims>;
+}
+
+/// Semantic alias for token verification service contracts.
+pub use OauthTokenValidator as TokenVerifier;

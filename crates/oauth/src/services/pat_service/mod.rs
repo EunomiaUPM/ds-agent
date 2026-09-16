@@ -16,12 +16,14 @@
  */
 
 use chrono::{DateTime, Utc};
+use common::auth::AccessScope;
+use common::auth::claims::Claims;
 use uuid::Uuid;
 use ymir::errors::Outcome;
 
+use crate::entities::query::{Page, Paginated, PatFilter, Sort};
 use crate::entities::role::RbacRole;
 use crate::services::pat_service::views::{CreatePatResponse, PatView};
-use common::auth::claims::Claims;
 
 pub(crate) mod service;
 pub mod views;
@@ -30,16 +32,22 @@ pub mod views;
 pub(crate) trait PatServiceTrait: Send + Sync + 'static {
     async fn create_pat(
         &self,
-        tenant_id: &str,
+        scope: &AccessScope,
         name: &str,
         role: RbacRole,
         scopes: Vec<String>,
         expires_at: Option<DateTime<Utc>>,
     ) -> Outcome<CreatePatResponse>;
 
-    async fn list_pats(&self, tenant_id: &str) -> Outcome<Vec<PatView>>;
+    async fn list_pats(
+        &self,
+        scope: &AccessScope,
+        filter: &PatFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<Paginated<PatView>>;
 
-    async fn revoke_pat(&self, tenant_id: &str, id: Uuid) -> Outcome<()>;
+    async fn revoke_pat(&self, scope: &AccessScope, id: Uuid) -> Outcome<()>;
 
     async fn validate_pat(&self, raw_token: &str) -> Outcome<Claims>;
 }

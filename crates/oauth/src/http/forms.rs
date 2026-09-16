@@ -15,13 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-
-use crate::entities::client::Client;
-use crate::entities::query::{Page, Sort, UserFilter};
-use crate::entities::role::RbacRole;
-use common::query::QuerySpec;
 
 /// Unified OAuth 2.0 token request supporting multiple grant types.
 #[derive(Debug, Clone, Deserialize, Default)]
@@ -67,12 +61,6 @@ pub struct AuthorizeResponse {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub(crate) struct PasswordGrantRequest {
-    pub username: String,
-    pub password: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
 pub(crate) struct RefreshRequest {
     pub refresh_token: String,
 }
@@ -89,64 +77,6 @@ pub(crate) struct RevokeRequest {
 pub(crate) struct IntrospectRequest {
     pub token: String,
     pub token_type_hint: Option<String>,
-}
-
-/// RFC 7662 token introspection response.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct IntrospectResponse {
-    pub active: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub scope: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub client_id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub sub: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub exp: Option<i64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub iat: Option<i64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub token_type: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub role: Option<String>,
-}
-
-impl IntrospectResponse {
-    pub fn inactive() -> Self {
-        Self {
-            active: false,
-            scope: None,
-            client_id: None,
-            sub: None,
-            exp: None,
-            iat: None,
-            token_type: None,
-            role: None,
-        }
-    }
-}
-
-/// Public representation of an OAuth client.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ClientView {
-    pub client_id: String,
-    pub client_name: String,
-    pub role: RbacRole,
-    pub scopes: Vec<String>,
-    pub created_at: DateTime<Utc>,
-}
-
-impl ClientView {
-    pub fn assemble(client: Client) -> Self {
-        Self {
-            client_id: client.client_id,
-            client_name: client.client_name,
-            role: client.role,
-            scopes: client.scopes,
-            created_at: client.created_at,
-        }
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -218,5 +148,3 @@ impl OpenIdConfiguration {
         }
     }
 }
-
-pub(crate) type UserListQuery = QuerySpec<UserFilter, Sort>;

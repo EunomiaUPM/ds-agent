@@ -24,3 +24,4 @@ pub mod query;
 pub(crate) mod refresh_token;
 pub mod role;
 pub mod user;
+pub(crate) mod errors;

@@ -27,8 +27,8 @@ use crate::data::repositories::client::ClientRepository;
 use crate::entities::client::Client;
 use crate::entities::commands::CreateClientCommand;
 use crate::entities::query::{ClientFilter, Page, Paginated, Sort};
-use crate::http::forms::ClientView;
 use crate::services::client_service::ClientServiceTrait;
+use crate::services::client_service::views::ClientView;
 use crate::services::password;
 
 pub(crate) struct ClientService {

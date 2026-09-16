@@ -20,9 +20,10 @@ use ymir::errors::Outcome;
 
 use crate::entities::commands::CreateClientCommand;
 use crate::entities::query::{ClientFilter, Page, Paginated, Sort};
-use crate::http::forms::ClientView;
+use crate::services::client_service::views::ClientView;
 
 pub(crate) mod service;
+pub mod views;
 
 #[async_trait::async_trait]
 pub(crate) trait ClientServiceTrait: Send + Sync + 'static {

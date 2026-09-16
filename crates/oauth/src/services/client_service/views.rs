@@ -15,40 +15,32 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use base64::Engine;
-use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 
+use crate::entities::client::Client;
 use crate::entities::role::RbacRole;
 
-/// RFC 7636 Proof Key for Code Exchange (PKCE) authorization code record.
+/// Public read-model presentation of an OAuth client.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AuthCode {
-    pub code: String,
+#[serde(rename_all = "camelCase")]
+pub struct ClientView {
     pub client_id: String,
-    pub redirect_uri: Option<String>,
-    pub tenant_id: String,
+    pub client_name: String,
     pub role: RbacRole,
     pub scopes: Vec<String>,
-    pub code_challenge: String,
-    pub code_challenge_method: String,
-    pub expires_at: DateTime<Utc>,
-    pub used: bool,
+    pub created_at: DateTime<Utc>,
 }
 
-impl AuthCode {
-    /// Verify code_verifier against stored code_challenge according to RFC 7636.
-    pub fn verify_pkce(&self, code_verifier: &str) -> bool {
-        match self.code_challenge_method.as_str() {
-            "S256" => {
-                let digest = Sha256::digest(code_verifier.as_bytes());
-                let encoded = URL_SAFE_NO_PAD.encode(digest);
-                encoded == self.code_challenge
-            }
-            "plain" => code_verifier == self.code_challenge,
-            _ => false,
+impl ClientView {
+    /// Assembles a client view from the domain model.
+    pub fn assemble(client: Client) -> Self {
+        Self {
+            client_id: client.client_id,
+            client_name: client.client_name,
+            role: client.role,
+            scopes: client.scopes,
+            created_at: client.created_at,
         }
     }
 }

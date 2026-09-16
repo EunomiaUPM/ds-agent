@@ -19,8 +19,7 @@ use axum::extract::{FromRequest, Request};
 use axum::http::{HeaderMap, header};
 use base64::Engine;
 use serde::de::DeserializeOwned;
-
-use crate::http::errors::OAuthError;
+use crate::entities::errors::OAuthError;
 
 /// Flexible extractor supporting both application/x-www-form-urlencoded and application/json.
 pub(crate) struct OAuthPayload<T>(pub T);

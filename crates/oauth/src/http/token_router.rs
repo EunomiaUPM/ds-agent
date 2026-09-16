@@ -26,12 +26,12 @@ use ymir::errors::AppResult;
 use crate::http::errors::OAuthError;
 use crate::http::extractors::{ClientAuth, OAuthPayload};
 use crate::http::forms::{
-    AuthorizeRequest, AuthorizeResponse, IntrospectRequest, IntrospectResponse,
-    OpenIdConfiguration, RefreshRequest, RevokeRequest, TokenRequest,
+    AuthorizeRequest, AuthorizeResponse, IntrospectRequest, OpenIdConfiguration, RefreshRequest,
+    RevokeRequest, TokenRequest,
 };
 use crate::http::helpers::bearer;
 use crate::services::token_service::TokenServiceTrait;
-use crate::services::token_service::views::TokenResponse;
+use crate::services::token_service::views::{IntrospectResponse, TokenResponse};
 use crate::services::user_service::UserServiceTrait;
 use crate::services::user_service::views::UserInfo;
 

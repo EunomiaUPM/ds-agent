@@ -35,12 +35,11 @@ use crate::entities::auth_code::AuthCode;
 use crate::entities::pat::PersonalAccessToken;
 use crate::entities::refresh_token::RefreshToken;
 use crate::entities::role::RbacRole;
-use crate::http::forms::IntrospectResponse;
 use crate::services::password;
 use crate::services::token_service::jwt::{
     AccessClaims, IdTokenClaims, JwtAssertionClaims, RefreshClaims, as_map,
 };
-use crate::services::token_service::views::TokenResponse;
+use crate::services::token_service::views::{IntrospectResponse, TokenResponse};
 use crate::services::token_service::{Claims, OauthTokenValidator, TokenServiceTrait};
 
 pub(crate) struct TokenService {

@@ -15,68 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use axum::http::{header, HeaderValue, StatusCode};
 use axum::Json;
-use axum::http::{HeaderValue, StatusCode, header};
 use axum::response::{IntoResponse, Response};
-use serde::{Deserialize, Serialize};
-
-/// RFC 6749 §5.2 standard OAuth 2.0 error codes.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum OAuthErrorCode {
-    InvalidRequest,
-    InvalidClient,
-    InvalidGrant,
-    UnauthorizedClient,
-    UnsupportedGrantType,
-    InvalidScope,
-    ServerError,
-}
-
-/// RFC 6749 §5.2 standard error response.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct OAuthError {
-    pub error: OAuthErrorCode,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub error_description: Option<String>,
-}
-
-impl OAuthError {
-    pub fn new(error: OAuthErrorCode, description: impl Into<String>) -> Self {
-        Self {
-            error,
-            error_description: Some(description.into()),
-        }
-    }
-
-    pub fn invalid_request(desc: impl Into<String>) -> Self {
-        Self::new(OAuthErrorCode::InvalidRequest, desc)
-    }
-
-    pub fn invalid_client(desc: impl Into<String>) -> Self {
-        Self::new(OAuthErrorCode::InvalidClient, desc)
-    }
-
-    pub fn invalid_grant(desc: impl Into<String>) -> Self {
-        Self::new(OAuthErrorCode::InvalidGrant, desc)
-    }
-
-    pub fn unsupported_grant_type(desc: impl Into<String>) -> Self {
-        Self::new(OAuthErrorCode::UnsupportedGrantType, desc)
-    }
-
-    pub fn unauthorized_client(desc: impl Into<String>) -> Self {
-        Self::new(OAuthErrorCode::UnauthorizedClient, desc)
-    }
-
-    pub fn invalid_scope(desc: impl Into<String>) -> Self {
-        Self::new(OAuthErrorCode::InvalidScope, desc)
-    }
-
-    pub fn server_error(desc: impl Into<String>) -> Self {
-        Self::new(OAuthErrorCode::ServerError, desc)
-    }
-}
+pub(crate) use crate::entities::errors::{OAuthError, OAuthErrorCode};
 
 impl IntoResponse for OAuthError {
     fn into_response(self) -> Response {

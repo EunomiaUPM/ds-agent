@@ -30,3 +30,38 @@ pub struct TokenResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub scope: Option<String>,
 }
+
+/// RFC 7662 token introspection response.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IntrospectResponse {
+    pub active: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scope: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub client_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sub: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub exp: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub iat: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub token_type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub role: Option<String>,
+}
+
+impl IntrospectResponse {
+    pub fn inactive() -> Self {
+        Self {
+            active: false,
+            scope: None,
+            client_id: None,
+            sub: None,
+            exp: None,
+            iat: None,
+            token_type: None,
+            role: None,
+        }
+    }
+}

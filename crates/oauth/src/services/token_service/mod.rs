@@ -21,8 +21,7 @@ pub(crate) mod jwt;
 pub(crate) mod service;
 pub(crate) mod views;
 
-use crate::http::forms::IntrospectResponse;
-use crate::services::token_service::views::TokenResponse;
+use crate::services::token_service::views::{IntrospectResponse, TokenResponse};
 pub use common::auth::claims::Claims;
 pub use common::auth::OauthTokenValidator;
 

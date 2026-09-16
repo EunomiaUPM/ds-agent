@@ -111,6 +111,7 @@ impl TransferProcessServiceTrait for TransferProcessService {
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<TransferProcessView>> {
+        scope.require_read()?;
         // input range validation
         validate_date_range(filters.created_after, filters.created_before)?;
         // tenant filters
@@ -167,6 +168,7 @@ impl TransferProcessServiceTrait for TransferProcessService {
     /// If tenant-id is coincident ok, otherwise not_found
     #[tracing::instrument(level = "info", skip(self, scope), fields(id = %id), err)]
     async fn get_one(&self, scope: &AccessScope, id: &Urn) -> Outcome<TransferProcessView> {
+        scope.require_read()?;
         let process = self
             .process_repo
             .get_transfer_process_by_id(id)
@@ -195,6 +197,7 @@ impl TransferProcessServiceTrait for TransferProcessService {
         scope: &AccessScope,
         batch_request: &BatchRequests,
     ) -> Outcome<Vec<TransferProcessView>> {
+        scope.require_read()?;
         // Validate max batch
         if batch_request.ids.len() > MAX_BATCH_IDS {
             return Err(Errors::format(
@@ -245,6 +248,7 @@ impl TransferProcessServiceTrait for TransferProcessService {
         scope: &AccessScope,
         cmd: &NewTransferProcessCommand,
     ) -> Outcome<TransferProcessView> {
+        scope.require_write()?;
         let mut cmd = cmd.clone();
         // Non-admins are forced into their own tenant; admins default to their acting
         // tenant only when the body leaves it unset.
@@ -289,6 +293,7 @@ impl TransferProcessServiceTrait for TransferProcessService {
         id: &Urn,
         cmd: &EditTransferProcessCommand,
     ) -> Outcome<TransferProcessView> {
+        scope.require_write()?;
         // Validate access
         self.ensure_access(scope, id).await?;
         // Hit db
@@ -328,6 +333,7 @@ impl TransferProcessServiceTrait for TransferProcessService {
     /// Delete a transfer process
     #[tracing::instrument(level = "info", skip(self, scope), fields(id = %id), err)]
     async fn delete(&self, scope: &AccessScope, id: &Urn) -> Outcome<()> {
+        scope.require_write()?;
         // Validate access
         self.ensure_access(scope, id).await?;
         // Hit db

@@ -19,11 +19,11 @@ use std::sync::Arc;
 
 use crate::entities::commands::{EditTransferProcessCommand, NewTransferProcessCommand};
 use crate::entities::filters::TransferProcessFilter;
-use crate::http::extractors::{AuthClaims, ExtractedHeaders};
+use crate::http::extractors::ExtractedHeaders;
 use crate::services::transfer_process::TransferProcessServiceTrait;
 use crate::services::transfer_process::views::TransferProcessView;
 use axum::extract::rejection::JsonRejection;
-use axum::extract::{FromRef, OriginalUri, Path, Query, State};
+use axum::extract::{FromRef, Path, Query, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::routing::{get, post};
 use axum::{Json, Router};
@@ -67,11 +67,10 @@ impl TransferProcessRouter {
 
     async fn handle_get_all(
         State(state): State<Self>,
-        auth: AuthClaims,
+        scope: AccessScope,
         headers: ExtractedHeaders,
         Query(q): Query<TransferProcessQuery>,
     ) -> AppResult<(HeaderMap, Json<Paginated<TransferProcessView>>)> {
-        let scope = AccessScope::for_read(&auth, &headers.tenant_id)?;
         let (filter, page, sort) = q.into_domain();
         let result = state.service.get_all(&scope, &filter, &page, &sort).await?;
         let response_headers = headers.response_headers_paged(result.total);
@@ -80,11 +79,10 @@ impl TransferProcessRouter {
 
     async fn handle_batch(
         State(state): State<Self>,
-        auth: AuthClaims,
+        scope: AccessScope,
         headers: ExtractedHeaders,
         payload: Result<Json<BatchRequests>, JsonRejection>,
     ) -> AppResult<(HeaderMap, Json<Vec<TransferProcessView>>)> {
-        let scope = AccessScope::for_read(&auth, &headers.tenant_id)?;
         let payload = extract_payload(payload)?;
         let views = state.service.batch(&scope, &payload).await?;
         let count = views.len() as u64;
@@ -93,11 +91,10 @@ impl TransferProcessRouter {
 
     async fn handle_get_one(
         State(state): State<Self>,
-        auth: AuthClaims,
+        scope: AccessScope,
         headers: ExtractedHeaders,
         Path(id): Path<String>,
     ) -> AppResult<(HeaderMap, Json<TransferProcessView>)> {
-        let scope = AccessScope::for_read(&auth, &headers.tenant_id)?;
         let urn = extract_path_urn(&id)?;
         let view = state.service.get_one(&scope, &urn).await?;
         Ok((headers.response_headers(), Json(view)))
@@ -105,12 +102,10 @@ impl TransferProcessRouter {
 
     async fn handle_create(
         State(state): State<Self>,
-        auth: AuthClaims,
+        scope: AccessScope,
         headers: ExtractedHeaders,
-        OriginalUri(uri): OriginalUri,
         payload: Result<Json<NewTransferProcessCommand>, JsonRejection>,
     ) -> AppResult<(StatusCode, HeaderMap, Json<TransferProcessView>)> {
-        let scope = AccessScope::for_write(&auth, &headers.tenant_id)?;
         let payload = extract_payload(payload)?;
         let view = state.service.create(&scope, &payload).await?;
         let response_headers = headers.response_headers();
@@ -119,12 +114,11 @@ impl TransferProcessRouter {
 
     async fn handle_edit(
         State(state): State<Self>,
-        auth: AuthClaims,
+        scope: AccessScope,
         headers: ExtractedHeaders,
         Path(id): Path<String>,
         payload: Result<Json<EditTransferProcessCommand>, JsonRejection>,
     ) -> AppResult<(HeaderMap, Json<TransferProcessView>)> {
-        let scope = AccessScope::for_write(&auth, &headers.tenant_id)?;
         let urn = extract_path_urn(&id)?;
         let payload = extract_payload(payload)?;
         let view = state.service.edit(&scope, &urn, &payload).await?;
@@ -133,11 +127,10 @@ impl TransferProcessRouter {
 
     async fn handle_delete(
         State(state): State<Self>,
-        auth: AuthClaims,
+        scope: AccessScope,
         headers: ExtractedHeaders,
         Path(id): Path<String>,
     ) -> AppResult<(StatusCode, HeaderMap)> {
-        let scope = AccessScope::for_write(&auth, &headers.tenant_id)?;
         let urn = extract_path_urn(&id)?;
         state.service.delete(&scope, &urn).await?;
         Ok((StatusCode::NO_CONTENT, headers.response_headers()))

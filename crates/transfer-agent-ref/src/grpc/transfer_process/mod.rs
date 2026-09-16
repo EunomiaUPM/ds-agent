@@ -31,7 +31,7 @@ use crate::grpc::to_status;
 use crate::services::transfer_process::TransferProcessServiceTrait;
 use common::auth::access::AccessScope;
 use common::auth::claims::Claims;
-use common::auth::middleware::OauthTokenValidator;
+use common::auth::OauthTokenValidator;
 use tonic::{Request, Response, Status};
 use urn::Urn;
 
@@ -64,27 +64,37 @@ impl TransferProcessGrpc {
             .await
             .map_err(|e| Status::unauthenticated(e.to_string()))?;
 
+        common::auth::validators::AuthValidators::claims_validator()
+            .validate(&claims)
+            .map_err(|vs| Status::unauthenticated(vs.to_string()))?;
+
         let tenant_raw = meta
             .get("x-tenant-id")
             .and_then(|v| v.to_str().ok())
             .ok_or_else(|| Status::invalid_argument("missing x-tenant-id metadata"))?;
 
-        Ok((claims, tenant_raw.to_string()))
+        let tenant_id = tenant_raw.to_string();
+        common::auth::validators::AuthValidators::tenant_id_validator()
+            .validate(&tenant_id)
+            .map_err(|vs| Status::invalid_argument(vs.to_string()))?;
+
+        if !claims.is_admin() && claims.tenant_id() != tenant_id {
+            return Err(Status::permission_denied(
+                "forbidden: caller tenant does not match requested tenant",
+            ));
+        }
+
+        Ok((claims, tenant_id))
     }
 
-    /// Builds the caller's read scope (RBAC + tenant) from request metadata.
-    async fn read_scope(&self, meta: &tonic::metadata::MetadataMap) -> Result<AccessScope, Status> {
+    /// Builds caller's access scope from validated metadata.
+    async fn scope(&self, meta: &tonic::metadata::MetadataMap) -> Result<AccessScope, Status> {
         let (claims, tenant) = self.extract_auth(meta).await?;
-        AccessScope::for_read(&claims, &tenant).map_err(to_status)
+        Ok(AccessScope::new(&claims, &tenant))
     }
 
-    /// Builds the caller's write scope (RBAC + tenant) from request metadata.
-    async fn write_scope(
-        &self,
-        meta: &tonic::metadata::MetadataMap,
-    ) -> Result<AccessScope, Status> {
-        let (claims, tenant) = self.extract_auth(meta).await?;
-        AccessScope::for_write(&claims, &tenant).map_err(to_status)
+    fn parse_urn(s: &str) -> Result<Urn, Status> {
+        Urn::from_str(s).map_err(|e| Status::invalid_argument(format!("invalid URN: {e}")))
     }
 }
 
@@ -95,7 +105,7 @@ impl TransferProcessesRef for TransferProcessGrpc {
         request: Request<ListTransferProcessesRequest>,
     ) -> Result<Response<TransferProcessListResponse>, Status> {
         let (meta, _, proto_req) = request.into_parts();
-        let scope = self.read_scope(&meta).await?;
+        let scope = self.scope(&meta).await?;
         let (filter, page, sort) = mappers::into_list_params(proto_req)?;
         let result = self
             .service
@@ -110,8 +120,8 @@ impl TransferProcessesRef for TransferProcessGrpc {
         request: Request<ResourceIdRequest>,
     ) -> Result<Response<TransferProcessResponse>, Status> {
         let (meta, _, proto_req) = request.into_parts();
-        let scope = self.read_scope(&meta).await?;
-        let urn = parse_urn(&proto_req.id)?;
+        let scope = self.scope(&meta).await?;
+        let urn = Self::parse_urn(&proto_req.id)?;
         let view = self
             .service
             .get_one(&scope, &urn)
@@ -125,7 +135,7 @@ impl TransferProcessesRef for TransferProcessGrpc {
         request: Request<BatchTransferProcessesRequest>,
     ) -> Result<Response<TransferProcessListResponse>, Status> {
         let (meta, _, proto_req) = request.into_parts();
-        let scope = self.read_scope(&meta).await?;
+        let scope = self.scope(&meta).await?;
         let batch = mappers::into_batch(proto_req)?;
         let views = self
             .service
@@ -140,7 +150,7 @@ impl TransferProcessesRef for TransferProcessGrpc {
         request: Request<CreateTransferProcessRequest>,
     ) -> Result<Response<TransferProcessResponse>, Status> {
         let (meta, _, proto_req) = request.into_parts();
-        let scope = self.write_scope(&meta).await?;
+        let scope = self.scope(&meta).await?;
         let cmd = mappers::into_create_cmd(proto_req)?;
         let view = self.service.create(&scope, &cmd).await.map_err(to_status)?;
         Ok(Response::new(mappers::from_view(view)))
@@ -151,8 +161,8 @@ impl TransferProcessesRef for TransferProcessGrpc {
         request: Request<EditTransferProcessRequest>,
     ) -> Result<Response<TransferProcessResponse>, Status> {
         let (meta, _, proto_req) = request.into_parts();
-        let scope = self.write_scope(&meta).await?;
-        let urn = parse_urn(&proto_req.id)?;
+        let scope = self.scope(&meta).await?;
+        let urn = Self::parse_urn(&proto_req.id)?;
         let cmd = mappers::into_edit_cmd(proto_req)?;
         let view = self
             .service
@@ -167,13 +177,9 @@ impl TransferProcessesRef for TransferProcessGrpc {
         request: Request<ResourceIdRequest>,
     ) -> Result<Response<DeleteResponse>, Status> {
         let (meta, _, proto_req) = request.into_parts();
-        let scope = self.write_scope(&meta).await?;
-        let urn = parse_urn(&proto_req.id)?;
+        let scope = self.scope(&meta).await?;
+        let urn = Self::parse_urn(&proto_req.id)?;
         self.service.delete(&scope, &urn).await.map_err(to_status)?;
         Ok(Response::new(DeleteResponse {}))
     }
-}
-
-fn parse_urn(s: &str) -> Result<Urn, Status> {
-    Urn::from_str(s).map_err(|e| Status::invalid_argument(format!("invalid URN: {e}")))
 }

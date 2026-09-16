@@ -19,4 +19,9 @@
 //! state-machine legality.
 
 pub mod payload;
+pub mod registry;
+pub mod rules;
 pub mod transition;
+
+pub use registry::TransferValidators;
+pub use rules::TransferRules;

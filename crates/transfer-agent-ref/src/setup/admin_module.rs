@@ -29,7 +29,7 @@ use crate::grpc::api::transfer_messages::transfer_messages_ref_server::TransferM
 use crate::grpc::api::transfer_processes::transfer_processes_ref_server::TransferProcessesRefServer;
 use crate::grpc::transfer_messages::TransferMessagesGrpc;
 use crate::grpc::transfer_process::TransferProcessGrpc;
-use crate::http::build_router;
+use crate::http::TransferHttpRouter;
 use crate::http::transfer_message_router::TransferMessageRouter;
 use crate::http::transfer_process_router::TransferProcessRouter;
 use crate::setup::context::AppContext;
@@ -71,7 +71,7 @@ impl ServiceModuleTrait for TransferAdminModule {
             "/transfer-messages",
             TransferMessageRouter::new(self.ctx.transfer_message_svc.clone()).router(),
         );
-        let router = build_router(
+        let router = TransferHttpRouter::build(
             self.ctx.oauth_validator.clone(),
             process_router,
             message_router,

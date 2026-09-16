@@ -15,8 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-mod entities;
+pub mod entities;
 mod facades;
 pub(crate) mod http;
-mod services;
+pub mod services;
 pub(crate) mod setup;

@@ -17,7 +17,7 @@
 
 use std::sync::Arc;
 
-use common::auth::middleware::OauthTokenValidator;
+use common::auth::OauthTokenValidator;
 use common::config::services::TransferConfig;
 use common::config::services::traits::TransferConfigTrait;
 use common::config::types::traits::CommonConfigTrait;

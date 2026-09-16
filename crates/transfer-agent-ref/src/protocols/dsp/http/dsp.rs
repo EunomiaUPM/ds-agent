@@ -27,21 +27,28 @@ use axum::middleware::Next;
 use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::{Router, middleware};
-use common::auth::middleware::bearer;
+use common::auth::http::AuthHttpMiddleware;
 use common::facades::ssi_auth_facade::SSIAuthFacadeTrait;
+use common::validation::ValidatorRegistry;
 use http::StatusCode;
 use std::sync::Arc;
 use ymir::errors::AppResult;
+
+use crate::protocols::dsp::entities::context_dsp::{
+    TransferDSPContextDomain, TransferDSPContextTyped,
+};
+use crate::protocols::dsp::services::validator::TransferValidators;
 
 #[derive(Clone)]
 pub struct DspRouter {
     ssi_auth: Arc<dyn SSIAuthFacadeTrait>,
     idempotency: Arc<dyn IdempotencyStoreTrait>,
+    edge_validators: Arc<ValidatorRegistry<TransferDSPMessageType, TransferDSPContextTyped>>,
+    domain_validators: Arc<ValidatorRegistry<TransferDSPMessageType, TransferDSPContextDomain>>,
 }
 
 impl DspRouter {
-    /// Uses the in-memory idempotency store, which is per-process: see
-    /// [`InMemoryIdempotencyStore`] before running more than one replica.
+    /// Uses the in-memory idempotency store and default transfer validators.
     pub fn new(ssi_auth: Arc<dyn SSIAuthFacadeTrait>) -> Self {
         Self::with_idempotency_store(ssi_auth, Arc::new(InMemoryIdempotencyStore::new()))
     }
@@ -50,9 +57,25 @@ impl DspRouter {
         ssi_auth: Arc<dyn SSIAuthFacadeTrait>,
         idempotency: Arc<dyn IdempotencyStoreTrait>,
     ) -> Self {
+        Self::with_validators(
+            ssi_auth,
+            idempotency,
+            Arc::new(TransferValidators::edge_registry()),
+            Arc::new(TransferValidators::dsp_registry()),
+        )
+    }
+
+    pub fn with_validators(
+        ssi_auth: Arc<dyn SSIAuthFacadeTrait>,
+        idempotency: Arc<dyn IdempotencyStoreTrait>,
+        edge_validators: Arc<ValidatorRegistry<TransferDSPMessageType, TransferDSPContextTyped>>,
+        domain_validators: Arc<ValidatorRegistry<TransferDSPMessageType, TransferDSPContextDomain>>,
+    ) -> Self {
         Self {
             ssi_auth,
             idempotency,
+            edge_validators,
+            domain_validators,
         }
     }
 
@@ -64,7 +87,7 @@ impl DspRouter {
         // DSP 10.1.2.3: an unauthorized client MUST get a 404, not a 401 — the
         // same answer as a missing process (10.1.2.2), so that probing cannot
         // reveal which Transfer Processes exist.
-        let token = bearer(request.headers())
+        let token = AuthHttpMiddleware::bearer(request.headers())
             .map_err(|_| StatusCode::NOT_FOUND)?
             .to_owned();
         match state.ssi_auth.verify_token(token).await {
@@ -107,10 +130,20 @@ impl DspRouter {
         request: Request,
         message_route: &TransferDSPMessageType,
         protocol_id: &ProtocolId,
+        edge_validators: &ValidatorRegistry<TransferDSPMessageType, TransferDSPContextTyped>,
+        domain_validators: &ValidatorRegistry<TransferDSPMessageType, TransferDSPContextDomain>,
     ) -> AppResult<StatusCode> {
-        match P::run(request, message_route, protocol_id).await {
+        match P::run(
+            request,
+            message_route,
+            protocol_id,
+            edge_validators,
+            domain_validators,
+        )
+        .await
+        {
             // TODO, project to DSP
-            Ok(res) => Ok(StatusCode::ACCEPTED),
+            Ok(_res) => Ok(StatusCode::ACCEPTED),
             // TODO, project to DSP
             Err(err) => {
                 tracing::warn!(%err, "DSP pipeline rejected the message");
@@ -120,68 +153,78 @@ impl DspRouter {
     }
 
     async fn handle_transfer_request<P: DSPHandlerPipeline>(
-        State(_state): State<DspRouter>,
+        State(state): State<DspRouter>,
         request: Request,
     ) -> AppResult<StatusCode> {
         Self::build_response::<P>(
             request,
             &TransferDSPMessageType::TransferRequestMessage,
             &ProtocolId::Dsp2025_1,
+            &state.edge_validators,
+            &state.domain_validators,
         )
         .await
     }
 
     async fn handle_get_transfer_process(
         State(_state): State<DspRouter>,
-        Path(id): Path<String>,
+        Path(_id): Path<String>,
     ) -> impl IntoResponse {
         "ok"
     }
 
     async fn handle_transfer_start<P: DSPHandlerPipeline>(
-        State(_state): State<DspRouter>,
+        State(state): State<DspRouter>,
         request: Request,
     ) -> AppResult<StatusCode> {
         Self::build_response::<P>(
             request,
             &TransferDSPMessageType::TransferStartMessage,
             &ProtocolId::Dsp2025_1,
+            &state.edge_validators,
+            &state.domain_validators,
         )
         .await
     }
 
     async fn handle_transfer_completion<P: DSPHandlerPipeline>(
-        State(_state): State<DspRouter>,
+        State(state): State<DspRouter>,
         request: Request,
     ) -> AppResult<StatusCode> {
         Self::build_response::<P>(
             request,
             &TransferDSPMessageType::TransferCompletionMessage,
             &ProtocolId::Dsp2025_1,
+            &state.edge_validators,
+            &state.domain_validators,
         )
         .await
     }
 
     async fn handle_transfer_termination<P: DSPHandlerPipeline>(
-        State(_state): State<DspRouter>,
+        State(state): State<DspRouter>,
         request: Request,
     ) -> AppResult<StatusCode> {
         Self::build_response::<P>(
             request,
             &TransferDSPMessageType::TransferTerminationMessage,
             &ProtocolId::Dsp2025_1,
+            &state.edge_validators,
+            &state.domain_validators,
         )
         .await
     }
 
     async fn handle_transfer_suspension<P: DSPHandlerPipeline>(
-        State(_state): State<DspRouter>,
+        State(state): State<DspRouter>,
         request: Request,
     ) -> AppResult<StatusCode> {
         Self::build_response::<P>(
             request,
             &TransferDSPMessageType::TransferSuspensionMessage,
             &ProtocolId::Dsp2025_1,
+            &state.edge_validators,
+            &state.domain_validators,
         )
         .await
     }

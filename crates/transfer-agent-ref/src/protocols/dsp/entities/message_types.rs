@@ -22,7 +22,7 @@ use std::fmt::Display;
 use std::str::FromStr;
 use ymir::errors::{BadFormat, Errors, Outcome};
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 pub enum TransferDSPMessageType {
     TransferRequestMessage,
     TransferStartMessage,

@@ -21,9 +21,9 @@ pub const EVENT_DOMAIN: &str = "transfers";
 pub const EVENT_PREFIX: &str = "transfers:";
 
 mod data;
-mod entities;
+pub mod entities;
 mod grpc;
 mod http;
-mod protocols;
+pub mod protocols;
 mod services;
 pub mod setup;

@@ -19,6 +19,7 @@
 //! context, so `Raw -> Parsed -> Rdf -> Typed -> Domain` is enforced by types.
 
 use axum::extract::Request;
+use common::validation::ValidatorRegistry;
 use ymir::errors::{BadFormat, Errors, Outcome};
 
 use crate::entities::protocol::{ProtocolId, TransferDirection, TransferRole};
@@ -70,8 +71,8 @@ pub trait DSPHandlerPipeline: Send + Sync + 'static {
     /// Resolve the process, agreement, connector and role. The only required
     /// stage, because it is the one that varies; `path_id` is `None` on `/request`.
     async fn to_domain(
-        typed: TransferDSPContextTyped,
-        path_id: Option<String>,
+        _typed: &TransferDSPContextTyped,
+        _path_id: Option<String>,
         // TODO(loader): returns `Outcome<TransferDSPContextDomain>` once wired.
     ) -> Outcome<()> {
         Ok(())
@@ -81,6 +82,8 @@ pub trait DSPHandlerPipeline: Send + Sync + 'static {
         request: Request,
         message_route: &TransferDSPMessageType,
         protocol_id: &ProtocolId,
+        edge_validators: &ValidatorRegistry<TransferDSPMessageType, TransferDSPContextTyped>,
+        domain_validators: &ValidatorRegistry<TransferDSPMessageType, TransferDSPContextDomain>,
     ) -> Outcome<TransferDSPContextDomain> {
         let raw = Self::extract_wire(request).await?;
         let parsed = Self::parse(raw, message_route, protocol_id)?;
@@ -89,8 +92,17 @@ pub trait DSPHandlerPipeline: Send + Sync + 'static {
             Err(err)
         })?;
         let typed = Self::extract_typed(rdf)?;
-        //Self::to_domain(typed, None).await
-        Ok(TransferDSPContextDomain {
+
+        // 1. Edge validation (pure syntax & format check without I/O)
+        edge_validators
+            .validate(message_route, &typed)
+            .map_err(|vs| Errors::validation(vs.to_string(), None))?;
+
+        // 2. Fact-gathering and domain resolution
+        let path_id = typed.rdf.parsed.raw.path_id.clone();
+        Self::to_domain(&typed, path_id).await?;
+
+        let domain_ctx = TransferDSPContextDomain {
             typed,
             process: TransferContextProcessSlot::New {
                 consumer_pid: "".to_string(),
@@ -102,7 +114,14 @@ pub trait DSPHandlerPipeline: Send + Sync + 'static {
             is_restart: false,
             is_idempotent_replay: false,
             resolved_data_address: None,
-        })
+        };
+
+        // 3. Domain validation (state machine legality, role and invariants)
+        domain_validators
+            .validate(message_route, &domain_ctx)
+            .map_err(|vs| Errors::validation(vs.to_string(), None))?;
+
+        Ok(domain_ctx)
     }
 }
 
@@ -110,7 +129,7 @@ pub trait DSPHandlerPipeline: Send + Sync + 'static {
 /// from the default bodies above.
 #[async_trait::async_trait]
 impl DSPHandlerPipeline for DspRouter {
-    async fn to_domain(_typed: TransferDSPContextTyped, _path_id: Option<String>) -> Outcome<()> {
+    async fn to_domain(_typed: &TransferDSPContextTyped, _path_id: Option<String>) -> Outcome<()> {
         // TODO(loader): resolve process, agreement, connector and role. Needs the
         // repositories, so this signature grows a deps parameter when it lands.
         Ok(())

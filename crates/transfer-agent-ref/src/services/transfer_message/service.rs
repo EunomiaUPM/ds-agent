@@ -114,6 +114,7 @@ impl TransferMessageServiceTrait for TransferMessageService {
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<TransferMessageView>> {
+        scope.require_read()?;
         // Ensure access or 403
         let (filters, page) = Self::scoped_query(scope, filters, page)?;
         // Hit db concurrently
@@ -152,6 +153,7 @@ impl TransferMessageServiceTrait for TransferMessageService {
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<TransferMessageView>> {
+        scope.require_read()?;
         // Ensure access or 403
         let (filters, page) = Self::scoped_query(scope, filters, page)?;
         // Hit db concurrently
@@ -182,6 +184,7 @@ impl TransferMessageServiceTrait for TransferMessageService {
     /// Create a new transfer message entity
     #[tracing::instrument(level = "info", skip(self, scope), fields(id = %id), err)]
     async fn get_one(&self, scope: &AccessScope, id: &Urn) -> Outcome<TransferMessageView> {
+        scope.require_read()?;
         let message = self
             .message_repo
             .get_transfer_message_by_id(id)
@@ -199,6 +202,7 @@ impl TransferMessageServiceTrait for TransferMessageService {
         scope: &AccessScope,
         cmd: &NewTransferMessageCommand,
     ) -> Outcome<TransferMessageView> {
+        scope.require_write()?;
         let mut cmd = cmd.clone();
         // Non-admins are forced into their own tenant; admins default to their acting
         // tenant only when the body leaves it unset.
@@ -222,6 +226,7 @@ impl TransferMessageServiceTrait for TransferMessageService {
     /// Delete a transfer message
     #[tracing::instrument(level = "info", skip(self, scope), fields(id = %id), err)]
     async fn delete(&self, scope: &AccessScope, id: &Urn) -> Outcome<()> {
+        scope.require_write()?;
         // Validate access
         self.ensure_access(scope, id).await?;
         // Hit db

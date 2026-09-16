@@ -42,6 +42,15 @@ impl Path {
         Self(Cow::Owned(format!("{}.{}", self.0, name)))
     }
 
+    /// `prefix.parent`
+    pub fn prefix(&self, prefix: &str) -> Self {
+        if self.0.is_empty() {
+            Self(Cow::Owned(prefix.to_string()))
+        } else {
+            Self(Cow::Owned(format!("{prefix}.{}", self.0)))
+        }
+    }
+
     /// `parent[i]`
     pub fn index(&self, i: usize) -> Self {
         Self(Cow::Owned(format!("{}[{}]", self.0, i)))
@@ -132,6 +141,12 @@ impl Violation {
     pub fn to_reason(&self) -> String {
         format!("{}: {}", self.path, self.message)
     }
+
+    /// Prefix this violation's path with `prefix`.
+    pub fn with_prefix(mut self, prefix: &str) -> Self {
+        self.path = self.path.prefix(prefix);
+        self
+    }
 }
 
 /// One or more failures, in the order the rules ran.
@@ -169,6 +184,24 @@ impl Violations {
 
     pub fn iter(&self) -> std::slice::Iter<'_, Violation> {
         self.0.iter()
+    }
+
+    /// Prefix all violations with a path prefix.
+    pub fn with_prefix(mut self, prefix: &str) -> Self {
+        for v in &mut self.0 {
+            v.path = v.path.prefix(prefix);
+        }
+        self
+    }
+
+    /// Extract human-readable error messages without path prefixes.
+    pub fn messages(&self) -> Vec<String> {
+        self.0.iter().map(|v| v.message.to_string()).collect()
+    }
+
+    /// Formatted reason strings: `<path>: <message>`.
+    pub fn to_reasons(&self) -> Vec<String> {
+        self.0.iter().map(Violation::to_reason).collect()
     }
 
     /// The code that represents this failure as a whole: the first one, which is

@@ -27,14 +27,14 @@ use urn::Urn;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
-pub(crate) enum TransferDirection {
+pub enum TransferDirection {
     Push,
     Pull,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
-pub(crate) enum TransferRole {
+pub enum TransferRole {
     #[serde(alias = "Provider")]
     Provider,
     #[serde(alias = "Consumer")]

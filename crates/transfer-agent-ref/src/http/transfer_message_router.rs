@@ -19,11 +19,11 @@ use std::sync::Arc;
 
 use crate::entities::commands::NewTransferMessageCommand;
 use crate::entities::filters::TransferMessageFilter;
-use crate::http::extractors::{AuthClaims, ExtractedHeaders};
+use crate::http::extractors::ExtractedHeaders;
 use crate::services::transfer_message::TransferMessageServiceTrait;
 use crate::services::transfer_message::views::TransferMessageView;
 use axum::extract::rejection::JsonRejection;
-use axum::extract::{FromRef, OriginalUri, Path, Query, State};
+use axum::extract::{FromRef, Path, Query, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::routing::get;
 use axum::{Json, Router};
@@ -64,11 +64,10 @@ impl TransferMessageRouter {
 
     async fn handle_get_all(
         State(state): State<Self>,
-        auth: AuthClaims,
+        scope: AccessScope,
         headers: ExtractedHeaders,
         Query(q): Query<TransferMessageQuery>,
     ) -> AppResult<(HeaderMap, Json<Paginated<TransferMessageView>>)> {
-        let scope = AccessScope::for_read(&auth, &headers.tenant_id)?;
         let (filter, page, sort) = q.into_domain();
         let result = state.service.get_all(&scope, &filter, &page, &sort).await?;
         let response_headers = headers.response_headers_paged(result.total);
@@ -77,12 +76,11 @@ impl TransferMessageRouter {
 
     async fn handle_get_by_process(
         State(state): State<Self>,
-        auth: AuthClaims,
+        scope: AccessScope,
         headers: ExtractedHeaders,
         Path(process_id): Path<String>,
         Query(q): Query<TransferMessageQuery>,
     ) -> AppResult<(HeaderMap, Json<Paginated<TransferMessageView>>)> {
-        let scope = AccessScope::for_read(&auth, &headers.tenant_id)?;
         let process_urn = extract_path_urn(&process_id)?;
         let (filter, page, sort) = q.into_domain();
         let result = state
@@ -95,11 +93,10 @@ impl TransferMessageRouter {
 
     async fn handle_get_one(
         State(state): State<Self>,
-        auth: AuthClaims,
+        scope: AccessScope,
         headers: ExtractedHeaders,
         Path(id): Path<String>,
     ) -> AppResult<(HeaderMap, Json<TransferMessageView>)> {
-        let scope = AccessScope::for_read(&auth, &headers.tenant_id)?;
         let urn = extract_path_urn(&id)?;
         let view = state.service.get_one(&scope, &urn).await?;
         Ok((headers.response_headers(), Json(view)))
@@ -107,12 +104,10 @@ impl TransferMessageRouter {
 
     async fn handle_create(
         State(state): State<Self>,
-        auth: AuthClaims,
+        scope: AccessScope,
         headers: ExtractedHeaders,
-        OriginalUri(uri): OriginalUri,
         payload: Result<Json<NewTransferMessageCommand>, JsonRejection>,
     ) -> AppResult<(StatusCode, HeaderMap, Json<TransferMessageView>)> {
-        let scope = AccessScope::for_write(&auth, &headers.tenant_id)?;
         let payload = extract_payload(payload)?;
         let view = state.service.create(&scope, &payload).await?;
         let response_headers = headers.response_headers();
@@ -121,11 +116,10 @@ impl TransferMessageRouter {
 
     async fn handle_delete(
         State(state): State<Self>,
-        auth: AuthClaims,
+        scope: AccessScope,
         headers: ExtractedHeaders,
         Path(id): Path<String>,
     ) -> AppResult<(StatusCode, HeaderMap)> {
-        let scope = AccessScope::for_write(&auth, &headers.tenant_id)?;
         let urn = extract_path_urn(&id)?;
         state.service.delete(&scope, &urn).await?;
         Ok((StatusCode::NO_CONTENT, headers.response_headers()))

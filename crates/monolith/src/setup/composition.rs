@@ -28,14 +28,13 @@ use events::data::migrations::get_events_migrations;
 use keystore::KeystoreModule;
 use negotiation_agent::get_negotiation_agent_migrations;
 use oauth::get_oauth_migrations;
-use oauth::setup::OAuthModule;
 use sea_orm_migration::MigrationTrait;
 use std::sync::Arc;
 use transfer_agent_ref::setup::TransferAgentModule;
 use ymir::errors::Outcome;
 use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
-
+use oauth::setup::module::OAuthModule;
 use crate::setup::context::CoreContext;
 
 /// A thin [`ServiceModuleTrait`] wrapper around one agent's already-built HTTP

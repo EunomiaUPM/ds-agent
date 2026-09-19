@@ -53,6 +53,7 @@ impl QueryFilter for UserFilter {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct ClientFilter {
+    pub tenant_id: Option<String>,
     pub role: Option<RbacRole>,
     pub search: Option<String>,
     pub created_after: Option<DateTime<Utc>>,
@@ -61,7 +62,8 @@ pub struct ClientFilter {
 
 impl QueryFilter for ClientFilter {
     fn is_empty(&self) -> bool {
-        self.role.is_none()
+        self.tenant_id.is_none()
+            && self.role.is_none()
             && self.search.is_none()
             && self.created_after.is_none()
             && self.created_before.is_none()
@@ -76,7 +78,8 @@ impl QueryFilter for ClientFilter {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct PatFilter {
-    pub user_id: Option<String>,
+    #[serde(alias = "userId")]
+    pub tenant_id: Option<String>,
     pub status: Option<String>,
     pub role: Option<RbacRole>,
     pub search: Option<String>,
@@ -86,7 +89,7 @@ pub struct PatFilter {
 
 impl QueryFilter for PatFilter {
     fn is_empty(&self) -> bool {
-        self.user_id.is_none()
+        self.tenant_id.is_none()
             && self.status.is_none()
             && self.role.is_none()
             && self.search.is_none()

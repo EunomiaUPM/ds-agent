@@ -19,6 +19,7 @@ use std::sync::Arc;
 
 use chrono::Utc;
 use common::auth::AccessScope;
+use common::errors::NotFoundExt;
 use common::paginated_spec::Cursor;
 use common::query::QueryFilter;
 use ymir::errors::{BadFormat, Errors, Outcome};
@@ -31,7 +32,7 @@ use crate::services::password;
 use crate::services::user_service::UserServiceTrait;
 use crate::services::user_service::views::{UserInfo, UserView};
 
-pub(crate) struct UserService {
+pub struct UserService {
     user_repo: Arc<dyn UserRepository>,
     event_bus: Option<events::EventBus>,
 }
@@ -59,12 +60,14 @@ impl UserServiceTrait for UserService {
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<UserView>> {
-        scope.require_admin()?;
+        scope.require_read()?;
         filter.validate()?;
+        let mut filter = filter.clone();
+        filter.tenant_id = scope.resolve_query_tenant(filter.tenant_id.as_deref())?;
         let page = page.clamped();
         let (users, total) = tokio::try_join!(
-            self.user_repo.get_all(filter, &page, sort),
-            self.user_repo.count(filter),
+            self.user_repo.get_all(&filter, &page, sort),
+            self.user_repo.count(&filter),
         )?;
 
         let views: Vec<UserView> = users.into_iter().map(UserView::assemble).collect();
@@ -74,23 +77,25 @@ impl UserServiceTrait for UserService {
     }
 
     async fn get_user(&self, scope: &AccessScope, tenant_id: &str) -> Outcome<UserView> {
-        scope.require_read()?;
-        scope.ensure_tenant_access(tenant_id)?;
-        self.user_repo
+        scope.require_read_tenant(tenant_id)?;
+        let user = self
+            .user_repo
             .get_by_tenant_id(tenant_id)
             .await?
-            .map(UserView::assemble)
-            .ok_or_else(|| Errors::format(BadFormat::Received, "user not found", None))
+            .or_not_found(tenant_id, "user")?;
+        Ok(UserView::assemble(user))
     }
 
     /// A convenience method for token service management
     /// Only difference to `get_user` is the [`UserInfo`] struct
-    async fn user_info(&self, tenant_id: &str) -> Outcome<UserInfo> {
-        self.user_repo
+    async fn user_info(&self, scope: &AccessScope, tenant_id: &str) -> Outcome<UserInfo> {
+        scope.require_read_tenant(tenant_id)?;
+        let user = self
+            .user_repo
             .get_by_tenant_id(tenant_id)
             .await?
-            .map(UserInfo::assemble)
-            .ok_or_else(|| Errors::format(BadFormat::Received, "user not found", None))
+            .or_not_found(tenant_id, "user")?;
+        Ok(UserInfo::assemble(user))
     }
 
     async fn create_user(&self, scope: &AccessScope, cmd: &CreateUserCommand) -> Outcome<UserView> {
@@ -135,8 +140,7 @@ impl UserServiceTrait for UserService {
         tenant_id: &str,
         cmd: &PatchUserCommand,
     ) -> Outcome<UserView> {
-        scope.require_write()?;
-        scope.ensure_tenant_access(tenant_id)?;
+        scope.require_write_tenant(tenant_id)?;
         if !scope.is_admin() && cmd.role.is_some() {
             return Err(Errors::format(
                 BadFormat::Received,

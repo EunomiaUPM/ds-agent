@@ -102,7 +102,7 @@ fn pat_filter_and_query() {
     });
     let query: PatQuery = serde_json::from_value(json).unwrap();
     let (filter, page, sort) = query.into_domain();
-    assert_eq!(filter.user_id.as_deref(), Some("tenant-42"));
+    assert_eq!(filter.tenant_id.as_deref(), Some("tenant-42"));
     assert_eq!(filter.status.as_deref(), Some("active"));
     assert_eq!(filter.role, Some(RbacRole::Owner));
     assert_eq!(filter.search.as_deref(), Some("my-pat"));

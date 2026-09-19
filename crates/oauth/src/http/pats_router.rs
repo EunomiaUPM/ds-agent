@@ -23,7 +23,7 @@ use axum::http::{HeaderMap, StatusCode};
 use axum::routing::get;
 use axum::{Json, Router, middleware};
 use common::auth::AccessScope;
-use common::auth::http::{AuthHttpMiddleware, ExtractedHeaders};
+use common::auth::http::ExtractedHeaders;
 use uuid::Uuid;
 use ymir::errors::AppResult;
 use ymir::utils::extract_payload;
@@ -32,33 +32,22 @@ use crate::entities::commands::CreatePatCommand;
 use crate::entities::query::{Paginated, PatQuery};
 use crate::services::pat_service::PatServiceTrait;
 use crate::services::pat_service::views::{CreatePatResponse, PatView};
-use crate::services::token_service::TokenServiceTrait;
 
 #[derive(Clone)]
 pub(crate) struct PatsRouter {
-    token_svc: Arc<dyn TokenServiceTrait>,
     pat_svc: Arc<dyn PatServiceTrait>,
 }
 
 impl PatsRouter {
-    pub(crate) fn new(
-        token_svc: Arc<dyn TokenServiceTrait>,
-        pat_svc: Arc<dyn PatServiceTrait>,
-    ) -> Self {
-        Self { token_svc, pat_svc }
+    pub(crate) fn new(pat_svc: Arc<dyn PatServiceTrait>) -> Self {
+        Self { pat_svc }
     }
 
     pub(crate) fn router(self) -> Router {
-        let validator: Arc<dyn common::auth::OauthTokenValidator> = self.token_svc.clone();
-        let protected = Router::new()
+        Router::new()
             .route("/", get(Self::handle_list).post(Self::handle_create))
             .route("/{id}", axum::routing::delete(Self::handle_delete))
-            .route_layer(middleware::from_fn_with_state(
-                validator,
-                AuthHttpMiddleware::run,
-            ));
-
-        Router::new().merge(protected).with_state(self)
+            .with_state(self)
     }
 
     async fn handle_list(

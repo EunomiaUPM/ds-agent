@@ -28,6 +28,7 @@ use crate::entities::role::RbacRole;
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub client_id: String,
+    pub tenant_id: String,
     pub client_secret_hash: String,
     pub client_name: String,
     pub role: String,
@@ -46,6 +47,7 @@ impl Model {
         let scopes: Vec<String> = serde_json::from_value(self.scopes).unwrap_or_default();
         Ok(Client {
             client_id: self.client_id,
+            tenant_id: self.tenant_id,
             client_secret_hash: self.client_secret_hash,
             client_name: self.client_name,
             role,
@@ -59,6 +61,7 @@ impl ActiveModel {
     pub(crate) fn from_domain(c: &Client) -> Self {
         Self {
             client_id: Set(c.client_id.clone()),
+            tenant_id: Set(c.tenant_id.clone()),
             client_secret_hash: Set(c.client_secret_hash.clone()),
             client_name: Set(c.client_name.clone()),
             role: Set(c.role.to_string()),

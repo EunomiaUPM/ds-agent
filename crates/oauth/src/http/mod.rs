@@ -19,7 +19,6 @@ pub(crate) mod clients_router;
 pub mod errors;
 pub(crate) mod extractors;
 pub(crate) mod forms;
-pub(crate) mod helpers;
 pub(crate) mod pats_router;
 pub(crate) mod token_router;
 pub(crate) mod users_router;

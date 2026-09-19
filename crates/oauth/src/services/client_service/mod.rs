@@ -22,11 +22,12 @@ use crate::entities::commands::CreateClientCommand;
 use crate::entities::query::{ClientFilter, Page, Paginated, Sort};
 use crate::services::client_service::views::ClientView;
 
-pub(crate) mod service;
+pub mod service;
 pub mod views;
 
+#[cfg_attr(test, mockall::automock)]
 #[async_trait::async_trait]
-pub(crate) trait ClientServiceTrait: Send + Sync + 'static {
+pub trait ClientServiceTrait: Send + Sync + 'static {
     async fn list_clients(
         &self,
         scope: &AccessScope,

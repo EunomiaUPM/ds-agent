@@ -22,7 +22,7 @@ use crate::entities::user::User;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct UserView {
+pub struct UserView {
     pub tenant_id: String,
     pub email: String,
     pub role: RbacRole,
@@ -31,7 +31,7 @@ pub(crate) struct UserView {
 }
 
 impl UserView {
-    pub(crate) fn assemble(u: User) -> Self {
+    pub fn assemble(u: User) -> Self {
         Self {
             tenant_id: u.tenant_id,
             email: u.email,
@@ -43,7 +43,7 @@ impl UserView {
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub(crate) struct UserInfo {
+pub struct UserInfo {
     pub sub: String,
     pub email: String,
     pub role: RbacRole,
@@ -52,7 +52,7 @@ pub(crate) struct UserInfo {
 }
 
 impl UserInfo {
-    pub(crate) fn assemble(u: User) -> Self {
+    pub fn assemble(u: User) -> Self {
         let extra = match u.extra_fields {
             serde_json::Value::Object(m) => m,
             _ => serde_json::Map::new(),

@@ -68,7 +68,7 @@ impl TestEnv {
             "http://localhost:8080",
             "test-client",
         );
-        let token_svc: Arc<dyn TokenServiceTrait> = Arc::new(TokenService::new(
+        let token_service = Arc::new(TokenService::new(
             factory.user_repository(),
             factory.token_repository(),
             factory.client_repository(),
@@ -76,6 +76,8 @@ impl TestEnv {
             factory.pat_repository(),
             config.clone(),
         ));
+        let token_svc: Arc<dyn TokenServiceTrait> = token_service.clone();
+        let validator: Arc<dyn common::auth::OauthTokenValidator> = token_service;
         let user_svc: Arc<dyn UserServiceTrait> =
             Arc::new(UserService::new(factory.user_repository()));
         let client_svc: Arc<dyn ClientServiceTrait> =
@@ -84,15 +86,22 @@ impl TestEnv {
 
         let token_router =
             TokenRouter::new(token_svc.clone(), user_svc.clone(), config.issuer.clone()).router();
-        let users_router = UsersRouter::new(token_svc.clone(), user_svc.clone()).router();
-        let clients_router = ClientsRouter::new(token_svc.clone(), client_svc.clone()).router();
-        let pats_router = PatsRouter::new(token_svc.clone(), pat_svc.clone()).router();
+        let users_router = UsersRouter::new(user_svc.clone()).router();
+        let clients_router = ClientsRouter::new(client_svc.clone()).router();
+        let pats_router = PatsRouter::new(pat_svc.clone()).router();
+
+        let protected = Router::new()
+            .nest("/users", users_router)
+            .nest("/clients", clients_router)
+            .nest("/pats", pats_router)
+            .route_layer(axum::middleware::from_fn_with_state(
+                validator,
+                common::auth::http::AuthHttpMiddleware::run,
+            ));
 
         let router = Router::new()
             .merge(token_router)
-            .nest("/users", users_router)
-            .nest("/clients", clients_router)
-            .nest("/pats", pats_router);
+            .merge(protected);
 
         Self {
             router,
@@ -134,6 +143,7 @@ impl TestEnv {
                 &scope,
                 &CreateClientCommand {
                     client_id: client_id.to_string(),
+                    tenant_id: Some(client_id.to_string()),
                     client_secret: client_secret.to_string(),
                     client_name: format!("Client {client_id}"),
                     role,

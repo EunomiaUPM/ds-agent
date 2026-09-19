@@ -55,8 +55,16 @@ impl OAuthSetup {
         event_bus: Option<events::EventBus>,
     ) -> Router {
         let factory = SeaOrmDataFactory::new(db.clone());
-        let token_svc: Arc<dyn TokenServiceTrait> =
-            self.build_token_service(config.clone(), db.clone());
+        let token_service = Arc::new(TokenService::new(
+            factory.user_repository(),
+            factory.token_repository(),
+            factory.client_repository(),
+            factory.auth_code_repository(),
+            factory.pat_repository(),
+            config.clone(),
+        ));
+        let token_svc: Arc<dyn TokenServiceTrait> = token_service.clone();
+        let validator: Arc<dyn common::auth::OauthTokenValidator> = token_service;
         let user_svc: Arc<dyn UserServiceTrait> =
             Arc::new(UserService::new(factory.user_repository()).with_event_bus(event_bus.clone()));
         let client_svc: Arc<dyn ClientServiceTrait> = Arc::new(
@@ -66,14 +74,21 @@ impl OAuthSetup {
             Arc::new(PatService::new(factory.pat_repository()).with_event_bus(event_bus));
         let issuer = config.issuer.clone();
         let token_router = TokenRouter::new(token_svc.clone(), user_svc.clone(), issuer).router();
-        let users_router = UsersRouter::new(token_svc.clone(), user_svc).router();
-        let clients_router = ClientsRouter::new(token_svc.clone(), client_svc).router();
-        let pats_router = PatsRouter::new(token_svc, pat_svc).router();
+        let users_router = UsersRouter::new(user_svc).router();
+        let clients_router = ClientsRouter::new(client_svc).router();
+        let pats_router = PatsRouter::new(pat_svc).router();
 
-        Router::new()
-            .merge(token_router)
+        let protected = Router::new()
             .nest("/users", users_router)
             .nest("/clients", clients_router)
             .nest("/pats", pats_router)
+            .route_layer(axum::middleware::from_fn_with_state(
+                validator,
+                common::auth::http::AuthHttpMiddleware::run,
+            ));
+
+        Router::new()
+            .merge(token_router)
+            .merge(protected)
     }
 }

@@ -46,6 +46,9 @@ impl SeaOrmClientRepository {
         mut q: sea_orm::Select<orm::Entity>,
         filter: &ClientFilter,
     ) -> sea_orm::Select<orm::Entity> {
+        if let Some(ref tenant_id) = filter.tenant_id {
+            q = q.filter(orm::Column::TenantId.eq(tenant_id));
+        }
         if let Some(role) = filter.role {
             q = q.filter(orm::Column::Role.eq(role.to_string()));
         }
@@ -101,6 +104,31 @@ impl ClientRepository for SeaOrmClientRepository {
             .map_err(|e| ClientRepositoryError::Db(Box::new(e)).into_errors())
     }
 
+    async fn get_by_id(&self, tenant_id: &str, client_id: &str) -> Outcome<Option<Client>> {
+        orm::Entity::find_by_id(client_id)
+            .filter(orm::Column::TenantId.eq(tenant_id))
+            .one(self.db.as_ref())
+            .await
+            .map_err(|e| ClientRepositoryError::Db(Box::new(e)).into_errors())?
+            .map(orm::Model::into_domain)
+            .transpose()
+    }
+
+    async fn get_batch(&self, tenant_id: &str, client_ids: &[String]) -> Outcome<Vec<Client>> {
+        if client_ids.is_empty() {
+            return Ok(vec![]);
+        }
+        let q = orm::Entity::find()
+            .filter(orm::Column::ClientId.is_in(client_ids.to_vec()))
+            .filter(orm::Column::TenantId.eq(tenant_id));
+        q.all(self.db.as_ref())
+            .await
+            .map_err(|e| ClientRepositoryError::Db(Box::new(e)).into_errors())?
+            .into_iter()
+            .map(orm::Model::into_domain)
+            .collect()
+    }
+
     async fn get_by_client_id(&self, client_id: &str) -> Outcome<Option<Client>> {
         orm::Entity::find_by_id(client_id)
             .one(self.db.as_ref())
@@ -118,11 +146,16 @@ impl ClientRepository for SeaOrmClientRepository {
             .and_then(orm::Model::into_domain)
     }
 
-    async fn delete(&self, client_id: &str) -> Outcome<()> {
-        orm::Entity::delete_by_id(client_id)
+    async fn delete(&self, tenant_id: &str, client_id: &str) -> Outcome<()> {
+        let res = orm::Entity::delete_many()
+            .filter(orm::Column::ClientId.eq(client_id))
+            .filter(orm::Column::TenantId.eq(tenant_id))
             .exec(self.db.as_ref())
             .await
             .map_err(|e| ClientRepositoryError::Db(Box::new(e)).into_errors())?;
+        if res.rows_affected == 0 {
+            return Err(ClientRepositoryError::NotFound.into_errors());
+        }
         Ok(())
     }
 }

@@ -15,7 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod factory;
-pub(crate) mod in_memory;
-pub(crate) mod repositories;
-pub(crate) mod sea_orm;
+pub mod factory;
+pub mod in_memory;
+pub mod repositories;
+pub use repositories as repo;
+pub mod sea_orm;

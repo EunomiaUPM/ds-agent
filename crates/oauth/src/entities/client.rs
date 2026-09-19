@@ -24,6 +24,7 @@ use crate::entities::role::RbacRole;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Client {
     pub client_id: String,
+    pub tenant_id: String,
     pub client_secret_hash: String,
     pub client_name: String,
     pub role: RbacRole,

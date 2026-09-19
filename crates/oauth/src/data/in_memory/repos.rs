@@ -25,7 +25,7 @@ use ymir::errors::{Outcome, RepoIntoErrors};
 
 use crate::data::repositories::auth_code::AuthCodeRepository;
 use crate::data::repositories::client::{ClientRepository, ClientRepositoryError};
-use crate::data::repositories::pat::PatRepository;
+use crate::data::repositories::pat::{PatRepository, PatRepositoryError};
 use crate::data::repositories::token::TokenRepository;
 use crate::data::repositories::user::{UserRepository, UserRepositoryError};
 use crate::entities::auth_code::AuthCode;
@@ -199,7 +199,10 @@ impl UserRepository for InMemoryUserRepository {
     }
 
     async fn delete(&self, tenant_id: &str) -> Outcome<()> {
-        self.store.lock().unwrap().remove(tenant_id);
+        let mut store = self.store.lock().unwrap();
+        if store.remove(tenant_id).is_none() {
+            return Err(UserRepositoryError::NotFound.into_errors());
+        }
         Ok(())
     }
 }
@@ -282,6 +285,11 @@ impl ClientRepository for InMemoryClientRepository {
         let mut clients: Vec<Client> = store
             .values()
             .filter(|c| {
+                if let Some(ref tid) = filter.tenant_id {
+                    if c.tenant_id != *tid {
+                        return false;
+                    }
+                }
                 if let Some(role) = filter.role {
                     if c.role != role {
                         return false;
@@ -338,6 +346,11 @@ impl ClientRepository for InMemoryClientRepository {
         let count = store
             .values()
             .filter(|c| {
+                if let Some(ref tid) = filter.tenant_id {
+                    if c.tenant_id != *tid {
+                        return false;
+                    }
+                }
                 if let Some(role) = filter.role {
                     if c.role != role {
                         return false;
@@ -367,6 +380,25 @@ impl ClientRepository for InMemoryClientRepository {
         Ok(count as u64)
     }
 
+    async fn get_by_id(&self, tenant_id: &str, client_id: &str) -> Outcome<Option<Client>> {
+        let store = self.store.lock().unwrap();
+        let item = store.get(client_id).cloned();
+        Ok(item.filter(|c| c.tenant_id == tenant_id))
+    }
+
+    async fn get_batch(&self, tenant_id: &str, client_ids: &[String]) -> Outcome<Vec<Client>> {
+        let store = self.store.lock().unwrap();
+        let mut result = Vec::new();
+        for id in client_ids {
+            if let Some(client) = store.get(id) {
+                if client.tenant_id == tenant_id {
+                    result.push(client.clone());
+                }
+            }
+        }
+        Ok(result)
+    }
+
     async fn get_by_client_id(&self, client_id: &str) -> Outcome<Option<Client>> {
         Ok(self.store.lock().unwrap().get(client_id).cloned())
     }
@@ -380,8 +412,16 @@ impl ClientRepository for InMemoryClientRepository {
         Ok(client.clone())
     }
 
-    async fn delete(&self, client_id: &str) -> Outcome<()> {
-        self.store.lock().unwrap().remove(client_id);
+    async fn delete(&self, tenant_id: &str, client_id: &str) -> Outcome<()> {
+        let mut store = self.store.lock().unwrap();
+        if let Some(c) = store.get(client_id) {
+            if c.tenant_id != tenant_id {
+                return Err(ClientRepositoryError::NotFound.into_errors());
+            }
+        } else {
+            return Err(ClientRepositoryError::NotFound.into_errors());
+        }
+        store.remove(client_id);
         Ok(())
     }
 }
@@ -452,8 +492,8 @@ impl PatRepository for InMemoryPatRepository {
         let mut pats: Vec<PersonalAccessToken> = store
             .values()
             .filter(|p| {
-                if let Some(ref uid) = filter.user_id {
-                    if p.tenant_id != *uid {
+                if let Some(ref tid) = filter.tenant_id {
+                    if p.tenant_id != *tid {
                         return false;
                     }
                 }
@@ -521,8 +561,8 @@ impl PatRepository for InMemoryPatRepository {
         let count = store
             .values()
             .filter(|p| {
-                if let Some(ref uid) = filter.user_id {
-                    if p.tenant_id != *uid {
+                if let Some(ref tid) = filter.tenant_id {
+                    if p.tenant_id != *tid {
                         return false;
                     }
                 }
@@ -569,8 +609,23 @@ impl PatRepository for InMemoryPatRepository {
         Ok(pat.clone())
     }
 
-    async fn get_by_id(&self, id: Uuid) -> Outcome<Option<PersonalAccessToken>> {
-        Ok(self.store.lock().unwrap().get(&id).cloned())
+    async fn get_by_id(&self, tenant_id: &str, id: Uuid) -> Outcome<Option<PersonalAccessToken>> {
+        let store = self.store.lock().unwrap();
+        let item = store.get(&id).cloned();
+        Ok(item.filter(|p| p.tenant_id == tenant_id))
+    }
+
+    async fn get_batch(&self, tenant_id: &str, ids: &[Uuid]) -> Outcome<Vec<PersonalAccessToken>> {
+        let store = self.store.lock().unwrap();
+        let mut result = Vec::new();
+        for id in ids {
+            if let Some(pat) = store.get(id) {
+                if pat.tenant_id == tenant_id {
+                    result.push(pat.clone());
+                }
+            }
+        }
+        Ok(result)
     }
 
     async fn get_by_hash(&self, token_hash: &str) -> Outcome<Option<PersonalAccessToken>> {
@@ -592,11 +647,17 @@ impl PatRepository for InMemoryPatRepository {
             .collect())
     }
 
-    async fn revoke(&self, id: Uuid) -> Outcome<()> {
-        if let Some(p) = self.store.lock().unwrap().get_mut(&id) {
+    async fn revoke(&self, tenant_id: &str, id: Uuid) -> Outcome<()> {
+        let mut store = self.store.lock().unwrap();
+        if let Some(p) = store.get_mut(&id) {
+            if p.tenant_id != tenant_id {
+                return Err(PatRepositoryError::NotFound.into_errors());
+            }
             p.revoked = true;
+            Ok(())
+        } else {
+            Err(PatRepositoryError::NotFound.into_errors())
         }
-        Ok(())
     }
 
     async fn update_last_used(&self, id: Uuid) -> Outcome<()> {

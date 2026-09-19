@@ -17,11 +17,11 @@
 
 pub mod auth_code;
 pub mod client;
-pub(crate) mod commands;
+pub mod commands;
 pub mod filters;
 pub mod pat;
 pub mod query;
-pub(crate) mod refresh_token;
+pub mod refresh_token;
 pub mod role;
 pub mod user;
-pub(crate) mod errors;
+pub mod errors;

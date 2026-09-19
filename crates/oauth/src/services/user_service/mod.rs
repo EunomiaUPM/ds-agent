@@ -22,13 +22,14 @@ use crate::entities::commands::{CreateUserCommand, PatchUserCommand};
 use crate::entities::query::{Page, Paginated, Sort, UserFilter};
 use crate::services::user_service::views::{UserInfo, UserView};
 
-pub(crate) mod service;
-pub(crate) mod views;
+pub mod service;
+pub mod views;
 
 // Service trait ────────────────────────────────────────────────────────────
 
+#[cfg_attr(test, mockall::automock)]
 #[async_trait::async_trait]
-pub(crate) trait UserServiceTrait: Send + Sync + 'static {
+pub trait UserServiceTrait: Send + Sync + 'static {
     async fn list_users(
         &self,
         scope: &AccessScope,
@@ -37,7 +38,7 @@ pub(crate) trait UserServiceTrait: Send + Sync + 'static {
         sort: &Sort,
     ) -> Outcome<Paginated<UserView>>;
     async fn get_user(&self, scope: &AccessScope, tenant_id: &str) -> Outcome<UserView>;
-    async fn user_info(&self, tenant_id: &str) -> Outcome<UserInfo>;
+    async fn user_info(&self, scope: &AccessScope, tenant_id: &str) -> Outcome<UserInfo>;
     async fn create_user(&self, scope: &AccessScope, cmd: &CreateUserCommand) -> Outcome<UserView>;
     async fn patch_user(
         &self,

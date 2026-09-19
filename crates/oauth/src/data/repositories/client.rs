@@ -23,16 +23,18 @@ use crate::entities::query::{ClientFilter, Page, Sort};
 
 #[mockall::automock]
 #[async_trait::async_trait]
-pub(crate) trait ClientRepository: Send + Sync {
+pub trait ClientRepository: Send + Sync {
     async fn get_all(&self, filter: &ClientFilter, page: &Page, sort: &Sort) -> Outcome<Vec<Client>>;
     async fn count(&self, filter: &ClientFilter) -> Outcome<u64>;
+    async fn get_by_id(&self, tenant_id: &str, client_id: &str) -> Outcome<Option<Client>>;
+    async fn get_batch(&self, tenant_id: &str, client_ids: &[String]) -> Outcome<Vec<Client>>;
     async fn get_by_client_id(&self, client_id: &str) -> Outcome<Option<Client>>;
     async fn create(&self, client: &Client) -> Outcome<Client>;
-    async fn delete(&self, client_id: &str) -> Outcome<()>;
+    async fn delete(&self, tenant_id: &str, client_id: &str) -> Outcome<()>;
 }
 
 #[derive(Debug, Error)]
-pub(crate) enum ClientRepositoryError {
+pub enum ClientRepositoryError {
     #[error("client not found")]
     NotFound,
     #[error("client already exists")]

@@ -29,7 +29,8 @@ use crate::http::forms::{
     AuthorizeRequest, AuthorizeResponse, IntrospectRequest, OpenIdConfiguration, RefreshRequest,
     RevokeRequest, TokenRequest,
 };
-use crate::http::helpers::bearer;
+use common::auth::AccessScope;
+use common::auth::http::AuthHttpMiddleware;
 use crate::services::token_service::TokenServiceTrait;
 use crate::services::token_service::views::{IntrospectResponse, TokenResponse};
 use crate::services::user_service::UserServiceTrait;
@@ -110,7 +111,7 @@ impl TokenRouter {
         }
 
         if req.user_id.is_none() {
-            if let Ok(tok) = bearer(&headers) {
+            if let Ok(tok) = AuthHttpMiddleware::bearer(&headers) {
                 if let Ok(claims) = self.token_svc.validate_token(tok).await {
                     req.user_id = Some(claims.sub);
                 }
@@ -311,8 +312,10 @@ impl TokenRouter {
         State(s): State<Self>,
         headers: HeaderMap,
     ) -> AppResult<Json<UserInfo>> {
-        let claims = s.token_svc.validate_token(bearer(&headers)?).await?;
-        Ok(Json(s.user_svc.user_info(&claims.sub).await?))
+        let token = AuthHttpMiddleware::bearer(&headers)?;
+        let claims = s.token_svc.validate_token(token).await?;
+        let scope = AccessScope::new(&claims, &claims.sub);
+        Ok(Json(s.user_svc.user_info(&scope, &claims.sub).await?))
     }
 
     async fn handle_oidc_config(State(s): State<Self>) -> Json<OpenIdConfiguration> {

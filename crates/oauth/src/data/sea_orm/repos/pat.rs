@@ -49,8 +49,8 @@ impl SeaOrmPatRepository {
         mut q: sea_orm::Select<orm::Entity>,
         filter: &PatFilter,
     ) -> sea_orm::Select<orm::Entity> {
-        if let Some(ref user_id) = filter.user_id {
-            q = q.filter(orm::Column::TenantId.eq(user_id.as_str()));
+        if let Some(ref tenant_id) = filter.tenant_id {
+            q = q.filter(orm::Column::TenantId.eq(tenant_id.as_str()));
         }
         if let Some(ref status) = filter.status {
             if status == "active" {
@@ -131,13 +131,29 @@ impl PatRepository for SeaOrmPatRepository {
             .and_then(orm::Model::into_domain)
     }
 
-    async fn get_by_id(&self, id: Uuid) -> Outcome<Option<PersonalAccessToken>> {
+    async fn get_by_id(&self, tenant_id: &str, id: Uuid) -> Outcome<Option<PersonalAccessToken>> {
         orm::Entity::find_by_id(id)
+            .filter(orm::Column::TenantId.eq(tenant_id))
             .one(self.db.as_ref())
             .await
             .map_err(|e| PatRepositoryError::Db(Box::new(e)).into_errors())?
             .map(orm::Model::into_domain)
             .transpose()
+    }
+
+    async fn get_batch(&self, tenant_id: &str, ids: &[Uuid]) -> Outcome<Vec<PersonalAccessToken>> {
+        if ids.is_empty() {
+            return Ok(vec![]);
+        }
+        let q = orm::Entity::find()
+            .filter(orm::Column::Id.is_in(ids.to_vec()))
+            .filter(orm::Column::TenantId.eq(tenant_id));
+        q.all(self.db.as_ref())
+            .await
+            .map_err(|e| PatRepositoryError::Db(Box::new(e)).into_errors())?
+            .into_iter()
+            .map(orm::Model::into_domain)
+            .collect()
     }
 
     async fn get_by_hash(&self, token_hash: &str) -> Outcome<Option<PersonalAccessToken>> {
@@ -160,19 +176,19 @@ impl PatRepository for SeaOrmPatRepository {
         models.into_iter().map(orm::Model::into_domain).collect()
     }
 
-    async fn revoke(&self, id: Uuid) -> Outcome<()> {
-        let existing = orm::Entity::find_by_id(id)
-            .one(self.db.as_ref())
-            .await
-            .map_err(|e| PatRepositoryError::Db(Box::new(e)).into_errors())?
-            .ok_or_else(|| PatRepositoryError::NotFound.into_errors())?;
-
-        let mut active: orm::ActiveModel = existing.into();
-        active.revoked = Set(true);
-        active
-            .update(self.db.as_ref())
+    async fn revoke(&self, tenant_id: &str, id: Uuid) -> Outcome<()> {
+        use sea_orm::sea_query::Expr;
+        let res = orm::Entity::update_many()
+            .col_expr(orm::Column::Revoked, Expr::value(true))
+            .filter(orm::Column::Id.eq(id))
+            .filter(orm::Column::TenantId.eq(tenant_id))
+            .exec(self.db.as_ref())
             .await
             .map_err(|e| PatRepositoryError::Db(Box::new(e)).into_errors())?;
+
+        if res.rows_affected == 0 {
+            return Err(PatRepositoryError::NotFound.into_errors());
+        }
         Ok(())
     }
 

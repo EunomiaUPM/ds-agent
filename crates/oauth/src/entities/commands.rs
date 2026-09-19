@@ -16,11 +16,11 @@
  */
 
 use crate::entities::role::RbacRole;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct CreateUserCommand {
+pub struct CreateUserCommand {
     pub tenant_id: String,
     pub email: String,
     pub password: String,
@@ -29,18 +29,19 @@ pub(crate) struct CreateUserCommand {
     pub extra_fields: serde_json::Value,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct PatchUserCommand {
+pub struct PatchUserCommand {
     pub email: Option<String>,
     pub role: Option<RbacRole>,
     pub extra_fields: Option<serde_json::Value>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct CreateClientCommand {
+pub struct CreateClientCommand {
     pub client_id: String,
+    pub tenant_id: Option<String>,
     pub client_secret: String,
     pub client_name: String,
     pub role: RbacRole,
@@ -48,9 +49,9 @@ pub(crate) struct CreateClientCommand {
     pub scopes: Vec<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct CreatePatCommand {
+pub struct CreatePatCommand {
     pub name: String,
     #[serde(default)]
     pub scopes: Vec<String>,

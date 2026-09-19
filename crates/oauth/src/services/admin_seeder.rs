@@ -60,6 +60,7 @@ pub async fn seed_admin_user(
         let (password_hash, _) = password::hash_password("eunomia-admin-gui-secret")?;
         let client = crate::entities::client::Client {
             client_id: "eunomia-admin-gui".to_string(),
+            tenant_id: "admin".to_string(),
             client_secret_hash: password_hash,
             client_name: "Eunomia Admin GUI".to_string(),
             role: RbacRole::Admin,

@@ -32,7 +32,7 @@ use crate::entities::role::RbacRole;
 use crate::services::pat_service::PatServiceTrait;
 use crate::services::pat_service::views::{CreatePatResponse, PatView};
 
-pub(crate) struct PatService {
+pub struct PatService {
     pat_repo: Arc<dyn PatRepository>,
     event_bus: Option<events::EventBus>,
 }
@@ -61,9 +61,9 @@ impl PatServiceTrait for PatService {
         scopes: Vec<String>,
         expires_at: Option<DateTime<Utc>>,
     ) -> Outcome<CreatePatResponse> {
-        scope.require_write()?;
+        let target_tenant = scope.resolve_create_tenant(None)?;
         let (pat, raw_token) =
-            PersonalAccessToken::generate(scope.acting_tenant(), name, role, scopes, expires_at);
+            PersonalAccessToken::generate(&target_tenant, name, role, scopes, expires_at);
         let created = self.pat_repo.create(&pat).await?;
 
         let res = CreatePatResponse {
@@ -90,9 +90,7 @@ impl PatServiceTrait for PatService {
         scope.require_read()?;
         filter.validate()?;
         let mut filter = filter.clone();
-        if let Some(tenant) = scope.tenant_filter() {
-            filter.user_id = Some(tenant);
-        }
+        filter.tenant_id = scope.resolve_query_tenant(filter.tenant_id.as_deref())?;
         let page = page.clamped();
         let (pats, total) = tokio::try_join!(
             self.pat_repo.get_all(&filter, &page, sort),
@@ -106,15 +104,7 @@ impl PatServiceTrait for PatService {
 
     async fn revoke_pat(&self, scope: &AccessScope, id: Uuid) -> Outcome<()> {
         scope.require_write()?;
-        let pat = self
-            .pat_repo
-            .get_by_id(id)
-            .await?
-            .ok_or_else(|| Errors::format(BadFormat::Received, "PAT not found", None))?;
-
-        scope.ensure_tenant_access(&pat.tenant_id)?;
-
-        self.pat_repo.revoke(id).await?;
+        self.pat_repo.revoke(scope.acting_tenant(), id).await?;
         events::emit_action!(
             self.event_bus,
             crate::EVENT_PREFIX,

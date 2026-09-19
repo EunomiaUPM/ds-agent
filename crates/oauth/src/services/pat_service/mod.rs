@@ -25,11 +25,12 @@ use crate::entities::query::{Page, Paginated, PatFilter, Sort};
 use crate::entities::role::RbacRole;
 use crate::services::pat_service::views::{CreatePatResponse, PatView};
 
-pub(crate) mod service;
+pub mod service;
 pub mod views;
 
+#[cfg_attr(test, mockall::automock)]
 #[async_trait::async_trait]
-pub(crate) trait PatServiceTrait: Send + Sync + 'static {
+pub trait PatServiceTrait: Send + Sync + 'static {
     async fn create_pat(
         &self,
         scope: &AccessScope,

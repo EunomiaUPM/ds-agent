@@ -24,7 +24,7 @@ use crate::entities::user::User;
 
 #[mockall::automock]
 #[async_trait::async_trait]
-pub(crate) trait UserRepository: Send + Sync {
+pub trait UserRepository: Send + Sync {
     async fn get_all(&self, filter: &UserFilter, page: &Page, sort: &Sort) -> Outcome<Vec<User>>;
     async fn count(&self, filter: &UserFilter) -> Outcome<u64>;
     async fn get_by_tenant_id(&self, tenant_id: &str) -> Outcome<Option<User>>;
@@ -41,7 +41,7 @@ pub(crate) trait UserRepository: Send + Sync {
 }
 
 #[derive(Debug, Error)]
-pub(crate) enum UserRepositoryError {
+pub enum UserRepositoryError {
     #[error("user not found")]
     NotFound,
     #[error("user already exists")]

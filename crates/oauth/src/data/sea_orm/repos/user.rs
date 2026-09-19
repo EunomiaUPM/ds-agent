@@ -161,10 +161,13 @@ impl UserRepository for SeaOrmUserRepository {
     }
 
     async fn delete(&self, tenant_id: &str) -> Outcome<()> {
-        orm::Entity::delete_by_id(tenant_id)
+        let res = orm::Entity::delete_by_id(tenant_id)
             .exec(self.db.as_ref())
             .await
             .map_err(|e| UserRepositoryError::Db(Box::new(e)).into_errors())?;
+        if res.rows_affected == 0 {
+            return Err(UserRepositoryError::NotFound.into_errors());
+        }
         Ok(())
     }
 }

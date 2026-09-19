@@ -40,6 +40,12 @@ impl MigrationTrait for Migration {
                             .primary_key(),
                     )
                     .col(
+                        ColumnDef::new(OauthClients::TenantId)
+                            .string()
+                            .not_null()
+                            .default(""),
+                    )
+                    .col(
                         ColumnDef::new(OauthClients::ClientSecretHash)
                             .string()
                             .not_null(),
@@ -73,6 +79,7 @@ impl MigrationTrait for Migration {
 pub enum OauthClients {
     Table,
     ClientId,
+    TenantId,
     ClientSecretHash,
     ClientName,
     Role,

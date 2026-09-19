@@ -15,19 +15,19 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use common::auth::access::AccessScope;
+use common::errors::NotFoundExt;
 use common::paginated_spec::Cursor;
+use common::query::{Page, Paginated, QueryFilter, Sort};
+use std::sync::Arc;
+use urn::Urn;
+use ymir::errors::{Errors, Outcome};
 
 use crate::data::repo::transfer_message::TransferMessageRepoTrait;
 use crate::entities::commands::NewTransferMessageCommand;
 use crate::entities::filters::TransferMessageFilter;
-use crate::entities::transfer_message::TransferMessage;
 use crate::services::transfer_message::TransferMessageServiceTrait;
 use crate::services::transfer_message::views::TransferMessageView;
-use common::auth::access::AccessScope;
-use common::query::{Page, Paginated, Sort, clamp_page_limit, validate_date_range};
-use std::sync::Arc;
-use urn::Urn;
-use ymir::errors::{Errors, Outcome};
 
 pub(crate) struct TransferMessageService {
     message_repo: Arc<dyn TransferMessageRepoTrait>,
@@ -57,48 +57,11 @@ impl TransferMessageService {
         filters: &TransferMessageFilter,
         page: &Page,
     ) -> Outcome<(TransferMessageFilter, Page)> {
-        validate_date_range(filters.created_after, filters.created_before)?;
+        filters.validate()?;
         let mut filters = filters.clone();
-        if let Some(tenant) = scope.tenant_filter() {
-            filters.tenant_id = Some(tenant);
-        }
+        filters.tenant_id = scope.resolve_query_tenant(filters.tenant_id.as_deref())?;
         let page = page.clamped();
         Ok((filters, page))
-    }
-
-    /// Confirms a restricted scope owns `id`, mapping a missing or foreign record
-    /// to a 404 or 403. Admins (unrestricted) skip the lookup entirely.
-    async fn ensure_access(&self, scope: &AccessScope, id: &Urn) -> Outcome<()> {
-        if scope.tenant_filter().is_some() {
-            let message = self
-                .message_repo
-                .get_transfer_message_by_id(id)
-                .await?
-                .ok_or_else(|| self.not_found(id))?;
-            if !scope.permits(&message.tenant_id().to_string()) {
-                return Err(self.not_allowed());
-            }
-        }
-        Ok(())
-    }
-
-    // Helpers
-
-    /// 404 used for missing records
-    #[allow(clippy::result_large_err)]
-    fn not_found(&self, id: &Urn) -> Errors {
-        Errors::missing_resource(id.to_string(), "transfer message not found", None)
-    }
-
-    /// 403 used for unauthorized access
-    #[allow(clippy::result_large_err)]
-    fn not_allowed(&self) -> Errors {
-        Errors::unauthorized("User not allowed for this action", None)
-    }
-
-    /// Encode next cursors
-    fn encode_cursor(&self, msg: &TransferMessage) -> String {
-        Cursor::encode_timestamp(&msg.occurred_at())
     }
 }
 
@@ -123,23 +86,14 @@ impl TransferMessageServiceTrait for TransferMessageService {
                 .get_all_transfer_messages(&filters, &page, sort),
             self.message_repo.count_transfer_messages(&filters),
         )?;
-        // Create cursor
-        let next_cursor = if messages.len() == page.limit as usize {
-            messages.last().map(|m| self.encode_cursor(m))
-        } else {
-            None
-        };
         // Assemble into view
         let items = messages
             .into_iter()
             .map(TransferMessageView::assemble)
             .collect();
-        // Return paginated
-        Ok(Paginated {
-            items,
-            next_cursor,
-            total: Some(total),
-        })
+        Ok(Paginated::from_page(items, &page, Some(total), |m| {
+            Cursor::encode_timestamp(&m.occurred_at)
+        }))
     }
 
     /// Get single transfer message entity
@@ -162,23 +116,14 @@ impl TransferMessageServiceTrait for TransferMessageService {
                 .get_messages_by_process_id(process_id, &filters, &page, sort),
             self.message_repo.count_transfer_messages(&filters),
         )?;
-        // Create cursor
-        let next_cursor = if messages.len() == page.limit as usize {
-            messages.last().map(|m| self.encode_cursor(m))
-        } else {
-            None
-        };
         // Assemble into view
         let items = messages
             .into_iter()
             .map(TransferMessageView::assemble)
             .collect();
-        // Return paginated
-        Ok(Paginated {
-            items,
-            next_cursor,
-            total: Some(total),
-        })
+        Ok(Paginated::from_page(items, &page, Some(total), |m| {
+            Cursor::encode_timestamp(&m.occurred_at)
+        }))
     }
 
     /// Create a new transfer message entity
@@ -187,11 +132,10 @@ impl TransferMessageServiceTrait for TransferMessageService {
         scope.require_read()?;
         let message = self
             .message_repo
-            .get_transfer_message_by_id(id)
+            .get_transfer_message_by_id(scope.acting_tenant(), id)
             .await?
-            // Filter by tenancy
-            .filter(|m| scope.permits(&m.tenant_id().to_string()))
-            .ok_or_else(|| self.not_found(id))?;
+            .or_not_found(id, "transfer message")?;
+
         Ok(TransferMessageView::assemble(message))
     }
 
@@ -202,13 +146,8 @@ impl TransferMessageServiceTrait for TransferMessageService {
         scope: &AccessScope,
         cmd: &NewTransferMessageCommand,
     ) -> Outcome<TransferMessageView> {
-        scope.require_write()?;
         let mut cmd = cmd.clone();
-        // Non-admins are forced into their own tenant; admins default to their acting
-        // tenant only when the body leaves it unset.
-        if scope.tenant_filter().is_some() || cmd.tenant_id.is_none() {
-            cmd.tenant_id = Some(scope.acting_tenant().clone());
-        }
+        cmd.tenant_id = Some(scope.resolve_create_tenant(cmd.tenant_id.as_deref())?);
         // Create in db
         let message = self.message_repo.create_transfer_message(&cmd).await?;
         // Assemble into view
@@ -227,10 +166,10 @@ impl TransferMessageServiceTrait for TransferMessageService {
     #[tracing::instrument(level = "info", skip(self, scope), fields(id = %id), err)]
     async fn delete(&self, scope: &AccessScope, id: &Urn) -> Outcome<()> {
         scope.require_write()?;
-        // Validate access
-        self.ensure_access(scope, id).await?;
         // Hit db
-        self.message_repo.delete_transfer_message(id).await?;
+        self.message_repo
+            .delete_transfer_message(scope.acting_tenant(), id)
+            .await?;
         events::emit_action!(
             self.event_bus,
             crate::EVENT_PREFIX,

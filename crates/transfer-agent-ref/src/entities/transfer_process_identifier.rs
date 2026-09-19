@@ -21,6 +21,7 @@ use urn::Urn;
 /// protocol-dependant identifiers
 #[derive(Clone)]
 pub(crate) struct TransferProcessIdentifier {
+    pub tenant_id: String,
     pub transfer_process_id: Urn,
     pub key: String,
     pub value: Option<String>,
@@ -33,6 +34,21 @@ impl TransferProcessIdentifier {
         value: impl Into<Option<String>>,
     ) -> Self {
         Self {
+            tenant_id: String::new(),
+            transfer_process_id,
+            key: key.into(),
+            value: value.into(),
+        }
+    }
+
+    pub fn with_tenant(
+        tenant_id: impl Into<String>,
+        transfer_process_id: Urn,
+        key: impl Into<String>,
+        value: impl Into<Option<String>>,
+    ) -> Self {
+        Self {
+            tenant_id: tenant_id.into(),
             transfer_process_id,
             key: key.into(),
             value: value.into(),

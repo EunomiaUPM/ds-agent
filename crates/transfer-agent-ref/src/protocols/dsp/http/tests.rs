@@ -39,6 +39,7 @@ const REQUEST_BODY: &str = r#"{
 fn mate() -> Mates {
     let t = chrono::Utc::now();
     Mates {
+        tenant_id: "default".to_string(),
         participant_id: "did:example:consumer".into(),
         participant_type: ParticipantType::Agent,
         participant_nick: "Consumer".to_string(),

@@ -46,6 +46,7 @@ impl DataPlaneStrategy for ConsumerPushStrategy {
             .execute_command(DataplaneCommand::SetInit(
                 DataplaneInitCommandTypes::AsConsumer {
                     transfer_process_id: transfer_id.clone(),
+                    tenant_id: ctx.tenant_id().to_string(),
                     direction: DataplaneInitCommandDirection::Push {
                         data_address: Some(data_address),
                     },

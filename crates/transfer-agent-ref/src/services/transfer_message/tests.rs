@@ -627,7 +627,7 @@ async fn get_one_happy_path() {
     let mc = msg.clone();
     let mut repo = MockTransferMessageRepoTrait::new();
     repo.expect_get_transfer_message_by_id()
-        .returning(move |_| Ok(Some(mc.clone())));
+        .returning(move |_, _| Ok(Some(mc.clone())));
 
     let svc = make_svc(repo);
     let view = svc.get_one(&admin_scope(), &id_urn).await.unwrap();
@@ -644,7 +644,7 @@ async fn get_one_returns_view_fields_correctly() {
     let mc = msg.clone();
     let mut repo = MockTransferMessageRepoTrait::new();
     repo.expect_get_transfer_message_by_id()
-        .returning(move |_| Ok(Some(mc.clone())));
+        .returning(move |_, _| Ok(Some(mc.clone())));
 
     let svc = make_svc(repo);
     let view = svc.get_one(&admin_scope(), &id_urn).await.unwrap();
@@ -658,7 +658,7 @@ async fn get_one_returns_view_fields_correctly() {
 async fn get_one_not_found_returns_error() {
     let mut repo = MockTransferMessageRepoTrait::new();
     repo.expect_get_transfer_message_by_id()
-        .returning(|_| Ok(None));
+        .returning(|_, _| Ok(None));
 
     let svc = make_svc(repo);
     assert!(svc.get_one(&admin_scope(), &p_urn(999)).await.is_err());
@@ -667,7 +667,7 @@ async fn get_one_not_found_returns_error() {
 #[tokio::test]
 async fn get_one_propagates_repo_error() {
     let mut repo = MockTransferMessageRepoTrait::new();
-    repo.expect_get_transfer_message_by_id().returning(|_| {
+    repo.expect_get_transfer_message_by_id().returning(|_, _| {
         Err(TransferMessageRepoErrors::ErrorFetchingTransferMessage(io_err()).into_errors())
     });
 
@@ -681,10 +681,10 @@ async fn get_one_propagates_repo_error() {
 async fn get_one_foreign_tenant_returns_not_found() {
     let msg = make_message(1); // tenant-1
     let id_urn = msg.id.as_urn().clone();
-    let mc = msg.clone();
     let mut repo = MockTransferMessageRepoTrait::new();
     repo.expect_get_transfer_message_by_id()
-        .returning(move |_| Ok(Some(mc.clone())));
+        .withf(|tenant, id| tenant == "tenant-2" && id == &p_urn(1001))
+        .returning(|_, _| Ok(None));
 
     let svc = make_svc(repo);
     assert!(
@@ -692,6 +692,47 @@ async fn get_one_foreign_tenant_returns_not_found() {
             .await
             .is_err()
     );
+}
+
+#[tokio::test]
+async fn get_all_foreign_tenant_query_rejected_with_forbidden() {
+    let repo = MockTransferMessageRepoTrait::new();
+    let svc = make_svc(repo);
+
+    let mut filter = TransferMessageFilter::default();
+    filter.tenant_id = Some("tenant-foreign".to_string());
+
+    let result = svc
+        .get_all(
+            &tenant_scope("tenant-1"),
+            &filter,
+            &Page::default(),
+            &Sort::default(),
+        )
+        .await;
+
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn get_all_by_process_foreign_tenant_query_rejected_with_forbidden() {
+    let repo = MockTransferMessageRepoTrait::new();
+    let svc = make_svc(repo);
+
+    let mut filter = TransferMessageFilter::default();
+    filter.tenant_id = Some("tenant-foreign".to_string());
+
+    let result = svc
+        .get_all_by_process(
+            &tenant_scope("tenant-1"),
+            &p_urn(1),
+            &filter,
+            &Page::default(),
+            &Sort::default(),
+        )
+        .await;
+
+    assert!(result.is_err());
 }
 
 #[tokio::test]
@@ -714,11 +755,12 @@ async fn create_forces_caller_tenant_for_non_admin() {
 async fn delete_foreign_tenant_returns_not_found() {
     let msg = make_message(1); // tenant-1
     let id_urn = msg.id.as_urn().clone();
-    let mc = msg.clone();
     let mut repo = MockTransferMessageRepoTrait::new();
-    repo.expect_get_transfer_message_by_id()
-        .returning(move |_| Ok(Some(mc.clone())));
-    repo.expect_delete_transfer_message().times(0);
+    repo.expect_delete_transfer_message()
+        .withf(|tenant, id| tenant == "tenant-2" && id == &p_urn(1001))
+        .returning(|_, _| {
+            Err(TransferMessageRepoErrors::TransferMessageNotFound.into_errors())
+        });
 
     let svc = make_svc(repo);
     assert!(
@@ -789,7 +831,7 @@ async fn delete_happy_path() {
     let mut repo = MockTransferMessageRepoTrait::new();
     repo.expect_delete_transfer_message()
         .times(1)
-        .returning(|_| Ok(()));
+        .returning(|_, _| Ok(()));
 
     let svc = make_svc(repo);
     assert!(svc.delete(&admin_scope(), &p_urn(1)).await.is_ok());
@@ -798,7 +840,7 @@ async fn delete_happy_path() {
 #[tokio::test]
 async fn delete_propagates_error() {
     let mut repo = MockTransferMessageRepoTrait::new();
-    repo.expect_delete_transfer_message().returning(|_| {
+    repo.expect_delete_transfer_message().returning(|_, _| {
         Err(TransferMessageRepoErrors::ErrorDeletingTransferMessage(io_err()).into_errors())
     });
 

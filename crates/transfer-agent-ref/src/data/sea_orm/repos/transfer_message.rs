@@ -51,14 +51,13 @@ impl SeaOrmTransferMessageRepo {
             .map_err(|_| TransferMessageRepoErrors::InvalidCursor.into_errors())
     }
 
-    #[allow(clippy::result_large_err)]
-    fn apply_message_filters(
-        &self,
+    fn apply_base_filters(
         mut q: sea_orm::Select<orm::Entity>,
         filters: &TransferMessageFilter,
-        page: &Page,
-        sort: &Sort,
-    ) -> Outcome<sea_orm::Select<orm::Entity>> {
+    ) -> sea_orm::Select<orm::Entity> {
+        if let Some(tid) = &filters.tenant_id {
+            q = q.filter(orm::Column::TenantId.eq(tid.as_str()));
+        }
         if let Some(dir) = &filters.direction {
             q = q.filter(orm::Column::Direction.eq(ser_enum(dir)));
         }
@@ -74,6 +73,16 @@ impl SeaOrmTransferMessageRepo {
         if let Some(before) = filters.created_before {
             q = q.filter(orm::Column::OccurredAt.lt(before));
         }
+        q
+    }
+
+    #[allow(clippy::result_large_err)]
+    fn apply_page_and_sort(
+        &self,
+        mut q: sea_orm::Select<orm::Entity>,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<sea_orm::Select<orm::Entity>> {
         if let Some(cursor) = &page.cursor {
             let dt = self.decode_cursor(cursor)?;
             q = match sort {
@@ -100,11 +109,8 @@ impl TransferMessageRepoTrait for SeaOrmTransferMessageRepo {
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Vec<TransferMessage>> {
-        let mut q = orm::Entity::find();
-        if let Some(tid) = &filters.tenant_id {
-            q = q.filter(orm::Column::TenantId.eq(tid.as_str()));
-        }
-        q = self.apply_message_filters(q, filters, page, sort)?;
+        let q = Self::apply_base_filters(orm::Entity::find(), filters);
+        let q = self.apply_page_and_sort(q, page, sort)?;
         q.limit(page.limit as u64)
             .all(self.db.as_ref())
             .await
@@ -115,26 +121,10 @@ impl TransferMessageRepoTrait for SeaOrmTransferMessageRepo {
     }
 
     async fn count_transfer_messages(&self, filters: &TransferMessageFilter) -> Outcome<u64> {
-        let mut q = orm::Entity::find();
-        if let Some(tid) = &filters.tenant_id {
-            q = q.filter(orm::Column::TenantId.eq(tid.as_str()));
-        }
-        if let Some(dir) = &filters.direction {
-            q = q.filter(orm::Column::Direction.eq(ser_enum(dir)));
-        }
-        if let Some(protocol) = &filters.protocol {
-            q = q.filter(orm::Column::Protocol.eq(ser_enum(protocol)));
-        }
-        if let Some(state) = &filters.state_transition_to {
-            q = q.filter(orm::Column::StateTransitionTo.eq(state.0.as_str()));
-        }
-        if let Some(after) = filters.created_after {
-            q = q.filter(orm::Column::OccurredAt.gt(after));
-        }
-        if let Some(before) = filters.created_before {
-            q = q.filter(orm::Column::OccurredAt.lt(before));
-        }
-        q.count(self.db.as_ref()).await.map_err(Self::fetch_err)
+        Self::apply_base_filters(orm::Entity::find(), filters)
+            .count(self.db.as_ref())
+            .await
+            .map_err(Self::fetch_err)
     }
 
     async fn get_messages_by_process_id(
@@ -144,9 +134,9 @@ impl TransferMessageRepoTrait for SeaOrmTransferMessageRepo {
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Vec<TransferMessage>> {
-        let mut q = orm::Entity::find();
-        q = q.filter(orm::Column::TransferProcessId.eq(process_id.to_string()));
-        q = self.apply_message_filters(q, filters, page, sort)?;
+        let q = orm::Entity::find().filter(orm::Column::TransferProcessId.eq(process_id.to_string()));
+        let q = Self::apply_base_filters(q, filters);
+        let q = self.apply_page_and_sort(q, page, sort)?;
         q.limit(page.limit as u64)
             .all(self.db.as_ref())
             .await
@@ -156,9 +146,14 @@ impl TransferMessageRepoTrait for SeaOrmTransferMessageRepo {
             .collect()
     }
 
-    async fn get_transfer_message_by_id(&self, id: &Urn) -> Outcome<Option<TransferMessage>> {
-        orm::Entity::find_by_id(id.to_string())
-            .one(self.db.as_ref())
+    async fn get_transfer_message_by_id(
+        &self,
+        tenant_id: &str,
+        id: &Urn,
+    ) -> Outcome<Option<TransferMessage>> {
+        let q = orm::Entity::find_by_id(id.to_string())
+            .filter(orm::Column::TenantId.eq(tenant_id));
+        q.one(self.db.as_ref())
             .await
             .map_err(Self::fetch_err)?
             .map(orm::Model::into_domain)
@@ -178,13 +173,19 @@ impl TransferMessageRepoTrait for SeaOrmTransferMessageRepo {
             .and_then(orm::Model::into_domain)
     }
 
-    async fn delete_transfer_message(&self, id: &Urn) -> Outcome<()> {
-        orm::Entity::delete_by_id(id.to_string())
+    async fn delete_transfer_message(&self, tenant_id: &str, id: &Urn) -> Outcome<()> {
+        let q = orm::Entity::delete_many()
+            .filter(orm::Column::Id.eq(id.to_string()))
+            .filter(orm::Column::TenantId.eq(tenant_id));
+        let res = q
             .exec(self.db.as_ref())
             .await
             .map_err(|e| {
                 TransferMessageRepoErrors::ErrorDeletingTransferMessage(Box::new(e)).into_errors()
             })?;
+        if res.rows_affected == 0 {
+            return Err(TransferMessageRepoErrors::TransferMessageNotFound.into_errors());
+        }
         Ok(())
     }
 }

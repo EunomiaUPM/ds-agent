@@ -34,25 +34,36 @@ pub trait TransferProcessRepoTrait: Send + Sync {
         sort: &Sort,
     ) -> Outcome<Vec<TransferProcess>>;
     async fn count_transfer_processes(&self, filters: &TransferProcessFilter) -> Outcome<u64>;
-    async fn get_batch_transfer_processes(&self, ids: &[Urn]) -> Outcome<Vec<TransferProcess>>;
-    async fn get_transfer_process_by_id(&self, id: &Urn) -> Outcome<Option<TransferProcess>>;
-    async fn get_transfer_process_by_key_id(
+    async fn get_batch_transfer_processes(
         &self,
-        key_id: &str,
+        tenant_id: &str,
+        ids: &[Urn],
+    ) -> Outcome<Vec<TransferProcess>>;
+    async fn get_transfer_process_by_id(
+        &self,
+        tenant_id: &str,
         id: &Urn,
     ) -> Outcome<Option<TransferProcess>>;
-    async fn get_transfer_process_by_key_value(&self, id: &Urn)
-    -> Outcome<Option<TransferProcess>>;
+    async fn get_transfer_process_by_key_value(
+        &self,
+        tenant_id: Option<String>,
+        id: &Urn,
+    ) -> Outcome<Option<TransferProcess>>;
     async fn create_transfer_process(
         &self,
         new_model: &NewTransferProcessCommand,
     ) -> Outcome<TransferProcess>;
     async fn put_transfer_process(
         &self,
+        tenant_id: &str,
         id: &Urn,
         edit_model: &EditTransferProcessCommand,
     ) -> Outcome<TransferProcess>;
-    async fn delete_transfer_process(&self, id: &Urn) -> Outcome<()>;
+    async fn delete_transfer_process(
+        &self,
+        tenant_id: &str,
+        id: &Urn,
+    ) -> Outcome<()>;
 }
 
 #[derive(Debug, Error)]

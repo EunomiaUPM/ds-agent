@@ -15,11 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::str::FromStr;
-
 use serde::{Deserialize, Serialize};
 use serde_json::Value as Json;
-use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 
 #[allow(clippy::result_large_err)]
@@ -43,9 +40,4 @@ pub(super) fn ser_json<T: Serialize>(v: &T) -> Json {
 #[allow(clippy::result_large_err)]
 pub(super) fn deser_json<T: for<'de> Deserialize<'de>>(v: Json, field: &'static str) -> Outcome<T> {
     serde_json::from_value(v).map_err(|e| Errors::crazy(field, Some(Box::new(e))))
-}
-
-#[allow(clippy::result_large_err)]
-pub(super) fn parse_urn(s: &str, field: &'static str) -> Outcome<Urn> {
-    Urn::from_str(s).map_err(|e| Errors::crazy(field, Some(Box::new(e))))
 }

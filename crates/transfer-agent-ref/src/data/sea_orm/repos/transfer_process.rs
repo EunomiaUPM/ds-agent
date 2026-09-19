@@ -25,6 +25,7 @@ use crate::entities::filters::TransferProcessFilter;
 use crate::entities::transfer_process::TransferProcess;
 use common::paginated_spec::Cursor;
 use common::query::{Page, Sort};
+use common::utils::parse_urn;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
     QueryOrder, QuerySelect,
@@ -140,11 +141,19 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
             .map_err(Self::fetch_err)
     }
 
-    async fn get_batch_transfer_processes(&self, ids: &[Urn]) -> Outcome<Vec<TransferProcess>> {
+    async fn get_batch_transfer_processes(
+        &self,
+        tenant_id: &str,
+        ids: &[Urn],
+    ) -> Outcome<Vec<TransferProcess>> {
+        if ids.is_empty() {
+            return Ok(vec![]);
+        }
         let id_strings: Vec<String> = ids.iter().map(|u| u.to_string()).collect();
-        orm::Entity::find()
+        let q = orm::Entity::find()
             .filter(orm::Column::Id.is_in(id_strings))
-            .all(self.db.as_ref())
+            .filter(orm::Column::TenantId.eq(tenant_id));
+        q.all(self.db.as_ref())
             .await
             .map_err(Self::fetch_err)?
             .into_iter()
@@ -152,54 +161,39 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
             .collect()
     }
 
-    async fn get_transfer_process_by_id(&self, id: &Urn) -> Outcome<Option<TransferProcess>> {
-        orm::Entity::find_by_id(id.to_string())
-            .one(self.db.as_ref())
+    async fn get_transfer_process_by_id(
+        &self,
+        tenant_id: &str,
+        id: &Urn,
+    ) -> Outcome<Option<TransferProcess>> {
+        let q = orm::Entity::find_by_id(id.to_string())
+            .filter(orm::Column::TenantId.eq(tenant_id));
+        q.one(self.db.as_ref())
             .await
             .map_err(Self::fetch_err)?
             .map(orm::Model::into_domain)
             .transpose()
     }
 
-    async fn get_transfer_process_by_key_id(
-        &self,
-        key_id: &str,
-        id: &Urn,
-    ) -> Outcome<Option<TransferProcess>> {
-        use crate::data::sea_orm::orm::transfer_identifier as ident_orm;
-
-        let ident = ident_orm::Entity::find()
-            .filter(ident_orm::Column::Key.eq(key_id))
-            .filter(ident_orm::Column::Value.eq(id.to_string()))
-            .one(self.db.as_ref())
-            .await
-            .map_err(Self::fetch_err)?;
-
-        match ident {
-            None => Ok(None),
-            Some(i) => {
-                self.get_transfer_process_by_id(&parse_urn(&i.transfer_process_id)?)
-                    .await
-            }
-        }
-    }
-
     async fn get_transfer_process_by_key_value(
         &self,
+        tenant_id: Option<String>,
         id: &Urn,
     ) -> Outcome<Option<TransferProcess>> {
         use crate::data::sea_orm::orm::transfer_identifier as ident_orm;
 
-        let ident = ident_orm::Entity::find()
-            .filter(ident_orm::Column::Value.eq(id.to_string()))
-            .one(self.db.as_ref())
-            .await
-            .map_err(Self::fetch_err)?;
+        let mut q = ident_orm::Entity::find()
+            .filter(ident_orm::Column::Value.eq(id.to_string()));
+        if let Some(tid) = &tenant_id {
+            q = q.filter(ident_orm::Column::TenantId.eq(tid.as_str()));
+        }
+        let ident = q.one(self.db.as_ref()).await.map_err(Self::fetch_err)?;
 
         match ident {
             None => Ok(None),
             Some(i) => {
-                self.get_transfer_process_by_id(&parse_urn(&i.transfer_process_id)?)
+                let tid = tenant_id.as_deref().unwrap_or(&i.tenant_id);
+                self.get_transfer_process_by_id(tid, &parse_urn(&i.transfer_process_id)?)
                     .await
             }
         }
@@ -220,10 +214,13 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
 
     async fn put_transfer_process(
         &self,
+        tenant_id: &str,
         id: &Urn,
         edit_model: &EditTransferProcessCommand,
     ) -> Outcome<TransferProcess> {
-        let existing = orm::Entity::find_by_id(id.to_string())
+        let q = orm::Entity::find_by_id(id.to_string())
+            .filter(orm::Column::TenantId.eq(tenant_id));
+        let existing = q
             .one(self.db.as_ref())
             .await
             .map_err(Self::fetch_err)?
@@ -241,20 +238,28 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
             .and_then(orm::Model::into_domain)
     }
 
-    async fn delete_transfer_process(&self, id: &Urn) -> Outcome<()> {
-        orm::Entity::delete_by_id(id.to_string())
+    async fn delete_transfer_process(&self, tenant_id: &str, id: &Urn) -> Outcome<()> {
+        let q = orm::Entity::delete_many()
+            .filter(orm::Column::Id.eq(id.to_string()))
+            .filter(orm::Column::TenantId.eq(tenant_id));
+        let res = q
             .exec(self.db.as_ref())
             .await
             .map_err(|e| {
                 TransferProcessRepoErrors::ErrorDeletingTransferProcess(Box::new(e)).into_errors()
             })?;
+        if res.rows_affected == 0 {
+            return Err(TransferProcessRepoErrors::TransferProcessNotFound.into_errors());
+        }
+
+        use crate::data::sea_orm::orm::transfer_identifier as ident_orm;
+        ident_orm::Entity::delete_many()
+            .filter(ident_orm::Column::TransferProcessId.eq(id.to_string()))
+            .filter(ident_orm::Column::TenantId.eq(tenant_id))
+            .exec(self.db.as_ref())
+            .await
+            .map_err(Self::fetch_err)?;
+
         Ok(())
     }
-}
-
-#[allow(clippy::result_large_err)]
-fn parse_urn(s: &str) -> Outcome<Urn> {
-    use std::str::FromStr;
-    Urn::from_str(s)
-        .map_err(|e| ymir::errors::Errors::crazy("invalid URN in database", Some(Box::new(e))))
 }

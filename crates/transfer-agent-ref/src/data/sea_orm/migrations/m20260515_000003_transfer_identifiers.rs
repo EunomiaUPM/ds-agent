@@ -15,6 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use super::m20260515_000001_transfer_processes::TransferProcesses;
 use sea_orm_migration::prelude::*;
 
 pub struct Migration;
@@ -34,6 +35,11 @@ impl MigrationTrait for Migration {
                     .table(TransferIdentifiers::Table)
                     .if_not_exists()
                     .col(
+                        ColumnDef::new(TransferIdentifiers::TenantId)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
                         ColumnDef::new(TransferIdentifiers::TransferProcessId)
                             .string()
                             .not_null(),
@@ -42,8 +48,19 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(TransferIdentifiers::Value).string().null())
                     .primary_key(
                         Index::create()
+                            .col(TransferIdentifiers::TenantId)
                             .col(TransferIdentifiers::TransferProcessId)
                             .col(TransferIdentifiers::Key),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk-transfer_identifiers-process_id")
+                            .from(
+                                TransferIdentifiers::Table,
+                                TransferIdentifiers::TransferProcessId,
+                            )
+                            .to(TransferProcesses::Table, TransferProcesses::Id)
+                            .on_delete(ForeignKeyAction::Cascade),
                     )
                     .to_owned(),
             )
@@ -60,6 +77,7 @@ impl MigrationTrait for Migration {
 #[derive(Iden)]
 pub enum TransferIdentifiers {
     Table,
+    TenantId,
     TransferProcessId,
     Key,
     Value,

@@ -21,7 +21,8 @@ use sea_orm::ActiveValue::Set;
 use sea_orm::entity::prelude::*;
 use ymir::errors::Outcome;
 
-use crate::data::sea_orm::orm::helpers::{deser_enum, deser_json, parse_urn, ser_enum, ser_json};
+use common::utils::parse_urn;
+use crate::data::sea_orm::orm::helpers::{deser_enum, deser_json, ser_enum, ser_json};
 use crate::entities::commands::NewTransferProcessCommand;
 use crate::entities::ids::TransferProcessId;
 use crate::entities::protocol::{
@@ -54,7 +55,7 @@ pub struct Model {
 #[allow(clippy::result_large_err)]
 impl Model {
     pub(crate) fn into_domain(self) -> Outcome<TransferProcess> {
-        let id = TransferProcessId::new(parse_urn(&self.id, "transfer_process.id")?);
+        let id = TransferProcessId::new(parse_urn(&self.id)?);
         let tenant_id = self.tenant_id;
         let role = deser_enum::<TransferRole>(&self.role)?;
         let created_at = self.created_at.with_timezone(&Utc);

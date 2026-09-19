@@ -288,6 +288,7 @@ mod tests {
     fn mate(participant_id: &str) -> Mates {
         let t = Utc::now();
         Mates {
+            tenant_id: "default".to_string(),
             participant_id: participant_id.into(),
             participant_type: ParticipantType::Agent,
             participant_nick: "peer".to_string(),

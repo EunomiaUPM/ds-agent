@@ -61,6 +61,9 @@ impl TransferIdentifierRepoTrait for SeaOrmTransferIdentifierRepo {
         &self,
         process_id_batch: &[Urn],
     ) -> Outcome<Vec<TransferProcessIdentifier>> {
+        if process_id_batch.is_empty() {
+            return Ok(vec![]);
+        }
         let ids: Vec<String> = process_id_batch.iter().map(|u| u.to_string()).collect();
         orm::Entity::find()
             .filter(orm::Column::TransferProcessId.is_in(ids))
@@ -97,9 +100,13 @@ impl TransferIdentifierRepoTrait for SeaOrmTransferIdentifierRepo {
         use sea_orm::sea_query::OnConflict;
         orm::Entity::insert(active)
             .on_conflict(
-                OnConflict::columns([orm::Column::TransferProcessId, orm::Column::Key])
-                    .update_column(orm::Column::Value)
-                    .to_owned(),
+                OnConflict::columns([
+                    orm::Column::TenantId,
+                    orm::Column::TransferProcessId,
+                    orm::Column::Key,
+                ])
+                .update_column(orm::Column::Value)
+                .to_owned(),
             )
             .exec(self.db.as_ref())
             .await

@@ -86,5 +86,5 @@ regex = "1.12.2"
 tonic-prost-build = "0.14.5"
 compact_str = { version = "0.8", features = ["serde"] }
 argon2 = "0.5.3"
-ymir = {git = "https://github.com/EunomiaUPM/ymir.git", tag = "v0.8.1"}
-#ymir = { path = "./../ymir" }
+ymir = { path = "../ymir" }
+#ymir = {git = "https://github.com/EunomiaUPM/ymir.git", tag = "v0.8.1"}

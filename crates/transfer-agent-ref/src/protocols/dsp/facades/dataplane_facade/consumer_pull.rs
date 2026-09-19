@@ -38,6 +38,7 @@ impl DataPlaneStrategy for ConsumerPullStrategy {
         let transfer_id = ctx.process_urn("consumer pull request_pre")?;
         let cmd = DataplaneCommand::SetInit(DataplaneInitCommandTypes::AsConsumer {
             transfer_process_id: transfer_id.clone(),
+            tenant_id: ctx.tenant_id().to_string(),
             direction: DataplaneInitCommandDirection::Pull { data_address: None },
         });
         mgr.execute_command(cmd).await?;

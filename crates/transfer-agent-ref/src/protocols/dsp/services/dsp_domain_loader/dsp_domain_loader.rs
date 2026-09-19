@@ -91,7 +91,7 @@ impl DspDomainLoader {
             })?;
             if let Some(found) = self
                 .process_repo
-                .get_transfer_process_by_key_value(&urn)
+                .get_transfer_process_by_key_value(None, &urn)
                 .await?
             {
                 return Ok(TransferContextProcessSlot::Existing(found));

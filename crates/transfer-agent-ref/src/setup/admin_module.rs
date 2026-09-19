@@ -72,9 +72,9 @@ impl ServiceModuleTrait for TransferAdminModule {
             TransferMessageRouter::new(self.ctx.transfer_message_svc.clone()).router(),
         );
         let router = TransferHttpRouter::build(
-            self.ctx.oauth_validator.clone(),
             process_router,
             message_router,
+            self.ctx.oauth_validator.clone(),
         );
         let api_version = self.ctx.config.common().get_api_version();
         let combined = Router::new()

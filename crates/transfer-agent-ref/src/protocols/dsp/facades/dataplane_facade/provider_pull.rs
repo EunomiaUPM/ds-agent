@@ -53,6 +53,7 @@ impl DataPlaneStrategy for ProviderPullStrategy {
         };
         let cmd = DataplaneCommand::SetInit(DataplaneInitCommandTypes::AsProvider {
             transfer_process_id: id,
+            tenant_id: ctx.tenant_id().to_string(),
             connector_instance: connector_instance.clone(),
             direction: DataplaneInitCommandDirection::Pull { data_address: None },
         });

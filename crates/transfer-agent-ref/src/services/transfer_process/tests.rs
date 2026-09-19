@@ -707,7 +707,7 @@ async fn get_one_returns_view_with_identifiers() {
     let mut proc_repo = MockTransferProcessRepoTrait::new();
     proc_repo
         .expect_get_transfer_process_by_id()
-        .returning(move |_| Ok(Some(pc.clone())));
+        .returning(move |_, _| Ok(Some(pc.clone())));
     let mut id_repo = MockTransferIdentifierRepoTrait::new();
     id_repo
         .expect_get_identifiers_by_process_id()
@@ -734,7 +734,7 @@ async fn get_one_promotes_consumer_pid_and_provider_pid_from_identifiers() {
     let mut proc_repo = MockTransferProcessRepoTrait::new();
     proc_repo
         .expect_get_transfer_process_by_id()
-        .returning(move |_| Ok(Some(pc.clone())));
+        .returning(move |_, _| Ok(Some(pc.clone())));
     let mut id_repo = MockTransferIdentifierRepoTrait::new();
     id_repo
         .expect_get_identifiers_by_process_id()
@@ -754,7 +754,7 @@ async fn get_one_without_identifiers_returns_empty_map() {
     let mut proc_repo = MockTransferProcessRepoTrait::new();
     proc_repo
         .expect_get_transfer_process_by_id()
-        .returning(move |_| Ok(Some(pc.clone())));
+        .returning(move |_, _| Ok(Some(pc.clone())));
     let mut id_repo = MockTransferIdentifierRepoTrait::new();
     id_repo
         .expect_get_identifiers_by_process_id()
@@ -773,7 +773,7 @@ async fn get_one_not_found_returns_error() {
     let mut proc_repo = MockTransferProcessRepoTrait::new();
     proc_repo
         .expect_get_transfer_process_by_id()
-        .returning(|_| Ok(None));
+        .returning(|_, _| Ok(None));
     let id_repo = MockTransferIdentifierRepoTrait::new();
 
     let svc = make_svc(proc_repo, id_repo);
@@ -785,7 +785,7 @@ async fn get_one_propagates_process_repo_error() {
     let mut proc_repo = MockTransferProcessRepoTrait::new();
     proc_repo
         .expect_get_transfer_process_by_id()
-        .returning(|_| {
+        .returning(|_, _| {
             Err(TransferProcessRepoErrors::ErrorFetchingTransferProcess(io_err()).into_errors())
         });
     let id_repo = MockTransferIdentifierRepoTrait::new();
@@ -801,7 +801,7 @@ async fn get_one_propagates_identifier_repo_error() {
     let mut proc_repo = MockTransferProcessRepoTrait::new();
     proc_repo
         .expect_get_transfer_process_by_id()
-        .returning(move |_| Ok(Some(pc.clone())));
+        .returning(move |_, _| Ok(Some(pc.clone())));
     let mut id_repo = MockTransferIdentifierRepoTrait::new();
     id_repo
         .expect_get_identifiers_by_process_id()
@@ -821,13 +821,14 @@ async fn get_one_propagates_identifier_repo_error() {
 
 #[tokio::test]
 async fn get_one_foreign_tenant_returns_not_found() {
-    // Process belongs to tenant-1; an owner scoped to tenant-2 must get a 404.
+    // Process belongs to tenant-1; an owner scoped to tenant-2 passes tenant-2 to repo,
+    // which filters it out in the query and returns None, yielding a 404.
     let p = make_process(1); // tenant-1
-    let pc = p.clone();
     let mut proc_repo = MockTransferProcessRepoTrait::new();
     proc_repo
         .expect_get_transfer_process_by_id()
-        .returning(move |_| Ok(Some(pc.clone())));
+        .withf(|tenant, id| tenant == "tenant-2" && id == &p_urn(1))
+        .returning(|_, _| Ok(None));
     let id_repo = MockTransferIdentifierRepoTrait::new();
 
     let svc = make_svc(proc_repo, id_repo);
@@ -836,6 +837,27 @@ async fn get_one_foreign_tenant_returns_not_found() {
             .await
             .is_err()
     );
+}
+
+#[tokio::test]
+async fn get_all_foreign_tenant_query_rejected_with_forbidden() {
+    let proc_repo = MockTransferProcessRepoTrait::new();
+    let id_repo = MockTransferIdentifierRepoTrait::new();
+    let svc = make_svc(proc_repo, id_repo);
+
+    let mut filter = TransferProcessFilter::default();
+    filter.tenant_id = Some("tenant-foreign".to_string());
+
+    let result = svc
+        .get_all(
+            &tenant_scope("tenant-1"),
+            &filter,
+            &Page::default(),
+            &Sort::default(),
+        )
+        .await;
+
+    assert!(result.is_err());
 }
 
 #[tokio::test]
@@ -860,14 +882,14 @@ async fn create_forces_caller_tenant_for_non_admin() {
 
 #[tokio::test]
 async fn edit_foreign_tenant_returns_not_found_without_mutating() {
-    // ensure_access fetches the record, sees tenant-1, and rejects the tenant-2
-    // owner before put_transfer_process is ever called.
-    let pc = make_process(1); // tenant-1
+    // Foreign tenant filter is passed directly to repo, which returns TransferProcessNotFound.
     let mut proc_repo = MockTransferProcessRepoTrait::new();
     proc_repo
-        .expect_get_transfer_process_by_id()
-        .returning(move |_| Ok(Some(pc.clone())));
-    proc_repo.expect_put_transfer_process().times(0);
+        .expect_put_transfer_process()
+        .withf(|tenant, id, _| tenant == "tenant-2" && id == &p_urn(1))
+        .returning(|_, _, _| {
+            Err(TransferProcessRepoErrors::TransferProcessNotFound.into_errors())
+        });
     let id_repo = MockTransferIdentifierRepoTrait::new();
 
     let svc = make_svc(proc_repo, id_repo);
@@ -883,14 +905,33 @@ async fn edit_foreign_tenant_returns_not_found_without_mutating() {
 }
 
 #[tokio::test]
+async fn delete_foreign_tenant_returns_not_found() {
+    // Foreign tenant filter is passed directly to repo, which returns TransferProcessNotFound.
+    let mut proc_repo = MockTransferProcessRepoTrait::new();
+    proc_repo
+        .expect_delete_transfer_process()
+        .withf(|tenant, id| tenant == "tenant-2" && id == &p_urn(1))
+        .returning(|_, _| {
+            Err(TransferProcessRepoErrors::TransferProcessNotFound.into_errors())
+        });
+    let id_repo = MockTransferIdentifierRepoTrait::new();
+
+    let svc = make_svc(proc_repo, id_repo);
+    assert!(
+        svc.delete(&tenant_scope("tenant-2"), &p_urn(1))
+            .await
+            .is_err()
+    );
+}
+
+#[tokio::test]
 async fn batch_filters_out_foreign_tenant_records() {
-    // The repo returns a tenant-1 record; a tenant-2 owner must see none of it.
-    let p = make_process(1); // tenant-1
-    let pc = p.clone();
+    // Foreign tenant filter is passed to the repo, returning empty list.
     let mut proc_repo = MockTransferProcessRepoTrait::new();
     proc_repo
         .expect_get_batch_transfer_processes()
-        .returning(move |_| Ok(vec![pc.clone()]));
+        .withf(|tenant, ids| tenant == "tenant-2" && ids == &[p_urn(1)])
+        .returning(|_, _| Ok(vec![]));
     let mut id_repo = MockTransferIdentifierRepoTrait::new();
     id_repo
         .expect_get_identifiers_by_batch_process_id()
@@ -918,7 +959,7 @@ async fn batch_empty_ids_returns_empty_vec() {
     let mut proc_repo = MockTransferProcessRepoTrait::new();
     proc_repo
         .expect_get_batch_transfer_processes()
-        .returning(|_| Ok(vec![]));
+        .returning(|_, _| Ok(vec![]));
     let mut id_repo = MockTransferIdentifierRepoTrait::new();
     id_repo
         .expect_get_identifiers_by_batch_process_id()
@@ -941,7 +982,7 @@ async fn batch_returns_one_view_per_process() {
     let mut proc_repo = MockTransferProcessRepoTrait::new();
     proc_repo
         .expect_get_batch_transfer_processes()
-        .returning(move |_| Ok(vec![p1c.clone(), p2c.clone()]));
+        .returning(move |_, _| Ok(vec![p1c.clone(), p2c.clone()]));
     let mut id_repo = MockTransferIdentifierRepoTrait::new();
     id_repo
         .expect_get_identifiers_by_batch_process_id()
@@ -974,7 +1015,7 @@ async fn batch_groups_identifiers_per_process() {
     let mut proc_repo = MockTransferProcessRepoTrait::new();
     proc_repo
         .expect_get_batch_transfer_processes()
-        .returning(move |_| Ok(vec![p1c.clone(), p2c.clone()]));
+        .returning(move |_, _| Ok(vec![p1c.clone(), p2c.clone()]));
     let mut id_repo = MockTransferIdentifierRepoTrait::new();
     id_repo
         .expect_get_identifiers_by_batch_process_id()
@@ -1010,7 +1051,7 @@ async fn batch_propagates_process_repo_error() {
     let mut proc_repo = MockTransferProcessRepoTrait::new();
     proc_repo
         .expect_get_batch_transfer_processes()
-        .returning(|_| {
+        .returning(|_, _| {
             Err(TransferProcessRepoErrors::ErrorFetchingTransferProcess(io_err()).into_errors())
         });
     let mut id_repo = MockTransferIdentifierRepoTrait::new();
@@ -1038,7 +1079,7 @@ async fn batch_propagates_identifier_repo_error() {
     let mut proc_repo = MockTransferProcessRepoTrait::new();
     proc_repo
         .expect_get_batch_transfer_processes()
-        .returning(move |_| Ok(vec![pcc.clone()]));
+        .returning(move |_, _| Ok(vec![pcc.clone()]));
     let mut id_repo = MockTransferIdentifierRepoTrait::new();
     id_repo
         .expect_get_identifiers_by_batch_process_id()
@@ -1216,8 +1257,8 @@ async fn edit_with_state_change() {
     let mut proc_repo = MockTransferProcessRepoTrait::new();
     proc_repo
         .expect_put_transfer_process()
-        .withf(|_, cmd| cmd.state.as_ref().map(|s| s.0.as_str()) == Some("COMPLETED"))
-        .returning(move |_, _| Ok(pc.clone()));
+        .withf(|_, _, cmd| cmd.state.as_ref().map(|s| s.0.as_str()) == Some("COMPLETED"))
+        .returning(move |_, _, _| Ok(pc.clone()));
     let mut id_repo = MockTransferIdentifierRepoTrait::new();
     id_repo
         .expect_get_identifiers_by_process_id()
@@ -1244,7 +1285,7 @@ async fn edit_without_identifiers_skips_upsert() {
     let mut proc_repo = MockTransferProcessRepoTrait::new();
     proc_repo
         .expect_put_transfer_process()
-        .returning(move |_, _| Ok(pc.clone()));
+        .returning(move |_, _, _| Ok(pc.clone()));
     let mut id_repo = MockTransferIdentifierRepoTrait::new();
     id_repo.expect_upsert_identifier().times(0);
     id_repo
@@ -1267,7 +1308,7 @@ async fn edit_with_identifiers_upserts_then_fetches() {
     let mut proc_repo = MockTransferProcessRepoTrait::new();
     proc_repo
         .expect_put_transfer_process()
-        .returning(move |_, _| Ok(pc.clone()));
+        .returning(move |_, _, _| Ok(pc.clone()));
     let mut id_repo = MockTransferIdentifierRepoTrait::new();
     id_repo
         .expect_upsert_identifier()
@@ -1314,7 +1355,7 @@ async fn edit_view_identifiers_come_from_repo_after_upsert() {
     let mut proc_repo = MockTransferProcessRepoTrait::new();
     proc_repo
         .expect_put_transfer_process()
-        .returning(move |_, _| Ok(pc.clone()));
+        .returning(move |_, _, _| Ok(pc.clone()));
     let mut id_repo = MockTransferIdentifierRepoTrait::new();
     id_repo
         .expect_upsert_identifier()
@@ -1345,7 +1386,7 @@ async fn edit_view_identifiers_come_from_repo_after_upsert() {
 #[tokio::test]
 async fn edit_propagates_process_repo_error() {
     let mut proc_repo = MockTransferProcessRepoTrait::new();
-    proc_repo.expect_put_transfer_process().returning(|_, _| {
+    proc_repo.expect_put_transfer_process().returning(|_, _, _| {
         Err(TransferProcessRepoErrors::ErrorUpdatingTransferProcess(io_err()).into_errors())
     });
     let id_repo = MockTransferIdentifierRepoTrait::new();
@@ -1365,7 +1406,7 @@ async fn edit_propagates_identifier_upsert_error() {
     let mut proc_repo = MockTransferProcessRepoTrait::new();
     proc_repo
         .expect_put_transfer_process()
-        .returning(move |_, _| Ok(pcc.clone()));
+        .returning(move |_, _, _| Ok(pcc.clone()));
     let mut id_repo = MockTransferIdentifierRepoTrait::new();
     id_repo.expect_upsert_identifier().returning(|_, _| {
         Err(TransferIdentifierRepoErrors::ErrorUpsertingTransferIdentifier(io_err()).into_errors())
@@ -1390,7 +1431,7 @@ async fn edit_propagates_identifier_fetch_error() {
     let mut proc_repo = MockTransferProcessRepoTrait::new();
     proc_repo
         .expect_put_transfer_process()
-        .returning(move |_, _| Ok(pcc.clone()));
+        .returning(move |_, _, _| Ok(pcc.clone()));
     let mut id_repo = MockTransferIdentifierRepoTrait::new();
     id_repo
         .expect_get_identifiers_by_process_id()
@@ -1417,7 +1458,7 @@ async fn delete_happy_path() {
     proc_repo
         .expect_delete_transfer_process()
         .times(1)
-        .returning(|_| Ok(()));
+        .returning(|_, _| Ok(()));
     let id_repo = MockTransferIdentifierRepoTrait::new();
 
     let svc = make_svc(proc_repo, id_repo);
@@ -1427,7 +1468,7 @@ async fn delete_happy_path() {
 #[tokio::test]
 async fn delete_propagates_error() {
     let mut proc_repo = MockTransferProcessRepoTrait::new();
-    proc_repo.expect_delete_transfer_process().returning(|_| {
+    proc_repo.expect_delete_transfer_process().returning(|_, _| {
         Err(TransferProcessRepoErrors::ErrorDeletingTransferProcess(io_err()).into_errors())
     });
     let id_repo = MockTransferIdentifierRepoTrait::new();

@@ -211,6 +211,15 @@ impl TransferDSPContextDomain {
     }
 
     // getters
+    pub fn tenant_id(&self) -> &str {
+        match &self.process {
+            TransferContextProcessSlot::Existing(p) => p.tenant_id(),
+            TransferContextProcessSlot::New { .. } => {
+                &self.typed.rdf.parsed.raw.authn.associated_participant.tenant_id
+            }
+        }
+    }
+
     pub fn process_urn(&self, location: &str) -> Outcome<Urn> {
         match &self.process {
             TransferContextProcessSlot::Existing(p) => Ok(p.id().as_urn().clone()),
@@ -234,6 +243,7 @@ mod tests {
     fn mate() -> Mates {
         let t = Utc::now();
         Mates {
+            tenant_id: "default".to_string(),
             participant_id: "did:example:provider".into(),
             participant_type: ParticipantType::Agent,
             participant_nick: "provider".to_string(),

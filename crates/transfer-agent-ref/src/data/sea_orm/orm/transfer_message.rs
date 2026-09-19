@@ -21,7 +21,8 @@ use sea_orm::ActiveValue::Set;
 use sea_orm::entity::prelude::*;
 use ymir::errors::Outcome;
 
-use crate::data::sea_orm::orm::helpers::{deser_enum, deser_json, parse_urn, ser_enum, ser_json};
+use common::utils::parse_urn;
+use crate::data::sea_orm::orm::helpers::{deser_enum, deser_json, ser_enum, ser_json};
 use crate::entities::ids::{MessageId, TenantId};
 use crate::entities::message_envelope::MessageEnvelope;
 use crate::entities::protocol::{ProtocolId, ProtocolMessageType};
@@ -48,11 +49,8 @@ impl Model {
     pub(crate) fn into_domain(self) -> Outcome<TransferMessage> {
         use crate::entities::ids::TransferProcessId;
 
-        let id = MessageId::new(parse_urn(&self.id, "transfer_message.id")?);
-        let transfer_process_id = TransferProcessId::new(parse_urn(
-            &self.transfer_process_id,
-            "transfer_message.transfer_process_id",
-        )?);
+        let id = MessageId::new(parse_urn(&self.id)?);
+        let transfer_process_id = TransferProcessId::new(parse_urn(&self.transfer_process_id)?);
         let tenant_id = self.tenant_id;
         let direction = deser_enum::<Direction>(&self.direction)?;
         let protocol = deser_enum::<ProtocolId>(&self.protocol)?;

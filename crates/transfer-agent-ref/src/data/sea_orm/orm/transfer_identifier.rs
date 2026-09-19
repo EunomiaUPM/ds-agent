@@ -20,12 +20,14 @@ use sea_orm::entity::prelude::*;
 use urn::Urn;
 use ymir::errors::Outcome;
 
-use crate::data::sea_orm::orm::helpers::parse_urn;
+use common::utils::parse_urn;
 use crate::entities::transfer_process_identifier::TransferProcessIdentifier;
 
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
 #[sea_orm(table_name = "transfer_identifiers")]
 pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub tenant_id: String,
     #[sea_orm(primary_key, auto_increment = false)]
     pub transfer_process_id: String,
     #[sea_orm(primary_key, auto_increment = false)]
@@ -36,11 +38,9 @@ pub struct Model {
 #[allow(clippy::result_large_err)]
 impl Model {
     pub(crate) fn into_domain(self) -> Outcome<TransferProcessIdentifier> {
-        let process_id = parse_urn(
-            &self.transfer_process_id,
-            "transfer_identifier.transfer_process_id",
-        )?;
+        let process_id = parse_urn(&self.transfer_process_id)?;
         Ok(TransferProcessIdentifier {
+            tenant_id: self.tenant_id,
             transfer_process_id: process_id,
             key: self.key,
             value: self.value,
@@ -51,6 +51,7 @@ impl Model {
 impl ActiveModel {
     pub(crate) fn from_domain(process_id: &Urn, ident: &TransferProcessIdentifier) -> Self {
         Self {
+            tenant_id: Set(ident.tenant_id.clone()),
             transfer_process_id: Set(process_id.to_string()),
             key: Set(ident.key.clone()),
             value: Set(ident.value.clone()),

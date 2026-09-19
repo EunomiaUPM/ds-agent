@@ -42,14 +42,22 @@ pub trait TransferMessageRepoTrait: Send + Sync {
         sort: &Sort,
     ) -> Outcome<Vec<TransferMessage>>;
 
-    async fn get_transfer_message_by_id(&self, id: &Urn) -> Outcome<Option<TransferMessage>>;
+    async fn get_transfer_message_by_id(
+        &self,
+        tenant_id: &str,
+        id: &Urn,
+    ) -> Outcome<Option<TransferMessage>>;
 
     async fn create_transfer_message(
         &self,
         cmd: &NewTransferMessageCommand,
     ) -> Outcome<TransferMessage>;
 
-    async fn delete_transfer_message(&self, id: &Urn) -> Outcome<()>;
+    async fn delete_transfer_message(
+        &self,
+        tenant_id: &str,
+        id: &Urn,
+    ) -> Outcome<()>;
 }
 
 #[derive(Debug, Error)]

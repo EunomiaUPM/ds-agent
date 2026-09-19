@@ -18,7 +18,7 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use crate::data::repo::transfer_message::TransferMessageRepoTrait;
+use crate::data::repo::transfer_message::{TransferMessageRepoErrors, TransferMessageRepoTrait};
 use crate::data::repo::transfer_process::{TransferProcessRepoErrors, TransferProcessRepoTrait};
 use crate::data::repo::transfer_process_identifier::TransferIdentifierRepoTrait;
 use crate::entities::commands::{
@@ -77,50 +77,8 @@ impl TransferProcessRepoTrait for InMemoryTransferProcessRepo {
         let mut items: Vec<TransferProcess> = store
             .values()
             .filter(|p| {
-                if let Some(tid) = &filters.tenant_id {
-                    if p.tenant_id().as_str() != tid.as_str() {
-                        return false;
-                    }
-                }
-                if let Some(proto) = &filters.protocol {
-                    if p.protocol() != proto {
-                        return false;
-                    }
-                }
-                if let Some(state) = &filters.state {
-                    if p.state() != state {
-                        return false;
-                    }
-                }
-                if let Some(role) = &filters.role {
-                    if p.role() != *role {
-                        return false;
-                    }
-                }
-                if let Some(aid) = &filters.agreement_id {
-                    if p.correlation().agreement_id.as_ref() != Some(aid) {
-                        return false;
-                    }
-                }
-                if let Some(peer) = &filters.peer_participant_id {
-                    let stored = p
-                        .correlation()
-                        .peer_participant_id
-                        .as_ref()
-                        .map(|x| x.as_urn());
-                    if stored != Some(peer.as_urn()) {
-                        return false;
-                    }
-                }
-                if let Some(after) = filters.created_after {
-                    if p.created_at() <= after {
-                        return false;
-                    }
-                }
-                if let Some(before) = filters.created_before {
-                    if p.created_at() >= before {
-                        return false;
-                    }
+                if !matches_process_filter(p, filters) {
+                    return false;
                 }
                 if let Some(cursor) = cursor_dt {
                     match sort {
@@ -190,50 +148,41 @@ impl TransferProcessRepoTrait for InMemoryTransferProcessRepo {
         let store = self.processes.lock().unwrap();
         let count = store
             .values()
-            .filter(|p| {
-                if let Some(tid) = &filters.tenant_id {
-                    if p.tenant_id().as_str() != tid.as_str() {
-                        return false;
-                    }
-                }
-                true
-            })
+            .filter(|p| matches_process_filter(p, filters))
             .count() as u64;
         Ok(count)
     }
 
-    async fn get_batch_transfer_processes(&self, ids: &[Urn]) -> Outcome<Vec<TransferProcess>> {
+    async fn get_batch_transfer_processes(
+        &self,
+        tenant_id: &str,
+        ids: &[Urn],
+    ) -> Outcome<Vec<TransferProcess>> {
         let store = self.processes.lock().unwrap();
         let id_strs: Vec<String> = ids.iter().map(|u| u.to_string()).collect();
         Ok(store
             .iter()
-            .filter(|(k, _)| id_strs.contains(k))
+            .filter(|(k, v)| {
+                id_strs.contains(k) && v.tenant_id().as_str() == tenant_id
+            })
             .map(|(_, v)| v.clone())
             .collect())
     }
 
-    async fn get_transfer_process_by_id(&self, id: &Urn) -> Outcome<Option<TransferProcess>> {
-        Ok(self.processes.lock().unwrap().get(&id.to_string()).cloned())
-    }
-
-    async fn get_transfer_process_by_key_id(
+    async fn get_transfer_process_by_id(
         &self,
-        key_id: &str,
+        tenant_id: &str,
         id: &Urn,
     ) -> Outcome<Option<TransferProcess>> {
-        let target = id.to_string();
-        let pid = {
-            let idents = self.identifiers.lock().unwrap();
-            idents
-                .iter()
-                .find(|((_, k), v)| k == key_id && v.value.as_deref() == Some(&target))
-                .map(|((pid, _), _)| pid.clone())
-        };
-        Ok(pid.and_then(|pid| self.processes.lock().unwrap().get(&pid).cloned()))
+        let store = self.processes.lock().unwrap();
+        let p = store.get(&id.to_string()).cloned();
+        Ok(p.filter(|p| p.tenant_id().as_str() == tenant_id))
     }
+
 
     async fn get_transfer_process_by_key_value(
         &self,
+        tenant_id: Option<String>,
         id: &Urn,
     ) -> Outcome<Option<TransferProcess>> {
         let target = id.to_string();
@@ -241,10 +190,22 @@ impl TransferProcessRepoTrait for InMemoryTransferProcessRepo {
             let idents = self.identifiers.lock().unwrap();
             idents
                 .iter()
-                .find(|(_, v)| v.value.as_deref() == Some(&target))
+                .find(|(_, v)| {
+                    v.value.as_deref() == Some(&target)
+                        && tenant_id.as_deref().map_or(true, |tid| v.tenant_id.as_str() == tid)
+                })
                 .map(|((pid, _), _)| pid.clone())
         };
-        Ok(pid.and_then(|pid| self.processes.lock().unwrap().get(&pid).cloned()))
+        let process = pid.and_then(|pid| {
+            let store = self.processes.lock().unwrap();
+            let p = store.get(&pid).cloned();
+            if let Some(tid) = &tenant_id {
+                p.filter(|p| p.tenant_id().as_str() == tid.as_str())
+            } else {
+                p
+            }
+        });
+        Ok(process)
     }
 
     async fn create_transfer_process(
@@ -261,6 +222,7 @@ impl TransferProcessRepoTrait for InMemoryTransferProcessRepo {
 
     async fn put_transfer_process(
         &self,
+        tenant_id: &str,
         id: &Urn,
         edit_model: &EditTransferProcessCommand,
     ) -> Outcome<TransferProcess> {
@@ -269,14 +231,32 @@ impl TransferProcessRepoTrait for InMemoryTransferProcessRepo {
             let p = store
                 .get_mut(&id.to_string())
                 .ok_or_else(|| TransferProcessRepoErrors::TransferProcessNotFound.into_errors())?;
+            if p.tenant_id().as_str() != tenant_id {
+                return Err(TransferProcessRepoErrors::TransferProcessNotFound.into_errors());
+            }
             p.apply_edit(edit_model.clone());
             p.clone()
         }; // MutexGuard dropped here
         Ok(process)
     }
 
-    async fn delete_transfer_process(&self, id: &Urn) -> Outcome<()> {
-        self.processes.lock().unwrap().remove(&id.to_string());
+    async fn delete_transfer_process(&self, tenant_id: &str, id: &Urn) -> Outcome<()> {
+        let mut store = self.processes.lock().unwrap();
+        if let Some(p) = store.get(&id.to_string()) {
+            if p.tenant_id().as_str() != tenant_id {
+                return Err(TransferProcessRepoErrors::TransferProcessNotFound.into_errors());
+            }
+        } else {
+            return Err(TransferProcessRepoErrors::TransferProcessNotFound.into_errors());
+        }
+        let removed = store.remove(&id.to_string());
+        if removed.is_none() {
+            return Err(TransferProcessRepoErrors::TransferProcessNotFound.into_errors());
+        }
+        self.identifiers
+            .lock()
+            .unwrap()
+            .retain(|(pid, _), _| pid != &id.to_string());
         Ok(())
     }
 }
@@ -328,20 +308,19 @@ impl TransferMessageRepoTrait for InMemoryTransferMessageRepo {
         let store = self.messages.lock().unwrap();
         let count = store
             .values()
-            .filter(|m| {
-                if let Some(tid) = &filters.tenant_id {
-                    if m.tenant_id().as_str() != tid.as_str() {
-                        return false;
-                    }
-                }
-                true
-            })
+            .filter(|m| matches_message_filter(m, None, filters))
             .count() as u64;
         Ok(count)
     }
 
-    async fn get_transfer_message_by_id(&self, id: &Urn) -> Outcome<Option<TransferMessage>> {
-        Ok(self.messages.lock().unwrap().get(&id.to_string()).cloned())
+    async fn get_transfer_message_by_id(
+        &self,
+        tenant_id: &str,
+        id: &Urn,
+    ) -> Outcome<Option<TransferMessage>> {
+        let store = self.messages.lock().unwrap();
+        let m = store.get(&id.to_string()).cloned();
+        Ok(m.filter(|m| m.tenant_id().as_str() == tenant_id))
     }
 
     async fn create_transfer_message(
@@ -356,8 +335,19 @@ impl TransferMessageRepoTrait for InMemoryTransferMessageRepo {
         Ok(msg)
     }
 
-    async fn delete_transfer_message(&self, id: &Urn) -> Outcome<()> {
-        self.messages.lock().unwrap().remove(&id.to_string());
+    async fn delete_transfer_message(&self, tenant_id: &str, id: &Urn) -> Outcome<()> {
+        let mut store = self.messages.lock().unwrap();
+        if let Some(m) = store.get(&id.to_string()) {
+            if m.tenant_id().as_str() != tenant_id {
+                return Err(TransferMessageRepoErrors::TransferMessageNotFound.into_errors());
+            }
+        } else {
+            return Err(TransferMessageRepoErrors::TransferMessageNotFound.into_errors());
+        }
+        let removed = store.remove(&id.to_string());
+        if removed.is_none() {
+            return Err(TransferMessageRepoErrors::TransferMessageNotFound.into_errors());
+        }
         Ok(())
     }
 }
@@ -424,6 +414,7 @@ impl TransferIdentifierRepoTrait for InMemoryTransferIdentifierRepo {
     ) -> Outcome<TransferProcessIdentifier> {
         let k = (process_id.to_string(), identifier.key.clone());
         let ident = TransferProcessIdentifier {
+            tenant_id: identifier.tenant_id.clone(),
             transfer_process_id: process_id.clone(),
             key: identifier.key.clone(),
             value: identifier.value.clone(),
@@ -447,6 +438,100 @@ fn decode_cursor(cursor: Option<&str>) -> Option<DateTime<Utc>> {
 }
 
 #[allow(dead_code)]
+fn matches_process_filter(p: &TransferProcess, filters: &TransferProcessFilter) -> bool {
+    if let Some(tid) = &filters.tenant_id {
+        if p.tenant_id().as_str() != tid.as_str() {
+            return false;
+        }
+    }
+    if let Some(proto) = &filters.protocol {
+        if p.protocol() != proto {
+            return false;
+        }
+    }
+    if let Some(state) = &filters.state {
+        if p.state() != state {
+            return false;
+        }
+    }
+    if let Some(role) = &filters.role {
+        if p.role() != *role {
+            return false;
+        }
+    }
+    if let Some(aid) = &filters.agreement_id {
+        if p.correlation().agreement_id.as_ref() != Some(aid) {
+            return false;
+        }
+    }
+    if let Some(peer) = &filters.peer_participant_id {
+        let stored = p
+            .correlation()
+            .peer_participant_id
+            .as_ref()
+            .map(|x| x.as_urn());
+        if stored != Some(peer.as_urn()) {
+            return false;
+        }
+    }
+    if let Some(after) = filters.created_after {
+        if p.created_at() <= after {
+            return false;
+        }
+    }
+    if let Some(before) = filters.created_before {
+        if p.created_at() >= before {
+            return false;
+        }
+    }
+    true
+}
+
+#[allow(dead_code)]
+fn matches_message_filter(
+    m: &TransferMessage,
+    process_id: Option<&Urn>,
+    filters: &TransferMessageFilter,
+) -> bool {
+    if let Some(tid) = &filters.tenant_id {
+        if m.tenant_id().as_str() != tid.as_str() {
+            return false;
+        }
+    }
+    if let Some(pid) = process_id {
+        if m.transfer_process_id().as_urn() != pid {
+            return false;
+        }
+    }
+    if let Some(dir) = &filters.direction {
+        if m.direction() != *dir {
+            return false;
+        }
+    }
+    if let Some(proto) = &filters.protocol {
+        if m.protocol() != proto {
+            return false;
+        }
+    }
+    if let Some(state) = &filters.state_transition_to {
+        if m.state_transition_to() != state.0.as_str() {
+            return false;
+        }
+    }
+    if let Some(after) = filters.created_after {
+        if m.occurred_at() <= after {
+            return false;
+        }
+    }
+    if let Some(before) = filters.created_before {
+        if m.occurred_at() >= before {
+            return false;
+        }
+    }
+    true
+}
+
+#[allow(dead_code)]
 fn filter_messages<'a>(
     values: impl Iterator<Item = &'a TransferMessage>,
     process_id: Option<&Urn>,
@@ -458,40 +543,8 @@ fn filter_messages<'a>(
 
     let mut items: Vec<TransferMessage> = values
         .filter(|m| {
-            if let Some(tid) = &filters.tenant_id {
-                if m.tenant_id().as_str() != tid.as_str() {
-                    return false;
-                }
-            }
-            if let Some(pid) = process_id {
-                if m.transfer_process_id().as_urn() != pid {
-                    return false;
-                }
-            }
-            if let Some(dir) = &filters.direction {
-                if m.direction() != *dir {
-                    return false;
-                }
-            }
-            if let Some(proto) = &filters.protocol {
-                if m.protocol() != proto {
-                    return false;
-                }
-            }
-            if let Some(state) = &filters.state_transition_to {
-                if m.state_transition_to() != state.0.as_str() {
-                    return false;
-                }
-            }
-            if let Some(after) = filters.created_after {
-                if m.occurred_at() <= after {
-                    return false;
-                }
-            }
-            if let Some(before) = filters.created_before {
-                if m.occurred_at() >= before {
-                    return false;
-                }
+            if !matches_message_filter(m, process_id, filters) {
+                return false;
             }
             if let Some(cursor) = cursor_dt {
                 match sort {

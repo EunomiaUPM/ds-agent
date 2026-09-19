@@ -62,6 +62,7 @@ impl DataPlaneStrategy for ProviderPushStrategy {
             .execute_command(DataplaneCommand::SetInit(
                 DataplaneInitCommandTypes::AsProvider {
                     transfer_process_id: id,
+                    tenant_id: ctx.tenant_id().to_string(),
                     connector_instance: connector_instance.clone(),
                     direction: DataplaneInitCommandDirection::Push {
                         data_address: Some(data_address),

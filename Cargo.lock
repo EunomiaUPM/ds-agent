@@ -597,6 +597,7 @@ dependencies = [
  "json_to_table",
  "log",
  "mockall",
+ "oauth",
  "prost",
  "prost-types",
  "redis",
@@ -833,6 +834,7 @@ dependencies = [
  "jaq-parse",
  "log",
  "mockall",
+ "oauth",
  "regex",
  "sea-orm",
  "sea-orm-migration",
@@ -1084,6 +1086,7 @@ dependencies = [
  "hyper",
  "keystore",
  "mockall",
+ "oauth",
  "redis",
  "regex",
  "reqwest 0.13.4",
@@ -2470,6 +2473,7 @@ dependencies = [
  "futures-util",
  "hyper",
  "mockall",
+ "oauth",
  "redis",
  "reqwest 0.13.4",
  "sea-orm",
@@ -2832,6 +2836,7 @@ dependencies = [
  "json_to_table",
  "log",
  "mockall",
+ "oauth",
  "prost",
  "prost-types",
  "sea-orm",
@@ -6251,7 +6256,6 @@ checksum = "cfe53a6657fd280eaa890a3bc59152892ffa3e30101319d168b781ed6529b049"
 [[package]]
 name = "ymir"
 version = "0.8.0"
-source = "git+https://github.com/EunomiaUPM/ymir.git?tag=v0.8.1#5d899e17789e9f95c87c5196adc39c2575934cb1"
 dependencies = [
  "async-trait",
  "axum",

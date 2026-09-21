@@ -172,7 +172,7 @@ pub trait VcRequesterModule:
         grant.status = GrantStatus::Finalized;
         grant.ended_at = Some(Utc::now());
         let grant = self.repo().sent_grant().update(grant).await?;
-        let authority = self.vc_requester().build_authority_plan(&grant);
+        let authority = self.vc_requester().build_authority_plan("system", &grant);
         self.repo().participant().force_update(authority).await?;
         Ok(())
     }
@@ -212,7 +212,7 @@ pub trait VcRequesterModule:
             grant.status = GrantStatus::Finalized;
             grant.ended_at = Some(Utc::now());
             let grant = self.repo().sent_grant().update(grant).await?;
-            let authority = self.vc_requester().build_authority_plan(&grant);
+            let authority = self.vc_requester().build_authority_plan("system", &grant);
             self.repo().participant().force_update(authority).await?;
         }
 

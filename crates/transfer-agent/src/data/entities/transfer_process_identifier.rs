@@ -27,6 +27,7 @@ use urn::Urn;
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: String,
+    pub tenant_id: String,
     pub transfer_agent_process_id: String,
     pub id_key: String,
     pub id_value: Option<String>,
@@ -54,6 +55,7 @@ impl ActiveModelBehavior for ActiveModel {}
 #[derive(Clone)]
 pub struct NewTransferIdentifierModel {
     pub(crate) id: Option<Urn>,
+    pub(crate) tenant_id: String,
     pub(crate) transfer_agent_process_id: Urn,
     pub(crate) id_key: String,
     pub(crate) id_value: Option<String>,
@@ -63,6 +65,7 @@ impl From<NewTransferIdentifierModel> for ActiveModel {
     fn from(dto: NewTransferIdentifierModel) -> Self {
         Self {
             id: ActiveValue::Set(dto.id.unwrap_or(get_urn(None)).to_string()),
+            tenant_id: ActiveValue::Set(dto.tenant_id),
             transfer_agent_process_id: ActiveValue::Set(dto.transfer_agent_process_id.to_string()),
             id_key: ActiveValue::Set(dto.id_key),
             id_value: ActiveValue::Set(dto.id_value),

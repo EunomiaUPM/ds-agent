@@ -18,13 +18,14 @@
 //! Domain filters for catalog agent entities.
 
 use chrono::{DateTime, Utc};
-use common::query::{validate_date_range, QueryFilter};
+use common::query::{DateRange, QueryFilter};
 use serde::{Deserialize, Serialize};
 use ymir::errors::Outcome;
 
 /// Filter criteria for querying catalogs.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct CatalogFilter {
+    pub tenant_id: Option<String>,
     pub title: Option<String>,
     pub creator: Option<String>,
     pub participant_id: Option<String>,
@@ -35,7 +36,8 @@ pub struct CatalogFilter {
 
 impl QueryFilter for CatalogFilter {
     fn is_empty(&self) -> bool {
-        self.title.is_none()
+        self.tenant_id.is_none()
+            && self.title.is_none()
             && self.creator.is_none()
             && self.participant_id.is_none()
             && self.with_main_catalog.is_none()
@@ -44,13 +46,14 @@ impl QueryFilter for CatalogFilter {
     }
 
     fn validate(&self) -> Outcome<()> {
-        validate_date_range(self.created_after, self.created_before)
+        DateRange::validate_bounds(self.created_after, self.created_before)
     }
 }
 
 /// Filter criteria for querying datasets.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct DatasetFilter {
+    pub tenant_id: Option<String>,
     pub catalog_id: Option<String>,
     pub title: Option<String>,
     pub creator: Option<String>,
@@ -61,7 +64,8 @@ pub struct DatasetFilter {
 
 impl QueryFilter for DatasetFilter {
     fn is_empty(&self) -> bool {
-        self.catalog_id.is_none()
+        self.tenant_id.is_none()
+            && self.catalog_id.is_none()
             && self.title.is_none()
             && self.creator.is_none()
             && self.conforms_to.is_none()
@@ -70,13 +74,14 @@ impl QueryFilter for DatasetFilter {
     }
 
     fn validate(&self) -> Outcome<()> {
-        validate_date_range(self.created_after, self.created_before)
+        DateRange::validate_bounds(self.created_after, self.created_before)
     }
 }
 
 /// Filter criteria for querying distributions.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct DistributionFilter {
+    pub tenant_id: Option<String>,
     pub dataset_id: Option<String>,
     pub access_service: Option<String>,
     pub format: Option<String>,
@@ -87,7 +92,8 @@ pub struct DistributionFilter {
 
 impl QueryFilter for DistributionFilter {
     fn is_empty(&self) -> bool {
-        self.dataset_id.is_none()
+        self.tenant_id.is_none()
+            && self.dataset_id.is_none()
             && self.access_service.is_none()
             && self.format.is_none()
             && self.title.is_none()
@@ -96,13 +102,14 @@ impl QueryFilter for DistributionFilter {
     }
 
     fn validate(&self) -> Outcome<()> {
-        validate_date_range(self.created_after, self.created_before)
+        DateRange::validate_bounds(self.created_after, self.created_before)
     }
 }
 
 /// Filter criteria for querying data services.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct DataServiceFilter {
+    pub tenant_id: Option<String>,
     pub catalog_id: Option<String>,
     pub endpoint_url: Option<String>,
     pub title: Option<String>,
@@ -114,7 +121,8 @@ pub struct DataServiceFilter {
 
 impl QueryFilter for DataServiceFilter {
     fn is_empty(&self) -> bool {
-        self.catalog_id.is_none()
+        self.tenant_id.is_none()
+            && self.catalog_id.is_none()
             && self.endpoint_url.is_none()
             && self.title.is_none()
             && self.creator.is_none()
@@ -124,13 +132,14 @@ impl QueryFilter for DataServiceFilter {
     }
 
     fn validate(&self) -> Outcome<()> {
-        validate_date_range(self.created_after, self.created_before)
+        DateRange::validate_bounds(self.created_after, self.created_before)
     }
 }
 
 /// Filter criteria for querying ODRL policies and offers.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct OdrlPolicyFilter {
+    pub tenant_id: Option<String>,
     pub entity: Option<String>,
     pub entity_type: Option<String>,
     pub source_template_id: Option<String>,
@@ -141,7 +150,8 @@ pub struct OdrlPolicyFilter {
 
 impl QueryFilter for OdrlPolicyFilter {
     fn is_empty(&self) -> bool {
-        self.entity.is_none()
+        self.tenant_id.is_none()
+            && self.entity.is_none()
             && self.entity_type.is_none()
             && self.source_template_id.is_none()
             && self.source_template_version.is_none()
@@ -150,13 +160,14 @@ impl QueryFilter for OdrlPolicyFilter {
     }
 
     fn validate(&self) -> Outcome<()> {
-        validate_date_range(self.created_after, self.created_before)
+        DateRange::validate_bounds(self.created_after, self.created_before)
     }
 }
 
 /// Filter criteria for querying policy templates.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct PolicyTemplateFilter {
+    pub tenant_id: Option<String>,
     pub id: Option<String>,
     pub version: Option<String>,
     pub author: Option<String>,
@@ -166,7 +177,8 @@ pub struct PolicyTemplateFilter {
 
 impl QueryFilter for PolicyTemplateFilter {
     fn is_empty(&self) -> bool {
-        self.id.is_none()
+        self.tenant_id.is_none()
+            && self.id.is_none()
             && self.version.is_none()
             && self.author.is_none()
             && self.created_after.is_none()
@@ -174,6 +186,6 @@ impl QueryFilter for PolicyTemplateFilter {
     }
 
     fn validate(&self) -> Outcome<()> {
-        validate_date_range(self.created_after, self.created_before)
+        DateRange::validate_bounds(self.created_after, self.created_before)
     }
 }

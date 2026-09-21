@@ -15,6 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+pub(crate) mod auth;
 pub(crate) mod catalogs;
 pub(crate) mod data_services;
 pub(crate) mod datasets;

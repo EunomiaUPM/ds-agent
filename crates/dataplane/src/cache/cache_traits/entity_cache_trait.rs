@@ -176,3 +176,55 @@ where
         Self::hydrate_from_multiple_keys(self.get_conn(), keys).await
     }
 }
+
+#[derive(Default, Clone)]
+pub struct NoopCache<D> {
+    _phantom: std::marker::PhantomData<D>,
+}
+
+impl<D> NoopCache<D> {
+    pub fn new() -> Self {
+        Self {
+            _phantom: std::marker::PhantomData,
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl<D: Send + Sync + 'static> EntityCacheTrait<D> for NoopCache<D> {
+    async fn get_single(&self, _id: &Urn) -> Outcome<Option<D>> {
+        Ok(None)
+    }
+
+    async fn set_single(&self, _id: &Urn, _model: &D) -> Outcome<()> {
+        Ok(())
+    }
+
+    async fn delete_single(&self, _id: &Urn) -> Outcome<()> {
+        Ok(())
+    }
+
+    async fn get_main(&self) -> Outcome<Option<D>> {
+        Ok(None)
+    }
+
+    async fn set_main(&self, _id: &Urn, _model: &D) -> Outcome<()> {
+        Ok(())
+    }
+
+    async fn get_collection(&self, _limit: Option<u64>, _page: Option<u64>) -> Outcome<Vec<D>> {
+        Ok(vec![])
+    }
+
+    async fn add_to_collection(&self, _id: &Urn, _score: f64) -> Outcome<()> {
+        Ok(())
+    }
+
+    async fn remove_from_collection(&self, _id: &Urn) -> Outcome<()> {
+        Ok(())
+    }
+
+    async fn get_batch(&self, _ids: &Vec<Urn>) -> Outcome<Vec<D>> {
+        Ok(vec![])
+    }
+}

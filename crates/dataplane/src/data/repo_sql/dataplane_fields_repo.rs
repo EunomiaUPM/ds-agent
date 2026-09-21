@@ -102,16 +102,17 @@ impl DataplaneFieldRepoTrait for DataplaneFieldRepoForSql {
 
     async fn create_dataplane_field(
         &self,
+        tenant_id: &str,
         process_id: &Urn,
         new_dataplane_field: &NewDataPlaneFieldModel,
     ) -> Outcome<dataplane_field::Model> {
         let id = format!("urn:dataplane-field:{}", uuid::Uuid::new_v4());
         let new_model = dataplane_field::ActiveModel {
             id: ActiveValue::Set(id),
+            tenant_id: ActiveValue::Set(tenant_id.to_string()),
             key: ActiveValue::Set(new_dataplane_field.key.clone()),
             value: ActiveValue::Set(new_dataplane_field.value.clone()),
             dataplane_process_id: ActiveValue::Set(process_id.to_string()),
-            // ..Default::default()
         };
 
         let result = new_model.insert(&self.db).await.map_err(|e| {

@@ -97,10 +97,10 @@ mod tests {
         pub ConnectorMock {}
         #[async_trait::async_trait]
         impl ConnectorInstanceTrait for ConnectorMock {
-            async fn get_instance_by_id(&self, id: &Urn) -> Outcome<Option<ConnectorInstanceDto>>;
-            async fn get_instance_by_distribution(&self, distribution_id: &Urn) -> Outcome<Option<ConnectorInstanceDto>>;
-            async fn upsert_instance(&self, dto: &mut ConnectorInstantiationDto) -> Outcome<ConnectorInstanceDto>;
-            async fn delete_instance_by_id(&self, id: &Urn) -> Outcome<()>;
+            async fn get_instance_by_id(&self, scope: &common::auth::AccessScope, id: &Urn) -> Outcome<Option<ConnectorInstanceDto>>;
+            async fn get_instance_by_distribution(&self, scope: &common::auth::AccessScope, distribution_id: &Urn) -> Outcome<Option<ConnectorInstanceDto>>;
+            async fn upsert_instance(&self, scope: &common::auth::AccessScope, dto: &mut ConnectorInstantiationDto) -> Outcome<ConnectorInstanceDto>;
+            async fn delete_instance_by_id(&self, scope: &common::auth::AccessScope, id: &Urn) -> Outcome<()>;
         }
     }
 
@@ -120,6 +120,7 @@ mod tests {
     fn dto(state: TransferState) -> DataplaneTransferDto {
         DataplaneTransferDto {
             inner: dataplane_transfers::Model {
+                tenant_id: "tenant-1".to_string(),
                 id: DP_URN.to_string(),
                 transfer_process_id: TP_URN.to_string(),
                 role: TransferRole::Consumer,
@@ -156,6 +157,7 @@ mod tests {
             Arc::new(MockConnectorMock::new()),
             transfer_config_fixture(),
             DataplaneInitCommandTypes::AsConsumer {
+                tenant_id: "tenant-1".to_string(),
                 transfer_process_id: Urn::from_str(TP_URN).unwrap(),
                 direction: DataplaneInitCommandDirection::Push {
                     data_address: Some(push_endpoint_fixture()),

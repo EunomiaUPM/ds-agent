@@ -62,6 +62,7 @@ mod test_dataservice {
     }
 
     #[tokio::test]
+    #[ignore = "Requires running Redis instance"]
     async fn test_dataservice_lookup_by_catalog() {
         let mut cache = setup().await;
 
@@ -75,6 +76,7 @@ mod test_dataservice {
         let ds_dto = DataServiceDto {
             inner: DataServiceModel {
                 id: ds_id.to_string(),
+                tenant_id: "default".to_string(),
                 dcat_endpoint_description: Some("Some description".to_string()),
                 dcat_endpoint_url: "".to_string(),
                 dct_conforms_to: Some("https://dct.es".to_string()),

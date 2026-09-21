@@ -28,6 +28,7 @@ use crate::entities::topic::Topic;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EventEnvelope {
     pub id: Urn,
+    pub tenant_id: String,
     pub topic: Topic,
     pub source_crate: String,
     pub schema_version: u32,
@@ -40,6 +41,7 @@ pub struct EventEnvelope {
 impl EventEnvelope {
     // Construct a new event envelope with generated URN id and current timestamp.
     pub fn new(
+        tenant_id: impl Into<String>,
         topic: Topic,
         source_crate: impl Into<String>,
         schema_version: u32,
@@ -50,6 +52,7 @@ impl EventEnvelope {
         let id = Urn::from_str(&id_str).expect("valid URN format");
         Self {
             id,
+            tenant_id: tenant_id.into(),
             topic,
             source_crate: source_crate.into(),
             schema_version,
@@ -62,6 +65,7 @@ impl EventEnvelope {
     // Construct an envelope with explicit metadata for persistence rehydration.
     pub fn with_metadata(
         id: Urn,
+        tenant_id: impl Into<String>,
         topic: Topic,
         source_crate: impl Into<String>,
         schema_version: u32,
@@ -71,6 +75,7 @@ impl EventEnvelope {
     ) -> Self {
         Self {
             id,
+            tenant_id: tenant_id.into(),
             topic,
             source_crate: source_crate.into(),
             schema_version,

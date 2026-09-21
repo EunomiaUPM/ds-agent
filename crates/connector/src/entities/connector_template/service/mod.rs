@@ -98,32 +98,40 @@ impl ConnectorTemplateEntitiesService {
 }
 
 use crate::entities::filters::ConnectorTemplateFilter;
+use common::auth::AccessScope;
 use common::paginated_spec::{Cursor, Page, Paginated, Sort};
+use common::query::QueryFilter;
 
 #[async_trait::async_trait]
 impl ConnectorTemplateEntitiesTrait for ConnectorTemplateEntitiesService {
     async fn get_all_templates(
         &self,
+        scope: &AccessScope,
         filters: &ConnectorTemplateFilter,
         page: &Page,
         sort: Sort,
     ) -> Outcome<Paginated<ConnectorTemplateDto>> {
+        scope.require_read()?;
+        filters.validate()?;
+        let mut filters = filters.clone();
+        filters.tenant_id = scope.resolve_query_tenant(filters.tenant_id.as_deref())?;
+        let page = page.clamped();
+
         let (models, total) = self
             .repo
             .get_templates_repo()
-            .get_all_templates(filters, page, sort)
+            .get_all_templates(&filters, &page, sort)
             .await
             .map_err(|e| {
                 error!("{}", e);
                 Errors::db(&e.to_string(), None)
             })?;
 
-        let mut dtos = Vec::with_capacity(models.len());
-        for model in models {
-            dtos.push(Self::map_model_to_dto(model)?);
-        }
+        let dtos: Outcome<Vec<ConnectorTemplateDto>> =
+            models.into_iter().map(Self::map_model_to_dto).collect();
+        let dtos = dtos?;
 
-        Ok(Paginated::from_page(dtos, page, total, |last| {
+        Ok(Paginated::from_page(dtos, &page, total, |last| {
             Cursor::encode_composite(
                 &last
                     .metadata
@@ -136,50 +144,50 @@ impl ConnectorTemplateEntitiesTrait for ConnectorTemplateEntitiesService {
 
     async fn get_templates_by_id(
         &self,
-        template_id: &String,
+        scope: &AccessScope,
+        template_id: &str,
     ) -> Outcome<Vec<ConnectorTemplateDto>> {
+        scope.require_read()?;
         let models = self
             .repo
             .get_templates_repo()
-            .get_templates_by_name(template_id)
+            .get_templates_by_name(scope.acting_tenant(), template_id)
             .await
             .map_err(|e| {
                 error!("{}", e);
                 Errors::db(&e.to_string(), None)
             })?;
 
-        let mut dtos = Vec::with_capacity(models.len());
-        for model in models {
-            dtos.push(Self::map_model_to_dto(model)?);
-        }
-        Ok(dtos)
+        models.into_iter().map(Self::map_model_to_dto).collect()
     }
 
     async fn get_template_by_name_and_version(
         &self,
-        name: &String,
-        version: &String,
+        scope: &AccessScope,
+        name: &str,
+        version: &str,
     ) -> Outcome<Option<ConnectorTemplateDto>> {
+        scope.require_read()?;
         let result = self
             .repo
             .get_templates_repo()
-            .get_template_by_name_and_version(name, version)
+            .get_template_by_name_and_version(scope.acting_tenant(), name, version)
             .await
             .map_err(|e| {
                 error!("{}", e);
                 Errors::db(&e.to_string(), None)
             })?;
 
-        match result {
-            Some(model) => Ok(Some(Self::map_model_to_dto(model)?)),
-            None => Ok(None),
-        }
+        result.map(Self::map_model_to_dto).transpose()
     }
 
     async fn create_template(
         &self,
+        scope: &AccessScope,
         new_template: &mut ConnectorTemplateDto,
     ) -> Outcome<ConnectorTemplateDto> {
+        let target_tenant = scope.resolve_create_tenant(None)?;
+
         // extract parameters and validate
         let mut extractor = TemplateParametersExtractor::new();
         extractor.walk(new_template)?;
@@ -191,8 +199,10 @@ impl ConnectorTemplateEntitiesTrait for ConnectorTemplateEntitiesService {
         validator.validate()?;
 
         // persist
-        let new_model: NewConnectorTemplateModel =
-            new_template.clone().try_into().map_err(|e: Errors| {
+        let new_model = new_template
+            .clone()
+            .into_model(target_tenant)
+            .map_err(|e: Errors| {
                 error!("{}", e);
                 Errors::parse(&format!("Error preparing template model: {}", e), None)
             })?;
@@ -219,12 +229,15 @@ impl ConnectorTemplateEntitiesTrait for ConnectorTemplateEntitiesService {
 
     async fn delete_template_by_name_and_version(
         &self,
-        name: &String,
-        version: &String,
+        scope: &AccessScope,
+        name: &str,
+        version: &str,
     ) -> Outcome<()> {
+        scope.require_write()?;
+
         self.repo
             .get_templates_repo()
-            .delete_template_by_name_and_version(name, version)
+            .delete_template_by_name_and_version(scope.acting_tenant(), name, version)
             .await
             .map_err(|e| {
                 error!("{}", e);

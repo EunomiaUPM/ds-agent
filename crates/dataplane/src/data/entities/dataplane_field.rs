@@ -24,6 +24,7 @@ use serde::{Deserialize, Serialize};
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: String,
+    pub tenant_id: String,
     pub key: String,
     pub value: Option<String>,
     pub dataplane_process_id: String,
@@ -51,6 +52,7 @@ impl ActiveModelBehavior for ActiveModel {}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NewDataPlaneFieldModel {
+    pub tenant_id: String,
     pub key: String,
     pub value: Option<String>,
 }

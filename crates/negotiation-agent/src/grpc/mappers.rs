@@ -58,17 +58,13 @@ impl TryFrom<CreateNegotiationProcessRequest> for NewNegotiationProcessDto {
         let id_urn = if let Some(id) = proto.id {
             Some(
                 Urn::from_str(&id)
-                    .map_err(|e| Status::invalid_argument(format!("Invalid Process URN: {}", e)))?,
+                    .map_err(|e| Status::invalid_argument(format!("Invalid Process URN: {e}")))?,
             )
         } else {
             None
         };
 
-        let properties = if let Some(props) = proto.properties {
-            Some(prost_struct_to_serde(props))
-        } else {
-            None
-        };
+        let properties = proto.properties.map(prost_struct_to_serde);
 
         let identifiers = if proto.identifiers.is_empty() {
             None
@@ -78,6 +74,7 @@ impl TryFrom<CreateNegotiationProcessRequest> for NewNegotiationProcessDto {
 
         Ok(NewNegotiationProcessDto {
             id: id_urn,
+            tenant_id: None,
             state: proto.state,
             state_attribute: proto.state_attribute,
             associated_agent_peer: proto.associated_agent_peer,
@@ -180,14 +177,14 @@ impl TryFrom<CreateNegotiationMessageRequest> for NewNegotiationMessageDto {
         let id_urn = if let Some(id) = proto.id {
             Some(
                 Urn::from_str(&id)
-                    .map_err(|e| Status::invalid_argument(format!("Invalid Message URN: {}", e)))?,
+                    .map_err(|e| Status::invalid_argument(format!("Invalid Message URN: {e}")))?,
             )
         } else {
             None
         };
 
         let process_urn = Urn::from_str(&proto.negotiation_agent_process_id)
-            .map_err(|e| Status::invalid_argument(format!("Invalid Process URN: {}", e)))?;
+            .map_err(|e| Status::invalid_argument(format!("Invalid Process URN: {e}")))?;
 
         let payload = if let Some(p) = proto.payload {
             prost_struct_to_serde(p)
@@ -197,6 +194,7 @@ impl TryFrom<CreateNegotiationMessageRequest> for NewNegotiationMessageDto {
 
         Ok(NewNegotiationMessageDto {
             id: id_urn,
+            tenant_id: None,
             negotiation_agent_process_id: process_urn,
             direction: proto.direction,
             protocol: proto.protocol,
@@ -247,16 +245,16 @@ impl TryFrom<CreateOfferRequest> for NewOfferDto {
         let id_urn = if let Some(id) = proto.id {
             Some(
                 Urn::from_str(&id)
-                    .map_err(|e| Status::invalid_argument(format!("Invalid Offer URN: {}", e)))?,
+                    .map_err(|e| Status::invalid_argument(format!("Invalid Offer URN: {e}")))?,
             )
         } else {
             None
         };
 
         let process_urn = Urn::from_str(&proto.negotiation_agent_process_id)
-            .map_err(|e| Status::invalid_argument(format!("Invalid Process URN: {}", e)))?;
+            .map_err(|e| Status::invalid_argument(format!("Invalid Process URN: {e}")))?;
         let message_urn = Urn::from_str(&proto.negotiation_agent_message_id)
-            .map_err(|e| Status::invalid_argument(format!("Invalid Message URN: {}", e)))?;
+            .map_err(|e| Status::invalid_argument(format!("Invalid Message URN: {e}")))?;
 
         let content = if let Some(c) = proto.offer_content {
             prost_struct_to_serde(c)
@@ -266,6 +264,7 @@ impl TryFrom<CreateOfferRequest> for NewOfferDto {
 
         Ok(NewOfferDto {
             id: id_urn,
+            tenant_id: None,
             negotiation_agent_process_id: process_urn,
             negotiation_agent_message_id: message_urn,
             offer_id: proto.offer_id,
@@ -290,21 +289,21 @@ impl TryFrom<CreateAgreementRequest> for NewAgreementDto {
     type Error = Status;
 
     fn try_from(proto: CreateAgreementRequest) -> Result<Self, Self::Error> {
-        let id_urn =
-            if let Some(id) = proto.id {
-                Some(Urn::from_str(&id).map_err(|e| {
-                    Status::invalid_argument(format!("Invalid Agreement URN: {}", e))
-                })?)
-            } else {
-                None
-            };
+        let id_urn = if let Some(id) = proto.id {
+            Some(
+                Urn::from_str(&id)
+                    .map_err(|e| Status::invalid_argument(format!("Invalid Agreement URN: {e}")))?,
+            )
+        } else {
+            None
+        };
 
         let process_urn = Urn::from_str(&proto.negotiation_agent_process_id)
-            .map_err(|e| Status::invalid_argument(format!("Invalid Process URN: {}", e)))?;
+            .map_err(|e| Status::invalid_argument(format!("Invalid Process URN: {e}")))?;
         let message_urn = Urn::from_str(&proto.negotiation_agent_message_id)
-            .map_err(|e| Status::invalid_argument(format!("Invalid Message URN: {}", e)))?;
+            .map_err(|e| Status::invalid_argument(format!("Invalid Message URN: {e}")))?;
         let target_urn = Urn::from_str(&proto.target)
-            .map_err(|e| Status::invalid_argument(format!("Invalid Target URN: {}", e)))?;
+            .map_err(|e| Status::invalid_argument(format!("Invalid Target URN: {e}")))?;
 
         let content = if let Some(c) = proto.agreement_content {
             prost_struct_to_serde(c)
@@ -314,6 +313,7 @@ impl TryFrom<CreateAgreementRequest> for NewAgreementDto {
 
         Ok(NewAgreementDto {
             id: id_urn,
+            tenant_id: None,
             negotiation_agent_process_id: process_urn,
             negotiation_agent_message_id: message_urn,
             consumer_participant_id: proto.consumer_participant_id,

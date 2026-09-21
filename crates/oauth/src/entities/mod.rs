@@ -18,10 +18,10 @@
 pub mod auth_code;
 pub mod client;
 pub mod commands;
+pub mod errors;
 pub mod filters;
 pub mod pat;
 pub mod query;
 pub mod refresh_token;
 pub mod role;
 pub mod user;
-pub mod errors;

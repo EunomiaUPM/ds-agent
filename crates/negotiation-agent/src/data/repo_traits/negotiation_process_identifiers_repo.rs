@@ -24,8 +24,8 @@ use urn::Urn;
 use ymir::errors::Outcome;
 use ymir::errors::RepoIntoErrors;
 
+#[mockall::automock]
 #[async_trait::async_trait]
-#[allow(unused)]
 pub trait NegotiationIdentifierRepoTrait: Send + Sync {
     async fn get_all_identifiers(
         &self,
@@ -36,6 +36,11 @@ pub trait NegotiationIdentifierRepoTrait: Send + Sync {
     async fn get_identifiers_by_process_id(
         &self,
         process_id: &Urn,
+    ) -> Outcome<Vec<negotiation_process_identifier::Model>>;
+
+    async fn get_identifiers_by_batch_process_id(
+        &self,
+        process_ids: &[Urn],
     ) -> Outcome<Vec<negotiation_process_identifier::Model>>;
 
     async fn get_identifier_by_id(

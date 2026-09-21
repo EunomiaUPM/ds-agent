@@ -36,6 +36,9 @@ impl FilterApplier<sea_orm::Select<dataset::Entity>> for DatasetFilter {
         &self,
         mut q: sea_orm::Select<dataset::Entity>,
     ) -> sea_orm::Select<dataset::Entity> {
+        if let Some(tenant_id) = &self.tenant_id {
+            q = q.filter(dataset::Column::TenantId.eq(tenant_id));
+        }
         if let Some(catalog_id) = &self.catalog_id {
             q = q.filter(dataset::Column::CatalogId.eq(catalog_id));
         }
@@ -103,9 +106,14 @@ impl DatasetRepositoryTrait for DatasetRepositoryForSql {
         Ok((datasets, Some(total)))
     }
 
-    async fn get_batch_datasets(&self, ids: &Vec<Urn>) -> Outcome<Vec<dataset::Model>> {
+    async fn get_batch_datasets(
+        &self,
+        tenant_id: &str,
+        ids: &[Urn],
+    ) -> Outcome<Vec<dataset::Model>> {
         let dataset_ids = ids.iter().map(|t| t.to_string()).collect::<Vec<_>>();
         let dataset_process = dataset::Entity::find()
+            .filter(dataset::Column::TenantId.eq(tenant_id))
             .filter(dataset::Column::Id.is_in(dataset_ids))
             .all(&self.db_connection)
             .await;
@@ -118,26 +126,14 @@ impl DatasetRepositoryTrait for DatasetRepositoryForSql {
         }
     }
 
-    async fn get_datasets_by_catalog_id(&self, catalog_id: &Urn) -> Outcome<Vec<dataset::Model>> {
+    async fn get_datasets_by_catalog_id(
+        &self,
+        tenant_id: &str,
+        catalog_id: &Urn,
+    ) -> Outcome<Vec<dataset::Model>> {
         let catalog_id = catalog_id.to_string();
-
-        let catalog = catalog::Entity::find_by_id(catalog_id.clone())
-            .one(&self.db_connection)
-            .await
-            .map_err(|err| {
-                CatalogAgentRepoErrors::DatasetRepoErrors(DatasetRepoErrors::ErrorFetchingDataset(
-                    err.into(),
-                ))
-                .into_errors()
-            })?;
-        if catalog.is_none() {
-            return Err(CatalogAgentRepoErrors::CatalogRepoErrors(
-                CatalogRepoErrors::CatalogNotFound,
-            )
-            .into_errors());
-        }
-
         let datasets = dataset::Entity::find()
+            .filter(dataset::Column::TenantId.eq(tenant_id))
             .filter(dataset::Column::CatalogId.eq(catalog_id))
             .all(&self.db_connection)
             .await;
@@ -150,9 +146,14 @@ impl DatasetRepositoryTrait for DatasetRepositoryForSql {
         }
     }
 
-    async fn get_dataset_by_id(&self, dataset_id: &Urn) -> Outcome<Option<dataset::Model>> {
+    async fn get_dataset_by_id(
+        &self,
+        tenant_id: &str,
+        dataset_id: &Urn,
+    ) -> Outcome<Option<dataset::Model>> {
         let dataset_id = dataset_id.to_string();
         let dataset = dataset::Entity::find_by_id(dataset_id)
+            .filter(dataset::Column::TenantId.eq(tenant_id))
             .one(&self.db_connection)
             .await;
         match dataset {
@@ -166,12 +167,14 @@ impl DatasetRepositoryTrait for DatasetRepositoryForSql {
 
     async fn put_dataset_by_id(
         &self,
+        tenant_id: &str,
         dataset_id: &Urn,
         edit_dataset_model: &EditDatasetModel,
     ) -> Outcome<dataset::Model> {
         let dataset_id = dataset_id.to_string();
 
         let old_model = dataset::Entity::find_by_id(dataset_id)
+            .filter(dataset::Column::TenantId.eq(tenant_id))
             .one(&self.db_connection)
             .await;
         let old_model = match old_model {
@@ -219,12 +222,13 @@ impl DatasetRepositoryTrait for DatasetRepositoryForSql {
 
     async fn create_dataset(&self, new_dataset_model: &NewDatasetModel) -> Outcome<dataset::Model> {
         let catalog = catalog::Entity::find_by_id(new_dataset_model.catalog_id.clone().to_string())
+            .filter(catalog::Column::TenantId.eq(&new_dataset_model.tenant_id))
             .one(&self.db_connection)
             .await
             .map_err(|err| {
-                CatalogAgentRepoErrors::DistributionRepoErrors(
-                    DistributionRepoErrors::ErrorFetchingDistribution(err.into()),
-                )
+                CatalogAgentRepoErrors::DatasetRepoErrors(DatasetRepoErrors::ErrorFetchingDataset(
+                    err.into(),
+                ))
                 .into_errors()
             })?;
         if catalog.is_none() {
@@ -247,23 +251,26 @@ impl DatasetRepositoryTrait for DatasetRepositoryForSql {
         }
     }
 
-    async fn delete_dataset_by_id(&self, dataset_id: &Urn) -> Outcome<()> {
-        let dataset_id = dataset_id.to_string();
-        let dataset = dataset::Entity::delete_by_id(dataset_id)
-            .exec(&self.db_connection)
-            .await;
-        match dataset {
-            Ok(delete_result) => match delete_result.rows_affected {
-                0 => Err(CatalogAgentRepoErrors::DatasetRepoErrors(
-                    DatasetRepoErrors::DatasetNotFound,
-                )
-                .into_errors()),
-                _ => Ok(()),
-            },
-            Err(err) => Err(CatalogAgentRepoErrors::DatasetRepoErrors(
-                DatasetRepoErrors::ErrorDeletingDataset(err.into()),
-            )
-            .into_errors()),
-        }
+    async fn delete_dataset_by_id(
+        &self,
+        tenant_id: &str,
+        dataset_id: &Urn,
+    ) -> Outcome<dataset::Model> {
+        // Single round-trip: DELETE ... RETURNING, tenant-scoped; empty result means not found.
+        let deleted = dataset::Entity::delete_many()
+            .filter(dataset::Column::Id.eq(dataset_id.to_string()))
+            .filter(dataset::Column::TenantId.eq(tenant_id))
+            .exec_with_returning(&self.db_connection)
+            .await
+            .map_err(|err| {
+                CatalogAgentRepoErrors::DatasetRepoErrors(DatasetRepoErrors::ErrorDeletingDataset(
+                    err.into(),
+                ))
+                .into_errors()
+            })?;
+        deleted.into_iter().next().ok_or_else(|| {
+            CatalogAgentRepoErrors::DatasetRepoErrors(DatasetRepoErrors::DatasetNotFound)
+                .into_errors()
+        })
     }
 }

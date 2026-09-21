@@ -35,12 +35,13 @@
  *
  */
 
-pub(crate) mod cache;
-pub(crate) mod data;
-pub(crate) mod entities;
+pub mod cache;
+pub mod data;
+pub mod entities;
 pub(crate) mod errors;
 pub(crate) mod facades;
 pub mod http;
+pub mod services;
 pub mod setup;
 pub mod testing_proxy;
 

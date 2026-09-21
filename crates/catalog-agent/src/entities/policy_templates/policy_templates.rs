@@ -21,12 +21,11 @@ use crate::entities::filters::PolicyTemplateFilter;
 use crate::entities::policy_templates::{
     NewPolicyTemplateDto, PolicyTemplateDto, PolicyTemplateEntityTrait,
 };
-use common::errors::{CommonErrors, ErrorLog};
+use common::auth::AccessScope;
+use common::errors::NotFoundExt;
 use common::paginated_spec::{Cursor, Page, Paginated, Sort};
 use common::query::QueryFilter;
 use std::sync::Arc;
-use tracing::error;
-use urn::Urn;
 use ymir::errors::Outcome;
 
 pub struct PolicyTemplateEntities {
@@ -52,24 +51,27 @@ impl PolicyTemplateEntities {
 impl PolicyTemplateEntityTrait for PolicyTemplateEntities {
     async fn get_all_policy_templates(
         &self,
+        scope: &AccessScope,
         filters: &PolicyTemplateFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<PolicyTemplateDto>> {
+        scope.require_read()?;
         filters.validate()?;
+        let mut filters = filters.clone();
+        filters.tenant_id = scope.resolve_query_tenant(filters.tenant_id.as_deref())?;
         let page = page.clamped();
 
         let (policy_templates, total) = self
             .repo
             .get_policy_template_repo()
-            .get_all_policy_templates(filters, &page, sort)
+            .get_all_policy_templates(&filters, &page, sort)
             .await?;
 
-        let mut dtos = Vec::with_capacity(policy_templates.len());
-        for c in policy_templates {
-            let dto: PolicyTemplateDto = PolicyTemplateDto::try_from(c)?;
-            dtos.push(dto);
-        }
+        let dtos = policy_templates
+            .into_iter()
+            .map(PolicyTemplateDto::try_from)
+            .collect::<Outcome<Vec<_>>>()?;
 
         Ok(Paginated::from_page(dtos, &page, total, |d| {
             Cursor::encode_composite(&d.date, &d.id)
@@ -78,58 +80,64 @@ impl PolicyTemplateEntityTrait for PolicyTemplateEntities {
 
     async fn get_batch_policy_templates(
         &self,
-        ids: &Vec<String>,
+        scope: &AccessScope,
+        ids: &[String],
     ) -> Outcome<Vec<PolicyTemplateDto>> {
+        scope.require_read()?;
         let policy_templates = self
             .repo
             .get_policy_template_repo()
-            .get_batch_policy_templates(ids)
+            .get_batch_policy_templates(scope.acting_tenant(), ids)
             .await?;
-        let mut dtos = Vec::with_capacity(policy_templates.len());
-        for c in policy_templates {
-            let dto: PolicyTemplateDto = PolicyTemplateDto::try_from(c)?;
-            dtos.push(dto);
-        }
-        Ok(dtos)
+        policy_templates
+            .into_iter()
+            .map(PolicyTemplateDto::try_from)
+            .collect()
     }
 
     async fn get_policies_template_by_id(
         &self,
-        template_id: &String,
+        scope: &AccessScope,
+        template_id: &str,
     ) -> Outcome<Vec<PolicyTemplateDto>> {
+        scope.require_read()?;
         let policy_templates = self
             .repo
             .get_policy_template_repo()
-            .get_policy_templates_by_id(template_id)
+            .get_policy_templates_by_id(scope.acting_tenant(), template_id)
             .await?;
-        let mut dtos = Vec::with_capacity(policy_templates.len());
-        for c in policy_templates {
-            let dto: PolicyTemplateDto = PolicyTemplateDto::try_from(c)?;
-            dtos.push(dto);
-        }
-        Ok(dtos)
+        policy_templates
+            .into_iter()
+            .map(PolicyTemplateDto::try_from)
+            .collect()
     }
 
     async fn get_policies_template_by_version_and_id(
         &self,
-        template_id: &String,
-        version_id: &String,
-    ) -> Outcome<Option<PolicyTemplateDto>> {
-        let policy_templates = self
+        scope: &AccessScope,
+        template_id: &str,
+        version_id: &str,
+    ) -> Outcome<PolicyTemplateDto> {
+        scope.require_read()?;
+        let policy_template = self
             .repo
             .get_policy_template_repo()
-            .get_policy_template_by_id_and_version(template_id, version_id)
-            .await?;
-        let dto: Option<PolicyTemplateDto> = policy_templates.map(TryInto::try_into).transpose()?;
-        Ok(dto)
+            .get_policy_template_by_id_and_version(scope.acting_tenant(), template_id, version_id)
+            .await?
+            .or_not_found(format!("{template_id}:{version_id}"), "policy template")?;
+        PolicyTemplateDto::try_from(policy_template)
     }
 
     async fn create_policy_template(
         &self,
+        scope: &AccessScope,
         new_policy_template: &NewPolicyTemplateDto,
     ) -> Outcome<PolicyTemplateDto> {
         new_policy_template.validate_dto()?;
-        let new_model: NewPolicyTemplateModel = new_policy_template.clone().try_into()?;
+        let mut new_policy_template = new_policy_template.clone();
+        let tenant_id = scope.resolve_create_tenant(new_policy_template.tenant_id.as_deref())?;
+        new_policy_template.tenant_id = Some(tenant_id.clone());
+        let new_model: NewPolicyTemplateModel = new_policy_template.into_model(tenant_id)?;
         let policy_template = self
             .repo
             .get_policy_template_repo()
@@ -148,13 +156,18 @@ impl PolicyTemplateEntityTrait for PolicyTemplateEntities {
 
     async fn delete_policy_template_by_version_and_id(
         &self,
-        template_id: &String,
-        version_id: &String,
+        scope: &AccessScope,
+        template_id: &str,
+        version_id: &str,
     ) -> Outcome<()> {
-        let _ = self
-            .repo
+        scope.require_write()?;
+        self.repo
             .get_policy_template_repo()
-            .delete_policy_template_by_id_and_version(template_id, version_id)
+            .delete_policy_template_by_id_and_version(
+                scope.acting_tenant(),
+                template_id,
+                version_id,
+            )
             .await?;
         events::emit_action!(
             self.event_bus,

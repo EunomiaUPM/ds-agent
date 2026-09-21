@@ -44,14 +44,53 @@ pub struct EventsHttpRouter;
 impl EventsHttpRouter {
     // Construct the unified events HTTP router nesting events, subscriptions, and DLQ.
     pub fn build(bus: Arc<EventBus>) -> Router {
+        Self::build_internal(bus, None)
+    }
+
+    // Construct the unified events HTTP router with AuthHttpMiddleware applied.
+    pub fn build_with_validator(
+        bus: Arc<EventBus>,
+        validator: Arc<dyn common::auth::OauthTokenValidator>,
+    ) -> Router {
+        Self::build_internal(bus, Some(validator))
+    }
+
+    fn build_internal(
+        bus: Arc<EventBus>,
+        validator: Option<Arc<dyn common::auth::OauthTokenValidator>>,
+    ) -> Router {
         let events_subrouter = EventsRouter::new(bus.clone()).router();
-        Router::new()
+        let mut router = Router::new()
             .merge(events_subrouter.clone())
             .nest("/events", events_subrouter)
             .nest(
                 "/subscriptions",
                 SubscriptionsRouter::new(bus.subscription_repo()).router(),
             )
-            .nest("/dlq", DeadLetterRouter::new(bus).router())
+            .nest("/dlq", DeadLetterRouter::new(bus).router());
+
+        if let Some(val) = validator {
+            router = router.route_layer(axum::middleware::from_fn_with_state(
+                val,
+                common::auth::http::AuthHttpMiddleware::run,
+            ));
+        } else {
+            router = router.route_layer(axum::middleware::from_fn(
+                |mut req: axum::extract::Request, next: axum::middleware::Next| async move {
+                    if req.extensions().get::<common::auth::Claims>().is_none() {
+                        let default_claims = common::auth::Claims {
+                            sub: "default".to_string(),
+                            role: common::auth::RbacRole::Admin,
+                            iat: 0,
+                            exp: i64::MAX,
+                        };
+                        req.extensions_mut().insert(default_claims);
+                    }
+                    next.run(req).await
+                },
+            ));
+        }
+
+        router
     }
 }

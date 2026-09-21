@@ -37,21 +37,31 @@ pub struct OfferDto {
 #[serde(deny_unknown_fields)]
 pub struct NewOfferDto {
     pub id: Option<Urn>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tenant_id: Option<String>,
     pub negotiation_agent_process_id: Urn,
     pub negotiation_agent_message_id: Urn,
     pub offer_id: String,
     pub offer_content: serde_json::Value,
 }
 
+impl NewOfferDto {
+    pub fn into_model(self, tenant_id: String) -> NewOfferModel {
+        NewOfferModel {
+            id: self.id,
+            tenant_id,
+            negotiation_agent_process_id: self.negotiation_agent_process_id,
+            negotiation_agent_message_id: self.negotiation_agent_message_id,
+            offer_id: self.offer_id,
+            offer_content: self.offer_content,
+        }
+    }
+}
+
 impl From<NewOfferDto> for NewOfferModel {
     fn from(dto: NewOfferDto) -> Self {
-        Self {
-            id: dto.id,
-            negotiation_agent_process_id: dto.negotiation_agent_process_id,
-            negotiation_agent_message_id: dto.negotiation_agent_message_id,
-            offer_id: dto.offer_id,
-            offer_content: dto.offer_content,
-        }
+        let tenant_id = dto.tenant_id.clone().unwrap_or_default();
+        dto.into_model(tenant_id)
     }
 }
 

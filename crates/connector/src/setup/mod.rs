@@ -94,6 +94,13 @@ impl ConnectorSetup {
         let connector_repo = self.get_connector_repo(config, vault.clone()).await;
         let config_arc = Arc::new(config.clone());
         let http_client = Arc::new(HttpClient::new(3, 1));
+        let db = vault
+            .get_db_connection(config.common())
+            .await
+            .expect("Unable to retrieve database connection");
+        let validator: Arc<dyn common::auth::OauthTokenValidator> =
+            oauth::setup::composition::OAuthSetup::new()
+                .build_token_service(config.common().clone().into(), db);
 
         let distribution_facade = Arc::new(DistributionFacadeServiceForConnector::new(
             config,
@@ -118,9 +125,14 @@ impl ConnectorSetup {
         );
         let connector_instance_router =
             ConnectorInstanceRouter::new(connector_instance_service.clone()).router();
+
         Router::new()
             .nest("/templates", connector_template_router)
             .nest("/instances", connector_instance_router)
+            .route_layer(axum::middleware::from_fn_with_state(
+                validator,
+                common::auth::http::AuthHttpMiddleware::run,
+            ))
     }
 
     pub async fn build_control_router(

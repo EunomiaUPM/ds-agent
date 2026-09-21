@@ -70,13 +70,7 @@ impl PatsRouter {
         let cmd = extract_payload(payload)?;
         let pat = s
             .pat_svc
-            .create_pat(
-                &scope,
-                &cmd.name,
-                scope.role(),
-                cmd.scopes,
-                cmd.expires_at,
-            )
+            .create_pat(&scope, &cmd.name, scope.role(), cmd.scopes, cmd.expires_at)
             .await?;
         Ok((StatusCode::CREATED, Json(pat)))
     }

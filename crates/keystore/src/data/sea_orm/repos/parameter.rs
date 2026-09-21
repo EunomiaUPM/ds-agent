@@ -22,6 +22,7 @@ use crate::data::repo::parameters::{ParameterRepoErrors, ParameterRepoTrait};
 use crate::data::sea_orm::orm::parameter;
 use crate::entities::commands::{EditParameterCommand, NewParameterCommand};
 use crate::entities::entry::Entry;
+use crate::entities::filters::PrefixFilter;
 use crate::entities::key::Key;
 
 pub struct SeaOrmParameterRepo {
@@ -38,9 +39,17 @@ impl SeaOrmParameterRepo {
 impl ParameterRepoTrait for SeaOrmParameterRepo {
     type Value = serde_json::Value;
 
-    async fn get_all_parameters(&self) -> Outcome<Vec<Entry<Self::Value>>> {
-        let rows = parameter::Entity::find()
-            .filter(parameter::Column::DeletedAt.is_null())
+    async fn get_all_parameters(&self, filter: &PrefixFilter) -> Outcome<Vec<Entry<Self::Value>>> {
+        let mut query = parameter::Entity::find().filter(parameter::Column::DeletedAt.is_null());
+        if let Some(tenant_id) = &filter.tenant_id {
+            query = query.filter(parameter::Column::TenantId.eq(tenant_id));
+        }
+        if let Some(prefix) = &filter.prefix {
+            if !prefix.is_empty() {
+                query = query.filter(parameter::Column::Key.like(format!("{prefix}%")));
+            }
+        }
+        let rows = query
             .all(&self.db)
             .await
             .map_err(|e| ParameterRepoErrors::ErrorFetchingParameter(e.into()).into_errors())?;
@@ -54,18 +63,31 @@ impl ParameterRepoTrait for SeaOrmParameterRepo {
             .collect()
     }
 
-    async fn count_parameters(&self) -> Outcome<u64> {
+    async fn count_parameters(&self, filter: &PrefixFilter) -> Outcome<u64> {
         use sea_orm::PaginatorTrait;
-        parameter::Entity::find()
-            .filter(parameter::Column::DeletedAt.is_null())
+        let mut query = parameter::Entity::find().filter(parameter::Column::DeletedAt.is_null());
+        if let Some(tenant_id) = &filter.tenant_id {
+            query = query.filter(parameter::Column::TenantId.eq(tenant_id));
+        }
+        if let Some(prefix) = &filter.prefix {
+            if !prefix.is_empty() {
+                query = query.filter(parameter::Column::Key.like(format!("{prefix}%")));
+            }
+        }
+        query
             .count(&self.db)
             .await
             .map_err(|e| ParameterRepoErrors::ErrorFetchingParameter(e.into()).into_errors())
     }
 
-    async fn get_batch_parameters(&self, keys: &[Key]) -> Outcome<Vec<Entry<Self::Value>>> {
+    async fn get_batch_parameters(
+        &self,
+        tenant_id: &str,
+        keys: &[Key],
+    ) -> Outcome<Vec<Entry<Self::Value>>> {
         let key_strs: Vec<&str> = keys.iter().map(|k| k.as_str()).collect();
         let rows = parameter::Entity::find()
+            .filter(parameter::Column::TenantId.eq(tenant_id))
             .filter(parameter::Column::Key.is_in(key_strs))
             .filter(parameter::Column::DeletedAt.is_null())
             .all(&self.db)
@@ -81,8 +103,12 @@ impl ParameterRepoTrait for SeaOrmParameterRepo {
             .collect()
     }
 
-    async fn get_parameter_by_key(&self, key: &Key) -> Outcome<Option<Entry<Self::Value>>> {
-        let row = parameter::Entity::find_by_id(key.as_str())
+    async fn get_parameter_by_key(
+        &self,
+        tenant_id: &str,
+        key: &Key,
+    ) -> Outcome<Option<Entry<Self::Value>>> {
+        let row = parameter::Entity::find_by_id((tenant_id.to_string(), key.as_str().to_string()))
             .filter(parameter::Column::DeletedAt.is_null())
             .one(&self.db)
             .await
@@ -97,21 +123,23 @@ impl ParameterRepoTrait for SeaOrmParameterRepo {
 
     async fn create_parameter(
         &self,
+        tenant_id: &str,
         cmd: &NewParameterCommand<Self::Value>,
     ) -> Outcome<Entry<Self::Value>> {
         // Reject if an active (non-deleted) entry already exists.
-        let exists = parameter::Entity::find_by_id(cmd.key.as_str())
-            .filter(parameter::Column::DeletedAt.is_null())
-            .one(&self.db)
-            .await
-            .map_err(|e| ParameterRepoErrors::ErrorCreatingParameter(e.into()).into_errors())?
-            .is_some();
+        let exists =
+            parameter::Entity::find_by_id((tenant_id.to_string(), cmd.key.as_str().to_string()))
+                .filter(parameter::Column::DeletedAt.is_null())
+                .one(&self.db)
+                .await
+                .map_err(|e| ParameterRepoErrors::ErrorCreatingParameter(e.into()).into_errors())?
+                .is_some();
 
         if exists {
             return Err(ParameterRepoErrors::ParameterAlreadyExists.into_errors());
         }
 
-        let active = parameter::ActiveModel::from_new_cmd(cmd);
+        let active = parameter::ActiveModel::from_new_cmd(tenant_id, cmd);
         let model = parameter::Entity::insert(active)
             .exec_with_returning(&self.db)
             .await
@@ -124,15 +152,17 @@ impl ParameterRepoTrait for SeaOrmParameterRepo {
 
     async fn put_parameter(
         &self,
+        tenant_id: &str,
         key: &Key,
         cmd: &EditParameterCommand<Self::Value>,
     ) -> Outcome<Entry<Self::Value>> {
-        let current = parameter::Entity::find_by_id(key.as_str())
-            .filter(parameter::Column::DeletedAt.is_null())
-            .one(&self.db)
-            .await
-            .map_err(|e| ParameterRepoErrors::ErrorFetchingParameter(e.into()).into_errors())?
-            .ok_or_else(|| ParameterRepoErrors::ParameterNotFound.into_errors())?;
+        let current =
+            parameter::Entity::find_by_id((tenant_id.to_string(), key.as_str().to_string()))
+                .filter(parameter::Column::DeletedAt.is_null())
+                .one(&self.db)
+                .await
+                .map_err(|e| ParameterRepoErrors::ErrorFetchingParameter(e.into()).into_errors())?
+                .ok_or_else(|| ParameterRepoErrors::ParameterNotFound.into_errors())?;
 
         let current_version = current.version;
         let expected = cmd.expected_version.value() as i64;
@@ -157,11 +187,12 @@ impl ParameterRepoTrait for SeaOrmParameterRepo {
             .map_err(|e| ParameterRepoErrors::ErrorUpdatingParameter(e.into()).into_errors())
     }
 
-    async fn delete_parameter(&self, key: &Key) -> Outcome<()> {
-        let result = parameter::Entity::delete_by_id(key.as_str())
-            .exec(&self.db)
-            .await
-            .map_err(|e| ParameterRepoErrors::ErrorDeletingParameter(e.into()).into_errors())?;
+    async fn delete_parameter(&self, tenant_id: &str, key: &Key) -> Outcome<()> {
+        let result =
+            parameter::Entity::delete_by_id((tenant_id.to_string(), key.as_str().to_string()))
+                .exec(&self.db)
+                .await
+                .map_err(|e| ParameterRepoErrors::ErrorDeletingParameter(e.into()).into_errors())?;
 
         if result.rows_affected == 0 {
             return Err(ParameterRepoErrors::ParameterNotFound.into_errors());

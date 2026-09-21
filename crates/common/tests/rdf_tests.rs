@@ -150,10 +150,7 @@ async fn extracts_typed_transfer_request_successfully() {
 
     let data_addr = msg.data_address.expect("dataAddress present");
     assert_eq!(data_addr.endpoint.as_deref(), Some("http://example.com"));
-    assert_eq!(
-        data_addr.endpoint_type,
-        "https://w3id.org/idsa/v4.1/HTTP"
-    );
+    assert_eq!(data_addr.endpoint_type, "https://w3id.org/idsa/v4.1/HTTP");
     assert_eq!(data_addr.properties.len(), 2);
 }
 
@@ -256,7 +253,10 @@ async fn generic_engine_handles_non_dsp_jsonld() {
     });
 
     let engine = RdfEngine::new();
-    let n_quads = engine.canonicalize(&generic_json).await.expect("generic canonicalize");
+    let n_quads = engine
+        .canonicalize(&generic_json)
+        .await
+        .expect("generic canonicalize");
     assert!(n_quads.contains("<http://example.org/alice>"));
     assert!(n_quads.contains("<http://xmlns.com/foaf/0.1/name>"));
     assert!(n_quads.contains(r#""Alice""#));
@@ -371,7 +371,10 @@ async fn undeclared_xsd_prefix_still_expands() {
         out.contains("http://www.w3.org/2001/XMLSchema#dateTime"),
         "xsd: must resolve even when the message omits the prefix, got: {out}"
     );
-    assert!(!out.contains("<xsd:"), "prefix must not survive as an IRI: {out}");
+    assert!(
+        !out.contains("<xsd:"),
+        "prefix must not survive as an IRI: {out}"
+    );
 }
 
 #[tokio::test]
@@ -467,4 +470,3 @@ fn counts_the_values_of_a_term() {
 fn a_non_array_expansion_is_rejected() {
     assert!(ExpandedDoc::new(&json!({"@type": [MSG]})).is_none());
 }
-

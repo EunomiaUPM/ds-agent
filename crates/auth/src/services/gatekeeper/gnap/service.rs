@@ -208,6 +208,7 @@ impl GateKeeperTrait for GnapGateKeeperService {
 
     fn build_mate_plan(
         &self,
+        tenant_id: &str,
         holder: &str,
         nick: &str,
         base_url: &str,
@@ -216,6 +217,7 @@ impl GateKeeperTrait for GnapGateKeeperService {
         let base_url = trim_4_base(&base_url);
         participant::Plan {
             participant_id: holder.to_string(),
+            tenant_id: tenant_id.to_string(),
             participant_nick: nick.to_string(),
             participant_type: ParticipantType::Agent,
             base_url,

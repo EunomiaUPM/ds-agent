@@ -27,6 +27,8 @@ use axum::{
     routing::post,
     Extension, Json, Router,
 };
+use common::auth::claims::RbacRole;
+use common::auth::AccessScope;
 use common::config::services::CatalogConfig;
 use common::dsp_common::context_field::ContextField;
 use common::dsp_common::normalizer::dsp_namespace_normalizer;
@@ -61,6 +63,11 @@ impl DspRouter {
             config,
             ssi_auth,
         }
+    }
+
+    /// Read-only scope bound to the tenant the authenticated peer is associated with.
+    fn peer_scope(mate: &Mates) -> AccessScope {
+        AccessScope::from_role(RbacRole::Reader, &mate.tenant_id)
     }
 
     async fn auth_middleware(
@@ -98,17 +105,18 @@ impl DspRouter {
 
     async fn handle_catalog_request(
         State(state): State<DspRouter>,
-        Extension(_mate): Extension<Mates>,
+        Extension(mate): Extension<Mates>,
         input: Result<Json<CatalogMessageWrapper<CatalogRequestMessageDto>>, JsonRejection>,
     ) -> impl IntoResponse {
         let input = match input {
             Ok(input) => input.0,
             Err(e) => return (StatusCode::BAD_REQUEST, e.body_text()).into_response(),
         };
+        let scope = Self::peer_scope(&mate);
         match state
             .orchestrator
             .get_protocol_service()
-            .on_catalog_request(&input)
+            .on_catalog_request(&scope, &input)
             .await
         {
             Ok(catalog) => (StatusCode::OK, Json(catalog)).into_response(),
@@ -119,8 +127,9 @@ impl DspRouter {
     async fn handle_dataset_request(
         State(state): State<DspRouter>,
         Path(id): Path<String>,
-        Extension(_mate): Extension<Mates>,
+        Extension(mate): Extension<Mates>,
     ) -> impl IntoResponse {
+        let scope = Self::peer_scope(&mate);
         let dataset_id = match Urn::from_str(&id) {
             Ok(urn) => urn,
             Err(_) => {
@@ -141,7 +150,7 @@ impl DspRouter {
         match state
             .orchestrator
             .get_protocol_service()
-            .on_dataset_request(&request_msg)
+            .on_dataset_request(&scope, &request_msg)
             .await
         {
             Ok(dataset) => (StatusCode::OK, Json(dataset)).into_response(),

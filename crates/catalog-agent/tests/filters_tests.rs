@@ -33,6 +33,7 @@ fn catalog_filter_empty_and_validation() {
 
     let now = Utc::now();
     let populated = CatalogFilter {
+        tenant_id: Some("default".to_string()),
         title: Some("Main Catalog".to_string()),
         creator: Some("UPM".to_string()),
         participant_id: Some("urn:participant:1".to_string()),
@@ -44,6 +45,7 @@ fn catalog_filter_empty_and_validation() {
     assert!(populated.validate().is_ok());
 
     let invalid = CatalogFilter {
+        tenant_id: None,
         title: None,
         creator: None,
         participant_id: None,
@@ -80,6 +82,7 @@ fn distribution_filter_empty_and_populated() {
     assert!(empty.is_empty());
 
     let populated = DistributionFilter {
+        tenant_id: Some("default".to_string()),
         dataset_id: Some("urn:dataset:1".to_string()),
         access_service: Some("urn:service:1".to_string()),
         format: Some("application/json".to_string()),
@@ -97,6 +100,7 @@ fn data_service_filter_empty_and_populated() {
     assert!(empty.is_empty());
 
     let populated = DataServiceFilter {
+        tenant_id: Some("default".to_string()),
         catalog_id: Some("urn:catalog:1".to_string()),
         endpoint_url: Some("https://example.com/api".to_string()),
         title: Some("API Service".to_string()),
@@ -115,6 +119,7 @@ fn odrl_policy_and_template_filters() {
     assert!(policy_empty.is_empty());
 
     let policy_pop = OdrlPolicyFilter {
+        tenant_id: Some("default".to_string()),
         entity: Some("urn:dataset:1".to_string()),
         entity_type: Some("dataset".to_string()),
         source_template_id: Some("tmpl-1".to_string()),
@@ -129,6 +134,7 @@ fn odrl_policy_and_template_filters() {
     assert!(template_empty.is_empty());
 
     let template_pop = PolicyTemplateFilter {
+        tenant_id: Some("default".to_string()),
         id: Some("tmpl-1".to_string()),
         version: Some("1.0".to_string()),
         author: Some("UPM".to_string()),

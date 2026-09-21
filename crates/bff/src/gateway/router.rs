@@ -20,7 +20,7 @@ use std::sync::Arc;
 
 use axum::extract::ws::WebSocketUpgrade;
 use axum::extract::{Path, Query, Request, State};
-use axum::http::{header, HeaderValue, StatusCode, Uri};
+use axum::http::{header, HeaderMap, HeaderValue, StatusCode, Uri};
 use axum::middleware;
 use axum::response::{IntoResponse, Response};
 use axum::routing::{any, delete, get, post, put};
@@ -40,20 +40,21 @@ use tower_http::cors::{Any, CorsLayer};
 // Query parameters for webhook subscriptions list filtering and pagination.
 #[derive(Debug, Deserialize, Default)]
 pub struct ListSubscriptionsQuery {
+    pub tenant_id: Option<String>,
     pub pattern: Option<String>,
     pub status: Option<String>,
     pub limit: Option<u64>,
     pub offset: Option<u64>,
     pub sort: Option<String>,
 }
-use ymir::config::traits::HostsConfigTrait;
-use ymir::config::types::HostType;
-use common::auth::http::AuthHttpMiddleware;
 use crate::events::feed_router::{BffEventFeedRouter, ListEventsQuery};
 use crate::events::sse_handler::{SseQuery, SseStreamHandler};
 use crate::events::ws_handler::BffWebSocketHandler;
 use crate::gateway::service::{GatewayService, GatewayServiceTrait};
 use crate::setup::context::AppContext;
+use common::auth::http::AuthHttpMiddleware;
+use ymir::config::traits::HostsConfigTrait;
+use ymir::config::types::HostType;
 
 #[derive(Embed)]
 #[folder = "src/static/admin/dist"]
@@ -83,6 +84,23 @@ impl GatewayHttpRouter {
     pub fn with_context(ctx: Arc<AppContext>) -> Self {
         let service = Arc::new(GatewayService::new(ctx.config.clone()));
         Self { ctx, service }
+    }
+
+    /// Extract tenant_id from HTTP headers or optional query parameter, defaulting to "default".
+    pub fn extract_tenant_id(headers: &HeaderMap, query_fallback: Option<&str>) -> String {
+        headers
+            .get("x-tenant-id")
+            .and_then(|v| v.to_str().ok())
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .map(String::from)
+            .or_else(|| {
+                query_fallback
+                    .map(str::trim)
+                    .filter(|s| !s.is_empty())
+                    .map(String::from)
+            })
+            .unwrap_or_else(|| "default".to_string())
     }
 
     /// Build the combined router with reverse proxy, events, websockets, and static fallback.
@@ -185,10 +203,12 @@ impl GatewayHttpRouter {
 
     async fn handle_list_events(
         State(state): State<GatewayHttpRouter>,
+        headers: HeaderMap,
         Query(q): Query<ListEventsQuery>,
     ) -> Response {
+        let tenant_id = Self::extract_tenant_id(&headers, q.tenant_id.as_deref());
         if let Some(bus) = &state.ctx.event_bus {
-            BffEventFeedRouter::handle_list(bus.clone(), q).await
+            BffEventFeedRouter::handle_list(bus.clone(), q, &tenant_id).await
         } else {
             (StatusCode::NOT_IMPLEMENTED, "event bus not configured").into_response()
         }
@@ -196,10 +216,12 @@ impl GatewayHttpRouter {
 
     async fn handle_get_event(
         State(state): State<GatewayHttpRouter>,
+        headers: HeaderMap,
         Path(id): Path<String>,
     ) -> Response {
+        let tenant_id = Self::extract_tenant_id(&headers, None);
         if let Some(bus) = &state.ctx.event_bus {
-            BffEventFeedRouter::handle_get(bus.clone(), id).await
+            BffEventFeedRouter::handle_get(bus.clone(), id, &tenant_id).await
         } else {
             (StatusCode::NOT_IMPLEMENTED, "event bus not configured").into_response()
         }
@@ -207,6 +229,7 @@ impl GatewayHttpRouter {
 
     async fn handle_publish_event(
         State(state): State<GatewayHttpRouter>,
+        headers: HeaderMap,
         Json(req): Json<PublishEventRequest>,
     ) -> Response {
         let bus = match &state.ctx.event_bus {
@@ -227,6 +250,7 @@ impl GatewayHttpRouter {
             }
         };
 
+        let tenant_id = Self::extract_tenant_id(&headers, None);
         let source = req.source_crate.unwrap_or_else(|| "bff".to_string());
         let correlation_id = req.correlation_id.and_then(|s| {
             urn::Urn::from_str(&s)
@@ -234,6 +258,7 @@ impl GatewayHttpRouter {
                 .or_else(|| urn::Urn::from_str(&format!("urn:uuid:{s}")).ok())
         });
         let envelope = EventEnvelope::new(
+            tenant_id,
             topic,
             source,
             req.schema_version.unwrap_or(1),
@@ -253,6 +278,7 @@ impl GatewayHttpRouter {
 
     async fn handle_list_subscriptions(
         State(state): State<GatewayHttpRouter>,
+        headers: HeaderMap,
         Query(q): Query<ListSubscriptionsQuery>,
     ) -> Response {
         let bus = match &state.ctx.event_bus {
@@ -261,12 +287,15 @@ impl GatewayHttpRouter {
                 return (StatusCode::NOT_IMPLEMENTED, "event bus not configured").into_response()
             }
         };
-        match bus.subscription_repo().list_subscriptions().await {
+        let tenant_id = Self::extract_tenant_id(&headers, q.tenant_id.as_deref());
+        match bus.subscription_repo().list_subscriptions(&tenant_id).await {
             Ok(mut subs) => {
                 if let Some(ref pat) = q.pattern {
                     if pat != "all" {
                         let pat_lower = pat.to_lowercase();
-                        subs.retain(|s| s.topic_pattern.as_str().to_lowercase().contains(&pat_lower));
+                        subs.retain(|s| {
+                            s.topic_pattern.as_str().to_lowercase().contains(&pat_lower)
+                        });
                     }
                 }
                 if let Some(ref status) = q.status {
@@ -280,14 +309,22 @@ impl GatewayHttpRouter {
                     match sort.as_str() {
                         "created_at_asc" => subs.sort_by(|a, b| a.created_at.cmp(&b.created_at)),
                         "created_at_desc" => subs.sort_by(|a, b| b.created_at.cmp(&a.created_at)),
-                        "topic_pattern_asc" => subs.sort_by(|a, b| a.topic_pattern.as_str().cmp(b.topic_pattern.as_str())),
-                        "topic_pattern_desc" => subs.sort_by(|a, b| b.topic_pattern.as_str().cmp(a.topic_pattern.as_str())),
+                        "topic_pattern_asc" => subs
+                            .sort_by(|a, b| a.topic_pattern.as_str().cmp(b.topic_pattern.as_str())),
+                        "topic_pattern_desc" => subs
+                            .sort_by(|a, b| b.topic_pattern.as_str().cmp(a.topic_pattern.as_str())),
                         "active_asc" => subs.sort_by(|a, b| a.active.cmp(&b.active)),
                         "active_desc" => subs.sort_by(|a, b| b.active.cmp(&a.active)),
-                        "callback_address_asc" => subs.sort_by(|a, b| a.callback_address.cmp(&b.callback_address)),
-                        "callback_address_desc" => subs.sort_by(|a, b| b.callback_address.cmp(&a.callback_address)),
+                        "callback_address_asc" => {
+                            subs.sort_by(|a, b| a.callback_address.cmp(&b.callback_address))
+                        }
+                        "callback_address_desc" => {
+                            subs.sort_by(|a, b| b.callback_address.cmp(&a.callback_address))
+                        }
                         "retry_limit_asc" => subs.sort_by(|a, b| a.retry_limit.cmp(&b.retry_limit)),
-                        "retry_limit_desc" => subs.sort_by(|a, b| b.retry_limit.cmp(&a.retry_limit)),
+                        "retry_limit_desc" => {
+                            subs.sort_by(|a, b| b.retry_limit.cmp(&a.retry_limit))
+                        }
                         _ => subs.sort_by(|a, b| b.created_at.cmp(&a.created_at)),
                     }
                 } else {
@@ -295,11 +332,8 @@ impl GatewayHttpRouter {
                 }
                 if let Some(limit) = q.limit {
                     let offset = q.offset.unwrap_or(0) as usize;
-                    let paged: Vec<_> = subs
-                        .into_iter()
-                        .skip(offset)
-                        .take(limit as usize)
-                        .collect();
+                    let paged: Vec<_> =
+                        subs.into_iter().skip(offset).take(limit as usize).collect();
                     (StatusCode::OK, Json(paged)).into_response()
                 } else {
                     (StatusCode::OK, Json(subs)).into_response()
@@ -315,6 +349,7 @@ impl GatewayHttpRouter {
 
     async fn handle_create_subscription(
         State(state): State<GatewayHttpRouter>,
+        headers: HeaderMap,
         Json(dto): Json<CreateSubscriptionDto>,
     ) -> Response {
         let bus = match &state.ctx.event_bus {
@@ -323,7 +358,12 @@ impl GatewayHttpRouter {
                 return (StatusCode::NOT_IMPLEMENTED, "event bus not configured").into_response()
             }
         };
-        match bus.subscription_repo().create_subscription(dto).await {
+        let tenant_id = Self::extract_tenant_id(&headers, None);
+        match bus
+            .subscription_repo()
+            .create_subscription(&tenant_id, dto)
+            .await
+        {
             Ok(sub) => (StatusCode::CREATED, Json(sub)).into_response(),
             Err(e) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -335,6 +375,7 @@ impl GatewayHttpRouter {
 
     async fn handle_get_subscription(
         State(state): State<GatewayHttpRouter>,
+        headers: HeaderMap,
         Path(id): Path<String>,
     ) -> Response {
         let bus = match &state.ctx.event_bus {
@@ -343,7 +384,12 @@ impl GatewayHttpRouter {
                 return (StatusCode::NOT_IMPLEMENTED, "event bus not configured").into_response()
             }
         };
-        match bus.subscription_repo().get_subscription(&id).await {
+        let tenant_id = Self::extract_tenant_id(&headers, None);
+        match bus
+            .subscription_repo()
+            .get_subscription(&tenant_id, &id)
+            .await
+        {
             Ok(Some(sub)) => (StatusCode::OK, Json(sub)).into_response(),
             Ok(None) => (StatusCode::NOT_FOUND, "subscription not found").into_response(),
             Err(e) => (
@@ -356,6 +402,7 @@ impl GatewayHttpRouter {
 
     async fn handle_update_subscription(
         State(state): State<GatewayHttpRouter>,
+        headers: HeaderMap,
         Path(id): Path<String>,
         Json(dto): Json<UpdateSubscriptionDto>,
     ) -> Response {
@@ -365,7 +412,12 @@ impl GatewayHttpRouter {
                 return (StatusCode::NOT_IMPLEMENTED, "event bus not configured").into_response()
             }
         };
-        match bus.subscription_repo().update_subscription(&id, dto).await {
+        let tenant_id = Self::extract_tenant_id(&headers, None);
+        match bus
+            .subscription_repo()
+            .update_subscription(&tenant_id, &id, dto)
+            .await
+        {
             Ok(sub) => (StatusCode::OK, Json(sub)).into_response(),
             Err(e) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -377,6 +429,7 @@ impl GatewayHttpRouter {
 
     async fn handle_delete_subscription(
         State(state): State<GatewayHttpRouter>,
+        headers: HeaderMap,
         Path(id): Path<String>,
     ) -> Response {
         let bus = match &state.ctx.event_bus {
@@ -385,7 +438,12 @@ impl GatewayHttpRouter {
                 return (StatusCode::NOT_IMPLEMENTED, "event bus not configured").into_response()
             }
         };
-        match bus.subscription_repo().delete_subscription(&id).await {
+        let tenant_id = Self::extract_tenant_id(&headers, None);
+        match bus
+            .subscription_repo()
+            .delete_subscription(&tenant_id, &id)
+            .await
+        {
             Ok(()) => StatusCode::NO_CONTENT.into_response(),
             Err(e) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -397,6 +455,7 @@ impl GatewayHttpRouter {
 
     async fn handle_list_dlq(
         State(state): State<GatewayHttpRouter>,
+        headers: HeaderMap,
         Query(q): Query<ListDlqQuery>,
     ) -> Response {
         let bus = match &state.ctx.event_bus {
@@ -405,11 +464,12 @@ impl GatewayHttpRouter {
                 return (StatusCode::NOT_IMPLEMENTED, "event bus not configured").into_response()
             }
         };
+        let tenant_id = Self::extract_tenant_id(&headers, None);
         let limit = q.limit.unwrap_or(50).min(100);
         let offset = q.offset.unwrap_or(0);
         match bus
             .dlq_repo()
-            .list_dead_letters(q.status.as_deref(), limit, offset)
+            .list_dead_letters(&tenant_id, q.status.as_deref(), limit, offset)
             .await
         {
             Ok(mut records) => {
@@ -419,8 +479,12 @@ impl GatewayHttpRouter {
                         "failed_at_desc" => records.sort_by(|a, b| b.failed_at.cmp(&a.failed_at)),
                         "topic_asc" => records.sort_by(|a, b| a.topic.cmp(&b.topic)),
                         "topic_desc" => records.sort_by(|a, b| b.topic.cmp(&a.topic)),
-                        "status_asc" => records.sort_by(|a, b| format!("{:?}", a.status).cmp(&format!("{:?}", b.status))),
-                        "status_desc" => records.sort_by(|a, b| format!("{:?}", b.status).cmp(&format!("{:?}", a.status))),
+                        "status_asc" => records.sort_by(|a, b| {
+                            format!("{:?}", a.status).cmp(&format!("{:?}", b.status))
+                        }),
+                        "status_desc" => records.sort_by(|a, b| {
+                            format!("{:?}", b.status).cmp(&format!("{:?}", a.status))
+                        }),
                         "attempts_asc" => records.sort_by(|a, b| a.attempts.cmp(&b.attempts)),
                         "attempts_desc" => records.sort_by(|a, b| b.attempts.cmp(&a.attempts)),
                         _ => records.sort_by(|a, b| b.failed_at.cmp(&a.failed_at)),
@@ -438,6 +502,7 @@ impl GatewayHttpRouter {
 
     async fn handle_get_dlq(
         State(state): State<GatewayHttpRouter>,
+        headers: HeaderMap,
         Path(id): Path<String>,
     ) -> Response {
         let bus = match &state.ctx.event_bus {
@@ -446,7 +511,8 @@ impl GatewayHttpRouter {
                 return (StatusCode::NOT_IMPLEMENTED, "event bus not configured").into_response()
             }
         };
-        match bus.dlq_repo().get_dead_letter(&id).await {
+        let tenant_id = Self::extract_tenant_id(&headers, None);
+        match bus.dlq_repo().get_dead_letter(&tenant_id, &id).await {
             Ok(Some(record)) => (StatusCode::OK, Json(record)).into_response(),
             Ok(None) => (StatusCode::NOT_FOUND, "dead letter record not found").into_response(),
             Err(e) => (
@@ -459,6 +525,7 @@ impl GatewayHttpRouter {
 
     async fn handle_replay_dlq(
         State(state): State<GatewayHttpRouter>,
+        headers: HeaderMap,
         Path(id): Path<String>,
     ) -> Response {
         let bus = match &state.ctx.event_bus {
@@ -467,7 +534,8 @@ impl GatewayHttpRouter {
                 return (StatusCode::NOT_IMPLEMENTED, "event bus not configured").into_response()
             }
         };
-        match bus.replay_dead_letter(&id).await {
+        let tenant_id = Self::extract_tenant_id(&headers, None);
+        match bus.replay_dead_letter(&tenant_id, &id).await {
             Ok(delivery) => (StatusCode::OK, Json(delivery)).into_response(),
             Err(e) => (
                 StatusCode::BAD_REQUEST,
@@ -477,14 +545,18 @@ impl GatewayHttpRouter {
         }
     }
 
-    async fn handle_replay_all_dlq(State(state): State<GatewayHttpRouter>) -> Response {
+    async fn handle_replay_all_dlq(
+        State(state): State<GatewayHttpRouter>,
+        headers: HeaderMap,
+    ) -> Response {
         let bus = match &state.ctx.event_bus {
             Some(b) => b,
             None => {
                 return (StatusCode::NOT_IMPLEMENTED, "event bus not configured").into_response()
             }
         };
-        match bus.replay_all_dead_letters().await {
+        let tenant_id = Self::extract_tenant_id(&headers, None);
+        match bus.replay_all_dead_letters(&tenant_id).await {
             Ok(count) => (StatusCode::OK, Json(json!({ "replayed_count": count }))).into_response(),
             Err(e) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -496,6 +568,7 @@ impl GatewayHttpRouter {
 
     async fn handle_delete_dlq(
         State(state): State<GatewayHttpRouter>,
+        headers: HeaderMap,
         Path(id): Path<String>,
     ) -> Response {
         let bus = match &state.ctx.event_bus {
@@ -504,7 +577,8 @@ impl GatewayHttpRouter {
                 return (StatusCode::NOT_IMPLEMENTED, "event bus not configured").into_response()
             }
         };
-        match bus.dlq_repo().delete_dead_letter(&id).await {
+        let tenant_id = Self::extract_tenant_id(&headers, None);
+        match bus.dlq_repo().delete_dead_letter(&tenant_id, &id).await {
             Ok(()) => StatusCode::NO_CONTENT.into_response(),
             Err(e) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -602,6 +676,7 @@ impl GatewayHttpRouter {
 
     async fn incoming_notification(
         State(state): State<GatewayHttpRouter>,
+        headers: HeaderMap,
         Json(input): Json<Value>,
     ) -> impl IntoResponse {
         let value_str = match serde_json::to_string(&input) {
@@ -614,7 +689,8 @@ impl GatewayHttpRouter {
         if let Some(bus) = &state.ctx.event_bus {
             let topic = Topic::new("incoming.notification")
                 .unwrap_or_else(|_| Topic::new("notification").unwrap());
-            let envelope = EventEnvelope::new(topic, "bff", 1, None, input);
+            let tenant_id = Self::extract_tenant_id(&headers, None);
+            let envelope = EventEnvelope::new(tenant_id, topic, "bff", 1, None, input);
             let _ = bus.publish(envelope).await;
         }
 
@@ -665,8 +741,15 @@ impl GatewayHttpRouter {
 
     async fn handle_create_dataset_offering(
         State(state): State<GatewayHttpRouter>,
+        headers: HeaderMap,
         Json(req): Json<crate::gateway::dataset_offering::CreateDatasetOfferingRequest>,
     ) -> Response {
-        crate::gateway::dataset_offering::orchestrate_dataset_offering(state.ctx.clone(), req).await
+        let tenant_id = Self::extract_tenant_id(&headers, None);
+        crate::gateway::dataset_offering::orchestrate_dataset_offering(
+            state.ctx.clone(),
+            req,
+            &tenant_id,
+        )
+        .await
     }
 }

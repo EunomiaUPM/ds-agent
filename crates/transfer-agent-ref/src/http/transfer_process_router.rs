@@ -19,7 +19,6 @@ use std::sync::Arc;
 
 use crate::entities::commands::{EditTransferProcessCommand, NewTransferProcessCommand};
 use crate::entities::filters::TransferProcessFilter;
-use crate::http::extractors::ExtractedHeaders;
 use crate::services::transfer_process::TransferProcessServiceTrait;
 use crate::services::transfer_process::views::TransferProcessView;
 use axum::extract::rejection::JsonRejection;
@@ -28,13 +27,11 @@ use axum::http::{HeaderMap, StatusCode};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use common::auth::access::AccessScope;
+use common::auth::http::ExtractedHeaders;
 use common::batch_requests::BatchRequests;
-use common::query::{Page, Paginated, QuerySpec, Sort, default_limit};
-use serde::Deserialize;
+use common::query::{Paginated, QuerySpec, Sort};
 use ymir::errors::AppResult;
 use ymir::utils::{extract_path_urn, extract_payload};
-
-// Router ────────────────────────────────────────────────────────────────────
 
 #[derive(Clone)]
 pub(crate) struct TransferProcessRouter {
@@ -69,7 +66,7 @@ impl TransferProcessRouter {
         State(state): State<Self>,
         scope: AccessScope,
         headers: ExtractedHeaders,
-        Query(q): Query<TransferProcessQuery>,
+        Query(q): Query<QuerySpec<TransferProcessFilter, Sort>>,
     ) -> AppResult<(HeaderMap, Json<Paginated<TransferProcessView>>)> {
         let (filter, page, sort) = q.into_domain();
         let result = state.service.get_all(&scope, &filter, &page, &sort).await?;
@@ -136,7 +133,3 @@ impl TransferProcessRouter {
         Ok((StatusCode::NO_CONTENT, headers.response_headers()))
     }
 }
-
-// Query params ──────────────────────────────────────────────────────────────
-
-pub type TransferProcessQuery = QuerySpec<TransferProcessFilter, Sort>;

@@ -19,7 +19,6 @@ use std::sync::Arc;
 
 use crate::entities::commands::NewTransferMessageCommand;
 use crate::entities::filters::TransferMessageFilter;
-use crate::http::extractors::ExtractedHeaders;
 use crate::services::transfer_message::TransferMessageServiceTrait;
 use crate::services::transfer_message::views::TransferMessageView;
 use axum::extract::rejection::JsonRejection;
@@ -28,12 +27,10 @@ use axum::http::{HeaderMap, StatusCode};
 use axum::routing::get;
 use axum::{Json, Router};
 use common::auth::access::AccessScope;
-use common::query::{Page, Paginated, QuerySpec, Sort, default_limit};
-use serde::Deserialize;
+use common::auth::http::ExtractedHeaders;
+use common::query::{Paginated, QuerySpec, Sort};
 use ymir::errors::AppResult;
 use ymir::utils::{extract_path_urn, extract_payload};
-
-// Router ────────────────────────────────────────────────────────────────────
 
 #[derive(Clone)]
 pub(crate) struct TransferMessageRouter {
@@ -66,7 +63,7 @@ impl TransferMessageRouter {
         State(state): State<Self>,
         scope: AccessScope,
         headers: ExtractedHeaders,
-        Query(q): Query<TransferMessageQuery>,
+        Query(q): Query<QuerySpec<TransferMessageFilter, Sort>>,
     ) -> AppResult<(HeaderMap, Json<Paginated<TransferMessageView>>)> {
         let (filter, page, sort) = q.into_domain();
         let result = state.service.get_all(&scope, &filter, &page, &sort).await?;
@@ -79,7 +76,7 @@ impl TransferMessageRouter {
         scope: AccessScope,
         headers: ExtractedHeaders,
         Path(process_id): Path<String>,
-        Query(q): Query<TransferMessageQuery>,
+        Query(q): Query<QuerySpec<TransferMessageFilter, Sort>>,
     ) -> AppResult<(HeaderMap, Json<Paginated<TransferMessageView>>)> {
         let process_urn = extract_path_urn(&process_id)?;
         let (filter, page, sort) = q.into_domain();
@@ -125,7 +122,3 @@ impl TransferMessageRouter {
         Ok((StatusCode::NO_CONTENT, headers.response_headers()))
     }
 }
-
-// Query params ──────────────────────────────────────────────────────────────
-
-pub type TransferMessageQuery = QuerySpec<TransferMessageFilter, Sort>;

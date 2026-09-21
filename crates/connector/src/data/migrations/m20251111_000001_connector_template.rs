@@ -32,6 +32,11 @@ impl MigrationTrait for Migration {
             .create_table(
                 Table::create()
                     .table(ConnectorTemplates::Table)
+                    .col(
+                        ColumnDef::new(ConnectorTemplates::TenantId)
+                            .string()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(ConnectorTemplates::Name).string().not_null())
                     .col(
                         ColumnDef::new(ConnectorTemplates::Version)
@@ -62,6 +67,7 @@ impl MigrationTrait for Migration {
                 Index::create()
                     .name("idx_connector_template_name_version")
                     .table(ConnectorTemplates::Table)
+                    .col(ConnectorTemplates::TenantId)
                     .col(ConnectorTemplates::Name)
                     .col(ConnectorTemplates::Version)
                     .unique()
@@ -80,6 +86,7 @@ impl MigrationTrait for Migration {
 #[derive(Iden)]
 pub enum ConnectorTemplates {
     Table,
+    TenantId,
     Name,
     Version,
     Author,

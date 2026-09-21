@@ -38,6 +38,11 @@ impl MigrationTrait for Migration {
                             .primary_key(),
                     )
                     .col(
+                        ColumnDef::new(TransferAgentIdentifiers::TenantId)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
                         ColumnDef::new(TransferAgentIdentifiers::TransferAgentProcessId)
                             .string()
                             .not_null(),
@@ -78,6 +83,7 @@ impl MigrationTrait for Migration {
 pub enum TransferAgentIdentifiers {
     Table,
     Id,
+    TenantId,
     TransferAgentProcessId,
     IdKey,
     IdValue,

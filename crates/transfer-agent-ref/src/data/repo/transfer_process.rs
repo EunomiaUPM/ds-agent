@@ -59,11 +59,7 @@ pub trait TransferProcessRepoTrait: Send + Sync {
         id: &Urn,
         edit_model: &EditTransferProcessCommand,
     ) -> Outcome<TransferProcess>;
-    async fn delete_transfer_process(
-        &self,
-        tenant_id: &str,
-        id: &Urn,
-    ) -> Outcome<()>;
+    async fn delete_transfer_process(&self, tenant_id: &str, id: &Urn) -> Outcome<()>;
 }
 
 #[derive(Debug, Error)]

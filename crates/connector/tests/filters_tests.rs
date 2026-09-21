@@ -30,6 +30,7 @@ fn connector_template_filter_empty_and_populated() {
     assert!(empty.validate().is_ok());
 
     let populated = ConnectorTemplateFilter {
+        tenant_id: None,
         name: Some("http-pull".to_string()),
         author: Some("UPM".to_string()),
         version: Some("1.0.0".to_string()),
@@ -44,6 +45,7 @@ fn connector_template_filter_empty_and_populated() {
 fn connector_template_filter_date_range_validation() {
     let now = Utc::now();
     let valid = ConnectorTemplateFilter {
+        tenant_id: None,
         name: None,
         author: None,
         version: None,
@@ -53,6 +55,7 @@ fn connector_template_filter_date_range_validation() {
     assert!(valid.validate().is_ok());
 
     let invalid = ConnectorTemplateFilter {
+        tenant_id: None,
         name: None,
         author: None,
         version: None,
@@ -70,6 +73,7 @@ fn connector_instance_filter_empty_and_populated() {
 
     let urn = Urn::from_str("urn:uuid:f47ac10b-58cc-4372-a567-0e02b2c3d479").unwrap();
     let populated = ConnectorInstanceFilter {
+        tenant_id: None,
         distribution_id: Some(urn),
         template_name: Some("http-pull".to_string()),
         template_version: Some("1.0.0".to_string()),

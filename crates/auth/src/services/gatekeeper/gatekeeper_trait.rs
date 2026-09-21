@@ -42,6 +42,7 @@ pub trait GateKeeperTrait: Send + Sync + 'static {
     ) -> Outcome<interaction::Plan>;
     fn build_mate_plan(
         &self,
+        tenant_id: &str,
         holder: &str,
         nick: &str,
         base_url: &str,

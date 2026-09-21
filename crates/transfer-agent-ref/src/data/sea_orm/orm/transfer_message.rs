@@ -21,12 +21,12 @@ use sea_orm::ActiveValue::Set;
 use sea_orm::entity::prelude::*;
 use ymir::errors::Outcome;
 
-use common::utils::parse_urn;
 use crate::data::sea_orm::orm::helpers::{deser_enum, deser_json, ser_enum, ser_json};
 use crate::entities::ids::{MessageId, TenantId};
 use crate::entities::message_envelope::MessageEnvelope;
 use crate::entities::protocol::{ProtocolId, ProtocolMessageType};
 use crate::entities::transfer_message::{Direction, TransferMessage};
+use common::utils::parse_urn;
 
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
 #[sea_orm(table_name = "transfer_messages")]

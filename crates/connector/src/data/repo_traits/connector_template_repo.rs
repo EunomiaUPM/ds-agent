@@ -31,13 +31,15 @@ pub trait ConnectorTemplateRepoTrait: Send + Sync {
 
     async fn get_templates_by_name(
         &self,
-        template_name: &String,
+        tenant_id: &str,
+        template_name: &str,
     ) -> Outcome<Vec<connector_templates::Model>>;
 
     async fn get_template_by_name_and_version(
         &self,
-        name: &String,
-        version: &String,
+        tenant_id: &str,
+        name: &str,
+        version: &str,
     ) -> Outcome<Option<connector_templates::Model>>;
 
     async fn get_all_templates(
@@ -49,7 +51,8 @@ pub trait ConnectorTemplateRepoTrait: Send + Sync {
 
     async fn delete_template_by_name_and_version(
         &self,
-        name: &String,
-        version: &String,
+        tenant_id: &str,
+        name: &str,
+        version: &str,
     ) -> Outcome<()>;
 }

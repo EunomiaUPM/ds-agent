@@ -33,20 +33,38 @@ use transfer_agent_ref::protocols::dsp::services::validator::{TransferRules, Tra
 fn transfer_rules_state_machine_transitions() {
     // Legal transitions
     assert!(TransferRules::state_transition(None, &TransferRequestMessage, "state").is_ok());
-    assert!(TransferRules::state_transition(Some(&REQUESTED), &TransferStartMessage, "state").is_ok());
-    assert!(TransferRules::state_transition(Some(&SUSPENDED), &TransferStartMessage, "state").is_ok());
-    assert!(TransferRules::state_transition(Some(&STARTED), &TransferCompletionMessage, "state").is_ok());
-    assert!(TransferRules::state_transition(Some(&STARTED), &TransferSuspensionMessage, "state").is_ok());
-    assert!(TransferRules::state_transition(Some(&REQUESTED), &TransferTerminationMessage, "state").is_ok());
+    assert!(
+        TransferRules::state_transition(Some(&REQUESTED), &TransferStartMessage, "state").is_ok()
+    );
+    assert!(
+        TransferRules::state_transition(Some(&SUSPENDED), &TransferStartMessage, "state").is_ok()
+    );
+    assert!(
+        TransferRules::state_transition(Some(&STARTED), &TransferCompletionMessage, "state")
+            .is_ok()
+    );
+    assert!(
+        TransferRules::state_transition(Some(&STARTED), &TransferSuspensionMessage, "state")
+            .is_ok()
+    );
+    assert!(
+        TransferRules::state_transition(Some(&REQUESTED), &TransferTerminationMessage, "state")
+            .is_ok()
+    );
 
     // Illegal transitions
-    let err_req = TransferRules::state_transition(Some(&REQUESTED), &TransferRequestMessage, "state").unwrap_err();
+    let err_req =
+        TransferRules::state_transition(Some(&REQUESTED), &TransferRequestMessage, "state")
+            .unwrap_err();
     assert_eq!(err_req.code(), Some(codes::NOT_ALLOWED));
 
-    let err_start = TransferRules::state_transition(Some(&COMPLETED), &TransferStartMessage, "state").unwrap_err();
+    let err_start =
+        TransferRules::state_transition(Some(&COMPLETED), &TransferStartMessage, "state")
+            .unwrap_err();
     assert_eq!(err_start.code(), Some(codes::NOT_ALLOWED));
 
-    let err_none_start = TransferRules::state_transition(None, &TransferStartMessage, "state").unwrap_err();
+    let err_none_start =
+        TransferRules::state_transition(None, &TransferStartMessage, "state").unwrap_err();
     assert_eq!(err_none_start.code(), Some(codes::NOT_ALLOWED));
 }
 
@@ -61,8 +79,12 @@ fn transfer_rules_role_gating() {
 #[test]
 fn transfer_rules_suspension_semaphore() {
     // A role cannot resume a transfer it suspended itself
-    assert!(TransferRules::semaphore(&ByConsumer, &TransferStartMessage, &Consumer, "sem").is_err());
-    assert!(TransferRules::semaphore(&ByProvider, &TransferStartMessage, &Provider, "sem").is_err());
+    assert!(
+        TransferRules::semaphore(&ByConsumer, &TransferStartMessage, &Consumer, "sem").is_err()
+    );
+    assert!(
+        TransferRules::semaphore(&ByProvider, &TransferStartMessage, &Provider, "sem").is_err()
+    );
 
     // The counterparty can resume
     assert!(TransferRules::semaphore(&ByConsumer, &TransferStartMessage, &Provider, "sem").is_ok());
@@ -77,20 +99,35 @@ fn transfer_rules_suspension_semaphore() {
 fn transfer_rules_data_address_format() {
     assert!(TransferRules::data_address_format(true, &Provider, &OnRequest, "dataAddress").is_ok());
     assert!(TransferRules::data_address_format(true, &Consumer, &OnRequest, "dataAddress").is_ok());
-    assert!(TransferRules::data_address_format(true, &Consumer, &ByProvider, "dataAddress").is_err());
-    assert!(TransferRules::data_address_format(false, &Consumer, &ByProvider, "dataAddress").is_ok());
+    assert!(
+        TransferRules::data_address_format(true, &Consumer, &ByProvider, "dataAddress").is_err()
+    );
+    assert!(
+        TransferRules::data_address_format(false, &Consumer, &ByProvider, "dataAddress").is_ok()
+    );
 }
 
 #[test]
 fn transfer_rules_pids_and_uri_correlation() {
     // URI and body PID correlation
-    assert!(TransferRules::uri_and_pid("urn:uuid:1", Some("urn:uuid:1"), None, &Consumer, "uri").is_ok());
-    assert!(TransferRules::uri_and_pid("urn:uuid:1", None, Some("urn:uuid:1"), &Provider, "uri").is_ok());
-    assert!(TransferRules::uri_and_pid("urn:uuid:1", Some("urn:uuid:2"), None, &Consumer, "uri").is_err());
+    assert!(
+        TransferRules::uri_and_pid("urn:uuid:1", Some("urn:uuid:1"), None, &Consumer, "uri")
+            .is_ok()
+    );
+    assert!(
+        TransferRules::uri_and_pid("urn:uuid:1", None, Some("urn:uuid:1"), &Provider, "uri")
+            .is_ok()
+    );
+    assert!(
+        TransferRules::uri_and_pid("urn:uuid:1", Some("urn:uuid:2"), None, &Consumer, "uri")
+            .is_err()
+    );
 
     // Stored PID correlation
     assert!(TransferRules::correlation(Some("c"), Some("p"), Some("c"), Some("p"), "pids").is_ok());
-    assert!(TransferRules::correlation(Some("c"), Some("p"), Some("c"), Some("other"), "pids").is_err());
+    assert!(
+        TransferRules::correlation(Some("c"), Some("p"), Some("c"), Some("other"), "pids").is_err()
+    );
 }
 
 #[test]

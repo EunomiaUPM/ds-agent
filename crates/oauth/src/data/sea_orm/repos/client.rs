@@ -71,7 +71,12 @@ impl SeaOrmClientRepository {
 
 #[async_trait::async_trait]
 impl ClientRepository for SeaOrmClientRepository {
-    async fn get_all(&self, filter: &ClientFilter, page: &Page, sort: &Sort) -> Outcome<Vec<Client>> {
+    async fn get_all(
+        &self,
+        filter: &ClientFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<Vec<Client>> {
         let mut q = Self::apply_base_filters(orm::Entity::find(), filter);
 
         if let Some(ref cursor) = page.cursor {

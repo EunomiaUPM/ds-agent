@@ -16,6 +16,7 @@
  */
 
 use crate::data::factory_sql::NegotiationAgentRepoForSql;
+use crate::data::factory_trait::NegotiationAgentRepoTrait;
 use crate::entities::agreement::agreement::NegotiationAgentAgreementsService;
 use crate::entities::negotiation_message::negotiation_message::NegotiationAgentMessagesService;
 use crate::entities::negotiation_process::negotiation_process::NegotiationAgentProcessesService;
@@ -26,6 +27,10 @@ use crate::http::negotiation_process::NegotiationAgentProcessesRouter;
 use crate::http::offer::NegotiationAgentOffersRouter;
 use crate::protocols::dsp::NegotiationDSP;
 use crate::protocols::protocol::ProtocolPluginTrait;
+use crate::services::agreement::service::AgreementService;
+use crate::services::negotiation_message::service::NegotiationMessageService;
+use crate::services::negotiation_process::service::NegotiationProcessService;
+use crate::services::offer::service::OfferService;
 use axum::extract::Request;
 use axum::response::IntoResponse;
 use axum::{Router, serve};
@@ -40,7 +45,7 @@ use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 use tower_http::trace::{DefaultOnResponse, TraceLayer};
 use uuid::Uuid;
-use ymir::config::traits::{ApiConfigTrait, ConnectionConfigTrait, HostsConfigTrait};
+use ymir::config::traits::{ApiConfigTrait, HostsConfigTrait};
 use ymir::config::types::HostType;
 use ymir::errors::{Errors, Outcome};
 use ymir::http::HealthRouter;
@@ -58,12 +63,12 @@ impl NegotiationHttpWorker {
         let well_known_router = WellKnownRoot::get_well_known_router(&config.into())?;
         let health_router = HealthRouter::new().router();
         // module transfer router
-        let router = Self::create_root_http_router(&config, vault.clone())
+        let router = Self::create_root_http_router(config, vault.clone())
             .await?
             .merge(well_known_router)
             .merge(health_router);
         let port = config.common().get_internal_port(HostType::Http);
-        let addr = format!("0.0.0.0:{}", port);
+        let addr = format!("0.0.0.0:{port}");
 
         let listener = TcpListener::bind(&addr)
             .await
@@ -132,31 +137,46 @@ pub async fn create_root_http_router_with_bus(
         db_connection.clone(),
     ));
 
-    // entities
+    // Management services & routers
+    let process_service = Arc::new(NegotiationProcessService::new(
+        negotiation_repo.get_negotiation_process_repo(),
+        negotiation_repo.get_negotiation_process_identifiers_repo(),
+        negotiation_repo.get_negotiation_message_repo(),
+        negotiation_repo.get_offer_repo(),
+        negotiation_repo.get_agreement_repo(),
+    ));
+    let entities_router = NegotiationAgentProcessesRouter::new(process_service);
+
+    let message_service = Arc::new(NegotiationMessageService::new(
+        negotiation_repo.get_negotiation_message_repo(),
+        negotiation_repo.get_offer_repo(),
+        negotiation_repo.get_agreement_repo(),
+    ));
+    let messages_router = NegotiationAgentMessagesRouter::new(message_service);
+
+    let offer_service = Arc::new(OfferService::new(negotiation_repo.get_offer_repo()));
+    let offer_router = NegotiationAgentOffersRouter::new(offer_service);
+
+    let agreement_service = Arc::new(AgreementService::new(negotiation_repo.get_agreement_repo()));
+    let agreement_router = NegotiationAgentAgreementsRouter::new(agreement_service);
+
+    // Entity services for DSP
     let messages_controller_service = Arc::new(
         NegotiationAgentMessagesService::new(negotiation_repo.clone())
             .with_event_bus(event_bus.clone()),
     );
-    let messages_router =
-        NegotiationAgentMessagesRouter::new(messages_controller_service.clone(), config.clone());
     let entities_controller_service = Arc::new(
         NegotiationAgentProcessesService::new(negotiation_repo.clone())
             .with_event_bus(event_bus.clone()),
     );
-    let entities_router =
-        NegotiationAgentProcessesRouter::new(entities_controller_service.clone(), config.clone());
     let offer_controller_service = Arc::new(
         NegotiationAgentOffersService::new(negotiation_repo.clone())
             .with_event_bus(event_bus.clone()),
     );
-    let offer_router =
-        NegotiationAgentOffersRouter::new(offer_controller_service.clone(), config.clone());
     let agreement_controller_service = Arc::new(
         NegotiationAgentAgreementsService::new(negotiation_repo.clone())
             .with_event_bus(event_bus.clone()),
     );
-    let agreement_router =
-        NegotiationAgentAgreementsRouter::new(agreement_controller_service.clone(), config.clone());
 
     use common::facades::ssi_auth_facade::mates_facade::MatesFacadeService;
     use common::facades::ssi_auth_facade::ssi_auth_facade::SSIAuthFacadeService;
@@ -188,9 +208,13 @@ pub async fn create_root_http_router_with_bus(
     .await
     .expect("Failed to build DSP router");
 
+    let validator: Arc<dyn common::auth::OauthTokenValidator> =
+        oauth::setup::composition::OAuthSetup::new()
+            .build_token_service(config.common().clone().into(), db_connection.clone());
+
     // router
     let router_str = format!("{}/negotiation-agent", config.common().get_api_version());
-    let router = Router::new()
+    let management_router = Router::new()
         .nest(
             format!("{}/negotiation-messages", router_str.as_str()).as_str(),
             messages_router.router(),
@@ -207,7 +231,12 @@ pub async fn create_root_http_router_with_bus(
             format!("{}/agreements", router_str.as_str()).as_str(),
             agreement_router.router(),
         )
-        .nest("/dsp/current/negotiations", dsp_router);
+        .route_layer(axum::middleware::from_fn_with_state(
+            validator,
+            common::auth::http::AuthHttpMiddleware::run,
+        ));
 
-    router
+    Router::new()
+        .merge(management_router)
+        .nest("/dsp/current/negotiations", dsp_router)
 }

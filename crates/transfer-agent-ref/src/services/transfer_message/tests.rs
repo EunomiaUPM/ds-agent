@@ -758,9 +758,7 @@ async fn delete_foreign_tenant_returns_not_found() {
     let mut repo = MockTransferMessageRepoTrait::new();
     repo.expect_delete_transfer_message()
         .withf(|tenant, id| tenant == "tenant-2" && id == &p_urn(1001))
-        .returning(|_, _| {
-            Err(TransferMessageRepoErrors::TransferMessageNotFound.into_errors())
-        });
+        .returning(|_, _| Err(TransferMessageRepoErrors::TransferMessageNotFound.into_errors()));
 
     let svc = make_svc(repo);
     assert!(

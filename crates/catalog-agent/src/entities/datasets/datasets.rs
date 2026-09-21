@@ -16,13 +16,14 @@
  */
 
 use crate::cache::factory_trait::CatalogAgentCacheTrait;
+use crate::data::entities::dataset::NewDatasetModel;
 use crate::data::factory_trait::CatalogAgentRepoTrait;
 use crate::entities::datasets::{DatasetDto, DatasetEntityTrait, EditDatasetDto, NewDatasetDto};
 use crate::entities::filters::DatasetFilter;
-use common::errors::{CommonErrors, ErrorLog};
+use common::auth::AccessScope;
+use common::errors::NotFoundExt;
 use common::paginated_spec::{Cursor, Page, Paginated, Sort};
 use common::query::QueryFilter;
-use log::error;
 use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
@@ -56,17 +57,21 @@ impl DatasetEntities {
 impl DatasetEntityTrait for DatasetEntities {
     async fn get_all_datasets(
         &self,
+        scope: &AccessScope,
         filters: &DatasetFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<DatasetDto>> {
+        scope.require_read()?;
         filters.validate()?;
+        let mut filters = filters.clone();
+        filters.tenant_id = scope.resolve_query_tenant(filters.tenant_id.as_deref())?;
         let page = page.clamped();
 
         let (datasets, total) = self
             .repo
             .get_dataset_repo()
-            .get_all_datasets(filters, &page, sort)
+            .get_all_datasets(&filters, &page, sort)
             .await?;
 
         let dtos: Vec<DatasetDto> = datasets.into_iter().map(Into::into).collect();
@@ -76,112 +81,102 @@ impl DatasetEntityTrait for DatasetEntities {
         }))
     }
 
-    async fn get_batch_datasets(&self, ids: &Vec<Urn>) -> Outcome<Vec<DatasetDto>> {
-        // cache
-        if let Ok(dtos) = self.cache.get_dataset_cache().get_batch(ids).await {
-            if !dtos.is_empty() {
-                return Ok(dtos);
-            }
-        }
+    async fn get_batch_datasets(
+        &self,
+        scope: &AccessScope,
+        ids: &[Urn],
+    ) -> Outcome<Vec<DatasetDto>> {
+        scope.require_read()?;
+        let datasets = self
+            .repo
+            .get_dataset_repo()
+            .get_batch_datasets(scope.acting_tenant(), ids)
+            .await?;
 
-        // db
-        let datasets = self.repo.get_dataset_repo().get_batch_datasets(ids).await?;
-
-        let dtos: Vec<DatasetDto> = datasets.into_iter().map(Into::into).collect();
-
-        // hydration
+        let mut dtos: Vec<DatasetDto> = Vec::new();
         let cache = self.cache.get_dataset_cache();
-        for dto in &dtos {
+        for ds in datasets {
+            let dto: DatasetDto = ds.into();
             if let Ok(id) = Urn::from_str(dto.inner.id.as_str()) {
-                let _ = cache.set_single(&id, dto).await;
+                let _ = cache.set_single(&id, &dto).await;
                 let _ = cache
                     .add_to_collection(&id, dto.inner.dct_issued.timestamp() as f64)
                     .await;
             }
+            dtos.push(dto);
         }
         Ok(dtos)
     }
 
-    async fn get_datasets_by_catalog_id(&self, catalog_id: &Urn) -> Outcome<Vec<DatasetDto>> {
-        // cache
-        if let Ok(dtos) = self
-            .cache
-            .get_dataset_cache()
-            .get_by_relation("catalogs", catalog_id, None, None)
-            .await
-        {
-            if !dtos.is_empty() {
-                return Ok(dtos);
-            }
-        }
-
-        // db fetch
+    async fn get_datasets_by_catalog_id(
+        &self,
+        scope: &AccessScope,
+        catalog_id: &Urn,
+    ) -> Outcome<Vec<DatasetDto>> {
+        scope.require_read()?;
         let datasets = self
             .repo
             .get_dataset_repo()
-            .get_datasets_by_catalog_id(catalog_id)
+            .get_datasets_by_catalog_id(scope.acting_tenant(), catalog_id)
             .await?;
 
-        let dtos: Vec<DatasetDto> = datasets.into_iter().map(Into::into).collect();
-
-        //  hydration
+        let mut dtos: Vec<DatasetDto> = Vec::new();
         let cache = self.cache.get_dataset_cache();
-        for dto in &dtos {
+        for ds in datasets {
+            let dto: DatasetDto = ds.into();
             if let Ok(id) = Urn::from_str(dto.inner.id.as_str()) {
                 let score = dto.inner.dct_issued.timestamp() as f64;
-                let _ = cache.set_single(&id, dto).await;
+                let _ = cache.set_single(&id, &dto).await;
                 let _ = cache.add_to_collection(&id, score).await;
                 let _ = cache
                     .add_to_relation("catalogs", catalog_id, &id, score)
                     .await;
             }
+            dtos.push(dto);
         }
         Ok(dtos)
     }
 
-    async fn get_dataset_by_id(&self, dataset_id: &Urn) -> Outcome<Option<DatasetDto>> {
-        // Try cache
-        if let Ok(Some(dto)) = self.cache.get_dataset_cache().get_single(dataset_id).await {
-            return Ok(Some(dto));
-        }
-
-        // Database
+    async fn get_dataset_by_id(
+        &self,
+        scope: &AccessScope,
+        dataset_id: &Urn,
+    ) -> Outcome<DatasetDto> {
+        scope.require_read()?;
         let dataset = self
             .repo
             .get_dataset_repo()
-            .get_dataset_by_id(dataset_id)
-            .await?;
+            .get_dataset_by_id(scope.acting_tenant(), dataset_id)
+            .await?
+            .or_not_found(dataset_id, "dataset")?;
 
-        let dto: Option<DatasetDto> = dataset.map(Into::into);
+        let dto: DatasetDto = dataset.into();
 
-        // Safe hydration
-        if let Some(dto) = &dto {
-            let cache = self.cache.get_dataset_cache();
-            let _ = cache.set_single(dataset_id, dto).await;
-            let _ = cache
-                .add_to_collection(dataset_id, dto.inner.dct_issued.timestamp() as f64)
-                .await;
-        }
+        let cache = self.cache.get_dataset_cache();
+        let _ = cache.set_single(dataset_id, &dto).await;
+        let _ = cache
+            .add_to_collection(dataset_id, dto.inner.dct_issued.timestamp() as f64)
+            .await;
         Ok(dto)
     }
 
     async fn put_dataset_by_id(
         &self,
+        scope: &AccessScope,
         dataset_id: &Urn,
         edit_dataset_model: &EditDatasetDto,
     ) -> Outcome<DatasetDto> {
-        // db
+        scope.require_write()?;
         let edit_model = edit_dataset_model.clone().into();
         let dataset = self
             .repo
             .get_dataset_repo()
-            .put_dataset_by_id(dataset_id, &edit_model)
+            .put_dataset_by_id(scope.acting_tenant(), dataset_id, &edit_model)
             .await?;
 
         let dto: DatasetDto = dataset.into();
         let ds_urn = Urn::from_str(dto.inner.id.as_str())?;
 
-        // hydration
         let cache = self.cache.get_dataset_cache();
         let _ = cache.set_single(&ds_urn, &dto).await;
         let _ = cache
@@ -192,9 +187,15 @@ impl DatasetEntityTrait for DatasetEntities {
         Ok(dto)
     }
 
-    async fn create_dataset(&self, new_dataset_model: &NewDatasetDto) -> Outcome<DatasetDto> {
-        // db
-        let new_model = new_dataset_model.clone().into();
+    async fn create_dataset(
+        &self,
+        scope: &AccessScope,
+        new_dataset_model: &NewDatasetDto,
+    ) -> Outcome<DatasetDto> {
+        let mut new_dataset_model = new_dataset_model.clone();
+        let tenant_id = scope.resolve_create_tenant(new_dataset_model.tenant_id.as_deref())?;
+        new_dataset_model.tenant_id = Some(tenant_id.clone());
+        let new_model: NewDatasetModel = new_dataset_model.into_model(tenant_id);
         let dataset = self
             .repo
             .get_dataset_repo()
@@ -205,13 +206,11 @@ impl DatasetEntityTrait for DatasetEntities {
         let ds_urn = Urn::from_str(dto.inner.id.as_str())?;
         let score = dto.inner.dct_issued.timestamp() as f64;
 
-        // hydration
         let cache = self.cache.get_dataset_cache();
         let _ = cache.set_single(&ds_urn, &dto).await;
         let _ = cache.add_to_collection(&ds_urn, score).await;
 
-        // lookup cache hydration
-        if let Ok(catalog_id) = Urn::from_str(&*dto.inner.catalog_id) {
+        if let Ok(catalog_id) = Urn::from_str(&dto.inner.catalog_id) {
             let _ = cache
                 .add_to_relation("catalogs", &catalog_id, &ds_urn, score)
                 .await;
@@ -227,28 +226,21 @@ impl DatasetEntityTrait for DatasetEntities {
         Ok(dto)
     }
 
-    async fn delete_dataset_by_id(&self, dataset_id: &Urn) -> Outcome<()> {
-        // 1. Get current for parent URN lookup
-        let current = self.get_dataset_by_id(dataset_id).await?;
-
-        // 2. Database
-        self.repo
+    async fn delete_dataset_by_id(&self, scope: &AccessScope, dataset_id: &Urn) -> Outcome<()> {
+        scope.require_write()?;
+        let deleted = self
+            .repo
             .get_dataset_repo()
-            .delete_dataset_by_id(dataset_id)
+            .delete_dataset_by_id(scope.acting_tenant(), dataset_id)
             .await?;
 
-        // 3. Invalidation
         let cache = self.cache.get_dataset_cache();
         let _ = cache.delete_single(dataset_id).await;
         let _ = cache.remove_from_collection(dataset_id).await;
-
-        // Relation invalidation
-        if let Some(dto) = current {
-            if let Ok(catalog_id) = Urn::from_str(&*dto.inner.catalog_id) {
-                let _ = cache
-                    .remove_from_relation("catalogs", &catalog_id, dataset_id)
-                    .await;
-            }
+        if let Ok(catalog_id) = Urn::from_str(&deleted.catalog_id) {
+            let _ = cache
+                .remove_from_relation("catalogs", &catalog_id, dataset_id)
+                .await;
         }
 
         events::emit_action!(

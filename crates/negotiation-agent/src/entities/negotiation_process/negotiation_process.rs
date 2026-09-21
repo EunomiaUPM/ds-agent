@@ -74,19 +74,19 @@ impl NegotiationAgentProcessesService {
         let messages = self
             .negotiation_repo
             .get_negotiation_message_repo()
-            .get_messages_by_process_id(&process_urn)
+            .get_messages_by_process_id(&process.tenant_id, &process_urn)
             .await?;
 
         let offers = self
             .negotiation_repo
             .get_offer_repo()
-            .get_offers_by_negotiation_process(&process_urn)
+            .get_offers_by_negotiation_process(&process.tenant_id, &process_urn)
             .await?;
 
         let agreement_opt = self
             .negotiation_repo
             .get_agreement_repo()
-            .get_agreement_by_negotiation_process(&process_urn)
+            .get_agreement_by_negotiation_process(&process.tenant_id, &process_urn)
             .await?;
 
         let identifiers_models = self
@@ -145,18 +145,12 @@ impl NegotiationAgentProcessesTrait for NegotiationAgentProcessesService {
         &self,
         ids: &Vec<Urn>,
     ) -> Outcome<Vec<NegotiationProcessDto>> {
-        let processes = self
-            .negotiation_repo
-            .get_negotiation_process_repo()
-            .get_batch_negotiation_processes(ids)
-            .await?;
-
-        let mut dtos = Vec::with_capacity(processes.len());
-        for p in processes {
-            let dto = self.enrich_process(p).await?;
-            dtos.push(dto);
+        let mut dtos = Vec::with_capacity(ids.len());
+        for id in ids {
+            if let Some(dto) = self.get_negotiation_process_by_id(id).await? {
+                dtos.push(dto);
+            }
         }
-
         Ok(dtos)
     }
 
@@ -167,7 +161,7 @@ impl NegotiationAgentProcessesTrait for NegotiationAgentProcessesService {
         let process_opt = self
             .negotiation_repo
             .get_negotiation_process_repo()
-            .get_negotiation_process_by_id(id)
+            .get_negotiation_process_by_key_value(None, id)
             .await?;
 
         match process_opt {
@@ -184,7 +178,7 @@ impl NegotiationAgentProcessesTrait for NegotiationAgentProcessesService {
         let process_opt = self
             .negotiation_repo
             .get_negotiation_process_repo()
-            .get_negotiation_process_by_key_id(key_id, id)
+            .get_negotiation_process_by_key_id(None, key_id, id)
             .await?;
 
         match process_opt {
@@ -200,7 +194,7 @@ impl NegotiationAgentProcessesTrait for NegotiationAgentProcessesService {
         let process_opt = self
             .negotiation_repo
             .get_negotiation_process_repo()
-            .get_negotiation_process_by_key_value(id)
+            .get_negotiation_process_by_key_value(None, id)
             .await?;
 
         match process_opt {
@@ -231,6 +225,7 @@ impl NegotiationAgentProcessesTrait for NegotiationAgentProcessesService {
             for (key, urn_value) in identifiers {
                 let new_ident_model = NewNegotiationIdentifierModel {
                     id: None,
+                    tenant_id: created_process.tenant_id.clone(),
                     negotiation_agent_process_id: process_urn.clone(),
                     id_key: key.clone(),
                     id_value: Some(urn_value.to_string()),
@@ -259,12 +254,19 @@ impl NegotiationAgentProcessesTrait for NegotiationAgentProcessesService {
         id: &Urn,
         edit_model_dto: &EditNegotiationProcessDto,
     ) -> Outcome<NegotiationProcessDto> {
+        let existing = self
+            .negotiation_repo
+            .get_negotiation_process_repo()
+            .get_negotiation_process_by_key_value(None, id)
+            .await?
+            .ok_or_else(|| Errors::parse(format!("Negotiation process {} not found", id), None))?;
+
         let edit_model: EditNegotiationProcessModel = edit_model_dto.clone().into();
 
         let updated_process = self
             .negotiation_repo
             .get_negotiation_process_repo()
-            .put_negotiation_process(id, &edit_model)
+            .put_negotiation_process(&existing.tenant_id, id, &edit_model)
             .await?;
 
         let process_urn = Urn::from_str(&updated_process.id).map_err(|e| {
@@ -291,6 +293,7 @@ impl NegotiationAgentProcessesTrait for NegotiationAgentProcessesService {
                         .get_negotiation_process_identifiers_repo()
                         .create_identifier(&NewNegotiationIdentifierModel {
                             id: Some(get_urn(None)),
+                            tenant_id: updated_process.tenant_id.clone(),
                             negotiation_agent_process_id: process_urn.clone(),
                             id_key: key.clone(),
                             id_value: Some(urn_value.to_string()),
@@ -319,9 +322,16 @@ impl NegotiationAgentProcessesTrait for NegotiationAgentProcessesService {
     }
 
     async fn delete_negotiation_process(&self, id: &Urn) -> Outcome<()> {
+        let existing = self
+            .negotiation_repo
+            .get_negotiation_process_repo()
+            .get_negotiation_process_by_key_value(None, id)
+            .await?
+            .ok_or_else(|| Errors::parse(format!("Negotiation process {} not found", id), None))?;
+
         self.negotiation_repo
             .get_negotiation_process_repo()
-            .delete_negotiation_process(id)
+            .delete_negotiation_process(&existing.tenant_id, id)
             .await?;
         events::emit_action!(
             self.event_bus,

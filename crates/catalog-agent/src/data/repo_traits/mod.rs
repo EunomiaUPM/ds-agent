@@ -15,10 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod catalog_db_errors;
-pub(crate) mod catalog_repo;
-pub(crate) mod dataservice_repo;
-pub(crate) mod dataset_repo;
-pub(crate) mod distribution_repo;
-pub(crate) mod odrl_offer_repo;
-pub(crate) mod policy_template_repo;
+pub mod catalog_db_errors;
+pub mod catalog_repo;
+pub mod dataservice_repo;
+pub mod dataset_repo;
+pub mod distribution_repo;
+pub mod odrl_offer_repo;
+pub mod policy_template_repo;

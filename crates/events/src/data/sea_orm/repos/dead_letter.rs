@@ -51,8 +51,14 @@ impl EventDeadLetterRepo for SeaOrmDeadLetterRepo {
         Ok(record.clone())
     }
 
-    async fn get_dead_letter(&self, id: &str) -> Outcome<Option<DeadLetterRecord>> {
-        let model = dead_letter::Entity::find_by_id(id.to_string())
+    async fn get_dead_letter(
+        &self,
+        tenant_id: &str,
+        id: &str,
+    ) -> Outcome<Option<DeadLetterRecord>> {
+        let model = dead_letter::Entity::find()
+            .filter(dead_letter::Column::Id.eq(id))
+            .filter(dead_letter::Column::TenantId.eq(tenant_id))
             .one(&self.db)
             .await
             .map_err(|e| Errors::db("failed to query dead letter", Some(Box::new(e))))?;
@@ -65,11 +71,13 @@ impl EventDeadLetterRepo for SeaOrmDeadLetterRepo {
 
     async fn list_dead_letters(
         &self,
+        tenant_id: &str,
         status: Option<&str>,
         limit: u64,
         offset: u64,
     ) -> Outcome<Vec<DeadLetterRecord>> {
-        let mut query = dead_letter::Entity::find();
+        let mut query =
+            dead_letter::Entity::find().filter(dead_letter::Column::TenantId.eq(tenant_id));
         if let Some(s) = status {
             query = query.filter(dead_letter::Column::Status.eq(s));
         }
@@ -89,8 +97,10 @@ impl EventDeadLetterRepo for SeaOrmDeadLetterRepo {
         Ok(list)
     }
 
-    async fn mark_replayed(&self, id: &str) -> Outcome<()> {
-        if let Some(model) = dead_letter::Entity::find_by_id(id.to_string())
+    async fn mark_replayed(&self, tenant_id: &str, id: &str) -> Outcome<()> {
+        if let Some(model) = dead_letter::Entity::find()
+            .filter(dead_letter::Column::Id.eq(id))
+            .filter(dead_letter::Column::TenantId.eq(tenant_id))
             .one(&self.db)
             .await
             .map_err(|e| Errors::db("failed to find dead letter", Some(Box::new(e))))?
@@ -106,8 +116,10 @@ impl EventDeadLetterRepo for SeaOrmDeadLetterRepo {
         Ok(())
     }
 
-    async fn delete_dead_letter(&self, id: &str) -> Outcome<()> {
-        dead_letter::Entity::delete_by_id(id.to_string())
+    async fn delete_dead_letter(&self, tenant_id: &str, id: &str) -> Outcome<()> {
+        dead_letter::Entity::delete_many()
+            .filter(dead_letter::Column::Id.eq(id))
+            .filter(dead_letter::Column::TenantId.eq(tenant_id))
             .exec(&self.db)
             .await
             .map_err(|e| Errors::db("failed to delete dead letter", Some(Box::new(e))))?;

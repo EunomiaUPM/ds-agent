@@ -38,6 +38,11 @@ impl MigrationTrait for Migration {
                             .primary_key(),
                     )
                     .col(
+                        ColumnDef::new(CatalogDistributions::TenantId)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
                         ColumnDef::new(CatalogDistributions::DctIssued)
                             .timestamp_with_time_zone()
                             .not_null(),
@@ -82,6 +87,7 @@ impl MigrationTrait for Migration {
 pub enum CatalogDistributions {
     Table,
     Id,
+    TenantId,
     DctIssued,
     DctModified,
     DctTitle,

@@ -16,9 +16,9 @@
  */
 
 #![allow(unused)]
-pub(crate) mod cache;
+pub mod cache;
 pub(crate) mod config;
-pub(crate) mod data;
+pub mod data;
 pub mod entities;
 pub(crate) mod errors;
 pub(crate) mod grpc;

@@ -43,6 +43,7 @@ impl DataPlaneStrategy for ConsumerPullStrategy {
         })?;
         let cmd = DataplaneCommand::SetInit(DataplaneInitCommandTypes::AsConsumer {
             transfer_process_id: transfer_id.clone(),
+            tenant_id: ctx.tenant_id().to_string(),
             direction: DataplaneInitCommandDirection::Pull { data_address: None },
         });
         mgr.execute_command(cmd).await?;

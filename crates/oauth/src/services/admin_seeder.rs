@@ -15,12 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use chrono::Utc;
-use common::auth::RbacRole;
 use crate::data::factory::OAuthDataFactory;
 use crate::data::sea_orm::factory::SeaOrmDataFactory;
 use crate::entities::user::User;
 use crate::services::password;
+use chrono::Utc;
+use common::auth::RbacRole;
 
 /// Admin user seeder.
 /// On boot procedures, an admin taken by config info is seeded into the database.

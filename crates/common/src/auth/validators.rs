@@ -43,8 +43,7 @@ impl AuthValidators {
 
     /// Validates tenant identifier string format.
     pub fn tenant_id_validator() -> Validator<String> {
-        Validator::new().rule(|tenant_id: &String| {
-            AuthRules::tenant_id_format(tenant_id, "tenant_id")
-        })
+        Validator::new()
+            .rule(|tenant_id: &String| AuthRules::tenant_id_format(tenant_id, "tenant_id"))
     }
 }

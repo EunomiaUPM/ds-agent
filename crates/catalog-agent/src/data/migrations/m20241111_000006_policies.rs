@@ -38,6 +38,11 @@ impl MigrationTrait for Migration {
                             .primary_key(),
                     )
                     .col(
+                        ColumnDef::new(CatalogODRLOffers::TenantId)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
                         ColumnDef::new(CatalogODRLOffers::ODRLOffer)
                             .json_binary()
                             .not_null()
@@ -73,26 +78,23 @@ impl MigrationTrait for Migration {
                             .json_binary()
                             .null(),
                     )
-                    .foreign_key(
-                        ForeignKey::create()
-                            .name("fk_odrl_offers_template_source")
-                            .from(
-                                CatalogODRLOffers::Table,
-                                (
-                                    CatalogODRLOffers::SourceTemplateId,
-                                    CatalogODRLOffers::SourceTemplateVersion,
-                                ),
-                            )
-                            .to(
-                                PolicyTemplates::Table,
-                                (PolicyTemplates::Id, PolicyTemplates::Version),
-                            )
-                            .on_delete(ForeignKeyAction::SetNull)
-                            .on_update(ForeignKeyAction::Cascade),
-                    )
                     .to_owned(),
             )
-            .await
+            .await?;
+
+        // sea-query cannot express a column-subset SET NULL, needed because tenant_id is NOT NULL.
+        manager
+            .get_connection()
+            .execute_unprepared(
+                "ALTER TABLE catalog_odrl_offers \
+                 ADD CONSTRAINT fk_odrl_offers_template_source \
+                 FOREIGN KEY (tenant_id, source_template_id, source_template_version) \
+                 REFERENCES policy_templates (tenant_id, id, version) \
+                 ON DELETE SET NULL (source_template_id, source_template_version) \
+                 ON UPDATE CASCADE",
+            )
+            .await?;
+        Ok(())
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
@@ -106,6 +108,7 @@ impl MigrationTrait for Migration {
 pub enum CatalogODRLOffers {
     Table,
     Id,
+    TenantId,
     ODRLOffer,
     Entity,
     EntityType,
@@ -113,11 +116,4 @@ pub enum CatalogODRLOffers {
     SourceTemplateId,
     SourceTemplateVersion,
     InstantiationParameters,
-}
-
-#[derive(Iden)]
-pub enum PolicyTemplates {
-    Table,
-    Id,
-    Version,
 }

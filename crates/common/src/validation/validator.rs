@@ -92,7 +92,11 @@ impl<S> Validator<S> {
         let p = path.into();
         self.rule(move |s: &S| match extractor(s) {
             Some(val) if val.starts_with("urn:") => Ok(()),
-            Some(_) => Err(violation(p.clone(), codes::MALFORMED, "must be a valid URN")),
+            Some(_) => Err(violation(
+                p.clone(),
+                codes::MALFORMED,
+                "must be a valid URN",
+            )),
             None => Err(violation(p.clone(), codes::MISSING, "field is required")),
         })
     }
@@ -116,13 +120,15 @@ impl<S> Validator<S> {
         predicate: impl Fn(&S) -> bool + Send + Sync + 'static,
         rule: impl Rule<S> + 'static,
     ) -> Self {
-        self.rule(move |s: &S| {
-            if predicate(s) {
-                rule.check(s)
-            } else {
-                Ok(())
-            }
-        })
+        self.rule(
+            move |s: &S| {
+                if predicate(s) {
+                    rule.check(s)
+                } else {
+                    Ok(())
+                }
+            },
+        )
     }
 
     /// Focus validation onto a nested subfield with a path prefix.

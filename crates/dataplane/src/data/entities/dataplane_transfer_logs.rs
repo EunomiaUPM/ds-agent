@@ -26,6 +26,7 @@ use urn::UrnBuilder;
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: String,
+    pub tenant_id: String,
     pub dataplane_process_id: String,
     pub previous_state: Option<TransferState>,
     pub new_state: TransferState,
@@ -57,6 +58,7 @@ impl ActiveModelBehavior for ActiveModel {}
 
 #[derive(Clone)]
 pub struct NewTransferLog {
+    pub tenant_id: String,
     pub dataplane_process_id: String,
     pub previous_state: Option<TransferState>,
     pub new_state: TransferState,
@@ -74,6 +76,7 @@ impl From<NewTransferLog> for ActiveModel {
         .expect("UrnBuilder failed");
         Self {
             id: ActiveValue::Set(new_urn.to_string()),
+            tenant_id: ActiveValue::Set(value.tenant_id),
             dataplane_process_id: ActiveValue::Set(value.dataplane_process_id),
             previous_state: ActiveValue::Set(value.previous_state),
             new_state: ActiveValue::Set(value.new_state),

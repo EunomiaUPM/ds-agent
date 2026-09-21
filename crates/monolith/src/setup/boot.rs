@@ -18,6 +18,8 @@
 use std::str::FromStr;
 use std::sync::Arc;
 
+use crate::setup::composition::MonolithModule;
+use crate::setup::CoreHttpWorker;
 use catalog_agent::{CatalogDto, DataServiceDto, NewCatalogDto, NewDataServiceDto};
 use common::boot::BootstrapServiceTrait;
 use common::config::services::traits::CatalogConfigTrait;
@@ -26,6 +28,7 @@ use common::config::ApplicationConfig;
 use common::http_client::{HttpClient, HttpClientError};
 use common::module_loader::service_composer::ServiceComposer;
 use common::utils::flush_redis_cache;
+use oauth::services::admin_seeder::seed_admin_user;
 use tokio::fs;
 use tokio::sync::broadcast;
 use tokio::sync::broadcast::Sender;
@@ -39,10 +42,33 @@ use ymir::errors::{Errors, Outcome};
 use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
 
-use crate::setup::composition::MonolithModule;
-use crate::setup::CoreHttpWorker;
-
 pub struct CoreBoot;
+
+impl CoreBoot {
+    /// HTTP client authenticated as the seeded admin, for boot calls against protected management APIs.
+    async fn admin_client(config: &ApplicationConfig, timeout_secs: u64) -> Outcome<HttpClient> {
+        let client = HttpClient::new(1, timeout_secs);
+        let common = config.transfer().common();
+        let admin = &common.admin_seed;
+        let url = format!("{}/oauth/token", common.get_host(HostType::Http));
+        let token = client
+            .post_json::<serde_json::Value, serde_json::Value>(
+                url.as_str(),
+                &serde_json::json!({
+                    "grant_type": "password",
+                    "username": admin.email,
+                    "password": admin.password,
+                }),
+            )
+            .await?;
+        let access_token = token
+            .get("access_token")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| Errors::parse("Token response without access_token", None))?;
+        client.set_auth_token(access_token.to_string()).await;
+        Ok(client)
+    }
+}
 
 #[async_trait::async_trait]
 impl BootstrapServiceTrait for CoreBoot {
@@ -95,7 +121,7 @@ impl BootstrapServiceTrait for CoreBoot {
         config: &Self::Config,
     ) -> Outcome<String> {
         let participant_id = participant_id.clone().unwrap_or_default();
-        let client = HttpClient::new(1, 3);
+        let client = Self::admin_client(config, 3).await?;
         let base_url = config.catalog().common().get_host(HostType::Http);
         let api = config.catalog().common().get_api_version();
         let url = format!("{}{}/catalog-agent/catalogs/main", base_url, api);
@@ -116,7 +142,7 @@ impl BootstrapServiceTrait for CoreBoot {
         config: &Self::Config,
     ) -> Outcome<String> {
         let catalog_id = catalog_id.clone().unwrap_or_default();
-        let client = HttpClient::new(1, 3);
+        let client = Self::admin_client(config, 3).await?;
         let base_url = config.catalog().common().get_host(HostType::Http);
         let negotiation_url = config.contracts().common().get_host(HostType::Http);
 
@@ -138,7 +164,7 @@ impl BootstrapServiceTrait for CoreBoot {
     }
 
     async fn load_policy_templates(config: &Self::Config) -> Outcome<()> {
-        let client = HttpClient::new(1, 3);
+        let client = Self::admin_client(config, 3).await?;
         let base_url = config.catalog().common().get_host(HostType::Http);
         let api = config.catalog().common().get_api_version();
         let url = format!(
@@ -205,7 +231,7 @@ impl BootstrapServiceTrait for CoreBoot {
         let vault = common::vault_utils::vault(config)?;
         let db = vault.get_db_connection(config.transfer().common()).await?;
         let admin = config.transfer().admin_seed();
-        oauth::services::seed_admin_user(db, &admin.tenant_id, &admin.email, &admin.password).await
+        seed_admin_user(db, &admin.tenant_id, &admin.email, &admin.password).await
     }
 
     async fn start_services(

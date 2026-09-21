@@ -24,6 +24,8 @@ use crate::grpc::api::catalog_agent::{
     DistributionResponse, GetAllRequest, GetBatchRequest, GetByIdRequest, GetByParentIdRequest,
     GetDistributionByFormatRequest, PutDistributionRequest,
 };
+use crate::grpc::auth::{GrpcAuth, StatusMapper};
+use common::auth::OauthTokenValidator;
 use common::paginated_spec::Page;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -32,11 +34,18 @@ use urn::Urn;
 
 pub struct DistributionEntityGrpc {
     service: Arc<dyn DistributionEntityTrait>,
+    auth: GrpcAuth,
 }
 
 impl DistributionEntityGrpc {
-    pub fn new(service: Arc<dyn DistributionEntityTrait>) -> Self {
-        Self { service }
+    pub fn new(
+        service: Arc<dyn DistributionEntityTrait>,
+        validator: Arc<dyn OauthTokenValidator>,
+    ) -> Self {
+        Self {
+            service,
+            auth: GrpcAuth::new(validator),
+        }
     }
 }
 
@@ -46,13 +55,14 @@ impl DistributionEntityService for DistributionEntityGrpc {
         &self,
         request: Request<GetAllRequest>,
     ) -> Result<Response<DistributionListResponse>, Status> {
+        let scope = self.auth.scope(request.metadata()).await?;
         let req = request.into_inner();
         let page = Page::new(req.limit.unwrap_or(20) as u32, None);
         let paginated = self
             .service
-            .get_all_distributions(&Default::default(), &page, &Default::default())
+            .get_all_distributions(&scope, &Default::default(), &page, &Default::default())
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(StatusMapper::to_status)?;
 
         let proto_distributions: Vec<Distribution> =
             paginated.items.into_iter().map(Into::into).collect();
@@ -66,6 +76,7 @@ impl DistributionEntityService for DistributionEntityGrpc {
         &self,
         request: Request<GetBatchRequest>,
     ) -> Result<Response<DistributionListResponse>, Status> {
+        let scope = self.auth.scope(request.metadata()).await?;
         let req = request.into_inner();
 
         let urns: Vec<Urn> = req
@@ -77,9 +88,9 @@ impl DistributionEntityService for DistributionEntityGrpc {
 
         let distributions = self
             .service
-            .get_batch_distributions(&urns)
+            .get_batch_distributions(&scope, &urns)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(StatusMapper::to_status)?;
 
         let proto_distributions: Vec<Distribution> =
             distributions.into_iter().map(Into::into).collect();
@@ -93,15 +104,16 @@ impl DistributionEntityService for DistributionEntityGrpc {
         &self,
         request: Request<GetByParentIdRequest>,
     ) -> Result<Response<DistributionListResponse>, Status> {
+        let scope = self.auth.scope(request.metadata()).await?;
         let req = request.into_inner();
         let dataset_urn = Urn::from_str(&req.parent_id)
             .map_err(|_| Status::invalid_argument("Invalid Dataset URN"))?;
 
         let distributions = self
             .service
-            .get_distributions_by_dataset_id(&dataset_urn)
+            .get_distributions_by_dataset_id(&scope, &dataset_urn)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(StatusMapper::to_status)?;
 
         let proto_distributions: Vec<Distribution> =
             distributions.into_iter().map(Into::into).collect();
@@ -115,15 +127,16 @@ impl DistributionEntityService for DistributionEntityGrpc {
         &self,
         request: Request<GetDistributionByFormatRequest>,
     ) -> Result<Response<DistributionResponse>, Status> {
+        let scope = self.auth.scope(request.metadata()).await?;
         let req = request.into_inner();
         let dataset_urn = Urn::from_str(&req.dataset_id)
             .map_err(|_| Status::invalid_argument("Invalid Dataset URN"))?;
 
         let distribution_dto = self
             .service
-            .get_distribution_by_dataset_id_and_dct_format(&dataset_urn, &req.dct_formats)
+            .get_distribution_by_dataset_id_and_dct_format(&scope, &dataset_urn, &req.dct_formats)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(StatusMapper::to_status)?;
 
         Ok(Response::new(DistributionResponse {
             distribution: Some(distribution_dto.into()),
@@ -134,35 +147,34 @@ impl DistributionEntityService for DistributionEntityGrpc {
         &self,
         request: Request<GetByIdRequest>,
     ) -> Result<Response<DistributionResponse>, Status> {
+        let scope = self.auth.scope(request.metadata()).await?;
         let req = request.into_inner();
         let urn = Urn::from_str(&req.id).map_err(|_| Status::invalid_argument("Invalid URN"))?;
 
-        let distribution_opt = self
+        let dto = self
             .service
-            .get_distribution_by_id(&urn)
+            .get_distribution_by_id(&scope, &urn)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(StatusMapper::to_status)?;
 
-        match distribution_opt {
-            Some(dto) => Ok(Response::new(DistributionResponse {
-                distribution: Some(dto.into()),
-            })),
-            None => Err(Status::not_found("Distribution not found")),
-        }
+        Ok(Response::new(DistributionResponse {
+            distribution: Some(dto.into()),
+        }))
     }
 
     async fn create_distribution(
         &self,
         request: Request<CreateDistributionRequest>,
     ) -> Result<Response<DistributionResponse>, Status> {
+        let scope = self.auth.scope(request.metadata()).await?;
         let req = request.into_inner();
         let new_distribution_dto: NewDistributionDto = req.try_into()?;
 
         let created_dto = self
             .service
-            .create_distribution(&new_distribution_dto)
+            .create_distribution(&scope, &new_distribution_dto)
             .await
-            .map_err(|e| Status::internal(format!("Failed to create distribution: {}", e)))?;
+            .map_err(StatusMapper::to_status)?;
 
         Ok(Response::new(DistributionResponse {
             distribution: Some(created_dto.into()),
@@ -173,15 +185,16 @@ impl DistributionEntityService for DistributionEntityGrpc {
         &self,
         request: Request<PutDistributionRequest>,
     ) -> Result<Response<DistributionResponse>, Status> {
+        let scope = self.auth.scope(request.metadata()).await?;
         let req = request.into_inner();
         let urn = Urn::from_str(&req.id).map_err(|_| Status::invalid_argument("Invalid URN"))?;
         let edit_dto: EditDistributionDto = req.into();
 
         let updated_dto = self
             .service
-            .put_distribution_by_id(&urn, &edit_dto)
+            .put_distribution_by_id(&scope, &urn, &edit_dto)
             .await
-            .map_err(|e| Status::internal(format!("Failed to update distribution: {}", e)))?;
+            .map_err(StatusMapper::to_status)?;
 
         Ok(Response::new(DistributionResponse {
             distribution: Some(updated_dto.into()),
@@ -192,13 +205,14 @@ impl DistributionEntityService for DistributionEntityGrpc {
         &self,
         request: Request<DeleteByIdRequest>,
     ) -> Result<Response<()>, Status> {
+        let scope = self.auth.scope(request.metadata()).await?;
         let req = request.into_inner();
         let urn = Urn::from_str(&req.id).map_err(|_| Status::invalid_argument("Invalid URN"))?;
 
         self.service
-            .delete_distribution_by_id(&urn)
+            .delete_distribution_by_id(&scope, &urn)
             .await
-            .map_err(|e| Status::internal(format!("Failed to delete distribution: {}", e)))?;
+            .map_err(StatusMapper::to_status)?;
 
         Ok(Response::new(()))
     }

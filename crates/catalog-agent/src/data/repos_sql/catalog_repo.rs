@@ -31,6 +31,9 @@ use ymir::errors::{Outcome, RepoIntoErrors};
 
 impl FilterApplier<Select<catalog::Entity>> for CatalogFilter {
     fn apply_to(&self, mut q: Select<catalog::Entity>) -> Select<catalog::Entity> {
+        if let Some(ref tenant_id) = self.tenant_id {
+            q = q.filter(catalog::Column::TenantId.eq(tenant_id));
+        }
         if let Some(ref title) = self.title {
             q = q.filter(catalog::Column::DctTitle.contains(title));
         }
@@ -99,9 +102,14 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
         Ok((items, Some(total)))
     }
 
-    async fn get_batch_catalogs(&self, ids: &Vec<Urn>) -> Outcome<Vec<catalog::Model>> {
+    async fn get_batch_catalogs(
+        &self,
+        tenant_id: &str,
+        ids: &[Urn],
+    ) -> Outcome<Vec<catalog::Model>> {
         let catalog_ids = ids.iter().map(|t| t.to_string()).collect::<Vec<_>>();
         let catalog_process = catalog::Entity::find()
+            .filter(catalog::Column::TenantId.eq(tenant_id))
             .filter(catalog::Column::Id.is_in(catalog_ids))
             .all(&self.db_connection)
             .await;
@@ -114,9 +122,14 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
         }
     }
 
-    async fn get_catalog_by_id(&self, catalog_id: &Urn) -> Outcome<Option<catalog::Model>> {
+    async fn get_catalog_by_id(
+        &self,
+        tenant_id: &str,
+        catalog_id: &Urn,
+    ) -> Outcome<Option<catalog::Model>> {
         let catalog_id = catalog_id.to_string();
         let catalog = catalog::Entity::find_by_id(catalog_id)
+            .filter(catalog::Column::TenantId.eq(tenant_id))
             .one(&self.db_connection)
             .await;
         match catalog {
@@ -128,8 +141,9 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
         }
     }
 
-    async fn get_main_catalog(&self) -> Outcome<Option<catalog::Model>> {
+    async fn get_main_catalog(&self, tenant_id: &str) -> Outcome<Option<catalog::Model>> {
         let catalog = catalog::Entity::find()
+            .filter(catalog::Column::TenantId.eq(tenant_id))
             .filter(catalog::Column::DspaceMainCatalog.eq(true))
             .one(&self.db_connection)
             .await
@@ -144,11 +158,13 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
 
     async fn put_catalog_by_id(
         &self,
+        tenant_id: &str,
         catalog_id: &Urn,
         edit_catalog_model: &EditCatalogModel,
     ) -> Outcome<catalog::Model> {
         let catalog_id = catalog_id.to_string();
         let old_model = catalog::Entity::find_by_id(catalog_id)
+            .filter(catalog::Column::TenantId.eq(tenant_id))
             .one(&self.db_connection)
             .await;
         let old_model = match old_model {
@@ -195,7 +211,7 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
     }
 
     async fn create_catalog(&self, new_catalog_model: &NewCatalogModel) -> Outcome<catalog::Model> {
-        let main_catalog = self.get_main_catalog().await?;
+        let main_catalog = self.get_main_catalog(&new_catalog_model.tenant_id).await?;
         if main_catalog.is_none() {
             return Err(CatalogAgentRepoErrors::CatalogRepoErrors(
                 CatalogRepoErrors::ErrorCreatingCatalog(
@@ -221,7 +237,7 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
         &self,
         new_catalog_model: &NewCatalogModel,
     ) -> Outcome<catalog::Model> {
-        let main_catalog = self.get_main_catalog().await?;
+        let main_catalog = self.get_main_catalog(&new_catalog_model.tenant_id).await?;
         if main_catalog.is_some() {
             return Ok(main_catalog.unwrap());
         }
@@ -240,9 +256,11 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
         }
     }
 
-    async fn delete_catalog_by_id(&self, catalog_id: &Urn) -> Outcome<()> {
+    async fn delete_catalog_by_id(&self, tenant_id: &str, catalog_id: &Urn) -> Outcome<()> {
         let catalog_id = catalog_id.to_string();
-        let catalog = catalog::Entity::delete_by_id(catalog_id)
+        let catalog = catalog::Entity::delete_many()
+            .filter(catalog::Column::Id.eq(catalog_id))
+            .filter(catalog::Column::TenantId.eq(tenant_id))
             .exec(&self.db_connection)
             .await;
         match catalog {

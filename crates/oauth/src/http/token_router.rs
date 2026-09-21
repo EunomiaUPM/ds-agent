@@ -29,12 +29,12 @@ use crate::http::forms::{
     AuthorizeRequest, AuthorizeResponse, IntrospectRequest, OpenIdConfiguration, RefreshRequest,
     RevokeRequest, TokenRequest,
 };
-use common::auth::AccessScope;
-use common::auth::http::AuthHttpMiddleware;
 use crate::services::token_service::TokenServiceTrait;
 use crate::services::token_service::views::{IntrospectResponse, TokenResponse};
 use crate::services::user_service::UserServiceTrait;
 use crate::services::user_service::views::UserInfo;
+use common::auth::AccessScope;
+use common::auth::http::AuthHttpMiddleware;
 
 #[derive(Clone)]
 pub(crate) struct TokenRouter {

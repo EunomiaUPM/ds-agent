@@ -24,6 +24,7 @@ use urn::Urn;
 use ymir::errors::Outcome;
 use ymir::errors::RepoIntoErrors;
 
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait NegotiationMessageRepoTrait: Send + Sync {
     async fn get_all_negotiation_messages(
@@ -33,13 +34,21 @@ pub trait NegotiationMessageRepoTrait: Send + Sync {
         sort: &Sort,
     ) -> Outcome<(Vec<negotiation_message::Model>, Option<u64>)>;
 
+    async fn get_batch_negotiation_messages(
+        &self,
+        tenant_id: &str,
+        ids: &[Urn],
+    ) -> Outcome<Vec<negotiation_message::Model>>;
+
     async fn get_messages_by_process_id(
         &self,
+        tenant_id: &str,
         process_id: &Urn,
     ) -> Outcome<Vec<negotiation_message::Model>>;
 
     async fn get_negotiation_message_by_id(
         &self,
+        tenant_id: &str,
         id: &Urn,
     ) -> Outcome<Option<negotiation_message::Model>>;
 
@@ -48,7 +57,7 @@ pub trait NegotiationMessageRepoTrait: Send + Sync {
         new_model: &NewNegotiationMessageModel,
     ) -> Outcome<negotiation_message::Model>;
 
-    async fn delete_negotiation_message(&self, id: &Urn) -> Outcome<()>;
+    async fn delete_negotiation_message(&self, tenant_id: &str, id: &Urn) -> Outcome<()>;
 }
 
 #[derive(Debug, Error)]

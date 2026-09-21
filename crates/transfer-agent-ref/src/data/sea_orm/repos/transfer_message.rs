@@ -134,7 +134,8 @@ impl TransferMessageRepoTrait for SeaOrmTransferMessageRepo {
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Vec<TransferMessage>> {
-        let q = orm::Entity::find().filter(orm::Column::TransferProcessId.eq(process_id.to_string()));
+        let q =
+            orm::Entity::find().filter(orm::Column::TransferProcessId.eq(process_id.to_string()));
         let q = Self::apply_base_filters(q, filters);
         let q = self.apply_page_and_sort(q, page, sort)?;
         q.limit(page.limit as u64)
@@ -151,8 +152,7 @@ impl TransferMessageRepoTrait for SeaOrmTransferMessageRepo {
         tenant_id: &str,
         id: &Urn,
     ) -> Outcome<Option<TransferMessage>> {
-        let q = orm::Entity::find_by_id(id.to_string())
-            .filter(orm::Column::TenantId.eq(tenant_id));
+        let q = orm::Entity::find_by_id(id.to_string()).filter(orm::Column::TenantId.eq(tenant_id));
         q.one(self.db.as_ref())
             .await
             .map_err(Self::fetch_err)?
@@ -177,12 +177,9 @@ impl TransferMessageRepoTrait for SeaOrmTransferMessageRepo {
         let q = orm::Entity::delete_many()
             .filter(orm::Column::Id.eq(id.to_string()))
             .filter(orm::Column::TenantId.eq(tenant_id));
-        let res = q
-            .exec(self.db.as_ref())
-            .await
-            .map_err(|e| {
-                TransferMessageRepoErrors::ErrorDeletingTransferMessage(Box::new(e)).into_errors()
-            })?;
+        let res = q.exec(self.db.as_ref()).await.map_err(|e| {
+            TransferMessageRepoErrors::ErrorDeletingTransferMessage(Box::new(e)).into_errors()
+        })?;
         if res.rows_affected == 0 {
             return Err(TransferMessageRepoErrors::TransferMessageNotFound.into_errors());
         }

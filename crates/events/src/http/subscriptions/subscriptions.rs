@@ -22,6 +22,8 @@ use axum::http::StatusCode;
 use axum::routing::{delete, get, post, put};
 use axum::{Json, Router};
 
+use common::auth::AccessScope;
+
 use crate::data::repo::EventSubscriptionRepo;
 use crate::entities::commands::{CreateSubscriptionDto, UpdateSubscriptionDto};
 use crate::entities::subscription::SubscriptionRecord;
@@ -53,10 +55,12 @@ impl SubscriptionsRouter {
     // Handler to register a new subscription.
     async fn handle_create(
         State(repo): State<Arc<dyn EventSubscriptionRepo>>,
+        scope: AccessScope,
         Json(dto): Json<CreateSubscriptionDto>,
     ) -> Result<(StatusCode, Json<SubscriptionRecord>), EventBusError> {
+        let tenant_id = scope.acting_tenant();
         let sub = repo
-            .create_subscription(dto)
+            .create_subscription(tenant_id, dto)
             .await
             .map_err(|e| EventBusError::Database(format!("{e:?}")))?;
 
@@ -66,9 +70,11 @@ impl SubscriptionsRouter {
     // Handler to list all active subscriptions.
     async fn handle_list(
         State(repo): State<Arc<dyn EventSubscriptionRepo>>,
+        scope: AccessScope,
     ) -> Result<Json<Vec<SubscriptionRecord>>, EventBusError> {
+        let tenant_id = scope.acting_tenant();
         let subs = repo
-            .list_subscriptions()
+            .list_subscriptions(tenant_id)
             .await
             .map_err(|e| EventBusError::Database(format!("{e:?}")))?;
 
@@ -78,10 +84,12 @@ impl SubscriptionsRouter {
     // Handler to fetch subscription details by identifier.
     async fn handle_get(
         State(repo): State<Arc<dyn EventSubscriptionRepo>>,
+        scope: AccessScope,
         Path(id): Path<String>,
     ) -> Result<Json<SubscriptionRecord>, EventBusError> {
+        let tenant_id = scope.acting_tenant();
         let sub = repo
-            .get_subscription(&id)
+            .get_subscription(tenant_id, &id)
             .await
             .map_err(|e| EventBusError::Database(format!("{e:?}")))?
             .ok_or_else(|| {
@@ -94,17 +102,24 @@ impl SubscriptionsRouter {
     // Handler to update an existing subscription.
     async fn handle_update(
         State(repo): State<Arc<dyn EventSubscriptionRepo>>,
+        scope: AccessScope,
         Path(id): Path<String>,
         Json(dto): Json<UpdateSubscriptionDto>,
     ) -> Result<Json<SubscriptionRecord>, EventBusError> {
-        let sub = repo.update_subscription(&id, dto).await.map_err(|e| {
-            let err_str = format!("{e:?}");
-            if err_str.contains("missing_resource") || err_str.contains("not found") {
-                EventBusError::SubscriptionNotFound(uuid::Uuid::parse_str(&id).unwrap_or_default())
-            } else {
-                EventBusError::Database(err_str)
-            }
-        })?;
+        let tenant_id = scope.acting_tenant();
+        let sub = repo
+            .update_subscription(tenant_id, &id, dto)
+            .await
+            .map_err(|e| {
+                let err_str = format!("{e:?}");
+                if err_str.contains("missing_resource") || err_str.contains("not found") {
+                    EventBusError::SubscriptionNotFound(
+                        uuid::Uuid::parse_str(&id).unwrap_or_default(),
+                    )
+                } else {
+                    EventBusError::Database(err_str)
+                }
+            })?;
 
         Ok(Json(sub))
     }
@@ -112,9 +127,11 @@ impl SubscriptionsRouter {
     // Handler to deactivate and remove a subscription.
     async fn handle_delete(
         State(repo): State<Arc<dyn EventSubscriptionRepo>>,
+        scope: AccessScope,
         Path(id): Path<String>,
     ) -> Result<StatusCode, EventBusError> {
-        repo.delete_subscription(&id)
+        let tenant_id = scope.acting_tenant();
+        repo.delete_subscription(tenant_id, &id)
             .await
             .map_err(|e| EventBusError::Database(format!("{e:?}")))?;
 

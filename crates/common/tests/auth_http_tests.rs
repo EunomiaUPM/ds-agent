@@ -23,7 +23,7 @@ use axum::http::header::AUTHORIZATION;
 use axum::http::{HeaderMap, HeaderValue, StatusCode};
 use axum::response::IntoResponse;
 use axum::routing::get;
-use axum::{Json, Router, middleware};
+use axum::{middleware, Json, Router};
 use common::auth::http::{AuthClaims, AuthHttpMiddleware};
 use common::auth::{AccessScope, Claims, OauthTokenValidator, Rbac, RbacRole};
 use tower::ServiceExt;
@@ -268,6 +268,52 @@ fn test_service_level_authorization() {
     assert!(admin_scope.ensure_tenant_access("tenant-b").is_ok());
     assert!(owner_scope.ensure_tenant_access("tenant-a").is_ok());
     assert!(owner_scope.ensure_tenant_access("tenant-b").is_err());
+
+    // Composite tenant action checks
+    assert!(admin_scope.require_read_tenant("tenant-b").is_ok());
+    assert!(owner_scope.require_read_tenant("tenant-a").is_ok());
+    assert!(owner_scope.require_read_tenant("tenant-b").is_err());
+    assert!(admin_scope.require_write_tenant("tenant-b").is_ok());
+    assert!(owner_scope.require_write_tenant("tenant-a").is_ok());
+    assert!(owner_scope.require_write_tenant("tenant-b").is_err());
+    assert!(reader_scope.require_write_tenant("tenant-a").is_err());
+
+    // Creation tenant resolution
+    assert_eq!(
+        admin_scope.resolve_create_tenant(Some("tenant-b")).unwrap(),
+        "tenant-b"
+    );
+    assert_eq!(admin_scope.resolve_create_tenant(None).unwrap(), "system");
+    assert_eq!(
+        owner_scope.resolve_create_tenant(Some("tenant-b")).unwrap(),
+        "tenant-a"
+    );
+    assert_eq!(owner_scope.resolve_create_tenant(None).unwrap(), "tenant-a");
+    assert!(reader_scope.resolve_create_tenant(None).is_err());
+    assert!(reader_scope
+        .resolve_create_tenant(Some("tenant-a"))
+        .is_err());
+
+    // Query tenant resolution
+    assert_eq!(
+        admin_scope.resolve_query_tenant(Some("tenant-b")).unwrap(),
+        Some("tenant-b".to_string())
+    );
+    assert_eq!(admin_scope.resolve_query_tenant(None).unwrap(), None);
+    assert_eq!(
+        owner_scope.resolve_query_tenant(None).unwrap(),
+        Some("tenant-a".to_string())
+    );
+    assert_eq!(
+        owner_scope.resolve_query_tenant(Some("tenant-a")).unwrap(),
+        Some("tenant-a".to_string())
+    );
+    assert!(owner_scope.resolve_query_tenant(Some("tenant-b")).is_err());
+    assert_eq!(
+        reader_scope.resolve_query_tenant(None).unwrap(),
+        Some("tenant-a".to_string())
+    );
+    assert!(reader_scope.resolve_query_tenant(Some("tenant-b")).is_err());
 }
 
 #[tokio::test]
@@ -385,4 +431,3 @@ async fn test_auth_http_middleware_dual_token_and_modes() {
     let resp_auth = app_permissive.oneshot(req_auth).await.unwrap();
     assert_eq!(resp_auth.status(), StatusCode::OK);
 }
-

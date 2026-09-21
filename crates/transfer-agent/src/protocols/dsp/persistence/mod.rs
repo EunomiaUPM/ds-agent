@@ -107,6 +107,7 @@ pub(crate) async fn create_process_record(
     let mut transfer_process = process_svc
         .create_transfer_process(&NewTransferProcessDto {
             id: Some(id.clone()),
+            tenant_id: None,
             state: TransferState::REQUESTED.to_string(),
             associated_agent_peer: associated_agent_peer.to_string(),
             protocol: protocol.to_string(),
@@ -125,6 +126,7 @@ pub(crate) async fn create_process_record(
     let message = message_svc
         .create_transfer_message(&NewTransferMessageDto {
             id: None,
+            tenant_id: None,
             transfer_agent_process_id: id,
             direction: protocol_direction.to_string(),
             protocol: protocol.to_string(),

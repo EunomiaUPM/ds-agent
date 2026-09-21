@@ -162,9 +162,7 @@ impl TransferProcessRepoTrait for InMemoryTransferProcessRepo {
         let id_strs: Vec<String> = ids.iter().map(|u| u.to_string()).collect();
         Ok(store
             .iter()
-            .filter(|(k, v)| {
-                id_strs.contains(k) && v.tenant_id().as_str() == tenant_id
-            })
+            .filter(|(k, v)| id_strs.contains(k) && v.tenant_id().as_str() == tenant_id)
             .map(|(_, v)| v.clone())
             .collect())
     }
@@ -179,7 +177,6 @@ impl TransferProcessRepoTrait for InMemoryTransferProcessRepo {
         Ok(p.filter(|p| p.tenant_id().as_str() == tenant_id))
     }
 
-
     async fn get_transfer_process_by_key_value(
         &self,
         tenant_id: Option<String>,
@@ -192,7 +189,9 @@ impl TransferProcessRepoTrait for InMemoryTransferProcessRepo {
                 .iter()
                 .find(|(_, v)| {
                     v.value.as_deref() == Some(&target)
-                        && tenant_id.as_deref().map_or(true, |tid| v.tenant_id.as_str() == tid)
+                        && tenant_id
+                            .as_deref()
+                            .map_or(true, |tid| v.tenant_id.as_str() == tid)
                 })
                 .map(|((pid, _), _)| pid.clone())
         };

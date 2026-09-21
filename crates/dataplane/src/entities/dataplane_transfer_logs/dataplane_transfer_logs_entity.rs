@@ -40,10 +40,11 @@ impl DataplaneTransferLogsEntitiesTrait for DataplaneTransferLogsEntityService {
         &self,
         dataplane_process_id: &Urn,
     ) -> Outcome<Vec<DataplaneTransferLogDto>> {
+        let scope = common::auth::access::AccessScope::system();
         let logs = self
             .data_plane_repo
             .get_dataplane_transfer_logs_repo()
-            .get_transfer_logs_by_dataplane_process_id(&dataplane_process_id)
+            .get_transfer_logs_by_dataplane_process_id(scope.acting_tenant(), dataplane_process_id)
             .await?;
 
         Ok(logs

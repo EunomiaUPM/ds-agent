@@ -17,7 +17,7 @@
 
 use crate::data::entities::offer::NewOfferModel;
 use crate::data::factory_trait::NegotiationAgentRepoTrait;
-use crate::entities::filters::OfferFilter;
+use crate::entities::filters::{NegotiationMessageFilter, OfferFilter};
 use crate::entities::offer::{NegotiationAgentOffersTrait, NewOfferDto, OfferDto};
 use common::paginated_spec::{Cursor, Page, Paginated, Sort};
 use common::query::QueryFilter;
@@ -69,63 +69,116 @@ impl NegotiationAgentOffersTrait for NegotiationAgentOffersService {
     }
 
     async fn get_batch_offers(&self, ids: &Vec<Urn>) -> Outcome<Vec<OfferDto>> {
-        let offers = self
-            .negotiation_repo
-            .get_offer_repo()
-            .get_batch_offers(ids)
-            .await?;
-
-        Ok(offers.into_iter().map(|m| OfferDto { inner: m }).collect())
+        let mut dtos = Vec::with_capacity(ids.len());
+        for id in ids {
+            if let Some(dto) = self.get_offer_by_id(id).await? {
+                dtos.push(dto);
+            }
+        }
+        Ok(dtos)
     }
 
     async fn get_offers_by_negotiation_process(&self, id: &Urn) -> Outcome<Vec<OfferDto>> {
+        let process_opt = self
+            .negotiation_repo
+            .get_negotiation_process_repo()
+            .get_negotiation_process_by_key_value(None, id)
+            .await?;
+        let Some(process) = process_opt else {
+            return Ok(vec![]);
+        };
+
         let offers = self
             .negotiation_repo
             .get_offer_repo()
-            .get_offers_by_negotiation_process(id)
+            .get_offers_by_negotiation_process(&process.tenant_id, id)
             .await?;
 
         Ok(offers.into_iter().map(|m| OfferDto { inner: m }).collect())
     }
 
     async fn get_last_offer_by_negotiation_process(&self, id: &Urn) -> Outcome<Option<OfferDto>> {
+        let process_opt = self
+            .negotiation_repo
+            .get_negotiation_process_repo()
+            .get_negotiation_process_by_key_value(None, id)
+            .await?;
+        let Some(process) = process_opt else {
+            return Ok(None);
+        };
+
         let offers = self
             .negotiation_repo
             .get_offer_repo()
-            .get_last_offer_by_negotiation_process(id)
+            .get_last_offer_by_negotiation_process(&process.tenant_id, id)
             .await?;
 
         Ok(offers.map(|m| OfferDto { inner: m }))
     }
 
     async fn get_offer_by_id(&self, id: &Urn) -> Outcome<Option<OfferDto>> {
-        let offer = self
+        let filter = OfferFilter {
+            id: Some(id.to_string()),
+            ..Default::default()
+        };
+        let page = Page {
+            limit: 1,
+            ..Default::default()
+        };
+        let (offers, _) = self
             .negotiation_repo
             .get_offer_repo()
-            .get_offer_by_id(id)
+            .get_all_offers(&filter, &page, &Sort::default())
             .await?;
 
-        Ok(offer.map(|m| OfferDto { inner: m }))
+        Ok(offers.into_iter().next().map(|m| OfferDto { inner: m }))
     }
 
     async fn get_offer_by_negotiation_message(&self, id: &Urn) -> Outcome<Option<OfferDto>> {
+        let msg_opt = self
+            .negotiation_repo
+            .get_negotiation_message_repo()
+            .get_all_negotiation_messages(
+                &NegotiationMessageFilter {
+                    id: Some(id.to_string()),
+                    ..Default::default()
+                },
+                &Page {
+                    limit: 1,
+                    ..Default::default()
+                },
+                &Sort::default(),
+            )
+            .await?;
+        let Some(msg) = msg_opt.0.into_iter().next() else {
+            return Ok(None);
+        };
+
         let offer = self
             .negotiation_repo
             .get_offer_repo()
-            .get_offer_by_negotiation_message(id)
+            .get_offer_by_negotiation_message(&msg.tenant_id, id)
             .await?;
 
         Ok(offer.map(|m| OfferDto { inner: m }))
     }
 
     async fn get_offer_by_offer_id(&self, id: &Urn) -> Outcome<Option<OfferDto>> {
-        let offer = self
+        let filter = OfferFilter {
+            offer_id: Some(id.to_string()),
+            ..Default::default()
+        };
+        let page = Page {
+            limit: 1,
+            ..Default::default()
+        };
+        let (offers, _) = self
             .negotiation_repo
             .get_offer_repo()
-            .get_offer_by_offer_id(id)
+            .get_all_offers(&filter, &page, &Sort::default())
             .await?;
 
-        Ok(offer.map(|m| OfferDto { inner: m }))
+        Ok(offers.into_iter().next().map(|m| OfferDto { inner: m }))
     }
 
     async fn create_offer(&self, new_model_dto: &NewOfferDto) -> Outcome<OfferDto> {
@@ -143,10 +196,12 @@ impl NegotiationAgentOffersTrait for NegotiationAgentOffersService {
     }
 
     async fn delete_offer(&self, id: &Urn) -> Outcome<()> {
-        self.negotiation_repo
-            .get_offer_repo()
-            .delete_offer(id)
-            .await?;
+        if let Some(offer) = self.get_offer_by_id(id).await? {
+            self.negotiation_repo
+                .get_offer_repo()
+                .delete_offer(&offer.inner.tenant_id, id)
+                .await?;
+        }
         events::emit_action!(
             self.event_bus,
             crate::EVENT_PREFIX,

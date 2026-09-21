@@ -122,10 +122,10 @@ mod tests {
         pub ConnectorMock {}
         #[async_trait::async_trait]
         impl ConnectorInstanceTrait for ConnectorMock {
-            async fn get_instance_by_id(&self, id: &Urn) -> Outcome<Option<ConnectorInstanceDto>>;
-            async fn get_instance_by_distribution(&self, distribution_id: &Urn) -> Outcome<Option<ConnectorInstanceDto>>;
-            async fn upsert_instance(&self, dto: &mut ConnectorInstantiationDto) -> Outcome<ConnectorInstanceDto>;
-            async fn delete_instance_by_id(&self, id: &Urn) -> Outcome<()>;
+            async fn get_instance_by_id(&self, scope: &common::auth::AccessScope, id: &Urn) -> Outcome<Option<ConnectorInstanceDto>>;
+            async fn get_instance_by_distribution(&self, scope: &common::auth::AccessScope, distribution_id: &Urn) -> Outcome<Option<ConnectorInstanceDto>>;
+            async fn upsert_instance(&self, scope: &common::auth::AccessScope, dto: &mut ConnectorInstantiationDto) -> Outcome<ConnectorInstanceDto>;
+            async fn delete_instance_by_id(&self, scope: &common::auth::AccessScope, id: &Urn) -> Outcome<()>;
         }
     }
 
@@ -136,6 +136,7 @@ mod tests {
         mock.expect_create_dataplane_transfer().returning(|dto| {
             Ok(DataplaneTransferDto {
                 inner: dataplane_transfers::Model {
+                    tenant_id: dto.tenant_id.clone(),
                     id: "urn:dataplane-transfer:test".to_string(),
                     transfer_process_id: dto.transfer_process_id.clone(),
                     role: dto.role.clone(),
@@ -217,6 +218,7 @@ mod tests {
     #[tokio::test]
     async fn test_routes_consumer_pull() {
         let context = dummy_context(DataplaneInitCommandTypes::AsConsumer {
+            tenant_id: "tenant-1".to_string(),
             transfer_process_id: Urn::from_str("urn:tp:1").unwrap(),
             direction: DataplaneInitCommandDirection::Pull {
                 data_address: Some(empty_address()),
@@ -229,6 +231,7 @@ mod tests {
     #[tokio::test]
     async fn test_routes_consumer_push() {
         let context = dummy_context(DataplaneInitCommandTypes::AsConsumer {
+            tenant_id: "tenant-1".to_string(),
             transfer_process_id: Urn::from_str("urn:tp:1").unwrap(),
             direction: DataplaneInitCommandDirection::Push {
                 data_address: Some(empty_address()),
@@ -241,6 +244,7 @@ mod tests {
     #[tokio::test]
     async fn test_routes_provider_pull() {
         let context = dummy_context(DataplaneInitCommandTypes::AsProvider {
+            tenant_id: "tenant-1".to_string(),
             transfer_process_id: Urn::from_str("urn:tp:1").unwrap(),
             connector_instance: connector_fixture(),
             direction: DataplaneInitCommandDirection::Pull {
@@ -254,6 +258,7 @@ mod tests {
     #[tokio::test]
     async fn test_routes_provider_push() {
         let context = dummy_context(DataplaneInitCommandTypes::AsProvider {
+            tenant_id: "tenant-1".to_string(),
             transfer_process_id: Urn::from_str("urn:tp:1").unwrap(),
             connector_instance: connector_fixture(),
             direction: DataplaneInitCommandDirection::Push {

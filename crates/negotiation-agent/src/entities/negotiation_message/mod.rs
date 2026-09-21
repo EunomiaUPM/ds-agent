@@ -41,6 +41,8 @@ pub struct NegotiationMessageDto {
 #[serde(deny_unknown_fields)]
 pub struct NewNegotiationMessageDto {
     pub id: Option<Urn>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tenant_id: Option<String>,
     pub negotiation_agent_process_id: Urn,
     pub direction: String,
     pub protocol: String,
@@ -50,18 +52,26 @@ pub struct NewNegotiationMessageDto {
     pub payload: serde_json::Value,
 }
 
+impl NewNegotiationMessageDto {
+    pub fn into_model(self, tenant_id: String) -> NewNegotiationMessageModel {
+        NewNegotiationMessageModel {
+            id: self.id,
+            tenant_id,
+            negotiation_agent_process_id: self.negotiation_agent_process_id,
+            direction: self.direction,
+            protocol: self.protocol,
+            message_type: self.message_type,
+            state_transition_from: self.state_transition_from,
+            state_transition_to: self.state_transition_to,
+            payload: self.payload,
+        }
+    }
+}
+
 impl From<NewNegotiationMessageDto> for NewNegotiationMessageModel {
     fn from(dto: NewNegotiationMessageDto) -> Self {
-        Self {
-            id: dto.id,
-            negotiation_agent_process_id: dto.negotiation_agent_process_id,
-            direction: dto.direction,
-            protocol: dto.protocol,
-            message_type: dto.message_type,
-            state_transition_from: dto.state_transition_from,
-            state_transition_to: dto.state_transition_to,
-            payload: dto.payload,
-        }
+        let tenant_id = dto.tenant_id.clone().unwrap_or_default();
+        dto.into_model(tenant_id)
     }
 }
 

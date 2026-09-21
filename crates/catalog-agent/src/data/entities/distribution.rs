@@ -26,6 +26,7 @@ use urn::{Urn, UrnBuilder};
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: String,
+    pub tenant_id: String,
     pub dct_issued: DateTimeWithTimeZone,
     pub dct_modified: Option<DateTimeWithTimeZone>,
     pub dct_title: Option<String>,
@@ -76,6 +77,7 @@ impl ActiveModelBehavior for ActiveModel {}
 #[derive(Debug, Clone)]
 pub struct NewDistributionModel {
     pub id: Option<Urn>,
+    pub tenant_id: String,
     pub dct_title: Option<String>,
     pub dct_description: Option<String>,
     pub dct_formats: Option<String>,
@@ -90,6 +92,7 @@ impl From<NewDistributionModel> for ActiveModel {
             .expect("UrnBuilder failed");
         Self {
             id: ActiveValue::Set(dto.id.clone().unwrap_or(new_urn.clone()).to_string()),
+            tenant_id: ActiveValue::Set(dto.tenant_id),
             dct_issued: ActiveValue::Set(chrono::Utc::now().into()),
             dct_modified: ActiveValue::Set(None),
             dct_title: ActiveValue::Set(dto.dct_title),

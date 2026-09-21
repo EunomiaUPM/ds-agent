@@ -38,6 +38,7 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .primary_key(),
                     )
+                    .col(ColumnDef::new(Notifications::TenantId).string().not_null())
                     .col(
                         ColumnDef::new(Notifications::Timestamp)
                             .date_time()
@@ -92,6 +93,7 @@ impl MigrationTrait for Migration {
 pub enum Notifications {
     Table,
     Id,
+    TenantId,
     Timestamp,
     Category,
     Subcategory,

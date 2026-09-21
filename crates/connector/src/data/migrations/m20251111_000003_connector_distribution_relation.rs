@@ -38,6 +38,11 @@ impl MigrationTrait for Migration {
                             .primary_key(),
                     )
                     .col(
+                        ColumnDef::new(ConnectorDistroRelations::TenantId)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
                         ColumnDef::new(ConnectorDistroRelations::ConnectorInstanceId)
                             .string()
                             .not_null()
@@ -73,6 +78,7 @@ impl MigrationTrait for Migration {
 pub enum ConnectorDistroRelations {
     Table,
     DistributionId,
+    TenantId,
     ConnectorInstanceId,
 }
 

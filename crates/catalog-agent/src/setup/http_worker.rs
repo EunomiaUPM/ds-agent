@@ -230,9 +230,14 @@ pub async fn create_root_http_router_with_bus(
     .build_router()
     .await?;
 
+    let validator: Arc<dyn common::auth::OauthTokenValidator> =
+        oauth::setup::composition::OAuthSetup::new()
+            .build_token_service(config.common().clone().into(), db_connection.clone());
+
     let catalog_router_str = format!("{}/catalog-agent", config.common().get_api_version());
     let connector_router_str = format!("{}/connector", config.common().get_api_version());
-    let router = Router::new()
+
+    let management_router = Router::new()
         .nest(
             format!("{}/catalogs", catalog_router_str.as_str()).as_str(),
             catalog_router.router(),
@@ -261,6 +266,13 @@ pub async fn create_root_http_router_with_bus(
             format!("{}/peer-catalogs", catalog_router_str.as_str()).as_str(),
             peer_catalog_router.router(),
         )
+        .route_layer(axum::middleware::from_fn_with_state(
+            validator,
+            common::auth::http::AuthHttpMiddleware::run,
+        ));
+
+    let router = Router::new()
+        .merge(management_router)
         .nest("/dsp/current/catalog", dsp_router)
         .nest(connector_router_str.as_str(), connector_router);
 

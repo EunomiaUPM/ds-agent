@@ -15,8 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! gRPC adapter for negotiation process management service.
+
 use crate::entities::negotiation_process::{
-    EditNegotiationProcessDto, NegotiationAgentProcessesTrait, NewNegotiationProcessDto,
+    EditNegotiationProcessDto, NegotiationProcessDto, NewNegotiationProcessDto,
 };
 use crate::grpc::api::negotiation_agent::negotiation_agent_processes_service_server::NegotiationAgentProcessesService;
 use crate::grpc::api::negotiation_agent::{
@@ -26,7 +28,11 @@ use crate::grpc::api::negotiation_agent::{
     GetNegotiationProcessByKeyValueRequest, NegotiationProcessListResponse,
     NegotiationProcessResponse, PutNegotiationProcessRequest,
 };
-
+use crate::grpc::{GrpcAuthHelper, IntoGrpcStatus};
+use crate::services::negotiation_process::NegotiationProcessServiceTrait;
+use common::auth::OauthTokenValidator;
+use common::auth::access::AccessScope;
+use common::batch_requests::BatchRequests;
 use common::paginated_spec::Page;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -34,12 +40,20 @@ use tonic::{Request, Response, Status};
 use urn::Urn;
 
 pub struct NegotiationAgentProcessesGrpc {
-    service: Arc<dyn NegotiationAgentProcessesTrait>,
+    service: Arc<dyn NegotiationProcessServiceTrait>,
+    validator: Arc<dyn OauthTokenValidator>,
 }
 
 impl NegotiationAgentProcessesGrpc {
-    pub fn new(service: Arc<dyn NegotiationAgentProcessesTrait>) -> Self {
-        Self { service }
+    pub fn new(
+        service: Arc<dyn NegotiationProcessServiceTrait>,
+        validator: Arc<dyn OauthTokenValidator>,
+    ) -> Self {
+        Self { service, validator }
+    }
+
+    async fn scope(&self, meta: &tonic::metadata::MetadataMap) -> Result<AccessScope, Status> {
+        GrpcAuthHelper::extract_scope(&self.validator, meta).await
     }
 }
 
@@ -49,18 +63,20 @@ impl NegotiationAgentProcessesService for NegotiationAgentProcessesGrpc {
         &self,
         request: Request<GetAllNegotiationProcessesRequest>,
     ) -> Result<Response<NegotiationProcessListResponse>, Status> {
-        let req = request.into_inner();
+        let (meta, _, req) = request.into_parts();
+        let scope = self.scope(&meta).await?;
         let page = Page::new(req.limit.unwrap_or(20) as u32, None);
         let paginated = self
             .service
-            .get_all_negotiation_processes(&Default::default(), &page, &Default::default())
+            .get_all(&scope, &Default::default(), &page, &Default::default())
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(|e| e.into_status())?;
 
         let proto_processes = paginated
             .items
             .into_iter()
-            .map(|dto| {
+            .map(|view| {
+                let dto: NegotiationProcessDto = view.into();
                 let response: NegotiationProcessResponse = dto.into();
                 response.process.unwrap()
             })
@@ -75,24 +91,27 @@ impl NegotiationAgentProcessesService for NegotiationAgentProcessesGrpc {
         &self,
         request: Request<GetBatchNegotiationProcessesRequest>,
     ) -> Result<Response<NegotiationProcessListResponse>, Status> {
-        let req = request.into_inner();
+        let (meta, _, req) = request.into_parts();
+        let scope = self.scope(&meta).await?;
 
         let urns: Vec<Urn> = req
             .ids
             .iter()
             .map(|id| Urn::from_str(id))
             .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| Status::invalid_argument(format!("Invalid URN in batch: {}", e)))?;
+            .map_err(|e| Status::invalid_argument(format!("Invalid URN in batch: {e}")))?;
 
-        let processes = self
+        let batch_req = BatchRequests { ids: urns };
+        let views = self
             .service
-            .get_batch_negotiation_processes(&urns)
+            .batch(&scope, &batch_req)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(|e| e.into_status())?;
 
-        let proto_processes = processes
+        let proto_processes = views
             .into_iter()
-            .map(|dto| {
+            .map(|view| {
+                let dto: NegotiationProcessDto = view.into();
                 let response: NegotiationProcessResponse = dto.into();
                 response.process.unwrap()
             })
@@ -107,112 +126,105 @@ impl NegotiationAgentProcessesService for NegotiationAgentProcessesGrpc {
         &self,
         request: Request<GetNegotiationProcessByIdRequest>,
     ) -> Result<Response<NegotiationProcessResponse>, Status> {
-        let req = request.into_inner();
+        let (meta, _, req) = request.into_parts();
+        let scope = self.scope(&meta).await?;
         let urn = Urn::from_str(&req.id)
-            .map_err(|e| Status::invalid_argument(format!("Invalid ID URN: {}", e)))?;
+            .map_err(|e| Status::invalid_argument(format!("Invalid ID URN: {e}")))?;
 
-        match self.service.get_negotiation_process_by_id(&urn).await {
-            Ok(Some(dto)) => Ok(Response::new(dto.into())),
-            Ok(None) => Err(Status::not_found("Negotiation process not found")),
-            Err(e) => Err(Status::internal(e.to_string())),
-        }
+        let view = self
+            .service
+            .get_one(&scope, &urn)
+            .await
+            .map_err(|e| e.into_status())?;
+        let dto: NegotiationProcessDto = view.into();
+        Ok(Response::new(dto.into()))
     }
 
     async fn get_negotiation_process_by_key_id(
         &self,
         request: Request<GetNegotiationProcessByKeyIdRequest>,
     ) -> Result<Response<NegotiationProcessResponse>, Status> {
-        let req = request.into_inner();
+        let (meta, _, req) = request.into_parts();
+        let scope = self.scope(&meta).await?;
         let urn = Urn::from_str(&req.id)
-            .map_err(|e| Status::invalid_argument(format!("Invalid Process ID URN: {}", e)))?;
+            .map_err(|e| Status::invalid_argument(format!("Invalid Process ID URN: {e}")))?;
 
-        match self
+        let view = self
             .service
-            .get_negotiation_process_by_key_id(&req.key_id, &urn)
+            .get_by_key_id(&scope, &req.key_id, &urn)
             .await
-        {
-            Ok(Some(dto)) => Ok(Response::new(dto.into())),
-            Ok(None) => Err(Status::not_found(
-                "Negotiation process not found by identifier key",
-            )),
-            Err(e) => Err(Status::internal(e.to_string())),
-        }
+            .map_err(|e| e.into_status())?;
+        let dto: NegotiationProcessDto = view.into();
+        Ok(Response::new(dto.into()))
     }
 
     async fn get_negotiation_process_by_key_value(
         &self,
         request: Request<GetNegotiationProcessByKeyValueRequest>,
     ) -> Result<Response<NegotiationProcessResponse>, Status> {
-        let req = request.into_inner();
-        // Aquí 'id' representa el valor del URN del identificador
-        let urn = Urn::from_str(&req.id).map_err(|e| {
-            Status::invalid_argument(format!("Invalid Identifier Value URN: {}", e))
-        })?;
+        let (meta, _, req) = request.into_parts();
+        let scope = self.scope(&meta).await?;
+        let urn = Urn::from_str(&req.id)
+            .map_err(|e| Status::invalid_argument(format!("Invalid Identifier Value URN: {e}")))?;
 
-        match self
+        let view = self
             .service
-            .get_negotiation_process_by_key_value(&urn)
+            .get_by_key_value(&scope, &urn)
             .await
-        {
-            Ok(Some(dto)) => Ok(Response::new(dto.into())),
-            Ok(None) => Err(Status::not_found(
-                "Negotiation process not found by identifier value",
-            )),
-            Err(e) => Err(Status::internal(e.to_string())),
-        }
+            .map_err(|e| e.into_status())?;
+        let dto: NegotiationProcessDto = view.into();
+        Ok(Response::new(dto.into()))
     }
 
     async fn create_negotiation_process(
         &self,
         request: Request<CreateNegotiationProcessRequest>,
     ) -> Result<Response<NegotiationProcessResponse>, Status> {
-        let req = request.into_inner();
-
-        // Conversión Request -> NewDto
+        let (meta, _, req) = request.into_parts();
+        let scope = self.scope(&meta).await?;
         let new_process_dto: NewNegotiationProcessDto = req.try_into()?;
 
-        match self
+        let view = self
             .service
-            .create_negotiation_process(&new_process_dto)
+            .create(&scope, &new_process_dto)
             .await
-        {
-            Ok(dto) => Ok(Response::new(dto.into())),
-            Err(e) => Err(Status::internal(e.to_string())),
-        }
+            .map_err(|e| e.into_status())?;
+        let dto: NegotiationProcessDto = view.into();
+        Ok(Response::new(dto.into()))
     }
 
     async fn put_negotiation_process(
         &self,
         request: Request<PutNegotiationProcessRequest>,
     ) -> Result<Response<NegotiationProcessResponse>, Status> {
-        let req = request.into_inner();
+        let (meta, _, req) = request.into_parts();
+        let scope = self.scope(&meta).await?;
         let urn = Urn::from_str(&req.id)
-            .map_err(|e| Status::invalid_argument(format!("Invalid ID URN: {}", e)))?;
-
-        // Conversión Request -> EditDto
+            .map_err(|e| Status::invalid_argument(format!("Invalid ID URN: {e}")))?;
         let edit_process_dto: EditNegotiationProcessDto = req.try_into()?;
 
-        match self
+        let view = self
             .service
-            .put_negotiation_process(&urn, &edit_process_dto)
+            .edit(&scope, &urn, &edit_process_dto)
             .await
-        {
-            Ok(dto) => Ok(Response::new(dto.into())),
-            Err(e) => Err(Status::internal(e.to_string())),
-        }
+            .map_err(|e| e.into_status())?;
+        let dto: NegotiationProcessDto = view.into();
+        Ok(Response::new(dto.into()))
     }
 
     async fn delete_negotiation_process(
         &self,
         request: Request<DeleteNegotiationProcessRequest>,
     ) -> Result<Response<()>, Status> {
-        let req = request.into_inner();
+        let (meta, _, req) = request.into_parts();
+        let scope = self.scope(&meta).await?;
         let urn = Urn::from_str(&req.id)
-            .map_err(|e| Status::invalid_argument(format!("Invalid ID URN: {}", e)))?;
+            .map_err(|e| Status::invalid_argument(format!("Invalid ID URN: {e}")))?;
 
-        match self.service.delete_negotiation_process(&urn).await {
-            Ok(_) => Ok(Response::new(())),
-            Err(e) => Err(Status::internal(e.to_string())),
-        }
+        self.service
+            .delete(&scope, &urn)
+            .await
+            .map_err(|e| e.into_status())?;
+        Ok(Response::new(()))
     }
 }

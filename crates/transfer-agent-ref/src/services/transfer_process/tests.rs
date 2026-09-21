@@ -887,9 +887,7 @@ async fn edit_foreign_tenant_returns_not_found_without_mutating() {
     proc_repo
         .expect_put_transfer_process()
         .withf(|tenant, id, _| tenant == "tenant-2" && id == &p_urn(1))
-        .returning(|_, _, _| {
-            Err(TransferProcessRepoErrors::TransferProcessNotFound.into_errors())
-        });
+        .returning(|_, _, _| Err(TransferProcessRepoErrors::TransferProcessNotFound.into_errors()));
     let id_repo = MockTransferIdentifierRepoTrait::new();
 
     let svc = make_svc(proc_repo, id_repo);
@@ -911,9 +909,7 @@ async fn delete_foreign_tenant_returns_not_found() {
     proc_repo
         .expect_delete_transfer_process()
         .withf(|tenant, id| tenant == "tenant-2" && id == &p_urn(1))
-        .returning(|_, _| {
-            Err(TransferProcessRepoErrors::TransferProcessNotFound.into_errors())
-        });
+        .returning(|_, _| Err(TransferProcessRepoErrors::TransferProcessNotFound.into_errors()));
     let id_repo = MockTransferIdentifierRepoTrait::new();
 
     let svc = make_svc(proc_repo, id_repo);
@@ -1386,9 +1382,11 @@ async fn edit_view_identifiers_come_from_repo_after_upsert() {
 #[tokio::test]
 async fn edit_propagates_process_repo_error() {
     let mut proc_repo = MockTransferProcessRepoTrait::new();
-    proc_repo.expect_put_transfer_process().returning(|_, _, _| {
-        Err(TransferProcessRepoErrors::ErrorUpdatingTransferProcess(io_err()).into_errors())
-    });
+    proc_repo
+        .expect_put_transfer_process()
+        .returning(|_, _, _| {
+            Err(TransferProcessRepoErrors::ErrorUpdatingTransferProcess(io_err()).into_errors())
+        });
     let id_repo = MockTransferIdentifierRepoTrait::new();
 
     let svc = make_svc(proc_repo, id_repo);
@@ -1468,9 +1466,11 @@ async fn delete_happy_path() {
 #[tokio::test]
 async fn delete_propagates_error() {
     let mut proc_repo = MockTransferProcessRepoTrait::new();
-    proc_repo.expect_delete_transfer_process().returning(|_, _| {
-        Err(TransferProcessRepoErrors::ErrorDeletingTransferProcess(io_err()).into_errors())
-    });
+    proc_repo
+        .expect_delete_transfer_process()
+        .returning(|_, _| {
+            Err(TransferProcessRepoErrors::ErrorDeletingTransferProcess(io_err()).into_errors())
+        });
     let id_repo = MockTransferIdentifierRepoTrait::new();
 
     let svc = make_svc(proc_repo, id_repo);

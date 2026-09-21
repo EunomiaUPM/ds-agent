@@ -41,13 +41,19 @@ impl KeystoreClientImpl {
 impl KeystoreLookup for KeystoreClientImpl {
     async fn get_parameter(&self, key: &str) -> Option<serde_json::Value> {
         let k = Key::new(key).ok()?;
-        self.parameter_store.read(&k).await.ok().map(|e| e.value)
+        let scope = common::auth::AccessScope::system();
+        self.parameter_store
+            .read(&scope, &k)
+            .await
+            .ok()
+            .map(|e| e.value)
     }
 
     async fn get_secret(&self, key: &str) -> Option<serde_json::Value> {
         let k = Key::new(key).ok()?;
+        let scope = common::auth::AccessScope::system();
         self.secret_store
-            .read(&k)
+            .read(&scope, &k)
             .await
             .ok()
             .map(|e| e.value.expose().clone())

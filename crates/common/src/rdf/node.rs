@@ -370,9 +370,9 @@ impl<'d, 'a> RdfNode<'d, 'a> {
                 return Ok(b);
             }
             if let Some(s) = val.as_str() {
-                return s
-                    .parse::<bool>()
-                    .map_err(|e| self.invalid_field(predicate, &format!("cannot parse bool: {e}")));
+                return s.parse::<bool>().map_err(|e| {
+                    self.invalid_field(predicate, &format!("cannot parse bool: {e}"))
+                });
             }
         }
         Err(self.invalid_field(predicate, "expected boolean value"))

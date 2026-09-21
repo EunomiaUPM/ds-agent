@@ -32,6 +32,7 @@ use axum::Router;
 use common::config::ApplicationConfig;
 use common::config::types::traits::CommonConfigTrait;
 use common::module_loader::service_module::ServiceModuleTrait;
+use oauth::setup::composition::OAuthSetup;
 use sea_orm_migration::MigrationTrait;
 use ymir::config::traits::ApiConfigTrait;
 use ymir::services::vault::VaultService;
@@ -107,13 +108,20 @@ impl KeystoreModule {
     {
         let prefix = format!("{}/keystore", config.common().get_api_version());
         let (parameter_service, secret_service) =
-            Self::build_stores_with_bus(config, vault, event_bus).await;
+            Self::build_stores_with_bus(config, vault.clone(), event_bus).await;
         let config_service = Arc::new(ConfigStoreImpl::new(Arc::new(ConfigPassthroughRepo::new(
             app_config,
         ))));
+        let db = vault
+            .get_db_connection(config.common())
+            .await
+            .expect("Unable to retrieve db connection");
+        let validator: Arc<dyn common::auth::OauthTokenValidator> =
+            OAuthSetup::new().build_token_service(config.common().clone().into(), db);
 
         let router =
-            KeystoreRouter::new(parameter_service, secret_service, config_service).router();
+            KeystoreRouter::new(parameter_service, secret_service, config_service, validator)
+                .router();
         Self { prefix, router }
     }
 

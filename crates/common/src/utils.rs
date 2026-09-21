@@ -39,10 +39,31 @@ pub fn generate_uuid_urn(prefix: &str) -> Urn {
         .expect("UUID URN is always valid")
 }
 
-pub fn get_urn_from_string(string_in: &String) -> Outcome<Urn> {
-    string_in
-        .parse::<Urn>()
-        .map_err(|e| Errors::parse("Error parsing urn", Some(Box::new(e))))
+/// Parses a string slice into a `Urn`.
+#[allow(clippy::result_large_err)]
+pub fn parse_urn(s: &str) -> Outcome<Urn> {
+    s.parse::<Urn>()
+        .map_err(|e| Errors::crazy("invalid URN in database", Some(Box::new(e))))
+}
+
+/// Parses a string slice into a `Urn` (backwards-compatible alias).
+#[allow(clippy::result_large_err)]
+pub fn get_urn_from_string(string_in: &str) -> Outcome<Urn> {
+    parse_urn(string_in)
+}
+
+/// Extension trait for parsing string slices into URNs.
+pub trait ParseUrnExt {
+    /// Parses the string slice into a `Urn`.
+    #[allow(clippy::result_large_err)]
+    fn parse_urn(&self) -> Outcome<Urn>;
+}
+
+impl ParseUrnExt for str {
+    #[allow(clippy::result_large_err)]
+    fn parse_urn(&self) -> Outcome<Urn> {
+        parse_urn(self)
+    }
 }
 
 pub async fn flush_redis_cache(url: &str) -> Outcome<()> {

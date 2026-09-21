@@ -31,6 +31,7 @@ use crate::entities::topic::Topic;
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: String,
+    pub tenant_id: String,
     pub topic: String,
     pub source_crate: String,
     pub schema_version: i32,
@@ -65,6 +66,7 @@ impl Model {
 
         Ok(EventEnvelope {
             id,
+            tenant_id: self.tenant_id,
             topic,
             source_crate: self.source_crate,
             schema_version: self.schema_version as u32,
@@ -80,6 +82,7 @@ impl ActiveModel {
     pub fn from_domain(entity: &EventEnvelope) -> Self {
         Self {
             id: ActiveValue::Set(entity.id.to_string()),
+            tenant_id: ActiveValue::Set(entity.tenant_id.clone()),
             topic: ActiveValue::Set(entity.topic.to_string()),
             source_crate: ActiveValue::Set(entity.source_crate.clone()),
             schema_version: ActiveValue::Set(entity.schema_version as i32),

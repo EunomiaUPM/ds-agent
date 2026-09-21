@@ -101,12 +101,12 @@ impl RdfCanonicalizer {
         let base: ArcIri = Iri::new_unchecked(Arc::from("x-string://"));
         let json = JsonSyntaxValue::parse_str(&message, |span| Location::new(base.clone(), span))
             .map_err(|e| {
-                Errors::format(
-                    BadFormat::Received,
-                    format!("body is not valid JSON: {e}"),
-                    None,
-                )
-            })?;
+            Errors::format(
+                BadFormat::Received,
+                format!("body is not valid JSON: {e}"),
+                None,
+            )
+        })?;
         let document = RemoteDocument::new(Some(base), None, json);
 
         let mut vocabulary = ArcVoc {};

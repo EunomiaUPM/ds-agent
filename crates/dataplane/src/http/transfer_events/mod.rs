@@ -15,33 +15,34 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::transfer_events::TransferEventEntitiesTrait;
-use crate::http::common::parse_urn;
+use std::sync::Arc;
+
 use axum::extract::{FromRef, Path, State};
-use axum::http::StatusCode;
-use axum::response::IntoResponse;
+use axum::http::HeaderMap;
 use axum::routing::get;
 use axum::{Json, Router};
-use common::errors::{CommonErrors, ErrorLog};
-use std::sync::Arc;
-use ymir::errors::Errors;
+use common::auth::access::AccessScope;
+use ymir::errors::AppResult;
+use ymir::utils::extract_path_urn;
+
+use crate::entities::transfer_events::TransferEventDto;
+use crate::http::extractors::ExtractedHeaders;
+use crate::services::transfer_events::TransferEventServiceTrait;
 
 #[derive(Clone)]
 pub struct TransferEventsRouter {
-    transfer_event_entity: Arc<dyn TransferEventEntitiesTrait>,
+    service: Arc<dyn TransferEventServiceTrait>,
 }
 
-impl FromRef<TransferEventsRouter> for Arc<dyn TransferEventEntitiesTrait> {
+impl FromRef<TransferEventsRouter> for Arc<dyn TransferEventServiceTrait> {
     fn from_ref(state: &TransferEventsRouter) -> Self {
-        state.transfer_event_entity.clone()
+        state.service.clone()
     }
 }
 
 impl TransferEventsRouter {
-    pub fn new(transfer_event_entity: Arc<dyn TransferEventEntitiesTrait>) -> Self {
-        Self {
-            transfer_event_entity,
-        }
+    pub fn new(service: Arc<dyn TransferEventServiceTrait>) -> Self {
+        Self { service }
     }
 
     pub fn dataplane_processes_sub_router(self) -> Router {
@@ -60,49 +61,29 @@ impl TransferEventsRouter {
     }
 
     async fn handle_get_events_by_transfer_id(
-        State(state): State<TransferEventsRouter>,
+        State(state): State<Self>,
+        scope: AccessScope,
+        headers: ExtractedHeaders,
         Path(dataplane_process_id): Path<String>,
-    ) -> impl IntoResponse {
-        let dataplane_process_id = match parse_urn(&dataplane_process_id) {
-            Ok(urn) => urn,
-            Err(resp) => return resp,
-        };
+    ) -> AppResult<(HeaderMap, Json<Vec<TransferEventDto>>)> {
+        let process_urn = extract_path_urn(&dataplane_process_id)?;
+        let events = state
+            .service
+            .get_by_process_id(&scope, &process_urn)
+            .await?;
 
-        match state
-            .transfer_event_entity
-            .get_transfer_events_by_process_id(&dataplane_process_id)
-            .await
-        {
-            Ok(events) => (StatusCode::OK, Json(events)).into_response(),
-            Err(e) => e.into_response(),
-        }
+        Ok((headers.response_headers(), Json(events)))
     }
 
     async fn handle_get_event_by_id(
-        State(state): State<TransferEventsRouter>,
+        State(state): State<Self>,
+        scope: AccessScope,
+        headers: ExtractedHeaders,
         Path(event_id): Path<String>,
-    ) -> impl IntoResponse {
-        let event_id = match parse_urn(&event_id) {
-            Ok(urn) => urn,
-            Err(resp) => return resp,
-        };
-        match state
-            .transfer_event_entity
-            .get_transfer_event_by_id(&event_id)
-            .await
-        {
-            Ok(transfer_event) => match transfer_event {
-                Some(transfer_event) => (StatusCode::OK, Json(transfer_event)).into_response(),
-                None => {
-                    let err = Errors::missing_resource(
-                        event_id.to_string().as_str(),
-                        "Transfer event not found",
-                        None,
-                    );
-                    err.into_response()
-                }
-            },
-            Err(e) => e.into_response(),
-        }
+    ) -> AppResult<(HeaderMap, Json<TransferEventDto>)> {
+        let event_urn = extract_path_urn(&event_id)?;
+        let event = state.service.get_one(&scope, &event_urn).await?;
+
+        Ok((headers.response_headers(), Json(event)))
     }
 }

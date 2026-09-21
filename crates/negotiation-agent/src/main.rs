@@ -15,47 +15,19 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use negotiation_agent::NegotiationCommands;
+use common::info_banner::banner;
+use common::telemetry;
+use negotiation_agent::{NegotiationCommands, SERVICE_BIG_NAME, SERVICE_NAME};
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 use tracing_subscriber::filter::LevelFilter;
 use ymir::errors::{Errors, Outcome};
 
-const INFO: &str = r"
-----------
-:::::::::: :::    ::: ::::    :::  ::::::::  ::::    ::::  :::::::::::     :::
-:+:        :+:    :+: :+:+:   :+: :+:    :+: +:+:+: :+:+:+     :+:       :+: :+:
-+:+        +:+    +:+ :+:+:+  +:+ +:+    +:+ +:+ +:+:+ +:+     +:+      +:+   +:+
-+#++:++#   +#+    +:+ +#+ +:+ +#+ +#+    +:+ +#+  +:+  +#+     +#+     +#++:++#++:
-+#+        +#+    +#+ +#+  +#+#+# +#+    +#+ +#+       +#+     +#+     +#+     +#+
-#+#        #+#    #+# #+#   #+#+# #+#    #+# #+#       #+#     #+#     #+#     #+#
-##########  ########  ###    ####  ########  ###       ### ########### ###     ###
-:::::::::   ::::::::                    :::      ::::::::  :::::::::: ::::    ::: :::::::::::
-:+:    :+: :+:    :+:                 :+: :+:   :+:    :+: :+:        :+:+:   :+:     :+:
-+:+    +:+ +:+                       +:+   +:+  +:+        +:+        :+:+:+  +:+     +:+
-+#+    +:+ +#++:++#++ +#++:++#++:++ +#++:++#++: :#:        +#++:++#   +#+ +:+ +#+     +#+
-+#+    +#+        +#+               +#+     +#+ +#+   +#+# +#+        +#+  +#+#+#     +#+
-#+#    #+# #+#    #+#               #+#     #+# #+#    #+# #+#        #+#   #+#+#     #+#
-#########   ########                ###     ###  ########  ########## ###    ####     ###
-
-Starting Eunomia DS-Agent Negotiation Agent Server 🌈🌈
-UPM Dataspace agent
-Show some love on https://github.com/EunomiaUPM/ds-agent
-----------
-
-";
-
+#[allow(clippy::result_large_err)]
 #[tokio::main]
 async fn main() -> Outcome<()> {
-    let filter = EnvFilter::builder()
-        .with_default_directive(LevelFilter::INFO.into())
-        .parse("debug,sqlx::query=off")
-        .map_err(|e| Errors::crazy(e.to_string(), Some(Box::new(e))))?;
-    tracing_subscriber::fmt()
-        .event_format(tracing_subscriber::fmt::format().with_line_number(true))
-        .with_env_filter(filter)
-        .init();
-    info!("{}", INFO);
+    telemetry::init(SERVICE_NAME);
+    info!("{}", banner(SERVICE_BIG_NAME));
     NegotiationCommands::init_command_line().await?;
     Ok(())
 }

@@ -15,9 +15,9 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod catalog;
-pub(crate) mod dataservice;
-pub(crate) mod dataset;
-pub(crate) mod distribution;
-pub(crate) mod odrl_offer;
-pub(crate) mod policy_template;
+pub mod catalog;
+pub mod dataservice;
+pub mod dataset;
+pub mod distribution;
+pub mod odrl_offer;
+pub mod policy_template;

@@ -86,10 +86,10 @@ impl CatalogGrpcWorker {
         vault: Arc<VaultService>,
         token: &CancellationToken,
     ) -> Outcome<JoinHandle<()>> {
-        let router = Self::create_root_grpc_router(&config, vault.clone()).await?;
+        let router = Self::create_root_grpc_router(config, vault.clone()).await?;
 
         let port = config.common().get_internal_port(HostType::Http);
-        let addr = format!("0.0.0.0:{}", port);
+        let addr = format!("0.0.0.0:{port}");
 
         let listener = TcpListener::bind(&addr)
             .await
@@ -130,39 +130,47 @@ impl CatalogGrpcWorker {
             Arc::new(CatalogAgentCacheForRedis::create_repo(redis_connection));
         let catalog_agent_repo =
             Arc::new(CatalogAgentRepoForSql::create_repo(db_connection.clone()));
+        let validator: Arc<dyn common::auth::OauthTokenValidator> =
+            oauth::setup::composition::OAuthSetup::new()
+                .build_token_service(config.common().clone().into(), db_connection.clone());
 
         // entities
         let catalog_controller_service = Arc::new(CatalogEntities::new(
             catalog_agent_repo.clone(),
             catalog_agent_cache.clone(),
         ));
-        let catalog_router = CatalogEntityGrpc::new(catalog_controller_service.clone());
+        let catalog_router =
+            CatalogEntityGrpc::new(catalog_controller_service.clone(), validator.clone());
         let data_services_controller_service = Arc::new(DataServiceEntities::new(
             catalog_agent_repo.clone(),
             catalog_agent_cache.clone(),
         ));
         let data_services_router =
-            DataServiceEntityGrpc::new(data_services_controller_service.clone());
+            DataServiceEntityGrpc::new(data_services_controller_service.clone(), validator.clone());
         let datasets_controller_service = Arc::new(DatasetEntities::new(
             catalog_agent_repo.clone(),
             catalog_agent_cache.clone(),
         ));
-        let datasets_router = DatasetEntityGrpc::new(datasets_controller_service.clone());
+        let datasets_router =
+            DatasetEntityGrpc::new(datasets_controller_service.clone(), validator.clone());
         let distributions_controller_service = Arc::new(DistributionEntities::new(
             catalog_agent_repo.clone(),
             catalog_agent_cache.clone(),
         ));
-        let distributions_router =
-            DistributionEntityGrpc::new(distributions_controller_service.clone());
+        let distributions_router = DistributionEntityGrpc::new(
+            distributions_controller_service.clone(),
+            validator.clone(),
+        );
         let odrl_offer_controller_service = Arc::new(OdrlPolicyEntities::new(
             catalog_agent_repo.clone(),
             catalog_agent_cache.clone(),
         ));
-        let odrl_offer_router = OdrlPolicyEntityGrpc::new(odrl_offer_controller_service.clone());
+        let odrl_offer_router =
+            OdrlPolicyEntityGrpc::new(odrl_offer_controller_service.clone(), validator.clone());
         let policy_templates_controller_service =
             Arc::new(PolicyTemplateEntities::new(catalog_agent_repo.clone()));
         let policy_templates_router =
-            PolicyTemplateEntityGrpc::new(policy_templates_controller_service.clone());
+            PolicyTemplateEntityGrpc::new(policy_templates_controller_service.clone(), validator);
 
         let reflection_service = tonic_reflection::server::Builder::configure()
             .register_encoded_file_descriptor_set(FILE_DESCRIPTOR_SET)

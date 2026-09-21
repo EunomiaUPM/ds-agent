@@ -17,6 +17,7 @@
 
 use crate::entities::commands::{EditParameterCommand, NewParameterCommand};
 use crate::entities::entry::Entry;
+use crate::entities::filters::PrefixFilter;
 use crate::entities::key::Key;
 use crate::entities::version::Version;
 use serde::{Serialize, de::DeserializeOwned};
@@ -24,25 +25,35 @@ use thiserror::Error;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
 #[allow(dead_code)]
-#[cfg_attr(test, mockall::automock(type Value = serde_json::Value;))]
+#[mockall::automock(type Value = serde_json::Value;)]
 #[async_trait::async_trait]
 pub trait ParameterRepoTrait: Send + Sync {
     type Value: Serialize + DeserializeOwned + Send + Sync + 'static;
 
-    async fn get_all_parameters(&self) -> Outcome<Vec<Entry<Self::Value>>>;
-    async fn count_parameters(&self) -> Outcome<u64>;
-    async fn get_batch_parameters(&self, keys: &[Key]) -> Outcome<Vec<Entry<Self::Value>>>;
-    async fn get_parameter_by_key(&self, key: &Key) -> Outcome<Option<Entry<Self::Value>>>;
+    async fn get_all_parameters(&self, filter: &PrefixFilter) -> Outcome<Vec<Entry<Self::Value>>>;
+    async fn count_parameters(&self, filter: &PrefixFilter) -> Outcome<u64>;
+    async fn get_batch_parameters(
+        &self,
+        tenant_id: &str,
+        keys: &[Key],
+    ) -> Outcome<Vec<Entry<Self::Value>>>;
+    async fn get_parameter_by_key(
+        &self,
+        tenant_id: &str,
+        key: &Key,
+    ) -> Outcome<Option<Entry<Self::Value>>>;
     async fn create_parameter(
         &self,
+        tenant_id: &str,
         new_model: &NewParameterCommand<Self::Value>,
     ) -> Outcome<Entry<Self::Value>>;
     async fn put_parameter(
         &self,
+        tenant_id: &str,
         key: &Key,
         edit_model: &EditParameterCommand<Self::Value>,
     ) -> Outcome<Entry<Self::Value>>;
-    async fn delete_parameter(&self, key: &Key) -> Outcome<()>;
+    async fn delete_parameter(&self, tenant_id: &str, key: &Key) -> Outcome<()>;
 }
 
 #[derive(Debug, Error)]

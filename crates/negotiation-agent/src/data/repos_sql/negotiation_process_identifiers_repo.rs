@@ -77,6 +77,25 @@ impl NegotiationIdentifierRepoTrait for NegotiationProcessIdentifierRepoForSql {
         }
     }
 
+    async fn get_identifiers_by_batch_process_id(
+        &self,
+        process_ids: &[Urn],
+    ) -> Outcome<Vec<Model>> {
+        let pids: Vec<String> = process_ids.iter().map(|u| u.to_string()).collect();
+        let identifiers = negotiation_process_identifier::Entity::find()
+            .filter(negotiation_process_identifier::Column::NegotiationAgentProcessId.is_in(pids))
+            .all(&self.db_connection)
+            .await;
+
+        match identifiers {
+            Ok(identifiers) => Ok(identifiers),
+            Err(e) => Err(
+                NegotiationIdentifierRepoErrors::ErrorFetchingNegotiationIdentifier(e.into())
+                    .into_errors(),
+            ),
+        }
+    }
+
     async fn get_identifier_by_id(&self, id: &Urn) -> Outcome<Option<Model>> {
         let iid = id.to_string();
         let identifier = negotiation_process_identifier::Entity::find_by_id(iid)

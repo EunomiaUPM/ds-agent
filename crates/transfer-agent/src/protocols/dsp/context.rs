@@ -134,4 +134,15 @@ impl DspTransferContext {
     pub fn outbound_continuation() -> Self {
         Self::default()
     }
+
+    /// Retrieve the effective tenant_id from the transfer context.
+    pub fn tenant_id(&self) -> &str {
+        if let Some(p) = &self.process {
+            return &p.inner.tenant_id;
+        }
+        if let Some(peer) = &self.associated_peer {
+            return &peer.tenant_id;
+        }
+        ""
+    }
 }

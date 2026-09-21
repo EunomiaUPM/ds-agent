@@ -101,7 +101,7 @@ impl DataServiceFacadeTrait for DataServiceFacadeServiceForDSProtocol {
         // 4. resolve connector instance by distribution
         let connector_instance = self
             .connector_entity
-            .get_instance_by_distribution(&distribution_id)
+            .get_instance_by_distribution(&common::auth::AccessScope::system(), &distribution_id)
             .await?
             .ok_or_else(|| {
                 Errors::crazy(

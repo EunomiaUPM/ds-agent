@@ -35,6 +35,9 @@ impl FilterApplier<Select<connector_templates::Entity>> for ConnectorTemplateFil
         &self,
         mut select: Select<connector_templates::Entity>,
     ) -> Select<connector_templates::Entity> {
+        if let Some(tenant_id) = &self.tenant_id {
+            select = select.filter(connector_templates::Column::TenantId.eq(tenant_id));
+        }
         if let Some(name) = &self.name {
             select = select.filter(connector_templates::Column::Name.eq(name));
         }
@@ -86,11 +89,12 @@ impl ConnectorTemplateRepoTrait for ConnectorTemplateRepoForSql {
 
     async fn get_templates_by_name(
         &self,
-        template_name: &String,
+        tenant_id: &str,
+        template_name: &str,
     ) -> Outcome<Vec<connector_templates::Model>> {
-        let id_str = template_name.to_string();
         let result = connector_templates::Entity::find()
-            .filter(connector_templates::Column::Name.eq(id_str.clone()))
+            .filter(connector_templates::Column::Name.eq(template_name))
+            .filter(connector_templates::Column::TenantId.eq(tenant_id))
             .all(&self.db_connection)
             .await;
 
@@ -105,12 +109,15 @@ impl ConnectorTemplateRepoTrait for ConnectorTemplateRepoForSql {
 
     async fn get_template_by_name_and_version(
         &self,
-        name: &String,
-        version: &String,
+        tenant_id: &str,
+        name: &str,
+        version: &str,
     ) -> Outcome<Option<connector_templates::Model>> {
-        let result = connector_templates::Entity::find_by_id((name.clone(), version.clone()))
-            .one(&self.db_connection)
-            .await;
+        let result =
+            connector_templates::Entity::find_by_id((name.to_string(), version.to_string()))
+                .filter(connector_templates::Column::TenantId.eq(tenant_id))
+                .one(&self.db_connection)
+                .await;
         match result {
             Ok(opt) => Ok(opt),
             Err(err) => Err(ConnectorAgentRepoErrors::ConnectorTemplateRepoErrors(
@@ -155,10 +162,14 @@ impl ConnectorTemplateRepoTrait for ConnectorTemplateRepoForSql {
 
     async fn delete_template_by_name_and_version(
         &self,
-        name: &String,
-        version: &String,
+        tenant_id: &str,
+        name: &str,
+        version: &str,
     ) -> Outcome<()> {
-        let result = connector_templates::Entity::delete_by_id((name.clone(), version.clone()))
+        let result = connector_templates::Entity::delete_many()
+            .filter(connector_templates::Column::Name.eq(name))
+            .filter(connector_templates::Column::Version.eq(version))
+            .filter(connector_templates::Column::TenantId.eq(tenant_id))
             .exec(&self.db_connection)
             .await;
 

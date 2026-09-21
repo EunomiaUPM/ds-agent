@@ -93,63 +93,84 @@ impl ConnectorInstanceEntitiesService {
     }
 }
 
+use common::auth::AccessScope;
+
 #[async_trait::async_trait]
 impl ConnectorInstanceTrait for ConnectorInstanceEntitiesService {
-    async fn get_instance_by_id(&self, id: &Urn) -> Outcome<Option<ConnectorInstanceDto>> {
+    async fn get_instance_by_id(
+        &self,
+        scope: &AccessScope,
+        id: &Urn,
+    ) -> Outcome<Option<ConnectorInstanceDto>> {
+        scope.require_read()?;
         let id_str = id.to_string();
         let instance = self
             .repo
             .get_instances_repo()
-            .get_instance_by_id(&id_str)
+            .get_instance_by_id(scope.acting_tenant(), &id_str)
             .await?;
 
-        match instance {
-            Some(model) => Ok(Some(Self::map_model_to_dto(model)?)),
-            None => Ok(None),
-        }
+        instance.map(Self::map_model_to_dto).transpose()
     }
 
     async fn get_instance_by_distribution(
         &self,
+        scope: &AccessScope,
         distribution_id: &Urn,
     ) -> Outcome<Option<ConnectorInstanceDto>> {
+        scope.require_read()?;
         let dist_id_str = distribution_id.to_string();
 
-        let instance = self
+        let relation = self
             .repo
             .get_distro_relation_repo()
-            .get_relation_by_distribution(&dist_id_str)
+            .get_relation_by_distribution(scope.acting_tenant(), &dist_id_str)
             .await?;
 
-        if instance.is_none() {
-            return Ok(None);
-        }
-        let instance = instance.unwrap();
+        let relation = match relation {
+            Some(r) => r,
+            None => return Ok(None),
+        };
+
         let result = self
             .repo
             .get_instances_repo()
-            .get_instance_by_id(&instance.connector_instance_id)
+            .get_instance_by_id(scope.acting_tenant(), &relation.connector_instance_id)
             .await?;
 
-        match result {
-            Some(model) => Ok(Some(Self::map_model_to_dto(model)?)),
-            None => Ok(None),
-        }
+        result.map(Self::map_model_to_dto).transpose()
     }
 
     async fn upsert_instance(
         &self,
+        scope: &AccessScope,
         instance_dto: &mut ConnectorInstantiationDto,
     ) -> Outcome<ConnectorInstanceDto> {
+        let target_tenant = scope.resolve_create_tenant(instance_dto.tenant_id.as_deref())?;
+        instance_dto.tenant_id = Some(target_tenant.clone());
+
         // fetch template or error
-        let template_opt = self
+        let mut template_opt = self
             .repo
             .get_templates_repo()
             .get_template_by_name_and_version(
+                &target_tenant,
                 &instance_dto.template_name,
                 &instance_dto.template_version,
             )
             .await?;
+
+        if template_opt.is_none() && target_tenant != "system" {
+            template_opt = self
+                .repo
+                .get_templates_repo()
+                .get_template_by_name_and_version(
+                    "system",
+                    &instance_dto.template_name,
+                    &instance_dto.template_version,
+                )
+                .await?;
+        }
 
         let template_model = match template_opt {
             Some(t) => t,
@@ -212,6 +233,7 @@ impl ConnectorInstanceTrait for ConnectorInstanceEntitiesService {
         // persist instance
         let new_instance = connector_instances::NewConnectorInstanceModel {
             id: None,
+            tenant_id: target_tenant.clone(),
             template_name: instance_dto.template_name.clone(),
             template_version: instance_dto.template_version.clone(),
             distribution_id: distribution_id.clone(),
@@ -230,19 +252,19 @@ impl ConnectorInstanceTrait for ConnectorInstanceEntitiesService {
         let instance_distro_relation = self
             .repo
             .get_distro_relation_repo()
-            .get_relation_by_distribution(&distribution_id)
+            .get_relation_by_distribution(&target_tenant, &distribution_id)
             .await?;
         match instance_distro_relation {
             None => {
                 self.repo
                     .get_distro_relation_repo()
-                    .create_relation(&distribution_id, &saved_model.id)
+                    .create_relation(&target_tenant, &distribution_id, &saved_model.id)
                     .await?
             }
             Some(_) => {
                 self.repo
                     .get_distro_relation_repo()
-                    .update_relation(&distribution_id, &saved_model.id)
+                    .update_relation(&target_tenant, &distribution_id, &saved_model.id)
                     .await?
             }
         };
@@ -258,11 +280,19 @@ impl ConnectorInstanceTrait for ConnectorInstanceEntitiesService {
         Ok(result)
     }
 
-    async fn delete_instance_by_id(&self, id: &Urn) -> Outcome<()> {
+    async fn delete_instance_by_id(&self, scope: &AccessScope, id: &Urn) -> Outcome<()> {
+        scope.require_write()?;
         let id_str = id.to_string();
+
+        let _ = self
+            .repo
+            .get_distro_relation_repo()
+            .delete_relation_by_instance(scope.acting_tenant(), &id_str)
+            .await;
+
         self.repo
             .get_instances_repo()
-            .delete_instance_by_id(&id_str)
+            .delete_instance_by_id(scope.acting_tenant(), &id_str)
             .await?;
         let deleted = events::EntityDeletedDto::new(id_str);
         events::emit_action!(

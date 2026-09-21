@@ -31,6 +31,11 @@ impl MigrationTrait for Migration {
             .create_table(
                 Table::create()
                     .table(PolicyTemplates::Table)
+                    .col(
+                        ColumnDef::new(PolicyTemplates::TenantId)
+                            .string()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(PolicyTemplates::Id).string().not_null())
                     .col(ColumnDef::new(PolicyTemplates::Version).string().not_null())
                     .col(
@@ -54,6 +59,7 @@ impl MigrationTrait for Migration {
                     .primary_key(
                         Index::create()
                             .name("pk_policy_templates")
+                            .col(PolicyTemplates::TenantId)
                             .col(PolicyTemplates::Id)
                             .col(PolicyTemplates::Version),
                     )
@@ -72,6 +78,7 @@ impl MigrationTrait for Migration {
 #[derive(Iden)]
 pub enum PolicyTemplates {
     Table,
+    TenantId,
     Id,
     Version,
     Date,

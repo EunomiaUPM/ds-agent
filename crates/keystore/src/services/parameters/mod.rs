@@ -20,8 +20,10 @@ pub mod views;
 
 use crate::entities::commands::{EditParameterCommand, NewParameterCommand};
 use crate::entities::entry::Entry;
+use crate::entities::filters::PrefixFilter;
 use crate::entities::key::{Key, KeyPrefix};
 use crate::entities::version::Version;
+use common::auth::AccessScope;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use ymir::errors::Outcome;
@@ -31,18 +33,29 @@ pub trait ParameterStore<T>: Send + Sync
 where
     T: Serialize + DeserializeOwned + Send + Sync + 'static,
 {
-    async fn create(&self, cmd: &NewParameterCommand<T>) -> Outcome<Entry<T>>;
+    async fn create(&self, scope: &AccessScope, cmd: &NewParameterCommand<T>) -> Outcome<Entry<T>>;
 
-    async fn read(&self, key: &Key) -> Outcome<Entry<T>>;
+    async fn read(&self, scope: &AccessScope, key: &Key) -> Outcome<Entry<T>>;
 
     async fn update(
         &self,
+        scope: &AccessScope,
         key: &Key,
         cmd: &EditParameterCommand<T>,
         actor: &str,
     ) -> Outcome<Version>;
 
-    async fn delete(&self, key: &Key) -> Outcome<()>;
+    async fn delete(&self, scope: &AccessScope, key: &Key) -> Outcome<()>;
 
-    async fn list(&self, prefix: &KeyPrefix) -> Outcome<Vec<Entry<T>>>;
+    async fn list(&self, scope: &AccessScope, filter: &PrefixFilter) -> Outcome<Vec<Entry<T>>>;
+
+    async fn batch(&self, scope: &AccessScope, keys: &[Key]) -> Outcome<Vec<Entry<T>>>;
+
+    async fn list_by_prefix(
+        &self,
+        scope: &AccessScope,
+        prefix: &KeyPrefix,
+    ) -> Outcome<Vec<Entry<T>>> {
+        self.list(scope, &PrefixFilter::from(prefix)).await
+    }
 }

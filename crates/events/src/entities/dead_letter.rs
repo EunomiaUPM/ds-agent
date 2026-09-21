@@ -24,6 +24,7 @@ use crate::entities::subscription::DeadLetterStatus;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DeadLetterRecord {
     pub id: String,
+    pub tenant_id: String,
     pub delivery_id: Option<String>,
     pub event_id: String,
     pub subscription_id: String,

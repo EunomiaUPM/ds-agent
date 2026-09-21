@@ -29,12 +29,25 @@ pub const SERVICE_NAME: &str = "events";
 /// Events service module integrating migrations and HTTP routes into the modular host.
 pub struct EventsModule {
     ctx: Arc<AppContext>,
+    validator: Option<Arc<dyn common::auth::OauthTokenValidator>>,
 }
 
 impl EventsModule {
     /// Construct a new EventsModule with the given application context.
     pub fn new(ctx: Arc<AppContext>) -> Self {
-        Self { ctx }
+        Self {
+            ctx,
+            validator: None,
+        }
+    }
+
+    /// Set an OAuth token validator to enforce AuthHttpMiddleware on HTTP routes.
+    pub fn with_token_validator(
+        mut self,
+        validator: Arc<dyn common::auth::OauthTokenValidator>,
+    ) -> Self {
+        self.validator = Some(validator);
+        self
     }
 
     /// Return all SeaORM database migrations for the events bus and legacy tables.
@@ -53,7 +66,13 @@ impl ServiceModuleTrait for EventsModule {
     }
 
     fn http(&self) -> Option<(String, Router)> {
-        let router = EventsHttpRouter::build(self.ctx.event_bus.clone());
+        let router = match &self.validator {
+            Some(validator) => EventsHttpRouter::build_with_validator(
+                self.ctx.event_bus.clone(),
+                validator.clone(),
+            ),
+            None => EventsHttpRouter::build(self.ctx.event_bus.clone()),
+        };
         Some((format!("/api/v1/{SERVICE_NAME}"), router))
     }
 }

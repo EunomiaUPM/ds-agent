@@ -25,6 +25,7 @@ use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::routing::{delete, get, post};
 use axum::{Json, Router};
+use common::auth::AccessScope;
 use common::query::QuerySpec;
 use std::sync::Arc;
 use ymir::errors::Errors;
@@ -48,6 +49,7 @@ impl ConnectorInstanceRouter {
     pub fn new(service: Arc<dyn ConnectorInstanceTrait>) -> Self {
         Self { service }
     }
+
     pub fn router(self) -> Router {
         Router::new()
             .route("/", post(Self::handle_upsert_instance))
@@ -62,26 +64,29 @@ impl ConnectorInstanceRouter {
 
     async fn handle_upsert_instance(
         State(state): State<ConnectorInstanceRouter>,
+        scope: AccessScope,
         input: Result<Json<ConnectorInstantiationDto>, JsonRejection>,
     ) -> impl IntoResponse {
         let mut input = match extract_payload(input) {
             Ok(v) => v,
             Err(e) => return e.into_response(),
         };
-        match state.service.upsert_instance(&mut input).await {
+        match state.service.upsert_instance(&scope, &mut input).await {
             Ok(instance) => (StatusCode::OK, Json(instance)).into_response(),
             Err(err) => err.into_response(),
         }
     }
+
     async fn handle_get_instance_by_id(
         State(state): State<ConnectorInstanceRouter>,
+        scope: AccessScope,
         Path(id): Path<String>,
     ) -> impl IntoResponse {
         let id = match extract_path_urn(&id) {
             Ok(urn) => urn,
             Err(err) => return err.into_response(),
         };
-        match state.service.get_instance_by_id(&id).await {
+        match state.service.get_instance_by_id(&scope, &id).await {
             Ok(Some(instance)) => (StatusCode::OK, Json(instance)).into_response(),
             Ok(None) => {
                 let err = Errors::missing_resource("instance", "Instance not found", None);
@@ -90,15 +95,21 @@ impl ConnectorInstanceRouter {
             Err(err) => err.into_response(),
         }
     }
+
     async fn get_instance_by_distribution(
         State(state): State<ConnectorInstanceRouter>,
+        scope: AccessScope,
         Path(did): Path<String>,
     ) -> impl IntoResponse {
         let did = match extract_path_urn(&did) {
             Ok(urn) => urn,
             Err(err) => return err.into_response(),
         };
-        match state.service.get_instance_by_distribution(&did).await {
+        match state
+            .service
+            .get_instance_by_distribution(&scope, &did)
+            .await
+        {
             Ok(Some(instance)) => (StatusCode::OK, Json(instance)).into_response(),
             Ok(None) => {
                 let err = Errors::missing_resource("instance", "Instance not found", None);
@@ -107,15 +118,17 @@ impl ConnectorInstanceRouter {
             Err(err) => err.into_response(),
         }
     }
+
     async fn handle_delete_instance_by_id(
         State(state): State<ConnectorInstanceRouter>,
+        scope: AccessScope,
         Path(did): Path<String>,
     ) -> impl IntoResponse {
         let did = match extract_path_urn(&did) {
             Ok(urn) => urn,
             Err(err) => return err.into_response(),
         };
-        match state.service.delete_instance_by_id(&did).await {
+        match state.service.delete_instance_by_id(&scope, &did).await {
             Ok(_) => StatusCode::ACCEPTED.into_response(),
             Err(err) => err.into_response(),
         }

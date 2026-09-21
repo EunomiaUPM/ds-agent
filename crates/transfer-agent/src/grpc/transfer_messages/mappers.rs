@@ -53,6 +53,7 @@ impl TryFrom<CreateMessageRequest> for NewTransferMessageDto {
 
         Ok(NewTransferMessageDto {
             id: id_urn,
+            tenant_id: None,
             transfer_agent_process_id: process_urn,
             direction: proto.direction,
             protocol: proto.protocol,

@@ -15,6 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::setup::context::CoreContext;
 use auth::data::migrations::get_auth_migrations;
 use axum::Router;
 use catalog_agent::get_catalog_migrations;
@@ -28,14 +29,13 @@ use events::data::migrations::get_events_migrations;
 use keystore::KeystoreModule;
 use negotiation_agent::get_negotiation_agent_migrations;
 use oauth::get_oauth_migrations;
+use oauth::setup::module::OAuthModule;
 use sea_orm_migration::MigrationTrait;
 use std::sync::Arc;
 use transfer_agent_ref::setup::TransferAgentModule;
 use ymir::errors::Outcome;
 use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
-use oauth::setup::module::OAuthModule;
-use crate::setup::context::CoreContext;
 
 /// A thin [`ServiceModuleTrait`] wrapper around one agent's already-built HTTP
 /// router, for agents that are still exposed as `create_*_http_router` functions
@@ -81,6 +81,8 @@ impl MonolithModule {
         let transfer =
             TransferAgentModule::compose_with_bus(&transfer_cfg, &vault, Some(bus.clone())).await?;
         let oauth_db = vault.get_db_connection(transfer_cfg.common()).await?;
+        let oauth_validator = oauth::setup::composition::OAuthSetup::new()
+            .build_token_service(transfer_cfg.common().clone().into(), oauth_db.clone());
         let oauth = OAuthModule::new(transfer_cfg.common().clone().into(), oauth_db)
             .with_event_bus(Some(bus.clone()));
 
@@ -106,9 +108,10 @@ impl MonolithModule {
             ))
             .register(oauth)
             .register(transfer)
-            .register(events::setup::composition::EventsModule::new(
-                ctx.events_ctx.clone(),
-            ))
+            .register(
+                events::setup::composition::EventsModule::new(ctx.events_ctx.clone())
+                    .with_token_validator(oauth_validator),
+            )
             .register(ToBeDeprecatedRouterModule::merged(
                 "gateway",
                 ctx.gateway_router,

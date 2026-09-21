@@ -26,7 +26,8 @@ pub const DSP_CONTEXT_URL: &str = "https://w3id.org/dspace/2025/1/context.jsonld
 const DSP_CONTEXT_DOC: &str = include_str!("../../../assets/dspace-2025-1-context.jsonld");
 
 pub const DSP_ODRL_PROFILE_URL: &str = "https://w3id.org/dspace/2025/1/odrl-profile.jsonld";
-const DSP_ODRL_PROFILE_DOC: &str = include_str!("../../../assets/dspace-2025-1-odrl-profile.jsonld");
+const DSP_ODRL_PROFILE_DOC: &str =
+    include_str!("../../../assets/dspace-2025-1-odrl-profile.jsonld");
 
 /// Dataspace Protocol 2025-1 profile implementation.
 #[derive(Clone, Copy, Debug, Default)]

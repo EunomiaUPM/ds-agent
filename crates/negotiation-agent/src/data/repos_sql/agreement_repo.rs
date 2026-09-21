@@ -23,13 +23,19 @@ use common::paginated_spec::{Page, SelectCursorExt, Sort};
 use common::query::FilterApplier;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait,
-    QueryFilter, QueryOrder, QuerySelect, Select,
+    QueryFilter, Select,
 };
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
 impl FilterApplier<Select<agreement::Entity>> for AgreementFilter {
     fn apply_to(&self, mut q: Select<agreement::Entity>) -> Select<agreement::Entity> {
+        if let Some(ref id) = self.id {
+            q = q.filter(agreement::Column::Id.eq(id));
+        }
+        if let Some(ref tenant_id) = self.tenant_id {
+            q = q.filter(agreement::Column::TenantId.eq(tenant_id));
+        }
         if let Some(ref process_id) = self.process_id {
             q = q.filter(agreement::Column::NegotiationAgentProcessId.eq(process_id));
         }
@@ -101,9 +107,10 @@ impl AgreementRepoTrait for AgreementRepoForSql {
         Ok((items, Some(total)))
     }
 
-    async fn get_batch_agreements(&self, ids: &Vec<Urn>) -> Outcome<Vec<Model>> {
+    async fn get_batch_agreements(&self, tenant_id: &str, ids: &[Urn]) -> Outcome<Vec<Model>> {
         let agreement_ids = ids.iter().map(|t| t.to_string()).collect::<Vec<_>>();
         let agreements = agreement::Entity::find()
+            .filter(agreement::Column::TenantId.eq(tenant_id))
             .filter(agreement::Column::Id.is_in(agreement_ids))
             .all(&self.db_connection)
             .await;
@@ -114,9 +121,10 @@ impl AgreementRepoTrait for AgreementRepoForSql {
         }
     }
 
-    async fn get_agreement_by_id(&self, id: &Urn) -> Outcome<Option<Model>> {
+    async fn get_agreement_by_id(&self, tenant_id: &str, id: &Urn) -> Outcome<Option<Model>> {
         let aid = id.to_string();
         let agreement = agreement::Entity::find_by_id(aid)
+            .filter(agreement::Column::TenantId.eq(tenant_id))
             .one(&self.db_connection)
             .await;
 
@@ -126,9 +134,14 @@ impl AgreementRepoTrait for AgreementRepoForSql {
         }
     }
 
-    async fn get_agreement_by_negotiation_process(&self, id: &Urn) -> Outcome<Option<Model>> {
+    async fn get_agreement_by_negotiation_process(
+        &self,
+        tenant_id: &str,
+        id: &Urn,
+    ) -> Outcome<Option<Model>> {
         let pid = id.to_string();
         let agreement = agreement::Entity::find()
+            .filter(agreement::Column::TenantId.eq(tenant_id))
             .filter(agreement::Column::NegotiationAgentProcessId.eq(pid))
             .one(&self.db_connection)
             .await;
@@ -139,8 +152,9 @@ impl AgreementRepoTrait for AgreementRepoForSql {
         }
     }
 
-    async fn get_agreements_by_assignee(&self, id: &String) -> Outcome<Vec<Model>> {
+    async fn get_agreements_by_assignee(&self, tenant_id: &str, id: &str) -> Outcome<Vec<Model>> {
         let agreement = agreement::Entity::find()
+            .filter(agreement::Column::TenantId.eq(tenant_id))
             .filter(agreement::Column::ConsumerParticipantId.eq(id))
             .all(&self.db_connection)
             .await;
@@ -151,8 +165,9 @@ impl AgreementRepoTrait for AgreementRepoForSql {
         }
     }
 
-    async fn get_agreements_by_assigner(&self, id: &String) -> Outcome<Vec<Model>> {
+    async fn get_agreements_by_assigner(&self, tenant_id: &str, id: &str) -> Outcome<Vec<Model>> {
         let agreement = agreement::Entity::find()
+            .filter(agreement::Column::TenantId.eq(tenant_id))
             .filter(agreement::Column::ProviderParticipantId.eq(id))
             .all(&self.db_connection)
             .await;
@@ -163,10 +178,15 @@ impl AgreementRepoTrait for AgreementRepoForSql {
         }
     }
 
-    async fn get_agreement_by_negotiation_message(&self, id: &Urn) -> Outcome<Option<Model>> {
+    async fn get_agreement_by_negotiation_message(
+        &self,
+        tenant_id: &str,
+        id: &Urn,
+    ) -> Outcome<Option<Model>> {
         let mid = id.to_string();
         let agreement = agreement::Entity::find()
-            .filter(agreement::Column::NegotiationAgentProcessId.eq(mid))
+            .filter(agreement::Column::TenantId.eq(tenant_id))
+            .filter(agreement::Column::NegotiationAgentMessageId.eq(mid))
             .one(&self.db_connection)
             .await;
 
@@ -188,9 +208,15 @@ impl AgreementRepoTrait for AgreementRepoForSql {
         }
     }
 
-    async fn put_agreement(&self, id: &Urn, edit_model: &EditAgreementModel) -> Outcome<Model> {
+    async fn put_agreement(
+        &self,
+        tenant_id: &str,
+        id: &Urn,
+        edit_model: &EditAgreementModel,
+    ) -> Outcome<Model> {
         let aid = id.to_string();
-        let old_model = agreement::Entity::find_by_id(aid)
+        let old_model = agreement::Entity::find_by_id(&aid)
+            .filter(agreement::Column::TenantId.eq(tenant_id))
             .one(&self.db_connection)
             .await;
         let old_model = match old_model {
@@ -214,9 +240,11 @@ impl AgreementRepoTrait for AgreementRepoForSql {
         }
     }
 
-    async fn delete_agreement(&self, id: &Urn) -> Outcome<()> {
+    async fn delete_agreement(&self, tenant_id: &str, id: &Urn) -> Outcome<()> {
         let aid = id.to_string();
-        let result = agreement::Entity::delete_by_id(aid)
+        let result = agreement::Entity::delete_many()
+            .filter(agreement::Column::Id.eq(&aid))
+            .filter(agreement::Column::TenantId.eq(tenant_id))
             .exec(&self.db_connection)
             .await;
 

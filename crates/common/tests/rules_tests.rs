@@ -64,8 +64,6 @@ fn dsp_rules_context_and_type() {
     assert!(DspRules::expected_type(&bad_type, "TransferRequestMessage", "@type").is_err());
 }
 
-
-
 #[test]
 fn auth_rules_tokens_and_rbac() {
     let now = 1000;
@@ -73,7 +71,9 @@ fn auth_rules_tokens_and_rbac() {
     let expired = AuthRules::token_not_expired(900, now, "exp").unwrap_err();
     assert_eq!(expired.code(), Some(codes::NOT_ALLOWED));
 
-    assert!(AuthRules::audience_matches("https://agent.local", "https://agent.local", "aud").is_ok());
+    assert!(
+        AuthRules::audience_matches("https://agent.local", "https://agent.local", "aud").is_ok()
+    );
     assert!(AuthRules::audience_matches("https://other", "https://agent.local", "aud").is_err());
 
     assert!(AuthRules::issuer_matches("https://idp.local", "https://idp.local", "iss").is_ok());

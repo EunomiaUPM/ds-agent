@@ -37,6 +37,7 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .primary_key(),
                     )
+                    .col(ColumnDef::new(Subscriptions::TenantId).string().not_null())
                     .col(
                         ColumnDef::new(Subscriptions::CallbackAddress)
                             .string()
@@ -89,6 +90,7 @@ impl MigrationTrait for Migration {
 pub enum Subscriptions {
     Table,
     Id,
+    TenantId,
     CallbackAddress,
     TransferProcess,
     ContractNegotiationProcess,

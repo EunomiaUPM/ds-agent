@@ -102,6 +102,7 @@ impl DataplaneContext {
         // db access
         let dataplane_process = dataplane_entity
             .create_dataplane_transfer(&NewDataplaneTransferDto {
+                tenant_id: init.tenant_id().to_string(),
                 id: Some(id),
                 transfer_process_id: transfer_id.to_string(),
                 role: transfer_role,
@@ -145,7 +146,13 @@ impl DataplaneContext {
         let connector = match connector_id {
             Some(connector_id) => {
                 let connector_urn = Urn::from_str(&connector_id)?;
-                connector_entity.get_instance_by_id(&connector_urn).await?
+                let scope = common::auth::AccessScope::from_role(
+                    common::auth::RbacRole::Admin,
+                    &dataplane_process.inner.tenant_id,
+                );
+                connector_entity
+                    .get_instance_by_id(&scope, &connector_urn)
+                    .await?
             }
             None => None,
         };

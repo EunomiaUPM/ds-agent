@@ -38,14 +38,27 @@ impl RepoIntoErrors for SubscriptionRepoError {}
 // Repository interface for webhook subscription CRUD and matching.
 #[async_trait]
 pub trait EventSubscriptionRepo: Send + Sync + 'static {
-    async fn create_subscription(&self, dto: CreateSubscriptionDto) -> Outcome<SubscriptionRecord>;
-    async fn get_subscription(&self, id: &str) -> Outcome<Option<SubscriptionRecord>>;
-    async fn list_subscriptions(&self) -> Outcome<Vec<SubscriptionRecord>>;
+    async fn create_subscription(
+        &self,
+        tenant_id: &str,
+        dto: CreateSubscriptionDto,
+    ) -> Outcome<SubscriptionRecord>;
+    async fn get_subscription(
+        &self,
+        tenant_id: &str,
+        id: &str,
+    ) -> Outcome<Option<SubscriptionRecord>>;
+    async fn list_subscriptions(&self, tenant_id: &str) -> Outcome<Vec<SubscriptionRecord>>;
     async fn update_subscription(
         &self,
+        tenant_id: &str,
         id: &str,
         dto: UpdateSubscriptionDto,
     ) -> Outcome<SubscriptionRecord>;
-    async fn delete_subscription(&self, id: &str) -> Outcome<()>;
-    async fn get_matching_subscriptions(&self, topic: &Topic) -> Outcome<Vec<SubscriptionRecord>>;
+    async fn delete_subscription(&self, tenant_id: &str, id: &str) -> Outcome<()>;
+    async fn get_matching_subscriptions(
+        &self,
+        tenant_id: &str,
+        topic: &Topic,
+    ) -> Outcome<Vec<SubscriptionRecord>>;
 }

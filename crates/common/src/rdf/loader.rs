@@ -175,7 +175,10 @@ impl Loader<ArcIri, Location<ArcIri, Span>> for RdfContextLoader {
 
         async move {
             let asset_doc = assets.get(&url_str).or_else(|| {
-                url_str.rsplit('/').next().and_then(|fname| assets.get(fname))
+                url_str
+                    .rsplit('/')
+                    .next()
+                    .and_then(|fname| assets.get(fname))
             });
             if let Some(doc) = asset_doc {
                 return Ok(Self::to_remote_document(url, doc.clone()));
@@ -190,7 +193,10 @@ impl Loader<ArcIri, Location<ArcIri, Span>> for RdfContextLoader {
 
             let resp = client
                 .get(&url_str)
-                .header(reqwest::header::ACCEPT, "application/ld+json, application/json")
+                .header(
+                    reqwest::header::ACCEPT,
+                    "application/ld+json, application/json",
+                )
                 .send()
                 .await
                 .map_err(|e| RdfLoaderError::Network(url_str.clone(), e.to_string()))?;
@@ -207,9 +213,8 @@ impl Loader<ArcIri, Location<ArcIri, Span>> for RdfContextLoader {
                 .await
                 .map_err(|e| RdfLoaderError::Network(url_str.clone(), e.to_string()))?;
 
-            let parsed =
-                JsonSyntaxValue::parse_str(&text, |span| Location::new(url.clone(), span))
-                    .map_err(|e| RdfLoaderError::Parse(url_str.clone(), e.to_string()))?;
+            let parsed = JsonSyntaxValue::parse_str(&text, |span| Location::new(url.clone(), span))
+                .map_err(|e| RdfLoaderError::Parse(url_str.clone(), e.to_string()))?;
 
             {
                 let mut write_guard = cache.write().await;

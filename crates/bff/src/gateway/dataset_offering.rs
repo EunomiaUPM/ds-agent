@@ -89,6 +89,7 @@ pub struct PolicyOfferingInput {
 pub async fn orchestrate_dataset_offering(
     ctx: Arc<AppContext>,
     req: CreateDatasetOfferingRequest,
+    tenant_id: &str,
 ) -> Response {
     let client = Client::new();
     let catalog_base = ctx.config.catalog().get_host(HostType::Http);
@@ -348,6 +349,7 @@ pub async fn orchestrate_dataset_offering(
         if let Ok(topic) = Topic::new("catalog.dataset.created") {
             let correlation_id = urn::Urn::from_str(&dataset_id).ok();
             let envelope = EventEnvelope::new(
+                tenant_id,
                 topic,
                 "bff.catalog-orchestrator",
                 1,

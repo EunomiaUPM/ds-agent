@@ -1,9 +1,9 @@
-use axum::Router;
-use sea_orm::DatabaseConnection;
-use sea_orm_migration::MigrationTrait;
-use common::module_loader::service_module::ServiceModuleTrait;
 use crate::config::OAuthConfig;
 use crate::setup::composition::OAuthSetup;
+use axum::Router;
+use common::module_loader::service_module::ServiceModuleTrait;
+use sea_orm::DatabaseConnection;
+use sea_orm_migration::MigrationTrait;
 
 /// OAuth as a composable service module: `/oauth` endpoints (token, refresh,
 /// revoke, introspect, users, clients). Construct it with config and DB connection.

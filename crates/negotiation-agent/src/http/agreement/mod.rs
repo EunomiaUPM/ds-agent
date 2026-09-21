@@ -15,230 +15,170 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::agreement::{
-    AgreementDto, EditAgreementDto, NegotiationAgentAgreementsTrait, NewAgreementDto,
-};
+//! HTTP router for agreement management endpoints.
+
+use crate::entities::agreement::{EditAgreementDto, NewAgreementDto};
 use crate::entities::filters::AgreementFilter;
-use crate::errors::error_adapter::CustomToResponse;
-use crate::http::common::{extract_payload, parse_urn};
+use crate::http::common::ExtractedHeaders;
+use crate::services::agreement::AgreementServiceTrait;
+use crate::services::agreement::views::AgreementView;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{FromRef, Path, Query, State};
-use axum::http::StatusCode;
-use axum::response::IntoResponse;
-use axum::routing::{delete, get, post, put};
+use axum::http::{HeaderMap, StatusCode};
+use axum::routing::{get, post};
 use axum::{Json, Router};
+use common::auth::access::AccessScope;
 use common::batch_requests::BatchRequests;
-use common::config::services::ContractsConfig;
-use common::query::QuerySpec;
-use serde::Deserialize;
+use common::query::{Paginated, QuerySpec, Sort};
 use std::sync::Arc;
+use ymir::errors::AppResult;
+use ymir::utils::{extract_path_urn, extract_payload};
+
+pub type AgreementQuery = QuerySpec<AgreementFilter, Sort>;
 
 #[derive(Clone)]
 pub struct NegotiationAgentAgreementsRouter {
-    service: Arc<dyn NegotiationAgentAgreementsTrait>,
-    config: Arc<ContractsConfig>,
+    service: Arc<dyn AgreementServiceTrait>,
 }
 
-pub use common::paginated_spec::PaginationParams;
-pub type AgreementQuery = QuerySpec<AgreementFilter>;
-
-impl FromRef<NegotiationAgentAgreementsRouter> for Arc<dyn NegotiationAgentAgreementsTrait> {
+impl FromRef<NegotiationAgentAgreementsRouter> for Arc<dyn AgreementServiceTrait> {
     fn from_ref(state: &NegotiationAgentAgreementsRouter) -> Self {
         state.service.clone()
     }
 }
 
-impl FromRef<NegotiationAgentAgreementsRouter> for Arc<ContractsConfig> {
-    fn from_ref(state: &NegotiationAgentAgreementsRouter) -> Self {
-        state.config.clone()
-    }
-}
-
 impl NegotiationAgentAgreementsRouter {
-    pub fn new(
-        service: Arc<dyn NegotiationAgentAgreementsTrait>,
-        config: Arc<ContractsConfig>,
-    ) -> Self {
-        Self { service, config }
+    pub fn new(service: Arc<dyn AgreementServiceTrait>) -> Self {
+        Self { service }
     }
 
     pub fn router(self) -> Router {
         Router::new()
-            .route(
-                "/",
-                get(Self::handle_get_all_agreements).post(Self::handle_create_agreement),
-            )
-            .route("/batch", post(Self::handle_get_batch_agreements))
+            .route("/", get(Self::handle_get_all).post(Self::handle_create))
+            .route("/batch", post(Self::handle_batch))
             .route(
                 "/{id}",
-                get(Self::handle_get_agreement_by_id)
-                    .put(Self::handle_put_agreement)
-                    .delete(Self::handle_delete_agreement),
+                get(Self::handle_get_one)
+                    .put(Self::handle_edit)
+                    .delete(Self::handle_delete),
             )
-            .route(
-                "/process/{process_id}",
-                get(Self::handle_get_agreement_by_negotiation_process),
-            )
-            .route(
-                "/message/{message_id}",
-                get(Self::handle_get_agreement_by_negotiation_message),
-            )
-            .route(
-                "/assignee/{assignee}",
-                get(Self::handle_get_agreement_by_assignee),
-            )
-            .route(
-                "/assigner/{assigner}",
-                get(Self::handle_get_agreement_by_assigner),
-            )
+            .route("/process/{process_id}", get(Self::handle_get_by_process))
+            .route("/assignee/{assignee}", get(Self::handle_get_by_assignee))
+            .route("/assigner/{assigner}", get(Self::handle_get_by_assigner))
             .with_state(self)
     }
 
-    async fn handle_get_all_agreements(
-        State(state): State<NegotiationAgentAgreementsRouter>,
-        Query(query): Query<AgreementQuery>,
-    ) -> impl IntoResponse {
-        match state
-            .service
-            .get_all_agreements(&query.filter, &query.page, &query.sort)
-            .await
-        {
-            Ok(agreements) => (StatusCode::OK, Json(agreements)).into_response(),
-            Err(err) => err.to_response(),
-        }
+    async fn handle_get_all(
+        State(state): State<Self>,
+        scope: AccessScope,
+        headers: ExtractedHeaders,
+        Query(q): Query<AgreementQuery>,
+    ) -> AppResult<(HeaderMap, Json<Paginated<AgreementView>>)> {
+        let (filter, page, sort) = q.into_domain();
+        let result = state.service.get_all(&scope, &filter, &page, &sort).await?;
+        let response_headers = headers.response_headers_paged(result.total);
+        Ok((response_headers, Json(result)))
     }
 
-    async fn handle_get_batch_agreements(
-        State(state): State<NegotiationAgentAgreementsRouter>,
-        input: Result<Json<BatchRequests>, JsonRejection>,
-    ) -> impl IntoResponse {
-        let input = match extract_payload(input) {
-            Ok(v) => v,
-            Err(e) => return e,
-        };
-        match state.service.get_batch_agreements(&input.ids).await {
-            Ok(agreements) => (StatusCode::OK, Json(agreements)).into_response(),
-            Err(err) => err.to_response(),
-        }
-    }
-
-    async fn handle_create_agreement(
-        State(state): State<NegotiationAgentAgreementsRouter>,
-        input: Result<Json<NewAgreementDto>, JsonRejection>,
-    ) -> impl IntoResponse {
-        let input = match extract_payload(input) {
-            Ok(v) => v,
-            Err(e) => return e,
-        };
-        match state.service.create_agreement(&input).await {
-            Ok(created) => (StatusCode::CREATED, Json(created)).into_response(),
-            Err(err) => err.to_response(),
-        }
-    }
-
-    async fn handle_get_agreement_by_id(
-        State(state): State<NegotiationAgentAgreementsRouter>,
-        Path(id): Path<String>,
-    ) -> impl IntoResponse {
-        let id_urn = match parse_urn(&id) {
-            Ok(urn) => urn,
-            Err(resp) => return resp,
-        };
-        match state.service.get_agreement_by_id(&id_urn).await {
-            Ok(Some(agreement)) => (StatusCode::OK, Json(agreement)).into_response(),
-            Ok(None) => (StatusCode::NOT_FOUND).into_response(),
-            Err(err) => err.to_response(),
-        }
-    }
-
-    async fn handle_put_agreement(
-        State(state): State<NegotiationAgentAgreementsRouter>,
-        Path(id): Path<String>,
-        input: Result<Json<EditAgreementDto>, JsonRejection>,
-    ) -> impl IntoResponse {
-        let id_urn = match parse_urn(&id) {
-            Ok(urn) => urn,
-            Err(resp) => return resp,
-        };
-        let input = match extract_payload(input) {
-            Ok(v) => v,
-            Err(e) => return e,
-        };
-        match state.service.put_agreement(&id_urn, &input).await {
-            Ok(updated) => (StatusCode::OK, Json(updated)).into_response(),
-            Err(err) => err.to_response(),
-        }
-    }
-
-    async fn handle_delete_agreement(
-        State(state): State<NegotiationAgentAgreementsRouter>,
-        Path(id): Path<String>,
-    ) -> impl IntoResponse {
-        let id_urn = match parse_urn(&id) {
-            Ok(urn) => urn,
-            Err(resp) => return resp,
-        };
-        match state.service.delete_agreement(&id_urn).await {
-            Ok(_) => (StatusCode::NO_CONTENT).into_response(),
-            Err(err) => err.to_response(),
-        }
-    }
-
-    async fn handle_get_agreement_by_negotiation_process(
-        State(state): State<NegotiationAgentAgreementsRouter>,
+    async fn handle_get_by_process(
+        State(state): State<Self>,
+        scope: AccessScope,
+        headers: ExtractedHeaders,
         Path(process_id): Path<String>,
-    ) -> impl IntoResponse {
-        let process_urn = match parse_urn(&process_id) {
-            Ok(urn) => urn,
-            Err(resp) => return resp,
-        };
-        match state
-            .service
-            .get_agreement_by_negotiation_process(&process_urn)
-            .await
-        {
-            Ok(Some(agreement)) => (StatusCode::OK, Json(agreement)).into_response(),
-            Ok(None) => (StatusCode::NOT_FOUND).into_response(),
-            Err(err) => err.to_response(),
-        }
+        Query(q): Query<AgreementQuery>,
+    ) -> AppResult<(HeaderMap, Json<Paginated<AgreementView>>)> {
+        let process_urn = extract_path_urn(&process_id)?;
+        let (mut filter, page, sort) = q.into_domain();
+        filter.process_id = Some(process_urn.to_string());
+        let result = state.service.get_all(&scope, &filter, &page, &sort).await?;
+        let response_headers = headers.response_headers_paged(result.total);
+        Ok((response_headers, Json(result)))
     }
 
-    async fn handle_get_agreement_by_negotiation_message(
-        State(state): State<NegotiationAgentAgreementsRouter>,
-        Path(message_id): Path<String>,
-    ) -> impl IntoResponse {
-        let message_urn = match parse_urn(&message_id) {
-            Ok(urn) => urn,
-            Err(resp) => return resp,
-        };
-        match state
-            .service
-            .get_agreement_by_negotiation_message(&message_urn)
-            .await
-        {
-            Ok(Some(agreement)) => (StatusCode::OK, Json(agreement)).into_response(),
-            Ok(None) => (StatusCode::NOT_FOUND).into_response(),
-            Err(err) => err.to_response(),
-        }
-    }
-
-    async fn handle_get_agreement_by_assignee(
-        State(state): State<NegotiationAgentAgreementsRouter>,
+    async fn handle_get_by_assignee(
+        State(state): State<Self>,
+        scope: AccessScope,
+        headers: ExtractedHeaders,
         Path(assignee): Path<String>,
-    ) -> impl IntoResponse {
-        match state.service.get_agreements_by_assignee(&assignee).await {
-            Ok(agreements) => (StatusCode::OK, Json(agreements)).into_response(),
-            Err(err) => err.to_response(),
-        }
+        Query(q): Query<AgreementQuery>,
+    ) -> AppResult<(HeaderMap, Json<Paginated<AgreementView>>)> {
+        let (mut filter, page, sort) = q.into_domain();
+        filter.consumer_id = Some(assignee);
+        let result = state.service.get_all(&scope, &filter, &page, &sort).await?;
+        let response_headers = headers.response_headers_paged(result.total);
+        Ok((response_headers, Json(result)))
     }
 
-    async fn handle_get_agreement_by_assigner(
-        State(state): State<NegotiationAgentAgreementsRouter>,
+    async fn handle_get_by_assigner(
+        State(state): State<Self>,
+        scope: AccessScope,
+        headers: ExtractedHeaders,
         Path(assigner): Path<String>,
-    ) -> impl IntoResponse {
-        match state.service.get_agreements_by_assigner(&assigner).await {
-            Ok(agreements) => (StatusCode::OK, Json(agreements)).into_response(),
-            Err(err) => err.to_response(),
-        }
+        Query(q): Query<AgreementQuery>,
+    ) -> AppResult<(HeaderMap, Json<Paginated<AgreementView>>)> {
+        let (mut filter, page, sort) = q.into_domain();
+        filter.provider_id = Some(assigner);
+        let result = state.service.get_all(&scope, &filter, &page, &sort).await?;
+        let response_headers = headers.response_headers_paged(result.total);
+        Ok((response_headers, Json(result)))
+    }
+
+    async fn handle_batch(
+        State(state): State<Self>,
+        scope: AccessScope,
+        headers: ExtractedHeaders,
+        payload: Result<Json<BatchRequests>, JsonRejection>,
+    ) -> AppResult<(HeaderMap, Json<Vec<AgreementView>>)> {
+        let payload = extract_payload(payload)?;
+        let views = state.service.batch(&scope, &payload).await?;
+        let count = views.len() as u64;
+        Ok((headers.response_headers_paged(Some(count)), Json(views)))
+    }
+
+    async fn handle_get_one(
+        State(state): State<Self>,
+        scope: AccessScope,
+        headers: ExtractedHeaders,
+        Path(id): Path<String>,
+    ) -> AppResult<(HeaderMap, Json<AgreementView>)> {
+        let urn = extract_path_urn(&id)?;
+        let view = state.service.get_one(&scope, &urn).await?;
+        Ok((headers.response_headers(), Json(view)))
+    }
+
+    async fn handle_create(
+        State(state): State<Self>,
+        scope: AccessScope,
+        headers: ExtractedHeaders,
+        payload: Result<Json<NewAgreementDto>, JsonRejection>,
+    ) -> AppResult<(StatusCode, HeaderMap, Json<AgreementView>)> {
+        let payload = extract_payload(payload)?;
+        let view = state.service.create(&scope, &payload).await?;
+        let response_headers = headers.response_headers();
+        Ok((StatusCode::CREATED, response_headers, Json(view)))
+    }
+
+    async fn handle_edit(
+        State(state): State<Self>,
+        scope: AccessScope,
+        headers: ExtractedHeaders,
+        Path(id): Path<String>,
+        payload: Result<Json<EditAgreementDto>, JsonRejection>,
+    ) -> AppResult<(HeaderMap, Json<AgreementView>)> {
+        let urn = extract_path_urn(&id)?;
+        let payload = extract_payload(payload)?;
+        let view = state.service.edit(&scope, &urn, &payload).await?;
+        Ok((headers.response_headers(), Json(view)))
+    }
+
+    async fn handle_delete(
+        State(state): State<Self>,
+        scope: AccessScope,
+        headers: ExtractedHeaders,
+        Path(id): Path<String>,
+    ) -> AppResult<(StatusCode, HeaderMap)> {
+        let urn = extract_path_urn(&id)?;
+        state.service.delete(&scope, &urn).await?;
+        Ok((StatusCode::NO_CONTENT, headers.response_headers()))
     }
 }

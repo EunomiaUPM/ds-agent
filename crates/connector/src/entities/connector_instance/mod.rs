@@ -60,6 +60,8 @@ pub struct ConnectorInstantiationDto {
     /// persisted.  Used for pre-flight checks.
     #[serde(default)]
     pub dry_run: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tenant_id: Option<String>,
 }
 
 /// Optional human-readable metadata attached to a connector instance.
@@ -84,13 +86,20 @@ pub struct ConnectorInstanceDto {
     pub distribution_id: Urn,
 }
 
+use common::auth::AccessScope;
+
 /// Service interface for connector instance operations.
 #[cfg_attr(test, mockall::automock)]
 #[async_trait::async_trait]
 pub trait ConnectorInstanceTrait: Send + Sync {
-    async fn get_instance_by_id(&self, id: &Urn) -> Outcome<Option<ConnectorInstanceDto>>;
+    async fn get_instance_by_id(
+        &self,
+        scope: &AccessScope,
+        id: &Urn,
+    ) -> Outcome<Option<ConnectorInstanceDto>>;
     async fn get_instance_by_distribution(
         &self,
+        scope: &AccessScope,
         distribution_id: &Urn,
     ) -> Outcome<Option<ConnectorInstanceDto>>;
     /// Validate parameters, resolve placeholders, and persist the instance.
@@ -99,7 +108,8 @@ pub trait ConnectorInstanceTrait: Send + Sync {
     /// updated in-place.
     async fn upsert_instance(
         &self,
+        scope: &AccessScope,
         instance_dto: &mut ConnectorInstantiationDto,
     ) -> Outcome<ConnectorInstanceDto>;
-    async fn delete_instance_by_id(&self, id: &Urn) -> Outcome<()>;
+    async fn delete_instance_by_id(&self, scope: &AccessScope, id: &Urn) -> Outcome<()>;
 }

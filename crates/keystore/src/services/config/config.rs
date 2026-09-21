@@ -17,6 +17,7 @@
 
 use crate::data::repo::config::KeystoreConfigRepo;
 use crate::services::config::ConfigStore;
+use common::auth::AccessScope;
 use common::config::ApplicationConfig;
 use std::sync::Arc;
 use ymir::errors::Outcome;
@@ -34,7 +35,8 @@ impl ConfigStoreImpl {
 #[async_trait::async_trait]
 impl ConfigStore for ConfigStoreImpl {
     #[tracing::instrument(level = "info", skip_all, err)]
-    async fn get_application_config(&self) -> Outcome<ApplicationConfig> {
+    async fn get_application_config(&self, scope: &AccessScope) -> Outcome<ApplicationConfig> {
+        scope.require_admin()?;
         self.repo.get_config().await
     }
 }

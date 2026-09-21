@@ -27,6 +27,7 @@ use urn::Urn;
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub(crate) id: String,
+    pub(crate) tenant_id: String,
     pub(crate) transfer_agent_process_id: String,
     pub(crate) created_at: DateTimeWithTimeZone,
     pub(crate) direction: String,
@@ -59,6 +60,7 @@ impl ActiveModelBehavior for ActiveModel {}
 #[derive(Clone)]
 pub struct NewTransferMessageModel {
     pub id: Option<Urn>,
+    pub tenant_id: String,
     pub transfer_agent_process_id: Urn,
     pub direction: String,
     pub protocol: String,
@@ -72,6 +74,7 @@ impl From<NewTransferMessageModel> for ActiveModel {
     fn from(dto: NewTransferMessageModel) -> Self {
         Self {
             id: ActiveValue::Set(dto.id.unwrap_or(get_urn(None)).to_string()),
+            tenant_id: ActiveValue::Set(dto.tenant_id),
             transfer_agent_process_id: ActiveValue::Set(dto.transfer_agent_process_id.to_string()),
             direction: ActiveValue::Set(dto.direction),
             protocol: ActiveValue::Set(dto.protocol),

@@ -36,6 +36,7 @@ pub struct TransferEventDto {
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 pub struct NewTransferEventDto {
+    pub tenant_id: String,
     pub transfer_id: Urn,
     pub level: LogLevel,
     pub component: String,
@@ -46,6 +47,7 @@ pub struct NewTransferEventDto {
 impl From<NewTransferEventDto> for NewTransferEvent {
     fn from(value: NewTransferEventDto) -> Self {
         Self {
+            tenant_id: value.tenant_id,
             transfer_id: value.transfer_id.to_string(),
             level: value.level,
             component: value.component,

@@ -169,7 +169,10 @@ impl RetryWorker {
             }
         };
 
-        let event = match event_repo.get_event_by_id(&event_urn).await {
+        let event = match event_repo
+            .get_event_by_id(&delivery.tenant_id, &event_urn)
+            .await
+        {
             Ok(Some(ev)) => ev,
             Ok(None) => {
                 error!(event_id = %delivery.event_id, "Referenced event not found during retry");
@@ -181,7 +184,10 @@ impl RetryWorker {
             }
         };
 
-        let sub = match sub_repo.get_subscription(&delivery.subscription_id).await {
+        let sub = match sub_repo
+            .get_subscription(&delivery.tenant_id, &delivery.subscription_id)
+            .await
+        {
             Ok(Some(s)) => s,
             Ok(None) => {
                 warn!(sub_id = %delivery.subscription_id, "Subscription not found; aborting retries");
@@ -251,6 +257,7 @@ impl RetryWorker {
 
                     let dlq = DeadLetterRecord {
                         id: format!("urn:uuid:{}", Uuid::new_v4()),
+                        tenant_id: delivery.tenant_id.clone(),
                         delivery_id: Some(delivery.id.clone()),
                         event_id: event.id.to_string(),
                         subscription_id: sub.id.clone(),
@@ -294,6 +301,7 @@ impl RetryWorker {
 
                     let dlq = DeadLetterRecord {
                         id: format!("urn:uuid:{}", Uuid::new_v4()),
+                        tenant_id: delivery.tenant_id.clone(),
                         delivery_id: Some(delivery.id.clone()),
                         event_id: event.id.to_string(),
                         subscription_id: sub.id.clone(),

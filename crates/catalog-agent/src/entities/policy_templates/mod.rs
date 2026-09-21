@@ -15,8 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod policy_templates;
-pub(crate) mod types;
+pub mod policy_templates;
+pub mod types;
 pub(crate) mod validator;
 
 use crate::data::entities::policy_template;
@@ -35,6 +35,7 @@ use ymir::errors::{Errors, Outcome};
 #[serde(rename_all = "camelCase")]
 pub struct PolicyTemplateDto {
     pub id: String,
+    pub tenant_id: String,
     pub version: String,
     pub date: DateTimeWithTimeZone,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -54,6 +55,8 @@ pub struct NewPolicyTemplateDto {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tenant_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub version: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub date: Option<DateTimeWithTimeZone>,
@@ -68,22 +71,20 @@ pub struct NewPolicyTemplateDto {
     pub parameters: HashMap<String, ParameterDefinition>,
 }
 
-impl TryFrom<NewPolicyTemplateDto> for NewPolicyTemplateModel {
-    type Error = Errors;
+use common::auth::AccessScope;
 
-    fn try_from(dto: NewPolicyTemplateDto) -> Result<Self, Self::Error> {
-        Ok(Self {
-            id: dto.id,
-            version: dto.version,
-            date: dto.date,
-            author: dto.author,
-            title: dto.title.map(|t| serde_json::to_value(t)).transpose()?,
-            description: dto
-                .description
-                .map(|t| serde_json::to_value(t))
-                .transpose()?,
-            content: serde_json::to_value(dto.content)?,
-            parameters: serde_json::to_value(dto.parameters)?,
+impl NewPolicyTemplateDto {
+    pub fn into_model(self, tenant_id: String) -> Outcome<NewPolicyTemplateModel> {
+        Ok(NewPolicyTemplateModel {
+            id: self.id,
+            tenant_id,
+            version: self.version,
+            date: self.date,
+            author: self.author,
+            title: self.title.map(serde_json::to_value).transpose()?,
+            description: self.description.map(serde_json::to_value).transpose()?,
+            content: serde_json::to_value(self.content)?,
+            parameters: serde_json::to_value(self.parameters)?,
         })
     }
 }
@@ -94,13 +95,11 @@ impl TryFrom<policy_template::Model> for PolicyTemplateDto {
     fn try_from(value: Model) -> Result<Self, Self::Error> {
         Ok(Self {
             id: value.id,
+            tenant_id: value.tenant_id,
             version: value.version,
             date: value.date,
-            title: value.title.map(|t| serde_json::from_value(t)).transpose()?,
-            description: value
-                .description
-                .map(|t| serde_json::from_value(t))
-                .transpose()?,
+            title: value.title.map(serde_json::from_value).transpose()?,
+            description: value.description.map(serde_json::from_value).transpose()?,
             author: value.author,
             content: serde_json::from_value(value.content)?,
             parameters: serde_json::from_value(value.parameters)?,
@@ -113,30 +112,36 @@ impl TryFrom<policy_template::Model> for PolicyTemplateDto {
 pub trait PolicyTemplateEntityTrait: Sync + Send {
     async fn get_all_policy_templates(
         &self,
+        scope: &AccessScope,
         filters: &PolicyTemplateFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<PolicyTemplateDto>>;
     async fn get_batch_policy_templates(
         &self,
-        ids: &Vec<String>,
+        scope: &AccessScope,
+        ids: &[String],
     ) -> Outcome<Vec<PolicyTemplateDto>>;
     async fn get_policies_template_by_id(
         &self,
-        template_id: &String,
+        scope: &AccessScope,
+        template_id: &str,
     ) -> Outcome<Vec<PolicyTemplateDto>>;
     async fn get_policies_template_by_version_and_id(
         &self,
-        template_id: &String,
-        version_id: &String,
-    ) -> Outcome<Option<PolicyTemplateDto>>;
+        scope: &AccessScope,
+        template_id: &str,
+        version_id: &str,
+    ) -> Outcome<PolicyTemplateDto>;
     async fn create_policy_template(
         &self,
+        scope: &AccessScope,
         new_policy_template: &NewPolicyTemplateDto,
     ) -> Outcome<PolicyTemplateDto>;
     async fn delete_policy_template_by_version_and_id(
         &self,
-        template_id: &String,
-        version_id: &String,
+        scope: &AccessScope,
+        template_id: &str,
+        version_id: &str,
     ) -> Outcome<()>;
 }

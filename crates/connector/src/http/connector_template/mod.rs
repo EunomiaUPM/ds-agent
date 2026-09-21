@@ -24,6 +24,7 @@ use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::routing::{delete, get, post};
 use axum::{Json, Router};
+use common::auth::AccessScope;
 use common::config::services::CatalogConfig;
 use common::errors::CommonErrors;
 use common::query::QuerySpec;
@@ -53,6 +54,7 @@ impl ConnectorTemplateRouter {
     ) -> Self {
         Self { service, config }
     }
+
     pub fn router(self) -> Router {
         Router::new()
             .route("/", get(Self::handle_get_all_templates))
@@ -71,63 +73,72 @@ impl ConnectorTemplateRouter {
 
     async fn handle_get_all_templates(
         State(state): State<ConnectorTemplateRouter>,
+        scope: AccessScope,
         Query(query): Query<ConnectorTemplateQuery>,
     ) -> impl IntoResponse {
         match state
             .service
-            .get_all_templates(&query.filter, &query.page, query.sort)
+            .get_all_templates(&scope, &query.filter, &query.page, query.sort)
             .await
         {
             Ok(templates) => (StatusCode::OK, Json(templates)).into_response(),
             Err(err) => err.into_response(),
         }
     }
+
     async fn handle_create_template(
         State(state): State<ConnectorTemplateRouter>,
+        scope: AccessScope,
         input: Result<Json<ConnectorTemplateDto>, JsonRejection>,
     ) -> impl IntoResponse {
         let mut input = match extract_payload(input) {
             Ok(v) => v,
             Err(e) => return e.into_response(),
         };
-        match state.service.create_template(&mut input).await {
+        match state.service.create_template(&scope, &mut input).await {
             Ok(template) => (StatusCode::OK, Json(template)).into_response(),
             Err(err) => err.into_response(),
         }
     }
+
     async fn handle_get_templates_by_id(
         State(state): State<ConnectorTemplateRouter>,
+        scope: AccessScope,
         Path(id): Path<String>,
     ) -> impl IntoResponse {
-        match state.service.get_templates_by_id(&id).await {
+        match state.service.get_templates_by_id(&scope, &id).await {
             Ok(templates) => (StatusCode::OK, Json(templates)).into_response(),
             Err(err) => err.into_response(),
         }
     }
+
     async fn handle_get_template_by_name_and_version(
         State(state): State<ConnectorTemplateRouter>,
+        scope: AccessScope,
         Path((name, version)): Path<(String, String)>,
     ) -> impl IntoResponse {
         match state
             .service
-            .get_template_by_name_and_version(&name, &version)
+            .get_template_by_name_and_version(&scope, &name, &version)
             .await
         {
             Ok(Some(template)) => (StatusCode::OK, Json(template)).into_response(),
             Ok(None) => {
-                let err = CommonErrors::missing_resource_new("main", "Main Catalog not found");
+                let err = CommonErrors::missing_resource_new("template", "Template not found");
                 err.into_response()
             }
             Err(err) => err.into_response(),
         }
     }
+
     async fn handle_delete_template_by_name_and_version(
         State(state): State<ConnectorTemplateRouter>,
+        scope: AccessScope,
         Path((name, version)): Path<(String, String)>,
     ) -> impl IntoResponse {
         match state
             .service
-            .delete_template_by_name_and_version(&name, &version)
+            .delete_template_by_name_and_version(&scope, &name, &version)
             .await
         {
             Ok(_) => StatusCode::ACCEPTED.into_response(),

@@ -29,6 +29,7 @@ use urn::{Urn, UrnBuilder};
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: String,
+    pub tenant_id: String,
     pub negotiation_agent_process_id: String,
     pub negotiation_agent_message_id: String,
     pub offer_id: String,
@@ -71,6 +72,7 @@ impl ActiveModelBehavior for ActiveModel {}
 #[derive(Clone)]
 pub struct NewOfferModel {
     pub id: Option<Urn>,
+    pub tenant_id: String,
     pub negotiation_agent_process_id: Urn,
     pub negotiation_agent_message_id: Urn,
     pub offer_id: String,
@@ -87,6 +89,7 @@ impl From<NewOfferModel> for ActiveModel {
         .expect("UrnBuilder failed");
         Self {
             id: ActiveValue::Set(value.id.unwrap_or(new_urn).to_string()),
+            tenant_id: ActiveValue::Set(value.tenant_id),
             negotiation_agent_process_id: ActiveValue::Set(
                 value.negotiation_agent_process_id.to_string(),
             ),

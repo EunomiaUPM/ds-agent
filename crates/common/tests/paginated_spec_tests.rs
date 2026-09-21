@@ -110,3 +110,23 @@ fn test_paginated_from_page() {
     assert_eq!(short_paginated.next_cursor, None);
     assert_eq!(short_paginated.total, Some(1));
 }
+
+#[test]
+fn test_cursor_encode_sorted() {
+    let created = chrono::DateTime::parse_from_rfc3339("2026-01-01T00:00:00Z").unwrap();
+    let updated = chrono::DateTime::parse_from_rfc3339("2026-02-01T00:00:00Z").unwrap();
+
+    let cur_created = Cursor::encode_sorted(&created, &updated, &Sort::CreatedAtDesc);
+    let dec_created = Cursor::decode(&cur_created).unwrap();
+    assert_eq!(dec_created.timestamp, created);
+
+    let cur_updated = Cursor::encode_sorted(&created, &updated, &Sort::UpdatedAtDesc);
+    let dec_updated = Cursor::decode(&cur_updated).unwrap();
+    assert_eq!(dec_updated.timestamp, updated);
+
+    let cur_with_id =
+        Cursor::encode_sorted_with_id(&created, &updated, &Sort::UpdatedAtAsc, Some("id-123"));
+    let dec_with_id = Cursor::decode(&cur_with_id).unwrap();
+    assert_eq!(dec_with_id.timestamp, updated);
+    assert_eq!(dec_with_id.id.as_deref(), Some("id-123"));
+}

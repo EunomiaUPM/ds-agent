@@ -15,10 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use axum::http::{header, HeaderValue, StatusCode};
-use axum::Json;
-use axum::response::{IntoResponse, Response};
 pub(crate) use crate::entities::errors::{OAuthError, OAuthErrorCode};
+use axum::Json;
+use axum::http::{HeaderValue, StatusCode, header};
+use axum::response::{IntoResponse, Response};
 
 impl IntoResponse for OAuthError {
     fn into_response(self) -> Response {

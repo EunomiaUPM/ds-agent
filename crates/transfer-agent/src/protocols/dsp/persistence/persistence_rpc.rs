@@ -158,6 +158,7 @@ impl TransferPersistenceTrait for TransferPersistenceForRpcService {
             .transfer_message_service
             .create_transfer_message(&NewTransferMessageDto {
                 id: None,
+                tenant_id: Some(process.inner.tenant_id.clone()),
                 transfer_agent_process_id: process_urn,
                 direction: "OUTBOUND".to_string(),
                 protocol: "DSP".to_string(),

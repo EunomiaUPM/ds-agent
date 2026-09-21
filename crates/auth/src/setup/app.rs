@@ -111,6 +111,7 @@ impl AuthApplication {
 
         let myself = participant::Plan {
             participant_id,
+            tenant_id: "system".to_string(),
             participant_nick: "Myself".to_string(),
             participant_type: ParticipantType::Agent,
             base_url: config.common().get_host(HostType::Http),

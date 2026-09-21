@@ -23,6 +23,7 @@ use common::paginated_spec::{Page, Sort};
 use urn::Urn;
 use ymir::errors::Outcome;
 
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait CatalogRepositoryTrait: Send + Sync {
     async fn get_all_catalogs(
@@ -31,12 +32,21 @@ pub trait CatalogRepositoryTrait: Send + Sync {
         page: &Page,
         sort: &Sort,
     ) -> Outcome<(Vec<catalog::Model>, Option<u64>)>;
-    async fn get_batch_catalogs(&self, ids: &Vec<Urn>) -> Outcome<Vec<catalog::Model>>;
-    async fn get_catalog_by_id(&self, catalog_id: &Urn) -> Outcome<Option<catalog::Model>>;
-    async fn get_main_catalog(&self) -> Outcome<Option<catalog::Model>>;
+    async fn get_batch_catalogs(
+        &self,
+        tenant_id: &str,
+        ids: &[Urn],
+    ) -> Outcome<Vec<catalog::Model>>;
+    async fn get_catalog_by_id(
+        &self,
+        tenant_id: &str,
+        catalog_id: &Urn,
+    ) -> Outcome<Option<catalog::Model>>;
+    async fn get_main_catalog(&self, tenant_id: &str) -> Outcome<Option<catalog::Model>>;
 
     async fn put_catalog_by_id(
         &self,
+        tenant_id: &str,
         catalog_id: &Urn,
         edit_catalog_model: &EditCatalogModel,
     ) -> Outcome<catalog::Model>;
@@ -47,5 +57,5 @@ pub trait CatalogRepositoryTrait: Send + Sync {
         new_catalog_model: &NewCatalogModel,
     ) -> Outcome<catalog::Model>;
 
-    async fn delete_catalog_by_id(&self, catalog_id: &Urn) -> Outcome<()>;
+    async fn delete_catalog_by_id(&self, tenant_id: &str, catalog_id: &Urn) -> Outcome<()>;
 }

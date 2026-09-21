@@ -44,6 +44,7 @@ pub struct DataplaneTransferDto {
 #[serde(deny_unknown_fields)]
 pub struct NewDataplaneTransferDto {
     pub id: Option<Urn>,
+    pub tenant_id: String,
     pub transfer_process_id: String,
     pub role: TransferRole,
     pub interaction_mode: InteractionMode,
@@ -69,6 +70,7 @@ impl From<NewDataplaneTransferDto> for NewDataplaneTransfer {
     fn from(value: NewDataplaneTransferDto) -> Self {
         Self {
             id: value.id,
+            tenant_id: value.tenant_id,
             transfer_process_id: value.transfer_process_id,
             role: value.role,
             interaction_mode: value.interaction_mode,

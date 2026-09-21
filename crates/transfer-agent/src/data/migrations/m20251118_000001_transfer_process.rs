@@ -38,6 +38,11 @@ impl MigrationTrait for Migration {
                             .primary_key(),
                     )
                     .col(
+                        ColumnDef::new(TransferAgentProcess::TenantId)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
                         ColumnDef::new(TransferAgentProcess::State)
                             .string()
                             .not_null(),
@@ -122,6 +127,7 @@ impl MigrationTrait for Migration {
 pub enum TransferAgentProcess {
     Table,
     Id,
+    TenantId,
     State,
     StateAttribute,
     AssociatedAgentPeer,

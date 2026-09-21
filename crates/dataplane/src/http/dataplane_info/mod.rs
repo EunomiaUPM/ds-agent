@@ -15,52 +15,76 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::dataplane_transfers::{
-    DataplaneTransferDto, DataplaneTransfersEntitiesTrait, EditDataplaneTransferDto,
-    InteractionMode, NewDataplaneTransferDto, TransferState,
-};
-use crate::entities::transfer_events::TransferEventEntitiesTrait;
-use crate::http::common::parse_urn;
-use axum::extract::rejection::JsonRejection;
-use axum::extract::{FromRef, Path, State};
-use axum::http::StatusCode;
-use axum::response::IntoResponse;
-use axum::routing::{delete, get, patch, post, put};
-use axum::{Json, Router};
-use common::batch_requests::BatchRequests;
-use common::errors::{CommonErrors, ErrorLog};
-use serde_json::Value;
 use std::sync::Arc;
-use ymir::utils::extract_payload;
 
-#[derive(Clone)]
-pub struct DataPlaneProcessesRouter {
-    data_plane_process_entity: Arc<dyn DataplaneTransfersEntitiesTrait>,
-    transfer_event_entity: Arc<dyn TransferEventEntitiesTrait>,
+use axum::extract::rejection::JsonRejection;
+use axum::extract::{FromRef, Path, Query, State};
+use axum::http::{HeaderMap, StatusCode};
+use axum::routing::{delete, get, post, put};
+use axum::{Json, Router};
+use chrono::{DateTime, Utc};
+use common::auth::access::AccessScope;
+use common::batch_requests::BatchRequests;
+use common::query::{default_limit, Page, Paginated, Sort};
+use serde::Deserialize;
+use ymir::errors::AppResult;
+use ymir::utils::{extract_path_urn, extract_payload};
+
+use crate::entities::dataplane_transfers::{
+    DataplaneTransferDto, EditDataplaneTransferDto, InteractionMode, NewDataplaneTransferDto,
+    TransferRole, TransferState,
+};
+use crate::entities::filters::DataplaneTransferFilter;
+use crate::http::extractors::ExtractedHeaders;
+use crate::services::dataplane_transfers::DataplaneTransferServiceTrait;
+
+#[derive(Debug, Deserialize, Default)]
+pub struct DataplaneTransferQuery {
+    pub limit: Option<u32>,
+    pub cursor: Option<String>,
+    pub sort: Option<Sort>,
+    pub tenant_id: Option<String>,
+    pub transfer_process_id: Option<String>,
+    pub role: Option<TransferRole>,
+    pub interaction_mode: Option<InteractionMode>,
+    pub state: Option<TransferState>,
+    pub created_after: Option<DateTime<Utc>>,
+    pub created_before: Option<DateTime<Utc>>,
 }
 
-impl FromRef<DataPlaneProcessesRouter> for Arc<dyn DataplaneTransfersEntitiesTrait> {
-    fn from_ref(state: &DataPlaneProcessesRouter) -> Self {
-        state.data_plane_process_entity.clone()
+impl DataplaneTransferQuery {
+    pub fn into_domain(self) -> (DataplaneTransferFilter, Page, Sort) {
+        let filter = DataplaneTransferFilter {
+            tenant_id: self.tenant_id,
+            transfer_process_id: self.transfer_process_id,
+            role: self.role,
+            interaction_mode: self.interaction_mode,
+            state: self.state,
+            created_after: self.created_after,
+            created_before: self.created_before,
+        };
+        let page = Page::new(self.limit.unwrap_or_else(default_limit), self.cursor);
+        let sort = self.sort.unwrap_or_default();
+        (filter, page, sort)
     }
 }
 
-impl FromRef<DataPlaneProcessesRouter> for Arc<dyn TransferEventEntitiesTrait> {
+#[derive(Clone)]
+pub struct DataPlaneProcessesRouter {
+    service: Arc<dyn DataplaneTransferServiceTrait>,
+}
+
+impl FromRef<DataPlaneProcessesRouter> for Arc<dyn DataplaneTransferServiceTrait> {
     fn from_ref(state: &DataPlaneProcessesRouter) -> Self {
-        state.transfer_event_entity.clone()
+        state.service.clone()
     }
 }
 
 impl DataPlaneProcessesRouter {
-    pub fn new(
-        data_plane_process_entity: Arc<dyn DataplaneTransfersEntitiesTrait>,
-        transfer_event_entity: Arc<dyn TransferEventEntitiesTrait>,
-    ) -> Self {
-        Self {
-            data_plane_process_entity,
-            transfer_event_entity,
-        }
+    pub fn new(service: Arc<dyn DataplaneTransferServiceTrait>) -> Self {
+        Self { service }
     }
+
     pub fn router(self) -> Router {
         Router::new()
             .route("/", get(Self::handle_get_all_dataplane_transfers))
@@ -84,194 +108,122 @@ impl DataPlaneProcessesRouter {
     }
 
     async fn handle_get_all_dataplane_transfers(
-        State(state): State<DataPlaneProcessesRouter>,
-    ) -> impl IntoResponse {
-        match state
-            .data_plane_process_entity
-            .get_all_dataplane_transfers()
-            .await
-        {
-            Ok(transfers) => (StatusCode::OK, Json(transfers)).into_response(),
-            Err(e) => e.into_response(),
-        }
+        State(state): State<Self>,
+        scope: AccessScope,
+        headers: ExtractedHeaders,
+        Query(q): Query<DataplaneTransferQuery>,
+    ) -> AppResult<(HeaderMap, Json<Paginated<DataplaneTransferDto>>)> {
+        let (filter, page, sort) = q.into_domain();
+        let result = state.service.get_all(&scope, &filter, &page, &sort).await?;
+        let response_headers = headers.response_headers_paged(result.total);
+        Ok((response_headers, Json(result)))
     }
 
     async fn handle_get_data_plane_by_id(
-        State(state): State<DataPlaneProcessesRouter>,
+        State(state): State<Self>,
+        scope: AccessScope,
+        headers: ExtractedHeaders,
         Path(dataplane_id): Path<String>,
-    ) -> impl IntoResponse {
-        let data_plane_id = match parse_urn(&dataplane_id) {
-            Ok(urn) => urn,
-            Err(resp) => return resp,
-        };
-        match state
-            .data_plane_process_entity
-            .get_dataplane_transfer_by_id(&data_plane_id)
-            .await
-        {
-            Ok(dataplane_session) => match dataplane_session {
-                Some(dataplane_session) => {
-                    (StatusCode::OK, Json(dataplane_session)).into_response()
-                }
-                None => {
-                    let err = CommonErrors::missing_resource_new(
-                        data_plane_id.to_string().as_str(),
-                        "Data plane process not found",
-                    );
-                    tracing::error!("{}", err.log());
-                    err.into_response()
-                }
-            },
-            Err(e) => e.into_response(),
-        }
+    ) -> AppResult<(HeaderMap, Json<DataplaneTransferDto>)> {
+        let data_plane_id = extract_path_urn(&dataplane_id)?;
+        let transfer = state.service.get_one(&scope, &data_plane_id).await?;
+        Ok((headers.response_headers(), Json(transfer)))
     }
 
     async fn handle_get_batch_dataplane_transfers(
-        State(state): State<DataPlaneProcessesRouter>,
-        input: Result<Json<BatchRequests>, JsonRejection>,
-    ) -> impl IntoResponse {
-        let input = match extract_payload(input) {
-            Ok(v) => v,
-            Err(e) => return e.into_response(),
-        };
-        match state
-            .data_plane_process_entity
-            .get_batch_dataplane_transfers(&input.ids)
-            .await
-        {
-            Ok(transfers) => (StatusCode::OK, Json(transfers)).into_response(),
-            Err(e) => e.into_response(),
-        }
+        State(state): State<Self>,
+        scope: AccessScope,
+        headers: ExtractedHeaders,
+        payload: Result<Json<BatchRequests>, JsonRejection>,
+    ) -> AppResult<(HeaderMap, Json<Vec<DataplaneTransferDto>>)> {
+        let input = extract_payload(payload)?;
+        let transfers = state.service.batch(&scope, &input).await?;
+        let count = transfers.len() as u64;
+        Ok((headers.response_headers_paged(Some(count)), Json(transfers)))
     }
 
     async fn handle_get_dataplane_transfer_by_process_id(
-        State(state): State<DataPlaneProcessesRouter>,
+        State(state): State<Self>,
+        scope: AccessScope,
+        headers: ExtractedHeaders,
         Path(transfer_process_id): Path<String>,
-    ) -> impl IntoResponse {
-        let process_urn = match parse_urn(&transfer_process_id) {
-            Ok(urn) => urn,
-            Err(resp) => return resp,
-        };
-        match state
-            .data_plane_process_entity
-            .get_dataplane_transfer_by_process_id(&process_urn)
-            .await
-        {
-            Ok(dataplane_session) => match dataplane_session {
-                Some(dataplane_session) => {
-                    (StatusCode::OK, Json(dataplane_session)).into_response()
-                }
-                None => {
-                    let err = CommonErrors::missing_resource_new(
-                        process_urn.to_string().as_str(),
-                        "Transfer process not found",
-                    );
-                    tracing::error!("{}", err.log());
-                    err.into_response()
-                }
-            },
-            Err(e) => e.into_response(),
-        }
+    ) -> AppResult<(HeaderMap, Json<DataplaneTransferDto>)> {
+        let process_urn = extract_path_urn(&transfer_process_id)?;
+        let transfer = state
+            .service
+            .get_by_process_id(&scope, &process_urn)
+            .await?;
+        Ok((headers.response_headers(), Json(transfer)))
     }
 
     async fn handle_create_dataplane_transfer(
-        State(state): State<DataPlaneProcessesRouter>,
-        input: Result<Json<NewDataplaneTransferDto>, JsonRejection>,
-    ) -> impl IntoResponse {
-        let new_dataplane_transfer = match extract_payload(input) {
-            Ok(v) => v,
-            Err(e) => return e.into_response(),
-        };
-        match state
-            .data_plane_process_entity
-            .create_dataplane_transfer(&new_dataplane_transfer)
-            .await
-        {
-            Ok(transfer) => (StatusCode::CREATED, Json(transfer)).into_response(),
-            Err(e) => e.into_response(),
-        }
+        State(state): State<Self>,
+        scope: AccessScope,
+        headers: ExtractedHeaders,
+        payload: Result<Json<NewDataplaneTransferDto>, JsonRejection>,
+    ) -> AppResult<(StatusCode, HeaderMap, Json<DataplaneTransferDto>)> {
+        let new_dataplane_transfer = extract_payload(payload)?;
+        let transfer = state
+            .service
+            .create(&scope, &new_dataplane_transfer)
+            .await?;
+        Ok((
+            StatusCode::CREATED,
+            headers.response_headers(),
+            Json(transfer),
+        ))
     }
 
     async fn handle_put_dataplane_transfer_by_id(
-        State(state): State<DataPlaneProcessesRouter>,
+        State(state): State<Self>,
+        scope: AccessScope,
+        headers: ExtractedHeaders,
         Path(dataplane_id): Path<String>,
-        input: Result<Json<EditDataplaneTransferDto>, JsonRejection>,
-    ) -> impl IntoResponse {
-        let data_plane_id = match parse_urn(&dataplane_id) {
-            Ok(urn) => urn,
-            Err(resp) => return resp,
-        };
-        let input = match extract_payload(input) {
-            Ok(v) => v,
-            Err(e) => return e.into_response(),
-        };
-        match state
-            .data_plane_process_entity
-            .put_dataplane_transfer_by_id(&data_plane_id, &input)
-            .await
-        {
-            Ok(transfer) => (StatusCode::OK, Json(transfer)).into_response(),
-            Err(e) => e.into_response(),
-        }
+        payload: Result<Json<EditDataplaneTransferDto>, JsonRejection>,
+    ) -> AppResult<(HeaderMap, Json<DataplaneTransferDto>)> {
+        let data_plane_id = extract_path_urn(&dataplane_id)?;
+        let edit_dataplane_transfer = extract_payload(payload)?;
+        let transfer = state
+            .service
+            .edit(&scope, &data_plane_id, &edit_dataplane_transfer)
+            .await?;
+        Ok((headers.response_headers(), Json(transfer)))
     }
 
     async fn handle_delete_dataplane_transfer(
-        State(state): State<DataPlaneProcessesRouter>,
+        State(state): State<Self>,
+        scope: AccessScope,
+        headers: ExtractedHeaders,
         Path(dataplane_id): Path<String>,
-    ) -> impl IntoResponse {
-        let data_plane_id = match parse_urn(&dataplane_id) {
-            Ok(urn) => urn,
-            Err(resp) => return resp,
-        };
-        match state
-            .data_plane_process_entity
-            .delete_dataplane_transfer(&data_plane_id)
-            .await
-        {
-            Ok(_) => StatusCode::NO_CONTENT.into_response(),
-            Err(e) => e.into_response(),
-        }
+    ) -> AppResult<(StatusCode, HeaderMap)> {
+        let data_plane_id = extract_path_urn(&dataplane_id)?;
+        state.service.delete(&scope, &data_plane_id).await?;
+        Ok((StatusCode::NO_CONTENT, headers.response_headers()))
     }
 
     async fn handle_get_dataplane_info(
-        State(state): State<DataPlaneProcessesRouter>,
+        State(state): State<Self>,
+        scope: AccessScope,
+        headers: ExtractedHeaders,
         Path(dataplane_id): Path<String>,
-        headers: axum::http::HeaderMap,
-    ) -> impl IntoResponse {
-        let data_plane_id = match parse_urn(&dataplane_id) {
-            Ok(urn) => urn,
-            Err(resp) => return resp,
-        };
+        req_headers: HeaderMap,
+    ) -> AppResult<(HeaderMap, Json<DataplaneInfoResponse>)> {
+        let data_plane_id = extract_path_urn(&dataplane_id)?;
+        let transfer = state.service.get_one(&scope, &data_plane_id).await?;
 
-        match state
-            .data_plane_process_entity
-            .get_dataplane_transfer_by_id(&data_plane_id)
-            .await
-        {
-            Ok(Some(transfer)) => {
-                let mut ingress_url = None;
-                if transfer.inner.interaction_mode
-                    == crate::entities::dataplane_transfers::InteractionMode::Pull
-                {
-                    if let Some(host) = headers.get("host").and_then(|h| h.to_str().ok()) {
-                        ingress_url = Some(format!("{}/dataplane/proxy/{}", host, data_plane_id));
-                    }
-                }
-
-                let response = DataplaneInfoResponse {
-                    id: transfer.inner.id,
-                    interaction_mode: transfer.inner.interaction_mode.to_string(),
-                    ingress_url,
-                };
-                (StatusCode::OK, Json(response)).into_response()
+        let mut ingress_url = None;
+        if transfer.inner.interaction_mode == InteractionMode::Pull {
+            if let Some(host) = req_headers.get("host").and_then(|h| h.to_str().ok()) {
+                ingress_url = Some(format!("{}/dataplane/proxy/{}", host, data_plane_id));
             }
-            Ok(None) => CommonErrors::missing_resource_new(
-                data_plane_id.to_string().as_str(),
-                "Dataplane transfer not found",
-            )
-            .into_response(),
-            Err(e) => e.into_response(),
         }
+
+        let response = DataplaneInfoResponse {
+            id: transfer.inner.id,
+            interaction_mode: transfer.inner.interaction_mode.to_string(),
+            ingress_url,
+        };
+        Ok((headers.response_headers(), Json(response)))
     }
 }
 

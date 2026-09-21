@@ -131,7 +131,9 @@ impl ClientServiceTrait for ClientService {
 
     async fn delete_client(&self, scope: &AccessScope, client_id: &str) -> Outcome<()> {
         scope.require_write()?;
-        self.client_repo.delete(scope.acting_tenant(), client_id).await?;
+        self.client_repo
+            .delete(scope.acting_tenant(), client_id)
+            .await?;
         events::emit_action!(
             self.event_bus,
             crate::EVENT_PREFIX,

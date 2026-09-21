@@ -15,11 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::sync::Arc;
 use axum::Router;
 use common::auth::OauthTokenValidator;
+use std::sync::Arc;
 
-pub(crate) mod extractors;
 pub(crate) mod transfer_message_router;
 pub(crate) mod transfer_process_router;
 

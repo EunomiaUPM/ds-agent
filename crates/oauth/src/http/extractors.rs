@@ -15,11 +15,11 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::entities::errors::OAuthError;
 use axum::extract::{FromRequest, Request};
 use axum::http::{HeaderMap, header};
 use base64::Engine;
 use serde::de::DeserializeOwned;
-use crate::entities::errors::OAuthError;
 
 /// Flexible extractor supporting both application/x-www-form-urlencoded and application/json.
 pub(crate) struct OAuthPayload<T>(pub T);

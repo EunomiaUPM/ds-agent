@@ -123,10 +123,11 @@ impl VcRequesterTrait for VCReqService {
         })
     }
 
-    fn build_authority_plan(&self, grant: &grant::Model) -> participant::Plan {
+    fn build_authority_plan(&self, tenant_id: &str, grant: &grant::Model) -> participant::Plan {
         let base_url = trim_4_base(&grant.grant_endpoint);
         participant::Plan {
             participant_id: grant.participant_id.clone(),
+            tenant_id: tenant_id.to_string(),
             participant_nick: grant.participant_nick.clone(),
             participant_type: ParticipantType::Authority,
             base_url,

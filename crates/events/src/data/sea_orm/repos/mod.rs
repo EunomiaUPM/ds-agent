@@ -67,49 +67,71 @@ impl EventStoreRepo for SeaOrmEventBusRepo {
         self.event_repo.insert_event(event).await
     }
 
-    async fn get_event_by_id(&self, id: &Urn) -> Outcome<Option<EventEnvelope>> {
-        self.event_repo.get_event_by_id(id).await
+    async fn get_event_by_id(&self, tenant_id: &str, id: &Urn) -> Outcome<Option<EventEnvelope>> {
+        self.event_repo.get_event_by_id(tenant_id, id).await
     }
 
     async fn list_events(
         &self,
+        tenant_id: &str,
         topic: Option<&str>,
         limit: u64,
         offset: u64,
     ) -> Outcome<Vec<EventEnvelope>> {
-        self.event_repo.list_events(topic, limit, offset).await
+        self.event_repo
+            .list_events(tenant_id, topic, limit, offset)
+            .await
     }
 }
 
 #[async_trait]
 impl EventSubscriptionRepo for SeaOrmEventBusRepo {
-    async fn create_subscription(&self, dto: CreateSubscriptionDto) -> Outcome<SubscriptionRecord> {
-        self.subscription_repo.create_subscription(dto).await
+    async fn create_subscription(
+        &self,
+        tenant_id: &str,
+        dto: CreateSubscriptionDto,
+    ) -> Outcome<SubscriptionRecord> {
+        self.subscription_repo
+            .create_subscription(tenant_id, dto)
+            .await
     }
 
-    async fn get_subscription(&self, id: &str) -> Outcome<Option<SubscriptionRecord>> {
-        self.subscription_repo.get_subscription(id).await
+    async fn get_subscription(
+        &self,
+        tenant_id: &str,
+        id: &str,
+    ) -> Outcome<Option<SubscriptionRecord>> {
+        self.subscription_repo.get_subscription(tenant_id, id).await
     }
 
-    async fn list_subscriptions(&self) -> Outcome<Vec<SubscriptionRecord>> {
-        self.subscription_repo.list_subscriptions().await
+    async fn list_subscriptions(&self, tenant_id: &str) -> Outcome<Vec<SubscriptionRecord>> {
+        self.subscription_repo.list_subscriptions(tenant_id).await
     }
 
     async fn update_subscription(
         &self,
+        tenant_id: &str,
         id: &str,
         dto: UpdateSubscriptionDto,
     ) -> Outcome<SubscriptionRecord> {
-        self.subscription_repo.update_subscription(id, dto).await
-    }
-
-    async fn delete_subscription(&self, id: &str) -> Outcome<()> {
-        self.subscription_repo.delete_subscription(id).await
-    }
-
-    async fn get_matching_subscriptions(&self, topic: &Topic) -> Outcome<Vec<SubscriptionRecord>> {
         self.subscription_repo
-            .get_matching_subscriptions(topic)
+            .update_subscription(tenant_id, id, dto)
+            .await
+    }
+
+    async fn delete_subscription(&self, tenant_id: &str, id: &str) -> Outcome<()> {
+        self.subscription_repo
+            .delete_subscription(tenant_id, id)
+            .await
+    }
+
+    async fn get_matching_subscriptions(
+        &self,
+        tenant_id: &str,
+        topic: &Topic,
+    ) -> Outcome<Vec<SubscriptionRecord>> {
+        self.subscription_repo
+            .get_matching_subscriptions(tenant_id, topic)
             .await
     }
 }
@@ -123,8 +145,12 @@ impl EventDeliveryRepo for SeaOrmEventBusRepo {
         self.delivery_repo.create_delivery(delivery).await
     }
 
-    async fn get_delivery(&self, id: &str) -> Outcome<Option<EventDeliveryRecord>> {
-        self.delivery_repo.get_delivery(id).await
+    async fn get_delivery(
+        &self,
+        tenant_id: &str,
+        id: &str,
+    ) -> Outcome<Option<EventDeliveryRecord>> {
+        self.delivery_repo.get_delivery(tenant_id, id).await
     }
 
     async fn get_due_retries(
@@ -158,8 +184,12 @@ impl EventDeliveryRepo for SeaOrmEventBusRepo {
         self.delivery_repo.mark_dead_letter(id).await
     }
 
-    async fn list_by_event(&self, event_id: &str) -> Outcome<Vec<EventDeliveryRecord>> {
-        self.delivery_repo.list_by_event(event_id).await
+    async fn list_by_event(
+        &self,
+        tenant_id: &str,
+        event_id: &str,
+    ) -> Outcome<Vec<EventDeliveryRecord>> {
+        self.delivery_repo.list_by_event(tenant_id, event_id).await
     }
 }
 
@@ -169,24 +199,31 @@ impl EventDeadLetterRepo for SeaOrmEventBusRepo {
         self.dlq_repo.create_dead_letter(record).await
     }
 
-    async fn get_dead_letter(&self, id: &str) -> Outcome<Option<DeadLetterRecord>> {
-        self.dlq_repo.get_dead_letter(id).await
+    async fn get_dead_letter(
+        &self,
+        tenant_id: &str,
+        id: &str,
+    ) -> Outcome<Option<DeadLetterRecord>> {
+        self.dlq_repo.get_dead_letter(tenant_id, id).await
     }
 
     async fn list_dead_letters(
         &self,
+        tenant_id: &str,
         status: Option<&str>,
         limit: u64,
         offset: u64,
     ) -> Outcome<Vec<DeadLetterRecord>> {
-        self.dlq_repo.list_dead_letters(status, limit, offset).await
+        self.dlq_repo
+            .list_dead_letters(tenant_id, status, limit, offset)
+            .await
     }
 
-    async fn mark_replayed(&self, id: &str) -> Outcome<()> {
-        self.dlq_repo.mark_replayed(id).await
+    async fn mark_replayed(&self, tenant_id: &str, id: &str) -> Outcome<()> {
+        self.dlq_repo.mark_replayed(tenant_id, id).await
     }
 
-    async fn delete_dead_letter(&self, id: &str) -> Outcome<()> {
-        self.dlq_repo.delete_dead_letter(id).await
+    async fn delete_dead_letter(&self, tenant_id: &str, id: &str) -> Outcome<()> {
+        self.dlq_repo.delete_dead_letter(tenant_id, id).await
     }
 }

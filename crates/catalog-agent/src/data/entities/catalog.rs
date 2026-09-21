@@ -26,6 +26,7 @@ use urn::{Urn, UrnBuilder};
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: String,
+    pub tenant_id: String,
     pub foaf_home_page: Option<String>,
     pub dct_conforms_to: Option<String>,
     pub dct_creator: Option<String>,
@@ -70,6 +71,7 @@ impl ActiveModelBehavior for ActiveModel {}
 #[derive(Clone)]
 pub struct NewCatalogModel {
     pub id: Option<Urn>,
+    pub tenant_id: String,
     pub foaf_home_page: Option<String>,
     pub dct_conforms_to: Option<String>,
     pub dct_creator: Option<String>,
@@ -84,6 +86,7 @@ impl From<NewCatalogModel> for ActiveModel {
             .expect("UrnBuilder failed");
         Self {
             id: ActiveValue::Set(dto.id.clone().unwrap_or(new_urn.clone()).to_string()),
+            tenant_id: ActiveValue::Set(dto.tenant_id),
             foaf_home_page: ActiveValue::Set(dto.foaf_home_page),
             dct_conforms_to: ActiveValue::Set(dto.dct_conforms_to),
             dct_creator: ActiveValue::Set(dto.dct_creator),

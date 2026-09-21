@@ -28,21 +28,40 @@ fn prefix_filter_empty_and_populated() {
 
     let populated = PrefixFilter {
         prefix: Some("vault/secrets/".to_string()),
+        tenant_id: None,
     };
     assert!(!populated.is_empty());
     assert!(populated.validate().is_ok());
+
+    let with_tenant = PrefixFilter {
+        prefix: None,
+        tenant_id: Some("tenant-1".to_string()),
+    };
+    assert!(!with_tenant.is_empty());
+    assert!(with_tenant.validate().is_ok());
 }
 
 #[test]
 fn prefix_query_deserialization() {
     let json = serde_json::json!({
         "prefix": "app/config/",
+        "tenant_id": "tenant-xyz",
         "limit": 50,
         "sort": "created_at_desc"
     });
     let spec: QuerySpec<PrefixFilter> = serde_json::from_value(json).unwrap();
     assert_eq!(spec.filter.prefix.as_deref(), Some("app/config/"));
+    assert_eq!(spec.filter.tenant_id.as_deref(), Some("tenant-xyz"));
     assert_eq!(spec.page.limit, 50);
     assert_eq!(spec.sort, Sort::CreatedAtDesc);
     assert!(!spec.is_empty());
+}
+
+#[test]
+fn prefix_filter_from_key_prefix() {
+    use keystore::KeyPrefix;
+    let kp = KeyPrefix::new("/app/service");
+    let filter: PrefixFilter = kp.into();
+    assert_eq!(filter.prefix.as_deref(), Some("/app/service"));
+    assert_eq!(filter.tenant_id, None);
 }

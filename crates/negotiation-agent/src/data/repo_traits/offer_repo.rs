@@ -24,6 +24,7 @@ use urn::Urn;
 use ymir::errors::Outcome;
 use ymir::errors::RepoIntoErrors;
 
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait OfferRepoTrait: Send + Sync {
     async fn get_all_offers(
@@ -32,17 +33,30 @@ pub trait OfferRepoTrait: Send + Sync {
         page: &Page,
         sort: &Sort,
     ) -> Outcome<(Vec<offer::Model>, Option<u64>)>;
-    async fn get_batch_offers(&self, ids: &Vec<Urn>) -> Outcome<Vec<offer::Model>>;
-    async fn get_offers_by_negotiation_process(&self, id: &Urn) -> Outcome<Vec<offer::Model>>;
+    async fn get_batch_offers(&self, tenant_id: &str, ids: &[Urn]) -> Outcome<Vec<offer::Model>>;
+    async fn get_offers_by_negotiation_process(
+        &self,
+        tenant_id: &str,
+        id: &Urn,
+    ) -> Outcome<Vec<offer::Model>>;
     async fn get_last_offer_by_negotiation_process(
         &self,
+        tenant_id: &str,
         id: &Urn,
     ) -> Outcome<Option<offer::Model>>;
-    async fn get_offer_by_id(&self, id: &Urn) -> Outcome<Option<offer::Model>>;
-    async fn get_offer_by_negotiation_message(&self, id: &Urn) -> Outcome<Option<offer::Model>>;
-    async fn get_offer_by_offer_id(&self, id: &Urn) -> Outcome<Option<offer::Model>>;
+    async fn get_offer_by_id(&self, tenant_id: &str, id: &Urn) -> Outcome<Option<offer::Model>>;
+    async fn get_offer_by_negotiation_message(
+        &self,
+        tenant_id: &str,
+        id: &Urn,
+    ) -> Outcome<Option<offer::Model>>;
+    async fn get_offer_by_offer_id(
+        &self,
+        tenant_id: &str,
+        id: &Urn,
+    ) -> Outcome<Option<offer::Model>>;
     async fn create_offer(&self, new_model: &NewOfferModel) -> Outcome<offer::Model>;
-    async fn delete_offer(&self, id: &Urn) -> Outcome<()>;
+    async fn delete_offer(&self, tenant_id: &str, id: &Urn) -> Outcome<()>;
 }
 
 #[derive(Debug, Error)]

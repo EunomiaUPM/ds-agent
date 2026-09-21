@@ -38,6 +38,11 @@ impl MigrationTrait for Migration {
                             .primary_key(),
                     )
                     .col(
+                        ColumnDef::new(NegotiationAgentOffers::TenantId)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
                         ColumnDef::new(NegotiationAgentOffers::NegotiationAgentProcessId)
                             .string()
                             .not_null(),
@@ -105,6 +110,7 @@ impl MigrationTrait for Migration {
 pub enum NegotiationAgentOffers {
     Table,
     Id,
+    TenantId,
     NegotiationAgentProcessId,
     NegotiationAgentMessageId,
     OfferId,

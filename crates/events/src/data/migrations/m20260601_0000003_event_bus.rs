@@ -31,6 +31,7 @@ impl MigrationName for Migration {
 pub enum Events {
     Table,
     Id,
+    TenantId,
     Topic,
     SourceCrate,
     SchemaVersion,
@@ -52,6 +53,7 @@ pub enum SubscriptionsExt {
 pub enum EventDeliveries {
     Table,
     Id,
+    TenantId,
     EventId,
     SubscriptionId,
     Status,
@@ -68,6 +70,7 @@ pub enum EventDeliveries {
 pub enum DeadLetterQueue {
     Table,
     Id,
+    TenantId,
     DeliveryId,
     EventId,
     SubscriptionId,
@@ -91,6 +94,7 @@ impl MigrationTrait for Migration {
                     .table(Events::Table)
                     .if_not_exists()
                     .col(ColumnDef::new(Events::Id).string().not_null().primary_key())
+                    .col(ColumnDef::new(Events::TenantId).string().not_null())
                     .col(ColumnDef::new(Events::Topic).string().not_null())
                     .col(ColumnDef::new(Events::SourceCrate).string().not_null())
                     .col(
@@ -151,6 +155,11 @@ impl MigrationTrait for Migration {
                             .string()
                             .not_null()
                             .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(EventDeliveries::TenantId)
+                            .string()
+                            .not_null(),
                     )
                     .col(ColumnDef::new(EventDeliveries::EventId).string().not_null())
                     .col(
@@ -215,6 +224,11 @@ impl MigrationTrait for Migration {
                             .string()
                             .not_null()
                             .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(DeadLetterQueue::TenantId)
+                            .string()
+                            .not_null(),
                     )
                     .col(ColumnDef::new(DeadLetterQueue::DeliveryId).string())
                     .col(ColumnDef::new(DeadLetterQueue::EventId).string().not_null())

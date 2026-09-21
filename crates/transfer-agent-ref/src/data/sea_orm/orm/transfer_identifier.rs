@@ -20,8 +20,8 @@ use sea_orm::entity::prelude::*;
 use urn::Urn;
 use ymir::errors::Outcome;
 
-use common::utils::parse_urn;
 use crate::entities::transfer_process_identifier::TransferProcessIdentifier;
+use common::utils::parse_urn;
 
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
 #[sea_orm(table_name = "transfer_identifiers")]

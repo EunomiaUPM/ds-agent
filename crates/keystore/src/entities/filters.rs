@@ -17,17 +17,47 @@
 
 //! Domain filters for keystore queries.
 
+use crate::entities::key::KeyPrefix;
 use common::query::QueryFilter;
 use serde::{Deserialize, Serialize};
 
-/// Filter criteria for querying keystore entries by key prefix.
+/// Filter criteria for querying keystore entries by key prefix and tenant.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct PrefixFilter {
+    #[serde(default)]
     pub prefix: Option<String>,
+    #[serde(default)]
+    pub tenant_id: Option<String>,
 }
 
 impl QueryFilter for PrefixFilter {
     fn is_empty(&self) -> bool {
-        self.prefix.is_none()
+        self.prefix.is_none() && self.tenant_id.is_none()
+    }
+}
+
+impl From<KeyPrefix> for PrefixFilter {
+    fn from(prefix: KeyPrefix) -> Self {
+        Self {
+            prefix: if prefix.as_str().is_empty() {
+                None
+            } else {
+                Some(prefix.as_str().to_string())
+            },
+            tenant_id: None,
+        }
+    }
+}
+
+impl From<&KeyPrefix> for PrefixFilter {
+    fn from(prefix: &KeyPrefix) -> Self {
+        Self {
+            prefix: if prefix.as_str().is_empty() {
+                None
+            } else {
+                Some(prefix.as_str().to_string())
+            },
+            tenant_id: None,
+        }
     }
 }

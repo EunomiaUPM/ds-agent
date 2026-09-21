@@ -59,8 +59,9 @@ impl AuthHttpMiddleware {
         mut req: Request,
         next: Next,
     ) -> AppResult<Response> {
-        let token = Self::extract_token(&req)
-            .ok_or_else(|| Errors::unauthorized("missing or malformed Authorization header", None))?;
+        let token = Self::extract_token(&req).ok_or_else(|| {
+            Errors::unauthorized("missing or malformed Authorization header", None)
+        })?;
         let claims = validator.validate_token(&token).await?;
         AuthValidators::claims_validator()
             .validate(&claims)
@@ -107,17 +108,15 @@ impl AuthHttpMiddleware {
 
         if let (Some(validator), Some(token)) = (&self.validator, token_opt) {
             match validator.validate_token(&token).await {
-                Ok(claims) => {
-                    match AuthValidators::claims_validator().validate(&claims) {
-                        Ok(()) => {
-                            req.extensions_mut().insert(claims);
-                        }
-                        Err(vs) if self.strict => {
-                            return Self::unauthorized_response(&format!("invalid claims: {vs}"));
-                        }
-                        Err(_) => {}
+                Ok(claims) => match AuthValidators::claims_validator().validate(&claims) {
+                    Ok(()) => {
+                        req.extensions_mut().insert(claims);
                     }
-                }
+                    Err(vs) if self.strict => {
+                        return Self::unauthorized_response(&format!("invalid claims: {vs}"));
+                    }
+                    Err(_) => {}
+                },
                 Err(e) if self.strict => {
                     return Self::unauthorized_response(&format!("invalid token: {e}"));
                 }

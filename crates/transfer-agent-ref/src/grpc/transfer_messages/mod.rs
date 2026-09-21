@@ -28,9 +28,9 @@ use crate::grpc::api::transfer_messages::{
 };
 use crate::grpc::to_status;
 use crate::services::transfer_message::TransferMessageServiceTrait;
+use common::auth::OauthTokenValidator;
 use common::auth::access::AccessScope;
 use common::auth::claims::Claims;
-use common::auth::OauthTokenValidator;
 use tonic::{Request, Response, Status};
 use urn::Urn;
 

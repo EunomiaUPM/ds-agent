@@ -49,14 +49,25 @@ pub enum DataplaneCommand {
 #[derive(Clone, Debug)]
 pub enum DataplaneInitCommandTypes {
     AsProvider {
+        tenant_id: String,
         transfer_process_id: Urn,
         connector_instance: ConnectorInstanceDto,
         direction: DataplaneInitCommandDirection,
     },
     AsConsumer {
+        tenant_id: String,
         transfer_process_id: Urn,
         direction: DataplaneInitCommandDirection,
     },
+}
+
+impl DataplaneInitCommandTypes {
+    pub fn tenant_id(&self) -> &str {
+        match self {
+            Self::AsProvider { tenant_id, .. } => tenant_id,
+            Self::AsConsumer { tenant_id, .. } => tenant_id,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]

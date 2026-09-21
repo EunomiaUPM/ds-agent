@@ -68,17 +68,16 @@ pub struct ConnectorTemplateDto {
     pub parameters: Vec<ParameterDefinition>,
 }
 
-impl TryFrom<ConnectorTemplateDto> for NewConnectorTemplateModel {
-    type Error = Errors;
-
-    fn try_from(value: ConnectorTemplateDto) -> Outcome<Self> {
-        let authentication = serde_json::to_value(value.authentication)?;
-        let interaction = serde_json::to_value(value.interaction)?;
-        let parameters = serde_json::to_value(value.parameters)?;
-        Ok(Self {
-            name: Option::from(value.metadata.name.clone()),
-            version: Option::from(value.metadata.version.clone()),
-            author: Option::from(value.metadata.author.clone()),
+impl ConnectorTemplateDto {
+    pub fn into_model(self, tenant_id: String) -> Outcome<NewConnectorTemplateModel> {
+        let authentication = serde_json::to_value(self.authentication)?;
+        let interaction = serde_json::to_value(self.interaction)?;
+        let parameters = serde_json::to_value(self.parameters)?;
+        Ok(NewConnectorTemplateModel {
+            tenant_id,
+            name: self.metadata.name,
+            version: self.metadata.version,
+            author: self.metadata.author,
             spec: json!({
                 "authentication": authentication,
                 "interaction": interaction,
@@ -89,31 +88,40 @@ impl TryFrom<ConnectorTemplateDto> for NewConnectorTemplateModel {
 }
 
 use crate::entities::filters::ConnectorTemplateFilter;
+use common::auth::AccessScope;
 use common::paginated_spec::{Page, Paginated, Sort};
 
 /// Service interface for connector template CRUD operations.
+#[cfg_attr(test, mockall::automock)]
 #[async_trait::async_trait]
 pub trait ConnectorTemplateEntitiesTrait: Send + Sync {
     async fn get_all_templates(
         &self,
+        scope: &AccessScope,
         filters: &ConnectorTemplateFilter,
         page: &Page,
         sort: Sort,
     ) -> Outcome<Paginated<ConnectorTemplateDto>>;
-    async fn get_templates_by_id(&self, template_id: &String)
-        -> Outcome<Vec<ConnectorTemplateDto>>;
+    async fn get_templates_by_id(
+        &self,
+        scope: &AccessScope,
+        template_id: &str,
+    ) -> Outcome<Vec<ConnectorTemplateDto>>;
     async fn get_template_by_name_and_version(
         &self,
-        name: &String,
-        version: &String,
+        scope: &AccessScope,
+        name: &str,
+        version: &str,
     ) -> Outcome<Option<ConnectorTemplateDto>>;
     async fn create_template(
         &self,
+        scope: &AccessScope,
         new_template: &mut ConnectorTemplateDto,
     ) -> Outcome<ConnectorTemplateDto>;
     async fn delete_template_by_name_and_version(
         &self,
-        name: &String,
-        version: &String,
+        scope: &AccessScope,
+        name: &str,
+        version: &str,
     ) -> Outcome<()>;
 }

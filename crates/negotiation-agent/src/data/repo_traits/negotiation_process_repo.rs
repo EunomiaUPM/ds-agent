@@ -26,6 +26,7 @@ use urn::Urn;
 use ymir::errors::Outcome;
 use ymir::errors::RepoIntoErrors;
 
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait NegotiationProcessRepoTrait: Send + Sync {
     async fn get_all_negotiation_processes(
@@ -36,19 +37,23 @@ pub trait NegotiationProcessRepoTrait: Send + Sync {
     ) -> Outcome<(Vec<negotiation_process::Model>, Option<u64>)>;
     async fn get_batch_negotiation_processes(
         &self,
-        ids: &Vec<Urn>,
+        tenant_id: &str,
+        ids: &[Urn],
     ) -> Outcome<Vec<negotiation_process::Model>>;
     async fn get_negotiation_process_by_id(
         &self,
+        tenant_id: &str,
         id: &Urn,
     ) -> Outcome<Option<negotiation_process::Model>>;
     async fn get_negotiation_process_by_key_id(
         &self,
+        tenant_id: Option<String>,
         key_id: &str,
         id: &Urn,
     ) -> Outcome<Option<negotiation_process::Model>>;
     async fn get_negotiation_process_by_key_value(
         &self,
+        tenant_id: Option<String>,
         id: &Urn,
     ) -> Outcome<Option<negotiation_process::Model>>;
     async fn create_negotiation_process(
@@ -57,10 +62,11 @@ pub trait NegotiationProcessRepoTrait: Send + Sync {
     ) -> Outcome<negotiation_process::Model>;
     async fn put_negotiation_process(
         &self,
+        tenant_id: &str,
         id: &Urn,
         edit_model: &EditNegotiationProcessModel,
     ) -> Outcome<negotiation_process::Model>;
-    async fn delete_negotiation_process(&self, id: &Urn) -> Outcome<()>;
+    async fn delete_negotiation_process(&self, tenant_id: &str, id: &Urn) -> Outcome<()>;
 }
 
 #[derive(Debug, Error)]

@@ -21,10 +21,10 @@ use axum::Router;
 use axum::body::Body;
 use axum::http::{Request, StatusCode, header};
 use base64::Engine;
-use http_body_util::BodyExt;
-use sha2::{Digest, Sha256};
 use common::auth::AccessScope;
 use common::paginated_spec::Paginated;
+use http_body_util::BodyExt;
+use sha2::{Digest, Sha256};
 use tower::ServiceExt;
 
 use crate::config::OAuthConfig;
@@ -99,9 +99,7 @@ impl TestEnv {
                 common::auth::http::AuthHttpMiddleware::run,
             ));
 
-        let router = Router::new()
-            .merge(token_router)
-            .merge(protected);
+        let router = Router::new().merge(token_router).merge(protected);
 
         Self {
             router,

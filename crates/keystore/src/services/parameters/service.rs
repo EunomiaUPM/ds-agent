@@ -17,12 +17,16 @@
 
 use std::sync::Arc;
 
-use ymir::errors::{Outcome, RepoIntoErrors};
+use common::auth::AccessScope;
+use common::errors::NotFoundExt;
+use common::query::QueryFilter;
+use ymir::errors::Outcome;
 
-use crate::data::repo::parameters::{ParameterRepoErrors, ParameterRepoTrait};
+use crate::data::repo::parameters::ParameterRepoTrait;
 use crate::entities::commands::{EditParameterCommand, NewParameterCommand};
 use crate::entities::entry::Entry;
-use crate::entities::key::{Key, KeyPrefix};
+use crate::entities::filters::PrefixFilter;
+use crate::entities::key::Key;
 use crate::entities::version::Version;
 use crate::services::parameters::ParameterStore;
 
@@ -50,9 +54,13 @@ impl ParameterStore<serde_json::Value> for ParameterStoreImpl {
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn create(
         &self,
+        scope: &AccessScope,
         cmd: &NewParameterCommand<serde_json::Value>,
     ) -> Outcome<Entry<serde_json::Value>> {
-        let entry = self.repo.create_parameter(cmd).await?;
+        let mut cmd = cmd.clone();
+        let target_tenant = scope.resolve_create_tenant(cmd.tenant_id.as_deref())?;
+        cmd.tenant_id = Some(target_tenant.clone());
+        let entry = self.repo.create_parameter(&target_tenant, &cmd).await?;
         events::emit_action!(
             self.event_bus,
             crate::EVENT_PREFIX,
@@ -63,23 +71,29 @@ impl ParameterStore<serde_json::Value> for ParameterStoreImpl {
         Ok(entry)
     }
 
-    #[tracing::instrument(level = "info", skip(self), fields(key = %key), err)]
-    async fn read(&self, key: &Key) -> Outcome<Entry<serde_json::Value>> {
+    #[tracing::instrument(level = "info", skip(self, scope), fields(key = %key), err)]
+    async fn read(&self, scope: &AccessScope, key: &Key) -> Outcome<Entry<serde_json::Value>> {
+        scope.require_read()?;
         self.repo
-            .get_parameter_by_key(key)
+            .get_parameter_by_key(scope.acting_tenant(), key)
             .await?
-            .ok_or_else(|| ParameterRepoErrors::ParameterNotFound.into_errors())
+            .or_not_found(key, "parameter")
     }
 
-    #[tracing::instrument(level = "info", skip(self, cmd, actor), fields(key = %key), err)]
+    #[tracing::instrument(level = "info", skip(self, scope, cmd, actor), fields(key = %key), err)]
     async fn update(
         &self,
+        scope: &AccessScope,
         key: &Key,
         cmd: &EditParameterCommand<serde_json::Value>,
         actor: &str,
     ) -> Outcome<Version> {
+        scope.require_write()?;
         let _ = actor;
-        let entry = self.repo.put_parameter(key, cmd).await?;
+        let entry = self
+            .repo
+            .put_parameter(scope.acting_tenant(), key, cmd)
+            .await?;
         events::emit_action!(
             self.event_bus,
             crate::EVENT_PREFIX,
@@ -90,9 +104,12 @@ impl ParameterStore<serde_json::Value> for ParameterStoreImpl {
         Ok(entry.metadata.version)
     }
 
-    #[tracing::instrument(level = "info", skip(self), fields(key = %key), err)]
-    async fn delete(&self, key: &Key) -> Outcome<()> {
-        self.repo.delete_parameter(key).await?;
+    #[tracing::instrument(level = "info", skip(self, scope), fields(key = %key), err)]
+    async fn delete(&self, scope: &AccessScope, key: &Key) -> Outcome<()> {
+        scope.require_write()?;
+        self.repo
+            .delete_parameter(scope.acting_tenant(), key)
+            .await?;
         events::emit_action!(
             self.event_bus,
             crate::EVENT_PREFIX,
@@ -103,13 +120,31 @@ impl ParameterStore<serde_json::Value> for ParameterStoreImpl {
         Ok(())
     }
 
-    #[tracing::instrument(level = "info", skip(self), err)]
-    async fn list(&self, prefix: &KeyPrefix) -> Outcome<Vec<Entry<serde_json::Value>>> {
-        let all = self.repo.get_all_parameters().await?;
-        let prefix_str = prefix.as_str();
-        Ok(all
-            .into_iter()
-            .filter(|e| prefix_str.is_empty() || e.metadata.key.as_str().starts_with(prefix_str))
-            .collect())
+    #[tracing::instrument(level = "info", skip(self, scope), err)]
+    async fn list(
+        &self,
+        scope: &AccessScope,
+        filter: &PrefixFilter,
+    ) -> Outcome<Vec<Entry<serde_json::Value>>> {
+        scope.require_read()?;
+        filter.validate()?;
+        let mut filter = filter.clone();
+        filter.tenant_id = scope.resolve_query_tenant(filter.tenant_id.as_deref())?;
+        self.repo.get_all_parameters(&filter).await
+    }
+
+    #[tracing::instrument(level = "info", skip_all, err)]
+    async fn batch(
+        &self,
+        scope: &AccessScope,
+        keys: &[Key],
+    ) -> Outcome<Vec<Entry<serde_json::Value>>> {
+        scope.require_read()?;
+        if keys.is_empty() {
+            return Ok(vec![]);
+        }
+        self.repo
+            .get_batch_parameters(scope.acting_tenant(), keys)
+            .await
     }
 }

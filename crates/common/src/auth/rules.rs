@@ -25,11 +25,7 @@ pub struct AuthRules;
 
 impl AuthRules {
     /// Ensure that a token expiration timestamp is strictly in the future.
-    pub fn token_not_expired(
-        exp: u64,
-        now: u64,
-        path: impl Into<Path>,
-    ) -> Result<(), Violations> {
+    pub fn token_not_expired(exp: u64, now: u64, path: impl Into<Path>) -> Result<(), Violations> {
         let p = path.into();
         if exp >= now {
             Ok(())
@@ -53,32 +49,37 @@ impl AuthRules {
     }
 
     /// Ensure that claims subject (tenant id) is not empty.
-    pub fn subject_not_empty(
-        claims: &Claims,
-        path: impl Into<Path>,
-    ) -> Result<(), Violations> {
+    pub fn subject_not_empty(claims: &Claims, path: impl Into<Path>) -> Result<(), Violations> {
         let p = path.into();
         if !claims.sub.trim().is_empty() {
             Ok(())
         } else {
-            Err(violation(p, codes::MISSING, "subject (sub) must not be empty"))
+            Err(violation(
+                p,
+                codes::MISSING,
+                "subject (sub) must not be empty",
+            ))
         }
     }
 
     /// Ensure that a tenant identifier is well-formed (non-empty safe identifier).
-    pub fn tenant_id_format(
-        tenant_id: &str,
-        path: impl Into<Path>,
-    ) -> Result<(), Violations> {
+    pub fn tenant_id_format(tenant_id: &str, path: impl Into<Path>) -> Result<(), Violations> {
         let p = path.into();
         let trimmed = tenant_id.trim();
         if trimmed.is_empty() {
             return Err(violation(p, codes::MISSING, "tenant id must not be empty"));
         }
         if trimmed.len() > 128 {
-            return Err(violation(p, codes::MALFORMED, "tenant id exceeds maximum length of 128"));
+            return Err(violation(
+                p,
+                codes::MALFORMED,
+                "tenant id exceeds maximum length of 128",
+            ));
         }
-        if trimmed.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '.') {
+        if trimmed
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '.')
+        {
             Ok(())
         } else {
             Err(violation(

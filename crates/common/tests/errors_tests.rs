@@ -84,7 +84,9 @@ fn test_parse_urn_invalid() {
 #[test]
 fn test_parse_urn_ext() {
     use common::utils::ParseUrnExt;
-    let urn = "urn:uuid:12345678-1234-1234-1234-123456789abc".parse_urn().unwrap();
+    let urn = "urn:uuid:12345678-1234-1234-1234-123456789abc"
+        .parse_urn()
+        .unwrap();
     assert_eq!(
         urn.to_string(),
         "urn:uuid:12345678-1234-1234-1234-123456789abc"

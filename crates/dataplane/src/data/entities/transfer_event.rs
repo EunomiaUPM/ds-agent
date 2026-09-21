@@ -38,6 +38,7 @@ pub enum LogLevel {
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: String,
+    pub tenant_id: String,
     pub transfer_id: String,
     pub level: LogLevel,
     pub component: String,
@@ -69,6 +70,7 @@ impl ActiveModelBehavior for ActiveModel {}
 
 #[derive(Clone)]
 pub struct NewTransferEvent {
+    pub tenant_id: String,
     pub transfer_id: String,
     pub level: LogLevel,
     pub component: String,
@@ -83,6 +85,7 @@ impl From<NewTransferEvent> for ActiveModel {
             .expect("UrnBuilder failed");
         Self {
             id: ActiveValue::Set(new_urn.to_string()),
+            tenant_id: ActiveValue::Set(value.tenant_id),
             transfer_id: ActiveValue::Set(value.transfer_id),
             level: ActiveValue::Set(value.level),
             component: ActiveValue::Set(value.component),

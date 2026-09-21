@@ -274,7 +274,12 @@ impl InMemoryClientRepository {
 
 #[async_trait::async_trait]
 impl ClientRepository for InMemoryClientRepository {
-    async fn get_all(&self, filter: &ClientFilter, page: &Page, sort: &Sort) -> Outcome<Vec<Client>> {
+    async fn get_all(
+        &self,
+        filter: &ClientFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<Vec<Client>> {
         let store = self.store.lock().unwrap();
 
         let cursor_dt = page

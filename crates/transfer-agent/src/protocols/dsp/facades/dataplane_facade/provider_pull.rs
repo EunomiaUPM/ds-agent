@@ -51,6 +51,7 @@ impl DataPlaneStrategy for ProviderPullStrategy {
             .ok_or_else(|| Errors::crazy("Connector instance should be defined", None))?;
         let cmd = DataplaneCommand::SetInit(DataplaneInitCommandTypes::AsProvider {
             transfer_process_id: id,
+            tenant_id: ctx.tenant_id().to_string(),
             connector_instance: connector_instance.clone(),
             direction: DataplaneInitCommandDirection::Pull { data_address: None },
         });

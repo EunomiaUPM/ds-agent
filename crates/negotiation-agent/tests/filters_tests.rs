@@ -31,6 +31,8 @@ fn negotiation_process_filter_empty_and_populated() {
 
     let now = Utc::now();
     let populated = NegotiationProcessFilter {
+        id: Some("np-1".to_string()),
+        tenant_id: Some("tenant-1".to_string()),
         state: Some("REQUESTED".to_string()),
         role: Some("CONSUMER".to_string()),
         protocol: Some("DSP_2025_1".to_string()),
@@ -42,6 +44,8 @@ fn negotiation_process_filter_empty_and_populated() {
     assert!(populated.validate().is_ok());
 
     let invalid = NegotiationProcessFilter {
+        id: None,
+        tenant_id: None,
         state: None,
         role: None,
         protocol: None,
@@ -55,6 +59,7 @@ fn negotiation_process_filter_empty_and_populated() {
 #[test]
 fn negotiation_message_filter_deserialization() {
     let json = serde_json::json!({
+        "tenant_id": "tenant-1",
         "process_id": "proc-123",
         "protocol": "DSP_2025_1",
         "message_type": "ContractRequestMessage",
@@ -63,6 +68,7 @@ fn negotiation_message_filter_deserialization() {
         "sort": "created_at_desc"
     });
     let spec: QuerySpec<NegotiationMessageFilter> = serde_json::from_value(json).unwrap();
+    assert_eq!(spec.filter.tenant_id.as_deref(), Some("tenant-1"));
     assert_eq!(spec.filter.process_id.as_deref(), Some("proc-123"));
     assert_eq!(spec.filter.direction.as_deref(), Some("INCOMING"));
     assert_eq!(spec.page.limit, 25);
@@ -76,6 +82,8 @@ fn agreement_and_offer_filters() {
     assert!(agreement_empty.is_empty());
 
     let agreement_pop = AgreementFilter {
+        id: None,
+        tenant_id: Some("tenant-1".to_string()),
         process_id: Some("proc-1".to_string()),
         consumer_id: Some("urn:consumer".to_string()),
         provider_id: Some("urn:provider".to_string()),
@@ -91,6 +99,8 @@ fn agreement_and_offer_filters() {
     assert!(offer_empty.is_empty());
 
     let offer_pop = OfferFilter {
+        id: None,
+        tenant_id: Some("tenant-1".to_string()),
         process_id: Some("proc-1".to_string()),
         offer_id: Some("offer-1".to_string()),
         target: Some("urn:target".to_string()),

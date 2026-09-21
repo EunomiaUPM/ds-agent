@@ -23,16 +23,19 @@ use crate::protocols::dsp::protocol_types::{
 };
 use crate::protocols::dsp::types::catalog_definition::Catalog;
 use crate::protocols::dsp::types::dataset_definition::Dataset;
+use common::auth::AccessScope;
 use ymir::errors::Outcome;
 
 #[async_trait::async_trait]
 pub trait ProtocolOrchestratorTrait: Send + Sync + 'static {
     async fn on_catalog_request(
         &self,
+        scope: &AccessScope,
         input: &CatalogMessageWrapper<CatalogRequestMessageDto>,
     ) -> Outcome<Catalog>;
     async fn on_dataset_request(
         &self,
+        scope: &AccessScope,
         input: &CatalogMessageWrapper<DatasetRequestMessage>,
     ) -> Outcome<Dataset>;
 }

@@ -17,12 +17,16 @@
 
 use std::sync::Arc;
 
-use ymir::errors::{Outcome, RepoIntoErrors};
+use common::auth::AccessScope;
+use common::errors::NotFoundExt;
+use common::query::QueryFilter;
+use ymir::errors::Outcome;
 
-use crate::data::repo::secrets::{SecretRepoErrors, SecretRepoTrait};
+use crate::data::repo::secrets::SecretRepoTrait;
 use crate::entities::commands::{EditSecretCommand, NewSecretCommand};
 use crate::entities::entry::SecretEntry;
-use crate::entities::key::{Key, KeyPrefix};
+use crate::entities::filters::PrefixFilter;
+use crate::entities::key::Key;
 use crate::entities::secret_value::SecretValue;
 use crate::entities::version::Version;
 use crate::services::secrets::SecretStore;
@@ -49,8 +53,11 @@ impl SecretStoreImpl {
 #[async_trait::async_trait]
 impl SecretStore for SecretStoreImpl {
     #[tracing::instrument(level = "info", skip_all, err)]
-    async fn create(&self, cmd: &NewSecretCommand) -> Outcome<SecretEntry> {
-        let entry = self.repo.create_secret(cmd).await?;
+    async fn create(&self, scope: &AccessScope, cmd: &NewSecretCommand) -> Outcome<SecretEntry> {
+        let mut cmd = cmd.clone();
+        let target_tenant = scope.resolve_create_tenant(cmd.tenant_id.as_deref())?;
+        cmd.tenant_id = Some(target_tenant.clone());
+        let entry = self.repo.create_secret(&target_tenant, &cmd).await?;
         events::emit_action!(
             self.event_bus,
             crate::EVENT_PREFIX,
@@ -61,17 +68,27 @@ impl SecretStore for SecretStoreImpl {
         Ok(entry)
     }
 
-    #[tracing::instrument(level = "info", skip(self), fields(key = %key), err)]
-    async fn read(&self, key: &Key) -> Outcome<SecretEntry> {
+    #[tracing::instrument(level = "info", skip(self, scope), fields(key = %key), err)]
+    async fn read(&self, scope: &AccessScope, key: &Key) -> Outcome<SecretEntry> {
+        scope.require_read()?;
         self.repo
-            .get_secret_by_key(key)
+            .get_secret_by_key(scope.acting_tenant(), key)
             .await?
-            .ok_or_else(|| SecretRepoErrors::SecretNotFound.into_errors())
+            .or_not_found(key, "secret")
     }
 
-    #[tracing::instrument(level = "info", skip(self, cmd), fields(key = %key), err)]
-    async fn update(&self, key: &Key, cmd: &EditSecretCommand) -> Outcome<Version> {
-        let entry = self.repo.put_secret(key, cmd).await?;
+    #[tracing::instrument(level = "info", skip(self, scope, cmd), fields(key = %key), err)]
+    async fn update(
+        &self,
+        scope: &AccessScope,
+        key: &Key,
+        cmd: &EditSecretCommand,
+    ) -> Outcome<Version> {
+        scope.require_write()?;
+        let entry = self
+            .repo
+            .put_secret(scope.acting_tenant(), key, cmd)
+            .await?;
         events::emit_action!(
             self.event_bus,
             crate::EVENT_PREFIX,
@@ -82,9 +99,10 @@ impl SecretStore for SecretStoreImpl {
         Ok(entry.metadata.version)
     }
 
-    #[tracing::instrument(level = "info", skip(self), fields(key = %key), err)]
-    async fn delete(&self, key: &Key) -> Outcome<()> {
-        self.repo.delete_secret(key).await?;
+    #[tracing::instrument(level = "info", skip(self, scope), fields(key = %key), err)]
+    async fn delete(&self, scope: &AccessScope, key: &Key) -> Outcome<()> {
+        scope.require_write()?;
+        self.repo.delete_secret(scope.acting_tenant(), key).await?;
         events::emit_action!(
             self.event_bus,
             crate::EVENT_PREFIX,
@@ -95,26 +113,47 @@ impl SecretStore for SecretStoreImpl {
         Ok(())
     }
 
-    #[tracing::instrument(level = "info", skip(self), err)]
-    async fn list(&self, prefix: &KeyPrefix) -> Outcome<Vec<SecretEntry>> {
-        self.repo.list_secrets_by_prefix(prefix.as_str()).await
+    #[tracing::instrument(level = "info", skip(self, scope), err)]
+    async fn list(&self, scope: &AccessScope, filter: &PrefixFilter) -> Outcome<Vec<SecretEntry>> {
+        scope.require_read()?;
+        filter.validate()?;
+        let mut filter = filter.clone();
+        filter.tenant_id = scope.resolve_query_tenant(filter.tenant_id.as_deref())?;
+        self.repo.get_all_secrets(&filter).await
     }
 
-    #[tracing::instrument(level = "info", skip(self, value), fields(key = %key), err)]
-    async fn upsert(&self, key: &Key, value: SecretValue) -> Outcome<()> {
-        match self.repo.get_secret_by_key(key).await? {
+    #[tracing::instrument(level = "info", skip_all, err)]
+    async fn batch(&self, scope: &AccessScope, keys: &[Key]) -> Outcome<Vec<SecretEntry>> {
+        scope.require_read()?;
+        if keys.is_empty() {
+            return Ok(vec![]);
+        }
+        self.repo
+            .get_batch_secrets(scope.acting_tenant(), keys)
+            .await
+    }
+
+    #[tracing::instrument(level = "info", skip(self, scope, value), fields(key = %key), err)]
+    async fn upsert(&self, scope: &AccessScope, key: &Key, value: SecretValue) -> Outcome<()> {
+        scope.require_write()?;
+        match self
+            .repo
+            .get_secret_by_key(scope.acting_tenant(), key)
+            .await?
+        {
             None => {
-                self.repo
-                    .create_secret(&NewSecretCommand {
-                        key: key.clone(),
-                        value,
-                        description: None,
-                    })
-                    .await?;
+                let cmd = NewSecretCommand {
+                    key: key.clone(),
+                    value,
+                    description: None,
+                    tenant_id: Some(scope.acting_tenant().to_string()),
+                };
+                self.create(scope, &cmd).await?;
             }
             Some(existing) => {
                 self.repo
                     .put_secret(
+                        scope.acting_tenant(),
                         key,
                         &EditSecretCommand {
                             value,

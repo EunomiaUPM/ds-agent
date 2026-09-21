@@ -17,7 +17,9 @@
 
 use async_trait::async_trait;
 use chrono::Utc;
-use sea_orm::{ActiveModelTrait, ActiveValue, DatabaseConnection, EntityTrait};
+use sea_orm::{
+    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
+};
 use uuid::Uuid;
 use ymir::errors::{BadFormat, Errors, Outcome};
 
@@ -41,7 +43,11 @@ impl SeaOrmSubscriptionRepo {
 
 #[async_trait]
 impl EventSubscriptionRepo for SeaOrmSubscriptionRepo {
-    async fn create_subscription(&self, dto: CreateSubscriptionDto) -> Outcome<SubscriptionRecord> {
+    async fn create_subscription(
+        &self,
+        tenant_id: &str,
+        dto: CreateSubscriptionDto,
+    ) -> Outcome<SubscriptionRecord> {
         let id = format!("urn:uuid:{}", Uuid::new_v4());
         let pattern = TopicPattern::new(&dto.topic_pattern)
             .map_err(|e| Errors::format(BadFormat::Received, e, None))?;
@@ -53,6 +59,7 @@ impl EventSubscriptionRepo for SeaOrmSubscriptionRepo {
 
         let active = subscription::ActiveModel {
             id: ActiveValue::Set(id.clone()),
+            tenant_id: ActiveValue::Set(tenant_id.to_string()),
             callback_address: ActiveValue::Set(dto.callback_address.clone()),
             topic_pattern: ActiveValue::Set(Some(dto.topic_pattern)),
             secret: ActiveValue::Set(dto.secret.clone()),
@@ -75,6 +82,7 @@ impl EventSubscriptionRepo for SeaOrmSubscriptionRepo {
 
         Ok(SubscriptionRecord {
             id,
+            tenant_id: tenant_id.to_string(),
             callback_address: dto.callback_address,
             topic_pattern: pattern,
             secret: dto.secret,
@@ -87,8 +95,14 @@ impl EventSubscriptionRepo for SeaOrmSubscriptionRepo {
         })
     }
 
-    async fn get_subscription(&self, id: &str) -> Outcome<Option<SubscriptionRecord>> {
-        let model = subscription::Entity::find_by_id(id.to_string())
+    async fn get_subscription(
+        &self,
+        tenant_id: &str,
+        id: &str,
+    ) -> Outcome<Option<SubscriptionRecord>> {
+        let model = subscription::Entity::find()
+            .filter(subscription::Column::Id.eq(id))
+            .filter(subscription::Column::TenantId.eq(tenant_id))
             .one(&self.db)
             .await
             .map_err(|e| Errors::db("failed to query subscription", Some(Box::new(e))))?;
@@ -99,8 +113,9 @@ impl EventSubscriptionRepo for SeaOrmSubscriptionRepo {
         }
     }
 
-    async fn list_subscriptions(&self) -> Outcome<Vec<SubscriptionRecord>> {
+    async fn list_subscriptions(&self, tenant_id: &str) -> Outcome<Vec<SubscriptionRecord>> {
         let models = subscription::Entity::find()
+            .filter(subscription::Column::TenantId.eq(tenant_id))
             .all(&self.db)
             .await
             .map_err(|e| Errors::db("failed to list subscriptions", Some(Box::new(e))))?;
@@ -114,10 +129,13 @@ impl EventSubscriptionRepo for SeaOrmSubscriptionRepo {
 
     async fn update_subscription(
         &self,
+        tenant_id: &str,
         id: &str,
         dto: UpdateSubscriptionDto,
     ) -> Outcome<SubscriptionRecord> {
-        let model = subscription::Entity::find_by_id(id.to_string())
+        let model = subscription::Entity::find()
+            .filter(subscription::Column::Id.eq(id))
+            .filter(subscription::Column::TenantId.eq(tenant_id))
             .one(&self.db)
             .await
             .map_err(|e| Errors::db("failed to find subscription", Some(Box::new(e))))?
@@ -156,16 +174,22 @@ impl EventSubscriptionRepo for SeaOrmSubscriptionRepo {
         updated.into_domain()
     }
 
-    async fn delete_subscription(&self, id: &str) -> Outcome<()> {
-        subscription::Entity::delete_by_id(id.to_string())
+    async fn delete_subscription(&self, tenant_id: &str, id: &str) -> Outcome<()> {
+        subscription::Entity::delete_many()
+            .filter(subscription::Column::Id.eq(id))
+            .filter(subscription::Column::TenantId.eq(tenant_id))
             .exec(&self.db)
             .await
             .map_err(|e| Errors::db("failed to delete subscription", Some(Box::new(e))))?;
         Ok(())
     }
 
-    async fn get_matching_subscriptions(&self, topic: &Topic) -> Outcome<Vec<SubscriptionRecord>> {
-        let all = self.list_subscriptions().await?;
+    async fn get_matching_subscriptions(
+        &self,
+        tenant_id: &str,
+        topic: &Topic,
+    ) -> Outcome<Vec<SubscriptionRecord>> {
+        let all = self.list_subscriptions(tenant_id).await?;
         Ok(all.into_iter().filter(|s| s.matches(topic)).collect())
     }
 }

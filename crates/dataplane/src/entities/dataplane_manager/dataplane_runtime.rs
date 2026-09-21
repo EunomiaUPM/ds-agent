@@ -240,10 +240,11 @@ impl<'a> RuntimeSecretVault<'a> {
     pub async fn cleanup(&self, transfer_id: &str) -> Outcome<()> {
         let prefix = Self::path_prefix(transfer_id);
         let key_prefix = KeyPrefix::new(prefix);
-        let entries = self.store.list(&key_prefix).await?;
+        let scope = common::auth::AccessScope::system();
+        let entries = self.store.list_by_prefix(&scope, &key_prefix).await?;
         let deletes: Vec<_> = entries
             .iter()
-            .map(|entry| self.store.delete(&entry.metadata.key))
+            .map(|entry| self.store.delete(&scope, &entry.metadata.key))
             .collect();
         for result in futures_util::future::join_all(deletes).await {
             if let Err(e) = result {
@@ -255,13 +256,15 @@ impl<'a> RuntimeSecretVault<'a> {
 
     async fn upsert(&self, path: &str, value: serde_json::Value) -> Outcome<()> {
         let k = Key::new(path)?;
-        self.store.upsert(&k, SecretValue::new(value)).await
+        let scope = common::auth::AccessScope::system();
+        self.store.upsert(&scope, &k, SecretValue::new(value)).await
     }
 
     async fn fetch(&self, path: &str) -> Option<serde_json::Value> {
         let k = Key::new(path).ok()?;
+        let scope = common::auth::AccessScope::system();
         self.store
-            .read(&k)
+            .read(&scope, &k)
             .await
             .ok()
             .map(|e| e.value.expose().clone())

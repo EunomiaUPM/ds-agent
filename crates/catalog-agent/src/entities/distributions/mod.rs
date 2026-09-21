@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod distributions;
+pub mod distributions;
 
 use crate::data::entities::distribution;
 use crate::data::entities::distribution::{EditDistributionModel, Model, NewDistributionModel};
@@ -35,6 +35,8 @@ pub struct DistributionDto {
 #[serde(deny_unknown_fields)]
 pub struct NewDistributionDto {
     pub id: Option<Urn>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tenant_id: Option<String>,
     pub dct_title: Option<String>,
     pub dct_description: Option<String>,
     pub dct_formats: Option<String>,
@@ -51,15 +53,18 @@ pub struct EditDistributionDto {
     pub dcat_access_service: Option<String>,
 }
 
-impl From<NewDistributionDto> for NewDistributionModel {
-    fn from(dto: NewDistributionDto) -> Self {
-        Self {
-            id: dto.id,
-            dct_title: dto.dct_title,
-            dct_description: dto.dct_description,
-            dct_formats: dto.dct_formats,
-            dcat_access_service: dto.dcat_access_service,
-            dataset_id: dto.dataset_id,
+use common::auth::AccessScope;
+
+impl NewDistributionDto {
+    pub fn into_model(self, tenant_id: String) -> NewDistributionModel {
+        NewDistributionModel {
+            id: self.id,
+            tenant_id,
+            dct_title: self.dct_title,
+            dct_description: self.dct_description,
+            dct_formats: self.dct_formats,
+            dcat_access_service: self.dcat_access_service,
+            dataset_id: self.dataset_id,
         }
     }
 }
@@ -88,33 +93,47 @@ use common::paginated_spec::{Page, Paginated, Sort};
 pub trait DistributionEntityTrait: Send + Sync {
     async fn get_all_distributions(
         &self,
+        scope: &AccessScope,
         filters: &DistributionFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<DistributionDto>>;
-    async fn get_batch_distributions(&self, ids: &Vec<Urn>) -> Outcome<Vec<DistributionDto>>;
+    async fn get_batch_distributions(
+        &self,
+        scope: &AccessScope,
+        ids: &[Urn],
+    ) -> Outcome<Vec<DistributionDto>>;
 
     async fn get_distributions_by_dataset_id(
         &self,
+        scope: &AccessScope,
         dataset_id: &Urn,
     ) -> Outcome<Vec<DistributionDto>>;
     async fn get_distribution_by_dataset_id_and_dct_format(
         &self,
+        scope: &AccessScope,
         dataset_id: &Urn,
-        dct_formats: &String,
+        dct_formats: &str,
     ) -> Outcome<DistributionDto>;
     async fn get_distribution_by_id(
         &self,
+        scope: &AccessScope,
         distribution_id: &Urn,
-    ) -> Outcome<Option<DistributionDto>>;
+    ) -> Outcome<DistributionDto>;
     async fn put_distribution_by_id(
         &self,
+        scope: &AccessScope,
         distribution_id: &Urn,
         edit_distribution_model: &EditDistributionDto,
     ) -> Outcome<DistributionDto>;
     async fn create_distribution(
         &self,
+        scope: &AccessScope,
         new_distribution_model: &NewDistributionDto,
     ) -> Outcome<DistributionDto>;
-    async fn delete_distribution_by_id(&self, distribution_id: &Urn) -> Outcome<()>;
+    async fn delete_distribution_by_id(
+        &self,
+        scope: &AccessScope,
+        distribution_id: &Urn,
+    ) -> Outcome<()>;
 }

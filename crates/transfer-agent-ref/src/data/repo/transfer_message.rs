@@ -53,11 +53,7 @@ pub trait TransferMessageRepoTrait: Send + Sync {
         cmd: &NewTransferMessageCommand,
     ) -> Outcome<TransferMessage>;
 
-    async fn delete_transfer_message(
-        &self,
-        tenant_id: &str,
-        id: &Urn,
-    ) -> Outcome<()>;
+    async fn delete_transfer_message(&self, tenant_id: &str, id: &Urn) -> Outcome<()>;
 }
 
 #[derive(Debug, Error)]

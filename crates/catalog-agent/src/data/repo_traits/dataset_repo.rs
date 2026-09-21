@@ -24,6 +24,7 @@ use ymir::errors::Outcome;
 use crate::entities::filters::DatasetFilter;
 use common::paginated_spec::{Page, Sort};
 
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait DatasetRepositoryTrait: Send + Sync {
     async fn get_all_datasets(
@@ -32,16 +33,34 @@ pub trait DatasetRepositoryTrait: Send + Sync {
         page: &Page,
         sort: &Sort,
     ) -> Outcome<(Vec<dataset::Model>, Option<u64>)>;
-    async fn get_batch_datasets(&self, ids: &Vec<Urn>) -> Outcome<Vec<dataset::Model>>;
-    async fn get_datasets_by_catalog_id(&self, catalog_id: &Urn) -> Outcome<Vec<dataset::Model>>;
-    async fn get_dataset_by_id(&self, dataset_id: &Urn) -> Outcome<Option<dataset::Model>>;
+    async fn get_batch_datasets(
+        &self,
+        tenant_id: &str,
+        ids: &[Urn],
+    ) -> Outcome<Vec<dataset::Model>>;
+    async fn get_datasets_by_catalog_id(
+        &self,
+        tenant_id: &str,
+        catalog_id: &Urn,
+    ) -> Outcome<Vec<dataset::Model>>;
+    async fn get_dataset_by_id(
+        &self,
+        tenant_id: &str,
+        dataset_id: &Urn,
+    ) -> Outcome<Option<dataset::Model>>;
 
     async fn put_dataset_by_id(
         &self,
+        tenant_id: &str,
         dataset_id: &Urn,
         edit_dataset_model: &EditDatasetModel,
     ) -> Outcome<dataset::Model>;
     async fn create_dataset(&self, new_dataset_model: &NewDatasetModel) -> Outcome<dataset::Model>;
 
-    async fn delete_dataset_by_id(&self, dataset_id: &Urn) -> Outcome<()>;
+    /// Deletes and returns the removed row so callers can evict derived caches.
+    async fn delete_dataset_by_id(
+        &self,
+        tenant_id: &str,
+        dataset_id: &Urn,
+    ) -> Outcome<dataset::Model>;
 }

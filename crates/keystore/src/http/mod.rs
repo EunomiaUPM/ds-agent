@@ -25,11 +25,13 @@ use crate::services::config::ConfigStore;
 use crate::services::parameters::ParameterStore;
 use crate::services::secrets::SecretStore;
 use axum::Router;
+use common::auth::OauthTokenValidator;
 
 pub struct KeystoreRouter {
     parameters: Arc<dyn ParameterStore<serde_json::Value>>,
     secrets: Arc<dyn SecretStore>,
     config: Arc<dyn ConfigStore>,
+    validator: Arc<dyn OauthTokenValidator>,
 }
 
 impl KeystoreRouter {
@@ -37,11 +39,13 @@ impl KeystoreRouter {
         parameters: Arc<dyn ParameterStore<serde_json::Value>>,
         secrets: Arc<dyn SecretStore>,
         config: Arc<dyn ConfigStore>,
+        validator: Arc<dyn OauthTokenValidator>,
     ) -> Self {
         Self {
             parameters,
             secrets,
             config,
+            validator,
         }
     }
 
@@ -54,5 +58,9 @@ impl KeystoreRouter {
             .nest("/parameters", parameters_router)
             .nest("/secrets", secrets_router)
             .nest("/config", config_router)
+            .route_layer(axum::middleware::from_fn_with_state(
+                self.validator,
+                common::auth::http::AuthHttpMiddleware::run,
+            ))
     }
 }

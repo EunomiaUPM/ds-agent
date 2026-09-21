@@ -37,13 +37,15 @@ impl RepoIntoErrors for DlqRepoError {}
 #[async_trait]
 pub trait EventDeadLetterRepo: Send + Sync + 'static {
     async fn create_dead_letter(&self, record: &DeadLetterRecord) -> Outcome<DeadLetterRecord>;
-    async fn get_dead_letter(&self, id: &str) -> Outcome<Option<DeadLetterRecord>>;
+    async fn get_dead_letter(&self, tenant_id: &str, id: &str)
+        -> Outcome<Option<DeadLetterRecord>>;
     async fn list_dead_letters(
         &self,
+        tenant_id: &str,
         status: Option<&str>,
         limit: u64,
         offset: u64,
     ) -> Outcome<Vec<DeadLetterRecord>>;
-    async fn mark_replayed(&self, id: &str) -> Outcome<()>;
-    async fn delete_dead_letter(&self, id: &str) -> Outcome<()>;
+    async fn mark_replayed(&self, tenant_id: &str, id: &str) -> Outcome<()>;
+    async fn delete_dead_letter(&self, tenant_id: &str, id: &str) -> Outcome<()>;
 }

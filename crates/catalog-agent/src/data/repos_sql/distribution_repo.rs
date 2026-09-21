@@ -36,6 +36,9 @@ impl FilterApplier<sea_orm::Select<distribution::Entity>> for DistributionFilter
         &self,
         mut q: sea_orm::Select<distribution::Entity>,
     ) -> sea_orm::Select<distribution::Entity> {
+        if let Some(ref tenant_id) = self.tenant_id {
+            q = q.filter(distribution::Column::TenantId.eq(tenant_id));
+        }
         if let Some(dataset_id) = &self.dataset_id {
             q = q.filter(distribution::Column::DatasetId.eq(dataset_id));
         }
@@ -103,9 +106,14 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
         Ok((distributions, Some(total)))
     }
 
-    async fn get_batch_distributions(&self, ids: &Vec<Urn>) -> Outcome<Vec<distribution::Model>> {
+    async fn get_batch_distributions(
+        &self,
+        tenant_id: &str,
+        ids: &[Urn],
+    ) -> Outcome<Vec<distribution::Model>> {
         let distribution_ids = ids.iter().map(|t| t.to_string()).collect::<Vec<_>>();
         let distribution_process = distribution::Entity::find()
+            .filter(distribution::Column::TenantId.eq(tenant_id))
             .filter(distribution::Column::Id.is_in(distribution_ids))
             .all(&self.db_connection)
             .await;
@@ -120,32 +128,17 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
 
     async fn get_distributions_by_dataset_id(
         &self,
+        tenant_id: &str,
         dataset_id: &Urn,
     ) -> Outcome<Vec<distribution::Model>> {
         let dataset_id = dataset_id.to_string();
-        let dataset = dataset::Entity::find_by_id(dataset_id)
-            .one(&self.db_connection)
+        let distributions = distribution::Entity::find()
+            .filter(distribution::Column::TenantId.eq(tenant_id))
+            .filter(distribution::Column::DatasetId.eq(dataset_id))
+            .all(&self.db_connection)
             .await;
-        match dataset {
-            Ok(dataset) => match dataset {
-                Some(dataset) => {
-                    let distributions = distribution::Entity::find()
-                        .filter(distribution::Column::DatasetId.eq(dataset.id))
-                        .all(&self.db_connection)
-                        .await;
-                    match distributions {
-                        Ok(distributions) => Ok(distributions),
-                        Err(err) => Err(CatalogAgentRepoErrors::DistributionRepoErrors(
-                            DistributionRepoErrors::ErrorFetchingDistribution(err.into()),
-                        )
-                        .into_errors()),
-                    }
-                }
-                None => Err(CatalogAgentRepoErrors::DatasetRepoErrors(
-                    DatasetRepoErrors::DatasetNotFound,
-                )
-                .into_errors()),
-            },
+        match distributions {
+            Ok(distributions) => Ok(distributions),
             Err(err) => Err(CatalogAgentRepoErrors::DistributionRepoErrors(
                 DistributionRepoErrors::ErrorFetchingDistribution(err.into()),
             )
@@ -155,26 +148,15 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
 
     async fn get_distribution_by_dataset_id_and_dct_format(
         &self,
+        tenant_id: &str,
         dataset_id: &Urn,
-        dct_formats: &String,
-    ) -> Outcome<distribution::Model> {
+        dct_formats: &str,
+    ) -> Outcome<Option<distribution::Model>> {
         let dataset_id = dataset_id.to_string();
-        let _ = dataset::Entity::find_by_id(dataset_id.clone())
-            .one(&self.db_connection)
-            .await
-            .map_err(|err| {
-                CatalogAgentRepoErrors::DistributionRepoErrors(
-                    DistributionRepoErrors::ErrorFetchingDistribution(err.into()),
-                )
-                .into_errors()
-            })?
-            .ok_or(
-                CatalogAgentRepoErrors::DatasetRepoErrors(DatasetRepoErrors::DatasetNotFound)
-                    .into_errors(),
-            )?;
         let distribution = distribution::Entity::find()
-            .filter(distribution::Column::DatasetId.eq(dataset_id.clone()))
-            .filter(distribution::Column::DctFormat.eq(dct_formats.to_string()))
+            .filter(distribution::Column::TenantId.eq(tenant_id))
+            .filter(distribution::Column::DatasetId.eq(dataset_id))
+            .filter(distribution::Column::DctFormat.eq(dct_formats))
             .one(&self.db_connection)
             .await
             .map_err(|err| {
@@ -182,22 +164,18 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
                     DistributionRepoErrors::ErrorFetchingDistribution(err.into()),
                 )
                 .into_errors()
-            })?
-            .ok_or(
-                CatalogAgentRepoErrors::DistributionRepoErrors(
-                    DistributionRepoErrors::DistributionNotFound,
-                )
-                .into_errors(),
-            )?;
+            })?;
         Ok(distribution)
     }
 
     async fn get_distribution_by_id(
         &self,
+        tenant_id: &str,
         distribution_id: &Urn,
     ) -> Outcome<Option<distribution::Model>> {
         let distribution_id = distribution_id.to_string();
         let distribution = distribution::Entity::find_by_id(distribution_id)
+            .filter(distribution::Column::TenantId.eq(tenant_id))
             .one(&self.db_connection)
             .await;
         match distribution {
@@ -211,6 +189,7 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
 
     async fn put_distribution_by_id(
         &self,
+        tenant_id: &str,
         distribution_id: &Urn,
         edit_distribution_model: &EditDistributionModel,
     ) -> Outcome<distribution::Model> {
@@ -218,6 +197,7 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
 
         if let Some(ds) = edit_distribution_model.dcat_access_service.clone() {
             let data_service = dataservice::Entity::find_by_id(ds)
+                .filter(dataservice::Column::TenantId.eq(tenant_id))
                 .one(&self.db_connection)
                 .await
                 .map_err(|e| {
@@ -235,6 +215,7 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
         }
 
         let old_model = distribution::Entity::find_by_id(distribution_id)
+            .filter(distribution::Column::TenantId.eq(tenant_id))
             .one(&self.db_connection)
             .await;
         let old_model = match old_model {
@@ -281,6 +262,7 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
     ) -> Outcome<distribution::Model> {
         let dataset =
             dataset::Entity::find_by_id(new_distribution_model.dataset_id.clone().to_string())
+                .filter(dataset::Column::TenantId.eq(&new_distribution_model.tenant_id))
                 .one(&self.db_connection)
                 .await
                 .map_err(|err| {
@@ -298,6 +280,7 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
 
         let data_service =
             dataservice::Entity::find_by_id(new_distribution_model.dcat_access_service.clone())
+                .filter(dataservice::Column::TenantId.eq(&new_distribution_model.tenant_id))
                 .one(&self.db_connection)
                 .await
                 .map_err(|err| {
@@ -326,23 +309,28 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
         }
     }
 
-    async fn delete_distribution_by_id(&self, distribution_id: &Urn) -> Outcome<()> {
-        let distribution_id = distribution_id.to_string();
-        let distribution = distribution::Entity::delete_by_id(distribution_id)
-            .exec(&self.db_connection)
-            .await;
-        match distribution {
-            Ok(delete_result) => match delete_result.rows_affected {
-                0 => Err(CatalogAgentRepoErrors::DistributionRepoErrors(
-                    DistributionRepoErrors::DistributionNotFound,
+    async fn delete_distribution_by_id(
+        &self,
+        tenant_id: &str,
+        distribution_id: &Urn,
+    ) -> Outcome<distribution::Model> {
+        // Single round-trip: DELETE ... RETURNING, tenant-scoped; empty result means not found.
+        let deleted = distribution::Entity::delete_many()
+            .filter(distribution::Column::Id.eq(distribution_id.to_string()))
+            .filter(distribution::Column::TenantId.eq(tenant_id))
+            .exec_with_returning(&self.db_connection)
+            .await
+            .map_err(|err| {
+                CatalogAgentRepoErrors::DistributionRepoErrors(
+                    DistributionRepoErrors::ErrorDeletingDistribution(err.into()),
                 )
-                .into_errors()),
-                _ => Ok(()),
-            },
-            Err(err) => Err(CatalogAgentRepoErrors::DistributionRepoErrors(
-                DistributionRepoErrors::ErrorDeletingDistribution(err.into()),
+                .into_errors()
+            })?;
+        deleted.into_iter().next().ok_or_else(|| {
+            CatalogAgentRepoErrors::DistributionRepoErrors(
+                DistributionRepoErrors::DistributionNotFound,
             )
-            .into_errors()),
-        }
+            .into_errors()
+        })
     }
 }

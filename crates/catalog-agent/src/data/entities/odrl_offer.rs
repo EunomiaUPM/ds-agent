@@ -27,6 +27,7 @@ use urn::{Urn, UrnBuilder};
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: String,
+    pub tenant_id: String,
     pub odrl_offer: serde_json::Value,
     pub entity: String,
     pub entity_type: String,
@@ -65,8 +66,8 @@ pub enum Relation {
     Distribution,
     #[sea_orm(
         belongs_to = "super::policy_template::Entity",
-        from = "(Column::SourceTemplateId, Column::SourceTemplateVersion)",
-        to = "(super::policy_template::Column::Id, super::policy_template::Column::Version)"
+        from = "(Column::TenantId, Column::SourceTemplateId, Column::SourceTemplateVersion)",
+        to = "(super::policy_template::Column::TenantId, super::policy_template::Column::Id, super::policy_template::Column::Version)"
     )]
     Template,
 }
@@ -102,6 +103,7 @@ impl ActiveModelBehavior for ActiveModel {}
 #[derive(Clone)]
 pub struct NewOdrlOfferModel {
     pub id: Option<Urn>,
+    pub tenant_id: String,
     pub odrl_offer: OdrlPolicyInfo,
     pub entity_id: Urn,
     pub entity_type: CatalogEntityTypes,
@@ -118,6 +120,7 @@ impl From<NewOdrlOfferModel> for ActiveModel {
             .expect("UrnBuilder failed");
         Self {
             id: ActiveValue::Set(dto.id.clone().unwrap_or(new_urn.clone()).to_string()),
+            tenant_id: ActiveValue::Set(dto.tenant_id),
             odrl_offer: ActiveValue::Set(serde_json::to_value(dto.odrl_offer).unwrap_or_default()),
             entity: ActiveValue::Set(dto.entity_id.to_string()),
             entity_type: ActiveValue::Set(dto.entity_type.to_string()),

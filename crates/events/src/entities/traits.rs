@@ -46,6 +46,11 @@ pub trait Event: Serialize + Send + Sync + 'static {
         None
     }
 
+    // Tenant identifier for tenant isolation. Defaults to "default".
+    fn tenant_id(&self) -> &str {
+        "default"
+    }
+
     // Convert into an immutable domain envelope.
     fn into_envelope(self) -> EventEnvelope;
 }
@@ -63,6 +68,11 @@ pub trait IntoEvent: Sized {
     // Return optional correlation identifier.
     fn correlation_id(&self) -> Option<Urn> {
         None
+    }
+
+    // Tenant identifier for tenant isolation. Defaults to "default".
+    fn tenant_id(&self) -> &str {
+        "default"
     }
 
     // Convert into an event envelope.
@@ -120,7 +130,9 @@ macro_rules! event {
             }
 
             fn into_envelope(self) -> $crate::entities::envelope::EventEnvelope {
+                let tenant_id = <Self as $crate::entities::traits::Event>::tenant_id(&self);
                 $crate::entities::envelope::EventEnvelope::new(
+                    tenant_id,
                     <Self as $crate::entities::traits::Event>::topic(),
                     $source_crate,
                     <Self as $crate::entities::traits::Event>::schema_version(),
@@ -167,6 +179,18 @@ macro_rules! impl_into_event {
 // Ergonomic macro to publish events using hierarchical topics (<prefix>:<service>:<action>).
 #[macro_export]
 macro_rules! emit_action {
+    ($bus:expr, $tenant:expr, $prefix:expr, $service:expr, $action:expr, $payload:expr) => {
+        if let Some(bus) = &$bus {
+            let topic = format!("{}{}:{}", $prefix, $service, $action);
+            let source = $prefix.trim_end_matches(':');
+            if let Err(e) = bus
+                .emit_payload_with_tenant($tenant, &topic, source, $payload)
+                .await
+            {
+                tracing::warn!("Failed to emit event {topic}: {e}");
+            }
+        }
+    };
     ($bus:expr, $prefix:expr, $service:expr, $action:expr, $payload:expr) => {
         if let Some(bus) = &$bus {
             let topic = format!("{}{}:{}", $prefix, $service, $action);

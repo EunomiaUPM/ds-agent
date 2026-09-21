@@ -68,7 +68,7 @@ impl NegotiationAgentMessagesService {
         let offer = self
             .negotiation_repo
             .get_offer_repo()
-            .get_offer_by_negotiation_message(&message_urn)
+            .get_offer_by_negotiation_message(&message.tenant_id, &message_urn)
             .await
             .map_err(|e| {
                 let err = Errors::db(e.to_string(), None);
@@ -79,7 +79,7 @@ impl NegotiationAgentMessagesService {
         let agreement = self
             .negotiation_repo
             .get_agreement_repo()
-            .get_agreement_by_negotiation_message(&message_urn)
+            .get_agreement_by_negotiation_message(&message.tenant_id, &message_urn)
             .await
             .map_err(|e| {
                 let err = Errors::db(e.to_string(), None);
@@ -127,10 +127,19 @@ impl NegotiationAgentMessagesTrait for NegotiationAgentMessagesService {
         &self,
         process_id: &Urn,
     ) -> Outcome<Vec<NegotiationMessageDto>> {
+        let process_opt = self
+            .negotiation_repo
+            .get_negotiation_process_repo()
+            .get_negotiation_process_by_key_value(None, process_id)
+            .await?;
+        let Some(process) = process_opt else {
+            return Ok(vec![]);
+        };
+
         let messages = self
             .negotiation_repo
             .get_negotiation_message_repo()
-            .get_messages_by_process_id(process_id)
+            .get_messages_by_process_id(&process.tenant_id, process_id)
             .await?;
 
         let mut dtos = Vec::with_capacity(messages.len());
@@ -146,15 +155,24 @@ impl NegotiationAgentMessagesTrait for NegotiationAgentMessagesService {
         &self,
         id: &Urn,
     ) -> Outcome<Option<NegotiationMessageDto>> {
-        let message_opt = self
+        let filter = NegotiationMessageFilter {
+            id: Some(id.to_string()),
+            ..Default::default()
+        };
+        let page = Page {
+            limit: 1,
+            ..Default::default()
+        };
+        let (messages, _) = self
             .negotiation_repo
             .get_negotiation_message_repo()
-            .get_negotiation_message_by_id(id)
+            .get_all_negotiation_messages(&filter, &page, &Sort::default())
             .await?;
 
-        match message_opt {
-            Some(message) => Ok(Some(self.enrich_message(message).await?)),
-            None => Ok(None),
+        if let Some(message) = messages.into_iter().next() {
+            Ok(Some(self.enrich_message(message).await?))
+        } else {
+            Ok(None)
         }
     }
 
@@ -186,10 +204,12 @@ impl NegotiationAgentMessagesTrait for NegotiationAgentMessagesService {
     }
 
     async fn delete_negotiation_message(&self, id: &Urn) -> Outcome<()> {
-        self.negotiation_repo
-            .get_negotiation_message_repo()
-            .delete_negotiation_message(id)
-            .await?;
+        if let Some(msg) = self.get_negotiation_message_by_id(id).await? {
+            self.negotiation_repo
+                .get_negotiation_message_repo()
+                .delete_negotiation_message(&msg.inner.tenant_id, id)
+                .await?;
+        }
         events::emit_action!(
             self.event_bus,
             crate::EVENT_PREFIX,

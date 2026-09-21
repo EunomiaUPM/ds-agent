@@ -15,15 +15,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use ymir::errors::Outcome;
-
 pub(crate) mod jwt;
 pub(crate) mod service;
 pub(crate) mod views;
 
 use crate::services::token_service::views::{IntrospectResponse, TokenResponse};
-pub use common::auth::claims::Claims;
 pub use common::auth::OauthTokenValidator;
+pub use common::auth::claims::Claims;
+use ymir::errors::Outcome;
 
 #[async_trait::async_trait]
 pub trait TokenServiceTrait: OauthTokenValidator + Send + Sync + 'static {

@@ -30,6 +30,7 @@ use crate::entities::subscription::DeliveryStatus;
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: String,
+    pub tenant_id: String,
     pub event_id: String,
     pub subscription_id: String,
     pub status: String,
@@ -80,6 +81,7 @@ impl Model {
 
         Ok(EventDeliveryRecord {
             id: self.id,
+            tenant_id: self.tenant_id,
             event_id: self.event_id,
             subscription_id: self.subscription_id,
             status,
@@ -105,6 +107,7 @@ impl ActiveModel {
     pub fn from_domain(entity: &EventDeliveryRecord) -> Self {
         Self {
             id: ActiveValue::Set(entity.id.clone()),
+            tenant_id: ActiveValue::Set(entity.tenant_id.clone()),
             event_id: ActiveValue::Set(entity.event_id.clone()),
             subscription_id: ActiveValue::Set(entity.subscription_id.clone()),
             status: ActiveValue::Set(entity.status.as_str().to_string()),

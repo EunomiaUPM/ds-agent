@@ -204,10 +204,10 @@ mod tests {
         pub ConnectorMock {}
         #[async_trait::async_trait]
         impl ConnectorInstanceTrait for ConnectorMock {
-            async fn get_instance_by_id(&self, id: &Urn) -> Outcome<Option<ConnectorInstanceDto>>;
-            async fn get_instance_by_distribution(&self, distribution_id: &Urn) -> Outcome<Option<ConnectorInstanceDto>>;
-            async fn upsert_instance(&self, dto: &mut ConnectorInstantiationDto) -> Outcome<ConnectorInstanceDto>;
-            async fn delete_instance_by_id(&self, id: &Urn) -> Outcome<()>;
+            async fn get_instance_by_id(&self, scope: &common::auth::AccessScope, id: &Urn) -> Outcome<Option<ConnectorInstanceDto>>;
+            async fn get_instance_by_distribution(&self, scope: &common::auth::AccessScope, distribution_id: &Urn) -> Outcome<Option<ConnectorInstanceDto>>;
+            async fn upsert_instance(&self, scope: &common::auth::AccessScope, dto: &mut ConnectorInstantiationDto) -> Outcome<ConnectorInstanceDto>;
+            async fn delete_instance_by_id(&self, scope: &common::auth::AccessScope, id: &Urn) -> Outcome<()>;
         }
     }
 
@@ -237,6 +237,7 @@ mod tests {
     ) -> DataplaneTransferDto {
         DataplaneTransferDto {
             inner: dataplane_transfers::Model {
+                tenant_id: "tenant-1".to_string(),
                 id: id.to_string(),
                 transfer_process_id: tp_id.to_string(),
                 role,
@@ -355,6 +356,7 @@ mod tests {
         )
         .execute_command(DataplaneCommand::SetInit(
             DataplaneInitCommandTypes::AsConsumer {
+                tenant_id: "tenant-1".to_string(),
                 transfer_process_id,
                 direction: DataplaneInitCommandDirection::Pull {
                     data_address: Some(dummy_dataplane_forward_address()),
@@ -423,6 +425,7 @@ mod tests {
         )
         .execute_command(DataplaneCommand::SetInit(
             DataplaneInitCommandTypes::AsConsumer {
+                tenant_id: "tenant-1".to_string(),
                 transfer_process_id: tp_id,
                 direction: DataplaneInitCommandDirection::Push {
                     data_address: Some(DataplaneAddress {
@@ -519,6 +522,7 @@ mod tests {
         )
         .execute_command(DataplaneCommand::SetInit(
             DataplaneInitCommandTypes::AsProvider {
+                tenant_id: "tenant-1".to_string(),
                 transfer_process_id: tp_id,
                 connector_instance: connector,
                 direction: DataplaneInitCommandDirection::Pull {
@@ -820,7 +824,7 @@ mod tests {
         mock_connector
             .expect_get_instance_by_id()
             .times(1)
-            .returning(move |_| Ok(Some(dummy_pull_connector(&connector_urn))));
+            .returning(move |_, _| Ok(Some(dummy_pull_connector(&connector_urn))));
 
         // mock_factory is used by from_continuation; set_configuring uses the real
         // DataplaneDriverFactory
@@ -884,7 +888,7 @@ mod tests {
         mock_connector
             .expect_get_instance_by_id()
             .times(1)
-            .returning(move |_| Ok(Some(dummy_pull_connector(&connector_urn))));
+            .returning(move |_, _| Ok(Some(dummy_pull_connector(&connector_urn))));
 
         mock_factory
             .expect_get_or_create_driver()
@@ -946,7 +950,7 @@ mod tests {
         mock_connector
             .expect_get_instance_by_id()
             .times(1)
-            .returning(move |_| Ok(Some(dummy_pull_connector(&connector_urn))));
+            .returning(move |_, _| Ok(Some(dummy_pull_connector(&connector_urn))));
 
         mock_factory
             .expect_get_or_create_driver()
@@ -1009,7 +1013,7 @@ mod tests {
         mock_connector
             .expect_get_instance_by_id()
             .times(1)
-            .returning(move |_| Ok(Some(dummy_pull_connector(&connector_urn))));
+            .returning(move |_, _| Ok(Some(dummy_pull_connector(&connector_urn))));
 
         mock_factory
             .expect_get_or_create_driver()
@@ -1057,7 +1061,7 @@ mod tests {
         mock_connector
             .expect_get_instance_by_id()
             .times(1)
-            .returning(move |_| Ok(Some(dummy_pull_connector(&connector_urn))));
+            .returning(move |_, _| Ok(Some(dummy_pull_connector(&connector_urn))));
 
         mock_factory
             .expect_get_or_create_driver()
@@ -1106,7 +1110,7 @@ mod tests {
         mock_connector
             .expect_get_instance_by_id()
             .times(1)
-            .returning(move |_| Ok(Some(dummy_push_connector(&connector_urn))));
+            .returning(move |_, _| Ok(Some(dummy_push_connector(&connector_urn))));
 
         let mut mock_factory = MockDataplaneDriverFactoryTrait::new();
         mock_factory
@@ -1186,7 +1190,7 @@ mod tests {
         mock_connector
             .expect_get_instance_by_id()
             .times(1)
-            .returning(move |_| Ok(Some(dummy_push_connector(&connector_urn))));
+            .returning(move |_, _| Ok(Some(dummy_push_connector(&connector_urn))));
 
         let mut mock_factory = MockDataplaneDriverFactoryTrait::new();
         mock_factory

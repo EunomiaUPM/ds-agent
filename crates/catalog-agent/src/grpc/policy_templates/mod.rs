@@ -22,6 +22,8 @@ use crate::grpc::api::catalog_agent::{
     GetBatchRequest, GetByIdRequest, GetByVersionRequest, PolicyTemplate,
     PolicyTemplateListResponse, PolicyTemplateResponse,
 };
+use crate::grpc::auth::{GrpcAuth, StatusMapper};
+use common::auth::OauthTokenValidator;
 use common::paginated_spec::Page;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -30,11 +32,18 @@ use urn::Urn;
 
 pub struct PolicyTemplateEntityGrpc {
     service: Arc<dyn PolicyTemplateEntityTrait>,
+    auth: GrpcAuth,
 }
 
 impl PolicyTemplateEntityGrpc {
-    pub fn new(service: Arc<dyn PolicyTemplateEntityTrait>) -> Self {
-        Self { service }
+    pub fn new(
+        service: Arc<dyn PolicyTemplateEntityTrait>,
+        validator: Arc<dyn OauthTokenValidator>,
+    ) -> Self {
+        Self {
+            service,
+            auth: GrpcAuth::new(validator),
+        }
     }
 }
 
@@ -44,13 +53,14 @@ impl PolicyTemplateEntityService for PolicyTemplateEntityGrpc {
         &self,
         request: Request<GetAllRequest>,
     ) -> Result<Response<PolicyTemplateListResponse>, Status> {
+        let scope = self.auth.scope(request.metadata()).await?;
         let req = request.into_inner();
         let page = Page::new(req.limit.unwrap_or(20) as u32, None);
         let paginated = self
             .service
-            .get_all_policy_templates(&Default::default(), &page, &Default::default())
+            .get_all_policy_templates(&scope, &Default::default(), &page, &Default::default())
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(StatusMapper::to_status)?;
 
         let proto_templates: Vec<PolicyTemplate> =
             paginated.items.into_iter().map(Into::into).collect();
@@ -64,14 +74,15 @@ impl PolicyTemplateEntityService for PolicyTemplateEntityGrpc {
         &self,
         request: Request<GetBatchRequest>,
     ) -> Result<Response<PolicyTemplateListResponse>, Status> {
+        let scope = self.auth.scope(request.metadata()).await?;
         let req = request.into_inner();
         let urns = req.ids;
 
         let templates = self
             .service
-            .get_batch_policy_templates(&urns)
+            .get_batch_policy_templates(&scope, &urns)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(StatusMapper::to_status)?;
 
         let proto_templates: Vec<PolicyTemplate> = templates.into_iter().map(Into::into).collect();
 
@@ -84,14 +95,15 @@ impl PolicyTemplateEntityService for PolicyTemplateEntityGrpc {
         &self,
         request: Request<GetByIdRequest>,
     ) -> Result<Response<PolicyTemplateListResponse>, Status> {
+        let scope = self.auth.scope(request.metadata()).await?;
         let req = request.into_inner();
         let policy_template = req.id;
 
         let templates = self
             .service
-            .get_policies_template_by_id(&policy_template)
+            .get_policies_template_by_id(&scope, &policy_template)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(StatusMapper::to_status)?;
         let proto_templates: Vec<PolicyTemplate> = templates.into_iter().map(Into::into).collect();
 
         Ok(Response::new(PolicyTemplateListResponse {
@@ -103,34 +115,33 @@ impl PolicyTemplateEntityService for PolicyTemplateEntityGrpc {
         &self,
         request: Request<GetByVersionRequest>,
     ) -> Result<Response<PolicyTemplateResponse>, Status> {
+        let scope = self.auth.scope(request.metadata()).await?;
         let req = request.into_inner();
         let policy_template = req.id;
         let version = req.version;
-        let templates = self
+        let dto = self
             .service
-            .get_policies_template_by_version_and_id(&policy_template, &version)
+            .get_policies_template_by_version_and_id(&scope, &policy_template, &version)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-        match templates {
-            Some(dto) => Ok(Response::new(PolicyTemplateResponse {
-                policy_template: Some(dto.into()),
-            })),
-            None => Err(Status::not_found("Policy template not found")),
-        }
+            .map_err(StatusMapper::to_status)?;
+        Ok(Response::new(PolicyTemplateResponse {
+            policy_template: Some(dto.into()),
+        }))
     }
 
     async fn create_policy_template(
         &self,
         request: Request<CreatePolicyTemplateRequest>,
     ) -> Result<Response<PolicyTemplateResponse>, Status> {
+        let scope = self.auth.scope(request.metadata()).await?;
         let req = request.into_inner();
         let new_template_dto: NewPolicyTemplateDto = req.try_into()?;
 
         let created_dto = self
             .service
-            .create_policy_template(&new_template_dto)
+            .create_policy_template(&scope, &new_template_dto)
             .await
-            .map_err(|e| Status::internal(format!("Failed to create Policy Template: {}", e)))?;
+            .map_err(StatusMapper::to_status)?;
 
         Ok(Response::new(PolicyTemplateResponse {
             policy_template: Some(created_dto.into()),
@@ -141,15 +152,16 @@ impl PolicyTemplateEntityService for PolicyTemplateEntityGrpc {
         &self,
         request: Request<DeleteByVersionRequest>,
     ) -> Result<Response<()>, Status> {
+        let scope = self.auth.scope(request.metadata()).await?;
         let req = request.into_inner();
         let policy_template = req.id;
         let version = req.version;
 
         let _ = self
             .service
-            .delete_policy_template_by_version_and_id(&policy_template, &version)
+            .delete_policy_template_by_version_and_id(&scope, &policy_template, &version)
             .await
-            .map_err(|e| Status::internal(format!("Failed to create Policy Template: {}", e)))?;
+            .map_err(StatusMapper::to_status)?;
 
         Ok(Response::new(()))
     }

@@ -39,6 +39,7 @@ pub struct TransferProcessDto {
 #[serde(deny_unknown_fields)]
 pub struct NewTransferProcessDto {
     pub id: Option<Urn>,
+    pub tenant_id: Option<String>,
     pub state: String,
     pub associated_agent_peer: String,
     pub protocol: String,
@@ -63,22 +64,30 @@ pub struct EditTransferProcessDto {
     pub identifiers: Option<HashMap<String, String>>,
 }
 
-impl From<NewTransferProcessDto> for NewTransferProcessModel {
-    fn from(dto: NewTransferProcessDto) -> Self {
-        Self {
-            id: dto.id,
-            state: dto.state,
-            state_attribute: dto.state_attribute,
-            associated_agent_peer: dto.associated_agent_peer,
-            protocol: dto.protocol,
-            connector_instance_id: dto.connector_instance_id,
-            transfer_direction: dto.transfer_direction,
-            agreement_id: dto.agreement_id,
-            callback_address: dto.callback_address,
-            role: dto.role,
-            properties: dto.properties.unwrap_or(serde_json::json!({})),
+impl NewTransferProcessDto {
+    pub fn into_model(self, tenant_id: String) -> NewTransferProcessModel {
+        NewTransferProcessModel {
+            id: self.id,
+            tenant_id,
+            state: self.state,
+            state_attribute: self.state_attribute,
+            associated_agent_peer: self.associated_agent_peer,
+            protocol: self.protocol,
+            connector_instance_id: self.connector_instance_id,
+            transfer_direction: self.transfer_direction,
+            agreement_id: self.agreement_id,
+            callback_address: self.callback_address,
+            role: self.role,
+            properties: self.properties.unwrap_or(serde_json::json!({})),
             error_details: None,
         }
+    }
+}
+
+impl From<NewTransferProcessDto> for NewTransferProcessModel {
+    fn from(dto: NewTransferProcessDto) -> Self {
+        let tenant_id = dto.tenant_id.clone().unwrap_or_default();
+        dto.into_model(tenant_id)
     }
 }
 

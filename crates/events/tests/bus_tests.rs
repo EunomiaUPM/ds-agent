@@ -113,7 +113,14 @@ async fn test_in_memory_event_bus_broadcast() {
 
     let topic = Topic::new("negotiation.contract.agreed").unwrap();
     let payload = json!({ "contract_id": "c-12345", "status": "Agreed" });
-    let envelope = EventEnvelope::new(topic.clone(), "negotiation", 1, None, payload.clone());
+    let envelope = EventEnvelope::new(
+        "default",
+        topic.clone(),
+        "negotiation",
+        1,
+        None,
+        payload.clone(),
+    );
 
     let published = ctx
         .event_bus
@@ -175,14 +182,18 @@ async fn test_webhook_delivery_with_hmac_and_headers() {
 
     let sub = ctx
         .subscription_repo
-        .create_subscription(CreateSubscriptionDto {
-            callback_address: callback_url,
-            topic_pattern: "transfer.**".to_string(),
-            secret: Some("test-secret-123".to_string()),
-            headers: Some(custom_headers),
-            retry_limit: Some(3),
-            expiration_time: None,
-        })
+        .create_subscription(
+            "default",
+            CreateSubscriptionDto {
+                tenant_id: None,
+                callback_address: callback_url,
+                topic_pattern: "transfer.**".to_string(),
+                secret: Some("test-secret-123".to_string()),
+                headers: Some(custom_headers),
+                retry_limit: Some(3),
+                expiration_time: None,
+            },
+        )
         .await
         .expect("create subscription succeeds");
 
@@ -190,7 +201,14 @@ async fn test_webhook_delivery_with_hmac_and_headers() {
 
     let topic = Topic::new("transfer.process.completed").unwrap();
     let payload = json!({ "process_id": "tp-999", "state": "COMPLETED" });
-    let envelope = EventEnvelope::new(topic.clone(), "dataplane", 1, None, payload.clone());
+    let envelope = EventEnvelope::new(
+        "default",
+        topic.clone(),
+        "dataplane",
+        1,
+        None,
+        payload.clone(),
+    );
 
     ctx.event_bus
         .publish(envelope.clone())
@@ -219,7 +237,7 @@ async fn test_webhook_delivery_with_hmac_and_headers() {
 
     let deliveries = ctx
         .delivery_repo
-        .list_by_event(envelope.id.as_str())
+        .list_by_event("default", envelope.id.as_str())
         .await
         .unwrap();
     assert_eq!(deliveries.len(), 1);
@@ -268,20 +286,24 @@ async fn test_retry_and_dead_letter_queue_flow() {
 
     let sub = ctx
         .subscription_repo
-        .create_subscription(CreateSubscriptionDto {
-            callback_address: callback_url,
-            topic_pattern: "data.transfer.failed".to_string(),
-            secret: None,
-            headers: None,
-            retry_limit: Some(2),
-            expiration_time: None,
-        })
+        .create_subscription(
+            "default",
+            CreateSubscriptionDto {
+                tenant_id: None,
+                callback_address: callback_url,
+                topic_pattern: "data.transfer.failed".to_string(),
+                secret: None,
+                headers: None,
+                retry_limit: Some(2),
+                expiration_time: None,
+            },
+        )
         .await
         .unwrap();
 
     let topic = Topic::new("data.transfer.failed").unwrap();
     let payload = json!({ "error": "network reset" });
-    let envelope = EventEnvelope::new(topic, "dataplane", 1, None, payload);
+    let envelope = EventEnvelope::new("default", topic, "dataplane", 1, None, payload);
 
     ctx.event_bus.publish(envelope.clone()).await.unwrap();
 
@@ -291,7 +313,7 @@ async fn test_retry_and_dead_letter_queue_flow() {
     // Delivery failed attempt 1, scheduled for retry
     let deliveries = ctx
         .delivery_repo
-        .list_by_event(envelope.id.as_str())
+        .list_by_event("default", envelope.id.as_str())
         .await
         .unwrap();
     assert_eq!(deliveries.len(), 1);
@@ -305,7 +327,7 @@ async fn test_retry_and_dead_letter_queue_flow() {
     // Verify delivery transitioned to DeadLetter
     let updated_delivery = ctx
         .delivery_repo
-        .get_delivery(&deliveries[0].id)
+        .get_delivery("default", &deliveries[0].id)
         .await
         .unwrap()
         .unwrap();
@@ -314,7 +336,7 @@ async fn test_retry_and_dead_letter_queue_flow() {
     // Verify record in Dead Letter Queue
     let dead_letters = ctx
         .dlq_repo
-        .list_dead_letters(Some("Unresolved"), 10, 0)
+        .list_dead_letters("default", Some("Unresolved"), 10, 0)
         .await
         .unwrap();
     assert_eq!(dead_letters.len(), 1);
@@ -325,7 +347,7 @@ async fn test_retry_and_dead_letter_queue_flow() {
     capture.status_to_return.store(200, Ordering::SeqCst);
     let replayed = ctx
         .event_bus
-        .replay_dead_letter(&dead_letters[0].id)
+        .replay_dead_letter("default", &dead_letters[0].id)
         .await
         .expect("replay succeeds");
     assert_eq!(replayed.status, DeliveryStatus::Delivered);
@@ -333,7 +355,7 @@ async fn test_retry_and_dead_letter_queue_flow() {
     // Dead letter is now marked Replayed
     let resolved_dl = ctx
         .dlq_repo
-        .get_dead_letter(&dead_letters[0].id)
+        .get_dead_letter("default", &dead_letters[0].id)
         .await
         .unwrap()
         .unwrap();

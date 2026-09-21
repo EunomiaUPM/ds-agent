@@ -28,6 +28,7 @@ use urn::{Urn, UrnBuilder};
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: String,
+    pub tenant_id: String,
     pub state: String,
     pub state_attribute: Option<String>,
     pub associated_agent_peer: String,
@@ -68,6 +69,7 @@ impl ActiveModelBehavior for ActiveModel {}
 #[derive(Clone)]
 pub struct NewTransferProcessModel {
     pub(crate) id: Option<Urn>,
+    pub(crate) tenant_id: String,
     pub(crate) state: String,
     pub(crate) state_attribute: Option<String>,
     pub(crate) associated_agent_peer: String,
@@ -85,6 +87,7 @@ impl Default for NewTransferProcessModel {
     fn default() -> Self {
         Self {
             id: None,
+            tenant_id: "".to_string(),
             state: "".to_string(),
             state_attribute: None,
             associated_agent_peer: "".to_owned(),
@@ -111,6 +114,7 @@ impl From<NewTransferProcessModel> for ActiveModel {
         .expect("UrnBuilder failed");
         Self {
             id: ActiveValue::Set(dto.id.unwrap_or(new_urn).to_string()),
+            tenant_id: ActiveValue::Set(dto.tenant_id),
             state: ActiveValue::Set(dto.state),
             state_attribute: ActiveValue::Set(dto.state_attribute),
             associated_agent_peer: ActiveValue::Set(dto.associated_agent_peer),

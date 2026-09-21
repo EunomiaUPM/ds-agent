@@ -29,6 +29,7 @@ use urn::{Urn, UrnBuilder};
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: String,
+    pub tenant_id: String,
     pub state: String,
     pub state_attribute: Option<String>,
     pub associated_agent_peer: String,
@@ -79,23 +80,25 @@ impl Related<super::agreement::Entity> for Entity {
 
 impl ActiveModelBehavior for ActiveModel {}
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct NewNegotiationProcessModel {
-    pub(crate) id: Option<Urn>,
-    pub(crate) state: String,
-    pub(crate) state_attribute: Option<String>,
-    pub(crate) associated_agent_peer: String,
-    pub(crate) protocol: String,
-    pub(crate) callback_address: Option<String>,
-    pub(crate) role: String,
-    pub(crate) properties: Json,
-    pub(crate) error_details: Option<Json>,
+    pub id: Option<Urn>,
+    pub tenant_id: String,
+    pub state: String,
+    pub state_attribute: Option<String>,
+    pub associated_agent_peer: String,
+    pub protocol: String,
+    pub callback_address: Option<String>,
+    pub role: String,
+    pub properties: Json,
+    pub error_details: Option<Json>,
 }
 
 impl Default for NewNegotiationProcessModel {
     fn default() -> Self {
         Self {
             id: None,
+            tenant_id: "".to_string(),
             state: "".to_string(),
             state_attribute: None,
             associated_agent_peer: "".to_string(),
@@ -119,6 +122,7 @@ impl From<NewNegotiationProcessModel> for ActiveModel {
 
         Self {
             id: ActiveValue::Set(value.id.unwrap_or(new_urn).to_string()),
+            tenant_id: ActiveValue::Set(value.tenant_id),
             state: ActiveValue::Set(value.state),
             state_attribute: ActiveValue::Set(value.state_attribute),
             associated_agent_peer: ActiveValue::Set(value.associated_agent_peer),
@@ -139,20 +143,10 @@ impl From<&NewNegotiationProcessModel> for ActiveModel {
     }
 }
 
+#[derive(Default)]
 pub struct EditNegotiationProcessModel {
     pub state: Option<String>,
     pub state_attribute: Option<String>,
     pub properties: Option<Json>,
     pub error_details: Option<Json>,
-}
-
-impl Default for EditNegotiationProcessModel {
-    fn default() -> Self {
-        Self {
-            state: None,
-            state_attribute: None,
-            properties: None,
-            error_details: None,
-        }
-    }
 }

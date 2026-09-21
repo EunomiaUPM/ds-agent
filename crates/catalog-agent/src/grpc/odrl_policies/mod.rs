@@ -22,6 +22,8 @@ use crate::grpc::api::catalog_agent::{
     GetBatchRequest, GetByEntityIdRequest, GetByIdRequest, OdrlPolicy, OdrlPolicyListResponse,
     OdrlPolicyResponse,
 };
+use crate::grpc::auth::{GrpcAuth, StatusMapper};
+use common::auth::OauthTokenValidator;
 use common::paginated_spec::Page;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -30,11 +32,18 @@ use urn::Urn;
 
 pub struct OdrlPolicyEntityGrpc {
     service: Arc<dyn OdrlPolicyEntityTrait>,
+    auth: GrpcAuth,
 }
 
 impl OdrlPolicyEntityGrpc {
-    pub fn new(service: Arc<dyn OdrlPolicyEntityTrait>) -> Self {
-        Self { service }
+    pub fn new(
+        service: Arc<dyn OdrlPolicyEntityTrait>,
+        validator: Arc<dyn OauthTokenValidator>,
+    ) -> Self {
+        Self {
+            service,
+            auth: GrpcAuth::new(validator),
+        }
     }
 }
 
@@ -44,13 +53,14 @@ impl OdrlPolicyEntityService for OdrlPolicyEntityGrpc {
         &self,
         request: Request<GetAllRequest>,
     ) -> Result<Response<OdrlPolicyListResponse>, Status> {
+        let scope = self.auth.scope(request.metadata()).await?;
         let req = request.into_inner();
         let page = Page::new(req.limit.unwrap_or(20) as u32, None);
         let paginated = self
             .service
-            .get_all_odrl_offers(&Default::default(), &page, &Default::default())
+            .get_all_odrl_offers(&scope, &Default::default(), &page, &Default::default())
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(StatusMapper::to_status)?;
 
         let proto_policies: Vec<OdrlPolicy> = paginated.items.into_iter().map(Into::into).collect();
 
@@ -63,6 +73,7 @@ impl OdrlPolicyEntityService for OdrlPolicyEntityGrpc {
         &self,
         request: Request<GetBatchRequest>,
     ) -> Result<Response<OdrlPolicyListResponse>, Status> {
+        let scope = self.auth.scope(request.metadata()).await?;
         let req = request.into_inner();
         let urns: Vec<Urn> = req
             .ids
@@ -73,9 +84,9 @@ impl OdrlPolicyEntityService for OdrlPolicyEntityGrpc {
 
         let policies = self
             .service
-            .get_batch_odrl_offers(&urns)
+            .get_batch_odrl_offers(&scope, &urns)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(StatusMapper::to_status)?;
 
         let proto_policies: Vec<OdrlPolicy> = policies.into_iter().map(Into::into).collect();
 
@@ -88,15 +99,16 @@ impl OdrlPolicyEntityService for OdrlPolicyEntityGrpc {
         &self,
         request: Request<GetByEntityIdRequest>,
     ) -> Result<Response<OdrlPolicyListResponse>, Status> {
+        let scope = self.auth.scope(request.metadata()).await?;
         let req = request.into_inner();
         let entity_urn = Urn::from_str(&req.entity_id)
             .map_err(|_| Status::invalid_argument("Invalid Entity URN"))?;
 
         let policies = self
             .service
-            .get_all_odrl_offers_by_entity(&entity_urn)
+            .get_all_odrl_offers_by_entity(&scope, &entity_urn)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(StatusMapper::to_status)?;
 
         let proto_policies: Vec<OdrlPolicy> = policies.into_iter().map(Into::into).collect();
 
@@ -109,35 +121,34 @@ impl OdrlPolicyEntityService for OdrlPolicyEntityGrpc {
         &self,
         request: Request<GetByIdRequest>,
     ) -> Result<Response<OdrlPolicyResponse>, Status> {
+        let scope = self.auth.scope(request.metadata()).await?;
         let req = request.into_inner();
         let urn = Urn::from_str(&req.id).map_err(|_| Status::invalid_argument("Invalid URN"))?;
 
-        let policy_opt = self
+        let dto = self
             .service
-            .get_odrl_offer_by_id(&urn)
+            .get_odrl_offer_by_id(&scope, &urn)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(StatusMapper::to_status)?;
 
-        match policy_opt {
-            Some(dto) => Ok(Response::new(OdrlPolicyResponse {
-                policy: Some(dto.into()),
-            })),
-            None => Err(Status::not_found("ODRL Policy not found")),
-        }
+        Ok(Response::new(OdrlPolicyResponse {
+            policy: Some(dto.into()),
+        }))
     }
 
     async fn create_odrl_offer(
         &self,
         request: Request<CreateOdrlPolicyRequest>,
     ) -> Result<Response<OdrlPolicyResponse>, Status> {
+        let scope = self.auth.scope(request.metadata()).await?;
         let req = request.into_inner();
         let new_policy_dto: NewOdrlPolicyDto = req.try_into()?;
 
         let created_dto = self
             .service
-            .create_odrl_offer(&new_policy_dto)
+            .create_odrl_offer(&scope, &new_policy_dto)
             .await
-            .map_err(|e| Status::internal(format!("Failed to create ODRL Policy: {}", e)))?;
+            .map_err(StatusMapper::to_status)?;
 
         Ok(Response::new(OdrlPolicyResponse {
             policy: Some(created_dto.into()),
@@ -148,13 +159,14 @@ impl OdrlPolicyEntityService for OdrlPolicyEntityGrpc {
         &self,
         request: Request<DeleteByIdRequest>,
     ) -> Result<Response<()>, Status> {
+        let scope = self.auth.scope(request.metadata()).await?;
         let req = request.into_inner();
         let urn = Urn::from_str(&req.id).map_err(|_| Status::invalid_argument("Invalid URN"))?;
 
         self.service
-            .delete_odrl_offer_by_id(&urn)
+            .delete_odrl_offer_by_id(&scope, &urn)
             .await
-            .map_err(|e| Status::internal(format!("Failed to delete ODRL Policy: {}", e)))?;
+            .map_err(StatusMapper::to_status)?;
 
         Ok(Response::new(()))
     }
@@ -163,16 +175,15 @@ impl OdrlPolicyEntityService for OdrlPolicyEntityGrpc {
         &self,
         request: Request<DeleteByEntityIdRequest>,
     ) -> Result<Response<()>, Status> {
+        let scope = self.auth.scope(request.metadata()).await?;
         let req = request.into_inner();
         let urn = Urn::from_str(&req.entity_id)
             .map_err(|_| Status::invalid_argument("Invalid Entity URN"))?;
 
         self.service
-            .delete_odrl_offers_by_entity(&urn)
+            .delete_odrl_offers_by_entity(&scope, &urn)
             .await
-            .map_err(|e| {
-                Status::internal(format!("Failed to delete ODRL Policies by Entity: {}", e))
-            })?;
+            .map_err(StatusMapper::to_status)?;
 
         Ok(Response::new(()))
     }

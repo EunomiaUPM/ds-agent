@@ -24,8 +24,7 @@ use crate::entities::filters::NegotiationMessageFilter;
 use common::paginated_spec::{Page, SelectCursorExt, Sort};
 use common::query::FilterApplier;
 use sea_orm::{
-    ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder,
-    QuerySelect, Select,
+    ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, Select,
 };
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
@@ -35,6 +34,12 @@ impl FilterApplier<Select<negotiation_message::Entity>> for NegotiationMessageFi
         &self,
         mut q: Select<negotiation_message::Entity>,
     ) -> Select<negotiation_message::Entity> {
+        if let Some(ref id) = self.id {
+            q = q.filter(negotiation_message::Column::Id.eq(id));
+        }
+        if let Some(ref tenant_id) = self.tenant_id {
+            q = q.filter(negotiation_message::Column::TenantId.eq(tenant_id));
+        }
         if let Some(ref process_id) = self.process_id {
             q = q.filter(negotiation_message::Column::NegotiationAgentProcessId.eq(process_id));
         }
@@ -99,9 +104,35 @@ impl NegotiationMessageRepoTrait for NegotiationMessageRepoForSql {
         Ok((items, Some(total)))
     }
 
-    async fn get_messages_by_process_id(&self, process_id: &Urn) -> Outcome<Vec<Model>> {
+    async fn get_batch_negotiation_messages(
+        &self,
+        tenant_id: &str,
+        ids: &[Urn],
+    ) -> Outcome<Vec<Model>> {
+        let message_ids = ids.iter().map(|t| t.to_string()).collect::<Vec<_>>();
+        let messages = negotiation_message::Entity::find()
+            .filter(negotiation_message::Column::TenantId.eq(tenant_id))
+            .filter(negotiation_message::Column::Id.is_in(message_ids))
+            .all(&self.db_connection)
+            .await;
+
+        match messages {
+            Ok(messages) => Ok(messages),
+            Err(e) => Err(
+                NegotiationMessageRepoErrors::ErrorFetchingNegotiationMessage(e.into())
+                    .into_errors(),
+            ),
+        }
+    }
+
+    async fn get_messages_by_process_id(
+        &self,
+        tenant_id: &str,
+        process_id: &Urn,
+    ) -> Outcome<Vec<Model>> {
         let pid = process_id.to_string();
         let messages = negotiation_message::Entity::find()
+            .filter(negotiation_message::Column::TenantId.eq(tenant_id))
             .filter(negotiation_message::Column::NegotiationAgentProcessId.eq(pid))
             .order_by_asc(negotiation_message::Column::CreatedAt)
             .all(&self.db_connection)
@@ -116,9 +147,14 @@ impl NegotiationMessageRepoTrait for NegotiationMessageRepoForSql {
         }
     }
 
-    async fn get_negotiation_message_by_id(&self, id: &Urn) -> Outcome<Option<Model>> {
+    async fn get_negotiation_message_by_id(
+        &self,
+        tenant_id: &str,
+        id: &Urn,
+    ) -> Outcome<Option<Model>> {
         let mid = id.to_string();
         let message = negotiation_message::Entity::find_by_id(mid)
+            .filter(negotiation_message::Column::TenantId.eq(tenant_id))
             .one(&self.db_connection)
             .await;
         match message {
@@ -147,9 +183,11 @@ impl NegotiationMessageRepoTrait for NegotiationMessageRepoForSql {
         }
     }
 
-    async fn delete_negotiation_message(&self, id: &Urn) -> Outcome<()> {
+    async fn delete_negotiation_message(&self, tenant_id: &str, id: &Urn) -> Outcome<()> {
         let mid = id.to_string();
-        let result = negotiation_message::Entity::delete_by_id(mid)
+        let result = negotiation_message::Entity::delete_many()
+            .filter(negotiation_message::Column::Id.eq(&mid))
+            .filter(negotiation_message::Column::TenantId.eq(tenant_id))
             .exec(&self.db_connection)
             .await;
 

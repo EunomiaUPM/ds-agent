@@ -17,9 +17,9 @@
 
 //! Atomic pure rules enforcing DSP 2025-1 transfer state machine and protocol invariants.
 
-use std::str::FromStr;
 use common::dsp_common::DspRules;
-use common::validation::{codes, violation, Path, Violations};
+use common::validation::{Path, Violations, codes, violation};
+use std::str::FromStr;
 
 use crate::entities::protocol::TransferRole;
 use crate::protocols::dsp::entities::context_common::TransferContextProcessSlot;

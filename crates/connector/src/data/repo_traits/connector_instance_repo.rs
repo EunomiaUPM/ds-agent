@@ -29,25 +29,29 @@ pub trait ConnectorInstanceRepoTrait: Send + Sync {
 
     async fn get_instance_by_id(
         &self,
-        instance_id: &String,
+        tenant_id: &str,
+        instance_id: &str,
     ) -> Outcome<Option<connector_instances::Model>>;
 
     async fn get_instance_by_name_and_version(
         &self,
-        name: &String,
-        version: &String,
+        tenant_id: &str,
+        name: &str,
+        version: &str,
     ) -> Outcome<Option<connector_instances::Model>>;
 
     async fn get_instances_by_distribution(
         &self,
-        distribution_id: &String,
+        tenant_id: &str,
+        distribution_id: &str,
     ) -> Outcome<Option<connector_instances::Model>>;
 
     async fn delete_instance_by_name_and_version(
         &self,
-        name: &String,
-        version: &String,
+        tenant_id: &str,
+        name: &str,
+        version: &str,
     ) -> Outcome<()>;
 
-    async fn delete_instance_by_id(&self, instance_id: &String) -> Outcome<()>;
+    async fn delete_instance_by_id(&self, tenant_id: &str, instance_id: &str) -> Outcome<()>;
 }

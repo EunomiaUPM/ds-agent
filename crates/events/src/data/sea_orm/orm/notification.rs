@@ -22,6 +22,7 @@ use sea_orm::entity::prelude::*;
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: String,
+    pub tenant_id: String,
     pub timestamp: chrono::NaiveDateTime,
     pub category: String,
     pub subcategory: String,

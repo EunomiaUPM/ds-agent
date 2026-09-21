@@ -57,13 +57,17 @@ impl EventStoreRepo for InMemoryEventBusRepo {
         Ok(())
     }
 
-    async fn get_event_by_id(&self, id: &Urn) -> Outcome<Option<EventEnvelope>> {
+    async fn get_event_by_id(&self, tenant_id: &str, id: &Urn) -> Outcome<Option<EventEnvelope>> {
         let map = self.events.lock().unwrap();
-        Ok(map.get(id.as_str()).cloned())
+        Ok(map
+            .get(id.as_str())
+            .filter(|e| e.tenant_id == tenant_id)
+            .cloned())
     }
 
     async fn list_events(
         &self,
+        tenant_id: &str,
         topic: Option<&str>,
         limit: u64,
         offset: u64,
@@ -72,6 +76,7 @@ impl EventStoreRepo for InMemoryEventBusRepo {
         let map = self.events.lock().unwrap();
         let mut list: Vec<EventEnvelope> = map
             .values()
+            .filter(|e| e.tenant_id == tenant_id)
             .filter(|e| {
                 if let Some(ref pat) = pattern {
                     pat.matches(&e.topic)
@@ -93,13 +98,18 @@ impl EventStoreRepo for InMemoryEventBusRepo {
 
 #[async_trait]
 impl EventSubscriptionRepo for InMemoryEventBusRepo {
-    async fn create_subscription(&self, dto: CreateSubscriptionDto) -> Outcome<SubscriptionRecord> {
+    async fn create_subscription(
+        &self,
+        tenant_id: &str,
+        dto: CreateSubscriptionDto,
+    ) -> Outcome<SubscriptionRecord> {
         let id = format!("urn:uuid:{}", Uuid::new_v4());
         let pattern = TopicPattern::new(&dto.topic_pattern)
             .map_err(|e| Errors::format(BadFormat::Received, e, None))?;
 
         let rec = SubscriptionRecord {
             id: id.clone(),
+            tenant_id: tenant_id.to_string(),
             callback_address: dto.callback_address,
             topic_pattern: pattern,
             secret: dto.secret,
@@ -116,24 +126,34 @@ impl EventSubscriptionRepo for InMemoryEventBusRepo {
         Ok(rec)
     }
 
-    async fn get_subscription(&self, id: &str) -> Outcome<Option<SubscriptionRecord>> {
+    async fn get_subscription(
+        &self,
+        tenant_id: &str,
+        id: &str,
+    ) -> Outcome<Option<SubscriptionRecord>> {
         let map = self.subscriptions.lock().unwrap();
-        Ok(map.get(id).cloned())
+        Ok(map.get(id).filter(|s| s.tenant_id == tenant_id).cloned())
     }
 
-    async fn list_subscriptions(&self) -> Outcome<Vec<SubscriptionRecord>> {
+    async fn list_subscriptions(&self, tenant_id: &str) -> Outcome<Vec<SubscriptionRecord>> {
         let map = self.subscriptions.lock().unwrap();
-        Ok(map.values().cloned().collect())
+        Ok(map
+            .values()
+            .filter(|s| s.tenant_id == tenant_id)
+            .cloned()
+            .collect())
     }
 
     async fn update_subscription(
         &self,
+        tenant_id: &str,
         id: &str,
         dto: UpdateSubscriptionDto,
     ) -> Outcome<SubscriptionRecord> {
         let mut map = self.subscriptions.lock().unwrap();
         let rec = map
             .get_mut(id)
+            .filter(|s| s.tenant_id == tenant_id)
             .ok_or_else(|| Errors::missing_resource(id, "subscription not found", None))?;
 
         if let Some(addr) = dto.callback_address {
@@ -163,17 +183,27 @@ impl EventSubscriptionRepo for InMemoryEventBusRepo {
         Ok(rec.clone())
     }
 
-    async fn delete_subscription(&self, id: &str) -> Outcome<()> {
+    async fn delete_subscription(&self, tenant_id: &str, id: &str) -> Outcome<()> {
         let mut map = self.subscriptions.lock().unwrap();
-        map.remove(id);
+        if map
+            .get(id)
+            .map(|s| s.tenant_id == tenant_id)
+            .unwrap_or(false)
+        {
+            map.remove(id);
+        }
         Ok(())
     }
 
-    async fn get_matching_subscriptions(&self, topic: &Topic) -> Outcome<Vec<SubscriptionRecord>> {
+    async fn get_matching_subscriptions(
+        &self,
+        tenant_id: &str,
+        topic: &Topic,
+    ) -> Outcome<Vec<SubscriptionRecord>> {
         let map = self.subscriptions.lock().unwrap();
         let matching = map
             .values()
-            .filter(|sub| sub.matches(topic))
+            .filter(|sub| sub.tenant_id == tenant_id && sub.matches(topic))
             .cloned()
             .collect();
         Ok(matching)
@@ -191,9 +221,13 @@ impl EventDeliveryRepo for InMemoryEventBusRepo {
         Ok(delivery.clone())
     }
 
-    async fn get_delivery(&self, id: &str) -> Outcome<Option<EventDeliveryRecord>> {
+    async fn get_delivery(
+        &self,
+        tenant_id: &str,
+        id: &str,
+    ) -> Outcome<Option<EventDeliveryRecord>> {
         let map = self.deliveries.lock().unwrap();
-        Ok(map.get(id).cloned())
+        Ok(map.get(id).filter(|d| d.tenant_id == tenant_id).cloned())
     }
 
     async fn get_due_retries(
@@ -257,11 +291,15 @@ impl EventDeliveryRepo for InMemoryEventBusRepo {
         Ok(())
     }
 
-    async fn list_by_event(&self, event_id: &str) -> Outcome<Vec<EventDeliveryRecord>> {
+    async fn list_by_event(
+        &self,
+        tenant_id: &str,
+        event_id: &str,
+    ) -> Outcome<Vec<EventDeliveryRecord>> {
         let map = self.deliveries.lock().unwrap();
         let list = map
             .values()
-            .filter(|d| d.event_id == event_id)
+            .filter(|d| d.tenant_id == tenant_id && d.event_id == event_id)
             .cloned()
             .collect();
         Ok(list)
@@ -276,13 +314,18 @@ impl EventDeadLetterRepo for InMemoryEventBusRepo {
         Ok(record.clone())
     }
 
-    async fn get_dead_letter(&self, id: &str) -> Outcome<Option<DeadLetterRecord>> {
+    async fn get_dead_letter(
+        &self,
+        tenant_id: &str,
+        id: &str,
+    ) -> Outcome<Option<DeadLetterRecord>> {
         let map = self.dead_letters.lock().unwrap();
-        Ok(map.get(id).cloned())
+        Ok(map.get(id).filter(|d| d.tenant_id == tenant_id).cloned())
     }
 
     async fn list_dead_letters(
         &self,
+        tenant_id: &str,
         status: Option<&str>,
         limit: u64,
         offset: u64,
@@ -290,6 +333,7 @@ impl EventDeadLetterRepo for InMemoryEventBusRepo {
         let map = self.dead_letters.lock().unwrap();
         let mut list: Vec<DeadLetterRecord> = map
             .values()
+            .filter(|d| d.tenant_id == tenant_id)
             .filter(|d| status.map(|s| d.status.as_str() == s).unwrap_or(true))
             .cloned()
             .collect();
@@ -302,18 +346,24 @@ impl EventDeadLetterRepo for InMemoryEventBusRepo {
         Ok(paged)
     }
 
-    async fn mark_replayed(&self, id: &str) -> Outcome<()> {
+    async fn mark_replayed(&self, tenant_id: &str, id: &str) -> Outcome<()> {
         let mut map = self.dead_letters.lock().unwrap();
-        if let Some(d) = map.get_mut(id) {
+        if let Some(d) = map.get_mut(id).filter(|d| d.tenant_id == tenant_id) {
             d.status = DeadLetterStatus::Replayed;
             d.replayed_at = Some(Utc::now());
         }
         Ok(())
     }
 
-    async fn delete_dead_letter(&self, id: &str) -> Outcome<()> {
+    async fn delete_dead_letter(&self, tenant_id: &str, id: &str) -> Outcome<()> {
         let mut map = self.dead_letters.lock().unwrap();
-        map.remove(id);
+        if map
+            .get(id)
+            .map(|d| d.tenant_id == tenant_id)
+            .unwrap_or(false)
+        {
+            map.remove(id);
+        }
         Ok(())
     }
 }

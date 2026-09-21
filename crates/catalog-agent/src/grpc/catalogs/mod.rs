@@ -22,6 +22,8 @@ use crate::grpc::api::catalog_agent::{
     Catalog, CatalogListResponse, CatalogResponse, CreateCatalogRequest, DeleteByIdRequest,
     GetAllCatalogsRequest, GetBatchRequest, GetByIdRequest, PutCatalogRequest,
 };
+use crate::grpc::auth::{GrpcAuth, StatusMapper};
+use common::auth::OauthTokenValidator;
 use common::paginated_spec::Page;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -30,11 +32,18 @@ use urn::Urn;
 
 pub struct CatalogEntityGrpc {
     service: Arc<dyn CatalogEntityTrait>,
+    auth: GrpcAuth,
 }
 
 impl CatalogEntityGrpc {
-    pub fn new(service: Arc<dyn CatalogEntityTrait>) -> Self {
-        Self { service }
+    pub fn new(
+        service: Arc<dyn CatalogEntityTrait>,
+        validator: Arc<dyn OauthTokenValidator>,
+    ) -> Self {
+        Self {
+            service,
+            auth: GrpcAuth::new(validator),
+        }
     }
 }
 
@@ -44,15 +53,18 @@ impl CatalogEntityService for CatalogEntityGrpc {
         &self,
         request: Request<GetAllCatalogsRequest>,
     ) -> Result<Response<CatalogListResponse>, Status> {
+        let scope = self.auth.scope(request.metadata()).await?;
         let req = request.into_inner();
         let page = Page::new(req.limit.unwrap_or(20) as u32, None);
-        let mut filter = CatalogFilter::default();
-        filter.with_main_catalog = Some(req.with_main_catalog);
+        let filter = CatalogFilter {
+            with_main_catalog: Some(req.with_main_catalog),
+            ..Default::default()
+        };
         let paginated = self
             .service
-            .get_all_catalogs(&filter, &page, &Default::default())
+            .get_all_catalogs(&scope, &filter, &page, &Default::default())
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(StatusMapper::to_status)?;
 
         let proto_catalogs: Vec<Catalog> = paginated.items.into_iter().map(Into::into).collect();
 
@@ -65,6 +77,7 @@ impl CatalogEntityService for CatalogEntityGrpc {
         &self,
         request: Request<GetBatchRequest>,
     ) -> Result<Response<CatalogListResponse>, Status> {
+        let scope = self.auth.scope(request.metadata()).await?;
         let req = request.into_inner();
 
         let urns: Vec<Urn> = req
@@ -76,9 +89,9 @@ impl CatalogEntityService for CatalogEntityGrpc {
 
         let catalogs = self
             .service
-            .get_batch_catalogs(&urns)
+            .get_batch_catalogs(&scope, &urns)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(StatusMapper::to_status)?;
 
         let proto_catalogs = catalogs.into_iter().map(Into::into).collect();
 
@@ -91,32 +104,31 @@ impl CatalogEntityService for CatalogEntityGrpc {
         &self,
         request: Request<GetByIdRequest>,
     ) -> Result<Response<CatalogResponse>, Status> {
+        let scope = self.auth.scope(request.metadata()).await?;
         let req = request.into_inner();
         let urn = Urn::from_str(&req.id).map_err(|_| Status::invalid_argument("Invalid URN"))?;
 
-        let catalog_opt = self
+        let dto = self
             .service
-            .get_catalog_by_id(&urn)
+            .get_catalog_by_id(&scope, &urn)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(StatusMapper::to_status)?;
 
-        match catalog_opt {
-            Some(dto) => Ok(Response::new(CatalogResponse {
-                catalog: Some(dto.into()),
-            })),
-            None => Err(Status::not_found("Catalog not found")),
-        }
+        Ok(Response::new(CatalogResponse {
+            catalog: Some(dto.into()),
+        }))
     }
 
     async fn get_main_catalog(
         &self,
-        _request: Request<()>,
+        request: Request<()>,
     ) -> Result<Response<CatalogResponse>, Status> {
+        let scope = self.auth.scope(request.metadata()).await?;
         let catalog_opt = self
             .service
-            .get_main_catalog()
+            .get_main_catalog(&scope)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(StatusMapper::to_status)?;
 
         match catalog_opt {
             Some(dto) => Ok(Response::new(CatalogResponse {
@@ -130,14 +142,15 @@ impl CatalogEntityService for CatalogEntityGrpc {
         &self,
         request: Request<CreateCatalogRequest>,
     ) -> Result<Response<CatalogResponse>, Status> {
+        let scope = self.auth.scope(request.metadata()).await?;
         let req = request.into_inner();
         let new_catalog_dto: NewCatalogDto = req.try_into()?;
 
         let created_dto = self
             .service
-            .create_catalog(&new_catalog_dto)
+            .create_catalog(&scope, &new_catalog_dto)
             .await
-            .map_err(|e| Status::internal(format!("Failed to create catalog: {}", e)))?;
+            .map_err(StatusMapper::to_status)?;
 
         Ok(Response::new(CatalogResponse {
             catalog: Some(created_dto.into()),
@@ -148,14 +161,15 @@ impl CatalogEntityService for CatalogEntityGrpc {
         &self,
         request: Request<CreateCatalogRequest>,
     ) -> Result<Response<CatalogResponse>, Status> {
+        let scope = self.auth.scope(request.metadata()).await?;
         let req = request.into_inner();
         let new_catalog_dto: NewCatalogDto = req.try_into()?;
 
         let created_dto = self
             .service
-            .create_main_catalog(&new_catalog_dto)
+            .create_main_catalog(&scope, &new_catalog_dto)
             .await
-            .map_err(|e| Status::internal(format!("Failed to create main catalog: {}", e)))?;
+            .map_err(StatusMapper::to_status)?;
 
         Ok(Response::new(CatalogResponse {
             catalog: Some(created_dto.into()),
@@ -166,15 +180,16 @@ impl CatalogEntityService for CatalogEntityGrpc {
         &self,
         request: Request<PutCatalogRequest>,
     ) -> Result<Response<CatalogResponse>, Status> {
+        let scope = self.auth.scope(request.metadata()).await?;
         let req = request.into_inner();
         let urn = Urn::from_str(&req.id).map_err(|_| Status::invalid_argument("Invalid URN"))?;
         let edit_dto: EditCatalogDto = req.into();
 
         let updated_dto = self
             .service
-            .put_catalog_by_id(&urn, &edit_dto)
+            .put_catalog_by_id(&scope, &urn, &edit_dto)
             .await
-            .map_err(|e| Status::internal(format!("Failed to update catalog: {}", e)))?;
+            .map_err(StatusMapper::to_status)?;
 
         Ok(Response::new(CatalogResponse {
             catalog: Some(updated_dto.into()),
@@ -185,13 +200,14 @@ impl CatalogEntityService for CatalogEntityGrpc {
         &self,
         request: Request<DeleteByIdRequest>,
     ) -> Result<Response<()>, Status> {
+        let scope = self.auth.scope(request.metadata()).await?;
         let req = request.into_inner();
         let urn = Urn::from_str(&req.id).map_err(|_| Status::invalid_argument("Invalid URN"))?;
 
         self.service
-            .delete_catalog_by_id(&urn)
+            .delete_catalog_by_id(&scope, &urn)
             .await
-            .map_err(|e| Status::internal(format!("Failed to delete catalog: {}", e)))?;
+            .map_err(StatusMapper::to_status)?;
 
         Ok(Response::new(()))
     }

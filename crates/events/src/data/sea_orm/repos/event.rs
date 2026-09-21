@@ -51,8 +51,10 @@ impl EventStoreRepo for SeaOrmEventRepo {
         Ok(())
     }
 
-    async fn get_event_by_id(&self, id: &Urn) -> Outcome<Option<EventEnvelope>> {
-        let model = event::Entity::find_by_id(id.to_string())
+    async fn get_event_by_id(&self, tenant_id: &str, id: &Urn) -> Outcome<Option<EventEnvelope>> {
+        let model = event::Entity::find()
+            .filter(event::Column::Id.eq(id.to_string()))
+            .filter(event::Column::TenantId.eq(tenant_id))
             .one(&self.db)
             .await
             .map_err(|e| Errors::db("failed to query event", Some(Box::new(e))))?;
@@ -65,12 +67,13 @@ impl EventStoreRepo for SeaOrmEventRepo {
 
     async fn list_events(
         &self,
+        tenant_id: &str,
         topic: Option<&str>,
         limit: u64,
         offset: u64,
     ) -> Outcome<Vec<EventEnvelope>> {
         let pattern = topic.and_then(|t| TopicPattern::new(t).ok());
-        let mut query = event::Entity::find();
+        let mut query = event::Entity::find().filter(event::Column::TenantId.eq(tenant_id));
 
         if let Some(ref pat) = pattern {
             if pat.as_str() == "*" || pat.as_str() == "**" {

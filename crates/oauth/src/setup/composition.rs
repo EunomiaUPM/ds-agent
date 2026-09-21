@@ -1,6 +1,3 @@
-use std::sync::Arc;
-use axum::Router;
-use sea_orm::DatabaseConnection;
 use crate::config::OAuthConfig;
 use crate::data::factory::OAuthDataFactory;
 use crate::data::sea_orm::factory::SeaOrmDataFactory;
@@ -12,10 +9,13 @@ use crate::services::client_service::ClientServiceTrait;
 use crate::services::client_service::service::ClientService;
 use crate::services::pat_service::PatServiceTrait;
 use crate::services::pat_service::service::PatService;
-use crate::services::token_service::service::TokenService;
 use crate::services::token_service::TokenServiceTrait;
-use crate::services::user_service::service::UserService;
+use crate::services::token_service::service::TokenService;
 use crate::services::user_service::UserServiceTrait;
+use crate::services::user_service::service::UserService;
+use axum::Router;
+use sea_orm::DatabaseConnection;
+use std::sync::Arc;
 
 #[derive(Default)]
 pub struct OAuthSetup {}
@@ -87,8 +87,6 @@ impl OAuthSetup {
                 common::auth::http::AuthHttpMiddleware::run,
             ));
 
-        Router::new()
-            .merge(token_router)
-            .merge(protected)
+        Router::new().merge(token_router).merge(protected)
     }
 }

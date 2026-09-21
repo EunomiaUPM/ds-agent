@@ -38,9 +38,10 @@ impl RepoIntoErrors for EventRepoError {}
 #[async_trait]
 pub trait EventStoreRepo: Send + Sync + 'static {
     async fn insert_event(&self, event: &EventEnvelope) -> Outcome<()>;
-    async fn get_event_by_id(&self, id: &Urn) -> Outcome<Option<EventEnvelope>>;
+    async fn get_event_by_id(&self, tenant_id: &str, id: &Urn) -> Outcome<Option<EventEnvelope>>;
     async fn list_events(
         &self,
+        tenant_id: &str,
         topic: Option<&str>,
         limit: u64,
         offset: u64,

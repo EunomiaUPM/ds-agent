@@ -142,6 +142,7 @@ impl TryFrom<CreateCatalogRequest> for NewCatalogDto {
 
         Ok(Self {
             id,
+            tenant_id: None,
             foaf_home_page: req.foaf_home_page,
             dct_conforms_to: req.dct_conforms_to,
             dct_creator: req.dct_creator,
@@ -201,6 +202,7 @@ impl TryFrom<CreateDataServiceRequest> for NewDataServiceDto {
 
         Ok(Self {
             id,
+            tenant_id: None,
             dcat_endpoint_description: req.dcat_endpoint_description,
             dcat_endpoint_url: req.dcat_endpoint_url,
             dct_conforms_to: req.dct_conforms_to,
@@ -262,6 +264,7 @@ impl TryFrom<CreateDatasetRequest> for NewDatasetDto {
 
         Ok(Self {
             id,
+            tenant_id: None,
             dct_conforms_to: req.dct_conforms_to,
             dct_creator: req.dct_creator,
             dct_title: req.dct_title,
@@ -323,6 +326,7 @@ impl TryFrom<CreateDistributionRequest> for NewDistributionDto {
 
         Ok(Self {
             id,
+            tenant_id: None,
             dct_title: req.dct_title,
             dct_description: req.dct_description,
             dct_formats: Some(dct_formats),
@@ -417,6 +421,7 @@ impl TryFrom<CreateOdrlPolicyRequest> for NewOdrlPolicyDto {
 
         Ok(Self {
             id,
+            tenant_id: None,
             odrl_offer,
             entity_id,
             entity_type,
@@ -497,6 +502,7 @@ impl TryFrom<CreatePolicyTemplateRequest> for NewPolicyTemplateDto {
 
         Ok(Self {
             id: req.id,
+            tenant_id: None,
             version: req.version,
             date,
             author: req.author,

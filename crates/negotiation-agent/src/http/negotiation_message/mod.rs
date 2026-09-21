@@ -15,138 +15,125 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! HTTP router for negotiation message management endpoints.
+
 use crate::entities::filters::NegotiationMessageFilter;
-use crate::entities::negotiation_message::{
-    NegotiationAgentMessagesTrait, NegotiationMessageDto, NewNegotiationMessageDto,
-};
-use crate::errors::error_adapter::CustomToResponse;
-use crate::http::common::{extract_payload, parse_urn};
-use axum::{
-    Json, Router,
-    extract::{FromRef, Path, Query, State, rejection::JsonRejection},
-    http::StatusCode,
-    response::IntoResponse,
-    routing::get,
-};
-use common::config::services::ContractsConfig;
-use common::query::QuerySpec;
-use serde::Deserialize;
+use crate::entities::negotiation_message::NewNegotiationMessageDto;
+use crate::http::common::ExtractedHeaders;
+use crate::services::negotiation_message::NegotiationMessageServiceTrait;
+use crate::services::negotiation_message::views::NegotiationMessageView;
+use axum::extract::rejection::JsonRejection;
+use axum::extract::{FromRef, Path, Query, State};
+use axum::http::{HeaderMap, StatusCode};
+use axum::routing::{get, post};
+use axum::{Json, Router};
+use common::auth::access::AccessScope;
+use common::batch_requests::BatchRequests;
+use common::query::{Paginated, QuerySpec, Sort};
 use std::sync::Arc;
+use ymir::errors::AppResult;
+use ymir::utils::{extract_path_urn, extract_payload};
+
+pub type NegotiationMessageQuery = QuerySpec<NegotiationMessageFilter, Sort>;
 
 #[derive(Clone)]
 pub struct NegotiationAgentMessagesRouter {
-    service: Arc<dyn NegotiationAgentMessagesTrait>,
-    config: Arc<ContractsConfig>,
+    service: Arc<dyn NegotiationMessageServiceTrait>,
 }
 
-pub use common::paginated_spec::PaginationParams;
-pub type NegotiationMessageQuery = QuerySpec<NegotiationMessageFilter>;
-
-impl FromRef<NegotiationAgentMessagesRouter> for Arc<dyn NegotiationAgentMessagesTrait> {
+impl FromRef<NegotiationAgentMessagesRouter> for Arc<dyn NegotiationMessageServiceTrait> {
     fn from_ref(state: &NegotiationAgentMessagesRouter) -> Self {
         state.service.clone()
     }
 }
 
-impl FromRef<NegotiationAgentMessagesRouter> for Arc<ContractsConfig> {
-    fn from_ref(state: &NegotiationAgentMessagesRouter) -> Self {
-        state.config.clone()
-    }
-}
-
 impl NegotiationAgentMessagesRouter {
-    pub fn new(
-        service: Arc<dyn NegotiationAgentMessagesTrait>,
-        config: Arc<ContractsConfig>,
-    ) -> Self {
-        Self { service, config }
+    pub fn new(service: Arc<dyn NegotiationMessageServiceTrait>) -> Self {
+        Self { service }
     }
 
     pub fn router(self) -> Router {
         Router::new()
-            .route(
-                "/",
-                get(Self::handle_get_all_messages).post(Self::handle_create_message),
-            )
+            .route("/", get(Self::handle_get_all).post(Self::handle_create))
+            .route("/batch", post(Self::handle_batch))
             .route(
                 "/{id}",
-                get(Self::handle_get_message_by_id).delete(Self::handle_delete_message),
+                get(Self::handle_get_one).delete(Self::handle_delete),
             )
-            .route(
-                "/process/{process_id}",
-                get(Self::handle_get_messages_by_process_id),
-            )
+            .route("/process/{process_id}", get(Self::handle_get_by_process))
             .with_state(self)
     }
 
-    async fn handle_get_all_messages(
-        State(state): State<NegotiationAgentMessagesRouter>,
-        Query(query): Query<NegotiationMessageQuery>,
-    ) -> impl IntoResponse {
-        match state
-            .service
-            .get_all_negotiation_messages(&query.filter, &query.page, &query.sort)
-            .await
-        {
-            Ok(messages) => (StatusCode::OK, Json(messages)).into_response(),
-            Err(err) => err.to_response(),
-        }
+    async fn handle_get_all(
+        State(state): State<Self>,
+        scope: AccessScope,
+        headers: ExtractedHeaders,
+        Query(q): Query<NegotiationMessageQuery>,
+    ) -> AppResult<(HeaderMap, Json<Paginated<NegotiationMessageView>>)> {
+        let (filter, page, sort) = q.into_domain();
+        let result = state.service.get_all(&scope, &filter, &page, &sort).await?;
+        let response_headers = headers.response_headers_paged(result.total);
+        Ok((response_headers, Json(result)))
     }
 
-    async fn handle_create_message(
-        State(state): State<NegotiationAgentMessagesRouter>,
-        input: Result<Json<NewNegotiationMessageDto>, JsonRejection>,
-    ) -> impl IntoResponse {
-        let input = match extract_payload(input) {
-            Ok(v) => v,
-            Err(e) => return e,
-        };
-        match state.service.create_negotiation_message(&input).await {
-            Ok(created) => (StatusCode::CREATED, Json(created)).into_response(),
-            Err(err) => err.to_response(),
-        }
-    }
-
-    async fn handle_get_message_by_id(
-        State(state): State<NegotiationAgentMessagesRouter>,
-        Path(id): Path<String>,
-    ) -> impl IntoResponse {
-        let id_urn = match parse_urn(&id) {
-            Ok(urn) => urn,
-            Err(resp) => return resp,
-        };
-        match state.service.get_negotiation_message_by_id(&id_urn).await {
-            Ok(Some(message)) => (StatusCode::OK, Json(message)).into_response(),
-            Ok(None) => (StatusCode::NOT_FOUND).into_response(),
-            Err(err) => err.to_response(),
-        }
-    }
-
-    async fn handle_delete_message(
-        State(state): State<NegotiationAgentMessagesRouter>,
-        Path(id): Path<String>,
-    ) -> impl IntoResponse {
-        let id_urn = match parse_urn(&id) {
-            Ok(urn) => urn,
-            Err(resp) => return resp,
-        };
-        match state.service.delete_negotiation_message(&id_urn).await {
-            Ok(_) => (StatusCode::NO_CONTENT).into_response(),
-            Err(err) => err.to_response(),
-        }
-    }
-
-    async fn handle_get_messages_by_process_id(
-        State(state): State<NegotiationAgentMessagesRouter>,
+    async fn handle_get_by_process(
+        State(state): State<Self>,
+        scope: AccessScope,
+        headers: ExtractedHeaders,
         Path(process_id): Path<String>,
-    ) -> impl IntoResponse {
-        let process_urn = match parse_urn(&process_id) {
-            Ok(urn) => urn,
-            Err(resp) => return resp,
-        };
-        match state.service.get_messages_by_process_id(&process_urn).await {
-            Ok(messages) => (StatusCode::OK, Json(messages)).into_response(),
-            Err(err) => err.to_response(),
-        }
+        Query(q): Query<NegotiationMessageQuery>,
+    ) -> AppResult<(HeaderMap, Json<Paginated<NegotiationMessageView>>)> {
+        let process_urn = extract_path_urn(&process_id)?;
+        let (mut filter, page, sort) = q.into_domain();
+        filter.process_id = Some(process_urn.to_string());
+        let result = state.service.get_all(&scope, &filter, &page, &sort).await?;
+        let response_headers = headers.response_headers_paged(result.total);
+        Ok((response_headers, Json(result)))
+    }
+
+    async fn handle_batch(
+        State(state): State<Self>,
+        scope: AccessScope,
+        headers: ExtractedHeaders,
+        payload: Result<Json<BatchRequests>, JsonRejection>,
+    ) -> AppResult<(HeaderMap, Json<Vec<NegotiationMessageView>>)> {
+        let payload = extract_payload(payload)?;
+        let views = state.service.batch(&scope, &payload).await?;
+        let count = views.len() as u64;
+        Ok((headers.response_headers_paged(Some(count)), Json(views)))
+    }
+
+    async fn handle_get_one(
+        State(state): State<Self>,
+        scope: AccessScope,
+        headers: ExtractedHeaders,
+        Path(id): Path<String>,
+    ) -> AppResult<(HeaderMap, Json<NegotiationMessageView>)> {
+        let urn = extract_path_urn(&id)?;
+        let view = state.service.get_one(&scope, &urn).await?;
+        Ok((headers.response_headers(), Json(view)))
+    }
+
+    async fn handle_create(
+        State(state): State<Self>,
+        scope: AccessScope,
+        headers: ExtractedHeaders,
+        payload: Result<Json<NewNegotiationMessageDto>, JsonRejection>,
+    ) -> AppResult<(StatusCode, HeaderMap, Json<NegotiationMessageView>)> {
+        let payload = extract_payload(payload)?;
+        let view = state.service.create(&scope, &payload).await?;
+        let response_headers = headers.response_headers();
+        Ok((StatusCode::CREATED, response_headers, Json(view)))
+    }
+
+    async fn handle_delete(
+        State(state): State<Self>,
+        scope: AccessScope,
+        headers: ExtractedHeaders,
+        Path(id): Path<String>,
+    ) -> AppResult<(StatusCode, HeaderMap)> {
+        let urn = extract_path_urn(&id)?;
+        state.service.delete(&scope, &urn).await?;
+        Ok((StatusCode::NO_CONTENT, headers.response_headers()))
     }
 }

@@ -47,6 +47,8 @@ pub struct NegotiationProcessDto {
 #[serde(deny_unknown_fields)]
 pub struct NewNegotiationProcessDto {
     pub id: Option<Urn>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tenant_id: Option<String>,
     pub state: String,
     pub state_attribute: Option<String>,
     pub associated_agent_peer: String,
@@ -68,19 +70,27 @@ pub struct EditNegotiationProcessDto {
     pub identifiers: Option<HashMap<String, String>>,
 }
 
-impl From<NewNegotiationProcessDto> for NewNegotiationProcessModel {
-    fn from(dto: NewNegotiationProcessDto) -> Self {
-        Self {
-            id: dto.id,
-            state: dto.state,
-            state_attribute: dto.state_attribute,
-            associated_agent_peer: dto.associated_agent_peer,
-            protocol: dto.protocol,
-            callback_address: dto.callback_address,
-            role: dto.role,
-            properties: dto.properties.unwrap_or(serde_json::json!({})),
+impl NewNegotiationProcessDto {
+    pub fn into_model(self, tenant_id: String) -> NewNegotiationProcessModel {
+        NewNegotiationProcessModel {
+            id: self.id,
+            tenant_id,
+            state: self.state,
+            state_attribute: self.state_attribute,
+            associated_agent_peer: self.associated_agent_peer,
+            protocol: self.protocol,
+            callback_address: self.callback_address,
+            role: self.role,
+            properties: self.properties.unwrap_or(serde_json::json!({})),
             error_details: None,
         }
+    }
+}
+
+impl From<NewNegotiationProcessDto> for NewNegotiationProcessModel {
+    fn from(dto: NewNegotiationProcessDto) -> Self {
+        let tenant_id = dto.tenant_id.clone().unwrap_or_default();
+        dto.into_model(tenant_id)
     }
 }
 

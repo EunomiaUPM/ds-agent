@@ -29,6 +29,7 @@ pub struct Model {
     pub name: String,
     #[sea_orm(primary_key, auto_increment = false)]
     pub version: String,
+    pub tenant_id: String,
     pub author: String,
     pub created_at: DateTimeWithTimeZone,
     pub spec: Json,
@@ -50,6 +51,7 @@ impl ActiveModelBehavior for ActiveModel {}
 
 #[derive(Clone)]
 pub struct NewConnectorTemplateModel {
+    pub tenant_id: String,
     pub name: Option<String>,
     pub version: Option<String>,
     pub author: Option<String>,
@@ -67,8 +69,9 @@ impl From<NewConnectorTemplateModel> for ActiveModel {
 
         Self {
             name: ActiveValue::Set(dto.name.clone().unwrap_or(new_urn.to_string()).to_string()),
-            version: ActiveValue::Set(dto.name.clone().unwrap_or("1.0".to_string()).to_string()),
-            author: ActiveValue::Set(dto.name.clone().unwrap_or("admin".to_string()).to_string()),
+            version: ActiveValue::Set(dto.version.unwrap_or_else(|| "1.0".to_string())),
+            tenant_id: ActiveValue::Set(dto.tenant_id),
+            author: ActiveValue::Set(dto.author.unwrap_or_else(|| "admin".to_string())),
             created_at: ActiveValue::Set(chrono::Utc::now().into()),
             spec: ActiveValue::Set(dto.spec),
         }

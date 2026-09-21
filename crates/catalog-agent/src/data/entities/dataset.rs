@@ -26,6 +26,7 @@ use urn::{Urn, UrnBuilder};
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: String,
+    pub tenant_id: String,
     pub dct_conforms_to: Option<String>,
     pub dct_creator: Option<String>,
     pub dct_identifier: Option<String>,
@@ -73,6 +74,7 @@ impl ActiveModelBehavior for ActiveModel {}
 #[derive(Clone)]
 pub struct NewDatasetModel {
     pub id: Option<Urn>,
+    pub tenant_id: String,
     pub dct_conforms_to: Option<String>,
     pub dct_creator: Option<String>,
     pub dct_title: Option<String>,
@@ -87,6 +89,7 @@ impl From<NewDatasetModel> for ActiveModel {
             .expect("UrnBuilder failed");
         Self {
             id: ActiveValue::Set(dto.id.clone().unwrap_or(new_urn.clone()).to_string()),
+            tenant_id: ActiveValue::Set(dto.tenant_id),
             dct_conforms_to: ActiveValue::Set(dto.dct_conforms_to),
             dct_creator: ActiveValue::Set(dto.dct_creator),
             dct_identifier: ActiveValue::Set(Some(

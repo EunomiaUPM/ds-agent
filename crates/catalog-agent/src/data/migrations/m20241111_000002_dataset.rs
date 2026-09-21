@@ -37,6 +37,11 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .primary_key(),
                     )
+                    .col(
+                        ColumnDef::new(CatalogDatasets::TenantId)
+                            .string()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(CatalogDatasets::DctConformsTo).string())
                     .col(ColumnDef::new(CatalogDatasets::DctCreator).string())
                     .col(ColumnDef::new(CatalogDatasets::DctIdentifier).string())
@@ -76,6 +81,7 @@ impl MigrationTrait for Migration {
 pub enum CatalogDatasets {
     Table,
     Id,
+    TenantId,
     DctConformsTo,
     DctCreator,
     DctIdentifier,

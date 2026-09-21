@@ -39,10 +39,13 @@ pub struct NewPolicyInstantiationDto {
     pub description: Option<String>,
 }
 
+use common::auth::AccessScope;
+
 #[async_trait::async_trait]
 pub trait PolicyInstantiationTrait: Send + Sync {
     async fn instantiate_policy(
         &self,
+        scope: &AccessScope,
         instantiation_request: &NewPolicyInstantiationDto,
     ) -> Outcome<OdrlPolicyDto>;
 }

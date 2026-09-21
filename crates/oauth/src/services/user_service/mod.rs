@@ -25,8 +25,6 @@ use crate::services::user_service::views::{UserInfo, UserView};
 pub mod service;
 pub mod views;
 
-// Service trait ────────────────────────────────────────────────────────────
-
 #[cfg_attr(test, mockall::automock)]
 #[async_trait::async_trait]
 pub trait UserServiceTrait: Send + Sync + 'static {

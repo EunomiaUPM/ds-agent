@@ -15,31 +15,34 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::dataplane_transfer_logs::DataplaneTransferLogsEntitiesTrait;
-use crate::http::common::parse_urn;
+use std::sync::Arc;
+
 use axum::extract::{FromRef, Path, State};
-use axum::http::StatusCode;
-use axum::response::IntoResponse;
+use axum::http::HeaderMap;
 use axum::routing::get;
 use axum::{Json, Router};
-use common::errors::{CommonErrors, ErrorLog};
-use std::sync::Arc;
-use tracing::error;
+use common::auth::access::AccessScope;
+use ymir::errors::AppResult;
+use ymir::utils::extract_path_urn;
+
+use crate::entities::dataplane_transfer_logs::DataplaneTransferLogDto;
+use crate::http::extractors::ExtractedHeaders;
+use crate::services::dataplane_transfer_logs::DataplaneTransferLogServiceTrait;
 
 #[derive(Clone)]
 pub struct DataplaneTransferLogsRouter {
-    logs_entity: Arc<dyn DataplaneTransferLogsEntitiesTrait>,
+    service: Arc<dyn DataplaneTransferLogServiceTrait>,
 }
 
-impl FromRef<DataplaneTransferLogsRouter> for Arc<dyn DataplaneTransferLogsEntitiesTrait> {
+impl FromRef<DataplaneTransferLogsRouter> for Arc<dyn DataplaneTransferLogServiceTrait> {
     fn from_ref(state: &DataplaneTransferLogsRouter) -> Self {
-        state.logs_entity.clone()
+        state.service.clone()
     }
 }
 
 impl DataplaneTransferLogsRouter {
-    pub fn new(logs_entity: Arc<dyn DataplaneTransferLogsEntitiesTrait>) -> Self {
-        Self { logs_entity }
+    pub fn new(service: Arc<dyn DataplaneTransferLogServiceTrait>) -> Self {
+        Self { service }
     }
 
     pub fn router(self) -> Router {
@@ -52,25 +55,17 @@ impl DataplaneTransferLogsRouter {
     }
 
     async fn handle_get_logs_by_dataplane_process_id(
-        State(state): State<DataplaneTransferLogsRouter>,
+        State(state): State<Self>,
+        scope: AccessScope,
+        headers: ExtractedHeaders,
         Path(dataplane_process_id): Path<String>,
-    ) -> impl IntoResponse {
-        let dataplane_process_id = match parse_urn(&dataplane_process_id) {
-            Ok(urn) => urn,
-            Err(resp) => return resp,
-        };
+    ) -> AppResult<(HeaderMap, Json<Vec<DataplaneTransferLogDto>>)> {
+        let process_urn = extract_path_urn(&dataplane_process_id)?;
+        let logs = state
+            .service
+            .get_transfer_logs_by_dataplane_process_id(&scope, &process_urn)
+            .await?;
 
-        match state
-            .logs_entity
-            .get_transfer_logs_by_dataplane_process_id(&dataplane_process_id)
-            .await
-        {
-            Ok(logs) => (StatusCode::OK, Json(logs)).into_response(),
-            Err(e) => {
-                let err = CommonErrors::database_new(&e.to_string());
-                error!("{}", err.log());
-                err.into_response()
-            }
-        }
+        Ok((headers.response_headers(), Json(logs)))
     }
 }

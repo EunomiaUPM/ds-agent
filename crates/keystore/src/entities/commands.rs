@@ -25,6 +25,8 @@ pub struct NewParameterCommand<T> {
     pub key: Key,
     pub value: T,
     pub description: Option<String>,
+    #[serde(default)]
+    pub tenant_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -35,11 +37,13 @@ pub struct EditParameterCommand<T> {
     pub description: Option<String>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewSecretCommand {
     pub key: Key,
     pub value: SecretValue,
     pub description: Option<String>,
+    #[serde(default)]
+    pub tenant_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

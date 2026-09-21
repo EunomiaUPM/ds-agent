@@ -50,16 +50,26 @@ mock! {
     pub ConnectorInstance {}
     #[async_trait::async_trait]
     impl ConnectorInstanceTrait for ConnectorInstance {
-        async fn get_instance_by_id(&self, id: &Urn) -> Outcome<Option<ConnectorInstanceDto>>;
+        async fn get_instance_by_id(
+            &self,
+            scope: &common::auth::AccessScope,
+            id: &Urn,
+        ) -> Outcome<Option<ConnectorInstanceDto>>;
         async fn get_instance_by_distribution(
             &self,
+            scope: &common::auth::AccessScope,
             distribution_id: &Urn,
         ) -> Outcome<Option<ConnectorInstanceDto>>;
         async fn upsert_instance(
             &self,
+            scope: &common::auth::AccessScope,
             dto: &mut ConnectorInstantiationDto,
         ) -> Outcome<ConnectorInstanceDto>;
-        async fn delete_instance_by_id(&self, id: &Urn) -> Outcome<()>;
+        async fn delete_instance_by_id(
+            &self,
+            scope: &common::auth::AccessScope,
+            id: &Urn,
+        ) -> Outcome<()>;
     }
 }
 
@@ -105,6 +115,7 @@ fn dummy_connector(auth: AuthenticationConfig) -> ConnectorInstanceDto {
 fn provider_dto(state: TransferState) -> DataplaneTransferDto {
     DataplaneTransferDto {
         inner: dataplane_transfers::Model {
+            tenant_id: "tenant-1".to_string(),
             id: "urn:dataplane-transfer:test-1".to_string(),
             transfer_process_id: tp_urn().to_string(),
             role: TransferRole::Provider,
@@ -148,6 +159,7 @@ async fn provider_context(auth: AuthenticationConfig) -> DataplaneContext {
         Arc::new(MockConnectorInstance::new()),
         transfer_config_fixture(),
         DataplaneInitCommandTypes::AsProvider {
+            tenant_id: "tenant-1".to_string(),
             transfer_process_id: tp_urn(),
             connector_instance: connector,
             direction: DataplaneInitCommandDirection::Pull {
@@ -243,6 +255,7 @@ pub async fn consumer_context() -> DataplaneContext {
         Arc::new(MockConnectorInstance::new()),
         transfer_config_fixture(),
         DataplaneInitCommandTypes::AsConsumer {
+            tenant_id: "tenant-1".to_string(),
             transfer_process_id: tp_urn(),
             direction: DataplaneInitCommandDirection::Pull {
                 data_address: Some(forward_address()),

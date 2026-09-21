@@ -15,13 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod data;
+pub mod data;
 pub mod entities;
 pub(crate) mod error;
 pub(crate) mod http;
 pub mod services;
 pub mod setup;
-pub(crate) mod utils;
 
 pub const EVENT_DOMAIN: &str = "keystore";
 pub const EVENT_PREFIX: &str = "keystore:";

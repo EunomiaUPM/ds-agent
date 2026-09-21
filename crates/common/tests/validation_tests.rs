@@ -15,7 +15,9 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use common::validation::{codes, violation, Path, Validator, ValidatorRegistry, Violation, Violations};
+use common::validation::{
+    codes, violation, Path, Validator, ValidatorRegistry, Violation, Violations,
+};
 
 #[derive(Debug)]
 struct Address {
@@ -52,10 +54,17 @@ fn item_validator() -> Validator<Item> {
 #[test]
 fn path_prefixing_and_reasons() {
     let mut vs = Violations::new();
-    vs.push(Violation::new(Path::field("street"), codes::MISSING, "is required"));
+    vs.push(Violation::new(
+        Path::field("street"),
+        codes::MISSING,
+        "is required",
+    ));
     let prefixed = vs.with_prefix("address");
 
-    assert_eq!(prefixed.to_reasons(), vec!["address.street: is required".to_string()]);
+    assert_eq!(
+        prefixed.to_reasons(),
+        vec!["address.street: is required".to_string()]
+    );
     assert_eq!(prefixed.messages(), vec!["is required".to_string()]);
 }
 
@@ -63,12 +72,17 @@ fn path_prefixing_and_reasons() {
 fn fluent_ensure_and_ensure_not_empty() {
     let validator = Validator::<Order>::new()
         .ensure_not_empty("order_id", |o| o.order_id.as_deref())
-        .ensure("amount", "amount must be greater than zero", |o| o.amount > 0);
+        .ensure("amount", "amount must be greater than zero", |o| {
+            o.amount > 0
+        });
 
     let invalid = Order {
         order_id: Some("   ".to_string()),
         amount: 0,
-        address: Address { street: None, country: None },
+        address: Address {
+            street: None,
+            country: None,
+        },
         shipping_address: None,
         items: vec![],
         is_gift: false,
@@ -81,19 +95,28 @@ fn fluent_ensure_and_ensure_not_empty() {
 
 #[test]
 fn conditional_when_rule() {
-    let validator = Validator::<Order>::new()
-        .when(|o| o.is_gift, |o: &Order| {
+    let validator = Validator::<Order>::new().when(
+        |o| o.is_gift,
+        |o: &Order| {
             if o.gift_note.as_deref().unwrap_or("").is_empty() {
-                Err(violation("gift_note", codes::MISSING, "gift note is required for gifts"))
+                Err(violation(
+                    "gift_note",
+                    codes::MISSING,
+                    "gift note is required for gifts",
+                ))
             } else {
                 Ok(())
             }
-        });
+        },
+    );
 
     let non_gift = Order {
         order_id: Some("ord-1".into()),
         amount: 10,
-        address: Address { street: None, country: None },
+        address: Address {
+            street: None,
+            country: None,
+        },
         shipping_address: None,
         items: vec![],
         is_gift: false,
@@ -112,17 +135,31 @@ fn conditional_when_rule() {
 fn nested_field_and_each_combinators() {
     let validator = Validator::<Order>::new()
         .field("address", |o| &o.address, address_validator())
-        .field_opt("shipping", |o| o.shipping_address.as_ref(), address_validator())
+        .field_opt(
+            "shipping",
+            |o| o.shipping_address.as_ref(),
+            address_validator(),
+        )
         .each("items", |o| &o.items, item_validator());
 
     let order = Order {
         order_id: Some("1".into()),
         amount: 10,
-        address: Address { street: None, country: Some("ES".into()) },
-        shipping_address: Some(Address { street: None, country: None }),
+        address: Address {
+            street: None,
+            country: Some("ES".into()),
+        },
+        shipping_address: Some(Address {
+            street: None,
+            country: None,
+        }),
         items: vec![
-            Item { sku: Some("urn:sku:123".into()) },
-            Item { sku: Some("invalid-sku".into()) },
+            Item {
+                sku: Some("urn:sku:123".into()),
+            },
+            Item {
+                sku: Some("invalid-sku".into()),
+            },
         ],
         is_gift: false,
         gift_note: None,
@@ -144,15 +181,17 @@ fn validator_merge_combines_stages() {
         .then()
         .ensure("amount", "must be positive", |o| o.amount > 0);
 
-    let val_b = Validator::<Order>::new()
-        .ensure("is_gift", "must be a gift", |o| o.is_gift);
+    let val_b = Validator::<Order>::new().ensure("is_gift", "must be a gift", |o| o.is_gift);
 
     let merged = val_a.merge(val_b);
 
     let order = Order {
         order_id: None,
         amount: 0,
-        address: Address { street: None, country: None },
+        address: Address {
+            street: None,
+            country: None,
+        },
         shipping_address: None,
         items: vec![],
         is_gift: false,
@@ -166,10 +205,16 @@ fn validator_merge_combines_stages() {
 #[test]
 fn registry_merge_combines_message_validators() {
     let mut reg_a: ValidatorRegistry<&str, Order> = ValidatorRegistry::new();
-    reg_a.register("order", Validator::<Order>::new().ensure_not_empty("order_id", |o| o.order_id.as_deref()));
+    reg_a.register(
+        "order",
+        Validator::<Order>::new().ensure_not_empty("order_id", |o| o.order_id.as_deref()),
+    );
 
     let mut reg_b: ValidatorRegistry<&str, Order> = ValidatorRegistry::new();
-    reg_b.register("order", Validator::<Order>::new().ensure("amount", "positive", |o| o.amount > 0));
+    reg_b.register(
+        "order",
+        Validator::<Order>::new().ensure("amount", "positive", |o| o.amount > 0),
+    );
 
     reg_a.merge(reg_b);
     assert!(reg_a.has_key(&"order"));
@@ -177,7 +222,10 @@ fn registry_merge_combines_message_validators() {
     let invalid = Order {
         order_id: None,
         amount: 0,
-        address: Address { street: None, country: None },
+        address: Address {
+            street: None,
+            country: None,
+        },
         shipping_address: None,
         items: vec![],
         is_gift: false,

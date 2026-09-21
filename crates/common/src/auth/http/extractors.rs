@@ -56,11 +56,10 @@ impl<S: Send + Sync> FromRequestParts<S> for AccessScope {
     type Rejection = Errors;
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        let claims = parts
-            .extensions
-            .get::<Claims>()
-            .cloned()
-            .ok_or_else(|| Errors::unauthorized("authentication required: missing claims", None))?;
+        let claims =
+            parts.extensions.get::<Claims>().cloned().ok_or_else(|| {
+                Errors::unauthorized("authentication required: missing claims", None)
+            })?;
 
         let tenant_raw = parts
             .headers

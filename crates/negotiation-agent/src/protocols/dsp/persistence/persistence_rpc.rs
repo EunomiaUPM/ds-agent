@@ -236,6 +236,7 @@ impl NegotiationPersistenceForRpcService {
             .negotiation_process_service
             .create_negotiation_process(&NewNegotiationProcessDto {
                 id: Some(id),
+                tenant_id: None,
                 state: state.to_string(),
                 state_attribute: None,
                 associated_agent_peer: agent_peer,
@@ -289,6 +290,7 @@ impl NegotiationPersistenceForRpcService {
             .negotiation_messages_service
             .create_negotiation_message(&NewNegotiationMessageDto {
                 id: Some(id),
+                tenant_id: None,
                 negotiation_agent_process_id: process_id.clone(),
                 direction: "OUTBOUND".to_string(),
                 protocol: "DSP".to_string(),
@@ -319,6 +321,7 @@ impl NegotiationPersistenceForRpcService {
             .offer_service
             .create_offer(&NewOfferDto {
                 id: Some(id),
+                tenant_id: None,
                 negotiation_agent_process_id: process_id.clone(),
                 negotiation_agent_message_id: message_id.clone(),
                 offer_id,
@@ -343,6 +346,7 @@ impl NegotiationPersistenceForRpcService {
             .agreement_service
             .create_agreement(&NewAgreementDto {
                 id: Some(id),
+                tenant_id: None,
                 negotiation_agent_process_id: pid.clone(),
                 negotiation_agent_message_id: mid.clone(),
                 consumer_participant_id: agreement.assignee.clone(),

@@ -20,7 +20,7 @@ use crate::data::factory_trait::NegotiationAgentRepoTrait;
 use crate::entities::agreement::{
     AgreementDto, EditAgreementDto, NegotiationAgentAgreementsTrait, NewAgreementDto,
 };
-use crate::entities::filters::AgreementFilter;
+use crate::entities::filters::{AgreementFilter, NegotiationMessageFilter};
 use common::paginated_spec::{Cursor, Page, Paginated, Sort};
 use common::query::QueryFilter;
 use std::sync::Arc;
@@ -80,10 +80,28 @@ impl NegotiationAgentAgreementsTrait for NegotiationAgentAgreementsService {
     }
 
     async fn get_batch_agreements(&self, ids: &Vec<Urn>) -> Outcome<Vec<AgreementDto>> {
-        let agreements = self
+        let mut dtos = Vec::with_capacity(ids.len());
+        for id in ids {
+            if let Some(dto) = self.get_agreement_by_id(id).await? {
+                dtos.push(dto);
+            }
+        }
+        Ok(dtos)
+    }
+
+    async fn get_agreement_by_id(&self, id: &Urn) -> Outcome<Option<AgreementDto>> {
+        let filter = AgreementFilter {
+            id: Some(id.to_string()),
+            ..Default::default()
+        };
+        let page = Page {
+            limit: 1,
+            ..Default::default()
+        };
+        let (agreements, _) = self
             .negotiation_repo
             .get_agreement_repo()
-            .get_batch_agreements(ids)
+            .get_all_agreements(&filter, &page, &Sort::default())
             .await
             .map_err(|e| {
                 let err = Errors::db(e.to_string(), None);
@@ -93,33 +111,27 @@ impl NegotiationAgentAgreementsTrait for NegotiationAgentAgreementsService {
 
         Ok(agreements
             .into_iter()
-            .map(|m| AgreementDto { inner: m })
-            .collect())
-    }
-
-    async fn get_agreement_by_id(&self, id: &Urn) -> Outcome<Option<AgreementDto>> {
-        let agreement = self
-            .negotiation_repo
-            .get_agreement_repo()
-            .get_agreement_by_id(id)
-            .await
-            .map_err(|e| {
-                let err = Errors::db(e.to_string(), None);
-                error!("{}", err);
-                err
-            })?;
-
-        Ok(agreement.map(|m| AgreementDto { inner: m }))
+            .next()
+            .map(|m| AgreementDto { inner: m }))
     }
 
     async fn get_agreement_by_negotiation_process(
         &self,
         id: &Urn,
     ) -> Outcome<Option<AgreementDto>> {
+        let process_opt = self
+            .negotiation_repo
+            .get_negotiation_process_repo()
+            .get_negotiation_process_by_key_value(None, id)
+            .await?;
+        let Some(process) = process_opt else {
+            return Ok(None);
+        };
+
         let agreement = self
             .negotiation_repo
             .get_agreement_repo()
-            .get_agreement_by_negotiation_process(id)
+            .get_agreement_by_negotiation_process(&process.tenant_id, id)
             .await
             .map_err(|e| {
                 let err = Errors::db(e.to_string(), None);
@@ -134,10 +146,29 @@ impl NegotiationAgentAgreementsTrait for NegotiationAgentAgreementsService {
         &self,
         id: &Urn,
     ) -> Outcome<Option<AgreementDto>> {
+        let msg_opt = self
+            .negotiation_repo
+            .get_negotiation_message_repo()
+            .get_all_negotiation_messages(
+                &NegotiationMessageFilter {
+                    id: Some(id.to_string()),
+                    ..Default::default()
+                },
+                &Page {
+                    limit: 1,
+                    ..Default::default()
+                },
+                &Sort::default(),
+            )
+            .await?;
+        let Some(msg) = msg_opt.0.into_iter().next() else {
+            return Ok(None);
+        };
+
         let agreement = self
             .negotiation_repo
             .get_agreement_repo()
-            .get_agreement_by_negotiation_message(id)
+            .get_agreement_by_negotiation_message(&msg.tenant_id, id)
             .await
             .map_err(|e| {
                 let err = Errors::db(e.to_string(), None);
@@ -149,10 +180,14 @@ impl NegotiationAgentAgreementsTrait for NegotiationAgentAgreementsService {
     }
 
     async fn get_agreements_by_assignee(&self, id: &String) -> Outcome<Vec<AgreementDto>> {
-        let agreements = self
+        let filter = AgreementFilter {
+            consumer_id: Some(id.clone()),
+            ..Default::default()
+        };
+        let (agreements, _) = self
             .negotiation_repo
             .get_agreement_repo()
-            .get_agreements_by_assignee(id)
+            .get_all_agreements(&filter, &Page::default(), &Sort::default())
             .await
             .map_err(|e| {
                 let err = Errors::db(e.to_string(), None);
@@ -167,10 +202,14 @@ impl NegotiationAgentAgreementsTrait for NegotiationAgentAgreementsService {
     }
 
     async fn get_agreements_by_assigner(&self, id: &String) -> Outcome<Vec<AgreementDto>> {
-        let agreements = self
+        let filter = AgreementFilter {
+            provider_id: Some(id.clone()),
+            ..Default::default()
+        };
+        let (agreements, _) = self
             .negotiation_repo
             .get_agreement_repo()
-            .get_agreements_by_assigner(id)
+            .get_all_agreements(&filter, &Page::default(), &Sort::default())
             .await
             .map_err(|e| {
                 let err = Errors::db(e.to_string(), None);
@@ -214,12 +253,17 @@ impl NegotiationAgentAgreementsTrait for NegotiationAgentAgreementsService {
         id: &Urn,
         edit_model_dto: &EditAgreementDto,
     ) -> Outcome<AgreementDto> {
+        let existing = self
+            .get_agreement_by_id(id)
+            .await?
+            .ok_or_else(|| Errors::parse(format!("Agreement {} not found", id), None))?;
+
         let edit_model: EditAgreementModel = edit_model_dto.clone().into();
 
         let updated = self
             .negotiation_repo
             .get_agreement_repo()
-            .put_agreement(id, &edit_model)
+            .put_agreement(&existing.inner.tenant_id, id, &edit_model)
             .await
             .inspect_err(|e| error!("{}", e))?;
 
@@ -235,11 +279,13 @@ impl NegotiationAgentAgreementsTrait for NegotiationAgentAgreementsService {
     }
 
     async fn delete_agreement(&self, id: &Urn) -> Outcome<()> {
-        self.negotiation_repo
-            .get_agreement_repo()
-            .delete_agreement(id)
-            .await
-            .inspect_err(|e| error!("{}", e))?;
+        if let Some(agreement) = self.get_agreement_by_id(id).await? {
+            self.negotiation_repo
+                .get_agreement_repo()
+                .delete_agreement(&agreement.inner.tenant_id, id)
+                .await
+                .inspect_err(|e| error!("{}", e))?;
+        }
         events::emit_action!(
             self.event_bus,
             crate::EVENT_PREFIX,

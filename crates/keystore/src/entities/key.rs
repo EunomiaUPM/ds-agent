@@ -15,9 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::utils::validate_key;
 use serde::{Deserialize, Serialize};
-use ymir::errors::Outcome;
+use ymir::errors::{Errors, Outcome};
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct Key(String);
@@ -30,11 +29,53 @@ impl std::fmt::Display for Key {
 impl Key {
     pub fn new(s: impl Into<String>) -> Outcome<Self> {
         let s = s.into();
-        validate_key(&s)?;
+        Self::validate(&s)?;
         Ok(Self(s))
     }
+
     pub fn as_str(&self) -> &str {
         &self.0
+    }
+
+    pub fn validate(key: &str) -> Outcome<()> {
+        if !key.starts_with('/') {
+            return Err(Errors::validation(
+                format!("invalid key '{key}': must start with '/'"),
+                None,
+            ));
+        }
+        if key.len() == 1 {
+            return Err(Errors::validation(
+                format!("invalid key '{key}': must have at least one segment"),
+                None,
+            ));
+        }
+        if key.ends_with('/') {
+            return Err(Errors::validation(
+                format!("invalid key '{key}': must not end with '/'"),
+                None,
+            ));
+        }
+        for segment in key[1..].split('/') {
+            if segment.is_empty() {
+                return Err(Errors::validation(
+                    format!("invalid key '{key}': empty segment (double slash)"),
+                    None,
+                ));
+            }
+            if !segment
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-' || c == '.')
+            {
+                return Err(Errors::validation(
+                    format!(
+                        "invalid key '{key}': segment '{segment}' contains invalid characters (allowed: a-z A-Z 0-9 _ - .)"
+                    ),
+                    None,
+                ));
+            }
+        }
+        Ok(())
     }
 }
 

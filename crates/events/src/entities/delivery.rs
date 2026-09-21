@@ -24,6 +24,7 @@ use crate::entities::subscription::DeliveryStatus;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EventDeliveryRecord {
     pub id: String,
+    pub tenant_id: String,
     pub event_id: String,
     pub subscription_id: String,
     pub status: DeliveryStatus,

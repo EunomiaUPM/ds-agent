@@ -166,8 +166,7 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
         tenant_id: &str,
         id: &Urn,
     ) -> Outcome<Option<TransferProcess>> {
-        let q = orm::Entity::find_by_id(id.to_string())
-            .filter(orm::Column::TenantId.eq(tenant_id));
+        let q = orm::Entity::find_by_id(id.to_string()).filter(orm::Column::TenantId.eq(tenant_id));
         q.one(self.db.as_ref())
             .await
             .map_err(Self::fetch_err)?
@@ -182,8 +181,7 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
     ) -> Outcome<Option<TransferProcess>> {
         use crate::data::sea_orm::orm::transfer_identifier as ident_orm;
 
-        let mut q = ident_orm::Entity::find()
-            .filter(ident_orm::Column::Value.eq(id.to_string()));
+        let mut q = ident_orm::Entity::find().filter(ident_orm::Column::Value.eq(id.to_string()));
         if let Some(tid) = &tenant_id {
             q = q.filter(ident_orm::Column::TenantId.eq(tid.as_str()));
         }
@@ -218,8 +216,7 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
         id: &Urn,
         edit_model: &EditTransferProcessCommand,
     ) -> Outcome<TransferProcess> {
-        let q = orm::Entity::find_by_id(id.to_string())
-            .filter(orm::Column::TenantId.eq(tenant_id));
+        let q = orm::Entity::find_by_id(id.to_string()).filter(orm::Column::TenantId.eq(tenant_id));
         let existing = q
             .one(self.db.as_ref())
             .await
@@ -242,12 +239,9 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
         let q = orm::Entity::delete_many()
             .filter(orm::Column::Id.eq(id.to_string()))
             .filter(orm::Column::TenantId.eq(tenant_id));
-        let res = q
-            .exec(self.db.as_ref())
-            .await
-            .map_err(|e| {
-                TransferProcessRepoErrors::ErrorDeletingTransferProcess(Box::new(e)).into_errors()
-            })?;
+        let res = q.exec(self.db.as_ref()).await.map_err(|e| {
+            TransferProcessRepoErrors::ErrorDeletingTransferProcess(Box::new(e)).into_errors()
+        })?;
         if res.rows_affected == 0 {
             return Err(TransferProcessRepoErrors::TransferProcessNotFound.into_errors());
         }

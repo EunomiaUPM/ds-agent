@@ -23,27 +23,31 @@ use ymir::errors::Outcome;
 pub trait ConnectorDistroRelationRepoTrait: Send + Sync {
     async fn create_relation(
         &self,
-        distro: &String,
-        instance: &String,
+        tenant_id: &str,
+        distro: &str,
+        instance: &str,
     ) -> Outcome<connector_distro_relation::Model>;
 
     async fn update_relation(
         &self,
-        distro: &String,
-        instance: &String,
+        tenant_id: &str,
+        distro: &str,
+        instance: &str,
     ) -> Outcome<connector_distro_relation::Model>;
 
     async fn get_relation_by_distribution(
         &self,
-        distro: &String,
+        tenant_id: &str,
+        distro: &str,
     ) -> Outcome<Option<connector_distro_relation::Model>>;
 
     async fn get_relation_by_instance(
         &self,
-        instance: &String,
+        tenant_id: &str,
+        instance: &str,
     ) -> Outcome<Option<connector_distro_relation::Model>>;
 
-    async fn delete_relation_by_distribution(&self, distro: &String) -> Outcome<()>;
+    async fn delete_relation_by_distribution(&self, tenant_id: &str, distro: &str) -> Outcome<()>;
 
-    async fn delete_relation_by_instance(&self, distro: &String) -> Outcome<()>;
+    async fn delete_relation_by_instance(&self, tenant_id: &str, instance: &str) -> Outcome<()>;
 }

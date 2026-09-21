@@ -51,8 +51,14 @@ impl EventDeliveryRepo for SeaOrmDeliveryRepo {
         Ok(d.clone())
     }
 
-    async fn get_delivery(&self, id: &str) -> Outcome<Option<EventDeliveryRecord>> {
-        let model = delivery::Entity::find_by_id(id.to_string())
+    async fn get_delivery(
+        &self,
+        tenant_id: &str,
+        id: &str,
+    ) -> Outcome<Option<EventDeliveryRecord>> {
+        let model = delivery::Entity::find()
+            .filter(delivery::Column::Id.eq(id))
+            .filter(delivery::Column::TenantId.eq(tenant_id))
             .one(&self.db)
             .await
             .map_err(|e| Errors::db("failed to query delivery record", Some(Box::new(e))))?;
@@ -150,9 +156,14 @@ impl EventDeliveryRepo for SeaOrmDeliveryRepo {
         Ok(())
     }
 
-    async fn list_by_event(&self, event_id: &str) -> Outcome<Vec<EventDeliveryRecord>> {
+    async fn list_by_event(
+        &self,
+        tenant_id: &str,
+        event_id: &str,
+    ) -> Outcome<Vec<EventDeliveryRecord>> {
         let models = delivery::Entity::find()
             .filter(delivery::Column::EventId.eq(event_id))
+            .filter(delivery::Column::TenantId.eq(tenant_id))
             .all(&self.db)
             .await
             .map_err(|e| Errors::db("failed to list deliveries", Some(Box::new(e))))?;

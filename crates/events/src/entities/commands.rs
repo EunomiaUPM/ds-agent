@@ -23,6 +23,7 @@ use serde::{Deserialize, Serialize};
 // Command payload to register a new webhook subscription.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateSubscriptionDto {
+    pub tenant_id: Option<String>,
     pub callback_address: String,
     pub topic_pattern: String,
     pub secret: Option<String>,
@@ -46,6 +47,7 @@ pub struct UpdateSubscriptionDto {
 // Command payload to publish a generic event via HTTP.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PublishEventRequest {
+    pub tenant_id: Option<String>,
     pub topic: String,
     pub source_crate: Option<String>,
     pub schema_version: Option<u32>,

@@ -27,6 +27,7 @@ use ymir::services::vault::VaultTrait;
 use crate::data::repo::secrets::SecretRepoTrait;
 use crate::entities::commands::{EditSecretCommand, NewSecretCommand};
 use crate::entities::entry::{Entry, SecretEntry};
+use crate::entities::filters::PrefixFilter;
 use crate::entities::key::Key;
 use crate::entities::secret_value::SecretValue;
 
@@ -47,22 +48,26 @@ impl VaultSecretRepo {
         }
     }
 
-    async fn vault_read(&self, key: &Key) -> Outcome<SecretValue> {
+    async fn vault_read(&self, tenant_id: &str, key: &Key) -> Outcome<SecretValue> {
+        let vault_path = format!("{}/{}", tenant_id, key.as_str().trim_start_matches('/'));
         let map: HashMap<String, serde_json::Value> =
-            self.vault_service.read(None, key.as_str()).await?;
+            self.vault_service.read(None, &vault_path).await?;
         let inner = map.get("value").cloned().unwrap_or(serde_json::Value::Null);
         Ok(SecretValue::new(inner))
     }
 
-    async fn vault_write(&self, key: &Key, value: &SecretValue) -> Outcome<()> {
+    async fn vault_write(&self, tenant_id: &str, key: &Key, value: &SecretValue) -> Outcome<()> {
+        let vault_path = format!("{}/{}", tenant_id, key.as_str().trim_start_matches('/'));
         let mut map = HashMap::new();
         map.insert("value".to_string(), value.expose().clone());
-        self.vault_service.write(None, key.as_str(), &map).await
+        self.vault_service.write(None, &vault_path, &map).await
     }
 
     async fn hydrate(&self, entries: Vec<SecretEntry>) -> Outcome<Vec<SecretEntry>> {
         let futures = entries.into_iter().map(|entry| async move {
-            let value = self.vault_read(&entry.metadata.key).await?;
+            let value = self
+                .vault_read(&entry.metadata.tenant_id, &entry.metadata.key)
+                .await?;
             Ok::<SecretEntry, ymir::errors::Errors>(Entry {
                 metadata: entry.metadata,
                 value,
@@ -74,56 +79,61 @@ impl VaultSecretRepo {
 
 #[async_trait::async_trait]
 impl SecretRepoTrait for VaultSecretRepo {
-    async fn get_all_secrets(&self) -> Outcome<Vec<SecretEntry>> {
-        let entries = self.repo.get_all_secrets().await?;
+    async fn get_all_secrets(&self, filter: &PrefixFilter) -> Outcome<Vec<SecretEntry>> {
+        let entries = self.repo.get_all_secrets(filter).await?;
         self.hydrate(entries).await
     }
 
-    async fn count_secrets(&self) -> Outcome<u64> {
-        self.repo.count_secrets().await
+    async fn count_secrets(&self, filter: &PrefixFilter) -> Outcome<u64> {
+        self.repo.count_secrets(filter).await
     }
 
-    async fn get_batch_secrets(&self, keys: &[Key]) -> Outcome<Vec<SecretEntry>> {
-        let entries = self.repo.get_batch_secrets(keys).await?;
+    async fn get_batch_secrets(&self, tenant_id: &str, keys: &[Key]) -> Outcome<Vec<SecretEntry>> {
+        let entries = self.repo.get_batch_secrets(tenant_id, keys).await?;
         self.hydrate(entries).await
     }
 
-    async fn get_secret_by_key(&self, key: &Key) -> Outcome<Option<SecretEntry>> {
-        let Some(entry) = self.repo.get_secret_by_key(key).await? else {
+    async fn get_secret_by_key(&self, tenant_id: &str, key: &Key) -> Outcome<Option<SecretEntry>> {
+        let Some(entry) = self.repo.get_secret_by_key(tenant_id, key).await? else {
             return Ok(None);
         };
-        let value = self.vault_read(&entry.metadata.key).await?;
+        let value = self.vault_read(tenant_id, &entry.metadata.key).await?;
         Ok(Some(Entry {
             metadata: entry.metadata,
             value,
         }))
     }
 
-    async fn list_secrets_by_prefix(&self, prefix: &str) -> Outcome<Vec<SecretEntry>> {
-        let entries = self.repo.list_secrets_by_prefix(prefix).await?;
-        self.hydrate(entries).await
-    }
-
-    async fn create_secret(&self, new_model: &NewSecretCommand) -> Outcome<SecretEntry> {
-        self.vault_write(&new_model.key, &new_model.value).await?;
+    async fn create_secret(
+        &self,
+        tenant_id: &str,
+        new_model: &NewSecretCommand,
+    ) -> Outcome<SecretEntry> {
+        self.vault_write(tenant_id, &new_model.key, &new_model.value)
+            .await?;
         let mut entry_model = new_model.clone();
         entry_model.value = SecretValue::new(Value::String("vault".to_string()));
-        self.repo.create_secret(&entry_model).await
+        self.repo.create_secret(tenant_id, &entry_model).await
     }
 
-    async fn put_secret(&self, key: &Key, edit_model: &EditSecretCommand) -> Outcome<SecretEntry> {
+    async fn put_secret(
+        &self,
+        tenant_id: &str,
+        key: &Key,
+        edit_model: &EditSecretCommand,
+    ) -> Outcome<SecretEntry> {
         // DB first: validates version conflict before touching vault
         let mut entry_model = edit_model.clone();
         entry_model.value = SecretValue::new(Value::String("vault".to_string()));
-        let entry = self.repo.put_secret(key, &entry_model).await?;
-        self.vault_write(key, &edit_model.value).await?;
+        let entry = self.repo.put_secret(tenant_id, key, &entry_model).await?;
+        self.vault_write(tenant_id, key, &edit_model.value).await?;
         Ok(Entry {
             metadata: entry.metadata,
             value: edit_model.value.clone(),
         })
     }
 
-    async fn delete_secret(&self, key: &Key) -> Outcome<()> {
-        self.repo.delete_secret(key).await
+    async fn delete_secret(&self, tenant_id: &str, key: &Key) -> Outcome<()> {
+        self.repo.delete_secret(tenant_id, key).await
     }
 }

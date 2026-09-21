@@ -33,6 +33,9 @@ use ymir::errors::{Outcome, RepoIntoErrors};
 
 impl FilterApplier<Select<policy_template::Entity>> for PolicyTemplateFilter {
     fn apply_to(&self, mut q: Select<policy_template::Entity>) -> Select<policy_template::Entity> {
+        if let Some(ref tenant_id) = self.tenant_id {
+            q = q.filter(policy_template::Column::TenantId.eq(tenant_id));
+        }
         if let Some(ref id) = self.id {
             q = q.filter(policy_template::Column::Id.eq(id));
         }
@@ -101,10 +104,12 @@ impl PolicyTemplatesRepositoryTrait for PolicyTemplatesRepositoryForSql {
 
     async fn get_batch_policy_templates(
         &self,
-        ids: &Vec<String>,
+        tenant_id: &str,
+        ids: &[String],
     ) -> Outcome<Vec<policy_template::Model>> {
-        let policy_ids = ids.clone();
+        let policy_ids = ids.to_vec();
         let policy_process = policy_template::Entity::find()
+            .filter(policy_template::Column::TenantId.eq(tenant_id))
             .filter(policy_template::Column::Id.is_in(policy_ids))
             .all(&self.db_connection)
             .await;
@@ -117,9 +122,13 @@ impl PolicyTemplatesRepositoryTrait for PolicyTemplatesRepositoryForSql {
         }
     }
 
-    async fn get_policy_templates_by_id(&self, template_id: &String) -> Outcome<Vec<Model>> {
-        let template_id = template_id.to_string();
+    async fn get_policy_templates_by_id(
+        &self,
+        tenant_id: &str,
+        template_id: &str,
+    ) -> Outcome<Vec<Model>> {
         match policy_template::Entity::find()
+            .filter(policy_template::Column::TenantId.eq(tenant_id))
             .filter(policy_template::Column::Id.eq(template_id))
             .all(&self.db_connection)
             .await
@@ -134,10 +143,14 @@ impl PolicyTemplatesRepositoryTrait for PolicyTemplatesRepositoryForSql {
 
     async fn get_policy_template_by_id_and_version(
         &self,
-        template_id: &String,
-        version: &String,
+        tenant_id: &str,
+        template_id: &str,
+        version: &str,
     ) -> Outcome<Option<Model>> {
-        match policy_template::Entity::find_by_id((template_id.clone(), version.clone()))
+        match policy_template::Entity::find()
+            .filter(policy_template::Column::TenantId.eq(tenant_id))
+            .filter(policy_template::Column::Id.eq(template_id))
+            .filter(policy_template::Column::Version.eq(version))
             .one(&self.db_connection)
             .await
         {
@@ -168,10 +181,14 @@ impl PolicyTemplatesRepositoryTrait for PolicyTemplatesRepositoryForSql {
 
     async fn delete_policy_template_by_id_and_version(
         &self,
-        template_id: &String,
-        version: &String,
+        tenant_id: &str,
+        template_id: &str,
+        version: &str,
     ) -> Outcome<()> {
-        match policy_template::Entity::delete_by_id((template_id.clone(), version.clone()))
+        match policy_template::Entity::delete_many()
+            .filter(policy_template::Column::TenantId.eq(tenant_id))
+            .filter(policy_template::Column::Id.eq(template_id))
+            .filter(policy_template::Column::Version.eq(version))
             .exec(&self.db_connection)
             .await
         {

@@ -29,6 +29,7 @@ use urn::{Urn, UrnBuilder};
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: String,
+    pub tenant_id: String,
     pub negotiation_agent_process_id: String,
     pub id_key: String,
     pub id_value: Option<String>,
@@ -56,6 +57,7 @@ impl ActiveModelBehavior for ActiveModel {}
 #[derive(Clone)]
 pub struct NewNegotiationIdentifierModel {
     pub(crate) id: Option<Urn>,
+    pub(crate) tenant_id: String,
     pub(crate) negotiation_agent_process_id: Urn,
     pub(crate) id_key: String,
     pub(crate) id_value: Option<String>,
@@ -71,6 +73,7 @@ impl From<NewNegotiationIdentifierModel> for ActiveModel {
         .expect("UrnBuilder failed");
         Self {
             id: ActiveValue::Set(dto.id.unwrap_or(new_urn).to_string()),
+            tenant_id: ActiveValue::Set(dto.tenant_id),
             negotiation_agent_process_id: ActiveValue::Set(
                 dto.negotiation_agent_process_id.to_string(),
             ),
@@ -86,16 +89,8 @@ impl From<&NewNegotiationIdentifierModel> for ActiveModel {
     }
 }
 
+#[derive(Default)]
 pub struct EditNegotiationIdentifierModel {
     pub id_key: Option<String>,
     pub id_value: Option<String>,
-}
-
-impl Default for EditNegotiationIdentifierModel {
-    fn default() -> Self {
-        Self {
-            id_key: None,
-            id_value: None,
-        }
-    }
 }

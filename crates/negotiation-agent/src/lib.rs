@@ -15,17 +15,20 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod config;
-pub(crate) mod data;
+pub mod config;
+pub mod data;
 pub mod entities;
-pub(crate) mod errors;
-pub(crate) mod grpc;
-pub(crate) mod http;
-pub(crate) mod protocols;
-pub(crate) mod setup;
+pub mod errors;
+pub mod grpc;
+pub mod http;
+pub mod protocols;
+pub mod services;
+pub mod setup;
 
 pub const EVENT_DOMAIN: &str = "negotiations";
 pub const EVENT_PREFIX: &str = "negotiations:";
+pub const SERVICE_NAME: &str = "negotiation-agent";
+pub const SERVICE_BIG_NAME: &str = "Negotiation Agent Ref";
 
 pub use data::migrations::get_negotiation_agent_migrations;
 pub use entities::agreement::AgreementDto;

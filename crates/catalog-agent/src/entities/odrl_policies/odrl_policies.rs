@@ -16,15 +16,16 @@
  */
 
 use crate::cache::factory_trait::CatalogAgentCacheTrait;
+use crate::data::entities::odrl_offer::NewOdrlOfferModel;
 use crate::data::factory_trait::CatalogAgentRepoTrait;
 use crate::entities::filters::OdrlPolicyFilter;
 use crate::entities::odrl_policies::{NewOdrlPolicyDto, OdrlPolicyDto, OdrlPolicyEntityTrait};
-use common::errors::{CommonErrors, ErrorLog};
+use common::auth::AccessScope;
+use common::errors::NotFoundExt;
 use common::paginated_spec::{Cursor, Page, Paginated, Sort};
 use common::query::QueryFilter;
 use std::str::FromStr;
 use std::sync::Arc;
-use tracing::error;
 use urn::Urn;
 use ymir::errors::Outcome;
 
@@ -56,22 +57,26 @@ impl OdrlPolicyEntities {
 impl OdrlPolicyEntityTrait for OdrlPolicyEntities {
     async fn get_all_odrl_offers(
         &self,
+        scope: &AccessScope,
         filters: &OdrlPolicyFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<OdrlPolicyDto>> {
+        scope.require_read()?;
         filters.validate()?;
+        let mut filters = filters.clone();
+        filters.tenant_id = scope.resolve_query_tenant(filters.tenant_id.as_deref())?;
         let page = page.clamped();
 
         let (odrl_policies, total) = self
             .repo
             .get_odrl_offer_repo()
-            .get_all_odrl_offers(filters, &page, sort)
+            .get_all_odrl_offers(&filters, &page, sort)
             .await?;
 
         let dtos: Vec<OdrlPolicyDto> = odrl_policies.into_iter().map(Into::into).collect();
 
-        // Safe hydration
+        // hydration
         let cache = self.cache.get_odrl_offer_cache();
         for dto in &dtos {
             if let Ok(id) = Urn::from_str(dto.inner.id.as_str()) {
@@ -86,105 +91,86 @@ impl OdrlPolicyEntityTrait for OdrlPolicyEntities {
         }))
     }
 
-    async fn get_batch_odrl_offers(&self, ids: &Vec<Urn>) -> Outcome<Vec<OdrlPolicyDto>> {
-        //  cache
-        if let Ok(dtos) = self.cache.get_odrl_offer_cache().get_batch(ids).await {
-            if !dtos.is_empty() {
-                return Ok(dtos);
-            }
-        }
-
-        // db
+    async fn get_batch_odrl_offers(
+        &self,
+        scope: &AccessScope,
+        ids: &[Urn],
+    ) -> Outcome<Vec<OdrlPolicyDto>> {
+        scope.require_read()?;
         let odrl_policies = self
             .repo
             .get_odrl_offer_repo()
-            .get_batch_odrl_offers(ids)
+            .get_batch_odrl_offers(scope.acting_tenant(), ids)
             .await?;
 
-        let dtos: Vec<OdrlPolicyDto> = odrl_policies.into_iter().map(Into::into).collect();
-
-        // hydration
+        let mut dtos: Vec<OdrlPolicyDto> = Vec::new();
         let cache = self.cache.get_odrl_offer_cache();
-        for dto in &dtos {
+        for p in odrl_policies {
+            let dto: OdrlPolicyDto = p.into();
             if let Ok(id) = Urn::from_str(dto.inner.id.as_str()) {
-                let _ = cache.set_single(&id, dto).await;
+                let _ = cache.set_single(&id, &dto).await;
             }
+            dtos.push(dto);
         }
-
         Ok(dtos)
     }
 
-    async fn get_all_odrl_offers_by_entity(&self, entity: &Urn) -> Outcome<Vec<OdrlPolicyDto>> {
-        // cache
-        if let Ok(dtos) = self
-            .cache
-            .get_odrl_offer_cache()
-            .get_by_relation("target", entity, None, None)
-            .await
-        {
-            if !dtos.is_empty() {
-                return Ok(dtos);
-            }
-        }
-
-        // db
+    async fn get_all_odrl_offers_by_entity(
+        &self,
+        scope: &AccessScope,
+        entity: &Urn,
+    ) -> Outcome<Vec<OdrlPolicyDto>> {
+        scope.require_read()?;
         let odrl_policies = self
             .repo
             .get_odrl_offer_repo()
-            .get_all_odrl_offers_by_entity(entity)
+            .get_all_odrl_offers_by_entity(scope.acting_tenant(), entity)
             .await?;
 
-        let dtos: Vec<OdrlPolicyDto> = odrl_policies.into_iter().map(Into::into).collect();
-
-        // hydration
+        let mut dtos: Vec<OdrlPolicyDto> = Vec::new();
         let cache = self.cache.get_odrl_offer_cache();
-        for dto in &dtos {
+        for p in odrl_policies {
+            let dto: OdrlPolicyDto = p.into();
             if let Ok(id) = Urn::from_str(dto.inner.id.as_str()) {
-                let _ = cache.set_single(&id, dto).await;
-                // Index under the specific entity URN
+                let _ = cache.set_single(&id, &dto).await;
                 let _ = cache.add_to_relation("target", entity, &id, 0.0).await;
             }
+            dtos.push(dto);
         }
         Ok(dtos)
     }
 
-    async fn get_odrl_offer_by_id(&self, odrl_offer_id: &Urn) -> Outcome<Option<OdrlPolicyDto>> {
-        // cache
-        if let Ok(Some(dto)) = self
-            .cache
-            .get_odrl_offer_cache()
-            .get_single(odrl_offer_id)
-            .await
-        {
-            return Ok(Some(dto));
-        }
-
-        // db
+    async fn get_odrl_offer_by_id(
+        &self,
+        scope: &AccessScope,
+        odrl_offer_id: &Urn,
+    ) -> Outcome<OdrlPolicyDto> {
+        scope.require_read()?;
         let odrl_policy = self
             .repo
             .get_odrl_offer_repo()
-            .get_odrl_offer_by_id(odrl_offer_id)
-            .await?;
+            .get_odrl_offer_by_id(scope.acting_tenant(), odrl_offer_id)
+            .await?
+            .or_not_found(odrl_offer_id, "odrl offer")?;
 
-        let dto: Option<OdrlPolicyDto> = odrl_policy.map(Into::into);
-
-        // hydration
-        if let Some(dto) = &dto {
-            let _ = self
-                .cache
-                .get_odrl_offer_cache()
-                .set_single(odrl_offer_id, dto)
-                .await;
-        }
+        let dto: OdrlPolicyDto = odrl_policy.into();
+        let _ = self
+            .cache
+            .get_odrl_offer_cache()
+            .set_single(odrl_offer_id, &dto)
+            .await;
         Ok(dto)
     }
 
     async fn create_odrl_offer(
         &self,
+        scope: &AccessScope,
         new_odrl_offer_model: &NewOdrlPolicyDto,
     ) -> Outcome<OdrlPolicyDto> {
-        // db
-        let new_model = new_odrl_offer_model.clone().into();
+        let mut new_odrl_offer_model = new_odrl_offer_model.clone();
+        let tenant_id = scope.resolve_create_tenant(new_odrl_offer_model.tenant_id.as_deref())?;
+        new_odrl_offer_model.tenant_id = Some(tenant_id.clone());
+        let new_model: NewOdrlOfferModel = new_odrl_offer_model.into_model(tenant_id);
         let odrl_policy = self
             .repo
             .get_odrl_offer_repo()
@@ -210,27 +196,25 @@ impl OdrlPolicyEntityTrait for OdrlPolicyEntities {
         Ok(dto)
     }
 
-    async fn delete_odrl_offer_by_id(&self, odrl_offer_id: &Urn) -> Outcome<()> {
-        let current = self.get_odrl_offer_by_id(odrl_offer_id).await?;
-
-        // db
-        self.repo
+    async fn delete_odrl_offer_by_id(
+        &self,
+        scope: &AccessScope,
+        odrl_offer_id: &Urn,
+    ) -> Outcome<()> {
+        scope.require_write()?;
+        let deleted = self
+            .repo
             .get_odrl_offer_repo()
-            .delete_odrl_offer_by_id(odrl_offer_id)
+            .delete_odrl_offer_by_id(scope.acting_tenant(), odrl_offer_id)
             .await?;
 
-        // cache invalidation
         let cache = self.cache.get_odrl_offer_cache();
         let _ = cache.delete_single(odrl_offer_id).await;
         let _ = cache.remove_from_collection(odrl_offer_id).await;
-
-        // lookup invalidation
-        if let Some(dto) = current {
-            if let Ok(target_urn) = Urn::from_str(&dto.inner.entity) {
-                let _ = cache
-                    .remove_from_relation("target", &target_urn, odrl_offer_id)
-                    .await;
-            }
+        if let Ok(target_urn) = Urn::from_str(&deleted.entity) {
+            let _ = cache
+                .remove_from_relation("target", &target_urn, odrl_offer_id)
+                .await;
         }
 
         events::emit_action!(
@@ -243,22 +227,24 @@ impl OdrlPolicyEntityTrait for OdrlPolicyEntities {
         Ok(())
     }
 
-    async fn delete_odrl_offers_by_entity(&self, entity_id: &Urn) -> Outcome<()> {
-        // db
-        let current_policies = self.get_all_odrl_offers_by_entity(entity_id).await?;
-
-        // db
-        self.repo
+    async fn delete_odrl_offers_by_entity(
+        &self,
+        scope: &AccessScope,
+        entity_id: &Urn,
+    ) -> Outcome<()> {
+        scope.require_write()?;
+        let deleted = self
+            .repo
             .get_odrl_offer_repo()
-            .delete_odrl_offers_by_entity(entity_id)
+            .delete_odrl_offers_by_entity(scope.acting_tenant(), entity_id)
             .await?;
 
-        // invalidation
         let cache = self.cache.get_odrl_offer_cache();
-        for policy in &current_policies {
-            if let Ok(id) = Urn::from_str(policy.inner.id.as_str()) {
+        for policy in &deleted {
+            if let Ok(id) = Urn::from_str(policy.id.as_str()) {
                 let _ = cache.delete_single(&id).await;
                 let _ = cache.remove_from_collection(&id).await;
+                let _ = cache.remove_from_relation("target", entity_id, &id).await;
                 events::emit_action!(
                     self.event_bus,
                     crate::EVENT_PREFIX,
@@ -268,12 +254,6 @@ impl OdrlPolicyEntityTrait for OdrlPolicyEntities {
                 );
             }
         }
-
-        // lookup invalidation
-        let _ = cache
-            .remove_from_relation("target", entity_id, &Urn::from_str("nil:nil")?)
-            .await; // dummy trigger
-
         Ok(())
     }
 }

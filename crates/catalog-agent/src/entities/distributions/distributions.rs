@@ -16,17 +16,18 @@
  */
 
 use crate::cache::factory_trait::CatalogAgentCacheTrait;
+use crate::data::entities::distribution::NewDistributionModel;
 use crate::data::factory_trait::CatalogAgentRepoTrait;
 use crate::entities::distributions::{
     DistributionDto, DistributionEntityTrait, EditDistributionDto, NewDistributionDto,
 };
 use crate::entities::filters::DistributionFilter;
-use common::errors::{CommonErrors, ErrorLog};
+use common::auth::AccessScope;
+use common::errors::NotFoundExt;
 use common::paginated_spec::{Cursor, Page, Paginated, Sort};
 use common::query::QueryFilter;
 use std::str::FromStr;
 use std::sync::Arc;
-use tracing::error;
 use urn::Urn;
 use ymir::errors::Outcome;
 
@@ -58,17 +59,21 @@ impl DistributionEntities {
 impl DistributionEntityTrait for DistributionEntities {
     async fn get_all_distributions(
         &self,
+        scope: &AccessScope,
         filters: &DistributionFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<DistributionDto>> {
+        scope.require_read()?;
         filters.validate()?;
+        let mut filters = filters.clone();
+        filters.tenant_id = scope.resolve_query_tenant(filters.tenant_id.as_deref())?;
         let page = page.clamped();
 
         let (distributions, total) = self
             .repo
             .get_distribution_repo()
-            .get_all_distributions(filters, &page, sort)
+            .get_all_distributions(&filters, &page, sort)
             .await?;
 
         let dtos: Vec<DistributionDto> = distributions.into_iter().map(Into::into).collect();
@@ -78,90 +83,82 @@ impl DistributionEntityTrait for DistributionEntities {
         }))
     }
 
-    async fn get_batch_distributions(&self, ids: &Vec<Urn>) -> Outcome<Vec<DistributionDto>> {
-        // cache
-        if let Ok(dtos) = self.cache.get_distribution_cache().get_batch(ids).await {
-            if !dtos.is_empty() {
-                return Ok(dtos);
-            }
-        }
-
-        // db
+    async fn get_batch_distributions(
+        &self,
+        scope: &AccessScope,
+        ids: &[Urn],
+    ) -> Outcome<Vec<DistributionDto>> {
+        scope.require_read()?;
         let distributions = self
             .repo
             .get_distribution_repo()
-            .get_batch_distributions(ids)
+            .get_batch_distributions(scope.acting_tenant(), ids)
             .await?;
 
-        let dtos: Vec<DistributionDto> = distributions.into_iter().map(Into::into).collect();
-
-        // hydration
+        let mut dtos: Vec<DistributionDto> = Vec::new();
         let cache = self.cache.get_distribution_cache();
-        for dto in &dtos {
+        for d in distributions {
+            let dto: DistributionDto = d.into();
             if let Ok(id) = Urn::from_str(dto.inner.id.as_str()) {
-                let _ = cache.set_single(&id, dto).await;
+                let _ = cache.set_single(&id, &dto).await;
                 let _ = cache
                     .add_to_collection(&id, dto.inner.dct_issued.timestamp() as f64)
                     .await;
             }
+            dtos.push(dto);
         }
         Ok(dtos)
     }
 
     async fn get_distributions_by_dataset_id(
         &self,
+        scope: &AccessScope,
         dataset_id: &Urn,
     ) -> Outcome<Vec<DistributionDto>> {
-        // cache
-        if let Ok(dtos) = self
-            .cache
-            .get_distribution_cache()
-            .get_by_relation("datasets", dataset_id, None, None)
-            .await
-        {
-            if !dtos.is_empty() {
-                return Ok(dtos);
-            }
-        }
-
-        // Database fetch
+        scope.require_read()?;
         let distributions = self
             .repo
             .get_distribution_repo()
-            .get_distributions_by_dataset_id(dataset_id)
+            .get_distributions_by_dataset_id(scope.acting_tenant(), dataset_id)
             .await?;
 
-        let dtos: Vec<DistributionDto> = distributions.into_iter().map(Into::into).collect();
-
-        // hydration
+        let mut dtos: Vec<DistributionDto> = Vec::new();
         let cache = self.cache.get_distribution_cache();
-        for dto in &dtos {
+        for d in distributions {
+            let dto: DistributionDto = d.into();
             if let Ok(id) = Urn::from_str(dto.inner.id.as_str()) {
                 let score = dto.inner.dct_issued.timestamp() as f64;
-                let _ = cache.set_single(&id, dto).await;
+                let _ = cache.set_single(&id, &dto).await;
                 let _ = cache.add_to_collection(&id, score).await;
                 let _ = cache
                     .add_to_relation("datasets", dataset_id, &id, score)
                     .await;
             }
+            dtos.push(dto);
         }
         Ok(dtos)
     }
 
     async fn get_distribution_by_dataset_id_and_dct_format(
         &self,
+        scope: &AccessScope,
         dataset_id: &Urn,
-        dct_formats: &String,
+        dct_formats: &str,
     ) -> Outcome<DistributionDto> {
+        scope.require_read()?;
         let distribution = self
             .repo
             .get_distribution_repo()
-            .get_distribution_by_dataset_id_and_dct_format(dataset_id, dct_formats)
-            .await?;
+            .get_distribution_by_dataset_id_and_dct_format(
+                scope.acting_tenant(),
+                dataset_id,
+                dct_formats,
+            )
+            .await?
+            .or_not_found(dataset_id, "distribution")?;
 
         let dto: DistributionDto = distribution.into();
 
-        // Hydrate single
         if let Ok(id) = Urn::from_str(dto.inner.id.as_str()) {
             let _ = self
                 .cache
@@ -175,54 +172,44 @@ impl DistributionEntityTrait for DistributionEntities {
 
     async fn get_distribution_by_id(
         &self,
+        scope: &AccessScope,
         distribution_id: &Urn,
-    ) -> Outcome<Option<DistributionDto>> {
-        // Cache
-        if let Ok(Some(dto)) = self
-            .cache
-            .get_distribution_cache()
-            .get_single(distribution_id)
-            .await
-        {
-            return Ok(Some(dto));
-        }
-
-        // Database
+    ) -> Outcome<DistributionDto> {
+        scope.require_read()?;
         let distribution = self
             .repo
             .get_distribution_repo()
-            .get_distribution_by_id(distribution_id)
-            .await?;
+            .get_distribution_by_id(scope.acting_tenant(), distribution_id)
+            .await?
+            .or_not_found(distribution_id, "distribution")?;
 
-        let dto: Option<DistributionDto> = distribution.map(Into::into);
+        let dto: DistributionDto = distribution.into();
 
-        // Safe hydration
-        if let Some(dto) = &dto {
-            let cache = self.cache.get_distribution_cache();
-            let _ = cache.set_single(distribution_id, dto).await;
-            let _ = cache
-                .add_to_collection(distribution_id, dto.inner.dct_issued.timestamp() as f64)
-                .await;
-        }
+        let cache = self.cache.get_distribution_cache();
+        let _ = cache.set_single(distribution_id, &dto).await;
+        let _ = cache
+            .add_to_collection(distribution_id, dto.inner.dct_issued.timestamp() as f64)
+            .await;
         Ok(dto)
     }
 
     async fn put_distribution_by_id(
         &self,
+        scope: &AccessScope,
         distribution_id: &Urn,
         edit_distribution_model: &EditDistributionDto,
     ) -> Outcome<DistributionDto> {
+        scope.require_write()?;
         let edit_model = edit_distribution_model.clone().into();
         let distribution = self
             .repo
             .get_distribution_repo()
-            .put_distribution_by_id(distribution_id, &edit_model)
+            .put_distribution_by_id(scope.acting_tenant(), distribution_id, &edit_model)
             .await?;
 
         let dto: DistributionDto = distribution.into();
         let dist_urn = Urn::from_str(dto.inner.id.as_str())?;
 
-        // Update single and score
         let cache = self.cache.get_distribution_cache();
         let _ = cache.set_single(&dist_urn, &dto).await;
         let _ = cache
@@ -241,9 +228,13 @@ impl DistributionEntityTrait for DistributionEntities {
 
     async fn create_distribution(
         &self,
+        scope: &AccessScope,
         new_distribution_model: &NewDistributionDto,
     ) -> Outcome<DistributionDto> {
-        let new_model = new_distribution_model.clone().into();
+        let mut new_distribution_model = new_distribution_model.clone();
+        let tenant_id = scope.resolve_create_tenant(new_distribution_model.tenant_id.as_deref())?;
+        new_distribution_model.tenant_id = Some(tenant_id.clone());
+        let new_model: NewDistributionModel = new_distribution_model.into_model(tenant_id);
         let distribution = self
             .repo
             .get_distribution_repo()
@@ -254,13 +245,11 @@ impl DistributionEntityTrait for DistributionEntities {
         let dist_urn = Urn::from_str(dto.inner.id.as_str())?;
         let score = dto.inner.dct_issued.timestamp() as f64;
 
-        // Proactive hydration
         let cache = self.cache.get_distribution_cache();
         let _ = cache.set_single(&dist_urn, &dto).await;
         let _ = cache.add_to_collection(&dist_urn, score).await;
 
-        // Lookup hydration (Distribution -> Dataset)
-        if let Ok(dataset_id) = Urn::from_str(&*dto.inner.dataset_id) {
+        if let Ok(dataset_id) = Urn::from_str(&dto.inner.dataset_id) {
             let _ = cache
                 .add_to_relation("datasets", &dataset_id, &dist_urn, score)
                 .await;
@@ -276,27 +265,25 @@ impl DistributionEntityTrait for DistributionEntities {
         Ok(dto)
     }
 
-    async fn delete_distribution_by_id(&self, distribution_id: &Urn) -> Outcome<()> {
-        let current = self.get_distribution_by_id(distribution_id).await?;
-
-        // db
-        self.repo
+    async fn delete_distribution_by_id(
+        &self,
+        scope: &AccessScope,
+        distribution_id: &Urn,
+    ) -> Outcome<()> {
+        scope.require_write()?;
+        let deleted = self
+            .repo
             .get_distribution_repo()
-            .delete_distribution_by_id(distribution_id)
+            .delete_distribution_by_id(scope.acting_tenant(), distribution_id)
             .await?;
 
-        // cache invalidation
         let cache = self.cache.get_distribution_cache();
         let _ = cache.delete_single(distribution_id).await;
         let _ = cache.remove_from_collection(distribution_id).await;
-
-        // lookup invalidation
-        if let Some(dto) = current {
-            if let Ok(dataset_id) = Urn::from_str(&*dto.inner.dataset_id) {
-                let _ = cache
-                    .remove_from_relation("datasets", &dataset_id, distribution_id)
-                    .await;
-            }
+        if let Ok(dataset_id) = Urn::from_str(&deleted.dataset_id) {
+            let _ = cache
+                .remove_from_relation("datasets", &dataset_id, distribution_id)
+                .await;
         }
 
         events::emit_action!(

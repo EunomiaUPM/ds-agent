@@ -29,7 +29,7 @@ pub trait VcRequesterTrait: Send + Sync + 'static {
     fn build_grant_plan(&self, payload: ReachAuthority) -> grant::Plan;
     fn build_interaction_plan(&self, id: &str, start: InteractStart) -> interaction::Plan;
     fn build_verification_plan(&self, uri: &str, id: &str) -> Outcome<verification::Plan>;
-    fn build_authority_plan(&self, grant: &grant::Model) -> participant::Plan;
+    fn build_authority_plan(&self, tenant_id: &str, grant: &grant::Model) -> participant::Plan;
     async fn send_grant_req(
         &self,
         grant: &grant::Model,

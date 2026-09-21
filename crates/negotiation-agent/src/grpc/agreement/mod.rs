@@ -15,9 +15,9 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::agreement::{
-    EditAgreementDto, NegotiationAgentAgreementsTrait, NewAgreementDto,
-};
+//! gRPC adapter for agreement management service.
+
+use crate::entities::agreement::{AgreementDto, EditAgreementDto, NewAgreementDto};
 use crate::grpc::api::negotiation_agent::negotiation_agent_agreements_service_server::NegotiationAgentAgreementsService;
 use crate::grpc::api::negotiation_agent::{
     AgreementListResponse, AgreementResponse, CreateAgreementRequest, DeleteAgreementRequest,
@@ -25,6 +25,11 @@ use crate::grpc::api::negotiation_agent::{
     GetAgreementByNegotiationProcessRequest, GetAllAgreementsRequest, GetBatchAgreementsRequest,
     PutAgreementRequest,
 };
+use crate::grpc::{GrpcAuthHelper, IntoGrpcStatus};
+use crate::services::agreement::AgreementServiceTrait;
+use common::auth::OauthTokenValidator;
+use common::auth::access::AccessScope;
+use common::batch_requests::BatchRequests;
 use common::paginated_spec::Page;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -32,12 +37,20 @@ use tonic::{Request, Response, Status};
 use urn::Urn;
 
 pub struct NegotiationAgentAgreementGrpc {
-    service: Arc<dyn NegotiationAgentAgreementsTrait>,
+    service: Arc<dyn AgreementServiceTrait>,
+    validator: Arc<dyn OauthTokenValidator>,
 }
 
 impl NegotiationAgentAgreementGrpc {
-    pub fn new(service: Arc<dyn NegotiationAgentAgreementsTrait>) -> Self {
-        Self { service }
+    pub fn new(
+        service: Arc<dyn AgreementServiceTrait>,
+        validator: Arc<dyn OauthTokenValidator>,
+    ) -> Self {
+        Self { service, validator }
+    }
+
+    async fn scope(&self, meta: &tonic::metadata::MetadataMap) -> Result<AccessScope, Status> {
+        GrpcAuthHelper::extract_scope(&self.validator, meta).await
     }
 }
 
@@ -47,18 +60,20 @@ impl NegotiationAgentAgreementsService for NegotiationAgentAgreementGrpc {
         &self,
         request: Request<GetAllAgreementsRequest>,
     ) -> Result<Response<AgreementListResponse>, Status> {
-        let req = request.into_inner();
+        let (meta, _, req) = request.into_parts();
+        let scope = self.scope(&meta).await?;
         let page = Page::new(req.limit.unwrap_or(20) as u32, None);
         let paginated = self
             .service
-            .get_all_agreements(&Default::default(), &page, &Default::default())
+            .get_all(&scope, &Default::default(), &page, &Default::default())
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(|e| e.into_status())?;
 
         let proto_agreements = paginated
             .items
             .into_iter()
-            .map(|dto| {
+            .map(|view| {
+                let dto: AgreementDto = view.into();
                 let response: AgreementResponse = dto.into();
                 response.agreement.unwrap()
             })
@@ -73,24 +88,27 @@ impl NegotiationAgentAgreementsService for NegotiationAgentAgreementGrpc {
         &self,
         request: Request<GetBatchAgreementsRequest>,
     ) -> Result<Response<AgreementListResponse>, Status> {
-        let req = request.into_inner();
+        let (meta, _, req) = request.into_parts();
+        let scope = self.scope(&meta).await?;
 
         let urns: Vec<Urn> = req
             .ids
             .iter()
             .map(|id| Urn::from_str(id))
             .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| Status::invalid_argument(format!("Invalid URN in batch: {}", e)))?;
+            .map_err(|e| Status::invalid_argument(format!("Invalid URN in batch: {e}")))?;
 
-        let agreements = self
+        let batch_req = BatchRequests { ids: urns };
+        let views = self
             .service
-            .get_batch_agreements(&urns)
+            .batch(&scope, &batch_req)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(|e| e.into_status())?;
 
-        let proto_agreements = agreements
+        let proto_agreements = views
             .into_iter()
-            .map(|dto| {
+            .map(|view| {
+                let dto: AgreementDto = view.into();
                 let response: AgreementResponse = dto.into();
                 response.agreement.unwrap()
             })
@@ -105,100 +123,105 @@ impl NegotiationAgentAgreementsService for NegotiationAgentAgreementGrpc {
         &self,
         request: Request<GetAgreementByIdRequest>,
     ) -> Result<Response<AgreementResponse>, Status> {
-        let req = request.into_inner();
+        let (meta, _, req) = request.into_parts();
+        let scope = self.scope(&meta).await?;
         let urn = Urn::from_str(&req.id)
-            .map_err(|e| Status::invalid_argument(format!("Invalid ID URN: {}", e)))?;
+            .map_err(|e| Status::invalid_argument(format!("Invalid ID URN: {e}")))?;
 
-        match self.service.get_agreement_by_id(&urn).await {
-            Ok(Some(dto)) => Ok(Response::new(dto.into())),
-            Ok(None) => Err(Status::not_found("Agreement not found")),
-            Err(e) => Err(Status::internal(e.to_string())),
-        }
+        let view = self
+            .service
+            .get_one(&scope, &urn)
+            .await
+            .map_err(|e| e.into_status())?;
+        let dto: AgreementDto = view.into();
+        Ok(Response::new(dto.into()))
     }
 
     async fn get_agreement_by_negotiation_process(
         &self,
         request: Request<GetAgreementByNegotiationProcessRequest>,
     ) -> Result<Response<AgreementResponse>, Status> {
-        let req = request.into_inner();
+        let (meta, _, req) = request.into_parts();
+        let scope = self.scope(&meta).await?;
         let urn = Urn::from_str(&req.process_id)
-            .map_err(|e| Status::invalid_argument(format!("Invalid Process ID URN: {}", e)))?;
+            .map_err(|e| Status::invalid_argument(format!("Invalid Process ID URN: {e}")))?;
 
-        match self
+        let view = self
             .service
-            .get_agreement_by_negotiation_process(&urn)
+            .get_by_process(&scope, &urn)
             .await
-        {
-            Ok(Some(dto)) => Ok(Response::new(dto.into())),
-            Ok(None) => Err(Status::not_found(
-                "Agreement not found for this negotiation process",
-            )),
-            Err(e) => Err(Status::internal(e.to_string())),
-        }
+            .map_err(|e| e.into_status())?;
+        let dto: AgreementDto = view.into();
+        Ok(Response::new(dto.into()))
     }
 
     async fn get_agreement_by_negotiation_message(
         &self,
         request: Request<GetAgreementByNegotiationMessageRequest>,
     ) -> Result<Response<AgreementResponse>, Status> {
-        let req = request.into_inner();
+        let (meta, _, req) = request.into_parts();
+        let scope = self.scope(&meta).await?;
         let urn = Urn::from_str(&req.message_id)
-            .map_err(|e| Status::invalid_argument(format!("Invalid Message ID URN: {}", e)))?;
+            .map_err(|e| Status::invalid_argument(format!("Invalid Message ID URN: {e}")))?;
 
-        match self
+        let view = self
             .service
-            .get_agreement_by_negotiation_message(&urn)
+            .get_by_message(&scope, &urn)
             .await
-        {
-            Ok(Some(dto)) => Ok(Response::new(dto.into())),
-            Ok(None) => Err(Status::not_found(
-                "Agreement not found for this negotiation message",
-            )),
-            Err(e) => Err(Status::internal(e.to_string())),
-        }
+            .map_err(|e| e.into_status())?;
+        let dto: AgreementDto = view.into();
+        Ok(Response::new(dto.into()))
     }
 
     async fn create_agreement(
         &self,
         request: Request<CreateAgreementRequest>,
     ) -> Result<Response<AgreementResponse>, Status> {
-        let req = request.into_inner();
-
+        let (meta, _, req) = request.into_parts();
+        let scope = self.scope(&meta).await?;
         let new_agreement_dto: NewAgreementDto = req.try_into()?;
 
-        match self.service.create_agreement(&new_agreement_dto).await {
-            Ok(dto) => Ok(Response::new(dto.into())),
-            Err(e) => Err(Status::internal(e.to_string())),
-        }
+        let view = self
+            .service
+            .create(&scope, &new_agreement_dto)
+            .await
+            .map_err(|e| e.into_status())?;
+        let dto: AgreementDto = view.into();
+        Ok(Response::new(dto.into()))
     }
 
     async fn put_agreement(
         &self,
         request: Request<PutAgreementRequest>,
     ) -> Result<Response<AgreementResponse>, Status> {
-        let req = request.into_inner();
+        let (meta, _, req) = request.into_parts();
+        let scope = self.scope(&meta).await?;
         let urn = Urn::from_str(&req.id)
-            .map_err(|e| Status::invalid_argument(format!("Invalid ID URN: {}", e)))?;
-
+            .map_err(|e| Status::invalid_argument(format!("Invalid ID URN: {e}")))?;
         let edit_dto: EditAgreementDto = req.try_into()?;
 
-        match self.service.put_agreement(&urn, &edit_dto).await {
-            Ok(dto) => Ok(Response::new(dto.into())),
-            Err(e) => Err(Status::internal(e.to_string())),
-        }
+        let view = self
+            .service
+            .edit(&scope, &urn, &edit_dto)
+            .await
+            .map_err(|e| e.into_status())?;
+        let dto: AgreementDto = view.into();
+        Ok(Response::new(dto.into()))
     }
 
     async fn delete_agreement(
         &self,
         request: Request<DeleteAgreementRequest>,
     ) -> Result<Response<()>, Status> {
-        let req = request.into_inner();
+        let (meta, _, req) = request.into_parts();
+        let scope = self.scope(&meta).await?;
         let urn = Urn::from_str(&req.id)
-            .map_err(|e| Status::invalid_argument(format!("Invalid ID URN: {}", e)))?;
+            .map_err(|e| Status::invalid_argument(format!("Invalid ID URN: {e}")))?;
 
-        match self.service.delete_agreement(&urn).await {
-            Ok(_) => Ok(Response::new(())),
-            Err(e) => Err(Status::internal(e.to_string())),
-        }
+        self.service
+            .delete(&scope, &urn)
+            .await
+            .map_err(|e| e.into_status())?;
+        Ok(Response::new(()))
     }
 }

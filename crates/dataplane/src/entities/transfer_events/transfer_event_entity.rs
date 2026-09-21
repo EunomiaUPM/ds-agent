@@ -42,12 +42,15 @@ impl TransferEventEntitiesTrait for TransferEventEntityService {
     async fn get_all_transfer_events(
         &self,
         limit: Option<u64>,
-        page: Option<u64>,
+        _page: Option<u64>,
     ) -> Outcome<Vec<TransferEventDto>> {
+        let filters = crate::entities::filters::TransferEventFilter::default();
+        let page = common::query::Page::new(limit.unwrap_or(20) as u32, None);
+        let sort = common::query::Sort::default();
         let events = self
             .data_plane_repo
             .get_transfer_events_repo()
-            .get_all_transfer_events(limit, page)
+            .get_all_transfer_events(&filters, &page, &sort)
             .await?;
 
         Ok(events
@@ -57,10 +60,11 @@ impl TransferEventEntitiesTrait for TransferEventEntityService {
     }
 
     async fn get_batch_transfer_events(&self, ids: Vec<Urn>) -> Outcome<Vec<TransferEventDto>> {
+        let scope = common::auth::access::AccessScope::system();
         let events = self
             .data_plane_repo
             .get_transfer_events_repo()
-            .get_batch_transfer_events(&ids)
+            .get_batch_transfer_events(scope.acting_tenant(), &ids)
             .await?;
 
         Ok(events
@@ -70,10 +74,11 @@ impl TransferEventEntitiesTrait for TransferEventEntityService {
     }
 
     async fn get_transfer_event_by_id(&self, id: &Urn) -> Outcome<Option<TransferEventDto>> {
+        let scope = common::auth::access::AccessScope::system();
         let event = self
             .data_plane_repo
             .get_transfer_events_repo()
-            .get_transfer_event_by_id(id)
+            .get_transfer_event_by_id(scope.acting_tenant(), id)
             .await?;
 
         Ok(event.map(|e| TransferEventDto { inner: e }))
@@ -83,10 +88,11 @@ impl TransferEventEntitiesTrait for TransferEventEntityService {
         &self,
         process_id: &Urn,
     ) -> Outcome<Vec<TransferEventDto>> {
+        let scope = common::auth::access::AccessScope::system();
         let events = self
             .data_plane_repo
             .get_transfer_events_repo()
-            .get_all_transfer_events_by_process_id(process_id)
+            .get_all_transfer_events_by_process_id(scope.acting_tenant(), process_id)
             .await?;
 
         Ok(events

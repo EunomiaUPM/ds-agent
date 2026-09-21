@@ -25,7 +25,6 @@ use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use bff::create_gateway_http_router;
-use common::auth::http::AuthHttpMiddleware;
 use bff::events::feed_router::ListEventsQuery;
 use bff::events::sse_handler::SseQuery;
 use bff::events::{BffEventFeedRouter, SseStreamHandler};
@@ -34,6 +33,7 @@ use bff::setup::context::AppContext;
 use bff::setup::BffModule;
 use bff::GatewayHttpRouter;
 use common::auth::claims::{Claims, RbacRole};
+use common::auth::http::AuthHttpMiddleware;
 use common::auth::OauthTokenValidator;
 use common::config::services::GatewayConfig;
 use common::module_loader::service_module::ServiceModuleTrait;
@@ -230,24 +230,34 @@ async fn test_bff_events_feed_and_sse() {
     // Publish event
     let topic = Topic::new("transfer.process.started").unwrap();
     let payload = json!({ "process_id": "proc-456", "mode": "push" });
-    let envelope = EventEnvelope::new(topic.clone(), "transfer-agent", 1, None, payload.clone());
+    let envelope = EventEnvelope::new(
+        "default",
+        topic.clone(),
+        "transfer-agent",
+        1,
+        None,
+        payload.clone(),
+    );
     bus.publish(envelope.clone()).await.unwrap();
 
     // Query list
     let list_resp = BffEventFeedRouter::handle_list(
         bus.clone(),
         ListEventsQuery {
+            tenant_id: None,
             topic: Some("transfer.process.started".to_string()),
             limit: None,
             offset: None,
             sort: None,
         },
+        "default",
     )
     .await;
     assert_eq!(list_resp.status(), StatusCode::OK);
 
     // Query single
-    let get_resp = BffEventFeedRouter::handle_get(bus.clone(), envelope.id.to_string()).await;
+    let get_resp =
+        BffEventFeedRouter::handle_get(bus.clone(), envelope.id.to_string(), "default").await;
     assert_eq!(get_resp.status(), StatusCode::OK);
 
     // Test SSE Stream
@@ -261,7 +271,14 @@ async fn test_bff_events_feed_and_sse() {
 
     // Trigger next event
     let topic2 = Topic::new("transfer.process.completed").unwrap();
-    let envelope2 = EventEnvelope::new(topic2, "transfer-agent", 1, None, json!({ "done": true }));
+    let envelope2 = EventEnvelope::new(
+        "default",
+        topic2,
+        "transfer-agent",
+        1,
+        None,
+        json!({ "done": true }),
+    );
     bus.publish(envelope2).await.unwrap();
 
     // Next item from stream
@@ -412,7 +429,7 @@ async fn test_bff_create_dataset_offering() {
     // Verify event was published
     let events = event_bus
         .event_repo()
-        .list_events(Some("catalog.dataset.created"), 10, 0)
+        .list_events("default", Some("catalog.dataset.created"), 10, 0)
         .await
         .unwrap();
     assert_eq!(events.len(), 1);

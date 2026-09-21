@@ -215,7 +215,14 @@ impl TransferDSPContextDomain {
         match &self.process {
             TransferContextProcessSlot::Existing(p) => p.tenant_id(),
             TransferContextProcessSlot::New { .. } => {
-                &self.typed.rdf.parsed.raw.authn.associated_participant.tenant_id
+                &self
+                    .typed
+                    .rdf
+                    .parsed
+                    .raw
+                    .authn
+                    .associated_participant
+                    .tenant_id
             }
         }
     }

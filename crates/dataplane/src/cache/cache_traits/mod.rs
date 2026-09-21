@@ -15,8 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod entity_cache_trait;
+pub mod entity_cache_trait;
 pub(crate) mod redis_cache_connector_trait;
 pub(crate) mod utils_trait;
+
+pub use entity_cache_trait::{EntityCacheTrait, NoopCache};
 
 pub(crate) const DESIRED_CACHE_TTL: i32 = 86400;

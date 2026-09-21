@@ -20,12 +20,11 @@ use crate::entities::odrl_policies::{NewOdrlPolicyDto, OdrlPolicyEntityTrait};
 use crate::entities::policy_templates::{PolicyTemplateDto, PolicyTemplateEntityTrait};
 use crate::OdrlPolicyDto;
 use common::dsp_common::odrl::OdrlPolicyInfo;
-use common::errors::{CommonErrors, ErrorLog};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tracing::error;
-use ymir::errors::{Errors, Outcome};
+use ymir::errors::Outcome;
 
 pub struct PolicyInstantiationEngine {
     odrl_policy_service: Arc<dyn OdrlPolicyEntityTrait>,
@@ -71,30 +70,24 @@ impl PolicyInstantiationEngine {
     }
 }
 
+use common::auth::AccessScope;
+
 #[async_trait::async_trait]
 impl PolicyInstantiationTrait for PolicyInstantiationEngine {
     async fn instantiate_policy(
         &self,
+        scope: &AccessScope,
         instantiation_request: &NewPolicyInstantiationDto,
     ) -> Outcome<OdrlPolicyDto> {
         // fetch policy template
         let policy_template = self
             .policy_templates_service
             .get_policies_template_by_version_and_id(
+                scope,
                 &instantiation_request.id,
                 &instantiation_request.version,
             )
-            .await?
-            .ok_or_else(|| {
-                Errors::missing_resource(
-                    "PolicyTemplate",
-                    &format!(
-                        "ID: {} Version: {}",
-                        instantiation_request.id, instantiation_request.version
-                    ),
-                    None,
-                )
-            })?;
+            .await?;
 
         // validate
         instantiation_request.validate_instantiation_request(&policy_template)?;
@@ -121,18 +114,22 @@ impl PolicyInstantiationTrait for PolicyInstantiationEngine {
         // create offer
         let created_offer = self
             .odrl_policy_service
-            .create_odrl_offer(&NewOdrlPolicyDto {
-                id: None,
-                odrl_offer: final_odrl,
-                entity_id: instantiation_request.entity_id.clone(),
-                entity_type: instantiation_request.entity_type.clone(),
-                source_template_id: Some(instantiation_request.id.clone()),
-                source_template_version: Some(instantiation_request.version.clone()),
-                instantiation_parameters: Some(serde_json::to_value(
-                    &instantiation_request.parameters,
-                )?),
-                description: instantiation_request.description.clone(),
-            })
+            .create_odrl_offer(
+                scope,
+                &NewOdrlPolicyDto {
+                    id: None,
+                    tenant_id: Some(policy_template.tenant_id.clone()),
+                    odrl_offer: final_odrl,
+                    entity_id: instantiation_request.entity_id.clone(),
+                    entity_type: instantiation_request.entity_type.clone(),
+                    source_template_id: Some(instantiation_request.id.clone()),
+                    source_template_version: Some(instantiation_request.version.clone()),
+                    instantiation_parameters: Some(serde_json::to_value(
+                        &instantiation_request.parameters,
+                    )?),
+                    description: instantiation_request.description.clone(),
+                },
+            )
             .await?;
 
         Ok(created_offer)

@@ -78,7 +78,14 @@ impl OrchestrationPersistenceForProtocol {
             .create_message_with_old_state(&process_id, payload, &process, "-")
             .await?;
         let message_id = self.convert_string_to_urn(&message.inner.id)?;
-        let offer = self.create_offer(&process_id, &message_id, payload).await?;
+        let offer = self
+            .create_offer(
+                &process_id,
+                &message_id,
+                payload,
+                Some(&process.inner.tenant_id),
+            )
+            .await?;
         process.messages.push(message.inner);
         process.offers.push(offer.inner);
         Ok(process)
@@ -109,7 +116,14 @@ impl OrchestrationPersistenceForProtocol {
         let mut new_process = self.update_process(&process_id, payload, mate).await?;
         let message = self.create_message(&process_id, payload, &process).await?;
         let message_id = self.convert_string_to_urn(&message.inner.id)?;
-        let offer = self.create_offer(&process_id, &message_id, payload).await?;
+        let offer = self
+            .create_offer(
+                &process_id,
+                &message_id,
+                payload,
+                Some(&new_process.inner.tenant_id),
+            )
+            .await?;
         new_process.messages.push(message.inner);
         new_process.offers.push(offer.inner);
         Ok(new_process)
@@ -237,6 +251,7 @@ impl OrchestrationPersistenceForProtocol {
             .negotiation_process_service
             .create_negotiation_process(&NewNegotiationProcessDto {
                 id: Some(id),
+                tenant_id: Some(mate.tenant_id.clone()),
                 state: state.to_string(),
                 state_attribute: None, // O el valor por defecto que corresponda
                 associated_agent_peer: mate.participant_id.clone(),
@@ -266,7 +281,7 @@ impl OrchestrationPersistenceForProtocol {
         &self,
         process_id: &Urn,
         message: &dyn NegotiationProcessMessageTrait,
-        _process: &NegotiationProcessDto,
+        process: &NegotiationProcessDto,
         old_state: &str,
     ) -> Outcome<NegotiationMessageDto> {
         let id = self.create_entity_urn("negotiation-message")?;
@@ -290,6 +305,7 @@ impl OrchestrationPersistenceForProtocol {
             .negotiation_messages_service
             .create_negotiation_message(&NewNegotiationMessageDto {
                 id: Some(id),
+                tenant_id: Some(process.inner.tenant_id.clone()),
                 negotiation_agent_process_id: process_id.clone(),
                 direction: "INBOUND".to_string(),
                 protocol: "DSP".to_string(),
@@ -307,6 +323,7 @@ impl OrchestrationPersistenceForProtocol {
         process_id: &Urn,
         message_id: &Urn,
         message: &dyn NegotiationProcessMessageTrait,
+        tenant_id: Option<&str>,
     ) -> Outcome<OfferDto> {
         let id = self.create_entity_urn("offer")?;
         let offer_content = self.get_dsp_offer_safely(message)?;
@@ -321,6 +338,7 @@ impl OrchestrationPersistenceForProtocol {
             .offer_service
             .create_offer(&NewOfferDto {
                 id: Some(id),
+                tenant_id: tenant_id.map(|t| t.to_string()),
                 negotiation_agent_process_id: process_id.clone(),
                 negotiation_agent_message_id: message_id.clone(),
                 offer_id,
@@ -345,6 +363,7 @@ impl OrchestrationPersistenceForProtocol {
             .agreement_service
             .create_agreement(&NewAgreementDto {
                 id: Some(id),
+                tenant_id: Some(mate.tenant_id.clone()),
                 negotiation_agent_process_id: pid.clone(),
                 negotiation_agent_message_id: mid.clone(),
                 consumer_participant_id: agreement.assignee.clone(),

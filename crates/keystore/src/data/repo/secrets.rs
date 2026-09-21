@@ -17,23 +17,32 @@
 
 use crate::entities::commands::{EditSecretCommand, NewSecretCommand};
 use crate::entities::entry::SecretEntry;
+use crate::entities::filters::PrefixFilter;
 use crate::entities::key::Key;
 use crate::entities::version::Version;
 use thiserror::Error;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
 #[allow(dead_code)]
-#[cfg_attr(test, mockall::automock)]
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait SecretRepoTrait: Send + Sync {
-    async fn get_all_secrets(&self) -> Outcome<Vec<SecretEntry>>;
-    async fn count_secrets(&self) -> Outcome<u64>;
-    async fn get_batch_secrets(&self, keys: &[Key]) -> Outcome<Vec<SecretEntry>>;
-    async fn get_secret_by_key(&self, key: &Key) -> Outcome<Option<SecretEntry>>;
-    async fn list_secrets_by_prefix(&self, prefix: &str) -> Outcome<Vec<SecretEntry>>;
-    async fn create_secret(&self, new_model: &NewSecretCommand) -> Outcome<SecretEntry>;
-    async fn put_secret(&self, key: &Key, edit_model: &EditSecretCommand) -> Outcome<SecretEntry>;
-    async fn delete_secret(&self, key: &Key) -> Outcome<()>;
+    async fn get_all_secrets(&self, filter: &PrefixFilter) -> Outcome<Vec<SecretEntry>>;
+    async fn count_secrets(&self, filter: &PrefixFilter) -> Outcome<u64>;
+    async fn get_batch_secrets(&self, tenant_id: &str, keys: &[Key]) -> Outcome<Vec<SecretEntry>>;
+    async fn get_secret_by_key(&self, tenant_id: &str, key: &Key) -> Outcome<Option<SecretEntry>>;
+    async fn create_secret(
+        &self,
+        tenant_id: &str,
+        new_model: &NewSecretCommand,
+    ) -> Outcome<SecretEntry>;
+    async fn put_secret(
+        &self,
+        tenant_id: &str,
+        key: &Key,
+        edit_model: &EditSecretCommand,
+    ) -> Outcome<SecretEntry>;
+    async fn delete_secret(&self, tenant_id: &str, key: &Key) -> Outcome<()>;
 }
 
 #[derive(Debug, Error)]

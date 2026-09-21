@@ -193,7 +193,7 @@ pub trait PeerConnectorModule:
     ) -> Outcome<()> {
         match vc_what_response? {
             TokenWhatResponse::Completed => {
-                let mate = self.peer_connector().build_mate_plan(&grant);
+                let mate = self.peer_connector().build_mate_plan("system", &grant);
                 self.repo().participant().force_update(mate).await?;
                 Ok(())
             }

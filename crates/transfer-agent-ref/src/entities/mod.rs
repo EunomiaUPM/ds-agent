@@ -16,7 +16,6 @@
  */
 
 pub(crate) mod commands;
-pub(crate) mod events;
 pub(crate) mod filters;
 pub(crate) mod ids;
 pub(crate) mod message_envelope;

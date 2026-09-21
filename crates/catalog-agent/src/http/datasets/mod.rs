@@ -75,59 +75,68 @@ impl DatasetEntityRouter {
 
     async fn handle_get_all_datasets(
         State(state): State<DatasetEntityRouter>,
+        scope: common::auth::AccessScope,
         Query(query): Query<DatasetQuery>,
     ) -> impl IntoResponse {
         let (filter, page, sort) = query.into_domain();
-        match state.service.get_all_datasets(&filter, &page, &sort).await {
+        match state
+            .service
+            .get_all_datasets(&scope, &filter, &page, &sort)
+            .await
+        {
             Ok(datasets) => (StatusCode::OK, Json(ToCamelCase(datasets))).into_response(),
             Err(e) => e.into_response(),
         }
     }
     async fn handle_get_batch_datasets(
         State(state): State<DatasetEntityRouter>,
+        scope: common::auth::AccessScope,
         input: Result<Json<BatchRequests>, JsonRejection>,
     ) -> impl IntoResponse {
         let input = match extract_payload(input) {
             Ok(v) => v,
             Err(e) => return e.into_response(),
         };
-        match state.service.get_batch_datasets(&input.ids).await {
+        match state.service.get_batch_datasets(&scope, &input.ids).await {
             Ok(datasets) => (StatusCode::OK, Json(ToCamelCase(datasets))).into_response(),
-            Err(e) => return e.into_response(),
+            Err(e) => e.into_response(),
         }
     }
     async fn handle_get_datasets_by_catalog_id(
         State(state): State<DatasetEntityRouter>,
+        scope: common::auth::AccessScope,
         Path(id): Path<String>,
     ) -> impl IntoResponse {
         let id_urn = match extract_path_urn(&id) {
             Ok(urn) => urn,
             Err(resp) => return resp.into_response(),
         };
-        match state.service.get_datasets_by_catalog_id(&id_urn).await {
+        match state
+            .service
+            .get_datasets_by_catalog_id(&scope, &id_urn)
+            .await
+        {
             Ok(dataset) => (StatusCode::OK, Json(ToCamelCase(dataset))).into_response(),
-            Err(e) => return e.into_response(),
+            Err(e) => e.into_response(),
         }
     }
     async fn handle_get_dataset_by_id(
         State(state): State<DatasetEntityRouter>,
+        scope: common::auth::AccessScope,
         Path(id): Path<String>,
     ) -> impl IntoResponse {
         let id_urn = match extract_path_urn(&id) {
             Ok(urn) => urn,
             Err(resp) => return resp.into_response(),
         };
-        match state.service.get_dataset_by_id(&id_urn).await {
-            Ok(Some(dataset)) => (StatusCode::OK, Json(ToCamelCase(dataset))).into_response(),
-            Ok(None) => {
-                let err = CommonErrors::missing_resource_new(id.as_str(), "Dataset not found");
-                err.into_response()
-            }
-            Err(e) => return e.into_response(),
+        match state.service.get_dataset_by_id(&scope, &id_urn).await {
+            Ok(dataset) => (StatusCode::OK, Json(ToCamelCase(dataset))).into_response(),
+            Err(e) => e.into_response(),
         }
     }
     async fn handle_put_dataset_by_id(
         State(state): State<DatasetEntityRouter>,
+        scope: common::auth::AccessScope,
         Path(id): Path<String>,
         input: Result<Json<EditDatasetDto>, JsonRejection>,
     ) -> impl IntoResponse {
@@ -139,35 +148,41 @@ impl DatasetEntityRouter {
             Ok(v) => v,
             Err(e) => return e.into_response(),
         };
-        match state.service.put_dataset_by_id(&id_urn, &input).await {
+        match state
+            .service
+            .put_dataset_by_id(&scope, &id_urn, &input)
+            .await
+        {
             Ok(dataset) => (StatusCode::OK, Json(ToCamelCase(dataset))).into_response(),
-            Err(e) => return e.into_response(),
+            Err(e) => e.into_response(),
         }
     }
     async fn handle_create_dataset(
         State(state): State<DatasetEntityRouter>,
+        scope: common::auth::AccessScope,
         input: Result<Json<NewDatasetDto>, JsonRejection>,
     ) -> impl IntoResponse {
         let input = match extract_payload(input) {
             Ok(v) => v,
             Err(e) => return e.into_response(),
         };
-        match state.service.create_dataset(&input).await {
+        match state.service.create_dataset(&scope, &input).await {
             Ok(dataset) => (StatusCode::OK, Json(ToCamelCase(dataset))).into_response(),
-            Err(e) => return e.into_response(),
+            Err(e) => e.into_response(),
         }
     }
     async fn handle_delete_dataset_by_id(
         State(state): State<DatasetEntityRouter>,
+        scope: common::auth::AccessScope,
         Path(id): Path<String>,
     ) -> impl IntoResponse {
         let id_urn = match extract_path_urn(&id) {
             Ok(urn) => urn,
             Err(resp) => return resp.into_response(),
         };
-        match state.service.delete_dataset_by_id(&id_urn).await {
+        match state.service.delete_dataset_by_id(&scope, &id_urn).await {
             Ok(_) => StatusCode::ACCEPTED.into_response(),
-            Err(e) => return e.into_response(),
+            Err(e) => e.into_response(),
         }
     }
 }

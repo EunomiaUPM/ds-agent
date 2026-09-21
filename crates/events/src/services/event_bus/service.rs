@@ -89,9 +89,21 @@ impl EventBus {
         <Self as EventPublisherTrait>::publish_event(self, event).await
     }
 
-    // Publish a serializable payload to a topic with automatic envelope packaging.
+    // Publish a serializable payload to a topic with automatic envelope packaging using default tenant.
     pub async fn emit_payload<T: serde::Serialize + ?Sized>(
         &self,
+        topic: &str,
+        source: &str,
+        payload: &T,
+    ) -> Result<EventEnvelope, EventBusError> {
+        self.emit_payload_with_tenant("default", topic, source, payload)
+            .await
+    }
+
+    // Publish a serializable payload to a topic with explicit tenant_id.
+    pub async fn emit_payload_with_tenant<T: serde::Serialize + ?Sized>(
+        &self,
+        tenant_id: &str,
         topic: &str,
         source: &str,
         payload: &T,
@@ -100,7 +112,7 @@ impl EventBus {
             crate::entities::topic::Topic::new(topic).map_err(EventBusError::InvalidTopic)?;
         let payload_val = serde_json::to_value(payload)
             .map_err(|e| EventBusError::Serialization(e.to_string()))?;
-        let envelope = EventEnvelope::new(topic_obj, source, 1, None, payload_val);
+        let envelope = EventEnvelope::new(tenant_id, topic_obj, source, 1, None, payload_val);
         self.publish(envelope).await
     }
 
@@ -142,11 +154,12 @@ impl EventBus {
     // Replay a single dead letter record by ID.
     pub async fn replay_dead_letter(
         &self,
+        tenant_id: &str,
         dlq_id: &str,
     ) -> Result<EventDeliveryRecord, EventBusError> {
         let record = self
             .dlq_repo
-            .get_dead_letter(dlq_id)
+            .get_dead_letter(tenant_id, dlq_id)
             .await
             .map_err(|e| EventBusError::Database(format!("{e:?}")))?
             .ok_or_else(|| {
@@ -159,7 +172,7 @@ impl EventBus {
 
         let event = self
             .event_repo
-            .get_event_by_id(&event_urn)
+            .get_event_by_id(tenant_id, &event_urn)
             .await
             .map_err(|e| EventBusError::Database(format!("{e:?}")))?
             .ok_or_else(|| {
@@ -168,7 +181,7 @@ impl EventBus {
 
         let sub = self
             .subscription_repo
-            .get_subscription(&record.subscription_id)
+            .get_subscription(tenant_id, &record.subscription_id)
             .await
             .map_err(|e| EventBusError::Database(format!("{e:?}")))?
             .ok_or_else(|| {
@@ -190,7 +203,7 @@ impl EventBus {
             Ok(status) if status.is_success() => {
                 info!(dlq_id, status = %status, "Dead letter replayed successfully");
                 self.dlq_repo
-                    .mark_replayed(dlq_id)
+                    .mark_replayed(tenant_id, dlq_id)
                     .await
                     .map_err(|e| EventBusError::Database(format!("{e:?}")))?;
 
@@ -205,6 +218,7 @@ impl EventBus {
                     id: record
                         .delivery_id
                         .unwrap_or_else(|| format!("urn:uuid:{}", Uuid::new_v4())),
+                    tenant_id: record.tenant_id.clone(),
                     event_id: record.event_id,
                     subscription_id: record.subscription_id,
                     status: DeliveryStatus::Delivered,
@@ -227,7 +241,7 @@ impl EventBus {
     }
 
     // Replay all unresolved dead letter records in batches.
-    pub async fn replay_all_dead_letters(&self) -> Result<usize, EventBusError> {
+    pub async fn replay_all_dead_letters(&self, tenant_id: &str) -> Result<usize, EventBusError> {
         let mut success_count = 0;
         let mut offset = 0;
         let limit = 50;
@@ -235,7 +249,7 @@ impl EventBus {
         loop {
             let dead_letters = self
                 .dlq_repo
-                .list_dead_letters(Some("Unresolved"), limit, offset)
+                .list_dead_letters(tenant_id, Some("Unresolved"), limit, offset)
                 .await
                 .map_err(|e| EventBusError::Database(format!("{e:?}")))?;
 
@@ -245,7 +259,7 @@ impl EventBus {
 
             let batch_len = dead_letters.len();
             for dl in dead_letters {
-                if self.replay_dead_letter(&dl.id).await.is_ok() {
+                if self.replay_dead_letter(tenant_id, &dl.id).await.is_ok() {
                     success_count += 1;
                 } else {
                     offset += 1;
@@ -327,6 +341,7 @@ impl EventBus {
 
                         let dlq_record = DeadLetterRecord {
                             id: format!("urn:uuid:{}", Uuid::new_v4()),
+                            tenant_id: event.tenant_id.clone(),
                             delivery_id: Some(delivery_id),
                             event_id: event.id.to_string(),
                             subscription_id: sub_id,
@@ -368,6 +383,7 @@ impl EventBus {
 
                         let dlq_record = DeadLetterRecord {
                             id: format!("urn:uuid:{}", Uuid::new_v4()),
+                            tenant_id: event.tenant_id.clone(),
                             delivery_id: Some(delivery_id),
                             event_id: event.id.to_string(),
                             subscription_id: sub_id,
@@ -400,7 +416,7 @@ impl EventBusTrait for EventBus {
 
         let matching_subs = self
             .subscription_repo
-            .get_matching_subscriptions(&envelope.topic)
+            .get_matching_subscriptions(&envelope.tenant_id, &envelope.topic)
             .await
             .map_err(|e| EventBusError::Database(format!("{e:?}")))?;
 
@@ -408,6 +424,7 @@ impl EventBusTrait for EventBus {
             let delivery_id = format!("urn:uuid:{}", Uuid::new_v4());
             let delivery = EventDeliveryRecord {
                 id: delivery_id.clone(),
+                tenant_id: envelope.tenant_id.clone(),
                 event_id: envelope.id.to_string(),
                 subscription_id: sub.id.clone(),
                 status: DeliveryStatus::Pending,

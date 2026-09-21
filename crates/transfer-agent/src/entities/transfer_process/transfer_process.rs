@@ -182,6 +182,7 @@ impl TransferAgentProcessesTrait for TransferAgentProcessesService {
             for (key, urn_value) in identifiers {
                 let new_ident_model = NewTransferIdentifierModel {
                     id: None,
+                    tenant_id: created_process.tenant_id.clone(),
                     transfer_agent_process_id: process_urn.clone(),
                     id_key: key.clone(),
                     id_value: Some(urn_value.to_string()),
@@ -230,6 +231,7 @@ impl TransferAgentProcessesTrait for TransferAgentProcessesService {
                         .get_transfer_process_identifiers_repo()
                         .create_identifier(&NewTransferIdentifierModel {
                             id: Some(get_urn(None)),
+                            tenant_id: updated_process.tenant_id.clone(),
                             transfer_agent_process_id: process_urn.clone(),
                             id_key: key.clone(),
                             id_value: Some(urn_value.to_string()),

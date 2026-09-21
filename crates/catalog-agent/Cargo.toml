@@ -15,6 +15,7 @@ path = "src/main.rs"
 common = { version = "0.4.0", path = "../common", default-features = false }
 connector = { version = "0.4.0", path = "../connector", default-features = false }
 events = { version = "0.4.0", path = "../events", default-features = false }
+oauth = { version = "0.4.0", path = "../oauth" }
 
 serde = { workspace = true }
 serde_json = { workspace = true }

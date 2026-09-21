@@ -101,6 +101,14 @@ impl AccessScope {
         }
     }
 
+    /// Creates an administrative system scope for background tasks and drivers.
+    pub fn system() -> Self {
+        Self {
+            acting_tenant: String::new(),
+            role: RbacRole::Admin,
+        }
+    }
+
     /// Role held by the authenticated caller.
     pub fn role(&self) -> RbacRole {
         self.role
@@ -133,6 +141,18 @@ impl AccessScope {
         }
     }
 
+    /// Authorizes read access for a target tenant in the service layer.
+    pub fn require_read_tenant(&self, target_tenant: &str) -> Outcome<()> {
+        self.require_read()?;
+        self.ensure_tenant_access(target_tenant)
+    }
+
+    /// Authorizes write access for a target tenant in the service layer.
+    pub fn require_write_tenant(&self, target_tenant: &str) -> Outcome<()> {
+        self.require_write()?;
+        self.ensure_tenant_access(target_tenant)
+    }
+
     /// Authorizes administrative access in the service layer.
     pub fn require_admin(&self) -> Outcome<()> {
         if self.is_admin() {
@@ -150,6 +170,38 @@ impl AccessScope {
     /// The tenant a newly created resource should default to or be forced into.
     pub fn acting_tenant(&self) -> &String {
         &self.acting_tenant
+    }
+
+    /// Resolves target tenant for a new resource and enforces write permission.
+    /// Non-admins are forced to acting tenant; admins use requested or default to acting.
+    pub fn resolve_create_tenant(&self, requested_tenant: Option<&str>) -> Outcome<String> {
+        let target = if self.is_admin() {
+            requested_tenant
+                .filter(|s| !s.trim().is_empty())
+                .unwrap_or(&self.acting_tenant)
+        } else {
+            &self.acting_tenant
+        };
+        self.require_write_tenant(target)?;
+        Ok(target.to_string())
+    }
+
+    /// Resolves the effective tenant filter for list queries.
+    /// Non-admins cannot query foreign tenants; admins can filter or query across all.
+    pub fn resolve_query_tenant(&self, requested_tenant: Option<&str>) -> Outcome<Option<String>> {
+        if self.is_admin() {
+            Ok(requested_tenant
+                .filter(|s| !s.trim().is_empty())
+                .map(|s| s.to_string()))
+        } else if let Some(req) = requested_tenant.filter(|s| !s.trim().is_empty()) {
+            if req != self.acting_tenant {
+                Err(Rbac::forbidden())
+            } else {
+                Ok(Some(self.acting_tenant.clone()))
+            }
+        } else {
+            Ok(Some(self.acting_tenant.clone()))
+        }
     }
 
     /// Whether this scope permits operating on a resource owned by `owner`.

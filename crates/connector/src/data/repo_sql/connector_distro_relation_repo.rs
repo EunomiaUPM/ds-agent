@@ -40,12 +40,14 @@ impl ConnectorDistroRelationRepoForSql {
 impl ConnectorDistroRelationRepoTrait for ConnectorDistroRelationRepoForSql {
     async fn create_relation(
         &self,
-        distro: &String,
-        instance: &String,
+        tenant_id: &str,
+        distro: &str,
+        instance: &str,
     ) -> Outcome<connector_distro_relation::Model> {
         let relation = connector_distro_relation::ActiveModel {
-            distribution_id: ActiveValue::Set(distro.clone()),
-            connector_instance_id: ActiveValue::Set(instance.clone()),
+            distribution_id: ActiveValue::Set(distro.to_string()),
+            tenant_id: ActiveValue::Set(tenant_id.to_string()),
+            connector_instance_id: ActiveValue::Set(instance.to_string()),
         };
         let instance = connector_distro_relation::Entity::insert(relation)
             .exec_with_returning(&self.db_connection)
@@ -61,34 +63,45 @@ impl ConnectorDistroRelationRepoTrait for ConnectorDistroRelationRepoForSql {
 
     async fn update_relation(
         &self,
-        distro: &String,
-        instance: &String,
+        tenant_id: &str,
+        distro: &str,
+        instance: &str,
     ) -> Outcome<connector_distro_relation::Model> {
-        let relation = self.get_relation_by_distribution(distro).await?;
-        if relation.is_none() {
-            return Err(ConnectorAgentRepoErrors::ConnectorDistroRelationRepoErrors(
-                ConnectorDistroRelationRepoErrors::RelationNotFound,
-            )
-            .into_errors());
-        }
-        let mut old_relation: connector_distro_relation::ActiveModel = relation.unwrap().into();
-        old_relation.connector_instance_id = ActiveValue::Set(instance.clone());
-        let model = old_relation.update(&self.db_connection).await;
-        match model {
-            Ok(model) => Ok(model),
-            Err(err) => Err(ConnectorAgentRepoErrors::ConnectorDistroRelationRepoErrors(
+        let existing = connector_distro_relation::Entity::find_by_id(distro)
+            .filter(connector_distro_relation::Column::TenantId.eq(tenant_id))
+            .one(&self.db_connection)
+            .await
+            .map_err(|e| {
+                ConnectorAgentRepoErrors::ConnectorDistroRelationRepoErrors(
+                    ConnectorDistroRelationRepoErrors::ErrorUpdatingRelation(e.to_string()),
+                )
+                .into_errors()
+            })?
+            .ok_or_else(|| {
+                ConnectorAgentRepoErrors::ConnectorDistroRelationRepoErrors(
+                    ConnectorDistroRelationRepoErrors::RelationNotFound,
+                )
+                .into_errors()
+            })?;
+
+        let mut active: connector_distro_relation::ActiveModel = existing.into();
+        active.connector_instance_id = ActiveValue::Set(instance.to_string());
+        active.update(&self.db_connection).await.map_err(|err| {
+            ConnectorAgentRepoErrors::ConnectorDistroRelationRepoErrors(
                 ConnectorDistroRelationRepoErrors::ErrorUpdatingRelation(err.to_string()),
             )
-            .into_errors()),
-        }
+            .into_errors()
+        })
     }
 
     async fn get_relation_by_distribution(
         &self,
-        distro: &String,
+        tenant_id: &str,
+        distro: &str,
     ) -> Outcome<Option<connector_distro_relation::Model>> {
         let relation = connector_distro_relation::Entity::find()
             .filter(connector_distro_relation::Column::DistributionId.eq(distro))
+            .filter(connector_distro_relation::Column::TenantId.eq(tenant_id))
             .one(&self.db_connection)
             .await;
         match relation {
@@ -102,9 +115,12 @@ impl ConnectorDistroRelationRepoTrait for ConnectorDistroRelationRepoForSql {
 
     async fn get_relation_by_instance(
         &self,
-        instance: &String,
+        tenant_id: &str,
+        instance: &str,
     ) -> Outcome<Option<connector_distro_relation::Model>> {
-        let relation = connector_distro_relation::Entity::find_by_id(instance)
+        let relation = connector_distro_relation::Entity::find()
+            .filter(connector_distro_relation::Column::ConnectorInstanceId.eq(instance))
+            .filter(connector_distro_relation::Column::TenantId.eq(tenant_id))
             .one(&self.db_connection)
             .await;
         match relation {
@@ -116,20 +132,13 @@ impl ConnectorDistroRelationRepoTrait for ConnectorDistroRelationRepoForSql {
         }
     }
 
-    async fn delete_relation_by_distribution(&self, distro: &String) -> Outcome<()> {
-        let relation = self.get_relation_by_distribution(distro).await?;
-        if relation.is_none() {
-            return Err(ConnectorAgentRepoErrors::ConnectorDistroRelationRepoErrors(
-                ConnectorDistroRelationRepoErrors::RelationNotFound,
-            )
-            .into_errors());
-        }
-        let relation = relation.unwrap();
-
-        let relation = connector_distro_relation::Entity::delete(relation.into_active_model())
+    async fn delete_relation_by_distribution(&self, tenant_id: &str, distro: &str) -> Outcome<()> {
+        let result = connector_distro_relation::Entity::delete_many()
+            .filter(connector_distro_relation::Column::DistributionId.eq(distro))
+            .filter(connector_distro_relation::Column::TenantId.eq(tenant_id))
             .exec(&self.db_connection)
             .await;
-        match relation {
+        match result {
             Ok(delete_result) => match delete_result.rows_affected {
                 0 => Err(ConnectorAgentRepoErrors::ConnectorDistroRelationRepoErrors(
                     ConnectorDistroRelationRepoErrors::RelationNotFound,
@@ -144,11 +153,13 @@ impl ConnectorDistroRelationRepoTrait for ConnectorDistroRelationRepoForSql {
         }
     }
 
-    async fn delete_relation_by_instance(&self, distro: &String) -> Outcome<()> {
-        let relation = connector_distro_relation::Entity::delete_by_id(distro)
+    async fn delete_relation_by_instance(&self, tenant_id: &str, instance: &str) -> Outcome<()> {
+        let result = connector_distro_relation::Entity::delete_many()
+            .filter(connector_distro_relation::Column::ConnectorInstanceId.eq(instance))
+            .filter(connector_distro_relation::Column::TenantId.eq(tenant_id))
             .exec(&self.db_connection)
             .await;
-        match relation {
+        match result {
             Ok(delete_result) => match delete_result.rows_affected {
                 0 => Err(ConnectorAgentRepoErrors::ConnectorDistroRelationRepoErrors(
                     ConnectorDistroRelationRepoErrors::RelationNotFound,

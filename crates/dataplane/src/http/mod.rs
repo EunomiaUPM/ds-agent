@@ -18,4 +18,5 @@
 pub mod common;
 pub mod dataplane_info;
 pub mod dataplane_transfer_logs;
+pub mod extractors;
 pub mod transfer_events;

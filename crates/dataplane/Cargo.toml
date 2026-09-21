@@ -12,6 +12,7 @@ path = "src/lib.rs"
 common = { version = "0.4.0", path = "../common", default-features = true }
 connector = { version = "0.4.0", path = "../connector", default-features = true }
 keystore = { version = "0.4.0", path = "../keystore", default-features = true }
+oauth = { version = "0.4.0", path = "../oauth", default-features = false }
 
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -33,6 +34,5 @@ uuid = { workspace = true }
 ymir = { workspace = true }
 redis = { workspace = true }
 strum = { workspace = true }
-
-[dev-dependencies]
 mockall = { workspace = true }
+

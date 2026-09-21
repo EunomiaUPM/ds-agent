@@ -24,6 +24,7 @@ use crate::protocols::dsp::protocol_types::{
 use crate::protocols::dsp::types::catalog_definition::Catalog;
 use crate::protocols::dsp::types::dataset_definition::Dataset;
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
+use common::auth::AccessScope;
 use std::sync::Arc;
 use ymir::errors::Outcome;
 
@@ -51,17 +52,22 @@ impl ProtocolOrchestratorService {
 impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
     async fn on_catalog_request(
         &self,
+        scope: &AccessScope,
         _input: &CatalogMessageWrapper<CatalogRequestMessageDto>,
     ) -> Outcome<Catalog> {
-        let catalog = self.persistence.get_catalog().await?;
+        let catalog = self.persistence.get_catalog(scope).await?;
         Ok(catalog)
     }
 
     async fn on_dataset_request(
         &self,
+        scope: &AccessScope,
         input: &CatalogMessageWrapper<DatasetRequestMessage>,
     ) -> Outcome<Dataset> {
-        let dataset = self.persistence.get_dataset(&input.dto.dataset).await?;
+        let dataset = self
+            .persistence
+            .get_dataset(scope, &input.dto.dataset)
+            .await?;
         Ok(dataset)
     }
 }

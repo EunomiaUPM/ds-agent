@@ -34,7 +34,7 @@ pub trait PeerConnectorTrait: Send + Sync + 'static {
         actions: Vec<InteractAction>,
     ) -> resource_req::Model;
     fn build_verification_plan(&self, uri: &str, id: &str) -> Outcome<verification::Plan>;
-    fn build_mate_plan(&self, grant: &grant::Model) -> participant::Plan;
+    fn build_mate_plan(&self, tenant_id: &str, grant: &grant::Model) -> participant::Plan;
     async fn send_grant_req(
         &self,
         grant: &grant::Model,

@@ -80,8 +80,7 @@ impl RdfEngine {
 
     /// Expands a JSON-LD message into an expanded document and canonical n-quads.
     pub async fn expand(&self, message: &serde_json::Value) -> Outcome<RdfExpansion> {
-        let mut canonicalizer =
-            RdfCanonicalizer::with_loader(message.clone(), self.loader.clone());
+        let mut canonicalizer = RdfCanonicalizer::with_loader(message.clone(), self.loader.clone());
         if let Some(ctx) = &self.expand_context {
             canonicalizer = canonicalizer.with_expand_context(ctx.clone());
         }

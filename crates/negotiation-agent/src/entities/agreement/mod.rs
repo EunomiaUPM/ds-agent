@@ -37,6 +37,8 @@ pub struct AgreementDto {
 #[serde(deny_unknown_fields)]
 pub struct NewAgreementDto {
     pub id: Option<Urn>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tenant_id: Option<String>,
     pub negotiation_agent_process_id: Urn,
     pub negotiation_agent_message_id: Urn,
     pub consumer_participant_id: String,
@@ -52,17 +54,25 @@ pub struct EditAgreementDto {
     pub state: Option<String>,
 }
 
+impl NewAgreementDto {
+    pub fn into_model(self, tenant_id: String) -> NewAgreementModel {
+        NewAgreementModel {
+            id: self.id,
+            tenant_id,
+            negotiation_agent_process_id: self.negotiation_agent_process_id,
+            negotiation_agent_message_id: self.negotiation_agent_message_id,
+            consumer_participant_id: self.consumer_participant_id,
+            provider_participant_id: self.provider_participant_id,
+            agreement_content: self.agreement_content,
+            target: self.target,
+        }
+    }
+}
+
 impl From<NewAgreementDto> for NewAgreementModel {
     fn from(dto: NewAgreementDto) -> Self {
-        Self {
-            id: dto.id,
-            negotiation_agent_process_id: dto.negotiation_agent_process_id,
-            negotiation_agent_message_id: dto.negotiation_agent_message_id,
-            consumer_participant_id: dto.consumer_participant_id,
-            provider_participant_id: dto.provider_participant_id,
-            agreement_content: dto.agreement_content,
-            target: dto.target,
-        }
+        let tenant_id = dto.tenant_id.clone().unwrap_or_default();
+        dto.into_model(tenant_id)
     }
 }
 

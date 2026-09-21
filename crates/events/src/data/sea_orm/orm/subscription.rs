@@ -30,6 +30,7 @@ use crate::entities::topic::TopicPattern;
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: String,
+    pub tenant_id: String,
     pub callback_address: String,
     pub topic_pattern: Option<String>,
     pub secret: Option<String>,
@@ -92,6 +93,7 @@ impl Model {
 
         Ok(SubscriptionRecord {
             id: self.id,
+            tenant_id: self.tenant_id,
             callback_address: self.callback_address,
             topic_pattern,
             secret: self.secret,
@@ -114,6 +116,7 @@ impl ActiveModel {
     pub fn from_domain(entity: &SubscriptionRecord) -> Self {
         Self {
             id: ActiveValue::Set(entity.id.clone()),
+            tenant_id: ActiveValue::Set(entity.tenant_id.clone()),
             callback_address: ActiveValue::Set(entity.callback_address.clone()),
             topic_pattern: ActiveValue::Set(Some(entity.topic_pattern.to_string())),
             secret: ActiveValue::Set(entity.secret.clone()),

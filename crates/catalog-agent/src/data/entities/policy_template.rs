@@ -24,6 +24,8 @@ use urn::UrnBuilder;
 #[sea_orm(table_name = "policy_templates")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
+    pub tenant_id: String,
+    #[sea_orm(primary_key, auto_increment = false)]
     pub id: String,
     #[sea_orm(primary_key, auto_increment = false)]
     pub version: String,
@@ -52,6 +54,7 @@ impl ActiveModelBehavior for ActiveModel {}
 #[derive(Clone)]
 pub struct NewPolicyTemplateModel {
     pub id: Option<String>,
+    pub tenant_id: String,
     pub version: Option<String>,
     pub date: Option<DateTimeWithTimeZone>,
     pub author: Option<String>,
@@ -76,6 +79,7 @@ impl From<NewPolicyTemplateModel> for ActiveModel {
                     .unwrap_or(new_urn.clone().to_string())
                     .to_string(),
             ),
+            tenant_id: ActiveValue::Set(dto.tenant_id),
             version: ActiveValue::Set(dto.version.unwrap_or("1.0".to_string())),
             date: ActiveValue::Set(dto.date.unwrap_or(chrono::Utc::now().into())),
             author: ActiveValue::Set(dto.author.unwrap_or("".to_string())),

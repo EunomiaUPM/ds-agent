@@ -16,14 +16,14 @@
  */
 
 use crate::cache::factory_trait::CatalogAgentCacheTrait;
-use crate::data::entities::catalog::{EditCatalogModel, NewCatalogModel};
+use crate::data::entities::catalog::EditCatalogModel;
 use crate::data::factory_trait::CatalogAgentRepoTrait;
 use crate::entities::catalogs::{CatalogDto, CatalogEntityTrait, EditCatalogDto, NewCatalogDto};
 use crate::entities::filters::CatalogFilter;
-use common::errors::{CommonErrors, ErrorLog};
+use common::auth::AccessScope;
+use common::errors::NotFoundExt;
 use common::paginated_spec::{Cursor, Page, Paginated, Sort};
 use common::query::QueryFilter;
-use log::error;
 use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
@@ -57,17 +57,21 @@ impl CatalogEntities {
 impl CatalogEntityTrait for CatalogEntities {
     async fn get_all_catalogs(
         &self,
+        scope: &AccessScope,
         filters: &CatalogFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<CatalogDto>> {
+        scope.require_read()?;
         filters.validate()?;
+        let mut filters = filters.clone();
+        filters.tenant_id = scope.resolve_query_tenant(filters.tenant_id.as_deref())?;
         let page = page.clamped();
 
         let (catalogs, total) = self
             .repo
             .get_catalog_repo()
-            .get_all_catalogs(filters, &page, sort)
+            .get_all_catalogs(&filters, &page, sort)
             .await?;
 
         let dtos: Vec<CatalogDto> = catalogs.into_iter().map(Into::into).collect();
@@ -87,75 +91,70 @@ impl CatalogEntityTrait for CatalogEntities {
         }))
     }
 
-    async fn get_batch_catalogs(&self, ids: &Vec<Urn>) -> Outcome<Vec<CatalogDto>> {
-        // cache
-        if let Ok(dtos) = self.cache.get_catalog_cache().get_batch(ids).await {
-            if !dtos.is_empty() {
-                return Ok(dtos);
-            }
-        }
+    async fn get_batch_catalogs(
+        &self,
+        scope: &AccessScope,
+        ids: &[Urn],
+    ) -> Outcome<Vec<CatalogDto>> {
+        scope.require_read()?;
+        let catalogs = self
+            .repo
+            .get_catalog_repo()
+            .get_batch_catalogs(scope.acting_tenant(), ids)
+            .await?;
 
-        // db
-        let catalogs = self.repo.get_catalog_repo().get_batch_catalogs(ids).await?;
-
-        let dtos: Vec<CatalogDto> = catalogs.into_iter().map(Into::into).collect();
-
-        // hydration
+        let mut dtos: Vec<CatalogDto> = Vec::new();
         let cache = self.cache.get_catalog_cache();
-        for dto in &dtos {
+        for c in catalogs {
+            let dto: CatalogDto = c.into();
             if let Ok(id) = Urn::from_str(dto.inner.id.as_str()) {
-                let _ = cache.set_single(&id, dto).await;
+                let _ = cache.set_single(&id, &dto).await;
                 let _ = cache
                     .add_to_collection(&id, dto.inner.dct_issued.timestamp() as f64)
                     .await;
             }
+            dtos.push(dto);
         }
 
         Ok(dtos)
     }
 
-    async fn get_catalog_by_id(&self, catalog_id: &Urn) -> Outcome<Option<CatalogDto>> {
-        // cache
-        if let Ok(Some(catalog)) = self.cache.get_catalog_cache().get_single(catalog_id).await {
-            return Ok(Some(catalog));
-        }
-
-        // db
+    async fn get_catalog_by_id(
+        &self,
+        scope: &AccessScope,
+        catalog_id: &Urn,
+    ) -> Outcome<CatalogDto> {
+        scope.require_read()?;
         let catalog = self
             .repo
             .get_catalog_repo()
-            .get_catalog_by_id(catalog_id)
-            .await?;
+            .get_catalog_by_id(scope.acting_tenant(), catalog_id)
+            .await?
+            .or_not_found(catalog_id, "catalog")?;
 
-        let dto: Option<CatalogDto> = catalog.map(Into::into);
+        let dto: CatalogDto = catalog.into();
 
-        // hydration for single entry
-        if let Some(dto) = &dto {
-            let cache = self.cache.get_catalog_cache();
-            let _ = cache.set_single(catalog_id, dto).await;
-            let _ = cache
-                .add_to_collection(catalog_id, dto.inner.dct_issued.timestamp() as f64)
-                .await;
-        }
+        let cache = self.cache.get_catalog_cache();
+        let _ = cache.set_single(catalog_id, &dto).await;
+        let _ = cache
+            .add_to_collection(catalog_id, dto.inner.dct_issued.timestamp() as f64)
+            .await;
 
         Ok(dto)
     }
 
-    async fn get_main_catalog(&self) -> Outcome<Option<CatalogDto>> {
-        // cache
-        let catalog = self.cache.get_catalog_cache().get_main().await?;
-        if let Some(catalog) = catalog {
-            return Ok(Some(catalog));
-        }
-
-        let catalog = self.repo.get_catalog_repo().get_main_catalog().await?;
+    async fn get_main_catalog(&self, scope: &AccessScope) -> Outcome<Option<CatalogDto>> {
+        scope.require_read()?;
+        let catalog = self
+            .repo
+            .get_catalog_repo()
+            .get_main_catalog(scope.acting_tenant())
+            .await?;
         let dto: Option<CatalogDto> = catalog.map(|c| c.into());
 
-        // hydrate cache
-        if let Some(dto) = &dto {
-            let main_id = Urn::from_str(&*dto.inner.id)?;
-            let catalog_timestamp = dto.inner.dct_issued.timestamp() as f64;
-            self.cache.get_catalog_cache().set_main(&main_id, dto).await;
+        if let Some(ref dto) = dto {
+            let main_id = Urn::from_str(&dto.inner.id)?;
+            let _ = self.cache.get_catalog_cache().set_main(&main_id, dto).await;
         }
 
         Ok(dto)
@@ -163,20 +162,21 @@ impl CatalogEntityTrait for CatalogEntities {
 
     async fn put_catalog_by_id(
         &self,
+        scope: &AccessScope,
         catalog_id: &Urn,
         edit_catalog_model: &EditCatalogDto,
     ) -> Outcome<CatalogDto> {
+        scope.require_write()?;
         let edit_model: EditCatalogModel = edit_catalog_model.clone().into();
         let catalog = self
             .repo
             .get_catalog_repo()
-            .put_catalog_by_id(catalog_id, &edit_model)
+            .put_catalog_by_id(scope.acting_tenant(), catalog_id, &edit_model)
             .await?;
 
         let dto: CatalogDto = catalog.into();
         let catalog_urn = Urn::from_str(dto.inner.id.as_str())?;
 
-        // cache
         let cache = self.cache.get_catalog_cache();
         let _ = cache.set_single(&catalog_urn, &dto).await;
         let _ = cache
@@ -187,8 +187,15 @@ impl CatalogEntityTrait for CatalogEntities {
         Ok(dto)
     }
 
-    async fn create_catalog(&self, new_catalog_model: &NewCatalogDto) -> Outcome<CatalogDto> {
-        let new_model: NewCatalogModel = new_catalog_model.clone().into();
+    async fn create_catalog(
+        &self,
+        scope: &AccessScope,
+        new_catalog_model: &NewCatalogDto,
+    ) -> Outcome<CatalogDto> {
+        let mut new_catalog_model = new_catalog_model.clone();
+        let tenant_id = scope.resolve_create_tenant(new_catalog_model.tenant_id.as_deref())?;
+        new_catalog_model.tenant_id = Some(tenant_id.clone());
+        let new_model = new_catalog_model.into_model(tenant_id);
         let catalog = self
             .repo
             .get_catalog_repo()
@@ -198,7 +205,6 @@ impl CatalogEntityTrait for CatalogEntities {
         let dto: CatalogDto = catalog.into();
         let catalog_urn = Urn::from_str(dto.inner.id.as_str())?;
 
-        // hydration
         let cache = self.cache.get_catalog_cache();
         let _ = cache.set_single(&catalog_urn, &dto).await;
         let _ = cache
@@ -215,18 +221,25 @@ impl CatalogEntityTrait for CatalogEntities {
         Ok(dto)
     }
 
-    async fn create_main_catalog(&self, new_catalog_model: &NewCatalogDto) -> Outcome<CatalogDto> {
-        let new_model: NewCatalogModel = new_catalog_model.clone().into();
+    async fn create_main_catalog(
+        &self,
+        scope: &AccessScope,
+        new_catalog_model: &NewCatalogDto,
+    ) -> Outcome<CatalogDto> {
+        let mut new_catalog_model = new_catalog_model.clone();
+        let tenant_id = scope.resolve_create_tenant(new_catalog_model.tenant_id.as_deref())?;
+        new_catalog_model.tenant_id = Some(tenant_id.clone());
+        let new_model = new_catalog_model.into_model(tenant_id);
         let catalog = self
             .repo
             .get_catalog_repo()
             .create_main_catalog(&new_model)
             .await?;
-        let catalog_urn = Urn::from_str(&*catalog.id)?;
+        let catalog_urn = Urn::from_str(&catalog.id)?;
         let dto: CatalogDto = catalog.into();
 
-        // cache
-        self.cache
+        let _ = self
+            .cache
             .get_catalog_cache()
             .set_main(&catalog_urn, &dto)
             .await;
@@ -241,13 +254,13 @@ impl CatalogEntityTrait for CatalogEntities {
         Ok(dto)
     }
 
-    async fn delete_catalog_by_id(&self, catalog_id: &Urn) -> Outcome<()> {
+    async fn delete_catalog_by_id(&self, scope: &AccessScope, catalog_id: &Urn) -> Outcome<()> {
+        scope.require_write()?;
         self.repo
             .get_catalog_repo()
-            .delete_catalog_by_id(catalog_id)
+            .delete_catalog_by_id(scope.acting_tenant(), catalog_id)
             .await?;
 
-        // invalidate cache
         let _ = self
             .cache
             .get_catalog_cache()

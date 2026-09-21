@@ -18,8 +18,8 @@
 use crate::CatalogDto;
 use urn::Urn;
 
-pub(crate) mod entity_cache_trait;
-pub(crate) mod lookup_cache_trait;
+pub mod entity_cache_trait;
+pub mod lookup_cache_trait;
 pub(crate) mod peer_catalog_cache_trait;
 pub(crate) mod redis_cache_connector_trait;
 pub(crate) mod utils_trait;

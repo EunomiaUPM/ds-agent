@@ -105,11 +105,15 @@ impl DspRules {
 
         let matches = match type_val {
             Some(serde_json::Value::String(s)) => {
-                s == expected || s.ends_with(&format!(":{expected}")) || s.ends_with(&format!("/{expected}"))
+                s == expected
+                    || s.ends_with(&format!(":{expected}"))
+                    || s.ends_with(&format!("/{expected}"))
             }
             Some(serde_json::Value::Array(arr)) => arr.iter().any(|v| match v {
                 serde_json::Value::String(s) => {
-                    s == expected || s.ends_with(&format!(":{expected}")) || s.ends_with(&format!("/{expected}"))
+                    s == expected
+                        || s.ends_with(&format!(":{expected}"))
+                        || s.ends_with(&format!("/{expected}"))
                 }
                 _ => false,
             }),

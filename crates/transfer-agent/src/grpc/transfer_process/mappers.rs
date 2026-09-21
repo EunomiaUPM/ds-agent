@@ -69,6 +69,7 @@ impl TryFrom<CreateProcessRequest> for NewTransferProcessDto {
 
         Ok(NewTransferProcessDto {
             id: id_urn,
+            tenant_id: None,
             state: proto.state,
             associated_agent_peer: proto.associated_agent_peer,
             protocol: proto.protocol,

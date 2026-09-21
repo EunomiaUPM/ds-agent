@@ -21,6 +21,8 @@ use base64::Engine;
 use chrono::{DateTime, FixedOffset, TimeZone, Utc};
 use ymir::errors::{BadFormat, Errors, Outcome};
 
+use super::sort::Sort;
+
 /// Decoded cursor components representing pagination state.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DecodedCursor {
@@ -65,6 +67,39 @@ impl Cursor {
             Some(id) => Self::encode_composite(dt, id),
             None => Self::encode_timestamp(dt),
         }
+    }
+
+    /// Encodes a timestamp into a URL-safe cursor selected by sort order.
+    pub fn encode_sorted<Tz: TimeZone>(
+        created_at: &DateTime<Tz>,
+        updated_at: &DateTime<Tz>,
+        sort: &Sort,
+    ) -> String
+    where
+        Tz::Offset: std::fmt::Display,
+    {
+        let dt = match sort {
+            Sort::UpdatedAtDesc | Sort::UpdatedAtAsc => updated_at,
+            _ => created_at,
+        };
+        Self::encode_timestamp(dt)
+    }
+
+    /// Encodes a timestamp and optional id into a URL-safe cursor selected by sort order.
+    pub fn encode_sorted_with_id<Tz: TimeZone>(
+        created_at: &DateTime<Tz>,
+        updated_at: &DateTime<Tz>,
+        sort: &Sort,
+        id: Option<&str>,
+    ) -> String
+    where
+        Tz::Offset: std::fmt::Display,
+    {
+        let dt = match sort {
+            Sort::UpdatedAtDesc | Sort::UpdatedAtAsc => updated_at,
+            _ => created_at,
+        };
+        Self::encode(dt, id)
     }
 
     /// Decodes a URL-safe cursor into a `DecodedCursor`.

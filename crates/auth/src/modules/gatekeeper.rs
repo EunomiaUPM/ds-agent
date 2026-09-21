@@ -206,7 +206,13 @@ pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync 
         let holder = require_field(verification.holder.as_ref(), "holder")?;
         let token = create_opaque_token();
 
+        let tenant_id = headers
+            .get("x-tenant-id")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("system");
+
         let mate = self.gatekeeper().build_mate_plan(
+            tenant_id,
             holder,
             &grant.participant_nick,
             &interaction.callback_uri,

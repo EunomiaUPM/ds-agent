@@ -431,6 +431,7 @@ impl TestingHTTPProxy {
         let status = response.as_ref().map(|r| r.status().as_u16()).unwrap_or(0);
 
         let event = NewTransferEvent {
+            tenant_id: dataplane.inner.tenant_id.clone(),
             transfer_id: dataplane.inner.id.clone(),
             level: LogLevel::Info,
             component: "DataProxy".to_string(),

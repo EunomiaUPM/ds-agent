@@ -169,27 +169,35 @@ async fn test_webhook_subscriber_matching_transfers_star() {
 
     // Register subscriber with transfers:*
     ctx.subscription_repo
-        .create_subscription(events::entities::commands::CreateSubscriptionDto {
-            callback_address: format!("http://127.0.0.1:{port}/webhook"),
-            topic_pattern: "transfers:*".to_string(),
-            secret: None,
-            headers: None,
-            retry_limit: Some(3),
-            expiration_time: None,
-        })
+        .create_subscription(
+            "default",
+            events::entities::commands::CreateSubscriptionDto {
+                tenant_id: None,
+                callback_address: format!("http://127.0.0.1:{port}/webhook"),
+                topic_pattern: "transfers:*".to_string(),
+                secret: None,
+                headers: None,
+                retry_limit: Some(3),
+                expiration_time: None,
+            },
+        )
         .await
         .unwrap();
 
     // Register irrelevant subscriber with catalog:*
     ctx.subscription_repo
-        .create_subscription(events::entities::commands::CreateSubscriptionDto {
-            callback_address: format!("http://127.0.0.1:{port}/should-not-be-called"),
-            topic_pattern: "catalog:*".to_string(),
-            secret: None,
-            headers: None,
-            retry_limit: Some(3),
-            expiration_time: None,
-        })
+        .create_subscription(
+            "default",
+            events::entities::commands::CreateSubscriptionDto {
+                tenant_id: None,
+                callback_address: format!("http://127.0.0.1:{port}/should-not-be-called"),
+                topic_pattern: "catalog:*".to_string(),
+                secret: None,
+                headers: None,
+                retry_limit: Some(3),
+                expiration_time: None,
+            },
+        )
         .await
         .unwrap();
 

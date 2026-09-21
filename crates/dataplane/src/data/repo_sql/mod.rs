@@ -15,7 +15,4 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod dataplane_fields_repo;
-pub mod dataplane_transfer_logs_repo;
-pub mod dataplane_transfers_repo;
-pub(crate) mod transfer_event_repo;
+pub use crate::data::sea_orm::repos::*;

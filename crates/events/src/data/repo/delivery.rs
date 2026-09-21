@@ -39,7 +39,8 @@ impl RepoIntoErrors for DeliveryRepoError {}
 pub trait EventDeliveryRepo: Send + Sync + 'static {
     async fn create_delivery(&self, delivery: &EventDeliveryRecord)
         -> Outcome<EventDeliveryRecord>;
-    async fn get_delivery(&self, id: &str) -> Outcome<Option<EventDeliveryRecord>>;
+    async fn get_delivery(&self, tenant_id: &str, id: &str)
+        -> Outcome<Option<EventDeliveryRecord>>;
     async fn get_due_retries(
         &self,
         now: DateTime<Utc>,
@@ -55,5 +56,9 @@ pub trait EventDeliveryRepo: Send + Sync + 'static {
         status_code: Option<u16>,
     ) -> Outcome<()>;
     async fn mark_dead_letter(&self, id: &str) -> Outcome<()>;
-    async fn list_by_event(&self, event_id: &str) -> Outcome<Vec<EventDeliveryRecord>>;
+    async fn list_by_event(
+        &self,
+        tenant_id: &str,
+        event_id: &str,
+    ) -> Outcome<Vec<EventDeliveryRecord>>;
 }

@@ -26,6 +26,7 @@ use crate::entities::topic::{Topic, TopicPattern};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubscriptionRecord {
     pub id: String,
+    pub tenant_id: String,
     pub callback_address: String,
     pub topic_pattern: TopicPattern,
     pub secret: Option<String>,

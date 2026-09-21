@@ -21,12 +21,13 @@ use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::routing::{delete, get, post, put};
 use axum::{Json, Router};
+use common::auth::AccessScope;
 use serde::Deserialize;
 use ymir::errors::AppResult;
 
 use crate::entities::commands::{EditParameterCommand, NewParameterCommand};
 use crate::entities::filters::PrefixFilter;
-use crate::entities::key::{Key, KeyPrefix};
+use crate::entities::key::Key;
 use crate::services::parameters::ParameterStore;
 use crate::services::parameters::views::{ParameterView, VersionResponse};
 use common::query::QuerySpec;
@@ -45,56 +46,60 @@ impl ParameterRouter {
 
     pub fn router(self) -> Router {
         Router::new()
-            .route("/", get(Self::list))
-            .route("/", post(Self::create))
-            .route("/{*key}", get(Self::read))
-            .route("/{*key}", put(Self::update))
-            .route("/{*key}", delete(Self::delete))
+            .route("/", get(Self::list).post(Self::create))
+            .route(
+                "/{*key}",
+                get(Self::read).put(Self::update).delete(Self::delete),
+            )
             .with_state(self)
     }
 
     async fn list(
         State(state): State<ParameterRouter>,
+        scope: AccessScope,
         Query(params): Query<PrefixQuery>,
     ) -> AppResult<Json<Vec<ParameterView>>> {
-        let prefix = KeyPrefix::new(params.filter.prefix.unwrap_or_default());
-        let items = state.service.list(&prefix).await?;
+        let items = state.service.list(&scope, &params.filter).await?;
         Ok(Json(items.into_iter().map(ParameterView::from).collect()))
     }
 
     async fn create(
         State(state): State<ParameterRouter>,
+        scope: AccessScope,
         Json(cmd): Json<NewParameterCommand<serde_json::Value>>,
     ) -> AppResult<(StatusCode, Json<ParameterView>)> {
-        let entry = state.service.create(&cmd).await?;
+        let entry = state.service.create(&scope, &cmd).await?;
         Ok((StatusCode::CREATED, Json(ParameterView::from(entry))))
     }
 
     async fn read(
         State(state): State<ParameterRouter>,
+        scope: AccessScope,
         Path(key): Path<String>,
     ) -> AppResult<Json<ParameterView>> {
         let key = Key::new(format!("/{}", key))?;
-        let entry = state.service.read(&key).await?;
+        let entry = state.service.read(&scope, &key).await?;
         Ok(Json(ParameterView::from(entry)))
     }
 
     async fn update(
         State(state): State<ParameterRouter>,
+        scope: AccessScope,
         Path(key): Path<String>,
         Json(cmd): Json<EditParameterCommand<serde_json::Value>>,
     ) -> AppResult<Json<VersionResponse>> {
         let key = Key::new(format!("/{}", key))?;
-        let version = state.service.update(&key, &cmd, "").await?;
+        let version = state.service.update(&scope, &key, &cmd, "").await?;
         Ok(Json(VersionResponse::from(version)))
     }
 
     async fn delete(
         State(state): State<ParameterRouter>,
+        scope: AccessScope,
         Path(key): Path<String>,
     ) -> AppResult<StatusCode> {
         let key = Key::new(format!("/{}", key))?;
-        state.service.delete(&key).await?;
+        state.service.delete(&scope, &key).await?;
         Ok(StatusCode::NO_CONTENT)
     }
 }

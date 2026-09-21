@@ -21,12 +21,13 @@ use crate::data::factory_trait::DataplaneRepoTrait;
 use crate::entities::dataplane_drivers::keystore_lookup::KeystoreClientImpl;
 use crate::entities::dataplane_manager::dataplane_driver_factory::DataplaneDriverFactory;
 use crate::entities::dataplane_manager::dataplane_manager::DataplaneManager;
-use crate::entities::dataplane_transfer_logs::dataplane_transfer_logs_entity::DataplaneTransferLogsEntityService;
 use crate::entities::dataplane_transfers::dataplane_transfers_entity::DataplaneTransfersEntityService;
-use crate::entities::transfer_events::transfer_event_entity::TransferEventEntityService;
 use crate::http::dataplane_info::DataPlaneProcessesRouter;
 use crate::http::dataplane_transfer_logs::DataplaneTransferLogsRouter;
 use crate::http::transfer_events::TransferEventsRouter;
+use crate::services::dataplane_transfer_logs::DataplaneTransferLogsService;
+use crate::services::dataplane_transfers::DataplaneTransferService;
+use crate::services::transfer_events::TransferEventsService;
 use crate::testing_proxy::http::http::TestingHTTPProxy;
 use axum::Router;
 use common::config::services::TransferConfig;
@@ -152,25 +153,32 @@ impl DataplaneSetup {
         config: &TransferConfig,
         vault: Arc<VaultService>,
     ) -> Router {
-        let infra = self.build_infra(config, vault).await;
+        let infra = self.build_infra(config, vault.clone()).await;
 
-        // Events: one entity feeding both the per-process feed and the global lookup.
-        let transfer_event_entity = Arc::new(TransferEventEntityService::new(infra.repo.clone()));
-        let transfer_event_service = TransferEventsRouter::new(transfer_event_entity.clone());
-        let dataplane_processes_events_router = transfer_event_service
+        let db = vault.get_db_connection(config.common()).await.unwrap();
+        let validator: Arc<dyn common::auth::OauthTokenValidator> =
+            oauth::setup::composition::OAuthSetup::new()
+                .build_token_service(config.common().clone().into(), db);
+
+        // Events: service feeding both the per-process feed and the global lookup.
+        let transfer_event_service = Arc::new(TransferEventsService::new(infra.repo.clone()));
+        let transfer_events_router = TransferEventsRouter::new(transfer_event_service);
+        let dataplane_processes_events_router = transfer_events_router
             .clone()
             .dataplane_processes_sub_router();
-        let events_lookup_router = transfer_event_service.events_sub_router();
+        let events_lookup_router = transfer_events_router.events_sub_router();
 
         // Transfer logs.
-        let logs_entity = Arc::new(DataplaneTransferLogsEntityService::new(infra.repo.clone()));
-        let logs_router = DataplaneTransferLogsRouter::new(logs_entity).router();
+        let logs_service = Arc::new(DataplaneTransferLogsService::new(infra.repo.clone()));
+        let logs_router = DataplaneTransferLogsRouter::new(logs_service).router();
 
-        // Transfer processes (CRUD + event association).
-        let dataplane_process_entity = self.transfers_entity(&infra);
+        // Transfer processes (CRUD + process endpoints).
+        let dataplane_transfer_service = Arc::new(DataplaneTransferService::new(
+            infra.repo.clone(),
+            infra.cache.clone(),
+        ));
         let dataplane_processes_router =
-            DataPlaneProcessesRouter::new(dataplane_process_entity, transfer_event_entity.clone())
-                .router();
+            DataPlaneProcessesRouter::new(dataplane_transfer_service).router();
 
         // Compose the process-scoped routers, then mount everything.
         let dataplane_processes_router = Router::new()
@@ -181,6 +189,10 @@ impl DataplaneSetup {
         Router::new()
             .nest("/dataplane-processes", dataplane_processes_router)
             .nest("/transfer-events", events_lookup_router)
+            .route_layer(axum::middleware::from_fn_with_state(
+                validator,
+                common::auth::http::AuthHttpMiddleware::run,
+            ))
     }
 
     /// Builds the standalone testing HTTP proxy with keystore-backed lookup.

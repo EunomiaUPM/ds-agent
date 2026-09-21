@@ -30,6 +30,7 @@ use crate::entities::subscription::DeadLetterStatus;
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: String,
+    pub tenant_id: String,
     pub delivery_id: Option<String>,
     pub event_id: String,
     pub subscription_id: String,
@@ -56,6 +57,7 @@ impl Model {
 
         Ok(DeadLetterRecord {
             id: self.id,
+            tenant_id: self.tenant_id,
             delivery_id: self.delivery_id,
             event_id: self.event_id,
             subscription_id: self.subscription_id,
@@ -78,6 +80,7 @@ impl ActiveModel {
     pub fn from_domain(entity: &DeadLetterRecord) -> Self {
         Self {
             id: ActiveValue::Set(entity.id.clone()),
+            tenant_id: ActiveValue::Set(entity.tenant_id.clone()),
             delivery_id: ActiveValue::Set(entity.delivery_id.clone()),
             event_id: ActiveValue::Set(entity.event_id.clone()),
             subscription_id: ActiveValue::Set(entity.subscription_id.clone()),

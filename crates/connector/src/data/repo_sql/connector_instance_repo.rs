@@ -87,9 +87,11 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
 
     async fn get_instance_by_id(
         &self,
-        instance_id: &String,
+        tenant_id: &str,
+        instance_id: &str,
     ) -> Outcome<Option<connector_instances::Model>> {
         let result = connector_instances::Entity::find_by_id(instance_id)
+            .filter(connector_instances::Column::TenantId.eq(tenant_id))
             .one(&self.db_connection)
             .await;
         match result {
@@ -103,12 +105,14 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
 
     async fn get_instance_by_name_and_version(
         &self,
-        name: &String,
-        version: &String,
+        tenant_id: &str,
+        name: &str,
+        version: &str,
     ) -> Outcome<Option<connector_instances::Model>> {
         let result = connector_instances::Entity::find()
             .filter(connector_instances::Column::TemplateName.eq(name))
             .filter(connector_instances::Column::TemplateVersion.eq(version))
+            .filter(connector_instances::Column::TenantId.eq(tenant_id))
             .one(&self.db_connection)
             .await;
         match result {
@@ -122,10 +126,12 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
 
     async fn get_instances_by_distribution(
         &self,
-        distribution_id: &String,
+        tenant_id: &str,
+        distribution_id: &str,
     ) -> Outcome<Option<connector_instances::Model>> {
         let result = connector_instances::Entity::find()
             .filter(connector_instances::Column::DistributionId.eq(distribution_id))
+            .filter(connector_instances::Column::TenantId.eq(tenant_id))
             .one(&self.db_connection)
             .await;
         match result {
@@ -139,20 +145,14 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
 
     async fn delete_instance_by_name_and_version(
         &self,
-        name: &String,
-        version: &String,
+        tenant_id: &str,
+        name: &str,
+        version: &str,
     ) -> Outcome<()> {
-        let instance = self
-            .get_instance_by_name_and_version(name, &version)
-            .await?;
-        if instance.is_none() {
-            return Err(ConnectorAgentRepoErrors::ConnectorInstanceRepoErrors(
-                ConnectorInstanceRepoErrors::InstanceNotFound,
-            )
-            .into_errors());
-        }
-        let instance = instance.unwrap();
-        let result = connector_instances::Entity::delete_by_id(instance.id)
+        let result = connector_instances::Entity::delete_many()
+            .filter(connector_instances::Column::TemplateName.eq(name))
+            .filter(connector_instances::Column::TemplateVersion.eq(version))
+            .filter(connector_instances::Column::TenantId.eq(tenant_id))
             .exec(&self.db_connection)
             .await;
 
@@ -171,8 +171,10 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
         }
     }
 
-    async fn delete_instance_by_id(&self, instance_id: &String) -> Outcome<()> {
-        let result = connector_instances::Entity::delete_by_id(instance_id)
+    async fn delete_instance_by_id(&self, tenant_id: &str, instance_id: &str) -> Outcome<()> {
+        let result = connector_instances::Entity::delete_many()
+            .filter(connector_instances::Column::Id.eq(instance_id))
+            .filter(connector_instances::Column::TenantId.eq(tenant_id))
             .exec(&self.db_connection)
             .await;
 

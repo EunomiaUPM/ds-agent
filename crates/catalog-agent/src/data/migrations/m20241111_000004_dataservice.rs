@@ -37,6 +37,11 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .primary_key(),
                     )
+                    .col(
+                        ColumnDef::new(CatalogDataServices::TenantId)
+                            .string()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(CatalogDataServices::DcatEndpointDescription).string())
                     .col(
                         ColumnDef::new(CatalogDataServices::DcatEndpointURL)
@@ -89,6 +94,7 @@ impl MigrationTrait for Migration {
 pub enum CatalogDataServices {
     Table,
     Id,
+    TenantId,
     DcatEndpointDescription,
     DcatEndpointURL,
     DctConformsTo,

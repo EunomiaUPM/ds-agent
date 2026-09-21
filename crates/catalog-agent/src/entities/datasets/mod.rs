@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod datasets;
+pub mod datasets;
 
 use crate::data::entities::dataset;
 use crate::data::entities::dataset::{EditDatasetModel, Model, NewDatasetModel};
@@ -35,6 +35,8 @@ pub struct DatasetDto {
 #[serde(deny_unknown_fields)]
 pub struct NewDatasetDto {
     pub id: Option<Urn>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tenant_id: Option<String>,
     pub dct_conforms_to: Option<String>,
     pub dct_creator: Option<String>,
     pub dct_title: Option<String>,
@@ -52,15 +54,18 @@ pub struct EditDatasetDto {
     pub dct_description: Option<String>,
 }
 
-impl From<NewDatasetDto> for NewDatasetModel {
-    fn from(dto: NewDatasetDto) -> Self {
-        Self {
-            id: dto.id,
-            dct_conforms_to: dto.dct_conforms_to,
-            dct_creator: dto.dct_creator,
-            dct_title: dto.dct_title,
-            dct_description: dto.dct_description,
-            catalog_id: dto.catalog_id,
+use common::auth::AccessScope;
+
+impl NewDatasetDto {
+    pub fn into_model(self, tenant_id: String) -> NewDatasetModel {
+        NewDatasetModel {
+            id: self.id,
+            tenant_id,
+            dct_conforms_to: self.dct_conforms_to,
+            dct_creator: self.dct_creator,
+            dct_title: self.dct_title,
+            dct_description: self.dct_description,
+            catalog_id: self.catalog_id,
         }
     }
 }
@@ -90,20 +95,35 @@ use common::paginated_spec::{Page, Paginated, Sort};
 pub trait DatasetEntityTrait: Send + Sync {
     async fn get_all_datasets(
         &self,
+        scope: &AccessScope,
         filters: &DatasetFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<DatasetDto>>;
-    async fn get_batch_datasets(&self, ids: &Vec<Urn>) -> Outcome<Vec<DatasetDto>>;
-    async fn get_datasets_by_catalog_id(&self, catalog_id: &Urn) -> Outcome<Vec<DatasetDto>>;
-    async fn get_dataset_by_id(&self, dataset_id: &Urn) -> Outcome<Option<DatasetDto>>;
+    async fn get_batch_datasets(
+        &self,
+        scope: &AccessScope,
+        ids: &[Urn],
+    ) -> Outcome<Vec<DatasetDto>>;
+    async fn get_datasets_by_catalog_id(
+        &self,
+        scope: &AccessScope,
+        catalog_id: &Urn,
+    ) -> Outcome<Vec<DatasetDto>>;
+    async fn get_dataset_by_id(&self, scope: &AccessScope, dataset_id: &Urn)
+        -> Outcome<DatasetDto>;
 
     async fn put_dataset_by_id(
         &self,
+        scope: &AccessScope,
         dataset_id: &Urn,
         edit_dataset_model: &EditDatasetDto,
     ) -> Outcome<DatasetDto>;
-    async fn create_dataset(&self, new_dataset_model: &NewDatasetDto) -> Outcome<DatasetDto>;
+    async fn create_dataset(
+        &self,
+        scope: &AccessScope,
+        new_dataset_model: &NewDatasetDto,
+    ) -> Outcome<DatasetDto>;
 
-    async fn delete_dataset_by_id(&self, dataset_id: &Urn) -> Outcome<()>;
+    async fn delete_dataset_by_id(&self, scope: &AccessScope, dataset_id: &Urn) -> Outcome<()>;
 }

@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! In-memory repository implementations for keystore parameters and secrets.
+
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -28,20 +30,34 @@ use crate::entities::commands::{
     EditParameterCommand, EditSecretCommand, NewParameterCommand, NewSecretCommand,
 };
 use crate::entities::entry::{Entry, SecretEntry};
+use crate::entities::filters::PrefixFilter;
 use crate::entities::key::Key;
 use crate::entities::metadata::Metadata;
 use crate::entities::version::Version;
 
 // helpers ─────────────────────────────────────────────────────────────────
 
-fn active<T>(store: &HashMap<String, Entry<T>>) -> impl Iterator<Item = &Entry<T>> {
-    store.values().filter(|e| e.metadata.deleted_at.is_none())
+fn matches_filter<T>(entry: &Entry<T>, filter: &PrefixFilter) -> bool {
+    if entry.metadata.deleted_at.is_some() {
+        return false;
+    }
+    if let Some(tenant_id) = &filter.tenant_id {
+        if &entry.metadata.tenant_id != tenant_id {
+            return false;
+        }
+    }
+    if let Some(prefix) = &filter.prefix {
+        if !prefix.is_empty() && !entry.metadata.key.as_str().starts_with(prefix) {
+            return false;
+        }
+    }
+    true
 }
 
 // Parameters ──────────────────────────────────────────────────────────────
 
 pub struct InMemoryParameterRepo {
-    store: Arc<RwLock<HashMap<String, Entry<serde_json::Value>>>>,
+    store: Arc<RwLock<HashMap<(String, String), Entry<serde_json::Value>>>>,
 }
 
 impl InMemoryParameterRepo {
@@ -62,41 +78,54 @@ impl Default for InMemoryParameterRepo {
 impl ParameterRepoTrait for InMemoryParameterRepo {
     type Value = serde_json::Value;
 
-    async fn get_all_parameters(&self) -> Outcome<Vec<Entry<Self::Value>>> {
+    async fn get_all_parameters(&self, filter: &PrefixFilter) -> Outcome<Vec<Entry<Self::Value>>> {
         let g = self.store.read().await;
-        Ok(active(&*g).cloned().collect())
+        Ok(g.values()
+            .filter(|e| matches_filter(e, filter))
+            .cloned()
+            .collect())
     }
 
-    async fn count_parameters(&self) -> Outcome<u64> {
+    async fn count_parameters(&self, filter: &PrefixFilter) -> Outcome<u64> {
         let g = self.store.read().await;
-        Ok(active(&*g).count() as u64)
+        Ok(g.values().filter(|e| matches_filter(e, filter)).count() as u64)
     }
 
-    async fn get_batch_parameters(&self, keys: &[Key]) -> Outcome<Vec<Entry<Self::Value>>> {
+    async fn get_batch_parameters(
+        &self,
+        tenant_id: &str,
+        keys: &[Key],
+    ) -> Outcome<Vec<Entry<Self::Value>>> {
         let g = self.store.read().await;
         Ok(keys
             .iter()
             .filter_map(|k| {
-                g.get(k.as_str())
+                g.get(&(tenant_id.to_string(), k.as_str().to_string()))
                     .filter(|e| e.metadata.deleted_at.is_none())
                     .cloned()
             })
             .collect())
     }
 
-    async fn get_parameter_by_key(&self, key: &Key) -> Outcome<Option<Entry<Self::Value>>> {
+    async fn get_parameter_by_key(
+        &self,
+        tenant_id: &str,
+        key: &Key,
+    ) -> Outcome<Option<Entry<Self::Value>>> {
         let g = self.store.read().await;
-        Ok(g.get(key.as_str())
+        Ok(g.get(&(tenant_id.to_string(), key.as_str().to_string()))
             .filter(|e| e.metadata.deleted_at.is_none())
             .cloned())
     }
 
     async fn create_parameter(
         &self,
+        tenant_id: &str,
         cmd: &NewParameterCommand<Self::Value>,
     ) -> Outcome<Entry<Self::Value>> {
         let mut g = self.store.write().await;
-        if g.get(cmd.key.as_str())
+        let map_key = (tenant_id.to_string(), cmd.key.as_str().to_owned());
+        if g.get(&map_key)
             .map_or(false, |e| e.metadata.deleted_at.is_none())
         {
             return Err(ParameterRepoErrors::ParameterAlreadyExists.into_errors());
@@ -104,6 +133,7 @@ impl ParameterRepoTrait for InMemoryParameterRepo {
         let now = Utc::now();
         let entry = Entry {
             metadata: Metadata {
+                tenant_id: tenant_id.to_string(),
                 key: cmd.key.clone(),
                 version: Version::INITIAL,
                 created_at: now,
@@ -115,21 +145,22 @@ impl ParameterRepoTrait for InMemoryParameterRepo {
             },
             value: cmd.value.clone(),
         };
-        g.insert(cmd.key.as_str().to_owned(), entry.clone());
+        g.insert(map_key, entry.clone());
         Ok(entry)
     }
 
     async fn put_parameter(
         &self,
+        tenant_id: &str,
         key: &Key,
         cmd: &EditParameterCommand<Self::Value>,
     ) -> Outcome<Entry<Self::Value>> {
         let mut g = self.store.write().await;
+        let map_key = (tenant_id.to_string(), key.as_str().to_owned());
 
-        // Collect the data we need before dropping the shared borrow.
         let (cur_version, created_at, created_by, cur_desc) = {
             let e = g
-                .get(key.as_str())
+                .get(&map_key)
                 .filter(|e| e.metadata.deleted_at.is_none())
                 .ok_or_else(|| ParameterRepoErrors::ParameterNotFound.into_errors())?;
 
@@ -151,6 +182,7 @@ impl ParameterRepoTrait for InMemoryParameterRepo {
         let now = Utc::now();
         let updated = Entry {
             metadata: Metadata {
+                tenant_id: tenant_id.to_string(),
                 key: key.clone(),
                 version: cur_version.next(),
                 created_at,
@@ -162,13 +194,14 @@ impl ParameterRepoTrait for InMemoryParameterRepo {
             },
             value: cmd.value.clone(),
         };
-        g.insert(key.as_str().to_owned(), updated.clone());
+        g.insert(map_key, updated.clone());
         Ok(updated)
     }
 
-    async fn delete_parameter(&self, key: &Key) -> Outcome<()> {
+    async fn delete_parameter(&self, tenant_id: &str, key: &Key) -> Outcome<()> {
         let mut g = self.store.write().await;
-        if g.remove(key.as_str()).is_none() {
+        let map_key = (tenant_id.to_string(), key.as_str().to_owned());
+        if g.remove(&map_key).is_none() {
             return Err(ParameterRepoErrors::ParameterNotFound.into_errors());
         }
         Ok(())
@@ -178,7 +211,7 @@ impl ParameterRepoTrait for InMemoryParameterRepo {
 // Secrets ─────────────────────────────────────────────────────────────────
 
 pub struct InMemorySecretRepo {
-    store: Arc<RwLock<HashMap<String, SecretEntry>>>,
+    store: Arc<RwLock<HashMap<(String, String), SecretEntry>>>,
 }
 
 impl InMemorySecretRepo {
@@ -197,46 +230,42 @@ impl Default for InMemorySecretRepo {
 
 #[async_trait::async_trait]
 impl SecretRepoTrait for InMemorySecretRepo {
-    async fn get_all_secrets(&self) -> Outcome<Vec<SecretEntry>> {
+    async fn get_all_secrets(&self, filter: &PrefixFilter) -> Outcome<Vec<SecretEntry>> {
         let g = self.store.read().await;
-        Ok(active(&*g).cloned().collect())
+        Ok(g.values()
+            .filter(|e| matches_filter(e, filter))
+            .cloned()
+            .collect())
     }
 
-    async fn count_secrets(&self) -> Outcome<u64> {
+    async fn count_secrets(&self, filter: &PrefixFilter) -> Outcome<u64> {
         let g = self.store.read().await;
-        Ok(active(&*g).count() as u64)
+        Ok(g.values().filter(|e| matches_filter(e, filter)).count() as u64)
     }
 
-    async fn get_batch_secrets(&self, keys: &[Key]) -> Outcome<Vec<SecretEntry>> {
+    async fn get_batch_secrets(&self, tenant_id: &str, keys: &[Key]) -> Outcome<Vec<SecretEntry>> {
         let g = self.store.read().await;
         Ok(keys
             .iter()
             .filter_map(|k| {
-                g.get(k.as_str())
+                g.get(&(tenant_id.to_string(), k.as_str().to_string()))
                     .filter(|e| e.metadata.deleted_at.is_none())
                     .cloned()
             })
             .collect())
     }
 
-    async fn get_secret_by_key(&self, key: &Key) -> Outcome<Option<SecretEntry>> {
+    async fn get_secret_by_key(&self, tenant_id: &str, key: &Key) -> Outcome<Option<SecretEntry>> {
         let g = self.store.read().await;
-        Ok(g.get(key.as_str())
+        Ok(g.get(&(tenant_id.to_string(), key.as_str().to_string()))
             .filter(|e| e.metadata.deleted_at.is_none())
             .cloned())
     }
 
-    async fn list_secrets_by_prefix(&self, prefix: &str) -> Outcome<Vec<SecretEntry>> {
-        let g = self.store.read().await;
-        Ok(active(&*g)
-            .filter(|e| prefix.is_empty() || e.metadata.key.as_str().starts_with(prefix))
-            .cloned()
-            .collect())
-    }
-
-    async fn create_secret(&self, cmd: &NewSecretCommand) -> Outcome<SecretEntry> {
+    async fn create_secret(&self, tenant_id: &str, cmd: &NewSecretCommand) -> Outcome<SecretEntry> {
         let mut g = self.store.write().await;
-        if g.get(cmd.key.as_str())
+        let map_key = (tenant_id.to_string(), cmd.key.as_str().to_owned());
+        if g.get(&map_key)
             .map_or(false, |e| e.metadata.deleted_at.is_none())
         {
             return Err(SecretRepoErrors::SecretAlreadyExists.into_errors());
@@ -244,6 +273,7 @@ impl SecretRepoTrait for InMemorySecretRepo {
         let now = Utc::now();
         let entry = Entry {
             metadata: Metadata {
+                tenant_id: tenant_id.to_string(),
                 key: cmd.key.clone(),
                 version: Version::INITIAL,
                 created_at: now,
@@ -255,16 +285,22 @@ impl SecretRepoTrait for InMemorySecretRepo {
             },
             value: cmd.value.clone(),
         };
-        g.insert(cmd.key.as_str().to_owned(), entry.clone());
+        g.insert(map_key, entry.clone());
         Ok(entry)
     }
 
-    async fn put_secret(&self, key: &Key, cmd: &EditSecretCommand) -> Outcome<SecretEntry> {
+    async fn put_secret(
+        &self,
+        tenant_id: &str,
+        key: &Key,
+        cmd: &EditSecretCommand,
+    ) -> Outcome<SecretEntry> {
         let mut g = self.store.write().await;
+        let map_key = (tenant_id.to_string(), key.as_str().to_owned());
 
         let (cur_version, created_at, created_by, cur_desc) = {
             let e = g
-                .get(key.as_str())
+                .get(&map_key)
                 .filter(|e| e.metadata.deleted_at.is_none())
                 .ok_or_else(|| SecretRepoErrors::SecretNotFound.into_errors())?;
 
@@ -286,6 +322,7 @@ impl SecretRepoTrait for InMemorySecretRepo {
         let now = Utc::now();
         let updated = Entry {
             metadata: Metadata {
+                tenant_id: tenant_id.to_string(),
                 key: key.clone(),
                 version: cur_version.next(),
                 created_at,
@@ -297,13 +334,14 @@ impl SecretRepoTrait for InMemorySecretRepo {
             },
             value: cmd.value.clone(),
         };
-        g.insert(key.as_str().to_owned(), updated.clone());
+        g.insert(map_key, updated.clone());
         Ok(updated)
     }
 
-    async fn delete_secret(&self, key: &Key) -> Outcome<()> {
+    async fn delete_secret(&self, tenant_id: &str, key: &Key) -> Outcome<()> {
         let mut g = self.store.write().await;
-        if g.remove(key.as_str()).is_none() {
+        let map_key = (tenant_id.to_string(), key.as_str().to_owned());
+        if g.remove(&map_key).is_none() {
             return Err(SecretRepoErrors::SecretNotFound.into_errors());
         }
         Ok(())

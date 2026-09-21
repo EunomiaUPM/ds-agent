@@ -17,13 +17,19 @@
 
 use crate::data::entities::connector_templates;
 use crate::data::factory_trait::MockConnectorRepoTrait;
+use crate::data::repo_traits::connector_repo_errors::ConnectorTemplateRepoErrors;
 use crate::data::repo_traits::connector_template_repo::{
     ConnectorTemplateRepoTrait, MockConnectorTemplateRepoTrait,
 };
 use crate::entities::connector_template::service::ConnectorTemplateEntitiesService;
 use crate::entities::connector_template::{ConnectorTemplateDto, ConnectorTemplateEntitiesTrait};
+use crate::entities::filters::ConnectorTemplateFilter;
+use common::auth::access::AccessScope;
+use common::auth::claims::RbacRole;
+use common::paginated_spec::{Page, Sort};
 use serde_json::json;
 use std::sync::Arc;
+use ymir::errors::RepoIntoErrors;
 
 /// Builds a `ConnectorTemplateEntitiesService` backed by mock repos.
 ///
@@ -60,6 +66,7 @@ fn echo_model(
     connector_templates::Model {
         name: m.name.clone().unwrap_or_default(),
         version: m.version.clone().unwrap_or_default(),
+        tenant_id: m.tenant_id.clone(),
         author: m.author.clone().unwrap_or_default(),
         created_at: chrono::Utc::now().into(),
         spec: m.spec.clone(),
@@ -105,7 +112,9 @@ async fn test_create_oauth2_password_grant_template() {
         ]
     });
     let mut dto: ConnectorTemplateDto = serde_json::from_value(json_dto).unwrap();
-    let result = mock_entities().create_template(&mut dto).await;
+    let result = mock_entities()
+        .create_template(&common::auth::AccessScope::system(), &mut dto)
+        .await;
     assert!(
         result.is_ok(),
         "expected ok, got: {:#?}",
@@ -157,7 +166,9 @@ async fn test_create_instance() {
     });
     let mut dto: ConnectorTemplateDto = serde_json::from_value(json_dto).unwrap();
 
-    let result = mock_entities().create_template(&mut dto).await;
+    let result = mock_entities()
+        .create_template(&common::auth::AccessScope::system(), &mut dto)
+        .await;
     assert!(result.is_ok());
 }
 
@@ -189,7 +200,10 @@ async fn test_create_instance_too_much_parameters() {
     });
     let mut dto: ConnectorTemplateDto = serde_json::from_value(json_dto).unwrap();
 
-    let err = mock_entities().create_template(&mut dto).await.unwrap_err();
+    let err = mock_entities()
+        .create_template(&common::auth::AccessScope::system(), &mut dto)
+        .await
+        .unwrap_err();
 
     assert_eq!(err.to_string(), "Error validating connector template");
     let full = format!("{:#}", err);
@@ -240,7 +254,10 @@ async fn test_create_instance_too_less_parameters() {
     });
     let mut dto: ConnectorTemplateDto = serde_json::from_value(json_dto).unwrap();
 
-    let err = mock_entities().create_template(&mut dto).await.unwrap_err();
+    let err = mock_entities()
+        .create_template(&common::auth::AccessScope::system(), &mut dto)
+        .await
+        .unwrap_err();
 
     assert_eq!(err.to_string(), "Error validating connector template");
     let full = format!("{:#}", err);
@@ -293,7 +310,10 @@ async fn test_create_instance_runtime_in_parameters() {
     });
     let mut dto: ConnectorTemplateDto = serde_json::from_value(json_dto).unwrap();
 
-    let err = mock_entities().create_template(&mut dto).await.unwrap_err();
+    let err = mock_entities()
+        .create_template(&common::auth::AccessScope::system(), &mut dto)
+        .await
+        .unwrap_err();
 
     assert_eq!(err.to_string(), "Error validating connector template");
     let full = format!("{:#}", err);
@@ -360,7 +380,10 @@ async fn test_create_instance_type_error() {
     });
     let mut dto: ConnectorTemplateDto = serde_json::from_value(json_dto).unwrap();
 
-    let err = mock_entities().create_template(&mut dto).await.unwrap_err();
+    let err = mock_entities()
+        .create_template(&common::auth::AccessScope::system(), &mut dto)
+        .await
+        .unwrap_err();
 
     assert_eq!(err.to_string(), "Error validating connector template");
     let full = format!("{:#}", err);
@@ -392,4 +415,191 @@ async fn test_create_instance_type_error() {
         !full.contains("ACCESS_METHODS"),
         "ACCESS_METHODS should not be in error: {full}"
     );
+}
+
+// Multi-tenancy isolation tests ──────────────────────────────────────────────
+
+fn tenant_scope(tenant: &str) -> AccessScope {
+    AccessScope::from_role(RbacRole::Owner, &tenant.to_string())
+}
+
+fn reader_scope(tenant: &str) -> AccessScope {
+    AccessScope::from_role(RbacRole::Reader, &tenant.to_string())
+}
+
+fn valid_template_dto() -> ConnectorTemplateDto {
+    let json_dto = json!({
+        "name": "my-template",
+        "version": "1.0.0",
+        "author": "UPM",
+        "authentication": {
+            "type": "BASIC_AUTH",
+            "username": "user",
+            "password": { "type": "PLAIN", "content": "{{__PASSWORD__}}" }
+        },
+        "interaction": {
+            "mode": "PULL",
+            "dataAccess": {
+                "protocol": "HTTP",
+                "urlTemplate": "http://example.com/{{__URL__}}",
+                "method": ["GET"],
+                "headers": { "Content-Type": "application/json" }
+            }
+        },
+        "parameters": [
+            { "paramType": "STRING", "name": "PASSWORD", "title": "Password", "required": true },
+            { "paramType": "STRING", "name": "URL", "title": "URL", "required": true }
+        ]
+    });
+    serde_json::from_value(json_dto).unwrap()
+}
+
+#[tokio::test]
+async fn get_one_foreign_tenant_returns_none() {
+    let mut template_repo = MockConnectorTemplateRepoTrait::new();
+    template_repo
+        .expect_get_template_by_name_and_version()
+        .withf(|tenant, name, ver| tenant == "tenant-2" && name == "my-template" && ver == "1.0.0")
+        .times(1)
+        .returning(|_, _, _| Ok(None));
+
+    let mut repo = MockConnectorRepoTrait::new();
+    repo.expect_get_templates_repo()
+        .return_const(Arc::new(template_repo) as Arc<dyn ConnectorTemplateRepoTrait>);
+
+    let svc = ConnectorTemplateEntitiesService::new(Arc::new(repo));
+    let res = svc
+        .get_template_by_name_and_version(&tenant_scope("tenant-2"), "my-template", "1.0.0")
+        .await
+        .unwrap();
+
+    assert!(res.is_none());
+}
+
+#[tokio::test]
+async fn get_all_foreign_tenant_query_rejected_with_forbidden() {
+    let repo = MockConnectorRepoTrait::new();
+    let svc = ConnectorTemplateEntitiesService::new(Arc::new(repo));
+
+    let mut filter = ConnectorTemplateFilter::default();
+    filter.tenant_id = Some("tenant-foreign".to_string());
+
+    let result = svc
+        .get_all_templates(
+            &tenant_scope("tenant-1"),
+            &filter,
+            &Page::default(),
+            Sort::CreatedAtDesc,
+        )
+        .await;
+
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn get_all_filters_by_caller_tenant_for_non_admin() {
+    let mut template_repo = MockConnectorTemplateRepoTrait::new();
+    template_repo
+        .expect_get_all_templates()
+        .withf(|f, _, _| f.tenant_id.as_deref() == Some("tenant-1"))
+        .times(1)
+        .returning(|_, _, _| Ok((vec![], Some(0))));
+
+    let mut repo = MockConnectorRepoTrait::new();
+    repo.expect_get_templates_repo()
+        .return_const(Arc::new(template_repo) as Arc<dyn ConnectorTemplateRepoTrait>);
+
+    let svc = ConnectorTemplateEntitiesService::new(Arc::new(repo));
+    let filter = ConnectorTemplateFilter::default();
+    let result = svc
+        .get_all_templates(
+            &tenant_scope("tenant-1"),
+            &filter,
+            &Page::default(),
+            Sort::CreatedAtDesc,
+        )
+        .await;
+
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn create_forces_caller_tenant_for_non_admin() {
+    let mut template_repo = MockConnectorTemplateRepoTrait::new();
+    template_repo
+        .expect_create_template()
+        .withf(|m| m.tenant_id == "tenant-2")
+        .times(1)
+        .returning(|m| Ok(echo_model(m)));
+
+    let mut repo = MockConnectorRepoTrait::new();
+    repo.expect_get_templates_repo()
+        .return_const(Arc::new(template_repo) as Arc<dyn ConnectorTemplateRepoTrait>);
+
+    let svc = ConnectorTemplateEntitiesService::new(Arc::new(repo));
+    let mut dto = valid_template_dto();
+    let result = svc
+        .create_template(&tenant_scope("tenant-2"), &mut dto)
+        .await;
+
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn delete_foreign_tenant_returns_not_found() {
+    let mut template_repo = MockConnectorTemplateRepoTrait::new();
+    template_repo
+        .expect_delete_template_by_name_and_version()
+        .withf(|tenant, name, ver| tenant == "tenant-2" && name == "my-template" && ver == "1.0.0")
+        .times(1)
+        .returning(|_, _, _| Err(ConnectorTemplateRepoErrors::TemplateNotFound.into_errors()));
+
+    let mut repo = MockConnectorRepoTrait::new();
+    repo.expect_get_templates_repo()
+        .return_const(Arc::new(template_repo) as Arc<dyn ConnectorTemplateRepoTrait>);
+
+    let svc = ConnectorTemplateEntitiesService::new(Arc::new(repo));
+    let result = svc
+        .delete_template_by_name_and_version(&tenant_scope("tenant-2"), "my-template", "1.0.0")
+        .await;
+
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn reader_cannot_create_or_delete() {
+    let repo = MockConnectorRepoTrait::new();
+    let svc = ConnectorTemplateEntitiesService::new(Arc::new(repo));
+    let reader = reader_scope("tenant-1");
+
+    let mut dto = valid_template_dto();
+    let create_res = svc.create_template(&reader, &mut dto).await;
+    assert!(create_res.is_err());
+
+    let delete_res = svc
+        .delete_template_by_name_and_version(&reader, "my-template", "1.0.0")
+        .await;
+    assert!(delete_res.is_err());
+}
+
+#[tokio::test]
+async fn get_templates_by_id_scoped_to_acting_tenant() {
+    let mut template_repo = MockConnectorTemplateRepoTrait::new();
+    template_repo
+        .expect_get_templates_by_name()
+        .withf(|tenant, id| tenant == "tenant-1" && id == "my-template")
+        .times(1)
+        .returning(|_, _| Ok(vec![]));
+
+    let mut repo = MockConnectorRepoTrait::new();
+    repo.expect_get_templates_repo()
+        .return_const(Arc::new(template_repo) as Arc<dyn ConnectorTemplateRepoTrait>);
+
+    let svc = ConnectorTemplateEntitiesService::new(Arc::new(repo));
+    let res = svc
+        .get_templates_by_id(&tenant_scope("tenant-1"), "my-template")
+        .await
+        .unwrap();
+
+    assert!(res.is_empty());
 }

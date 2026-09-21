@@ -21,7 +21,6 @@ use sea_orm::ActiveValue::Set;
 use sea_orm::entity::prelude::*;
 use ymir::errors::Outcome;
 
-use common::utils::parse_urn;
 use crate::data::sea_orm::orm::helpers::{deser_enum, deser_json, ser_enum, ser_json};
 use crate::entities::commands::NewTransferProcessCommand;
 use crate::entities::ids::TransferProcessId;
@@ -29,6 +28,7 @@ use crate::entities::protocol::{
     ProtocolId, ProtocolState, StateMetadata, TransferCorrelation, TransferRole,
 };
 use crate::entities::transfer_process::TransferProcess;
+use common::utils::parse_urn;
 
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
 #[sea_orm(table_name = "transfer_processes")]

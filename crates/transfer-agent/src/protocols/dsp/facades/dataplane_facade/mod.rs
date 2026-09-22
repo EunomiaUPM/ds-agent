@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::protocols::dsp::entities::context_dsp::TransferDSPContextDomain;
+
 mod consumer_pull;
 mod consumer_push;
 pub(crate) mod dataplane_facade;
@@ -22,10 +24,31 @@ mod provider_pull;
 mod provider_push;
 mod strategy;
 
-use crate::protocols::dsp::context::DspTransferContext;
-use crate::protocols::dsp::protocol_types::{DataAddressDto, EndpointPropertyDto};
+use crate::protocols::dsp::entities::data_address::{DataAddressDto, EndpointPropertyDto};
+use common::dsp_common::data_address::DataAddress;
 use dataplane::DataplaneAddress;
 use ymir::errors::Outcome;
+
+/// The message's `DataAddress` (common wire type) → data-plane address. A free
+/// function rather than a `From` impl: both types are foreign, so the orphan rule
+/// forbids the trait impl. Endpoint properties are flattened by name
+/// (`authType`, `authorization`), same as the DTO path.
+pub(super) fn to_dataplane_address(addr: &DataAddress) -> DataplaneAddress {
+    let prop = |name: &str| {
+        addr.endpoint_properties
+            .iter()
+            .find(|p| p.name == name)
+            .map(|p| p.value.clone())
+    };
+    DataplaneAddress {
+        endpoint_type: addr.endpoint_type.clone(),
+        // Optional on the wire (DSP Appendix A), required by the data plane. The
+        // domain rule that demands it for push transfers is what makes this safe.
+        endpoint: addr.endpoint.clone().unwrap_or_default(),
+        authorization_type: prop("authType"),
+        authorization: prop("authorization"),
+    }
+}
 
 impl From<DataAddressDto> for DataplaneAddress {
     fn from(dto: DataAddressDto) -> Self {
@@ -94,59 +117,59 @@ pub trait DataPlaneFacadeTrait: Send + Sync {
     // TransferRequest ───
     async fn on_transfer_request_pre(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
     ) -> Outcome<Option<DataAddressDto>>;
 
     async fn on_transfer_request_post(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
     ) -> Outcome<Option<DataAddressDto>>;
 
     // TransferStart ───
 
     async fn on_transfer_start_pre(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
     ) -> Outcome<Option<DataAddressDto>>;
 
     async fn on_transfer_start_post(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
     ) -> Outcome<Option<DataAddressDto>>;
 
     // TransferSuspension ───
 
     async fn on_transfer_suspension_pre(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
     ) -> Outcome<Option<DataAddressDto>>;
 
     async fn on_transfer_suspension_post(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
     ) -> Outcome<Option<DataAddressDto>>;
 
     // TransferCompletion ───
 
     async fn on_transfer_completion_pre(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
     ) -> Outcome<Option<DataAddressDto>>;
 
     async fn on_transfer_completion_post(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
     ) -> Outcome<Option<DataAddressDto>>;
 
     // TransferTermination ───
 
     async fn on_transfer_termination_pre(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
     ) -> Outcome<Option<DataAddressDto>>;
 
     async fn on_transfer_termination_post(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
     ) -> Outcome<Option<DataAddressDto>>;
 }

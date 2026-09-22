@@ -15,14 +15,15 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+pub const SERVICE_NAME: &str = "transfer-agent-ref";
+pub const SERVICE_BIG_NAME: &str = "Transfer Agent Ref";
+pub const EVENT_DOMAIN: &str = "transfers";
+pub const EVENT_PREFIX: &str = "transfers:";
+
 mod data;
 pub mod entities;
 mod grpc;
 mod http;
-mod protocols;
+pub mod protocols;
+mod services;
 pub mod setup;
-
-pub use data::get_transfer_agent_migrations;
-pub use setup::create_root_http_router as create_transfer_agente_router;
-
-pub trait TransferDummyTrait {}

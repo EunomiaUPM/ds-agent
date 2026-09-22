@@ -15,15 +15,16 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::protocols::dsp::context::DspTransferContext;
+use crate::protocols::dsp::entities::context_dsp::TransferDSPContextDomain;
+
+use crate::protocols::dsp::entities::data_address::DataAddressDto;
+use crate::protocols::dsp::facades::dataplane_facade::DataPlaneFacadeTrait;
 use crate::protocols::dsp::facades::dataplane_facade::strategy::{
     strategy_for, strategy_for_request_pre,
 };
-use crate::protocols::dsp::facades::dataplane_facade::DataPlaneFacadeTrait;
-use crate::protocols::dsp::protocol_types::DataAddressDto;
 use dataplane::DataplaneManager;
 use std::sync::Arc;
-use ymir::errors::{Errors, Outcome};
+use ymir::errors::Outcome;
 
 pub struct DspDataPlaneFacade {
     dataplane_manager: Arc<DataplaneManager>,
@@ -46,22 +47,18 @@ impl DspDataPlaneFacade {
 impl DataPlaneFacadeTrait for DspDataPlaneFacade {
     async fn on_transfer_request_pre(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
     ) -> Outcome<Option<DataAddressDto>> {
-        strategy_for_request_pre(&ctx.input_data_address)
+        strategy_for_request_pre(&ctx.typed.fields.data_address)
             .on_request_pre(ctx, &self.dataplane_manager)
             .await
     }
 
     async fn on_transfer_request_post(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
     ) -> Outcome<Option<DataAddressDto>> {
-        let process = ctx
-            .process
-            .as_ref()
-            .ok_or_else(|| Errors::crazy("process required for on_transfer_request_post", None))?;
-        strategy_for(process)
+        strategy_for(ctx.role, ctx.transfer_direction)
             .on_request_post(ctx, &self.dataplane_manager)
             .await?;
         Ok(None)
@@ -69,38 +66,27 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
 
     async fn on_transfer_start_pre(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
     ) -> Outcome<Option<DataAddressDto>> {
-        let process = ctx
-            .process
-            .as_ref()
-            .ok_or_else(|| Errors::crazy("process required for on_transfer_start_pre", None))?;
-        strategy_for(process)
+        strategy_for(ctx.role, ctx.transfer_direction)
             .on_start_pre(ctx, &self.dataplane_manager)
             .await
     }
 
     async fn on_transfer_start_post(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
     ) -> Outcome<Option<DataAddressDto>> {
-        let process = ctx
-            .process
-            .as_ref()
-            .ok_or_else(|| Errors::crazy("process required for on_transfer_start_post", None))?;
-        strategy_for(process)
+        strategy_for(ctx.role, ctx.transfer_direction)
             .on_start_post(ctx, &self.dataplane_manager)
             .await
     }
 
     async fn on_transfer_suspension_pre(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
     ) -> Outcome<Option<DataAddressDto>> {
-        let process = ctx.process.as_ref().ok_or_else(|| {
-            Errors::crazy("process required for on_transfer_suspension_pre", None)
-        })?;
-        strategy_for(process)
+        strategy_for(ctx.role, ctx.transfer_direction)
             .on_suspend_pre(ctx, &self.dataplane_manager)
             .await;
         Ok(None)
@@ -108,12 +94,9 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
 
     async fn on_transfer_suspension_post(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
     ) -> Outcome<Option<DataAddressDto>> {
-        let process = ctx.process.as_ref().ok_or_else(|| {
-            Errors::crazy("process required for on_transfer_suspension_post", None)
-        })?;
-        strategy_for(process)
+        strategy_for(ctx.role, ctx.transfer_direction)
             .on_suspend_post(ctx, &self.dataplane_manager)
             .await;
         Ok(None)
@@ -121,12 +104,9 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
 
     async fn on_transfer_completion_pre(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
     ) -> Outcome<Option<DataAddressDto>> {
-        let process = ctx.process.as_ref().ok_or_else(|| {
-            Errors::crazy("process required for on_transfer_completion_pre", None)
-        })?;
-        strategy_for(process)
+        strategy_for(ctx.role, ctx.transfer_direction)
             .on_complete_pre(ctx, &self.dataplane_manager)
             .await;
         Ok(None)
@@ -134,12 +114,9 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
 
     async fn on_transfer_completion_post(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
     ) -> Outcome<Option<DataAddressDto>> {
-        let process = ctx.process.as_ref().ok_or_else(|| {
-            Errors::crazy("process required for on_transfer_completion_post", None)
-        })?;
-        strategy_for(process)
+        strategy_for(ctx.role, ctx.transfer_direction)
             .on_complete_post(ctx, &self.dataplane_manager)
             .await;
         Ok(None)
@@ -147,12 +124,9 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
 
     async fn on_transfer_termination_pre(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
     ) -> Outcome<Option<DataAddressDto>> {
-        let process = ctx.process.as_ref().ok_or_else(|| {
-            Errors::crazy("process required for on_transfer_termination_pre", None)
-        })?;
-        strategy_for(process)
+        strategy_for(ctx.role, ctx.transfer_direction)
             .on_terminate_pre(ctx, &self.dataplane_manager)
             .await;
         Ok(None)
@@ -160,12 +134,9 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
 
     async fn on_transfer_termination_post(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
     ) -> Outcome<Option<DataAddressDto>> {
-        let process = ctx.process.as_ref().ok_or_else(|| {
-            Errors::crazy("process required for on_transfer_termination_post", None)
-        })?;
-        strategy_for(process)
+        strategy_for(ctx.role, ctx.transfer_direction)
             .on_terminate_post(ctx, &self.dataplane_manager)
             .await;
         Ok(None)

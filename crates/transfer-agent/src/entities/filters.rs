@@ -15,66 +15,51 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Domain filters for transfer processes and messages.
-
+use crate::entities::ids::{ParticipantId, TenantId};
+use crate::entities::protocol::{ProtocolId, ProtocolState, TransferRole};
+use crate::entities::transfer_message::Direction;
 use chrono::{DateTime, Utc};
-use common::query::{validate_date_range, QueryFilter};
 use serde::{Deserialize, Serialize};
-use ymir::errors::Outcome;
+use urn::Urn;
+use ymir::errors::{BadFormat, Errors, Outcome};
 
-/// Filter criteria for querying transfer processes in transfer-agent.
+use common::query::{QueryFilter, validate_date_range};
+
+// Filters ───────────────────────────────────────────────────────────────────
+
+/// Filter for `TransferProcess` related requests
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct TransferProcessFilter {
-    pub state: Option<String>,
-    pub role: Option<String>,
-    pub protocol: Option<String>,
-    pub agreement_id: Option<String>,
-    pub associated_agent_peer: Option<String>,
-    pub connector_instance_id: Option<String>,
-    pub transfer_direction: Option<String>,
+    /// `None` means no tenant restriction (admin queries). `Some` restricts to that tenant.
+    pub tenant_id: Option<String>,
+    pub protocol: Option<ProtocolId>,
+    pub state: Option<ProtocolState>,
+    pub role: Option<TransferRole>,
+    pub agreement_id: Option<Urn>,
+    pub peer_participant_id: Option<ParticipantId>,
     pub created_after: Option<DateTime<Utc>>,
     pub created_before: Option<DateTime<Utc>>,
 }
 
 impl QueryFilter for TransferProcessFilter {
-    fn is_empty(&self) -> bool {
-        self.state.is_none()
-            && self.role.is_none()
-            && self.protocol.is_none()
-            && self.agreement_id.is_none()
-            && self.associated_agent_peer.is_none()
-            && self.connector_instance_id.is_none()
-            && self.transfer_direction.is_none()
-            && self.created_after.is_none()
-            && self.created_before.is_none()
-    }
-
     fn validate(&self) -> Outcome<()> {
         validate_date_range(self.created_after, self.created_before)
     }
 }
 
-/// Filter criteria for querying transfer messages in transfer-agent.
+/// Filter for `TransferMessage` related requests
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct TransferMessageFilter {
-    pub process_id: Option<String>,
-    pub protocol: Option<String>,
-    pub message_type: Option<String>,
-    pub direction: Option<String>,
+    /// `None` means no tenant restriction (admin queries). `Some` restricts to that tenant.
+    pub tenant_id: Option<String>,
+    pub direction: Option<Direction>,
+    pub protocol: Option<ProtocolId>,
+    pub state_transition_to: Option<ProtocolState>,
     pub created_after: Option<DateTime<Utc>>,
     pub created_before: Option<DateTime<Utc>>,
 }
 
 impl QueryFilter for TransferMessageFilter {
-    fn is_empty(&self) -> bool {
-        self.process_id.is_none()
-            && self.protocol.is_none()
-            && self.message_type.is_none()
-            && self.direction.is_none()
-            && self.created_after.is_none()
-            && self.created_before.is_none()
-    }
-
     fn validate(&self) -> Outcome<()> {
         validate_date_range(self.created_after, self.created_before)
     }

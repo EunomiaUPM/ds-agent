@@ -15,91 +15,167 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::transfer_messages::{NewTransferMessageDto, TransferMessageDto};
+//! Proto ⇄ domain mappers for the transfer-message RPCs.
+
+use crate::entities::commands::NewTransferMessageCommand;
+use crate::entities::filters::TransferMessageFilter;
+use crate::entities::ids::TransferProcessId;
+use crate::entities::message_envelope::MessageEnvelope;
+use crate::entities::protocol::{ProtocolId, ProtocolMessageType, ProtocolState};
+use crate::entities::transfer_message::Direction;
 use crate::grpc::api::transfer_messages::{
-    CreateMessageRequest, PaginationRequestMessages, TransferMessageResponse,
+    CreateTransferMessageRequest, Direction as ProtoDirection,
+    ListTransferMessagesByProcessRequest, ListTransferMessagesRequest,
+    MessageEnvelope as ProtoEnvelope, TransferMessageListResponse, TransferMessageResponse,
 };
-use crate::http::transfer_messages::PaginationParams;
-use chrono::DateTime;
-use serde_json::Value as JsonValue;
-use std::str::FromStr;
+use crate::services::transfer_message::views::TransferMessageView;
+use common::grpc::{JsonStructExt, JsonValueExt, ListParams, PageMeta, ProtoEnum, ProtoField};
+use common::query::Paginated;
+use compact_str::CompactString;
+use serde_json::Value as Json;
 use tonic::Status;
 use urn::Urn;
-impl TryFrom<CreateMessageRequest> for NewTransferMessageDto {
+
+// Request to Domain ───────────────────────────────────────────────────────
+
+impl TryFrom<ListTransferMessagesRequest> for ListParams<TransferMessageFilter> {
     type Error = Status;
 
-    fn try_from(proto: CreateMessageRequest) -> Result<Self, Self::Error> {
-        let process_urn = Urn::from_str(&proto.transfer_agent_process_id)
-            .map_err(|e| Status::invalid_argument(format!("Invalid Process URN: {}", e)))?;
-        let id_urn = if let Some(id_str) = proto.id {
-            Some(
-                Urn::from_str(&id_str)
-                    .map_err(|e| Status::invalid_argument(format!("Invalid Message URN: {}", e)))?,
-            )
-        } else {
-            None
-        };
-        let payload: Option<JsonValue> = if let Some(json_str) = proto.payload_json {
-            if json_str.trim().is_empty() {
-                None
-            } else {
-                Some(serde_json::from_str(&json_str).map_err(|e| {
-                    Status::invalid_argument(format!("Invalid JSON payload: {}", e))
-                })?)
-            }
-        } else {
-            None
-        };
-
-        Ok(NewTransferMessageDto {
-            id: id_urn,
+    fn try_from(req: ListTransferMessagesRequest) -> Result<Self, Status> {
+        let filter = TransferMessageFilter {
             tenant_id: None,
-            transfer_agent_process_id: process_urn,
-            direction: proto.direction,
-            protocol: proto.protocol,
-            message_type: proto.message_type,
-            state_transition_from: proto.state_transition_from,
-            state_transition_to: proto.state_transition_to,
-            payload,
+            direction: req.direction.opt_parsed::<Direction>("direction")?,
+            protocol: req.protocol.opt_parsed::<ProtocolId>("protocol")?,
+            state_transition_to: req
+                .state_transition_to
+                .non_empty()
+                .map(|s| ProtocolState(s.into())),
+            created_after: req.created_after.opt_rfc3339("created_after")?,
+            created_before: req.created_before.opt_rfc3339("created_before")?,
+        };
+        Self::new(filter, req.limit, &req.cursor, &req.sort)
+    }
+}
+
+/// List parameters scoped to one transfer process.
+pub(super) struct ListByProcessParams {
+    pub process_id: Urn,
+    pub params: ListParams<TransferMessageFilter>,
+}
+
+impl TryFrom<ListTransferMessagesByProcessRequest> for ListByProcessParams {
+    type Error = Status;
+
+    fn try_from(req: ListTransferMessagesByProcessRequest) -> Result<Self, Status> {
+        let process_id = req.process_id.urn("process_id")?;
+        let params = ListParams::try_from(ListTransferMessagesRequest::from(req))?;
+        Ok(Self { process_id, params })
+    }
+}
+
+/// The by-process request is the plain list request plus a process id.
+impl From<ListTransferMessagesByProcessRequest> for ListTransferMessagesRequest {
+    fn from(req: ListTransferMessagesByProcessRequest) -> Self {
+        Self {
+            direction: req.direction,
+            protocol: req.protocol,
+            state_transition_to: req.state_transition_to,
+            created_after: req.created_after,
+            created_before: req.created_before,
+            limit: req.limit,
+            cursor: req.cursor,
+            sort: req.sort,
+        }
+    }
+}
+
+impl TryFrom<CreateTransferMessageRequest> for NewTransferMessageCommand {
+    type Error = Status;
+
+    fn try_from(req: CreateTransferMessageRequest) -> Result<Self, Status> {
+        let payload = req
+            .payload
+            .map(JsonStructExt::into_json)
+            .unwrap_or(Json::Null);
+        let canonical_form = req.canonical_form.non_empty().map(str::to_owned);
+        Ok(Self {
+            id: None,
+            transfer_process_id: TransferProcessId::new(
+                req.transfer_process_id.urn("transfer_process_id")?,
+            ),
+            tenant_id: None,
+            direction: req
+                .direction
+                .proto_enum::<ProtoDirection>("direction")?
+                .into(),
+            protocol: req.protocol.parsed::<ProtocolId>("protocol")?,
+            message_type: ProtocolMessageType(CompactString::from(req.message_type)),
+            state_transition_from: ProtocolState(req.state_transition_from.into()),
+            state_transition_to: ProtocolState(req.state_transition_to.into()),
+            envelope: MessageEnvelope::from_canonical(payload, canonical_form),
         })
     }
 }
 
-impl From<PaginationRequestMessages> for PaginationParams {
-    fn from(proto: PaginationRequestMessages) -> Self {
+// Domain to Response ──────────────────────────────────────────────────────
+
+impl From<TransferMessageView> for TransferMessageResponse {
+    fn from(view: TransferMessageView) -> Self {
         Self {
-            limit: proto.limit,
-            page: proto.page,
+            id: view.id.to_string(),
+            transfer_process_id: view.transfer_process_id.to_string(),
+            tenant_id: view.tenant_id,
+            direction: ProtoDirection::from(view.direction) as i32,
+            protocol: view.protocol.to_string(),
+            message_type: view.message_type.0.to_string(),
+            state_transition_from: view.state_transition_from,
+            state_transition_to: view.state_transition_to,
+            envelope: Some(view.envelope.into()),
+            occurred_at: view.occurred_at.to_rfc3339(),
         }
     }
 }
 
-impl From<TransferMessageDto> for TransferMessageResponse {
-    fn from(dto: TransferMessageDto) -> Self {
-        let model = dto.inner;
-        let payload_json = model
-            .payload
-            .map(|json| serde_json::to_string(&json).unwrap_or_default());
-        let created_at = to_prost_timestamp(DateTime::from(model.created_at));
-
+impl From<Paginated<TransferMessageView>> for TransferMessageListResponse {
+    fn from(p: Paginated<TransferMessageView>) -> Self {
+        let meta = PageMeta::from(&p);
         Self {
-            id: model.id.to_string(),
-            transfer_agent_process_id: model.transfer_agent_process_id.to_string(),
-            direction: model.direction,
-            protocol: model.protocol,
-            state_transition_from: model.state_transition_from,
-            message_type: model.message_type,
-            state_transition_to: model.state_transition_to,
-            payload_json,
-            created_at: Some(created_at),
-            updated_at: None,
+            items: p.items.into_iter().map(Into::into).collect(),
+            next_cursor: meta.next_cursor,
+            total: meta.total,
         }
     }
 }
 
-fn to_prost_timestamp(dt: chrono::DateTime<chrono::Utc>) -> prost_types::Timestamp {
-    prost_types::Timestamp {
-        seconds: dt.timestamp(),
-        nanos: dt.timestamp_subsec_nanos() as i32,
+// Nested types ────────────────────────────────────────────────────────────
+
+/// A null payload is sent as an absent `Struct`; the hash travels hex-encoded.
+impl From<MessageEnvelope> for ProtoEnvelope {
+    fn from(env: MessageEnvelope) -> Self {
+        Self {
+            payload: (!env.payload.is_null()).then(|| env.payload.into_prost_struct()),
+            canonical_form: env.canonical_form.unwrap_or_default(),
+            canonical_hash: env.canonical_hash.map(hex::encode).unwrap_or_default(),
+        }
+    }
+}
+
+// Proto enums ⇄ domain enums ──────────────────────────────────────────────
+
+impl From<ProtoDirection> for Direction {
+    fn from(dir: ProtoDirection) -> Self {
+        match dir {
+            ProtoDirection::Inbound => Direction::Inbound,
+            ProtoDirection::Outbound => Direction::Outbound,
+        }
+    }
+}
+
+impl From<Direction> for ProtoDirection {
+    fn from(dir: Direction) -> Self {
+        match dir {
+            Direction::Inbound => ProtoDirection::Inbound,
+            Direction::Outbound => ProtoDirection::Outbound,
+        }
     }
 }

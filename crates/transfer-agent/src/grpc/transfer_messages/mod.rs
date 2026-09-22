@@ -16,74 +16,115 @@
  */
 
 mod mappers;
+#[cfg(test)]
+mod tests;
 
-use crate::entities::filters::TransferMessageFilter;
-use crate::entities::transfer_messages::TransferAgentMessagesTrait;
-use crate::grpc::api::transfer_messages::transfer_agent_messages_server::TransferAgentMessages;
-use crate::grpc::api::transfer_messages::{
-    CreateMessageRequest, PaginationRequestMessages, ResourceIdRequestMessages,
-    TransferMessageListResponse, TransferMessageResponse,
-};
-use crate::http::transfer_messages::PaginationParams;
-use common::paginated_spec::{Page, Sort};
 use std::sync::Arc;
-use tonic::{Request, Response, Status};
 
-pub struct TransferAgentMessagesGrpc {
-    service: Arc<dyn TransferAgentMessagesTrait>,
+use crate::grpc::api::transfer_messages::{
+    CreateTransferMessageRequest, DeleteResponse, ListTransferMessagesByProcessRequest,
+    ListTransferMessagesRequest, ResourceIdRequest, TransferMessageListResponse,
+    TransferMessageResponse, transfer_messages_ref_server::TransferMessagesRef,
+};
+use crate::grpc::transfer_messages::mappers::ListByProcessParams;
+use crate::services::transfer_message::TransferMessageServiceTrait;
+use common::auth::OauthTokenValidator;
+use common::auth::grpc::GrpcAuth;
+use common::grpc::{IntoStatus, ListParams, ProtoField};
+use tonic::{Request, Response, Status};
+use ymir::errors::Errors;
+
+pub struct TransferMessagesGrpc {
+    service: Arc<dyn TransferMessageServiceTrait>,
+    auth: GrpcAuth,
 }
 
-impl TransferAgentMessagesGrpc {
-    pub fn new(service: Arc<dyn TransferAgentMessagesTrait>) -> Self {
-        Self { service }
+impl TransferMessagesGrpc {
+    pub fn new(
+        service: Arc<dyn TransferMessageServiceTrait>,
+        validator: Arc<dyn OauthTokenValidator>,
+    ) -> Self {
+        Self {
+            service,
+            auth: GrpcAuth::new(validator),
+        }
     }
 }
 
 #[tonic::async_trait]
-impl TransferAgentMessages for TransferAgentMessagesGrpc {
-    async fn get_all_messages(
+impl TransferMessagesRef for TransferMessagesGrpc {
+    async fn list_transfer_messages(
         &self,
-        request: Request<PaginationRequestMessages>,
+        request: Request<ListTransferMessagesRequest>,
     ) -> Result<Response<TransferMessageListResponse>, Status> {
-        let proto_req = request.into_inner();
-        let params: PaginationParams = proto_req.into();
-        let page = Page::new(params.limit.unwrap_or(20) as u32, None);
-        let paginated = self
+        let scope = self.auth.scope(request.metadata()).await?;
+        let params = ListParams::try_from(request.into_inner())?;
+        let result = self
             .service
-            .get_all_transfer_messages(&TransferMessageFilter::default(), &page, Sort::default())
+            .get_all(&scope, &params.filter, &params.page, &params.sort)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-        let proto_messages = paginated.items.into_iter().map(|m| m.into()).collect();
-        Ok(Response::new(TransferMessageListResponse {
-            messages: proto_messages,
-        }))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(result.into()))
     }
 
-    async fn create_message(
+    async fn list_transfer_messages_by_process(
         &self,
-        _request: Request<CreateMessageRequest>,
-    ) -> Result<Response<TransferMessageResponse>, Status> {
-        todo!()
-    }
-
-    async fn get_message_by_id(
-        &self,
-        _request: Request<ResourceIdRequestMessages>,
-    ) -> Result<Response<TransferMessageResponse>, Status> {
-        todo!()
-    }
-
-    async fn delete_message(
-        &self,
-        _request: Request<ResourceIdRequestMessages>,
-    ) -> Result<Response<()>, Status> {
-        todo!()
-    }
-
-    async fn get_messages_by_process_id(
-        &self,
-        _request: Request<ResourceIdRequestMessages>,
+        request: Request<ListTransferMessagesByProcessRequest>,
     ) -> Result<Response<TransferMessageListResponse>, Status> {
-        todo!()
+        let scope = self.auth.scope(request.metadata()).await?;
+        let ListByProcessParams { process_id, params } = request.into_inner().try_into()?;
+        let result = self
+            .service
+            .get_all_by_process(
+                &scope,
+                &process_id,
+                &params.filter,
+                &params.page,
+                &params.sort,
+            )
+            .await
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(result.into()))
+    }
+
+    async fn get_transfer_message(
+        &self,
+        request: Request<ResourceIdRequest>,
+    ) -> Result<Response<TransferMessageResponse>, Status> {
+        let scope = self.auth.scope(request.metadata()).await?;
+        let id = request.into_inner().id.urn("id")?;
+        let view = self
+            .service
+            .get_one(&scope, &id)
+            .await
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(view.into()))
+    }
+
+    async fn create_transfer_message(
+        &self,
+        request: Request<CreateTransferMessageRequest>,
+    ) -> Result<Response<TransferMessageResponse>, Status> {
+        let scope = self.auth.scope(request.metadata()).await?;
+        let cmd = request.into_inner().try_into()?;
+        let view = self
+            .service
+            .create(&scope, &cmd)
+            .await
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(view.into()))
+    }
+
+    async fn delete_transfer_message(
+        &self,
+        request: Request<ResourceIdRequest>,
+    ) -> Result<Response<DeleteResponse>, Status> {
+        let scope = self.auth.scope(request.metadata()).await?;
+        let id = request.into_inner().id.urn("id")?;
+        self.service
+            .delete(&scope, &id)
+            .await
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(DeleteResponse {}))
     }
 }

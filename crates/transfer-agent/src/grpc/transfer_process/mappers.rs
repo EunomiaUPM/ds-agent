@@ -15,178 +15,249 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::transfer_process::{
-    EditTransferProcessDto, NewTransferProcessDto, TransferProcessDto,
+//! Proto ⇄ domain mappers for the transfer-process RPCs.
+
+use std::collections::HashMap;
+
+use crate::entities::commands::{EditTransferProcessCommand, NewTransferProcessCommand};
+use crate::entities::filters::TransferProcessFilter;
+use crate::entities::ids::ParticipantId;
+use crate::entities::protocol::{
+    ProtocolId, ProtocolState, StateMetadata, TransferCorrelation, TransferRole,
 };
-use crate::grpc::api::transfer_messages::TransferMessageResponse;
 use crate::grpc::api::transfer_processes::{
-    BatchProcessRequest, CreateProcessRequest, TransferProcessResponse, UpdateProcessRequest,
+    BatchTransferProcessesRequest, CreateTransferProcessRequest, EditTransferProcessRequest,
+    ListTransferProcessesRequest, ProtocolId as ProtoProtocolId,
+    StateMetadata as ProtoStateMetadata, TransferCorrelation as ProtoCorrelation,
+    TransferProcessListResponse, TransferProcessResponse, TransferRole as ProtoTransferRole,
 };
-use chrono::DateTime;
+use crate::services::transfer_process::views::TransferProcessView;
 use common::batch_requests::BatchRequests;
-use serde_json::Value as JsonValue;
-use std::str::FromStr;
+use common::grpc::{
+    InvalidField, JsonStructExt, JsonValueExt, ListParams, PageMeta, ProtoEnum, ProtoField,
+    ProtoFieldList,
+};
+use common::query::Paginated;
 use tonic::Status;
-use urn::Urn;
+use url::Url;
 
-// -----------------------------------------------------------------------------
-// PROTO -> DOMAIN (TryFrom)
-// -----------------------------------------------------------------------------
+// Request to Domain ───────────────────────────────────────────────────────
 
-impl TryFrom<CreateProcessRequest> for NewTransferProcessDto {
+impl TryFrom<ListTransferProcessesRequest> for ListParams<TransferProcessFilter> {
     type Error = Status;
 
-    fn try_from(proto: CreateProcessRequest) -> Result<Self, Self::Error> {
-        // 1. URNs
-        let agreement_urn = Urn::from_str(&proto.agreement_id)
-            .map_err(|e| Status::invalid_argument(format!("Invalid Agreement URN: {}", e)))?;
-
-        let id_urn = if let Some(id) = proto.id {
-            Some(
-                Urn::from_str(&id)
-                    .map_err(|e| Status::invalid_argument(format!("Invalid Process URN: {}", e)))?,
-            )
-        } else {
-            None
-        };
-
-        // 2. JSON Properties
-        let properties =
-            if let Some(json_str) = proto.properties_json {
-                Some(serde_json::from_str(&json_str).map_err(|e| {
-                    Status::invalid_argument(format!("Invalid properties JSON: {}", e))
-                })?)
-            } else {
-                None
-            };
-
-        // 3. Identifiers (Map<String, String> -> HashMap<String, String>)
-        let identifiers = if proto.identifiers.is_empty() {
-            None
-        } else {
-            Some(proto.identifiers) // Rust HashMap es compatible
-        };
-
-        Ok(NewTransferProcessDto {
-            id: id_urn,
+    fn try_from(req: ListTransferProcessesRequest) -> Result<Self, Status> {
+        let filter = TransferProcessFilter {
             tenant_id: None,
-            state: proto.state,
-            associated_agent_peer: proto.associated_agent_peer,
-            protocol: proto.protocol,
-            connector_instance_id: proto.connector_instance_id,
-            transfer_direction: proto.transfer_direction,
-            agreement_id: agreement_urn,
-            callback_address: None,
-            role: "".to_string(),
-            state_attribute: proto.state_attribute,
-            properties,
-            identifiers,
-        })
+            protocol: req.protocol.opt_parsed::<ProtocolId>("protocol")?,
+            state: req.state.non_empty().map(|s| ProtocolState(s.into())),
+            role: req.role.opt_parsed::<TransferRole>("role")?,
+            agreement_id: req.agreement_id.opt_urn("agreement_id")?,
+            peer_participant_id: req
+                .peer_participant_id
+                .opt_urn("peer_participant_id")?
+                .map(ParticipantId::new),
+            created_after: req.created_after.opt_rfc3339("created_after")?,
+            created_before: req.created_before.opt_rfc3339("created_before")?,
+        };
+        Self::new(filter, req.limit, &req.cursor, &req.sort)
     }
 }
 
-impl TryFrom<UpdateProcessRequest> for EditTransferProcessDto {
+impl TryFrom<BatchTransferProcessesRequest> for BatchRequests {
     type Error = Status;
 
-    fn try_from(proto: UpdateProcessRequest) -> Result<Self, Self::Error> {
-        // Parsing optional json
-        let properties = parse_optional_json(proto.properties_json)?;
-        let error_details = parse_optional_json(proto.error_details_json)?;
-
-        let identifiers = if proto.identifiers.is_empty() {
-            None
-        } else {
-            Some(proto.identifiers)
-        };
-
-        Ok(EditTransferProcessDto {
-            state: proto.state,
-            state_attribute: proto.state_attribute,
-            properties,
-            error_details,
-            identifiers,
+    fn try_from(req: BatchTransferProcessesRequest) -> Result<Self, Status> {
+        Ok(Self {
+            ids: req.ids.urns("ids")?,
         })
     }
 }
 
-impl From<BatchProcessRequest> for BatchRequests {
-    fn from(proto: BatchProcessRequest) -> Self {
-        BatchRequests {
-            ids: proto
-                .ids
-                .iter()
-                .map(|i| Urn::from_str(i).unwrap())
-                .collect(),
-        }
+impl TryFrom<CreateTransferProcessRequest> for NewTransferProcessCommand {
+    type Error = Status;
+
+    fn try_from(req: CreateTransferProcessRequest) -> Result<Self, Status> {
+        let callback_address = req
+            .callback_address
+            .non_empty()
+            .map(|s| Url::parse(s).map_err(|e| InvalidField::status("callback_address", e)))
+            .transpose()?;
+        Ok(Self {
+            id: None,
+            tenant_id: None,
+            role: req.role.proto_enum::<ProtoTransferRole>("role")?.into(),
+            protocol: req
+                .protocol
+                .proto_enum::<ProtoProtocolId>("protocol")?
+                .into(),
+            initial_state: ProtocolState(req.initial_state.into()),
+            initial_state_metadata: StateMetadata::from(ProtoStateMetadata {
+                attribute: req.initial_state_attribute,
+                reason: req.initial_state_reasons,
+                code: req.initial_state_code,
+            }),
+            callback_address,
+            connector_instance_id: None,
+            agreement_id: req.agreement_id.urn("agreement_id")?,
+            peer_participant_id: ParticipantId::new(
+                req.peer_participant_id.urn("peer_participant_id")?,
+            ),
+            identifiers: Self::opt_identifiers(req.identifiers),
+            properties: req.properties.map(JsonStructExt::into_json),
+        })
     }
 }
 
-// -----------------------------------------------------------------------------
-// DOMAIN -> PROTO (From)
-// -----------------------------------------------------------------------------
+impl NewTransferProcessCommand {
+    /// Proto maps cannot signal absence, so an empty map means "not provided".
+    fn opt_identifiers(ids: HashMap<String, String>) -> Option<HashMap<String, String>> {
+        (!ids.is_empty()).then_some(ids)
+    }
+}
 
-impl From<TransferProcessDto> for TransferProcessResponse {
-    fn from(dto: TransferProcessDto) -> Self {
-        let model = dto.inner;
+impl TryFrom<EditTransferProcessRequest> for EditTransferProcessCommand {
+    type Error = Status;
 
-        let properties_json = serde_json::to_string(&model.properties).unwrap_or_default();
-        let error_details_json = model
-            .error_details
-            .map(|j| serde_json::to_string(&j).unwrap_or_default());
+    fn try_from(req: EditTransferProcessRequest) -> Result<Self, Status> {
+        let metadata = ProtoStateMetadata {
+            attribute: req.state_attribute,
+            reason: req.state_reasons,
+            code: req.state_code,
+        };
+        let has_metadata = !metadata.attribute.is_empty()
+            || !metadata.code.is_empty()
+            || !metadata.reason.is_empty();
+        Ok(Self {
+            state: req.state.non_empty().map(|s| ProtocolState(s.into())),
+            state_metadata: has_metadata.then(|| StateMetadata::from(metadata)),
+            identifiers: NewTransferProcessCommand::opt_identifiers(req.identifiers),
+            properties: req.properties.map(JsonStructExt::into_json),
+            error_details: req.error_details.map(JsonStructExt::into_json),
+        })
+    }
+}
 
-        // 2. dates
-        let created_at = to_prost_timestamp(DateTime::from(model.created_at));
-        let updated_at = model
-            .updated_at
-            .map(|d| to_prost_timestamp(DateTime::from(d)));
+// Domain to Response ──────────────────────────────────────────────────────
 
-        // 3. nested
-        let messages_proto: Vec<TransferMessageResponse> = dto
-            .messages
-            .into_iter()
-            .map(|msg_model| {
-                let msg_dto =
-                    crate::entities::transfer_messages::TransferMessageDto { inner: msg_model };
-                msg_dto.into()
-            })
-            .collect();
-
+impl From<TransferProcessView> for TransferProcessResponse {
+    fn from(view: TransferProcessView) -> Self {
         Self {
-            id: model.id,
-            state: model.state,
-            state_attribute: model.state_attribute,
-            associated_agent_peer: model.associated_agent_peer,
-            protocol: model.protocol,
-            transfer_direction: model.transfer_direction,
-            agreement_id: model.agreement_id,
-            callback_address: model.callback_address,
-            role: model.role,
-
-            properties_json,
-            error_details_json,
-
-            created_at: created_at.into(),
-            updated_at,
-
-            identifiers: dto.identifiers,
-            messages: messages_proto,
+            id: view.id.to_string(),
+            tenant_id: view.tenant_id,
+            role: ProtoTransferRole::from(view.role) as i32,
+            protocol: ProtoProtocolId::from(view.protocol) as i32,
+            state: view.state.0.to_string(),
+            state_metadata: Some(view.state_metadata.into()),
+            correlation: Some(view.correlation.into()),
+            properties: Some(view.properties.into_prost_struct()),
+            error_details: view.error_details.map(JsonValueExt::into_prost_struct),
+            created_at: view.created_at.to_rfc3339(),
+            updated_at: view.updated_at.to_rfc3339(),
+            version: view.version,
         }
     }
 }
 
-// Helpers
-fn parse_optional_json(input: Option<String>) -> Result<Option<JsonValue>, Status> {
-    match input {
-        Some(s) if !s.trim().is_empty() => serde_json::from_str(&s)
-            .map_err(|e| Status::invalid_argument(format!("Invalid JSON: {}", e)))
-            .map(Some),
-        _ => Ok(None),
+impl From<Paginated<TransferProcessView>> for TransferProcessListResponse {
+    fn from(p: Paginated<TransferProcessView>) -> Self {
+        let meta = PageMeta::from(&p);
+        Self {
+            items: p.items.into_iter().map(Into::into).collect(),
+            next_cursor: meta.next_cursor,
+            total: meta.total,
+        }
     }
 }
 
-fn to_prost_timestamp(dt: chrono::DateTime<chrono::Utc>) -> prost_types::Timestamp {
-    prost_types::Timestamp {
-        seconds: dt.timestamp(),
-        nanos: dt.timestamp_subsec_nanos() as i32,
+/// Batch results are a complete, unpaged set: no cursor, total = item count.
+impl From<Vec<TransferProcessView>> for TransferProcessListResponse {
+    fn from(views: Vec<TransferProcessView>) -> Self {
+        Self {
+            total: views.len() as u64,
+            items: views.into_iter().map(Into::into).collect(),
+            next_cursor: String::new(),
+        }
+    }
+}
+
+// Nested types ────────────────────────────────────────────────────────────
+
+impl From<ProtoStateMetadata> for StateMetadata {
+    fn from(meta: ProtoStateMetadata) -> Self {
+        Self {
+            attribute: meta.attribute.non_empty().map(str::to_owned),
+            reason: (!meta.reason.is_empty()).then_some(meta.reason),
+            code: meta.code.non_empty().map(str::to_owned),
+        }
+    }
+}
+
+impl From<StateMetadata> for ProtoStateMetadata {
+    fn from(meta: StateMetadata) -> Self {
+        Self {
+            attribute: meta.attribute.unwrap_or_default(),
+            reason: meta.reason.unwrap_or_default(),
+            code: meta.code.unwrap_or_default(),
+        }
+    }
+}
+
+impl From<TransferCorrelation> for ProtoCorrelation {
+    fn from(corr: TransferCorrelation) -> Self {
+        Self {
+            identifiers: corr.identifiers,
+            consumer_pid: corr.consumer_pid.unwrap_or_default(),
+            provider_pid: corr.provider_pid.unwrap_or_default(),
+            agreement_id: corr.agreement_id.map(|u| u.to_string()).unwrap_or_default(),
+            callback_address: corr
+                .callback_address
+                .map(|u| u.to_string())
+                .unwrap_or_default(),
+            peer_participant_id: corr
+                .peer_participant_id
+                .map(|p| p.to_string())
+                .unwrap_or_default(),
+        }
+    }
+}
+
+// Proto enums ⇄ domain enums ──────────────────────────────────────────────
+
+impl From<ProtoTransferRole> for TransferRole {
+    fn from(role: ProtoTransferRole) -> Self {
+        match role {
+            ProtoTransferRole::Provider => TransferRole::Provider,
+            ProtoTransferRole::Consumer => TransferRole::Consumer,
+            ProtoTransferRole::Relay => TransferRole::Relay,
+        }
+    }
+}
+
+impl From<TransferRole> for ProtoTransferRole {
+    fn from(role: TransferRole) -> Self {
+        match role {
+            TransferRole::Provider => ProtoTransferRole::Provider,
+            TransferRole::Consumer => ProtoTransferRole::Consumer,
+            TransferRole::Relay => ProtoTransferRole::Relay,
+        }
+    }
+}
+
+impl From<ProtoProtocolId> for ProtocolId {
+    fn from(protocol: ProtoProtocolId) -> Self {
+        match protocol {
+            ProtoProtocolId::Dsp2024 => ProtocolId::Dsp2024,
+            ProtoProtocolId::Dsp20251 => ProtocolId::Dsp2025_1,
+        }
+    }
+}
+
+impl From<ProtocolId> for ProtoProtocolId {
+    fn from(protocol: ProtocolId) -> Self {
+        match protocol {
+            ProtocolId::Dsp2024 => ProtoProtocolId::Dsp2024,
+            ProtocolId::Dsp2025_1 => ProtoProtocolId::Dsp20251,
+        }
     }
 }

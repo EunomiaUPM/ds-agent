@@ -15,19 +15,20 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::SERVICE_BIG_NAME;
 use crate::setup::boot::TransferBoot;
-use crate::setup::db_migrations::TransferAgentMigration;
+use crate::setup::db_migrations::TransferAgentRefMigration;
 use clap::{Parser, Subcommand};
 use common::boot::BootstrapInit;
 use common::config::services::TransferConfig;
 use common::config::types::traits::{CommonConfigTrait, ConfigLoader};
 use std::sync::Arc;
-use tracing::{debug, info};
+use tracing::info;
 use ymir::errors::Outcome;
 
 #[derive(Parser, Debug)]
-#[command(name = "Eunomia DS-Agent Dataspace Connector Transfer Agent")]
-#[command(version = "0.2")]
+#[command(name = SERVICE_BIG_NAME)]
+#[command(version)]
 struct TransferCli {
     #[clap(subcommand)]
     command: TransferCliCommands,
@@ -49,7 +50,6 @@ pub struct TransferCommands {}
 
 impl TransferCommands {
     pub async fn init_command_line() -> Outcome<()> {
-        debug!("init_command_line - Initialize transfer commands");
         let cli = TransferCli::parse();
         match cli.command {
             TransferCliCommands::Start(args) => {
@@ -58,13 +58,13 @@ impl TransferCommands {
                     .await?;
             }
             TransferCliCommands::Setup(args) => {
-                let config = TransferConfig::load(&*args.env_file)?;
+                let config = TransferConfig::load(&args.env_file)?;
                 let vault = common::vault_utils::vault(config.common())?;
                 let table = json_to_table::json_to_table(&serde_json::to_value(&config)?)
                     .collapse()
                     .to_string();
-                info!("Current Transfer Agent Config:\n{}", table);
-                TransferAgentMigration::run(&config, Arc::new(vault)).await?;
+                info!("Current Transfer Agent Ref Config:\n{}", table);
+                TransferAgentRefMigration::run(&config, Arc::new(vault)).await?;
             }
         }
         Ok(())

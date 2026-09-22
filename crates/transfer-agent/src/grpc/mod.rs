@@ -15,18 +15,19 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod api {
-    pub mod transfer_messages {
-        tonic::include_proto!("transfer_messages");
-    }
-
-    pub mod transfer_processes {
-        tonic::include_proto!("transfer_processes");
-    }
-
-    pub const FILE_DESCRIPTOR_SET: &[u8] =
-        tonic::include_file_descriptor_set!("transfer_descriptor");
-}
+//! gRPC driving adapter: generated API plus one handler module per resource.
 
 pub(crate) mod transfer_messages;
 pub(crate) mod transfer_process;
+
+/// Generated protobuf/tonic code and the reflection descriptor set.
+pub mod api {
+    pub mod transfer_processes {
+        tonic::include_proto!("transfer_processes_ref");
+    }
+    pub mod transfer_messages {
+        tonic::include_proto!("transfer_messages_ref");
+    }
+    pub const FILE_DESCRIPTOR_SET: &[u8] =
+        tonic::include_file_descriptor_set!("transfer_ref_descriptor");
+}

@@ -15,9 +15,13 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+mod admin_module;
 mod boot;
 pub mod cmd;
+mod composition;
+pub(crate) mod context;
 mod db_migrations;
 mod grpc_worker;
 mod http_worker;
-pub use http_worker::create_root_http_router;
+
+pub use composition::TransferAgentModule;

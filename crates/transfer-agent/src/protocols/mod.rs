@@ -15,7 +15,4 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-mod bifrost;
-pub(crate) mod dsp;
-mod dspv2;
-pub(crate) mod protocol;
+pub mod dsp;

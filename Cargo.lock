@@ -2797,7 +2797,7 @@ dependencies = [
  "tower-http",
  "tracing",
  "tracing-subscriber",
- "transfer_agent_ref",
+ "transfer_agent",
  "urn",
  "uuid",
  "ymir",
@@ -5528,44 +5528,6 @@ dependencies = [
 
 [[package]]
 name = "transfer_agent"
-version = "0.4.0"
-dependencies = [
- "async-trait",
- "axum",
- "catalog_agent",
- "chrono",
- "clap",
- "common",
- "connector",
- "dataplane",
- "events",
- "json_to_table",
- "log",
- "mockall",
- "negotiation_agent",
- "prost",
- "prost-types",
- "sea-orm",
- "sea-orm-migration",
- "serde",
- "serde_json",
- "thiserror 2.0.18",
- "tokio",
- "tokio-util",
- "tonic",
- "tonic-prost",
- "tonic-prost-build",
- "tonic-reflection",
- "tower-http",
- "tracing",
- "tracing-subscriber",
- "urn",
- "uuid",
- "ymir",
-]
-
-[[package]]
-name = "transfer_agent_ref"
 version = "0.4.0"
 dependencies = [
  "async-trait",

@@ -16,98 +16,126 @@
  */
 
 mod mappers;
+#[cfg(test)]
+mod tests;
 
-use crate::entities::filters::TransferProcessFilter;
-use crate::entities::transfer_process::{NewTransferProcessDto, TransferAgentProcessesTrait};
-use crate::grpc::api::transfer_processes::transfer_agent_processes_server::TransferAgentProcesses;
-use crate::grpc::api::transfer_processes::{
-    BatchProcessRequest, CreateProcessRequest, GetByKeyRequest, PaginationRequestProcesses,
-    ResourceIdRequestProcesses, TransferProcessListResponse, TransferProcessResponse,
-    UpdateProcessRequest,
-};
-use common::paginated_spec::{Page, Sort};
 use std::sync::Arc;
-use tonic::{Request, Response, Status};
 
-pub struct TransferAgentProcessesGrpc {
-    service: Arc<dyn TransferAgentProcessesTrait>,
+use crate::grpc::api::transfer_processes::{
+    BatchTransferProcessesRequest, CreateTransferProcessRequest, DeleteResponse,
+    EditTransferProcessRequest, ListTransferProcessesRequest, ResourceIdRequest,
+    TransferProcessListResponse, TransferProcessResponse,
+    transfer_processes_ref_server::TransferProcessesRef,
+};
+use crate::services::transfer_process::TransferProcessServiceTrait;
+use common::auth::OauthTokenValidator;
+use common::auth::grpc::GrpcAuth;
+use common::batch_requests::BatchRequests;
+use common::grpc::{IntoStatus, ListParams, ProtoField};
+use tonic::{Request, Response, Status};
+use ymir::errors::Errors;
+
+pub struct TransferProcessGrpc {
+    service: Arc<dyn TransferProcessServiceTrait>,
+    auth: GrpcAuth,
 }
 
-impl TransferAgentProcessesGrpc {
-    pub fn new(service: Arc<dyn TransferAgentProcessesTrait>) -> Self {
-        Self { service }
+impl TransferProcessGrpc {
+    pub fn new(
+        service: Arc<dyn TransferProcessServiceTrait>,
+        validator: Arc<dyn OauthTokenValidator>,
+    ) -> Self {
+        Self {
+            service,
+            auth: GrpcAuth::new(validator),
+        }
     }
 }
 
 #[tonic::async_trait]
-impl TransferAgentProcesses for TransferAgentProcessesGrpc {
-    async fn get_all_processes(
+impl TransferProcessesRef for TransferProcessGrpc {
+    async fn list_transfer_processes(
         &self,
-        request: Request<PaginationRequestProcesses>,
+        request: Request<ListTransferProcessesRequest>,
     ) -> Result<Response<TransferProcessListResponse>, Status> {
-        let proto_req = request.into_inner();
-        let params: PaginationRequestProcesses = proto_req.into();
-        let page = Page::new(params.limit.unwrap_or(20) as u32, None);
-        let paginated = self
+        let scope = self.auth.scope(request.metadata()).await?;
+        let params = ListParams::try_from(request.into_inner())?;
+        let result = self
             .service
-            .get_all_transfer_processes(&TransferProcessFilter::default(), &page, Sort::default())
+            .get_all(&scope, &params.filter, &params.page, &params.sort)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-        let proto_processes = paginated.items.into_iter().map(|m| m.into()).collect();
-        Ok(Response::new(TransferProcessListResponse {
-            processes: proto_processes,
-        }))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(result.into()))
     }
 
-    async fn create_process(
+    async fn get_transfer_process(
         &self,
-        request: Request<CreateProcessRequest>,
+        request: Request<ResourceIdRequest>,
     ) -> Result<Response<TransferProcessResponse>, Status> {
-        let proto_req = request.into_inner();
-        let request: CreateProcessRequest = proto_req.into();
-        let new_transfer_process = NewTransferProcessDto::try_from(request)
-            .map_err(|e| Status::internal(e.to_string()))?;
-        let process = self
+        let scope = self.auth.scope(request.metadata()).await?;
+        let id = request.into_inner().id.urn("id")?;
+        let view = self
             .service
-            .create_transfer_process(&new_transfer_process)
+            .get_one(&scope, &id)
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
-        let proto_process: TransferProcessResponse = process.into();
-        Ok(Response::new(proto_process))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(view.into()))
     }
 
-    async fn get_batch_processes(
+    async fn batch_get_transfer_processes(
         &self,
-        _request: Request<BatchProcessRequest>,
+        request: Request<BatchTransferProcessesRequest>,
     ) -> Result<Response<TransferProcessListResponse>, Status> {
-        todo!()
+        let scope = self.auth.scope(request.metadata()).await?;
+        let batch = BatchRequests::try_from(request.into_inner())?;
+        let views = self
+            .service
+            .batch(&scope, &batch)
+            .await
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(views.into()))
     }
 
-    async fn get_process_by_id(
+    async fn create_transfer_process(
         &self,
-        _request: Request<ResourceIdRequestProcesses>,
+        request: Request<CreateTransferProcessRequest>,
     ) -> Result<Response<TransferProcessResponse>, Status> {
-        todo!()
+        let scope = self.auth.scope(request.metadata()).await?;
+        let cmd = request.into_inner().try_into()?;
+        let view = self
+            .service
+            .create(&scope, &cmd)
+            .await
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(view.into()))
     }
 
-    async fn update_process(
+    async fn edit_transfer_process(
         &self,
-        _request: Request<UpdateProcessRequest>,
+        request: Request<EditTransferProcessRequest>,
     ) -> Result<Response<TransferProcessResponse>, Status> {
-        todo!()
+        let scope = self.auth.scope(request.metadata()).await?;
+        let req = request.into_inner();
+        let id = req.id.urn("id")?;
+        let cmd = req.try_into()?;
+        let view = self
+            .service
+            .edit(&scope, &id, &cmd)
+            .await
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(view.into()))
     }
 
-    async fn delete_process(
+    async fn delete_transfer_process(
         &self,
-        _request: Request<ResourceIdRequestProcesses>,
-    ) -> Result<Response<()>, Status> {
-        todo!()
-    }
-
-    async fn get_process_by_key_id(
-        &self,
-        _request: Request<GetByKeyRequest>,
-    ) -> Result<Response<TransferProcessResponse>, Status> {
-        todo!()
+        request: Request<ResourceIdRequest>,
+    ) -> Result<Response<DeleteResponse>, Status> {
+        let scope = self.auth.scope(request.metadata()).await?;
+        let id = request.into_inner().id.urn("id")?;
+        self.service
+            .delete(&scope, &id)
+            .await
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(DeleteResponse {}))
     }
 }

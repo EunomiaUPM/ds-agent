@@ -15,15 +15,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::protocols::dsp::context::DspTransferContext;
+use crate::protocols::dsp::entities::context_dsp::TransferDSPContextDomain;
+use crate::protocols::dsp::entities::data_address::DataAddressDto;
 use crate::protocols::dsp::facades::dataplane_facade::strategy::DataPlaneStrategy;
-use crate::protocols::dsp::facades::dataplane_facade::DataAddressDto;
+use crate::protocols::dsp::facades::dataplane_facade::to_dataplane_address;
 use dataplane::{
     DataplaneAddress, DataplaneCommand, DataplaneCommandResponse, DataplaneContinuation,
     DataplaneInitCommandDirection, DataplaneInitCommandTypes, DataplaneManager,
 };
-use std::str::FromStr;
-use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 
 pub(super) struct ConsumerPushStrategy;
@@ -32,20 +31,17 @@ pub(super) struct ConsumerPushStrategy;
 impl DataPlaneStrategy for ConsumerPushStrategy {
     async fn on_request_pre(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
         mgr: &DataplaneManager,
     ) -> Outcome<Option<DataAddressDto>> {
-        let transfer_id = ctx.local_process_id.as_ref().ok_or_else(|| {
-            Errors::crazy(
-                "local_process_id required for consumer push request_pre",
-                None,
-            )
-        })?;
+        let transfer_id = ctx.process_urn("consumer push request_pre")?;
         let data_address_dto = ctx
-            .input_data_address
+            .typed
+            .fields
+            .data_address
             .as_ref()
             .ok_or_else(|| Errors::crazy("Data address instance should be defined", None))?;
-        let data_address: DataplaneAddress = data_address_dto.clone().into();
+        let data_address: DataplaneAddress = to_dataplane_address(data_address_dto);
         let res = mgr
             .execute_command(DataplaneCommand::SetInit(
                 DataplaneInitCommandTypes::AsConsumer {
@@ -70,7 +66,7 @@ impl DataPlaneStrategy for ConsumerPushStrategy {
 
     async fn on_request_post(
         &self,
-        _ctx: &DspTransferContext,
+        _ctx: &TransferDSPContextDomain,
         _mgr: &DataplaneManager,
     ) -> Outcome<()> {
         // noop
@@ -79,7 +75,7 @@ impl DataPlaneStrategy for ConsumerPushStrategy {
 
     async fn on_start_pre(
         &self,
-        _ctx: &DspTransferContext,
+        _ctx: &TransferDSPContextDomain,
         _mgr: &DataplaneManager,
     ) -> Outcome<Option<DataAddressDto>> {
         // noop
@@ -88,10 +84,10 @@ impl DataPlaneStrategy for ConsumerPushStrategy {
 
     async fn on_start_post(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
         mgr: &DataplaneManager,
     ) -> Outcome<Option<DataAddressDto>> {
-        let id = process_urn(ctx, "consumer push start_post")?;
+        let id = ctx.process_urn("consumer push start_post")?;
         mgr.execute_command(DataplaneCommand::SetSubscribing(DataplaneContinuation {
             transfer_dto_urn: id,
         }))
@@ -101,7 +97,7 @@ impl DataPlaneStrategy for ConsumerPushStrategy {
 
     async fn on_suspend_pre(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
         // noop
@@ -110,10 +106,10 @@ impl DataPlaneStrategy for ConsumerPushStrategy {
 
     async fn on_suspend_post(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
-        let id = process_urn(ctx, "consumer push suspend_post")?;
+        let id = ctx.process_urn("consumer push suspend_post")?;
         mgr.execute_command(DataplaneCommand::SetUnsubscribing(DataplaneContinuation {
             transfer_dto_urn: id,
         }))
@@ -123,7 +119,7 @@ impl DataPlaneStrategy for ConsumerPushStrategy {
 
     async fn on_complete_pre(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
         Ok(())
@@ -131,11 +127,11 @@ impl DataPlaneStrategy for ConsumerPushStrategy {
 
     async fn on_complete_post(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
         mgr.execute_command(DataplaneCommand::SetUnsubscribing(DataplaneContinuation {
-            transfer_dto_urn: process_urn(ctx, "consumer push complete_post")?,
+            transfer_dto_urn: ctx.process_urn("consumer push complete_post")?,
         }))
         .await?;
         Ok(())
@@ -143,7 +139,7 @@ impl DataPlaneStrategy for ConsumerPushStrategy {
 
     async fn on_terminate_pre(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
         Ok(())
@@ -151,23 +147,13 @@ impl DataPlaneStrategy for ConsumerPushStrategy {
 
     async fn on_terminate_post(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
         mgr.execute_command(DataplaneCommand::SetUnsubscribing(DataplaneContinuation {
-            transfer_dto_urn: process_urn(ctx, "consumer push terminate_post")?,
+            transfer_dto_urn: ctx.process_urn("consumer push terminate_post")?,
         }))
         .await?;
         Ok(())
     }
-}
-
-fn process_urn(ctx: &DspTransferContext, location: &str) -> Outcome<Urn> {
-    let id = &ctx
-        .process
-        .as_ref()
-        .ok_or_else(|| Errors::crazy(format!("process required for {location}"), None))?
-        .inner
-        .id;
-    Ok(Urn::from_str(id)?)
 }

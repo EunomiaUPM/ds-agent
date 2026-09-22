@@ -15,5 +15,27 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod transfer_messages;
-pub(crate) mod transfer_process;
+use axum::Router;
+use common::auth::OauthTokenValidator;
+use std::sync::Arc;
+
+pub(crate) mod transfer_message_router;
+pub(crate) mod transfer_process_router;
+
+pub(crate) struct TransferHttpRouter;
+
+impl TransferHttpRouter {
+    pub(crate) fn build(
+        process_router: Router,
+        message_router: Router,
+        validator: Arc<dyn OauthTokenValidator>,
+    ) -> Router {
+        Router::new()
+            .merge(process_router)
+            .merge(message_router)
+            .route_layer(axum::middleware::from_fn_with_state(
+                validator,
+                common::auth::http::AuthHttpMiddleware::run,
+            ))
+    }
+}

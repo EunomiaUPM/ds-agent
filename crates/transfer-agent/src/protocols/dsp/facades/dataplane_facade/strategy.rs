@@ -15,12 +15,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::transfer_process::TransferProcessDto;
-use crate::protocols::dsp::context::DspTransferContext;
+use crate::entities::protocol::{TransferDirection, TransferRole};
+use crate::protocols::dsp::entities::context_dsp::TransferDSPContextDomain;
+use crate::protocols::dsp::entities::data_address::DataAddressDto;
 use crate::protocols::dsp::facades::dataplane_facade::{
     consumer_pull::ConsumerPullStrategy, consumer_push::ConsumerPushStrategy,
-    provider_pull::ProviderPullStrategy, provider_push::ProviderPushStrategy, DataAddressDto,
+    provider_pull::ProviderPullStrategy, provider_push::ProviderPushStrategy,
 };
+use common::dsp_common::data_address::DataAddress;
 use dataplane::DataplaneManager;
 use ymir::errors::Outcome;
 
@@ -28,58 +30,61 @@ use ymir::errors::Outcome;
 pub(super) trait DataPlaneStrategy: Send + Sync {
     async fn on_request_pre(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
         mgr: &DataplaneManager,
     ) -> Outcome<Option<DataAddressDto>>;
 
     async fn on_request_post(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
         mgr: &DataplaneManager,
     ) -> Outcome<()>;
 
     async fn on_start_pre(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
         mgr: &DataplaneManager,
     ) -> Outcome<Option<DataAddressDto>>;
 
     async fn on_start_post(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
         mgr: &DataplaneManager,
     ) -> Outcome<Option<DataAddressDto>>;
 
-    async fn on_suspend_pre(&self, ctx: &DspTransferContext, mgr: &DataplaneManager)
-        -> Outcome<()>;
+    async fn on_suspend_pre(
+        &self,
+        ctx: &TransferDSPContextDomain,
+        mgr: &DataplaneManager,
+    ) -> Outcome<()>;
 
     async fn on_suspend_post(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
         mgr: &DataplaneManager,
     ) -> Outcome<()>;
 
     async fn on_complete_pre(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
         mgr: &DataplaneManager,
     ) -> Outcome<()>;
 
     async fn on_complete_post(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
         mgr: &DataplaneManager,
     ) -> Outcome<()>;
 
     async fn on_terminate_pre(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
         mgr: &DataplaneManager,
     ) -> Outcome<()>;
 
     async fn on_terminate_post(
         &self,
-        ctx: &DspTransferContext,
+        ctx: &TransferDSPContextDomain,
         mgr: &DataplaneManager,
     ) -> Outcome<()>;
 }
@@ -89,20 +94,24 @@ static CONSUMER_PUSH: ConsumerPushStrategy = ConsumerPushStrategy;
 static PROVIDER_PULL: ProviderPullStrategy = ProviderPullStrategy;
 static PROVIDER_PUSH: ProviderPushStrategy = ProviderPushStrategy;
 
-pub(super) fn strategy_for(process: &TransferProcessDto) -> &'static dyn DataPlaneStrategy {
-    match (
-        process.inner.role.as_str(),
-        process.inner.transfer_direction.as_str(),
-    ) {
-        ("Consumer", "Pull") => &CONSUMER_PULL,
-        ("Consumer", _) => &CONSUMER_PUSH,
-        ("Provider", "Pull") => &PROVIDER_PULL,
+// Capture and factory of strategy once TransferProcess exists
+pub(super) fn strategy_for(
+    role: TransferRole,
+    direction: TransferDirection,
+) -> &'static dyn DataPlaneStrategy {
+    match (role, direction) {
+        (TransferRole::Consumer, TransferDirection::Pull) => &CONSUMER_PULL,
+        (TransferRole::Consumer, TransferDirection::Push) => &CONSUMER_PUSH,
+        (TransferRole::Provider, TransferDirection::Pull) => &PROVIDER_PULL,
+        // Provider/Push, and Relay (not a data-plane role) fall back to provider push.
         _ => &PROVIDER_PUSH,
     }
 }
 
+// Capture and factory of strategy when it's being created for first time in provider
+// Based on DSP, if PUSH DataAddress should be in message, otherwise is PULL
 pub(super) fn strategy_for_request_pre(
-    data_address: &Option<DataAddressDto>,
+    data_address: &Option<DataAddress>,
 ) -> &'static dyn DataPlaneStrategy {
     if data_address.is_some() {
         &CONSUMER_PUSH

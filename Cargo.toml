@@ -9,11 +9,8 @@ members = [
     "crates/bff",
     "crates/catalog-agent",
     "crates/negotiation-agent",
-    "crates/transfer-agent",
     "crates/connector",
-    "crates/transfer-agent-ref",
     "crates/oauth",
-    "crates/connector",
     "crates/keystore",
 ]
 exclude = [

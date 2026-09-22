@@ -15,35 +15,31 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::data::migrations::get_transfer_agent_migrations;
 use common::config::services::TransferConfig;
 use common::config::types::traits::CommonConfigTrait;
-use dataplane::get_dataplane_migrations;
 use sea_orm_migration::{MigrationTrait, MigratorTrait};
 use std::sync::Arc;
 use ymir::errors::{Errors, Outcome};
-use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;
+use ymir::services::vault::global::VaultService;
 
-pub struct TransferAgentMigration;
+pub struct TransferAgentRefMigration;
 
-impl MigratorTrait for TransferAgentMigration {
+impl MigratorTrait for TransferAgentRefMigration {
     fn migrations() -> Vec<Box<dyn MigrationTrait>> {
-        let mut migrations: Vec<Box<dyn MigrationTrait>> = vec![];
-        let mut transfer_agent_migrations = get_transfer_agent_migrations();
-        let mut data_plane_migrations = get_dataplane_migrations();
-
-        migrations.append(&mut transfer_agent_migrations);
-        migrations.append(&mut data_plane_migrations);
-        migrations
+        [
+            oauth::get_oauth_migrations(),
+            crate::setup::TransferAgentModule::migrations(),
+        ]
+        .into_iter()
+        .flatten()
+        .collect()
     }
 }
 
-impl TransferAgentMigration {
+impl TransferAgentRefMigration {
     pub async fn run(config: &TransferConfig, vault: Arc<VaultService>) -> Outcome<()> {
-        // db_connection
         let db_connection = vault.get_db_connection(config.common()).await?;
-        // run migration
         Self::refresh(&db_connection)
             .await
             .map_err(|e| Errors::crazy("Not able to run migration", Some(Box::new(e))))?;

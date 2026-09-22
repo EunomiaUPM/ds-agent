@@ -15,6 +15,11 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod filters;
-pub(crate) mod transfer_messages;
+pub(crate) mod commands;
+pub(crate) mod filters;
+pub(crate) mod ids;
+pub(crate) mod message_envelope;
+pub mod protocol;
+pub(crate) mod transfer_message;
 pub(crate) mod transfer_process;
+pub(crate) mod transfer_process_identifier;

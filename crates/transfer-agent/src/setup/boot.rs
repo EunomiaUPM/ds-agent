@@ -15,16 +15,23 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::setup::TransferAgentModule;
+use crate::setup::context::AppContext;
 use crate::setup::grpc_worker::TransferGrpcWorker;
 use crate::setup::http_worker::TransferHttpWorker;
 use common::boot::BootstrapServiceTrait;
 use common::config::services::TransferConfig;
-use common::config::types::traits::ConfigLoader;
+use common::config::types::traits::{CommonConfigTrait, ConfigLoader};
+use common::module_loader::service_composer::ServiceComposer;
+use common::worker_utils::GrpcServer;
+use oauth::services::admin_seeder::seed_admin_user;
+use oauth::setup::module::OAuthModule;
 use std::sync::Arc;
 use tokio::sync::broadcast;
 use tokio::sync::broadcast::Sender;
 use tokio_util::sync::CancellationToken;
 use ymir::errors::Outcome;
+use ymir::services::vault::VaultTrait;
 use ymir::services::vault::global::VaultService;
 
 pub struct TransferBoot;
@@ -32,14 +39,16 @@ pub struct TransferBoot;
 #[async_trait::async_trait]
 impl BootstrapServiceTrait for TransferBoot {
     type Config = TransferConfig;
+
     async fn load_config(env_file: String) -> Outcome<Self::Config> {
-        let config = Self::Config::load(&*env_file)?;
+        let config = Self::Config::load(&env_file)?;
         let table = json_to_table::json_to_table(&serde_json::to_value(&config)?)
             .collapse()
             .to_string();
-        tracing::info!("Current Transfer Agent Config:\n{}", table);
+        tracing::info!("Current Transfer Agent Ref Config:\n{}", table);
         Ok(config)
     }
+
     fn enable_participant() -> bool {
         false
     }
@@ -53,42 +62,56 @@ impl BootstrapServiceTrait for TransferBoot {
         false
     }
 
+    fn enable_user_seed() -> bool {
+        true
+    }
+
+    async fn seed_users(config: &Self::Config) -> Outcome<()> {
+        let vault = common::vault_utils::vault(config)?;
+        let db = vault.get_db_connection(config.common()).await?;
+        let admin = config.admin_seed();
+        seed_admin_user(db, &admin.tenant_id, &admin.email, &admin.password).await
+    }
+
     async fn start_services(
         config: &Self::Config,
         vault: Arc<VaultService>,
     ) -> Outcome<Sender<()>> {
-        // thread control
         let (shutdown_tx, mut shutdown_rx) = broadcast::channel(1);
         let cancel_token = CancellationToken::new();
 
-        // workers
+        tracing::info!("Composing service graph...");
+        let ctx = AppContext::build(config, &vault).await?;
+        let composer = ServiceComposer::new()
+            .register(OAuthModule::new(
+                config.common().clone().into(),
+                ctx.db.clone(),
+            ))
+            .register(TransferAgentModule::new(ctx));
         tracing::info!("Spawning HTTP subsystem...");
-        let http_handle = TransferHttpWorker::spawn(config, vault.clone(), &cancel_token).await?;
 
+        let http_handle =
+            TransferHttpWorker::spawn(config, composer.http_router(), &cancel_token).await?;
         tracing::info!("Spawning gRPC subsystem...");
-        let grpc_handle = TransferGrpcWorker::spawn(config, vault.clone(), &cancel_token).await?;
+        let grpc_handle = TransferGrpcWorker::spawn(config, &composer, &cancel_token).await?;
 
-        // non-blocking thread
         let token_clone = cancel_token.clone();
         tokio::spawn(async move {
             tokio::select! {
-                // ctrl+c
                 _ = shutdown_rx.recv() => {
                     tracing::info!("Shutdown command received from Main Pipeline.");
                 }
-                _ = async { http_handle.await } => {
+                _ = http_handle => {
                     tracing::error!("HTTP subsystem failed or stopped unexpectedly!");
                 }
-                _ = async { grpc_handle.await } => {
-                    tracing::error!("GRPC subsystem failed or stopped unexpectedly!");
+                _ = GrpcServer::supervise(grpc_handle) => {
+                    tracing::error!("gRPC subsystem failed or stopped unexpectedly!");
                 }
             }
-
             tracing::info!("Initiating internal graceful shutdown sequence...");
             token_clone.cancel();
             tracing::info!("Background services stopped.");
         });
-
         Ok(shutdown_tx)
     }
 }

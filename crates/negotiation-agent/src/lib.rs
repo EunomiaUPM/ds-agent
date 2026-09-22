@@ -15,10 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod config;
 pub mod data;
 pub mod entities;
-pub mod errors;
 pub mod grpc;
 pub mod http;
 pub mod protocols;

@@ -15,47 +15,18 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use common::info_banner::banner;
+use common::telemetry;
 use tracing::info;
-use tracing_subscriber::filter::LevelFilter;
-use tracing_subscriber::EnvFilter;
-use transfer_agent::setup::cmd::TransferCommands;
+use transfer_agent_ref::setup::cmd::TransferCommands;
+use transfer_agent_ref::{SERVICE_BIG_NAME, SERVICE_NAME};
 use ymir::errors::{Errors, Outcome};
 
-const INFO: &str = r"
-----------
-:::::::::: :::    ::: ::::    :::  ::::::::  ::::    ::::  :::::::::::     :::
-:+:        :+:    :+: :+:+:   :+: :+:    :+: +:+:+: :+:+:+     :+:       :+: :+:
-+:+        +:+    +:+ :+:+:+  +:+ +:+    +:+ +:+ +:+:+ +:+     +:+      +:+   +:+
-+#++:++#   +#+    +:+ +#+ +:+ +#+ +#+    +:+ +#+  +:+  +#+     +#+     +#++:++#++:
-+#+        +#+    +#+ +#+  +#+#+# +#+    +#+ +#+       +#+     +#+     +#+     +#+
-#+#        #+#    #+# #+#   #+#+# #+#    #+# #+#       #+#     #+#     #+#     #+#
-##########  ########  ###    ####  ########  ###       ### ########### ###     ###
-:::::::::   ::::::::                    :::      ::::::::  :::::::::: ::::    ::: :::::::::::
-:+:    :+: :+:    :+:                 :+: :+:   :+:    :+: :+:        :+:+:   :+:     :+:
-+:+    +:+ +:+                       +:+   +:+  +:+        +:+        :+:+:+  +:+     +:+
-+#+    +:+ +#++:++#++ +#++:++#++:++ +#++:++#++: :#:        +#++:++#   +#+ +:+ +#+     +#+
-+#+    +#+        +#+               +#+     +#+ +#+   +#+# +#+        +#+  +#+#+#     +#+
-#+#    #+# #+#    #+#               #+#     #+# #+#    #+# #+#        #+#   #+#+#     #+#
-#########   ########                ###     ###  ########  ########## ###    ####     ###
-
-Starting Eunomia DS-Agent Transfer Agent Server 🌈🌈
-UPM Dataspace agent
-Show some love on https://github.com/EunomiaUPM/ds-agent
-----------
-
-";
-
+#[allow(clippy::result_large_err)]
 #[tokio::main]
 async fn main() -> Outcome<()> {
-    let filter = EnvFilter::builder()
-        .with_default_directive(LevelFilter::INFO.into())
-        .parse("debug,sqlx::query=off")
-        .map_err(|e| Errors::crazy(e.to_string(), Some(Box::new(e))))?;
-    tracing_subscriber::fmt()
-        .event_format(tracing_subscriber::fmt::format().with_line_number(true))
-        .with_env_filter(filter)
-        .init();
-    info!("{}", INFO);
+    telemetry::init(SERVICE_NAME);
+    info!("{}", banner(SERVICE_BIG_NAME));
     TransferCommands::init_command_line().await?;
     Ok(())
 }

@@ -17,8 +17,8 @@
 
 use crate::protocols::dsp::facades::data_service_resolver_facade::DataServiceFacadeTrait;
 use catalog_agent::{DatasetDto, DistributionDto};
-use common::config::services::traits::TransferConfigTrait;
 use common::config::services::TransferConfig;
+use common::config::services::traits::TransferConfigTrait;
 use common::config::types::traits::MinKnownConfigTrait;
 use common::http_client::HttpClient;
 use common::utils::get_urn_from_string;

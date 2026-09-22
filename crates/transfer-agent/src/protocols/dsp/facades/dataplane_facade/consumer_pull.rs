@@ -15,15 +15,15 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::protocols::dsp::context::DspTransferContext;
+use crate::protocols::dsp::entities::context_dsp::TransferDSPContextDomain as DspTransferContext;
+
+use crate::protocols::dsp::entities::data_address::DataAddressDto;
 use crate::protocols::dsp::facades::dataplane_facade::strategy::DataPlaneStrategy;
-use crate::protocols::dsp::facades::dataplane_facade::DataAddressDto;
+use crate::protocols::dsp::facades::dataplane_facade::to_dataplane_address;
 use dataplane::{
     DataplaneAddress, DataplaneCommand, DataplaneContinuation, DataplaneInitCommandDirection,
     DataplaneInitCommandTypes, DataplaneManager,
 };
-use std::str::FromStr;
-use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 
 pub(super) struct ConsumerPullStrategy;
@@ -35,12 +35,7 @@ impl DataPlaneStrategy for ConsumerPullStrategy {
         ctx: &DspTransferContext,
         mgr: &DataplaneManager,
     ) -> Outcome<Option<DataAddressDto>> {
-        let transfer_id = ctx.local_process_id.as_ref().ok_or_else(|| {
-            Errors::crazy(
-                "local_process_id required for consumer pull request_post",
-                None,
-            )
-        })?;
+        let transfer_id = ctx.process_urn("consumer pull request_pre")?;
         let cmd = DataplaneCommand::SetInit(DataplaneInitCommandTypes::AsConsumer {
             transfer_process_id: transfer_id.clone(),
             tenant_id: ctx.tenant_id().to_string(),
@@ -72,15 +67,17 @@ impl DataPlaneStrategy for ConsumerPullStrategy {
         ctx: &DspTransferContext,
         mgr: &DataplaneManager,
     ) -> Outcome<Option<DataAddressDto>> {
-        let id = process_urn(ctx, "consumer pull start_post")?;
+        let id = ctx.process_urn("consumer pull start_post")?;
         let continuation = DataplaneContinuation {
             transfer_dto_urn: id,
         };
         if !ctx.is_restart {
             let dataplane: DataplaneAddress = ctx
-                .input_data_address
+                .typed
+                .fields
+                .data_address
                 .clone()
-                .map(|addr| addr.into())
+                .map(|addr| to_dataplane_address(&addr))
                 .ok_or_else(|| {
                     Errors::crazy(
                         "Dataplane_address required for consumer pull start post",
@@ -113,7 +110,7 @@ impl DataPlaneStrategy for ConsumerPullStrategy {
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
         mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
-            transfer_dto_urn: process_urn(ctx, "consumer pull suspend_post")?,
+            transfer_dto_urn: ctx.process_urn("consumer pull suspend_post")?,
         }))
         .await?;
         Ok(())
@@ -133,7 +130,7 @@ impl DataPlaneStrategy for ConsumerPullStrategy {
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
         mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
-            transfer_dto_urn: process_urn(ctx, "consumer pull complete_post")?,
+            transfer_dto_urn: ctx.process_urn("consumer pull complete_post")?,
         }))
         .await?;
         Ok(())
@@ -153,19 +150,9 @@ impl DataPlaneStrategy for ConsumerPullStrategy {
         mgr: &DataplaneManager,
     ) -> Outcome<()> {
         mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
-            transfer_dto_urn: process_urn(ctx, "consumer pull terminate_post")?,
+            transfer_dto_urn: ctx.process_urn("consumer pull terminate_post")?,
         }))
         .await?;
         Ok(())
     }
-}
-
-fn process_urn(ctx: &DspTransferContext, location: &str) -> Outcome<Urn> {
-    let id = &ctx
-        .process
-        .as_ref()
-        .ok_or_else(|| Errors::crazy(format!("process required for {location}"), None))?
-        .inner
-        .id;
-    Ok(Urn::from_str(id)?)
 }

@@ -20,8 +20,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use axum::response::sse::{Event, KeepAlive, Sse};
-use events::bus::envelope::TopicPattern;
-use events::bus::{EventBus, EventBusTrait};
+use events::{EventBus, EventBusTrait, TopicPattern};
 use futures_util::stream::{self, Stream};
 use serde::Deserialize;
 

@@ -23,14 +23,11 @@ pub mod http;
 pub mod services;
 pub mod setup;
 
-pub mod bus;
-pub(crate) mod errors;
-
 pub use entities::dto::EntityDeletedDto;
 pub use entities::envelope::EventEnvelope;
-pub use entities::topic::{Topic, TopicPattern};
-pub use entities::traits::{Event, IntoEvent};
-pub use errors::EventBusError;
+pub use entities::event::{Event, IntoEvent};
+pub use entities::topic::Topic;
+pub use entities::topic_pattern::TopicPattern;
 pub use services::event_bus::{
     DeadLetterView, DeliveryView, EventBus, EventBusTrait, EventDispatcher, EventPublisherTrait,
     EventView, RetryPolicy, RetryWorker, SubscriptionView,

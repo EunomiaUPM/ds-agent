@@ -23,7 +23,7 @@ use sea_orm::ActiveValue;
 use ymir::errors::{Errors, Outcome};
 
 use crate::entities::dead_letter::DeadLetterRecord;
-use crate::entities::subscription::DeadLetterStatus;
+use crate::entities::dead_letter::DeadLetterStatus;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
 #[sea_orm(table_name = "dead_letter_queue")]

@@ -18,8 +18,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::entities::subscription::DeliveryStatus;
-
 // Record representing an individual webhook delivery attempt.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EventDeliveryRecord {
@@ -35,4 +33,39 @@ pub struct EventDeliveryRecord {
     pub response_status_code: Option<u16>,
     pub delivered_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
+}
+
+// Delivery attempt lifecycle status.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum DeliveryStatus {
+    Pending,
+    Delivered,
+    Failed,
+    DeadLetter,
+}
+
+impl DeliveryStatus {
+    // Static string representation.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            DeliveryStatus::Pending => "Pending",
+            DeliveryStatus::Delivered => "Delivered",
+            DeliveryStatus::Failed => "Failed",
+            DeliveryStatus::DeadLetter => "DeadLetter",
+        }
+    }
+}
+
+impl std::str::FromStr for DeliveryStatus {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "Pending" => Ok(DeliveryStatus::Pending),
+            "Delivered" => Ok(DeliveryStatus::Delivered),
+            "Failed" => Ok(DeliveryStatus::Failed),
+            "DeadLetter" => Ok(DeliveryStatus::DeadLetter),
+            other => Err(format!("unknown delivery status: {other}")),
+        }
+    }
 }

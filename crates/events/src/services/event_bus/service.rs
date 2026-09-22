@@ -31,9 +31,10 @@ use crate::data::repo::{
 use crate::entities::dead_letter::DeadLetterRecord;
 use crate::entities::delivery::EventDeliveryRecord;
 use crate::entities::envelope::EventEnvelope;
-use crate::entities::subscription::{DeadLetterStatus, DeliveryStatus};
-use crate::entities::traits::Event;
-use crate::errors::EventBusError;
+use crate::entities::dead_letter::DeadLetterStatus;
+use crate::entities::delivery::DeliveryStatus;
+use crate::entities::event::Event;
+use ymir::errors::{Errors, Outcome, PetitionFailure};
 use crate::services::event_bus::dispatcher::EventDispatcher;
 use crate::services::event_bus::policy::RetryPolicy;
 use crate::services::event_bus::{EventBusTrait, EventPublisherTrait};
@@ -74,18 +75,30 @@ impl EventBus {
         }
     }
 
+    // Build a delivery failure carrying the callback endpoint that rejected the event.
+    fn dispatch_error(callback_address: &str, reason: impl Into<String>) -> Errors {
+        Errors::petition(
+            callback_address,
+            "POST",
+            None,
+            PetitionFailure::Network,
+            reason,
+            None,
+        )
+    }
+
     // Publish a strongly-typed domain event instance.
-    pub async fn emit<E: Event>(&self, event: E) -> Result<EventEnvelope, EventBusError> {
+    pub async fn emit<E: Event>(&self, event: E) -> Outcome<EventEnvelope> {
         <Self as EventBusTrait>::publish(self, event.into_envelope()).await
     }
 
     // Publish an event envelope into the event store and broadcast channels.
-    pub async fn publish(&self, envelope: EventEnvelope) -> Result<EventEnvelope, EventBusError> {
+    pub async fn publish(&self, envelope: EventEnvelope) -> Outcome<EventEnvelope> {
         <Self as EventBusTrait>::publish(self, envelope).await
     }
 
     // Publish a typed domain event into the event bus.
-    pub async fn publish_event<E: Event>(&self, event: E) -> Result<EventEnvelope, EventBusError> {
+    pub async fn publish_event<E: Event>(&self, event: E) -> Outcome<EventEnvelope> {
         <Self as EventPublisherTrait>::publish_event(self, event).await
     }
 
@@ -95,7 +108,7 @@ impl EventBus {
         topic: &str,
         source: &str,
         payload: &T,
-    ) -> Result<EventEnvelope, EventBusError> {
+    ) -> Outcome<EventEnvelope> {
         self.emit_payload_with_tenant("default", topic, source, payload)
             .await
     }
@@ -107,11 +120,11 @@ impl EventBus {
         topic: &str,
         source: &str,
         payload: &T,
-    ) -> Result<EventEnvelope, EventBusError> {
+    ) -> Outcome<EventEnvelope> {
         let topic_obj =
-            crate::entities::topic::Topic::new(topic).map_err(EventBusError::InvalidTopic)?;
+            crate::entities::topic::Topic::new(topic).map_err(|e| Errors::validation(e, None))?;
         let payload_val = serde_json::to_value(payload)
-            .map_err(|e| EventBusError::Serialization(e.to_string()))?;
+            .map_err(|e| Errors::parse(e.to_string(), None))?;
         let envelope = EventEnvelope::new(tenant_id, topic_obj, source, 1, None, payload_val);
         self.publish(envelope).await
     }
@@ -156,38 +169,29 @@ impl EventBus {
         &self,
         tenant_id: &str,
         dlq_id: &str,
-    ) -> Result<EventDeliveryRecord, EventBusError> {
+    ) -> Outcome<EventDeliveryRecord> {
         let record = self
             .dlq_repo
             .get_dead_letter(tenant_id, dlq_id)
-            .await
-            .map_err(|e| EventBusError::Database(format!("{e:?}")))?
-            .ok_or_else(|| {
-                EventBusError::DeadLetterNotFound(Uuid::parse_str(dlq_id).unwrap_or_default())
-            })?;
+            .await?
+            .ok_or_else(|| Errors::missing_resource(dlq_id, "dead letter not found", None))?;
 
         let event_urn = Urn::from_str(&record.event_id)
             .or_else(|_| Urn::from_str(&format!("urn:uuid:{}", record.event_id)))
-            .map_err(|e| EventBusError::Database(format!("invalid event URN: {e}")))?;
+            .map_err(|e| Errors::validation(format!("invalid event URN: {e}"), None))?;
 
         let event = self
             .event_repo
             .get_event_by_id(tenant_id, &event_urn)
-            .await
-            .map_err(|e| EventBusError::Database(format!("{e:?}")))?
-            .ok_or_else(|| {
-                EventBusError::EventNotFound(Uuid::parse_str(&record.event_id).unwrap_or_default())
-            })?;
+            .await?
+            .ok_or_else(|| Errors::missing_resource(&record.event_id, "event not found", None))?;
 
         let sub = self
             .subscription_repo
             .get_subscription(tenant_id, &record.subscription_id)
-            .await
-            .map_err(|e| EventBusError::Database(format!("{e:?}")))?
+            .await?
             .ok_or_else(|| {
-                EventBusError::SubscriptionNotFound(
-                    Uuid::parse_str(&record.subscription_id).unwrap_or_default(),
-                )
+                Errors::missing_resource(&record.subscription_id, "subscription not found", None)
             })?;
 
         match self
@@ -204,8 +208,7 @@ impl EventBus {
                 info!(dlq_id, status = %status, "Dead letter replayed successfully");
                 self.dlq_repo
                     .mark_replayed(tenant_id, dlq_id)
-                    .await
-                    .map_err(|e| EventBusError::Database(format!("{e:?}")))?;
+                    .await?;
 
                 if let Some(delivery_id) = &record.delivery_id {
                     let _ = self
@@ -233,15 +236,17 @@ impl EventBus {
                 Ok(delivery_record)
             }
             Ok(status) => {
-                let err = format!("Replay failed with HTTP {status}");
-                Err(EventBusError::DispatchFailed(err))
+                Err(Self::dispatch_error(
+                    &sub.callback_address,
+                    format!("replay failed with HTTP {status}"),
+                ))
             }
-            Err(e) => Err(EventBusError::DispatchFailed(e)),
+            Err(e) => Err(Self::dispatch_error(&sub.callback_address, e)),
         }
     }
 
     // Replay all unresolved dead letter records in batches.
-    pub async fn replay_all_dead_letters(&self, tenant_id: &str) -> Result<usize, EventBusError> {
+    pub async fn replay_all_dead_letters(&self, tenant_id: &str) -> Outcome<usize> {
         let mut success_count = 0;
         let mut offset = 0;
         let limit = 50;
@@ -250,8 +255,7 @@ impl EventBus {
             let dead_letters = self
                 .dlq_repo
                 .list_dead_letters(tenant_id, Some("Unresolved"), limit, offset)
-                .await
-                .map_err(|e| EventBusError::Database(format!("{e:?}")))?;
+                .await?;
 
             if dead_letters.is_empty() {
                 break;
@@ -406,19 +410,17 @@ impl EventBus {
 
 #[async_trait]
 impl EventBusTrait for EventBus {
-    async fn publish(&self, envelope: EventEnvelope) -> Result<EventEnvelope, EventBusError> {
+    async fn publish(&self, envelope: EventEnvelope) -> Outcome<EventEnvelope> {
         self.event_repo
             .insert_event(&envelope)
-            .await
-            .map_err(|e| EventBusError::Database(format!("{e:?}")))?;
+            .await?;
 
         let _ = self.broadcast_tx.send(envelope.clone());
 
         let matching_subs = self
             .subscription_repo
             .get_matching_subscriptions(&envelope.tenant_id, &envelope.topic)
-            .await
-            .map_err(|e| EventBusError::Database(format!("{e:?}")))?;
+            .await?;
 
         for sub in matching_subs {
             let delivery_id = format!("urn:uuid:{}", Uuid::new_v4());
@@ -464,7 +466,7 @@ impl EventBusTrait for EventBus {
 
 #[async_trait]
 impl EventPublisherTrait for EventBus {
-    async fn publish_event<E: Event>(&self, event: E) -> Result<EventEnvelope, EventBusError> {
+    async fn publish_event<E: Event>(&self, event: E) -> Outcome<EventEnvelope> {
         self.publish(event.into_envelope()).await
     }
 
@@ -473,7 +475,7 @@ impl EventPublisherTrait for EventBus {
         topic: &str,
         source: &str,
         payload: &serde_json::Value,
-    ) -> Result<EventEnvelope, EventBusError> {
+    ) -> Outcome<EventEnvelope> {
         Self::emit_payload(self, topic, source, payload).await
     }
 }

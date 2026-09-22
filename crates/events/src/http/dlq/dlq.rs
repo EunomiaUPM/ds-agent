@@ -28,7 +28,7 @@ use common::auth::AccessScope;
 use crate::entities::dead_letter::DeadLetterRecord;
 use crate::entities::delivery::EventDeliveryRecord;
 use crate::entities::queries::ListDeadLettersQuery;
-use crate::errors::EventBusError;
+use ymir::errors::{AppResult, Errors};
 use crate::services::event_bus::EventBus;
 
 // Axum HTTP router handling Dead Letter Queue inspection and redrive endpoints.
@@ -59,15 +59,14 @@ impl DeadLetterRouter {
         State(bus): State<Arc<EventBus>>,
         scope: AccessScope,
         Query(query): Query<ListDeadLettersQuery>,
-    ) -> Result<Json<Vec<DeadLetterRecord>>, EventBusError> {
+    ) -> AppResult<Json<Vec<DeadLetterRecord>>> {
         let tenant_id = scope.acting_tenant();
         let limit = query.limit.unwrap_or(50).min(100);
         let offset = query.offset.unwrap_or(0);
         let dead_letters = bus
             .dlq_repo()
             .list_dead_letters(tenant_id, query.status.as_deref(), limit, offset)
-            .await
-            .map_err(|e| EventBusError::Database(format!("{e:?}")))?;
+            .await?;
 
         Ok(Json(dead_letters))
     }
@@ -77,16 +76,13 @@ impl DeadLetterRouter {
         State(bus): State<Arc<EventBus>>,
         scope: AccessScope,
         Path(id): Path<String>,
-    ) -> Result<Json<DeadLetterRecord>, EventBusError> {
+    ) -> AppResult<Json<DeadLetterRecord>> {
         let tenant_id = scope.acting_tenant();
         let dead_letter = bus
             .dlq_repo()
             .get_dead_letter(tenant_id, &id)
-            .await
-            .map_err(|e| EventBusError::Database(format!("{e:?}")))?
-            .ok_or_else(|| {
-                EventBusError::DeadLetterNotFound(uuid::Uuid::parse_str(&id).unwrap_or_default())
-            })?;
+            .await?
+            .ok_or_else(|| Errors::missing_resource(&id, "dead letter not found", None))?;
 
         Ok(Json(dead_letter))
     }
@@ -96,7 +92,7 @@ impl DeadLetterRouter {
         State(bus): State<Arc<EventBus>>,
         scope: AccessScope,
         Path(id): Path<String>,
-    ) -> Result<Json<EventDeliveryRecord>, EventBusError> {
+    ) -> AppResult<Json<EventDeliveryRecord>> {
         let tenant_id = scope.acting_tenant();
         let delivery = bus.replay_dead_letter(tenant_id, &id).await?;
         Ok(Json(delivery))
@@ -106,7 +102,7 @@ impl DeadLetterRouter {
     async fn handle_replay_all(
         State(bus): State<Arc<EventBus>>,
         scope: AccessScope,
-    ) -> Result<Json<serde_json::Value>, EventBusError> {
+    ) -> AppResult<Json<serde_json::Value>> {
         let tenant_id = scope.acting_tenant();
         let count = bus.replay_all_dead_letters(tenant_id).await?;
         Ok(Json(json!({ "replayed_count": count })))
@@ -117,12 +113,11 @@ impl DeadLetterRouter {
         State(bus): State<Arc<EventBus>>,
         scope: AccessScope,
         Path(id): Path<String>,
-    ) -> Result<StatusCode, EventBusError> {
+    ) -> AppResult<StatusCode> {
         let tenant_id = scope.acting_tenant();
         bus.dlq_repo()
             .delete_dead_letter(tenant_id, &id)
-            .await
-            .map_err(|e| EventBusError::Database(format!("{e:?}")))?;
+            .await?;
 
         Ok(StatusCode::NO_CONTENT)
     }

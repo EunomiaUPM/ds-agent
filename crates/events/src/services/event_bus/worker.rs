@@ -30,7 +30,7 @@ use crate::data::repo::{
 };
 use crate::entities::dead_letter::DeadLetterRecord;
 use crate::entities::delivery::EventDeliveryRecord;
-use crate::entities::subscription::DeadLetterStatus;
+use crate::entities::dead_letter::DeadLetterStatus;
 use crate::services::event_bus::dispatcher::EventDispatcher;
 use crate::services::event_bus::policy::RetryPolicy;
 

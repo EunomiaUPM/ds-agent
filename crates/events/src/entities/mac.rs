@@ -15,69 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use serde::Serialize;
-use urn::Urn;
-
-use crate::entities::envelope::EventEnvelope;
-use crate::entities::topic::Topic;
-
-// Core trait implemented by domain event payloads to be published into the bus.
-pub trait Event: Serialize + Send + Sync + 'static {
-    // Return the unique event topic name (e.g., "transfers:bla").
-    fn event_name() -> &'static str;
-
-    // Return the validated topic instance for this event.
-    fn topic() -> Topic {
-        Topic::new(Self::event_name()).expect("valid static event topic")
-    }
-
-    // Originating crate identifier.
-    fn source_crate() -> &'static str {
-        "events"
-    }
-
-    // Schema version for payload evolution (defaults to 1).
-    fn schema_version() -> u32 {
-        1
-    }
-
-    // Optional correlation identifier for distributed tracing.
-    fn correlation_id(&self) -> Option<Urn> {
-        None
-    }
-
-    // Tenant identifier for tenant isolation. Defaults to "default".
-    fn tenant_id(&self) -> &str {
-        "default"
-    }
-
-    // Convert into an immutable domain envelope.
-    fn into_envelope(self) -> EventEnvelope;
-}
-
-// Backward-compatible trait for existing event producers.
-pub trait IntoEvent: Sized {
-    // Return topic identifier for this event.
-    fn topic() -> Topic;
-
-    // Return schema version for payload evolution.
-    fn schema_version() -> u32 {
-        1
-    }
-
-    // Return optional correlation identifier.
-    fn correlation_id(&self) -> Option<Urn> {
-        None
-    }
-
-    // Tenant identifier for tenant isolation. Defaults to "default".
-    fn tenant_id(&self) -> &str {
-        "default"
-    }
-
-    // Convert into an event envelope.
-    fn into_envelope(self) -> EventEnvelope;
-}
+//! Declarative macros for defining, implementing, and emitting domain events.
 
 // Declarative macro to define or implement domain events with static topics and source crates.
 #[macro_export]
@@ -112,7 +50,7 @@ macro_rules! event {
 
     // Form 3: Implementation for existing struct with explicit schema version
     ($type:ty, $topic:expr, $source_crate:expr, $version:expr) => {
-        impl $crate::entities::traits::Event for $type {
+        impl $crate::entities::event::Event for $type {
             fn event_name() -> &'static str {
                 $topic
             }
@@ -130,29 +68,29 @@ macro_rules! event {
             }
 
             fn into_envelope(self) -> $crate::entities::envelope::EventEnvelope {
-                let tenant_id = <Self as $crate::entities::traits::Event>::tenant_id(&self);
+                let tenant_id = <Self as $crate::entities::event::Event>::tenant_id(&self);
                 $crate::entities::envelope::EventEnvelope::new(
                     tenant_id,
-                    <Self as $crate::entities::traits::Event>::topic(),
+                    <Self as $crate::entities::event::Event>::topic(),
                     $source_crate,
-                    <Self as $crate::entities::traits::Event>::schema_version(),
-                    <Self as $crate::entities::traits::Event>::correlation_id(&self),
+                    <Self as $crate::entities::event::Event>::schema_version(),
+                    <Self as $crate::entities::event::Event>::correlation_id(&self),
                     serde_json::to_value(&self).expect("serializable event payload"),
                 )
             }
         }
 
-        impl $crate::entities::traits::IntoEvent for $type {
+        impl $crate::entities::event::IntoEvent for $type {
             fn topic() -> $crate::entities::topic::Topic {
-                <Self as $crate::entities::traits::Event>::topic()
+                <Self as $crate::entities::event::Event>::topic()
             }
 
             fn schema_version() -> u32 {
-                <Self as $crate::entities::traits::Event>::schema_version()
+                <Self as $crate::entities::event::Event>::schema_version()
             }
 
             fn into_envelope(self) -> $crate::entities::envelope::EventEnvelope {
-                <Self as $crate::entities::traits::Event>::into_envelope(self)
+                <Self as $crate::entities::event::Event>::into_envelope(self)
             }
         }
     };

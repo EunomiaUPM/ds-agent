@@ -27,7 +27,8 @@ use crate::data::repo::EventSubscriptionRepo;
 use crate::data::sea_orm::orm::subscription;
 use crate::entities::commands::{CreateSubscriptionDto, UpdateSubscriptionDto};
 use crate::entities::subscription::SubscriptionRecord;
-use crate::entities::topic::{Topic, TopicPattern};
+use crate::entities::topic::Topic;
+use crate::entities::topic_pattern::TopicPattern;
 
 // SeaORM-backed implementation of EventSubscriptionRepo.
 #[derive(Clone)]

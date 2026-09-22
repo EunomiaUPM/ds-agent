@@ -35,7 +35,7 @@ use oauth::setup::module::OAuthModule;
 use sea_orm_migration::MigrationTrait;
 use std::sync::Arc;
 use tonic::service::RoutesBuilder;
-use transfer_agent_ref::setup::TransferAgentModule;
+use transfer_agent::setup::TransferAgentModule;
 use ymir::errors::Outcome;
 use ymir::services::vault::global::VaultService;
 use ymir::services::vault::VaultTrait;

@@ -20,7 +20,8 @@ use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::entities::topic::{Topic, TopicPattern};
+use crate::entities::topic::Topic;
+use crate::entities::topic_pattern::TopicPattern;
 
 // Domain representation of an external webhook subscription.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -55,72 +56,5 @@ impl SubscriptionRecord {
     // Verify if a topic matches this subscription pattern.
     pub fn matches(&self, topic: &Topic) -> bool {
         self.is_active() && self.topic_pattern.matches(topic)
-    }
-}
-
-// Delivery attempt lifecycle status.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum DeliveryStatus {
-    Pending,
-    Delivered,
-    Failed,
-    DeadLetter,
-}
-
-impl DeliveryStatus {
-    // Static string representation.
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            DeliveryStatus::Pending => "Pending",
-            DeliveryStatus::Delivered => "Delivered",
-            DeliveryStatus::Failed => "Failed",
-            DeliveryStatus::DeadLetter => "DeadLetter",
-        }
-    }
-}
-
-impl std::str::FromStr for DeliveryStatus {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "Pending" => Ok(DeliveryStatus::Pending),
-            "Delivered" => Ok(DeliveryStatus::Delivered),
-            "Failed" => Ok(DeliveryStatus::Failed),
-            "DeadLetter" => Ok(DeliveryStatus::DeadLetter),
-            other => Err(format!("unknown delivery status: {other}")),
-        }
-    }
-}
-
-// Dead letter resolution status.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum DeadLetterStatus {
-    Unresolved,
-    Replayed,
-    Purged,
-}
-
-impl DeadLetterStatus {
-    // Static string representation.
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            DeadLetterStatus::Unresolved => "Unresolved",
-            DeadLetterStatus::Replayed => "Replayed",
-            DeadLetterStatus::Purged => "Purged",
-        }
-    }
-}
-
-impl std::str::FromStr for DeadLetterStatus {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "Unresolved" => Ok(DeadLetterStatus::Unresolved),
-            "Replayed" => Ok(DeadLetterStatus::Replayed),
-            "Purged" => Ok(DeadLetterStatus::Purged),
-            other => Err(format!("unknown dead letter status: {other}")),
-        }
     }
 }

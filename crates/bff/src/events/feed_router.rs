@@ -21,7 +21,7 @@ use std::sync::Arc;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
-use events::bus::EventBus;
+use events::EventBus;
 use serde::Deserialize;
 use serde_json::json;
 use urn::Urn;

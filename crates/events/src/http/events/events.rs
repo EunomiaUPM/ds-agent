@@ -32,7 +32,7 @@ use crate::entities::delivery::EventDeliveryRecord;
 use crate::entities::envelope::EventEnvelope;
 use crate::entities::queries::ListEventsQuery;
 use crate::entities::topic::Topic;
-use crate::errors::EventBusError;
+use ymir::errors::{AppResult, Errors};
 use crate::services::event_bus::EventBus;
 
 // Axum HTTP router handling event publishing, listing, and delivery tracking.
@@ -62,12 +62,12 @@ impl EventsRouter {
         State(bus): State<Arc<EventBus>>,
         scope: AccessScope,
         Json(req): Json<PublishEventRequest>,
-    ) -> Result<(StatusCode, Json<EventEnvelope>), EventBusError> {
+    ) -> AppResult<(StatusCode, Json<EventEnvelope>)> {
         let tenant_id = scope.acting_tenant();
-        let topic = Topic::new(req.topic).map_err(EventBusError::InvalidTopic)?;
+        let topic = Topic::new(req.topic).map_err(|e| Errors::validation(e, None))?;
         let correlation_id = match req.correlation_id {
             Some(ref s) => {
-                Some(Urn::from_str(s).map_err(|e| EventBusError::InvalidUrn(e.to_string()))?)
+                Some(Urn::from_str(s).map_err(|e| Errors::validation(e.to_string(), None))?)
             }
             None => None,
         };
@@ -90,15 +90,14 @@ impl EventsRouter {
         State(bus): State<Arc<EventBus>>,
         scope: AccessScope,
         Query(query): Query<ListEventsQuery>,
-    ) -> Result<Json<Vec<EventEnvelope>>, EventBusError> {
+    ) -> AppResult<Json<Vec<EventEnvelope>>> {
         let tenant_id = scope.acting_tenant();
         let limit = query.limit.unwrap_or(50).min(100);
         let offset = query.offset.unwrap_or(0);
         let events = bus
             .event_repo()
             .list_events(tenant_id, query.topic.as_deref(), limit, offset)
-            .await
-            .map_err(|e| EventBusError::Database(format!("{e:?}")))?;
+            .await?;
 
         Ok(Json(events))
     }
@@ -108,34 +107,34 @@ impl EventsRouter {
         State(bus): State<Arc<EventBus>>,
         scope: AccessScope,
         Path(id): Path<String>,
-    ) -> Result<Json<EventEnvelope>, EventBusError> {
+    ) -> AppResult<Json<EventEnvelope>> {
         let tenant_id = scope.acting_tenant();
         let (urn, uuid) = Self::parse_id(&id)?;
 
         let event = bus
             .event_repo()
             .get_event_by_id(tenant_id, &urn)
-            .await
-            .map_err(|e| EventBusError::Database(format!("{e:?}")))?
-            .ok_or(EventBusError::EventNotFound(uuid))?;
+            .await?
+            .ok_or_else(|| Errors::missing_resource(uuid.to_string(), "event not found", None))?;
 
         Ok(Json(event))
     }
 
     // Validate and parse an ID string into a canonical URN and UUID.
-    fn parse_id(id: &str) -> Result<(Urn, Uuid), EventBusError> {
+    fn parse_id(id: &str) -> AppResult<(Urn, Uuid)> {
         if let Some(uuid_str) = id.strip_prefix("urn:uuid:") {
             let u =
-                Uuid::parse_str(uuid_str).map_err(|e| EventBusError::InvalidUrn(e.to_string()))?;
-            let urn = Urn::from_str(id).map_err(|e| EventBusError::InvalidUrn(e.to_string()))?;
+                Uuid::parse_str(uuid_str).map_err(|e| Errors::validation(e.to_string(), None))?;
+            let urn = Urn::from_str(id).map_err(|e| Errors::validation(e.to_string(), None))?;
             Ok((urn, u))
         } else if let Ok(u) = Uuid::parse_str(id) {
             let urn = Urn::from_str(&format!("urn:uuid:{u}"))
-                .map_err(|e| EventBusError::InvalidUrn(e.to_string()))?;
+                .map_err(|e| Errors::validation(e.to_string(), None))?;
             Ok((urn, u))
         } else {
-            Err(EventBusError::InvalidUrn(
-                "id must be a valid UUID or urn:uuid:<uuid>".to_string(),
+            Err(Errors::validation(
+                "id must be a valid UUID or urn:uuid:<uuid>",
+                None,
             ))
         }
     }
@@ -145,13 +144,12 @@ impl EventsRouter {
         State(bus): State<Arc<EventBus>>,
         scope: AccessScope,
         Path(id): Path<String>,
-    ) -> Result<Json<Vec<EventDeliveryRecord>>, EventBusError> {
+    ) -> AppResult<Json<Vec<EventDeliveryRecord>>> {
         let tenant_id = scope.acting_tenant();
         let deliveries = bus
             .delivery_repo()
             .list_by_event(tenant_id, &id)
-            .await
-            .map_err(|e| EventBusError::Database(format!("{e:?}")))?;
+            .await?;
 
         Ok(Json(deliveries))
     }

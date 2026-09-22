@@ -23,7 +23,7 @@ use sea_orm::ActiveValue;
 use ymir::errors::{Errors, Outcome};
 
 use crate::entities::subscription::SubscriptionRecord;
-use crate::entities::topic::TopicPattern;
+use crate::entities::topic_pattern::TopicPattern;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
 #[sea_orm(table_name = "subscriptions")]

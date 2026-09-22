@@ -31,25 +31,25 @@ pub use views::{DeadLetterView, DeliveryView, EventView, SubscriptionView};
 pub use worker::RetryWorker;
 
 use crate::entities::envelope::EventEnvelope;
-use crate::entities::traits::Event;
-use crate::errors::EventBusError;
+use crate::entities::event::Event;
+use ymir::errors::Outcome;
 
 // Core trait defining event publishing and in-process broadcast subscription.
 #[async_trait]
 pub trait EventBusTrait: Send + Sync + 'static {
-    async fn publish(&self, envelope: EventEnvelope) -> Result<EventEnvelope, EventBusError>;
+    async fn publish(&self, envelope: EventEnvelope) -> Outcome<EventEnvelope>;
     fn subscribe(&self) -> broadcast::Receiver<EventEnvelope>;
 }
 
 // Extension trait enabling publishing strongly-typed domain events directly.
 #[async_trait]
 pub trait EventPublisherTrait: Send + Sync {
-    async fn publish_event<E: Event>(&self, event: E) -> Result<EventEnvelope, EventBusError>;
+    async fn publish_event<E: Event>(&self, event: E) -> Outcome<EventEnvelope>;
 
     async fn emit_payload(
         &self,
         topic: &str,
         source: &str,
         payload: &serde_json::Value,
-    ) -> Result<EventEnvelope, EventBusError>;
+    ) -> Outcome<EventEnvelope>;
 }

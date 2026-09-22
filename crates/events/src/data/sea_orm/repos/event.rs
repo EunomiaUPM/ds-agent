@@ -26,7 +26,7 @@ use ymir::errors::{Errors, Outcome};
 use crate::data::repo::EventStoreRepo;
 use crate::data::sea_orm::orm::event;
 use crate::entities::envelope::EventEnvelope;
-use crate::entities::topic::TopicPattern;
+use crate::entities::topic_pattern::TopicPattern;
 
 // SeaORM-backed implementation of EventStoreRepo.
 #[derive(Clone)]

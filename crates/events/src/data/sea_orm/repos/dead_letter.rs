@@ -26,7 +26,7 @@ use ymir::errors::{Errors, Outcome};
 use crate::data::repo::EventDeadLetterRepo;
 use crate::data::sea_orm::orm::dead_letter;
 use crate::entities::dead_letter::DeadLetterRecord;
-use crate::entities::subscription::DeadLetterStatus;
+use crate::entities::dead_letter::DeadLetterStatus;
 
 // SeaORM-backed implementation of EventDeadLetterRepo.
 #[derive(Clone)]

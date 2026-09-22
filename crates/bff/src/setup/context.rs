@@ -19,7 +19,7 @@ use std::sync::Arc;
 
 use common::auth::OauthTokenValidator;
 use common::config::services::GatewayConfig;
-use events::bus::EventBus;
+use events::EventBus;
 use tokio::sync::broadcast;
 
 use crate::proxy::HttpProxyDispatcher;

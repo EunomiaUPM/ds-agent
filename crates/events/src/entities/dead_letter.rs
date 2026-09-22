@@ -18,8 +18,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::entities::subscription::DeadLetterStatus;
-
 // Record representing an exhausted or permanent failure stored in the Dead Letter Queue.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DeadLetterRecord {
@@ -36,4 +34,36 @@ pub struct DeadLetterRecord {
     pub status: DeadLetterStatus,
     pub failed_at: DateTime<Utc>,
     pub replayed_at: Option<DateTime<Utc>>,
+}
+
+// Dead letter resolution status.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum DeadLetterStatus {
+    Unresolved,
+    Replayed,
+    Purged,
+}
+
+impl DeadLetterStatus {
+    // Static string representation.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            DeadLetterStatus::Unresolved => "Unresolved",
+            DeadLetterStatus::Replayed => "Replayed",
+            DeadLetterStatus::Purged => "Purged",
+        }
+    }
+}
+
+impl std::str::FromStr for DeadLetterStatus {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "Unresolved" => Ok(DeadLetterStatus::Unresolved),
+            "Replayed" => Ok(DeadLetterStatus::Replayed),
+            "Purged" => Ok(DeadLetterStatus::Purged),
+            other => Err(format!("unknown dead letter status: {other}")),
+        }
+    }
 }

@@ -29,7 +29,9 @@ pub use subscription::*;
 pub use crate::entities::commands::{CreateSubscriptionDto, UpdateSubscriptionDto};
 pub use crate::entities::dead_letter::DeadLetterRecord;
 pub use crate::entities::delivery::EventDeliveryRecord;
-pub use crate::entities::subscription::{DeadLetterStatus, DeliveryStatus, SubscriptionRecord};
+pub use crate::entities::dead_letter::DeadLetterStatus;
+pub use crate::entities::delivery::DeliveryStatus;
+pub use crate::entities::subscription::SubscriptionRecord;
 
 // Re-export concrete implementations for legacy path compatibility
 pub use crate::data::sea_orm::SeaOrmEventBusRepo;

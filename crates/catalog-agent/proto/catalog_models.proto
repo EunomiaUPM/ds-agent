@@ -64,6 +64,7 @@ message DataService {
   optional string dct_title = 9;
   optional string dct_description = 10;
   string catalog_id = 11;
+  bool dspace_main_data_service = 12;
 }
 
 // dataset::Model
@@ -119,41 +120,127 @@ message OdrlPolicy {
 }
 
 // ---------------------------------------------------------
-// List Responses
+// List Responses (next_cursor "" = no next page; total 0 = unknown)
 // ---------------------------------------------------------
 
 message CatalogListResponse {
-  repeated Catalog catalogs = 1;
+  repeated Catalog items = 1;
+  string next_cursor = 2;
+  uint64 total = 3;
 }
 
 message DataServiceListResponse {
-  repeated DataService data_services = 1;
+  repeated DataService items = 1;
+  string next_cursor = 2;
+  uint64 total = 3;
 }
 
 message DatasetListResponse {
-  repeated Dataset datasets = 1;
+  repeated Dataset items = 1;
+  string next_cursor = 2;
+  uint64 total = 3;
 }
 
 message DistributionListResponse {
-  repeated Distribution distributions = 1;
+  repeated Distribution items = 1;
+  string next_cursor = 2;
+  uint64 total = 3;
 }
 
 message PolicyTemplateListResponse {
-  repeated PolicyTemplate policy_templates = 1;
+  repeated PolicyTemplate items = 1;
+  string next_cursor = 2;
+  uint64 total = 3;
 }
 
 message OdrlPolicyListResponse {
-  repeated OdrlPolicy policies = 1;
+  repeated OdrlPolicy items = 1;
+  string next_cursor = 2;
+  uint64 total = 3;
+}
+
+// ---------------------------------------------------------
+// List Requests
+// Auth: authorization Bearer <token> required; x-tenant-id metadata defaults to the token tenant.
+// Filter strings: "" = any. Pagination: limit 0 = default (20); cursor "" = first page;
+// sort "" = created_at_desc | created_at_asc | updated_at_asc | updated_at_desc.
+// ---------------------------------------------------------
+
+message ListCatalogsRequest {
+  string title = 1;
+  string creator = 2;
+  string participant_id = 3;
+  optional bool with_main_catalog = 4;
+  string created_after = 5;  // RFC3339
+  string created_before = 6; // RFC3339
+  uint32 limit = 7;
+  string cursor = 8;
+  string sort = 9;
+}
+
+message ListDataServicesRequest {
+  string catalog_id = 1;
+  string endpoint_url = 2;
+  string title = 3;
+  string creator = 4;
+  optional bool main_data_service = 5;
+  string created_after = 6;
+  string created_before = 7;
+  uint32 limit = 8;
+  string cursor = 9;
+  string sort = 10;
+}
+
+message ListDatasetsRequest {
+  string catalog_id = 1;
+  string title = 2;
+  string creator = 3;
+  string conforms_to = 4;
+  string created_after = 5;
+  string created_before = 6;
+  uint32 limit = 7;
+  string cursor = 8;
+  string sort = 9;
+}
+
+message ListDistributionsRequest {
+  string dataset_id = 1;
+  string access_service = 2;
+  string format = 3;
+  string title = 4;
+  string created_after = 5;
+  string created_before = 6;
+  uint32 limit = 7;
+  string cursor = 8;
+  string sort = 9;
+}
+
+message ListPolicyTemplatesRequest {
+  string id = 1;
+  string version = 2;
+  string author = 3;
+  string created_after = 4;
+  string created_before = 5;
+  uint32 limit = 6;
+  string cursor = 7;
+  string sort = 8;
+}
+
+message ListOdrlPoliciesRequest {
+  string entity_id = 1;
+  CatalogEntityType entity_type = 2; // UNSPECIFIED = any
+  string source_template_id = 3;
+  string source_template_version = 4;
+  string created_after = 5;
+  string created_before = 6;
+  uint32 limit = 7;
+  string cursor = 8;
+  string sort = 9;
 }
 
 // ---------------------------------------------------------
 // Common Requests
 // ---------------------------------------------------------
-
-message GetAllRequest {
-  optional uint64 limit = 1;
-  optional uint64 page = 2;
-}
 
 message GetBatchRequest {
   repeated string ids = 1;
@@ -195,12 +282,6 @@ message DeleteByVersionRequest {
 // ---------------------------------------------------------
 
 // --- Catalog ---
-
-message GetAllCatalogsRequest {
-  optional uint64 limit = 1;
-  optional uint64 page = 2;
-  bool with_main_catalog = 3;
-}
 
 message CatalogResponse {
   optional Catalog catalog = 1;

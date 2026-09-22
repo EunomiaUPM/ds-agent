@@ -27,12 +27,11 @@ use crate::grpc::api::transfer_processes::{
     TransferProcessListResponse, TransferProcessResponse,
     transfer_processes_ref_server::TransferProcessesRef,
 };
-use crate::grpc::transfer_process::mappers::ListParams;
 use crate::services::transfer_process::TransferProcessServiceTrait;
 use common::auth::OauthTokenValidator;
 use common::auth::grpc::GrpcAuth;
 use common::batch_requests::BatchRequests;
-use common::grpc::{IntoStatus, ProtoField};
+use common::grpc::{IntoStatus, ListParams, ProtoField};
 use tonic::{Request, Response, Status};
 use ymir::errors::Errors;
 

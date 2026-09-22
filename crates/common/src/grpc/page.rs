@@ -39,6 +39,22 @@ impl PageParams {
     }
 }
 
+/// Parsed list parameters: a resource filter plus the shared `Page`/`Sort` pair.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ListParams<F> {
+    pub filter: F,
+    pub page: Page,
+    pub sort: Sort,
+}
+
+impl<F> ListParams<F> {
+    /// Pairs an already-parsed filter with the proto `limit` / `cursor` / `sort` triple.
+    pub fn new(filter: F, limit: u32, cursor: &str, sort: &str) -> Result<Self, Status> {
+        let (page, sort) = PageParams::from_proto(limit, cursor, sort)?;
+        Ok(Self { filter, page, sort })
+    }
+}
+
 /// Proto-shaped page metadata (`""` = no next page, `0` = unknown total).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PageMeta {

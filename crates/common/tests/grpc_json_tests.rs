@@ -84,3 +84,14 @@ fn typed_round_trip_and_invalid_argument_on_shape_mismatch() {
     assert_eq!(err.code(), Code::InvalidArgument);
     assert!(err.message().starts_with("payload: "));
 }
+
+#[test]
+fn value_from_typed_keeps_non_object_shapes() {
+    let v = JsonStruct::value_from_typed(&vec!["a", "b"]).unwrap();
+    match v.kind {
+        Some(Kind::ListValue(l)) => assert_eq!(l.values.len(), 2),
+        other => panic!("expected list, got {other:?}"),
+    }
+    let s = JsonStruct::value_from_typed(&"plain").unwrap();
+    assert_eq!(s.kind, Some(Kind::StringValue("plain".into())));
+}

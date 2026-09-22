@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use common::grpc::{PageMeta, PageParams};
+use common::grpc::{ListParams, PageMeta, PageParams};
 use common::paginated_spec::{Paginated, Sort, DEFAULT_PAGE_LIMIT};
 use tonic::Code;
 
@@ -61,4 +61,16 @@ fn page_meta_maps_missing_cursor_and_total_to_proto_defaults() {
             total: 0
         }
     );
+}
+
+#[test]
+fn list_params_pairs_filter_with_page_and_sort() {
+    let params = ListParams::new("filter", 7, "c", "created_at_asc").unwrap();
+    assert_eq!(params.filter, "filter");
+    assert_eq!(params.page.limit, 7);
+    assert_eq!(params.page.cursor.as_deref(), Some("c"));
+    assert_eq!(params.sort, Sort::CreatedAtAsc);
+
+    let err = ListParams::new((), 0, "", "bogus").unwrap_err();
+    assert_eq!(err.code(), Code::InvalidArgument);
 }

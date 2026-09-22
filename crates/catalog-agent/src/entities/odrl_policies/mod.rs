@@ -35,7 +35,7 @@ pub struct OdrlPolicyDto {
     pub inner: odrl_offer::Model,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
 pub enum CatalogEntityTypes {
     Distribution,
     DataService,
@@ -61,6 +61,20 @@ pub struct NewOdrlPolicyDto {
     pub instantiation_parameters: Option<serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+}
+
+impl std::str::FromStr for CatalogEntityTypes {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "Distribution" => Ok(CatalogEntityTypes::Distribution),
+            "DataService" => Ok(CatalogEntityTypes::DataService),
+            "Catalog" => Ok(CatalogEntityTypes::Catalog),
+            "Dataset" => Ok(CatalogEntityTypes::Dataset),
+            other => Err(format!("unknown entity type: {other}")),
+        }
+    }
 }
 
 impl Display for CatalogEntityTypes {

@@ -37,6 +37,13 @@ impl JsonStruct {
             .map_err(|e| Status::internal(format!("failed to serialize to Struct: {e}")))
     }
 
+    /// Serializes a value into a `google.protobuf.Value`, keeping non-object shapes.
+    pub fn value_from_typed<T: Serialize>(value: &T) -> Result<ProstValue, Status> {
+        serde_json::to_value(value)
+            .map(JsonValue::into_prost_value)
+            .map_err(|e| Status::internal(format!("failed to serialize to Value: {e}")))
+    }
+
     /// Deserializes a `Struct` into a typed value, failing with `INVALID_ARGUMENT` on `field`.
     pub fn into_typed<T: DeserializeOwned>(s: Struct, field: &str) -> Result<T, Status> {
         serde_json::from_value(s.into_json()).map_err(|e| InvalidField::status(field, e))

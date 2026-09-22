@@ -29,8 +29,8 @@ use crate::grpc::api::transfer_messages::{
     MessageEnvelope as ProtoEnvelope, TransferMessageListResponse, TransferMessageResponse,
 };
 use crate::services::transfer_message::views::TransferMessageView;
-use common::grpc::{JsonStructExt, JsonValueExt, PageMeta, PageParams, ProtoEnum, ProtoField};
-use common::query::{Page, Paginated, Sort};
+use common::grpc::{JsonStructExt, JsonValueExt, ListParams, PageMeta, ProtoEnum, ProtoField};
+use common::query::Paginated;
 use compact_str::CompactString;
 use serde_json::Value as Json;
 use tonic::Status;
@@ -38,18 +38,10 @@ use urn::Urn;
 
 // Request to Domain ───────────────────────────────────────────────────────
 
-/// Parsed list parameters for the transfer-message list RPCs.
-pub(super) struct ListParams {
-    pub filter: TransferMessageFilter,
-    pub page: Page,
-    pub sort: Sort,
-}
-
-impl TryFrom<ListTransferMessagesRequest> for ListParams {
+impl TryFrom<ListTransferMessagesRequest> for ListParams<TransferMessageFilter> {
     type Error = Status;
 
     fn try_from(req: ListTransferMessagesRequest) -> Result<Self, Status> {
-        let (page, sort) = PageParams::from_proto(req.limit, &req.cursor, &req.sort)?;
         let filter = TransferMessageFilter {
             tenant_id: None,
             direction: req.direction.opt_parsed::<Direction>("direction")?,
@@ -61,14 +53,14 @@ impl TryFrom<ListTransferMessagesRequest> for ListParams {
             created_after: req.created_after.opt_rfc3339("created_after")?,
             created_before: req.created_before.opt_rfc3339("created_before")?,
         };
-        Ok(Self { filter, page, sort })
+        Self::new(filter, req.limit, &req.cursor, &req.sort)
     }
 }
 
 /// List parameters scoped to one transfer process.
 pub(super) struct ListByProcessParams {
     pub process_id: Urn,
-    pub params: ListParams,
+    pub params: ListParams<TransferMessageFilter>,
 }
 
 impl TryFrom<ListTransferMessagesByProcessRequest> for ListByProcessParams {

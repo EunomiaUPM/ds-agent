@@ -34,26 +34,19 @@ use crate::grpc::api::transfer_processes::{
 use crate::services::transfer_process::views::TransferProcessView;
 use common::batch_requests::BatchRequests;
 use common::grpc::{
-    InvalidField, JsonStructExt, JsonValueExt, PageMeta, PageParams, ProtoEnum, ProtoField,
+    InvalidField, JsonStructExt, JsonValueExt, ListParams, PageMeta, ProtoEnum, ProtoField,
+    ProtoFieldList,
 };
-use common::query::{Page, Paginated, Sort};
+use common::query::Paginated;
 use tonic::Status;
 use url::Url;
 
 // Request to Domain ───────────────────────────────────────────────────────
 
-/// Parsed list parameters for the transfer-process list RPC.
-pub(super) struct ListParams {
-    pub filter: TransferProcessFilter,
-    pub page: Page,
-    pub sort: Sort,
-}
-
-impl TryFrom<ListTransferProcessesRequest> for ListParams {
+impl TryFrom<ListTransferProcessesRequest> for ListParams<TransferProcessFilter> {
     type Error = Status;
 
     fn try_from(req: ListTransferProcessesRequest) -> Result<Self, Status> {
-        let (page, sort) = PageParams::from_proto(req.limit, &req.cursor, &req.sort)?;
         let filter = TransferProcessFilter {
             tenant_id: None,
             protocol: req.protocol.opt_parsed::<ProtocolId>("protocol")?,
@@ -67,7 +60,7 @@ impl TryFrom<ListTransferProcessesRequest> for ListParams {
             created_after: req.created_after.opt_rfc3339("created_after")?,
             created_before: req.created_before.opt_rfc3339("created_before")?,
         };
-        Ok(Self { filter, page, sort })
+        Self::new(filter, req.limit, &req.cursor, &req.sort)
     }
 }
 
@@ -75,7 +68,6 @@ impl TryFrom<BatchTransferProcessesRequest> for BatchRequests {
     type Error = Status;
 
     fn try_from(req: BatchTransferProcessesRequest) -> Result<Self, Status> {
-        use common::grpc::ProtoFieldList;
         Ok(Self {
             ids: req.ids.urns("ids")?,
         })

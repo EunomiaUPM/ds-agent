@@ -15,22 +15,22 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::data_services::{
-    DataServiceEntityTrait, EditDataServiceDto, NewDataServiceDto,
-};
+mod mappers;
+
+use std::sync::Arc;
+
+use crate::entities::data_services::DataServiceEntityTrait;
 use crate::grpc::api::catalog_agent::data_service_entity_service_server::DataServiceEntityService;
 use crate::grpc::api::catalog_agent::{
-    CreateDataServiceRequest, DataService, DataServiceListResponse, DataServiceResponse,
-    DeleteByIdRequest, GetAllRequest, GetBatchRequest, GetByIdRequest, GetByParentIdRequest,
+    CreateDataServiceRequest, DataServiceListResponse, DataServiceResponse, DeleteByIdRequest,
+    GetBatchRequest, GetByIdRequest, GetByParentIdRequest, ListDataServicesRequest,
     PutDataServiceRequest,
 };
-use crate::grpc::auth::{GrpcAuth, StatusMapper};
+use common::auth::grpc::GrpcAuth;
 use common::auth::OauthTokenValidator;
-use common::paginated_spec::Page;
-use std::str::FromStr;
-use std::sync::Arc;
+use common::grpc::{IntoStatus, ListParams, ProtoField, ProtoFieldList};
 use tonic::{Request, Response, Status};
-use urn::Urn;
+use ymir::errors::Errors;
 
 pub struct DataServiceEntityGrpc {
     service: Arc<dyn DataServiceEntityTrait>,
@@ -53,23 +53,16 @@ impl DataServiceEntityGrpc {
 impl DataServiceEntityService for DataServiceEntityGrpc {
     async fn get_all_data_services(
         &self,
-        request: Request<GetAllRequest>,
+        request: Request<ListDataServicesRequest>,
     ) -> Result<Response<DataServiceListResponse>, Status> {
         let scope = self.auth.scope(request.metadata()).await?;
-        let req = request.into_inner();
-        let page = Page::new(req.limit.unwrap_or(20) as u32, None);
-        let paginated = self
+        let params = ListParams::try_from(request.into_inner())?;
+        let result = self
             .service
-            .get_all_data_services(&scope, &Default::default(), &page, &Default::default())
+            .get_all_data_services(&scope, &params.filter, &params.page, &params.sort)
             .await
-            .map_err(StatusMapper::to_status)?;
-
-        let proto_services: Vec<DataService> =
-            paginated.items.into_iter().map(Into::into).collect();
-
-        Ok(Response::new(DataServiceListResponse {
-            data_services: proto_services,
-        }))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(result.into()))
     }
 
     async fn get_batch_data_services(
@@ -77,26 +70,13 @@ impl DataServiceEntityService for DataServiceEntityGrpc {
         request: Request<GetBatchRequest>,
     ) -> Result<Response<DataServiceListResponse>, Status> {
         let scope = self.auth.scope(request.metadata()).await?;
-        let req = request.into_inner();
-
-        let urns: Vec<Urn> = req
-            .ids
-            .iter()
-            .map(|id| Urn::from_str(id))
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|_| Status::invalid_argument("One or more IDs are invalid URNs"))?;
-
-        let data_services = self
+        let ids = request.into_inner().ids.urns("ids")?;
+        let dtos = self
             .service
-            .get_batch_data_services(&scope, &urns)
+            .get_batch_data_services(&scope, &ids)
             .await
-            .map_err(StatusMapper::to_status)?;
-
-        let proto_services: Vec<DataService> = data_services.into_iter().map(Into::into).collect();
-
-        Ok(Response::new(DataServiceListResponse {
-            data_services: proto_services,
-        }))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(dtos.into()))
     }
 
     async fn get_data_services_by_catalog_id(
@@ -104,21 +84,13 @@ impl DataServiceEntityService for DataServiceEntityGrpc {
         request: Request<GetByParentIdRequest>,
     ) -> Result<Response<DataServiceListResponse>, Status> {
         let scope = self.auth.scope(request.metadata()).await?;
-        let req = request.into_inner();
-        let catalog_urn = Urn::from_str(&req.parent_id)
-            .map_err(|_| Status::invalid_argument("Invalid Catalog URN"))?;
-
-        let data_services = self
+        let catalog_id = request.into_inner().parent_id.urn("parent_id")?;
+        let dtos = self
             .service
-            .get_data_services_by_catalog_id(&scope, &catalog_urn)
+            .get_data_services_by_catalog_id(&scope, &catalog_id)
             .await
-            .map_err(StatusMapper::to_status)?;
-
-        let proto_services: Vec<DataService> = data_services.into_iter().map(Into::into).collect();
-
-        Ok(Response::new(DataServiceListResponse {
-            data_services: proto_services,
-        }))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(dtos.into()))
     }
 
     async fn get_data_service_by_id(
@@ -126,18 +98,13 @@ impl DataServiceEntityService for DataServiceEntityGrpc {
         request: Request<GetByIdRequest>,
     ) -> Result<Response<DataServiceResponse>, Status> {
         let scope = self.auth.scope(request.metadata()).await?;
-        let req = request.into_inner();
-        let urn = Urn::from_str(&req.id).map_err(|_| Status::invalid_argument("Invalid URN"))?;
-
+        let id = request.into_inner().id.urn("id")?;
         let dto = self
             .service
-            .get_data_service_by_id(&scope, &urn)
+            .get_data_service_by_id(&scope, &id)
             .await
-            .map_err(StatusMapper::to_status)?;
-
-        Ok(Response::new(DataServiceResponse {
-            data_service: Some(dto.into()),
-        }))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(dto.into()))
     }
 
     async fn get_main_data_service(
@@ -145,19 +112,13 @@ impl DataServiceEntityService for DataServiceEntityGrpc {
         request: Request<()>,
     ) -> Result<Response<DataServiceResponse>, Status> {
         let scope = self.auth.scope(request.metadata()).await?;
-
-        let data_service_opt = self
+        let dto = self
             .service
             .get_main_data_service(&scope)
             .await
-            .map_err(StatusMapper::to_status)?;
-
-        match data_service_opt {
-            Some(dto) => Ok(Response::new(DataServiceResponse {
-                data_service: Some(dto.into()),
-            })),
-            None => Err(Status::not_found("DataService not found")),
-        }
+            .map_err(Errors::into_status)?
+            .ok_or_else(|| Status::not_found("main data service not configured"))?;
+        Ok(Response::new(dto.into()))
     }
 
     async fn create_data_service(
@@ -165,18 +126,13 @@ impl DataServiceEntityService for DataServiceEntityGrpc {
         request: Request<CreateDataServiceRequest>,
     ) -> Result<Response<DataServiceResponse>, Status> {
         let scope = self.auth.scope(request.metadata()).await?;
-        let req = request.into_inner();
-        let new_data_service_dto: NewDataServiceDto = req.try_into()?;
-
-        let created_dto = self
+        let dto = request.into_inner().try_into()?;
+        let created = self
             .service
-            .create_data_service(&scope, &new_data_service_dto)
+            .create_data_service(&scope, &dto)
             .await
-            .map_err(StatusMapper::to_status)?;
-
-        Ok(Response::new(DataServiceResponse {
-            data_service: Some(created_dto.into()),
-        }))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(created.into()))
     }
 
     async fn create_main_main_catalog(
@@ -184,18 +140,13 @@ impl DataServiceEntityService for DataServiceEntityGrpc {
         request: Request<CreateDataServiceRequest>,
     ) -> Result<Response<DataServiceResponse>, Status> {
         let scope = self.auth.scope(request.metadata()).await?;
-        let req = request.into_inner();
-        let new_data_service_dto: NewDataServiceDto = req.try_into()?;
-
-        let created_dto = self
+        let dto = request.into_inner().try_into()?;
+        let created = self
             .service
-            .create_main_data_service(&scope, &new_data_service_dto)
+            .create_main_data_service(&scope, &dto)
             .await
-            .map_err(StatusMapper::to_status)?;
-
-        Ok(Response::new(DataServiceResponse {
-            data_service: Some(created_dto.into()),
-        }))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(created.into()))
     }
 
     async fn put_data_service_by_id(
@@ -204,18 +155,13 @@ impl DataServiceEntityService for DataServiceEntityGrpc {
     ) -> Result<Response<DataServiceResponse>, Status> {
         let scope = self.auth.scope(request.metadata()).await?;
         let req = request.into_inner();
-        let urn = Urn::from_str(&req.id).map_err(|_| Status::invalid_argument("Invalid URN"))?;
-        let edit_dto: EditDataServiceDto = req.into();
-
-        let updated_dto = self
+        let id = req.id.urn("id")?;
+        let updated = self
             .service
-            .put_data_service_by_id(&scope, &urn, &edit_dto)
+            .put_data_service_by_id(&scope, &id, &req.into())
             .await
-            .map_err(StatusMapper::to_status)?;
-
-        Ok(Response::new(DataServiceResponse {
-            data_service: Some(updated_dto.into()),
-        }))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(updated.into()))
     }
 
     async fn delete_data_service_by_id(
@@ -223,14 +169,11 @@ impl DataServiceEntityService for DataServiceEntityGrpc {
         request: Request<DeleteByIdRequest>,
     ) -> Result<Response<()>, Status> {
         let scope = self.auth.scope(request.metadata()).await?;
-        let req = request.into_inner();
-        let urn = Urn::from_str(&req.id).map_err(|_| Status::invalid_argument("Invalid URN"))?;
-
+        let id = request.into_inner().id.urn("id")?;
         self.service
-            .delete_data_service_by_id(&scope, &urn)
+            .delete_data_service_by_id(&scope, &id)
             .await
-            .map_err(StatusMapper::to_status)?;
-
+            .map_err(Errors::into_status)?;
         Ok(Response::new(()))
     }
 }

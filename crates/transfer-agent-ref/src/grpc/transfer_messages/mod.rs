@@ -26,11 +26,11 @@ use crate::grpc::api::transfer_messages::{
     ListTransferMessagesRequest, ResourceIdRequest, TransferMessageListResponse,
     TransferMessageResponse, transfer_messages_ref_server::TransferMessagesRef,
 };
-use crate::grpc::transfer_messages::mappers::{ListByProcessParams, ListParams};
+use crate::grpc::transfer_messages::mappers::ListByProcessParams;
 use crate::services::transfer_message::TransferMessageServiceTrait;
 use common::auth::OauthTokenValidator;
 use common::auth::grpc::GrpcAuth;
-use common::grpc::{IntoStatus, ProtoField};
+use common::grpc::{IntoStatus, ListParams, ProtoField};
 use tonic::{Request, Response, Status};
 use ymir::errors::Errors;
 

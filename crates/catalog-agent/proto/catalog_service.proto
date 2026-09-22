@@ -27,7 +27,7 @@ import "catalog_models.proto";
 // ---------------------------------------------------------
 
 service CatalogEntityService {
-  rpc GetAllCatalogs (GetAllCatalogsRequest) returns (CatalogListResponse);
+  rpc GetAllCatalogs (ListCatalogsRequest) returns (CatalogListResponse);
   rpc GetBatchCatalogs (GetBatchRequest) returns (CatalogListResponse);
   rpc GetCatalogById (GetByIdRequest) returns (CatalogResponse);
   rpc GetMainCatalog (google.protobuf.Empty) returns (CatalogResponse);
@@ -44,7 +44,7 @@ service CatalogEntityService {
 // ---------------------------------------------------------
 
 service DataServiceEntityService {
-  rpc GetAllDataServices (GetAllRequest) returns (DataServiceListResponse);
+  rpc GetAllDataServices (ListDataServicesRequest) returns (DataServiceListResponse);
   rpc GetBatchDataServices (GetBatchRequest) returns (DataServiceListResponse);
   rpc GetDataServicesByCatalogId (GetByParentIdRequest) returns (DataServiceListResponse);
   rpc GetDataServiceById (GetByIdRequest) returns (DataServiceResponse);
@@ -62,7 +62,7 @@ service DataServiceEntityService {
 // ---------------------------------------------------------
 
 service DatasetEntityService {
-  rpc GetAllDatasets (GetAllRequest) returns (DatasetListResponse);
+  rpc GetAllDatasets (ListDatasetsRequest) returns (DatasetListResponse);
   rpc GetBatchDatasets (GetBatchRequest) returns (DatasetListResponse);
   rpc GetDatasetsByCatalogId (GetByParentIdRequest) returns (DatasetListResponse);
   rpc GetDatasetById (GetByIdRequest) returns (DatasetResponse);
@@ -77,7 +77,7 @@ service DatasetEntityService {
 // ---------------------------------------------------------
 
 service DistributionEntityService {
-  rpc GetAllDistributions (GetAllRequest) returns (DistributionListResponse);
+  rpc GetAllDistributions (ListDistributionsRequest) returns (DistributionListResponse);
   rpc GetBatchDistributions (GetBatchRequest) returns (DistributionListResponse);
   rpc GetDistributionsByDatasetId (GetByParentIdRequest) returns (DistributionListResponse);
 
@@ -94,7 +94,7 @@ service DistributionEntityService {
 // ---------------------------------------------------------
 
 service PolicyTemplateEntityService {
-  rpc GetAllPolicyTemplates (GetAllRequest) returns (PolicyTemplateListResponse);
+  rpc GetAllPolicyTemplates (ListPolicyTemplatesRequest) returns (PolicyTemplateListResponse);
   rpc GetBatchPolicyTemplates (GetBatchRequest) returns (PolicyTemplateListResponse);
   rpc GetPolicyTemplatesById (GetByIdRequest) returns (PolicyTemplateListResponse);
   rpc GetPolicyTemplateByVersion (GetByVersionRequest) returns (PolicyTemplateResponse);
@@ -107,7 +107,7 @@ service PolicyTemplateEntityService {
 // ---------------------------------------------------------
 
 service OdrlPolicyEntityService {
-  rpc GetAllOdrlOffers (GetAllRequest) returns (OdrlPolicyListResponse);
+  rpc GetAllOdrlOffers (ListOdrlPoliciesRequest) returns (OdrlPolicyListResponse);
   rpc GetBatchOdrlOffers (GetBatchRequest) returns (OdrlPolicyListResponse);
   rpc GetAllOdrlOffersByEntity (GetByEntityIdRequest) returns (OdrlPolicyListResponse);
   rpc GetOdrlOfferById (GetByIdRequest) returns (OdrlPolicyResponse);

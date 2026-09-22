@@ -15,16 +15,17 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod auth;
-pub(crate) mod catalogs;
-pub(crate) mod data_services;
-pub(crate) mod datasets;
-pub(crate) mod distributions;
-pub(super) mod mappers;
-pub(crate) mod odrl_policies;
-pub(crate) mod policy_templates;
+//! gRPC driving adapter: generated API plus one handler module per resource.
 
-pub(crate) mod api {
+pub mod catalogs;
+pub mod data_services;
+pub mod datasets;
+pub mod distributions;
+pub mod odrl_policies;
+pub mod policy_templates;
+
+/// Generated protobuf/tonic code and the reflection descriptor set.
+pub mod api {
     pub mod catalog_agent {
         tonic::include_proto!("catalog.v1");
     }

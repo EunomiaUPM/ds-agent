@@ -19,6 +19,7 @@
 
 pub mod access;
 pub mod claims;
+pub mod grpc;
 pub mod http;
 pub mod rules;
 pub mod token;
@@ -29,3 +30,8 @@ pub use claims::{Claims, RbacRole};
 pub use rules::AuthRules;
 pub use token::{OauthTokenValidator, TokenVerifier};
 pub use validators::AuthValidators;
+
+/// Header / metadata key carrying the bearer token.
+pub const AUTHORIZATION_HEADER: &str = "authorization";
+/// Header / metadata key selecting the tenant the caller acts on.
+pub const TENANT_HEADER: &str = "x-tenant-id";

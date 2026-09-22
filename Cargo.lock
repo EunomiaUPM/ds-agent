@@ -762,6 +762,7 @@ dependencies = [
  "json_to_table",
  "locspan",
  "mockall",
+ "prost-types",
  "rdf-types",
  "redis",
  "reqwest 0.13.4",

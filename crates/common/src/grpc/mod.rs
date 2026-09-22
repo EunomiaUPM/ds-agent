@@ -15,29 +15,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod auth;
-pub mod batch_requests;
-pub mod boot;
-pub mod config;
-pub mod dsp_common;
-pub mod errors;
-pub mod facades;
-pub mod grpc;
-pub mod http_client;
-pub mod http_global_404;
-pub mod http_tracing;
-pub mod id_mac;
-pub mod info_banner;
-pub mod middleware;
-pub mod module_loader;
-pub mod paginated_spec;
-pub mod query;
-pub mod rdf;
-pub mod serde_utils;
-pub mod telemetry;
-pub mod test_utils;
-pub mod utils;
-pub mod validation;
-pub mod vault_utils;
-pub mod well_known;
-pub mod worker_utils;
+//! Transport helpers shared by every gRPC adapter: status mapping, field parsing, paging and JSON.
+
+pub mod field;
+pub mod json;
+pub mod page;
+pub mod status;
+
+pub use field::{InvalidField, ProtoField, ProtoFieldList};
+pub use json::{JsonStruct, JsonStructExt, JsonValueExt};
+pub use page::{PageMeta, PageParams};
+pub use status::IntoStatus;

@@ -17,6 +17,9 @@
 
 //! Sort order definitions for collections and repositories.
 
+use std::fmt;
+use std::str::FromStr;
+
 use serde::{Deserialize, Serialize};
 
 /// Standard collection sorting options.
@@ -41,5 +44,37 @@ impl Sort {
     /// Returns true if the sort order is descending.
     pub fn is_descending(&self) -> bool {
         !self.is_ascending()
+    }
+
+    /// Wire name of the sort order (snake_case, matching its serde representation).
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::CreatedAtAsc => "created_at_asc",
+            Self::CreatedAtDesc => "created_at_desc",
+            Self::UpdatedAtAsc => "updated_at_asc",
+            Self::UpdatedAtDesc => "updated_at_desc",
+            Self::Other => "other",
+        }
+    }
+}
+
+impl fmt::Display for Sort {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+/// Strict parser: unknown names are an error (unlike serde, which maps them to `Other`).
+impl FromStr for Sort {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "created_at_asc" => Ok(Self::CreatedAtAsc),
+            "created_at_desc" => Ok(Self::CreatedAtDesc),
+            "updated_at_asc" => Ok(Self::UpdatedAtAsc),
+            "updated_at_desc" => Ok(Self::UpdatedAtDesc),
+            other => Err(format!("unknown sort: {other}")),
+        }
     }
 }

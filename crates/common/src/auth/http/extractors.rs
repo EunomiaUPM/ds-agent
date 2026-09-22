@@ -20,11 +20,11 @@
 use axum::extract::FromRequestParts;
 use axum::http::request::Parts;
 use axum::http::{HeaderMap, HeaderName, HeaderValue};
-use ymir::errors::{BadFormat, Errors};
+use ymir::errors::Errors;
 
 use crate::auth::access::AccessScope;
 use crate::auth::claims::Claims;
-use crate::auth::validators::AuthValidators;
+use crate::auth::TENANT_HEADER;
 
 /// Extractor extracting validated JWT claims from request extensions.
 #[derive(Debug, Clone)]
@@ -51,7 +51,7 @@ impl<S: Send + Sync> FromRequestParts<S> for AuthClaims {
 }
 
 /// Automatic Axum extractor for authenticated `AccessScope`.
-/// Validates tenant format with `AuthValidators` and ensures caller tenant boundary.
+/// Delegates the tenant-boundary rule to `AccessScope::from_tenant_header`.
 impl<S: Send + Sync> FromRequestParts<S> for AccessScope {
     type Rejection = Errors;
 
@@ -61,29 +61,12 @@ impl<S: Send + Sync> FromRequestParts<S> for AccessScope {
                 Errors::unauthorized("authentication required: missing claims", None)
             })?;
 
-        let tenant_raw = parts
+        let requested = parts
             .headers
-            .get("x-tenant-id")
+            .get(TENANT_HEADER)
             .and_then(|v| v.to_str().ok());
 
-        let tenant_id = match tenant_raw {
-            Some(raw) => {
-                let s = raw.to_string();
-                AuthValidators::tenant_id_validator()
-                    .validate(&s)
-                    .map_err(|vs| Errors::format(BadFormat::Received, vs.to_string(), None))?;
-                if !claims.is_admin() && claims.tenant_id() != s {
-                    return Err(Errors::forbidden(
-                        "forbidden: caller tenant does not match requested tenant",
-                        None,
-                    ));
-                }
-                s
-            }
-            None => claims.tenant_id().to_string(),
-        };
-
-        Ok(AccessScope::new(&claims, &tenant_id))
+        AccessScope::from_tenant_header(&claims, requested)
     }
 }
 

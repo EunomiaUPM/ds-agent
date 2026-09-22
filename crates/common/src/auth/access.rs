@@ -17,9 +17,10 @@
 
 //! Authorization policy, RBAC guards, and multi-tenant access scopes.
 
-use ymir::errors::{Errors, Outcome};
+use ymir::errors::{BadFormat, Errors, Outcome};
 
 use crate::auth::claims::{Claims, RbacRole};
+use crate::auth::validators::AuthValidators;
 
 /// Stateless RBAC policy guard for claims.
 pub struct Rbac;
@@ -79,6 +80,28 @@ impl AccessScope {
             acting_tenant: tenant.to_string(),
             role: claims.role,
         }
+    }
+
+    /// Builds the caller scope from a requested tenant header, shared by HTTP and gRPC adapters.
+    /// Non-admins may only request their own tenant; a missing header falls back to the claims tenant.
+    #[allow(clippy::result_large_err)]
+    pub fn from_tenant_header(claims: &Claims, requested: Option<&str>) -> Outcome<Self> {
+        let tenant_id = match requested {
+            Some(raw) => {
+                AuthValidators::tenant_id_validator()
+                    .validate(&raw.to_string())
+                    .map_err(|vs| Errors::format(BadFormat::Received, vs.to_string(), None))?;
+                if !claims.is_admin() && claims.tenant_id() != raw {
+                    return Err(Errors::forbidden(
+                        "forbidden: caller tenant does not match requested tenant",
+                        None,
+                    ));
+                }
+                raw
+            }
+            None => claims.tenant_id(),
+        };
+        Ok(Self::new(claims, tenant_id))
     }
 
     /// Read scope: non-admins are confined to their own tenant.

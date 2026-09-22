@@ -68,14 +68,9 @@ pub struct GatewayHttpRouter {
 }
 
 impl GatewayHttpRouter {
-    /// Construct router using legacy GatewayConfig.
+    /// Construct router using legacy GatewayConfig, without an event bus.
     pub fn new(config: GatewayConfig) -> Self {
-        let events_ctx = events::setup::context::AppContext::in_memory(None);
-        let ctx = Arc::new(AppContext::new(
-            config.clone(),
-            Some(events_ctx.event_bus),
-            None,
-        ));
+        let ctx = Arc::new(AppContext::new(config.clone(), None, None));
         let service = Arc::new(GatewayService::new(config));
         Self { ctx, service }
     }

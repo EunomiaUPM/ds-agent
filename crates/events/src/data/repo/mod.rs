@@ -32,5 +32,4 @@ pub use crate::entities::delivery::EventDeliveryRecord;
 pub use crate::entities::subscription::{DeadLetterStatus, DeliveryStatus, SubscriptionRecord};
 
 // Re-export concrete implementations for legacy path compatibility
-pub use crate::data::in_memory::InMemoryEventBusRepo;
 pub use crate::data::sea_orm::SeaOrmEventBusRepo;

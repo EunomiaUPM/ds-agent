@@ -21,7 +21,6 @@ use sea_orm::DatabaseConnection;
 use tokio_util::sync::CancellationToken;
 
 use crate::data::factory::DataFactory;
-use crate::data::in_memory::InMemoryDataFactory;
 use crate::data::repo::{
     EventDeadLetterRepo, EventDeliveryRepo, EventStoreRepo, EventSubscriptionRepo,
 };
@@ -34,7 +33,7 @@ use crate::setup::workers::RetryWorkerHandle;
 // Application context bundling persistence factories, domain services, and worker lifecycles.
 #[derive(Clone)]
 pub struct AppContext {
-    pub db: Option<DatabaseConnection>,
+    pub db: DatabaseConnection,
     pub event_bus: Arc<EventBus>,
     pub event_repo: Arc<dyn EventStoreRepo>,
     pub subscription_repo: Arc<dyn EventSubscriptionRepo>,
@@ -74,47 +73,7 @@ impl AppContext {
         ));
 
         Self {
-            db: Some(db),
-            event_bus,
-            event_repo,
-            subscription_repo,
-            delivery_repo,
-            dlq_repo,
-            retry_worker,
-            cancel_token: CancellationToken::new(),
-        }
-    }
-
-    // Build context with in-memory persistence for testing.
-    pub fn in_memory(policy: Option<RetryPolicy>) -> Self {
-        let policy = policy.unwrap_or_default();
-        let factory = InMemoryDataFactory::new();
-
-        let event_repo = factory.event_repository();
-        let subscription_repo = factory.subscription_repository();
-        let delivery_repo = factory.delivery_repository();
-        let dlq_repo = factory.dlq_repository();
-
-        let event_bus = Arc::new(EventBus::new(
-            event_repo.clone(),
-            subscription_repo.clone(),
-            delivery_repo.clone(),
-            dlq_repo.clone(),
-            policy.clone(),
-            1024,
-        ));
-
-        let retry_worker = Arc::new(RetryWorker::new(
-            event_repo.clone(),
-            subscription_repo.clone(),
-            delivery_repo.clone(),
-            dlq_repo.clone(),
-            event_bus.dispatcher(),
-            policy,
-        ));
-
-        Self {
-            db: None,
+            db,
             event_bus,
             event_repo,
             subscription_repo,

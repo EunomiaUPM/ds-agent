@@ -17,7 +17,6 @@
 
 pub(crate) mod config;
 pub(crate) mod factory;
-pub mod in_memory;
 pub mod repo;
 pub mod sea_orm;
 pub(crate) mod vault;

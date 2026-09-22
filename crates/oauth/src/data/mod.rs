@@ -16,7 +16,6 @@
  */
 
 pub mod factory;
-pub mod in_memory;
 pub mod repositories;
 pub use repositories as repo;
 pub mod sea_orm;

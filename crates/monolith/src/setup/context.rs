@@ -19,7 +19,6 @@ use std::sync::Arc;
 
 use auth::setup::app::AuthApplication;
 use axum::Router;
-use bff::create_gateway_http_router;
 use catalog_agent::setup::create_root_http_router_with_bus as catalog_http_router_with_bus;
 use common::config::types::traits::CommonConfigTrait;
 use common::config::ApplicationConfig;
@@ -41,14 +40,8 @@ impl CoreContext {
         let config = Arc::new(config.clone());
 
         // Build events context and event bus
-        let events_db = vault
-            .get_db_connection(config.gateway().common())
-            .await
-            .ok();
-        let events_ctx = Arc::new(match events_db {
-            Some(db) => events::setup::context::AppContext::build(db, None),
-            None => events::setup::context::AppContext::in_memory(None),
-        });
+        let events_db = vault.get_db_connection(config.gateway().common()).await?;
+        let events_ctx = Arc::new(events::setup::context::AppContext::build(events_db, None));
 
         // Spawn background retry worker
         events::setup::workers::RetryWorkerHandle::spawn(

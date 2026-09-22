@@ -80,4 +80,8 @@ impl ServiceModuleTrait for TransferAgentModule {
     fn grpc(&self, routes: &mut RoutesBuilder) {
         self.modules().grpc(routes);
     }
+
+    fn grpc_descriptors(&self) -> Vec<&'static [u8]> {
+        self.modules().grpc_descriptors()
+    }
 }

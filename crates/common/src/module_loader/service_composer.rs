@@ -61,6 +61,11 @@ impl ServiceComposer {
         self.root.grpc(&mut builder);
         builder.routes()
     }
+
+    /// Every module's encoded file descriptor set, for the reflection service.
+    pub fn grpc_descriptors(&self) -> Vec<&'static [u8]> {
+        self.root.grpc_descriptors()
+    }
 }
 
 impl Default for ServiceComposer {

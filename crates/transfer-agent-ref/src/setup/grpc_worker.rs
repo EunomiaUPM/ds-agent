@@ -15,42 +15,37 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::grpc::api::FILE_DESCRIPTOR_SET;
 use common::config::services::TransferConfig;
 use common::config::types::traits::CommonConfigTrait;
-use common::worker_utils::{bind_listener, shutdown_signal, spawn_server};
+use common::module_loader::service_composer::ServiceComposer;
+use common::worker_utils::GrpcServer;
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
-use tonic::codegen::tokio_stream::wrappers::TcpListenerStream;
-use tonic::service::Routes;
-use tonic::transport::Server;
 use ymir::config::traits::HostsConfigTrait;
 use ymir::config::types::HostType;
-use ymir::errors::{Errors, Outcome};
+use ymir::errors::Outcome;
 
 pub struct TransferGrpcWorker {}
 
 impl TransferGrpcWorker {
+    /// Serves the composed gRPC plane; `None` when no gRPC host is configured.
     pub async fn spawn(
         config: &TransferConfig,
-        routes: Routes,
+        composer: &ServiceComposer,
         token: &CancellationToken,
-    ) -> Outcome<JoinHandle<()>> {
-        let reflection = tonic_reflection::server::Builder::configure()
-            .register_encoded_file_descriptor_set(FILE_DESCRIPTOR_SET)
-            .build_v1()
-            .map_err(|e| Errors::crazy("Error building gRPC reflection", Some(Box::new(e))))?;
-
-        let router = Server::builder().add_routes(routes).add_service(reflection);
-
-        let listener =
-            bind_listener(config.common().get_internal_port(HostType::Grpc), "gRPC").await?;
-
-        let incoming = TcpListenerStream::new(listener);
-
-        let server =
-            router.serve_with_incoming_shutdown(incoming, shutdown_signal(token.clone(), "gRPC"));
-
-        Ok(spawn_server("gRPC", server))
+    ) -> Outcome<Option<JoinHandle<()>>> {
+        if config.common().grpc().is_none() {
+            tracing::warn!("No gRPC host configured, skipping gRPC subsystem");
+            return Ok(None);
+        }
+        let port = config.common().get_internal_port(HostType::Grpc);
+        let handle = GrpcServer::spawn(
+            port,
+            composer.grpc_routes(),
+            composer.grpc_descriptors(),
+            token,
+        )
+        .await?;
+        Ok(Some(handle))
     }
 }

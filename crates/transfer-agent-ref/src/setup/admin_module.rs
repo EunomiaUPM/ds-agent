@@ -25,6 +25,7 @@ use tonic::service::RoutesBuilder;
 use ymir::config::traits::ApiConfigTrait;
 
 use crate::SERVICE_NAME;
+use crate::grpc::api::FILE_DESCRIPTOR_SET;
 use crate::grpc::api::transfer_messages::transfer_messages_ref_server::TransferMessagesRefServer;
 use crate::grpc::api::transfer_processes::transfer_processes_ref_server::TransferProcessesRefServer;
 use crate::grpc::transfer_messages::TransferMessagesGrpc;
@@ -93,5 +94,9 @@ impl ServiceModuleTrait for TransferAdminModule {
                 self.ctx.transfer_message_svc.clone(),
                 self.ctx.oauth_validator.clone(),
             )));
+    }
+
+    fn grpc_descriptors(&self) -> Vec<&'static [u8]> {
+        vec![FILE_DESCRIPTOR_SET]
     }
 }

@@ -19,7 +19,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use crate::setup::composition::MonolithModule;
-use crate::setup::CoreHttpWorker;
+use crate::setup::{CoreGrpcWorker, CoreHttpWorker};
 use catalog_agent::{CatalogDto, DataServiceDto, NewCatalogDto, NewDataServiceDto};
 use common::boot::BootstrapServiceTrait;
 use common::config::services::traits::CatalogConfigTrait;
@@ -28,6 +28,7 @@ use common::config::ApplicationConfig;
 use common::http_client::{HttpClient, HttpClientError};
 use common::module_loader::service_composer::ServiceComposer;
 use common::utils::flush_redis_cache;
+use common::worker_utils::GrpcServer;
 use oauth::services::admin_seeder::seed_admin_user;
 use tokio::fs;
 use tokio::sync::broadcast;
@@ -252,6 +253,8 @@ impl BootstrapServiceTrait for CoreBoot {
         let http_handle =
             CoreHttpWorker::spawn(config, vault.clone(), composer.http_router(), &cancel_token)
                 .await?;
+        info!("Spawning gRPC subsystem...");
+        let grpc_handle = CoreGrpcWorker::spawn(config, &composer, &cancel_token).await?;
 
         // non-blocking thread supervisor
         let token_clone = cancel_token.clone();
@@ -265,6 +268,9 @@ impl BootstrapServiceTrait for CoreBoot {
                         Ok(_) => error!("HTTP subsystem stopped unexpectedly (task finished)."),
                         Err(e) => error!("HTTP subsystem panicked: {}", e),
                     }
+                }
+                _ = GrpcServer::supervise(grpc_handle) => {
+                    error!("gRPC subsystem stopped unexpectedly.");
                 }
             }
             info!("Initiating internal graceful shutdown sequence...");

@@ -23,6 +23,7 @@ use common::boot::BootstrapServiceTrait;
 use common::config::services::TransferConfig;
 use common::config::types::traits::{CommonConfigTrait, ConfigLoader};
 use common::module_loader::service_composer::ServiceComposer;
+use common::worker_utils::GrpcServer;
 use oauth::services::admin_seeder::seed_admin_user;
 use oauth::setup::module::OAuthModule;
 use std::sync::Arc;
@@ -92,8 +93,7 @@ impl BootstrapServiceTrait for TransferBoot {
         let http_handle =
             TransferHttpWorker::spawn(config, composer.http_router(), &cancel_token).await?;
         tracing::info!("Spawning gRPC subsystem...");
-        let grpc_handle =
-            TransferGrpcWorker::spawn(config, composer.grpc_routes(), &cancel_token).await?;
+        let grpc_handle = TransferGrpcWorker::spawn(config, &composer, &cancel_token).await?;
 
         let token_clone = cancel_token.clone();
         tokio::spawn(async move {
@@ -104,7 +104,7 @@ impl BootstrapServiceTrait for TransferBoot {
                 _ = http_handle => {
                     tracing::error!("HTTP subsystem failed or stopped unexpectedly!");
                 }
-                _ = grpc_handle => {
+                _ = GrpcServer::supervise(grpc_handle) => {
                     tracing::error!("gRPC subsystem failed or stopped unexpectedly!");
                 }
             }

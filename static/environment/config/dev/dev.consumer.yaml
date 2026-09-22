@@ -12,6 +12,12 @@ http_host: &http_host
   port: '1100'
   internal_port: null
 
+grpc_host: &grpc_host
+  protocol: 'grpc'
+  url: '127.0.0.1'
+  port: '1101'
+  internal_port: null
+
 min_http_host: &min_http_host
   protocol: 'http'
   url: '127.0.0.1'
@@ -20,7 +26,7 @@ min_http_host: &min_http_host
 
 hosts_default: &hosts_default
   http: *http_host
-  grpc: null
+  grpc: *grpc_host
   graphql: null
 
 min_hosts_default: &min_hosts_default

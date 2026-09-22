@@ -15,8 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use common::config::services::ContractsConfig;
 use common::config::types::traits::CommonConfigTrait;
+use common::config::ApplicationConfig;
 use common::module_loader::service_composer::ServiceComposer;
 use common::worker_utils::GrpcServer;
 use tokio::task::JoinHandle;
@@ -25,22 +25,27 @@ use ymir::config::traits::HostsConfigTrait;
 use ymir::config::types::HostType;
 use ymir::errors::Outcome;
 
-pub struct NegotiationGrpcWorker {}
+pub struct CoreGrpcWorker;
 
-impl NegotiationGrpcWorker {
-    /// Serves the composed gRPC plane; `None` when no gRPC host is configured.
+impl CoreGrpcWorker {
+    /// Serves every hosted agent's gRPC plane on the monolith's gRPC host; `None` when
+    /// no gRPC host is configured.
     pub async fn spawn(
-        config: &ContractsConfig,
+        config: &ApplicationConfig,
         composer: &ServiceComposer,
         token: &CancellationToken,
     ) -> Outcome<Option<JoinHandle<()>>> {
-        if config.common().grpc().is_none() {
+        let common = config.monolith().common();
+        if common.grpc().is_none() {
             tracing::warn!("No gRPC host configured, skipping gRPC subsystem");
             return Ok(None);
         }
-        let port = config.common().get_internal_port(HostType::Grpc);
+        tracing::info!(
+            "Starting Dataspace gRPC server in {}",
+            common.get_host(HostType::Grpc)
+        );
         let handle = GrpcServer::spawn(
-            port,
+            common.get_internal_port(HostType::Grpc),
             composer.grpc_routes(),
             composer.grpc_descriptors(),
             token,

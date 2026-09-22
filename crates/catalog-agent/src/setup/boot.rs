@@ -17,6 +17,7 @@
 
 use crate::setup::grpc_worker::CatalogGrpcWorker;
 use crate::setup::http_worker::CatalogHttpWorker;
+use crate::setup::CatalogAgentModule;
 use crate::{CatalogDto, DataServiceDto, NewCatalogDto, NewDataServiceDto};
 use common::boot::shutdown::shutdown_signal;
 use common::boot::BootstrapServiceTrait;
@@ -25,6 +26,8 @@ use common::config::services::{CatalogConfig, ContractsConfig, TransferConfig};
 use common::config::types::roles::RoleConfig;
 use common::config::types::traits::{CommonConfigTrait, ConfigLoader, MinKnownConfigTrait};
 use common::http_client::{HttpClient, HttpClientError};
+use common::module_loader::service_composer::ServiceComposer;
+use common::worker_utils::GrpcServer;
 use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::broadcast;
@@ -186,7 +189,9 @@ impl BootstrapServiceTrait for CatalogAgentBoot {
         let http_handle = CatalogHttpWorker::spawn(config, vault.clone(), &cancel_token).await?;
 
         tracing::info!("Spawning gRPC subsystem...");
-        let grpc_handle = CatalogGrpcWorker::spawn(config, vault.clone(), &cancel_token).await?;
+        let composer =
+            ServiceComposer::new().register(CatalogAgentModule::compose(config, &vault).await?);
+        let grpc_handle = CatalogGrpcWorker::spawn(config, &composer, &cancel_token).await?;
 
         // non-blocking thread
         let token_clone = cancel_token.clone();
@@ -199,7 +204,7 @@ impl BootstrapServiceTrait for CatalogAgentBoot {
                 _ = async { http_handle.await } => {
                     tracing::error!("HTTP subsystem failed or stopped unexpectedly!");
                 }
-                _ = async { grpc_handle.await } => {
+                _ = GrpcServer::supervise(grpc_handle) => {
                     tracing::error!("GRPC subsystem failed or stopped unexpectedly!");
                 }
             }

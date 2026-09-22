@@ -17,9 +17,12 @@
 
 mod boot;
 pub mod cmd;
+mod composition;
+pub(crate) mod context;
 mod db_migrations;
 mod grpc_worker;
 mod http_worker;
 
+pub use composition::CatalogAgentModule;
 pub use http_worker::create_root_http_router;
 pub use http_worker::create_root_http_router_with_bus;

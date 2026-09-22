@@ -19,6 +19,7 @@ use crate::setup::context::CoreContext;
 use auth::data::migrations::get_auth_migrations;
 use axum::Router;
 use catalog_agent::get_catalog_migrations;
+use catalog_agent::setup::CatalogAgentModule;
 use common::config::types::traits::CommonConfigTrait;
 use common::config::ApplicationConfig;
 use common::module_loader::module_group::ModuleGroup;
@@ -28,10 +29,12 @@ use dataplane::get_dataplane_migrations;
 use events::data::migrations::get_events_migrations;
 use keystore::KeystoreModule;
 use negotiation_agent::get_negotiation_agent_migrations;
+use negotiation_agent::setup::NegotiationAgentModule;
 use oauth::get_oauth_migrations;
 use oauth::setup::module::OAuthModule;
 use sea_orm_migration::MigrationTrait;
 use std::sync::Arc;
+use tonic::service::RoutesBuilder;
 use transfer_agent_ref::setup::TransferAgentModule;
 use ymir::errors::Outcome;
 use ymir::services::vault::global::VaultService;
@@ -80,6 +83,14 @@ impl MonolithModule {
         let transfer_cfg = config.transfer();
         let transfer =
             TransferAgentModule::compose_with_bus(&transfer_cfg, &vault, Some(bus.clone())).await?;
+        // Catalog and negotiation contribute their gRPC plane as modules; their HTTP plane
+        // still comes through the transitional router wrappers below.
+        let catalog_grpc =
+            CatalogAgentModule::compose_with_bus(config.catalog(), &vault, Some(bus.clone()))
+                .await?;
+        let negotiation_grpc =
+            NegotiationAgentModule::compose_with_bus(config.contracts(), &vault, Some(bus.clone()))
+                .await?;
         let oauth_db = vault.get_db_connection(transfer_cfg.common()).await?;
         let oauth_validator = oauth::setup::composition::OAuthSetup::new()
             .build_token_service(transfer_cfg.common().clone().into(), oauth_db.clone());
@@ -101,11 +112,13 @@ impl MonolithModule {
                 "catalog-agent",
                 ctx.catalog_router,
             ))
+            .register(catalog_grpc)
             .register(ToBeDeprecatedRouterModule::merged("auth", ctx.auth_router))
             .register(ToBeDeprecatedRouterModule::merged(
                 "negotiation-agent",
                 ctx.negotiation_router,
             ))
+            .register(negotiation_grpc)
             .register(oauth)
             .register(transfer)
             .register(
@@ -150,5 +163,13 @@ impl ServiceModuleTrait for MonolithModule {
 
     fn http(&self) -> Option<(String, Router)> {
         self.group.http()
+    }
+
+    fn grpc(&self, routes: &mut RoutesBuilder) {
+        self.group.grpc(routes);
+    }
+
+    fn grpc_descriptors(&self) -> Vec<&'static [u8]> {
+        self.group.grpc_descriptors()
     }
 }

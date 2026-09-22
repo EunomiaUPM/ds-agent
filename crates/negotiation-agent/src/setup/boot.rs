@@ -15,11 +15,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::setup::NegotiationAgentModule;
 use crate::setup::grpc_worker::NegotiationGrpcWorker;
 use crate::setup::http_worker::NegotiationHttpWorker;
 use common::boot::BootstrapServiceTrait;
 use common::config::services::ContractsConfig;
 use common::config::types::traits::ConfigLoader;
+use common::module_loader::service_composer::ServiceComposer;
+use common::worker_utils::GrpcServer;
 use std::sync::Arc;
 use tokio::sync::broadcast;
 use tokio::sync::broadcast::Sender;
@@ -67,8 +70,9 @@ impl BootstrapServiceTrait for NegotiationAgentBoot {
             NegotiationHttpWorker::spawn(config, vault.clone(), &cancel_token).await?;
 
         tracing::info!("Spawning gRPC subsystem...");
-        let grpc_handle =
-            NegotiationGrpcWorker::spawn(config, vault.clone(), &cancel_token).await?;
+        let composer =
+            ServiceComposer::new().register(NegotiationAgentModule::compose(config, &vault).await?);
+        let grpc_handle = NegotiationGrpcWorker::spawn(config, &composer, &cancel_token).await?;
 
         // non-blocking thread
         let token_clone = cancel_token.clone();
@@ -81,7 +85,7 @@ impl BootstrapServiceTrait for NegotiationAgentBoot {
                 _ = async { http_handle.await } => {
                     tracing::error!("HTTP subsystem failed or stopped unexpectedly!");
                 }
-                _ = async { grpc_handle.await } => {
+                _ = GrpcServer::supervise(grpc_handle) => {
                     tracing::error!("GRPC subsystem failed or stopped unexpectedly!");
                 }
             }

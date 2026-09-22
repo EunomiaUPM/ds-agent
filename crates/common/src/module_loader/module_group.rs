@@ -84,4 +84,11 @@ impl ServiceModuleTrait for ModuleGroup {
             module.grpc(routes);
         }
     }
+
+    fn grpc_descriptors(&self) -> Vec<&'static [u8]> {
+        self.modules
+            .iter()
+            .flat_map(|m| m.grpc_descriptors())
+            .collect()
+    }
 }

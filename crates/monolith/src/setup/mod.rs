@@ -20,7 +20,9 @@ pub mod cmd;
 mod composition;
 pub(crate) mod context;
 pub mod db_migrations;
+mod grpc_worker;
 mod http_worker;
 
 pub use composition::MonolithModule;
+pub use grpc_worker::CoreGrpcWorker;
 pub use http_worker::CoreHttpWorker;

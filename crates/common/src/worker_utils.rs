@@ -20,7 +20,47 @@ use std::future::IntoFuture;
 use tokio::net::TcpListener;
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
+use tonic::codegen::tokio_stream::wrappers::TcpListenerStream;
+use tonic::service::Routes;
+use tonic::transport::Server;
 use ymir::errors::{Errors, Outcome};
+
+/// Tonic server hosting a composer's gRPC routes plus a v1 reflection service.
+pub struct GrpcServer;
+
+impl GrpcServer {
+    /// Serves `routes` on `0.0.0.0:<port>` until `token` is cancelled.
+    pub async fn spawn(
+        port: String,
+        routes: Routes,
+        descriptors: Vec<&'static [u8]>,
+        token: &CancellationToken,
+    ) -> Outcome<JoinHandle<()>> {
+        let mut reflection = tonic_reflection::server::Builder::configure();
+        for descriptor in descriptors {
+            reflection = reflection.register_encoded_file_descriptor_set(descriptor);
+        }
+        let reflection = reflection
+            .build_v1()
+            .map_err(|e| Errors::crazy("Error building gRPC reflection", Some(Box::new(e))))?;
+
+        let router = Server::builder().add_routes(routes).add_service(reflection);
+        let incoming = TcpListenerStream::new(bind_listener(port, "gRPC").await?);
+        let server =
+            router.serve_with_incoming_shutdown(incoming, shutdown_signal(token.clone(), "gRPC"));
+        Ok(spawn_server("gRPC", server))
+    }
+
+    /// Resolves when an optional server task ends; pends forever when no server was spawned.
+    pub async fn supervise(handle: Option<JoinHandle<()>>) {
+        match handle {
+            Some(handle) => {
+                let _ = handle.await;
+            }
+            None => std::future::pending().await,
+        }
+    }
+}
 
 /// Binds `0.0.0.0:<port>`, logging under `service` (e.g. "HTTP", "gRPC").
 pub async fn bind_listener(port: String, service: &str) -> Outcome<TcpListener> {
@@ -28,7 +68,7 @@ pub async fn bind_listener(port: String, service: &str) -> Outcome<TcpListener> 
     let listener = TcpListener::bind(&addr)
         .await
         .map_err(|e| Errors::crazy("Error binding socket", Some(Box::new(e))))?;
-    tracing::info!("{service} Transfer-Agent-Ref Service running on {addr}");
+    tracing::info!("{service} service running on {addr}");
     Ok(listener)
 }
 

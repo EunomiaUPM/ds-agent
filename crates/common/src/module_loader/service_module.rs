@@ -41,4 +41,9 @@ pub trait ServiceModuleTrait: Send + Sync {
     /// Register the module's gRPC services into the shared builder.
     /// Default: contributes nothing.
     fn grpc(&self, _routes: &mut RoutesBuilder) {}
+
+    /// Encoded file descriptor sets backing the module's gRPC services (for reflection).
+    fn grpc_descriptors(&self) -> Vec<&'static [u8]> {
+        vec![]
+    }
 }

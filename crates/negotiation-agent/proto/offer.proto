@@ -24,7 +24,7 @@ import "google/protobuf/empty.proto";
 import "models.proto";
 
 service NegotiationAgentOffersService {
-  rpc GetAllOffers (GetAllOffersRequest) returns (OfferListResponse);
+  rpc GetAllOffers (ListOffersRequest) returns (OfferListResponse);
   rpc GetBatchOffers (GetBatchOffersRequest) returns (OfferListResponse);
   rpc GetOffersByNegotiationProcess (GetOffersByNegotiationProcessRequest) returns (OfferListResponse);
   rpc GetOfferById (GetOfferByIdRequest) returns (OfferResponse);
@@ -34,9 +34,17 @@ service NegotiationAgentOffersService {
   rpc DeleteOffer (DeleteOfferRequest) returns (google.protobuf.Empty);
 }
 
-message GetAllOffersRequest {
-  optional uint64 limit = 1;
-  optional uint64 page = 2;
+// Auth: authorization Bearer <token> required; x-tenant-id metadata defaults to the token tenant.
+// Filter strings: "" = any.
+message ListOffersRequest {
+  string process_id = 1;
+  string offer_id = 2;
+  string target = 3;
+  string created_after = 4;  // RFC3339
+  string created_before = 5; // RFC3339
+  uint32 limit = 6;           // 0 = default (20)
+  string cursor = 7;          // "" = first page
+  string sort = 8;            // "" = created_at_desc | created_at_asc | updated_at_asc | updated_at_desc
 }
 
 message GetBatchOffersRequest {
@@ -72,7 +80,9 @@ message DeleteOfferRequest {
 }
 
 message OfferListResponse {
-  repeated Offer offers = 1;
+  repeated Offer items = 1;
+  string next_cursor = 2; // "" = no next page
+  uint64 total = 3;       // 0 = unknown
 }
 
 message OfferResponse {

@@ -29,7 +29,7 @@ use common::paginated_spec::{Page, Paginated, Sort};
 use urn::Urn;
 use ymir::errors::Outcome;
 
-#[cfg_attr(test, mockall::automock)]
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait OfferServiceTrait: Send + Sync + 'static {
     async fn get_all(

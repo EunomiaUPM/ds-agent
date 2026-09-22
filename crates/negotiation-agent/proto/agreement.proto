@@ -24,7 +24,7 @@ import "google/protobuf/empty.proto";
 import "models.proto";
 
 service NegotiationAgentAgreementsService {
-  rpc GetAllAgreements (GetAllAgreementsRequest) returns (AgreementListResponse);
+  rpc GetAllAgreements (ListAgreementsRequest) returns (AgreementListResponse);
   rpc GetBatchAgreements (GetBatchAgreementsRequest) returns (AgreementListResponse);
   rpc GetAgreementById (GetAgreementByIdRequest) returns (AgreementResponse);
   rpc GetAgreementByNegotiationProcess (GetAgreementByNegotiationProcessRequest) returns (AgreementResponse);
@@ -34,9 +34,19 @@ service NegotiationAgentAgreementsService {
   rpc DeleteAgreement (DeleteAgreementRequest) returns (google.protobuf.Empty);
 }
 
-message GetAllAgreementsRequest {
-  optional uint64 limit = 1;
-  optional uint64 page = 2;
+// Auth: authorization Bearer <token> required; x-tenant-id metadata defaults to the token tenant.
+// Filter strings: "" = any.
+message ListAgreementsRequest {
+  string process_id = 1;
+  string consumer_id = 2;
+  string provider_id = 3;
+  string target = 4;
+  string state = 5;
+  string created_after = 6;  // RFC3339
+  string created_before = 7; // RFC3339
+  uint32 limit = 8;           // 0 = default (20)
+  string cursor = 9;          // "" = first page
+  string sort = 10;            // "" = created_at_desc | created_at_asc | updated_at_asc | updated_at_desc
 }
 
 message GetBatchAgreementsRequest {
@@ -75,7 +85,9 @@ message DeleteAgreementRequest {
 }
 
 message AgreementListResponse {
-  repeated Agreement agreements = 1;
+  repeated Agreement items = 1;
+  string next_cursor = 2; // "" = no next page
+  uint64 total = 3;       // 0 = unknown
 }
 
 message AgreementResponse {

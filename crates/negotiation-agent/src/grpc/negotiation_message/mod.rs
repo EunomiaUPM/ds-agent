@@ -17,27 +17,26 @@
 
 //! gRPC adapter for negotiation message management service.
 
-use crate::entities::filters::NegotiationMessageFilter;
-use crate::entities::negotiation_message::{NegotiationMessageDto, NewNegotiationMessageDto};
+mod mappers;
+
+use std::sync::Arc;
+
 use crate::grpc::api::negotiation_agent::negotiation_agent_messages_service_server::NegotiationAgentMessagesService;
 use crate::grpc::api::negotiation_agent::{
     CreateNegotiationMessageRequest, DeleteNegotiationMessageRequest,
-    GetAllNegotiationMessagesRequest, GetMessagesByProcessIdRequest,
-    GetNegotiationMessageByIdRequest, NegotiationMessageListResponse, NegotiationMessageResponse,
+    GetMessagesByProcessIdRequest, GetNegotiationMessageByIdRequest,
+    ListNegotiationMessagesRequest, NegotiationMessageListResponse, NegotiationMessageResponse,
 };
-use crate::grpc::{GrpcAuthHelper, IntoGrpcStatus};
 use crate::services::negotiation_message::NegotiationMessageServiceTrait;
 use common::auth::OauthTokenValidator;
-use common::auth::access::AccessScope;
-use common::paginated_spec::Page;
-use std::str::FromStr;
-use std::sync::Arc;
+use common::auth::grpc::GrpcAuth;
+use common::grpc::{IntoStatus, ListParams, ProtoField};
 use tonic::{Request, Response, Status};
-use urn::Urn;
+use ymir::errors::Errors;
 
 pub struct NegotiationAgentMessagesGrpc {
     service: Arc<dyn NegotiationMessageServiceTrait>,
-    validator: Arc<dyn OauthTokenValidator>,
+    auth: GrpcAuth,
 }
 
 impl NegotiationAgentMessagesGrpc {
@@ -45,11 +44,10 @@ impl NegotiationAgentMessagesGrpc {
         service: Arc<dyn NegotiationMessageServiceTrait>,
         validator: Arc<dyn OauthTokenValidator>,
     ) -> Self {
-        Self { service, validator }
-    }
-
-    async fn scope(&self, meta: &tonic::metadata::MetadataMap) -> Result<AccessScope, Status> {
-        GrpcAuthHelper::extract_scope(&self.validator, meta).await
+        Self {
+            service,
+            auth: GrpcAuth::new(validator),
+        }
     }
 }
 
@@ -57,115 +55,70 @@ impl NegotiationAgentMessagesGrpc {
 impl NegotiationAgentMessagesService for NegotiationAgentMessagesGrpc {
     async fn get_all_negotiation_messages(
         &self,
-        request: Request<GetAllNegotiationMessagesRequest>,
+        request: Request<ListNegotiationMessagesRequest>,
     ) -> Result<Response<NegotiationMessageListResponse>, Status> {
-        let (meta, _, req) = request.into_parts();
-        let scope = self.scope(&meta).await?;
-        let page = Page::new(req.limit.unwrap_or(20) as u32, None);
-        let paginated = self
+        let scope = self.auth.scope(request.metadata()).await?;
+        let params = ListParams::try_from(request.into_inner())?;
+        let result = self
             .service
-            .get_all(&scope, &Default::default(), &page, &Default::default())
+            .get_all(&scope, &params.filter, &params.page, &params.sort)
             .await
-            .map_err(|e| e.into_status())?;
-
-        let proto_messages = paginated
-            .items
-            .into_iter()
-            .map(|view| {
-                let dto: NegotiationMessageDto = view.into();
-                let response: NegotiationMessageResponse = dto.into();
-                response.message.unwrap()
-            })
-            .collect();
-
-        Ok(Response::new(NegotiationMessageListResponse {
-            messages: proto_messages,
-        }))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(result.into()))
     }
 
     async fn get_messages_by_process_id(
         &self,
         request: Request<GetMessagesByProcessIdRequest>,
     ) -> Result<Response<NegotiationMessageListResponse>, Status> {
-        let (meta, _, req) = request.into_parts();
-        let scope = self.scope(&meta).await?;
-        let urn = Urn::from_str(&req.process_id)
-            .map_err(|e| Status::invalid_argument(format!("Invalid Process ID URN: {e}")))?;
-
-        let filter = NegotiationMessageFilter {
-            process_id: Some(urn.to_string()),
-            ..Default::default()
-        };
-        let page = Page::new(100, None);
-        let paginated = self
+        let scope = self.auth.scope(request.metadata()).await?;
+        let params = ListParams::try_from(request.into_inner())?;
+        let result = self
             .service
-            .get_all(&scope, &filter, &page, &Default::default())
+            .get_all(&scope, &params.filter, &params.page, &params.sort)
             .await
-            .map_err(|e| e.into_status())?;
-
-        let proto_messages = paginated
-            .items
-            .into_iter()
-            .map(|view| {
-                let dto: NegotiationMessageDto = view.into();
-                let response: NegotiationMessageResponse = dto.into();
-                response.message.unwrap()
-            })
-            .collect();
-
-        Ok(Response::new(NegotiationMessageListResponse {
-            messages: proto_messages,
-        }))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(result.into()))
     }
 
     async fn get_negotiation_message_by_id(
         &self,
         request: Request<GetNegotiationMessageByIdRequest>,
     ) -> Result<Response<NegotiationMessageResponse>, Status> {
-        let (meta, _, req) = request.into_parts();
-        let scope = self.scope(&meta).await?;
-        let urn = Urn::from_str(&req.id)
-            .map_err(|e| Status::invalid_argument(format!("Invalid ID URN: {e}")))?;
-
+        let scope = self.auth.scope(request.metadata()).await?;
+        let id = request.into_inner().id.urn("id")?;
         let view = self
             .service
-            .get_one(&scope, &urn)
+            .get_one(&scope, &id)
             .await
-            .map_err(|e| e.into_status())?;
-        let dto: NegotiationMessageDto = view.into();
-        Ok(Response::new(dto.into()))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(view.into()))
     }
 
     async fn create_negotiation_message(
         &self,
         request: Request<CreateNegotiationMessageRequest>,
     ) -> Result<Response<NegotiationMessageResponse>, Status> {
-        let (meta, _, req) = request.into_parts();
-        let scope = self.scope(&meta).await?;
-        let new_message_dto: NewNegotiationMessageDto = req.try_into()?;
-
+        let scope = self.auth.scope(request.metadata()).await?;
+        let dto = request.into_inner().try_into()?;
         let view = self
             .service
-            .create(&scope, &new_message_dto)
+            .create(&scope, &dto)
             .await
-            .map_err(|e| e.into_status())?;
-        let dto: NegotiationMessageDto = view.into();
-        Ok(Response::new(dto.into()))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(view.into()))
     }
 
     async fn delete_negotiation_message(
         &self,
         request: Request<DeleteNegotiationMessageRequest>,
     ) -> Result<Response<()>, Status> {
-        let (meta, _, req) = request.into_parts();
-        let scope = self.scope(&meta).await?;
-        let urn = Urn::from_str(&req.id)
-            .map_err(|e| Status::invalid_argument(format!("Invalid ID URN: {e}")))?;
-
+        let scope = self.auth.scope(request.metadata()).await?;
+        let id = request.into_inner().id.urn("id")?;
         self.service
-            .delete(&scope, &urn)
+            .delete(&scope, &id)
             .await
-            .map_err(|e| e.into_status())?;
+            .map_err(Errors::into_status)?;
         Ok(Response::new(()))
     }
 }

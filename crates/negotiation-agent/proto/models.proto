@@ -81,5 +81,5 @@ message NegotiationProcess {
   map<string, string> identifiers = 12;
   repeated NegotiationMessage messages = 13;
   repeated Offer offers = 14;
-  repeated Agreement agreements = 15;
+  optional Agreement agreement = 15;
 }

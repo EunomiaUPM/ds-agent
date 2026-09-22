@@ -24,20 +24,32 @@ import "google/protobuf/empty.proto";
 import "models.proto";
 
 service NegotiationAgentMessagesService {
-  rpc GetAllNegotiationMessages (GetAllNegotiationMessagesRequest) returns (NegotiationMessageListResponse);
+  rpc GetAllNegotiationMessages (ListNegotiationMessagesRequest) returns (NegotiationMessageListResponse);
   rpc GetMessagesByProcessId (GetMessagesByProcessIdRequest) returns (NegotiationMessageListResponse);
   rpc GetNegotiationMessageById (GetNegotiationMessageByIdRequest) returns (NegotiationMessageResponse);
   rpc CreateNegotiationMessage (CreateNegotiationMessageRequest) returns (NegotiationMessageResponse);
   rpc DeleteNegotiationMessage (DeleteNegotiationMessageRequest) returns (google.protobuf.Empty);
 }
 
-message GetAllNegotiationMessagesRequest {
-  optional uint64 limit = 1;
-  optional uint64 page = 2;
+// Auth: authorization Bearer <token> required; x-tenant-id metadata defaults to the token tenant.
+// Filter strings: "" = any.
+message ListNegotiationMessagesRequest {
+  string process_id = 1;
+  string protocol = 2;
+  string message_type = 3;
+  string direction = 4;
+  string created_after = 5;  // RFC3339
+  string created_before = 6; // RFC3339
+  uint32 limit = 7;           // 0 = default (20)
+  string cursor = 8;          // "" = first page
+  string sort = 9;            // "" = created_at_desc | created_at_asc | updated_at_asc | updated_at_desc
 }
 
 message GetMessagesByProcessIdRequest {
-  string process_id = 1;
+  string process_id = 1; // required URN
+  uint32 limit = 2;
+  string cursor = 3;
+  string sort = 4;
 }
 
 message GetNegotiationMessageByIdRequest {
@@ -60,7 +72,9 @@ message DeleteNegotiationMessageRequest {
 }
 
 message NegotiationMessageListResponse {
-  repeated NegotiationMessage messages = 1;
+  repeated NegotiationMessage items = 1;
+  string next_cursor = 2; // "" = no next page
+  uint64 total = 3;       // 0 = unknown
 }
 
 message NegotiationMessageResponse {

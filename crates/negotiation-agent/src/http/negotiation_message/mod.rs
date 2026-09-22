@@ -19,7 +19,6 @@
 
 use crate::entities::filters::NegotiationMessageFilter;
 use crate::entities::negotiation_message::NewNegotiationMessageDto;
-use crate::http::common::ExtractedHeaders;
 use crate::services::negotiation_message::NegotiationMessageServiceTrait;
 use crate::services::negotiation_message::views::NegotiationMessageView;
 use axum::extract::rejection::JsonRejection;
@@ -28,6 +27,7 @@ use axum::http::{HeaderMap, StatusCode};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use common::auth::access::AccessScope;
+use common::auth::http::ExtractedHeaders;
 use common::batch_requests::BatchRequests;
 use common::query::{Paginated, QuerySpec, Sort};
 use std::sync::Arc;

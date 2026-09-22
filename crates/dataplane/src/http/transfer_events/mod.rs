@@ -17,17 +17,16 @@
 
 use std::sync::Arc;
 
+use crate::entities::transfer_events::TransferEventDto;
+use crate::services::transfer_events::TransferEventServiceTrait;
 use axum::extract::{FromRef, Path, State};
 use axum::http::HeaderMap;
 use axum::routing::get;
 use axum::{Json, Router};
 use common::auth::access::AccessScope;
+use common::auth::http::ExtractedHeaders;
 use ymir::errors::AppResult;
 use ymir::utils::extract_path_urn;
-
-use crate::entities::transfer_events::TransferEventDto;
-use crate::http::extractors::ExtractedHeaders;
-use crate::services::transfer_events::TransferEventServiceTrait;
 
 #[derive(Clone)]
 pub struct TransferEventsRouter {

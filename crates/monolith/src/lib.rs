@@ -16,5 +16,5 @@
  */
 
 pub const SERVICE_NAME: &str = "agent";
-pub const SERVICE_BIG_NAME: &str = "Monolith Agent";
+pub const SERVICE_BIG_NAME: &str = "Agent";
 pub mod setup;

@@ -15,11 +15,11 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::common::PolicyTemplateAllowedDefaultValues;
 use crate::entities::policy_templates::types::{
     ParameterDataType, SelectionAllowedValues, ValidationRestrictions,
 };
 use crate::entities::policy_templates::validator::PolicyTemplateError;
+use crate::entities::policy_templates::PolicyTemplateAllowedDefaultValues;
 use regex::Regex;
 use thiserror::Error;
 use ymir::errors::{Errors, Outcome, RepoIntoErrors};

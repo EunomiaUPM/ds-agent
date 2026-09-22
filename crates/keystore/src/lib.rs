@@ -17,7 +17,6 @@
 
 pub mod data;
 pub mod entities;
-pub(crate) mod error;
 pub(crate) mod http;
 pub mod services;
 pub mod setup;

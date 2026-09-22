@@ -17,15 +17,15 @@
 
 #![allow(unused)]
 pub mod cache;
-pub(crate) mod config;
 pub mod data;
 pub mod entities;
-pub(crate) mod errors;
 pub(crate) mod grpc;
 pub(crate) mod http;
 pub(crate) mod protocols;
 pub mod setup;
 
+pub const SERVICE_NAME: &str = "catalog-agent";
+pub const SERVICE_BIG_NAME: &str = "Catalog Agent";
 pub const EVENT_DOMAIN: &str = "catalog";
 pub const EVENT_PREFIX: &str = "catalog:";
 

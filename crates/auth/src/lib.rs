@@ -15,6 +15,9 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+pub const SERVICE_NAME: &str = "ssi-auth-agent";
+pub const SERVICE_BIG_NAME: &str = "SSI-Auth Agent";
+
 pub mod core;
 pub mod data;
 pub mod entities;

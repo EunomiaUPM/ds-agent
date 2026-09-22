@@ -15,47 +15,19 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use bff::GatewayCommands;
+use bff::{GatewayCommands, SERVICE_BIG_NAME, SERVICE_NAME};
+use common::info_banner::banner;
+use common::telemetry;
 use tracing::info;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 use ymir::errors::{Errors, Outcome};
 
-const INFO: &str = r"
-----------
-:::::::::: :::    ::: ::::    :::  ::::::::  ::::    ::::  :::::::::::     :::
-:+:        :+:    :+: :+:+:   :+: :+:    :+: +:+:+: :+:+:+     :+:       :+: :+:
-+:+        +:+    +:+ :+:+:+  +:+ +:+    +:+ +:+ +:+:+ +:+     +:+      +:+   +:+
-+#++:++#   +#+    +:+ +#+ +:+ +#+ +#+    +:+ +#+  +:+  +#+     +#+     +#++:++#++:
-+#+        +#+    +#+ +#+  +#+#+# +#+    +#+ +#+       +#+     +#+     +#+     +#+
-#+#        #+#    #+# #+#   #+#+# #+#    #+# #+#       #+#     #+#     #+#     #+#
-##########  ########  ###    ####  ########  ###       ### ########### ###     ###
-:::::::::   ::::::::                    :::      ::::::::  :::::::::: ::::    ::: :::::::::::
-:+:    :+: :+:    :+:                 :+: :+:   :+:    :+: :+:        :+:+:   :+:     :+:
-+:+    +:+ +:+                       +:+   +:+  +:+        +:+        :+:+:+  +:+     +:+
-+#+    +:+ +#++:++#++ +#++:++#++:++ +#++:++#++: :#:        +#++:++#   +#+ +:+ +#+     +#+
-+#+    +#+        +#+               +#+     +#+ +#+   +#+# +#+        +#+  +#+#+#     +#+
-#+#    #+# #+#    #+#               #+#     #+# #+#    #+# #+#        #+#   #+#+#     #+#
-#########   ########                ###     ###  ########  ########## ###    ####     ###
-
-Starting Eunomia DS-Agent Gateway Server and Frontend  🌈🌈
-UPM Dataspace agent
-Show some love on https://github.com/EunomiaUPM/ds-agent
-----------
-
-";
-
+#[allow(clippy::result_large_err)]
 #[tokio::main]
 async fn main() -> Outcome<()> {
-    let filter = EnvFilter::builder()
-        .with_default_directive(LevelFilter::INFO.into())
-        .parse("debug,sqlx::query=off")
-        .map_err(|e| Errors::crazy(e.to_string(), Some(Box::new(e))))?;
-    tracing_subscriber::fmt()
-        .event_format(tracing_subscriber::fmt::format().with_line_number(true))
-        .with_env_filter(filter)
-        .init();
-    info!("{}", INFO);
+    telemetry::init(SERVICE_NAME);
+    info!("{}", banner(SERVICE_BIG_NAME));
     GatewayCommands::init_command_line().await?;
     Ok(())
 }

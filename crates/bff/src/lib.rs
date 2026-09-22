@@ -27,3 +27,6 @@ pub use setup::cmd::GatewayCommands;
 pub use setup::composition::BffModule;
 pub use setup::context::AppContext;
 pub use setup::http_worker::{create_gateway_http_router, create_gateway_http_router_with_context};
+
+pub const SERVICE_NAME: &str = "gateway-agent";
+pub const SERVICE_BIG_NAME: &str = "Gateway Agent";

@@ -16,47 +16,19 @@
  */
 
 use auth::setup::cmd::AuthCommands;
+use auth::{SERVICE_BIG_NAME, SERVICE_NAME};
+use common::info_banner::banner;
+use common::telemetry;
 use tracing::info;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 use ymir::errors::{Errors, Outcome};
 
-const INFO: &str = r"
-----------
-:::::::::: :::    ::: ::::    :::  ::::::::  ::::    ::::  :::::::::::     :::
-:+:        :+:    :+: :+:+:   :+: :+:    :+: +:+:+: :+:+:+     :+:       :+: :+:
-+:+        +:+    +:+ :+:+:+  +:+ +:+    +:+ +:+ +:+:+ +:+     +:+      +:+   +:+
-+#++:++#   +#+    +:+ +#+ +:+ +#+ +#+    +:+ +#+  +:+  +#+     +#+     +#++:++#++:
-+#+        +#+    +#+ +#+  +#+#+# +#+    +#+ +#+       +#+     +#+     +#+     +#+
-#+#        #+#    #+# #+#   #+#+# #+#    #+# #+#       #+#     #+#     #+#     #+#
-##########  ########  ###    ####  ########  ###       ### ########### ###     ###
-:::::::::   ::::::::                    :::      ::::::::  :::::::::: ::::    ::: :::::::::::
-:+:    :+: :+:    :+:                 :+: :+:   :+:    :+: :+:        :+:+:   :+:     :+:
-+:+    +:+ +:+                       +:+   +:+  +:+        +:+        :+:+:+  +:+     +:+
-+#+    +:+ +#++:++#++ +#++:++#++:++ +#++:++#++: :#:        +#++:++#   +#+ +:+ +#+     +#+
-+#+    +#+        +#+               +#+     +#+ +#+   +#+# +#+        +#+  +#+#+#     +#+
-#+#    #+# #+#    #+#               #+#     #+# #+#    #+# #+#        #+#   #+#+#     #+#
-#########   ########                ###     ###  ########  ########## ###    ####     ###
-
-Starting Eunomia DS-Agent Auth Server 🌈🌈
-UPM Dataspace multistack agent
-Show some love on https://github.com/EunomiaUPM/ds-agent
-----------
-
-";
-
+#[allow(clippy::result_large_err)]
 #[tokio::main]
 async fn main() -> Outcome<()> {
-    let filter = EnvFilter::builder()
-        .with_default_directive(LevelFilter::INFO.into())
-        .parse("debug,sqlx::query=off")
-        .map_err(|e| {
-            let error = Errors::crazy("Unexpected error on main", Some(Box::new(e)));
-            error.log();
-            error
-        })?;
-    tracing_subscriber::fmt().with_env_filter(filter).init();
-    info!("{}", INFO);
+    telemetry::init(SERVICE_NAME);
+    info!("{}", banner(SERVICE_BIG_NAME));
     AuthCommands::init_command_line().await?;
     Ok(())
 }

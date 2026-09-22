@@ -19,7 +19,6 @@ pub(crate) mod instantiation_engine;
 pub(crate) mod validator_request;
 pub(crate) mod validators;
 
-use crate::entities::common::PolicyTemplateAllowedDefaultValues;
 use crate::entities::odrl_policies::CatalogEntityTypes;
 use crate::OdrlPolicyDto;
 use serde::{Deserialize, Serialize};
@@ -39,6 +38,7 @@ pub struct NewPolicyInstantiationDto {
     pub description: Option<String>,
 }
 
+use crate::entities::policy_templates::PolicyTemplateAllowedDefaultValues;
 use common::auth::AccessScope;
 
 #[async_trait::async_trait]

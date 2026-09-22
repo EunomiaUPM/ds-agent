@@ -32,6 +32,13 @@ use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(untagged)]
+pub enum PolicyTemplateAllowedDefaultValues {
+    Stringable(String),
+    Numerable(f32),
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct PolicyTemplateDto {
     pub id: String,

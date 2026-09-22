@@ -19,7 +19,6 @@
 
 use crate::entities::agreement::{EditAgreementDto, NewAgreementDto};
 use crate::entities::filters::AgreementFilter;
-use crate::http::common::ExtractedHeaders;
 use crate::services::agreement::AgreementServiceTrait;
 use crate::services::agreement::views::AgreementView;
 use axum::extract::rejection::JsonRejection;
@@ -28,6 +27,7 @@ use axum::http::{HeaderMap, StatusCode};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use common::auth::access::AccessScope;
+use common::auth::http::ExtractedHeaders;
 use common::batch_requests::BatchRequests;
 use common::query::{Paginated, QuerySpec, Sort};
 use std::sync::Arc;

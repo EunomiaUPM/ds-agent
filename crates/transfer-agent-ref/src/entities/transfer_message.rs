@@ -121,3 +121,24 @@ pub(crate) enum Direction {
     Inbound,
     Outbound,
 }
+
+impl std::fmt::Display for Direction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Direction::Inbound => f.write_str("inbound"),
+            Direction::Outbound => f.write_str("outbound"),
+        }
+    }
+}
+
+impl std::str::FromStr for Direction {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "inbound" => Ok(Direction::Inbound),
+            "outbound" => Ok(Direction::Outbound),
+            other => Err(format!("unknown direction: {other}")),
+        }
+    }
+}

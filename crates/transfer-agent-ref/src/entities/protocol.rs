@@ -20,6 +20,7 @@ use compact_str::CompactString;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
+use std::str::FromStr;
 use urn::Urn;
 // Common Transfer process related protocol fields
 // Such as direction, role, protocolId, loose protocolState, loose protocolMessageType
@@ -43,6 +44,29 @@ pub enum TransferRole {
     Relay,
 }
 
+impl Display for TransferRole {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TransferRole::Provider => f.write_str("provider"),
+            TransferRole::Consumer => f.write_str("consumer"),
+            TransferRole::Relay => f.write_str("relay"),
+        }
+    }
+}
+
+impl FromStr for TransferRole {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "provider" => Ok(TransferRole::Provider),
+            "consumer" => Ok(TransferRole::Consumer),
+            "relay" => Ok(TransferRole::Relay),
+            other => Err(format!("unknown role: {other}")),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) enum ProtocolId {
     #[serde(rename = "dsp2024")]
@@ -56,6 +80,18 @@ impl Display for ProtocolId {
         match self {
             ProtocolId::Dsp2024 => f.write_str("dsp2024"),
             ProtocolId::Dsp2025_1 => f.write_str("dsp2025_1"),
+        }
+    }
+}
+
+impl FromStr for ProtocolId {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "dsp2024" => Ok(ProtocolId::Dsp2024),
+            "dsp2025_1" => Ok(ProtocolId::Dsp2025_1),
+            other => Err(format!("unknown protocol: {other}")),
         }
     }
 }
@@ -100,4 +136,17 @@ pub struct TransferCorrelation {
     pub agreement_id: Option<Urn>,
     pub callback_address: Option<url::Url>,
     pub peer_participant_id: Option<ParticipantId>,
+}
+
+impl TransferCorrelation {
+    pub fn empty() -> Self {
+        Self {
+            identifiers: HashMap::new(),
+            consumer_pid: None,
+            provider_pid: None,
+            agreement_id: None,
+            callback_address: None,
+            peer_participant_id: None,
+        }
+    }
 }

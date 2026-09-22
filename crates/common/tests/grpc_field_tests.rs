@@ -16,7 +16,7 @@
  */
 
 use chrono::{TimeZone, Utc};
-use common::grpc::{InvalidField, ProtoField, ProtoFieldList};
+use common::grpc::{InvalidField, ProtoEnum, ProtoField, ProtoFieldList};
 use common::paginated_spec::Sort;
 use tonic::Code;
 
@@ -109,4 +109,30 @@ fn sort_round_trips_through_display_and_from_str() {
         assert_eq!(s.to_string().parse::<Sort>().unwrap(), s);
     }
     assert!("other".parse::<Sort>().is_err());
+}
+
+#[derive(Debug, PartialEq)]
+enum Colour {
+    Red,
+    Blue,
+}
+
+impl TryFrom<i32> for Colour {
+    type Error = ();
+    fn try_from(v: i32) -> Result<Self, ()> {
+        match v {
+            0 => Ok(Self::Red),
+            1 => Ok(Self::Blue),
+            _ => Err(()),
+        }
+    }
+}
+
+#[test]
+fn proto_enum_decodes_and_rejects_unknown_values_naming_field() {
+    assert_eq!(1.proto_enum::<Colour>("colour").unwrap(), Colour::Blue);
+
+    let err = 7.proto_enum::<Colour>("colour").unwrap_err();
+    assert_eq!(err.code(), Code::InvalidArgument);
+    assert_eq!(err.message(), "colour: unknown enum value 7");
 }

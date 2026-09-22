@@ -22,7 +22,7 @@ pub mod json;
 pub mod page;
 pub mod status;
 
-pub use field::{InvalidField, ProtoField, ProtoFieldList};
+pub use field::{InvalidField, ProtoEnum, ProtoField, ProtoFieldList};
 pub use json::{JsonStruct, JsonStructExt, JsonValueExt};
 pub use page::{PageMeta, PageParams};
 pub use status::IntoStatus;

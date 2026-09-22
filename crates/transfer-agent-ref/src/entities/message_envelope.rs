@@ -18,6 +18,7 @@
 use common::serde_utils::serialize_opt_hash_hex;
 use sea_orm::prelude::Json;
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 
 // Message envelope
 
@@ -48,6 +49,15 @@ impl MessageEnvelope {
             canonical_hash,
             payload,
         }
+    }
+
+    /// Builds an envelope hashing the canonical form (SHA-256) when one is given.
+    pub(crate) fn from_canonical(payload: Json, canonical_form: Option<String>) -> Self {
+        let canonical = canonical_form.map(|form| {
+            let hash: [u8; 32] = Sha256::digest(form.as_bytes()).into();
+            (form, hash)
+        });
+        Self::new(payload, canonical)
     }
 }
 

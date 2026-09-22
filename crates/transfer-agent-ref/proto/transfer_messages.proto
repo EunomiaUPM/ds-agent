@@ -18,6 +18,8 @@
 syntax = "proto3";
 package transfer_messages_ref;
 
+import "google/protobuf/struct.proto";
+
 // Enums ──────────────────────────────────────────────────────────────────
 
 enum Direction {
@@ -28,7 +30,7 @@ enum Direction {
 // Nested types ───────────────────────────────────────────────────────────
 
 message MessageEnvelope {
-  string payload = 1;              // protocol message as JSON, verbatim
+  google.protobuf.Struct payload = 1; // protocol message, verbatim; absent = null
   string canonical_form = 2;       // N-Quads text; "" = absent (non-RDF protocols)
   string canonical_hash = 3;       // "" = absent; hex SHA-256
 }
@@ -58,7 +60,7 @@ message DeleteResponse {}
 
 // Request types ──────────────────────────────────────────────────────────
 
-// Auth: authorization Bearer <token> + x-tenant-id metadata headers required.
+// Auth: authorization Bearer <token> required; x-tenant-id metadata defaults to the token tenant.
 // Filter strings: send "" to omit a filter. Pagination: limit=0 defaults to 20.
 message ListTransferMessagesRequest {
   string direction = 1;          // "" = any; "inbound" | "outbound"
@@ -94,7 +96,7 @@ message CreateTransferMessageRequest {
   string message_type = 4;
   string state_transition_from = 5;
   string state_transition_to = 6;
-  string payload = 7;              // protocol message as JSON; "" = absent
+  google.protobuf.Struct payload = 7; // protocol message; absent = null
   string canonical_form = 8;       // N-Quads text; "" = absent
 }
 

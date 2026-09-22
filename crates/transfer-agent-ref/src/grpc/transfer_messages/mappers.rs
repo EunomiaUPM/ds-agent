@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::str::FromStr;
+//! Proto ⇄ domain mappers for the transfer-message RPCs.
 
 use crate::entities::commands::NewTransferMessageCommand;
 use crate::entities::filters::TransferMessageFilter;
@@ -28,233 +28,162 @@ use crate::grpc::api::transfer_messages::{
     ListTransferMessagesByProcessRequest, ListTransferMessagesRequest,
     MessageEnvelope as ProtoEnvelope, TransferMessageListResponse, TransferMessageResponse,
 };
-use crate::grpc::utils::{non_empty, parse_dt, parse_urn};
 use crate::services::transfer_message::views::TransferMessageView;
+use common::grpc::{JsonStructExt, JsonValueExt, PageMeta, PageParams, ProtoEnum, ProtoField};
 use common::query::{Page, Paginated, Sort};
 use compact_str::CompactString;
 use serde_json::Value as Json;
-use sha2::{Digest, Sha256};
 use tonic::Status;
 use urn::Urn;
 
 // Request to Domain ───────────────────────────────────────────────────────
 
-pub fn into_list_params(
-    req: ListTransferMessagesRequest,
-) -> Result<(TransferMessageFilter, Page, Sort), Status> {
-    let direction = non_empty(&req.direction)
-        .map(parse_direction_str)
-        .transpose()?;
-    let protocol = non_empty(&req.protocol)
-        .map(parse_protocol_id)
-        .transpose()?;
-    let state_transition_to = non_empty(&req.state_transition_to).map(|s| ProtocolState(s.into()));
-    let created_after = non_empty(&req.created_after)
-        .map(|s| parse_dt(s, "created_after"))
-        .transpose()?;
-    let created_before = non_empty(&req.created_before)
-        .map(|s| parse_dt(s, "created_before"))
-        .transpose()?;
-
-    let filter = TransferMessageFilter {
-        tenant_id: None,
-        direction,
-        protocol,
-        state_transition_to,
-        created_after,
-        created_before,
-    };
-    let cursor = non_empty(&req.cursor).map(|s| s.to_owned());
-    let page = Page::new(if req.limit == 0 { 20 } else { req.limit }, cursor);
-    let sort = non_empty(&req.sort)
-        .map(parse_sort)
-        .transpose()?
-        .unwrap_or_default();
-    Ok((filter, page, sort))
+/// Parsed list parameters for the transfer-message list RPCs.
+pub(super) struct ListParams {
+    pub filter: TransferMessageFilter,
+    pub page: Page,
+    pub sort: Sort,
 }
 
-pub fn into_list_by_process_params(
-    req: ListTransferMessagesByProcessRequest,
-) -> Result<(Urn, TransferMessageFilter, Page, Sort), Status> {
-    let process_id = parse_urn(&req.process_id, "process_id")?;
-    let direction = non_empty(&req.direction)
-        .map(parse_direction_str)
-        .transpose()?;
-    let protocol = non_empty(&req.protocol)
-        .map(parse_protocol_id)
-        .transpose()?;
-    let state_transition_to = non_empty(&req.state_transition_to).map(|s| ProtocolState(s.into()));
-    let created_after = non_empty(&req.created_after)
-        .map(|s| parse_dt(s, "created_after"))
-        .transpose()?;
-    let created_before = non_empty(&req.created_before)
-        .map(|s| parse_dt(s, "created_before"))
-        .transpose()?;
+impl TryFrom<ListTransferMessagesRequest> for ListParams {
+    type Error = Status;
 
-    let filter = TransferMessageFilter {
-        tenant_id: None,
-        direction,
-        protocol,
-        state_transition_to,
-        created_after,
-        created_before,
-    };
-    let cursor = non_empty(&req.cursor).map(|s| s.to_owned());
-    let page = Page::new(if req.limit == 0 { 20 } else { req.limit }, cursor);
-    let sort = non_empty(&req.sort)
-        .map(parse_sort)
-        .transpose()?
-        .unwrap_or_default();
-    Ok((process_id, filter, page, sort))
+    fn try_from(req: ListTransferMessagesRequest) -> Result<Self, Status> {
+        let (page, sort) = PageParams::from_proto(req.limit, &req.cursor, &req.sort)?;
+        let filter = TransferMessageFilter {
+            tenant_id: None,
+            direction: req.direction.opt_parsed::<Direction>("direction")?,
+            protocol: req.protocol.opt_parsed::<ProtocolId>("protocol")?,
+            state_transition_to: req
+                .state_transition_to
+                .non_empty()
+                .map(|s| ProtocolState(s.into())),
+            created_after: req.created_after.opt_rfc3339("created_after")?,
+            created_before: req.created_before.opt_rfc3339("created_before")?,
+        };
+        Ok(Self { filter, page, sort })
+    }
 }
 
-pub fn into_create_cmd(
-    req: CreateTransferMessageRequest,
-) -> Result<NewTransferMessageCommand, Status> {
-    let process_urn = parse_urn(&req.transfer_process_id, "transfer_process_id")?;
-    let direction = parse_proto_direction(req.direction)?;
-    let protocol = parse_protocol_id(&req.protocol)?;
-    let envelope = build_envelope(req.payload, req.canonical_form)?;
+/// List parameters scoped to one transfer process.
+pub(super) struct ListByProcessParams {
+    pub process_id: Urn,
+    pub params: ListParams,
+}
 
-    Ok(NewTransferMessageCommand {
-        id: None,
-        transfer_process_id: TransferProcessId::new(process_urn),
-        tenant_id: None,
-        direction,
-        protocol,
-        message_type: ProtocolMessageType(CompactString::from(req.message_type)),
-        state_transition_from: ProtocolState(req.state_transition_from.into()),
-        state_transition_to: ProtocolState(req.state_transition_to.into()),
-        envelope,
-    })
+impl TryFrom<ListTransferMessagesByProcessRequest> for ListByProcessParams {
+    type Error = Status;
+
+    fn try_from(req: ListTransferMessagesByProcessRequest) -> Result<Self, Status> {
+        let process_id = req.process_id.urn("process_id")?;
+        let params = ListParams::try_from(ListTransferMessagesRequest::from(req))?;
+        Ok(Self { process_id, params })
+    }
+}
+
+/// The by-process request is the plain list request plus a process id.
+impl From<ListTransferMessagesByProcessRequest> for ListTransferMessagesRequest {
+    fn from(req: ListTransferMessagesByProcessRequest) -> Self {
+        Self {
+            direction: req.direction,
+            protocol: req.protocol,
+            state_transition_to: req.state_transition_to,
+            created_after: req.created_after,
+            created_before: req.created_before,
+            limit: req.limit,
+            cursor: req.cursor,
+            sort: req.sort,
+        }
+    }
+}
+
+impl TryFrom<CreateTransferMessageRequest> for NewTransferMessageCommand {
+    type Error = Status;
+
+    fn try_from(req: CreateTransferMessageRequest) -> Result<Self, Status> {
+        let payload = req
+            .payload
+            .map(JsonStructExt::into_json)
+            .unwrap_or(Json::Null);
+        let canonical_form = req.canonical_form.non_empty().map(str::to_owned);
+        Ok(Self {
+            id: None,
+            transfer_process_id: TransferProcessId::new(
+                req.transfer_process_id.urn("transfer_process_id")?,
+            ),
+            tenant_id: None,
+            direction: req
+                .direction
+                .proto_enum::<ProtoDirection>("direction")?
+                .into(),
+            protocol: req.protocol.parsed::<ProtocolId>("protocol")?,
+            message_type: ProtocolMessageType(CompactString::from(req.message_type)),
+            state_transition_from: ProtocolState(req.state_transition_from.into()),
+            state_transition_to: ProtocolState(req.state_transition_to.into()),
+            envelope: MessageEnvelope::from_canonical(payload, canonical_form),
+        })
+    }
 }
 
 // Domain to Response ──────────────────────────────────────────────────────
 
-pub fn from_view(view: TransferMessageView) -> TransferMessageResponse {
-    let direction = domain_direction_to_proto(view.direction) as i32;
-    let protocol = match &view.protocol {
-        ProtocolId::Dsp2024 => "dsp2024".to_string(),
-        ProtocolId::Dsp2025_1 => "dsp2025_1".to_string(),
-    };
-    let envelope = Some(from_envelope(&view.envelope));
-
-    TransferMessageResponse {
-        id: view.id.to_string(),
-        transfer_process_id: view.transfer_process_id.to_string(),
-        tenant_id: view.tenant_id.to_string(),
-        direction,
-        protocol,
-        message_type: view.message_type.0.to_string(),
-        state_transition_from: view.state_transition_from,
-        state_transition_to: view.state_transition_to,
-        envelope,
-        occurred_at: view.occurred_at.to_rfc3339(),
+impl From<TransferMessageView> for TransferMessageResponse {
+    fn from(view: TransferMessageView) -> Self {
+        Self {
+            id: view.id.to_string(),
+            transfer_process_id: view.transfer_process_id.to_string(),
+            tenant_id: view.tenant_id,
+            direction: ProtoDirection::from(view.direction) as i32,
+            protocol: view.protocol.to_string(),
+            message_type: view.message_type.0.to_string(),
+            state_transition_from: view.state_transition_from,
+            state_transition_to: view.state_transition_to,
+            envelope: Some(view.envelope.into()),
+            occurred_at: view.occurred_at.to_rfc3339(),
+        }
     }
 }
 
-pub fn from_paginated(result: Paginated<TransferMessageView>) -> TransferMessageListResponse {
-    TransferMessageListResponse {
-        items: result.items.into_iter().map(from_view).collect(),
-        next_cursor: result.next_cursor.unwrap_or_default(),
-        total: result.total.unwrap_or(0),
+impl From<Paginated<TransferMessageView>> for TransferMessageListResponse {
+    fn from(p: Paginated<TransferMessageView>) -> Self {
+        let meta = PageMeta::from(&p);
+        Self {
+            items: p.items.into_iter().map(Into::into).collect(),
+            next_cursor: meta.next_cursor,
+            total: meta.total,
+        }
     }
 }
 
-// Nested type conversions ─────────────────────────────────────────────────
+// Nested types ────────────────────────────────────────────────────────────
 
-fn bytes_to_hex(h: &[u8; 32]) -> String {
-    use std::fmt::Write;
-    let mut buf = String::with_capacity(64);
-    for b in h {
-        write!(buf, "{b:02x}").unwrap();
-    }
-    buf
-}
-
-fn from_envelope(env: &MessageEnvelope) -> ProtoEnvelope {
-    let canonical_hash = env
-        .canonical_hash
-        .map(|h| bytes_to_hex(&h))
-        .unwrap_or_default();
-
-    ProtoEnvelope {
-        payload: serde_json::to_string(&env.payload).unwrap_or_default(),
-        canonical_form: env.canonical_form.clone().unwrap_or_default(),
-        canonical_hash,
+/// A null payload is sent as an absent `Struct`; the hash travels hex-encoded.
+impl From<MessageEnvelope> for ProtoEnvelope {
+    fn from(env: MessageEnvelope) -> Self {
+        Self {
+            payload: (!env.payload.is_null()).then(|| env.payload.into_prost_struct()),
+            canonical_form: env.canonical_form.unwrap_or_default(),
+            canonical_hash: env.canonical_hash.map(hex::encode).unwrap_or_default(),
+        }
     }
 }
 
-// Envelope builder ────────────────────────────────────────────────────────
+// Proto enums ⇄ domain enums ──────────────────────────────────────────────
 
-fn build_envelope(payload_json: String, canonical_form: String) -> Result<MessageEnvelope, Status> {
-    let payload: Json = if payload_json.is_empty() {
-        Json::Null
-    } else {
-        serde_json::from_str(&payload_json)
-            .map_err(|e| Status::invalid_argument(format!("payload: {e}")))?
-    };
-    let (canonical_form, canonical_hash) = if canonical_form.is_empty() {
-        (None, None)
-    } else {
-        let ch: [u8; 32] = Sha256::digest(canonical_form.as_bytes()).into();
-        (Some(canonical_form), Some(ch))
-    };
-
-    Ok(MessageEnvelope {
-        canonical_form,
-        canonical_hash,
-        payload,
-    })
-}
-
-// Enum conversions ────────────────────────────────────────────────────────
-
-fn parse_proto_direction(value: i32) -> Result<Direction, Status> {
-    match ProtoDirection::try_from(value) {
-        Ok(ProtoDirection::Inbound) => Ok(Direction::Inbound),
-        Ok(ProtoDirection::Outbound) => Ok(Direction::Outbound),
-        Err(_) => Err(Status::invalid_argument(format!(
-            "unknown Direction: {value}"
-        ))),
+impl From<ProtoDirection> for Direction {
+    fn from(dir: ProtoDirection) -> Self {
+        match dir {
+            ProtoDirection::Inbound => Direction::Inbound,
+            ProtoDirection::Outbound => Direction::Outbound,
+        }
     }
 }
 
-fn parse_direction_str(s: &str) -> Result<Direction, Status> {
-    match s {
-        "inbound" => Ok(Direction::Inbound),
-        "outbound" => Ok(Direction::Outbound),
-        other => Err(Status::invalid_argument(format!(
-            "unknown direction: {other}"
-        ))),
-    }
-}
-
-fn domain_direction_to_proto(dir: Direction) -> ProtoDirection {
-    match dir {
-        Direction::Inbound => ProtoDirection::Inbound,
-        Direction::Outbound => ProtoDirection::Outbound,
-    }
-}
-
-fn parse_protocol_id(s: &str) -> Result<ProtocolId, Status> {
-    match s {
-        "dsp2024" => Ok(ProtocolId::Dsp2024),
-        "dsp2025_1" => Ok(ProtocolId::Dsp2025_1),
-        other => Err(Status::invalid_argument(format!(
-            "unknown protocol: {other}"
-        ))),
-    }
-}
-
-// Pagination / sort ───────────────────────────────────────────────────────
-
-fn parse_sort(s: &str) -> Result<Sort, Status> {
-    match s {
-        "created_at_asc" => Ok(Sort::CreatedAtAsc),
-        "created_at_desc" => Ok(Sort::CreatedAtDesc),
-        "updated_at_asc" => Ok(Sort::UpdatedAtAsc),
-        "updated_at_desc" => Ok(Sort::UpdatedAtDesc),
-        other => Err(Status::invalid_argument(format!("unknown sort: {other}"))),
+impl From<Direction> for ProtoDirection {
+    fn from(dir: Direction) -> Self {
+        match dir {
+            Direction::Inbound => ProtoDirection::Inbound,
+            Direction::Outbound => ProtoDirection::Outbound,
+        }
     }
 }

@@ -15,15 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use axum::http::StatusCode;
-use tonic::Status;
-use ymir::errors::Errors;
+//! gRPC driving adapter: generated API plus one handler module per resource.
 
 pub(crate) mod transfer_messages;
 pub(crate) mod transfer_process;
-mod utils;
 
-/// Extracts public gRPC API from build stage
+/// Generated protobuf/tonic code and the reflection descriptor set.
 pub mod api {
     pub mod transfer_processes {
         tonic::include_proto!("transfer_processes_ref");
@@ -33,19 +30,4 @@ pub mod api {
     }
     pub const FILE_DESCRIPTOR_SET: &[u8] =
         tonic::include_file_descriptor_set!("transfer_ref_descriptor");
-}
-
-/// Translates a domain [`Errors`] into a gRPC [`Status`]
-pub(crate) fn to_status(err: Errors) -> Status {
-    let message = err.reason().to_string();
-    match err.info().status_code {
-        StatusCode::NOT_FOUND => Status::not_found(message),
-        StatusCode::FORBIDDEN => Status::permission_denied(message),
-        StatusCode::UNAUTHORIZED => Status::unauthenticated(message),
-        StatusCode::BAD_REQUEST | StatusCode::UNPROCESSABLE_ENTITY => {
-            Status::invalid_argument(message)
-        }
-        StatusCode::PRECONDITION_FAILED => Status::failed_precondition(message),
-        _ => Status::internal(message),
-    }
 }

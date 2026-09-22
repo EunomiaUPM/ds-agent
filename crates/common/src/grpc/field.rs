@@ -116,6 +116,19 @@ impl ProtoField for str {
     }
 }
 
+/// Extension trait decoding a proto enum carried as `i32`.
+pub trait ProtoEnum {
+    /// Decodes the wire integer into a prost enum; unknown values name the field.
+    fn proto_enum<E: TryFrom<i32>>(self, field: &str) -> Result<E, Status>;
+}
+
+impl ProtoEnum for i32 {
+    fn proto_enum<E: TryFrom<i32>>(self, field: &str) -> Result<E, Status> {
+        E::try_from(self)
+            .map_err(|_| InvalidField::status(field, format!("unknown enum value {self}")))
+    }
+}
+
 /// Extension trait parsing a `repeated string` proto field.
 pub trait ProtoFieldList {
     /// Parses every element as a URN; the first failure names the field and its index.

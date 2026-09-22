@@ -18,6 +18,8 @@
 syntax = "proto3";
 package transfer_processes_ref;
 
+import "google/protobuf/struct.proto";
+
 // Enums ──────────────────────────────────────────────────────────────────
 
 enum TransferRole {
@@ -40,7 +42,7 @@ message StateMetadata {
 }
 
 message TransferCorrelation {
-  string identifiers = 1;         // JSON blob; "" = absent
+  map<string, string> identifiers = 1;
   string consumer_pid = 2;        // "" = absent
   string provider_pid = 3;        // "" = absent
   string agreement_id = 4;        // "" = absent
@@ -58,8 +60,8 @@ message TransferProcessResponse {
   string state = 5;
   StateMetadata state_metadata = 6;
   TransferCorrelation correlation = 7;
-  string properties = 8;     // JSON blob
-  string error_details = 9;  // JSON blob; "" = absent
+  google.protobuf.Struct properties = 8;
+  google.protobuf.Struct error_details = 9; // absent = no error recorded
   string created_at = 10;    // RFC3339
   string updated_at = 11;    // RFC3339
   uint64 version = 12;
@@ -75,7 +77,7 @@ message DeleteResponse {}
 
 // Request types ──────────────────────────────────────────────────────────
 
-// Auth: authorization Bearer <token> + x-tenant-id metadata headers required.
+// Auth: authorization Bearer <token> required; x-tenant-id metadata defaults to the token tenant.
 // Filter strings: send "" to omit a filter. Pagination: limit=0 defaults to 20.
 message ListTransferProcessesRequest {
   string protocol = 1;           // "" = any; "dsp2024" | "dsp2025_1"
@@ -105,8 +107,8 @@ message CreateTransferProcessRequest {
   string agreement_id = 4;
   string peer_participant_id = 5;
   string callback_address = 6;         // "" = absent
-  string identifiers = 7;           // JSON blob; "" = absent
-  string properties = 8;               // JSON blob; "" = absent
+  map<string, string> identifiers = 7; // empty = absent
+  google.protobuf.Struct properties = 8; // absent = none
   string initial_state_attribute = 9;  // "" = absent
   string initial_state_code = 10;      // "" = absent
   repeated string initial_state_reasons = 11;
@@ -115,9 +117,9 @@ message CreateTransferProcessRequest {
 message EditTransferProcessRequest {
   string id = 1;
   string state = 2;              // "" = no change
-  string identifiers = 3;           // JSON blob; "" = absent
-  string properties = 4;         // JSON blob; "" = no change
-  string error_details = 5;      // JSON blob; "" = no change
+  map<string, string> identifiers = 3;      // empty = no change
+  google.protobuf.Struct properties = 4;    // absent = no change
+  google.protobuf.Struct error_details = 5; // absent = no change
   string state_attribute = 6;    // "" = absent
   string state_code = 7;         // "" = absent
   repeated string state_reasons = 8;

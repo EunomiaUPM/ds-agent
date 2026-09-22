@@ -16,28 +16,29 @@
  */
 
 mod mappers;
+#[cfg(test)]
+mod tests;
 
-use std::str::FromStr;
 use std::sync::Arc;
 
-use crate::entities::ids::TenantId;
 use crate::grpc::api::transfer_processes::{
     BatchTransferProcessesRequest, CreateTransferProcessRequest, DeleteResponse,
     EditTransferProcessRequest, ListTransferProcessesRequest, ResourceIdRequest,
     TransferProcessListResponse, TransferProcessResponse,
     transfer_processes_ref_server::TransferProcessesRef,
 };
-use crate::grpc::to_status;
+use crate::grpc::transfer_process::mappers::ListParams;
 use crate::services::transfer_process::TransferProcessServiceTrait;
 use common::auth::OauthTokenValidator;
-use common::auth::access::AccessScope;
-use common::auth::claims::Claims;
+use common::auth::grpc::GrpcAuth;
+use common::batch_requests::BatchRequests;
+use common::grpc::{IntoStatus, ProtoField};
 use tonic::{Request, Response, Status};
-use urn::Urn;
+use ymir::errors::Errors;
 
 pub struct TransferProcessGrpc {
     service: Arc<dyn TransferProcessServiceTrait>,
-    validator: Arc<dyn OauthTokenValidator>,
+    auth: GrpcAuth,
 }
 
 impl TransferProcessGrpc {
@@ -45,56 +46,10 @@ impl TransferProcessGrpc {
         service: Arc<dyn TransferProcessServiceTrait>,
         validator: Arc<dyn OauthTokenValidator>,
     ) -> Self {
-        Self { service, validator }
-    }
-
-    async fn extract_auth(
-        &self,
-        meta: &tonic::metadata::MetadataMap,
-    ) -> Result<(Claims, String), Status> {
-        let token = meta
-            .get("authorization")
-            .and_then(|v| v.to_str().ok())
-            .and_then(|v| v.strip_prefix("Bearer "))
-            .ok_or_else(|| Status::unauthenticated("missing Authorization metadata"))?;
-
-        let claims = self
-            .validator
-            .validate_token(token)
-            .await
-            .map_err(|e| Status::unauthenticated(e.to_string()))?;
-
-        common::auth::validators::AuthValidators::claims_validator()
-            .validate(&claims)
-            .map_err(|vs| Status::unauthenticated(vs.to_string()))?;
-
-        let tenant_raw = meta
-            .get("x-tenant-id")
-            .and_then(|v| v.to_str().ok())
-            .ok_or_else(|| Status::invalid_argument("missing x-tenant-id metadata"))?;
-
-        let tenant_id = tenant_raw.to_string();
-        common::auth::validators::AuthValidators::tenant_id_validator()
-            .validate(&tenant_id)
-            .map_err(|vs| Status::invalid_argument(vs.to_string()))?;
-
-        if !claims.is_admin() && claims.tenant_id() != tenant_id {
-            return Err(Status::permission_denied(
-                "forbidden: caller tenant does not match requested tenant",
-            ));
+        Self {
+            service,
+            auth: GrpcAuth::new(validator),
         }
-
-        Ok((claims, tenant_id))
-    }
-
-    /// Builds caller's access scope from validated metadata.
-    async fn scope(&self, meta: &tonic::metadata::MetadataMap) -> Result<AccessScope, Status> {
-        let (claims, tenant) = self.extract_auth(meta).await?;
-        Ok(AccessScope::new(&claims, &tenant))
-    }
-
-    fn parse_urn(s: &str) -> Result<Urn, Status> {
-        Urn::from_str(s).map_err(|e| Status::invalid_argument(format!("invalid URN: {e}")))
     }
 }
 
@@ -104,82 +59,84 @@ impl TransferProcessesRef for TransferProcessGrpc {
         &self,
         request: Request<ListTransferProcessesRequest>,
     ) -> Result<Response<TransferProcessListResponse>, Status> {
-        let (meta, _, proto_req) = request.into_parts();
-        let scope = self.scope(&meta).await?;
-        let (filter, page, sort) = mappers::into_list_params(proto_req)?;
+        let scope = self.auth.scope(request.metadata()).await?;
+        let params = ListParams::try_from(request.into_inner())?;
         let result = self
             .service
-            .get_all(&scope, &filter, &page, &sort)
+            .get_all(&scope, &params.filter, &params.page, &params.sort)
             .await
-            .map_err(to_status)?;
-        Ok(Response::new(mappers::from_paginated(result)))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(result.into()))
     }
 
     async fn get_transfer_process(
         &self,
         request: Request<ResourceIdRequest>,
     ) -> Result<Response<TransferProcessResponse>, Status> {
-        let (meta, _, proto_req) = request.into_parts();
-        let scope = self.scope(&meta).await?;
-        let urn = Self::parse_urn(&proto_req.id)?;
+        let scope = self.auth.scope(request.metadata()).await?;
+        let id = request.into_inner().id.urn("id")?;
         let view = self
             .service
-            .get_one(&scope, &urn)
+            .get_one(&scope, &id)
             .await
-            .map_err(to_status)?;
-        Ok(Response::new(mappers::from_view(view)))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(view.into()))
     }
 
     async fn batch_get_transfer_processes(
         &self,
         request: Request<BatchTransferProcessesRequest>,
     ) -> Result<Response<TransferProcessListResponse>, Status> {
-        let (meta, _, proto_req) = request.into_parts();
-        let scope = self.scope(&meta).await?;
-        let batch = mappers::into_batch(proto_req)?;
+        let scope = self.auth.scope(request.metadata()).await?;
+        let batch = BatchRequests::try_from(request.into_inner())?;
         let views = self
             .service
             .batch(&scope, &batch)
             .await
-            .map_err(to_status)?;
-        Ok(Response::new(mappers::from_vec(views)))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(views.into()))
     }
 
     async fn create_transfer_process(
         &self,
         request: Request<CreateTransferProcessRequest>,
     ) -> Result<Response<TransferProcessResponse>, Status> {
-        let (meta, _, proto_req) = request.into_parts();
-        let scope = self.scope(&meta).await?;
-        let cmd = mappers::into_create_cmd(proto_req)?;
-        let view = self.service.create(&scope, &cmd).await.map_err(to_status)?;
-        Ok(Response::new(mappers::from_view(view)))
+        let scope = self.auth.scope(request.metadata()).await?;
+        let cmd = request.into_inner().try_into()?;
+        let view = self
+            .service
+            .create(&scope, &cmd)
+            .await
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(view.into()))
     }
 
     async fn edit_transfer_process(
         &self,
         request: Request<EditTransferProcessRequest>,
     ) -> Result<Response<TransferProcessResponse>, Status> {
-        let (meta, _, proto_req) = request.into_parts();
-        let scope = self.scope(&meta).await?;
-        let urn = Self::parse_urn(&proto_req.id)?;
-        let cmd = mappers::into_edit_cmd(proto_req)?;
+        let scope = self.auth.scope(request.metadata()).await?;
+        let req = request.into_inner();
+        let id = req.id.urn("id")?;
+        let cmd = req.try_into()?;
         let view = self
             .service
-            .edit(&scope, &urn, &cmd)
+            .edit(&scope, &id, &cmd)
             .await
-            .map_err(to_status)?;
-        Ok(Response::new(mappers::from_view(view)))
+            .map_err(Errors::into_status)?;
+        Ok(Response::new(view.into()))
     }
 
     async fn delete_transfer_process(
         &self,
         request: Request<ResourceIdRequest>,
     ) -> Result<Response<DeleteResponse>, Status> {
-        let (meta, _, proto_req) = request.into_parts();
-        let scope = self.scope(&meta).await?;
-        let urn = Self::parse_urn(&proto_req.id)?;
-        self.service.delete(&scope, &urn).await.map_err(to_status)?;
+        let scope = self.auth.scope(request.metadata()).await?;
+        let id = request.into_inner().id.urn("id")?;
+        self.service
+            .delete(&scope, &id)
+            .await
+            .map_err(Errors::into_status)?;
         Ok(Response::new(DeleteResponse {}))
     }
 }

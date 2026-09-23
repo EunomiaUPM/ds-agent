@@ -16,12 +16,11 @@
  */
 
 use crate::cache::cache_redis::dataplane_transfer_cache::DataplaneTransferCacheForRedis;
-use crate::data::factory_sql::DataplaneRepoForSql;
 use crate::data::factory_trait::DataplaneRepoTrait;
-use crate::entities::dataplane_drivers::keystore_lookup::KeystoreClientImpl;
-use crate::entities::dataplane_manager::dataplane_driver_factory::DataplaneDriverFactory;
-use crate::entities::dataplane_manager::dataplane_manager::DataplaneManager;
-use crate::entities::dataplane_transfers::dataplane_transfers_entity::DataplaneTransfersEntityService;
+use crate::data::sea_orm::SeaOrmDataFactory;
+use crate::engine::dataplane_drivers::keystore_lookup::KeystoreClientImpl;
+use crate::engine::dataplane_manager::dataplane_driver_factory::DataplaneDriverFactory;
+use crate::engine::dataplane_manager::dataplane_manager::DataplaneManager;
 use crate::http::dataplane_info::DataPlaneProcessesRouter;
 use crate::http::dataplane_transfer_logs::DataplaneTransferLogsRouter;
 use crate::http::transfer_events::TransferEventsRouter;
@@ -33,7 +32,7 @@ use axum::Router;
 use common::config::services::TransferConfig;
 use common::config::types::traits::{CacheConfigTrait, CommonConfigTrait};
 use common::http_client::HttpClient;
-use connector::ConnectorInstanceTrait;
+use connector::ConnectorInstanceServiceTrait;
 use keystore::KeystoreModule;
 use keystore::SecretStore;
 use std::sync::Arc;
@@ -79,7 +78,7 @@ impl DataplaneSetup {
         vault: Arc<VaultService>,
     ) -> Arc<dyn DataplaneRepoTrait> {
         let db_connection = vault.get_db_connection(config.common()).await.unwrap();
-        Arc::new(DataplaneRepoForSql::create_repo(db_connection))
+        Arc::new(SeaOrmDataFactory::create_repo(db_connection))
     }
 
     /// Wires the cache + repository every builder needs. Single source of
@@ -100,9 +99,9 @@ impl DataplaneSetup {
         }
     }
 
-    /// Builds the transfers entity service from the shared infrastructure.
-    fn transfers_entity(&self, infra: &DataplaneInfra) -> Arc<DataplaneTransfersEntityService> {
-        Arc::new(DataplaneTransfersEntityService::new(
+    /// Builds the transfers service from the shared infrastructure.
+    fn transfers_service(&self, infra: &DataplaneInfra) -> Arc<DataplaneTransferService> {
+        Arc::new(DataplaneTransferService::new(
             infra.repo.clone(),
             infra.cache.clone(),
         ))
@@ -132,14 +131,14 @@ impl DataplaneSetup {
         &self,
         config: Arc<TransferConfig>,
         vault: Arc<VaultService>,
-        connector_entity: Arc<dyn ConnectorInstanceTrait>,
+        connector_service: Arc<dyn ConnectorInstanceServiceTrait>,
         _http_client: Arc<HttpClient>,
     ) -> DataplaneManager {
         let infra = self.build_infra(config.as_ref(), vault.clone()).await;
-        let dataplane_process_entity = self.transfers_entity(&infra);
+        let transfer_service = self.transfers_service(&infra);
         let (keystore_lookup, secret_store) = self.build_keystore(config.as_ref(), vault).await;
 
-        DataplaneManager::new(dataplane_process_entity, connector_entity, config.clone())
+        DataplaneManager::new(transfer_service, connector_service, config.clone())
             .with_driver_factory(Arc::new(
                 DataplaneDriverFactory::new().with_keystore(keystore_lookup),
             ))
@@ -202,10 +201,10 @@ impl DataplaneSetup {
         vault: Arc<VaultService>,
     ) -> Router {
         let infra = self.build_infra(config, vault.clone()).await;
-        let dataplane_process_entity = self.transfers_entity(&infra);
+        let transfer_service = self.transfers_service(&infra);
         let (keystore_lookup, _secret_store) = self.build_keystore(config, vault).await;
 
-        TestingHTTPProxy::new(dataplane_process_entity, infra.repo)
+        TestingHTTPProxy::new(transfer_service, infra.repo)
             .with_keystore(keystore_lookup)
             .router()
     }

@@ -15,12 +15,6 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::catalogs::CatalogEntityTrait;
-use crate::entities::data_services::DataServiceEntityTrait;
-use crate::entities::datasets::DatasetEntityTrait;
-use crate::entities::distributions::DistributionEntityTrait;
-use crate::entities::odrl_policies::OdrlPolicyEntityTrait;
-use crate::entities::peer_catalogs::PeerCatalogTrait;
 use crate::protocols::dsp::facades::well_known_rpc_facade::well_known_rpc_facade::WellKnownRPCFacadeForDSProtocol;
 use crate::protocols::dsp::facades::FacadeService;
 use crate::protocols::dsp::http::protocol::DspRouter;
@@ -35,6 +29,12 @@ use crate::protocols::dsp::validator::validators::rpc::validation_rpc_steps::Val
 use crate::protocols::dsp::validator::validators::validate_payload::ValidatePayloadService;
 use crate::protocols::dsp::validator::validators::validation_helpers::ValidationHelperService;
 use crate::protocols::protocol::ProtocolPluginTrait;
+use crate::services::catalogs::CatalogServiceTrait;
+use crate::services::data_services::DataServiceServiceTrait;
+use crate::services::datasets::DatasetServiceTrait;
+use crate::services::distributions::DistributionServiceTrait;
+use crate::services::odrl_policies::OdrlPolicyServiceTrait;
+use crate::services::peer_catalogs::PeerCatalogServiceTrait;
 use axum::Router;
 use common::config::services::traits::CatalogConfigTrait;
 use common::config::services::CatalogConfig;
@@ -53,24 +53,24 @@ pub(crate) mod types;
 pub(crate) mod validator;
 
 pub struct CatalogDSP {
-    pub catalog_entities_service: Arc<dyn CatalogEntityTrait>,
-    pub data_service_entities_service: Arc<dyn DataServiceEntityTrait>,
-    pub dataset_entities_service: Arc<dyn DatasetEntityTrait>,
-    pub odrl_policies_service: Arc<dyn OdrlPolicyEntityTrait>,
-    pub distributions_entity_service: Arc<dyn DistributionEntityTrait>,
-    pub peer_catalog_entity_service: Arc<dyn PeerCatalogTrait>,
+    pub catalog_entities_service: Arc<dyn CatalogServiceTrait>,
+    pub data_service_entities_service: Arc<dyn DataServiceServiceTrait>,
+    pub dataset_entities_service: Arc<dyn DatasetServiceTrait>,
+    pub odrl_policies_service: Arc<dyn OdrlPolicyServiceTrait>,
+    pub distributions_entity_service: Arc<dyn DistributionServiceTrait>,
+    pub peer_catalog_entity_service: Arc<dyn PeerCatalogServiceTrait>,
     pub mates_facade: Arc<dyn MatesFacadeTrait>,
     config: Arc<CatalogConfig>,
 }
 
 impl CatalogDSP {
     pub fn new(
-        catalog_entities_service: Arc<dyn CatalogEntityTrait>,
-        data_service_entities_service: Arc<dyn DataServiceEntityTrait>,
-        dataset_entities_service: Arc<dyn DatasetEntityTrait>,
-        odrl_policies_service: Arc<dyn OdrlPolicyEntityTrait>,
-        distributions_entity_service: Arc<dyn DistributionEntityTrait>,
-        peer_catalog_entity_service: Arc<dyn PeerCatalogTrait>,
+        catalog_entities_service: Arc<dyn CatalogServiceTrait>,
+        data_service_entities_service: Arc<dyn DataServiceServiceTrait>,
+        dataset_entities_service: Arc<dyn DatasetServiceTrait>,
+        odrl_policies_service: Arc<dyn OdrlPolicyServiceTrait>,
+        distributions_entity_service: Arc<dyn DistributionServiceTrait>,
+        peer_catalog_entity_service: Arc<dyn PeerCatalogServiceTrait>,
         mates_facade: Arc<dyn MatesFacadeTrait>,
         config: Arc<CatalogConfig>,
     ) -> Self {

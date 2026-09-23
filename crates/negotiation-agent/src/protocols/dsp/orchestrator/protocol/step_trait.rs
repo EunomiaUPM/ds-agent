@@ -15,12 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::negotiation_process::NegotiationProcessDto;
 use crate::protocols::dsp::orchestrator::protocol::persistence::OrchestrationPersistenceForProtocol;
 use crate::protocols::dsp::protocol_types::{
     NegotiationAckMessageDto, NegotiationProcessMessageTrait, NegotiationProcessMessageWrapper,
 };
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
+use crate::services::negotiation_process::views::NegotiationProcessView;
 use std::sync::Arc;
 use ymir::data::entities::shared::participant::Model as Mates;
 use ymir::errors::Outcome;
@@ -112,24 +112,26 @@ pub(super) trait NegotiationProtocolStep: Send + Sync + 'static {
         ctx: &Self::Context,
         input: &NegotiationProcessMessageWrapper<Self::Dto>,
         mate: &Mates,
-    ) -> Outcome<NegotiationProcessDto>;
+    ) -> Outcome<NegotiationProcessView>;
 }
 
 // Shared helpers for continuation steps ────────────────────────────────────
 
-/// Build the continuation context by verifying the process identified by `id` exists.
+/// Build the continuation context by verifying the process identified by `id` exists and
+/// belongs to the calling peer.
 ///
 /// Called by all six continuation steps from their `prepare_context`
 /// implementations.  If the process is not found the error propagates and
 /// terminates the request before any state mutation occurs.
 pub(super) async fn continuation_prepare_context(
     id: &str,
+    mate: &Mates,
     persistence: &Arc<OrchestrationPersistenceForProtocol>,
 ) -> Outcome<(
     NegotiationContinuationContext,
     Option<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>>,
 )> {
-    // Eagerly verify existence; propagate the error if the process is not found.
-    persistence.fetch_process(id).await?;
+    // Fails as "not found" unless the process exists and `mate` is its counterparty.
+    persistence.fetch_process(id, mate).await?;
     Ok((NegotiationContinuationContext { id: id.to_string() }, None))
 }

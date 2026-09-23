@@ -124,14 +124,6 @@ impl AccessScope {
         }
     }
 
-    /// Creates an administrative system scope for background tasks and drivers.
-    pub fn system() -> Self {
-        Self {
-            acting_tenant: String::new(),
-            role: RbacRole::Admin,
-        }
-    }
-
     /// Role held by the authenticated caller.
     pub fn role(&self) -> RbacRole {
         self.role
@@ -185,9 +177,9 @@ impl AccessScope {
         }
     }
 
-    /// Tenant to force into list filters, or `None` if unrestricted (admin).
-    pub fn tenant_filter(&self) -> Option<String> {
-        (!self.is_admin()).then(|| self.acting_tenant.clone())
+    /// Tenant a read must match: a tenant sees only its own records, an admin sees every tenant.
+    pub fn tenant_filter(&self) -> Option<&str> {
+        (!self.is_admin()).then_some(self.acting_tenant.as_str())
     }
 
     /// The tenant a newly created resource should default to or be forced into.

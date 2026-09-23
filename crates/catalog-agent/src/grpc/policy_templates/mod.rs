@@ -19,13 +19,13 @@ mod mappers;
 
 use std::sync::Arc;
 
-use crate::entities::policy_templates::PolicyTemplateEntityTrait;
 use crate::grpc::api::catalog_agent::policy_template_entity_service_server::PolicyTemplateEntityService;
 use crate::grpc::api::catalog_agent::{
     CreatePolicyTemplateRequest, DeleteByVersionRequest, GetBatchRequest, GetByIdRequest,
     GetByVersionRequest, ListPolicyTemplatesRequest, PolicyTemplateListResponse,
     PolicyTemplateResponse,
 };
+use crate::services::policy_templates::PolicyTemplateServiceTrait;
 use common::auth::grpc::GrpcAuth;
 use common::auth::OauthTokenValidator;
 use common::grpc::{IntoStatus, ListParams};
@@ -33,13 +33,13 @@ use tonic::{Request, Response, Status};
 use ymir::errors::Errors;
 
 pub struct PolicyTemplateEntityGrpc {
-    service: Arc<dyn PolicyTemplateEntityTrait>,
+    service: Arc<dyn PolicyTemplateServiceTrait>,
     auth: GrpcAuth,
 }
 
 impl PolicyTemplateEntityGrpc {
     pub fn new(
-        service: Arc<dyn PolicyTemplateEntityTrait>,
+        service: Arc<dyn PolicyTemplateServiceTrait>,
         validator: Arc<dyn OauthTokenValidator>,
     ) -> Self {
         Self {

@@ -70,5 +70,3 @@ impl DataplaneRepoTrait for SeaOrmDataFactory {
         self.transfer_events_repo.clone()
     }
 }
-
-pub type DataplaneRepoForSql = SeaOrmDataFactory;

@@ -29,8 +29,8 @@ pub const SERVICE_NAME: &str = "negotiation-agent";
 pub const SERVICE_BIG_NAME: &str = "Negotiation Agent Ref";
 
 pub use data::migrations::get_negotiation_agent_migrations;
-pub use entities::agreement::AgreementDto;
-pub use entities::offer::OfferDto;
+pub use services::agreement::views::AgreementView;
+pub use services::offer::views::OfferView;
 pub use setup::cmd::NegotiationCommands;
 pub use setup::http_worker::create_root_http_router as create_negotiations_http_router;
 pub use setup::http_worker::create_root_http_router_with_bus as create_negotiations_http_router_with_bus;

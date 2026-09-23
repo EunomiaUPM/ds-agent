@@ -20,20 +20,20 @@
 /// Each function returns a `DataplaneContext` wired with a specific auth config
 /// so that individual authenticator tests can focus on behaviour rather than
 /// setup boilerplate.
-use crate::data::entities::dataplane_transfers;
-use crate::entities::dataplane_manager::dataplane_commands::{
+use crate::data::sea_orm::orm::dataplane_transfers;
+use crate::engine::dataplane_manager::dataplane_commands::{
     DataplaneInitCommandDirection, DataplaneInitCommandTypes,
 };
-use crate::entities::dataplane_manager::dataplane_context::DataplaneContext;
+use crate::engine::dataplane_manager::dataplane_context::DataplaneContext;
 use crate::entities::dataplane_transfers::{
-    DataplaneTransferDto, InteractionMode, MockDataplaneTransfersEntitiesTrait, TransferRole,
-    TransferState,
+    DataplaneTransferDto, InteractionMode, TransferRole, TransferState,
 };
+use crate::services::dataplane_transfers::MockDataplaneTransferServiceTrait;
 use crate::DataplaneAddress;
 use common::test_utils::config_fixtures::transfer_config_fixture;
 use connector::{
     ApiKeyLocation, AuthenticationConfig, BasicAuthConfig, ConnectorInstanceDto,
-    ConnectorInstanceTrait, ConnectorInstantiationDto, ConnectorMetadata, HttpSpec,
+    ConnectorInstanceServiceTrait, ConnectorInstantiationDto, ConnectorMetadata, HttpSpec,
     InteractionConfig, OAuthGrantType, ProtocolSpec, PullLifecycle, SecretSource, SecretString,
     TemplateVecString,
 };
@@ -44,12 +44,12 @@ use std::sync::Arc;
 use urn::Urn;
 use ymir::errors::Outcome;
 
-// local mock for ConnectorInstanceTrait ────────────────────────────────────
+// local mock for ConnectorInstanceServiceTrait ────────────────────────────────────
 
 mock! {
     pub ConnectorInstance {}
     #[async_trait::async_trait]
-    impl ConnectorInstanceTrait for ConnectorInstance {
+    impl ConnectorInstanceServiceTrait for ConnectorInstance {
         async fn get_instance_by_id(
             &self,
             scope: &common::auth::AccessScope,
@@ -150,9 +150,9 @@ fn forward_address() -> DataplaneAddress {
 }
 
 async fn provider_context(auth: AuthenticationConfig) -> DataplaneContext {
-    let mut mock = MockDataplaneTransfersEntitiesTrait::new();
-    mock.expect_create_dataplane_transfer()
-        .returning(|_| Ok(provider_dto(TransferState::Init)));
+    let mut mock = MockDataplaneTransferServiceTrait::new();
+    mock.expect_create()
+        .returning(|_, _| Ok(provider_dto(TransferState::Init)));
     let connector = dummy_connector(auth);
     DataplaneContext::from_init(
         Arc::new(mock),
@@ -247,9 +247,9 @@ pub async fn oauth2_password_context(
 /// Consumer pull context — no connector instance. Authenticators that require a
 /// connector instance must return an error for this context.
 pub async fn consumer_context() -> DataplaneContext {
-    let mut mock = MockDataplaneTransfersEntitiesTrait::new();
-    mock.expect_create_dataplane_transfer()
-        .returning(|_| Ok(consumer_dto(TransferState::Init)));
+    let mut mock = MockDataplaneTransferServiceTrait::new();
+    mock.expect_create()
+        .returning(|_, _| Ok(consumer_dto(TransferState::Init)));
     DataplaneContext::from_init(
         Arc::new(mock),
         Arc::new(MockConnectorInstance::new()),

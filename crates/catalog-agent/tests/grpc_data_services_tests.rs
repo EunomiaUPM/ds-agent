@@ -22,19 +22,20 @@ mod grpc_fixtures;
 use std::sync::Arc;
 
 use catalog_agent::data::entities::dataservice;
-use catalog_agent::entities::data_services::{DataServiceDto, MockDataServiceEntityTrait};
+use catalog_agent::entities::data_services::DataServiceDto;
 use catalog_agent::grpc::api::catalog_agent::data_service_entity_service_server::DataServiceEntityService;
 use catalog_agent::grpc::api::catalog_agent::{
     CreateDataServiceRequest, GetByIdRequest, GetByParentIdRequest, ListDataServicesRequest,
 };
 use catalog_agent::grpc::data_services::DataServiceEntityGrpc;
+use catalog_agent::services::data_services::MockDataServiceServiceTrait;
 use chrono::Utc;
 use common::errors::ResourceError;
 use common::paginated_spec::Paginated;
 use grpc_fixtures::{owner, request, urn, StubValidator, OTHER_TENANT, TENANT};
 use tonic::Code;
 
-fn grpc(service: MockDataServiceEntityTrait) -> DataServiceEntityGrpc {
+fn grpc(service: MockDataServiceServiceTrait) -> DataServiceEntityGrpc {
     DataServiceEntityGrpc::new(Arc::new(service), Arc::new(StubValidator))
 }
 
@@ -64,7 +65,7 @@ fn by_id(id: &str) -> GetByIdRequest {
 
 #[tokio::test]
 async fn get_without_token_is_unauthenticated() {
-    let g = grpc(MockDataServiceEntityTrait::new());
+    let g = grpc(MockDataServiceServiceTrait::new());
     let err = g
         .get_data_service_by_id(request(by_id(&urn(1)), None, Some(TENANT)))
         .await
@@ -74,7 +75,7 @@ async fn get_without_token_is_unauthenticated() {
 
 #[tokio::test]
 async fn get_foreign_tenant_without_admin_is_permission_denied() {
-    let g = grpc(MockDataServiceEntityTrait::new());
+    let g = grpc(MockDataServiceServiceTrait::new());
     let err = g
         .get_data_service_by_id(request(by_id(&urn(1)), Some("owner"), Some(OTHER_TENANT)))
         .await
@@ -84,7 +85,7 @@ async fn get_foreign_tenant_without_admin_is_permission_denied() {
 
 #[tokio::test]
 async fn invalid_urns_name_their_field() {
-    let g = grpc(MockDataServiceEntityTrait::new());
+    let g = grpc(MockDataServiceServiceTrait::new());
     let err = g
         .get_data_service_by_id(owner(by_id("nope")))
         .await
@@ -116,7 +117,7 @@ async fn invalid_urns_name_their_field() {
 
 #[tokio::test]
 async fn domain_not_found_maps_to_not_found() {
-    let mut svc = MockDataServiceEntityTrait::new();
+    let mut svc = MockDataServiceServiceTrait::new();
     svc.expect_get_data_service_by_id()
         .returning(|_, id| Err(ResourceError::not_found(id, "data service")));
     let g = grpc(svc);
@@ -129,7 +130,7 @@ async fn domain_not_found_maps_to_not_found() {
 
 #[tokio::test]
 async fn list_propagates_cursor_total_and_parsed_filters() {
-    let mut svc = MockDataServiceEntityTrait::new();
+    let mut svc = MockDataServiceServiceTrait::new();
     svc.expect_get_all_data_services()
         .withf(|_, filter, page, _| {
             filter.catalog_id.as_deref() == Some(&urn(100)[..])
@@ -156,7 +157,7 @@ async fn list_propagates_cursor_total_and_parsed_filters() {
 
 #[tokio::test]
 async fn by_parent_returns_full_set_with_total() {
-    let mut svc = MockDataServiceEntityTrait::new();
+    let mut svc = MockDataServiceServiceTrait::new();
     svc.expect_get_data_services_by_catalog_id()
         .withf(|_, id| id.to_string() == urn(100))
         .returning(|_, _| Ok(vec![dto(1), dto(2), dto(3)]));

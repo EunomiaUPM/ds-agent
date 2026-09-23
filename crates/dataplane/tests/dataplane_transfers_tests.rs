@@ -26,12 +26,6 @@ use common::auth::claims::RbacRole;
 use common::batch_requests::BatchRequests;
 use common::query::{Page, Sort};
 use dataplane::cache::NoopCache;
-use dataplane::data::entities::dataplane_field::Model as FieldModel;
-use dataplane::data::entities::dataplane_transfer_logs::{Model as LogModel, NewTransferLog};
-use dataplane::data::entities::dataplane_transfers::{
-    self as transfers_model, InteractionMode, Model as TransferModel, NewDataplaneTransfer,
-    TransferRole, TransferState,
-};
 use dataplane::data::factory_trait::{DataplaneRepoTrait, MockDataplaneRepoTrait};
 use dataplane::data::repo::dataplane_field::{
     DataplaneFieldRepoTrait, MockDataplaneFieldRepoTrait,
@@ -41,6 +35,12 @@ use dataplane::data::repo::dataplane_transfer::{
 };
 use dataplane::data::repo::dataplane_transfer_log::{
     DataplaneTransferLogsRepo, MockDataplaneTransferLogsRepo,
+};
+use dataplane::data::sea_orm::orm::dataplane_field::Model as FieldModel;
+use dataplane::data::sea_orm::orm::dataplane_transfer_logs::{Model as LogModel, NewTransferLog};
+use dataplane::data::sea_orm::orm::dataplane_transfers::{
+    self as transfers_model, InteractionMode, Model as TransferModel, NewDataplaneTransfer,
+    TransferRole, TransferState,
 };
 use dataplane::entities::dataplane_transfers::{
     DataplaneTransferDto, EditDataplaneTransferDto, NewDataplaneTransferDto,
@@ -153,7 +153,7 @@ async fn get_one_foreign_tenant_returns_not_found() {
     let mut transfer_repo = MockDataplaneTransfersRepo::new();
     transfer_repo
         .expect_get_dataplane_transfers_by_id()
-        .withf(|tenant, id| tenant == "tenant-2" && id == &test_urn(1))
+        .withf(|tenant, id| tenant.as_deref() == Some("tenant-2") && id == &test_urn(1))
         .returning(|_, _| Ok(None));
 
     let svc = make_test_svc(transfer_repo);
@@ -184,11 +184,10 @@ async fn get_all_foreign_tenant_query_rejected_with_forbidden() {
 async fn edit_foreign_tenant_returns_not_found_without_mutating() {
     let mut transfer_repo = MockDataplaneTransfersRepo::new();
     transfer_repo
-        .expect_put_dataplane_transfers()
-        .withf(|tenant, id, _| tenant == "tenant-2" && id == &test_urn(1))
-        .returning(|_, _, _| {
-            Err(DataplaneTransfersRepoErrors::DataplaneTransferNotFound.into_errors())
-        });
+        .expect_get_dataplane_transfers_by_id()
+        .withf(|tenant, id| tenant.as_deref() == Some("tenant-2") && id == &test_urn(1))
+        .returning(|_, _| Ok(None));
+    transfer_repo.expect_put_dataplane_transfers().never();
 
     let svc = make_test_svc(transfer_repo);
     let result = svc
@@ -206,7 +205,7 @@ async fn delete_foreign_tenant_returns_not_found() {
     let mut transfer_repo = MockDataplaneTransfersRepo::new();
     transfer_repo
         .expect_delete_dataplane_transfers()
-        .withf(|tenant, id| tenant == "tenant-2" && id == &test_urn(1))
+        .withf(|tenant, id| tenant.as_deref() == Some("tenant-2") && id == &test_urn(1))
         .returning(|_, _| {
             Err(DataplaneTransfersRepoErrors::DataplaneTransferNotFound.into_errors())
         });
@@ -221,7 +220,7 @@ async fn batch_filters_out_foreign_tenant_records() {
     let mut transfer_repo = MockDataplaneTransfersRepo::new();
     transfer_repo
         .expect_get_batch_dataplane_transfers()
-        .withf(|tenant, ids| tenant == "tenant-2" && ids == &[test_urn(1)])
+        .withf(|tenant, ids| tenant.as_deref() == Some("tenant-2") && ids == &[test_urn(1)])
         .returning(|_, _| Ok(vec![]));
 
     let svc = make_test_svc(transfer_repo);
@@ -277,7 +276,7 @@ async fn get_by_process_id_foreign_tenant_returns_not_found() {
     let mut transfer_repo = MockDataplaneTransfersRepo::new();
     transfer_repo
         .expect_get_by_transfer_process_id()
-        .withf(|tenant, id| tenant == "tenant-2" && id == &test_urn(1))
+        .withf(|tenant, id| tenant.as_deref() == Some("tenant-2") && id == &test_urn(1))
         .returning(|_, _| Ok(None));
 
     let svc = make_test_svc(transfer_repo);

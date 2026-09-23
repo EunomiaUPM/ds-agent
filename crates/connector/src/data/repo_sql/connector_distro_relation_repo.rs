@@ -20,6 +20,7 @@ use crate::data::repo_traits::connector_distro_relation_repo::ConnectorDistroRel
 use crate::data::repo_traits::connector_repo_errors::{
     ConnectorAgentRepoErrors, ConnectorDistroRelationRepoErrors,
 };
+use sea_orm::QueryTrait;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel,
     QueryFilter,
@@ -96,12 +97,14 @@ impl ConnectorDistroRelationRepoTrait for ConnectorDistroRelationRepoForSql {
 
     async fn get_relation_by_distribution(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         distro: &str,
     ) -> Outcome<Option<connector_distro_relation::Model>> {
         let relation = connector_distro_relation::Entity::find()
             .filter(connector_distro_relation::Column::DistributionId.eq(distro))
-            .filter(connector_distro_relation::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| {
+                q.filter(connector_distro_relation::Column::TenantId.eq(t))
+            })
             .one(&self.db_connection)
             .await;
         match relation {
@@ -153,10 +156,16 @@ impl ConnectorDistroRelationRepoTrait for ConnectorDistroRelationRepoForSql {
         }
     }
 
-    async fn delete_relation_by_instance(&self, tenant_id: &str, instance: &str) -> Outcome<()> {
+    async fn delete_relation_by_instance(
+        &self,
+        tenant_id: Option<String>,
+        instance: &str,
+    ) -> Outcome<()> {
         let result = connector_distro_relation::Entity::delete_many()
             .filter(connector_distro_relation::Column::ConnectorInstanceId.eq(instance))
-            .filter(connector_distro_relation::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| {
+                q.filter(connector_distro_relation::Column::TenantId.eq(t))
+            })
             .exec(&self.db_connection)
             .await;
         match result {

@@ -19,7 +19,6 @@ use std::sync::Arc;
 
 use crate::entities::dataplane_transfers::{
     DataplaneTransferDto, EditDataplaneTransferDto, InteractionMode, NewDataplaneTransferDto,
-    TransferRole, TransferState,
 };
 use crate::entities::filters::DataplaneTransferFilter;
 use crate::services::dataplane_transfers::DataplaneTransferServiceTrait;
@@ -28,45 +27,14 @@ use axum::extract::{FromRef, Path, Query, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::routing::{delete, get, post, put};
 use axum::{Json, Router};
-use chrono::{DateTime, Utc};
 use common::auth::access::AccessScope;
 use common::auth::http::ExtractedHeaders;
 use common::batch_requests::BatchRequests;
-use common::query::{default_limit, Page, Paginated, Sort};
-use serde::Deserialize;
+use common::query::{Paginated, QuerySpec, Sort};
 use ymir::errors::AppResult;
 use ymir::utils::{extract_path_urn, extract_payload};
 
-#[derive(Debug, Deserialize, Default)]
-pub struct DataplaneTransferQuery {
-    pub limit: Option<u32>,
-    pub cursor: Option<String>,
-    pub sort: Option<Sort>,
-    pub tenant_id: Option<String>,
-    pub transfer_process_id: Option<String>,
-    pub role: Option<TransferRole>,
-    pub interaction_mode: Option<InteractionMode>,
-    pub state: Option<TransferState>,
-    pub created_after: Option<DateTime<Utc>>,
-    pub created_before: Option<DateTime<Utc>>,
-}
-
-impl DataplaneTransferQuery {
-    pub fn into_domain(self) -> (DataplaneTransferFilter, Page, Sort) {
-        let filter = DataplaneTransferFilter {
-            tenant_id: self.tenant_id,
-            transfer_process_id: self.transfer_process_id,
-            role: self.role,
-            interaction_mode: self.interaction_mode,
-            state: self.state,
-            created_after: self.created_after,
-            created_before: self.created_before,
-        };
-        let page = Page::new(self.limit.unwrap_or_else(default_limit), self.cursor);
-        let sort = self.sort.unwrap_or_default();
-        (filter, page, sort)
-    }
-}
+pub type DataplaneTransferQuery = QuerySpec<DataplaneTransferFilter, Sort>;
 
 #[derive(Clone)]
 pub struct DataPlaneProcessesRouter {

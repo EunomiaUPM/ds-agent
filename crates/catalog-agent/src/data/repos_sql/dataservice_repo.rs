@@ -24,6 +24,7 @@ use crate::data::repo_traits::dataservice_repo::DataServiceRepositoryTrait;
 use crate::entities::filters::DataServiceFilter;
 use common::paginated_spec::{Page, SelectCursorExt, Sort};
 use common::query::FilterApplier;
+use sea_orm::QueryTrait;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait,
     QueryFilter, QueryOrder, QuerySelect, Select,
@@ -110,12 +111,14 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
 
     async fn get_batch_data_services(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         ids: &[Urn],
     ) -> Outcome<Vec<dataservice::Model>> {
         let dataset_ids = ids.iter().map(|t| t.to_string()).collect::<Vec<_>>();
         let dataset_process = dataservice::Entity::find()
-            .filter(dataservice::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| {
+                q.filter(dataservice::Column::TenantId.eq(t))
+            })
             .filter(dataservice::Column::Id.is_in(dataset_ids))
             .all(&self.db_connection)
             .await;
@@ -130,12 +133,14 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
 
     async fn get_data_services_by_catalog_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         catalog_id: &Urn,
     ) -> Outcome<Vec<dataservice::Model>> {
         let catalog_id = catalog_id.to_string();
         let data_services = dataservice::Entity::find()
-            .filter(dataservice::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| {
+                q.filter(dataservice::Column::TenantId.eq(t))
+            })
             .filter(dataservice::Column::CatalogId.eq(catalog_id))
             .all(&self.db_connection)
             .await;
@@ -165,12 +170,14 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
 
     async fn get_data_service_by_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         data_service_id: &Urn,
     ) -> Outcome<Option<dataservice::Model>> {
         let data_service_id = data_service_id.to_string();
         let data_service = dataservice::Entity::find_by_id(data_service_id)
-            .filter(dataservice::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| {
+                q.filter(dataservice::Column::TenantId.eq(t))
+            })
             .one(&self.db_connection)
             .await;
         match data_service {
@@ -184,13 +191,15 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
 
     async fn put_data_service_by_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         data_service_id: &Urn,
         edit_data_service_model: &EditDataServiceModel,
     ) -> Outcome<dataservice::Model> {
         let data_service_id = data_service_id.to_string();
         let old_model = dataservice::Entity::find_by_id(data_service_id)
-            .filter(dataservice::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| {
+                q.filter(dataservice::Column::TenantId.eq(t))
+            })
             .one(&self.db_connection)
             .await;
         let old_model = match old_model {
@@ -322,13 +331,15 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
 
     async fn delete_data_service_by_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         data_service_id: &Urn,
     ) -> Outcome<dataservice::Model> {
         // Single round-trip: DELETE ... RETURNING, tenant-scoped; empty result means not found.
         let deleted = dataservice::Entity::delete_many()
             .filter(dataservice::Column::Id.eq(data_service_id.to_string()))
-            .filter(dataservice::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| {
+                q.filter(dataservice::Column::TenantId.eq(t))
+            })
             .exec_with_returning(&self.db_connection)
             .await
             .map_err(|err| {

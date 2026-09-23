@@ -15,20 +15,16 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod policy_templates;
 pub mod types;
 pub(crate) mod validator;
 
 use crate::data::entities::policy_template;
 use crate::data::entities::policy_template::{Model, NewPolicyTemplateModel};
-use crate::entities::filters::PolicyTemplateFilter;
 use crate::entities::policy_templates::types::{LocalizedText, ParameterDefinition};
 use common::dsp_common::odrl::OdrlPolicyInfo;
-use common::paginated_spec::{Page, Paginated, Sort};
 use sea_orm::prelude::DateTimeWithTimeZone;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -78,8 +74,6 @@ pub struct NewPolicyTemplateDto {
     pub parameters: HashMap<String, ParameterDefinition>,
 }
 
-use common::auth::AccessScope;
-
 impl NewPolicyTemplateDto {
     pub fn into_model(self, tenant_id: String) -> Outcome<NewPolicyTemplateModel> {
         Ok(NewPolicyTemplateModel {
@@ -112,43 +106,4 @@ impl TryFrom<policy_template::Model> for PolicyTemplateDto {
             parameters: serde_json::from_value(value.parameters)?,
         })
     }
-}
-
-#[mockall::automock]
-#[async_trait::async_trait]
-pub trait PolicyTemplateEntityTrait: Sync + Send {
-    async fn get_all_policy_templates(
-        &self,
-        scope: &AccessScope,
-        filters: &PolicyTemplateFilter,
-        page: &Page,
-        sort: &Sort,
-    ) -> Outcome<Paginated<PolicyTemplateDto>>;
-    async fn get_batch_policy_templates(
-        &self,
-        scope: &AccessScope,
-        ids: &[String],
-    ) -> Outcome<Vec<PolicyTemplateDto>>;
-    async fn get_policies_template_by_id(
-        &self,
-        scope: &AccessScope,
-        template_id: &str,
-    ) -> Outcome<Vec<PolicyTemplateDto>>;
-    async fn get_policies_template_by_version_and_id(
-        &self,
-        scope: &AccessScope,
-        template_id: &str,
-        version_id: &str,
-    ) -> Outcome<PolicyTemplateDto>;
-    async fn create_policy_template(
-        &self,
-        scope: &AccessScope,
-        new_policy_template: &NewPolicyTemplateDto,
-    ) -> Outcome<PolicyTemplateDto>;
-    async fn delete_policy_template_by_version_and_id(
-        &self,
-        scope: &AccessScope,
-        template_id: &str,
-        version_id: &str,
-    ) -> Outcome<()>;
 }

@@ -16,8 +16,9 @@
  */
 
 #![allow(unused)]
-use crate::entities::connector_template::{ConnectorTemplateDto, ConnectorTemplateEntitiesTrait};
+use crate::entities::connector_template::ConnectorTemplateDto;
 use crate::entities::filters::ConnectorTemplateFilter;
+use crate::services::connector_template::ConnectorTemplateServiceTrait;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{FromRef, Path, Query, State};
 use axum::http::StatusCode;
@@ -34,14 +35,14 @@ use ymir::utils::extract_payload;
 
 #[derive(Clone)]
 pub struct ConnectorTemplateRouter {
-    service: Arc<dyn ConnectorTemplateEntitiesTrait>,
+    service: Arc<dyn ConnectorTemplateServiceTrait>,
     config: Arc<CatalogConfig>,
 }
 
 pub use common::paginated_spec::PaginationParams;
 pub type ConnectorTemplateQuery = QuerySpec<ConnectorTemplateFilter>;
 
-impl FromRef<ConnectorTemplateRouter> for Arc<dyn ConnectorTemplateEntitiesTrait> {
+impl FromRef<ConnectorTemplateRouter> for Arc<dyn ConnectorTemplateServiceTrait> {
     fn from_ref(state: &ConnectorTemplateRouter) -> Self {
         state.service.clone()
     }
@@ -49,7 +50,7 @@ impl FromRef<ConnectorTemplateRouter> for Arc<dyn ConnectorTemplateEntitiesTrait
 
 impl ConnectorTemplateRouter {
     pub fn new(
-        service: Arc<dyn ConnectorTemplateEntitiesTrait>,
+        service: Arc<dyn ConnectorTemplateServiceTrait>,
         config: Arc<CatalogConfig>,
     ) -> Self {
         Self { service, config }

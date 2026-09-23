@@ -59,6 +59,3 @@ pub trait TransferEventServiceTrait: Send + Sync + 'static {
         cmd: &NewTransferEventDto,
     ) -> Outcome<TransferEventDto>;
 }
-
-/// Backwards compatibility alias.
-pub type TransferEventEntitiesTrait = dyn TransferEventServiceTrait;

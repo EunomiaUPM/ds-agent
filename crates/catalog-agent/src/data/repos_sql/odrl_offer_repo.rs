@@ -26,6 +26,7 @@ use crate::entities::filters::OdrlPolicyFilter;
 use crate::entities::odrl_policies::CatalogEntityTypes;
 use common::paginated_spec::{Page, SelectCursorExt, Sort};
 use common::query::FilterApplier;
+use sea_orm::QueryTrait;
 use sea_orm::{
     ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder,
     QuerySelect, Select,
@@ -109,12 +110,14 @@ impl OdrlOfferRepositoryTrait for OdrlOfferRepositoryForSql {
 
     async fn get_batch_odrl_offers(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         ids: &[Urn],
     ) -> Outcome<Vec<odrl_offer::Model>> {
         let odrl_ids = ids.iter().map(|t| t.to_string()).collect::<Vec<_>>();
         let odrl_process = odrl_offer::Entity::find()
-            .filter(odrl_offer::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| {
+                q.filter(odrl_offer::Column::TenantId.eq(t))
+            })
             .filter(odrl_offer::Column::Id.is_in(odrl_ids))
             .all(&self.db_connection)
             .await;
@@ -129,12 +132,14 @@ impl OdrlOfferRepositoryTrait for OdrlOfferRepositoryForSql {
 
     async fn get_all_odrl_offers_by_entity(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         entity: &Urn,
     ) -> Outcome<Vec<odrl_offer::Model>> {
         let entity = entity.to_string();
         let odrl_offers = odrl_offer::Entity::find()
-            .filter(odrl_offer::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| {
+                q.filter(odrl_offer::Column::TenantId.eq(t))
+            })
             .filter(odrl_offer::Column::Entity.eq(entity))
             .all(&self.db_connection)
             .await;
@@ -149,12 +154,14 @@ impl OdrlOfferRepositoryTrait for OdrlOfferRepositoryForSql {
 
     async fn get_odrl_offer_by_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         odrl_offer_id: &Urn,
     ) -> Outcome<Option<odrl_offer::Model>> {
         let odrl_offer_id = odrl_offer_id.to_string();
         let odrl_offer = odrl_offer::Entity::find_by_id(odrl_offer_id)
-            .filter(odrl_offer::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| {
+                q.filter(odrl_offer::Column::TenantId.eq(t))
+            })
             .one(&self.db_connection)
             .await;
         match odrl_offer {
@@ -274,13 +281,15 @@ impl OdrlOfferRepositoryTrait for OdrlOfferRepositoryForSql {
 
     async fn delete_odrl_offer_by_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         odrl_offer_id: &Urn,
     ) -> Outcome<odrl_offer::Model> {
         // Single round-trip: DELETE ... RETURNING, tenant-scoped; empty result means not found.
         let deleted = odrl_offer::Entity::delete_many()
             .filter(odrl_offer::Column::Id.eq(odrl_offer_id.to_string()))
-            .filter(odrl_offer::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| {
+                q.filter(odrl_offer::Column::TenantId.eq(t))
+            })
             .exec_with_returning(&self.db_connection)
             .await
             .map_err(|err| {
@@ -297,13 +306,15 @@ impl OdrlOfferRepositoryTrait for OdrlOfferRepositoryForSql {
 
     async fn delete_odrl_offers_by_entity(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         entity_id: &Urn,
     ) -> Outcome<Vec<odrl_offer::Model>> {
         // Single round-trip: DELETE ... RETURNING, tenant-scoped; empty result means not found.
         let deleted = odrl_offer::Entity::delete_many()
             .filter(odrl_offer::Column::Entity.eq(entity_id.to_string()))
-            .filter(odrl_offer::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| {
+                q.filter(odrl_offer::Column::TenantId.eq(t))
+            })
             .exec_with_returning(&self.db_connection)
             .await
             .map_err(|err| {

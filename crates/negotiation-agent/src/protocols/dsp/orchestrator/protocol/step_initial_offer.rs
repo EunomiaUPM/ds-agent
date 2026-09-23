@@ -15,7 +15,6 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::negotiation_process::NegotiationProcessDto;
 use crate::protocols::dsp::orchestrator::protocol::persistence::OrchestrationPersistenceForProtocol;
 use crate::protocols::dsp::orchestrator::protocol::step_trait::{
     NegotiationInitialContext, NegotiationProtocolStep,
@@ -24,6 +23,7 @@ use crate::protocols::dsp::protocol_types::{
     NegotiationAckMessageDto, NegotiationOfferInitMessageDto, NegotiationProcessMessageWrapper,
 };
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
+use crate::services::negotiation_process::views::NegotiationProcessView;
 use std::sync::Arc;
 use ymir::data::entities::shared::participant::Model as Mates;
 use ymir::errors::Outcome;
@@ -74,7 +74,7 @@ impl NegotiationProtocolStep for InitialProviderOfferStep {
         _ctx: &NegotiationInitialContext,
         input: &NegotiationProcessMessageWrapper<NegotiationOfferInitMessageDto>,
         mate: &Mates,
-    ) -> Outcome<NegotiationProcessDto> {
+    ) -> Outcome<NegotiationProcessView> {
         persistence.create_new(&input.dto, mate).await
     }
 }

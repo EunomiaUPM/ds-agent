@@ -24,6 +24,7 @@ use crate::data::repo_traits::distribution_repo::DistributionRepositoryTrait;
 use crate::entities::filters::DistributionFilter;
 use common::paginated_spec::{Page, SelectCursorExt, Sort};
 use common::query::FilterApplier;
+use sea_orm::QueryTrait;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait,
     QueryFilter, QueryOrder, QuerySelect,
@@ -108,12 +109,14 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
 
     async fn get_batch_distributions(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         ids: &[Urn],
     ) -> Outcome<Vec<distribution::Model>> {
         let distribution_ids = ids.iter().map(|t| t.to_string()).collect::<Vec<_>>();
         let distribution_process = distribution::Entity::find()
-            .filter(distribution::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| {
+                q.filter(distribution::Column::TenantId.eq(t))
+            })
             .filter(distribution::Column::Id.is_in(distribution_ids))
             .all(&self.db_connection)
             .await;
@@ -128,12 +131,14 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
 
     async fn get_distributions_by_dataset_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         dataset_id: &Urn,
     ) -> Outcome<Vec<distribution::Model>> {
         let dataset_id = dataset_id.to_string();
         let distributions = distribution::Entity::find()
-            .filter(distribution::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| {
+                q.filter(distribution::Column::TenantId.eq(t))
+            })
             .filter(distribution::Column::DatasetId.eq(dataset_id))
             .all(&self.db_connection)
             .await;
@@ -148,13 +153,15 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
 
     async fn get_distribution_by_dataset_id_and_dct_format(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         dataset_id: &Urn,
         dct_formats: &str,
     ) -> Outcome<Option<distribution::Model>> {
         let dataset_id = dataset_id.to_string();
         let distribution = distribution::Entity::find()
-            .filter(distribution::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| {
+                q.filter(distribution::Column::TenantId.eq(t))
+            })
             .filter(distribution::Column::DatasetId.eq(dataset_id))
             .filter(distribution::Column::DctFormat.eq(dct_formats))
             .one(&self.db_connection)
@@ -170,12 +177,14 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
 
     async fn get_distribution_by_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         distribution_id: &Urn,
     ) -> Outcome<Option<distribution::Model>> {
         let distribution_id = distribution_id.to_string();
         let distribution = distribution::Entity::find_by_id(distribution_id)
-            .filter(distribution::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| {
+                q.filter(distribution::Column::TenantId.eq(t))
+            })
             .one(&self.db_connection)
             .await;
         match distribution {
@@ -189,33 +198,16 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
 
     async fn put_distribution_by_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         distribution_id: &Urn,
         edit_distribution_model: &EditDistributionModel,
     ) -> Outcome<distribution::Model> {
         let distribution_id = distribution_id.to_string();
 
-        if let Some(ds) = edit_distribution_model.dcat_access_service.clone() {
-            let data_service = dataservice::Entity::find_by_id(ds)
-                .filter(dataservice::Column::TenantId.eq(tenant_id))
-                .one(&self.db_connection)
-                .await
-                .map_err(|e| {
-                    CatalogAgentRepoErrors::DistributionRepoErrors(
-                        DistributionRepoErrors::ErrorFetchingDistribution(e.into()),
-                    )
-                    .into_errors()
-                })?;
-            if data_service.is_none() {
-                return Err(CatalogAgentRepoErrors::DistributionRepoErrors(
-                    DistributionRepoErrors::DistributionNotFound,
-                )
-                .into_errors());
-            }
-        }
-
         let old_model = distribution::Entity::find_by_id(distribution_id)
-            .filter(distribution::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| {
+                q.filter(distribution::Column::TenantId.eq(t))
+            })
             .one(&self.db_connection)
             .await;
         let old_model = match old_model {
@@ -235,6 +227,27 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
                 .into_errors());
             }
         };
+
+        // The linked data service must live in the distribution's own tenant.
+        if let Some(ds) = edit_distribution_model.dcat_access_service.clone() {
+            let data_service = dataservice::Entity::find_by_id(ds)
+                .filter(dataservice::Column::TenantId.eq(old_model.tenant_id.as_str()))
+                .one(&self.db_connection)
+                .await
+                .map_err(|e| {
+                    CatalogAgentRepoErrors::DistributionRepoErrors(
+                        DistributionRepoErrors::ErrorFetchingDistribution(e.into()),
+                    )
+                    .into_errors()
+                })?;
+            if data_service.is_none() {
+                return Err(CatalogAgentRepoErrors::DistributionRepoErrors(
+                    DistributionRepoErrors::DistributionNotFound,
+                )
+                .into_errors());
+            }
+        }
+
         let mut old_active_model: distribution::ActiveModel = old_model.into();
         if let Some(dct_title) = &edit_distribution_model.dct_title {
             old_active_model.dct_title = ActiveValue::Set(Some(dct_title.clone()));
@@ -311,13 +324,15 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
 
     async fn delete_distribution_by_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         distribution_id: &Urn,
     ) -> Outcome<distribution::Model> {
         // Single round-trip: DELETE ... RETURNING, tenant-scoped; empty result means not found.
         let deleted = distribution::Entity::delete_many()
             .filter(distribution::Column::Id.eq(distribution_id.to_string()))
-            .filter(distribution::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| {
+                q.filter(distribution::Column::TenantId.eq(t))
+            })
             .exec_with_returning(&self.db_connection)
             .await
             .map_err(|err| {

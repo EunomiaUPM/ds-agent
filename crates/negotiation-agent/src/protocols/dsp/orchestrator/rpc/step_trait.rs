@@ -15,21 +15,22 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::negotiation_process::NegotiationProcessDto;
 use crate::protocols::dsp::orchestrator::rpc::types::RpcNegotiationProcessMessageTrait;
 use crate::protocols::dsp::persistence::NegotiationRpcPersistenceTrait;
 use crate::protocols::dsp::protocol_types::{
     NegotiationAckMessageDto, NegotiationProcessMessageWrapper,
 };
 use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRpcSteps;
-use common::config::types::roles::RoleConfig;
+use crate::services::negotiation_process::views::NegotiationProcessView;
+use common::auth::AccessScope;
+use common::dsp_common::DspActor;
 use common::dsp_common::odrl::OdrlMessageOffer;
 use common::facades::ssi_auth_facade::MatesFacadeTrait;
 use common::http_client::HttpClient;
 use std::fmt::Debug;
 use std::sync::Arc;
 use urn::Urn;
-use ymir::errors::Outcome;
+use ymir::errors::{Errors, Outcome};
 
 // Contexts ─────────────────────────────────────────────────────────────────
 
@@ -44,6 +45,36 @@ pub(super) struct NegotiationRpcInitialContext {
     pub provider_address: String,
     /// Remote peer identifier; used for auth-token lookup.
     pub associated_peer: String,
+    /// Tenant owning the target peer; the new process belongs to it.
+    pub tenant_id: String,
+}
+
+impl NegotiationRpcInitialContext {
+    /// Checks that the user may negotiate with `associated_peer`, which must belong to one of
+    /// the user's tenants; an out-of-reach peer answers as not found.
+    pub(super) async fn resolve(
+        scope: &AccessScope,
+        provider_address: String,
+        associated_peer: String,
+        mates_service: &Arc<dyn MatesFacadeTrait>,
+    ) -> Outcome<Self> {
+        scope.require_write()?;
+        let peer = mates_service
+            .get_mate_by_id(associated_peer.clone())
+            .await?;
+        if !scope.permits(&peer.tenant_id) {
+            return Err(Errors::missing_resource(
+                associated_peer,
+                "peer not found",
+                None,
+            ));
+        }
+        Ok(Self {
+            provider_address,
+            associated_peer,
+            tenant_id: peer.tenant_id,
+        })
+    }
 }
 
 /// Routing context for continuation steps that operate on an existing process.
@@ -53,7 +84,7 @@ pub(super) struct NegotiationRpcInitialContext {
 #[derive(Debug)]
 pub(super) struct NegotiationRpcContinuationContext {
     /// Full process record as stored in the database.
-    pub process: NegotiationProcessDto,
+    pub process: NegotiationProcessView,
     /// The identifier placed in the outgoing URL (the *peer's* PID, i.e. the
     /// opposite of the local role).
     pub peer_identifier: String,
@@ -70,7 +101,7 @@ pub(super) struct NegotiationRpcContinuationContext {
 #[derive(Debug)]
 pub(super) struct NegotiationRpcAgreementContext {
     /// Full process record as stored in the database.
-    pub process: NegotiationProcessDto,
+    pub process: NegotiationProcessView,
     /// The identifier placed in the outgoing URL (peer's PID).
     pub peer_identifier: String,
     /// Full callback address of the remote peer.
@@ -112,6 +143,7 @@ pub(super) trait NegotiationRpcStep: Send + Sync + 'static {
     /// Optional input validation executed before any I/O.  Default: no-op.
     async fn validate(
         _validator: &Arc<dyn ValidationRpcSteps>,
+        _actor: &DspActor,
         _input: &Self::Input,
     ) -> Outcome<()> {
         Ok(())
@@ -124,6 +156,7 @@ pub(super) trait NegotiationRpcStep: Send + Sync + 'static {
     /// The agreement step additionally fetches the last offer and participant
     /// IDs from `mates_service`.
     async fn prepare_context(
+        scope: &AccessScope,
         input: &Self::Input,
         persistence: &Arc<dyn NegotiationRpcPersistenceTrait>,
         mates_service: &Arc<dyn MatesFacadeTrait>,
@@ -145,7 +178,7 @@ pub(super) trait NegotiationRpcStep: Send + Sync + 'static {
         input: &Self::Input,
     ) -> Outcome<(
         NegotiationProcessMessageWrapper<NegotiationAckMessageDto>,
-        NegotiationProcessDto,
+        NegotiationProcessView,
     )>;
 
     // Default helpers ──────────────────────────────────────────────────────
@@ -169,31 +202,33 @@ pub(super) trait NegotiationRpcStep: Send + Sync + 'static {
 
 // Shared helpers for continuation steps ────────────────────────────────────
 
-/// Fetch the negotiation process and derive the peer routing fields.
-///
-/// Called by all seven continuation steps from their `prepare_context`
-/// implementations.  The `consumer_pid` is the local agent's identifier; the
-/// method resolves the DB record and extracts the peer's PID and callback
-/// address for use in the outgoing HTTP request.
-pub(super) async fn resolve_continuation_context(
-    consumer_pid: &Urn,
-    persistence: &Arc<dyn NegotiationRpcPersistenceTrait>,
-) -> Outcome<NegotiationRpcContinuationContext> {
-    let process = persistence
-        .fetch_process(consumer_pid.to_string().as_str())
-        .await?;
+impl NegotiationRpcContinuationContext {
+    /// Fetch the process on behalf of the user and derive the peer routing fields.
+    ///
+    /// The `consumer_pid` is the local agent's identifier; a process outside the user's
+    /// tenants answers as not found.
+    pub(super) async fn resolve(
+        consumer_pid: &Urn,
+        scope: &AccessScope,
+        persistence: &Arc<dyn NegotiationRpcPersistenceTrait>,
+    ) -> Outcome<Self> {
+        scope.require_write()?;
+        let process = persistence
+            .fetch_process(consumer_pid.to_string().as_str(), &DspActor::user(scope))
+            .await?;
 
-    // The outgoing URL uses the *peer's* identifier (opposite of the local role).
-    let peer_role_key = match process.inner.role.as_str() {
-        "Provider" => "consumerPid",
-        _ => "providerPid",
-    };
-    let peer_identifier = process.identifiers.get(peer_role_key).unwrap().clone();
-    let peer_address = process.inner.callback_address.clone().unwrap_or_default();
+        // The outgoing URL uses the *peer's* identifier (opposite of the local role).
+        let peer_role_key = match process.inner.role.as_str() {
+            "Provider" => "consumerPid",
+            _ => "providerPid",
+        };
+        let peer_identifier = process.identifiers.get(peer_role_key).unwrap().clone();
+        let peer_address = process.inner.callback_address.clone().unwrap_or_default();
 
-    Ok(NegotiationRpcContinuationContext {
-        process,
-        peer_identifier,
-        peer_address,
-    })
+        Ok(Self {
+            process,
+            peer_identifier,
+            peer_address,
+        })
+    }
 }

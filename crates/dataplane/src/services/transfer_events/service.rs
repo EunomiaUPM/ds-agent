@@ -25,9 +25,9 @@ use common::query::{Page, Paginated, QueryFilter, Sort, MAX_BATCH_IDS};
 use urn::Urn;
 use ymir::errors::{BadFormat, Errors, Outcome};
 
-use crate::data::entities::transfer_event::NewTransferEvent;
 use crate::data::factory_trait::DataplaneRepoTrait;
 use crate::data::repo::transfer_event::TransferEventRepo;
+use crate::data::sea_orm::orm::transfer_event::NewTransferEvent;
 use crate::entities::filters::TransferEventFilter;
 use crate::entities::transfer_events::{NewTransferEventDto, TransferEventDto};
 use crate::services::transfer_events::TransferEventServiceTrait;
@@ -84,7 +84,7 @@ impl TransferEventServiceTrait for TransferEventsService {
 
         let event = self
             .repo()
-            .get_transfer_event_by_id(scope.acting_tenant(), id)
+            .get_transfer_event_by_id(scope.tenant_filter().map(str::to_string), id)
             .await?
             .or_not_found(id, "transfer event")?;
 
@@ -100,7 +100,10 @@ impl TransferEventServiceTrait for TransferEventsService {
 
         let events = self
             .repo()
-            .get_all_transfer_events_by_process_id(scope.acting_tenant(), process_id)
+            .get_all_transfer_events_by_process_id(
+                scope.tenant_filter().map(str::to_string),
+                process_id,
+            )
             .await?;
 
         Ok(events
@@ -130,7 +133,7 @@ impl TransferEventServiceTrait for TransferEventsService {
 
         let events = self
             .repo()
-            .get_batch_transfer_events(scope.acting_tenant(), &req.ids)
+            .get_batch_transfer_events(scope.tenant_filter().map(str::to_string), &req.ids)
             .await?;
 
         Ok(events

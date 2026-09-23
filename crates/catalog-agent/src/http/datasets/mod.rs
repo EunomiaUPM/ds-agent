@@ -15,9 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::datasets::{DatasetEntityTrait, EditDatasetDto, NewDatasetDto};
+use crate::entities::datasets::{EditDatasetDto, NewDatasetDto};
 use crate::entities::filters::DatasetFilter;
 use crate::http::common::to_camel_case::ToCamelCase;
+use crate::services::datasets::DatasetServiceTrait;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{FromRef, Path, Query, State};
 use axum::http::StatusCode;
@@ -34,14 +35,14 @@ use ymir::utils::{extract_path_urn, extract_payload};
 
 #[derive(Clone)]
 pub struct DatasetEntityRouter {
-    service: Arc<dyn DatasetEntityTrait>,
+    service: Arc<dyn DatasetServiceTrait>,
     config: Arc<CatalogConfig>,
 }
 
 pub use common::paginated_spec::PaginationParams;
 pub type DatasetQuery = QuerySpec<DatasetFilter>;
 
-impl FromRef<DatasetEntityRouter> for Arc<dyn DatasetEntityTrait> {
+impl FromRef<DatasetEntityRouter> for Arc<dyn DatasetServiceTrait> {
     fn from_ref(state: &DatasetEntityRouter) -> Self {
         state.service.clone()
     }
@@ -54,7 +55,7 @@ impl FromRef<DatasetEntityRouter> for Arc<CatalogConfig> {
 }
 
 impl DatasetEntityRouter {
-    pub fn new(service: Arc<dyn DatasetEntityTrait>, config: Arc<CatalogConfig>) -> Self {
+    pub fn new(service: Arc<dyn DatasetServiceTrait>, config: Arc<CatalogConfig>) -> Self {
         Self { service, config }
     }
 

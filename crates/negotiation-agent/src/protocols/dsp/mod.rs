@@ -43,10 +43,7 @@ mod persistence;
 pub(crate) mod protocol_types;
 pub(crate) mod validator;
 
-use crate::entities::agreement::NegotiationAgentAgreementsTrait;
-use crate::entities::negotiation_message::NegotiationAgentMessagesTrait;
-use crate::entities::negotiation_process::NegotiationAgentProcessesTrait;
-use crate::entities::offer::NegotiationAgentOffersTrait;
+use crate::data::repo_traits::negotiation_process_repo::NegotiationProcessRepoTrait;
 use crate::protocols::dsp::facades::FacadeService;
 use crate::protocols::dsp::http::bff_rpc::BffRpcRouter;
 use crate::protocols::dsp::http::protocol::DspRouter;
@@ -57,6 +54,7 @@ use crate::protocols::dsp::orchestrator::protocol::persistence::OrchestrationPer
 use crate::protocols::dsp::orchestrator::protocol::protocol::ProtocolOrchestratorService;
 use crate::protocols::dsp::orchestrator::rpc::rpc::RPCOrchestratorService;
 use crate::protocols::dsp::persistence::persistence_rpc::NegotiationPersistenceForRpcService;
+use crate::protocols::dsp::persistence::process_resolver::NegotiationProcessResolver;
 use crate::protocols::dsp::validator::validators::protocol::validate_state_transition::ValidatedStateTransitionServiceForDsp;
 use crate::protocols::dsp::validator::validators::protocol::validation_dsp_steps::ValidationDspStepsService;
 use crate::protocols::dsp::validator::validators::rpc::validate_state_transition::ValidatedStateTransitionServiceForRcp;
@@ -64,7 +62,12 @@ use crate::protocols::dsp::validator::validators::rpc::validation_rpc_steps::Val
 use crate::protocols::dsp::validator::validators::validate_payload::ValidatePayloadService;
 use crate::protocols::dsp::validator::validators::validation_helpers::ValidationHelperService;
 use crate::protocols::protocol::ProtocolPluginTrait;
+use crate::services::agreement::AgreementServiceTrait;
+use crate::services::negotiation_message::NegotiationMessageServiceTrait;
+use crate::services::negotiation_process::NegotiationProcessServiceTrait;
+use crate::services::offer::OfferServiceTrait;
 use axum::Router;
+use common::auth::OauthTokenValidator;
 use common::config::services::ContractsConfig;
 use common::facades::ssi_auth_facade::{MatesFacadeTrait, SSIAuthFacadeTrait};
 use common::http_client::HttpClient;
@@ -72,33 +75,39 @@ use std::sync::Arc;
 use ymir::errors::Outcome;
 
 pub struct NegotiationDSP {
-    negotiation_agent_process_entities: Arc<dyn NegotiationAgentProcessesTrait>,
-    negotiation_agent_message_service: Arc<dyn NegotiationAgentMessagesTrait>,
-    negotiation_offer_service: Arc<dyn NegotiationAgentOffersTrait>,
-    negotiation_agreement_service: Arc<dyn NegotiationAgentAgreementsTrait>,
+    process_repo: Arc<dyn NegotiationProcessRepoTrait>,
+    process_service: Arc<dyn NegotiationProcessServiceTrait>,
+    message_service: Arc<dyn NegotiationMessageServiceTrait>,
+    offer_service: Arc<dyn OfferServiceTrait>,
+    agreement_service: Arc<dyn AgreementServiceTrait>,
     config: Arc<ContractsConfig>,
     ssi_auth_service: Arc<dyn SSIAuthFacadeTrait>,
     mates_service: Arc<dyn MatesFacadeTrait>,
+    oauth_validator: Arc<dyn OauthTokenValidator>,
 }
 
 impl NegotiationDSP {
     pub fn new(
-        negotiation_agent_process_entities: Arc<dyn NegotiationAgentProcessesTrait>,
-        negotiation_agent_message_service: Arc<dyn NegotiationAgentMessagesTrait>,
-        negotiation_offer_service: Arc<dyn NegotiationAgentOffersTrait>,
-        negotiation_agreement_service: Arc<dyn NegotiationAgentAgreementsTrait>,
+        process_repo: Arc<dyn NegotiationProcessRepoTrait>,
+        process_service: Arc<dyn NegotiationProcessServiceTrait>,
+        message_service: Arc<dyn NegotiationMessageServiceTrait>,
+        offer_service: Arc<dyn OfferServiceTrait>,
+        agreement_service: Arc<dyn AgreementServiceTrait>,
         config: Arc<ContractsConfig>,
         ssi_auth_service: Arc<dyn SSIAuthFacadeTrait>,
         mates_service: Arc<dyn MatesFacadeTrait>,
+        oauth_validator: Arc<dyn OauthTokenValidator>,
     ) -> Self {
         Self {
-            negotiation_agent_message_service,
-            negotiation_agent_process_entities,
-            negotiation_offer_service,
-            negotiation_agreement_service,
+            process_repo,
+            process_service,
+            message_service,
+            offer_service,
+            agreement_service,
             config,
             ssi_auth_service,
             mates_service,
+            oauth_validator,
         }
     }
 }
@@ -120,10 +129,14 @@ impl ProtocolPluginTrait for NegotiationDSP {
     async fn build_router(&self) -> Outcome<Router> {
         let http_client = Arc::new(HttpClient::new(10, 10));
 
-        // Validator
-        let validator_helper = Arc::new(ValidationHelperService::new(
-            self.negotiation_agent_process_entities.clone(),
+        // Every pid lookup, from validators and persistence alike, goes through one resolver.
+        let resolver = Arc::new(NegotiationProcessResolver::new(
+            self.process_repo.clone(),
+            self.process_service.clone(),
         ));
+
+        // Validator
+        let validator_helper = Arc::new(ValidationHelperService::new(resolver.clone()));
         let validator_payload = Arc::new(ValidatePayloadService::new(validator_helper.clone()));
         let validator_state_machine_dsp = Arc::new(ValidatedStateTransitionServiceForDsp::new(
             validator_helper.clone(),
@@ -144,16 +157,18 @@ impl ProtocolPluginTrait for NegotiationDSP {
 
         // http service
         let persistence_protocol_service = Arc::new(OrchestrationPersistenceForProtocol::new(
-            self.negotiation_agent_process_entities.clone(),
-            self.negotiation_agent_message_service.clone(),
-            self.negotiation_offer_service.clone(),
-            self.negotiation_agreement_service.clone(),
+            resolver.clone(),
+            self.process_service.clone(),
+            self.message_service.clone(),
+            self.offer_service.clone(),
+            self.agreement_service.clone(),
         ));
         let persistence_rpc_service = Arc::new(NegotiationPersistenceForRpcService::new(
-            self.negotiation_agent_process_entities.clone(),
-            self.negotiation_agent_message_service.clone(),
-            self.negotiation_offer_service.clone(),
-            self.negotiation_agreement_service.clone(),
+            resolver.clone(),
+            self.process_service.clone(),
+            self.message_service.clone(),
+            self.offer_service.clone(),
+            self.agreement_service.clone(),
         ));
 
         // facades
@@ -189,10 +204,16 @@ impl ProtocolPluginTrait for NegotiationDSP {
         let rcp_router = RpcRouter::new(orchestrator_service.clone(), self.config.clone());
         let bff_rcp_router = BffRpcRouter::new(orchestrator_service.clone(), self.config.clone());
 
-        Ok(Router::new()
-            .merge(dsp_router.router())
+        // RPC endpoints act on behalf of a local user, so they require the OAuth token.
+        let user_router = Router::new()
             .merge(rcp_router.router())
-            .merge(bff_rcp_router.router()))
+            .merge(bff_rcp_router.router())
+            .route_layer(axum::middleware::from_fn_with_state(
+                self.oauth_validator.clone(),
+                common::auth::http::AuthHttpMiddleware::run,
+            ));
+
+        Ok(Router::new().merge(dsp_router.router()).merge(user_router))
     }
 
     fn build_grpc_router(&self) -> Outcome<Option<Router>> {

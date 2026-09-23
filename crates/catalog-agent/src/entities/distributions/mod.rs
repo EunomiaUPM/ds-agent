@@ -15,13 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod distributions;
-
 use crate::data::entities::distribution;
 use crate::data::entities::distribution::{EditDistributionModel, Model, NewDistributionModel};
 use serde::{Deserialize, Serialize};
 use urn::Urn;
-use ymir::errors::Outcome;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -53,8 +50,6 @@ pub struct EditDistributionDto {
     pub dcat_access_service: Option<String>,
 }
 
-use common::auth::AccessScope;
-
 impl NewDistributionDto {
     pub fn into_model(self, tenant_id: String) -> NewDistributionModel {
         NewDistributionModel {
@@ -83,57 +78,4 @@ impl From<distribution::Model> for DistributionDto {
     fn from(value: Model) -> Self {
         Self { inner: value }
     }
-}
-
-use crate::entities::filters::DistributionFilter;
-use common::paginated_spec::{Page, Paginated, Sort};
-
-#[mockall::automock]
-#[async_trait::async_trait]
-pub trait DistributionEntityTrait: Send + Sync {
-    async fn get_all_distributions(
-        &self,
-        scope: &AccessScope,
-        filters: &DistributionFilter,
-        page: &Page,
-        sort: &Sort,
-    ) -> Outcome<Paginated<DistributionDto>>;
-    async fn get_batch_distributions(
-        &self,
-        scope: &AccessScope,
-        ids: &[Urn],
-    ) -> Outcome<Vec<DistributionDto>>;
-
-    async fn get_distributions_by_dataset_id(
-        &self,
-        scope: &AccessScope,
-        dataset_id: &Urn,
-    ) -> Outcome<Vec<DistributionDto>>;
-    async fn get_distribution_by_dataset_id_and_dct_format(
-        &self,
-        scope: &AccessScope,
-        dataset_id: &Urn,
-        dct_formats: &str,
-    ) -> Outcome<DistributionDto>;
-    async fn get_distribution_by_id(
-        &self,
-        scope: &AccessScope,
-        distribution_id: &Urn,
-    ) -> Outcome<DistributionDto>;
-    async fn put_distribution_by_id(
-        &self,
-        scope: &AccessScope,
-        distribution_id: &Urn,
-        edit_distribution_model: &EditDistributionDto,
-    ) -> Outcome<DistributionDto>;
-    async fn create_distribution(
-        &self,
-        scope: &AccessScope,
-        new_distribution_model: &NewDistributionDto,
-    ) -> Outcome<DistributionDto>;
-    async fn delete_distribution_by_id(
-        &self,
-        scope: &AccessScope,
-        distribution_id: &Urn,
-    ) -> Outcome<()>;
 }

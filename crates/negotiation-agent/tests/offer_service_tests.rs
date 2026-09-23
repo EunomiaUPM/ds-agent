@@ -71,7 +71,7 @@ async fn get_one_foreign_tenant_returns_not_found() {
     let id = test_urn(1);
     offer_repo
         .expect_get_offer_by_id()
-        .withf(move |tenant, oid| tenant == "tenant-2" && oid == &test_urn(1))
+        .withf(move |tenant, oid| tenant.as_deref() == Some("tenant-2") && oid == &test_urn(1))
         .returning(|_, _| Ok(None));
 
     let svc = make_service(offer_repo);
@@ -102,7 +102,7 @@ async fn delete_foreign_tenant_returns_not_found() {
     let id = test_urn(1);
     offer_repo
         .expect_delete_offer()
-        .withf(move |tenant, oid| tenant == "tenant-2" && oid == &test_urn(1))
+        .withf(move |tenant, oid| tenant.as_deref() == Some("tenant-2") && oid == &test_urn(1))
         .returning(|_, _| Err(OfferRepoErrors::OfferNotFound.into_errors()));
 
     let svc = make_service(offer_repo);
@@ -115,7 +115,7 @@ async fn batch_filters_out_foreign_tenant_records() {
     let id = test_urn(1);
     offer_repo
         .expect_get_batch_offers()
-        .withf(move |tenant, ids| tenant == "tenant-2" && ids == &[test_urn(1)])
+        .withf(move |tenant, ids| tenant.as_deref() == Some("tenant-2") && ids == &[test_urn(1)])
         .returning(|_, _| Ok(vec![]));
 
     let svc = make_service(offer_repo);

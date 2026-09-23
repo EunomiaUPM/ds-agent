@@ -44,7 +44,7 @@ pub trait TransferMessageRepoTrait: Send + Sync {
 
     async fn get_transfer_message_by_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         id: &Urn,
     ) -> Outcome<Option<TransferMessage>>;
 
@@ -53,7 +53,7 @@ pub trait TransferMessageRepoTrait: Send + Sync {
         cmd: &NewTransferMessageCommand,
     ) -> Outcome<TransferMessage>;
 
-    async fn delete_transfer_message(&self, tenant_id: &str, id: &Urn) -> Outcome<()>;
+    async fn delete_transfer_message(&self, tenant_id: Option<String>, id: &Urn) -> Outcome<()>;
 }
 
 #[derive(Debug, Error)]

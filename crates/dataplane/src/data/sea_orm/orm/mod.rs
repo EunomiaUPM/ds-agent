@@ -15,4 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub use crate::data::entities::*;
+pub mod dataplane_field;
+pub mod dataplane_transfer_logs;
+pub mod dataplane_transfers;
+pub mod transfer_event;

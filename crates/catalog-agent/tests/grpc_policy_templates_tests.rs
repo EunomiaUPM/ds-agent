@@ -23,12 +23,13 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use catalog_agent::entities::policy_templates::types::LocalizedText;
-use catalog_agent::entities::policy_templates::{MockPolicyTemplateEntityTrait, PolicyTemplateDto};
+use catalog_agent::entities::policy_templates::PolicyTemplateDto;
 use catalog_agent::grpc::api::catalog_agent::policy_template_entity_service_server::PolicyTemplateEntityService;
 use catalog_agent::grpc::api::catalog_agent::{
     CreatePolicyTemplateRequest, GetByVersionRequest, ListPolicyTemplatesRequest,
 };
 use catalog_agent::grpc::policy_templates::PolicyTemplateEntityGrpc;
+use catalog_agent::services::policy_templates::MockPolicyTemplateServiceTrait;
 use chrono::Utc;
 use common::errors::ResourceError;
 use common::grpc::JsonValueExt;
@@ -38,7 +39,7 @@ use prost_types::value::Kind;
 use serde_json::json;
 use tonic::Code;
 
-fn grpc(service: MockPolicyTemplateEntityTrait) -> PolicyTemplateEntityGrpc {
+fn grpc(service: MockPolicyTemplateServiceTrait) -> PolicyTemplateEntityGrpc {
     PolicyTemplateEntityGrpc::new(Arc::new(service), Arc::new(StubValidator))
 }
 
@@ -78,7 +79,7 @@ fn valid_create() -> CreatePolicyTemplateRequest {
 
 #[tokio::test]
 async fn get_without_token_is_unauthenticated() {
-    let g = grpc(MockPolicyTemplateEntityTrait::new());
+    let g = grpc(MockPolicyTemplateServiceTrait::new());
     let err = g
         .get_policy_template_by_version(request(by_version("tpl", "1"), None, Some(TENANT)))
         .await
@@ -88,7 +89,7 @@ async fn get_without_token_is_unauthenticated() {
 
 #[tokio::test]
 async fn get_foreign_tenant_without_admin_is_permission_denied() {
-    let g = grpc(MockPolicyTemplateEntityTrait::new());
+    let g = grpc(MockPolicyTemplateServiceTrait::new());
     let err = g
         .get_policy_template_by_version(request(
             by_version("tpl", "1"),
@@ -102,7 +103,7 @@ async fn get_foreign_tenant_without_admin_is_permission_denied() {
 
 #[tokio::test]
 async fn create_rejects_missing_content_bad_date_and_malformed_title() {
-    let g = grpc(MockPolicyTemplateEntityTrait::new());
+    let g = grpc(MockPolicyTemplateServiceTrait::new());
     let cases = [
         (
             CreatePolicyTemplateRequest {
@@ -135,7 +136,7 @@ async fn create_rejects_missing_content_bad_date_and_malformed_title() {
 
 #[tokio::test]
 async fn create_maps_localized_text_and_content() {
-    let mut svc = MockPolicyTemplateEntityTrait::new();
+    let mut svc = MockPolicyTemplateServiceTrait::new();
     svc.expect_create_policy_template()
         .withf(|_, dto| {
             matches!(dto.title, Some(LocalizedText::Single(ref s)) if s == "Title")
@@ -153,7 +154,7 @@ async fn create_maps_localized_text_and_content() {
 
 #[tokio::test]
 async fn domain_not_found_maps_to_not_found() {
-    let mut svc = MockPolicyTemplateEntityTrait::new();
+    let mut svc = MockPolicyTemplateServiceTrait::new();
     svc.expect_get_policies_template_by_version_and_id()
         .returning(|_, id, _| Err(ResourceError::not_found(id, "policy template")));
     let g = grpc(svc);
@@ -166,7 +167,7 @@ async fn domain_not_found_maps_to_not_found() {
 
 #[tokio::test]
 async fn list_propagates_paging_and_serializes_struct_fields() {
-    let mut svc = MockPolicyTemplateEntityTrait::new();
+    let mut svc = MockPolicyTemplateServiceTrait::new();
     svc.expect_get_all_policy_templates()
         .withf(|_, filter, page, _| filter.author.as_deref() == Some("me") && page.limit == 1)
         .returning(|_, _, _, _| Ok(Paginated::new(vec![dto("1")], Some("n".into()), Some(5))));

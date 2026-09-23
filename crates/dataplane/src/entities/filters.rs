@@ -20,8 +20,10 @@ use common::query::{validate_date_range, QueryFilter};
 use serde::{Deserialize, Serialize};
 use ymir::errors::Outcome;
 
-use crate::data::entities::dataplane_transfers::{InteractionMode, TransferRole, TransferState};
-use crate::data::entities::transfer_event::LogLevel;
+use crate::data::sea_orm::orm::dataplane_transfers::{
+    InteractionMode, TransferRole, TransferState,
+};
+use crate::data::sea_orm::orm::transfer_event::LogLevel;
 
 /// Filter for `DataplaneTransfer` related queries.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]

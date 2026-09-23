@@ -15,10 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::negotiation_process::NegotiationProcessDto;
 use crate::protocols::dsp::protocol_types::NegotiationProcessMessageTrait;
 use crate::protocols::dsp::validator::traits::validate_payload::ValidatePayload;
 use crate::protocols::dsp::validator::traits::validation_helpers::ValidationHelpers;
+use crate::services::negotiation_process::views::NegotiationProcessView;
 use common::config::types::roles::RoleConfig;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -89,7 +89,7 @@ impl ValidatePayload for ValidatePayloadService {
     async fn validate_correlation(
         &self,
         payload: &dyn NegotiationProcessMessageTrait,
-        dto: &NegotiationProcessDto,
+        dto: &NegotiationProcessView,
     ) -> Outcome<()> {
         let provider_pid_in_dto = self
             .helpers
@@ -136,7 +136,7 @@ impl ValidatePayload for ValidatePayloadService {
     async fn validate_data_address_in_start(
         &self,
         _payload: &dyn NegotiationProcessMessageTrait,
-        _dto: &NegotiationProcessDto,
+        _dto: &NegotiationProcessView,
     ) -> Outcome<()> {
         Ok(())
     }

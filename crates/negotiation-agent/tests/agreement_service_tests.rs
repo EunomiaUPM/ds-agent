@@ -77,7 +77,7 @@ async fn get_one_foreign_tenant_returns_not_found() {
     let id = test_urn(1);
     agreement_repo
         .expect_get_agreement_by_id()
-        .withf(move |tenant, aid| tenant == "tenant-2" && aid == &test_urn(1))
+        .withf(move |tenant, aid| tenant.as_deref() == Some("tenant-2") && aid == &test_urn(1))
         .returning(|_, _| Ok(None));
 
     let svc = make_service(agreement_repo);
@@ -108,7 +108,7 @@ async fn edit_foreign_tenant_returns_not_found_without_mutating() {
     let id = test_urn(1);
     agreement_repo
         .expect_put_agreement()
-        .withf(move |tenant, aid, _| tenant == "tenant-2" && aid == &test_urn(1))
+        .withf(move |tenant, aid, _| tenant.as_deref() == Some("tenant-2") && aid == &test_urn(1))
         .returning(|_, _, _| Err(AgreementRepoErrors::AgreementNotFound.into_errors()));
 
     let svc = make_service(agreement_repo);
@@ -128,7 +128,7 @@ async fn delete_foreign_tenant_returns_not_found() {
     let id = test_urn(1);
     agreement_repo
         .expect_delete_agreement()
-        .withf(move |tenant, aid| tenant == "tenant-2" && aid == &test_urn(1))
+        .withf(move |tenant, aid| tenant.as_deref() == Some("tenant-2") && aid == &test_urn(1))
         .returning(|_, _| Err(AgreementRepoErrors::AgreementNotFound.into_errors()));
 
     let svc = make_service(agreement_repo);
@@ -141,7 +141,7 @@ async fn batch_filters_out_foreign_tenant_records() {
     let id = test_urn(1);
     agreement_repo
         .expect_get_batch_agreements()
-        .withf(move |tenant, ids| tenant == "tenant-2" && ids == &[test_urn(1)])
+        .withf(move |tenant, ids| tenant.as_deref() == Some("tenant-2") && ids == &[test_urn(1)])
         .returning(|_, _| Ok(vec![]));
 
     let svc = make_service(agreement_repo);

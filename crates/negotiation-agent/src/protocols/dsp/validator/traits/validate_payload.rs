@@ -15,8 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::negotiation_process::NegotiationProcessDto;
 use crate::protocols::dsp::protocol_types::NegotiationProcessMessageTrait;
+use crate::services::negotiation_process::views::NegotiationProcessView;
 use common::config::types::roles::RoleConfig;
 use ymir::errors::Outcome;
 
@@ -45,7 +45,7 @@ pub trait ValidatePayload: Send + Sync + 'static {
     async fn validate_correlation(
         &self,
         payload: &dyn NegotiationProcessMessageTrait,
-        dto: &NegotiationProcessDto,
+        dto: &NegotiationProcessView,
     ) -> Outcome<()>; // db call
     /// Validates if Header Bearer token corresponds to associated_consumer in db
     async fn validate_auth(&self, payload: &dyn NegotiationProcessMessageTrait) -> Outcome<()>; // db call
@@ -58,6 +58,6 @@ pub trait ValidatePayload: Send + Sync + 'static {
     async fn validate_data_address_in_start(
         &self,
         payload: &dyn NegotiationProcessMessageTrait,
-        dto: &NegotiationProcessDto,
+        dto: &NegotiationProcessView,
     ) -> Outcome<()>;
 }

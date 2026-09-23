@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Multi-tenant isolation tests for PolicyTemplateEntities with a mocked repository.
+//! Multi-tenant isolation tests for PolicyTemplateService with a mocked repository.
 
 mod fixtures;
 
@@ -29,8 +29,9 @@ use catalog_agent::data::repo_traits::catalog_db_errors::{
 };
 use catalog_agent::data::repo_traits::policy_template_repo::MockPolicyTemplatesRepositoryTrait;
 use catalog_agent::entities::filters::PolicyTemplateFilter;
-use catalog_agent::entities::policy_templates::policy_templates::PolicyTemplateEntities;
-use catalog_agent::entities::policy_templates::{NewPolicyTemplateDto, PolicyTemplateEntityTrait};
+use catalog_agent::entities::policy_templates::NewPolicyTemplateDto;
+use catalog_agent::services::policy_templates::service::PolicyTemplateService;
+use catalog_agent::services::policy_templates::PolicyTemplateServiceTrait;
 use chrono::Utc;
 use common::paginated_spec::{Page, Sort};
 use fixtures::{admin_scope, reader_scope, tenant_scope};
@@ -44,13 +45,13 @@ fn not_found() -> ymir::errors::Errors {
     .into_errors()
 }
 
-fn make_svc(repo: MockPolicyTemplatesRepositoryTrait) -> PolicyTemplateEntities {
+fn make_svc(repo: MockPolicyTemplatesRepositoryTrait) -> PolicyTemplateService {
     let repo = Arc::new(repo);
     let mut factory = MockCatalogAgentRepoTrait::new();
     factory
         .expect_get_policy_template_repo()
         .returning(move || repo.clone());
-    PolicyTemplateEntities::new(Arc::new(factory))
+    PolicyTemplateService::new(Arc::new(factory))
 }
 
 fn make_model(tenant: &str, id: &str, version: &str) -> policy_template::Model {

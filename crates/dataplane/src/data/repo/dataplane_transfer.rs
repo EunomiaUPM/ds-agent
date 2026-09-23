@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::data::entities::dataplane_transfers::{
+use crate::data::sea_orm::orm::dataplane_transfers::{
     self, EditDataplaneTransferModel, NewDataplaneTransferModel,
 };
 use crate::entities::filters::DataplaneTransferFilter;
@@ -38,19 +38,26 @@ pub trait DataplaneTransfersRepo: Send + Sync + 'static {
 
     async fn get_batch_dataplane_transfers(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         ids: &[Urn],
     ) -> Outcome<Vec<dataplane_transfers::Model>>;
 
     async fn get_dataplane_transfers_by_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         process_id: &Urn,
+    ) -> Outcome<Option<dataplane_transfers::Model>>;
+
+    /// Looks a transfer up by id in any tenant. Only for callers that hold the id as a
+    /// capability (the data proxy); everything else must go through a tenant scope.
+    async fn find_dataplane_transfer_by_id(
+        &self,
+        id: &Urn,
     ) -> Outcome<Option<dataplane_transfers::Model>>;
 
     async fn get_by_transfer_process_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         transfer_process_id: &Urn,
     ) -> Outcome<Option<dataplane_transfers::Model>>;
 
@@ -61,12 +68,16 @@ pub trait DataplaneTransfersRepo: Send + Sync + 'static {
 
     async fn put_dataplane_transfers(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         process_id: &Urn,
         new_dataplane_transfer: &EditDataplaneTransferModel,
     ) -> Outcome<dataplane_transfers::Model>;
 
-    async fn delete_dataplane_transfers(&self, tenant_id: &str, process_id: &Urn) -> Outcome<()>;
+    async fn delete_dataplane_transfers(
+        &self,
+        tenant_id: Option<String>,
+        process_id: &Urn,
+    ) -> Outcome<()>;
 }
 
 #[derive(Debug, Error)]

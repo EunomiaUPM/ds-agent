@@ -34,6 +34,7 @@ use crate::protocols::dsp::validator::traits::validate_payload::ValidatePayload;
 use crate::protocols::dsp::validator::traits::validate_state_transition::ValidateStateTransition;
 use crate::protocols::dsp::validator::traits::validation_helpers::ValidationHelpers;
 use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRpcSteps;
+use common::dsp_common::DspActor;
 use std::sync::Arc;
 use ymir::errors::Outcome;
 
@@ -80,13 +81,14 @@ impl ValidationRpcSteps for ValidationRpcStepsService {
 
     async fn negotiation_request_rpc(
         &self,
+        actor: &DspActor,
         input: &RpcNegotiationRequestMessageDto,
     ) -> Outcome<()> {
         let input: NegotiationProcessMessageWrapper<NegotiationRequestMessageDto> =
             input.clone().into();
         let dto = self
             .helpers
-            .get_current_dto_from_payload(&input.dto)
+            .get_current_dto_from_payload(actor, &input.dto)
             .await?;
         let role = self.helpers.get_role_from_dto(&dto).await?;
         let message_type = input._type.clone();
@@ -131,12 +133,16 @@ impl ValidationRpcSteps for ValidationRpcStepsService {
         Ok(())
     }
 
-    async fn negotiation_offer_rpc(&self, input: &RpcNegotiationOfferMessageDto) -> Outcome<()> {
+    async fn negotiation_offer_rpc(
+        &self,
+        actor: &DspActor,
+        input: &RpcNegotiationOfferMessageDto,
+    ) -> Outcome<()> {
         let input: NegotiationProcessMessageWrapper<NegotiationOfferMessageDto> =
             input.clone().into();
         let dto = self
             .helpers
-            .get_current_dto_from_payload(&input.dto)
+            .get_current_dto_from_payload(actor, &input.dto)
             .await?;
         let role = self.helpers.get_role_from_dto(&dto).await?;
         let message_type = input._type.clone();
@@ -162,13 +168,14 @@ impl ValidationRpcSteps for ValidationRpcStepsService {
 
     async fn negotiation_agreement_rpc(
         &self,
+        actor: &DspActor,
         input: &RpcNegotiationAgreementMessageDto,
     ) -> Outcome<()> {
         let input: NegotiationProcessMessageWrapper<NegotiationAgreementMessageDto> =
             input.clone().into();
         let dto = self
             .helpers
-            .get_current_dto_from_payload(&input.dto)
+            .get_current_dto_from_payload(actor, &input.dto)
             .await?;
         let role = self.helpers.get_role_from_dto(&dto).await?;
         let message_type = input._type.clone();
@@ -194,13 +201,14 @@ impl ValidationRpcSteps for ValidationRpcStepsService {
 
     async fn negotiation_agreement_verification_rpc(
         &self,
+        actor: &DspActor,
         input: &RpcNegotiationVerificationMessageDto,
     ) -> Outcome<()> {
         let input: NegotiationProcessMessageWrapper<NegotiationVerificationMessageDto> =
             input.clone().into();
         let dto = self
             .helpers
-            .get_current_dto_from_payload(&input.dto)
+            .get_current_dto_from_payload(actor, &input.dto)
             .await?;
         let role = self.helpers.get_role_from_dto(&dto).await?;
         let message_type = input._type.clone();
@@ -226,13 +234,14 @@ impl ValidationRpcSteps for ValidationRpcStepsService {
 
     async fn negotiation_event_accepted_rpc(
         &self,
+        actor: &DspActor,
         input: &RpcNegotiationEventAcceptedMessageDto,
     ) -> Outcome<()> {
         let input: NegotiationProcessMessageWrapper<NegotiationEventMessageDto> =
             input.clone().into();
         let dto = self
             .helpers
-            .get_current_dto_from_payload(&input.dto)
+            .get_current_dto_from_payload(actor, &input.dto)
             .await?;
         let role = self.helpers.get_role_from_dto(&dto).await?;
         let message_type = input._type.clone();
@@ -258,13 +267,14 @@ impl ValidationRpcSteps for ValidationRpcStepsService {
 
     async fn negotiation_event_finalized_rpc(
         &self,
+        actor: &DspActor,
         input: &RpcNegotiationEventFinalizedMessageDto,
     ) -> Outcome<()> {
         let input: NegotiationProcessMessageWrapper<NegotiationEventMessageDto> =
             input.clone().into();
         let dto = self
             .helpers
-            .get_current_dto_from_payload(&input.dto)
+            .get_current_dto_from_payload(actor, &input.dto)
             .await?;
         let role = self.helpers.get_role_from_dto(&dto).await?;
         let message_type = input._type.clone();
@@ -290,13 +300,14 @@ impl ValidationRpcSteps for ValidationRpcStepsService {
 
     async fn negotiation_termination_rpc(
         &self,
+        actor: &DspActor,
         input: &RpcNegotiationTerminationMessageDto,
     ) -> Outcome<()> {
         let input: NegotiationProcessMessageWrapper<NegotiationTerminationMessageDto> =
             input.clone().into();
         let dto = self
             .helpers
-            .get_current_dto_from_payload(&input.dto)
+            .get_current_dto_from_payload(actor, &input.dto)
             .await?;
         let role = self.helpers.get_role_from_dto(&dto).await?;
         let message_type = input._type.clone();

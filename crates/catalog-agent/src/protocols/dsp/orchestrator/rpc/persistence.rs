@@ -15,19 +15,19 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::peer_catalogs::PeerCatalogTrait;
 use crate::protocols::dsp::types::catalog_definition::Catalog;
+use crate::services::peer_catalogs::PeerCatalogServiceTrait;
 use common::errors::{CommonErrors, ErrorLog};
 use std::sync::Arc;
 use tracing::error;
 use ymir::errors::Outcome;
 
 pub struct OrchestrationPersistenceForProtocolForRPC {
-    peer_catalog_entity_service: Arc<dyn PeerCatalogTrait>,
+    peer_catalog_entity_service: Arc<dyn PeerCatalogServiceTrait>,
 }
 
 impl OrchestrationPersistenceForProtocolForRPC {
-    pub fn new(peer_catalog_entity_service: Arc<dyn PeerCatalogTrait>) -> Self {
+    pub fn new(peer_catalog_entity_service: Arc<dyn PeerCatalogServiceTrait>) -> Self {
         Self {
             peer_catalog_entity_service,
         }

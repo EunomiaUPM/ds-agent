@@ -15,9 +15,9 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::cache::cache_traits::redis_cache_connector_trait::RedisCacheConnectorTrait;
-use crate::cache::cache_traits::utils_trait::UtilsCacheTrait;
+use crate::cache::cache_traits::DESIRED_CACHE_TTL;
 use crate::{CatalogDto, DataServiceDto};
+use common::cache::{RedisCacheConnectorTrait, UtilsCacheTrait};
 use std::str::FromStr;
 use urn::Urn;
 
@@ -33,6 +33,10 @@ impl DataServiceCacheForRedis {
 
 impl UtilsCacheTrait for DataServiceCacheForRedis {
     type Dto = DataServiceDto;
+
+    fn key_namespace(&self) -> &str {
+        "ds_agent_catalogs"
+    }
 }
 
 impl RedisCacheConnectorTrait for DataServiceCacheForRedis {
@@ -43,14 +47,17 @@ impl RedisCacheConnectorTrait for DataServiceCacheForRedis {
     fn get_entity_name(&self) -> &str {
         "data-services"
     }
+    fn cache_ttl(&self) -> i32 {
+        DESIRED_CACHE_TTL
+    }
 }
 
 #[cfg(test)]
 mod test_dataservice {
     use super::*;
-    use crate::cache::cache_traits::entity_cache_trait::EntityCacheTrait;
-    use crate::cache::cache_traits::lookup_cache_trait::LookupCacheTrait;
     use crate::data::entities::dataservice::Model as DataServiceModel;
+    use common::cache::EntityCacheTrait;
+    use common::cache::LookupCacheTrait;
     use urn::UrnBuilder;
     use uuid::Uuid;
 

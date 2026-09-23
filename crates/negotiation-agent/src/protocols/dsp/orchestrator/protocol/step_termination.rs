@@ -15,7 +15,6 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::negotiation_process::NegotiationProcessDto;
 use crate::protocols::dsp::orchestrator::protocol::persistence::OrchestrationPersistenceForProtocol;
 use crate::protocols::dsp::orchestrator::protocol::step_trait::{
     NegotiationContinuationContext, NegotiationProtocolStep, continuation_prepare_context,
@@ -24,6 +23,8 @@ use crate::protocols::dsp::protocol_types::{
     NegotiationAckMessageDto, NegotiationProcessMessageWrapper, NegotiationTerminationMessageDto,
 };
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
+use crate::services::negotiation_process::views::NegotiationProcessView;
+use common::dsp_common::DspActor;
 use std::sync::Arc;
 use ymir::data::entities::shared::participant::Model as Mates;
 use ymir::errors::Outcome;
@@ -44,23 +45,23 @@ impl NegotiationProtocolStep for NegotiationTerminationStep {
         validator: &Arc<dyn ValidationDspSteps>,
         id: &str,
         input: &NegotiationProcessMessageWrapper<NegotiationTerminationMessageDto>,
-        _mate: &Mates,
+        mate: &Mates,
     ) -> Outcome<()> {
         validator
-            .on_contract_termination(&id.to_string(), input)
+            .on_contract_termination(&DspActor::peer(mate), &id.to_string(), input)
             .await
     }
 
     async fn prepare_context(
         id: &str,
-        _mate: &Mates,
+        mate: &Mates,
         _input: &NegotiationProcessMessageWrapper<NegotiationTerminationMessageDto>,
         persistence: &Arc<OrchestrationPersistenceForProtocol>,
     ) -> Outcome<(
         NegotiationContinuationContext,
         Option<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>>,
     )> {
-        continuation_prepare_context(id, persistence).await
+        continuation_prepare_context(id, mate, persistence).await
     }
 
     /// Advances the process state to `Terminated`; no offer or agreement changes.
@@ -70,7 +71,7 @@ impl NegotiationProtocolStep for NegotiationTerminationStep {
         ctx: &NegotiationContinuationContext,
         input: &NegotiationProcessMessageWrapper<NegotiationTerminationMessageDto>,
         mate: &Mates,
-    ) -> Outcome<NegotiationProcessDto> {
+    ) -> Outcome<NegotiationProcessView> {
         persistence.update(ctx.id.as_str(), &input.dto, mate).await
     }
 }

@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Multi-tenant isolation tests for DataServiceEntities with a mocked repository.
+//! Multi-tenant isolation tests for DataServiceService with a mocked repository.
 
 mod fixtures;
 
@@ -27,11 +27,10 @@ use catalog_agent::data::repo_traits::catalog_db_errors::{
     CatalogAgentRepoErrors, DataServiceRepoErrors,
 };
 use catalog_agent::data::repo_traits::dataservice_repo::MockDataServiceRepositoryTrait;
-use catalog_agent::entities::data_services::data_services::DataServiceEntities;
-use catalog_agent::entities::data_services::{
-    DataServiceEntityTrait, EditDataServiceDto, NewDataServiceDto,
-};
+use catalog_agent::entities::data_services::{EditDataServiceDto, NewDataServiceDto};
 use catalog_agent::entities::filters::DataServiceFilter;
+use catalog_agent::services::data_services::service::DataServiceService;
+use catalog_agent::services::data_services::DataServiceServiceTrait;
 use chrono::Utc;
 use common::paginated_spec::{Page, Sort};
 use fixtures::{admin_scope, noop_cache_factory, reader_scope, tenant_scope, test_urn};
@@ -42,13 +41,13 @@ fn not_found() -> ymir::errors::Errors {
         .into_errors()
 }
 
-fn make_svc(repo: MockDataServiceRepositoryTrait) -> DataServiceEntities {
+fn make_svc(repo: MockDataServiceRepositoryTrait) -> DataServiceService {
     let repo = Arc::new(repo);
     let mut factory = MockCatalogAgentRepoTrait::new();
     factory
         .expect_get_dataservice_repo()
         .returning(move || repo.clone());
-    DataServiceEntities::new(Arc::new(factory), noop_cache_factory())
+    DataServiceService::new(Arc::new(factory), noop_cache_factory())
 }
 
 fn make_model(tenant: &str, n: u32) -> dataservice::Model {
@@ -93,7 +92,7 @@ fn make_edit_dto() -> EditDataServiceDto {
 async fn get_one_foreign_tenant_returns_not_found() {
     let mut repo = MockDataServiceRepositoryTrait::new();
     repo.expect_get_data_service_by_id()
-        .withf(|tenant, id| tenant == "tenant-2" && id == &test_urn(1))
+        .withf(|tenant, id| tenant.as_deref() == Some("tenant-2") && id == &test_urn(1))
         .returning(|_, _| Ok(None));
 
     let svc = make_svc(repo);
@@ -166,7 +165,7 @@ async fn get_all_admin_without_tenant_queries_cross_tenant() {
 async fn edit_foreign_tenant_returns_not_found_without_mutating() {
     let mut repo = MockDataServiceRepositoryTrait::new();
     repo.expect_put_data_service_by_id()
-        .withf(|tenant, id, _| tenant == "tenant-2" && id == &test_urn(1))
+        .withf(|tenant, id, _| tenant.as_deref() == Some("tenant-2") && id == &test_urn(1))
         .returning(|_, _, _| Err(not_found()));
 
     let svc = make_svc(repo);
@@ -180,7 +179,7 @@ async fn edit_foreign_tenant_returns_not_found_without_mutating() {
 async fn delete_foreign_tenant_returns_not_found() {
     let mut repo = MockDataServiceRepositoryTrait::new();
     repo.expect_delete_data_service_by_id()
-        .withf(|tenant, id| tenant == "tenant-2" && id == &test_urn(1))
+        .withf(|tenant, id| tenant.as_deref() == Some("tenant-2") && id == &test_urn(1))
         .returning(|_, _| Err(not_found()));
 
     let svc = make_svc(repo);
@@ -194,8 +193,8 @@ async fn delete_foreign_tenant_returns_not_found() {
 async fn delete_own_tenant_returns_deleted_row_and_succeeds() {
     let mut repo = MockDataServiceRepositoryTrait::new();
     repo.expect_delete_data_service_by_id()
-        .withf(|tenant, id| tenant == "tenant-1" && id == &test_urn(1))
-        .returning(|tenant, _| Ok(make_model(tenant, 1)));
+        .withf(|tenant, id| tenant.as_deref() == Some("tenant-1") && id == &test_urn(1))
+        .returning(|tenant, _| Ok(make_model(tenant.as_deref().unwrap(), 1)));
 
     let svc = make_svc(repo);
     assert!(svc
@@ -217,7 +216,7 @@ async fn delete_reader_is_forbidden_before_reaching_repo() {
 async fn batch_filters_out_foreign_tenant_records() {
     let mut repo = MockDataServiceRepositoryTrait::new();
     repo.expect_get_batch_data_services()
-        .withf(|tenant, ids| tenant == "tenant-2" && ids == [test_urn(1)])
+        .withf(|tenant, ids| tenant.as_deref() == Some("tenant-2") && ids == [test_urn(1)])
         .returning(|_, _| Ok(vec![]));
 
     let svc = make_svc(repo);

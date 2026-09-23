@@ -19,13 +19,13 @@ mod mappers;
 
 use std::sync::Arc;
 
-use crate::entities::odrl_policies::OdrlPolicyEntityTrait;
 use crate::grpc::api::catalog_agent::odrl_policy_entity_service_server::OdrlPolicyEntityService;
 use crate::grpc::api::catalog_agent::{
     CreateOdrlPolicyRequest, DeleteByEntityIdRequest, DeleteByIdRequest, GetBatchRequest,
     GetByEntityIdRequest, GetByIdRequest, ListOdrlPoliciesRequest, OdrlPolicyListResponse,
     OdrlPolicyResponse,
 };
+use crate::services::odrl_policies::OdrlPolicyServiceTrait;
 use common::auth::grpc::GrpcAuth;
 use common::auth::OauthTokenValidator;
 use common::grpc::{IntoStatus, ListParams, ProtoField, ProtoFieldList};
@@ -33,13 +33,13 @@ use tonic::{Request, Response, Status};
 use ymir::errors::Errors;
 
 pub struct OdrlPolicyEntityGrpc {
-    service: Arc<dyn OdrlPolicyEntityTrait>,
+    service: Arc<dyn OdrlPolicyServiceTrait>,
     auth: GrpcAuth,
 }
 
 impl OdrlPolicyEntityGrpc {
     pub fn new(
-        service: Arc<dyn OdrlPolicyEntityTrait>,
+        service: Arc<dyn OdrlPolicyServiceTrait>,
         validator: Arc<dyn OauthTokenValidator>,
     ) -> Self {
         Self {

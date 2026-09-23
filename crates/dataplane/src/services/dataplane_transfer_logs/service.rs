@@ -47,7 +47,10 @@ impl DataplaneTransferLogServiceTrait for DataplaneTransferLogsService {
         let logs = self
             .data_plane_repo
             .get_dataplane_transfer_logs_repo()
-            .get_transfer_logs_by_dataplane_process_id(scope.acting_tenant(), dataplane_process_id)
+            .get_transfer_logs_by_dataplane_process_id(
+                scope.tenant_filter().map(str::to_string),
+                dataplane_process_id,
+            )
             .await?;
 
         Ok(logs

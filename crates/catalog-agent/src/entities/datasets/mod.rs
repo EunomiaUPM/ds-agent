@@ -15,13 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod datasets;
-
 use crate::data::entities::dataset;
 use crate::data::entities::dataset::{EditDatasetModel, Model, NewDatasetModel};
 use serde::{Deserialize, Serialize};
 use urn::Urn;
-use ymir::errors::Outcome;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -54,8 +51,6 @@ pub struct EditDatasetDto {
     pub dct_description: Option<String>,
 }
 
-use common::auth::AccessScope;
-
 impl NewDatasetDto {
     pub fn into_model(self, tenant_id: String) -> NewDatasetModel {
         NewDatasetModel {
@@ -85,45 +80,4 @@ impl From<dataset::Model> for DatasetDto {
     fn from(value: Model) -> Self {
         Self { inner: value }
     }
-}
-
-use crate::entities::filters::DatasetFilter;
-use common::paginated_spec::{Page, Paginated, Sort};
-
-#[mockall::automock]
-#[async_trait::async_trait]
-pub trait DatasetEntityTrait: Send + Sync {
-    async fn get_all_datasets(
-        &self,
-        scope: &AccessScope,
-        filters: &DatasetFilter,
-        page: &Page,
-        sort: &Sort,
-    ) -> Outcome<Paginated<DatasetDto>>;
-    async fn get_batch_datasets(
-        &self,
-        scope: &AccessScope,
-        ids: &[Urn],
-    ) -> Outcome<Vec<DatasetDto>>;
-    async fn get_datasets_by_catalog_id(
-        &self,
-        scope: &AccessScope,
-        catalog_id: &Urn,
-    ) -> Outcome<Vec<DatasetDto>>;
-    async fn get_dataset_by_id(&self, scope: &AccessScope, dataset_id: &Urn)
-        -> Outcome<DatasetDto>;
-
-    async fn put_dataset_by_id(
-        &self,
-        scope: &AccessScope,
-        dataset_id: &Urn,
-        edit_dataset_model: &EditDatasetDto,
-    ) -> Outcome<DatasetDto>;
-    async fn create_dataset(
-        &self,
-        scope: &AccessScope,
-        new_dataset_model: &NewDatasetDto,
-    ) -> Outcome<DatasetDto>;
-
-    async fn delete_dataset_by_id(&self, scope: &AccessScope, dataset_id: &Urn) -> Outcome<()>;
 }

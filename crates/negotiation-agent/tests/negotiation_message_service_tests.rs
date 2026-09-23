@@ -86,7 +86,7 @@ async fn get_one_foreign_tenant_returns_not_found() {
     let id = test_urn(1);
     message_repo
         .expect_get_negotiation_message_by_id()
-        .withf(move |tenant, mid| tenant == "tenant-2" && mid == &test_urn(1))
+        .withf(move |tenant, mid| tenant.as_deref() == Some("tenant-2") && mid == &test_urn(1))
         .returning(|_, _| Ok(None));
 
     let svc = make_service(
@@ -125,7 +125,7 @@ async fn delete_foreign_tenant_returns_not_found() {
     let id = test_urn(1);
     message_repo
         .expect_delete_negotiation_message()
-        .withf(move |tenant, mid| tenant == "tenant-2" && mid == &test_urn(1))
+        .withf(move |tenant, mid| tenant.as_deref() == Some("tenant-2") && mid == &test_urn(1))
         .returning(|_, _| {
             Err(NegotiationMessageRepoErrors::NegotiationMessageNotFound.into_errors())
         });
@@ -144,7 +144,7 @@ async fn batch_filters_out_foreign_tenant_records() {
     let id = test_urn(1);
     message_repo
         .expect_get_batch_negotiation_messages()
-        .withf(move |tenant, ids| tenant == "tenant-2" && ids == &[test_urn(1)])
+        .withf(move |tenant, ids| tenant.as_deref() == Some("tenant-2") && ids == &[test_urn(1)])
         .returning(|_, _| Ok(vec![]));
 
     let svc = make_service(

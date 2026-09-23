@@ -15,15 +15,11 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod transfer_event_entity;
-
-use crate::data::entities::transfer_event;
-use crate::data::entities::transfer_event::{LogLevel, NewTransferEvent};
+use crate::data::sea_orm::orm::transfer_event;
+use crate::data::sea_orm::orm::transfer_event::{LogLevel, NewTransferEvent};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use urn::Urn;
-use uuid::Uuid;
-use ymir::errors::Outcome;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -55,27 +51,4 @@ impl From<NewTransferEventDto> for NewTransferEvent {
             data: value.data,
         }
     }
-}
-
-#[async_trait::async_trait]
-pub trait TransferEventEntitiesTrait: Send + Sync + 'static {
-    async fn get_all_transfer_events(
-        &self,
-        limit: Option<u64>,
-        page: Option<u64>,
-    ) -> Outcome<Vec<TransferEventDto>>;
-
-    async fn get_batch_transfer_events(&self, ids: Vec<Urn>) -> Outcome<Vec<TransferEventDto>>;
-
-    async fn get_transfer_event_by_id(&self, id: &Urn) -> Outcome<Option<TransferEventDto>>;
-
-    async fn get_transfer_events_by_process_id(
-        &self,
-        process_id: &Urn,
-    ) -> Outcome<Vec<TransferEventDto>>;
-
-    async fn create_transfer_event(
-        &self,
-        new_transfer_event: &NewTransferEventDto,
-    ) -> Outcome<TransferEventDto>;
 }

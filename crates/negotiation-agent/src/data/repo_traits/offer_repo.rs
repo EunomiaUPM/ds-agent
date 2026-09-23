@@ -33,30 +33,38 @@ pub trait OfferRepoTrait: Send + Sync {
         page: &Page,
         sort: &Sort,
     ) -> Outcome<(Vec<offer::Model>, Option<u64>)>;
-    async fn get_batch_offers(&self, tenant_id: &str, ids: &[Urn]) -> Outcome<Vec<offer::Model>>;
+    async fn get_batch_offers(
+        &self,
+        tenant_id: Option<String>,
+        ids: &[Urn],
+    ) -> Outcome<Vec<offer::Model>>;
     async fn get_offers_by_negotiation_process(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         id: &Urn,
     ) -> Outcome<Vec<offer::Model>>;
     async fn get_last_offer_by_negotiation_process(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         id: &Urn,
     ) -> Outcome<Option<offer::Model>>;
-    async fn get_offer_by_id(&self, tenant_id: &str, id: &Urn) -> Outcome<Option<offer::Model>>;
+    async fn get_offer_by_id(
+        &self,
+        tenant_id: Option<String>,
+        id: &Urn,
+    ) -> Outcome<Option<offer::Model>>;
     async fn get_offer_by_negotiation_message(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         id: &Urn,
     ) -> Outcome<Option<offer::Model>>;
     async fn get_offer_by_offer_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         id: &Urn,
     ) -> Outcome<Option<offer::Model>>;
     async fn create_offer(&self, new_model: &NewOfferModel) -> Outcome<offer::Model>;
-    async fn delete_offer(&self, tenant_id: &str, id: &Urn) -> Outcome<()>;
+    async fn delete_offer(&self, tenant_id: Option<String>, id: &Urn) -> Outcome<()>;
 }
 
 #[derive(Debug, Error)]

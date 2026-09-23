@@ -90,7 +90,7 @@ impl AgreementServiceTrait for AgreementService {
         scope.require_read()?;
         let agreement = self
             .agreement_repo
-            .get_agreement_by_id(scope.acting_tenant(), id)
+            .get_agreement_by_id(scope.tenant_filter().map(str::to_string), id)
             .await?
             .or_not_found(id, "agreement")?;
 
@@ -106,7 +106,10 @@ impl AgreementServiceTrait for AgreementService {
         scope.require_read()?;
         let agreement = self
             .agreement_repo
-            .get_agreement_by_negotiation_process(scope.acting_tenant(), process_id)
+            .get_agreement_by_negotiation_process(
+                scope.tenant_filter().map(str::to_string),
+                process_id,
+            )
             .await?
             .or_not_found(process_id, "agreement")?;
 
@@ -122,7 +125,10 @@ impl AgreementServiceTrait for AgreementService {
         scope.require_read()?;
         let agreement = self
             .agreement_repo
-            .get_agreement_by_negotiation_message(scope.acting_tenant(), message_id)
+            .get_agreement_by_negotiation_message(
+                scope.tenant_filter().map(str::to_string),
+                message_id,
+            )
             .await?
             .or_not_found(message_id, "agreement")?;
 
@@ -138,7 +144,7 @@ impl AgreementServiceTrait for AgreementService {
         scope.require_read()?;
         let agreements = self
             .agreement_repo
-            .get_agreements_by_assignee(scope.acting_tenant(), assignee)
+            .get_agreements_by_assignee(scope.tenant_filter().map(str::to_string), assignee)
             .await?;
 
         Ok(agreements
@@ -156,7 +162,7 @@ impl AgreementServiceTrait for AgreementService {
         scope.require_read()?;
         let agreements = self
             .agreement_repo
-            .get_agreements_by_assigner(scope.acting_tenant(), assigner)
+            .get_agreements_by_assigner(scope.tenant_filter().map(str::to_string), assigner)
             .await?;
 
         Ok(agreements
@@ -181,7 +187,7 @@ impl AgreementServiceTrait for AgreementService {
 
         let agreements = self
             .agreement_repo
-            .get_batch_agreements(scope.acting_tenant(), &req.ids)
+            .get_batch_agreements(scope.tenant_filter().map(str::to_string), &req.ids)
             .await?;
 
         Ok(agreements
@@ -192,10 +198,8 @@ impl AgreementServiceTrait for AgreementService {
 
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn create(&self, scope: &AccessScope, cmd: &NewAgreementDto) -> Outcome<AgreementView> {
-        let mut cmd = cmd.clone();
-        cmd.tenant_id = Some(scope.resolve_create_tenant(cmd.tenant_id.as_deref())?);
-
-        let new_model: NewAgreementModel = cmd.into();
+        let tenant_id = scope.resolve_create_tenant(cmd.tenant_id.as_deref())?;
+        let new_model: NewAgreementModel = cmd.clone().into_model(tenant_id);
         let created = self.agreement_repo.create_agreement(&new_model).await?;
 
         let view = AgreementView::assemble(created);
@@ -221,7 +225,7 @@ impl AgreementServiceTrait for AgreementService {
         let edit_model: EditAgreementModel = cmd.clone().into();
         let updated = self
             .agreement_repo
-            .put_agreement(scope.acting_tenant(), id, &edit_model)
+            .put_agreement(scope.tenant_filter().map(str::to_string), id, &edit_model)
             .await?;
 
         let view = AgreementView::assemble(updated);
@@ -239,7 +243,7 @@ impl AgreementServiceTrait for AgreementService {
     async fn delete(&self, scope: &AccessScope, id: &Urn) -> Outcome<()> {
         scope.require_write()?;
         self.agreement_repo
-            .delete_agreement(scope.acting_tenant(), id)
+            .delete_agreement(scope.tenant_filter().map(str::to_string), id)
             .await?;
         events::emit_action!(
             self.event_bus,

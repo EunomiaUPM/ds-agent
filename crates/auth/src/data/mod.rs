@@ -15,4 +15,6 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+pub mod factory;
 pub mod migrations;
+pub mod sea_orm;

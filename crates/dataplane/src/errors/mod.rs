@@ -90,10 +90,6 @@ pub enum DataplaneError {
     #[error("Dataplane Error: Failed to serialize runtime state: {reason}")]
     RuntimeSerializationFailed { reason: String },
 
-    // Cache (Redis) ────────────────────────────────────────────────────────
-    #[error("Dataplane Error: Redis cache operation failed: {reason}")]
-    CacheQueryFailed { reason: String },
-
     // Configuration ────────────────────────────────────────────────────────
     #[error("Dataplane Error: RoleConfig::NotDefined is not valid in dataplane context")]
     InvalidRoleConfig,
@@ -215,10 +211,6 @@ impl From<DataplaneError> for Errors {
 
             DataplaneError::RuntimeSerializationFailed { reason } => {
                 Errors::crazy(format!("{DP} Runtime serialization failed: {reason}"), None)
-            }
-
-            DataplaneError::CacheQueryFailed { reason } => {
-                Errors::crazy(format!("{DP} Redis cache operation failed: {reason}"), None)
             }
 
             DataplaneError::InvalidRoleConfig => Errors::crazy(

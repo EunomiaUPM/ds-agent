@@ -15,9 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::negotiation_process::NegotiationProcessDto;
 use crate::protocols::dsp::orchestrator::rpc::step_trait::{
-    NegotiationRpcContinuationContext, NegotiationRpcStep, resolve_continuation_context,
+    NegotiationRpcContinuationContext, NegotiationRpcStep,
 };
 use crate::protocols::dsp::orchestrator::rpc::types::{
     RpcNegotiationProcessMessageTrait, RpcNegotiationVerificationMessageDto,
@@ -27,6 +26,9 @@ use crate::protocols::dsp::protocol_types::{
     NegotiationAckMessageDto, NegotiationProcessMessageWrapper, NegotiationVerificationMessageDto,
 };
 use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRpcSteps;
+use crate::services::negotiation_process::views::NegotiationProcessView;
+use common::auth::AccessScope;
+use common::dsp_common::DspActor;
 use common::facades::ssi_auth_facade::MatesFacadeTrait;
 use common::http_client::HttpClient;
 use std::sync::Arc;
@@ -48,14 +50,16 @@ impl NegotiationRpcStep for RpcVerificationStep {
 
     async fn validate(
         validator: &Arc<dyn ValidationRpcSteps>,
+        actor: &DspActor,
         input: &RpcNegotiationVerificationMessageDto,
     ) -> Outcome<()> {
         validator
-            .negotiation_agreement_verification_rpc(input)
+            .negotiation_agreement_verification_rpc(actor, input)
             .await
     }
 
     async fn prepare_context(
+        scope: &AccessScope,
         input: &RpcNegotiationVerificationMessageDto,
         persistence: &Arc<dyn NegotiationRpcPersistenceTrait>,
         _mates_service: &Arc<dyn MatesFacadeTrait>,
@@ -63,7 +67,7 @@ impl NegotiationRpcStep for RpcVerificationStep {
         let id = input
             .get_consumer_pid()
             .ok_or_else(|| Errors::parse("RpcVerificationStep: missing consumer PID", None))?;
-        resolve_continuation_context(&id, persistence).await
+        NegotiationRpcContinuationContext::resolve(&id, scope, persistence).await
     }
 
     fn auth_peer(ctx: &NegotiationRpcContinuationContext) -> &str {
@@ -77,7 +81,7 @@ impl NegotiationRpcStep for RpcVerificationStep {
         input: &RpcNegotiationVerificationMessageDto,
     ) -> Outcome<(
         NegotiationProcessMessageWrapper<NegotiationAckMessageDto>,
-        NegotiationProcessDto,
+        NegotiationProcessView,
     )> {
         let peer_url = format!(
             "{}/negotiations/{}/agreement/verification",
@@ -90,16 +94,8 @@ impl NegotiationRpcStep for RpcVerificationStep {
             .post_json(peer_url.as_str(), &request_body)
             .await?;
 
-        let id = input
-            .get_consumer_pid()
-            .ok_or_else(|| Errors::parse("RpcVerificationStep: missing consumer PID", None))?;
         let process = persistence
-            .update_with_agreement(
-                id.to_string().as_str(),
-                input,
-                &request_body.dto,
-                &response.dto,
-            )
+            .update_with_agreement(&ctx.process, input, &request_body.dto, &response.dto)
             .await?;
 
         Ok((response, process))

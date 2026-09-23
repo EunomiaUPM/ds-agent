@@ -34,6 +34,3 @@ pub trait DataplaneTransferLogServiceTrait: Send + Sync + 'static {
         dataplane_process_id: &Urn,
     ) -> Outcome<Vec<DataplaneTransferLogDto>>;
 }
-
-/// Backwards compatibility alias.
-pub type DataplaneTransferLogsEntitiesTrait = dyn DataplaneTransferLogServiceTrait;

@@ -15,6 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use sea_orm::QueryTrait;
 use std::sync::Arc;
 
 use crate::data::repo::transfer_process::{TransferProcessRepoErrors, TransferProcessRepoTrait};
@@ -143,7 +144,7 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
 
     async fn get_batch_transfer_processes(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         ids: &[Urn],
     ) -> Outcome<Vec<TransferProcess>> {
         if ids.is_empty() {
@@ -152,7 +153,7 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
         let id_strings: Vec<String> = ids.iter().map(|u| u.to_string()).collect();
         let q = orm::Entity::find()
             .filter(orm::Column::Id.is_in(id_strings))
-            .filter(orm::Column::TenantId.eq(tenant_id));
+            .apply_if(tenant_id, |q, t| q.filter(orm::Column::TenantId.eq(t)));
         q.all(self.db.as_ref())
             .await
             .map_err(Self::fetch_err)?
@@ -163,10 +164,11 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
 
     async fn get_transfer_process_by_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         id: &Urn,
     ) -> Outcome<Option<TransferProcess>> {
-        let q = orm::Entity::find_by_id(id.to_string()).filter(orm::Column::TenantId.eq(tenant_id));
+        let q = orm::Entity::find_by_id(id.to_string())
+            .apply_if(tenant_id, |q, t| q.filter(orm::Column::TenantId.eq(t)));
         q.one(self.db.as_ref())
             .await
             .map_err(Self::fetch_err)?
@@ -191,8 +193,11 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
             None => Ok(None),
             Some(i) => {
                 let tid = tenant_id.as_deref().unwrap_or(&i.tenant_id);
-                self.get_transfer_process_by_id(tid, &parse_urn(&i.transfer_process_id)?)
-                    .await
+                self.get_transfer_process_by_id(
+                    Some(tid.to_string()),
+                    &parse_urn(&i.transfer_process_id)?,
+                )
+                .await
             }
         }
     }
@@ -212,11 +217,12 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
 
     async fn put_transfer_process(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         id: &Urn,
         edit_model: &EditTransferProcessCommand,
     ) -> Outcome<TransferProcess> {
-        let q = orm::Entity::find_by_id(id.to_string()).filter(orm::Column::TenantId.eq(tenant_id));
+        let q = orm::Entity::find_by_id(id.to_string())
+            .apply_if(tenant_id, |q, t| q.filter(orm::Column::TenantId.eq(t)));
         let existing = q
             .one(self.db.as_ref())
             .await
@@ -235,10 +241,12 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
             .and_then(orm::Model::into_domain)
     }
 
-    async fn delete_transfer_process(&self, tenant_id: &str, id: &Urn) -> Outcome<()> {
+    async fn delete_transfer_process(&self, tenant_id: Option<String>, id: &Urn) -> Outcome<()> {
         let q = orm::Entity::delete_many()
             .filter(orm::Column::Id.eq(id.to_string()))
-            .filter(orm::Column::TenantId.eq(tenant_id));
+            .apply_if(tenant_id.clone(), |q, t| {
+                q.filter(orm::Column::TenantId.eq(t))
+            });
         let res = q.exec(self.db.as_ref()).await.map_err(|e| {
             TransferProcessRepoErrors::ErrorDeletingTransferProcess(Box::new(e)).into_errors()
         })?;
@@ -249,7 +257,9 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
         use crate::data::sea_orm::orm::transfer_identifier as ident_orm;
         ident_orm::Entity::delete_many()
             .filter(ident_orm::Column::TransferProcessId.eq(id.to_string()))
-            .filter(ident_orm::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| {
+                q.filter(ident_orm::Column::TenantId.eq(t))
+            })
             .exec(self.db.as_ref())
             .await
             .map_err(Self::fetch_err)?;

@@ -36,12 +36,12 @@ pub trait TransferProcessRepoTrait: Send + Sync {
     async fn count_transfer_processes(&self, filters: &TransferProcessFilter) -> Outcome<u64>;
     async fn get_batch_transfer_processes(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         ids: &[Urn],
     ) -> Outcome<Vec<TransferProcess>>;
     async fn get_transfer_process_by_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         id: &Urn,
     ) -> Outcome<Option<TransferProcess>>;
     async fn get_transfer_process_by_key_value(
@@ -55,11 +55,11 @@ pub trait TransferProcessRepoTrait: Send + Sync {
     ) -> Outcome<TransferProcess>;
     async fn put_transfer_process(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         id: &Urn,
         edit_model: &EditTransferProcessCommand,
     ) -> Outcome<TransferProcess>;
-    async fn delete_transfer_process(&self, tenant_id: &str, id: &Urn) -> Outcome<()>;
+    async fn delete_transfer_process(&self, tenant_id: Option<String>, id: &Urn) -> Outcome<()>;
 }
 
 #[derive(Debug, Error)]

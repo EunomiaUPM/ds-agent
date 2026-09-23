@@ -22,12 +22,13 @@ mod grpc_fixtures;
 use std::sync::Arc;
 
 use catalog_agent::data::entities::catalog;
-use catalog_agent::entities::catalogs::{CatalogDto, MockCatalogEntityTrait};
+use catalog_agent::entities::catalogs::CatalogDto;
 use catalog_agent::grpc::api::catalog_agent::catalog_entity_service_server::CatalogEntityService;
 use catalog_agent::grpc::api::catalog_agent::{
     CreateCatalogRequest, GetBatchRequest, GetByIdRequest, ListCatalogsRequest, PutCatalogRequest,
 };
 use catalog_agent::grpc::catalogs::CatalogEntityGrpc;
+use catalog_agent::services::catalogs::MockCatalogServiceTrait;
 use chrono::Utc;
 use common::errors::ResourceError;
 use common::paginated_spec::Paginated;
@@ -35,7 +36,7 @@ use grpc_fixtures::{owner, request, urn, StubValidator, OTHER_TENANT, TENANT};
 use tonic::Code;
 use ymir::errors::Errors;
 
-fn grpc(service: MockCatalogEntityTrait) -> CatalogEntityGrpc {
+fn grpc(service: MockCatalogServiceTrait) -> CatalogEntityGrpc {
     CatalogEntityGrpc::new(Arc::new(service), Arc::new(StubValidator))
 }
 
@@ -65,7 +66,7 @@ fn by_id(id: &str) -> GetByIdRequest {
 
 #[tokio::test]
 async fn get_without_token_is_unauthenticated() {
-    let g = grpc(MockCatalogEntityTrait::new());
+    let g = grpc(MockCatalogServiceTrait::new());
     let err = g
         .get_catalog_by_id(request(by_id(&urn(1)), None, Some(TENANT)))
         .await
@@ -75,7 +76,7 @@ async fn get_without_token_is_unauthenticated() {
 
 #[tokio::test]
 async fn get_foreign_tenant_without_admin_is_permission_denied() {
-    let g = grpc(MockCatalogEntityTrait::new());
+    let g = grpc(MockCatalogServiceTrait::new());
     let err = g
         .get_catalog_by_id(request(by_id(&urn(1)), Some("owner"), Some(OTHER_TENANT)))
         .await
@@ -85,7 +86,7 @@ async fn get_foreign_tenant_without_admin_is_permission_denied() {
 
 #[tokio::test]
 async fn admin_may_act_on_foreign_tenant() {
-    let mut svc = MockCatalogEntityTrait::new();
+    let mut svc = MockCatalogServiceTrait::new();
     svc.expect_get_catalog_by_id()
         .withf(|scope, _| scope.acting_tenant() == OTHER_TENANT && scope.is_admin())
         .returning(|_, _| Ok(dto(1)));
@@ -98,7 +99,7 @@ async fn admin_may_act_on_foreign_tenant() {
 
 #[tokio::test]
 async fn missing_tenant_header_falls_back_to_token_tenant() {
-    let mut svc = MockCatalogEntityTrait::new();
+    let mut svc = MockCatalogServiceTrait::new();
     svc.expect_get_catalog_by_id()
         .withf(|scope, _| scope.acting_tenant() == TENANT)
         .returning(|_, _| Ok(dto(1)));
@@ -113,7 +114,7 @@ async fn missing_tenant_header_falls_back_to_token_tenant() {
 
 #[tokio::test]
 async fn get_invalid_urn_is_invalid_argument_naming_field() {
-    let g = grpc(MockCatalogEntityTrait::new());
+    let g = grpc(MockCatalogServiceTrait::new());
     let err = g
         .get_catalog_by_id(owner(by_id("not a urn")))
         .await
@@ -124,7 +125,7 @@ async fn get_invalid_urn_is_invalid_argument_naming_field() {
 
 #[tokio::test]
 async fn batch_invalid_urn_reports_index() {
-    let g = grpc(MockCatalogEntityTrait::new());
+    let g = grpc(MockCatalogServiceTrait::new());
     let err = g
         .get_batch_catalogs(owner(GetBatchRequest {
             ids: vec![urn(1), "nope".into()],
@@ -137,7 +138,7 @@ async fn batch_invalid_urn_reports_index() {
 
 #[tokio::test]
 async fn list_rejects_bad_sort_and_date() {
-    let g = grpc(MockCatalogEntityTrait::new());
+    let g = grpc(MockCatalogServiceTrait::new());
     let err = g
         .get_all_catalogs(owner(ListCatalogsRequest {
             sort: "sideways".into(),
@@ -164,7 +165,7 @@ async fn list_rejects_bad_sort_and_date() {
 
 #[tokio::test]
 async fn create_parses_optional_id_and_passes_fields() {
-    let mut svc = MockCatalogEntityTrait::new();
+    let mut svc = MockCatalogServiceTrait::new();
     svc.expect_create_catalog()
         .withf(|_, dto| {
             dto.id.as_ref().map(|u| u.to_string()) == Some(urn(9))
@@ -180,7 +181,7 @@ async fn create_parses_optional_id_and_passes_fields() {
     };
     assert!(g.create_catalog(owner(req)).await.is_ok());
 
-    let g = grpc(MockCatalogEntityTrait::new());
+    let g = grpc(MockCatalogServiceTrait::new());
     let err = g
         .create_catalog(owner(CreateCatalogRequest {
             id: Some("bad".into()),
@@ -193,7 +194,7 @@ async fn create_parses_optional_id_and_passes_fields() {
 
 #[tokio::test]
 async fn put_parses_id_and_maps_edit_dto() {
-    let mut svc = MockCatalogEntityTrait::new();
+    let mut svc = MockCatalogServiceTrait::new();
     svc.expect_put_catalog_by_id()
         .withf(|_, id, edit| id.to_string() == urn(1) && edit.dct_title.as_deref() == Some("new"))
         .returning(|_, _, _| Ok(dto(1)));
@@ -210,7 +211,7 @@ async fn put_parses_id_and_maps_edit_dto() {
 
 #[tokio::test]
 async fn domain_not_found_maps_to_not_found() {
-    let mut svc = MockCatalogEntityTrait::new();
+    let mut svc = MockCatalogServiceTrait::new();
     svc.expect_get_catalog_by_id()
         .returning(|_, id| Err(ResourceError::not_found(id, "catalog")));
     let g = grpc(svc);
@@ -224,7 +225,7 @@ async fn domain_not_found_maps_to_not_found() {
 
 #[tokio::test]
 async fn domain_forbidden_maps_to_permission_denied() {
-    let mut svc = MockCatalogEntityTrait::new();
+    let mut svc = MockCatalogServiceTrait::new();
     svc.expect_delete_catalog_by_id()
         .returning(|_, _| Err(Errors::forbidden("read-only", None)));
     let g = grpc(svc);
@@ -239,7 +240,7 @@ async fn domain_forbidden_maps_to_permission_denied() {
 
 #[tokio::test]
 async fn missing_main_catalog_is_not_found() {
-    let mut svc = MockCatalogEntityTrait::new();
+    let mut svc = MockCatalogServiceTrait::new();
     svc.expect_get_main_catalog().returning(|_| Ok(None));
     let g = grpc(svc);
     let err = g.get_main_catalog(owner(())).await.unwrap_err();
@@ -250,7 +251,7 @@ async fn missing_main_catalog_is_not_found() {
 
 #[tokio::test]
 async fn list_propagates_cursor_total_and_parsed_filters() {
-    let mut svc = MockCatalogEntityTrait::new();
+    let mut svc = MockCatalogServiceTrait::new();
     svc.expect_get_all_catalogs()
         .withf(|_, filter, page, sort| {
             filter.title.as_deref() == Some("x")
@@ -287,7 +288,7 @@ async fn list_propagates_cursor_total_and_parsed_filters() {
 
 #[tokio::test]
 async fn batch_returns_full_set_without_cursor() {
-    let mut svc = MockCatalogEntityTrait::new();
+    let mut svc = MockCatalogServiceTrait::new();
     svc.expect_get_batch_catalogs()
         .withf(|_, ids| ids.len() == 2)
         .returning(|_, _| Ok(vec![dto(1), dto(2)]));

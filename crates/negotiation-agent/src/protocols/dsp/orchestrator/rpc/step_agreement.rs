@@ -15,9 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::negotiation_process::NegotiationProcessDto;
 use crate::protocols::dsp::orchestrator::rpc::step_trait::{
-    NegotiationRpcAgreementContext, NegotiationRpcStep, resolve_continuation_context,
+    NegotiationRpcAgreementContext, NegotiationRpcContinuationContext, NegotiationRpcStep,
 };
 use crate::protocols::dsp::orchestrator::rpc::types::{
     RpcNegotiationAgreementMessageDto, RpcNegotiationProcessMessageTrait,
@@ -28,13 +27,15 @@ use crate::protocols::dsp::protocol_types::{
     NegotiationAckMessageDto, NegotiationAgreementMessageDto, NegotiationProcessMessageWrapper,
 };
 use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRpcSteps;
+use crate::services::negotiation_process::views::NegotiationProcessView;
+use common::auth::AccessScope;
+use common::dsp_common::DspActor;
 use common::dsp_common::odrl::{
     ContractRequestMessageOfferTypes, OdrlAgreement, OdrlMessageOffer, OdrlTypes,
 };
 use common::facades::ssi_auth_facade::MatesFacadeTrait;
 use common::http_client::HttpClient;
 use std::sync::Arc;
-use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 
 // AgreementEnricher (helper for build_message) ─────────────────────────────
@@ -64,14 +65,16 @@ impl NegotiationRpcStep for RpcAgreementStep {
 
     async fn validate(
         validator: &Arc<dyn ValidationRpcSteps>,
+        actor: &DspActor,
         input: &RpcNegotiationAgreementMessageDto,
     ) -> Outcome<()> {
-        validator.negotiation_agreement_rpc(input).await
+        validator.negotiation_agreement_rpc(actor, input).await
     }
 
     /// Resolves the continuation context and pre-fetches the enrichment data:
     /// the last offer (for agreement policy) and the participant IDs (from mates).
     async fn prepare_context(
+        scope: &AccessScope,
         input: &RpcNegotiationAgreementMessageDto,
         persistence: &Arc<dyn NegotiationRpcPersistenceTrait>,
         mates_service: &Arc<dyn MatesFacadeTrait>,
@@ -79,12 +82,10 @@ impl NegotiationRpcStep for RpcAgreementStep {
         let id = input
             .get_consumer_pid()
             .ok_or_else(|| Errors::parse("RpcAgreementStep: missing consumer PID", None))?;
-        let base = resolve_continuation_context(&id, persistence).await?;
+        let base = NegotiationRpcContinuationContext::resolve(&id, scope, persistence).await?;
 
         // Fetch the last offer to copy its policy fields into the agreement.
-        let last_offer_record = persistence
-            .fetch_last_offer_by_process(base.process.inner.id.as_str())
-            .await?;
+        let last_offer_record = persistence.fetch_last_offer(&base.process).await?;
         let last_offer = {
             let offer_types: ContractRequestMessageOfferTypes =
                 serde_json::from_value(last_offer_record.inner.offer_content)?;
@@ -134,7 +135,7 @@ impl NegotiationRpcStep for RpcAgreementStep {
         input: &RpcNegotiationAgreementMessageDto,
     ) -> Outcome<(
         NegotiationProcessMessageWrapper<NegotiationAckMessageDto>,
-        NegotiationProcessDto,
+        NegotiationProcessView,
     )> {
         let peer_url = format!(
             "{}/negotiations/{}/agreement",
@@ -164,16 +165,8 @@ impl NegotiationRpcStep for RpcAgreementStep {
             .post_json(peer_url.as_str(), &request_body)
             .await?;
 
-        let id = input
-            .get_consumer_pid()
-            .ok_or_else(|| Errors::parse("RpcAgreementStep: missing consumer PID", None))?;
         let process = persistence
-            .update_with_new_agreement(
-                id.to_string().as_str(),
-                input,
-                &request_body.dto,
-                &response.dto,
-            )
+            .update_with_new_agreement(&ctx.process, input, &request_body.dto, &response.dto)
             .await?;
 
         Ok((response, process))

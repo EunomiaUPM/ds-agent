@@ -683,7 +683,7 @@ async fn get_one_foreign_tenant_returns_not_found() {
     let id_urn = msg.id.as_urn().clone();
     let mut repo = MockTransferMessageRepoTrait::new();
     repo.expect_get_transfer_message_by_id()
-        .withf(|tenant, id| tenant == "tenant-2" && id == &p_urn(1001))
+        .withf(|tenant, id| tenant.as_deref() == Some("tenant-2") && id == &p_urn(1001))
         .returning(|_, _| Ok(None));
 
     let svc = make_svc(repo);
@@ -757,7 +757,7 @@ async fn delete_foreign_tenant_returns_not_found() {
     let id_urn = msg.id.as_urn().clone();
     let mut repo = MockTransferMessageRepoTrait::new();
     repo.expect_delete_transfer_message()
-        .withf(|tenant, id| tenant == "tenant-2" && id == &p_urn(1001))
+        .withf(|tenant, id| tenant.as_deref() == Some("tenant-2") && id == &p_urn(1001))
         .returning(|_, _| Err(TransferMessageRepoErrors::TransferMessageNotFound.into_errors()));
 
     let svc = make_svc(repo);

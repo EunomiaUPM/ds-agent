@@ -15,13 +15,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use sea_orm::QueryTrait;
 use std::sync::Arc;
 
-use crate::data::entities::dataplane_transfers::{
+use crate::data::repo::dataplane_transfer::{DataplaneTransfersRepo, DataplaneTransfersRepoErrors};
+use crate::data::sea_orm::orm::dataplane_transfers::{
     self, Column, EditDataplaneTransferModel, Entity as DataplaneTransferEntity,
     NewDataplaneTransferModel,
 };
-use crate::data::repo::dataplane_transfer::{DataplaneTransfersRepo, DataplaneTransfersRepoErrors};
 use crate::entities::filters::DataplaneTransferFilter;
 use common::paginated_spec::Cursor;
 use common::query::{Page, Sort};
@@ -128,7 +129,7 @@ impl DataplaneTransfersRepo for DataplaneTransfersRepoForSql {
 
     async fn get_batch_dataplane_transfers(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         ids: &[Urn],
     ) -> Outcome<Vec<dataplane_transfers::Model>> {
         if ids.is_empty() {
@@ -137,7 +138,7 @@ impl DataplaneTransfersRepo for DataplaneTransfersRepoForSql {
         let id_strings: Vec<String> = ids.iter().map(|urn| urn.to_string()).collect();
         let transfers = DataplaneTransferEntity::find()
             .filter(Column::Id.is_in(id_strings))
-            .filter(Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| q.filter(Column::TenantId.eq(t)))
             .all(self.db.as_ref())
             .await
             .map_err(Self::fetch_err)?;
@@ -147,11 +148,11 @@ impl DataplaneTransfersRepo for DataplaneTransfersRepoForSql {
 
     async fn get_dataplane_transfers_by_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         process_id: &Urn,
     ) -> Outcome<Option<dataplane_transfers::Model>> {
         let transfer = DataplaneTransferEntity::find_by_id(process_id.to_string())
-            .filter(Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| q.filter(Column::TenantId.eq(t)))
             .one(self.db.as_ref())
             .await
             .map_err(Self::fetch_err)?;
@@ -159,14 +160,24 @@ impl DataplaneTransfersRepo for DataplaneTransfersRepoForSql {
         Ok(transfer)
     }
 
+    async fn find_dataplane_transfer_by_id(
+        &self,
+        id: &Urn,
+    ) -> Outcome<Option<dataplane_transfers::Model>> {
+        DataplaneTransferEntity::find_by_id(id.to_string())
+            .one(self.db.as_ref())
+            .await
+            .map_err(Self::fetch_err)
+    }
+
     async fn get_by_transfer_process_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         transfer_process_id: &Urn,
     ) -> Outcome<Option<dataplane_transfers::Model>> {
         let transfer = DataplaneTransferEntity::find()
             .filter(Column::TransferProcessId.eq(transfer_process_id.to_string()))
-            .filter(Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| q.filter(Column::TenantId.eq(t)))
             .one(self.db.as_ref())
             .await
             .map_err(Self::fetch_err)?;
@@ -186,12 +197,12 @@ impl DataplaneTransfersRepo for DataplaneTransfersRepoForSql {
 
     async fn put_dataplane_transfers(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         process_id: &Urn,
         new_dataplane_transfer: &EditDataplaneTransferModel,
     ) -> Outcome<dataplane_transfers::Model> {
         let existing = DataplaneTransferEntity::find_by_id(process_id.to_string())
-            .filter(Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| q.filter(Column::TenantId.eq(t)))
             .one(self.db.as_ref())
             .await
             .map_err(|e| {
@@ -224,10 +235,14 @@ impl DataplaneTransfersRepo for DataplaneTransfersRepoForSql {
         })
     }
 
-    async fn delete_dataplane_transfers(&self, tenant_id: &str, process_id: &Urn) -> Outcome<()> {
+    async fn delete_dataplane_transfers(
+        &self,
+        tenant_id: Option<String>,
+        process_id: &Urn,
+    ) -> Outcome<()> {
         let result = DataplaneTransferEntity::delete_many()
             .filter(Column::Id.eq(process_id.to_string()))
-            .filter(Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| q.filter(Column::TenantId.eq(t)))
             .exec(self.db.as_ref())
             .await
             .map_err(|e| {

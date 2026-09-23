@@ -15,20 +15,15 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod dataplane_transfers_entity;
-
-use crate::data::entities::dataplane_transfers;
-pub use crate::data::entities::dataplane_transfers::{
+use crate::data::sea_orm::orm::dataplane_transfer_logs;
+use crate::data::sea_orm::orm::dataplane_transfers;
+pub use crate::data::sea_orm::orm::dataplane_transfers::{
     InteractionMode, NewDataplaneTransfer, TransferRole, TransferState,
 };
-use crate::data::entities::{dataplane_field, dataplane_transfer_logs, transfer_event};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
-use std::sync::Arc;
 use urn::Urn;
-use uuid::Uuid;
-use ymir::errors::Outcome;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -80,36 +75,4 @@ impl From<NewDataplaneTransferDto> for NewDataplaneTransfer {
             egress_config: value.egress_config,
         }
     }
-}
-
-#[cfg_attr(test, mockall::automock)]
-#[async_trait::async_trait]
-pub trait DataplaneTransfersEntitiesTrait: Send + Sync + 'static {
-    async fn get_all_dataplane_transfers(&self) -> Outcome<Vec<DataplaneTransferDto>>;
-
-    async fn get_dataplane_transfer_by_id(&self, id: &Urn)
-        -> Outcome<Option<DataplaneTransferDto>>;
-
-    async fn get_dataplane_transfer_by_process_id(
-        &self,
-        process_id: &Urn,
-    ) -> Outcome<Option<DataplaneTransferDto>>;
-
-    async fn get_batch_dataplane_transfers(
-        &self,
-        transfer_ids: &Vec<Urn>,
-    ) -> Outcome<Vec<DataplaneTransferDto>>;
-
-    async fn create_dataplane_transfer(
-        &self,
-        new_data_plane_process: &NewDataplaneTransferDto,
-    ) -> Outcome<DataplaneTransferDto>;
-
-    async fn put_dataplane_transfer_by_id(
-        &self,
-        id: &Urn,
-        edit_dataplane_transfer: &EditDataplaneTransferDto,
-    ) -> Outcome<DataplaneTransferDto>;
-
-    async fn delete_dataplane_transfer(&self, id: &Urn) -> Outcome<()>;
 }

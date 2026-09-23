@@ -132,7 +132,7 @@ impl TransferMessageServiceTrait for TransferMessageService {
         scope.require_read()?;
         let message = self
             .message_repo
-            .get_transfer_message_by_id(scope.acting_tenant(), id)
+            .get_transfer_message_by_id(scope.tenant_filter().map(str::to_string), id)
             .await?
             .or_not_found(id, "transfer message")?;
 
@@ -168,7 +168,7 @@ impl TransferMessageServiceTrait for TransferMessageService {
         scope.require_write()?;
         // Hit db
         self.message_repo
-            .delete_transfer_message(scope.acting_tenant(), id)
+            .delete_transfer_message(scope.tenant_filter().map(str::to_string), id)
             .await?;
         events::emit_action!(
             self.event_bus,

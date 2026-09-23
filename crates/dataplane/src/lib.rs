@@ -17,6 +17,7 @@
 
 pub mod cache;
 pub mod data;
+pub(crate) mod engine;
 pub mod entities;
 pub(crate) mod errors;
 pub mod http;
@@ -25,13 +26,13 @@ pub mod setup;
 pub mod testing_proxy;
 
 pub use data::migrations::get_dataplane_migrations;
-pub use entities::dataplane_manager::dataplane_commands::{
+pub use engine::dataplane_manager::dataplane_commands::{
     DataplaneCommand, DataplaneCommandResponse, DataplaneContinuation,
     DataplaneInitCommandDirection, DataplaneInitCommandTypes,
 };
-pub use entities::dataplane_manager::dataplane_manager::DataplaneManager;
-pub use entities::dataplane_manager::DataplaneAddress;
-pub use entities::dataplane_transfers::DataplaneTransfersEntitiesTrait;
+pub use engine::dataplane_manager::dataplane_manager::DataplaneManager;
+pub use engine::dataplane_manager::DataplaneAddress;
+pub use services::dataplane_transfers::DataplaneTransferServiceTrait;
 
 #[cfg(test)]
 pub(crate) mod test_fixtures;

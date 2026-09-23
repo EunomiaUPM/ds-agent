@@ -24,6 +24,7 @@ use crate::protocols::dsp::orchestrator::rpc::types::{
     RpcNegotiationRequestMessageDto, RpcNegotiationTerminationMessageDto,
     RpcNegotiationVerificationMessageDto,
 };
+use common::dsp_common::DspActor;
 use ymir::errors::Outcome;
 
 #[async_trait::async_trait]
@@ -32,31 +33,43 @@ pub trait ValidationRpcSteps: Send + Sync + 'static {
         &self,
         input: &RpcNegotiationRequestInitMessageDto,
     ) -> Outcome<()>;
-    async fn negotiation_request_rpc(&self, input: &RpcNegotiationRequestMessageDto)
-    -> Outcome<()>;
+    async fn negotiation_request_rpc(
+        &self,
+        actor: &DspActor,
+        input: &RpcNegotiationRequestMessageDto,
+    ) -> Outcome<()>;
     async fn negotiation_offer_init_rpc(
         &self,
         input: &RpcNegotiationOfferInitMessageDto,
     ) -> Outcome<()>;
-    async fn negotiation_offer_rpc(&self, input: &RpcNegotiationOfferMessageDto) -> Outcome<()>;
+    async fn negotiation_offer_rpc(
+        &self,
+        actor: &DspActor,
+        input: &RpcNegotiationOfferMessageDto,
+    ) -> Outcome<()>;
     async fn negotiation_agreement_rpc(
         &self,
+        actor: &DspActor,
         input: &RpcNegotiationAgreementMessageDto,
     ) -> Outcome<()>;
     async fn negotiation_agreement_verification_rpc(
         &self,
+        actor: &DspActor,
         input: &RpcNegotiationVerificationMessageDto,
     ) -> Outcome<()>;
     async fn negotiation_event_accepted_rpc(
         &self,
+        actor: &DspActor,
         input: &RpcNegotiationEventAcceptedMessageDto,
     ) -> Outcome<()>;
     async fn negotiation_event_finalized_rpc(
         &self,
+        actor: &DspActor,
         input: &RpcNegotiationEventFinalizedMessageDto,
     ) -> Outcome<()>;
     async fn negotiation_termination_rpc(
         &self,
+        actor: &DspActor,
         input: &RpcNegotiationTerminationMessageDto,
     ) -> Outcome<()>;
 }

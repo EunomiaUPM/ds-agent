@@ -22,8 +22,8 @@ use sea_orm::entity::prelude::*;
 use sea_orm::ActiveValue;
 use ymir::errors::{Errors, Outcome};
 
-use crate::entities::delivery::EventDeliveryRecord;
 use crate::entities::delivery::DeliveryStatus;
+use crate::entities::delivery::EventDeliveryRecord;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
 #[sea_orm(table_name = "event_deliveries")]

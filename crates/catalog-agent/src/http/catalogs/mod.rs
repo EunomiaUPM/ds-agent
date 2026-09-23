@@ -15,9 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::catalogs::{CatalogEntityTrait, EditCatalogDto, NewCatalogDto};
+use crate::entities::catalogs::{EditCatalogDto, NewCatalogDto};
 use crate::entities::filters::CatalogFilter;
 use crate::http::common::to_camel_case::ToCamelCase;
+use crate::services::catalogs::CatalogServiceTrait;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{FromRef, Path, Query, State};
 use axum::response::IntoResponse;
@@ -37,13 +38,13 @@ use ymir::utils::{extract_path_urn, extract_payload};
 
 #[derive(Clone)]
 pub struct CatalogEntityRouter {
-    service: Arc<dyn CatalogEntityTrait>,
+    service: Arc<dyn CatalogServiceTrait>,
     config: Arc<CatalogConfig>,
 }
 
 pub type CatalogQuery = QuerySpec<CatalogFilter>;
 
-impl FromRef<CatalogEntityRouter> for Arc<dyn CatalogEntityTrait> {
+impl FromRef<CatalogEntityRouter> for Arc<dyn CatalogServiceTrait> {
     fn from_ref(state: &CatalogEntityRouter) -> Self {
         state.service.clone()
     }
@@ -56,7 +57,7 @@ impl FromRef<CatalogEntityRouter> for Arc<CatalogConfig> {
 }
 
 impl CatalogEntityRouter {
-    pub fn new(service: Arc<dyn CatalogEntityTrait>, config: Arc<CatalogConfig>) -> Self {
+    pub fn new(service: Arc<dyn CatalogServiceTrait>, config: Arc<CatalogConfig>) -> Self {
         Self { service, config }
     }
 

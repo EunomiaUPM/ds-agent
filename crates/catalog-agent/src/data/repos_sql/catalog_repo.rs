@@ -22,6 +22,7 @@ use crate::data::repo_traits::catalog_repo::CatalogRepositoryTrait;
 use crate::entities::filters::CatalogFilter;
 use common::paginated_spec::{Page, SelectCursorExt, Sort};
 use common::query::FilterApplier;
+use sea_orm::QueryTrait;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait,
     QueryFilter, QueryOrder, QuerySelect, Select,
@@ -104,12 +105,12 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
 
     async fn get_batch_catalogs(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         ids: &[Urn],
     ) -> Outcome<Vec<catalog::Model>> {
         let catalog_ids = ids.iter().map(|t| t.to_string()).collect::<Vec<_>>();
         let catalog_process = catalog::Entity::find()
-            .filter(catalog::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| q.filter(catalog::Column::TenantId.eq(t)))
             .filter(catalog::Column::Id.is_in(catalog_ids))
             .all(&self.db_connection)
             .await;
@@ -124,12 +125,12 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
 
     async fn get_catalog_by_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         catalog_id: &Urn,
     ) -> Outcome<Option<catalog::Model>> {
         let catalog_id = catalog_id.to_string();
         let catalog = catalog::Entity::find_by_id(catalog_id)
-            .filter(catalog::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| q.filter(catalog::Column::TenantId.eq(t)))
             .one(&self.db_connection)
             .await;
         match catalog {
@@ -158,13 +159,13 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
 
     async fn put_catalog_by_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         catalog_id: &Urn,
         edit_catalog_model: &EditCatalogModel,
     ) -> Outcome<catalog::Model> {
         let catalog_id = catalog_id.to_string();
         let old_model = catalog::Entity::find_by_id(catalog_id)
-            .filter(catalog::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| q.filter(catalog::Column::TenantId.eq(t)))
             .one(&self.db_connection)
             .await;
         let old_model = match old_model {
@@ -256,11 +257,15 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
         }
     }
 
-    async fn delete_catalog_by_id(&self, tenant_id: &str, catalog_id: &Urn) -> Outcome<()> {
+    async fn delete_catalog_by_id(
+        &self,
+        tenant_id: Option<String>,
+        catalog_id: &Urn,
+    ) -> Outcome<()> {
         let catalog_id = catalog_id.to_string();
         let catalog = catalog::Entity::delete_many()
             .filter(catalog::Column::Id.eq(catalog_id))
-            .filter(catalog::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| q.filter(catalog::Column::TenantId.eq(t)))
             .exec(&self.db_connection)
             .await;
         match catalog {

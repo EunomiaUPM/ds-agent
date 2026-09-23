@@ -19,13 +19,6 @@ pub mod dataplane_transfer_logs;
 pub mod dataplane_transfers;
 pub mod transfer_events;
 
-pub use dataplane_transfer_logs::{
-    DataplaneTransferLogServiceTrait, DataplaneTransferLogsEntitiesTrait,
-    DataplaneTransferLogsService,
-};
-pub use dataplane_transfers::{
-    DataplaneTransferService, DataplaneTransferServiceTrait, DataplaneTransfersEntitiesTrait,
-};
-pub use transfer_events::{
-    TransferEventEntitiesTrait, TransferEventServiceTrait, TransferEventsService,
-};
+pub use dataplane_transfer_logs::{DataplaneTransferLogServiceTrait, DataplaneTransferLogsService};
+pub use dataplane_transfers::{DataplaneTransferService, DataplaneTransferServiceTrait};
+pub use transfer_events::{TransferEventServiceTrait, TransferEventsService};

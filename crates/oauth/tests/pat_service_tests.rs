@@ -69,7 +69,7 @@ async fn revoke_foreign_tenant_returns_not_found() {
     let mut repo = MockPatRepository::new();
     let test_id = Uuid::new_v4();
     repo.expect_revoke()
-        .withf(move |tenant, id| tenant == "tenant-2" && id == &test_id)
+        .withf(move |tenant, id| tenant.as_deref() == Some("tenant-2") && id == &test_id)
         .returning(|_, _| Err(PatRepositoryError::NotFound.into_errors()));
 
     let svc = make_service(repo);

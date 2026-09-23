@@ -100,18 +100,18 @@ impl NegotiationMessageServiceTrait for NegotiationMessageService {
         scope.require_read()?;
         let message = self
             .message_repo
-            .get_negotiation_message_by_id(scope.acting_tenant(), id)
+            .get_negotiation_message_by_id(scope.tenant_filter().map(str::to_string), id)
             .await?
             .or_not_found(id, "negotiation message")?;
 
         let offer = self
             .offer_repo
-            .get_offer_by_negotiation_message(scope.acting_tenant(), id)
+            .get_offer_by_negotiation_message(scope.tenant_filter().map(str::to_string), id)
             .await?;
 
         let agreement = self
             .agreement_repo
-            .get_agreement_by_negotiation_message(scope.acting_tenant(), id)
+            .get_agreement_by_negotiation_message(scope.tenant_filter().map(str::to_string), id)
             .await?;
 
         Ok(NegotiationMessageView::assemble(message, offer, agreement))
@@ -137,7 +137,7 @@ impl NegotiationMessageServiceTrait for NegotiationMessageService {
 
         let messages = self
             .message_repo
-            .get_batch_negotiation_messages(scope.acting_tenant(), &req.ids)
+            .get_batch_negotiation_messages(scope.tenant_filter().map(str::to_string), &req.ids)
             .await?;
 
         let views = messages
@@ -154,10 +154,8 @@ impl NegotiationMessageServiceTrait for NegotiationMessageService {
         scope: &AccessScope,
         cmd: &NewNegotiationMessageDto,
     ) -> Outcome<NegotiationMessageView> {
-        let mut cmd = cmd.clone();
-        cmd.tenant_id = Some(scope.resolve_create_tenant(cmd.tenant_id.as_deref())?);
-
-        let new_model: NewNegotiationMessageModel = cmd.into();
+        let tenant_id = scope.resolve_create_tenant(cmd.tenant_id.as_deref())?;
+        let new_model: NewNegotiationMessageModel = cmd.clone().into_model(tenant_id);
         let created = self
             .message_repo
             .create_negotiation_message(&new_model)
@@ -178,7 +176,7 @@ impl NegotiationMessageServiceTrait for NegotiationMessageService {
     async fn delete(&self, scope: &AccessScope, id: &Urn) -> Outcome<()> {
         scope.require_write()?;
         self.message_repo
-            .delete_negotiation_message(scope.acting_tenant(), id)
+            .delete_negotiation_message(scope.tenant_filter().map(str::to_string), id)
             .await?;
         events::emit_action!(
             self.event_bus,

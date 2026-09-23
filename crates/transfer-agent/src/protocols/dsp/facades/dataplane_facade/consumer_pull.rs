@@ -70,6 +70,7 @@ impl DataPlaneStrategy for ConsumerPullStrategy {
         let id = ctx.process_urn("consumer pull start_post")?;
         let continuation = DataplaneContinuation {
             transfer_dto_urn: id,
+            tenant_id: ctx.tenant_id().to_string(),
         };
         if !ctx.is_restart {
             let dataplane: DataplaneAddress = ctx
@@ -111,6 +112,7 @@ impl DataPlaneStrategy for ConsumerPullStrategy {
     ) -> Outcome<()> {
         mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
             transfer_dto_urn: ctx.process_urn("consumer pull suspend_post")?,
+            tenant_id: ctx.tenant_id().to_string(),
         }))
         .await?;
         Ok(())
@@ -131,6 +133,7 @@ impl DataPlaneStrategy for ConsumerPullStrategy {
     ) -> Outcome<()> {
         mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
             transfer_dto_urn: ctx.process_urn("consumer pull complete_post")?,
+            tenant_id: ctx.tenant_id().to_string(),
         }))
         .await?;
         Ok(())
@@ -151,6 +154,7 @@ impl DataPlaneStrategy for ConsumerPullStrategy {
     ) -> Outcome<()> {
         mgr.execute_command(DataplaneCommand::SetStopped(DataplaneContinuation {
             transfer_dto_urn: ctx.process_urn("consumer pull terminate_post")?,
+            tenant_id: ctx.tenant_id().to_string(),
         }))
         .await?;
         Ok(())

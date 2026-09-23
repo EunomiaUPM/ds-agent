@@ -19,12 +19,12 @@ mod mappers;
 
 use std::sync::Arc;
 
-use crate::entities::datasets::DatasetEntityTrait;
 use crate::grpc::api::catalog_agent::dataset_entity_service_server::DatasetEntityService;
 use crate::grpc::api::catalog_agent::{
     CreateDatasetRequest, DatasetListResponse, DatasetResponse, DeleteByIdRequest, GetBatchRequest,
     GetByIdRequest, GetByParentIdRequest, ListDatasetsRequest, PutDatasetRequest,
 };
+use crate::services::datasets::DatasetServiceTrait;
 use common::auth::grpc::GrpcAuth;
 use common::auth::OauthTokenValidator;
 use common::grpc::{IntoStatus, ListParams, ProtoField, ProtoFieldList};
@@ -32,13 +32,13 @@ use tonic::{Request, Response, Status};
 use ymir::errors::Errors;
 
 pub struct DatasetEntityGrpc {
-    service: Arc<dyn DatasetEntityTrait>,
+    service: Arc<dyn DatasetServiceTrait>,
     auth: GrpcAuth,
 }
 
 impl DatasetEntityGrpc {
     pub fn new(
-        service: Arc<dyn DatasetEntityTrait>,
+        service: Arc<dyn DatasetServiceTrait>,
         validator: Arc<dyn OauthTokenValidator>,
     ) -> Self {
         Self {

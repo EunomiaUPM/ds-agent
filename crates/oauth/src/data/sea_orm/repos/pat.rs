@@ -15,6 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use sea_orm::QueryTrait;
 use std::sync::Arc;
 
 use chrono::Utc;
@@ -176,12 +177,12 @@ impl PatRepository for SeaOrmPatRepository {
         models.into_iter().map(orm::Model::into_domain).collect()
     }
 
-    async fn revoke(&self, tenant_id: &str, id: Uuid) -> Outcome<()> {
+    async fn revoke(&self, tenant_id: Option<String>, id: Uuid) -> Outcome<()> {
         use sea_orm::sea_query::Expr;
         let res = orm::Entity::update_many()
             .col_expr(orm::Column::Revoked, Expr::value(true))
             .filter(orm::Column::Id.eq(id))
-            .filter(orm::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| q.filter(orm::Column::TenantId.eq(t)))
             .exec(self.db.as_ref())
             .await
             .map_err(|e| PatRepositoryError::Db(Box::new(e)).into_errors())?;

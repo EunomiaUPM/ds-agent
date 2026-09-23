@@ -16,6 +16,7 @@
  */
 
 use super::AuthOrchestratorTrait;
+use crate::data::factory::AuthRepoTrait;
 use crate::modules::{
     GaiaSelfAttesterModule, GateKeeperModule, ParticipantModule, PeerConnectorModule,
     VcRequesterModule, VerifierModule,
@@ -24,7 +25,6 @@ use crate::services::callback::CallbackTrait;
 use crate::services::gaia_self_attester::GaiaSelfAttesterTrait;
 use crate::services::gatekeeper::GateKeeperTrait;
 use crate::services::peer_connector::PeerConnectorTrait;
-use crate::services::repo::repo_trait::AuthRepoTrait;
 use crate::services::vc_requester::VcRequesterTrait;
 use crate::services::{
     HasCallback, HasGaiaSelfAttester, HasGateKeeper, HasPeerConnector, HasRepo, HasVcRequester,

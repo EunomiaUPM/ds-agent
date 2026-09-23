@@ -15,10 +15,9 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::connector_instance::{
-    ConnectorInstanceDto, ConnectorInstanceTrait, ConnectorInstantiationDto,
-};
+use crate::entities::connector_instance::{ConnectorInstanceDto, ConnectorInstantiationDto};
 use crate::entities::filters::ConnectorInstanceFilter;
+use crate::services::connector_instance::ConnectorInstanceServiceTrait;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{FromRef, Path, State};
 use axum::http::StatusCode;
@@ -36,17 +35,17 @@ pub type ConnectorInstanceQuery = QuerySpec<ConnectorInstanceFilter>;
 
 #[derive(Clone)]
 pub struct ConnectorInstanceRouter {
-    service: Arc<dyn ConnectorInstanceTrait>,
+    service: Arc<dyn ConnectorInstanceServiceTrait>,
 }
 
-impl FromRef<ConnectorInstanceRouter> for Arc<dyn ConnectorInstanceTrait> {
+impl FromRef<ConnectorInstanceRouter> for Arc<dyn ConnectorInstanceServiceTrait> {
     fn from_ref(state: &ConnectorInstanceRouter) -> Self {
         state.service.clone()
     }
 }
 
 impl ConnectorInstanceRouter {
-    pub fn new(service: Arc<dyn ConnectorInstanceTrait>) -> Self {
+    pub fn new(service: Arc<dyn ConnectorInstanceServiceTrait>) -> Self {
         Self { service }
     }
 

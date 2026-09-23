@@ -17,6 +17,7 @@
 
 use serde_json::Value;
 
+pub mod actor;
 pub mod context_field;
 pub mod data_address;
 pub mod normalizer;
@@ -25,6 +26,7 @@ pub mod rdf;
 pub mod rules;
 pub mod well_known_types;
 
+pub use actor::DspActor;
 pub use rules::DspRules;
 
 pub fn schema_compiler_util(schema_content: &str) -> Value {

@@ -29,7 +29,7 @@ pub trait ConnectorInstanceRepoTrait: Send + Sync {
 
     async fn get_instance_by_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         instance_id: &str,
     ) -> Outcome<Option<connector_instances::Model>>;
 
@@ -53,5 +53,9 @@ pub trait ConnectorInstanceRepoTrait: Send + Sync {
         version: &str,
     ) -> Outcome<()>;
 
-    async fn delete_instance_by_id(&self, tenant_id: &str, instance_id: &str) -> Outcome<()>;
+    async fn delete_instance_by_id(
+        &self,
+        tenant_id: Option<String>,
+        instance_id: &str,
+    ) -> Outcome<()>;
 }

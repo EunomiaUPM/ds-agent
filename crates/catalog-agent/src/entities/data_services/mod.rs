@@ -15,15 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod data_services;
-
 use crate::data::entities::dataservice;
 use crate::data::entities::dataservice::{EditDataServiceModel, Model, NewDataServiceModel};
-use crate::entities::filters::DataServiceFilter;
-use common::paginated_spec::{Page, Paginated, Sort};
 use serde::{Deserialize, Serialize};
 use urn::Urn;
-use ymir::errors::Outcome;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -76,8 +71,6 @@ pub struct EditDataServiceDto {
     pub dct_description: Option<String>,
 }
 
-use common::auth::AccessScope;
-
 impl NewDataServiceDto {
     pub fn into_model(self, tenant_id: String) -> NewDataServiceModel {
         NewDataServiceModel {
@@ -112,55 +105,4 @@ impl From<dataservice::Model> for DataServiceDto {
     fn from(value: Model) -> Self {
         Self { inner: value }
     }
-}
-
-#[mockall::automock]
-#[async_trait::async_trait]
-pub trait DataServiceEntityTrait: Send + Sync {
-    async fn get_all_data_services(
-        &self,
-        scope: &AccessScope,
-        filters: &DataServiceFilter,
-        page: &Page,
-        sort: &Sort,
-    ) -> Outcome<Paginated<DataServiceDto>>;
-    async fn get_batch_data_services(
-        &self,
-        scope: &AccessScope,
-        ids: &[Urn],
-    ) -> Outcome<Vec<DataServiceDto>>;
-
-    async fn get_data_services_by_catalog_id(
-        &self,
-        scope: &AccessScope,
-        catalog_id: &Urn,
-    ) -> Outcome<Vec<DataServiceDto>>;
-
-    async fn get_main_data_service(&self, scope: &AccessScope) -> Outcome<Option<DataServiceDto>>;
-    async fn get_data_service_by_id(
-        &self,
-        scope: &AccessScope,
-        data_service_id: &Urn,
-    ) -> Outcome<DataServiceDto>;
-    async fn put_data_service_by_id(
-        &self,
-        scope: &AccessScope,
-        data_service_id: &Urn,
-        edit_data_service_model: &EditDataServiceDto,
-    ) -> Outcome<DataServiceDto>;
-    async fn create_data_service(
-        &self,
-        scope: &AccessScope,
-        new_data_service_model: &NewDataServiceDto,
-    ) -> Outcome<DataServiceDto>;
-    async fn create_main_data_service(
-        &self,
-        scope: &AccessScope,
-        new_data_service_model: &NewDataServiceDto,
-    ) -> Outcome<DataServiceDto>;
-    async fn delete_data_service_by_id(
-        &self,
-        scope: &AccessScope,
-        data_service_id: &Urn,
-    ) -> Outcome<()>;
 }

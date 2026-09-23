@@ -17,13 +17,8 @@
 
 use crate::data::entities::catalog;
 use crate::data::entities::catalog::{EditCatalogModel, Model, NewCatalogModel};
-use crate::entities::filters::CatalogFilter;
-use common::paginated_spec::{Page, Paginated, Sort};
 use serde::{Deserialize, Serialize};
 use urn::Urn;
-use ymir::errors::Outcome;
-
-pub mod catalogs;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -70,8 +65,6 @@ pub struct EditCatalogDto {
     pub dct_title: Option<String>,
 }
 
-use common::auth::AccessScope;
-
 impl NewCatalogDto {
     pub fn into_model(self, tenant_id: String) -> NewCatalogModel {
         NewCatalogModel {
@@ -101,44 +94,4 @@ impl From<catalog::Model> for CatalogDto {
     fn from(value: Model) -> Self {
         Self { inner: value }
     }
-}
-
-#[mockall::automock]
-#[async_trait::async_trait]
-pub trait CatalogEntityTrait: Send + Sync {
-    async fn get_all_catalogs(
-        &self,
-        scope: &AccessScope,
-        filters: &CatalogFilter,
-        page: &Page,
-        sort: &Sort,
-    ) -> Outcome<Paginated<CatalogDto>>;
-    async fn get_batch_catalogs(
-        &self,
-        scope: &AccessScope,
-        ids: &[Urn],
-    ) -> Outcome<Vec<CatalogDto>>;
-    async fn get_catalog_by_id(&self, scope: &AccessScope, catalog_id: &Urn)
-        -> Outcome<CatalogDto>;
-    async fn get_main_catalog(&self, scope: &AccessScope) -> Outcome<Option<CatalogDto>>;
-
-    async fn put_catalog_by_id(
-        &self,
-        scope: &AccessScope,
-        catalog_id: &Urn,
-        edit_catalog_model: &EditCatalogDto,
-    ) -> Outcome<CatalogDto>;
-    async fn create_catalog(
-        &self,
-        scope: &AccessScope,
-        new_catalog_model: &NewCatalogDto,
-    ) -> Outcome<CatalogDto>;
-
-    async fn create_main_catalog(
-        &self,
-        scope: &AccessScope,
-        new_catalog_model: &NewCatalogDto,
-    ) -> Outcome<CatalogDto>;
-
-    async fn delete_catalog_by_id(&self, scope: &AccessScope, catalog_id: &Urn) -> Outcome<()>;
 }

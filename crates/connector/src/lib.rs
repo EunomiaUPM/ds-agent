@@ -19,6 +19,7 @@ pub(crate) mod data;
 pub mod entities;
 pub(crate) mod facades;
 pub(crate) mod http;
+pub mod services;
 pub(crate) mod setup;
 
 pub const EVENT_DOMAIN: &str = "connector";
@@ -28,9 +29,7 @@ pub use data::entities::connector_instances::Model as ConnectorInstanceModel;
 pub use data::migrations::get_connector_migrations;
 pub use data::repo_traits::connector_instance_repo::ConnectorInstanceRepoTrait;
 pub use entities::connector_instance;
-pub use entities::connector_instance::{
-    ConnectorInstanceDto, ConnectorInstanceTrait, ConnectorInstantiationDto,
-};
+pub use entities::connector_instance::{ConnectorInstanceDto, ConnectorInstantiationDto};
 pub use entities::interaction::{InteractionConfig, PullLifecycle, PushLifecycle};
 pub use entities::parameters::TemplateVecString;
 pub use entities::resource::{HttpSpec, ProtocolSpec};
@@ -42,11 +41,10 @@ pub use entities::auth_config::{
 pub use entities::common::secret_management::{SecretSource, SecretString};
 pub use entities::parameters::runtime_parameters_resolver::RuntimeParametersResolver;
 
-#[cfg(test)]
-pub use entities::connector_template::MockConnectorTemplateEntitiesTrait;
-#[cfg(test)]
-pub use entities::connector_template::{
-    ConnectorMetadata, ConnectorTemplateDto, ConnectorTemplateEntitiesTrait,
-};
+pub use entities::connector_template::{ConnectorMetadata, ConnectorTemplateDto};
 pub use entities::parameters::keystore_lookup::KeystoreLookup;
 pub use entities::parameters::{template_runtime_parameter_regex, template_runtime_secret_regex};
+pub use services::connector_instance::ConnectorInstanceServiceTrait;
+pub use services::connector_template::ConnectorTemplateServiceTrait;
+#[cfg(test)]
+pub use services::connector_template::MockConnectorTemplateServiceTrait;

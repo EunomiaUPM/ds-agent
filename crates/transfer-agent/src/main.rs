@@ -18,8 +18,8 @@
 use common::info_banner::banner;
 use common::telemetry;
 use tracing::info;
-use transfer_agent_ref::setup::cmd::TransferCommands;
-use transfer_agent_ref::{SERVICE_BIG_NAME, SERVICE_NAME};
+use transfer_agent::setup::cmd::TransferCommands;
+use transfer_agent::{SERVICE_BIG_NAME, SERVICE_NAME};
 use ymir::errors::{Errors, Outcome};
 
 #[allow(clippy::result_large_err)]

@@ -17,14 +17,6 @@
 
 use crate::cache::factory_redis::CatalogAgentCacheForRedis;
 use crate::data::factory_sql::CatalogAgentRepoForSql;
-use crate::entities::catalogs::catalogs::CatalogEntities;
-use crate::entities::data_services::data_services::DataServiceEntities;
-use crate::entities::datasets::datasets::DatasetEntities;
-use crate::entities::distributions::distributions::DistributionEntities;
-use crate::entities::instantiation_engine::instantiation_engine::PolicyInstantiationEngine;
-use crate::entities::odrl_policies::odrl_policies::OdrlPolicyEntities;
-use crate::entities::peer_catalogs::peer_catalogs::PeerCatalogEntities;
-use crate::entities::policy_templates::policy_templates::PolicyTemplateEntities;
 use crate::http::catalogs::CatalogEntityRouter;
 use crate::http::data_services::DataServiceEntityRouter;
 use crate::http::datasets::DatasetEntityRouter;
@@ -34,6 +26,14 @@ use crate::http::peer_catalog::PeerCatalogEntityRouter;
 use crate::http::policy_templates::PolicyTemplateEntityRouter;
 use crate::protocols::dsp::CatalogDSP;
 use crate::protocols::protocol::ProtocolPluginTrait;
+use crate::services::catalogs::service::CatalogService;
+use crate::services::data_services::service::DataServiceService;
+use crate::services::datasets::service::DatasetService;
+use crate::services::distributions::service::DistributionService;
+use crate::services::odrl_policies::service::OdrlPolicyService;
+use crate::services::peer_catalogs::service::PeerCatalogService;
+use crate::services::policy_instantiation::service::PolicyInstantiationService;
+use crate::services::policy_templates::service::PolicyTemplateService;
 use axum::extract::Request;
 use axum::response::IntoResponse;
 use axum::{serve, Router};
@@ -163,40 +163,40 @@ pub async fn create_root_http_router_with_bus(
 
     // entities
     let catalog_controller_service = Arc::new(
-        CatalogEntities::new(catalog_agent_repo.clone(), catalog_agent_cache.clone())
+        CatalogService::new(catalog_agent_repo.clone(), catalog_agent_cache.clone())
             .with_event_bus(event_bus.clone()),
     );
     let catalog_router =
         CatalogEntityRouter::new(catalog_controller_service.clone(), config.clone());
     let data_services_controller_service = Arc::new(
-        DataServiceEntities::new(catalog_agent_repo.clone(), catalog_agent_cache.clone())
+        DataServiceService::new(catalog_agent_repo.clone(), catalog_agent_cache.clone())
             .with_event_bus(event_bus.clone()),
     );
     let data_services_router =
         DataServiceEntityRouter::new(data_services_controller_service.clone(), config.clone());
     let datasets_controller_service = Arc::new(
-        DatasetEntities::new(catalog_agent_repo.clone(), catalog_agent_cache.clone())
+        DatasetService::new(catalog_agent_repo.clone(), catalog_agent_cache.clone())
             .with_event_bus(event_bus.clone()),
     );
     let datasets_router =
         DatasetEntityRouter::new(datasets_controller_service.clone(), config.clone());
     let distributions_controller_service = Arc::new(
-        DistributionEntities::new(catalog_agent_repo.clone(), catalog_agent_cache.clone())
+        DistributionService::new(catalog_agent_repo.clone(), catalog_agent_cache.clone())
             .with_event_bus(event_bus.clone()),
     );
     let distributions_router =
         DistributionEntityRouter::new(distributions_controller_service.clone(), config.clone());
     let odrl_offer_controller_service = Arc::new(
-        OdrlPolicyEntities::new(catalog_agent_repo.clone(), catalog_agent_cache.clone())
+        OdrlPolicyService::new(catalog_agent_repo.clone(), catalog_agent_cache.clone())
             .with_event_bus(event_bus.clone()),
     );
     let odrl_offer_router =
         OdrlOfferEntityRouter::new(odrl_offer_controller_service.clone(), config.clone());
 
     let policy_templates_controller_service = Arc::new(
-        PolicyTemplateEntities::new(catalog_agent_repo.clone()).with_event_bus(event_bus.clone()),
+        PolicyTemplateService::new(catalog_agent_repo.clone()).with_event_bus(event_bus.clone()),
     );
-    let policy_engine_service = Arc::new(PolicyInstantiationEngine::new(
+    let policy_engine_service = Arc::new(PolicyInstantiationService::new(
         odrl_offer_controller_service.clone(),
         policy_templates_controller_service.clone(),
     ));
@@ -205,7 +205,7 @@ pub async fn create_root_http_router_with_bus(
         policy_engine_service.clone(),
         config.clone(),
     );
-    let peer_catalog_service = Arc::new(PeerCatalogEntities::new(
+    let peer_catalog_service = Arc::new(PeerCatalogService::new(
         catalog_agent_cache.clone(),
         mates_facade.clone(),
     ));

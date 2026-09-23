@@ -17,12 +17,12 @@
 
 use crate::data::factory_sql::ConnectorRepoForSql;
 use crate::data::factory_trait::ConnectorRepoTrait;
-use crate::entities::connector_instance::service::ConnectorInstanceEntitiesService;
-use crate::entities::connector_instance::ConnectorInstanceTrait;
-use crate::entities::connector_template::service::ConnectorTemplateEntitiesService;
 use crate::facades::distribution_resolver_facade::data_service_resolver_facade::DistributionFacadeServiceForConnector;
 use crate::http::connector_instance::ConnectorInstanceRouter;
 use crate::http::connector_template::ConnectorTemplateRouter;
+use crate::services::connector_instance::service::ConnectorInstanceService;
+use crate::services::connector_instance::ConnectorInstanceServiceTrait;
+use crate::services::connector_template::service::ConnectorTemplateService;
 use axum::Router;
 use common::config::services::CatalogConfig;
 use common::config::types::traits::CommonConfigTrait;
@@ -57,7 +57,7 @@ impl ConnectorSetup {
         vault: Arc<VaultService>,
         http_client: Arc<HttpClient>,
         event_bus: Option<events::EventBus>,
-    ) -> Arc<dyn ConnectorInstanceTrait> {
+    ) -> Arc<dyn ConnectorInstanceServiceTrait> {
         let db_connection = vault
             .get_db_connection(config.common())
             .await
@@ -70,7 +70,7 @@ impl ConnectorSetup {
         ));
         let own_url = config.common().get_host(HostType::Http);
         Arc::new(
-            ConnectorInstanceEntitiesService::new(connector_repo, distribution_facade, own_url)
+            ConnectorInstanceService::new(connector_repo, distribution_facade, own_url)
                 .with_event_bus(event_bus),
         )
     }
@@ -80,7 +80,7 @@ impl ConnectorSetup {
         config: &C,
         vault: Arc<VaultService>,
         http_client: Arc<HttpClient>,
-    ) -> Arc<dyn ConnectorInstanceTrait> {
+    ) -> Arc<dyn ConnectorInstanceServiceTrait> {
         self.get_connector_instance_entity_with_bus(config, vault, http_client, None)
             .await
     }
@@ -108,15 +108,14 @@ impl ConnectorSetup {
         ));
 
         let connector_template_service = Arc::new(
-            ConnectorTemplateEntitiesService::new(connector_repo.clone())
-                .with_event_bus(event_bus.clone()),
+            ConnectorTemplateService::new(connector_repo.clone()).with_event_bus(event_bus.clone()),
         );
         let connector_template_router =
             ConnectorTemplateRouter::new(connector_template_service.clone(), config_arc.clone())
                 .router();
         let own_url = config.common().get_host(HostType::Http);
         let connector_instance_service = Arc::new(
-            ConnectorInstanceEntitiesService::new(
+            ConnectorInstanceService::new(
                 connector_repo.clone(),
                 distribution_facade.clone(),
                 own_url,

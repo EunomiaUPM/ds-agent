@@ -15,8 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::data::entities::dataplane_field;
-use crate::data::entities::dataplane_field::{EditDataPlaneFieldModel, NewDataPlaneFieldModel};
+use crate::data::sea_orm::orm::dataplane_field;
+use crate::data::sea_orm::orm::dataplane_field::{EditDataPlaneFieldModel, NewDataPlaneFieldModel};
 use thiserror::Error;
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};

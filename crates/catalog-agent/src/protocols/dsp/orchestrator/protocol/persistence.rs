@@ -15,12 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::catalogs::{CatalogDto, CatalogEntityTrait};
-use crate::entities::data_services::{DataServiceDto, DataServiceEntityTrait};
-use crate::entities::datasets::{DatasetDto, DatasetEntityTrait};
-use crate::entities::distributions::{DistributionDto, DistributionEntityTrait};
+use crate::entities::catalogs::CatalogDto;
+use crate::entities::data_services::DataServiceDto;
+use crate::entities::datasets::DatasetDto;
+use crate::entities::distributions::DistributionDto;
 use crate::entities::filters::CatalogFilter;
-use crate::entities::odrl_policies::{OdrlPolicyDto, OdrlPolicyEntityTrait};
+use crate::entities::odrl_policies::OdrlPolicyDto;
 use crate::protocols::dsp::types::catalog_definition::{
     Catalog, CatalogCatalogTypes, CatalogDSpaceDeclaration, CatalogDatasetTypes,
     CatalogDcatDeclaration, CatalogDctDeclaration, CatalogFoafDeclaration, CatalogMinimized,
@@ -35,6 +35,11 @@ use crate::protocols::dsp::types::dataset_definition::{
 use crate::protocols::dsp::types::distribution_definition::{
     Distribution, DistributionDcatDeclaration, DistributionDctDeclaration,
 };
+use crate::services::catalogs::CatalogServiceTrait;
+use crate::services::data_services::DataServiceServiceTrait;
+use crate::services::datasets::DatasetServiceTrait;
+use crate::services::distributions::DistributionServiceTrait;
+use crate::services::odrl_policies::OdrlPolicyServiceTrait;
 use common::auth::AccessScope;
 use common::dsp_common::context_field::ContextField;
 use common::dsp_common::odrl::{OdrlOffer, OdrlPolicyInfo, OdrlTypes};
@@ -49,20 +54,20 @@ use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 
 pub struct OrchestrationPersistenceForProtocol {
-    pub catalog_entities_service: Arc<dyn CatalogEntityTrait>,
-    pub data_service_entities_service: Arc<dyn DataServiceEntityTrait>,
-    pub dataset_entities_service: Arc<dyn DatasetEntityTrait>,
-    pub odrl_policies_service: Arc<dyn OdrlPolicyEntityTrait>,
-    pub distributions_entity_service: Arc<dyn DistributionEntityTrait>,
+    pub catalog_entities_service: Arc<dyn CatalogServiceTrait>,
+    pub data_service_entities_service: Arc<dyn DataServiceServiceTrait>,
+    pub dataset_entities_service: Arc<dyn DatasetServiceTrait>,
+    pub odrl_policies_service: Arc<dyn OdrlPolicyServiceTrait>,
+    pub distributions_entity_service: Arc<dyn DistributionServiceTrait>,
 }
 
 impl OrchestrationPersistenceForProtocol {
     pub fn new(
-        catalog_entities_service: Arc<dyn CatalogEntityTrait>,
-        data_service_entities_service: Arc<dyn DataServiceEntityTrait>,
-        dataset_entities_service: Arc<dyn DatasetEntityTrait>,
-        odrl_policies_service: Arc<dyn OdrlPolicyEntityTrait>,
-        distributions_entity_service: Arc<dyn DistributionEntityTrait>,
+        catalog_entities_service: Arc<dyn CatalogServiceTrait>,
+        data_service_entities_service: Arc<dyn DataServiceServiceTrait>,
+        dataset_entities_service: Arc<dyn DatasetServiceTrait>,
+        odrl_policies_service: Arc<dyn OdrlPolicyServiceTrait>,
+        distributions_entity_service: Arc<dyn DistributionServiceTrait>,
     ) -> Self {
         Self {
             catalog_entities_service,

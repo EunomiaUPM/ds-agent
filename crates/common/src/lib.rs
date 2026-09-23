@@ -18,6 +18,7 @@
 pub mod auth;
 pub mod batch_requests;
 pub mod boot;
+pub mod cache;
 pub mod config;
 pub mod dsp_common;
 pub mod errors;

@@ -21,7 +21,6 @@ pub mod data_services;
 pub mod datasets;
 pub mod distributions;
 pub mod filters;
-pub(crate) mod instantiation_engine;
 pub mod odrl_policies;
-pub(crate) mod peer_catalogs;
+pub(crate) mod policy_instantiation;
 pub mod policy_templates;

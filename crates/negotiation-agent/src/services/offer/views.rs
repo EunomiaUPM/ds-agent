@@ -18,7 +18,6 @@
 //! Offer output views.
 
 use crate::data::entities::offer as offer_model;
-use crate::entities::offer::OfferDto;
 use serde::{Deserialize, Serialize};
 
 /// Management view of an offer.
@@ -33,17 +32,5 @@ impl OfferView {
     /// Assemble view from offer model.
     pub fn assemble(inner: offer_model::Model) -> Self {
         Self { inner }
-    }
-}
-
-impl From<OfferView> for OfferDto {
-    fn from(view: OfferView) -> Self {
-        Self { inner: view.inner }
-    }
-}
-
-impl From<OfferDto> for OfferView {
-    fn from(dto: OfferDto) -> Self {
-        Self { inner: dto.inner }
     }
 }

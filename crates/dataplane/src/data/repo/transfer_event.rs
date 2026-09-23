@@ -15,8 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::data::entities::transfer_event;
-use crate::data::entities::transfer_event::NewTransferEvent;
+use crate::data::sea_orm::orm::transfer_event;
+use crate::data::sea_orm::orm::transfer_event::NewTransferEvent;
 use crate::entities::filters::TransferEventFilter;
 use common::query::{Page, Sort};
 use thiserror::Error;
@@ -37,19 +37,19 @@ pub trait TransferEventRepo: Send + Sync + 'static {
 
     async fn get_batch_transfer_events(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         ids: &[Urn],
     ) -> Outcome<Vec<transfer_event::Model>>;
 
     async fn get_all_transfer_events_by_process_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         process_id: &Urn,
     ) -> Outcome<Vec<transfer_event::Model>>;
 
     async fn get_transfer_event_by_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         transfer_event: &Urn,
     ) -> Outcome<Option<transfer_event::Model>>;
 

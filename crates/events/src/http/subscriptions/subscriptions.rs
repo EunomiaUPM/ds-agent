@@ -59,9 +59,7 @@ impl SubscriptionsRouter {
         Json(dto): Json<CreateSubscriptionDto>,
     ) -> AppResult<(StatusCode, Json<SubscriptionRecord>)> {
         let tenant_id = scope.acting_tenant();
-        let sub = repo
-            .create_subscription(tenant_id, dto)
-            .await?;
+        let sub = repo.create_subscription(tenant_id, dto).await?;
 
         Ok((StatusCode::CREATED, Json(sub)))
     }
@@ -72,9 +70,7 @@ impl SubscriptionsRouter {
         scope: AccessScope,
     ) -> AppResult<Json<Vec<SubscriptionRecord>>> {
         let tenant_id = scope.acting_tenant();
-        let subs = repo
-            .list_subscriptions(tenant_id)
-            .await?;
+        let subs = repo.list_subscriptions(tenant_id).await?;
 
         Ok(Json(subs))
     }
@@ -102,10 +98,7 @@ impl SubscriptionsRouter {
         Json(dto): Json<UpdateSubscriptionDto>,
     ) -> AppResult<Json<SubscriptionRecord>> {
         let tenant_id = scope.acting_tenant();
-        let sub = repo
-            .update_subscription(tenant_id, &id, dto)
-            .await
-?;
+        let sub = repo.update_subscription(tenant_id, &id, dto).await?;
 
         Ok(Json(sub))
     }
@@ -117,8 +110,7 @@ impl SubscriptionsRouter {
         Path(id): Path<String>,
     ) -> AppResult<StatusCode> {
         let tenant_id = scope.acting_tenant();
-        repo.delete_subscription(tenant_id, &id)
-            .await?;
+        repo.delete_subscription(tenant_id, &id).await?;
 
         Ok(StatusCode::NO_CONTENT)
     }

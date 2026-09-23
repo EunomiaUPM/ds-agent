@@ -25,10 +25,12 @@ use common::auth::access::AccessScope;
 use common::auth::claims::RbacRole;
 use common::batch_requests::BatchRequests;
 use common::query::{Page, Sort};
-use dataplane::data::entities::transfer_event::{LogLevel, Model as EventModel, NewTransferEvent};
 use dataplane::data::factory_trait::MockDataplaneRepoTrait;
 use dataplane::data::repo::transfer_event::{
     MockTransferEventRepo, TransferEventRepo, TransferEventRepoErrors,
+};
+use dataplane::data::sea_orm::orm::transfer_event::{
+    LogLevel, Model as EventModel, NewTransferEvent,
 };
 use dataplane::entities::filters::TransferEventFilter;
 use dataplane::entities::transfer_events::NewTransferEventDto;
@@ -93,7 +95,7 @@ fn make_events_svc(repo: MockTransferEventRepo) -> TransferEventsService {
 async fn get_one_foreign_tenant_returns_not_found() {
     let mut repo = MockTransferEventRepo::new();
     repo.expect_get_transfer_event_by_id()
-        .withf(|tenant, id| tenant == "tenant-2" && id == &test_urn(1))
+        .withf(|tenant, id| tenant.as_deref() == Some("tenant-2") && id == &test_urn(1))
         .returning(|_, _| Ok(None));
 
     let svc = make_events_svc(repo);
@@ -124,7 +126,7 @@ async fn get_all_foreign_tenant_query_rejected_with_forbidden() {
 async fn get_by_process_id_passes_acting_tenant() {
     let mut repo = MockTransferEventRepo::new();
     repo.expect_get_all_transfer_events_by_process_id()
-        .withf(|tenant, pid| tenant == "tenant-2" && pid == &test_urn(10))
+        .withf(|tenant, pid| tenant.as_deref() == Some("tenant-2") && pid == &test_urn(10))
         .returning(|_, _| Ok(vec![make_event_model(1, "tenant-2")]));
 
     let svc = make_events_svc(repo);
@@ -140,7 +142,7 @@ async fn get_by_process_id_passes_acting_tenant() {
 async fn batch_filters_out_foreign_tenant_records() {
     let mut repo = MockTransferEventRepo::new();
     repo.expect_get_batch_transfer_events()
-        .withf(|tenant, ids| tenant == "tenant-2" && ids == &[test_urn(1)])
+        .withf(|tenant, ids| tenant.as_deref() == Some("tenant-2") && ids == &[test_urn(1)])
         .returning(|_, _| Ok(vec![]));
 
     let svc = make_events_svc(repo);

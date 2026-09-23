@@ -16,11 +16,11 @@
  */
 
 use crate::entities::filters::PolicyTemplateFilter;
-use crate::entities::instantiation_engine::{NewPolicyInstantiationDto, PolicyInstantiationTrait};
-use crate::entities::policy_templates::{
-    NewPolicyTemplateDto, PolicyTemplateDto, PolicyTemplateEntityTrait,
-};
+use crate::entities::policy_instantiation::NewPolicyInstantiationDto;
+use crate::entities::policy_templates::{NewPolicyTemplateDto, PolicyTemplateDto};
 use crate::http::common::to_camel_case::ToCamelCase;
+use crate::services::policy_instantiation::PolicyInstantiationServiceTrait;
+use crate::services::policy_templates::PolicyTemplateServiceTrait;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{FromRef, Path, Query, State};
 use axum::http::StatusCode;
@@ -38,8 +38,8 @@ use ymir::utils::extract_payload;
 
 #[derive(Clone)]
 pub struct PolicyTemplateEntityRouter {
-    service: Arc<dyn PolicyTemplateEntityTrait>,
-    policy_engine: Arc<dyn PolicyInstantiationTrait>,
+    service: Arc<dyn PolicyTemplateServiceTrait>,
+    policy_engine: Arc<dyn PolicyInstantiationServiceTrait>,
     config: Arc<CatalogConfig>,
 }
 
@@ -51,13 +51,13 @@ pub struct SilentParams {
     pub silent: Option<bool>,
 }
 
-impl FromRef<PolicyTemplateEntityRouter> for Arc<dyn PolicyTemplateEntityTrait> {
+impl FromRef<PolicyTemplateEntityRouter> for Arc<dyn PolicyTemplateServiceTrait> {
     fn from_ref(state: &PolicyTemplateEntityRouter) -> Self {
         state.service.clone()
     }
 }
 
-impl FromRef<PolicyTemplateEntityRouter> for Arc<dyn PolicyInstantiationTrait> {
+impl FromRef<PolicyTemplateEntityRouter> for Arc<dyn PolicyInstantiationServiceTrait> {
     fn from_ref(state: &PolicyTemplateEntityRouter) -> Self {
         state.policy_engine.clone()
     }
@@ -71,8 +71,8 @@ impl FromRef<PolicyTemplateEntityRouter> for Arc<CatalogConfig> {
 
 impl PolicyTemplateEntityRouter {
     pub fn new(
-        service: Arc<dyn PolicyTemplateEntityTrait>,
-        policy_engine: Arc<dyn PolicyInstantiationTrait>,
+        service: Arc<dyn PolicyTemplateServiceTrait>,
+        policy_engine: Arc<dyn PolicyInstantiationServiceTrait>,
         config: Arc<CatalogConfig>,
     ) -> Self {
         Self {

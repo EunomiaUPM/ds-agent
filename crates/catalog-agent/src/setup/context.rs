@@ -21,18 +21,18 @@ use std::sync::Arc;
 
 use crate::cache::factory_redis::CatalogAgentCacheForRedis;
 use crate::data::factory_sql::CatalogAgentRepoForSql;
-use crate::entities::catalogs::catalogs::CatalogEntities;
-use crate::entities::catalogs::CatalogEntityTrait;
-use crate::entities::data_services::data_services::DataServiceEntities;
-use crate::entities::data_services::DataServiceEntityTrait;
-use crate::entities::datasets::datasets::DatasetEntities;
-use crate::entities::datasets::DatasetEntityTrait;
-use crate::entities::distributions::distributions::DistributionEntities;
-use crate::entities::distributions::DistributionEntityTrait;
-use crate::entities::odrl_policies::odrl_policies::OdrlPolicyEntities;
-use crate::entities::odrl_policies::OdrlPolicyEntityTrait;
-use crate::entities::policy_templates::policy_templates::PolicyTemplateEntities;
-use crate::entities::policy_templates::PolicyTemplateEntityTrait;
+use crate::services::catalogs::service::CatalogService;
+use crate::services::catalogs::CatalogServiceTrait;
+use crate::services::data_services::service::DataServiceService;
+use crate::services::data_services::DataServiceServiceTrait;
+use crate::services::datasets::service::DatasetService;
+use crate::services::datasets::DatasetServiceTrait;
+use crate::services::distributions::service::DistributionService;
+use crate::services::distributions::DistributionServiceTrait;
+use crate::services::odrl_policies::service::OdrlPolicyService;
+use crate::services::odrl_policies::OdrlPolicyServiceTrait;
+use crate::services::policy_templates::service::PolicyTemplateService;
+use crate::services::policy_templates::PolicyTemplateServiceTrait;
 use common::auth::OauthTokenValidator;
 use common::config::services::CatalogConfig;
 use common::config::types::traits::{CacheConfigTrait, CommonConfigTrait};
@@ -42,12 +42,12 @@ use ymir::services::vault::VaultTrait;
 
 #[derive(Clone)]
 pub struct AppContext {
-    pub catalog_svc: Arc<dyn CatalogEntityTrait>,
-    pub data_service_svc: Arc<dyn DataServiceEntityTrait>,
-    pub dataset_svc: Arc<dyn DatasetEntityTrait>,
-    pub distribution_svc: Arc<dyn DistributionEntityTrait>,
-    pub odrl_policy_svc: Arc<dyn OdrlPolicyEntityTrait>,
-    pub policy_template_svc: Arc<dyn PolicyTemplateEntityTrait>,
+    pub catalog_svc: Arc<dyn CatalogServiceTrait>,
+    pub data_service_svc: Arc<dyn DataServiceServiceTrait>,
+    pub dataset_svc: Arc<dyn DatasetServiceTrait>,
+    pub distribution_svc: Arc<dyn DistributionServiceTrait>,
+    pub odrl_policy_svc: Arc<dyn OdrlPolicyServiceTrait>,
+    pub policy_template_svc: Arc<dyn PolicyTemplateServiceTrait>,
     pub oauth_validator: Arc<dyn OauthTokenValidator>,
 }
 
@@ -74,23 +74,22 @@ impl AppContext {
 
         // Domain services
         let catalog_svc = Arc::new(
-            CatalogEntities::new(repo.clone(), cache.clone()).with_event_bus(event_bus.clone()),
+            CatalogService::new(repo.clone(), cache.clone()).with_event_bus(event_bus.clone()),
         );
         let data_service_svc = Arc::new(
-            DataServiceEntities::new(repo.clone(), cache.clone()).with_event_bus(event_bus.clone()),
+            DataServiceService::new(repo.clone(), cache.clone()).with_event_bus(event_bus.clone()),
         );
         let dataset_svc = Arc::new(
-            DatasetEntities::new(repo.clone(), cache.clone()).with_event_bus(event_bus.clone()),
+            DatasetService::new(repo.clone(), cache.clone()).with_event_bus(event_bus.clone()),
         );
         let distribution_svc = Arc::new(
-            DistributionEntities::new(repo.clone(), cache.clone())
-                .with_event_bus(event_bus.clone()),
+            DistributionService::new(repo.clone(), cache.clone()).with_event_bus(event_bus.clone()),
         );
         let odrl_policy_svc = Arc::new(
-            OdrlPolicyEntities::new(repo.clone(), cache.clone()).with_event_bus(event_bus.clone()),
+            OdrlPolicyService::new(repo.clone(), cache.clone()).with_event_bus(event_bus.clone()),
         );
         let policy_template_svc =
-            Arc::new(PolicyTemplateEntities::new(repo).with_event_bus(event_bus));
+            Arc::new(PolicyTemplateService::new(repo).with_event_bus(event_bus));
 
         Ok(Self {
             catalog_svc,

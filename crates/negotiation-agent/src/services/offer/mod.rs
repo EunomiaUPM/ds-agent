@@ -56,6 +56,12 @@ pub trait OfferServiceTrait: Send + Sync + 'static {
         process_id: &Urn,
     ) -> Outcome<Vec<OfferView>>;
 
+    async fn get_last_by_process(
+        &self,
+        scope: &AccessScope,
+        process_id: &Urn,
+    ) -> Outcome<OfferView>;
+
     async fn batch(&self, scope: &AccessScope, req: &BatchRequests) -> Outcome<Vec<OfferView>>;
 
     async fn create(&self, scope: &AccessScope, cmd: &NewOfferDto) -> Outcome<OfferView>;

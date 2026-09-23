@@ -15,18 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod odrl_policies;
-
 use crate::data::entities::odrl_offer;
 use crate::data::entities::odrl_offer::NewOdrlOfferModel;
-use crate::entities::filters::OdrlPolicyFilter;
-use crate::entities::policy_templates::types::ParameterDefinition;
 use common::dsp_common::odrl::OdrlPolicyInfo;
-use common::paginated_spec::{Page, Paginated, Sort};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use urn::Urn;
-use ymir::errors::Outcome;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -90,8 +84,6 @@ impl Display for CatalogEntityTypes {
     }
 }
 
-use common::auth::AccessScope;
-
 impl NewOdrlPolicyDto {
     pub fn into_model(self, tenant_id: String) -> NewOdrlOfferModel {
         NewOdrlOfferModel {
@@ -112,46 +104,4 @@ impl From<odrl_offer::Model> for OdrlPolicyDto {
     fn from(value: odrl_offer::Model) -> Self {
         Self { inner: value }
     }
-}
-
-#[mockall::automock]
-#[async_trait::async_trait]
-pub trait OdrlPolicyEntityTrait: Sync + Send {
-    async fn get_all_odrl_offers(
-        &self,
-        scope: &AccessScope,
-        filters: &OdrlPolicyFilter,
-        page: &Page,
-        sort: &Sort,
-    ) -> Outcome<Paginated<OdrlPolicyDto>>;
-    async fn get_batch_odrl_offers(
-        &self,
-        scope: &AccessScope,
-        ids: &[Urn],
-    ) -> Outcome<Vec<OdrlPolicyDto>>;
-    async fn get_all_odrl_offers_by_entity(
-        &self,
-        scope: &AccessScope,
-        entity: &Urn,
-    ) -> Outcome<Vec<OdrlPolicyDto>>;
-    async fn get_odrl_offer_by_id(
-        &self,
-        scope: &AccessScope,
-        odrl_offer_id: &Urn,
-    ) -> Outcome<OdrlPolicyDto>;
-    async fn create_odrl_offer(
-        &self,
-        scope: &AccessScope,
-        new_odrl_offer_model: &NewOdrlPolicyDto,
-    ) -> Outcome<OdrlPolicyDto>;
-    async fn delete_odrl_offer_by_id(
-        &self,
-        scope: &AccessScope,
-        odrl_offer_id: &Urn,
-    ) -> Outcome<()>;
-    async fn delete_odrl_offers_by_entity(
-        &self,
-        scope: &AccessScope,
-        entity_id: &Urn,
-    ) -> Outcome<()>;
 }

@@ -20,7 +20,6 @@
 use crate::data::entities::agreement as agreement_model;
 use crate::data::entities::negotiation_message as negotiation_message_model;
 use crate::data::entities::offer as offer_model;
-use crate::entities::negotiation_message::NegotiationMessageDto;
 use serde::{Deserialize, Serialize};
 
 /// Management view of a negotiation message with linked offer and agreement.
@@ -44,26 +43,6 @@ impl NegotiationMessageView {
             inner,
             offer,
             agreement,
-        }
-    }
-}
-
-impl From<NegotiationMessageView> for NegotiationMessageDto {
-    fn from(view: NegotiationMessageView) -> Self {
-        Self {
-            inner: view.inner,
-            offer: view.offer,
-            agreement: view.agreement,
-        }
-    }
-}
-
-impl From<NegotiationMessageDto> for NegotiationMessageView {
-    fn from(dto: NegotiationMessageDto) -> Self {
-        Self {
-            inner: dto.inner,
-            offer: dto.offer,
-            agreement: dto.agreement,
         }
     }
 }

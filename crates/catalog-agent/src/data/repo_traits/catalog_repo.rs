@@ -34,19 +34,19 @@ pub trait CatalogRepositoryTrait: Send + Sync {
     ) -> Outcome<(Vec<catalog::Model>, Option<u64>)>;
     async fn get_batch_catalogs(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         ids: &[Urn],
     ) -> Outcome<Vec<catalog::Model>>;
     async fn get_catalog_by_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         catalog_id: &Urn,
     ) -> Outcome<Option<catalog::Model>>;
     async fn get_main_catalog(&self, tenant_id: &str) -> Outcome<Option<catalog::Model>>;
 
     async fn put_catalog_by_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         catalog_id: &Urn,
         edit_catalog_model: &EditCatalogModel,
     ) -> Outcome<catalog::Model>;
@@ -57,5 +57,9 @@ pub trait CatalogRepositoryTrait: Send + Sync {
         new_catalog_model: &NewCatalogModel,
     ) -> Outcome<catalog::Model>;
 
-    async fn delete_catalog_by_id(&self, tenant_id: &str, catalog_id: &Urn) -> Outcome<()>;
+    async fn delete_catalog_by_id(
+        &self,
+        tenant_id: Option<String>,
+        catalog_id: &Urn,
+    ) -> Outcome<()>;
 }

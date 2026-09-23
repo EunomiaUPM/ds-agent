@@ -34,17 +34,17 @@ pub trait OdrlOfferRepositoryTrait: Send + Sync {
     ) -> Outcome<(Vec<odrl_offer::Model>, Option<u64>)>;
     async fn get_batch_odrl_offers(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         ids: &[Urn],
     ) -> Outcome<Vec<odrl_offer::Model>>;
     async fn get_all_odrl_offers_by_entity(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         entity: &Urn,
     ) -> Outcome<Vec<odrl_offer::Model>>;
     async fn get_odrl_offer_by_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         odrl_offer_id: &Urn,
     ) -> Outcome<Option<odrl_offer::Model>>;
     async fn create_odrl_offer(
@@ -54,13 +54,13 @@ pub trait OdrlOfferRepositoryTrait: Send + Sync {
     /// Deletes and returns the removed row so callers can evict derived caches.
     async fn delete_odrl_offer_by_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         odrl_offer_id: &Urn,
     ) -> Outcome<odrl_offer::Model>;
     /// Deletes every offer of an entity and returns the removed rows.
     async fn delete_odrl_offers_by_entity(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         entity_id: &Urn,
     ) -> Outcome<Vec<odrl_offer::Model>>;
 }

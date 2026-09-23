@@ -22,20 +22,21 @@ mod grpc_fixtures;
 use std::sync::Arc;
 
 use catalog_agent::data::entities::distribution;
-use catalog_agent::entities::distributions::{DistributionDto, MockDistributionEntityTrait};
+use catalog_agent::entities::distributions::DistributionDto;
 use catalog_agent::grpc::api::catalog_agent::distribution_entity_service_server::DistributionEntityService;
 use catalog_agent::grpc::api::catalog_agent::{
     CreateDistributionRequest, GetByIdRequest, GetDistributionByFormatRequest,
     ListDistributionsRequest,
 };
 use catalog_agent::grpc::distributions::DistributionEntityGrpc;
+use catalog_agent::services::distributions::MockDistributionServiceTrait;
 use chrono::Utc;
 use common::errors::ResourceError;
 use common::paginated_spec::Paginated;
 use grpc_fixtures::{owner, request, urn, StubValidator, OTHER_TENANT, TENANT};
 use tonic::Code;
 
-fn grpc(service: MockDistributionEntityTrait) -> DistributionEntityGrpc {
+fn grpc(service: MockDistributionServiceTrait) -> DistributionEntityGrpc {
     DistributionEntityGrpc::new(Arc::new(service), Arc::new(StubValidator))
 }
 
@@ -61,7 +62,7 @@ fn by_id(id: &str) -> GetByIdRequest {
 
 #[tokio::test]
 async fn get_without_token_is_unauthenticated() {
-    let g = grpc(MockDistributionEntityTrait::new());
+    let g = grpc(MockDistributionServiceTrait::new());
     let err = g
         .get_distribution_by_id(request(by_id(&urn(1)), None, Some(TENANT)))
         .await
@@ -71,7 +72,7 @@ async fn get_without_token_is_unauthenticated() {
 
 #[tokio::test]
 async fn get_foreign_tenant_without_admin_is_permission_denied() {
-    let g = grpc(MockDistributionEntityTrait::new());
+    let g = grpc(MockDistributionServiceTrait::new());
     let err = g
         .get_distribution_by_id(request(by_id(&urn(1)), Some("owner"), Some(OTHER_TENANT)))
         .await
@@ -81,7 +82,7 @@ async fn get_foreign_tenant_without_admin_is_permission_denied() {
 
 #[tokio::test]
 async fn invalid_urns_name_their_field() {
-    let g = grpc(MockDistributionEntityTrait::new());
+    let g = grpc(MockDistributionServiceTrait::new());
     let err = g
         .get_distribution_by_id(owner(by_id("nope")))
         .await
@@ -105,7 +106,7 @@ async fn invalid_urns_name_their_field() {
 
 #[tokio::test]
 async fn create_maps_empty_format_to_none() {
-    let mut svc = MockDistributionEntityTrait::new();
+    let mut svc = MockDistributionServiceTrait::new();
     svc.expect_create_distribution()
         .withf(|_, dto| dto.dct_formats.is_none() && dto.dataset_id.to_string() == urn(100))
         .returning(|_, _| Ok(dto(1)));
@@ -120,7 +121,7 @@ async fn create_maps_empty_format_to_none() {
 
 #[tokio::test]
 async fn domain_not_found_maps_to_not_found() {
-    let mut svc = MockDistributionEntityTrait::new();
+    let mut svc = MockDistributionServiceTrait::new();
     svc.expect_get_distribution_by_id()
         .returning(|_, id| Err(ResourceError::not_found(id, "distribution")));
     let g = grpc(svc);
@@ -133,7 +134,7 @@ async fn domain_not_found_maps_to_not_found() {
 
 #[tokio::test]
 async fn list_propagates_cursor_total_and_parsed_filters() {
-    let mut svc = MockDistributionEntityTrait::new();
+    let mut svc = MockDistributionServiceTrait::new();
     svc.expect_get_all_distributions()
         .withf(|_, filter, page, _| {
             filter.format.as_deref() == Some("HTTP_PULL")

@@ -61,7 +61,7 @@ fn make_create_cmd(tenant_id: Option<String>) -> CreateClientCommand {
 async fn get_one_foreign_tenant_returns_not_found() {
     let mut repo = MockClientRepository::new();
     repo.expect_get_by_id()
-        .withf(|tenant, id| tenant == "tenant-2" && id == "client-1")
+        .withf(|tenant, id| tenant.as_deref() == Some("tenant-2") && id == "client-1")
         .returning(|_, _| Ok(None));
 
     let svc = make_service(repo);
@@ -95,7 +95,7 @@ async fn get_all_foreign_tenant_query_rejected_with_forbidden() {
 async fn delete_foreign_tenant_returns_not_found() {
     let mut repo = MockClientRepository::new();
     repo.expect_delete()
-        .withf(|tenant, id| tenant == "tenant-2" && id == "client-1")
+        .withf(|tenant, id| tenant.as_deref() == Some("tenant-2") && id == "client-1")
         .returning(|_, _| Err(ClientRepositoryError::NotFound.into_errors()));
 
     let svc = make_service(repo);

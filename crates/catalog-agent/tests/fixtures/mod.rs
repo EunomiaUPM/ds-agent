@@ -23,11 +23,11 @@ use std::marker::PhantomData;
 use std::str::FromStr;
 use std::sync::Arc;
 
-use catalog_agent::cache::cache_traits::entity_cache_trait::EntityCacheTrait;
-use catalog_agent::cache::cache_traits::lookup_cache_trait::LookupCacheTrait;
 use catalog_agent::cache::factory_trait::MockCatalogAgentCacheTrait;
 use common::auth::access::AccessScope;
 use common::auth::claims::RbacRole;
+use common::cache::EntityCacheTrait;
+use common::cache::LookupCacheTrait;
 use urn::Urn;
 use ymir::errors::Outcome;
 

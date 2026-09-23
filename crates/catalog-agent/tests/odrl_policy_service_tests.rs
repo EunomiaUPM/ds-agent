@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Multi-tenant isolation tests for OdrlPolicyEntities with a mocked repository.
+//! Multi-tenant isolation tests for OdrlPolicyService with a mocked repository.
 
 mod fixtures;
 
@@ -28,10 +28,9 @@ use catalog_agent::data::repo_traits::catalog_db_errors::{
 };
 use catalog_agent::data::repo_traits::odrl_offer_repo::MockOdrlOfferRepositoryTrait;
 use catalog_agent::entities::filters::OdrlPolicyFilter;
-use catalog_agent::entities::odrl_policies::odrl_policies::OdrlPolicyEntities;
-use catalog_agent::entities::odrl_policies::{
-    CatalogEntityTypes, NewOdrlPolicyDto, OdrlPolicyEntityTrait,
-};
+use catalog_agent::entities::odrl_policies::{CatalogEntityTypes, NewOdrlPolicyDto};
+use catalog_agent::services::odrl_policies::service::OdrlPolicyService;
+use catalog_agent::services::odrl_policies::OdrlPolicyServiceTrait;
 use chrono::Utc;
 use common::paginated_spec::{Page, Sort};
 use fixtures::{admin_scope, noop_cache_factory, reader_scope, tenant_scope, test_urn};
@@ -43,13 +42,13 @@ fn not_found() -> ymir::errors::Errors {
         .into_errors()
 }
 
-fn make_svc(repo: MockOdrlOfferRepositoryTrait) -> OdrlPolicyEntities {
+fn make_svc(repo: MockOdrlOfferRepositoryTrait) -> OdrlPolicyService {
     let repo = Arc::new(repo);
     let mut factory = MockCatalogAgentRepoTrait::new();
     factory
         .expect_get_odrl_offer_repo()
         .returning(move || repo.clone());
-    OdrlPolicyEntities::new(Arc::new(factory), noop_cache_factory())
+    OdrlPolicyService::new(Arc::new(factory), noop_cache_factory())
 }
 
 fn make_model(tenant: &str, n: u32) -> odrl_offer::Model {
@@ -85,7 +84,7 @@ fn make_new_dto() -> NewOdrlPolicyDto {
 async fn get_one_foreign_tenant_returns_not_found() {
     let mut repo = MockOdrlOfferRepositoryTrait::new();
     repo.expect_get_odrl_offer_by_id()
-        .withf(|tenant, id| tenant == "tenant-2" && id == &test_urn(1))
+        .withf(|tenant, id| tenant.as_deref() == Some("tenant-2") && id == &test_urn(1))
         .returning(|_, _| Ok(None));
 
     let svc = make_svc(repo);
@@ -142,7 +141,7 @@ async fn get_all_admin_without_tenant_queries_cross_tenant() {
 async fn by_entity_is_tenant_scoped() {
     let mut repo = MockOdrlOfferRepositoryTrait::new();
     repo.expect_get_all_odrl_offers_by_entity()
-        .withf(|tenant, entity| tenant == "tenant-2" && entity == &test_urn(100))
+        .withf(|tenant, entity| tenant.as_deref() == Some("tenant-2") && entity == &test_urn(100))
         .returning(|_, _| Ok(vec![]));
 
     let svc = make_svc(repo);
@@ -157,7 +156,7 @@ async fn by_entity_is_tenant_scoped() {
 async fn delete_foreign_tenant_returns_not_found() {
     let mut repo = MockOdrlOfferRepositoryTrait::new();
     repo.expect_delete_odrl_offer_by_id()
-        .withf(|tenant, id| tenant == "tenant-2" && id == &test_urn(1))
+        .withf(|tenant, id| tenant.as_deref() == Some("tenant-2") && id == &test_urn(1))
         .returning(|_, _| Err(not_found()));
 
     let svc = make_svc(repo);
@@ -171,7 +170,7 @@ async fn delete_foreign_tenant_returns_not_found() {
 async fn delete_by_entity_foreign_tenant_returns_not_found() {
     let mut repo = MockOdrlOfferRepositoryTrait::new();
     repo.expect_delete_odrl_offers_by_entity()
-        .withf(|tenant, entity| tenant == "tenant-2" && entity == &test_urn(100))
+        .withf(|tenant, entity| tenant.as_deref() == Some("tenant-2") && entity == &test_urn(100))
         .returning(|_, _| Err(not_found()));
 
     let svc = make_svc(repo);
@@ -185,8 +184,13 @@ async fn delete_by_entity_foreign_tenant_returns_not_found() {
 async fn delete_by_entity_own_tenant_returns_deleted_rows_and_succeeds() {
     let mut repo = MockOdrlOfferRepositoryTrait::new();
     repo.expect_delete_odrl_offers_by_entity()
-        .withf(|tenant, entity| tenant == "tenant-1" && entity == &test_urn(100))
-        .returning(|tenant, _| Ok(vec![make_model(tenant, 1), make_model(tenant, 2)]));
+        .withf(|tenant, entity| tenant.as_deref() == Some("tenant-1") && entity == &test_urn(100))
+        .returning(|tenant, _| {
+            Ok(vec![
+                make_model(tenant.as_deref().unwrap(), 1),
+                make_model(tenant.as_deref().unwrap(), 2),
+            ])
+        });
 
     let svc = make_svc(repo);
     assert!(svc
@@ -212,7 +216,7 @@ async fn delete_reader_is_forbidden_before_reaching_repo() {
 async fn batch_filters_out_foreign_tenant_records() {
     let mut repo = MockOdrlOfferRepositoryTrait::new();
     repo.expect_get_batch_odrl_offers()
-        .withf(|tenant, ids| tenant == "tenant-2" && ids == [test_urn(1)])
+        .withf(|tenant, ids| tenant.as_deref() == Some("tenant-2") && ids == [test_urn(1)])
         .returning(|_, _| Ok(vec![]));
 
     let svc = make_svc(repo);

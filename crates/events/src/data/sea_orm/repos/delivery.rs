@@ -25,8 +25,8 @@ use ymir::errors::{Errors, Outcome};
 
 use crate::data::repo::EventDeliveryRepo;
 use crate::data::sea_orm::orm::delivery;
-use crate::entities::delivery::EventDeliveryRecord;
 use crate::entities::delivery::DeliveryStatus;
+use crate::entities::delivery::EventDeliveryRecord;
 
 // SeaORM-backed implementation of EventDeliveryRepo.
 #[derive(Clone)]

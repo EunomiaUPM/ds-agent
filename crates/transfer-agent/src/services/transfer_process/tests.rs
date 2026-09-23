@@ -827,7 +827,7 @@ async fn get_one_foreign_tenant_returns_not_found() {
     let mut proc_repo = MockTransferProcessRepoTrait::new();
     proc_repo
         .expect_get_transfer_process_by_id()
-        .withf(|tenant, id| tenant == "tenant-2" && id == &p_urn(1))
+        .withf(|tenant, id| tenant.as_deref() == Some("tenant-2") && id == &p_urn(1))
         .returning(|_, _| Ok(None));
     let id_repo = MockTransferIdentifierRepoTrait::new();
 
@@ -886,7 +886,7 @@ async fn edit_foreign_tenant_returns_not_found_without_mutating() {
     let mut proc_repo = MockTransferProcessRepoTrait::new();
     proc_repo
         .expect_put_transfer_process()
-        .withf(|tenant, id, _| tenant == "tenant-2" && id == &p_urn(1))
+        .withf(|tenant, id, _| tenant.as_deref() == Some("tenant-2") && id == &p_urn(1))
         .returning(|_, _, _| Err(TransferProcessRepoErrors::TransferProcessNotFound.into_errors()));
     let id_repo = MockTransferIdentifierRepoTrait::new();
 
@@ -908,7 +908,7 @@ async fn delete_foreign_tenant_returns_not_found() {
     let mut proc_repo = MockTransferProcessRepoTrait::new();
     proc_repo
         .expect_delete_transfer_process()
-        .withf(|tenant, id| tenant == "tenant-2" && id == &p_urn(1))
+        .withf(|tenant, id| tenant.as_deref() == Some("tenant-2") && id == &p_urn(1))
         .returning(|_, _| Err(TransferProcessRepoErrors::TransferProcessNotFound.into_errors()));
     let id_repo = MockTransferIdentifierRepoTrait::new();
 
@@ -926,7 +926,7 @@ async fn batch_filters_out_foreign_tenant_records() {
     let mut proc_repo = MockTransferProcessRepoTrait::new();
     proc_repo
         .expect_get_batch_transfer_processes()
-        .withf(|tenant, ids| tenant == "tenant-2" && ids == &[p_urn(1)])
+        .withf(|tenant, ids| tenant.as_deref() == Some("tenant-2") && ids == &[p_urn(1)])
         .returning(|_, _| Ok(vec![]));
     let mut id_repo = MockTransferIdentifierRepoTrait::new();
     id_repo

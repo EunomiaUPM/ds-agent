@@ -28,8 +28,8 @@ use common::auth::AccessScope;
 use crate::entities::dead_letter::DeadLetterRecord;
 use crate::entities::delivery::EventDeliveryRecord;
 use crate::entities::queries::ListDeadLettersQuery;
-use ymir::errors::{AppResult, Errors};
 use crate::services::event_bus::EventBus;
+use ymir::errors::{AppResult, Errors};
 
 // Axum HTTP router handling Dead Letter Queue inspection and redrive endpoints.
 #[derive(Clone)]
@@ -115,9 +115,7 @@ impl DeadLetterRouter {
         Path(id): Path<String>,
     ) -> AppResult<StatusCode> {
         let tenant_id = scope.acting_tenant();
-        bus.dlq_repo()
-            .delete_dead_letter(tenant_id, &id)
-            .await?;
+        bus.dlq_repo().delete_dead_letter(tenant_id, &id).await?;
 
         Ok(StatusCode::NO_CONTENT)
     }

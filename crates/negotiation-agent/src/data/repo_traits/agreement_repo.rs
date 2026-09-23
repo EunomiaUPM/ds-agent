@@ -35,44 +35,44 @@ pub trait AgreementRepoTrait: Send + Sync {
     ) -> Outcome<(Vec<agreement::Model>, Option<u64>)>;
     async fn get_batch_agreements(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         ids: &[Urn],
     ) -> Outcome<Vec<agreement::Model>>;
     async fn get_agreement_by_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         id: &Urn,
     ) -> Outcome<Option<agreement::Model>>;
     async fn get_agreement_by_negotiation_process(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         id: &Urn,
     ) -> Outcome<Option<agreement::Model>>;
     async fn get_agreements_by_assignee(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         id: &str,
     ) -> Outcome<Vec<agreement::Model>>;
 
     async fn get_agreements_by_assigner(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         id: &str,
     ) -> Outcome<Vec<agreement::Model>>;
 
     async fn get_agreement_by_negotiation_message(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         id: &Urn,
     ) -> Outcome<Option<agreement::Model>>;
     async fn create_agreement(&self, new_model: &NewAgreementModel) -> Outcome<agreement::Model>;
     async fn put_agreement(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         id: &Urn,
         edit_model: &EditAgreementModel,
     ) -> Outcome<agreement::Model>;
-    async fn delete_agreement(&self, tenant_id: &str, id: &Urn) -> Outcome<()>;
+    async fn delete_agreement(&self, tenant_id: Option<String>, id: &Urn) -> Outcome<()>;
 }
 
 #[derive(Debug, Error)]

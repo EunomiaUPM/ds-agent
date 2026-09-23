@@ -37,12 +37,12 @@ pub trait NegotiationProcessRepoTrait: Send + Sync {
     ) -> Outcome<(Vec<negotiation_process::Model>, Option<u64>)>;
     async fn get_batch_negotiation_processes(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         ids: &[Urn],
     ) -> Outcome<Vec<negotiation_process::Model>>;
     async fn get_negotiation_process_by_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         id: &Urn,
     ) -> Outcome<Option<negotiation_process::Model>>;
     async fn get_negotiation_process_by_key_id(
@@ -62,11 +62,11 @@ pub trait NegotiationProcessRepoTrait: Send + Sync {
     ) -> Outcome<negotiation_process::Model>;
     async fn put_negotiation_process(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         id: &Urn,
         edit_model: &EditNegotiationProcessModel,
     ) -> Outcome<negotiation_process::Model>;
-    async fn delete_negotiation_process(&self, tenant_id: &str, id: &Urn) -> Outcome<()>;
+    async fn delete_negotiation_process(&self, tenant_id: Option<String>, id: &Urn) -> Outcome<()>;
 }
 
 #[derive(Debug, Error)]

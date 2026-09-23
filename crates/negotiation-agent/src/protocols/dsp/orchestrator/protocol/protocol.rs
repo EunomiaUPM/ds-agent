@@ -82,8 +82,12 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
     async fn on_get_negotiation(
         &self,
         id: &String,
+        mate: &Mates,
     ) -> Outcome<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>> {
-        let process = self.persistence_service.fetch_process(id.as_str()).await?;
+        let process = self
+            .persistence_service
+            .fetch_process(id.as_str(), mate)
+            .await?;
         let negotiation_process_dto = NegotiationProcessMessageWrapper::try_from(process)?;
         Ok(negotiation_process_dto)
     }

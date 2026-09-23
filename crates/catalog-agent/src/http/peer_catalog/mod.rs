@@ -15,9 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::catalogs::{CatalogEntityTrait, EditCatalogDto, NewCatalogDto};
-use crate::entities::peer_catalogs::PeerCatalogTrait;
+use crate::entities::catalogs::{EditCatalogDto, NewCatalogDto};
 use crate::http::common::to_camel_case::ToCamelCase;
+use crate::services::catalogs::CatalogServiceTrait;
+use crate::services::peer_catalogs::PeerCatalogServiceTrait;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{FromRef, Path, Query, State};
 use axum::response::IntoResponse;
@@ -33,17 +34,17 @@ use ymir::errors::Outcome;
 
 #[derive(Clone)]
 pub struct PeerCatalogEntityRouter {
-    service: Arc<dyn PeerCatalogTrait>,
+    service: Arc<dyn PeerCatalogServiceTrait>,
 }
 
-impl FromRef<PeerCatalogEntityRouter> for Arc<dyn PeerCatalogTrait> {
+impl FromRef<PeerCatalogEntityRouter> for Arc<dyn PeerCatalogServiceTrait> {
     fn from_ref(state: &PeerCatalogEntityRouter) -> Self {
         state.service.clone()
     }
 }
 
 impl PeerCatalogEntityRouter {
-    pub fn new(service: Arc<dyn PeerCatalogTrait>) -> Self {
+    pub fn new(service: Arc<dyn PeerCatalogServiceTrait>) -> Self {
         Self { service }
     }
 

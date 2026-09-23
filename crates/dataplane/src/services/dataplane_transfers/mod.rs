@@ -70,6 +70,3 @@ pub trait DataplaneTransferServiceTrait: Send + Sync + 'static {
 
     async fn delete(&self, scope: &AccessScope, id: &Urn) -> Outcome<()>;
 }
-
-/// Type alias for backward compatibility.
-pub type DataplaneTransfersEntitiesTrait = dyn DataplaneTransferServiceTrait;

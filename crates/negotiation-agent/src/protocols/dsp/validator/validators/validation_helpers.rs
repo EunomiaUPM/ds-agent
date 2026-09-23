@@ -15,11 +15,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::negotiation_process::{NegotiationAgentProcessesTrait, NegotiationProcessDto};
+use common::dsp_common::DspActor;
+
+use crate::protocols::dsp::persistence::process_resolver::NegotiationProcessResolver;
 use crate::protocols::dsp::protocol_types::{
     NegotiationProcessMessageTrait, NegotiationProcessState,
 };
 use crate::protocols::dsp::validator::traits::validation_helpers::ValidationHelpers;
+use crate::services::negotiation_process::views::NegotiationProcessView;
 use common::config::types::roles::RoleConfig;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -27,13 +30,11 @@ use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 
 pub struct ValidationHelperService {
-    negotiation_process_service: Arc<dyn NegotiationAgentProcessesTrait>,
+    resolver: Arc<NegotiationProcessResolver>,
 }
 impl ValidationHelperService {
-    pub fn new(negotiation_process_service: Arc<dyn NegotiationAgentProcessesTrait>) -> Self {
-        Self {
-            negotiation_process_service,
-        }
+    pub fn new(resolver: Arc<NegotiationProcessResolver>) -> Self {
+        Self { resolver }
     }
 }
 #[async_trait::async_trait]
@@ -71,37 +72,29 @@ impl ValidationHelpers for ValidationHelperService {
 
     async fn get_current_dto_from_payload(
         &self,
+        actor: &DspActor,
         payload: &dyn NegotiationProcessMessageTrait,
-    ) -> Outcome<NegotiationProcessDto> {
+    ) -> Outcome<NegotiationProcessView> {
         let consumer_pid = payload.get_consumer_pid().ok_or_else(|| {
             Errors::parse("Not a valid DSP payload, consumer_pid is mandatory.", None)
         })?;
-        let dto = self
-            .negotiation_process_service
-            .get_negotiation_process_by_key_value(&consumer_pid)
-            .await?
-            .ok_or_else(|| Errors::parse("A dto should be available at this point", None))?;
-        Ok(dto)
+        self.resolver.resolve(&consumer_pid, actor).await
     }
 
     async fn get_current_dto_from_payload_by_provider(
         &self,
+        actor: &DspActor,
         payload: &dyn NegotiationProcessMessageTrait,
-    ) -> Outcome<NegotiationProcessDto> {
+    ) -> Outcome<NegotiationProcessView> {
         let consumer_pid = payload.get_provider_pid().ok_or_else(|| {
             Errors::parse("Not a valid DSP payload, provider_pid is mandatory.", None)
         })?;
-        let dto = self
-            .negotiation_process_service
-            .get_negotiation_process_by_key_value(&consumer_pid)
-            .await?
-            .ok_or_else(|| Errors::parse("A dto should be available at this point", None))?;
-        Ok(dto)
+        self.resolver.resolve(&consumer_pid, actor).await
     }
 
     async fn get_pid_by_role(
         &self,
-        dto: &NegotiationProcessDto,
+        dto: &NegotiationProcessView,
         role: &RoleConfig,
     ) -> Outcome<Urn> {
         let role_as_identifier = self.parse_role_into_identifier(&role).await?;
@@ -112,7 +105,7 @@ impl ValidationHelpers for ValidationHelperService {
         Ok(urn)
     }
 
-    async fn get_role_from_dto(&self, dto: &NegotiationProcessDto) -> Outcome<RoleConfig> {
+    async fn get_role_from_dto(&self, dto: &NegotiationProcessView) -> Outcome<RoleConfig> {
         let role = &dto.inner.role;
         let role = role
             .parse::<RoleConfig>()
@@ -122,7 +115,7 @@ impl ValidationHelpers for ValidationHelperService {
 
     async fn get_state_from_dto(
         &self,
-        dto: &NegotiationProcessDto,
+        dto: &NegotiationProcessView,
     ) -> Outcome<NegotiationProcessState> {
         let state = &dto.inner.state;
         let state = state.parse::<NegotiationProcessState>().map_err(|_| {
@@ -134,7 +127,7 @@ impl ValidationHelpers for ValidationHelperService {
         Ok(state)
     }
 
-    async fn get_state_attribute_from_dto(&self, dto: &NegotiationProcessDto) -> Outcome<String> {
+    async fn get_state_attribute_from_dto(&self, dto: &NegotiationProcessView) -> Outcome<String> {
         Ok("state_attribute".to_string())
     }
 }

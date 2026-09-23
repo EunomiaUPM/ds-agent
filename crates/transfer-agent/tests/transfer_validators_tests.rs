@@ -16,18 +16,18 @@
  */
 
 use common::validation::codes;
-use transfer_agent_ref::entities::protocol::TransferRole::{self, Consumer, Provider, Relay};
-use transfer_agent_ref::protocols::dsp::entities::message_types::TransferDSPMessageType::{
+use transfer_agent::entities::protocol::TransferRole::{self, Consumer, Provider, Relay};
+use transfer_agent::protocols::dsp::entities::message_types::TransferDSPMessageType::{
     self, TransferCompletionMessage, TransferRequestMessage, TransferStartMessage,
     TransferSuspensionMessage, TransferTerminationMessage,
 };
-use transfer_agent_ref::protocols::dsp::entities::state::TransferDSPState::{
+use transfer_agent::protocols::dsp::entities::state::TransferDSPState::{
     self, COMPLETED, REQUESTED, STARTED, SUSPENDED,
 };
-use transfer_agent_ref::protocols::dsp::entities::state_metadata::TransferDSPStateAttribute::{
+use transfer_agent::protocols::dsp::entities::state_metadata::TransferDSPStateAttribute::{
     self, ByConsumer, ByProvider, OnRequest,
 };
-use transfer_agent_ref::protocols::dsp::services::validator::{TransferRules, TransferValidators};
+use transfer_agent::protocols::dsp::services::validator::{TransferRules, TransferValidators};
 
 #[test]
 fn transfer_rules_state_machine_transitions() {

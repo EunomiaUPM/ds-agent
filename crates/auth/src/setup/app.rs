@@ -19,6 +19,8 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use crate::core::AuthCore;
+use crate::data::factory::AuthRepoTrait;
+use crate::data::sea_orm::factory::AuthRepoForSql;
 use crate::http::AuthRouter;
 use crate::services::callback::BasicCallbackService;
 use crate::services::gaia_self_attester::{GaiaSelfAttester, GaiaSelfAttesterTrait};
@@ -26,8 +28,6 @@ use crate::services::gatekeeper::gnap::GnapGateKeeperConfig;
 use crate::services::gatekeeper::gnap::GnapGateKeeperService;
 use crate::services::peer_connector::gnap::GnapPeerConnectorConfig;
 use crate::services::peer_connector::gnap::GnapPeerConnectorService;
-use crate::services::repo::repo_trait::AuthRepoTrait;
-use crate::services::repo::service::AuthRepoForSql;
 use crate::services::vc_requester::basic::VCReqService;
 use crate::services::vc_requester::basic::VCRequesterConfig;
 use axum::{serve, Router};

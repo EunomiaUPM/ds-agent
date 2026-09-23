@@ -22,19 +22,20 @@ mod grpc_fixtures;
 use std::sync::Arc;
 
 use catalog_agent::data::entities::dataset;
-use catalog_agent::entities::datasets::{DatasetDto, MockDatasetEntityTrait};
+use catalog_agent::entities::datasets::DatasetDto;
 use catalog_agent::grpc::api::catalog_agent::dataset_entity_service_server::DatasetEntityService;
 use catalog_agent::grpc::api::catalog_agent::{
     CreateDatasetRequest, GetByIdRequest, ListDatasetsRequest, PutDatasetRequest,
 };
 use catalog_agent::grpc::datasets::DatasetEntityGrpc;
+use catalog_agent::services::datasets::MockDatasetServiceTrait;
 use chrono::Utc;
 use common::errors::ResourceError;
 use common::paginated_spec::Paginated;
 use grpc_fixtures::{owner, request, urn, StubValidator, OTHER_TENANT, TENANT};
 use tonic::Code;
 
-fn grpc(service: MockDatasetEntityTrait) -> DatasetEntityGrpc {
+fn grpc(service: MockDatasetServiceTrait) -> DatasetEntityGrpc {
     DatasetEntityGrpc::new(Arc::new(service), Arc::new(StubValidator))
 }
 
@@ -61,7 +62,7 @@ fn by_id(id: &str) -> GetByIdRequest {
 
 #[tokio::test]
 async fn get_without_token_is_unauthenticated() {
-    let g = grpc(MockDatasetEntityTrait::new());
+    let g = grpc(MockDatasetServiceTrait::new());
     let err = g
         .get_dataset_by_id(request(by_id(&urn(1)), None, Some(TENANT)))
         .await
@@ -71,7 +72,7 @@ async fn get_without_token_is_unauthenticated() {
 
 #[tokio::test]
 async fn get_foreign_tenant_without_admin_is_permission_denied() {
-    let g = grpc(MockDatasetEntityTrait::new());
+    let g = grpc(MockDatasetServiceTrait::new());
     let err = g
         .get_dataset_by_id(request(by_id(&urn(1)), Some("owner"), Some(OTHER_TENANT)))
         .await
@@ -81,7 +82,7 @@ async fn get_foreign_tenant_without_admin_is_permission_denied() {
 
 #[tokio::test]
 async fn invalid_urns_name_their_field() {
-    let g = grpc(MockDatasetEntityTrait::new());
+    let g = grpc(MockDatasetServiceTrait::new());
     let err = g.get_dataset_by_id(owner(by_id("nope"))).await.unwrap_err();
     assert_eq!(err.code(), Code::InvalidArgument);
     assert!(err.message().starts_with("id:"), "{}", err.message());
@@ -111,7 +112,7 @@ async fn invalid_urns_name_their_field() {
 
 #[tokio::test]
 async fn domain_not_found_maps_to_not_found() {
-    let mut svc = MockDatasetEntityTrait::new();
+    let mut svc = MockDatasetServiceTrait::new();
     svc.expect_get_dataset_by_id()
         .returning(|_, id| Err(ResourceError::not_found(id, "dataset")));
     let g = grpc(svc);
@@ -124,7 +125,7 @@ async fn domain_not_found_maps_to_not_found() {
 
 #[tokio::test]
 async fn list_propagates_cursor_total_and_parsed_filters() {
-    let mut svc = MockDatasetEntityTrait::new();
+    let mut svc = MockDatasetServiceTrait::new();
     svc.expect_get_all_datasets()
         .withf(|_, filter, page, sort| {
             filter.conforms_to.as_deref() == Some("spec")

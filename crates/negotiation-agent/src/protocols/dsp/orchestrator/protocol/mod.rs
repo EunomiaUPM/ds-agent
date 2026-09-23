@@ -41,6 +41,7 @@ pub trait ProtocolOrchestratorTrait: Send + Sync + 'static {
     async fn on_get_negotiation(
         &self,
         id: &String,
+        mate: &Mates,
     ) -> Outcome<NegotiationProcessMessageWrapper<NegotiationAckMessageDto>>;
 
     async fn on_initial_contract_request(

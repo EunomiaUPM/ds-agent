@@ -90,6 +90,7 @@ impl DataPlaneStrategy for ConsumerPushStrategy {
         let id = ctx.process_urn("consumer push start_post")?;
         mgr.execute_command(DataplaneCommand::SetSubscribing(DataplaneContinuation {
             transfer_dto_urn: id,
+            tenant_id: ctx.tenant_id().to_string(),
         }))
         .await?;
         Ok(None)
@@ -112,6 +113,7 @@ impl DataPlaneStrategy for ConsumerPushStrategy {
         let id = ctx.process_urn("consumer push suspend_post")?;
         mgr.execute_command(DataplaneCommand::SetUnsubscribing(DataplaneContinuation {
             transfer_dto_urn: id,
+            tenant_id: ctx.tenant_id().to_string(),
         }))
         .await?;
         Ok(())
@@ -132,6 +134,7 @@ impl DataPlaneStrategy for ConsumerPushStrategy {
     ) -> Outcome<()> {
         mgr.execute_command(DataplaneCommand::SetUnsubscribing(DataplaneContinuation {
             transfer_dto_urn: ctx.process_urn("consumer push complete_post")?,
+            tenant_id: ctx.tenant_id().to_string(),
         }))
         .await?;
         Ok(())
@@ -152,6 +155,7 @@ impl DataPlaneStrategy for ConsumerPushStrategy {
     ) -> Outcome<()> {
         mgr.execute_command(DataplaneCommand::SetUnsubscribing(DataplaneContinuation {
             transfer_dto_urn: ctx.process_urn("consumer push terminate_post")?,
+            tenant_id: ctx.tenant_id().to_string(),
         }))
         .await?;
         Ok(())

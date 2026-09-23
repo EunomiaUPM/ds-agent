@@ -21,6 +21,7 @@ use crate::data::repo_traits::connector_instance_repo::ConnectorInstanceRepoTrai
 use crate::data::repo_traits::connector_repo_errors::{
     ConnectorAgentRepoErrors, ConnectorInstanceRepoErrors,
 };
+use sea_orm::QueryTrait;
 use sea_orm::{
     ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter, RuntimeErr, SqlxError,
 };
@@ -87,11 +88,13 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
 
     async fn get_instance_by_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         instance_id: &str,
     ) -> Outcome<Option<connector_instances::Model>> {
         let result = connector_instances::Entity::find_by_id(instance_id)
-            .filter(connector_instances::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| {
+                q.filter(connector_instances::Column::TenantId.eq(t))
+            })
             .one(&self.db_connection)
             .await;
         match result {
@@ -171,10 +174,16 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
         }
     }
 
-    async fn delete_instance_by_id(&self, tenant_id: &str, instance_id: &str) -> Outcome<()> {
+    async fn delete_instance_by_id(
+        &self,
+        tenant_id: Option<String>,
+        instance_id: &str,
+    ) -> Outcome<()> {
         let result = connector_instances::Entity::delete_many()
             .filter(connector_instances::Column::Id.eq(instance_id))
-            .filter(connector_instances::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| {
+                q.filter(connector_instances::Column::TenantId.eq(t))
+            })
             .exec(&self.db_connection)
             .await;
 

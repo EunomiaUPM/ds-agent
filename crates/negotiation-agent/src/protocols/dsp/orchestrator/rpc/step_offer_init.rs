@@ -15,7 +15,6 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::negotiation_process::NegotiationProcessDto;
 use crate::protocols::dsp::orchestrator::rpc::step_trait::{
     NegotiationRpcInitialContext, NegotiationRpcStep,
 };
@@ -27,6 +26,9 @@ use crate::protocols::dsp::protocol_types::{
     NegotiationAckMessageDto, NegotiationOfferInitMessageDto, NegotiationProcessMessageWrapper,
 };
 use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRpcSteps;
+use crate::services::negotiation_process::views::NegotiationProcessView;
+use common::auth::AccessScope;
+use common::dsp_common::DspActor;
 use common::facades::ssi_auth_facade::MatesFacadeTrait;
 use common::http_client::HttpClient;
 use std::sync::Arc;
@@ -53,22 +55,27 @@ impl NegotiationRpcStep for RpcOfferInitStep {
 
     async fn validate(
         validator: &Arc<dyn ValidationRpcSteps>,
+        _actor: &DspActor,
         input: &RpcNegotiationOfferInitMessageDto,
     ) -> Outcome<()> {
         validator.negotiation_offer_init_rpc(input).await
     }
 
     async fn prepare_context(
+        scope: &AccessScope,
         input: &RpcNegotiationOfferInitMessageDto,
         _persistence: &Arc<dyn NegotiationRpcPersistenceTrait>,
-        _mates_service: &Arc<dyn MatesFacadeTrait>,
+        mates_service: &Arc<dyn MatesFacadeTrait>,
     ) -> Outcome<NegotiationRpcInitialContext> {
         let provider_address = input.get_provider_address().unwrap_or_default();
         let associated_peer = input.get_associated_agent_peer().unwrap_or_default();
-        Ok(NegotiationRpcInitialContext {
+        NegotiationRpcInitialContext::resolve(
+            scope,
             provider_address,
             associated_peer,
-        })
+            mates_service,
+        )
+        .await
     }
 
     fn auth_peer(ctx: &NegotiationRpcInitialContext) -> &str {
@@ -84,7 +91,7 @@ impl NegotiationRpcStep for RpcOfferInitStep {
         input: &RpcNegotiationOfferInitMessageDto,
     ) -> Outcome<(
         NegotiationProcessMessageWrapper<NegotiationAckMessageDto>,
-        NegotiationProcessDto,
+        NegotiationProcessView,
     )> {
         let peer_url = format!("{}/negotiations/offers", ctx.provider_address);
         let request_body: NegotiationProcessMessageWrapper<NegotiationOfferInitMessageDto> =
@@ -95,7 +102,7 @@ impl NegotiationRpcStep for RpcOfferInitStep {
             .await?;
 
         let process = persistence
-            .create_new(input, &request_body.dto, &response.dto)
+            .create_new(&ctx.tenant_id, input, &request_body.dto, &response.dto)
             .await?;
 
         Ok((response, process))

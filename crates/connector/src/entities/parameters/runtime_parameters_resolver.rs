@@ -32,6 +32,8 @@ pub struct RuntimeParametersResolver<'a> {
     runtime_params: &'a serde_json::Value,
     ingress_url: Option<String>,
     keystore: Option<Arc<dyn KeystoreLookup>>,
+    /// Tenant whose keystore resolves the placeholders; set together with `keystore`.
+    keystore_tenant: String,
 }
 
 impl<'a> RuntimeParametersResolver<'a> {
@@ -44,6 +46,7 @@ impl<'a> RuntimeParametersResolver<'a> {
             runtime_params,
             ingress_url: None,
             keystore: None,
+            keystore_tenant: String::new(),
         }
     }
 
@@ -52,8 +55,9 @@ impl<'a> RuntimeParametersResolver<'a> {
         self
     }
 
-    pub fn with_keystore(mut self, lookup: Arc<dyn KeystoreLookup>) -> Self {
+    pub fn with_keystore(mut self, lookup: Arc<dyn KeystoreLookup>, tenant_id: &str) -> Self {
         self.keystore = Some(lookup);
+        self.keystore_tenant = tenant_id.to_string();
         self
     }
 
@@ -98,11 +102,12 @@ impl<'a> RuntimeParametersResolver<'a> {
             .into_iter()
             .map(|key| {
                 let ks = ks.clone();
+                let tenant = self.keystore_tenant.clone();
                 async move {
                     let val = if is_param {
-                        ks.get_parameter(&key).await
+                        ks.get_parameter(&tenant, &key).await
                     } else {
-                        ks.get_secret(&key).await
+                        ks.get_secret(&tenant, &key).await
                     };
                     (key, val)
                 }
@@ -376,20 +381,24 @@ mod tests {
         struct FakeLookup;
         #[async_trait::async_trait]
         impl KeystoreLookup for FakeLookup {
-            async fn get_parameter(&self, key: &str) -> Option<serde_json::Value> {
+            async fn get_parameter(
+                &self,
+                _tenant_id: &str,
+                key: &str,
+            ) -> Option<serde_json::Value> {
                 if key == "/my/param" {
                     Some(json!("param-value"))
                 } else {
                     None
                 }
             }
-            async fn get_secret(&self, _: &str) -> Option<serde_json::Value> {
+            async fn get_secret(&self, _tenant_id: &str, _: &str) -> Option<serde_json::Value> {
                 None
             }
         }
         let instance = push_instance("{{__RUNTIME_PARAMETER_{/my/param}__}}", None);
         let result = RuntimeParametersResolver::new(&instance, &json!({}))
-            .with_keystore(Arc::new(FakeLookup))
+            .with_keystore(Arc::new(FakeLookup), "tenant-1")
             .resolve()
             .await
             .unwrap();
@@ -401,10 +410,10 @@ mod tests {
         struct FakeLookup;
         #[async_trait::async_trait]
         impl KeystoreLookup for FakeLookup {
-            async fn get_parameter(&self, _: &str) -> Option<serde_json::Value> {
+            async fn get_parameter(&self, _tenant_id: &str, _: &str) -> Option<serde_json::Value> {
                 None
             }
-            async fn get_secret(&self, key: &str) -> Option<serde_json::Value> {
+            async fn get_secret(&self, _tenant_id: &str, key: &str) -> Option<serde_json::Value> {
                 if key == "/my/secret" {
                     Some(json!("s3cr3t"))
                 } else {
@@ -417,7 +426,7 @@ mod tests {
             None,
         );
         let result = RuntimeParametersResolver::new(&instance, &json!({}))
-            .with_keystore(Arc::new(FakeLookup))
+            .with_keystore(Arc::new(FakeLookup), "tenant-1")
             .resolve()
             .await
             .unwrap();

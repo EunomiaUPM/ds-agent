@@ -15,11 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::distributions::{
-    DistributionDto, DistributionEntityTrait, EditDistributionDto, NewDistributionDto,
-};
+use crate::entities::distributions::{DistributionDto, EditDistributionDto, NewDistributionDto};
 use crate::entities::filters::DistributionFilter;
 use crate::http::common::to_camel_case::ToCamelCase;
+use crate::services::distributions::DistributionServiceTrait;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{FromRef, Path, Query, State};
 use axum::http::StatusCode;
@@ -37,14 +36,14 @@ use ymir::utils::{extract_path_urn, extract_payload};
 
 #[derive(Clone)]
 pub struct DistributionEntityRouter {
-    service: Arc<dyn DistributionEntityTrait>,
+    service: Arc<dyn DistributionServiceTrait>,
     config: Arc<CatalogConfig>,
 }
 
 pub use common::paginated_spec::PaginationParams;
 pub type DistributionQuery = QuerySpec<DistributionFilter>;
 
-impl FromRef<DistributionEntityRouter> for Arc<dyn DistributionEntityTrait> {
+impl FromRef<DistributionEntityRouter> for Arc<dyn DistributionServiceTrait> {
     fn from_ref(state: &DistributionEntityRouter) -> Self {
         state.service.clone()
     }
@@ -57,7 +56,7 @@ impl FromRef<DistributionEntityRouter> for Arc<CatalogConfig> {
 }
 
 impl DistributionEntityRouter {
-    pub fn new(service: Arc<dyn DistributionEntityTrait>, config: Arc<CatalogConfig>) -> Self {
+    pub fn new(service: Arc<dyn DistributionServiceTrait>, config: Arc<CatalogConfig>) -> Self {
         Self { service, config }
     }
 

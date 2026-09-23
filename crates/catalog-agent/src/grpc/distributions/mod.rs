@@ -19,13 +19,13 @@ mod mappers;
 
 use std::sync::Arc;
 
-use crate::entities::distributions::DistributionEntityTrait;
 use crate::grpc::api::catalog_agent::distribution_entity_service_server::DistributionEntityService;
 use crate::grpc::api::catalog_agent::{
     CreateDistributionRequest, DeleteByIdRequest, DistributionListResponse, DistributionResponse,
     GetBatchRequest, GetByIdRequest, GetByParentIdRequest, GetDistributionByFormatRequest,
     ListDistributionsRequest, PutDistributionRequest,
 };
+use crate::services::distributions::DistributionServiceTrait;
 use common::auth::grpc::GrpcAuth;
 use common::auth::OauthTokenValidator;
 use common::grpc::{IntoStatus, ListParams, ProtoField, ProtoFieldList};
@@ -33,13 +33,13 @@ use tonic::{Request, Response, Status};
 use ymir::errors::Errors;
 
 pub struct DistributionEntityGrpc {
-    service: Arc<dyn DistributionEntityTrait>,
+    service: Arc<dyn DistributionServiceTrait>,
     auth: GrpcAuth,
 }
 
 impl DistributionEntityGrpc {
     pub fn new(
-        service: Arc<dyn DistributionEntityTrait>,
+        service: Arc<dyn DistributionServiceTrait>,
         validator: Arc<dyn OauthTokenValidator>,
     ) -> Self {
         Self {

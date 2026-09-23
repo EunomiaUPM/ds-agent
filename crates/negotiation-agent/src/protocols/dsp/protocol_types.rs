@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::negotiation_process::NegotiationProcessDto;
+use crate::services::negotiation_process::views::NegotiationProcessView;
 use common::dsp_common::context_field::ContextField;
 use common::dsp_common::odrl::{ContractRequestMessageOfferTypes, OdrlAgreement};
 use serde::{Deserialize, Serialize};
@@ -762,15 +762,17 @@ impl From<NegotiationProcessMessageType> for NegotiationProcessState {
     }
 }
 
-impl TryFrom<NegotiationProcessDto> for NegotiationProcessMessageWrapper<NegotiationAckMessageDto> {
+impl TryFrom<NegotiationProcessView>
+    for NegotiationProcessMessageWrapper<NegotiationAckMessageDto>
+{
     type Error = Errors;
 
-    fn try_from(value: NegotiationProcessDto) -> Result<Self, Self::Error> {
+    fn try_from(value: NegotiationProcessView) -> Result<Self, Self::Error> {
         let consumer_str = match value.identifiers.get("consumerPid") {
             Some(val) => val,
             None => {
                 let err = Errors::parse(
-                    "Missing 'consumerPid' in NegotiationProcessDto identifiers map",
+                    "Missing 'consumerPid' in NegotiationProcessView identifiers map",
                     None,
                 );
                 error!("{}", err);
@@ -796,7 +798,7 @@ impl TryFrom<NegotiationProcessDto> for NegotiationProcessMessageWrapper<Negotia
             Some(val) => val,
             None => {
                 let err = Errors::parse(
-                    "Missing 'providerPid' in NegotiationProcessDto identifiers map",
+                    "Missing 'providerPid' in NegotiationProcessView identifiers map",
                     None,
                 );
                 error!("{}", err);

@@ -17,10 +17,10 @@
 
 use std::sync::Arc;
 
-use crate::data::entities::dataplane_field::{
+use crate::data::repo::dataplane_field::{DataplaneFieldRepoErrors, DataplaneFieldRepoTrait};
+use crate::data::sea_orm::orm::dataplane_field::{
     self, Column, EditDataPlaneFieldModel, Entity as DataplaneFieldEntity, NewDataPlaneFieldModel,
 };
-use crate::data::repo::dataplane_field::{DataplaneFieldRepoErrors, DataplaneFieldRepoTrait};
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set,
 };

@@ -23,8 +23,6 @@ use std::sync::Arc;
 use chrono::Utc;
 use common::auth::access::AccessScope;
 use common::auth::claims::RbacRole;
-use dataplane::data::entities::dataplane_transfer_logs::Model as LogModel;
-use dataplane::data::entities::dataplane_transfers::TransferState;
 use dataplane::data::factory_trait::MockDataplaneRepoTrait;
 use dataplane::data::repo::dataplane_field::MockDataplaneFieldRepoTrait;
 use dataplane::data::repo::dataplane_transfer::MockDataplaneTransfersRepo;
@@ -32,6 +30,8 @@ use dataplane::data::repo::dataplane_transfer_log::{
     DataplaneTransferLogsRepo, MockDataplaneTransferLogsRepo,
 };
 use dataplane::data::repo::transfer_event::MockTransferEventRepo;
+use dataplane::data::sea_orm::orm::dataplane_transfer_logs::Model as LogModel;
+use dataplane::data::sea_orm::orm::dataplane_transfers::TransferState;
 use dataplane::services::dataplane_transfer_logs::{
     DataplaneTransferLogServiceTrait, DataplaneTransferLogsService,
 };
@@ -77,7 +77,7 @@ async fn get_logs_passes_acting_tenant_to_repo() {
     let mut logs_repo = MockDataplaneTransferLogsRepo::new();
     logs_repo
         .expect_get_transfer_logs_by_dataplane_process_id()
-        .withf(|tenant, id| tenant == "tenant-2" && id == &test_urn(1))
+        .withf(|tenant, id| tenant.as_deref() == Some("tenant-2") && id == &test_urn(1))
         .returning(|_, _| Ok(vec![make_log_model(10, "tenant-2")]));
 
     let svc = make_logs_svc(logs_repo);
@@ -94,7 +94,7 @@ async fn get_logs_reader_role_is_permitted() {
     let mut logs_repo = MockDataplaneTransferLogsRepo::new();
     logs_repo
         .expect_get_transfer_logs_by_dataplane_process_id()
-        .withf(|tenant, id| tenant == "tenant-1" && id == &test_urn(1))
+        .withf(|tenant, id| tenant.as_deref() == Some("tenant-1") && id == &test_urn(1))
         .returning(|_, _| Ok(vec![]));
 
     let svc = make_logs_svc(logs_repo);

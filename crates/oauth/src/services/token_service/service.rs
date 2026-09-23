@@ -579,7 +579,10 @@ impl TokenServiceTrait for TokenService {
         if token.starts_with("pat_") {
             let hash = PersonalAccessToken::hash_token(token);
             if let Ok(Some(pat)) = self.pat_repo.get_by_hash(&hash).await {
-                let _ = self.pat_repo.revoke(&pat.tenant_id, pat.id).await;
+                let _ = self
+                    .pat_repo
+                    .revoke(Some(pat.tenant_id.clone()), pat.id)
+                    .await;
             }
             return Ok(());
         }

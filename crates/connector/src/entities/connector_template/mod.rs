@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Connector template DTOs and the template service trait.
+//! Connector template DTOs.
 //!
 //! A *connector template* is the reusable, parameterised blueprint from which
 //! connector instances are created.  It declares:
@@ -34,8 +34,6 @@
 //! [`InteractionConfig`]: crate::entities::interaction::InteractionConfig
 //! [`ParameterDefinition`]: crate::entities::parameters::ParameterDefinition
 
-pub(crate) mod service;
-
 use crate::data::entities::connector_templates::NewConnectorTemplateModel;
 use crate::entities::auth_config::AuthenticationConfig;
 use crate::entities::interaction::InteractionConfig;
@@ -43,7 +41,7 @@ use crate::entities::parameters::ParameterDefinition;
 use sea_orm::prelude::DateTimeWithTimeZone;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use ymir::errors::{Errors, Outcome};
+use ymir::errors::Outcome;
 
 /// Display and versioning metadata for a connector template.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -85,43 +83,4 @@ impl ConnectorTemplateDto {
             }),
         })
     }
-}
-
-use crate::entities::filters::ConnectorTemplateFilter;
-use common::auth::AccessScope;
-use common::paginated_spec::{Page, Paginated, Sort};
-
-/// Service interface for connector template CRUD operations.
-#[cfg_attr(test, mockall::automock)]
-#[async_trait::async_trait]
-pub trait ConnectorTemplateEntitiesTrait: Send + Sync {
-    async fn get_all_templates(
-        &self,
-        scope: &AccessScope,
-        filters: &ConnectorTemplateFilter,
-        page: &Page,
-        sort: Sort,
-    ) -> Outcome<Paginated<ConnectorTemplateDto>>;
-    async fn get_templates_by_id(
-        &self,
-        scope: &AccessScope,
-        template_id: &str,
-    ) -> Outcome<Vec<ConnectorTemplateDto>>;
-    async fn get_template_by_name_and_version(
-        &self,
-        scope: &AccessScope,
-        name: &str,
-        version: &str,
-    ) -> Outcome<Option<ConnectorTemplateDto>>;
-    async fn create_template(
-        &self,
-        scope: &AccessScope,
-        new_template: &mut ConnectorTemplateDto,
-    ) -> Outcome<ConnectorTemplateDto>;
-    async fn delete_template_by_name_and_version(
-        &self,
-        scope: &AccessScope,
-        name: &str,
-        version: &str,
-    ) -> Outcome<()>;
 }

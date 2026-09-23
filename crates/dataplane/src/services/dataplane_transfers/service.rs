@@ -28,19 +28,19 @@ use tracing::error;
 use urn::Urn;
 use ymir::errors::{BadFormat, Errors, Outcome};
 
-use crate::cache::cache_traits::entity_cache_trait::EntityCacheTrait;
-use crate::data::entities::dataplane_field::{EditDataPlaneFieldModel, NewDataPlaneFieldModel};
-use crate::data::entities::dataplane_transfer_logs::NewTransferLog;
-use crate::data::entities::dataplane_transfers::{
-    self as dataplane_transfers_model, EditDataplaneTransferModel, NewDataplaneTransfer,
-};
 use crate::data::factory_trait::DataplaneRepoTrait;
 use crate::data::repo::dataplane_transfer::DataplaneTransfersRepo;
+use crate::data::sea_orm::orm::dataplane_field::NewDataPlaneFieldModel;
+use crate::data::sea_orm::orm::dataplane_transfer_logs::NewTransferLog;
+use crate::data::sea_orm::orm::dataplane_transfers::{
+    self as dataplane_transfers_model, EditDataplaneTransferModel, NewDataplaneTransfer,
+};
 use crate::entities::dataplane_transfers::{
     DataplaneTransferDto, EditDataplaneTransferDto, NewDataplaneTransferDto,
 };
 use crate::entities::filters::DataplaneTransferFilter;
 use crate::services::dataplane_transfers::DataplaneTransferServiceTrait;
+use common::cache::EntityCacheTrait;
 
 pub struct DataplaneTransferService {
     data_plane_repo: Arc<dyn DataplaneRepoTrait>,
@@ -82,7 +82,10 @@ impl DataplaneTransferService {
         let logs = self
             .data_plane_repo
             .get_dataplane_transfer_logs_repo()
-            .get_transfer_logs_by_dataplane_process_id(&process.tenant_id, &process_urn)
+            .get_transfer_logs_by_dataplane_process_id(
+                Some(process.tenant_id.clone()),
+                &process_urn,
+            )
             .await?;
 
         Ok(DataplaneTransferDto {
@@ -141,7 +144,7 @@ impl DataplaneTransferServiceTrait for DataplaneTransferService {
 
         let process = self
             .repo()
-            .get_dataplane_transfers_by_id(scope.acting_tenant(), id)
+            .get_dataplane_transfers_by_id(scope.tenant_filter().map(str::to_string), id)
             .await?
             .or_not_found(id, "dataplane transfer")?;
 
@@ -159,7 +162,7 @@ impl DataplaneTransferServiceTrait for DataplaneTransferService {
 
         let process = self
             .repo()
-            .get_by_transfer_process_id(scope.acting_tenant(), process_id)
+            .get_by_transfer_process_id(scope.tenant_filter().map(str::to_string), process_id)
             .await?
             .or_not_found(process_id, "dataplane transfer")?;
 
@@ -188,7 +191,7 @@ impl DataplaneTransferServiceTrait for DataplaneTransferService {
 
         let processes = self
             .repo()
-            .get_batch_dataplane_transfers(scope.acting_tenant(), &req.ids)
+            .get_batch_dataplane_transfers(scope.tenant_filter().map(str::to_string), &req.ids)
             .await?;
 
         let mut dtos = Vec::with_capacity(processes.len());
@@ -244,20 +247,28 @@ impl DataplaneTransferServiceTrait for DataplaneTransferService {
     ) -> Outcome<DataplaneTransferDto> {
         scope.require_write()?;
 
+        // Authorize before writing anything; every row below belongs to the transfer's tenant.
+        let tenant_id = self
+            .repo()
+            .get_dataplane_transfers_by_id(scope.tenant_filter().map(str::to_string), id)
+            .await?
+            .or_not_found(id, "dataplane transfer")?
+            .tenant_id;
+
         if let Some(fields) = &cmd.fields {
             let fields_repo = self.data_plane_repo.get_dataplane_fields_repo();
             fields_repo
-                .delete_all_dataplane_fields_by_process_id(scope.acting_tenant(), id)
+                .delete_all_dataplane_fields_by_process_id(&tenant_id, id)
                 .await?;
 
             for (key, value) in fields {
                 let new_field = NewDataPlaneFieldModel {
-                    tenant_id: scope.acting_tenant().clone(),
+                    tenant_id: tenant_id.clone(),
                     key: key.clone(),
                     value: Some(value.clone()),
                 };
                 fields_repo
-                    .create_dataplane_field(scope.acting_tenant(), id, &new_field)
+                    .create_dataplane_field(&tenant_id, id, &new_field)
                     .await?;
             }
         }
@@ -272,7 +283,7 @@ impl DataplaneTransferServiceTrait for DataplaneTransferService {
 
         let updated_process = self
             .repo()
-            .put_dataplane_transfers(scope.acting_tenant(), id, &edit_model)
+            .put_dataplane_transfers(Some(tenant_id.clone()), id, &edit_model)
             .await?;
 
         if let Some(new_state) = &cmd.state {
@@ -303,7 +314,7 @@ impl DataplaneTransferServiceTrait for DataplaneTransferService {
     async fn delete(&self, scope: &AccessScope, id: &Urn) -> Outcome<()> {
         scope.require_write()?;
         self.repo()
-            .delete_dataplane_transfers(scope.acting_tenant(), id)
+            .delete_dataplane_transfers(scope.tenant_filter().map(str::to_string), id)
             .await?;
         let _ = self.cache.delete_single(id).await;
         Ok(())

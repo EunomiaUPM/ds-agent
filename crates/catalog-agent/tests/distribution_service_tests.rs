@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Multi-tenant isolation tests for DistributionEntities with a mocked repository.
+//! Multi-tenant isolation tests for DistributionService with a mocked repository.
 
 mod fixtures;
 
@@ -27,11 +27,10 @@ use catalog_agent::data::repo_traits::catalog_db_errors::{
     CatalogAgentRepoErrors, DistributionRepoErrors,
 };
 use catalog_agent::data::repo_traits::distribution_repo::MockDistributionRepositoryTrait;
-use catalog_agent::entities::distributions::distributions::DistributionEntities;
-use catalog_agent::entities::distributions::{
-    DistributionEntityTrait, EditDistributionDto, NewDistributionDto,
-};
+use catalog_agent::entities::distributions::{EditDistributionDto, NewDistributionDto};
 use catalog_agent::entities::filters::DistributionFilter;
+use catalog_agent::services::distributions::service::DistributionService;
+use catalog_agent::services::distributions::DistributionServiceTrait;
 use chrono::Utc;
 use common::paginated_spec::{Page, Sort};
 use fixtures::{admin_scope, noop_cache_factory, reader_scope, tenant_scope, test_urn};
@@ -42,13 +41,13 @@ fn not_found() -> ymir::errors::Errors {
         .into_errors()
 }
 
-fn make_svc(repo: MockDistributionRepositoryTrait) -> DistributionEntities {
+fn make_svc(repo: MockDistributionRepositoryTrait) -> DistributionService {
     let repo = Arc::new(repo);
     let mut factory = MockCatalogAgentRepoTrait::new();
     factory
         .expect_get_distribution_repo()
         .returning(move || repo.clone());
-    DistributionEntities::new(Arc::new(factory), noop_cache_factory())
+    DistributionService::new(Arc::new(factory), noop_cache_factory())
 }
 
 fn make_model(tenant: &str, n: u32) -> distribution::Model {
@@ -89,7 +88,7 @@ fn make_edit_dto() -> EditDistributionDto {
 async fn get_one_foreign_tenant_returns_not_found() {
     let mut repo = MockDistributionRepositoryTrait::new();
     repo.expect_get_distribution_by_id()
-        .withf(|tenant, id| tenant == "tenant-2" && id == &test_urn(1))
+        .withf(|tenant, id| tenant.as_deref() == Some("tenant-2") && id == &test_urn(1))
         .returning(|_, _| Ok(None));
 
     let svc = make_svc(repo);
@@ -103,7 +102,9 @@ async fn get_one_foreign_tenant_returns_not_found() {
 async fn get_by_dataset_and_format_foreign_tenant_returns_not_found() {
     let mut repo = MockDistributionRepositoryTrait::new();
     repo.expect_get_distribution_by_dataset_id_and_dct_format()
-        .withf(|tenant, id, fmt| tenant == "tenant-2" && id == &test_urn(100) && fmt == "http-pull")
+        .withf(|tenant, id, fmt| {
+            tenant.as_deref() == Some("tenant-2") && id == &test_urn(100) && fmt == "http-pull"
+        })
         .returning(|_, _, _| Ok(None));
 
     let svc = make_svc(repo);
@@ -164,7 +165,7 @@ async fn get_all_admin_without_tenant_queries_cross_tenant() {
 async fn edit_foreign_tenant_returns_not_found_without_mutating() {
     let mut repo = MockDistributionRepositoryTrait::new();
     repo.expect_put_distribution_by_id()
-        .withf(|tenant, id, _| tenant == "tenant-2" && id == &test_urn(1))
+        .withf(|tenant, id, _| tenant.as_deref() == Some("tenant-2") && id == &test_urn(1))
         .returning(|_, _, _| Err(not_found()));
 
     let svc = make_svc(repo);
@@ -178,7 +179,7 @@ async fn edit_foreign_tenant_returns_not_found_without_mutating() {
 async fn delete_foreign_tenant_returns_not_found() {
     let mut repo = MockDistributionRepositoryTrait::new();
     repo.expect_delete_distribution_by_id()
-        .withf(|tenant, id| tenant == "tenant-2" && id == &test_urn(1))
+        .withf(|tenant, id| tenant.as_deref() == Some("tenant-2") && id == &test_urn(1))
         .returning(|_, _| Err(not_found()));
 
     let svc = make_svc(repo);
@@ -192,8 +193,8 @@ async fn delete_foreign_tenant_returns_not_found() {
 async fn delete_own_tenant_returns_deleted_row_and_succeeds() {
     let mut repo = MockDistributionRepositoryTrait::new();
     repo.expect_delete_distribution_by_id()
-        .withf(|tenant, id| tenant == "tenant-1" && id == &test_urn(1))
-        .returning(|tenant, _| Ok(make_model(tenant, 1)));
+        .withf(|tenant, id| tenant.as_deref() == Some("tenant-1") && id == &test_urn(1))
+        .returning(|tenant, _| Ok(make_model(tenant.as_deref().unwrap(), 1)));
 
     let svc = make_svc(repo);
     assert!(svc
@@ -215,7 +216,7 @@ async fn delete_reader_is_forbidden_before_reaching_repo() {
 async fn batch_filters_out_foreign_tenant_records() {
     let mut repo = MockDistributionRepositoryTrait::new();
     repo.expect_get_batch_distributions()
-        .withf(|tenant, ids| tenant == "tenant-2" && ids == [test_urn(1)])
+        .withf(|tenant, ids| tenant.as_deref() == Some("tenant-2") && ids == [test_urn(1)])
         .returning(|_, _| Ok(vec![]));
 
     let svc = make_svc(repo);

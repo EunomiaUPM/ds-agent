@@ -15,6 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use sea_orm::QueryTrait;
 use std::sync::Arc;
 
 use crate::data::repo::transfer_message::{TransferMessageRepoErrors, TransferMessageRepoTrait};
@@ -149,10 +150,11 @@ impl TransferMessageRepoTrait for SeaOrmTransferMessageRepo {
 
     async fn get_transfer_message_by_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         id: &Urn,
     ) -> Outcome<Option<TransferMessage>> {
-        let q = orm::Entity::find_by_id(id.to_string()).filter(orm::Column::TenantId.eq(tenant_id));
+        let q = orm::Entity::find_by_id(id.to_string())
+            .apply_if(tenant_id, |q, t| q.filter(orm::Column::TenantId.eq(t)));
         q.one(self.db.as_ref())
             .await
             .map_err(Self::fetch_err)?
@@ -173,10 +175,10 @@ impl TransferMessageRepoTrait for SeaOrmTransferMessageRepo {
             .and_then(orm::Model::into_domain)
     }
 
-    async fn delete_transfer_message(&self, tenant_id: &str, id: &Urn) -> Outcome<()> {
+    async fn delete_transfer_message(&self, tenant_id: Option<String>, id: &Urn) -> Outcome<()> {
         let q = orm::Entity::delete_many()
             .filter(orm::Column::Id.eq(id.to_string()))
-            .filter(orm::Column::TenantId.eq(tenant_id));
+            .apply_if(tenant_id, |q, t| q.filter(orm::Column::TenantId.eq(t)));
         let res = q.exec(self.db.as_ref()).await.map_err(|e| {
             TransferMessageRepoErrors::ErrorDeletingTransferMessage(Box::new(e)).into_errors()
         })?;

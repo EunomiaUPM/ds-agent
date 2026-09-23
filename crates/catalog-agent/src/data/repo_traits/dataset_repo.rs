@@ -35,23 +35,23 @@ pub trait DatasetRepositoryTrait: Send + Sync {
     ) -> Outcome<(Vec<dataset::Model>, Option<u64>)>;
     async fn get_batch_datasets(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         ids: &[Urn],
     ) -> Outcome<Vec<dataset::Model>>;
     async fn get_datasets_by_catalog_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         catalog_id: &Urn,
     ) -> Outcome<Vec<dataset::Model>>;
     async fn get_dataset_by_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         dataset_id: &Urn,
     ) -> Outcome<Option<dataset::Model>>;
 
     async fn put_dataset_by_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         dataset_id: &Urn,
         edit_dataset_model: &EditDatasetModel,
     ) -> Outcome<dataset::Model>;
@@ -60,7 +60,7 @@ pub trait DatasetRepositoryTrait: Send + Sync {
     /// Deletes and returns the removed row so callers can evict derived caches.
     async fn delete_dataset_by_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         dataset_id: &Urn,
     ) -> Outcome<dataset::Model>;
 }

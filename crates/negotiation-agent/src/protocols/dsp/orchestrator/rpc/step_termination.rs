@@ -15,9 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::negotiation_process::NegotiationProcessDto;
 use crate::protocols::dsp::orchestrator::rpc::step_trait::{
-    NegotiationRpcContinuationContext, NegotiationRpcStep, resolve_continuation_context,
+    NegotiationRpcContinuationContext, NegotiationRpcStep,
 };
 use crate::protocols::dsp::orchestrator::rpc::types::{
     RpcNegotiationProcessMessageTrait, RpcNegotiationTerminationMessageDto,
@@ -27,6 +26,9 @@ use crate::protocols::dsp::protocol_types::{
     NegotiationAckMessageDto, NegotiationProcessMessageWrapper, NegotiationTerminationMessageDto,
 };
 use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRpcSteps;
+use crate::services::negotiation_process::views::NegotiationProcessView;
+use common::auth::AccessScope;
+use common::dsp_common::DspActor;
 use common::facades::ssi_auth_facade::MatesFacadeTrait;
 use common::http_client::HttpClient;
 use std::sync::Arc;
@@ -48,12 +50,14 @@ impl NegotiationRpcStep for RpcTerminationStep {
 
     async fn validate(
         validator: &Arc<dyn ValidationRpcSteps>,
+        actor: &DspActor,
         input: &RpcNegotiationTerminationMessageDto,
     ) -> Outcome<()> {
-        validator.negotiation_termination_rpc(input).await
+        validator.negotiation_termination_rpc(actor, input).await
     }
 
     async fn prepare_context(
+        scope: &AccessScope,
         input: &RpcNegotiationTerminationMessageDto,
         persistence: &Arc<dyn NegotiationRpcPersistenceTrait>,
         _mates_service: &Arc<dyn MatesFacadeTrait>,
@@ -61,7 +65,7 @@ impl NegotiationRpcStep for RpcTerminationStep {
         let id = input
             .get_consumer_pid()
             .ok_or_else(|| Errors::parse("RpcTerminationStep: missing consumer PID", None))?;
-        resolve_continuation_context(&id, persistence).await
+        NegotiationRpcContinuationContext::resolve(&id, scope, persistence).await
     }
 
     fn auth_peer(ctx: &NegotiationRpcContinuationContext) -> &str {
@@ -75,7 +79,7 @@ impl NegotiationRpcStep for RpcTerminationStep {
         input: &RpcNegotiationTerminationMessageDto,
     ) -> Outcome<(
         NegotiationProcessMessageWrapper<NegotiationAckMessageDto>,
-        NegotiationProcessDto,
+        NegotiationProcessView,
     )> {
         let peer_url = format!(
             "{}/negotiations/{}/termination",
@@ -88,16 +92,8 @@ impl NegotiationRpcStep for RpcTerminationStep {
             .post_json(peer_url.as_str(), &request_body)
             .await?;
 
-        let id = input
-            .get_consumer_pid()
-            .ok_or_else(|| Errors::parse("RpcTerminationStep: missing consumer PID", None))?;
         let process = persistence
-            .update(
-                id.to_string().as_str(),
-                input,
-                &request_body.dto,
-                &response.dto,
-            )
+            .update(&ctx.process, input, &request_body.dto, &response.dto)
             .await?;
 
         Ok((response, process))

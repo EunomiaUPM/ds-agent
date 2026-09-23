@@ -15,10 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::cache::cache_traits::redis_cache_connector_trait::RedisCacheConnectorTrait;
-use crate::cache::cache_traits::utils_trait::UtilsCacheTrait;
+use crate::cache::cache_traits::DESIRED_CACHE_TTL;
 use crate::CatalogDto;
 use async_trait::async_trait;
+use common::cache::{RedisCacheConnectorTrait, UtilsCacheTrait};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use urn::Urn;
@@ -35,6 +35,10 @@ impl CatalogCacheForRedis {
 
 impl UtilsCacheTrait for CatalogCacheForRedis {
     type Dto = CatalogDto;
+
+    fn key_namespace(&self) -> &str {
+        "ds_agent_catalogs"
+    }
 }
 impl RedisCacheConnectorTrait for CatalogCacheForRedis {
     type Dto = CatalogDto;
@@ -44,14 +48,17 @@ impl RedisCacheConnectorTrait for CatalogCacheForRedis {
     fn get_entity_name(&self) -> &str {
         "catalogs"
     }
+    fn cache_ttl(&self) -> i32 {
+        DESIRED_CACHE_TTL
+    }
 }
 
 #[cfg(test)]
 mod test_catalog_complete {
     use super::*;
-    use crate::cache::cache_traits::entity_cache_trait::EntityCacheTrait;
-    use crate::cache::cache_traits::utils_trait::UtilsCacheTrait;
     use crate::data::entities::catalog::Model;
+    use common::cache::EntityCacheTrait;
+    use common::cache::UtilsCacheTrait;
     use urn::UrnBuilder;
     use uuid::Uuid;
 

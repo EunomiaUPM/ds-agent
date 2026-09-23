@@ -24,6 +24,7 @@ use crate::data::repo_traits::dataset_repo::DatasetRepositoryTrait;
 use crate::entities::filters::DatasetFilter;
 use common::paginated_spec::{Page, SelectCursorExt, Sort};
 use common::query::FilterApplier;
+use sea_orm::QueryTrait;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait,
     QueryFilter, QueryOrder, QuerySelect,
@@ -108,12 +109,12 @@ impl DatasetRepositoryTrait for DatasetRepositoryForSql {
 
     async fn get_batch_datasets(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         ids: &[Urn],
     ) -> Outcome<Vec<dataset::Model>> {
         let dataset_ids = ids.iter().map(|t| t.to_string()).collect::<Vec<_>>();
         let dataset_process = dataset::Entity::find()
-            .filter(dataset::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| q.filter(dataset::Column::TenantId.eq(t)))
             .filter(dataset::Column::Id.is_in(dataset_ids))
             .all(&self.db_connection)
             .await;
@@ -128,12 +129,12 @@ impl DatasetRepositoryTrait for DatasetRepositoryForSql {
 
     async fn get_datasets_by_catalog_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         catalog_id: &Urn,
     ) -> Outcome<Vec<dataset::Model>> {
         let catalog_id = catalog_id.to_string();
         let datasets = dataset::Entity::find()
-            .filter(dataset::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| q.filter(dataset::Column::TenantId.eq(t)))
             .filter(dataset::Column::CatalogId.eq(catalog_id))
             .all(&self.db_connection)
             .await;
@@ -148,12 +149,12 @@ impl DatasetRepositoryTrait for DatasetRepositoryForSql {
 
     async fn get_dataset_by_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         dataset_id: &Urn,
     ) -> Outcome<Option<dataset::Model>> {
         let dataset_id = dataset_id.to_string();
         let dataset = dataset::Entity::find_by_id(dataset_id)
-            .filter(dataset::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| q.filter(dataset::Column::TenantId.eq(t)))
             .one(&self.db_connection)
             .await;
         match dataset {
@@ -167,14 +168,14 @@ impl DatasetRepositoryTrait for DatasetRepositoryForSql {
 
     async fn put_dataset_by_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         dataset_id: &Urn,
         edit_dataset_model: &EditDatasetModel,
     ) -> Outcome<dataset::Model> {
         let dataset_id = dataset_id.to_string();
 
         let old_model = dataset::Entity::find_by_id(dataset_id)
-            .filter(dataset::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| q.filter(dataset::Column::TenantId.eq(t)))
             .one(&self.db_connection)
             .await;
         let old_model = match old_model {
@@ -253,13 +254,13 @@ impl DatasetRepositoryTrait for DatasetRepositoryForSql {
 
     async fn delete_dataset_by_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         dataset_id: &Urn,
     ) -> Outcome<dataset::Model> {
         // Single round-trip: DELETE ... RETURNING, tenant-scoped; empty result means not found.
         let deleted = dataset::Entity::delete_many()
             .filter(dataset::Column::Id.eq(dataset_id.to_string()))
-            .filter(dataset::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| q.filter(dataset::Column::TenantId.eq(t)))
             .exec_with_returning(&self.db_connection)
             .await
             .map_err(|err| {

@@ -29,15 +29,15 @@ use crate::data::repo::{
     EventDeadLetterRepo, EventDeliveryRepo, EventStoreRepo, EventSubscriptionRepo,
 };
 use crate::entities::dead_letter::DeadLetterRecord;
-use crate::entities::delivery::EventDeliveryRecord;
-use crate::entities::envelope::EventEnvelope;
 use crate::entities::dead_letter::DeadLetterStatus;
 use crate::entities::delivery::DeliveryStatus;
+use crate::entities::delivery::EventDeliveryRecord;
+use crate::entities::envelope::EventEnvelope;
 use crate::entities::event::Event;
-use ymir::errors::{Errors, Outcome, PetitionFailure};
 use crate::services::event_bus::dispatcher::EventDispatcher;
 use crate::services::event_bus::policy::RetryPolicy;
 use crate::services::event_bus::{EventBusTrait, EventPublisherTrait};
+use ymir::errors::{Errors, Outcome, PetitionFailure};
 
 // Central event bus orchestrating event persistence, broadcasting, and delivery.
 #[derive(Clone)]
@@ -123,8 +123,8 @@ impl EventBus {
     ) -> Outcome<EventEnvelope> {
         let topic_obj =
             crate::entities::topic::Topic::new(topic).map_err(|e| Errors::validation(e, None))?;
-        let payload_val = serde_json::to_value(payload)
-            .map_err(|e| Errors::parse(e.to_string(), None))?;
+        let payload_val =
+            serde_json::to_value(payload).map_err(|e| Errors::parse(e.to_string(), None))?;
         let envelope = EventEnvelope::new(tenant_id, topic_obj, source, 1, None, payload_val);
         self.publish(envelope).await
     }
@@ -206,9 +206,7 @@ impl EventBus {
         {
             Ok(status) if status.is_success() => {
                 info!(dlq_id, status = %status, "Dead letter replayed successfully");
-                self.dlq_repo
-                    .mark_replayed(tenant_id, dlq_id)
-                    .await?;
+                self.dlq_repo.mark_replayed(tenant_id, dlq_id).await?;
 
                 if let Some(delivery_id) = &record.delivery_id {
                     let _ = self
@@ -235,12 +233,10 @@ impl EventBus {
                 };
                 Ok(delivery_record)
             }
-            Ok(status) => {
-                Err(Self::dispatch_error(
-                    &sub.callback_address,
-                    format!("replay failed with HTTP {status}"),
-                ))
-            }
+            Ok(status) => Err(Self::dispatch_error(
+                &sub.callback_address,
+                format!("replay failed with HTTP {status}"),
+            )),
             Err(e) => Err(Self::dispatch_error(&sub.callback_address, e)),
         }
     }
@@ -411,9 +407,7 @@ impl EventBus {
 #[async_trait]
 impl EventBusTrait for EventBus {
     async fn publish(&self, envelope: EventEnvelope) -> Outcome<EventEnvelope> {
-        self.event_repo
-            .insert_event(&envelope)
-            .await?;
+        self.event_repo.insert_event(&envelope).await?;
 
         let _ = self.broadcast_tx.send(envelope.clone());
 

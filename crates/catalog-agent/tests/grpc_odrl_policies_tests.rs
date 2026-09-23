@@ -22,15 +22,14 @@ mod grpc_fixtures;
 use std::sync::Arc;
 
 use catalog_agent::data::entities::odrl_offer;
-use catalog_agent::entities::odrl_policies::{
-    CatalogEntityTypes, MockOdrlPolicyEntityTrait, OdrlPolicyDto,
-};
+use catalog_agent::entities::odrl_policies::{CatalogEntityTypes, OdrlPolicyDto};
 use catalog_agent::grpc::api::catalog_agent::odrl_policy_entity_service_server::OdrlPolicyEntityService;
 use catalog_agent::grpc::api::catalog_agent::{
     CatalogEntityType, CreateOdrlPolicyRequest, GetByEntityIdRequest, GetByIdRequest,
     ListOdrlPoliciesRequest,
 };
 use catalog_agent::grpc::odrl_policies::OdrlPolicyEntityGrpc;
+use catalog_agent::services::odrl_policies::MockOdrlPolicyServiceTrait;
 use chrono::Utc;
 use common::errors::ResourceError;
 use common::grpc::JsonValueExt;
@@ -40,7 +39,7 @@ use prost_types::Struct;
 use serde_json::json;
 use tonic::Code;
 
-fn grpc(service: MockOdrlPolicyEntityTrait) -> OdrlPolicyEntityGrpc {
+fn grpc(service: MockOdrlPolicyServiceTrait) -> OdrlPolicyEntityGrpc {
     OdrlPolicyEntityGrpc::new(Arc::new(service), Arc::new(StubValidator))
 }
 
@@ -80,7 +79,7 @@ fn valid_create() -> CreateOdrlPolicyRequest {
 
 #[tokio::test]
 async fn get_without_token_is_unauthenticated() {
-    let g = grpc(MockOdrlPolicyEntityTrait::new());
+    let g = grpc(MockOdrlPolicyServiceTrait::new());
     let err = g
         .get_odrl_offer_by_id(request(by_id(&urn(1)), None, Some(TENANT)))
         .await
@@ -90,7 +89,7 @@ async fn get_without_token_is_unauthenticated() {
 
 #[tokio::test]
 async fn get_foreign_tenant_without_admin_is_permission_denied() {
-    let g = grpc(MockOdrlPolicyEntityTrait::new());
+    let g = grpc(MockOdrlPolicyServiceTrait::new());
     let err = g
         .get_odrl_offer_by_id(request(by_id(&urn(1)), Some("owner"), Some(OTHER_TENANT)))
         .await
@@ -100,7 +99,7 @@ async fn get_foreign_tenant_without_admin_is_permission_denied() {
 
 #[tokio::test]
 async fn invalid_urns_name_their_field() {
-    let g = grpc(MockOdrlPolicyEntityTrait::new());
+    let g = grpc(MockOdrlPolicyServiceTrait::new());
     let err = g
         .get_odrl_offer_by_id(owner(by_id("nope")))
         .await
@@ -119,7 +118,7 @@ async fn invalid_urns_name_their_field() {
 
 #[tokio::test]
 async fn create_rejects_missing_empty_or_malformed_offer_and_unspecified_type() {
-    let g = grpc(MockOdrlPolicyEntityTrait::new());
+    let g = grpc(MockOdrlPolicyServiceTrait::new());
     let cases = [
         (
             CreateOdrlPolicyRequest {
@@ -166,7 +165,7 @@ async fn create_rejects_missing_empty_or_malformed_offer_and_unspecified_type() 
 
 #[tokio::test]
 async fn create_passes_template_provenance_through() {
-    let mut svc = MockOdrlPolicyEntityTrait::new();
+    let mut svc = MockOdrlPolicyServiceTrait::new();
     svc.expect_create_odrl_offer()
         .withf(|_, dto| {
             dto.entity_type == CatalogEntityTypes::Dataset
@@ -182,7 +181,7 @@ async fn create_passes_template_provenance_through() {
 
 #[tokio::test]
 async fn domain_not_found_maps_to_not_found() {
-    let mut svc = MockOdrlPolicyEntityTrait::new();
+    let mut svc = MockOdrlPolicyServiceTrait::new();
     svc.expect_get_odrl_offer_by_id()
         .returning(|_, id| Err(ResourceError::not_found(id, "odrl policy")));
     let g = grpc(svc);
@@ -195,7 +194,7 @@ async fn domain_not_found_maps_to_not_found() {
 
 #[tokio::test]
 async fn list_maps_entity_type_filter_and_propagates_paging() {
-    let mut svc = MockOdrlPolicyEntityTrait::new();
+    let mut svc = MockOdrlPolicyServiceTrait::new();
     svc.expect_get_all_odrl_offers()
         .withf(|_, filter, page, _| {
             filter.entity_type.as_deref() == Some("Catalog")
@@ -239,7 +238,7 @@ async fn list_maps_entity_type_filter_and_propagates_paging() {
 
 #[tokio::test]
 async fn list_with_unspecified_type_means_any() {
-    let mut svc = MockOdrlPolicyEntityTrait::new();
+    let mut svc = MockOdrlPolicyServiceTrait::new();
     svc.expect_get_all_odrl_offers()
         .withf(|_, filter, _, _| filter.entity_type.is_none())
         .returning(|_, _, _, _| Ok(Paginated::new(vec![], None, Some(0))));

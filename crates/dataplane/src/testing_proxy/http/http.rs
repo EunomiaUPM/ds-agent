@@ -15,24 +15,25 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::data::entities::transfer_event::{LogLevel, NewTransferEvent};
 use crate::data::factory_trait::DataplaneRepoTrait;
-use crate::entities::dataplane_drivers::proxy::http as http_proxy;
-use crate::entities::dataplane_manager::dataplane_proxy::{
+use crate::data::sea_orm::orm::transfer_event::{LogLevel, NewTransferEvent};
+use crate::engine::dataplane_drivers::proxy::http as http_proxy;
+use crate::engine::dataplane_manager::dataplane_proxy::{
     DataplaneProxyEgress, DataplaneProxyIngress,
 };
-use crate::entities::dataplane_manager::dataplane_runtime::{
+use crate::engine::dataplane_manager::dataplane_runtime::{
     DataplaneRuntime, ResolvedAuthCredentials, RuntimeSecretVault,
 };
 use crate::entities::dataplane_transfers::DataplaneTransferDto;
-use crate::entities::dataplane_transfers::DataplaneTransfersEntitiesTrait;
-use crate::entities::dataplane_transfers::{InteractionMode, TransferState};
+use crate::entities::dataplane_transfers::TransferState;
+use crate::services::dataplane_transfers::DataplaneTransferServiceTrait;
 use axum::body::{to_bytes, Body, Bytes};
 use axum::extract::{FromRef, Path, Request, State};
 use axum::http::HeaderMap;
 use axum::response::{IntoResponse, Response};
 use axum::routing::any;
 use axum::{Json, Router};
+use common::auth::{AccessScope, RbacRole};
 use common::utils::get_urn_from_string;
 use connector::KeystoreLookup;
 use hyper::Method;
@@ -43,7 +44,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use tracing::{error, info, warn};
 use urn::Urn;
-use ymir::errors::Outcome;
+use ymir::errors::{Errors, Outcome};
 
 /// Maximum request body we buffer before forwarding upstream (2 MiB).
 const MAX_BODY_BYTES: usize = 2 * 1024 * 1024;
@@ -116,7 +117,7 @@ struct OutboundRequest {
 #[derive(Clone)]
 pub struct TestingHTTPProxy {
     client: Client,
-    dataplane_service: Arc<dyn DataplaneTransfersEntitiesTrait>,
+    dataplane_service: Arc<dyn DataplaneTransferServiceTrait>,
     repo: Arc<dyn DataplaneRepoTrait>,
     keystore: Option<Arc<dyn KeystoreLookup>>,
 }
@@ -127,7 +128,7 @@ impl FromRef<TestingHTTPProxy> for Client {
     }
 }
 
-impl FromRef<TestingHTTPProxy> for Arc<dyn DataplaneTransfersEntitiesTrait> {
+impl FromRef<TestingHTTPProxy> for Arc<dyn DataplaneTransferServiceTrait> {
     fn from_ref(input: &TestingHTTPProxy) -> Self {
         input.dataplane_service.clone()
     }
@@ -135,7 +136,7 @@ impl FromRef<TestingHTTPProxy> for Arc<dyn DataplaneTransfersEntitiesTrait> {
 
 impl TestingHTTPProxy {
     pub fn new(
-        dataplane_service: Arc<dyn DataplaneTransfersEntitiesTrait>,
+        dataplane_service: Arc<dyn DataplaneTransferServiceTrait>,
         repo: Arc<dyn DataplaneRepoTrait>,
     ) -> Self {
         // `danger_accept_invalid_certs` is intentional: this is a TESTING proxy
@@ -244,12 +245,23 @@ impl TestingHTTPProxy {
     /// Loads the transfer and enforces that it is `Started` — the proxy only
     /// relays traffic for active transfers.
     async fn load_started_dataplane(&self, urn: &Urn) -> Result<DataplaneTransferDto, ProxyError> {
-        let dataplane = self
-            .dataplane_service
-            .get_dataplane_transfer_by_id(urn)
+        // The dataplane id in the URL is the capability; its record names the owning tenant.
+        let record = self
+            .repo
+            .get_dataplane_transfers_repo()
+            .find_dataplane_transfer_by_id(urn)
             .await
             .map_err(|_| ProxyError::DataplaneLookupFailed)?
             .ok_or(ProxyError::DataplaneNotFound)?;
+        let scope = AccessScope::from_role(RbacRole::Owner, &record.tenant_id);
+        let dataplane = self
+            .dataplane_service
+            .get_one(&scope, urn)
+            .await
+            .map_err(|e| match e {
+                Errors::MissingResourceError { .. } => ProxyError::DataplaneNotFound,
+                _ => ProxyError::DataplaneLookupFailed,
+            })?;
 
         if dataplane.inner.state != TransferState::Started {
             return Err(ProxyError::NotStarted(dataplane.inner.state.clone()));
@@ -328,9 +340,10 @@ impl TestingHTTPProxy {
 
         // Resolve vaulted placeholders when a keystore is configured.
         let runtime = match (runtime, &self.keystore) {
-            (Some(rt), Some(lookup)) => {
-                Some(RuntimeSecretVault::resolve_with_lookup(rt, lookup).await)
-            }
+            (Some(rt), Some(lookup)) => Some(
+                RuntimeSecretVault::resolve_with_lookup(rt, lookup, &dataplane.inner.tenant_id)
+                    .await,
+            ),
             (rt, _) => rt,
         };
 

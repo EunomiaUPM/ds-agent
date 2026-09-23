@@ -79,7 +79,7 @@ impl ClientServiceTrait for ClientService {
         scope.require_read()?;
         let client = self
             .client_repo
-            .get_by_id(scope.acting_tenant(), client_id)
+            .get_by_id(scope.tenant_filter().map(str::to_string), client_id)
             .await?
             .or_not_found(client_id, "client")?;
         Ok(ClientView::assemble(client))
@@ -132,7 +132,7 @@ impl ClientServiceTrait for ClientService {
     async fn delete_client(&self, scope: &AccessScope, client_id: &str) -> Outcome<()> {
         scope.require_write()?;
         self.client_repo
-            .delete(scope.acting_tenant(), client_id)
+            .delete(scope.tenant_filter().map(str::to_string), client_id)
             .await?;
         events::emit_action!(
             self.event_bus,

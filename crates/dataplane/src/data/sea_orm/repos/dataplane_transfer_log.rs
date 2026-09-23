@@ -15,13 +15,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use sea_orm::QueryTrait;
 use std::sync::Arc;
 
-use crate::data::entities::dataplane_transfer_logs::{
-    self, Column, Entity as DataplaneTransferLogsEntity, NewTransferLog,
-};
 use crate::data::repo::dataplane_transfer_log::{
     DataplaneTransferLogsRepo, DataplaneTransferLogsRepoErrors,
+};
+use crate::data::sea_orm::orm::dataplane_transfer_logs::{
+    self, Column, Entity as DataplaneTransferLogsEntity, NewTransferLog,
 };
 use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use urn::Urn;
@@ -57,12 +58,12 @@ impl DataplaneTransferLogsRepo for DataplaneTransferLogsRepoForSql {
 
     async fn get_transfer_logs_by_dataplane_process_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         dataplane_process_id: &Urn,
     ) -> Outcome<Vec<dataplane_transfer_logs::Model>> {
         let logs = DataplaneTransferLogsEntity::find()
             .filter(Column::DataplaneProcessId.eq(dataplane_process_id.to_string()))
-            .filter(Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| q.filter(Column::TenantId.eq(t)))
             .all(self.db.as_ref())
             .await
             .map_err(|e| {

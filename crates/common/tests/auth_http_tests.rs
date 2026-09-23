@@ -187,7 +187,7 @@ fn test_access_scope_and_rbac_guards() {
     assert!(admin_scope.permits("any-other-tenant"));
 
     let user_scope = AccessScope::for_write(&user_claims, "tenant-alpha").unwrap();
-    assert_eq!(user_scope.tenant_filter(), Some("tenant-alpha".to_string()));
+    assert_eq!(user_scope.tenant_filter(), Some("tenant-alpha"));
     assert!(user_scope.permits("tenant-alpha"));
     assert!(!user_scope.permits("tenant-beta"));
 }

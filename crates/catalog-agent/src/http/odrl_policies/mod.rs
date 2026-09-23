@@ -16,8 +16,9 @@
  */
 
 use crate::entities::filters::OdrlPolicyFilter;
-use crate::entities::odrl_policies::{NewOdrlPolicyDto, OdrlPolicyDto, OdrlPolicyEntityTrait};
+use crate::entities::odrl_policies::{NewOdrlPolicyDto, OdrlPolicyDto};
 use crate::http::common::to_camel_case::ToCamelCase;
+use crate::services::odrl_policies::OdrlPolicyServiceTrait;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{FromRef, Path, Query, State};
 use axum::http::StatusCode;
@@ -34,14 +35,14 @@ use ymir::utils::{extract_path_urn, extract_payload};
 
 #[derive(Clone)]
 pub struct OdrlOfferEntityRouter {
-    service: Arc<dyn OdrlPolicyEntityTrait>,
+    service: Arc<dyn OdrlPolicyServiceTrait>,
     config: Arc<CatalogConfig>,
 }
 
 pub use common::paginated_spec::PaginationParams;
 pub type OdrlPolicyQuery = QuerySpec<OdrlPolicyFilter>;
 
-impl FromRef<OdrlOfferEntityRouter> for Arc<dyn OdrlPolicyEntityTrait> {
+impl FromRef<OdrlOfferEntityRouter> for Arc<dyn OdrlPolicyServiceTrait> {
     fn from_ref(state: &OdrlOfferEntityRouter) -> Self {
         state.service.clone()
     }
@@ -54,7 +55,7 @@ impl FromRef<OdrlOfferEntityRouter> for Arc<CatalogConfig> {
 }
 
 impl OdrlOfferEntityRouter {
-    pub fn new(service: Arc<dyn OdrlPolicyEntityTrait>, config: Arc<CatalogConfig>) -> Self {
+    pub fn new(service: Arc<dyn OdrlPolicyServiceTrait>, config: Arc<CatalogConfig>) -> Self {
         Self { service, config }
     }
 

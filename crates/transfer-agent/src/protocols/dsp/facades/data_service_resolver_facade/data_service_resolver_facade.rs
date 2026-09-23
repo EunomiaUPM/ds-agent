@@ -22,8 +22,8 @@ use common::config::services::traits::TransferConfigTrait;
 use common::config::types::traits::MinKnownConfigTrait;
 use common::http_client::HttpClient;
 use common::utils::get_urn_from_string;
-use connector::{ConnectorInstanceDto, ConnectorInstanceTrait};
-use negotiation_agent::AgreementDto;
+use connector::{ConnectorInstanceDto, ConnectorInstanceServiceTrait};
+use negotiation_agent::AgreementView;
 use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
@@ -33,14 +33,14 @@ use ymir::errors::{Errors, Outcome};
 pub struct DataServiceFacadeServiceForDSProtocol {
     config: Arc<TransferConfig>,
     client: Arc<HttpClient>,
-    connector_entity: Arc<dyn ConnectorInstanceTrait>,
+    connector_entity: Arc<dyn ConnectorInstanceServiceTrait>,
 }
 
 impl DataServiceFacadeServiceForDSProtocol {
     pub fn new(
         config: Arc<TransferConfig>,
         client: Arc<HttpClient>,
-        connector_entity: Arc<dyn ConnectorInstanceTrait>,
+        connector_entity: Arc<dyn ConnectorInstanceServiceTrait>,
     ) -> Self {
         Self {
             config,
@@ -67,7 +67,7 @@ impl DataServiceFacadeTrait for DataServiceFacadeServiceForDSProtocol {
         // 1. resolve agreement - get target (dataset id)
         let agreement = self
             .client
-            .get_json::<AgreementDto>(agreement_url.as_str())
+            .get_json::<AgreementView>(agreement_url.as_str())
             .await?;
         let agreement_target = get_urn_from_string(&agreement.inner.target)?;
 
@@ -101,7 +101,13 @@ impl DataServiceFacadeTrait for DataServiceFacadeServiceForDSProtocol {
         // 4. resolve connector instance by distribution
         let connector_instance = self
             .connector_entity
-            .get_instance_by_distribution(&common::auth::AccessScope::system(), &distribution_id)
+            .get_instance_by_distribution(
+                &common::auth::AccessScope::from_role(
+                    common::auth::RbacRole::Reader,
+                    &agreement.inner.tenant_id,
+                ),
+                &distribution_id,
+            )
             .await?
             .ok_or_else(|| {
                 Errors::crazy(

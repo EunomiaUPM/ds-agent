@@ -20,7 +20,6 @@ pub mod gaia_self_attester;
 pub mod gatekeeper;
 mod has_service_trait;
 pub mod peer_connector;
-pub mod repo;
 pub mod vc_requester;
 
 pub use has_service_trait::*;

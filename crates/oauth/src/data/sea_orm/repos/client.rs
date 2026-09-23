@@ -15,6 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use sea_orm::QueryTrait;
 use std::sync::Arc;
 
 use common::paginated_spec::Cursor;
@@ -109,9 +110,13 @@ impl ClientRepository for SeaOrmClientRepository {
             .map_err(|e| ClientRepositoryError::Db(Box::new(e)).into_errors())
     }
 
-    async fn get_by_id(&self, tenant_id: &str, client_id: &str) -> Outcome<Option<Client>> {
+    async fn get_by_id(
+        &self,
+        tenant_id: Option<String>,
+        client_id: &str,
+    ) -> Outcome<Option<Client>> {
         orm::Entity::find_by_id(client_id)
-            .filter(orm::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| q.filter(orm::Column::TenantId.eq(t)))
             .one(self.db.as_ref())
             .await
             .map_err(|e| ClientRepositoryError::Db(Box::new(e)).into_errors())?
@@ -151,10 +156,10 @@ impl ClientRepository for SeaOrmClientRepository {
             .and_then(orm::Model::into_domain)
     }
 
-    async fn delete(&self, tenant_id: &str, client_id: &str) -> Outcome<()> {
+    async fn delete(&self, tenant_id: Option<String>, client_id: &str) -> Outcome<()> {
         let res = orm::Entity::delete_many()
             .filter(orm::Column::ClientId.eq(client_id))
-            .filter(orm::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| q.filter(orm::Column::TenantId.eq(t)))
             .exec(self.db.as_ref())
             .await
             .map_err(|e| ClientRepositoryError::Db(Box::new(e)).into_errors())?;

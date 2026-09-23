@@ -21,6 +21,7 @@ use crate::data::repo_traits::offer_repo::{OfferRepoErrors, OfferRepoTrait};
 use crate::entities::filters::OfferFilter;
 use common::paginated_spec::{Page, SelectCursorExt, Sort};
 use common::query::FilterApplier;
+use sea_orm::QueryTrait;
 use sea_orm::{
     ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, Select,
 };
@@ -91,10 +92,14 @@ impl OfferRepoTrait for OfferRepoForSql {
         Ok((items, Some(total)))
     }
 
-    async fn get_batch_offers(&self, tenant_id: &str, ids: &[Urn]) -> Outcome<Vec<Model>> {
+    async fn get_batch_offers(
+        &self,
+        tenant_id: Option<String>,
+        ids: &[Urn],
+    ) -> Outcome<Vec<Model>> {
         let offer_ids = ids.iter().map(|t| t.to_string()).collect::<Vec<_>>();
         let offers = offer::Entity::find()
-            .filter(offer::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| q.filter(offer::Column::TenantId.eq(t)))
             .filter(offer::Column::Id.is_in(offer_ids))
             .all(&self.db_connection)
             .await;
@@ -107,12 +112,12 @@ impl OfferRepoTrait for OfferRepoForSql {
 
     async fn get_offers_by_negotiation_process(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         id: &Urn,
     ) -> Outcome<Vec<Model>> {
         let pid = id.to_string();
         let offers = offer::Entity::find()
-            .filter(offer::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| q.filter(offer::Column::TenantId.eq(t)))
             .filter(offer::Column::NegotiationAgentProcessId.eq(pid))
             .order_by_asc(offer::Column::CreatedAt)
             .all(&self.db_connection)
@@ -126,12 +131,12 @@ impl OfferRepoTrait for OfferRepoForSql {
 
     async fn get_last_offer_by_negotiation_process(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         id: &Urn,
     ) -> Outcome<Option<Model>> {
         let pid = id.to_string();
         let offers = offer::Entity::find()
-            .filter(offer::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| q.filter(offer::Column::TenantId.eq(t)))
             .filter(offer::Column::NegotiationAgentProcessId.eq(pid))
             .order_by_desc(offer::Column::CreatedAt)
             .one(&self.db_connection)
@@ -143,10 +148,10 @@ impl OfferRepoTrait for OfferRepoForSql {
         }
     }
 
-    async fn get_offer_by_id(&self, tenant_id: &str, id: &Urn) -> Outcome<Option<Model>> {
+    async fn get_offer_by_id(&self, tenant_id: Option<String>, id: &Urn) -> Outcome<Option<Model>> {
         let oid = id.to_string();
         let offer = offer::Entity::find_by_id(oid)
-            .filter(offer::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| q.filter(offer::Column::TenantId.eq(t)))
             .one(&self.db_connection)
             .await;
 
@@ -158,12 +163,12 @@ impl OfferRepoTrait for OfferRepoForSql {
 
     async fn get_offer_by_negotiation_message(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         id: &Urn,
     ) -> Outcome<Option<Model>> {
         let mid = id.to_string();
         let offer = offer::Entity::find()
-            .filter(offer::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| q.filter(offer::Column::TenantId.eq(t)))
             .filter(offer::Column::NegotiationAgentMessageId.eq(mid))
             .one(&self.db_connection)
             .await;
@@ -174,10 +179,14 @@ impl OfferRepoTrait for OfferRepoForSql {
         }
     }
 
-    async fn get_offer_by_offer_id(&self, tenant_id: &str, id: &Urn) -> Outcome<Option<Model>> {
+    async fn get_offer_by_offer_id(
+        &self,
+        tenant_id: Option<String>,
+        id: &Urn,
+    ) -> Outcome<Option<Model>> {
         let external_offer_id = id.to_string();
         let offer = offer::Entity::find()
-            .filter(offer::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| q.filter(offer::Column::TenantId.eq(t)))
             .filter(offer::Column::OfferId.eq(external_offer_id))
             .one(&self.db_connection)
             .await;
@@ -200,11 +209,11 @@ impl OfferRepoTrait for OfferRepoForSql {
         }
     }
 
-    async fn delete_offer(&self, tenant_id: &str, id: &Urn) -> Outcome<()> {
+    async fn delete_offer(&self, tenant_id: Option<String>, id: &Urn) -> Outcome<()> {
         let oid = id.to_string();
         let result = offer::Entity::delete_many()
             .filter(offer::Column::Id.eq(&oid))
-            .filter(offer::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| q.filter(offer::Column::TenantId.eq(t)))
             .exec(&self.db_connection)
             .await;
 

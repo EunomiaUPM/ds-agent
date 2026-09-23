@@ -18,7 +18,6 @@
 //! Agreement output views.
 
 use crate::data::entities::agreement as agreement_model;
-use crate::entities::agreement::AgreementDto;
 use serde::{Deserialize, Serialize};
 
 /// Management view of an agreement.
@@ -33,17 +32,5 @@ impl AgreementView {
     /// Assemble view from agreement model.
     pub fn assemble(inner: agreement_model::Model) -> Self {
         Self { inner }
-    }
-}
-
-impl From<AgreementView> for AgreementDto {
-    fn from(view: AgreementView) -> Self {
-        Self { inner: view.inner }
-    }
-}
-
-impl From<AgreementDto> for AgreementView {
-    fn from(dto: AgreementDto) -> Self {
-        Self { inner: dto.inner }
     }
 }

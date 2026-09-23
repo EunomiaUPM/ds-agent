@@ -37,7 +37,7 @@ pub trait ConnectorDistroRelationRepoTrait: Send + Sync {
 
     async fn get_relation_by_distribution(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         distro: &str,
     ) -> Outcome<Option<connector_distro_relation::Model>>;
 
@@ -49,5 +49,9 @@ pub trait ConnectorDistroRelationRepoTrait: Send + Sync {
 
     async fn delete_relation_by_distribution(&self, tenant_id: &str, distro: &str) -> Outcome<()>;
 
-    async fn delete_relation_by_instance(&self, tenant_id: &str, instance: &str) -> Outcome<()>;
+    async fn delete_relation_by_instance(
+        &self,
+        tenant_id: Option<String>,
+        instance: &str,
+    ) -> Outcome<()>;
 }

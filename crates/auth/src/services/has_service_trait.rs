@@ -15,11 +15,11 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::data::factory::AuthRepoTrait;
 use crate::services::callback::CallbackTrait;
 use crate::services::gaia_self_attester::GaiaSelfAttesterTrait;
 use crate::services::gatekeeper::GateKeeperTrait;
 use crate::services::peer_connector::PeerConnectorTrait;
-use crate::services::repo::repo_trait::AuthRepoTrait;
 use crate::services::vc_requester::VcRequesterTrait;
 use std::sync::Arc;
 

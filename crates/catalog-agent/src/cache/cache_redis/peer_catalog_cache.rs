@@ -17,12 +17,11 @@
 
 use crate::cache::cache_redis::dataservice_cache::DataServiceCacheForRedis;
 use crate::cache::cache_traits::peer_catalog_cache_trait::PeerCatalogCacheTrait;
-use crate::cache::cache_traits::redis_cache_connector_trait::RedisCacheConnectorTrait;
-use crate::cache::cache_traits::utils_trait::UtilsCacheTrait;
 use crate::cache::cache_traits::{DESIRED_CACHE_TTL, PEER_CATALOG_DESIRED_CACHE_TTL};
 use crate::protocols::dsp::types::catalog_definition::Catalog;
 use crate::{CatalogDto, DataServiceDto};
 use async_trait::async_trait;
+use common::cache::{RedisCacheConnectorTrait, UtilsCacheTrait};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use urn::Urn;
@@ -68,6 +67,10 @@ impl PeerCatalogCacheTrait for DcatCatalogCacheForRedis {
 
 impl UtilsCacheTrait for DcatCatalogCacheForRedis {
     type Dto = Catalog;
+
+    fn key_namespace(&self) -> &str {
+        "ds_agent_catalogs"
+    }
 }
 
 impl RedisCacheConnectorTrait for DcatCatalogCacheForRedis {
@@ -77,5 +80,8 @@ impl RedisCacheConnectorTrait for DcatCatalogCacheForRedis {
     }
     fn get_entity_name(&self) -> &str {
         "peer-catalog"
+    }
+    fn cache_ttl(&self) -> i32 {
+        DESIRED_CACHE_TTL
     }
 }

@@ -31,11 +31,15 @@ pub trait ClientRepository: Send + Sync {
         sort: &Sort,
     ) -> Outcome<Vec<Client>>;
     async fn count(&self, filter: &ClientFilter) -> Outcome<u64>;
-    async fn get_by_id(&self, tenant_id: &str, client_id: &str) -> Outcome<Option<Client>>;
+    async fn get_by_id(
+        &self,
+        tenant_id: Option<String>,
+        client_id: &str,
+    ) -> Outcome<Option<Client>>;
     async fn get_batch(&self, tenant_id: &str, client_ids: &[String]) -> Outcome<Vec<Client>>;
     async fn get_by_client_id(&self, client_id: &str) -> Outcome<Option<Client>>;
     async fn create(&self, client: &Client) -> Outcome<Client>;
-    async fn delete(&self, tenant_id: &str, client_id: &str) -> Outcome<()>;
+    async fn delete(&self, tenant_id: Option<String>, client_id: &str) -> Outcome<()>;
 }
 
 #[derive(Debug, Error)]

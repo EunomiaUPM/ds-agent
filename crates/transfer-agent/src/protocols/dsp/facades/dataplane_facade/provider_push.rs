@@ -92,6 +92,7 @@ impl DataPlaneStrategy for ProviderPushStrategy {
         let id = ctx.process_urn("provider push start_pre")?;
         mgr.execute_command(DataplaneCommand::SetSubscribing(DataplaneContinuation {
             transfer_dto_urn: id,
+            tenant_id: ctx.tenant_id().to_string(),
         }))
         .await?;
         Ok(None)
@@ -114,6 +115,7 @@ impl DataPlaneStrategy for ProviderPushStrategy {
         let id = ctx.process_urn("provider push suspend_post")?;
         mgr.execute_command(DataplaneCommand::SetUnsubscribing(DataplaneContinuation {
             transfer_dto_urn: id,
+            tenant_id: ctx.tenant_id().to_string(),
         }))
         .await?;
         Ok(())
@@ -135,6 +137,7 @@ impl DataPlaneStrategy for ProviderPushStrategy {
     ) -> Outcome<()> {
         mgr.execute_command(DataplaneCommand::SetUnsubscribing(DataplaneContinuation {
             transfer_dto_urn: ctx.process_urn("provider push complete_post")?,
+            tenant_id: ctx.tenant_id().to_string(),
         }))
         .await?;
         Ok(())
@@ -156,6 +159,7 @@ impl DataPlaneStrategy for ProviderPushStrategy {
     ) -> Outcome<()> {
         mgr.execute_command(DataplaneCommand::SetUnsubscribing(DataplaneContinuation {
             transfer_dto_urn: ctx.process_urn("provider push terminate_post")?,
+            tenant_id: ctx.tenant_id().to_string(),
         }))
         .await?;
         Ok(())

@@ -15,12 +15,13 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use sea_orm::QueryTrait;
 use std::sync::Arc;
 
-use crate::data::entities::transfer_event::{
+use crate::data::repo::transfer_event::{TransferEventRepo, TransferEventRepoErrors};
+use crate::data::sea_orm::orm::transfer_event::{
     self, Column, Entity as TransferEventEntity, NewTransferEvent,
 };
-use crate::data::repo::transfer_event::{TransferEventRepo, TransferEventRepoErrors};
 use crate::entities::filters::TransferEventFilter;
 use common::paginated_spec::Cursor;
 use common::query::{Page, Sort};
@@ -120,7 +121,7 @@ impl TransferEventRepo for TransferEventRepoForSql {
 
     async fn get_batch_transfer_events(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         ids: &[Urn],
     ) -> Outcome<Vec<transfer_event::Model>> {
         if ids.is_empty() {
@@ -129,7 +130,7 @@ impl TransferEventRepo for TransferEventRepoForSql {
         let ids: Vec<String> = ids.iter().map(|urn| urn.to_string()).collect();
         let events = TransferEventEntity::find()
             .filter(Column::Id.is_in(ids))
-            .filter(Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| q.filter(Column::TenantId.eq(t)))
             .all(self.db.as_ref())
             .await
             .map_err(Self::fetch_err)?;
@@ -139,12 +140,12 @@ impl TransferEventRepo for TransferEventRepoForSql {
 
     async fn get_all_transfer_events_by_process_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         process_id: &Urn,
     ) -> Outcome<Vec<transfer_event::Model>> {
         let events = TransferEventEntity::find()
             .filter(Column::TransferId.eq(process_id.to_string()))
-            .filter(Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| q.filter(Column::TenantId.eq(t)))
             .all(self.db.as_ref())
             .await
             .map_err(Self::fetch_err)?;
@@ -154,11 +155,11 @@ impl TransferEventRepo for TransferEventRepoForSql {
 
     async fn get_transfer_event_by_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         transfer_event_urn: &Urn,
     ) -> Outcome<Option<transfer_event::Model>> {
         let event = TransferEventEntity::find_by_id(transfer_event_urn.to_string())
-            .filter(Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| q.filter(Column::TenantId.eq(t)))
             .one(self.db.as_ref())
             .await
             .map_err(Self::fetch_err)?;

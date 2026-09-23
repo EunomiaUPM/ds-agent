@@ -26,6 +26,7 @@ use crate::data::repo_traits::negotiation_process_repo::{
 use crate::entities::filters::NegotiationProcessFilter;
 use common::paginated_spec::{Page, SelectCursorExt, Sort};
 use common::query::FilterApplier;
+use sea_orm::QueryTrait;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, JoinType,
     PaginatorTrait, QueryFilter, QuerySelect, RelationTrait, Select,
@@ -122,12 +123,14 @@ impl NegotiationProcessRepoTrait for NegotiationProcessRepoForSql {
 
     async fn get_batch_negotiation_processes(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         ids: &[Urn],
     ) -> Outcome<Vec<Model>> {
         let negotiation_ids = ids.iter().map(|t| t.to_string()).collect::<Vec<_>>();
         let negotiation_process = negotiation_process::Entity::find()
-            .filter(negotiation_process::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| {
+                q.filter(negotiation_process::Column::TenantId.eq(t))
+            })
             .filter(negotiation_process::Column::Id.is_in(negotiation_ids))
             .all(&self.db_connection)
             .await;
@@ -142,12 +145,14 @@ impl NegotiationProcessRepoTrait for NegotiationProcessRepoForSql {
 
     async fn get_negotiation_process_by_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         id: &Urn,
     ) -> Outcome<Option<Model>> {
         let pid = id.to_string();
         let negotiation_process = negotiation_process::Entity::find_by_id(pid)
-            .filter(negotiation_process::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| {
+                q.filter(negotiation_process::Column::TenantId.eq(t))
+            })
             .one(&self.db_connection)
             .await;
         match negotiation_process {
@@ -234,13 +239,15 @@ impl NegotiationProcessRepoTrait for NegotiationProcessRepoForSql {
 
     async fn put_negotiation_process(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         id: &Urn,
         edit_model: &EditNegotiationProcessModel,
     ) -> Outcome<Model> {
         let id_str = id.to_string();
         let old_model = negotiation_process::Entity::find_by_id(&id_str)
-            .filter(negotiation_process::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| {
+                q.filter(negotiation_process::Column::TenantId.eq(t))
+            })
             .one(&self.db_connection)
             .await;
         let old_model = match old_model {
@@ -279,11 +286,13 @@ impl NegotiationProcessRepoTrait for NegotiationProcessRepoForSql {
         }
     }
 
-    async fn delete_negotiation_process(&self, tenant_id: &str, id: &Urn) -> Outcome<()> {
+    async fn delete_negotiation_process(&self, tenant_id: Option<String>, id: &Urn) -> Outcome<()> {
         let id_str = id.to_string();
         let delete_result = negotiation_process::Entity::delete_many()
             .filter(negotiation_process::Column::Id.eq(&id_str))
-            .filter(negotiation_process::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| {
+                q.filter(negotiation_process::Column::TenantId.eq(t))
+            })
             .exec(&self.db_connection)
             .await;
         match delete_result {

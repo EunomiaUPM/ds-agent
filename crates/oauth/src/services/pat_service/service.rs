@@ -104,7 +104,9 @@ impl PatServiceTrait for PatService {
 
     async fn revoke_pat(&self, scope: &AccessScope, id: Uuid) -> Outcome<()> {
         scope.require_write()?;
-        self.pat_repo.revoke(scope.acting_tenant(), id).await?;
+        self.pat_repo
+            .revoke(scope.tenant_filter().map(str::to_string), id)
+            .await?;
         events::emit_action!(
             self.event_bus,
             crate::EVENT_PREFIX,

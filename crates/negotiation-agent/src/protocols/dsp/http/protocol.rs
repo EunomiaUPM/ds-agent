@@ -19,10 +19,9 @@ use crate::protocols::dsp::errors::extract_payload_error;
 use crate::protocols::dsp::orchestrator::OrchestratorTrait;
 use crate::protocols::dsp::protocol_types::{
     NegotiationAgreementMessageDto, NegotiationErrorMessageDto, NegotiationEventMessageDto,
-    NegotiationOfferInitMessageDto, NegotiationOfferMessageDto, NegotiationProcessMessageType,
-    NegotiationProcessMessageWrapper, NegotiationRequestInitMessageDto,
-    NegotiationRequestMessageDto, NegotiationTerminationMessageDto,
-    NegotiationVerificationMessageDto,
+    NegotiationOfferInitMessageDto, NegotiationOfferMessageDto, NegotiationProcessMessageWrapper,
+    NegotiationRequestInitMessageDto, NegotiationRequestMessageDto,
+    NegotiationTerminationMessageDto, NegotiationVerificationMessageDto,
 };
 use axum::{
     Extension, Json, Router,
@@ -33,7 +32,6 @@ use axum::{
     routing::{get, post},
 };
 use common::config::services::ContractsConfig;
-use common::dsp_common::context_field::ContextField;
 use common::dsp_common::normalizer::dsp_namespace_normalizer;
 use common::facades::ssi_auth_facade::SSIAuthFacadeTrait;
 use serde::Serialize;
@@ -182,8 +180,13 @@ impl DspRouter {
     }
 
     fn map_service_error(err: Errors) -> impl IntoResponse {
+        // Missing and foreign processes answer alike, so a peer cannot probe other negotiations.
+        let status = match err {
+            Errors::MissingResourceError { .. } => StatusCode::NOT_FOUND,
+            _ => StatusCode::BAD_REQUEST,
+        };
         let error_dto: NegotiationProcessMessageWrapper<NegotiationErrorMessageDto> = err.into();
-        (StatusCode::BAD_REQUEST, Json(error_dto)).into_response()
+        (status, Json(error_dto)).into_response()
     }
 
     // --- Handlers ---
@@ -192,12 +195,13 @@ impl DspRouter {
     async fn handle_get_negotiation(
         State(state): State<DspRouter>,
         Path(id): Path<String>,
+        Extension(mate): Extension<Mates>,
     ) -> impl IntoResponse {
         Self::map_service_result(
             state
                 .orchestrator
                 .get_protocol_service()
-                .on_get_negotiation(&id)
+                .on_get_negotiation(&id, &mate)
                 .await,
             StatusCode::OK,
         )

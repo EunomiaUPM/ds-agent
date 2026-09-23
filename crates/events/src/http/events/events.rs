@@ -32,8 +32,8 @@ use crate::entities::delivery::EventDeliveryRecord;
 use crate::entities::envelope::EventEnvelope;
 use crate::entities::queries::ListEventsQuery;
 use crate::entities::topic::Topic;
-use ymir::errors::{AppResult, Errors};
 use crate::services::event_bus::EventBus;
+use ymir::errors::{AppResult, Errors};
 
 // Axum HTTP router handling event publishing, listing, and delivery tracking.
 #[derive(Clone)]
@@ -146,10 +146,7 @@ impl EventsRouter {
         Path(id): Path<String>,
     ) -> AppResult<Json<Vec<EventDeliveryRecord>>> {
         let tenant_id = scope.acting_tenant();
-        let deliveries = bus
-            .delivery_repo()
-            .list_by_event(tenant_id, &id)
-            .await?;
+        let deliveries = bus.delivery_repo().list_by_event(tenant_id, &id).await?;
 
         Ok(Json(deliveries))
     }

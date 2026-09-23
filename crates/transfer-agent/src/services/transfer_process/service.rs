@@ -121,7 +121,7 @@ impl TransferProcessServiceTrait for TransferProcessService {
         scope.require_read()?;
         let process = self
             .process_repo
-            .get_transfer_process_by_id(scope.acting_tenant(), id)
+            .get_transfer_process_by_id(scope.tenant_filter().map(str::to_string), id)
             .await?
             .or_not_found(id, "transfer process")?;
 
@@ -160,7 +160,10 @@ impl TransferProcessServiceTrait for TransferProcessService {
         // Get data from db filtered by tenant
         let processes = self
             .process_repo
-            .get_batch_transfer_processes(scope.acting_tenant(), &batch_request.ids)
+            .get_batch_transfer_processes(
+                scope.tenant_filter().map(str::to_string),
+                &batch_request.ids,
+            )
             .await?;
         // Fetch extra identifiers
         let urns: Vec<Urn> = processes.iter().map(|p| p.id().as_urn().clone()).collect();
@@ -241,7 +244,7 @@ impl TransferProcessServiceTrait for TransferProcessService {
         // Hit db
         let process = self
             .process_repo
-            .put_transfer_process(scope.acting_tenant(), id, cmd)
+            .put_transfer_process(scope.tenant_filter().map(str::to_string), id, cmd)
             .await?;
         // if extra identifiers in cmd upsert identifiers
         if let Some(identifiers) = &cmd.identifiers {
@@ -285,7 +288,7 @@ impl TransferProcessServiceTrait for TransferProcessService {
         scope.require_write()?;
         // Hit db
         self.process_repo
-            .delete_transfer_process(scope.acting_tenant(), id)
+            .delete_transfer_process(scope.tenant_filter().map(str::to_string), id)
             .await?;
         events::emit_action!(
             self.event_bus,

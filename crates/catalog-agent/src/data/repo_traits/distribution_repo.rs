@@ -35,29 +35,29 @@ pub trait DistributionRepositoryTrait: Send + Sync {
     ) -> Outcome<(Vec<distribution::Model>, Option<u64>)>;
     async fn get_batch_distributions(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         ids: &[Urn],
     ) -> Outcome<Vec<distribution::Model>>;
 
     async fn get_distributions_by_dataset_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         dataset_id: &Urn,
     ) -> Outcome<Vec<distribution::Model>>;
     async fn get_distribution_by_dataset_id_and_dct_format(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         dataset_id: &Urn,
         dct_formats: &str,
     ) -> Outcome<Option<distribution::Model>>;
     async fn get_distribution_by_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         distribution_id: &Urn,
     ) -> Outcome<Option<distribution::Model>>;
     async fn put_distribution_by_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         distribution_id: &Urn,
         edit_distribution_model: &EditDistributionModel,
     ) -> Outcome<distribution::Model>;
@@ -68,7 +68,7 @@ pub trait DistributionRepositoryTrait: Send + Sync {
     /// Deletes and returns the removed row so callers can evict derived caches.
     async fn delete_distribution_by_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         distribution_id: &Urn,
     ) -> Outcome<distribution::Model>;
 }

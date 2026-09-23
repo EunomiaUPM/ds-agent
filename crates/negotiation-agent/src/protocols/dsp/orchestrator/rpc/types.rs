@@ -15,7 +15,6 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::entities::negotiation_process::NegotiationProcessDto;
 use crate::protocols::dsp::protocol_types::{
     NegotiationAckMessageDto, NegotiationAgreementMessageDto, NegotiationErrorMessageDto,
     NegotiationEventMessageDto, NegotiationEventType, NegotiationOfferInitMessageDto,
@@ -23,9 +22,9 @@ use crate::protocols::dsp::protocol_types::{
     NegotiationRequestInitMessageDto, NegotiationRequestMessageDto,
     NegotiationTerminationMessageDto, NegotiationVerificationMessageDto,
 };
+use crate::services::negotiation_process::views::NegotiationProcessView;
 use common::dsp_common::context_field::ContextField;
 use common::dsp_common::odrl::{ContractRequestMessageOfferTypes, OdrlAgreement};
-use common::utils::get_urn;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::fmt::Debug;
@@ -764,7 +763,7 @@ impl RpcNegotiationProcessMessageTrait for RpcNegotiationTerminationMessageDto {
 pub struct RpcNegotiationMessageDto<T> {
     pub request: T,
     pub response: NegotiationProcessMessageWrapper<NegotiationAckMessageDto>,
-    pub negotiation_agent_model: NegotiationProcessDto,
+    pub negotiation_agent_model: NegotiationProcessView,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

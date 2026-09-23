@@ -36,19 +36,19 @@ pub trait NegotiationMessageRepoTrait: Send + Sync {
 
     async fn get_batch_negotiation_messages(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         ids: &[Urn],
     ) -> Outcome<Vec<negotiation_message::Model>>;
 
     async fn get_messages_by_process_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         process_id: &Urn,
     ) -> Outcome<Vec<negotiation_message::Model>>;
 
     async fn get_negotiation_message_by_id(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         id: &Urn,
     ) -> Outcome<Option<negotiation_message::Model>>;
 
@@ -57,7 +57,7 @@ pub trait NegotiationMessageRepoTrait: Send + Sync {
         new_model: &NewNegotiationMessageModel,
     ) -> Outcome<negotiation_message::Model>;
 
-    async fn delete_negotiation_message(&self, tenant_id: &str, id: &Urn) -> Outcome<()>;
+    async fn delete_negotiation_message(&self, tenant_id: Option<String>, id: &Urn) -> Outcome<()>;
 }
 
 #[derive(Debug, Error)]

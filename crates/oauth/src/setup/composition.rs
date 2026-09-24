@@ -14,6 +14,8 @@ use crate::services::token_service::service::TokenService;
 use crate::services::user_service::UserServiceTrait;
 use crate::services::user_service::service::UserService;
 use axum::Router;
+use common::auth::OauthTokenValidator;
+use common::config::services::CommonConfig;
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 
@@ -23,6 +25,14 @@ pub struct OAuthSetup {}
 impl OAuthSetup {
     pub fn new() -> Self {
         OAuthSetup {}
+    }
+
+    /// Process token validator; matches `common::module_loader::root_context::ValidatorFactory`.
+    pub fn validator(
+        common: &CommonConfig,
+        db: DatabaseConnection,
+    ) -> Arc<dyn OauthTokenValidator> {
+        Self::new().build_token_service(common.clone().into(), db)
     }
 
     /// Token services for OAuth token validation

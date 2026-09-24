@@ -17,11 +17,8 @@
 
 mod admin_module;
 mod boot;
-pub mod cmd;
 mod composition;
 pub(crate) mod context;
-mod db_migrations;
-mod grpc_worker;
-mod http_worker;
 
+pub use boot::TransferBoot;
 pub use composition::TransferAgentModule;

@@ -19,6 +19,8 @@ use axum::Router;
 use sea_orm_migration::MigrationTrait;
 use tonic::service::RoutesBuilder;
 
+use crate::boot::workers::BackgroundWorker;
+
 /// One composable slice of an agent. A module owns its dependencies
 /// (constructor injection) and every hook has a no-op default: implement
 /// only the planes the module actually has.
@@ -44,6 +46,11 @@ pub trait ServiceModuleTrait: Send + Sync {
 
     /// Encoded file descriptor sets backing the module's gRPC services (for reflection).
     fn grpc_descriptors(&self) -> Vec<&'static [u8]> {
+        vec![]
+    }
+
+    /// Background workers the module needs running while the process serves.
+    fn workers(&self) -> Vec<Box<dyn BackgroundWorker>> {
         vec![]
     }
 }

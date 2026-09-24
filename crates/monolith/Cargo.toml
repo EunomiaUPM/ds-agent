@@ -25,14 +25,12 @@ negotiation_agent = { version = "0.4.0", path = "../negotiation-agent", default-
 keystore = { version = "0.4.0", path = "../keystore", default-features = false }
 
 
-clap = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 axum = { workspace = true }
 sea-orm = { workspace = true }
 sea-orm-migration = { workspace = true }
-json_to_table = { workspace = true }
 serde_json = { workspace = true }
 uuid = { workspace = true }
 tower-http = { workspace = true }
@@ -41,5 +39,3 @@ tonic = { workspace = true }
 async-trait = { workspace = true }
 urn = { workspace = true }
 ymir = { workspace = true }
-rustls = { workspace = true }
-axum-server = { workspace = true }

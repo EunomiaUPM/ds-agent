@@ -27,11 +27,10 @@ use axum::Router;
 use common::config::services::CatalogConfig;
 use common::config::types::traits::CommonConfigTrait;
 use common::http_client::HttpClient;
+use common::module_loader::root_context::RootContext;
 use std::sync::Arc;
 use ymir::config::traits::HostsConfigTrait;
 use ymir::config::types::HostType;
-use ymir::services::vault::global::VaultService;
-use ymir::services::vault::VaultTrait;
 
 pub struct ConnectorSetup {}
 impl ConnectorSetup {
@@ -39,73 +38,41 @@ impl ConnectorSetup {
         ConnectorSetup {}
     }
 
-    pub async fn get_connector_repo(
-        &self,
-        config: &CatalogConfig,
-        vault: Arc<VaultService>,
-    ) -> Arc<dyn ConnectorRepoTrait> {
-        let db_connection = vault
-            .get_db_connection(config.common())
-            .await
-            .expect("Unable to retrieve db connection");
-        Arc::new(ConnectorRepoForSql::create_repo(db_connection))
+    pub fn get_connector_repo(&self, root: &RootContext) -> Arc<dyn ConnectorRepoTrait> {
+        Arc::new(ConnectorRepoForSql::create_repo(root.db.clone()))
     }
 
-    pub async fn get_connector_instance_entity_with_bus<C: CommonConfigTrait + Send + Sync>(
+    pub fn get_connector_instance_entity<C: CommonConfigTrait + Send + Sync>(
         &self,
         config: &C,
-        vault: Arc<VaultService>,
+        root: &RootContext,
         http_client: Arc<HttpClient>,
         event_bus: Option<events::EventBus>,
     ) -> Arc<dyn ConnectorInstanceServiceTrait> {
-        let db_connection = vault
-            .get_db_connection(config.common())
-            .await
-            .expect("Unable to retrieve db connection");
-        let connector_repo: Arc<dyn ConnectorRepoTrait> =
-            Arc::new(ConnectorRepoForSql::create_repo(db_connection));
         let distribution_facade = Arc::new(DistributionFacadeServiceForConnector::new(
             config,
             http_client,
         ));
         let own_url = config.common().get_host(HostType::Http);
         Arc::new(
-            ConnectorInstanceService::new(connector_repo, distribution_facade, own_url)
-                .with_event_bus(event_bus),
+            ConnectorInstanceService::new(
+                self.get_connector_repo(root),
+                distribution_facade,
+                own_url,
+            )
+            .with_event_bus(event_bus),
         )
     }
 
-    pub async fn get_connector_instance_entity<C: CommonConfigTrait + Send + Sync>(
-        &self,
-        config: &C,
-        vault: Arc<VaultService>,
-        http_client: Arc<HttpClient>,
-    ) -> Arc<dyn ConnectorInstanceServiceTrait> {
-        self.get_connector_instance_entity_with_bus(config, vault, http_client, None)
-            .await
-    }
-
-    pub async fn build_control_router_with_bus(
+    pub fn build_control_router(
         &self,
         config: &CatalogConfig,
-        vault: Arc<VaultService>,
+        root: &RootContext,
         event_bus: Option<events::EventBus>,
     ) -> Router {
-        let connector_repo = self.get_connector_repo(config, vault.clone()).await;
+        let connector_repo = self.get_connector_repo(root);
         let config_arc = Arc::new(config.clone());
         let http_client = Arc::new(HttpClient::new(3, 1));
-        let db = vault
-            .get_db_connection(config.common())
-            .await
-            .expect("Unable to retrieve database connection");
-        let validator: Arc<dyn common::auth::OauthTokenValidator> =
-            oauth::setup::composition::OAuthSetup::new()
-                .build_token_service(config.common().clone().into(), db);
-
-        let distribution_facade = Arc::new(DistributionFacadeServiceForConnector::new(
-            config,
-            http_client.clone(),
-        ));
 
         let connector_template_service = Arc::new(
             ConnectorTemplateService::new(connector_repo.clone()).with_event_bus(event_bus.clone()),
@@ -113,33 +80,17 @@ impl ConnectorSetup {
         let connector_template_router =
             ConnectorTemplateRouter::new(connector_template_service.clone(), config_arc.clone())
                 .router();
-        let own_url = config.common().get_host(HostType::Http);
-        let connector_instance_service = Arc::new(
-            ConnectorInstanceService::new(
-                connector_repo.clone(),
-                distribution_facade.clone(),
-                own_url,
-            )
-            .with_event_bus(event_bus),
-        );
-        let connector_instance_router =
-            ConnectorInstanceRouter::new(connector_instance_service.clone()).router();
+        let connector_instance_router = ConnectorInstanceRouter::new(
+            self.get_connector_instance_entity(config, root, http_client, event_bus),
+        )
+        .router();
 
         Router::new()
             .nest("/templates", connector_template_router)
             .nest("/instances", connector_instance_router)
             .route_layer(axum::middleware::from_fn_with_state(
-                validator,
+                root.validator.clone(),
                 common::auth::http::AuthHttpMiddleware::run,
             ))
-    }
-
-    pub async fn build_control_router(
-        &self,
-        config: &CatalogConfig,
-        vault: Arc<VaultService>,
-    ) -> Router {
-        self.build_control_router_with_bus(config, vault, None)
-            .await
     }
 }

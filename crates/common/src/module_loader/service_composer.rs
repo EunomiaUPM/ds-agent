@@ -15,6 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::boot::workers::BackgroundWorker;
 use crate::module_loader::module_group::ModuleGroup;
 use crate::module_loader::service_module::ServiceModuleTrait;
 use crate::module_loader::utils::mount;
@@ -65,6 +66,11 @@ impl ServiceComposer {
     /// Every module's encoded file descriptor set, for the reflection service.
     pub fn grpc_descriptors(&self) -> Vec<&'static [u8]> {
         self.root.grpc_descriptors()
+    }
+
+    /// Every module's background workers, in registration order.
+    pub fn workers(&self) -> Vec<Box<dyn BackgroundWorker>> {
+        self.root.workers()
     }
 }
 

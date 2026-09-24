@@ -15,18 +15,13 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use catalog_agent::setup::cmd::CatalogCommands;
+use catalog_agent::setup::CatalogAgentBoot;
 use catalog_agent::{SERVICE_BIG_NAME, SERVICE_NAME};
-use common::info_banner::banner;
-use common::telemetry;
-use tracing::info;
-use ymir::errors::{Errors, Outcome};
+use common::boot::cli::AgentCli;
+use ymir::errors::Outcome;
 
 #[allow(clippy::result_large_err)]
 #[tokio::main]
 async fn main() -> Outcome<()> {
-    telemetry::init(SERVICE_NAME);
-    info!("{}", banner(SERVICE_BIG_NAME));
-    CatalogCommands::init_command_line().await?;
-    Ok(())
+    AgentCli::<CatalogAgentBoot>::run(SERVICE_NAME, SERVICE_BIG_NAME).await
 }

@@ -15,11 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod boot;
-pub(crate) mod cmd;
+mod boot;
 pub mod composition;
 pub mod context;
-pub(crate) mod http_worker;
 
+pub use boot::GatewayBoot;
 pub use composition::BffModule;
 pub use context::AppContext;

@@ -15,18 +15,13 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use common::info_banner::banner;
-use common::telemetry;
-use tracing::info;
-use transfer_agent::setup::cmd::TransferCommands;
+use common::boot::cli::AgentCli;
+use transfer_agent::setup::TransferBoot;
 use transfer_agent::{SERVICE_BIG_NAME, SERVICE_NAME};
-use ymir::errors::{Errors, Outcome};
+use ymir::errors::Outcome;
 
 #[allow(clippy::result_large_err)]
 #[tokio::main]
 async fn main() -> Outcome<()> {
-    telemetry::init(SERVICE_NAME);
-    info!("{}", banner(SERVICE_BIG_NAME));
-    TransferCommands::init_command_line().await?;
-    Ok(())
+    AgentCli::<TransferBoot>::run(SERVICE_NAME, SERVICE_BIG_NAME).await
 }

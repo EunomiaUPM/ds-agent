@@ -22,7 +22,6 @@ use axum::extract::Request;
 use axum::http::{HeaderMap, StatusCode};
 use axum::routing::get;
 use axum::{Json, Router};
-use bff::create_gateway_http_router;
 use bff::proxy::HttpProxyDispatcher;
 use bff::setup::context::AppContext;
 use bff::setup::BffModule;
@@ -220,15 +219,13 @@ async fn test_bff_module_service_trait_and_backward_compatibility() {
     let module = BffModule::new(app_ctx);
 
     assert_eq!(module.name(), "gateway");
-    let http = module.http().expect("http routes present");
-    assert_eq!(http.0, "");
+    let (prefix, router) = module.http().expect("http routes present");
+    assert_eq!(prefix, "");
 
-    // Test legacy router helper
-    let legacy_router = create_gateway_http_router(&config).await;
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
     tokio::spawn(async move {
-        axum::serve(listener, legacy_router).await.unwrap();
+        axum::serve(listener, router).await.unwrap();
     });
 
     let client = reqwest::Client::new();

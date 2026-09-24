@@ -46,9 +46,9 @@ echo -e "\033[0;32mFrontend dev server spawned\033[0m"
 
 # 5. Backend setup
 echo -e "\033[0;36mRunning setup...\033[0m"
-cd ../crates/transfer-agent-ref
+cd ../crates/transfer-agent
 
-cargo run setup -e ../../static/environment/config/dev/dev.provider.yaml
+cargo run setup --reset -e ../../static/environment/config/dev/dev.provider.yaml
 if [ $? -ne 0 ]; then
     echo -e "\033[0;31mSetup failed, aborting\033[0m"
     exit 1

@@ -15,19 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use bff::{GatewayCommands, SERVICE_BIG_NAME, SERVICE_NAME};
-use common::info_banner::banner;
-use common::telemetry;
-use tracing::info;
-use tracing::level_filters::LevelFilter;
-use tracing_subscriber::EnvFilter;
-use ymir::errors::{Errors, Outcome};
+use bff::{GatewayBoot, SERVICE_BIG_NAME, SERVICE_NAME};
+use common::boot::cli::AgentCli;
+use ymir::errors::Outcome;
 
 #[allow(clippy::result_large_err)]
 #[tokio::main]
 async fn main() -> Outcome<()> {
-    telemetry::init(SERVICE_NAME);
-    info!("{}", banner(SERVICE_BIG_NAME));
-    GatewayCommands::init_command_line().await?;
-    Ok(())
+    AgentCli::<GatewayBoot>::run(SERVICE_NAME, SERVICE_BIG_NAME).await
 }

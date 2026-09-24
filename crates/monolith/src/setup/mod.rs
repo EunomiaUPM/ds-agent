@@ -15,14 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod boot;
-pub mod cmd;
+mod boot;
 mod composition;
 pub(crate) mod context;
-pub mod db_migrations;
-mod grpc_worker;
-mod http_worker;
+mod seeders;
 
+pub use boot::CoreBoot;
 pub use composition::MonolithModule;
-pub use grpc_worker::CoreGrpcWorker;
-pub use http_worker::CoreHttpWorker;

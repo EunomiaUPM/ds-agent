@@ -17,24 +17,35 @@
 
 use tokio::signal;
 
-pub async fn shutdown_signal() {
-    let ctrl_c = async {
-        signal::ctrl_c()
-            .await
-            .expect("failed to install Ctrl+C handler");
-    };
-    #[cfg(unix)]
-    let terminate = async {
-        signal::unix::signal(signal::unix::SignalKind::terminate())
-            .expect("failed to install signal handler")
-            .recv()
-            .await;
-    };
-    #[cfg(not(unix))]
-    let terminate = std::future::pending::<()>();
+/// Process termination request: Ctrl+C or, on unix, SIGTERM (docker/k8s stop).
+pub struct ShutdownSignal;
 
-    tokio::select! {
-        _ = ctrl_c => {},
-        _ = terminate => {},
+impl ShutdownSignal {
+    pub async fn received() {
+        let ctrl_c = async {
+            if let Err(e) = signal::ctrl_c().await {
+                tracing::error!("Unable to listen for Ctrl+C: {e}");
+                std::future::pending::<()>().await;
+            }
+        };
+        #[cfg(unix)]
+        let terminate = async {
+            match signal::unix::signal(signal::unix::SignalKind::terminate()) {
+                Ok(mut sigterm) => {
+                    sigterm.recv().await;
+                }
+                Err(e) => {
+                    tracing::error!("Unable to listen for SIGTERM: {e}");
+                    std::future::pending::<()>().await;
+                }
+            }
+        };
+        #[cfg(not(unix))]
+        let terminate = std::future::pending::<()>();
+
+        tokio::select! {
+            _ = ctrl_c => {},
+            _ = terminate => {},
+        }
     }
 }

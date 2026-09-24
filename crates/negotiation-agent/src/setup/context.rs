@@ -30,11 +30,7 @@ use crate::services::negotiation_process::service::NegotiationProcessService;
 use crate::services::offer::OfferServiceTrait;
 use crate::services::offer::service::OfferService;
 use common::auth::OauthTokenValidator;
-use common::config::services::ContractsConfig;
-use common::config::types::traits::CommonConfigTrait;
-use ymir::errors::Outcome;
-use ymir::services::vault::VaultTrait;
-use ymir::services::vault::global::VaultService;
+use common::module_loader::root_context::RootContext;
 
 #[derive(Clone)]
 pub struct AppContext {
@@ -46,19 +42,8 @@ pub struct AppContext {
 }
 
 impl AppContext {
-    pub async fn build_with_bus(
-        config: &ContractsConfig,
-        vault: &VaultService,
-        event_bus: Option<events::EventBus>,
-    ) -> Outcome<Self> {
-        // Shared infrastructure
-        let db = vault.get_db_connection(config.common()).await?;
-        let repo = Arc::new(NegotiationAgentRepoForSql::create_repo(db.clone()));
-
-        // Oauth module validator
-        let oauth_validator: Arc<dyn OauthTokenValidator> =
-            oauth::setup::composition::OAuthSetup::new()
-                .build_token_service(config.common().clone().into(), db);
+    pub fn build(root: &RootContext, event_bus: Option<events::EventBus>) -> Self {
+        let repo = Arc::new(NegotiationAgentRepoForSql::create_repo(root.db.clone()));
 
         // Domain services
         let process_svc = Arc::new(
@@ -84,12 +69,12 @@ impl AppContext {
         let agreement_svc =
             Arc::new(AgreementService::new(repo.get_agreement_repo()).with_event_bus(event_bus));
 
-        Ok(Self {
+        Self {
             process_svc,
             message_svc,
             offer_svc,
             agreement_svc,
-            oauth_validator,
-        })
+            oauth_validator: root.validator.clone(),
+        }
     }
 }

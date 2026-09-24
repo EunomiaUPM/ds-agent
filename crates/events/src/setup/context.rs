@@ -18,7 +18,6 @@
 use std::sync::Arc;
 
 use sea_orm::DatabaseConnection;
-use tokio_util::sync::CancellationToken;
 
 use crate::data::factory::DataFactory;
 use crate::data::repo::{
@@ -28,9 +27,8 @@ use crate::data::sea_orm::SeaOrmDataFactory;
 use crate::services::event_bus::policy::RetryPolicy;
 use crate::services::event_bus::worker::RetryWorker;
 use crate::services::event_bus::EventBus;
-use crate::setup::workers::RetryWorkerHandle;
 
-// Application context bundling persistence factories, domain services, and worker lifecycles.
+// Application context bundling persistence factories, domain services and the retry worker.
 #[derive(Clone)]
 pub struct AppContext {
     pub db: DatabaseConnection,
@@ -39,8 +37,7 @@ pub struct AppContext {
     pub subscription_repo: Arc<dyn EventSubscriptionRepo>,
     pub delivery_repo: Arc<dyn EventDeliveryRepo>,
     pub dlq_repo: Arc<dyn EventDeadLetterRepo>,
-    pub retry_worker: Arc<RetryWorker>,
-    pub cancel_token: CancellationToken,
+    pub retry_worker: RetryWorker,
 }
 
 impl AppContext {
@@ -63,14 +60,14 @@ impl AppContext {
             1024,
         ));
 
-        let retry_worker = Arc::new(RetryWorker::new(
+        let retry_worker = RetryWorker::new(
             event_repo.clone(),
             subscription_repo.clone(),
             delivery_repo.clone(),
             dlq_repo.clone(),
             event_bus.dispatcher(),
             policy,
-        ));
+        );
 
         Self {
             db,
@@ -80,12 +77,6 @@ impl AppContext {
             delivery_repo,
             dlq_repo,
             retry_worker,
-            cancel_token: CancellationToken::new(),
         }
-    }
-
-    // Spawn the background retry worker task.
-    pub fn spawn_retry_worker(&self) -> RetryWorkerHandle {
-        RetryWorkerHandle::spawn(self.retry_worker.clone(), self.cancel_token.clone())
     }
 }

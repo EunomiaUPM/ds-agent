@@ -19,57 +19,31 @@ use std::sync::Arc;
 
 use common::auth::OauthTokenValidator;
 use common::boot::BootstrapServiceTrait;
-use common::boot::seeders::BootSeeder;
-use common::config::services::{CommonConfig, TransferConfig};
-use common::config::types::traits::CommonConfigTrait;
+use common::config::services::{CommonConfig, SsiAuthConfig};
 use common::module_loader::root_context::RootContext;
 use common::module_loader::service_composer::ServiceComposer;
 use oauth::setup::composition::OAuthSetup;
-use oauth::setup::module::OAuthModule;
-use oauth::setup::seeder::AdminSeeder;
 use sea_orm::DatabaseConnection;
 use sea_orm_migration::MigrationTrait;
 use ymir::errors::Outcome;
 
-use crate::setup::TransferAgentModule;
+use crate::setup::composition::AuthModule;
 
-/// Standalone transfer agent: its own module plus the OAuth root it authenticates against.
-pub struct TransferBoot;
+pub struct AuthBoot;
 
 #[async_trait::async_trait]
-impl BootstrapServiceTrait for TransferBoot {
-    type Config = TransferConfig;
+impl BootstrapServiceTrait for AuthBoot {
+    type Config = SsiAuthConfig;
 
     fn migrations() -> Vec<Box<dyn MigrationTrait>> {
-        [
-            oauth::get_oauth_migrations(),
-            TransferAgentModule::migrations(),
-        ]
-        .into_iter()
-        .flatten()
-        .collect()
+        AuthModule::migrations()
     }
 
     fn validator(common: &CommonConfig, db: DatabaseConnection) -> Arc<dyn OauthTokenValidator> {
         OAuthSetup::validator(common, db)
     }
 
-    async fn compose(config: &TransferConfig, root: &RootContext) -> Outcome<ServiceComposer> {
-        Ok(ServiceComposer::new()
-            .register(OAuthModule::new(
-                config.common().clone().into(),
-                root.db.clone(),
-            ))
-            .register(TransferAgentModule::compose(config, root, None)))
-    }
-
-    async fn seeders(
-        config: &TransferConfig,
-        root: &RootContext,
-    ) -> Outcome<Vec<Box<dyn BootSeeder>>> {
-        Ok(vec![Box::new(AdminSeeder::new(
-            root.db.clone(),
-            config.common(),
-        ))])
+    async fn compose(config: &SsiAuthConfig, root: &RootContext) -> Outcome<ServiceComposer> {
+        Ok(ServiceComposer::new().register(AuthModule::compose(config, root).await?))
     }
 }

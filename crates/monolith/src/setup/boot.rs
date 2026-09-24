@@ -17,258 +17,77 @@
 
 use std::sync::Arc;
 
-use crate::setup::composition::MonolithModule;
-use crate::setup::{CoreGrpcWorker, CoreHttpWorker};
+use catalog_agent::setup::{AdminTenantProvisioner, PolicyTemplateLoader};
+use common::auth::{OauthTokenValidator, ServiceHttpClient};
+use common::boot::seeders::{BootSeeder, RedisCacheFlush};
 use common::boot::BootstrapServiceTrait;
 use common::config::services::traits::CatalogConfigTrait;
+use common::config::services::CommonConfig;
 use common::config::types::traits::{CacheConfigTrait, CommonConfigTrait};
 use common::config::ApplicationConfig;
-use common::http_client::{HttpClient, HttpClientError};
+use common::module_loader::root_context::RootContext;
 use common::module_loader::service_composer::ServiceComposer;
-use common::utils::flush_redis_cache;
-use common::worker_utils::GrpcServer;
-use oauth::services::admin_seeder::{seed_admin_user, ServiceClientSeeder};
-use tokio::fs;
-use tokio::sync::broadcast;
-use tokio::sync::broadcast::Sender;
-use tokio_util::sync::CancellationToken;
-use tracing::{error, info, warn};
+use oauth::setup::composition::OAuthSetup;
+use oauth::setup::seeder::AdminSeeder;
+use sea_orm::DatabaseConnection;
+use sea_orm_migration::MigrationTrait;
 use ymir::config::traits::{ApiConfigTrait, HostsConfigTrait};
 use ymir::config::types::HostType;
-use ymir::data::entities::shared::participant;
-use ymir::errors::{Errors, Outcome};
-use ymir::services::vault::global::VaultService;
-use ymir::services::vault::VaultTrait;
+use ymir::errors::Outcome;
 
+use crate::setup::composition::MonolithModule;
+use crate::setup::seeders::SelfParticipantOnboarder;
+
+/// Every agent in one process, behind one composer and one database.
 pub struct CoreBoot;
-
-impl CoreBoot {
-    /// Boot goes through the same idempotent provisioning as any new tenant.
-    async fn provision_admin_tenant(config: &ApplicationConfig) -> Outcome<serde_json::Value> {
-        let client = Self::admin_client(config, 30).await?;
-        let url = format!(
-            "{}{}/catalog-agent/tenants/{}/provision",
-            config.catalog().common().get_host(HostType::Http),
-            config.catalog().common().get_api_version(),
-            config.transfer().common().admin_seed.tenant_id
-        );
-        Ok(client
-            .post_json::<serde_json::Value, serde_json::Value>(&url, &serde_json::json!({}))
-            .await?)
-    }
-
-    fn string_at(value: &serde_json::Value, pointer: &str) -> Outcome<String> {
-        value
-            .pointer(pointer)
-            .and_then(|v| v.as_str())
-            .map(str::to_string)
-            .ok_or_else(|| Errors::parse(format!("provisioning response lacks {pointer}"), None))
-    }
-
-    /// HTTP client authenticated as the seeded admin, for boot calls against protected management APIs.
-    async fn admin_client(config: &ApplicationConfig, timeout_secs: u64) -> Outcome<HttpClient> {
-        let client = HttpClient::new(1, timeout_secs);
-        let common = config.transfer().common();
-        let admin = &common.admin_seed;
-        let url = format!("{}/oauth/token", common.get_host(HostType::Http));
-        let token = client
-            .post_json::<serde_json::Value, serde_json::Value>(
-                url.as_str(),
-                &serde_json::json!({
-                    "grant_type": "password",
-                    "username": admin.email,
-                    "password": admin.password,
-                }),
-            )
-            .await?;
-        let access_token = token
-            .get("access_token")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| Errors::parse("Token response without access_token", None))?;
-        client.set_auth_token(access_token.to_string()).await;
-        Ok(client)
-    }
-}
 
 #[async_trait::async_trait]
 impl BootstrapServiceTrait for CoreBoot {
     type Config = ApplicationConfig;
-    async fn load_config(env_file: String) -> Outcome<Self::Config> {
-        let config = Self::Config::load(&env_file)?;
-        let config_value = serde_json::to_value(&config)?;
-        let table = json_to_table::json_to_table(&config_value)
-            .collapse()
-            .into_table();
-        info!("Current Monolith Dataspace Agent Config:\n{}", table);
-        Ok(config)
+
+    const MIGRATION_TABLE: &'static str = "seaql_ds_agent_migrations";
+
+    fn migrations() -> Vec<Box<dyn MigrationTrait>> {
+        MonolithModule::migrations()
     }
 
-    async fn create_participant(config: &Self::Config) -> Outcome<String> {
-        let client = Self::admin_client(config, 30).await?;
-        let base_url = config.ssi_auth().common().get_host(HostType::Http);
-        let api = config.ssi_auth().common().get_api_version();
-
-        // attempt first
-        let url = format!("{}{}/mates/myself", base_url, api);
-        let url = url.replace("host.docker.internal", "127.0.0.1");
-        let participant = client.get_json::<participant::Model>(url.as_str()).await;
-
-        // catch error
-        if let Err(err) = participant {
-            match err {
-                // if mate not found
-                HttpClientError::HttpError { status, .. } if status.as_u16() == 404 => {
-                    // onboard mate with wallet
-                    let url = format!("{}{}/wallet/link", base_url, api);
-                    client.post_void::<()>(url.as_str()).await?;
-                }
-                _ => return Err(err.into()),
-            }
-            // attempt again
-            let url = format!("{}{}/mates/myself", base_url, api);
-            let participant = client.get_json::<participant::Model>(url.as_str()).await?;
-            // and return id
-            Ok(participant.participant_id)
-        } else {
-            // if mate exists, just return id
-            let participant = participant?;
-            Ok(participant.participant_id)
-        }
+    fn validator(common: &CommonConfig, db: DatabaseConnection) -> Arc<dyn OauthTokenValidator> {
+        OAuthSetup::validator(common, db)
     }
 
-    async fn load_catalog(
-        _participant_id: &Option<String>,
-        config: &Self::Config,
-    ) -> Outcome<String> {
-        let provisioned = Self::provision_admin_tenant(config).await?;
-        Self::string_at(&provisioned, "/catalog/id")
+    async fn compose(config: &ApplicationConfig, root: &RootContext) -> Outcome<ServiceComposer> {
+        Ok(ServiceComposer::new().register(MonolithModule::compose(config, root).await?))
     }
 
-    async fn load_dataservice(
-        _catalog_id: &Option<String>,
-        config: &Self::Config,
-    ) -> Outcome<String> {
-        let provisioned = Self::provision_admin_tenant(config).await?;
-        Self::string_at(&provisioned, "/dataService/id")
-    }
-
-    async fn load_policy_templates(config: &Self::Config) -> Outcome<()> {
-        let client = Self::admin_client(config, 3).await?;
-        let base_url = config.catalog().common().get_host(HostType::Http);
-        let api = config.catalog().common().get_api_version();
-        let url = format!(
-            "{}{}/catalog-agent/policy-templates?silent=true",
-            base_url, api
+    async fn seeders(
+        config: &ApplicationConfig,
+        root: &RootContext,
+    ) -> Outcome<Vec<Box<dyn BootSeeder>>> {
+        let common = config.common();
+        let client = Arc::new(ServiceHttpClient::from_common(common, 30));
+        let catalog_api = format!(
+            "{}{}/{}",
+            common.get_host(HostType::Http),
+            common.get_api_version(),
+            catalog_agent::SERVICE_NAME
         );
-        // load files
-        let policies_folder = config.catalog().get_policy_templates_folder();
-        let mut read_dir = match fs::read_dir(&policies_folder).await {
-            Ok(c) => c,
-            Err(e) => {
-                error!("Failed to read folder: {}", e.to_string());
-                return Ok(());
-            }
-        };
-        while let Ok(Some(entry)) = read_dir.next_entry().await {
-            let path = entry.path();
-            if path.is_file() && path.extension().map_or(false, |ext| ext == "json") {
-                let content = match fs::read_to_string(&path).await {
-                    Ok(c) => c,
-                    Err(e) => {
-                        error!("Failed to read file {:?}: {}", path, e);
-                        continue;
-                    }
-                };
-                let json_payload: serde_json::Value = match serde_json::from_str(&content) {
-                    Ok(json) => json,
-                    Err(e) => {
-                        error!("Invalid JSON format in file {:?}: {}", path, e);
-                        continue;
-                    }
-                };
-                let _ = match client
-                    .post_json::<serde_json::Value, serde_json::Value>(url.as_str(), &json_payload)
-                    .await
-                {
-                    Ok(_) => {}
-                    Err(e) => {
-                        warn!("Invalid request {:?}: {}", path, e);
-                        continue;
-                    }
-                };
-            }
-        }
-        Ok(())
-    }
-
-    async fn cleanup_cache(config: &Self::Config) -> Outcome<()> {
-        let url = config.monolith().get_full_cache_url();
-        info!("Flushing Redis at {}...", url);
-        if let Err(e) = flush_redis_cache(&url).await {
-            warn!("Failed to flush Redis at {}: {}", url, e);
-        } else {
-            info!("Redis cache flushed successfully.");
-        }
-        Ok(())
-    }
-
-    fn enable_user_seed() -> bool {
-        true
-    }
-
-    async fn seed_users(config: &Self::Config) -> Outcome<()> {
-        let vault = common::vault_utils::vault(config)?;
-        let db = vault.get_db_connection(config.transfer().common()).await?;
-        let common = config.transfer().common();
-        let admin = &common.admin_seed;
-        seed_admin_user(db.clone(), &admin.tenant_id, &admin.email, &admin.password).await?;
-        ServiceClientSeeder::seed(db, &admin.tenant_id, &common.service_client).await
-    }
-
-    async fn start_services(
-        config: &Self::Config,
-        vault: Arc<VaultService>,
-    ) -> Outcome<Sender<()>> {
-        // thread control
-        let (shutdown_tx, mut shutdown_rx) = broadcast::channel::<()>(1);
-        let cancel_token = CancellationToken::new();
-
-        // compose the service graph: every hosted agent as a module behind one composer
-        info!("Composing service graph...");
-        let composer =
-            ServiceComposer::new().register(MonolithModule::compose(config, vault.clone()).await?);
-
-        // workers
-        info!("Spawning HTTP subsystem...");
-        let http_handle =
-            CoreHttpWorker::spawn(config, vault.clone(), composer.http_router(), &cancel_token)
-                .await?;
-        info!("Spawning gRPC subsystem...");
-        let grpc_handle = CoreGrpcWorker::spawn(config, &composer, &cancel_token).await?;
-
-        // non-blocking thread supervisor
-        let token_clone = cancel_token.clone();
-        tokio::spawn(async move {
-            tokio::select! {
-                _msg = shutdown_rx.recv() => {
-                    info!("Shutdown command received from Main Pipeline.");
-                }
-                res = http_handle => {
-                    match res {
-                        Ok(_) => error!("HTTP subsystem stopped unexpectedly (task finished)."),
-                        Err(e) => error!("HTTP subsystem panicked: {}", e),
-                    }
-                }
-                _ = GrpcServer::supervise(grpc_handle) => {
-                    error!("gRPC subsystem stopped unexpectedly.");
-                }
-            }
-            info!("Initiating internal graceful shutdown sequence...");
-            token_clone.cancel();
-            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
-            info!("Background services supervisor finished.");
-        });
-
-        Ok(shutdown_tx)
+        let tenant = common.admin_seed.tenant_id.clone();
+        let templates = config.catalog().get_policy_templates_folder().to_string();
+        Ok(vec![
+            Box::new(RedisCacheFlush::new(config.monolith().get_full_cache_url())),
+            Box::new(AdminSeeder::new(root.db.clone(), common)),
+            Box::new(SelfParticipantOnboarder::new(common.clone())),
+            Box::new(AdminTenantProvisioner::new(
+                client.clone(),
+                catalog_api.clone(),
+                tenant.clone(),
+            )),
+            Box::new(PolicyTemplateLoader::new(
+                client,
+                catalog_api,
+                tenant,
+                templates,
+            )),
+        ])
     }
 }

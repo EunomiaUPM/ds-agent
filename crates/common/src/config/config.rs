@@ -29,7 +29,7 @@ use crate::config::services::{
     CatalogConfig, CommonConfig, ContractsConfig, GatewayConfig, MonolithConfig, SsiAuthConfig,
     TransferConfig,
 };
-use crate::config::types::traits::CommonConfigTrait;
+use crate::config::types::traits::{CommonConfigTrait, ConfigLoader};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ApplicationConfig {
@@ -99,5 +99,18 @@ impl ApplicationConfig {
 impl ConnectionConfigTrait for ApplicationConfig {
     fn connection(&self) -> &ConnectionConfig {
         self.monolith().common().connection()
+    }
+}
+
+impl ConfigLoader for ApplicationConfig {
+    fn load(env_file: &str) -> Outcome<Self> {
+        ApplicationConfig::load(env_file)
+    }
+}
+
+/// The monolith's own common section drives process-wide concerns (ports, vault, DB).
+impl CommonConfigTrait for ApplicationConfig {
+    fn common(&self) -> &CommonConfig {
+        self.monolith().common()
     }
 }

@@ -17,3 +17,4 @@
 
 pub mod composition;
 pub mod module;
+pub mod seeder;

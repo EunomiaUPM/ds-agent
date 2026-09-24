@@ -41,4 +41,3 @@ pub mod utils;
 pub mod validation;
 pub mod vault_utils;
 pub mod well_known;
-pub mod worker_utils;

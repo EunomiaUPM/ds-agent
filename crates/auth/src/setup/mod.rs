@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod app;
-pub mod cmd;
-pub(crate) mod migrations;
+mod boot;
+mod composition;
+
+pub use boot::AuthBoot;
+pub use composition::AuthModule;

@@ -15,349 +15,52 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod shutdown;
+//! Process bootstrap shared by every agent binary: CLI, migrations, workers and boot sequence.
 
-use std::fmt::Debug;
-use std::marker::PhantomData;
+pub mod bootstrapper;
+pub mod cli;
+pub mod migrations;
+pub mod seeders;
+pub mod servers;
+pub mod shutdown;
+pub mod workers;
+
 use std::sync::Arc;
 
-use tokio::sync::broadcast;
-use ymir::config::traits::ConnectionConfigTrait;
-use ymir::errors::{Errors, Outcome};
-use ymir::services::vault::global::VaultService;
+use sea_orm::DatabaseConnection;
+use sea_orm_migration::MigrationTrait;
+use serde::Serialize;
+use ymir::errors::Outcome;
 
+use crate::auth::OauthTokenValidator;
+use crate::boot::seeders::BootSeeder;
+use crate::config::services::CommonConfig;
+use crate::config::types::traits::{CommonConfigTrait, ConfigLoader};
+use crate::module_loader::root_context::RootContext;
+use crate::module_loader::service_composer::ServiceComposer;
+
+/// What makes a binary an agent: its config, schema, module graph and boot tasks.
 #[async_trait::async_trait]
-pub trait BootstrapServiceTrait: Send + Sync {
-    type Config: ConnectionConfigTrait + Debug + Clone + Send + Sync;
+pub trait BootstrapServiceTrait: Send + Sync + 'static {
+    type Config: ConfigLoader + CommonConfigTrait + Serialize + Clone + Send + Sync + 'static;
 
-    async fn load_config(env_file: String) -> Outcome<Self::Config>;
+    /// Table recording applied migrations.
+    const MIGRATION_TABLE: &'static str = "seaql_migrations";
 
-    fn enable_participant() -> bool {
-        true
-    }
-    async fn create_participant(_config: &Self::Config) -> Outcome<String> {
-        Err(Errors::crazy(
-            "This service does not support creation of participants.",
-            None,
-        ))
-    }
+    /// Every migration the agent owns, in FK order; static because `MigratorTrait` is.
+    fn migrations() -> Vec<Box<dyn MigrationTrait>>;
 
-    fn enable_catalog() -> bool {
-        true
-    }
-    async fn load_catalog(
-        _participant_id: &Option<String>,
+    /// The token validator every module guards its routes with, built once into the root.
+    fn validator(common: &CommonConfig, db: DatabaseConnection) -> Arc<dyn OauthTokenValidator>;
+
+    /// Wires every module the process hosts; workers and planes are read from the result.
+    async fn compose(config: &Self::Config, root: &RootContext) -> Outcome<ServiceComposer>;
+
+    /// Boot tasks, run in order around worker start-up (see `BootPhase`).
+    async fn seeders(
         _config: &Self::Config,
-    ) -> Outcome<String> {
-        Err(Errors::crazy(
-            "This service does not support creation of catalogs.",
-            None,
-        ))
-    }
-
-    fn enable_dataservice() -> bool {
-        true
-    }
-    async fn load_dataservice(
-        _catalog_id: &Option<String>,
-        _config: &Self::Config,
-    ) -> Outcome<String> {
-        Err(Errors::crazy(
-            "This service does not support creation of data services.",
-            None,
-        ))
-    }
-
-    fn enable_policy_templates() -> bool {
-        true
-    }
-
-    async fn load_policy_templates(_config: &Self::Config) -> Outcome<()> {
-        Err(Errors::crazy(
-            "This service does not support creation of policy templates.",
-            None,
-        ))
-    }
-
-    async fn cleanup_cache(_config: &Self::Config) -> Outcome<()> {
-        Ok(())
-    }
-
-    fn enable_user_seed() -> bool {
-        false
-    }
-    async fn seed_users(_config: &Self::Config) -> Outcome<()> {
-        Ok(())
-    }
-
-    async fn start_services(
-        config: &Self::Config,
-        vault_service: Arc<VaultService>,
-    ) -> Outcome<broadcast::Sender<()>>;
-}
-
-#[async_trait::async_trait]
-pub trait BootstrapStepTrait: Send + Sync {
-    type NextState;
-    async fn next_step(self) -> Outcome<Self::NextState>;
-}
-
-pub struct BootstrapCurrentState<S: BootstrapStepTrait>(pub S);
-
-pub struct BootstrapInit<S: BootstrapServiceTrait> {
-    pub _marker: PhantomData<S>,
-    pub env_file: String,
-}
-
-impl<S: BootstrapServiceTrait> BootstrapInit<S> {
-    pub fn new(env_file: String) -> Self {
-        Self {
-            _marker: PhantomData,
-            env_file,
-        }
-    }
-
-    pub async fn run(self) -> Outcome<()> {
-        let s1 = self.next_step().await?;
-        let s2 = s1.0.next_step().await?;
-        let s3 = s2.0.next_step().await?;
-        let s4 = s3.0.next_step().await?;
-        let s5 = s4.0.next_step().await?;
-        let s6 = s5.0.next_step().await?;
-        let s7 = s6.0.next_step().await?;
-        let s8 = s7.0.next_step().await?;
-        let _ = s8.0.next_step().await?;
-        Ok(())
-    }
-}
-
-pub struct BootstrapConfigLoaded<S: BootstrapServiceTrait> {
-    pub _marker: PhantomData<S>,
-    pub env_file: String,
-}
-
-pub struct BootstrapServicesStarted<S: BootstrapServiceTrait> {
-    pub config: S::Config,
-    pub shutdown_tx: broadcast::Sender<()>,
-}
-
-pub struct BootstrapUsersSeeded<S: BootstrapServiceTrait> {
-    pub config: S::Config,
-    pub shutdown_tx: broadcast::Sender<()>,
-}
-
-pub struct BootstrapSelfParticipantOnBoarded<S: BootstrapServiceTrait> {
-    pub config: S::Config,
-    pub shutdown_tx: broadcast::Sender<()>,
-    pub participant_id: Option<String>,
-}
-
-pub struct BootstrapCatalogLoaded<S: BootstrapServiceTrait> {
-    pub config: S::Config,
-    pub shutdown_tx: broadcast::Sender<()>,
-    pub participant_id: Option<String>,
-    pub catalog_id: Option<String>,
-}
-
-pub struct BootstrapDataServiceLoaded<S: BootstrapServiceTrait> {
-    pub config: S::Config,
-    pub shutdown_tx: broadcast::Sender<()>,
-    pub participant_id: Option<String>,
-    pub catalog_id: Option<String>,
-    pub dataservice_id: Option<String>,
-}
-
-pub struct BootstrapPolicyTemplateLoaded<S: BootstrapServiceTrait> {
-    pub config: S::Config,
-    pub shutdown_tx: broadcast::Sender<()>,
-}
-
-pub struct BootstrapFinalized<S: BootstrapServiceTrait> {
-    pub _marker: PhantomData<S>,
-    pub shutdown_tx: broadcast::Sender<()>,
-}
-
-pub struct BootstrapTerminated<S: BootstrapServiceTrait>(PhantomData<S>);
-
-#[async_trait::async_trait]
-impl<S: BootstrapServiceTrait> BootstrapStepTrait for BootstrapInit<S> {
-    type NextState = BootstrapCurrentState<BootstrapConfigLoaded<S>>;
-
-    async fn next_step(self) -> Outcome<Self::NextState> {
-        tracing::info!("Step [1/9]: Init bootstrap configuration");
-        Ok(BootstrapCurrentState(BootstrapConfigLoaded {
-            _marker: PhantomData,
-            env_file: self.env_file,
-        }))
-    }
-}
-
-#[async_trait::async_trait]
-impl<S: BootstrapServiceTrait> BootstrapStepTrait for BootstrapConfigLoaded<S> {
-    type NextState = BootstrapCurrentState<BootstrapServicesStarted<S>>;
-
-    async fn next_step(self) -> Outcome<Self::NextState> {
-        tracing::info!("Step [2/9]: Configuration loading");
-        let config = S::load_config(self.env_file).await?;
-
-        let vault = Arc::new(crate::vault_utils::vault(&config)?);
-
-        tracing::info!("Step [3/9]: Starting Services in Background");
-        S::cleanup_cache(&config).await?;
-        let shutdown_tx = S::start_services(&config, vault.clone()).await?;
-
-        // waiting for port setup
-        tokio::time::sleep(std::time::Duration::from_millis(200)).await;
-
-        Ok(BootstrapCurrentState(BootstrapServicesStarted {
-            config,
-            shutdown_tx,
-        }))
-    }
-}
-
-#[async_trait::async_trait]
-impl<S: BootstrapServiceTrait> BootstrapStepTrait for BootstrapServicesStarted<S> {
-    type NextState = BootstrapCurrentState<BootstrapUsersSeeded<S>>;
-
-    async fn next_step(self) -> Outcome<Self::NextState> {
-        tracing::info!("Step [4/9]: Seeding default users");
-
-        if S::enable_user_seed() {
-            S::seed_users(&self.config).await?;
-        }
-
-        Ok(BootstrapCurrentState(BootstrapUsersSeeded {
-            config: self.config,
-            shutdown_tx: self.shutdown_tx,
-        }))
-    }
-}
-
-#[async_trait::async_trait]
-impl<S: BootstrapServiceTrait> BootstrapStepTrait for BootstrapUsersSeeded<S> {
-    type NextState = BootstrapCurrentState<BootstrapSelfParticipantOnBoarded<S>>;
-
-    async fn next_step(self) -> Outcome<Self::NextState> {
-        tracing::info!("Step [5/9]: Creating self participant");
-
-        let participant_id = if S::enable_participant() {
-            Some(S::create_participant(&self.config).await?)
-        } else {
-            None
-        };
-
-        Ok(BootstrapCurrentState(BootstrapSelfParticipantOnBoarded {
-            config: self.config,
-            shutdown_tx: self.shutdown_tx,
-            participant_id,
-        }))
-    }
-}
-
-#[async_trait::async_trait]
-impl<S: BootstrapServiceTrait> BootstrapStepTrait for BootstrapSelfParticipantOnBoarded<S> {
-    type NextState = BootstrapCurrentState<BootstrapCatalogLoaded<S>>;
-
-    async fn next_step(self) -> Outcome<Self::NextState> {
-        tracing::info!("Step [6/9]: Loading main catalog");
-
-        let catalog_id = if S::enable_catalog() {
-            Some(S::load_catalog(&self.participant_id, &self.config).await?)
-        } else {
-            None
-        };
-
-        Ok(BootstrapCurrentState(BootstrapCatalogLoaded {
-            config: self.config,
-            shutdown_tx: self.shutdown_tx,
-            participant_id: self.participant_id,
-            catalog_id,
-        }))
-    }
-}
-
-#[async_trait::async_trait]
-impl<S: BootstrapServiceTrait> BootstrapStepTrait for BootstrapCatalogLoaded<S> {
-    type NextState = BootstrapCurrentState<BootstrapDataServiceLoaded<S>>;
-
-    async fn next_step(self) -> Outcome<Self::NextState> {
-        tracing::info!("Step [7/9]: Loading main dataservice");
-
-        let dataservice_id = if S::enable_dataservice() {
-            Some(S::load_dataservice(&self.catalog_id, &self.config).await?)
-        } else {
-            None
-        };
-
-        Ok(BootstrapCurrentState(BootstrapDataServiceLoaded {
-            config: self.config,
-            shutdown_tx: self.shutdown_tx,
-            participant_id: self.participant_id,
-            catalog_id: self.catalog_id,
-            dataservice_id,
-        }))
-    }
-}
-
-#[async_trait::async_trait]
-impl<S: BootstrapServiceTrait> BootstrapStepTrait for BootstrapDataServiceLoaded<S> {
-    type NextState = BootstrapCurrentState<BootstrapPolicyTemplateLoaded<S>>;
-
-    async fn next_step(self) -> Outcome<Self::NextState> {
-        tracing::info!("Step [8/9]: Loading policy templates.");
-
-        if S::enable_policy_templates() {
-            S::load_policy_templates(&self.config).await?
-        }
-
-        Ok(BootstrapCurrentState(BootstrapPolicyTemplateLoaded {
-            config: self.config,
-            shutdown_tx: self.shutdown_tx,
-        }))
-    }
-}
-
-#[async_trait::async_trait]
-impl<S: BootstrapServiceTrait> BootstrapStepTrait for BootstrapPolicyTemplateLoaded<S> {
-    type NextState = BootstrapCurrentState<BootstrapFinalized<S>>;
-
-    async fn next_step(self) -> Outcome<Self::NextState> {
-        tracing::info!("Step [9/9]: Bootstrap sequence completed. Services UP.");
-
-        Ok(BootstrapCurrentState(BootstrapFinalized {
-            _marker: PhantomData,
-            shutdown_tx: self.shutdown_tx,
-        }))
-    }
-}
-
-#[async_trait::async_trait]
-impl<S: BootstrapServiceTrait> BootstrapStepTrait for BootstrapFinalized<S> {
-    type NextState = BootstrapCurrentState<BootstrapTerminated<S>>;
-
-    async fn next_step(self) -> Outcome<Self::NextState> {
-        //
-        tracing::info!("System is RUNNING. Waiting for termination signal (Ctrl+C)...");
-        match tokio::signal::ctrl_c().await {
-            Ok(()) => tracing::info!("Shutdown signal received."),
-            Err(err) => tracing::error!("Unable to listen for shutdown signal: {}", err),
-        }
-        tracing::info!("Sending shutdown signal to background services...");
-        let _ = self.shutdown_tx.send(());
-
-        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
-
-        Ok(BootstrapCurrentState(BootstrapTerminated(PhantomData)))
-    }
-}
-
-#[async_trait::async_trait]
-impl<S: BootstrapServiceTrait> BootstrapStepTrait for BootstrapTerminated<S> {
-    type NextState = BootstrapCurrentState<BootstrapTerminated<S>>;
-
-    async fn next_step(self) -> Outcome<Self::NextState> {
-        tracing::info!("Terminating process.");
-        Ok(BootstrapCurrentState(BootstrapTerminated(PhantomData)))
+        _root: &RootContext,
+    ) -> Outcome<Vec<Box<dyn BootSeeder>>> {
+        Ok(vec![])
     }
 }

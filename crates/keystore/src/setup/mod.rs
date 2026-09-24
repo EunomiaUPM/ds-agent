@@ -31,12 +31,11 @@ use crate::services::secrets::service::SecretStoreImpl;
 use axum::Router;
 use common::config::ApplicationConfig;
 use common::config::types::traits::CommonConfigTrait;
+use common::module_loader::root_context::RootContext;
 use common::module_loader::service_module::ServiceModuleTrait;
-use oauth::setup::composition::OAuthSetup;
 use sea_orm_migration::MigrationTrait;
 use ymir::config::traits::ApiConfigTrait;
 use ymir::services::vault::VaultService;
-use ymir::services::vault::VaultTrait;
 
 pub struct KeystoreModule {
     prefix: String,
@@ -44,41 +43,21 @@ pub struct KeystoreModule {
 }
 
 impl KeystoreModule {
-    pub async fn build_stores<C>(
-        config: &C,
-        vault: Arc<VaultService>,
-    ) -> (
-        Arc<dyn ParameterStore<serde_json::Value>>,
-        Arc<dyn SecretStore>,
-    )
-    where
-        C: CommonConfigTrait + Send + Sync,
-    {
-        Self::build_stores_with_bus(config, vault, None).await
-    }
-
-    pub async fn build_stores_with_bus<C>(
-        config: &C,
-        vault: Arc<VaultService>,
+    pub fn build_stores(
+        root: &RootContext,
         event_bus: Option<events::EventBus>,
     ) -> (
         Arc<dyn ParameterStore<serde_json::Value>>,
         Arc<dyn SecretStore>,
-    )
-    where
-        C: CommonConfigTrait + Send + Sync,
-    {
-        let db = vault
-            .get_db_connection(config.common())
-            .await
-            .expect("Unable to retrieve db connection");
+    ) {
+        let db = root.db.clone();
         let parameter_repo = Arc::new(SeaOrmParameterRepo::new(db.clone()));
-        let secret_repo: Arc<dyn SecretRepoTrait> = match &*vault {
+        let secret_repo: Arc<dyn SecretRepoTrait> = match &*root.vault {
             VaultService::Real(_) => Arc::new(VaultSecretRepo::new(
-                vault.clone(),
-                Arc::new(SeaOrmSecretRepo::new(db.clone())),
+                root.vault.clone(),
+                Arc::new(SeaOrmSecretRepo::new(db)),
             )),
-            VaultService::Fake(_) => Arc::new(SeaOrmSecretRepo::new(db.clone())),
+            VaultService::Fake(_) => Arc::new(SeaOrmSecretRepo::new(db)),
         };
         (
             Arc::new(ParameterStoreImpl::new(parameter_repo).with_event_bus(event_bus.clone())),
@@ -86,42 +65,27 @@ impl KeystoreModule {
         )
     }
 
-    pub async fn build<C>(
+    pub fn build<C>(
         config: &C,
         app_config: Arc<ApplicationConfig>,
-        vault: Arc<VaultService>,
-    ) -> Self
-    where
-        C: CommonConfigTrait + Send + Sync,
-    {
-        Self::build_with_bus(config, app_config, vault, None).await
-    }
-
-    pub async fn build_with_bus<C>(
-        config: &C,
-        app_config: Arc<ApplicationConfig>,
-        vault: Arc<VaultService>,
+        root: &RootContext,
         event_bus: Option<events::EventBus>,
     ) -> Self
     where
         C: CommonConfigTrait + Send + Sync,
     {
         let prefix = format!("{}/keystore", config.common().get_api_version());
-        let (parameter_service, secret_service) =
-            Self::build_stores_with_bus(config, vault.clone(), event_bus).await;
+        let (parameter_service, secret_service) = Self::build_stores(root, event_bus);
         let config_service = Arc::new(ConfigStoreImpl::new(Arc::new(ConfigPassthroughRepo::new(
             app_config,
         ))));
-        let db = vault
-            .get_db_connection(config.common())
-            .await
-            .expect("Unable to retrieve db connection");
-        let validator: Arc<dyn common::auth::OauthTokenValidator> =
-            OAuthSetup::new().build_token_service(config.common().clone().into(), db);
-
-        let router =
-            KeystoreRouter::new(parameter_service, secret_service, config_service, validator)
-                .router();
+        let router = KeystoreRouter::new(
+            parameter_service,
+            secret_service,
+            config_service,
+            root.validator.clone(),
+        )
+        .router();
         Self { prefix, router }
     }
 

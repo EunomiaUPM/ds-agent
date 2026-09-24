@@ -29,30 +29,18 @@ use crate::grpc::negotiation_message::NegotiationAgentMessagesGrpc;
 use crate::grpc::negotiation_process::NegotiationAgentProcessesGrpc;
 use crate::grpc::offer::NegotiationAgentOfferGrpc;
 use crate::setup::context::AppContext;
-use common::config::services::ContractsConfig;
+use common::module_loader::root_context::RootContext;
 use common::module_loader::service_module::ServiceModuleTrait;
 use sea_orm_migration::MigrationTrait;
 use tonic::service::RoutesBuilder;
-use ymir::errors::Outcome;
-use ymir::services::vault::global::VaultService;
 
 pub struct NegotiationAgentModule {
     ctx: AppContext,
 }
 
 impl NegotiationAgentModule {
-    pub async fn compose(config: &ContractsConfig, vault: &VaultService) -> Outcome<Self> {
-        Self::compose_with_bus(config, vault, None).await
-    }
-
-    pub async fn compose_with_bus(
-        config: &ContractsConfig,
-        vault: &VaultService,
-        event_bus: Option<events::EventBus>,
-    ) -> Outcome<Self> {
-        Ok(Self::new(
-            AppContext::build_with_bus(config, vault, event_bus).await?,
-        ))
+    pub fn compose(root: &RootContext, event_bus: Option<events::EventBus>) -> Self {
+        Self::new(AppContext::build(root, event_bus))
     }
 
     pub(crate) fn new(ctx: AppContext) -> Self {

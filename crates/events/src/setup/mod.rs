@@ -17,8 +17,6 @@
 
 pub mod composition;
 pub mod context;
-pub mod workers;
 
 pub use composition::EventsModule;
 pub use context::AppContext;
-pub use workers::RetryWorkerHandle;

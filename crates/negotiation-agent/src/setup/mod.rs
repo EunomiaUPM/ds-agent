@@ -16,11 +16,9 @@
  */
 
 mod boot;
-pub(crate) mod cmd;
 mod composition;
 pub(crate) mod context;
-pub(crate) mod db_migrations;
-pub(crate) mod grpc_worker;
-pub(crate) mod http_worker;
+pub(crate) mod http_router;
 
+pub use boot::NegotiationAgentBoot;
 pub use composition::NegotiationAgentModule;

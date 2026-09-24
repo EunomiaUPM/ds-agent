@@ -15,8 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Catalog agent as a composable module. Today it contributes the gRPC plane and migrations;
-//! the HTTP plane still comes from `create_root_http_router_with_bus` until `setup/` migrates.
+//! Catalog agent as a composable module: gRPC plane, migrations and the tenant listener;
+//! the HTTP plane still comes from `create_root_http_router_with_bus` until it migrates.
 
 use crate::grpc::api::catalog_agent::catalog_entity_service_server::CatalogEntityServiceServer;
 use crate::grpc::api::catalog_agent::data_service_entity_service_server::DataServiceEntityServiceServer;
@@ -31,32 +31,28 @@ use crate::grpc::datasets::DatasetEntityGrpc;
 use crate::grpc::distributions::DistributionEntityGrpc;
 use crate::grpc::odrl_policies::OdrlPolicyEntityGrpc;
 use crate::grpc::policy_templates::PolicyTemplateEntityGrpc;
+use crate::services::tenant_provisioning::listener::TenantProvisioningListener;
 use crate::setup::context::AppContext;
 use crate::SERVICE_NAME;
+use common::boot::workers::BackgroundWorker;
 use common::config::services::CatalogConfig;
+use common::module_loader::root_context::RootContext;
 use common::module_loader::service_module::ServiceModuleTrait;
 use sea_orm_migration::MigrationTrait;
 use tonic::service::RoutesBuilder;
 use ymir::errors::Outcome;
-use ymir::services::vault::global::VaultService;
 
 pub struct CatalogAgentModule {
     ctx: AppContext,
 }
 
 impl CatalogAgentModule {
-    pub async fn compose(config: &CatalogConfig, vault: &VaultService) -> Outcome<Self> {
-        Self::compose_with_bus(config, vault, None).await
-    }
-
-    pub async fn compose_with_bus(
+    pub async fn compose(
         config: &CatalogConfig,
-        vault: &VaultService,
+        root: &RootContext,
         event_bus: Option<events::EventBus>,
     ) -> Outcome<Self> {
-        Ok(Self::new(
-            AppContext::build_with_bus(config, vault, event_bus).await?,
-        ))
+        Ok(Self::new(AppContext::build(config, root, event_bus).await?))
     }
 
     pub(crate) fn new(ctx: AppContext) -> Self {
@@ -105,5 +101,15 @@ impl ServiceModuleTrait for CatalogAgentModule {
 
     fn grpc_descriptors(&self) -> Vec<&'static [u8]> {
         vec![FILE_DESCRIPTOR_SET]
+    }
+
+    /// Tenants born elsewhere are only heard through the shared bus.
+    fn workers(&self) -> Vec<Box<dyn BackgroundWorker>> {
+        let Some(bus) = self.ctx.event_bus.clone() else {
+            return vec![];
+        };
+        let listener =
+            TenantProvisioningListener::new(bus, self.ctx.tenant_provisioning_svc.clone());
+        vec![Box::new(listener)]
     }
 }

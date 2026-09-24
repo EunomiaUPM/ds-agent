@@ -18,9 +18,12 @@
 use std::sync::Arc;
 
 use common::auth::{AccessScope, RbacRole};
+use common::boot::workers::BackgroundWorker;
 use events::{EventBus, EventBusTrait};
 use tokio::sync::broadcast::error::RecvError;
+use tokio_util::sync::CancellationToken;
 use tracing::{info, warn};
+use ymir::errors::Outcome;
 
 use crate::services::tenant_provisioning::TenantProvisioningServiceTrait;
 
@@ -37,15 +40,22 @@ impl TenantProvisioningListener {
     pub fn new(bus: EventBus, service: Arc<dyn TenantProvisioningServiceTrait>) -> Self {
         Self { bus, service }
     }
+}
 
-    pub fn spawn(self) {
-        tokio::spawn(async move { self.run().await });
+#[async_trait::async_trait]
+impl BackgroundWorker for TenantProvisioningListener {
+    fn name(&self) -> &'static str {
+        "tenant-provisioning"
     }
 
-    async fn run(self) {
+    async fn run(self: Box<Self>, token: CancellationToken) -> Outcome<()> {
         let mut receiver = self.bus.subscribe();
         loop {
-            let envelope = match receiver.recv().await {
+            let received = tokio::select! {
+                _ = token.cancelled() => return Ok(()),
+                received = receiver.recv() => received,
+            };
+            let envelope = match received {
                 Ok(envelope) => envelope,
                 Err(RecvError::Lagged(skipped)) => {
                     warn!(
@@ -54,7 +64,7 @@ impl TenantProvisioningListener {
                     );
                     continue;
                 }
-                Err(RecvError::Closed) => return,
+                Err(RecvError::Closed) => return Ok(()),
             };
             if envelope.topic.as_str() != TENANT_CREATED_TOPIC {
                 continue;

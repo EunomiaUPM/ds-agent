@@ -33,12 +33,17 @@ use crate::services::odrl_policies::service::OdrlPolicyService;
 use crate::services::odrl_policies::OdrlPolicyServiceTrait;
 use crate::services::policy_templates::service::PolicyTemplateService;
 use crate::services::policy_templates::PolicyTemplateServiceTrait;
+use crate::services::tenant_provisioning::service::TenantProvisioningService;
+use crate::services::tenant_provisioning::TenantProvisioningServiceTrait;
 use common::auth::OauthTokenValidator;
+use common::config::services::traits::CatalogConfigTrait;
 use common::config::services::CatalogConfig;
-use common::config::types::traits::{CacheConfigTrait, CommonConfigTrait};
+use common::config::types::traits::CacheConfigTrait;
+use common::config::types::traits::MinKnownConfigTrait;
+use common::facades::ssi_auth_facade::mates_facade::MatesFacadeService;
+use common::module_loader::root_context::RootContext;
+use ymir::config::types::HostType;
 use ymir::errors::{Errors, Outcome};
-use ymir::services::vault::global::VaultService;
-use ymir::services::vault::VaultTrait;
 
 #[derive(Clone)]
 pub struct AppContext {
@@ -48,29 +53,24 @@ pub struct AppContext {
     pub distribution_svc: Arc<dyn DistributionServiceTrait>,
     pub odrl_policy_svc: Arc<dyn OdrlPolicyServiceTrait>,
     pub policy_template_svc: Arc<dyn PolicyTemplateServiceTrait>,
+    pub tenant_provisioning_svc: Arc<dyn TenantProvisioningServiceTrait>,
     pub oauth_validator: Arc<dyn OauthTokenValidator>,
+    pub event_bus: Option<events::EventBus>,
 }
 
 impl AppContext {
-    pub async fn build_with_bus(
+    pub async fn build(
         config: &CatalogConfig,
-        vault: &VaultService,
+        root: &RootContext,
         event_bus: Option<events::EventBus>,
     ) -> Outcome<Self> {
-        // Shared infrastructure
-        let db = vault.get_db_connection(config.common()).await?;
         let redis = redis::Client::open(config.get_full_cache_url())
             .map_err(|e| Errors::crazy("Error creating Redis client", Some(Box::new(e))))?
             .get_multiplexed_async_connection()
             .await
             .map_err(|e| Errors::crazy("Redis connection failed", Some(Box::new(e))))?;
         let cache = Arc::new(CatalogAgentCacheForRedis::create_repo(redis));
-        let repo = Arc::new(CatalogAgentRepoForSql::create_repo(db.clone()));
-
-        // Oauth module validator
-        let oauth_validator: Arc<dyn OauthTokenValidator> =
-            oauth::setup::composition::OAuthSetup::new()
-                .build_token_service(config.common().clone().into(), db);
+        let repo = Arc::new(CatalogAgentRepoForSql::create_repo(root.db.clone()));
 
         // Domain services
         let catalog_svc = Arc::new(
@@ -89,7 +89,20 @@ impl AppContext {
             OdrlPolicyService::new(repo.clone(), cache.clone()).with_event_bus(event_bus.clone()),
         );
         let policy_template_svc =
-            Arc::new(PolicyTemplateService::new(repo).with_event_bus(event_bus));
+            Arc::new(PolicyTemplateService::new(repo).with_event_bus(event_bus.clone()));
+        let mates = Arc::new(MatesFacadeService::new(
+            Arc::new(config.ssi_auth().clone()),
+            root.service_client.clone(),
+        ));
+        let tenant_provisioning_svc = Arc::new(TenantProvisioningService::new(
+            catalog_svc.clone(),
+            data_service_svc.clone(),
+            mates,
+            format!(
+                "{}/dsp/current",
+                config.contracts().get_host(HostType::Http)
+            ),
+        ));
 
         Ok(Self {
             catalog_svc,
@@ -98,7 +111,9 @@ impl AppContext {
             distribution_svc,
             odrl_policy_svc,
             policy_template_svc,
-            oauth_validator,
+            tenant_provisioning_svc,
+            oauth_validator: root.validator.clone(),
+            event_bus,
         })
     }
 }

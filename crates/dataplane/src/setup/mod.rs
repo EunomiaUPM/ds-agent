@@ -30,14 +30,13 @@ use crate::services::transfer_events::TransferEventsService;
 use crate::testing_proxy::http::http::TestingHTTPProxy;
 use axum::Router;
 use common::config::services::TransferConfig;
-use common::config::types::traits::{CacheConfigTrait, CommonConfigTrait};
+use common::config::types::traits::CacheConfigTrait;
 use common::http_client::HttpClient;
+use common::module_loader::root_context::RootContext;
 use connector::ConnectorInstanceServiceTrait;
 use keystore::KeystoreModule;
 use keystore::SecretStore;
 use std::sync::Arc;
-use ymir::services::vault::global::VaultService;
-use ymir::services::vault::VaultTrait;
 
 /// Infrastructure shared by every entry point of the dataplane: the
 /// Redis-backed cache and the SQL repository. Wiring it once here is what
@@ -48,7 +47,7 @@ struct DataplaneInfra {
     repo: Arc<dyn DataplaneRepoTrait>,
 }
 
-/// Composition root for the dataplane: turns `config` + `vault` into the
+/// Composition root for the dataplane: turns `config` + the root context into the
 /// concrete services, entities and routers the rest of the crate depends on.
 pub struct DataplaneSetup {}
 
@@ -71,23 +70,14 @@ impl DataplaneSetup {
             .expect("dataplane setup: failed to open redis client")
     }
 
-    /// Builds the SQL repository on top of the vault-provided DB connection.
-    async fn build_repo(
-        &self,
-        config: &TransferConfig,
-        vault: Arc<VaultService>,
-    ) -> Arc<dyn DataplaneRepoTrait> {
-        let db_connection = vault.get_db_connection(config.common()).await.unwrap();
-        Arc::new(SeaOrmDataFactory::create_repo(db_connection))
+    /// Builds the SQL repository on top of the shared DB pool.
+    fn build_repo(&self, root: &RootContext) -> Arc<dyn DataplaneRepoTrait> {
+        Arc::new(SeaOrmDataFactory::create_repo(root.db.clone()))
     }
 
     /// Wires the cache + repository every builder needs. Single source of
     /// truth for the dataplane's infrastructure dependencies.
-    async fn build_infra(
-        &self,
-        config: &TransferConfig,
-        vault: Arc<VaultService>,
-    ) -> DataplaneInfra {
+    async fn build_infra(&self, config: &TransferConfig, root: &RootContext) -> DataplaneInfra {
         let redis_conn = self
             .redis_client(config)
             .get_multiplexed_async_connection()
@@ -95,7 +85,7 @@ impl DataplaneSetup {
             .expect("dataplane setup: failed to get redis connection");
         DataplaneInfra {
             cache: Arc::new(DataplaneTransferCacheForRedis::new(redis_conn)),
-            repo: self.build_repo(config, vault).await,
+            repo: self.build_repo(root),
         }
     }
 
@@ -110,12 +100,11 @@ impl DataplaneSetup {
     /// Builds the keystore lookup client and returns its secret store too:
     /// the lookup is injected into drivers/proxy, while the secret store is
     /// also handed directly to the manager so it can resolve runtime secrets.
-    async fn build_keystore(
+    fn build_keystore(
         &self,
-        config: &TransferConfig,
-        vault: Arc<VaultService>,
+        root: &RootContext,
     ) -> (Arc<KeystoreClientImpl>, Arc<dyn SecretStore>) {
-        let (parameter_store, secret_store) = KeystoreModule::build_stores(config, vault).await;
+        let (parameter_store, secret_store) = KeystoreModule::build_stores(root, None);
         let lookup = Arc::new(KeystoreClientImpl::new(
             parameter_store,
             secret_store.clone(),
@@ -130,13 +119,13 @@ impl DataplaneSetup {
     pub async fn get_data_plane_manager(
         &self,
         config: Arc<TransferConfig>,
-        vault: Arc<VaultService>,
+        root: &RootContext,
         connector_service: Arc<dyn ConnectorInstanceServiceTrait>,
         _http_client: Arc<HttpClient>,
     ) -> DataplaneManager {
-        let infra = self.build_infra(config.as_ref(), vault.clone()).await;
+        let infra = self.build_infra(config.as_ref(), root).await;
         let transfer_service = self.transfers_service(&infra);
-        let (keystore_lookup, secret_store) = self.build_keystore(config.as_ref(), vault).await;
+        let (keystore_lookup, secret_store) = self.build_keystore(root);
 
         DataplaneManager::new(transfer_service, connector_service, config.clone())
             .with_driver_factory(Arc::new(
@@ -150,14 +139,10 @@ impl DataplaneSetup {
     pub async fn build_control_router(
         &self,
         config: &TransferConfig,
-        vault: Arc<VaultService>,
+        root: &RootContext,
     ) -> Router {
-        let infra = self.build_infra(config, vault.clone()).await;
-
-        let db = vault.get_db_connection(config.common()).await.unwrap();
-        let validator: Arc<dyn common::auth::OauthTokenValidator> =
-            oauth::setup::composition::OAuthSetup::new()
-                .build_token_service(config.common().clone().into(), db);
+        let infra = self.build_infra(config, root).await;
+        let validator = root.validator.clone();
 
         // Events: service feeding both the per-process feed and the global lookup.
         let transfer_event_service = Arc::new(TransferEventsService::new(infra.repo.clone()));
@@ -195,14 +180,10 @@ impl DataplaneSetup {
     }
 
     /// Builds the standalone testing HTTP proxy with keystore-backed lookup.
-    pub async fn build_testing_proxy(
-        &self,
-        config: &TransferConfig,
-        vault: Arc<VaultService>,
-    ) -> Router {
-        let infra = self.build_infra(config, vault.clone()).await;
+    pub async fn build_testing_proxy(&self, config: &TransferConfig, root: &RootContext) -> Router {
+        let infra = self.build_infra(config, root).await;
         let transfer_service = self.transfers_service(&infra);
-        let (keystore_lookup, _secret_store) = self.build_keystore(config, vault).await;
+        let (keystore_lookup, _secret_store) = self.build_keystore(root);
 
         TestingHTTPProxy::new(transfer_service, infra.repo)
             .with_keystore(keystore_lookup)

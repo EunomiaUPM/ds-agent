@@ -15,62 +15,38 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::setup::http_worker::GatewayHttpWorker;
-use common::boot::BootstrapServiceTrait;
-use common::config::services::GatewayConfig;
-use common::config::types::traits::ConfigLoader;
 use std::sync::Arc;
-use tokio::sync::broadcast;
-use tokio::sync::broadcast::Sender;
-use tokio_util::sync::CancellationToken;
-use ymir::errors::Outcome;
-use ymir::services::vault::global::VaultService;
 
+use common::auth::OauthTokenValidator;
+use common::boot::BootstrapServiceTrait;
+use common::config::services::{CommonConfig, GatewayConfig};
+use common::module_loader::root_context::RootContext;
+use common::module_loader::service_composer::ServiceComposer;
+use oauth::setup::composition::OAuthSetup;
+use sea_orm::DatabaseConnection;
+use sea_orm_migration::MigrationTrait;
+use ymir::errors::Outcome;
+
+use crate::setup::composition::BffModule;
+use crate::setup::context::AppContext;
+
+/// Standalone gateway: owns no migrations, but validates tokens against the shared DB.
 pub struct GatewayBoot;
 
 #[async_trait::async_trait]
 impl BootstrapServiceTrait for GatewayBoot {
     type Config = GatewayConfig;
 
-    async fn load_config(env_file: String) -> Outcome<Self::Config> {
-        let config = Self::Config::load(&*env_file)?;
-        let table = json_to_table::json_to_table(&serde_json::to_value(&config)?)
-            .collapse()
-            .to_string();
-        tracing::info!("Current Catalog Agent Config:\n{}", table);
-        Ok(config)
+    fn migrations() -> Vec<Box<dyn MigrationTrait>> {
+        vec![]
     }
 
-    async fn start_services(
-        config: &Self::Config,
-        _vault_service: Arc<VaultService>,
-    ) -> Outcome<Sender<()>> {
-        // thread control
-        let (shutdown_tx, mut shutdown_rx) = broadcast::channel(1);
-        let cancel_token = CancellationToken::new();
+    fn validator(common: &CommonConfig, db: DatabaseConnection) -> Arc<dyn OauthTokenValidator> {
+        OAuthSetup::validator(common, db)
+    }
 
-        // workers
-        tracing::info!("Spawning HTTP subsystem...");
-        let http_handle = GatewayHttpWorker::spawn(config, &cancel_token).await?;
-
-        // non-blocking thread
-        let token_clone = cancel_token.clone();
-        tokio::spawn(async move {
-            tokio::select! {
-                // ctrl+c
-                _ = shutdown_rx.recv() => {
-                    tracing::info!("Shutdown command received from Main Pipeline.");
-                }
-                _ = async { http_handle.await } => {
-                    tracing::error!("HTTP subsystem failed or stopped unexpectedly!");
-                }
-            }
-
-            tracing::info!("Initiating internal graceful shutdown sequence...");
-            token_clone.cancel();
-            tracing::info!("Background services stopped.");
-        });
-
-        Ok(shutdown_tx)
+    async fn compose(config: &GatewayConfig, root: &RootContext) -> Outcome<ServiceComposer> {
+        let ctx = AppContext::new(config.clone(), Some(root.validator.clone()));
+        Ok(ServiceComposer::new().register(BffModule::new(Arc::new(ctx))))
     }
 }

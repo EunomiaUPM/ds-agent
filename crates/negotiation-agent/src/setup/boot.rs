@@ -15,86 +15,41 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::setup::NegotiationAgentModule;
-use crate::setup::grpc_worker::NegotiationGrpcWorker;
-use crate::setup::http_worker::NegotiationHttpWorker;
-use common::boot::BootstrapServiceTrait;
-use common::config::services::ContractsConfig;
-use common::config::types::traits::ConfigLoader;
-use common::module_loader::service_composer::ServiceComposer;
-use common::worker_utils::GrpcServer;
 use std::sync::Arc;
-use tokio::sync::broadcast;
-use tokio::sync::broadcast::Sender;
-use tokio_util::sync::CancellationToken;
+
+use common::auth::OauthTokenValidator;
+use common::boot::BootstrapServiceTrait;
+use common::config::services::{CommonConfig, ContractsConfig};
+use common::module_loader::root_context::RootContext;
+use common::module_loader::service_composer::ServiceComposer;
+use common::module_loader::to_be_deprecated::ToBeDeprecatedRouterModule;
+use oauth::setup::composition::OAuthSetup;
+use sea_orm::DatabaseConnection;
+use sea_orm_migration::MigrationTrait;
 use ymir::errors::Outcome;
-use ymir::services::vault::global::VaultService;
+
+use crate::SERVICE_NAME;
+use crate::setup::NegotiationAgentModule;
+use crate::setup::http_router::create_root_http_router;
 
 pub struct NegotiationAgentBoot;
 
 #[async_trait::async_trait]
 impl BootstrapServiceTrait for NegotiationAgentBoot {
     type Config = ContractsConfig;
-    async fn load_config(env_file: String) -> Outcome<Self::Config> {
-        let config = Self::Config::load(&*env_file)?;
-        let table = json_to_table::json_to_table(&serde_json::to_value(&config)?)
-            .collapse()
-            .to_string();
-        tracing::info!("Current Negotiation Agent Config:\n{}", table);
-        Ok(config)
-    }
-    fn enable_participant() -> bool {
-        false
-    }
-    fn enable_catalog() -> bool {
-        false
-    }
-    fn enable_dataservice() -> bool {
-        false
-    }
-    fn enable_policy_templates() -> bool {
-        false
+
+    fn migrations() -> Vec<Box<dyn MigrationTrait>> {
+        NegotiationAgentModule::migrations()
     }
 
-    async fn start_services(
-        config: &Self::Config,
-        vault: Arc<VaultService>,
-    ) -> Outcome<Sender<()>> {
-        // thread control
-        let (shutdown_tx, mut shutdown_rx) = broadcast::channel(1);
-        let cancel_token = CancellationToken::new();
+    fn validator(common: &CommonConfig, db: DatabaseConnection) -> Arc<dyn OauthTokenValidator> {
+        OAuthSetup::validator(common, db)
+    }
 
-        // workers
-        tracing::info!("Spawning HTTP subsystem...");
-        let http_handle =
-            NegotiationHttpWorker::spawn(config, vault.clone(), &cancel_token).await?;
-
-        tracing::info!("Spawning gRPC subsystem...");
-        let composer =
-            ServiceComposer::new().register(NegotiationAgentModule::compose(config, &vault).await?);
-        let grpc_handle = NegotiationGrpcWorker::spawn(config, &composer, &cancel_token).await?;
-
-        // non-blocking thread
-        let token_clone = cancel_token.clone();
-        tokio::spawn(async move {
-            tokio::select! {
-                // ctrl+c
-                _ = shutdown_rx.recv() => {
-                    tracing::info!("Shutdown command received from Main Pipeline.");
-                }
-                _ = async { http_handle.await } => {
-                    tracing::error!("HTTP subsystem failed or stopped unexpectedly!");
-                }
-                _ = GrpcServer::supervise(grpc_handle) => {
-                    tracing::error!("GRPC subsystem failed or stopped unexpectedly!");
-                }
-            }
-
-            tracing::info!("Initiating internal graceful shutdown sequence...");
-            token_clone.cancel();
-            tracing::info!("Background services stopped.");
-        });
-
-        Ok(shutdown_tx)
+    async fn compose(config: &ContractsConfig, root: &RootContext) -> Outcome<ServiceComposer> {
+        let http = create_root_http_router(config, root, None).await;
+        Ok(ServiceComposer::new()
+            .register(ToBeDeprecatedRouterModule::merged(SERVICE_NAME, http))
+            .register(NegotiationAgentModule::compose(root, None)))
     }
 }

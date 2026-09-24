@@ -22,21 +22,14 @@ use crate::data::sea_orm::factory::SeaOrmDataFactory;
 use crate::services::transfer_message::service::TransferMessageService;
 use crate::services::transfer_process::service::TransferProcessService;
 use common::auth::OauthTokenValidator;
-use common::auth::ServiceHttpClient;
 use common::config::services::TransferConfig;
 use common::config::services::traits::TransferConfigTrait;
-use common::config::types::traits::CommonConfigTrait;
 use common::facades::ssi_auth_facade::ssi_auth_facade::SSIAuthFacadeService;
-use oauth::setup::composition::OAuthSetup;
-use sea_orm::DatabaseConnection;
-use ymir::errors::Outcome;
-use ymir::services::vault::VaultTrait;
-use ymir::services::vault::global::VaultService;
+use common::module_loader::root_context::RootContext;
 
 #[derive(Clone)]
 pub struct AppContext {
     pub config: Arc<TransferConfig>,
-    pub db: DatabaseConnection,
     pub transfer_process_svc: Arc<TransferProcessService>,
     pub transfer_message_svc: Arc<TransferMessageService>,
     pub oauth_validator: Arc<dyn OauthTokenValidator>,
@@ -44,25 +37,13 @@ pub struct AppContext {
 }
 
 impl AppContext {
-    pub async fn build(config: &TransferConfig, vault: &VaultService) -> Outcome<Self> {
-        Self::build_with_bus(config, vault, None).await
-    }
-
-    pub async fn build_with_bus(
+    pub fn build(
         config: &TransferConfig,
-        vault: &VaultService,
+        root: &RootContext,
         event_bus: Option<events::EventBus>,
-    ) -> Outcome<Self> {
+    ) -> Self {
         let config = Arc::new(config.clone());
-
-        // Shared infrastructure
-        let db = vault.get_db_connection(config.common()).await?;
-        let db_factory = SeaOrmDataFactory::new(db.clone());
-        let service_client = Arc::new(ServiceHttpClient::from_common(config.common(), 10));
-
-        // Oauth module validator
-        let oauth_validator: Arc<dyn OauthTokenValidator> =
-            OAuthSetup::new().build_token_service(config.common().clone().into(), db.clone());
+        let db_factory = SeaOrmDataFactory::new(root.db.clone());
 
         // Domain services
         let transfer_process_svc = Arc::new(
@@ -74,20 +55,19 @@ impl AppContext {
         );
         let transfer_message_svc = Arc::new(
             TransferMessageService::new(db_factory.transfer_message_repo())
-                .with_event_bus(event_bus.clone()),
+                .with_event_bus(event_bus),
         );
         let ssi_auth_facade = Arc::new(SSIAuthFacadeService::new(
             Arc::new(config.ssi_auth().clone()),
-            service_client,
+            root.service_client.clone(),
         ));
 
-        Ok(Self {
+        Self {
             config,
-            db,
             transfer_process_svc,
             transfer_message_svc,
-            oauth_validator,
+            oauth_validator: root.validator.clone(),
             ssi_auth_facade,
-        })
+        }
     }
 }

@@ -17,70 +17,50 @@
 
 use std::sync::Arc;
 
-use auth::setup::app::AuthApplication;
+use auth::setup::AuthModule;
 use axum::Router;
-use catalog_agent::setup::create_root_http_router_with_bus as catalog_http_router_with_bus;
-use common::config::types::traits::CommonConfigTrait;
+use bff::BffModule;
+use catalog_agent::setup::create_root_http_router as create_catalog_http_router;
 use common::config::ApplicationConfig;
-use negotiation_agent::create_negotiations_http_router_with_bus;
+use common::module_loader::root_context::RootContext;
+use negotiation_agent::create_negotiations_http_router;
 use ymir::errors::Outcome;
-use ymir::services::vault::global::VaultService;
-use ymir::services::vault::VaultTrait;
 
 pub struct CoreContext {
     pub catalog_router: Router,
-    pub auth_router: Router,
     pub negotiation_router: Router,
-    pub gateway_router: Router,
+    pub auth: AuthModule,
+    pub gateway: BffModule,
     pub events_ctx: Arc<events::setup::context::AppContext>,
 }
 
 impl CoreContext {
-    pub async fn build(config: &ApplicationConfig, vault: Arc<VaultService>) -> Outcome<Self> {
-        let config = Arc::new(config.clone());
-
-        // Build events context and event bus
-        let events_db = vault.get_db_connection(config.gateway().common()).await?;
+    pub async fn build(config: &ApplicationConfig, root: &RootContext) -> Outcome<Self> {
         let events_ctx = Arc::new(events::setup::context::AppContext::build(
-            events_db.clone(),
+            root.db.clone(),
             None,
         ));
+        let bus = (*events_ctx.event_bus).clone();
 
-        // Spawn background retry worker
-        events::setup::workers::RetryWorkerHandle::spawn(
-            events_ctx.retry_worker.clone(),
-            events_ctx.cancel_token.clone(),
-        );
-
-        // Gateway context; its validator guards the discovery helpers
-        let gateway_validator = oauth::setup::composition::OAuthSetup::new()
-            .build_token_service(config.gateway().common().clone().into(), events_db.clone());
+        // Gateway validator guards the discovery helpers
         let gateway_ctx = Arc::new(bff::AppContext::new(
             config.gateway().clone(),
-            Some(gateway_validator),
+            Some(root.validator.clone()),
         ));
 
-        // Build every free-function agent's HTTP surface once.
-        let catalog_router = catalog_http_router_with_bus(
-            &config.catalog(),
-            vault.clone(),
-            Some((*events_ctx.event_bus).clone()),
-        )
-        .await?;
-        let auth_router = AuthApplication::create_router(&config.ssi_auth(), vault.clone()).await?;
-        let negotiation_router = create_negotiations_http_router_with_bus(
-            &config.contracts(),
-            vault.clone(),
-            Some((*events_ctx.event_bus).clone()),
-        )
-        .await;
-        let gateway_router = bff::create_gateway_http_router_with_context(gateway_ctx).await;
+        // Agents still exposed as free functions build their HTTP surface once.
+        let catalog_router =
+            create_catalog_http_router(config.catalog(), root, Some(bus.clone())).await?;
+        let auth = AuthModule::compose(config.ssi_auth(), root).await?;
+        let negotiation_router =
+            create_negotiations_http_router(config.contracts(), root, Some(bus)).await;
+        let gateway = BffModule::new(gateway_ctx);
 
         Ok(Self {
             catalog_router,
-            auth_router,
             negotiation_router,
-            gateway_router,
+            auth,
+            gateway,
             events_ctx,
         })
     }

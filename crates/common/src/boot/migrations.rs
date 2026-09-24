@@ -15,29 +15,38 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Migrator over the static migration list of a bootstrapped agent.
+
+use std::marker::PhantomData;
+
 use sea_orm::sea_query::{Alias, DynIden, IntoIden};
 use sea_orm::DatabaseConnection;
 use sea_orm_migration::{MigrationTrait, MigratorTrait};
 use ymir::errors::{Errors, Outcome};
 
-use crate::setup::composition::MonolithModule;
+use crate::boot::BootstrapServiceTrait;
 
-pub struct CoreProviderMigration;
+pub struct SetupMigrator<S>(PhantomData<S>);
 
-impl MigratorTrait for CoreProviderMigration {
+impl<S: BootstrapServiceTrait> MigratorTrait for SetupMigrator<S> {
     fn migrations() -> Vec<Box<dyn MigrationTrait>> {
-        MonolithModule::migrations()
+        S::migrations()
     }
 
     fn migration_table_name() -> DynIden {
-        Alias::new("seaql_ds_agent_migrations").into_iden()
+        Alias::new(S::MIGRATION_TABLE).into_iden()
     }
 }
 
-impl CoreProviderMigration {
-    pub async fn run(db_connection: &DatabaseConnection) -> Outcome<()> {
-        Self::up(db_connection, None)
-            .await
-            .map_err(|e| Errors::db("Error migrating data", Some(Box::new(e))))
+impl<S: BootstrapServiceTrait> SetupMigrator<S> {
+    /// Applies pending migrations; `reset` first rolls back every applied one (destroys data).
+    pub async fn run(db: &DatabaseConnection, reset: bool) -> Outcome<()> {
+        let result = if reset {
+            tracing::warn!("Resetting database: rolling back every migration");
+            Self::refresh(db).await
+        } else {
+            Self::up(db, None).await
+        };
+        result.map_err(|e| Errors::db("Error running migrations", Some(Box::new(e))))
     }
 }

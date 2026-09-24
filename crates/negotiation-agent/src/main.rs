@@ -15,19 +15,13 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use common::info_banner::banner;
-use common::telemetry;
-use negotiation_agent::{NegotiationCommands, SERVICE_BIG_NAME, SERVICE_NAME};
-use tracing::info;
-use tracing_subscriber::EnvFilter;
-use tracing_subscriber::filter::LevelFilter;
-use ymir::errors::{Errors, Outcome};
+use common::boot::cli::AgentCli;
+use negotiation_agent::setup::NegotiationAgentBoot;
+use negotiation_agent::{SERVICE_BIG_NAME, SERVICE_NAME};
+use ymir::errors::Outcome;
 
 #[allow(clippy::result_large_err)]
 #[tokio::main]
 async fn main() -> Outcome<()> {
-    telemetry::init(SERVICE_NAME);
-    info!("{}", banner(SERVICE_BIG_NAME));
-    NegotiationCommands::init_command_line().await?;
-    Ok(())
+    AgentCli::<NegotiationAgentBoot>::run(SERVICE_NAME, SERVICE_BIG_NAME).await
 }

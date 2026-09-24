@@ -20,7 +20,7 @@ use ymir::config::traits::{ApiConfigTrait, HostsConfigTrait};
 use ymir::config::types::{CommonHostsConfig, HostType};
 
 use crate::config::services::{
-    CatalogConfig, ContractsConfig, GatewayConfig, SsiAuthConfig, TransferConfig,
+    CatalogConfig, CommonConfig, ContractsConfig, GatewayConfig, SsiAuthConfig, TransferConfig,
 };
 use crate::config::types::traits::{CommonConfigTrait, MinKnownConfigTrait};
 use crate::config::types::ServiceClientConfig;
@@ -40,6 +40,16 @@ impl MinKnownConfigTrait for MinKnownConfig {
     }
     fn get_api_version(&self) -> String {
         format!("/api/{}", self.api_version)
+    }
+}
+
+impl From<&CommonConfig> for MinKnownConfig {
+    fn from(value: &CommonConfig) -> Self {
+        Self {
+            hosts: value.hosts.clone(),
+            api_version: value.get_api_version(),
+            service_client: value.service_client.clone(),
+        }
     }
 }
 

@@ -19,6 +19,7 @@ use std::sync::Arc;
 
 use axum::Router;
 use common::auth::OauthTokenValidator;
+use common::boot::workers::BackgroundWorker;
 use common::module_loader::service_module::ServiceModuleTrait;
 use sea_orm_migration::MigrationTrait;
 
@@ -56,5 +57,9 @@ impl ServiceModuleTrait for EventsModule {
     fn http(&self) -> Option<(String, Router)> {
         let router = EventsHttpRouter::build(self.ctx.event_bus.clone(), self.validator.clone());
         Some((format!("/api/v1/{SERVICE_NAME}"), router))
+    }
+
+    fn workers(&self) -> Vec<Box<dyn BackgroundWorker>> {
+        vec![Box::new(self.ctx.retry_worker.clone())]
     }
 }

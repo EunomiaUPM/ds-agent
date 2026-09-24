@@ -18,12 +18,11 @@
 use axum::Router;
 use common::config::services::TransferConfig;
 use common::module_loader::module_group::ModuleGroup;
+use common::module_loader::root_context::RootContext;
 use common::module_loader::service_module::ServiceModuleTrait;
 use sea_orm_migration::MigrationTrait;
 use std::sync::Arc;
 use tonic::service::RoutesBuilder;
-use ymir::errors::Outcome;
-use ymir::services::vault::global::VaultService;
 
 use crate::SERVICE_NAME;
 use crate::protocols::dsp::setup::DspModule;
@@ -35,18 +34,12 @@ pub struct TransferAgentModule {
 }
 
 impl TransferAgentModule {
-    pub async fn compose(config: &TransferConfig, vault: &VaultService) -> Outcome<Self> {
-        Self::compose_with_bus(config, vault, None).await
-    }
-
-    pub async fn compose_with_bus(
+    pub fn compose(
         config: &TransferConfig,
-        vault: &VaultService,
+        root: &RootContext,
         event_bus: Option<events::EventBus>,
-    ) -> Outcome<Self> {
-        Ok(Self::new(
-            AppContext::build_with_bus(config, vault, event_bus).await?,
-        ))
+    ) -> Self {
+        Self::new(AppContext::build(config, root, event_bus))
     }
 
     pub(crate) fn new(ctx: AppContext) -> Self {

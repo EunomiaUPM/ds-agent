@@ -15,6 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::boot::workers::BackgroundWorker;
 use crate::module_loader::service_module::ServiceModuleTrait;
 use crate::module_loader::utils::mount;
 use axum::Router;
@@ -90,5 +91,9 @@ impl ServiceModuleTrait for ModuleGroup {
             .iter()
             .flat_map(|m| m.grpc_descriptors())
             .collect()
+    }
+
+    fn workers(&self) -> Vec<Box<dyn BackgroundWorker>> {
+        self.modules.iter().flat_map(|m| m.workers()).collect()
     }
 }

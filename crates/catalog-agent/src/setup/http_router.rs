@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Legacy HTTP plane of the catalog agent, built as one router until it becomes a module.
+
 use crate::cache::factory_redis::CatalogAgentCacheForRedis;
 use crate::data::factory_sql::CatalogAgentRepoForSql;
 use crate::http::catalogs::CatalogEntityRouter;
@@ -37,116 +39,27 @@ use crate::services::odrl_policies::service::OdrlPolicyService;
 use crate::services::peer_catalogs::service::PeerCatalogService;
 use crate::services::policy_instantiation::service::PolicyInstantiationService;
 use crate::services::policy_templates::service::PolicyTemplateService;
-use crate::services::tenant_provisioning::listener::TenantProvisioningListener;
 use crate::services::tenant_provisioning::service::TenantProvisioningService;
-use axum::extract::Request;
-use axum::response::IntoResponse;
-use axum::{serve, Router};
-use common::auth::ServiceHttpClient;
+use axum::Router;
 use common::config::services::traits::CatalogConfigTrait;
 use common::config::services::CatalogConfig;
-use common::config::types::traits::MinKnownConfigTrait;
-use common::config::types::traits::{CacheConfigTrait, CommonConfigTrait};
-use common::errors::CommonErrors;
+use common::config::types::traits::{CacheConfigTrait, CommonConfigTrait, MinKnownConfigTrait};
 use common::facades::ssi_auth_facade::mates_facade::MatesFacadeService;
 use common::http_client::HttpClient;
-use common::well_known::WellKnownRoot;
+use common::module_loader::root_context::RootContext;
 use connector::ConnectorSetup;
-use sea_orm::Database;
-use std::ops::Deref;
 use std::sync::Arc;
-use tokio::net::TcpListener;
-use tokio::task::JoinHandle;
-use tokio_util::sync::CancellationToken;
-use tower_http::trace::{DefaultOnResponse, TraceLayer};
-use uuid::Uuid;
 use ymir::config::traits::{ApiConfigTrait, ConnectionConfigTrait, HostsConfigTrait};
 use ymir::config::types::HostType;
 use ymir::errors::{Errors, Outcome};
-use ymir::http::HealthRouter;
-use ymir::services::vault::global::VaultService;
-use ymir::services::vault::VaultTrait;
-
-pub struct CatalogHttpWorker {}
-impl CatalogHttpWorker {
-    pub async fn spawn(
-        config: &CatalogConfig,
-        vault: Arc<VaultService>,
-        token: &CancellationToken,
-    ) -> Outcome<JoinHandle<()>> {
-        // well known router
-        let well_known_router = WellKnownRoot::get_well_known_router(&config.into())?;
-        let health_router = HealthRouter::new().router();
-        // module catalog router
-        let router = Self::create_root_http_router(&config, vault.clone())
-            .await?
-            .merge(well_known_router)
-            .merge(health_router);
-        let port = config.common().get_internal_port(HostType::Http);
-        let addr = format!("0.0.0.0:{}", port);
-
-        let listener = TcpListener::bind(&addr)
-            .await
-            .map_err(|e| Errors::crazy("Error listening on the socket", Some(Box::new(e))))?;
-        tracing::info!("HTTP Catalog Service running on {}", addr);
-
-        let token = token.clone();
-        let handle = tokio::spawn(async move {
-            let server = serve(listener, router).with_graceful_shutdown(async move {
-                token.cancelled().await;
-                tracing::info!("HTTP Service received shutdown signal, draining connections...");
-            });
-            match server.await {
-                Ok(_) => tracing::info!("HTTP Service stopped successfully"),
-                Err(e) => tracing::error!("HTTP Service crashed: {}", e),
-            }
-        });
-
-        Ok(handle)
-    }
-    pub async fn create_root_http_router(
-        config: &CatalogConfig,
-        vault: Arc<VaultService>,
-    ) -> Outcome<Router> {
-        let router = create_root_http_router(config, vault.clone())
-            .await?
-            .fallback(Self::handler_404)
-            .layer(
-                TraceLayer::new_for_http()
-                    .make_span_with(
-                        |_req: &Request<_>| tracing::info_span!("request", id = %Uuid::new_v4()),
-                    )
-                    .on_request(|request: &Request<_>, _span: &tracing::Span| {
-                        tracing::info!("{} {}", request.method(), request.uri());
-                    })
-                    .on_response(DefaultOnResponse::new().level(tracing::Level::TRACE)),
-            );
-        Ok(router)
-    }
-    async fn handler_404(uri: axum::http::Uri) -> impl IntoResponse {
-        let err = CommonErrors::missing_resource_new(
-            &uri.to_string(),
-            "Route not found or Method not allowed",
-        );
-        tracing::info!("404 Not Found: {}", uri);
-        err.into_response()
-    }
-}
 
 pub async fn create_root_http_router(
     config: &CatalogConfig,
-    vault: Arc<VaultService>,
-) -> Outcome<Router> {
-    create_root_http_router_with_bus(config, vault, None).await
-}
-
-pub async fn create_root_http_router_with_bus(
-    config: &CatalogConfig,
-    vault: Arc<VaultService>,
+    root: &RootContext,
     event_bus: Option<events::EventBus>,
 ) -> Outcome<Router> {
     // ROOT Dependency Injection
-    let db_connection = vault.get_db_connection(config.common()).await?;
+    let db_connection = root.db.clone();
     let config = Arc::new(config.clone());
     let cache_connection_url = config.get_full_cache_url();
     let redis_client = redis::Client::open(cache_connection_url)
@@ -163,7 +76,7 @@ pub async fn create_root_http_router_with_bus(
 
     // facades
     let ssi_auth_config = Arc::new(config.ssi_auth().clone());
-    let service_client = Arc::new(ServiceHttpClient::from_common(config.common(), 3));
+    let service_client = root.service_client.clone();
     let mates_facade = Arc::new(MatesFacadeService::new(
         ssi_auth_config.clone(),
         service_client.clone(),
@@ -230,9 +143,6 @@ pub async fn create_root_http_router_with_bus(
             config.contracts().get_host(HostType::Http)
         ),
     ));
-    if let Some(bus) = event_bus.clone() {
-        TenantProvisioningListener::new(bus, tenant_provisioning.clone()).spawn();
-    }
     let tenant_router = TenantRouter::new(tenant_provisioning);
     let peer_catalog_service = Arc::new(PeerCatalogService::new(
         catalog_agent_cache.clone(),
@@ -241,13 +151,10 @@ pub async fn create_root_http_router_with_bus(
     let peer_catalog_router = PeerCatalogEntityRouter::new(peer_catalog_service.clone());
 
     // connector module
-    let connector_router = ConnectorSetup::new()
-        .build_control_router_with_bus(config.deref(), vault.clone(), event_bus.clone())
-        .await;
+    let connector_router =
+        ConnectorSetup::new().build_control_router(&config, root, event_bus.clone());
 
-    let validator: Arc<dyn common::auth::OauthTokenValidator> =
-        oauth::setup::composition::OAuthSetup::new()
-            .build_token_service(config.common().clone().into(), db_connection.clone());
+    let validator = root.validator.clone();
 
     // dsp
     let dsp_router = CatalogDSP::new(

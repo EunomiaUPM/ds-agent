@@ -15,28 +15,29 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use sea_orm::DatabaseConnection;
-use sea_orm_migration::{MigrationTrait, MigratorTrait};
-use ymir::errors::{Errors, Outcome};
+use axum::Router;
 
-use crate::data::migrations::get_auth_migrations;
+use crate::module_loader::service_module::ServiceModuleTrait;
 
-pub struct AuthMigrator;
+/// Wraps an agent's already-built HTTP router until the agent grows a real module;
+/// the router is merged at the level where the wrapper is registered.
+pub struct ToBeDeprecatedRouterModule {
+    name: &'static str,
+    router: Router,
+}
 
-impl MigratorTrait for AuthMigrator {
-    fn migrations() -> Vec<Box<dyn MigrationTrait>> {
-        let mut migrations: Vec<Box<dyn MigrationTrait>> = vec![];
-        let mut c_migrations = get_auth_migrations();
-
-        migrations.append(&mut c_migrations);
-        migrations
+impl ToBeDeprecatedRouterModule {
+    pub fn merged(name: &'static str, router: Router) -> Self {
+        Self { name, router }
     }
 }
 
-impl AuthMigrator {
-    pub async fn run(db_connection: &DatabaseConnection) -> Outcome<()> {
-        Self::refresh(db_connection)
-            .await
-            .map_err(|e| Errors::db("Error migrating data", Some(Box::new(e))))
+impl ServiceModuleTrait for ToBeDeprecatedRouterModule {
+    fn name(&self) -> &'static str {
+        self.name
+    }
+
+    fn http(&self) -> Option<(String, Router)> {
+        Some((String::new(), self.router.clone()))
     }
 }

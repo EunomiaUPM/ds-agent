@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Legacy HTTP plane of the negotiation agent, built as one router until it becomes a module.
+
 use crate::data::factory_sql::NegotiationAgentRepoForSql;
 use crate::data::factory_trait::NegotiationAgentRepoTrait;
 use crate::http::agreement::NegotiationAgentAgreementsRouter;
@@ -27,107 +29,21 @@ use crate::services::agreement::service::AgreementService;
 use crate::services::negotiation_message::service::NegotiationMessageService;
 use crate::services::negotiation_process::service::NegotiationProcessService;
 use crate::services::offer::service::OfferService;
-use axum::extract::Request;
-use axum::response::IntoResponse;
-use axum::{Router, serve};
+use axum::Router;
 use common::config::services::ContractsConfig;
 use common::config::services::traits::ContractsConfigTrait;
 use common::config::types::traits::CommonConfigTrait;
-use common::errors::CommonErrors;
-use common::well_known::WellKnownRoot;
+use common::module_loader::root_context::RootContext;
 use std::sync::Arc;
-use tokio::net::TcpListener;
-use tokio::task::JoinHandle;
-use tokio_util::sync::CancellationToken;
-use tower_http::trace::{DefaultOnResponse, TraceLayer};
-use uuid::Uuid;
-use ymir::config::traits::{ApiConfigTrait, HostsConfigTrait};
-use ymir::config::types::HostType;
-use ymir::errors::{Errors, Outcome};
-use ymir::http::HealthRouter;
-use ymir::services::vault::VaultTrait;
-use ymir::services::vault::global::VaultService;
+use ymir::config::traits::ApiConfigTrait;
 
-pub struct NegotiationHttpWorker {}
-impl NegotiationHttpWorker {
-    pub async fn spawn(
-        config: &ContractsConfig,
-        vault: Arc<VaultService>,
-        token: &CancellationToken,
-    ) -> Outcome<JoinHandle<()>> {
-        // well known router
-        let well_known_router = WellKnownRoot::get_well_known_router(&config.into())?;
-        let health_router = HealthRouter::new().router();
-        // module transfer router
-        let router = Self::create_root_http_router(config, vault.clone())
-            .await?
-            .merge(well_known_router)
-            .merge(health_router);
-        let port = config.common().get_internal_port(HostType::Http);
-        let addr = format!("0.0.0.0:{port}");
-
-        let listener = TcpListener::bind(&addr)
-            .await
-            .map_err(|e| Errors::crazy("Error listening on the socket", Some(Box::new(e))))?;
-        tracing::info!("HTTP Negotiation Service running on {}", addr);
-
-        let token = token.clone();
-        let handle = tokio::spawn(async move {
-            let server = serve(listener, router).with_graceful_shutdown(async move {
-                token.cancelled().await;
-                tracing::info!("HTTP Service received shutdown signal, draining connections...");
-            });
-            match server.await {
-                Ok(_) => tracing::info!("HTTP Service stopped successfully"),
-                Err(e) => tracing::error!("HTTP Service crashed: {}", e),
-            }
-        });
-
-        Ok(handle)
-    }
-    pub async fn create_root_http_router(
-        config: &ContractsConfig,
-        vault: Arc<VaultService>,
-    ) -> Outcome<Router> {
-        let router = create_root_http_router(config, vault.clone())
-            .await
-            .fallback(Self::handler_404)
-            .layer(
-                TraceLayer::new_for_http()
-                    .make_span_with(
-                        |_req: &Request<_>| tracing::info_span!("request", id = %Uuid::new_v4()),
-                    )
-                    .on_request(|request: &Request<_>, _span: &tracing::Span| {
-                        tracing::info!("{} {}", request.method(), request.uri());
-                    })
-                    .on_response(DefaultOnResponse::new().level(tracing::Level::TRACE)),
-            );
-        Ok(router)
-    }
-    async fn handler_404(uri: axum::http::Uri) -> impl IntoResponse {
-        let err = CommonErrors::missing_resource_new(
-            &uri.to_string(),
-            "Route not found or Method not allowed",
-        );
-        tracing::info!("404 Not Found: {}", uri);
-        err.into_response()
-    }
-}
-
-pub async fn create_root_http_router(config: &ContractsConfig, vault: Arc<VaultService>) -> Router {
-    create_root_http_router_with_bus(config, vault, None).await
-}
-
-pub async fn create_root_http_router_with_bus(
+pub async fn create_root_http_router(
     config: &ContractsConfig,
-    vault: Arc<VaultService>,
+    root: &RootContext,
     event_bus: Option<events::EventBus>,
 ) -> Router {
     // ROOT Dependency Injection
-    let db_connection = vault
-        .get_db_connection(config.common())
-        .await
-        .expect("Unable to retrieve database connection");
+    let db_connection = root.db.clone();
     let config = Arc::new(config.clone());
     let negotiation_repo = Arc::new(NegotiationAgentRepoForSql::create_repo(
         db_connection.clone(),
@@ -165,18 +81,15 @@ pub async fn create_root_http_router_with_bus(
     let offer_router = NegotiationAgentOffersRouter::new(offer_service.clone());
     let agreement_router = NegotiationAgentAgreementsRouter::new(agreement_service.clone());
 
-    let validator: Arc<dyn common::auth::OauthTokenValidator> =
-        oauth::setup::composition::OAuthSetup::new()
-            .build_token_service(config.common().clone().into(), db_connection.clone());
+    let validator = root.validator.clone();
 
-    use common::auth::ServiceHttpClient;
     use common::facades::ssi_auth_facade::mates_facade::MatesFacadeService;
     use common::facades::ssi_auth_facade::ssi_auth_facade::SSIAuthFacadeService;
 
     // dsp
     let ssi_auth_config = Arc::new(config.ssi_auth().clone());
 
-    let service_client = Arc::new(ServiceHttpClient::from_common(config.common(), 10));
+    let service_client = root.service_client.clone();
     let ssi_auth_service = Arc::new(SSIAuthFacadeService::new(
         ssi_auth_config.clone(),
         service_client.clone(),

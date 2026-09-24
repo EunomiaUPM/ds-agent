@@ -41,6 +41,8 @@
 //! (e.g. `oauth::get_oauth_migrations()`) without building any module.
 
 pub mod module_group;
+pub mod root_context;
 pub mod service_composer;
 pub mod service_module;
+pub mod to_be_deprecated;
 mod utils;

@@ -19,11 +19,13 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use chrono::Utc;
+use common::boot::workers::BackgroundWorker;
 use tokio::sync::Semaphore;
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, info, warn};
 use urn::Urn;
 use uuid::Uuid;
+use ymir::errors::Outcome;
 
 use crate::data::repo::{
     EventDeadLetterRepo, EventDeliveryRepo, EventStoreRepo, EventSubscriptionRepo,
@@ -35,6 +37,7 @@ use crate::services::event_bus::dispatcher::EventDispatcher;
 use crate::services::event_bus::policy::RetryPolicy;
 
 // Background worker that periodically inspects and executes due webhook retries.
+#[derive(Clone)]
 pub struct RetryWorker {
     event_repo: Arc<dyn EventStoreRepo>,
     subscription_repo: Arc<dyn EventSubscriptionRepo>,
@@ -70,32 +73,6 @@ impl RetryWorker {
     pub fn with_concurrency_limit(mut self, limit: usize) -> Self {
         self.concurrency_limit = limit.max(1);
         self
-    }
-
-    // Run the poller loop until cancelled by the given CancellationToken.
-    pub async fn run(self: Arc<Self>, cancel_token: CancellationToken) {
-        let interval_duration = self.policy.poll_interval();
-        info!(
-            interval_secs = interval_duration.as_secs(),
-            "Starting event bus retry worker loop"
-        );
-
-        let mut ticker = tokio::time::interval(interval_duration);
-        ticker.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
-
-        loop {
-            tokio::select! {
-                _ = cancel_token.cancelled() => {
-                    info!("Event bus retry worker received cancellation signal, stopping");
-                    break;
-                }
-                _ = ticker.tick() => {
-                    if let Err(e) = self.process_batch().await {
-                        error!(error = %e, "Error during retry worker batch execution");
-                    }
-                }
-            }
-        }
     }
 
     // Fetch and process one batch of due retries.
@@ -318,5 +295,39 @@ impl RetryWorker {
                 }
             }
         }
+    }
+}
+
+#[async_trait::async_trait]
+impl BackgroundWorker for RetryWorker {
+    fn name(&self) -> &'static str {
+        "event-retry"
+    }
+
+    // Polls due retries until cancelled.
+    async fn run(self: Box<Self>, cancel_token: CancellationToken) -> Outcome<()> {
+        let interval_duration = self.policy.poll_interval();
+        info!(
+            interval_secs = interval_duration.as_secs(),
+            "Starting event bus retry worker loop"
+        );
+
+        let mut ticker = tokio::time::interval(interval_duration);
+        ticker.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+
+        loop {
+            tokio::select! {
+                _ = cancel_token.cancelled() => {
+                    info!("Event bus retry worker received cancellation signal, stopping");
+                    break;
+                }
+                _ = ticker.tick() => {
+                    if let Err(e) = self.process_batch().await {
+                        error!(error = %e, "Error during retry worker batch execution");
+                    }
+                }
+            }
+        }
+        Ok(())
     }
 }

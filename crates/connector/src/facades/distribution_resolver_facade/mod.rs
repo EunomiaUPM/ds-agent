@@ -22,5 +22,10 @@ pub mod data_service_resolver_facade;
 #[cfg_attr(test, mockall::automock)]
 #[async_trait::async_trait]
 pub trait DistributionFacadeTrait: Send + Sync {
-    async fn resolve_distribution_by_id(&self, distribution_id: &String) -> Outcome<()>;
+    /// Fails unless the catalog holds the distribution within `tenant_id`.
+    async fn resolve_distribution_by_id(
+        &self,
+        tenant_id: &str,
+        distribution_id: &str,
+    ) -> Outcome<()>;
 }

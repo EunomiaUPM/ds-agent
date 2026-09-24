@@ -47,7 +47,10 @@ impl AppContext {
         event_bus: Option<events::EventBus>,
     ) -> Self {
         let repo = Arc::new(ConnectorRepoForSql::create_repo(root.db.clone()));
-        let distribution_facade = Arc::new(DistributionFacadeServiceForConnector::new(config));
+        let distribution_facade = Arc::new(DistributionFacadeServiceForConnector::new(
+            config,
+            root.service_client.clone(),
+        ));
         let instance_svc = Arc::new(
             ConnectorInstanceService::new(
                 repo.clone(),

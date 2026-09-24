@@ -149,8 +149,8 @@ fn mock_service() -> ConnectorInstanceService {
     distribution_facade
         .expect_resolve_distribution_by_id()
         .once()
-        .with(mockall::predicate::always())
-        .returning(|_| Ok(()));
+        .with(mockall::predicate::always(), mockall::predicate::always())
+        .returning(|_, _| Ok(()));
     let distribution_facade = Arc::new(distribution_facade);
 
     let conector_instance = ConnectorInstanceService::new(
@@ -349,8 +349,9 @@ async fn upsert_forces_caller_tenant_for_non_admin() {
     let mut distro_facade = MockDistributionFacadeTrait::new();
     distro_facade
         .expect_resolve_distribution_by_id()
+        .withf(|tenant, _| tenant == "tenant-2")
         .times(1)
-        .returning(|_| Ok(()));
+        .returning(|_, _| Ok(()));
 
     let svc = build_service(template_repo, instance_repo, distro_repo, distro_facade);
 

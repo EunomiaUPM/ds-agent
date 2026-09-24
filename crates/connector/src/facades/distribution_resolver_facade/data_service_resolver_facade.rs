@@ -16,36 +16,58 @@
  */
 
 use crate::facades::distribution_resolver_facade::DistributionFacadeTrait;
+use common::auth::ServiceHttpClient;
 use common::config::types::traits::CommonConfigTrait;
 use serde_json::Value;
-use ymir::config::traits::HostsConfigTrait;
+use std::sync::Arc;
+use ymir::config::traits::{ApiConfigTrait, HostsConfigTrait};
 use ymir::config::types::HostType;
-use ymir::errors::Outcome;
-use ymir::services::client::ClientExt;
-use ymir::utils::http_client;
+use axum::http::StatusCode;
+use ymir::errors::{Errors, Outcome, PetitionFailure};
 
+/// Checks distributions against the catalog API, authenticated with the service token.
 pub struct DistributionFacadeServiceForConnector {
-    catalog_base_url: String,
+    distributions_url: String,
+    service_client: Arc<ServiceHttpClient>,
 }
 
 impl DistributionFacadeServiceForConnector {
-    pub fn new(config: &dyn CommonConfigTrait) -> Self {
+    pub fn new(config: &dyn CommonConfigTrait, service_client: Arc<ServiceHttpClient>) -> Self {
+        let common = config.common();
         Self {
-            catalog_base_url: config.common().get_host(HostType::Http),
+            distributions_url: format!(
+                "{}{}/catalog-agent/distributions",
+                common.get_host(HostType::Http),
+                common.get_api_version()
+            ),
+            service_client,
         }
     }
 }
 
 #[async_trait::async_trait]
 impl DistributionFacadeTrait for DistributionFacadeServiceForConnector {
-    async fn resolve_distribution_by_id(&self, distribution_id: &String) -> Outcome<()> {
-        let distribution_url = format!(
-            "{}/api/v1/catalog-agent/distributions/{}",
-            self.catalog_base_url, distribution_id
-        );
-        http_client()
-            .get_json::<Value>(distribution_url.as_str(), None)
-            .await?;
-        Ok(())
+    async fn resolve_distribution_by_id(
+        &self,
+        tenant_id: &str,
+        distribution_id: &str,
+    ) -> Outcome<()> {
+        let url = format!("{}/{distribution_id}", self.distributions_url);
+        match self
+            .service_client
+            .get_json::<Value>(&url, Some(tenant_id))
+            .await
+        {
+            Ok(_) => Ok(()),
+            Err(Errors::PetitionError {
+                failure: PetitionFailure::HttpStatus(StatusCode::NOT_FOUND),
+                ..
+            }) => Err(Errors::missing_resource(
+                distribution_id,
+                "Distribution not found in the tenant catalog",
+                None,
+            )),
+            Err(e) => Err(e),
+        }
     }
 }

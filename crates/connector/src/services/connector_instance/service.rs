@@ -195,7 +195,7 @@ impl ConnectorInstanceServiceTrait for ConnectorInstanceService {
         let distribution_id = instance_dto.distribution_id.to_string();
         let _ = self
             .distribution_facade
-            .resolve_distribution_by_id(&distribution_id)
+            .resolve_distribution_by_id(&target_tenant, &distribution_id)
             .await?;
 
         // validate instance parameters

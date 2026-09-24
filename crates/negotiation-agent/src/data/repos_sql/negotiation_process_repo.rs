@@ -286,20 +286,27 @@ impl NegotiationProcessRepoTrait for NegotiationProcessRepoForSql {
         }
     }
 
-    async fn delete_negotiation_process(&self, tenant_id: Option<String>, id: &Urn) -> Outcome<()> {
+    async fn delete_negotiation_process(
+        &self,
+        tenant_id: Option<String>,
+        id: &Urn,
+    ) -> Outcome<String> {
         let id_str = id.to_string();
         let delete_result = negotiation_process::Entity::delete_many()
             .filter(negotiation_process::Column::Id.eq(&id_str))
             .apply_if(tenant_id, |q, t| {
                 q.filter(negotiation_process::Column::TenantId.eq(t))
             })
-            .exec(&self.db_connection)
+            .exec_with_returning(&self.db_connection)
             .await;
         match delete_result {
-            Ok(res) if res.rows_affected == 0 => {
-                Err(NegotiationProcessRepoErrors::NegotiationProcessNotFound.into_errors())
-            }
-            Ok(_) => Ok(()),
+            Ok(rows) => rows
+                .into_iter()
+                .next()
+                .map(|row| row.tenant_id)
+                .ok_or_else(|| {
+                    NegotiationProcessRepoErrors::NegotiationProcessNotFound.into_errors()
+                }),
             Err(e) => Err(
                 NegotiationProcessRepoErrors::ErrorDeletingNegotiationProcess(e.into())
                     .into_errors(),

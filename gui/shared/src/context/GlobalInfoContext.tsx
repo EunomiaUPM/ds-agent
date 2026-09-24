@@ -8,7 +8,6 @@ export interface GlobalInfoContextType {
   dsrole: string;
   api_gateway_base: string;
   api_gateway: string;
-  api_gateway_callback_address: string;
   api_gateway_dsp_base: string;
 }
 
@@ -95,7 +94,6 @@ export const GlobalInfoContextProvider = ({ children }: { children: ReactNode })
       dsrole: configRole,
       api_gateway_base: prefix,
       api_gateway: gateway,
-      api_gateway_callback_address: `${prefix}/admin/api/incoming-notification`,
       api_gateway_dsp_base: dspBase,
     };
   }, [catalogType, configRole, apiGatewayBase, dspBase]);

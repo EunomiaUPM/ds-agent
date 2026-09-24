@@ -108,11 +108,11 @@ impl<D: Send + Sync + 'static> EntityCacheTrait<D> for NoopCache<D> {
         Ok(())
     }
 
-    async fn get_main(&self) -> Outcome<Option<D>> {
+    async fn get_main(&self, _tenant_id: &str) -> Outcome<Option<D>> {
         Ok(None)
     }
 
-    async fn set_main(&self, _id: &Urn, _model: &D) -> Outcome<()> {
+    async fn set_main(&self, _tenant_id: &str, _id: &Urn, _model: &D) -> Outcome<()> {
         Ok(())
     }
 

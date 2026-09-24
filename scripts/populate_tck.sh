@@ -17,12 +17,16 @@ ok()   { echo -e "\033[32m  ✓ $*\033[0m" >&2; }
 die()  { echo -e "\033[31m  ✗ $*\033[0m" >&2; exit 1; }
 new_uuid() { uuidgen 2>/dev/null | tr '[:upper:]' '[:lower:]' || cat /proc/sys/kernel/random/uuid; }
 
+# shellcheck source=lib/auth.sh
+source "$SCRIPT_DIR/lib/auth.sh"
+
 curl_j() {
   local method=$1 url=$2 body=${3:-}
+  eunomia_auth "$url"
   if [[ -n "$body" ]]; then
-    curl -sf -X "$method" -H "Content-Type: application/json" -d "$body" "$url"
+    curl -sf -X "$method" ${AUTH_ARGS[@]+"${AUTH_ARGS[@]}"} -H "Content-Type: application/json" -d "$body" "$url"
   else
-    curl -sf -X "$method" -H "Content-Type: application/json" "$url"
+    curl -sf -X "$method" ${AUTH_ARGS[@]+"${AUTH_ARGS[@]}"} -H "Content-Type: application/json" "$url"
   fi
 }
 
@@ -56,7 +60,7 @@ seed_catalog() {
   ok "Template: $TPL_NAME v$TPL_VER"
 
   CONSUMER_DID=$(curl_j GET "$PROVIDER_URL/api/v1/mates/all" \
-    | jq -r '[.[] | select(.is_me==false)] | first | .participant_id // empty')
+    | jq -r '[.items[] | select(.participant_type == "Agent")] | first | .participant_id // empty')
   [[ -z "$CONSUMER_DID" ]] && die "Could not resolve consumer DID from provider mates"
 
   PROVIDER_DID=$(curl -sf "$PROVIDER_URL/.well-known/did.json" | jq -r '.id // empty')

@@ -164,6 +164,7 @@ impl NegotiationMessageServiceTrait for NegotiationMessageService {
         let view = NegotiationMessageView::assemble(created, None, None);
         events::emit_action!(
             self.event_bus,
+            &view.inner.tenant_id,
             crate::EVENT_PREFIX,
             "message",
             "create",
@@ -175,11 +176,13 @@ impl NegotiationMessageServiceTrait for NegotiationMessageService {
     #[tracing::instrument(level = "info", skip(self, scope), fields(id = %id), err)]
     async fn delete(&self, scope: &AccessScope, id: &Urn) -> Outcome<()> {
         scope.require_write()?;
-        self.message_repo
+        let owner = self
+            .message_repo
             .delete_negotiation_message(scope.tenant_filter().map(str::to_string), id)
             .await?;
         events::emit_action!(
             self.event_bus,
+            &owner,
             crate::EVENT_PREFIX,
             "message",
             "delete",

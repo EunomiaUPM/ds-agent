@@ -11,7 +11,6 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  */
 import {
   useInfiniteQuery,
-  useMutation,
   useQuery
 } from '@tanstack/react-query';
 import type {
@@ -20,27 +19,23 @@ import type {
   DefinedUseInfiniteQueryResult,
   DefinedUseQueryResult,
   InfiniteData,
-  MutationFunction,
   QueryClient,
   QueryFunction,
   QueryKey,
   UndefinedInitialDataOptions,
   UseInfiniteQueryOptions,
   UseInfiniteQueryResult,
-  UseMutationOptions,
-  UseMutationResult,
   UseQueryOptions,
   UseQueryResult
 } from '@tanstack/react-query';
 
 import type {
   ErrorInfo,
-  FeConfig,
-  PostIncomingNotificationBody
+  FeConfig
 } from '.././model';
 
 import { customInstance } from '../../orval-mutator';
-import type { ErrorType , BodyType } from '../../orval-mutator';
+import type { ErrorType } from '../../orval-mutator';
 
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
@@ -246,321 +241,6 @@ export function useGetFeConfig<TData = Awaited<ReturnType<typeof getFeConfig>>, 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
 
   const queryOptions = getGetFeConfigQueryOptions(options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-
-
-
-/**
- * @summary Send a notification to connected WebSocket clients
- */
-export type postIncomingNotificationResponse202 = {
-  data: void
-  status: 202
-}
-
-export type postIncomingNotificationResponse400 = {
-  data: ErrorInfo
-  status: 400
-}
-
-export type postIncomingNotificationResponse401 = {
-  data: ErrorInfo
-  status: 401
-}
-
-export type postIncomingNotificationResponse403 = {
-  data: ErrorInfo
-  status: 403
-}
-
-export type postIncomingNotificationResponse404 = {
-  data: ErrorInfo
-  status: 404
-}
-
-export type postIncomingNotificationResponse500 = {
-  data: ErrorInfo
-  status: 500
-}
-    
-export type postIncomingNotificationResponseSuccess = (postIncomingNotificationResponse202) & {
-  headers: Headers;
-};
-export type postIncomingNotificationResponseError = (postIncomingNotificationResponse400 | postIncomingNotificationResponse401 | postIncomingNotificationResponse403 | postIncomingNotificationResponse404 | postIncomingNotificationResponse500) & {
-  headers: Headers;
-};
-
-export type postIncomingNotificationResponse = (postIncomingNotificationResponseSuccess | postIncomingNotificationResponseError)
-
-export const getPostIncomingNotificationUrl = () => {
-
-
-  
-
-  return `/incoming-notification`
-}
-
-export const postIncomingNotification = async (postIncomingNotificationBody: PostIncomingNotificationBody, options?: RequestInit): Promise<postIncomingNotificationResponse> => {
-  
-  return customInstance<postIncomingNotificationResponse>(getPostIncomingNotificationUrl(),
-  {      
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      postIncomingNotificationBody,)
-  }
-);}
-
-
-
-
-export const getPostIncomingNotificationMutationOptions = <TError = ErrorType<ErrorInfo>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postIncomingNotification>>, TError,{data: BodyType<PostIncomingNotificationBody>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof postIncomingNotification>>, TError,{data: BodyType<PostIncomingNotificationBody>}, TContext> => {
-
-const mutationKey = ['postIncomingNotification'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-      
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postIncomingNotification>>, {data: BodyType<PostIncomingNotificationBody>}> = (props) => {
-          const {data} = props ?? {};
-
-          return  postIncomingNotification(data,requestOptions)
-        }
-
-
-
-        
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type PostIncomingNotificationMutationResult = NonNullable<Awaited<ReturnType<typeof postIncomingNotification>>>
-    export type PostIncomingNotificationMutationBody = BodyType<PostIncomingNotificationBody>
-    export type PostIncomingNotificationMutationError = ErrorType<ErrorInfo>
-
-    /**
- * @summary Send a notification to connected WebSocket clients
- */
-export const usePostIncomingNotification = <TError = ErrorType<ErrorInfo>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postIncomingNotification>>, TError,{data: BodyType<PostIncomingNotificationBody>}, TContext>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof postIncomingNotification>>,
-        TError,
-        {data: BodyType<PostIncomingNotificationBody>},
-        TContext
-      > => {
-      return useMutation(getPostIncomingNotificationMutationOptions(options), queryClient);
-    }
-    /**
- * @summary WebSocket endpoint for real-time notifications
- */
-export type websocketResponse101 = {
-  data: void
-  status: 101
-}
-
-export type websocketResponse400 = {
-  data: ErrorInfo
-  status: 400
-}
-
-export type websocketResponse401 = {
-  data: ErrorInfo
-  status: 401
-}
-
-export type websocketResponse403 = {
-  data: ErrorInfo
-  status: 403
-}
-
-export type websocketResponse404 = {
-  data: ErrorInfo
-  status: 404
-}
-
-export type websocketResponse500 = {
-  data: ErrorInfo
-  status: 500
-}
-    
-;
-export type websocketResponseError = (websocketResponse101 | websocketResponse400 | websocketResponse401 | websocketResponse403 | websocketResponse404 | websocketResponse500) & {
-  headers: Headers;
-};
-
-export type websocketResponse = (websocketResponseError)
-
-export const getWebsocketUrl = () => {
-
-
-  
-
-  return `/ws`
-}
-
-export const websocket = async ( options?: RequestInit): Promise<websocketResponse> => {
-  
-  return customInstance<websocketResponse>(getWebsocketUrl(),
-  {      
-    ...options,
-    method: 'GET'
-    
-    
-  }
-);}
-
-
-
-
-
-export const getWebsocketInfiniteQueryKey = () => {
-    return [
-    'infinite', `/ws`
-    ] as const;
-    }
-
-export const getWebsocketQueryKey = () => {
-    return [
-    `/ws`
-    ] as const;
-    }
-
-    
-export const getWebsocketInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof websocket>>>, TError = ErrorType<void | ErrorInfo>>( options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof websocket>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getWebsocketInfiniteQueryKey();
-
-  
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof websocket>>> = ({ signal }) => websocket({ signal, ...requestOptions });
-
-      
-
-      
-
-   return  { queryKey, queryFn,   ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof websocket>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
-}
-
-export type WebsocketInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof websocket>>>
-export type WebsocketInfiniteQueryError = ErrorType<void | ErrorInfo>
-
-
-export function useWebsocketInfinite<TData = InfiniteData<Awaited<ReturnType<typeof websocket>>>, TError = ErrorType<void | ErrorInfo>>(
-  options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof websocket>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof websocket>>,
-          TError,
-          Awaited<ReturnType<typeof websocket>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
-export function useWebsocketInfinite<TData = InfiniteData<Awaited<ReturnType<typeof websocket>>>, TError = ErrorType<void | ErrorInfo>>(
-  options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof websocket>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof websocket>>,
-          TError,
-          Awaited<ReturnType<typeof websocket>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
-export function useWebsocketInfinite<TData = InfiniteData<Awaited<ReturnType<typeof websocket>>>, TError = ErrorType<void | ErrorInfo>>(
-  options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof websocket>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
-/**
- * @summary WebSocket endpoint for real-time notifications
- */
-
-export function useWebsocketInfinite<TData = InfiniteData<Awaited<ReturnType<typeof websocket>>>, TError = ErrorType<void | ErrorInfo>>(
-  options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof websocket>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient 
- ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
-
-  const queryOptions = getWebsocketInfiniteQueryOptions(options)
-
-  const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-
-
-
-export const getWebsocketQueryOptions = <TData = Awaited<ReturnType<typeof websocket>>, TError = ErrorType<void | ErrorInfo>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof websocket>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getWebsocketQueryKey();
-
-  
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof websocket>>> = ({ signal }) => websocket({ signal, ...requestOptions });
-
-      
-
-      
-
-   return  { queryKey, queryFn,   ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof websocket>>, TError, TData> & { queryKey: DataTag<QueryKey, TData> }
-}
-
-export type WebsocketQueryResult = NonNullable<Awaited<ReturnType<typeof websocket>>>
-export type WebsocketQueryError = ErrorType<void | ErrorInfo>
-
-
-export function useWebsocket<TData = Awaited<ReturnType<typeof websocket>>, TError = ErrorType<void | ErrorInfo>>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof websocket>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof websocket>>,
-          TError,
-          Awaited<ReturnType<typeof websocket>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
-export function useWebsocket<TData = Awaited<ReturnType<typeof websocket>>, TError = ErrorType<void | ErrorInfo>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof websocket>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof websocket>>,
-          TError,
-          Awaited<ReturnType<typeof websocket>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
-export function useWebsocket<TData = Awaited<ReturnType<typeof websocket>>, TError = ErrorType<void | ErrorInfo>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof websocket>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
-/**
- * @summary WebSocket endpoint for real-time notifications
- */
-
-export function useWebsocket<TData = Awaited<ReturnType<typeof websocket>>, TError = ErrorType<void | ErrorInfo>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof websocket>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient 
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
-
-  const queryOptions = getWebsocketQueryOptions(options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
 

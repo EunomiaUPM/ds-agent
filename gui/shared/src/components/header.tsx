@@ -36,6 +36,7 @@ import { Separator } from "shared/src/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "shared/src/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "shared/src/components/ui/popover";
 import { ThemeToggle } from "shared/src/components/ui/theme-toggle";
+import { TenantSelector } from "shared/src/components/TenantSelector";
 
 // =============================================================================
 // TYPES
@@ -361,6 +362,8 @@ export const Header = ({ onSignOut }: { onSignOut?: () => void } = {}) => {
         >
           <Bell className="h-4 w-4" />
         </Link>
+
+        <TenantSelector />
 
         <ThemeToggle />
 

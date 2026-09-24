@@ -177,20 +177,20 @@ impl PatRepository for SeaOrmPatRepository {
         models.into_iter().map(orm::Model::into_domain).collect()
     }
 
-    async fn revoke(&self, tenant_id: Option<String>, id: Uuid) -> Outcome<()> {
+    async fn revoke(&self, tenant_id: Option<String>, id: Uuid) -> Outcome<String> {
         use sea_orm::sea_query::Expr;
-        let res = orm::Entity::update_many()
+        let revoked = orm::Entity::update_many()
             .col_expr(orm::Column::Revoked, Expr::value(true))
             .filter(orm::Column::Id.eq(id))
             .apply_if(tenant_id, |q, t| q.filter(orm::Column::TenantId.eq(t)))
-            .exec(self.db.as_ref())
+            .exec_with_returning(self.db.as_ref())
             .await
             .map_err(|e| PatRepositoryError::Db(Box::new(e)).into_errors())?;
-
-        if res.rows_affected == 0 {
-            return Err(PatRepositoryError::NotFound.into_errors());
-        }
-        Ok(())
+        revoked
+            .into_iter()
+            .next()
+            .map(|pat| pat.tenant_id)
+            .ok_or_else(|| PatRepositoryError::NotFound.into_errors())
     }
 
     async fn update_last_used(&self, id: Uuid) -> Outcome<()> {

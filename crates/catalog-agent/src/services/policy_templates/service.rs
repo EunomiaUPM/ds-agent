@@ -145,6 +145,7 @@ impl PolicyTemplateServiceTrait for PolicyTemplateService {
         let dto: PolicyTemplateDto = PolicyTemplateDto::try_from(policy_template)?;
         events::emit_action!(
             self.event_bus,
+            &dto.tenant_id,
             crate::EVENT_PREFIX,
             "policy_template",
             "create",
@@ -170,6 +171,7 @@ impl PolicyTemplateServiceTrait for PolicyTemplateService {
             .await?;
         events::emit_action!(
             self.event_bus,
+            scope.acting_tenant(),
             crate::EVENT_PREFIX,
             "policy_template",
             "delete",

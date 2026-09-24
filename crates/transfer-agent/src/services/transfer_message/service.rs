@@ -154,6 +154,7 @@ impl TransferMessageServiceTrait for TransferMessageService {
         let view = TransferMessageView::assemble(message);
         events::emit_action!(
             self.event_bus,
+            &view.tenant_id,
             crate::EVENT_PREFIX,
             "message",
             "create",
@@ -167,11 +168,13 @@ impl TransferMessageServiceTrait for TransferMessageService {
     async fn delete(&self, scope: &AccessScope, id: &Urn) -> Outcome<()> {
         scope.require_write()?;
         // Hit db
-        self.message_repo
+        let owner = self
+            .message_repo
             .delete_transfer_message(scope.tenant_filter().map(str::to_string), id)
             .await?;
         events::emit_action!(
             self.event_bus,
+            &owner,
             crate::EVENT_PREFIX,
             "message",
             "delete",

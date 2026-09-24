@@ -13,7 +13,6 @@ path = "src/main.rs"
 
 [dependencies]
 common = { version = "0.4.0", path = "../common", default-features = false }
-events = { version = "0.4.0", path = "../events" }
 
 serde_json = { workspace = true }
 clap = { workspace = true }
@@ -31,7 +30,5 @@ rust-embed = { workspace = true }
 ymir = { workspace = true }
 tokio-util = { workspace = true }
 uuid = { workspace = true }
-serde = { workspace = true }
 async-trait = { workspace = true }
 json_to_table = { workspace = true }
-urn = { workspace = true }

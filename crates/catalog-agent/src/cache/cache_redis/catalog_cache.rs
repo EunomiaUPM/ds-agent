@@ -102,13 +102,13 @@ mod test_catalog_complete {
 
         // Debug keys
         dbg!(cache.format_key_name_with_id("catalogs", &id));
-        dbg!(cache.format_key_name_main("catalogs"));
+        dbg!(cache.format_key_name_main("catalogs", "tenant-1"));
 
         // Set main entry
-        cache.set_main(&id, &dto).await.unwrap();
+        cache.set_main("tenant-1", &id, &dto).await.unwrap();
 
         // Retrieve via main pointer
-        let result = cache.get_main().await.unwrap();
+        let result = cache.get_main("tenant-1").await.unwrap();
         dbg!(&result);
 
         assert!(result.is_some());

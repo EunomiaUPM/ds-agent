@@ -21,22 +21,22 @@ use async_trait::async_trait;
 use ymir::config::types::HostType;
 use ymir::errors::Outcome;
 
+use crate::auth::ServiceHttpClient;
 use crate::config::types::min_known_config::MinKnownConfig;
 use crate::config::types::traits::MinKnownConfigTrait;
 use crate::facades::ssi_auth_facade::SSIAuthFacadeTrait;
 use crate::facades::VerifyTokenRequest;
-use crate::http_client::HttpClient;
 use ymir::data::entities::shared::participant::Model as Mates;
 
 const SSI_AUTH_FACADE_VERIFICATION_URL: &str = "/api/v1/mates/token";
 
 pub struct SSIAuthFacadeService {
     config: Arc<MinKnownConfig>,
-    client: Arc<HttpClient>,
+    client: Arc<ServiceHttpClient>,
 }
 
 impl SSIAuthFacadeService {
-    pub fn new(config: Arc<MinKnownConfig>, client: Arc<HttpClient>) -> Self {
+    pub fn new(config: Arc<MinKnownConfig>, client: Arc<ServiceHttpClient>) -> Self {
         Self { config, client }
     }
 }
@@ -48,7 +48,11 @@ impl SSIAuthFacadeTrait for SSIAuthFacadeService {
         let url = format!("{}{}", base_url, SSI_AUTH_FACADE_VERIFICATION_URL);
         let mate = self
             .client
-            .post_json::<VerifyTokenRequest, Mates>(url.as_str(), &VerifyTokenRequest { token })
+            .post_json::<VerifyTokenRequest, Mates>(
+                url.as_str(),
+                None,
+                &VerifyTokenRequest { token },
+            )
             .await?;
         Ok(mate)
     }

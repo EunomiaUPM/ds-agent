@@ -271,21 +271,22 @@ impl AgreementRepoTrait for AgreementRepoForSql {
         }
     }
 
-    async fn delete_agreement(&self, tenant_id: Option<String>, id: &Urn) -> Outcome<()> {
+    async fn delete_agreement(&self, tenant_id: Option<String>, id: &Urn) -> Outcome<String> {
         let aid = id.to_string();
         let result = agreement::Entity::delete_many()
             .filter(agreement::Column::Id.eq(&aid))
             .apply_if(tenant_id, |q, t| {
                 q.filter(agreement::Column::TenantId.eq(t))
             })
-            .exec(&self.db_connection)
+            .exec_with_returning(&self.db_connection)
             .await;
 
         match result {
-            Ok(delete_result) => match delete_result.rows_affected {
-                0 => Err(AgreementRepoErrors::AgreementNotFound.into_errors()),
-                _ => Ok(()),
-            },
+            Ok(rows) => rows
+                .into_iter()
+                .next()
+                .map(|row| row.tenant_id)
+                .ok_or_else(|| AgreementRepoErrors::AgreementNotFound.into_errors()),
             Err(e) => Err(AgreementRepoErrors::ErrorDeletingAgreement(e.into()).into_errors()),
         }
     }

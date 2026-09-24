@@ -37,7 +37,8 @@ pub trait PatRepository: Send + Sync {
     async fn get_batch(&self, tenant_id: &str, ids: &[Uuid]) -> Outcome<Vec<PersonalAccessToken>>;
     async fn get_by_hash(&self, token_hash: &str) -> Outcome<Option<PersonalAccessToken>>;
     async fn list_by_tenant(&self, tenant_id: &str) -> Outcome<Vec<PersonalAccessToken>>;
-    async fn revoke(&self, tenant_id: Option<String>, id: Uuid) -> Outcome<()>;
+    /// Returns the tenant of the revoked token.
+    async fn revoke(&self, tenant_id: Option<String>, id: Uuid) -> Outcome<String>;
     async fn update_last_used(&self, id: Uuid) -> Outcome<()>;
 }
 

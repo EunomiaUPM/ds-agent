@@ -16,8 +16,4 @@ export type GetAllParticipantsParams = {
  * Filter mates by participant type. Defaults to `all`.
  */
 type?: GetAllParticipantsType;
-/**
- * When `true`, excludes the own identity (is_me) from the results.
- */
-exclude?: boolean;
 };

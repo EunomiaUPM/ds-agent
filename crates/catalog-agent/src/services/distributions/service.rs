@@ -221,6 +221,7 @@ impl DistributionServiceTrait for DistributionService {
 
         events::emit_action!(
             self.event_bus,
+            &dto.inner.tenant_id,
             crate::EVENT_PREFIX,
             "distribution",
             "edit",
@@ -260,6 +261,7 @@ impl DistributionServiceTrait for DistributionService {
 
         events::emit_action!(
             self.event_bus,
+            &dto.inner.tenant_id,
             crate::EVENT_PREFIX,
             "distribution",
             "create",
@@ -291,6 +293,7 @@ impl DistributionServiceTrait for DistributionService {
 
         events::emit_action!(
             self.event_bus,
+            &deleted.tenant_id,
             crate::EVENT_PREFIX,
             "distribution",
             "delete",

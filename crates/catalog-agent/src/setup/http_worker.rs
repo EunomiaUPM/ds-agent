@@ -19,26 +19,33 @@ use crate::cache::factory_redis::CatalogAgentCacheForRedis;
 use crate::data::factory_sql::CatalogAgentRepoForSql;
 use crate::http::catalogs::CatalogEntityRouter;
 use crate::http::data_services::DataServiceEntityRouter;
+use crate::http::dataset_offerings::DatasetOfferingRouter;
 use crate::http::datasets::DatasetEntityRouter;
 use crate::http::distributions::DistributionEntityRouter;
 use crate::http::odrl_policies::OdrlOfferEntityRouter;
 use crate::http::peer_catalog::PeerCatalogEntityRouter;
 use crate::http::policy_templates::PolicyTemplateEntityRouter;
+use crate::http::tenants::TenantRouter;
 use crate::protocols::dsp::CatalogDSP;
 use crate::protocols::protocol::ProtocolPluginTrait;
 use crate::services::catalogs::service::CatalogService;
 use crate::services::data_services::service::DataServiceService;
+use crate::services::dataset_offerings::service::DatasetOfferingService;
 use crate::services::datasets::service::DatasetService;
 use crate::services::distributions::service::DistributionService;
 use crate::services::odrl_policies::service::OdrlPolicyService;
 use crate::services::peer_catalogs::service::PeerCatalogService;
 use crate::services::policy_instantiation::service::PolicyInstantiationService;
 use crate::services::policy_templates::service::PolicyTemplateService;
+use crate::services::tenant_provisioning::listener::TenantProvisioningListener;
+use crate::services::tenant_provisioning::service::TenantProvisioningService;
 use axum::extract::Request;
 use axum::response::IntoResponse;
 use axum::{serve, Router};
+use common::auth::ServiceHttpClient;
 use common::config::services::traits::CatalogConfigTrait;
 use common::config::services::CatalogConfig;
+use common::config::types::traits::MinKnownConfigTrait;
 use common::config::types::traits::{CacheConfigTrait, CommonConfigTrait};
 use common::errors::CommonErrors;
 use common::facades::ssi_auth_facade::mates_facade::MatesFacadeService;
@@ -156,9 +163,10 @@ pub async fn create_root_http_router_with_bus(
 
     // facades
     let ssi_auth_config = Arc::new(config.ssi_auth().clone());
+    let service_client = Arc::new(ServiceHttpClient::from_common(config.common(), 3));
     let mates_facade = Arc::new(MatesFacadeService::new(
         ssi_auth_config.clone(),
-        http_client.clone(),
+        service_client.clone(),
     ));
 
     // entities
@@ -205,6 +213,27 @@ pub async fn create_root_http_router_with_bus(
         policy_engine_service.clone(),
         config.clone(),
     );
+    let dataset_offering_router =
+        DatasetOfferingRouter::new(Arc::new(DatasetOfferingService::new(
+            catalog_controller_service.clone(),
+            data_services_controller_service.clone(),
+            datasets_controller_service.clone(),
+            distributions_controller_service.clone(),
+            odrl_offer_controller_service.clone(),
+        )));
+    let tenant_provisioning = Arc::new(TenantProvisioningService::new(
+        catalog_controller_service.clone(),
+        data_services_controller_service.clone(),
+        mates_facade.clone(),
+        format!(
+            "{}/dsp/current",
+            config.contracts().get_host(HostType::Http)
+        ),
+    ));
+    if let Some(bus) = event_bus.clone() {
+        TenantProvisioningListener::new(bus, tenant_provisioning.clone()).spawn();
+    }
+    let tenant_router = TenantRouter::new(tenant_provisioning);
     let peer_catalog_service = Arc::new(PeerCatalogService::new(
         catalog_agent_cache.clone(),
         mates_facade.clone(),
@@ -216,6 +245,10 @@ pub async fn create_root_http_router_with_bus(
         .build_control_router_with_bus(config.deref(), vault.clone(), event_bus.clone())
         .await;
 
+    let validator: Arc<dyn common::auth::OauthTokenValidator> =
+        oauth::setup::composition::OAuthSetup::new()
+            .build_token_service(config.common().clone().into(), db_connection.clone());
+
     // dsp
     let dsp_router = CatalogDSP::new(
         catalog_controller_service.clone(),
@@ -226,13 +259,11 @@ pub async fn create_root_http_router_with_bus(
         peer_catalog_service.clone(),
         mates_facade.clone(),
         config.clone(),
+        service_client,
+        validator.clone(),
     )
     .build_router()
     .await?;
-
-    let validator: Arc<dyn common::auth::OauthTokenValidator> =
-        oauth::setup::composition::OAuthSetup::new()
-            .build_token_service(config.common().clone().into(), db_connection.clone());
 
     let catalog_router_str = format!("{}/catalog-agent", config.common().get_api_version());
     let connector_router_str = format!("{}/connector", config.common().get_api_version());
@@ -265,6 +296,14 @@ pub async fn create_root_http_router_with_bus(
         .nest(
             format!("{}/peer-catalogs", catalog_router_str.as_str()).as_str(),
             peer_catalog_router.router(),
+        )
+        .nest(
+            format!("{}/dataset-offerings", catalog_router_str.as_str()).as_str(),
+            dataset_offering_router.router(),
+        )
+        .nest(
+            format!("{}/tenants", catalog_router_str.as_str()).as_str(),
+            tenant_router.router(),
         )
         .route_layer(axum::middleware::from_fn_with_state(
             validator,

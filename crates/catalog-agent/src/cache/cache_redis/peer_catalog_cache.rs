@@ -35,19 +35,31 @@ impl DcatCatalogCacheForRedis {
     pub fn new(redis_connection: redis::aio::MultiplexedConnection) -> Self {
         Self { redis_connection }
     }
+
+    fn peer_key(&self, tenant_id: &str, participant_id: &str) -> String {
+        self.format_key_name_with_string(
+            self.get_entity_name(),
+            &format!("{tenant_id}:{participant_id}"),
+        )
+    }
 }
 
 #[async_trait::async_trait]
 impl PeerCatalogCacheTrait for DcatCatalogCacheForRedis {
-    async fn get_catalog(&self, participant_id: &String) -> Outcome<Option<Catalog>> {
+    async fn get_catalog(&self, tenant_id: &str, participant_id: &str) -> Outcome<Option<Catalog>> {
         tracing::debug!(participant_id = %participant_id, "cache: get peer catalog");
-        let key = self.format_key_name_with_string(self.get_entity_name(), participant_id);
+        let key = self.peer_key(tenant_id, participant_id);
         Self::hydrate_from_single_key(self.get_conn(), key).await
     }
 
-    async fn set_catalog(&self, participant_id: &String, catalog: &Catalog) -> Outcome<()> {
+    async fn set_catalog(
+        &self,
+        tenant_id: &str,
+        participant_id: &str,
+        catalog: &Catalog,
+    ) -> Outcome<()> {
         tracing::debug!(participant_id = %participant_id, "cache: set peer catalog");
-        let key = self.format_key_name_with_string(self.get_entity_name(), participant_id);
+        let key = self.peer_key(tenant_id, participant_id);
         let json = serde_json::to_string(catalog)?;
         redis::pipe()
             .atomic()

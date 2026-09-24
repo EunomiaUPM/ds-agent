@@ -121,10 +121,10 @@ impl MonolithModule {
             .register(negotiation_grpc)
             .register(oauth)
             .register(transfer)
-            .register(
-                events::setup::composition::EventsModule::new(ctx.events_ctx.clone())
-                    .with_token_validator(oauth_validator),
-            )
+            .register(events::setup::composition::EventsModule::new(
+                ctx.events_ctx.clone(),
+                oauth_validator,
+            ))
             .register(ToBeDeprecatedRouterModule::merged(
                 "gateway",
                 ctx.gateway_router,

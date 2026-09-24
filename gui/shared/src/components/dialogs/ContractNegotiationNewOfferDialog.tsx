@@ -174,7 +174,6 @@ export const ContractNegotiationNewOfferDialog = ({
             {Array.isArray(participants?.data) &&
               participants.data
                 .filter((participant) => participant.participant_id !== "Agent")
-                .filter((participant) => !participant.is_me)
                 .map((participant) => (
                   <SelectItem
                     key={participant.participant_id}

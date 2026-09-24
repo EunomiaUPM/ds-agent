@@ -26,4 +26,3 @@ pub mod modules;
 pub mod services;
 pub mod setup;
 pub mod types;
-pub mod utils;

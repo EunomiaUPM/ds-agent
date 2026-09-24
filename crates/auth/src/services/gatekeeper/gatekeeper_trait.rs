@@ -28,14 +28,16 @@ use ymir::types::gnap::InteractionFinishResponse;
 
 #[async_trait]
 pub trait GateKeeperTrait: Send + Sync + 'static {
-    fn build_grant_plan(&self, class_id: Option<String>) -> Outcome<grant::Plan>;
+    fn build_grant_plan(&self, tenant_id: &str, class_id: Option<String>) -> Outcome<grant::Plan>;
     fn build_resource_req_plan(
         &self,
+        tenant_id: &str,
         id: &str,
         grant_request_kind: GrantRequestKind,
     ) -> Outcome<resource_req::Model>;
     fn build_interaction_plan(
         &self,
+        tenant_id: &str,
         id: &str,
         client: Client,
         interact: Option<InteractRequest>,
@@ -48,7 +50,12 @@ pub trait GateKeeperTrait: Send + Sync + 'static {
         base_url: &str,
         token: &str,
     ) -> participant::Plan;
-    fn validate_grant_req(&self, payload: &Bytes, headers: &HeaderMap) -> Outcome<GrantRequest>;
+    fn validate_grant_req(
+        &self,
+        tenant_id: &str,
+        payload: &Bytes,
+        headers: &HeaderMap,
+    ) -> Outcome<GrantRequest>;
 
     fn validate_cont_req(
         &self,

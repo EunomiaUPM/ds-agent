@@ -1,5 +1,8 @@
 #!/bin/bash
 set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/auth.sh
+source "$SCRIPT_DIR/lib/auth.sh"
 
 # ----------------------------
 # Configuración de URLs
@@ -10,6 +13,8 @@ PROVIDER_URL="${PROVIDER_URL:-http://127.0.0.1:1200}"
 
 INTERNAL_AUTHORITY_URL="${INTERNAL_AUTHORITY_URL:-$AUTHORITY_URL}"
 INTERNAL_PROVIDER_URL="${INTERNAL_PROVIDER_URL:-$PROVIDER_URL}"
+# Provider tenant the consumer onboards into (tenants share the provider DID).
+PROVIDER_TENANT="${PROVIDER_TENANT:-admin}"
 
 # ----------------------------
 # Logging (solo stderr)
@@ -42,11 +47,12 @@ curl_raw() {
     local method=${1:-GET}
     local url=$2
     local body=${3:-}
+    eunomia_auth "$url"
     if [ -n "$body" ]; then
-        curl -s --max-time "$CURL_TIMEOUT" -X "$method" "$url" \
+        curl -s --max-time "$CURL_TIMEOUT" -X "$method" "$url" "${AUTH_ARGS[@]}" \
             -H "Content-Type: application/json" -d "$body"
     else
-        curl -s --max-time "$CURL_TIMEOUT" -X "$method" "$url" \
+        curl -s --max-time "$CURL_TIMEOUT" -X "$method" "$url" "${AUTH_ARGS[@]}" \
             -H "Content-Type: application/json"
     fi
 }
@@ -60,15 +66,16 @@ curl_checked() {
     local body=${3:-}
     local out code rc
     out=$(mktemp)
+    eunomia_auth "$url"
     # `code=$(curl ...)` alone would abort the script under `set -e` before the
     # HTTP check runs, losing the reason. Capture curl's exit status instead.
     if [ -n "$body" ]; then
         code=$(curl -s -o "$out" -w '%{http_code}' --max-time "$CURL_TIMEOUT" \
-            -X "$method" "$url" -H "Content-Type: application/json" -d "$body") \
+            -X "$method" "$url" "${AUTH_ARGS[@]}" -H "Content-Type: application/json" -d "$body") \
             && rc=0 || rc=$?
     else
         code=$(curl -s -o "$out" -w '%{http_code}' --max-time "$CURL_TIMEOUT" \
-            -X "$method" "$url" -H "Content-Type: application/json") \
+            -X "$method" "$url" "${AUTH_ARGS[@]}" -H "Content-Type: application/json") \
             && rc=0 || rc=$?
     fi
     if [ "$rc" -ne 0 ]; then
@@ -149,7 +156,7 @@ log_step "STEP 3 - Consumer requests credential"
 
 if curl_raw GET "$CONSUMER_URL/api/v1/vc-request/all" \
     | jq -e --arg id "$AUTH_DID" --arg vc "$VC_TYPE" \
-        'any(.[]?; .participant_id == $id
+        'any(.items[]?; .participant_id == $id
                    and .status == "Finalized"
                    and (.vc_type_config // [] | index($vc)))' >/dev/null; then
     log_info "Consumer ya tiene la credencial, saltando"
@@ -170,17 +177,17 @@ fi
 # ----------------------------
 # Payload = ReachProvider (crates/auth/src/types/entities/reacher.rs):
 #   { id, nick, url, actions, auto }
-log_step "STEP 4 - Consumer authenticates with provider"
+log_step "STEP 4 - Consumer authenticates with provider (tenant $PROVIDER_TENANT)"
 
 if curl_raw GET "$CONSUMER_URL/api/v1/mates/all" \
     | jq -e --arg id "$PROVIDER_DID" \
-        'any(.[]?; .participant_id == $id and (.token // "") != "")' >/dev/null; then
+        'any(.items[]?; .participant_id == $id and (.token // "") != "")' >/dev/null; then
     log_info "Consumer ya está autenticado con el provider, saltando"
 else
     CONNECT_BODY=$(jq -n \
         --arg id "$PROVIDER_DID" \
         --arg nick "provider" \
-        --arg url "$INTERNAL_PROVIDER_URL/api/v1/gate/access" \
+        --arg url "$INTERNAL_PROVIDER_URL/api/v1/gate/$PROVIDER_TENANT/access" \
         '{id:$id, nick:$nick, url:$url, actions:["talk"], auto:true}')
     curl_checked POST "$CONSUMER_URL/api/v1/peer-connection/connect" "$CONNECT_BODY" >/dev/null
     log_success "Authentication complete"

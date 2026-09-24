@@ -169,21 +169,21 @@ pub async fn create_root_http_router_with_bus(
         oauth::setup::composition::OAuthSetup::new()
             .build_token_service(config.common().clone().into(), db_connection.clone());
 
+    use common::auth::ServiceHttpClient;
     use common::facades::ssi_auth_facade::mates_facade::MatesFacadeService;
     use common::facades::ssi_auth_facade::ssi_auth_facade::SSIAuthFacadeService;
-    use common::http_client::HttpClient;
 
     // dsp
-    let http_client = Arc::new(HttpClient::new(10, 10));
     let ssi_auth_config = Arc::new(config.ssi_auth().clone());
 
+    let service_client = Arc::new(ServiceHttpClient::from_common(config.common(), 10));
     let ssi_auth_service = Arc::new(SSIAuthFacadeService::new(
         ssi_auth_config.clone(),
-        http_client.clone(),
+        service_client.clone(),
     ));
     let mates_service = Arc::new(MatesFacadeService::new(
         ssi_auth_config.clone(),
-        http_client.clone(),
+        service_client,
     ));
 
     let dsp_router = NegotiationDSP::new(

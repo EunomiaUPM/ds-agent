@@ -1,4 +1,7 @@
 #!/bin/bash
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/auth.sh
+source "$SCRIPT_DIR/lib/auth.sh"
 
 # ==========================================
 # CONFIGURATION
@@ -19,9 +22,9 @@ invoke_curl() {
     echo "Request: $method $url" >&2
 
     if [[ -n "$body" ]]; then
-        response=$(curl -s -X "$method" -H "Content-Type: application/json" -d "$body" "$url")
+        response=$(eunomia_curl "$method" "$url" "$body")
     else
-        response=$(curl -s -X "$method" "$url")
+        response=$(eunomia_curl "$method" "$url")
     fi
 
     echo "Response (preview): ${response:0:120}..." >&2
@@ -48,14 +51,15 @@ create_mate() {
         --arg type   "$participant_type" \
         --arg url    "$base_url" \
         --argjson ef "$extra_fields" \
+        --arg tenant "${TENANT:-admin}" \
         '{
             "participant_id":   $pid,
-            "participant_slug": $slug,
+            "tenant_id":        $tenant,
+            "participant_nick": $slug,
             "participant_type": $type,
             "base_url":         $url,
             "token":            null,
-            "extra_fields":     $ef,
-            "is_me":            false
+            "extra_fields":     $ef
         }')
 
     invoke_curl "POST" "$MATES_URL" "$body" "Creating mate: $description" | jq -r '.participant_id // empty'

@@ -15,10 +15,11 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod feed_router;
-pub mod sse_handler;
-pub mod ws_handler;
+import { useGetMyself } from "shared/src/data/orval/participants/participants";
+import { ParticipantDto } from "shared/src/data/orval/model";
 
-pub use feed_router::BffEventFeedRouter;
-pub use sse_handler::SseStreamHandler;
-pub use ws_handler::BffWebSocketHandler;
+/** This connector as seen by the acting tenant; it is not listed among the participants. */
+export const useMyself = (): ParticipantDto | undefined => {
+  const { data } = useGetMyself();
+  return data?.status === 200 ? data.data : undefined;
+};

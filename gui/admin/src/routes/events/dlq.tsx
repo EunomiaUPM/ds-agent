@@ -27,6 +27,7 @@ import {
 } from "shared/src/data/orval/events/events";
 import {
   DeadLetterRecord,
+  ListDeadLettersParams,
   ListDeadLettersStatus,
   ReplayAllResponse,
 } from "shared/src/data/orval/model";
@@ -54,7 +55,7 @@ const DlqComponent = () => {
 
   const { params: queryParams, onQueryChange } = useTableQueryParams({
     defaultLimit: 10,
-    defaultSort: "failed_at_desc",
+    defaultSort: "created_at_desc",
     defaultFilters: { status: "all" },
   });
 
@@ -63,15 +64,14 @@ const DlqComponent = () => {
       ? (queryParams.filters.status as ListDeadLettersStatus)
       : undefined;
 
-  const offset = (queryParams.page - 1) * queryParams.limit;
-
   const { data, isLoading, isError, refetch, isFetching } = useListDeadLetters(
     {
       status: selectedStatus,
       limit: queryParams.limit,
-      offset,
-      sort: queryParams.sort,
-    } as any,
+      page: queryParams.cursor ? undefined : queryParams.page,
+      cursor: queryParams.cursor,
+      sort: queryParams.sort as ListDeadLettersParams["sort"],
+    },
     {
       query: {
         placeholderData: keepPreviousData,
@@ -195,7 +195,7 @@ const DlqComponent = () => {
             keyExtractor={(dlq) => dlq.id}
             searchPlaceholder="Filter dead letters by topic, status, or callback..."
             emptyMessage="No dead letter messages found. All deliveries healthy."
-            defaultSortKey="failed_at"
+            defaultSortKey="created_at"
             defaultSortDirection="desc"
             pageSize={10}
             pageSizeOptions={[10, 20, 50, 100]}
@@ -216,11 +216,13 @@ const DlqComponent = () => {
               {
                 header: "Topic",
                 accessorKey: "topic",
+                sortable: false,
                 cell: (dlq) => <Badge variant="code">{dlq.topic}</Badge>,
               },
               {
                 header: "Status",
                 accessorKey: "status",
+                sortable: false,
                 cell: (dlq) => (
                   <Badge variant={dlq.status === "Unresolved" ? "destructive" : "default"}>
                     {dlq.status}
@@ -230,6 +232,7 @@ const DlqComponent = () => {
               {
                 header: "Error",
                 accessorKey: "error_message",
+                sortable: false,
                 cell: (dlq) => (
                   <span className="text-danger-700 dark:text-danger-300 text-xs block max-w-[280px] truncate">
                     {dlq.error_message}
@@ -239,6 +242,7 @@ const DlqComponent = () => {
               {
                 header: "Callback",
                 accessorKey: "callback_address",
+                sortable: false,
                 cell: (dlq) => (
                   <span className="font-mono text-xs text-muted-foreground block max-w-[240px] truncate">
                     {dlq.callback_address}
@@ -248,12 +252,12 @@ const DlqComponent = () => {
               {
                 header: "Attempts",
                 accessorKey: "attempts",
+                sortable: false,
                 cell: (dlq) => <Badge variant="infoLighter">{dlq.attempts}</Badge>,
               },
               {
                 header: "Failed at",
-                accessorKey: "failed_at",
-                sortValue: (dlq) => new Date(dlq.failed_at).getTime(),
+                sortKey: "created_at",
                 cell: (dlq) => <FormatDate date={dlq.failed_at} />,
               },
               {

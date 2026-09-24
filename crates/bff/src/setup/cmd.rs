@@ -16,12 +16,9 @@
  */
 
 use crate::setup::boot::GatewayBoot;
-use crate::subscriptions::subscriptions::GatewaySubscriptions;
-use crate::subscriptions::MicroserviceSubscriptionKey;
 use clap::{Parser, Subcommand};
 use common::boot::BootstrapServiceTrait;
-use common::config::services::GatewayConfig;
-use common::config::types::traits::{CommonConfigTrait, ConfigLoader};
+use common::config::types::traits::CommonConfigTrait;
 use fs_extra::dir::{copy, CopyOptions};
 use std::cmp::PartialEq;
 use std::fs;
@@ -42,7 +39,6 @@ struct GatewayCli {
 #[derive(Subcommand, Debug, PartialEq)]
 pub enum GatewayCliCommands {
     Start(GatewayCliArgs),
-    Subscribe(GatewayCliArgs),
     Build(GatewayCliArgs),
 }
 
@@ -66,19 +62,6 @@ impl GatewayCommands {
                 let config = GatewayBoot::load_config(args.env_file).await?;
                 let vault = common::vault_utils::vault(config.common())?;
                 GatewayBoot::start_services(&config, Arc::new(vault)).await?;
-            }
-            GatewayCliCommands::Subscribe(args) => {
-                let config = GatewayConfig::load(&*args.env_file)?;
-                let microservices_subs = GatewaySubscriptions::new(config.clone());
-                microservices_subs
-                    .subscribe_to_microservice(MicroserviceSubscriptionKey::Catalog)
-                    .await?;
-                // TODO when pubsub refactor
-                // microservices_subs.
-                // subscribe_to_microservice(MicroserviceSubscriptionKey::ContractNegotiation).
-                // await?; microservices_subs.
-                // subscribe_to_microservice(MicroserviceSubscriptionKey::TransferControlPlane).
-                // await?;
             }
             GatewayCliCommands::Build(args) => {
                 Self::build_frontend(args.env_file)?;

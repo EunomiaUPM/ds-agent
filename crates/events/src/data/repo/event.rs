@@ -21,6 +21,8 @@ use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
 use crate::entities::envelope::EventEnvelope;
+use crate::entities::queries::EventFilter;
+use common::paginated_spec::{Page, Sort};
 
 // Repository errors encountered during event store persistence.
 #[derive(Debug, Error)]
@@ -38,12 +40,18 @@ impl RepoIntoErrors for EventRepoError {}
 #[async_trait]
 pub trait EventStoreRepo: Send + Sync + 'static {
     async fn insert_event(&self, event: &EventEnvelope) -> Outcome<()>;
-    async fn get_event_by_id(&self, tenant_id: &str, id: &Urn) -> Outcome<Option<EventEnvelope>>;
+    /// `tenant_id: None` reads across tenants (admin).
+    async fn get_event_by_id(
+        &self,
+        tenant_id: Option<String>,
+        id: &Urn,
+    ) -> Outcome<Option<EventEnvelope>>;
+    /// A page of events plus the total count of the filtered set.
     async fn list_events(
         &self,
-        tenant_id: &str,
-        topic: Option<&str>,
-        limit: u64,
-        offset: u64,
-    ) -> Outcome<Vec<EventEnvelope>>;
+        tenant_id: Option<String>,
+        filter: &EventFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<(Vec<EventEnvelope>, u64)>;
 }

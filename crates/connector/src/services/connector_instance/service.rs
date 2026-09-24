@@ -273,9 +273,11 @@ impl ConnectorInstanceServiceTrait for ConnectorInstanceService {
             }
         };
 
+        let tenant_id = saved_model.tenant_id.clone();
         let result = Self::map_model_to_dto(saved_model)?;
         events::emit_action!(
             self.event_bus,
+            &tenant_id,
             crate::EVENT_PREFIX,
             "instance",
             "create",
@@ -294,13 +296,15 @@ impl ConnectorInstanceServiceTrait for ConnectorInstanceService {
             .delete_relation_by_instance(scope.tenant_filter().map(str::to_string), &id_str)
             .await;
 
-        self.repo
+        let owner = self
+            .repo
             .get_instances_repo()
             .delete_instance_by_id(scope.tenant_filter().map(str::to_string), &id_str)
             .await?;
         let deleted = events::EntityDeletedDto::new(id_str);
         events::emit_action!(
             self.event_bus,
+            &owner,
             crate::EVENT_PREFIX,
             "instance",
             "delete",

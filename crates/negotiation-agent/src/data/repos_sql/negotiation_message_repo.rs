@@ -190,21 +190,28 @@ impl NegotiationMessageRepoTrait for NegotiationMessageRepoForSql {
         }
     }
 
-    async fn delete_negotiation_message(&self, tenant_id: Option<String>, id: &Urn) -> Outcome<()> {
+    async fn delete_negotiation_message(
+        &self,
+        tenant_id: Option<String>,
+        id: &Urn,
+    ) -> Outcome<String> {
         let mid = id.to_string();
         let result = negotiation_message::Entity::delete_many()
             .filter(negotiation_message::Column::Id.eq(&mid))
             .apply_if(tenant_id, |q, t| {
                 q.filter(negotiation_message::Column::TenantId.eq(t))
             })
-            .exec(&self.db_connection)
+            .exec_with_returning(&self.db_connection)
             .await;
 
         match result {
-            Ok(delete_result) => match delete_result.rows_affected {
-                0 => Err(NegotiationMessageRepoErrors::NegotiationMessageNotFound.into_errors()),
-                _ => Ok(()),
-            },
+            Ok(rows) => rows
+                .into_iter()
+                .next()
+                .map(|row| row.tenant_id)
+                .ok_or_else(|| {
+                    NegotiationMessageRepoErrors::NegotiationMessageNotFound.into_errors()
+                }),
             Err(e) => Err(
                 NegotiationMessageRepoErrors::ErrorDeletingNegotiationMessage(e.into())
                     .into_errors(),

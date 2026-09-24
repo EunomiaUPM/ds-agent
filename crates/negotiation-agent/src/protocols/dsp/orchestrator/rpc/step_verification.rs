@@ -70,8 +70,11 @@ impl NegotiationRpcStep for RpcVerificationStep {
         NegotiationRpcContinuationContext::resolve(&id, scope, persistence).await
     }
 
-    fn auth_peer(ctx: &NegotiationRpcContinuationContext) -> &str {
-        &ctx.process.inner.associated_agent_peer
+    fn auth_peer(ctx: &NegotiationRpcContinuationContext) -> (&str, &str) {
+        (
+            &ctx.process.inner.tenant_id,
+            &ctx.process.inner.associated_agent_peer,
+        )
     }
 
     async fn send_and_persist(

@@ -57,7 +57,12 @@ pub trait NegotiationMessageRepoTrait: Send + Sync {
         new_model: &NewNegotiationMessageModel,
     ) -> Outcome<negotiation_message::Model>;
 
-    async fn delete_negotiation_message(&self, tenant_id: Option<String>, id: &Urn) -> Outcome<()>;
+    /// Returns the tenant of the removed record.
+    async fn delete_negotiation_message(
+        &self,
+        tenant_id: Option<String>,
+        id: &Urn,
+    ) -> Outcome<String>;
 }
 
 #[derive(Debug, Error)]

@@ -209,19 +209,20 @@ impl OfferRepoTrait for OfferRepoForSql {
         }
     }
 
-    async fn delete_offer(&self, tenant_id: Option<String>, id: &Urn) -> Outcome<()> {
+    async fn delete_offer(&self, tenant_id: Option<String>, id: &Urn) -> Outcome<String> {
         let oid = id.to_string();
         let result = offer::Entity::delete_many()
             .filter(offer::Column::Id.eq(&oid))
             .apply_if(tenant_id, |q, t| q.filter(offer::Column::TenantId.eq(t)))
-            .exec(&self.db_connection)
+            .exec_with_returning(&self.db_connection)
             .await;
 
         match result {
-            Ok(delete_result) => match delete_result.rows_affected {
-                0 => Err(OfferRepoErrors::OfferNotFound.into_errors()),
-                _ => Ok(()),
-            },
+            Ok(rows) => rows
+                .into_iter()
+                .next()
+                .map(|row| row.tenant_id)
+                .ok_or_else(|| OfferRepoErrors::OfferNotFound.into_errors()),
             Err(e) => Err(OfferRepoErrors::ErrorDeletingOffer(e.into()).into_errors()),
         }
     }

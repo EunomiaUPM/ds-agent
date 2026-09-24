@@ -27,7 +27,8 @@ use crate::services::gatekeeper::GateKeeperTrait;
 use crate::services::peer_connector::PeerConnectorTrait;
 use crate::services::vc_requester::VcRequesterTrait;
 use crate::services::{
-    HasCallback, HasGaiaSelfAttester, HasGateKeeper, HasPeerConnector, HasRepo, HasVcRequester,
+    HasCallback, HasConfig, HasGaiaSelfAttester, HasGateKeeper, HasPeerConnector, HasRepo,
+    HasVcRequester,
 };
 use common::config::services::SsiAuthConfig;
 use std::sync::Arc;
@@ -83,6 +84,12 @@ impl AuthCore {
 impl HasPeerConnector for AuthCore {
     fn peer_connector(&self) -> Arc<dyn PeerConnectorTrait> {
         self.peer_connector.clone()
+    }
+}
+
+impl HasConfig for AuthCore {
+    fn config(&self) -> Arc<SsiAuthConfig> {
+        self.config.clone()
     }
 }
 
@@ -149,8 +156,4 @@ impl GateKeeperModule for AuthCore {}
 impl WalletModuleTrait for AuthCore {}
 
 // ======================================== ORCHESTATOR ============================================
-impl AuthOrchestratorTrait for AuthCore {
-    fn config(&self) -> Arc<SsiAuthConfig> {
-        self.config.clone()
-    }
-}
+impl AuthOrchestratorTrait for AuthCore {}

@@ -47,8 +47,6 @@ tags:
     description: "Transfer process operations (\u2192 transfer-agent)"
   - name: TransferRPC
     description: "Transfer RPC commands (\u2192 transfer-agent)"
-  - name: Subscriptions
-    description: "Pub/sub subscription operations (\u2192 transfer-agent)"
   - name: Dataplane Transfers
     description: "Dataplane transfer operations (\u2192 transfer-agent)"
   - name: Dataplane Logs
@@ -91,90 +89,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FeConfig"
-        "400":
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "401":
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "403":
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "404":
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "500":
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-  /incoming-notification:
-    post:
-      operationId: postIncomingNotification
-      summary: Send a notification to connected WebSocket clients
-      tags:
-        - Gateway
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        "202":
-          description: Notification accepted
-        "400":
-          description: Bad request
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "401":
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "403":
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "404":
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "500":
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-  /ws:
-    get:
-      operationId: websocket
-      summary: WebSocket endpoint for real-time notifications
-      tags:
-        - Gateway
-      responses:
-        "101":
-          description: Switching Protocols (WebSocket upgrade)
         "400":
           description: Bad Request
           content:
@@ -347,11 +261,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorInfo"
-  /catalog-offerings:
+  /dataset-offerings:
     post:
       operationId: createDatasetOffering
-      summary: Create an atomic dataset offering with distribution, connector and policy
-      description: Orchestrates the creation of a dataset, its distribution, connector instance, and ODRL policy in the main catalog, and emits an event to the EventBus.
+      summary: Publish a dataset with its distribution and, optionally, its policy
+      description: Creates the dataset (in the main catalog unless catalogId is given), its distribution (served by the main data service unless accessServiceId is given) and an ODRL offer. A failure after the dataset removes it again.
       tags:
         - Catalogs
       requestBody:
@@ -4842,211 +4756,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorInfo"
-  /subscriptions:
-    get:
-      operationId: getSubscriptions
-      summary: List subscriptions
-      tags:
-        - Subscriptions
-      parameters:
-        - name: callback_address
-          in: query
-          required: false
-          schema:
-            type: string
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Subscription"
-        "400":
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "401":
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "403":
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "404":
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "500":
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-  /subscriptions/{subscriptionId}:
-    get:
-      operationId: getSubscriptionById
-      summary: Get subscription by ID
-      tags:
-        - Subscriptions
-      parameters:
-        - name: subscriptionId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Subscription"
-        "400":
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "401":
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "403":
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "404":
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "500":
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-  /subscriptions/{subscriptionId}/notifications:
-    get:
-      operationId: getNotificationsBySubscriptionId
-      summary: Get notifications for a subscription
-      tags:
-        - Subscriptions
-      parameters:
-        - name: subscriptionId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/NotificationSub"
-        "400":
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "401":
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "403":
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "404":
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "500":
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-  /subscriptions/{subscriptionId}/notifications-pending:
-    get:
-      operationId: getPendingNotificationsBySubscriptionId
-      summary: Get pending notifications for a subscription
-      tags:
-        - Subscriptions
-      parameters:
-        - name: subscriptionId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/NotificationSub"
-        "400":
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "401":
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "403":
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "404":
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
-        "500":
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorInfo"
   /mates/all:
     get:
       operationId: getAllParticipants
@@ -5065,13 +4774,6 @@ paths:
               - authorities
               - all
             default: all
-        - name: exclude
-          in: query
-          required: false
-          description: When `true`, excludes the own identity (is_me) from the results.
-          schema:
-            type: boolean
-            default: false
       responses:
         "200":
           description: OK
@@ -5768,6 +5470,10 @@ paths:
         - OAuth
       summary: List users
       operationId: listOAuthUsers
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/PageNumber"
+        - $ref: "#/components/parameters/Cursor"
       responses:
         "200":
           description: List of registered users
@@ -5979,20 +5685,13 @@ paths:
         - name: topic
           in: query
           required: false
+          description: Topic pattern; `*` matches one segment and `**` any number of them.
           schema:
             type: string
-        - name: limit
-          in: query
-          required: false
-          schema:
-            type: integer
-            default: 50
-        - name: offset
-          in: query
-          required: false
-          schema:
-            type: integer
-            default: 0
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/PageNumber"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Sort"
       responses:
         "200":
           description: List of events
@@ -6057,8 +5756,19 @@ paths:
         - Events
       summary: Stream events via Server-Sent Events
       operationId: streamEventsSse
+      description: EventSource cannot send headers, so the bearer token and the acting tenant go in the query.
       parameters:
         - name: topic
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: tenant
           in: query
           required: false
           schema:
@@ -6079,6 +5789,16 @@ paths:
         - Events
       summary: List event subscriptions
       operationId: listEventSubscriptions
+      parameters:
+        - name: active
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/PageNumber"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Sort"
       responses:
         "200":
           description: List of webhook subscriptions
@@ -6196,18 +5916,10 @@ paths:
           schema:
             type: string
             enum: [Unresolved, Replayed, Purged]
-        - name: limit
-          in: query
-          required: false
-          schema:
-            type: integer
-            default: 50
-        - name: offset
-          in: query
-          required: false
-          schema:
-            type: integer
-            default: 0
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/PageNumber"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Sort"
       responses:
         "200":
           description: List of dead letters
@@ -6304,6 +6016,36 @@ paths:
 
 components:
   parameters:
+    Limit:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        default: 10
+        maximum: 100
+    PageNumber:
+      name: page
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      description: Opaque cursor from `nextCursor` of the previous page; takes precedence over `page`.
+      schema:
+        type: string
+    Sort:
+      name: sort
+      in: query
+      required: false
+      schema:
+        type: string
+        enum: [created_at_desc, created_at_asc, updated_at_desc, updated_at_asc]
+        default: created_at_desc
     catalogId:
       name: catalogId
       in: path
@@ -6399,8 +6141,6 @@ components:
           $ref: "#/components/schemas/DatasetOfferingInput"
         distribution:
           $ref: "#/components/schemas/DistributionOfferingInput"
-        connector:
-          $ref: "#/components/schemas/ConnectorOfferingInput"
         policy:
           $ref: "#/components/schemas/PolicyOfferingInput"
     DatasetOfferingInput:
@@ -6431,23 +6171,6 @@ components:
           type: string
         accessServiceId:
           type: string
-    ConnectorOfferingInput:
-      type: object
-      required:
-        - endpoint
-      properties:
-        name:
-          type: string
-        description:
-          type: string
-        endpoint:
-          type: string
-        protocol:
-          type: string
-        method:
-          type: string
-        auth:
-          type: object
     PolicyOfferingInput:
       type: object
       properties:
@@ -6467,8 +6190,6 @@ components:
         dataset:
           type: object
         distribution:
-          type: object
-        connector:
           type: object
         policy:
           type: object
@@ -7983,8 +7704,6 @@ components:
         extra_fields:
           type: object
           additionalProperties: true
-        is_me:
-          type: boolean
     PeerCatalogEntry:
       type: object
       properties:
@@ -8292,37 +8011,6 @@ components:
           type: array
           items:
             type: string
-    Subscription:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        target:
-          type: string
-        subscriber:
-          type: string
-        callbackAddress:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
-    NotificationSub:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        subscriptionId:
-          type: string
-          format: uuid
-        event:
-          type: object
-        status:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
     RPCResponse:
       type: object
       properties:
@@ -10143,6 +9831,7 @@ components:
       type: object
       required:
         - id
+        - tenantId
         - username
         - role
         - created_at
@@ -10150,6 +9839,8 @@ components:
         id:
           type: string
           format: uuid
+        tenantId:
+          type: string
         username:
           type: string
           example: admin
@@ -10327,8 +10018,9 @@ components:
       type: object
       required:
         - id
+        - tenant_id
         - topic
-        - source
+        - source_crate
         - schema_version
         - timestamp
         - payload
@@ -10336,10 +10028,12 @@ components:
         id:
           type: string
           example: urn:uuid:f47ac10b-58cc-4372-a567-0e02b2c3d479
+        tenant_id:
+          type: string
         topic:
           type: string
           example: transfers.process.completed
-        source:
+        source_crate:
           type: string
           example: transfer-agent
         schema_version:

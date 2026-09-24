@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::config::types::AdminSeedConfig;
+use crate::config::types::{AdminSeedConfig, ServiceClientConfig};
 use serde::{Deserialize, Serialize};
 use ymir::config::traits::{
     ApiConfigTrait, ConnectionConfigTrait, DatabaseConfigTrait, HostsConfigTrait,
@@ -36,6 +36,8 @@ pub struct CommonConfig {
     pub refresh_token_ttl: i64,
     #[serde(default)]
     pub admin_seed: AdminSeedConfig,
+    #[serde(default)]
+    pub service_client: ServiceClientConfig,
 }
 
 fn default_access_token_ttl() -> i64 {

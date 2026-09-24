@@ -63,6 +63,7 @@ impl ParameterStore<serde_json::Value> for ParameterStoreImpl {
         let entry = self.repo.create_parameter(&target_tenant, &cmd).await?;
         events::emit_action!(
             self.event_bus,
+            &target_tenant,
             crate::EVENT_PREFIX,
             "parameter",
             "create",
@@ -96,6 +97,7 @@ impl ParameterStore<serde_json::Value> for ParameterStoreImpl {
             .await?;
         events::emit_action!(
             self.event_bus,
+            scope.acting_tenant(),
             crate::EVENT_PREFIX,
             "parameter",
             "edit",
@@ -112,6 +114,7 @@ impl ParameterStore<serde_json::Value> for ParameterStoreImpl {
             .await?;
         events::emit_action!(
             self.event_bus,
+            scope.acting_tenant(),
             crate::EVENT_PREFIX,
             "parameter",
             "delete",

@@ -34,7 +34,6 @@ fn participant_filter_empty_and_populated() {
         r#type: Some(ParticipantType::Agent),
         participant_nick: Some("Alice".to_string()),
         participant_id: Some("did:example:alice".to_string()),
-        exclude_myself: Some(true),
         created_after: None,
         created_before: None,
     };
@@ -65,14 +64,12 @@ fn participant_query_deserialization() {
     let json = serde_json::json!({
         "type": "Agent",
         "participantNick": "Alice",
-        "excludeMyself": true,
         "limit": 25,
         "sort": "created_at_desc"
     });
     let spec: QuerySpec<ParticipantFilter> = serde_json::from_value(json).unwrap();
     assert_eq!(spec.filter.r#type, Some(ParticipantType::Agent));
     assert_eq!(spec.filter.participant_nick.as_deref(), Some("Alice"));
-    assert_eq!(spec.filter.exclude_myself, Some(true));
     assert_eq!(spec.page.limit, 25);
     assert_eq!(spec.sort, Sort::CreatedAtDesc);
 }

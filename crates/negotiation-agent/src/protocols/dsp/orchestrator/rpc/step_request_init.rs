@@ -79,8 +79,8 @@ impl NegotiationRpcStep for RpcRequestInitStep {
         .await
     }
 
-    fn auth_peer(ctx: &NegotiationRpcInitialContext) -> &str {
-        &ctx.associated_peer
+    fn auth_peer(ctx: &NegotiationRpcInitialContext) -> (&str, &str) {
+        (&ctx.tenant_id, &ctx.associated_peer)
     }
 
     /// POSTs the request message to `{provider_address}/negotiations/request`

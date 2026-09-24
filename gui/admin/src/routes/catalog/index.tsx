@@ -12,6 +12,7 @@ import { Card, CardContent } from "shared/components/ui/card";
 import logoImg from "./../../../../shared/src/img/eunomia_logo_lg_light.svg";
 import logoImgDark from "./../../../../shared/src/img/eunomia_logo_lg_dark.svg";
 import { useTheme } from "shared/src/hooks/useTheme";
+import { useMyself } from "shared/src/data/useMyself";
 
 const RouteComponent = () => {
   const { resolvedTheme } = useTheme();
@@ -19,9 +20,7 @@ const RouteComponent = () => {
   const { data: participantsResponse } = useGetAllParticipants();
   const localParticipants = participantsResponse?.status === 200 ? participantsResponse.data : [];
 
-  const myAgent = Array.isArray(participantsResponse?.data)
-    ? participantsResponse.data.find((p) => p.is_me && p.participant_type === "Agent")
-    : undefined;
+  const myAgent = useMyself();
 
   const labelCatalogRef = useRef<HTMLElement | null>(null);
   // first wizard URL state
@@ -78,9 +77,7 @@ const RouteComponent = () => {
   const onboardedWithKnownProvider = agents.some((prov) =>
     localParticipants.some(
       (lp) =>
-        lp.participant_id === prov.participant_id &&
-        !lp.is_me &&
-        lp.participant_type !== "Authority",
+        lp.participant_id === prov.participant_id && lp.participant_type !== "Authority",
     ),
   );
 
@@ -110,7 +107,7 @@ const RouteComponent = () => {
       <div className="grid grid-cols-3 gap-5">
         {agents.map((p) => {
           const isOnboarded = localParticipants.some(
-            (lp) => lp.participant_id === p.participant_id && !lp.is_me,
+            (lp) => lp.participant_id === p.participant_id,
           );
           const unauthRedirect = isOnboarded ? null : { url: p.base_url, slug: p.participant_nick };
           // si no está autenticado con ningun proveedor, y es el primer agente de la lista

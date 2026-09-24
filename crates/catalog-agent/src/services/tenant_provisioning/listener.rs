@@ -1,0 +1,70 @@
+/*
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+use std::sync::Arc;
+
+use common::auth::{AccessScope, RbacRole};
+use events::{EventBus, EventBusTrait};
+use tokio::sync::broadcast::error::RecvError;
+use tracing::{info, warn};
+
+use crate::services::tenant_provisioning::TenantProvisioningServiceTrait;
+
+/// Topic OAuth publishes when a user, and with it a tenant, is created.
+const TENANT_CREATED_TOPIC: &str = "oauth:user:create";
+
+/// Provisions every tenant born while the connector runs, reacting to OAuth events.
+pub struct TenantProvisioningListener {
+    bus: EventBus,
+    service: Arc<dyn TenantProvisioningServiceTrait>,
+}
+
+impl TenantProvisioningListener {
+    pub fn new(bus: EventBus, service: Arc<dyn TenantProvisioningServiceTrait>) -> Self {
+        Self { bus, service }
+    }
+
+    pub fn spawn(self) {
+        tokio::spawn(async move { self.run().await });
+    }
+
+    async fn run(self) {
+        let mut receiver = self.bus.subscribe();
+        loop {
+            let envelope = match receiver.recv().await {
+                Ok(envelope) => envelope,
+                Err(RecvError::Lagged(skipped)) => {
+                    warn!(
+                        skipped,
+                        "Tenant provisioning listener lagged behind the event bus"
+                    );
+                    continue;
+                }
+                Err(RecvError::Closed) => return,
+            };
+            if envelope.topic.as_str() != TENANT_CREATED_TOPIC {
+                continue;
+            }
+            let tenant_id = envelope.tenant_id;
+            let scope = AccessScope::from_role(RbacRole::Owner, &tenant_id);
+            match self.service.provision(&scope, &tenant_id).await {
+                Ok(_) => info!(tenant = %tenant_id, "Tenant provisioned"),
+                Err(e) => warn!(tenant = %tenant_id, error = %e, "Tenant provisioning failed"),
+            }
+        }
+    }
+}

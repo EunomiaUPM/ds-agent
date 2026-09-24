@@ -29,6 +29,7 @@ use crate::protocols::dsp::types::catalog_definition::Catalog;
 use crate::protocols::dsp::types::dataset_definition::Dataset;
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
 use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRpcSteps;
+use common::auth::AccessScope;
 use common::errors::{CommonErrors, ErrorLog};
 use common::facades::ssi_auth_facade::MatesFacadeTrait;
 use common::http_client::HttpClient;
@@ -68,6 +69,7 @@ impl RPCOrchestratorService {
 impl RPCOrchestratorTrait for RPCOrchestratorService {
     async fn setup_catalog_request_rpc(
         &self,
+        scope: &AccessScope,
         input: &RpcCatalogRequestMessageDto,
     ) -> Outcome<RpcCatalogResponseMessageDto<RpcCatalogRequestMessageDto, Catalog>> {
         // agent_peer
@@ -80,7 +82,7 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
 
         if input.no_cache == false {
             // hit caché and return guard
-            let catalog_in_cache = self.persistence.get_catalog(&agent_peer).await?;
+            let catalog_in_cache = self.persistence.get_catalog(scope, &agent_peer).await?;
             if let Some(catalog) = catalog_in_cache {
                 let response = RpcCatalogResponseMessageDto {
                     request: input.clone(),
@@ -99,13 +101,20 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
             .facades
             .get_catalog_rpc_path_facade()
             .await
-            .resolve_dataspace_current_path(&WellKnownRPCRequest { participant_id })
+            .resolve_dataspace_current_path(&WellKnownRPCRequest {
+                tenant_id: scope.acting_tenant().clone(),
+                participant_id,
+            })
             .await?;
 
         // send dsp message to peer to fetch catalog
         let peer_url = format!("{}/catalog/request", provider_address);
         let request_body: CatalogMessageWrapper<CatalogRequestMessageDto> = input.clone().into();
-        if let Ok(mate) = self.mates_facade.get_mate_by_id(agent_peer.clone()).await {
+        if let Ok(mate) = self
+            .mates_facade
+            .get_mate_by_id(scope.acting_tenant().clone(), agent_peer.clone())
+            .await
+        {
             if let Some(token) = mate.token {
                 self.http_client.set_auth_token(token).await;
             }
@@ -120,7 +129,10 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
 
         if input.no_cache == false {
             // hydrate cache
-            let _ = self.persistence.set_catalog(&agent_peer, &response).await?;
+            let _ = self
+                .persistence
+                .set_catalog(scope, &agent_peer, &response)
+                .await?;
         }
 
         // return response
@@ -133,6 +145,7 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
 
     async fn setup_dataset_request_rpc(
         &self,
+        scope: &AccessScope,
         input: &RpcDatasetRequestMessageDto,
     ) -> Outcome<RpcCatalogResponseMessageDto<RpcDatasetRequestMessageDto, Dataset>> {
         // validation
@@ -145,13 +158,20 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
             .facades
             .get_catalog_rpc_path_facade()
             .await
-            .resolve_dataspace_current_path(&WellKnownRPCRequest { participant_id })
+            .resolve_dataspace_current_path(&WellKnownRPCRequest {
+                tenant_id: scope.acting_tenant().clone(),
+                participant_id,
+            })
             .await?;
         let dataset = input.get_dataset_id().unwrap_or("".to_string());
         let peer_url = format!("{}/catalog/datasets/{}", provider_address, dataset);
         let request_body: CatalogMessageWrapper<DatasetRequestMessage> = input.clone().into();
         let peer_id = input.get_associated_agent_peer().unwrap_or_default();
-        if let Ok(mate) = self.mates_facade.get_mate_by_id(peer_id).await {
+        if let Ok(mate) = self
+            .mates_facade
+            .get_mate_by_id(scope.acting_tenant().clone(), peer_id)
+            .await
+        {
             if let Some(token) = mate.token {
                 self.http_client.set_auth_token(token).await;
             }

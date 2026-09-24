@@ -155,7 +155,11 @@ impl CatalogServiceTrait for CatalogService {
 
         if let Some(ref dto) = dto {
             let main_id = Urn::from_str(&dto.inner.id)?;
-            let _ = self.cache.get_catalog_cache().set_main(&main_id, dto).await;
+            let _ = self
+                .cache
+                .get_catalog_cache()
+                .set_main(&dto.inner.tenant_id, &main_id, dto)
+                .await;
         }
 
         Ok(dto)
@@ -188,7 +192,14 @@ impl CatalogServiceTrait for CatalogService {
             .add_to_collection(&catalog_urn, dto.inner.dct_issued.timestamp() as f64)
             .await;
 
-        events::emit_action!(self.event_bus, crate::EVENT_PREFIX, "catalog", "edit", &dto);
+        events::emit_action!(
+            self.event_bus,
+            &dto.inner.tenant_id,
+            crate::EVENT_PREFIX,
+            "catalog",
+            "edit",
+            &dto
+        );
         Ok(dto)
     }
 
@@ -218,6 +229,7 @@ impl CatalogServiceTrait for CatalogService {
 
         events::emit_action!(
             self.event_bus,
+            &dto.inner.tenant_id,
             crate::EVENT_PREFIX,
             "catalog",
             "create",
@@ -246,11 +258,12 @@ impl CatalogServiceTrait for CatalogService {
         let _ = self
             .cache
             .get_catalog_cache()
-            .set_main(&catalog_urn, &dto)
+            .set_main(&dto.inner.tenant_id, &catalog_urn, &dto)
             .await;
 
         events::emit_action!(
             self.event_bus,
+            &dto.inner.tenant_id,
             crate::EVENT_PREFIX,
             "catalog",
             "create",
@@ -261,7 +274,8 @@ impl CatalogServiceTrait for CatalogService {
 
     async fn delete_catalog_by_id(&self, scope: &AccessScope, catalog_id: &Urn) -> Outcome<()> {
         scope.require_write()?;
-        self.repo
+        let deleted = self
+            .repo
             .get_catalog_repo()
             .delete_catalog_by_id(scope.tenant_filter().map(str::to_string), catalog_id)
             .await?;
@@ -279,6 +293,7 @@ impl CatalogServiceTrait for CatalogService {
 
         events::emit_action!(
             self.event_bus,
+            &deleted.tenant_id,
             crate::EVENT_PREFIX,
             "catalog",
             "delete",

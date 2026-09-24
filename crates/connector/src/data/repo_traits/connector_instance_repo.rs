@@ -53,9 +53,10 @@ pub trait ConnectorInstanceRepoTrait: Send + Sync {
         version: &str,
     ) -> Outcome<()>;
 
+    /// Returns the tenant of the removed instance.
     async fn delete_instance_by_id(
         &self,
         tenant_id: Option<String>,
         instance_id: &str,
-    ) -> Outcome<()>;
+    ) -> Outcome<String>;
 }

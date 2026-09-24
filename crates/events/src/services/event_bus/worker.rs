@@ -170,7 +170,7 @@ impl RetryWorker {
         };
 
         let event = match event_repo
-            .get_event_by_id(&delivery.tenant_id, &event_urn)
+            .get_event_by_id(Some(delivery.tenant_id.clone()), &event_urn)
             .await
         {
             Ok(Some(ev)) => ev,
@@ -185,7 +185,7 @@ impl RetryWorker {
         };
 
         let sub = match sub_repo
-            .get_subscription(&delivery.tenant_id, &delivery.subscription_id)
+            .get_subscription(Some(delivery.tenant_id.clone()), &delivery.subscription_id)
             .await
         {
             Ok(Some(s)) => s,

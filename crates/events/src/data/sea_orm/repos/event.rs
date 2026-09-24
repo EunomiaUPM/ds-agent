@@ -16,17 +16,20 @@
  */
 
 use async_trait::async_trait;
+use common::paginated_spec::{Page, Sort};
+use sea_orm::sea_query::{BinOper, Expr};
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, Order, QueryFilter, QueryOrder,
-    QuerySelect,
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
+    QueryTrait,
 };
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 
 use crate::data::repo::EventStoreRepo;
 use crate::data::sea_orm::orm::event;
+use crate::data::sea_orm::repos::listing::NaiveKeyset;
 use crate::entities::envelope::EventEnvelope;
-use crate::entities::topic_pattern::TopicPattern;
+use crate::entities::queries::EventFilter;
 
 // SeaORM-backed implementation of EventStoreRepo.
 #[derive(Clone)]
@@ -51,10 +54,14 @@ impl EventStoreRepo for SeaOrmEventRepo {
         Ok(())
     }
 
-    async fn get_event_by_id(&self, tenant_id: &str, id: &Urn) -> Outcome<Option<EventEnvelope>> {
+    async fn get_event_by_id(
+        &self,
+        tenant_id: Option<String>,
+        id: &Urn,
+    ) -> Outcome<Option<EventEnvelope>> {
         let model = event::Entity::find()
             .filter(event::Column::Id.eq(id.to_string()))
-            .filter(event::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| q.filter(event::Column::TenantId.eq(t)))
             .one(&self.db)
             .await
             .map_err(|e| Errors::db("failed to query event", Some(Box::new(e))))?;
@@ -67,50 +74,40 @@ impl EventStoreRepo for SeaOrmEventRepo {
 
     async fn list_events(
         &self,
-        tenant_id: &str,
-        topic: Option<&str>,
-        limit: u64,
-        offset: u64,
-    ) -> Outcome<Vec<EventEnvelope>> {
-        let pattern = topic.and_then(|t| TopicPattern::new(t).ok());
-        let mut query = event::Entity::find().filter(event::Column::TenantId.eq(tenant_id));
-
-        if let Some(ref pat) = pattern {
-            if pat.as_str() == "*" || pat.as_str() == "**" {
-                // Match all events.
-            } else if pat.has_wildcard() {
-                let prefix = pat
-                    .as_str()
-                    .split('*')
-                    .next()
-                    .unwrap_or("")
-                    .trim_end_matches(['.', ':']);
-                if !prefix.is_empty() {
-                    query = query.filter(event::Column::Topic.starts_with(prefix));
-                }
-            } else {
-                query = query.filter(event::Column::Topic.eq(pat.as_str()));
-            }
+        tenant_id: Option<String>,
+        filter: &EventFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<(Vec<EventEnvelope>, u64)> {
+        let mut query = event::Entity::find()
+            .apply_if(tenant_id, |q, t| q.filter(event::Column::TenantId.eq(t)));
+        if let Some(pattern) = filter.topic_pattern()? {
+            query = query.filter(
+                Expr::col((event::Entity, event::Column::Topic))
+                    .binary(BinOper::Custom("~"), pattern.to_sql_regex()),
+            );
         }
 
-        let models = query
-            .order_by(event::Column::CreatedAt, Order::Desc)
-            .limit(limit)
-            .offset(offset)
-            .all(&self.db)
+        let total = query
+            .clone()
+            .count(&self.db)
             .await
-            .map_err(|e| Errors::db("failed to list events", Some(Box::new(e))))?;
+            .map_err(|e| Errors::db("failed to count events", Some(Box::new(e))))?;
+        let models = NaiveKeyset::apply(
+            query,
+            page,
+            sort,
+            event::Column::Timestamp,
+            event::Column::Id,
+        )
+        .all(&self.db)
+        .await
+        .map_err(|e| Errors::db("failed to list events", Some(Box::new(e))))?;
 
-        let mut envelopes = Vec::with_capacity(models.len());
-        for m in models {
-            let env = m.into_domain()?;
-            if let Some(ref pat) = pattern {
-                if !pat.matches(&env.topic) {
-                    continue;
-                }
-            }
-            envelopes.push(env);
-        }
-        Ok(envelopes)
+        let events = models
+            .into_iter()
+            .map(event::Model::into_domain)
+            .collect::<Outcome<Vec<_>>>()?;
+        Ok((events, total))
     }
 }

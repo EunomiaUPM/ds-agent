@@ -12,6 +12,7 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
 export interface OAuthUser {
   id: string;
+  tenantId: string;
   username: string;
   role: string;
   created_at: string;

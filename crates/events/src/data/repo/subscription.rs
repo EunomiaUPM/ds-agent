@@ -20,8 +20,10 @@ use thiserror::Error;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
 use crate::entities::commands::{CreateSubscriptionDto, UpdateSubscriptionDto};
+use crate::entities::queries::SubscriptionFilter;
 use crate::entities::subscription::SubscriptionRecord;
 use crate::entities::topic::Topic;
+use common::paginated_spec::{Page, Sort};
 
 // Repository errors encountered during webhook subscription management.
 #[derive(Debug, Error)]
@@ -43,19 +45,26 @@ pub trait EventSubscriptionRepo: Send + Sync + 'static {
         tenant_id: &str,
         dto: CreateSubscriptionDto,
     ) -> Outcome<SubscriptionRecord>;
+    /// `tenant_id: None` acts across tenants (admin).
     async fn get_subscription(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         id: &str,
     ) -> Outcome<Option<SubscriptionRecord>>;
-    async fn list_subscriptions(&self, tenant_id: &str) -> Outcome<Vec<SubscriptionRecord>>;
+    async fn list_subscriptions(
+        &self,
+        tenant_id: Option<String>,
+        filter: &SubscriptionFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<(Vec<SubscriptionRecord>, u64)>;
     async fn update_subscription(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         id: &str,
         dto: UpdateSubscriptionDto,
     ) -> Outcome<SubscriptionRecord>;
-    async fn delete_subscription(&self, tenant_id: &str, id: &str) -> Outcome<()>;
+    async fn delete_subscription(&self, tenant_id: Option<String>, id: &str) -> Outcome<()>;
     async fn get_matching_subscriptions(
         &self,
         tenant_id: &str,

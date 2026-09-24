@@ -71,6 +71,8 @@ impl Rbac {
 pub struct AccessScope {
     acting_tenant: String,
     role: RbacRole,
+    /// An admin that selected a tenant explicitly sees only that tenant.
+    pinned: bool,
 }
 
 impl AccessScope {
@@ -79,11 +81,13 @@ impl AccessScope {
         Self {
             acting_tenant: tenant.to_string(),
             role: claims.role,
+            pinned: false,
         }
     }
 
     /// Builds the caller scope from a requested tenant header, shared by HTTP and gRPC adapters.
     /// Non-admins may only request their own tenant; a missing header falls back to the claims tenant.
+    /// An admin naming a tenant is pinned to it; without the header an admin sees every tenant.
     #[allow(clippy::result_large_err)]
     pub fn from_tenant_header(claims: &Claims, requested: Option<&str>) -> Outcome<Self> {
         let tenant_id = match requested {
@@ -101,7 +105,9 @@ impl AccessScope {
             }
             None => claims.tenant_id(),
         };
-        Ok(Self::new(claims, tenant_id))
+        let mut scope = Self::new(claims, tenant_id);
+        scope.pinned = requested.is_some();
+        Ok(scope)
     }
 
     /// Read scope: non-admins are confined to their own tenant.
@@ -121,6 +127,7 @@ impl AccessScope {
         Self {
             acting_tenant: tenant.to_string(),
             role,
+            pinned: false,
         }
     }
 
@@ -177,9 +184,10 @@ impl AccessScope {
         }
     }
 
-    /// Tenant a read must match: a tenant sees only its own records, an admin sees every tenant.
+    /// Tenant a read must match: a tenant sees only its own records, an admin every tenant
+    /// unless it pinned one.
     pub fn tenant_filter(&self) -> Option<&str> {
-        (!self.is_admin()).then_some(self.acting_tenant.as_str())
+        (!self.is_admin() || self.pinned).then_some(self.acting_tenant.as_str())
     }
 
     /// The tenant a newly created resource should default to or be forced into.
@@ -204,7 +212,7 @@ impl AccessScope {
     /// Resolves the effective tenant filter for list queries.
     /// Non-admins cannot query foreign tenants; admins can filter or query across all.
     pub fn resolve_query_tenant(&self, requested_tenant: Option<&str>) -> Outcome<Option<String>> {
-        if self.is_admin() {
+        if self.is_admin() && !self.pinned {
             Ok(requested_tenant
                 .filter(|s| !s.trim().is_empty())
                 .map(|s| s.to_string()))
@@ -221,6 +229,19 @@ impl AccessScope {
 
     /// Whether this scope permits operating on a resource owned by `owner`.
     pub fn permits(&self, owner: &str) -> bool {
-        self.is_admin() || self.acting_tenant == owner
+        self.tenant_filter().is_none_or(|tenant| tenant == owner)
+    }
+
+    /// Fails unless `owner` is visible to this caller; a foreign record looks like a missing one.
+    pub fn ensure_visible(&self, owner: &str, id: &str) -> Outcome<()> {
+        if self.permits(owner) {
+            Ok(())
+        } else {
+            Err(Errors::missing_resource(
+                id.to_string(),
+                "resource not found",
+                None,
+            ))
+        }
     }
 }

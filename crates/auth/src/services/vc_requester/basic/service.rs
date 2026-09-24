@@ -46,7 +46,7 @@ use super::super::VcRequesterTrait;
 use super::config::VCRequesterConfig;
 use crate::types::entities::ReachAuthority;
 use crate::types::response::VcWhatResponse;
-use crate::utils::parse_url;
+use common::utils::parse_url;
 
 pub struct VCReqService {
     vault: Arc<VaultService>,
@@ -61,9 +61,10 @@ impl VCReqService {
 
 #[async_trait]
 impl VcRequesterTrait for VCReqService {
-    fn build_grant_plan(&self, payload: ReachAuthority) -> grant::Plan {
+    fn build_grant_plan(&self, tenant_id: &str, payload: ReachAuthority) -> grant::Plan {
         grant::Plan {
             id: uuid::Uuid::new_v4().to_string(),
+            tenant_id: tenant_id.to_string(),
             participant_id: payload.id,
             participant_nick: payload.nick,
             grant_endpoint: payload.url,
@@ -72,7 +73,12 @@ impl VcRequesterTrait for VCReqService {
             kind: GrantKind::CredentialRequest,
         }
     }
-    fn build_interaction_plan(&self, id: &str, start: InteractStart) -> interaction::Plan {
+    fn build_interaction_plan(
+        &self,
+        tenant_id: &str,
+        id: &str,
+        start: InteractStart,
+    ) -> interaction::Plan {
         let callback_uri = format!(
             "{}{}/vc-request/callback/{}",
             self.config.hosts().get_host(HostType::Http),
@@ -87,6 +93,7 @@ impl VcRequesterTrait for VCReqService {
 
         interaction::Plan {
             id: id.to_string(),
+            tenant_id: tenant_id.to_string(),
             start: vec![start],
             method: FinishMethod::Push,
             callback_uri,
@@ -95,7 +102,12 @@ impl VcRequesterTrait for VCReqService {
         }
     }
 
-    fn build_verification_plan(&self, uri: &str, id: &str) -> Outcome<verification::Plan> {
+    fn build_verification_plan(
+        &self,
+        tenant_id: &str,
+        uri: &str,
+        id: &str,
+    ) -> Outcome<verification::Plan> {
         info!("Saving verification data");
 
         let fixed_uri = uri.replacen("openid4vp://", "https://", 1);
@@ -111,6 +123,7 @@ impl VcRequesterTrait for VCReqService {
 
         Ok(verification::Plan {
             id: id.to_string(),
+            tenant_id: tenant_id.to_string(),
             uri: uri.to_string(),
             scheme: "openid4vp".to_string(),
             response_type,
@@ -123,17 +136,16 @@ impl VcRequesterTrait for VCReqService {
         })
     }
 
-    fn build_authority_plan(&self, tenant_id: &str, grant: &grant::Model) -> participant::Plan {
+    fn build_authority_plan(&self, grant: &grant::Model) -> participant::Plan {
         let base_url = trim_4_base(&grant.grant_endpoint);
         participant::Plan {
             participant_id: grant.participant_id.clone(),
-            tenant_id: tenant_id.to_string(),
+            tenant_id: grant.tenant_id.clone(),
             participant_nick: grant.participant_nick.clone(),
             participant_type: ParticipantType::Authority,
             base_url,
             token: None,
             extra_fields: None,
-            is_me: false,
         }
     }
 

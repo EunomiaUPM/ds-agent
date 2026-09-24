@@ -33,12 +33,6 @@ pub struct ParticipantFilter {
     pub r#type: Option<ParticipantType>,
     pub participant_nick: Option<String>,
     pub participant_id: Option<String>,
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        deserialize_with = "common::paginated_spec::deserialize_opt_bool_from_str_or_bool"
-    )]
-    pub exclude_myself: Option<bool>,
     pub created_after: Option<DateTime<Utc>>,
     pub created_before: Option<DateTime<Utc>>,
 }
@@ -48,7 +42,6 @@ impl QueryFilter for ParticipantFilter {
         self.r#type.is_none()
             && self.participant_nick.is_none()
             && self.participant_id.is_none()
-            && self.exclude_myself.is_none()
             && self.created_after.is_none()
             && self.created_before.is_none()
     }

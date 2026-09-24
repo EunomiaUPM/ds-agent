@@ -17,15 +17,19 @@
 
 use async_trait::async_trait;
 use chrono::Utc;
+use common::paginated_spec::{Page, Sort};
 use sea_orm::{
-    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
+    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait,
+    QueryFilter, QueryTrait,
 };
 use uuid::Uuid;
 use ymir::errors::{BadFormat, Errors, Outcome};
 
 use crate::data::repo::EventSubscriptionRepo;
 use crate::data::sea_orm::orm::subscription;
+use crate::data::sea_orm::repos::listing::NaiveKeyset;
 use crate::entities::commands::{CreateSubscriptionDto, UpdateSubscriptionDto};
+use crate::entities::queries::SubscriptionFilter;
 use crate::entities::subscription::SubscriptionRecord;
 use crate::entities::topic::Topic;
 use crate::entities::topic_pattern::TopicPattern;
@@ -62,14 +66,10 @@ impl EventSubscriptionRepo for SeaOrmSubscriptionRepo {
             id: ActiveValue::Set(id.clone()),
             tenant_id: ActiveValue::Set(tenant_id.to_string()),
             callback_address: ActiveValue::Set(dto.callback_address.clone()),
-            topic_pattern: ActiveValue::Set(Some(dto.topic_pattern)),
+            topic_pattern: ActiveValue::Set(dto.topic_pattern),
             secret: ActiveValue::Set(dto.secret.clone()),
             headers: ActiveValue::Set(headers_val),
             retry_limit: ActiveValue::Set(dto.retry_limit.map(|r| r as i32)),
-            transfer_process: ActiveValue::Set(false),
-            contract_negotiation_process: ActiveValue::Set(false),
-            catalog: ActiveValue::Set(false),
-            data_plane: ActiveValue::Set(false),
             active: ActiveValue::Set(true),
             created_at: ActiveValue::Set(Utc::now().naive_utc()),
             updated_at: ActiveValue::Set(None),
@@ -98,12 +98,14 @@ impl EventSubscriptionRepo for SeaOrmSubscriptionRepo {
 
     async fn get_subscription(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         id: &str,
     ) -> Outcome<Option<SubscriptionRecord>> {
         let model = subscription::Entity::find()
             .filter(subscription::Column::Id.eq(id))
-            .filter(subscription::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| {
+                q.filter(subscription::Column::TenantId.eq(t))
+            })
             .one(&self.db)
             .await
             .map_err(|e| Errors::db("failed to query subscription", Some(Box::new(e))))?;
@@ -114,29 +116,55 @@ impl EventSubscriptionRepo for SeaOrmSubscriptionRepo {
         }
     }
 
-    async fn list_subscriptions(&self, tenant_id: &str) -> Outcome<Vec<SubscriptionRecord>> {
-        let models = subscription::Entity::find()
-            .filter(subscription::Column::TenantId.eq(tenant_id))
-            .all(&self.db)
-            .await
-            .map_err(|e| Errors::db("failed to list subscriptions", Some(Box::new(e))))?;
+    async fn list_subscriptions(
+        &self,
+        tenant_id: Option<String>,
+        filter: &SubscriptionFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<(Vec<SubscriptionRecord>, u64)> {
+        let query = subscription::Entity::find()
+            .apply_if(tenant_id, |q, t| {
+                q.filter(subscription::Column::TenantId.eq(t))
+            })
+            .apply_if(filter.active, |q, a| {
+                q.filter(subscription::Column::Active.eq(a))
+            });
 
-        let mut results = Vec::with_capacity(models.len());
-        for m in models {
-            results.push(m.into_domain()?);
-        }
-        Ok(results)
+        let total = query
+            .clone()
+            .count(&self.db)
+            .await
+            .map_err(|e| Errors::db("failed to count subscriptions", Some(Box::new(e))))?;
+        let models = NaiveKeyset::apply(
+            query,
+            page,
+            sort,
+            subscription::Column::CreatedAt,
+            subscription::Column::Id,
+        )
+        .all(&self.db)
+        .await
+        .map_err(|e| Errors::db("failed to list subscriptions", Some(Box::new(e))))?;
+
+        let results = models
+            .into_iter()
+            .map(subscription::Model::into_domain)
+            .collect::<Outcome<Vec<_>>>()?;
+        Ok((results, total))
     }
 
     async fn update_subscription(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         id: &str,
         dto: UpdateSubscriptionDto,
     ) -> Outcome<SubscriptionRecord> {
         let model = subscription::Entity::find()
             .filter(subscription::Column::Id.eq(id))
-            .filter(subscription::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| {
+                q.filter(subscription::Column::TenantId.eq(t))
+            })
             .one(&self.db)
             .await
             .map_err(|e| Errors::db("failed to find subscription", Some(Box::new(e))))?
@@ -147,7 +175,8 @@ impl EventSubscriptionRepo for SeaOrmSubscriptionRepo {
             active.callback_address = ActiveValue::Set(addr);
         }
         if let Some(pat) = dto.topic_pattern {
-            active.topic_pattern = ActiveValue::Set(Some(pat));
+            TopicPattern::new(&pat).map_err(|e| Errors::format(BadFormat::Received, e, None))?;
+            active.topic_pattern = ActiveValue::Set(pat);
         }
         if dto.secret.is_some() {
             active.secret = ActiveValue::Set(dto.secret);
@@ -175,10 +204,12 @@ impl EventSubscriptionRepo for SeaOrmSubscriptionRepo {
         updated.into_domain()
     }
 
-    async fn delete_subscription(&self, tenant_id: &str, id: &str) -> Outcome<()> {
+    async fn delete_subscription(&self, tenant_id: Option<String>, id: &str) -> Outcome<()> {
         subscription::Entity::delete_many()
             .filter(subscription::Column::Id.eq(id))
-            .filter(subscription::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| {
+                q.filter(subscription::Column::TenantId.eq(t))
+            })
             .exec(&self.db)
             .await
             .map_err(|e| Errors::db("failed to delete subscription", Some(Box::new(e))))?;
@@ -190,7 +221,20 @@ impl EventSubscriptionRepo for SeaOrmSubscriptionRepo {
         tenant_id: &str,
         topic: &Topic,
     ) -> Outcome<Vec<SubscriptionRecord>> {
-        let all = self.list_subscriptions(tenant_id).await?;
-        Ok(all.into_iter().filter(|s| s.matches(topic)).collect())
+        // Patterns live in the rows, so the topic is matched against each active one here.
+        let models = subscription::Entity::find()
+            .filter(subscription::Column::TenantId.eq(tenant_id))
+            .filter(subscription::Column::Active.eq(true))
+            .all(&self.db)
+            .await
+            .map_err(|e| Errors::db("failed to list subscriptions", Some(Box::new(e))))?;
+        let mut matching = Vec::new();
+        for model in models {
+            let record = model.into_domain()?;
+            if record.matches(topic) {
+                matching.push(record);
+            }
+        }
+        Ok(matching)
     }
 }

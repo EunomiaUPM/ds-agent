@@ -42,12 +42,16 @@ ok()   { echo -e "\033[32m  ✓ $*\033[0m" >&2; }
 warn() { echo -e "\033[33m  ! $*\033[0m" >&2; }
 die()  { echo -e "\033[31m  ✗ $*\033[0m" >&2; exit 1; }
 
+# shellcheck source=lib/auth.sh
+source "$SCRIPT_DIR/lib/auth.sh"
+
 curl_j() {
   local method=$1 url=$2 body=${3:-}
+  eunomia_auth "$url"
   if [[ -n "$body" ]]; then
-    curl -sf -X "$method" -H "Content-Type: application/json" -d "$body" "$url"
+    curl -sf -X "$method" ${AUTH_ARGS[@]+"${AUTH_ARGS[@]}"} -H "Content-Type: application/json" -d "$body" "$url"
   else
-    curl -sf -X "$method" -H "Content-Type: application/json" "$url"
+    curl -sf -X "$method" ${AUTH_ARGS[@]+"${AUTH_ARGS[@]}"} -H "Content-Type: application/json" "$url"
   fi
 }
 
@@ -110,7 +114,7 @@ get_provider_token_for_tck() {
 
   local token
   token=$(echo "$mates" | jq -r '
-    [ .[] | select(.is_me == false and .token != null) | .token ]
+    [ .items[] | select(.token != null) | .token ]
     | first
     // empty
   ')

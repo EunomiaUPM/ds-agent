@@ -18,6 +18,7 @@
 pub mod catalogs;
 pub(crate) mod common;
 pub mod data_services;
+pub mod dataset_offerings;
 pub mod datasets;
 pub mod distributions;
 pub mod filters;

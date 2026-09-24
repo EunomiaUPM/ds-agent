@@ -1456,7 +1456,7 @@ async fn delete_happy_path() {
     proc_repo
         .expect_delete_transfer_process()
         .times(1)
-        .returning(|_, _| Ok(()));
+        .returning(|_, _| Ok("tenant-1".to_string()));
     let id_repo = MockTransferIdentifierRepoTrait::new();
 
     let svc = make_svc(proc_repo, id_repo);

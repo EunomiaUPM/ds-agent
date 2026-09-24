@@ -15,8 +15,21 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod subscriptions;
+//! Publishing a dataset with its distribution and policy as one use case.
 
-pub enum MicroserviceSubscriptionKey {
-    Catalog,
+pub mod service;
+
+use crate::entities::dataset_offerings::{DatasetOfferingDto, NewDatasetOfferingDto};
+use common::auth::AccessScope;
+use ymir::errors::Outcome;
+
+#[mockall::automock]
+#[async_trait::async_trait]
+pub trait DatasetOfferingServiceTrait: Send + Sync {
+    /// Creates dataset, distribution and policy; a failure after the dataset removes it again.
+    async fn create_offering(
+        &self,
+        scope: &AccessScope,
+        offering: &NewDatasetOfferingDto,
+    ) -> Outcome<DatasetOfferingDto>;
 }

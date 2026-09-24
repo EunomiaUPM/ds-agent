@@ -1,5 +1,8 @@
 #!/bin/bash
 set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/auth.sh
+source "$SCRIPT_DIR/lib/auth.sh"
 
 # ----------------------------
 # Configuración de URLs
@@ -11,6 +14,8 @@ PROVIDER_URL="${PROVIDER_URL:-http://127.0.0.1:1200}"
 DOCKER_AUTHORITY_URL="${DOCKER_AUTHORITY_URL:-http://host.docker.internal:1500}"
 DOCKER_CONSUMER_URL="${DOCKER_CONSUMER_URL:-http://host.docker.internal:1100}"
 DOCKER_PROVIDER_URL="${DOCKER_PROVIDER_URL:-http://host.docker.internal:1200}"
+# Provider tenant the consumer onboards into (tenants share the provider DID).
+PROVIDER_TENANT="${PROVIDER_TENANT:-admin}"
 
 # ----------------------------
 # Logging (solo stderr)
@@ -28,12 +33,13 @@ curl_raw() {
     local url=$2
     local body=${3:-}
 
+    eunomia_auth "$url"
     if [ -n "$body" ]; then
-        curl -s -X "$method" "$url" \
+        curl -s -X "$method" "$url" "${AUTH_ARGS[@]}" \
             -H "Content-Type: application/json" \
             -d "$body"
     else
-        curl -s -X "$method" "$url" \
+        curl -s -X "$method" "$url" "${AUTH_ARGS[@]}" \
             -H "Content-Type: application/json"
     fi
 }
@@ -93,7 +99,7 @@ log_success "Credential request sent"
 log_step "STEP 8 - Retrieving OIDC4VCI URI"
 
 ALL_AUTHORITY=$(curl_raw GET "$CONSUMER_URL/api/v1/vc-request/all")
-OIDC4VCI_URI=$(echo "$ALL_AUTHORITY" | jq -r '.[-1].vc_uri')
+OIDC4VCI_URI=$(echo "$ALL_AUTHORITY" | jq -r '.items[-1].vc_uri')
 
 log_info "OIDC4VCI URI: $OIDC4VCI_URI"
 
@@ -108,29 +114,19 @@ curl_raw POST "$CONSUMER_URL/api/v1/wallet/oidc4vci" \
 log_success "OIDC4VCI processed"
 
 # ----------------------------
-# STEP 10 - Provider access
+# STEP 10 - Provider access (the VP is presented automatically)
 # ----------------------------
-log_step "STEP 10 - Provider request"
+log_step "STEP 10 - Provider request (tenant $PROVIDER_TENANT)"
 
-OIDC4VP_BODY=$(jq -n \
-    --arg url "$DOCKER_PROVIDER_URL/api/v1/gate/access" \
+CONNECT_BODY=$(jq -n \
+    --arg url "$DOCKER_PROVIDER_URL/api/v1/gate/$PROVIDER_TENANT/access" \
     --arg id "$PROVIDER_DID" \
-    --arg slug "provider" \
-    '{url:$url,id:$id,slug:$slug,actions:["talk"]}')
+    --arg nick "provider" \
+    '{url:$url,id:$id,nick:$nick,actions:["talk"],auto:true}')
 
-OIDC4VP_URI=$(curl_raw POST "$CONSUMER_URL/api/v1/onboard/provider" "$OIDC4VP_BODY")
+curl_raw POST "$CONSUMER_URL/api/v1/peer-connection/connect" "$CONNECT_BODY" >/dev/null
 
-log_info "OIDC4VP URI: $OIDC4VP_URI"
-
-# ----------------------------
-# STEP 11 - Process VP
-# ----------------------------
-log_step "STEP 11 - Processing OIDC4VP"
-
-curl_raw POST "$CONSUMER_URL/api/v1/wallet/oidc4vp" \
-"{\"uri\":\"$OIDC4VP_URI\"}" >/dev/null
-
-log_success "OIDC4VP processed"
+log_success "Provider onboarding processed"
 
 echo -e "\n======================================"
 echo "   ONBOARDING FINISHED SUCCESSFULLY"

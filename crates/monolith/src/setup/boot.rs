@@ -15,12 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::str::FromStr;
 use std::sync::Arc;
 
 use crate::setup::composition::MonolithModule;
 use crate::setup::{CoreGrpcWorker, CoreHttpWorker};
-use catalog_agent::{CatalogDto, DataServiceDto, NewCatalogDto, NewDataServiceDto};
 use common::boot::BootstrapServiceTrait;
 use common::config::services::traits::CatalogConfigTrait;
 use common::config::types::traits::{CacheConfigTrait, CommonConfigTrait};
@@ -29,13 +27,12 @@ use common::http_client::{HttpClient, HttpClientError};
 use common::module_loader::service_composer::ServiceComposer;
 use common::utils::flush_redis_cache;
 use common::worker_utils::GrpcServer;
-use oauth::services::admin_seeder::seed_admin_user;
+use oauth::services::admin_seeder::{seed_admin_user, ServiceClientSeeder};
 use tokio::fs;
 use tokio::sync::broadcast;
 use tokio::sync::broadcast::Sender;
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info, warn};
-use urn::Urn;
 use ymir::config::traits::{ApiConfigTrait, HostsConfigTrait};
 use ymir::config::types::HostType;
 use ymir::data::entities::shared::participant;
@@ -46,6 +43,28 @@ use ymir::services::vault::VaultTrait;
 pub struct CoreBoot;
 
 impl CoreBoot {
+    /// Boot goes through the same idempotent provisioning as any new tenant.
+    async fn provision_admin_tenant(config: &ApplicationConfig) -> Outcome<serde_json::Value> {
+        let client = Self::admin_client(config, 30).await?;
+        let url = format!(
+            "{}{}/catalog-agent/tenants/{}/provision",
+            config.catalog().common().get_host(HostType::Http),
+            config.catalog().common().get_api_version(),
+            config.transfer().common().admin_seed.tenant_id
+        );
+        Ok(client
+            .post_json::<serde_json::Value, serde_json::Value>(&url, &serde_json::json!({}))
+            .await?)
+    }
+
+    fn string_at(value: &serde_json::Value, pointer: &str) -> Outcome<String> {
+        value
+            .pointer(pointer)
+            .and_then(|v| v.as_str())
+            .map(str::to_string)
+            .ok_or_else(|| Errors::parse(format!("provisioning response lacks {pointer}"), None))
+    }
+
     /// HTTP client authenticated as the seeded admin, for boot calls against protected management APIs.
     async fn admin_client(config: &ApplicationConfig, timeout_secs: u64) -> Outcome<HttpClient> {
         let client = HttpClient::new(1, timeout_secs);
@@ -85,7 +104,7 @@ impl BootstrapServiceTrait for CoreBoot {
     }
 
     async fn create_participant(config: &Self::Config) -> Outcome<String> {
-        let client = HttpClient::new(1, 30);
+        let client = Self::admin_client(config, 30).await?;
         let base_url = config.ssi_auth().common().get_host(HostType::Http);
         let api = config.ssi_auth().common().get_api_version();
 
@@ -118,50 +137,19 @@ impl BootstrapServiceTrait for CoreBoot {
     }
 
     async fn load_catalog(
-        participant_id: &Option<String>,
+        _participant_id: &Option<String>,
         config: &Self::Config,
     ) -> Outcome<String> {
-        let participant_id = participant_id.clone().unwrap_or_default();
-        let client = Self::admin_client(config, 3).await?;
-        let base_url = config.catalog().common().get_host(HostType::Http);
-        let api = config.catalog().common().get_api_version();
-        let url = format!("{}{}/catalog-agent/catalogs/main", base_url, api);
-        let catalog = client
-            .post_json::<NewCatalogDto, CatalogDto>(
-                url.as_str(),
-                &NewCatalogDto {
-                    dspace_participant_id: Some(participant_id),
-                    ..NewCatalogDto::default()
-                },
-            )
-            .await?;
-        Ok(catalog.inner.id)
+        let provisioned = Self::provision_admin_tenant(config).await?;
+        Self::string_at(&provisioned, "/catalog/id")
     }
 
     async fn load_dataservice(
-        catalog_id: &Option<String>,
+        _catalog_id: &Option<String>,
         config: &Self::Config,
     ) -> Outcome<String> {
-        let catalog_id = catalog_id.clone().unwrap_or_default();
-        let client = Self::admin_client(config, 3).await?;
-        let base_url = config.catalog().common().get_host(HostType::Http);
-        let negotiation_url = config.contracts().common().get_host(HostType::Http);
-
-        let api = config.catalog().common().get_api_version();
-        let url = format!("{}{}/catalog-agent/data-services/main", base_url, api);
-        let catalog = client
-            .post_json::<NewDataServiceDto, DataServiceDto>(
-                url.as_str(),
-                &NewDataServiceDto {
-                    dcat_endpoint_url: format!("{}/dsp/current", negotiation_url),
-                    catalog_id: Urn::from_str(catalog_id.as_str()).map_err(|e| {
-                        Errors::parse("Error parsing urn catalog_id", Some(Box::new(e)))
-                    })?,
-                    ..Default::default()
-                },
-            )
-            .await?;
-        Ok(catalog.inner.id)
+        let provisioned = Self::provision_admin_tenant(config).await?;
+        Self::string_at(&provisioned, "/dataService/id")
     }
 
     async fn load_policy_templates(config: &Self::Config) -> Outcome<()> {
@@ -231,8 +219,10 @@ impl BootstrapServiceTrait for CoreBoot {
     async fn seed_users(config: &Self::Config) -> Outcome<()> {
         let vault = common::vault_utils::vault(config)?;
         let db = vault.get_db_connection(config.transfer().common()).await?;
-        let admin = config.transfer().admin_seed();
-        seed_admin_user(db, &admin.tenant_id, &admin.email, &admin.password).await
+        let common = config.transfer().common();
+        let admin = &common.admin_seed;
+        seed_admin_user(db.clone(), &admin.tenant_id, &admin.email, &admin.password).await?;
+        ServiceClientSeeder::seed(db, &admin.tenant_id, &common.service_client).await
     }
 
     async fn start_services(

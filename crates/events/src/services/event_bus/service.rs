@@ -34,9 +34,11 @@ use crate::entities::delivery::DeliveryStatus;
 use crate::entities::delivery::EventDeliveryRecord;
 use crate::entities::envelope::EventEnvelope;
 use crate::entities::event::Event;
+use crate::entities::queries::DeadLetterFilter;
 use crate::services::event_bus::dispatcher::EventDispatcher;
 use crate::services::event_bus::policy::RetryPolicy;
 use crate::services::event_bus::{EventBusTrait, EventPublisherTrait};
+use common::paginated_spec::{Cursor, Page, Sort};
 use ymir::errors::{Errors, Outcome, PetitionFailure};
 
 // Central event bus orchestrating event persistence, broadcasting, and delivery.
@@ -102,17 +104,6 @@ impl EventBus {
         <Self as EventPublisherTrait>::publish_event(self, event).await
     }
 
-    // Publish a serializable payload to a topic with automatic envelope packaging using default tenant.
-    pub async fn emit_payload<T: serde::Serialize + ?Sized>(
-        &self,
-        topic: &str,
-        source: &str,
-        payload: &T,
-    ) -> Outcome<EventEnvelope> {
-        self.emit_payload_with_tenant("default", topic, source, payload)
-            .await
-    }
-
     // Publish a serializable payload to a topic with explicit tenant_id.
     pub async fn emit_payload_with_tenant<T: serde::Serialize + ?Sized>(
         &self,
@@ -164,10 +155,10 @@ impl EventBus {
         self.dispatcher.clone()
     }
 
-    // Replay a single dead letter record by ID.
+    // Replay a single dead letter record by ID; `tenant_id: None` reaches any tenant (admin).
     pub async fn replay_dead_letter(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         dlq_id: &str,
     ) -> Outcome<EventDeliveryRecord> {
         let record = self
@@ -182,13 +173,13 @@ impl EventBus {
 
         let event = self
             .event_repo
-            .get_event_by_id(tenant_id, &event_urn)
+            .get_event_by_id(Some(record.tenant_id.clone()), &event_urn)
             .await?
             .ok_or_else(|| Errors::missing_resource(&record.event_id, "event not found", None))?;
 
         let sub = self
             .subscription_repo
-            .get_subscription(tenant_id, &record.subscription_id)
+            .get_subscription(Some(record.tenant_id.clone()), &record.subscription_id)
             .await?
             .ok_or_else(|| {
                 Errors::missing_resource(&record.subscription_id, "subscription not found", None)
@@ -206,7 +197,9 @@ impl EventBus {
         {
             Ok(status) if status.is_success() => {
                 info!(dlq_id, status = %status, "Dead letter replayed successfully");
-                self.dlq_repo.mark_replayed(tenant_id, dlq_id).await?;
+                self.dlq_repo
+                    .mark_replayed(&record.tenant_id, dlq_id)
+                    .await?;
 
                 if let Some(delivery_id) = &record.delivery_id {
                     let _ = self
@@ -241,32 +234,36 @@ impl EventBus {
         }
     }
 
-    // Replay all unresolved dead letter records in batches.
-    pub async fn replay_all_dead_letters(&self, tenant_id: &str) -> Outcome<usize> {
+    // Replay all unresolved dead letter records in batches, oldest first.
+    pub async fn replay_all_dead_letters(&self, tenant_id: Option<String>) -> Outcome<usize> {
+        let filter = DeadLetterFilter {
+            status: Some(DeadLetterStatus::Unresolved.as_str().to_string()),
+        };
+        let mut page = Page::default();
         let mut success_count = 0;
-        let mut offset = 0;
-        let limit = 50;
 
         loop {
-            let dead_letters = self
+            let (dead_letters, _) = self
                 .dlq_repo
-                .list_dead_letters(tenant_id, Some("Unresolved"), limit, offset)
+                .list_dead_letters(tenant_id.clone(), &filter, &page, &Sort::CreatedAtAsc)
                 .await?;
-
-            if dead_letters.is_empty() {
+            let Some(last) = dead_letters.last() else {
                 break;
-            }
-
+            };
+            page.cursor = Some(Cursor::encode_composite(&last.failed_at, &last.id));
             let batch_len = dead_letters.len();
+
             for dl in dead_letters {
-                if self.replay_dead_letter(tenant_id, &dl.id).await.is_ok() {
+                if self
+                    .replay_dead_letter(Some(dl.tenant_id), &dl.id)
+                    .await
+                    .is_ok()
+                {
                     success_count += 1;
-                } else {
-                    offset += 1;
                 }
             }
 
-            if batch_len < limit as usize {
+            if batch_len < page.limit as usize {
                 break;
             }
         }
@@ -466,10 +463,12 @@ impl EventPublisherTrait for EventBus {
 
     async fn emit_payload(
         &self,
+        tenant_id: &str,
         topic: &str,
         source: &str,
         payload: &serde_json::Value,
     ) -> Outcome<EventEnvelope> {
-        Self::emit_payload(self, topic, source, payload).await
+        self.emit_payload_with_tenant(tenant_id, topic, source, payload)
+            .await
     }
 }

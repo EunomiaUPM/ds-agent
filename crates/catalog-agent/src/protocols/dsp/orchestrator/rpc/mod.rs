@@ -27,15 +27,19 @@ pub(crate) mod persistence;
 pub(crate) mod rpc;
 pub(crate) mod types;
 
+use common::auth::AccessScope;
+
 #[async_trait::async_trait]
 pub trait RPCOrchestratorTrait: Send + Sync + 'static {
     async fn setup_catalog_request_rpc(
         &self,
+        scope: &AccessScope,
         input: &RpcCatalogRequestMessageDto,
     ) -> Outcome<RpcCatalogResponseMessageDto<RpcCatalogRequestMessageDto, Catalog>>;
 
     async fn setup_dataset_request_rpc(
         &self,
+        scope: &AccessScope,
         input: &RpcDatasetRequestMessageDto,
     ) -> Outcome<RpcCatalogResponseMessageDto<RpcDatasetRequestMessageDto, Dataset>>;
 }

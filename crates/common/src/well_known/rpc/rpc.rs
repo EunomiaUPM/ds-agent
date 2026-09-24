@@ -36,10 +36,10 @@ impl WellKnownRPCService {
             mates_facade,
         }
     }
-    async fn get_base_url(&self, mate_id: &str) -> Outcome<String> {
+    async fn get_base_url(&self, tenant_id: &str, mate_id: &str) -> Outcome<String> {
         let participant = self
             .mates_facade
-            .get_mate_by_id(mate_id.to_string())
+            .get_mate_by_id(tenant_id.to_string(), mate_id.to_string())
             .await
             .map_err(|e| Errors::missing_resource(mate_id, "Mate not found", Some(Box::new(e))))?;
         Ok(participant.base_url)
@@ -53,7 +53,7 @@ impl WellKnownRPCTrait for WellKnownRPCService {
         input: &WellKnownRPCRequest,
     ) -> Outcome<(VersionResponse, String)> {
         let mate_id = input.participant_id.clone();
-        let base_url = self.get_base_url(&mate_id).await?;
+        let base_url = self.get_base_url(&input.tenant_id, &mate_id).await?;
         let url = format!("{}/.well-known/dspace-version", base_url);
         let response = self
             .http_client

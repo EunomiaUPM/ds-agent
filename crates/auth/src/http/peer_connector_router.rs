@@ -31,10 +31,10 @@ use ymir::utils::extract_payload;
 use crate::entities::filters::SentGrantFilter;
 use crate::modules::PeerConnectorModule;
 use crate::types::entities::ReachProvider;
+use common::auth::AccessScope;
 use common::paginated_spec::Paginated;
 use common::query::{QueryFilter, QuerySpec};
 
-pub use common::paginated_spec::PaginationParams;
 pub type PeerConnectorQuery = QuerySpec<SentGrantFilter>;
 
 pub struct OnboarderRouter {
@@ -46,26 +46,33 @@ impl OnboarderRouter {
         Self { peer_connector }
     }
 
-    pub fn router(self) -> Router {
+    /// GNAP interaction callbacks pushed by the peer's authorization server.
+    pub fn protocol_router(&self) -> Router {
+        Router::new()
+            .route(
+                "/callback/{id}",
+                get(Self::get_callback).post(Self::post_callback),
+            )
+            .with_state(self.peer_connector.clone())
+    }
+
+    pub fn router(&self) -> Router {
         Router::new()
             .route("/connect", post(Self::connect))
             .route("/request/all", get(Self::get_all))
             .route("/request/{id}", get(Self::get_one))
             .route("/request/{id}/details", get(Self::get_one_with_details))
-            .route(
-                "/callback/{id}",
-                get(Self::get_callback).post(Self::post_callback),
-            )
             .route("/oid4vp/{id}", post(Self::manage_oid4vp))
-            .with_state(self.peer_connector)
+            .with_state(self.peer_connector.clone())
     }
 
     async fn connect(
         State(peer_connector): State<Arc<dyn PeerConnectorModule>>,
+        scope: AccessScope,
         payload: Result<Json<ReachProvider>, JsonRejection>,
     ) -> AppResult<()> {
         let payload = extract_payload(payload)?;
-        peer_connector.req_peer_connection(payload).await
+        peer_connector.req_peer_connection(&scope, payload).await
     }
 
     async fn get_callback(
@@ -87,36 +94,42 @@ impl OnboarderRouter {
 
     async fn get_all(
         State(peer_connector): State<Arc<dyn PeerConnectorModule>>,
+        scope: AccessScope,
         Query(query): Query<PeerConnectorQuery>,
     ) -> AppResult<Json<Paginated<grant::Model>>> {
         query.filter.validate()?;
         Ok(Json(
             peer_connector
-                .get_all(&query.filter, &query.page, &query.sort)
+                .get_all(&scope, &query.filter, &query.page, &query.sort)
                 .await?,
         ))
     }
 
     async fn get_one(
         State(peer_connector): State<Arc<dyn PeerConnectorModule>>,
+        scope: AccessScope,
         Path(id): Path<String>,
     ) -> AppResult<Json<grant::Model>> {
-        Ok(Json(peer_connector.get_by_id(id).await?))
+        Ok(Json(peer_connector.get_by_id(&scope, id).await?))
     }
 
     async fn get_one_with_details(
         State(peer_connector): State<Arc<dyn PeerConnectorModule>>,
+        scope: AccessScope,
         Path(id): Path<String>,
     ) -> AppResult<Json<Value>> {
-        Ok(Json(peer_connector.get_by_id_with_details(id).await?))
+        Ok(Json(
+            peer_connector.get_by_id_with_details(&scope, id).await?,
+        ))
     }
 
     async fn manage_oid4vp(
         State(peer_connector): State<Arc<dyn PeerConnectorModule>>,
+        scope: AccessScope,
         Path(id): Path<String>,
         payload: Result<Json<OidcUri>, JsonRejection>,
     ) -> AppResult<()> {
         let payload = extract_payload(payload)?;
-        peer_connector.process_oid4vp(id, payload).await
+        peer_connector.process_oid4vp(&scope, id, payload).await
     }
 }

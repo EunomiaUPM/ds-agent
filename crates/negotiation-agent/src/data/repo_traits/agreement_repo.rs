@@ -72,7 +72,8 @@ pub trait AgreementRepoTrait: Send + Sync {
         id: &Urn,
         edit_model: &EditAgreementModel,
     ) -> Outcome<agreement::Model>;
-    async fn delete_agreement(&self, tenant_id: Option<String>, id: &Urn) -> Outcome<()>;
+    /// Returns the tenant of the removed record.
+    async fn delete_agreement(&self, tenant_id: Option<String>, id: &Urn) -> Outcome<String>;
 }
 
 #[derive(Debug, Error)]

@@ -16,6 +16,7 @@
  */
 
 use crate::gateway::GatewayHttpRouter;
+use crate::setup::context::AppContext;
 use axum::extract::Request;
 use axum::response::IntoResponse;
 use axum::{serve, Router};
@@ -23,6 +24,7 @@ use common::config::services::GatewayConfig;
 use common::config::types::traits::CommonConfigTrait;
 use common::errors::CommonErrors;
 use common::well_known::WellKnownRoot;
+use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
@@ -99,13 +101,9 @@ impl GatewayHttpWorker {
 }
 
 pub async fn create_gateway_http_router(config: &GatewayConfig) -> Router {
-    let gateway_router = GatewayHttpRouter::new(config.clone()).router();
-    Router::new().nest("/admin", gateway_router)
+    create_gateway_http_router_with_context(Arc::new(AppContext::new(config.clone(), None))).await
 }
 
-pub async fn create_gateway_http_router_with_context(
-    ctx: std::sync::Arc<crate::setup::context::AppContext>,
-) -> Router {
-    let gateway_router = GatewayHttpRouter::with_context(ctx).router();
-    Router::new().nest("/admin", gateway_router)
+pub async fn create_gateway_http_router_with_context(ctx: Arc<AppContext>) -> Router {
+    Router::new().nest("/admin", GatewayHttpRouter::new(ctx).router())
 }

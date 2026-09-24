@@ -24,7 +24,7 @@ use common::config::services::TransferConfig;
 use common::config::types::traits::{CommonConfigTrait, ConfigLoader};
 use common::module_loader::service_composer::ServiceComposer;
 use common::worker_utils::GrpcServer;
-use oauth::services::admin_seeder::seed_admin_user;
+use oauth::services::admin_seeder::{ServiceClientSeeder, seed_admin_user};
 use oauth::setup::module::OAuthModule;
 use std::sync::Arc;
 use tokio::sync::broadcast;
@@ -70,7 +70,8 @@ impl BootstrapServiceTrait for TransferBoot {
         let vault = common::vault_utils::vault(config)?;
         let db = vault.get_db_connection(config.common()).await?;
         let admin = config.admin_seed();
-        seed_admin_user(db, &admin.tenant_id, &admin.email, &admin.password).await
+        seed_admin_user(db.clone(), &admin.tenant_id, &admin.email, &admin.password).await?;
+        ServiceClientSeeder::seed(db, &admin.tenant_id, &config.common().service_client).await
     }
 
     async fn start_services(

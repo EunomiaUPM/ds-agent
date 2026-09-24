@@ -57,9 +57,10 @@ pub trait CatalogRepositoryTrait: Send + Sync {
         new_catalog_model: &NewCatalogModel,
     ) -> Outcome<catalog::Model>;
 
+    /// Deletes and returns the removed row.
     async fn delete_catalog_by_id(
         &self,
         tenant_id: Option<String>,
         catalog_id: &Urn,
-    ) -> Outcome<()>;
+    ) -> Outcome<catalog::Model>;
 }

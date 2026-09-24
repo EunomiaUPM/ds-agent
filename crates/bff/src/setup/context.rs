@@ -19,37 +19,27 @@ use std::sync::Arc;
 
 use common::auth::OauthTokenValidator;
 use common::config::services::GatewayConfig;
-use events::EventBus;
-use tokio::sync::broadcast;
 
 use crate::proxy::HttpProxyDispatcher;
 
-/// Shared application context holding configuration, event bus, OAuth validator, and proxy.
+/// Configuration, reverse proxy and, when a database is available, the OAuth validator.
 #[derive(Clone)]
 pub struct AppContext {
     pub config: GatewayConfig,
-    pub event_bus: Option<Arc<EventBus>>,
     pub oauth_validator: Option<Arc<dyn OauthTokenValidator>>,
     pub proxy: Arc<HttpProxyDispatcher>,
-    pub legacy_notification_tx: broadcast::Sender<String>,
 }
 
 impl AppContext {
-    /// Initialize application context with optional event bus and OAuth validator.
     pub fn new(
         config: GatewayConfig,
-        event_bus: Option<Arc<EventBus>>,
         oauth_validator: Option<Arc<dyn OauthTokenValidator>>,
     ) -> Self {
         let proxy = Arc::new(HttpProxyDispatcher::new(config.clone()));
-        let (legacy_notification_tx, _) = broadcast::channel(100);
-
         Self {
             config,
-            event_bus,
             oauth_validator,
             proxy,
-            legacy_notification_tx,
         }
     }
 }

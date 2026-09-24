@@ -16,6 +16,7 @@ import {
 
 const peerDidSchema = z.object({
   url: z.string().url("Please enter a valid URL"),
+  tenant: z.string().min(1, "Peer tenant is required"),
 });
 
 export function PeerConnectorForm() {
@@ -25,11 +26,12 @@ export function PeerConnectorForm() {
     resolver: zodResolver(peerDidSchema),
     defaultValues: {
       url: "",
+      tenant: "",
     },
   });
 
   function onSubmit(values: z.infer<typeof peerDidSchema>) {
-    ssiAuthContext.fetchPeerDid(values.url);
+    ssiAuthContext.fetchPeerDid(values.url, values.tenant);
   }
 
   return (
@@ -49,6 +51,19 @@ export function PeerConnectorForm() {
                   Fetch Peer DID
                 </Button>
               </div>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="tenant"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Peer Tenant</FormLabel>
+              <FormControl>
+                <Input placeholder="acme" {...field} />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}

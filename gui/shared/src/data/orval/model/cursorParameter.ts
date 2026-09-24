@@ -10,4 +10,7 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  * OpenAPI spec version: 1.0.0
  */
 
-export type NotificationSubEvent = { [key: string]: unknown };
+/**
+ * Opaque cursor from `nextCursor` of the previous page; takes precedence over `page`.
+ */
+export type CursorParameter = string;

@@ -2,8 +2,8 @@
  * participants/index.tsx
  *
  * Participants listing page with different layouts based on participant type:
- * - Agent + isMe=true: InfoList (my agent info)
- * - Agent + isMe=false: DataTable (other agents)
+ * - My agent: InfoList from /mates/myself (it is not a stored participant)
+ * - Other agents: DataTable
  * - Authority: InfoList (authority info)
  *
  * @example
@@ -31,6 +31,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "shared/src/components/
 import { Skeleton } from "shared/src/components/ui/skeleton";
 
 import { keepPreviousData } from "@tanstack/react-query";
+import { useMyself } from "shared/src/data/useMyself";
 
 interface Participant extends ParticipantDto {
   last_interaction?: string;
@@ -66,6 +67,7 @@ function RouteComponent() {
       placeholderData: keepPreviousData,
     },
   });
+  const myAgent = useMyself();
   const rawParticipants = (
     Array.isArray(participants?.data)
       ? participants.data
@@ -91,8 +93,6 @@ function RouteComponent() {
     const finalError = error instanceof Error ? error : new Error("Participants not found");
     return <GeneralErrorComponent error={finalError} reset={() => {}} />;
   }
-
-  const myAgent = allParticipants.find((p) => p.is_me);
 
   return (
     <PageLayout>
@@ -142,17 +142,6 @@ function RouteComponent() {
                   <p className="text-xs text-muted-foreground uppercase">Base URL</p>
                   <Badge variant="info">{myAgent.base_url}</Badge>
                 </div>
-                <div className="flex-1 flex items-end justify-end">
-                  <Link
-                    to="/participants/$participantId"
-                    params={{ participantId: myAgent.participant_id! }}
-                  >
-                    <Button variant="link">
-                      View My Profile
-                      <ArrowRight />
-                    </Button>
-                  </Link>
-                </div>
               </div>
             </CardContent>
           </Card>
@@ -188,7 +177,7 @@ function RouteComponent() {
               cell: (p) => (
                 <div className="flex items-center gap-3">
                   <div
-                    className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs ${p.is_me ? "bg-brand-sky text-white" : "bg-background-200 text-muted-foreground"}`}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs bg-background-200 text-muted-foreground"
                   >
                     {(p.participant_nick || "U").charAt(0).toUpperCase()}
                   </div>
@@ -196,7 +185,6 @@ function RouteComponent() {
                     <span className="font-medium capitalize">
                       {p.participant_nick || "Unknown"}
                     </span>
-                    {p.is_me && <Badge size="sm">IT'S ME</Badge>}
                   </div>
                 </div>
               ),

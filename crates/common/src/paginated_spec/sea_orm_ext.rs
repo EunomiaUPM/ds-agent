@@ -53,9 +53,10 @@ impl<E: EntityTrait> SelectCursorExt<E> for Select<E> {
         let sort = *sort.borrow();
         if let Some(cursor) = &page.cursor {
             if let Ok(c) = Cursor::decode(cursor) {
-                self = match sort {
-                    Sort::CreatedAtAsc => self.filter(time_col.gt(c.timestamp)),
-                    _ => self.filter(time_col.lt(c.timestamp)),
+                self = if sort.is_ascending() {
+                    self.filter(time_col.gt(c.timestamp))
+                } else {
+                    self.filter(time_col.lt(c.timestamp))
                 };
             }
         } else if let Some(p) = page.page {
@@ -64,9 +65,10 @@ impl<E: EntityTrait> SelectCursorExt<E> for Select<E> {
             }
         }
 
-        self = match sort {
-            Sort::CreatedAtAsc => self.order_by_asc(time_col),
-            _ => self.order_by_desc(time_col),
+        self = if sort.is_ascending() {
+            self.order_by_asc(time_col)
+        } else {
+            self.order_by_desc(time_col)
         };
 
         self.limit(page.limit as u64)
@@ -84,26 +86,26 @@ impl<E: EntityTrait> SelectCursorExt<E> for Select<E> {
             if let Ok(c) = Cursor::decode(cursor) {
                 match &c.id {
                     Some(id) => {
-                        let cond = match sort {
-                            Sort::CreatedAtAsc => {
-                                Condition::any().add(time_col.gt(c.timestamp)).add(
-                                    Condition::all()
-                                        .add(time_col.eq(c.timestamp))
-                                        .add(id_col.gt(id.clone())),
-                                )
-                            }
-                            _ => Condition::any().add(time_col.lt(c.timestamp)).add(
+                        let cond = if sort.is_ascending() {
+                            Condition::any().add(time_col.gt(c.timestamp)).add(
+                                Condition::all()
+                                    .add(time_col.eq(c.timestamp))
+                                    .add(id_col.gt(id.clone())),
+                            )
+                        } else {
+                            Condition::any().add(time_col.lt(c.timestamp)).add(
                                 Condition::all()
                                     .add(time_col.eq(c.timestamp))
                                     .add(id_col.lt(id.clone())),
-                            ),
+                            )
                         };
                         self = self.filter(cond);
                     }
                     None => {
-                        self = match sort {
-                            Sort::CreatedAtAsc => self.filter(time_col.gt(c.timestamp)),
-                            _ => self.filter(time_col.lt(c.timestamp)),
+                        self = if sort.is_ascending() {
+                            self.filter(time_col.gt(c.timestamp))
+                        } else {
+                            self.filter(time_col.lt(c.timestamp))
                         };
                     }
                 }
@@ -114,9 +116,10 @@ impl<E: EntityTrait> SelectCursorExt<E> for Select<E> {
             }
         }
 
-        self = match sort {
-            Sort::CreatedAtAsc => self.order_by_asc(time_col).order_by_asc(id_col),
-            _ => self.order_by_desc(time_col).order_by_desc(id_col),
+        self = if sort.is_ascending() {
+            self.order_by_asc(time_col).order_by_asc(id_col)
+        } else {
+            self.order_by_desc(time_col).order_by_desc(id_col)
         };
 
         self.limit(page.limit as u64)

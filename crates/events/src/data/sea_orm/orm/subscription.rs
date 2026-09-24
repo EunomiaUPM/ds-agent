@@ -32,14 +32,10 @@ pub struct Model {
     pub id: String,
     pub tenant_id: String,
     pub callback_address: String,
-    pub topic_pattern: Option<String>,
+    pub topic_pattern: String,
     pub secret: Option<String>,
     pub headers: Option<serde_json::Value>,
     pub retry_limit: Option<i32>,
-    pub transfer_process: bool,
-    pub contract_negotiation_process: bool,
-    pub catalog: bool,
-    pub data_plane: bool,
     pub active: bool,
     pub created_at: chrono::NaiveDateTime,
     pub updated_at: Option<chrono::NaiveDateTime>,
@@ -48,16 +44,8 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(has_many = "super::notification::Entity")]
-    Notifications,
     #[sea_orm(has_many = "super::delivery::Entity")]
     Deliveries,
-}
-
-impl Related<super::notification::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::Notifications.def()
-    }
 }
 
 impl Related<super::delivery::Entity> for Entity {
@@ -71,20 +59,7 @@ impl ActiveModelBehavior for ActiveModel {}
 impl Model {
     // Map SeaORM model to pure domain SubscriptionRecord entity.
     pub fn into_domain(self) -> Outcome<SubscriptionRecord> {
-        let pat_str = self.topic_pattern.unwrap_or_else(|| {
-            if self.transfer_process {
-                "transfer-agent.**".to_string()
-            } else if self.catalog {
-                "catalog-agent.**".to_string()
-            } else if self.contract_negotiation_process {
-                "negotiation-agent.**".to_string()
-            } else if self.data_plane {
-                "dataplane.**".to_string()
-            } else {
-                "**".to_string()
-            }
-        });
-        let topic_pattern = TopicPattern::new(&pat_str)
+        let topic_pattern = TopicPattern::new(&self.topic_pattern)
             .map_err(|e| Errors::db(format!("invalid topic pattern: {e}"), None))?;
 
         let headers = self
@@ -118,7 +93,7 @@ impl ActiveModel {
             id: ActiveValue::Set(entity.id.clone()),
             tenant_id: ActiveValue::Set(entity.tenant_id.clone()),
             callback_address: ActiveValue::Set(entity.callback_address.clone()),
-            topic_pattern: ActiveValue::Set(Some(entity.topic_pattern.to_string())),
+            topic_pattern: ActiveValue::Set(entity.topic_pattern.to_string()),
             secret: ActiveValue::Set(entity.secret.clone()),
             headers: ActiveValue::Set(
                 entity
@@ -127,10 +102,6 @@ impl ActiveModel {
                     .and_then(|h| serde_json::to_value(h).ok()),
             ),
             retry_limit: ActiveValue::Set(entity.retry_limit.map(|n| n as i32)),
-            transfer_process: ActiveValue::Set(false),
-            contract_negotiation_process: ActiveValue::Set(false),
-            catalog: ActiveValue::Set(false),
-            data_plane: ActiveValue::Set(false),
             active: ActiveValue::Set(entity.active),
             created_at: ActiveValue::Set(entity.created_at.naive_utc()),
             updated_at: ActiveValue::Set(entity.updated_at.map(|t| t.naive_utc())),

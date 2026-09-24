@@ -19,8 +19,11 @@ use std::sync::Arc;
 
 use axum::extract::Request;
 use axum::http::StatusCode;
+use axum::middleware::from_fn_with_state;
 use axum::response::IntoResponse;
 use axum::Router;
+use common::auth::http::AuthHttpMiddleware;
+use common::auth::OauthTokenValidator;
 use common::config::types::traits::CommonConfigTrait;
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::{DefaultOnResponse, TraceLayer};
@@ -29,25 +32,31 @@ use uuid::Uuid;
 use ymir::config::traits::ApiConfigTrait;
 use ymir::http::{HealthRouter, OpenapiRouter, WalletRouter};
 
-use crate::core::{AuthCore, AuthOrchestratorTrait};
+use crate::core::AuthCore;
 use crate::http::gatekeeper_router::GateKeeperRouter;
 use crate::http::peer_connector_router::OnboarderRouter;
 use crate::http::verifier_router::VerifierRouter;
 use crate::http::{GaiaSelfAttesterRouter, ParticipantRouter, VcRequesterRouter};
+use crate::services::HasConfig;
 
 pub struct AuthRouter {
     core: Arc<AuthCore>,
     openapi: String,
+    validator: Arc<dyn OauthTokenValidator>,
 }
 
 impl AuthRouter {
-    pub fn new(core: Arc<AuthCore>) -> Self {
+    pub fn new(core: Arc<AuthCore>, validator: Arc<dyn OauthTokenValidator>) -> Self {
         let openapi = core
             .config()
             .common()
             .get_openapi()
             .expect("Invalid openapi path");
-        AuthRouter { core, openapi }
+        AuthRouter {
+            core,
+            openapi,
+            validator,
+        }
     }
 
     pub fn router(self) -> Router {
@@ -73,23 +82,44 @@ impl AuthRouter {
             .allow_headers(Any)
             .allow_credentials(false);
 
+        // User routes need an OAuth token; protocol routes are authenticated by GNAP/OID4VP.
+        let guard = from_fn_with_state(self.validator.clone(), AuthHttpMiddleware::run);
+
         let router = Router::new()
             .merge(wallet_router.well_known())
             // .merge(gaia_router.well_known())
-            .nest(&format!("{}/wallet", api_path), wallet_router.router())
-            .nest(&format!("{}/mates", api_path), mate_router.router())
+            .nest(
+                &format!("{}/wallet", api_path),
+                wallet_router.router().route_layer(guard.clone()),
+            )
+            .nest(
+                &format!("{}/mates", api_path),
+                mate_router.router().route_layer(guard.clone()),
+            )
             .nest(&format!("{}", api_path), health_router.router())
             .nest(
                 &format!("{}/vc-request", api_path),
-                vc_requester_router.router(),
+                vc_requester_router
+                    .protocol_router()
+                    .merge(vc_requester_router.router().route_layer(guard.clone())),
             )
-            .nest(&format!("{}/gate", api_path), gatekeeper_router.router())
+            .nest(
+                &format!("{}/gate", api_path),
+                gatekeeper_router
+                    .protocol_router()
+                    .merge(gatekeeper_router.router().route_layer(guard.clone())),
+            )
             .nest(&format!("{}/verifier", api_path), verifier_router.router())
             .nest(
                 &format!("{}/peer-connection", api_path),
-                onboarder_router.router(),
+                onboarder_router
+                    .protocol_router()
+                    .merge(onboarder_router.router().route_layer(guard.clone())),
             )
-            .nest(&format!("{}/gaia", api_path), gaia_router.router())
+            .nest(
+                &format!("{}/gaia", api_path),
+                gaia_router.router().route_layer(guard),
+            )
             .nest(&format!("{}/docs", api_path), openapi_router.router());
 
         router.fallback(Self::fallback).layer(cors).layer(

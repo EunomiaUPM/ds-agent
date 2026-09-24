@@ -215,9 +215,11 @@ impl ConnectorTemplateServiceTrait for ConnectorTemplateService {
                 Errors::db(&e.to_string(), None)
             })?;
         // create output
+        let tenant_id = saved_model.tenant_id.clone();
         let result = Self::map_model_to_dto(saved_model)?;
         events::emit_action!(
             self.event_bus,
+            &tenant_id,
             crate::EVENT_PREFIX,
             "template",
             "create",
@@ -246,6 +248,7 @@ impl ConnectorTemplateServiceTrait for ConnectorTemplateService {
         let deleted = events::EntityDeletedDto::new(format!("{}:{}", name, version));
         events::emit_action!(
             self.event_bus,
+            scope.acting_tenant(),
             crate::EVENT_PREFIX,
             "template",
             "delete",

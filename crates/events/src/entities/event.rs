@@ -48,10 +48,8 @@ pub trait Event: Serialize + Send + Sync + 'static {
         None
     }
 
-    // Tenant identifier for tenant isolation. Defaults to "default".
-    fn tenant_id(&self) -> &str {
-        "default"
-    }
+    // Tenant owning the record the event is about.
+    fn tenant_id(&self) -> &str;
 
     // Convert into an immutable domain envelope.
     fn into_envelope(self) -> EventEnvelope;
@@ -72,10 +70,8 @@ pub trait IntoEvent: Sized {
         None
     }
 
-    // Tenant identifier for tenant isolation. Defaults to "default".
-    fn tenant_id(&self) -> &str {
-        "default"
-    }
+    // Tenant owning the record the event is about.
+    fn tenant_id(&self) -> &str;
 
     // Convert into an event envelope.
     fn into_envelope(self) -> EventEnvelope;

@@ -23,7 +23,7 @@ import {
   usePublishEvent,
   getListEventsFeedQueryKey,
 } from "shared/src/data/orval/events/events";
-import { EventEnvelope } from "shared/src/data/orval/model";
+import { EventEnvelope, ListEventsFeedParams } from "shared/src/data/orval/model";
 import { useEventStream } from "shared/src/hooks/useEventStream";
 import { useTableQueryParams } from "shared/src/hooks/useTableQueryParams";
 import { PageSection } from "shared/src/components/layout/PageSection";
@@ -218,8 +218,8 @@ const FeedComponent = () => {
 
   const { params: queryParams, onQueryChange } = useTableQueryParams({
     defaultLimit: 25,
-    defaultSort: "timestamp_desc",
-    defaultFilters: { topic: "all", source: "all" },
+    defaultSort: "created_at_desc",
+    defaultFilters: { topic: "all" },
   });
 
   const activeTopic =
@@ -229,20 +229,17 @@ const FeedComponent = () => {
         ? queryParams.search
         : undefined;
 
-  const offset = (queryParams.page - 1) * queryParams.limit;
-
   // Live SSE stream
   const {
     events: liveEvents,
     isConnected,
     clearEvents,
-    connectionType,
   } = useEventStream({
     topic: activeTopic,
     maxBuffer: 200,
   });
 
-  // Historical query loaded dynamically from backend based on limit and offset
+  // Historical page, filtered, sorted and paged by the events service
   const {
     data: histData,
     refetch,
@@ -251,9 +248,10 @@ const FeedComponent = () => {
     {
       topic: activeTopic,
       limit: queryParams.limit,
-      offset,
-      sort: queryParams.sort,
-    } as any,
+      page: queryParams.cursor ? undefined : queryParams.page,
+      cursor: queryParams.cursor,
+      sort: queryParams.sort as ListEventsFeedParams["sort"],
+    },
     {
       query: {
         placeholderData: keepPreviousData,
@@ -283,24 +281,10 @@ const FeedComponent = () => {
       list = Array.from(map.values());
     }
 
-    const sortField = queryParams.sort;
+    const ascending = queryParams.sort.endsWith("_asc");
     return [...list].sort((a, b) => {
-      if (sortField === "timestamp_asc" || sortField === "created_at_asc") {
-        return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
-      }
-      if (sortField === "topic_asc") {
-        return a.topic.localeCompare(b.topic);
-      }
-      if (sortField === "topic_desc") {
-        return b.topic.localeCompare(a.topic);
-      }
-      if (sortField === "source_asc") {
-        return a.source.localeCompare(b.source);
-      }
-      if (sortField === "source_desc") {
-        return b.source.localeCompare(a.source);
-      }
-      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+      const diff = new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+      return ascending ? diff : -diff;
     });
   }, [liveEvents, historicalEvents, queryParams.page, queryParams.sort]);
 
@@ -315,7 +299,7 @@ const FeedComponent = () => {
                 className={`h-2 w-2 rounded-full ${isConnected ? "bg-emerald-500 animate-pulse" : "bg-zinc-500"}`}
               />
               <span className="text-muted-foreground uppercase text-xs tracking-wider font-mono">
-                {connectionType.toUpperCase()} {isConnected ? "Live" : "Offline"}
+                SSE {isConnected ? "Live" : "Offline"}
               </span>
             </div>
           </div>
@@ -436,34 +420,25 @@ const FeedComponent = () => {
           keyExtractor={(ev) => ev.id}
           searchPlaceholder="Filter events by topic, source, or payload..."
           emptyMessage='No events recorded yet. Click "Publish Event" to test.'
-          defaultSortKey="timestamp"
+          defaultSortKey="created_at"
           defaultSortDirection="desc"
           pageSize={25}
           pageSizeOptions={[10, 25, 50, 100]}
-          filters={[
-            {
-              id: "source",
-              label: "Source",
-              value: queryParams.filters.source ?? "all",
-              accessorKey: "source",
-              options: [
-                { label: "All Sources", value: "all" },
-                { label: "gui-admin", value: "gui-admin" },
-                { label: "transfer-agent", value: "transfer-agent" },
-                { label: "catalog-service", value: "catalog-service" },
-              ],
-            },
-          ]}
           columns={[
             {
               header: "Topic",
-              accessorKey: "topic",
+              sortable: false,
               cell: (ev) => <Badge variant="code">{ev.topic}</Badge>,
             },
             {
               header: "Source",
-              accessorKey: "source",
-              cell: (ev) => <Badge variant="infoLighter">{ev.source}</Badge>,
+              sortable: false,
+              cell: (ev) => <Badge variant="infoLighter">{ev.source_crate}</Badge>,
+            },
+            {
+              header: "Tenant",
+              sortable: false,
+              cell: (ev) => <span className="font-mono text-xs">{ev.tenant_id}</span>,
             },
             {
               header: "Payload",
@@ -477,8 +452,7 @@ const FeedComponent = () => {
             },
             {
               header: "Timestamp",
-              accessorKey: "timestamp",
-              sortValue: (ev) => new Date(ev.timestamp).getTime(),
+              sortKey: "created_at",
               cell: (ev) => <FormatDate date={ev.timestamp} format="DD/MM/YYYY - HH:mm:ss" />,
             },
             {

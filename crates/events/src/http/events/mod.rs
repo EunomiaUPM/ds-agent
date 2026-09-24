@@ -18,5 +18,4 @@
 pub mod events;
 
 pub use crate::entities::commands::PublishEventRequest;
-pub use crate::entities::queries::ListEventsQuery;
-pub use events::EventsRouter;
+pub use events::{EventsQuery, EventsRouter};

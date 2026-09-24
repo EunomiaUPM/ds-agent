@@ -51,7 +51,7 @@ import {
 import { useGetCatalogById, useGetMainCatalogs } from "shared/src/data/orval/catalogs/catalogs";
 import { useGetDatasetsByCatalogId } from "shared/src/data/orval/datasets/datasets";
 import { useGetDataServicesByCatalogId } from "shared/src/data/orval/data-services/data-services";
-import { useGetAllParticipants } from "shared/data/orval/participants/participants";
+import { useMyself } from "shared/src/data/useMyself";
 
 export const Route = createFileRoute("/my-catalog/")({
   component: RouteComponent,
@@ -80,7 +80,6 @@ function RouteComponent() {
   const { data: dataservicesData, refetch: refetchDataservices } = useGetDataServicesByCatalogId(
     catalogId ?? "",
   );
-  const { data: participants } = useGetAllParticipants();
 
   const catalog = catalogData?.status === 200 ? catalogData.data : undefined;
   const datasets = datasetsData?.status === 200 ? datasetsData.data : [];
@@ -93,9 +92,7 @@ function RouteComponent() {
     refetchDataservices();
   };
 
-  const myAgent = Array.isArray(participants?.data)
-    ? participants.data.find((p) => p.is_me && p.participant_type === "Agent")
-    : undefined;
+  const myAgent = useMyself();
 
   const myAgentSlug = myAgent?.participant_nick || "Local Agent";
   const mainDs = (dataservices || []).find((ds) => ds.dspaceMainDataService) ?? dataservices[0];

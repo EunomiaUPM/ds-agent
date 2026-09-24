@@ -13,7 +13,6 @@ import { useFederatedCatalog } from "shared/data/useFederatedCatalog";
 import { Badge } from "shared/src/components/ui/badge";
 import { Button } from "shared/src/components/ui/button";
 import { Input } from "shared/src/components/ui/input";
-import { useGetAllParticipants } from "shared/src/data/orval/participants/participants";
 import {
   InnerSidebarLayout,
   InnerSidebar,
@@ -41,6 +40,7 @@ import {
   ShieldCheck,
   Search,
 } from "lucide-react";
+import { useMyself } from "shared/src/data/useMyself";
 
 function RouteComponent() {
   const { participantId } = Route.useParams();
@@ -49,10 +49,7 @@ function RouteComponent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"datasets" | "dataservice">("datasets");
 
-  const { data: participantsResponse } = useGetAllParticipants();
-  const localParticipants = participantsResponse?.status === 200 ? participantsResponse.data : [];
-
-  const myAgent = localParticipants?.find((p) => p.is_me && p.participant_type === "Agent");
+  const myAgent = useMyself();
 
   const participant =
     federated.state === "ok"

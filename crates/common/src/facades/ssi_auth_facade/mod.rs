@@ -24,15 +24,16 @@ pub mod ssi_auth_facade;
 
 #[mockall::automock]
 #[async_trait]
+/// Resolves a peer's GNAP token to its participant record in whichever tenant holds it.
 pub trait SSIAuthFacadeTrait: Send + Sync {
     async fn verify_token(&self, token: String) -> Outcome<Mates>;
 }
 
 #[mockall::automock]
 #[async_trait]
+/// Participants of a tenant, read from ssi-auth with the service token.
 pub trait MatesFacadeTrait: Send + Sync {
-    async fn get_mate_by_id(&self, mate_id: String) -> Outcome<Mates>;
-    async fn get_mate_by_slug(&self, mate_slug: String) -> Outcome<Mates>;
-    async fn get_me_mate(&self) -> Outcome<Mates>;
-    async fn get_all_mates(&self) -> Outcome<Vec<Mates>>;
+    async fn get_mate_by_id(&self, tenant_id: String, mate_id: String) -> Outcome<Mates>;
+    async fn get_me_mate(&self, tenant_id: String) -> Outcome<Mates>;
+    async fn get_all_mates(&self, tenant_id: String) -> Outcome<Vec<Mates>>;
 }

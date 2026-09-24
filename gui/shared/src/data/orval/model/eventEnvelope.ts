@@ -13,8 +13,9 @@ import type { EventEnvelopePayload } from './eventEnvelopePayload';
 
 export interface EventEnvelope {
   id: string;
+  tenant_id: string;
   topic: string;
-  source: string;
+  source_crate: string;
   schema_version: number;
   correlation_id?: string | null;
   timestamp: string;

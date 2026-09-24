@@ -15,11 +15,24 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use url::Url;
-use ymir::errors::{Errors, Outcome};
+use serde::{Deserialize, Serialize};
 
-pub mod pagination;
+/// OAuth client an agent authenticates with on service-to-service calls (client_credentials).
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(default)]
+pub struct ServiceClientConfig {
+    pub client_id: String,
+    pub client_secret: String,
+    /// OAuth token endpoint; defaults to `{own http host}/oauth/token` (monolith layout).
+    pub token_url: Option<String>,
+}
 
-pub fn parse_url(str: &str) -> Outcome<Url> {
-    Url::parse(str).map_err(|e| Errors::parse("Error parsing url", Some(Box::new(e))))
+impl Default for ServiceClientConfig {
+    fn default() -> Self {
+        Self {
+            client_id: "eunomia-services".to_string(),
+            client_secret: "eunomia-services-secret".to_string(),
+            token_url: None,
+        }
+    }
 }

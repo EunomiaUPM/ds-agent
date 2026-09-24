@@ -17,4 +17,4 @@
 
 pub mod subscriptions;
 
-pub use subscriptions::SubscriptionsRouter;
+pub use subscriptions::{SubscriptionsQuery, SubscriptionsRouter};

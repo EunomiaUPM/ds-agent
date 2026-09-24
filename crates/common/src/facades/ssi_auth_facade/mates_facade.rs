@@ -22,61 +22,42 @@ use ymir::config::types::HostType;
 use ymir::errors::Outcome;
 
 use super::MatesFacadeTrait;
+use crate::auth::ServiceHttpClient;
 use crate::config::types::min_known_config::MinKnownConfig;
 use crate::config::types::traits::MinKnownConfigTrait;
-use crate::http_client::HttpClient;
 use crate::paginated_spec::Paginated;
 use ymir::data::entities::shared::participant::Model as Mates;
 
 pub struct MatesFacadeService {
     config: Arc<MinKnownConfig>,
-    client: Arc<HttpClient>,
+    client: Arc<ServiceHttpClient>,
 }
 
 impl MatesFacadeService {
-    pub fn new(config: Arc<MinKnownConfig>, client: Arc<HttpClient>) -> Self {
+    pub fn new(config: Arc<MinKnownConfig>, client: Arc<ServiceHttpClient>) -> Self {
         Self { config, client }
+    }
+
+    fn base_url(&self) -> String {
+        format!("{}/api/v1", self.config.get_host(HostType::Http))
     }
 }
 
 #[async_trait]
 impl MatesFacadeTrait for MatesFacadeService {
-    async fn get_mate_by_id(&self, mate_id: String) -> Outcome<Mates> {
-        let ssi_auth_url = self.config.get_host(HostType::Http);
-        let mates_url = format!("{}/api/v1/mates/{}", ssi_auth_url, mate_id);
-        let mates = self.client.get_json::<Mates>(mates_url.as_str()).await?;
-        Ok(mates)
+    async fn get_mate_by_id(&self, tenant_id: String, mate_id: String) -> Outcome<Mates> {
+        let url = format!("{}/mates/{}", self.base_url(), mate_id);
+        self.client.get_json(&url, Some(&tenant_id)).await
     }
 
-    async fn get_mate_by_slug(&self, mate_slug: String) -> Outcome<Mates> {
-        let ssi_auth_url = self.config.get_host(HostType::Http);
-        let mates_url = format!("{}/api/v1/mates/slug/{}", ssi_auth_url, mate_slug);
-        let mates = self.client.get_json::<Mates>(mates_url.as_str()).await?;
-        Ok(mates)
+    async fn get_me_mate(&self, tenant_id: String) -> Outcome<Mates> {
+        let url = format!("{}/mates/myself", self.base_url());
+        self.client.get_json(&url, Some(&tenant_id)).await
     }
 
-    async fn get_me_mate(&self) -> Outcome<Mates> {
-        let ssi_auth_url = self.config.get_host(HostType::Http);
-        let mates_url = format!("{}/api/v1/mates/myself", ssi_auth_url);
-        let mates = self.client.get_json::<Mates>(mates_url.as_str()).await?;
-        Ok(mates)
-    }
-
-    async fn get_all_mates(&self) -> Outcome<Vec<Mates>> {
-        let ssi_auth_url = self.config.get_host(HostType::Http);
-        let mates_url = format!("{}/api/v1/mates/all", ssi_auth_url);
-        if let Ok(paginated) = self
-            .client
-            .get_json::<Paginated<Mates>>(mates_url.as_str())
-            .await
-        {
-            Ok(paginated.items)
-        } else {
-            let mates = self
-                .client
-                .get_json::<Vec<Mates>>(mates_url.as_str())
-                .await?;
-            Ok(mates)
-        }
+    async fn get_all_mates(&self, tenant_id: String) -> Outcome<Vec<Mates>> {
+        let url = format!("{}/mates/all", self.base_url());
+        let page: Paginated<Mates> = self.client.get_json(&url, Some(&tenant_id)).await?;
+        Ok(page.items)
     }
 }

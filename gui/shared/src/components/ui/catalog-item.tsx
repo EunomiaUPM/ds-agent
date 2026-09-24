@@ -105,7 +105,7 @@ const CatalogItem: React.FC<CatalogItemProps> = ({
   const localParticipants = participantsResponse?.status === 200 ? participantsResponse.data : [];
 
   let isOnboardedWithKnownProvider = localParticipants.some(
-    (lp) => lp.participant_type !== "Authority" && lp.is_me === false,
+    (lp) => lp.participant_type !== "Authority",
   );
 
   // open the wizard only after the dialog has been opened and the title anchor is mounted

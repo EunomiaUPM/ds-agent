@@ -44,29 +44,18 @@ impl MigrationTrait for Migration {
                             .not_null(),
                     )
                     .col(
-                        ColumnDef::new(Subscriptions::TransferProcess)
-                            .boolean()
-                            .default("false"),
+                        ColumnDef::new(Subscriptions::TopicPattern)
+                            .string()
+                            .not_null(),
                     )
-                    .col(
-                        ColumnDef::new(Subscriptions::ContractNegotiationProcess)
-                            .boolean()
-                            .default("false"),
-                    )
-                    .col(
-                        ColumnDef::new(Subscriptions::Catalog)
-                            .boolean()
-                            .default("false"),
-                    )
-                    .col(
-                        ColumnDef::new(Subscriptions::DataPlane)
-                            .boolean()
-                            .default("false"),
-                    )
+                    .col(ColumnDef::new(Subscriptions::Secret).string())
+                    .col(ColumnDef::new(Subscriptions::Headers).json())
+                    .col(ColumnDef::new(Subscriptions::RetryLimit).integer())
                     .col(
                         ColumnDef::new(Subscriptions::Active)
                             .boolean()
-                            .default("true"),
+                            .not_null()
+                            .default(true),
                     )
                     .col(
                         ColumnDef::new(Subscriptions::CreatedAt)
@@ -92,10 +81,10 @@ pub enum Subscriptions {
     Id,
     TenantId,
     CallbackAddress,
-    TransferProcess,
-    ContractNegotiationProcess,
-    Catalog,
-    DataPlane,
+    TopicPattern,
+    Secret,
+    Headers,
+    RetryLimit,
     Active,
     CreatedAt,
     UpdatedAt,

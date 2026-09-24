@@ -17,101 +17,110 @@
 
 use std::sync::Arc;
 
-use axum::extract::{Path, State};
+use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
-use axum::routing::{delete, get, post, put};
+use axum::routing::get;
 use axum::{Json, Router};
-
 use common::auth::AccessScope;
+use common::paginated_spec::{Cursor, Paginated};
+use common::query::QuerySpec;
+use ymir::errors::{AppResult, Errors};
 
 use crate::data::repo::EventSubscriptionRepo;
 use crate::entities::commands::{CreateSubscriptionDto, UpdateSubscriptionDto};
+use crate::entities::queries::SubscriptionFilter;
 use crate::entities::subscription::SubscriptionRecord;
-use ymir::errors::{AppResult, Errors};
 
-// Axum HTTP router handling webhook subscription lifecycle endpoints.
+pub type SubscriptionsQuery = QuerySpec<SubscriptionFilter>;
+
+// Axum HTTP router for webhook subscription management.
 #[derive(Clone)]
 pub struct SubscriptionsRouter {
     repo: Arc<dyn EventSubscriptionRepo>,
 }
 
 impl SubscriptionsRouter {
-    // Create router backed by the subscription repository.
     pub fn new(repo: Arc<dyn EventSubscriptionRepo>) -> Self {
         Self { repo }
     }
 
-    // Build Axum sub-router for subscription CRUD endpoints.
     pub fn router(self) -> Router {
         Router::new()
-            .route("/", post(Self::handle_create))
-            .route("/", get(Self::handle_list))
-            .route("/{id}", get(Self::handle_get))
-            .route("/{id}", put(Self::handle_update))
-            .route("/{id}", delete(Self::handle_delete))
+            .route("/", get(Self::handle_list).post(Self::handle_create))
+            .route(
+                "/{id}",
+                get(Self::handle_get)
+                    .put(Self::handle_update)
+                    .delete(Self::handle_delete),
+            )
             .with_state(self.repo)
     }
 
-    // Handler to register a new subscription.
     async fn handle_create(
         State(repo): State<Arc<dyn EventSubscriptionRepo>>,
         scope: AccessScope,
         Json(dto): Json<CreateSubscriptionDto>,
     ) -> AppResult<(StatusCode, Json<SubscriptionRecord>)> {
-        let tenant_id = scope.acting_tenant();
-        let sub = repo.create_subscription(tenant_id, dto).await?;
-
+        let tenant_id = scope.resolve_create_tenant(None)?;
+        let sub = repo.create_subscription(&tenant_id, dto).await?;
         Ok((StatusCode::CREATED, Json(sub)))
     }
 
-    // Handler to list all active subscriptions.
     async fn handle_list(
         State(repo): State<Arc<dyn EventSubscriptionRepo>>,
         scope: AccessScope,
-    ) -> AppResult<Json<Vec<SubscriptionRecord>>> {
-        let tenant_id = scope.acting_tenant();
-        let subs = repo.list_subscriptions(tenant_id).await?;
-
-        Ok(Json(subs))
+        Query(query): Query<SubscriptionsQuery>,
+    ) -> AppResult<Json<Paginated<SubscriptionRecord>>> {
+        let page = query.page.clamped();
+        let (subs, total) = repo
+            .list_subscriptions(
+                scope.tenant_filter().map(str::to_string),
+                &query.filter,
+                &page,
+                &query.sort,
+            )
+            .await?;
+        Ok(Json(Paginated::from_page(
+            subs,
+            &page,
+            Some(total),
+            |last| Cursor::encode_composite(&last.created_at, &last.id),
+        )))
     }
 
-    // Handler to fetch subscription details by identifier.
     async fn handle_get(
         State(repo): State<Arc<dyn EventSubscriptionRepo>>,
         scope: AccessScope,
         Path(id): Path<String>,
     ) -> AppResult<Json<SubscriptionRecord>> {
-        let tenant_id = scope.acting_tenant();
         let sub = repo
-            .get_subscription(tenant_id, &id)
+            .get_subscription(scope.tenant_filter().map(str::to_string), &id)
             .await?
             .ok_or_else(|| Errors::missing_resource(&id, "subscription not found", None))?;
-
         Ok(Json(sub))
     }
 
-    // Handler to update an existing subscription.
     async fn handle_update(
         State(repo): State<Arc<dyn EventSubscriptionRepo>>,
         scope: AccessScope,
         Path(id): Path<String>,
         Json(dto): Json<UpdateSubscriptionDto>,
     ) -> AppResult<Json<SubscriptionRecord>> {
-        let tenant_id = scope.acting_tenant();
-        let sub = repo.update_subscription(tenant_id, &id, dto).await?;
-
+        scope.require_write()?;
+        let sub = repo
+            .update_subscription(scope.tenant_filter().map(str::to_string), &id, dto)
+            .await?;
         Ok(Json(sub))
     }
 
-    // Handler to deactivate and remove a subscription.
     async fn handle_delete(
         State(repo): State<Arc<dyn EventSubscriptionRepo>>,
         scope: AccessScope,
         Path(id): Path<String>,
     ) -> AppResult<StatusCode> {
-        let tenant_id = scope.acting_tenant();
-        repo.delete_subscription(tenant_id, &id).await?;
-
+        scope.require_write()?;
+        repo.delete_subscription(scope.tenant_filter().map(str::to_string), &id)
+            .await?;
         Ok(StatusCode::NO_CONTENT)
     }
 }

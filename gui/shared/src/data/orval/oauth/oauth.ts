@@ -38,6 +38,7 @@ import type {
   CreateUserCommand,
   InternalServerErrorResponse,
   JwksResponse,
+  ListOAuthUsersParams,
   OAuthRevokeRequest,
   OAuthTokenRequest,
   OAuthTokenResponse,
@@ -832,17 +833,24 @@ export type listOAuthUsersResponseError = (listOAuthUsersResponse500) & {
 
 export type listOAuthUsersResponse = (listOAuthUsersResponseSuccess | listOAuthUsersResponseError)
 
-export const getListOAuthUsersUrl = () => {
+export const getListOAuthUsersUrl = (params?: ListOAuthUsersParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
 
-  
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/oauth/users`
+  return stringifiedParams.length > 0 ? `/oauth/users?${stringifiedParams}` : `/oauth/users`
 }
 
-export const listOAuthUsers = async ( options?: RequestInit): Promise<listOAuthUsersResponse> => {
+export const listOAuthUsers = async (params?: ListOAuthUsersParams, options?: RequestInit): Promise<listOAuthUsersResponse> => {
   
-  return customInstance<listOAuthUsersResponse>(getListOAuthUsersUrl(),
+  return customInstance<listOAuthUsersResponse>(getListOAuthUsersUrl(params),
   {      
     ...options,
     method: 'GET'
@@ -855,29 +863,29 @@ export const listOAuthUsers = async ( options?: RequestInit): Promise<listOAuthU
 
 
 
-export const getListOAuthUsersInfiniteQueryKey = () => {
+export const getListOAuthUsersInfiniteQueryKey = (params?: ListOAuthUsersParams,) => {
     return [
-    'infinite', `/oauth/users`
+    'infinite', `/oauth/users`, ...(params ? [params] : [])
     ] as const;
     }
 
-export const getListOAuthUsersQueryKey = () => {
+export const getListOAuthUsersQueryKey = (params?: ListOAuthUsersParams,) => {
     return [
-    `/oauth/users`
+    `/oauth/users`, ...(params ? [params] : [])
     ] as const;
     }
 
     
-export const getListOAuthUsersInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof listOAuthUsers>>>, TError = ErrorType<InternalServerErrorResponse>>( options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof listOAuthUsers>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getListOAuthUsersInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof listOAuthUsers>>>, TError = ErrorType<InternalServerErrorResponse>>(params?: ListOAuthUsersParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof listOAuthUsers>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListOAuthUsersInfiniteQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getListOAuthUsersInfiniteQueryKey(params);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listOAuthUsers>>> = ({ signal }) => listOAuthUsers({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listOAuthUsers>>> = ({ signal }) => listOAuthUsers(params, { signal, ...requestOptions });
 
       
 
@@ -891,7 +899,7 @@ export type ListOAuthUsersInfiniteQueryError = ErrorType<InternalServerErrorResp
 
 
 export function useListOAuthUsersInfinite<TData = InfiniteData<Awaited<ReturnType<typeof listOAuthUsers>>>, TError = ErrorType<InternalServerErrorResponse>>(
-  options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof listOAuthUsers>>, TError, TData>> & Pick<
+ params: undefined |  ListOAuthUsersParams, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof listOAuthUsers>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listOAuthUsers>>,
           TError,
@@ -901,7 +909,7 @@ export function useListOAuthUsersInfinite<TData = InfiniteData<Awaited<ReturnTyp
  , queryClient?: QueryClient
   ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 export function useListOAuthUsersInfinite<TData = InfiniteData<Awaited<ReturnType<typeof listOAuthUsers>>>, TError = ErrorType<InternalServerErrorResponse>>(
-  options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof listOAuthUsers>>, TError, TData>> & Pick<
+ params?: ListOAuthUsersParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof listOAuthUsers>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listOAuthUsers>>,
           TError,
@@ -911,7 +919,7 @@ export function useListOAuthUsersInfinite<TData = InfiniteData<Awaited<ReturnTyp
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 export function useListOAuthUsersInfinite<TData = InfiniteData<Awaited<ReturnType<typeof listOAuthUsers>>>, TError = ErrorType<InternalServerErrorResponse>>(
-  options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof listOAuthUsers>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ params?: ListOAuthUsersParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof listOAuthUsers>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
@@ -919,11 +927,11 @@ export function useListOAuthUsersInfinite<TData = InfiniteData<Awaited<ReturnTyp
  */
 
 export function useListOAuthUsersInfinite<TData = InfiniteData<Awaited<ReturnType<typeof listOAuthUsers>>>, TError = ErrorType<InternalServerErrorResponse>>(
-  options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof listOAuthUsers>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ params?: ListOAuthUsersParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof listOAuthUsers>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient 
  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
 
-  const queryOptions = getListOAuthUsersInfiniteQueryOptions(options)
+  const queryOptions = getListOAuthUsersInfiniteQueryOptions(params,options)
 
   const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
 
@@ -933,16 +941,16 @@ export function useListOAuthUsersInfinite<TData = InfiniteData<Awaited<ReturnTyp
 
 
 
-export const getListOAuthUsersQueryOptions = <TData = Awaited<ReturnType<typeof listOAuthUsers>>, TError = ErrorType<InternalServerErrorResponse>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOAuthUsers>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getListOAuthUsersQueryOptions = <TData = Awaited<ReturnType<typeof listOAuthUsers>>, TError = ErrorType<InternalServerErrorResponse>>(params?: ListOAuthUsersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOAuthUsers>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListOAuthUsersQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getListOAuthUsersQueryKey(params);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listOAuthUsers>>> = ({ signal }) => listOAuthUsers({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listOAuthUsers>>> = ({ signal }) => listOAuthUsers(params, { signal, ...requestOptions });
 
       
 
@@ -956,7 +964,7 @@ export type ListOAuthUsersQueryError = ErrorType<InternalServerErrorResponse>
 
 
 export function useListOAuthUsers<TData = Awaited<ReturnType<typeof listOAuthUsers>>, TError = ErrorType<InternalServerErrorResponse>>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOAuthUsers>>, TError, TData>> & Pick<
+ params: undefined |  ListOAuthUsersParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOAuthUsers>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listOAuthUsers>>,
           TError,
@@ -966,7 +974,7 @@ export function useListOAuthUsers<TData = Awaited<ReturnType<typeof listOAuthUse
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 export function useListOAuthUsers<TData = Awaited<ReturnType<typeof listOAuthUsers>>, TError = ErrorType<InternalServerErrorResponse>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOAuthUsers>>, TError, TData>> & Pick<
+ params?: ListOAuthUsersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOAuthUsers>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listOAuthUsers>>,
           TError,
@@ -976,7 +984,7 @@ export function useListOAuthUsers<TData = Awaited<ReturnType<typeof listOAuthUse
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 export function useListOAuthUsers<TData = Awaited<ReturnType<typeof listOAuthUsers>>, TError = ErrorType<InternalServerErrorResponse>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOAuthUsers>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ params?: ListOAuthUsersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOAuthUsers>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
@@ -984,11 +992,11 @@ export function useListOAuthUsers<TData = Awaited<ReturnType<typeof listOAuthUse
  */
 
 export function useListOAuthUsers<TData = Awaited<ReturnType<typeof listOAuthUsers>>, TError = ErrorType<InternalServerErrorResponse>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOAuthUsers>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ params?: ListOAuthUsersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listOAuthUsers>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
 
-  const queryOptions = getListOAuthUsersQueryOptions(options)
+  const queryOptions = getListOAuthUsersQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
 

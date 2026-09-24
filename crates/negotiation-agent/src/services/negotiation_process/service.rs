@@ -316,6 +316,7 @@ impl NegotiationProcessServiceTrait for NegotiationProcessService {
             NegotiationProcessView::assemble(created_process, identifiers, vec![], vec![], None);
         events::emit_action!(
             self.event_bus,
+            &view.inner.tenant_id,
             crate::EVENT_PREFIX,
             "process",
             "create",
@@ -377,6 +378,7 @@ impl NegotiationProcessServiceTrait for NegotiationProcessService {
         let view = self.fetch_details(updated_process).await?;
         events::emit_action!(
             self.event_bus,
+            &view.inner.tenant_id,
             crate::EVENT_PREFIX,
             "process",
             "edit",
@@ -388,11 +390,13 @@ impl NegotiationProcessServiceTrait for NegotiationProcessService {
     #[tracing::instrument(level = "info", skip(self, scope), fields(id = %id), err)]
     async fn delete(&self, scope: &AccessScope, id: &Urn) -> Outcome<()> {
         scope.require_write()?;
-        self.process_repo
+        let owner = self
+            .process_repo
             .delete_negotiation_process(scope.tenant_filter().map(str::to_string), id)
             .await?;
         events::emit_action!(
             self.event_bus,
+            &owner,
             crate::EVENT_PREFIX,
             "process",
             "delete",

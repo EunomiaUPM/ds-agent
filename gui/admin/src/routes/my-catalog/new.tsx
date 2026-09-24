@@ -9,10 +9,8 @@ import {
   Database,
   Layers,
   ShieldCheck,
-  Server,
   Plus,
   Trash2,
-  Lock,
   Code2,
   Loader2,
   Sparkles,
@@ -51,7 +49,7 @@ export const Route = createFileRoute("/my-catalog/new")({
   component: NewDatasetOfferingPage,
 });
 
-type WizardStep = 1 | 2 | 3 | 4 | 5;
+type WizardStep = 1 | 2 | 3 | 4;
 
 interface ConstraintRow {
   id: string;
@@ -92,24 +90,7 @@ function NewDatasetOfferingPage() {
   const [distributionFormat, setDistributionFormat] = useState("application/json");
   const [selectedDataServiceId, setSelectedDataServiceId] = useState<string>("");
 
-  // 6. Form State - Step 3: Technical Connector
-  const [enableConnector, setEnableConnector] = useState(true);
-  const [connectorName, setConnectorName] = useState("");
-  const [connectorDescription, setConnectorDescription] = useState("");
-  const [connectorEndpoint, setConnectorEndpoint] = useState("");
-  const [connectorProtocol, setConnectorProtocol] = useState("HTTP");
-  const [connectorMethod, setConnectorMethod] = useState("GET");
-  const [connectorAuthType, setConnectorAuthType] = useState<
-    "NO_AUTH" | "API_KEY" | "BEARER" | "BASIC"
-  >("NO_AUTH");
-  const [apiKeyName, setApiKeyName] = useState("X-API-KEY");
-  const [apiKeyValue, setApiKeyValue] = useState("");
-  const [apiKeyLocation, setApiKeyLocation] = useState<"HEADER" | "QUERY">("HEADER");
-  const [bearerToken, setBearerToken] = useState("");
-  const [basicUser, setBasicUser] = useState("");
-  const [basicPass, setBasicPass] = useState("");
-
-  // 7. Form State - Step 4: ODRL Policy
+  // 6. Form State - Step 3: ODRL Policy
   const [enablePolicy, setEnablePolicy] = useState(true);
   const [policyPreset, setPolicyPreset] = useState<
     "permissive" | "non-commercial" | "read-only" | "custom"
@@ -119,20 +100,14 @@ function NewDatasetOfferingPage() {
   const [policyProfile, setPolicyProfile] = useState("http://www.w3.org/ns/odrl/2/");
   const [constraints, setConstraints] = useState<ConstraintRow[]>([]);
 
-  // 8. Result state upon success
+  // 7. Result state upon success
   const [createdResult, setCreatedResult] = useState<any | null>(null);
 
-  // Auto-fill distribution & connector names based on dataset title
+  // Auto-fill the distribution name based on dataset title
   const handleDatasetTitleChange = (val: string) => {
     setDatasetTitle(val);
     if (!distributionTitle || distributionTitle === `${datasetTitle} Distribution`) {
       setDistributionTitle(`${val} Distribution`);
-    }
-    if (
-      !connectorName ||
-      connectorName === `${datasetTitle.toLowerCase().replace(/\s+/g, "-")}-connector`
-    ) {
-      setConnectorName(`${val.toLowerCase().replace(/[^a-z0-9]/g, "-")}-connector`);
     }
   };
 
@@ -181,42 +156,6 @@ function NewDatasetOfferingPage() {
     setConstraints((prev) => prev.map((c) => (c.id === id ? { ...c, [field]: val } : c)));
   };
 
-  // Build Auth payload for Connector
-  const connectorAuthPayload = useMemo(() => {
-    if (!enableConnector) return undefined;
-    switch (connectorAuthType) {
-      case "NO_AUTH":
-        return { type: "NO_AUTH" };
-      case "API_KEY":
-        return {
-          type: "API_KEY",
-          name: apiKeyName,
-          value: apiKeyValue,
-          location: apiKeyLocation,
-        };
-      case "BEARER":
-        return {
-          type: "BEARER",
-          token: bearerToken,
-        };
-      case "BASIC":
-        return {
-          type: "BASIC",
-          username: basicUser,
-          password: basicPass,
-        };
-    }
-  }, [
-    enableConnector,
-    connectorAuthType,
-    apiKeyName,
-    apiKeyValue,
-    apiKeyLocation,
-    bearerToken,
-    basicUser,
-    basicPass,
-  ]);
-
   // Build the complete offering payload for review and submit
   const payload: CreateDatasetOfferingRequest = useMemo(() => {
     const offering: CreateDatasetOfferingRequest = {
@@ -234,17 +173,6 @@ function NewDatasetOfferingPage() {
         accessServiceId: selectedDataServiceId || undefined,
       },
     };
-
-    if (enableConnector && connectorEndpoint.trim()) {
-      offering.connector = {
-        name: connectorName.trim() || `${datasetTitle.toLowerCase()}-connector`,
-        description: connectorDescription.trim() || undefined,
-        endpoint: connectorEndpoint.trim(),
-        protocol: connectorProtocol,
-        method: connectorMethod,
-        auth: connectorAuthPayload,
-      };
-    }
 
     if (enablePolicy) {
       offering.policy = {
@@ -273,13 +201,6 @@ function NewDatasetOfferingPage() {
     distributionDescription,
     distributionFormat,
     selectedDataServiceId,
-    enableConnector,
-    connectorName,
-    connectorDescription,
-    connectorEndpoint,
-    connectorProtocol,
-    connectorMethod,
-    connectorAuthPayload,
     enablePolicy,
     policyDescription,
     policyAction,
@@ -310,11 +231,6 @@ function NewDatasetOfferingPage() {
       setCurrentStep(1);
       return;
     }
-    if (enableConnector && !connectorEndpoint.trim()) {
-      toast.error("Connector endpoint URL is required when connector is enabled");
-      setCurrentStep(3);
-      return;
-    }
 
     createOfferingMutation.mutate({ data: payload });
   };
@@ -322,9 +238,8 @@ function NewDatasetOfferingPage() {
   const stepsConfig = [
     { num: 1, label: "Dataset Info", icon: Database },
     { num: 2, label: "Distribution", icon: Layers },
-    { num: 3, label: "Connector", icon: Server },
-    { num: 4, label: "Governance Policy", icon: ShieldCheck },
-    { num: 5, label: "Review & Publish", icon: CheckCircle2 },
+    { num: 3, label: "Governance Policy", icon: ShieldCheck },
+    { num: 4, label: "Review & Publish", icon: CheckCircle2 },
   ];
 
   return (
@@ -332,8 +247,7 @@ function NewDatasetOfferingPage() {
       <PageHeader title="Publish Dataset Offering">
         <div className="flex items-center justify-between mt-1 text-xs text-muted-foreground">
           <span>
-            Register a dataset, technical distribution, data connector, and ODRL policy into the
-            main catalog.
+            Register a dataset, its distribution and an ODRL policy into the main catalog.
           </span>
           <Link to="/my-catalog">
             <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7">
@@ -412,8 +326,8 @@ function NewDatasetOfferingPage() {
                 Dataset Offering Successfully Published!
               </CardTitle>
               <CardDescription className="text-sm text-muted-foreground max-w-lg mx-auto">
-                The dataset, its distribution, technical connector instance, and ODRL policy have
-                been registered in the main catalog, and a domain event was broadcasted.
+                The dataset, its distribution and ODRL policy have been registered in the main
+                catalog.
               </CardDescription>
             </CardHeader>
 
@@ -431,14 +345,6 @@ function NewDatasetOfferingPage() {
                     {createdResult.distribution?.id || "Created"}
                   </span>
                 </div>
-                {createdResult.connector && (
-                  <div className="flex items-center justify-between text-xs pb-2 border-b border-ink/5">
-                    <span className="text-muted-foreground">Connector Instance:</span>
-                    <span className="font-mono text-foreground font-medium">
-                      {createdResult.connector?.name || "Active"}
-                    </span>
-                  </div>
-                )}
                 {createdResult.policy && (
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">ODRL Governance Policy:</span>
@@ -463,7 +369,6 @@ function NewDatasetOfferingPage() {
                     setDatasetTitle("");
                     setDatasetDescription("");
                     setDistributionTitle("");
-                    setConnectorEndpoint("");
                     setCurrentStep(1);
                   }}
                 >
@@ -677,228 +582,6 @@ function NewDatasetOfferingPage() {
                     onClick={() => setCurrentStep(3)}
                     className="gap-2 text-xs"
                   >
-                    Next: Technical Connector
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </Button>
-                </CardFooter>
-              </Card>
-            )}
-
-            {/* STEP 3: TECHNICAL CONNECTOR */}
-            {currentStep === 3 && (
-              <Card className="border-ink/10 bg-background-800/30">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <Server className="h-5 w-5 text-primary" />
-                        Technical Connector Instance
-                      </CardTitle>
-                      <CardDescription className="text-xs mt-1">
-                        Configure data plane ingress, target endpoint URL, protocol, and
-                        authentication.
-                      </CardDescription>
-                    </div>
-                    <Button
-                      variant={enableConnector ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setEnableConnector(!enableConnector)}
-                      className="text-xs h-7"
-                    >
-                      {enableConnector ? "Enabled" : "Disabled"}
-                    </Button>
-                  </div>
-                </CardHeader>
-
-                <CardContent className="space-y-4">
-                  {!enableConnector ? (
-                    <div className="rounded-xl border border-dashed border-ink/10 p-6 text-center text-muted-foreground text-xs">
-                      Connector provisioning is disabled for this dataset offering. You can
-                      provision one later.
-                    </div>
-                  ) : (
-                    <>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                          <label className="text-xs font-semibold text-foreground">
-                            Connector Name
-                          </label>
-                          <Input
-                            value={connectorName}
-                            onChange={(e) => setConnectorName(e.target.value)}
-                            placeholder="e.g. energy-telemetry-connector"
-                            className="text-sm font-mono"
-                          />
-                        </div>
-
-                        <div className="space-y-1.5">
-                          <label className="text-xs font-semibold text-foreground">
-                            Protocol &amp; Method
-                          </label>
-                          <div className="grid grid-cols-2 gap-2">
-                            <Select value={connectorProtocol} onValueChange={setConnectorProtocol}>
-                              <SelectTrigger className="text-xs">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="HTTP">HTTP / REST</SelectItem>
-                                <SelectItem value="HTTPS">HTTPS</SelectItem>
-                                <SelectItem value="S3">Amazon S3</SelectItem>
-                                <SelectItem value="GRPC">gRPC</SelectItem>
-                                <SelectItem value="MQTT">MQTT</SelectItem>
-                              </SelectContent>
-                            </Select>
-
-                            <Select value={connectorMethod} onValueChange={setConnectorMethod}>
-                              <SelectTrigger className="text-xs">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="GET">GET (Pull)</SelectItem>
-                                <SelectItem value="POST">POST (Push)</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-foreground flex items-center gap-1">
-                          Source Endpoint Access URL <span className="text-rose-500">*</span>
-                        </label>
-                        <Input
-                          placeholder="https://api.internal-mesh.net/v1/telemetry/records"
-                          value={connectorEndpoint}
-                          onChange={(e) => setConnectorEndpoint(e.target.value)}
-                          className="text-sm font-mono"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Internal upstream or external data source accessible by the dataplane.
-                        </p>
-                      </div>
-
-                      {/* Authentication Config */}
-                      <div className="rounded-xl border border-ink/10 bg-background-800/40 p-4 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <label className="text-xs font-semibold text-foreground flex items-center gap-2">
-                            <Lock className="h-3.5 w-3.5 text-brand-sky" />
-                            Upstream Authentication
-                          </label>
-                          <Select
-                            value={connectorAuthType}
-                            onValueChange={(val: any) => setConnectorAuthType(val)}
-                          >
-                            <SelectTrigger className="bg-background-800/60 text-xs w-48 h-8">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="NO_AUTH">No Authentication</SelectItem>
-                              <SelectItem value="API_KEY">API Key</SelectItem>
-                              <SelectItem value="BEARER">Bearer Token</SelectItem>
-                              <SelectItem value="BASIC">HTTP Basic Auth</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        {connectorAuthType === "API_KEY" && (
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
-                            <div className="space-y-1">
-                              <span className="text-xs text-muted-foreground">
-                                Key Header/Query Name
-                              </span>
-                              <Input
-                                value={apiKeyName}
-                                onChange={(e) => setApiKeyName(e.target.value)}
-                                placeholder="X-API-Key"
-                                className="h-8 text-xs font-mono"
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <span className="text-xs text-muted-foreground">Key Value</span>
-                              <Input
-                                type="password"
-                                value={apiKeyValue}
-                                onChange={(e) => setApiKeyValue(e.target.value)}
-                                placeholder="Secret value..."
-                                className="h-8 text-xs font-mono"
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <span className="text-xs text-muted-foreground">Location</span>
-                              <Select
-                                value={apiKeyLocation}
-                                onValueChange={(v: any) => setApiKeyLocation(v)}
-                              >
-                                <SelectTrigger className="h-8 text-xs">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="HEADER">HTTP Header</SelectItem>
-                                  <SelectItem value="QUERY">Query Parameter</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-                        )}
-
-                        {connectorAuthType === "BEARER" && (
-                          <div className="space-y-1 pt-2">
-                            <span className="text-xs text-muted-foreground">Bearer Token</span>
-                            <Input
-                              type="password"
-                              value={bearerToken}
-                              onChange={(e) => setBearerToken(e.target.value)}
-                              placeholder="eyJhbGciOi..."
-                              className="h-8 text-xs font-mono"
-                            />
-                          </div>
-                        )}
-
-                        {connectorAuthType === "BASIC" && (
-                          <div className="grid grid-cols-2 gap-3 pt-2">
-                            <div className="space-y-1">
-                              <span className="text-xs text-muted-foreground">Username</span>
-                              <Input
-                                value={basicUser}
-                                onChange={(e) => setBasicUser(e.target.value)}
-                                placeholder="service-user"
-                                className="h-8 text-xs"
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <span className="text-xs text-muted-foreground">Password</span>
-                              <Input
-                                type="password"
-                                value={basicPass}
-                                onChange={(e) => setBasicPass(e.target.value)}
-                                placeholder="••••••••"
-                                className="h-8 text-xs font-mono"
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </CardContent>
-
-                <CardFooter className="flex justify-between border-t border-ink/5 pt-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentStep(2)}
-                    className="gap-2 text-xs"
-                  >
-                    <ArrowLeft className="h-3.5 w-3.5" />
-                    Back
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="default"
-                    disabled={enableConnector && !connectorEndpoint.trim()}
-                    onClick={() => setCurrentStep(4)}
-                    className="gap-2 text-xs"
-                  >
                     Next: Governance Policy
                     <ArrowRight className="h-3.5 w-3.5" />
                   </Button>
@@ -906,8 +589,8 @@ function NewDatasetOfferingPage() {
               </Card>
             )}
 
-            {/* STEP 4: ODRL POLICY */}
-            {currentStep === 4 && (
+            {/* STEP 3: GOVERNANCE POLICY */}
+            {currentStep === 3 && (
               <Card className="border-ink/10 bg-background-800/30">
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -1105,7 +788,7 @@ function NewDatasetOfferingPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setCurrentStep(3)}
+                    onClick={() => setCurrentStep(2)}
                     className="gap-2 text-xs"
                   >
                     <ArrowLeft className="h-3.5 w-3.5" />
@@ -1114,7 +797,7 @@ function NewDatasetOfferingPage() {
                   <Button
                     size="sm"
                     variant="default"
-                    onClick={() => setCurrentStep(5)}
+                    onClick={() => setCurrentStep(4)}
                     className="gap-2 text-xs"
                   >
                     Review &amp; Publish
@@ -1124,8 +807,8 @@ function NewDatasetOfferingPage() {
               </Card>
             )}
 
-            {/* STEP 5: REVIEW & PUBLISH */}
-            {currentStep === 5 && (
+            {/* STEP 4: REVIEW & PUBLISH */}
+            {currentStep === 4 && (
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Summary Card 1: Dataset */}
@@ -1194,47 +877,7 @@ function NewDatasetOfferingPage() {
                     </CardContent>
                   </Card>
 
-                  {/* Summary Card 3: Connector */}
-                  <Card className="border-ink/10 bg-background-800/30">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                          <Server className="h-4 w-4 text-amber-700 dark:text-amber-400" />
-                          Technical Connector
-                        </CardTitle>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setCurrentStep(3)}
-                          className="text-xs h-6 px-2"
-                        >
-                          Edit
-                        </Button>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-2 text-xs">
-                      {enableConnector ? (
-                        <>
-                          <div className="font-mono text-foreground">{connectorName}</div>
-                          <div className="text-xs font-mono text-muted-foreground break-all">
-                            {connectorProtocol} • {connectorMethod} • {connectorEndpoint}
-                          </div>
-                          <div className="flex items-center gap-2 pt-1">
-                            <span className="text-muted-foreground text-xs">Auth Mode:</span>
-                            <Badge variant="outline" className="text-xs font-mono">
-                              {connectorAuthType}
-                            </Badge>
-                          </div>
-                        </>
-                      ) : (
-                        <span className="text-muted-foreground text-xs italic">
-                          Connector disabled
-                        </span>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  {/* Summary Card 4: Policy */}
+                  {/* Summary Card 3: Policy */}
                   <Card className="border-ink/10 bg-background-800/30">
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
@@ -1245,7 +888,7 @@ function NewDatasetOfferingPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => setCurrentStep(4)}
+                          onClick={() => setCurrentStep(3)}
                           className="text-xs h-6 px-2"
                         >
                           Edit
@@ -1292,7 +935,7 @@ function NewDatasetOfferingPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setCurrentStep(4)}
+                        onClick={() => setCurrentStep(3)}
                         disabled={createOfferingMutation.isPending}
                         className="text-xs"
                       >

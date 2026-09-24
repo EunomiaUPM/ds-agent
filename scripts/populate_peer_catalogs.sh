@@ -14,6 +14,8 @@ REDIS_PASS="${REDIS_PASS:-ds_core_provider_redis}"
 REDIS_TTL=864000
 
 KEY_PREFIX="ds_agent_catalogs:peer-catalog"
+# Peer catalogs are cached per tenant: <prefix>:<tenant>:<participant>
+TENANT="${TENANT:-admin}"
 
 # ==========================================
 # HELPER
@@ -29,9 +31,9 @@ redis_exec() {
 set_catalog() {
     local participant_id="$1"
     local catalog_json="$2"
-    local key="${KEY_PREFIX}:${participant_id}"
+    local key="${KEY_PREFIX}:${TENANT}:${participant_id}"
 
-    echo "--- Seeding catalog for: $participant_id ---"
+    echo "--- Seeding catalog for: $participant_id (tenant $TENANT) ---"
     redis_exec DEL "$key"
     redis_exec JSON.SET "$key" '$' "$catalog_json"
     redis_exec EXPIRE "$key" "$REDIS_TTL"
@@ -432,6 +434,7 @@ main() {
     echo "=== SEEDING PEER CATALOGS INTO REDIS ==="
     echo "    container : $REDIS_CONTAINER"
     echo "    user      : $REDIS_USER"
+    echo "    tenant    : $TENANT"
     echo "    TTL       : ${REDIS_TTL}s ($(( REDIS_TTL / 86400 )) days)"
     echo ""
 

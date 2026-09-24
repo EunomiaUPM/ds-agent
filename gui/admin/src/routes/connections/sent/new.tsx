@@ -35,6 +35,10 @@ import WizardDialog from "shared/src/components/WizardDialog";
 const schema = z.object({
   url: z.string().url("Please enter a valid URL"),
   nick: z.string().min(1, "Name is required"),
+  tenant: z
+    .string()
+    .min(1, "Peer tenant is required")
+    .regex(/^[A-Za-z0-9_.-]+$/, "Letters, digits, '.', '_' and '-' only"),
   auto: z.boolean().default(true),
   actions: z.array(z.string()).min(1, "Select at least one action"),
 });
@@ -101,6 +105,7 @@ function NewSentConnection() {
     defaultValues: {
       url: search.url ?? "",
       nick: search.nick ?? "",
+      tenant: "",
       auto: true,
       actions: ["talk"],
     },
@@ -147,8 +152,10 @@ function NewSentConnection() {
 
     setIsSubmitting(true);
     try {
+      // The DID is shared by the peer's tenants, so its gate is completed with the tenant.
       const authService = discoveredInfo.services.find((s) => s.type === "AuthorizationServer");
-      const targetUrl = authService?.serviceEndpoint || values.url;
+      const gate = (authService?.serviceEndpoint || `${values.url}/api/v1/gate`).replace(/\/$/, "");
+      const targetUrl = `${gate}/${encodeURIComponent(values.tenant)}/access`;
 
       await customInstance(`/peer-connection/connect`, {
         method: "POST",
@@ -298,6 +305,23 @@ function NewSentConnection() {
                           <FormControl>
                             <Input placeholder="Acme Provider" {...field} />
                           </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control as any}
+                      name="tenant"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Peer Tenant</FormLabel>
+                          <FormControl>
+                            <Input placeholder="acme" {...field} />
+                          </FormControl>
+                          <FormDescription>
+                            Tenant of the peer connector you are onboarding into.
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}

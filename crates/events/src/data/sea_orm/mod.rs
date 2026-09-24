@@ -22,4 +22,3 @@ pub mod repos;
 pub use crate::data::migrations;
 pub use factory::SeaOrmDataFactory;
 pub use migrations::get_events_migrations;
-pub use repos::SeaOrmEventBusRepo;

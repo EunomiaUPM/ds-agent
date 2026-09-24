@@ -48,6 +48,7 @@ pub trait EventPublisherTrait: Send + Sync {
 
     async fn emit_payload(
         &self,
+        tenant_id: &str,
         topic: &str,
         source: &str,
         payload: &serde_json::Value,

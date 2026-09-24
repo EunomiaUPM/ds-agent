@@ -17,5 +17,4 @@
 
 pub mod dlq;
 
-pub use crate::entities::queries::ListDeadLettersQuery as ListDlqQuery;
-pub use dlq::DeadLetterRouter;
+pub use dlq::{DeadLetterRouter, DeadLettersQuery};

@@ -64,7 +64,8 @@ pub trait OfferRepoTrait: Send + Sync {
         id: &Urn,
     ) -> Outcome<Option<offer::Model>>;
     async fn create_offer(&self, new_model: &NewOfferModel) -> Outcome<offer::Model>;
-    async fn delete_offer(&self, tenant_id: Option<String>, id: &Urn) -> Outcome<()>;
+    /// Returns the tenant of the removed record.
+    async fn delete_offer(&self, tenant_id: Option<String>, id: &Urn) -> Outcome<String>;
 }
 
 #[derive(Debug, Error)]

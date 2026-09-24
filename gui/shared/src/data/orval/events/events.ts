@@ -42,6 +42,7 @@ import type {
   EventSubscription,
   InternalServerErrorResponse,
   ListDeadLettersParams,
+  ListEventSubscriptionsParams,
   ListEventsFeedParams,
   NotFoundResponse,
   PublishEventCommand,
@@ -541,6 +542,7 @@ export function useGetEventById<TData = Awaited<ReturnType<typeof getEventById>>
 
 
 /**
+ * EventSource cannot send headers, so the bearer token and the acting tenant go in the query.
  * @summary Stream events via Server-Sent Events
  */
 export type streamEventsSseResponse200 = {
@@ -562,7 +564,7 @@ export type streamEventsSseResponseError = (streamEventsSseResponse500) & {
 
 export type streamEventsSseResponse = (streamEventsSseResponseSuccess | streamEventsSseResponseError)
 
-export const getStreamEventsSseUrl = (params?: StreamEventsSseParams,) => {
+export const getStreamEventsSseUrl = (params: StreamEventsSseParams,) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
@@ -577,7 +579,7 @@ export const getStreamEventsSseUrl = (params?: StreamEventsSseParams,) => {
   return stringifiedParams.length > 0 ? `/events/stream?${stringifiedParams}` : `/events/stream`
 }
 
-export const streamEventsSse = async (params?: StreamEventsSseParams, options?: RequestInit): Promise<streamEventsSseResponse> => {
+export const streamEventsSse = async (params: StreamEventsSseParams, options?: RequestInit): Promise<streamEventsSseResponse> => {
   
   return customInstance<streamEventsSseResponse>(getStreamEventsSseUrl(params),
   {      
@@ -605,7 +607,7 @@ export const getStreamEventsSseQueryKey = (params?: StreamEventsSseParams,) => {
     }
 
     
-export const getStreamEventsSseInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof streamEventsSse>>>, TError = ErrorType<InternalServerErrorResponse>>(params?: StreamEventsSseParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof streamEventsSse>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getStreamEventsSseInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof streamEventsSse>>>, TError = ErrorType<InternalServerErrorResponse>>(params: StreamEventsSseParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof streamEventsSse>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -628,7 +630,7 @@ export type StreamEventsSseInfiniteQueryError = ErrorType<InternalServerErrorRes
 
 
 export function useStreamEventsSseInfinite<TData = InfiniteData<Awaited<ReturnType<typeof streamEventsSse>>>, TError = ErrorType<InternalServerErrorResponse>>(
- params: undefined |  StreamEventsSseParams, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof streamEventsSse>>, TError, TData>> & Pick<
+ params: StreamEventsSseParams, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof streamEventsSse>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof streamEventsSse>>,
           TError,
@@ -638,7 +640,7 @@ export function useStreamEventsSseInfinite<TData = InfiniteData<Awaited<ReturnTy
  , queryClient?: QueryClient
   ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 export function useStreamEventsSseInfinite<TData = InfiniteData<Awaited<ReturnType<typeof streamEventsSse>>>, TError = ErrorType<InternalServerErrorResponse>>(
- params?: StreamEventsSseParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof streamEventsSse>>, TError, TData>> & Pick<
+ params: StreamEventsSseParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof streamEventsSse>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof streamEventsSse>>,
           TError,
@@ -648,7 +650,7 @@ export function useStreamEventsSseInfinite<TData = InfiniteData<Awaited<ReturnTy
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 export function useStreamEventsSseInfinite<TData = InfiniteData<Awaited<ReturnType<typeof streamEventsSse>>>, TError = ErrorType<InternalServerErrorResponse>>(
- params?: StreamEventsSseParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof streamEventsSse>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ params: StreamEventsSseParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof streamEventsSse>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
@@ -656,7 +658,7 @@ export function useStreamEventsSseInfinite<TData = InfiniteData<Awaited<ReturnTy
  */
 
 export function useStreamEventsSseInfinite<TData = InfiniteData<Awaited<ReturnType<typeof streamEventsSse>>>, TError = ErrorType<InternalServerErrorResponse>>(
- params?: StreamEventsSseParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof streamEventsSse>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ params: StreamEventsSseParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof streamEventsSse>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient 
  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
 
@@ -670,7 +672,7 @@ export function useStreamEventsSseInfinite<TData = InfiniteData<Awaited<ReturnTy
 
 
 
-export const getStreamEventsSseQueryOptions = <TData = Awaited<ReturnType<typeof streamEventsSse>>, TError = ErrorType<InternalServerErrorResponse>>(params?: StreamEventsSseParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof streamEventsSse>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getStreamEventsSseQueryOptions = <TData = Awaited<ReturnType<typeof streamEventsSse>>, TError = ErrorType<InternalServerErrorResponse>>(params: StreamEventsSseParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof streamEventsSse>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -693,7 +695,7 @@ export type StreamEventsSseQueryError = ErrorType<InternalServerErrorResponse>
 
 
 export function useStreamEventsSse<TData = Awaited<ReturnType<typeof streamEventsSse>>, TError = ErrorType<InternalServerErrorResponse>>(
- params: undefined |  StreamEventsSseParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof streamEventsSse>>, TError, TData>> & Pick<
+ params: StreamEventsSseParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof streamEventsSse>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof streamEventsSse>>,
           TError,
@@ -703,7 +705,7 @@ export function useStreamEventsSse<TData = Awaited<ReturnType<typeof streamEvent
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 export function useStreamEventsSse<TData = Awaited<ReturnType<typeof streamEventsSse>>, TError = ErrorType<InternalServerErrorResponse>>(
- params?: StreamEventsSseParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof streamEventsSse>>, TError, TData>> & Pick<
+ params: StreamEventsSseParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof streamEventsSse>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof streamEventsSse>>,
           TError,
@@ -713,7 +715,7 @@ export function useStreamEventsSse<TData = Awaited<ReturnType<typeof streamEvent
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 export function useStreamEventsSse<TData = Awaited<ReturnType<typeof streamEventsSse>>, TError = ErrorType<InternalServerErrorResponse>>(
- params?: StreamEventsSseParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof streamEventsSse>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ params: StreamEventsSseParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof streamEventsSse>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
@@ -721,7 +723,7 @@ export function useStreamEventsSse<TData = Awaited<ReturnType<typeof streamEvent
  */
 
 export function useStreamEventsSse<TData = Awaited<ReturnType<typeof streamEventsSse>>, TError = ErrorType<InternalServerErrorResponse>>(
- params?: StreamEventsSseParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof streamEventsSse>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ params: StreamEventsSseParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof streamEventsSse>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
 
@@ -757,17 +759,24 @@ export type listEventSubscriptionsResponseError = (listEventSubscriptionsRespons
 
 export type listEventSubscriptionsResponse = (listEventSubscriptionsResponseSuccess | listEventSubscriptionsResponseError)
 
-export const getListEventSubscriptionsUrl = () => {
+export const getListEventSubscriptionsUrl = (params?: ListEventSubscriptionsParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
 
-  
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/events/subscriptions`
+  return stringifiedParams.length > 0 ? `/events/subscriptions?${stringifiedParams}` : `/events/subscriptions`
 }
 
-export const listEventSubscriptions = async ( options?: RequestInit): Promise<listEventSubscriptionsResponse> => {
+export const listEventSubscriptions = async (params?: ListEventSubscriptionsParams, options?: RequestInit): Promise<listEventSubscriptionsResponse> => {
   
-  return customInstance<listEventSubscriptionsResponse>(getListEventSubscriptionsUrl(),
+  return customInstance<listEventSubscriptionsResponse>(getListEventSubscriptionsUrl(params),
   {      
     ...options,
     method: 'GET'
@@ -780,29 +789,29 @@ export const listEventSubscriptions = async ( options?: RequestInit): Promise<li
 
 
 
-export const getListEventSubscriptionsInfiniteQueryKey = () => {
+export const getListEventSubscriptionsInfiniteQueryKey = (params?: ListEventSubscriptionsParams,) => {
     return [
-    'infinite', `/events/subscriptions`
+    'infinite', `/events/subscriptions`, ...(params ? [params] : [])
     ] as const;
     }
 
-export const getListEventSubscriptionsQueryKey = () => {
+export const getListEventSubscriptionsQueryKey = (params?: ListEventSubscriptionsParams,) => {
     return [
-    `/events/subscriptions`
+    `/events/subscriptions`, ...(params ? [params] : [])
     ] as const;
     }
 
     
-export const getListEventSubscriptionsInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof listEventSubscriptions>>>, TError = ErrorType<InternalServerErrorResponse>>( options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof listEventSubscriptions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getListEventSubscriptionsInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof listEventSubscriptions>>>, TError = ErrorType<InternalServerErrorResponse>>(params?: ListEventSubscriptionsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof listEventSubscriptions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListEventSubscriptionsInfiniteQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getListEventSubscriptionsInfiniteQueryKey(params);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listEventSubscriptions>>> = ({ signal }) => listEventSubscriptions({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listEventSubscriptions>>> = ({ signal }) => listEventSubscriptions(params, { signal, ...requestOptions });
 
       
 
@@ -816,7 +825,7 @@ export type ListEventSubscriptionsInfiniteQueryError = ErrorType<InternalServerE
 
 
 export function useListEventSubscriptionsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof listEventSubscriptions>>>, TError = ErrorType<InternalServerErrorResponse>>(
-  options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof listEventSubscriptions>>, TError, TData>> & Pick<
+ params: undefined |  ListEventSubscriptionsParams, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof listEventSubscriptions>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listEventSubscriptions>>,
           TError,
@@ -826,7 +835,7 @@ export function useListEventSubscriptionsInfinite<TData = InfiniteData<Awaited<R
  , queryClient?: QueryClient
   ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 export function useListEventSubscriptionsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof listEventSubscriptions>>>, TError = ErrorType<InternalServerErrorResponse>>(
-  options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof listEventSubscriptions>>, TError, TData>> & Pick<
+ params?: ListEventSubscriptionsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof listEventSubscriptions>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listEventSubscriptions>>,
           TError,
@@ -836,7 +845,7 @@ export function useListEventSubscriptionsInfinite<TData = InfiniteData<Awaited<R
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 export function useListEventSubscriptionsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof listEventSubscriptions>>>, TError = ErrorType<InternalServerErrorResponse>>(
-  options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof listEventSubscriptions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ params?: ListEventSubscriptionsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof listEventSubscriptions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
@@ -844,11 +853,11 @@ export function useListEventSubscriptionsInfinite<TData = InfiniteData<Awaited<R
  */
 
 export function useListEventSubscriptionsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof listEventSubscriptions>>>, TError = ErrorType<InternalServerErrorResponse>>(
-  options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof listEventSubscriptions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ params?: ListEventSubscriptionsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof listEventSubscriptions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient 
  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
 
-  const queryOptions = getListEventSubscriptionsInfiniteQueryOptions(options)
+  const queryOptions = getListEventSubscriptionsInfiniteQueryOptions(params,options)
 
   const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
 
@@ -858,16 +867,16 @@ export function useListEventSubscriptionsInfinite<TData = InfiniteData<Awaited<R
 
 
 
-export const getListEventSubscriptionsQueryOptions = <TData = Awaited<ReturnType<typeof listEventSubscriptions>>, TError = ErrorType<InternalServerErrorResponse>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listEventSubscriptions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getListEventSubscriptionsQueryOptions = <TData = Awaited<ReturnType<typeof listEventSubscriptions>>, TError = ErrorType<InternalServerErrorResponse>>(params?: ListEventSubscriptionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listEventSubscriptions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListEventSubscriptionsQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getListEventSubscriptionsQueryKey(params);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listEventSubscriptions>>> = ({ signal }) => listEventSubscriptions({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listEventSubscriptions>>> = ({ signal }) => listEventSubscriptions(params, { signal, ...requestOptions });
 
       
 
@@ -881,7 +890,7 @@ export type ListEventSubscriptionsQueryError = ErrorType<InternalServerErrorResp
 
 
 export function useListEventSubscriptions<TData = Awaited<ReturnType<typeof listEventSubscriptions>>, TError = ErrorType<InternalServerErrorResponse>>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listEventSubscriptions>>, TError, TData>> & Pick<
+ params: undefined |  ListEventSubscriptionsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listEventSubscriptions>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listEventSubscriptions>>,
           TError,
@@ -891,7 +900,7 @@ export function useListEventSubscriptions<TData = Awaited<ReturnType<typeof list
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 export function useListEventSubscriptions<TData = Awaited<ReturnType<typeof listEventSubscriptions>>, TError = ErrorType<InternalServerErrorResponse>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listEventSubscriptions>>, TError, TData>> & Pick<
+ params?: ListEventSubscriptionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listEventSubscriptions>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listEventSubscriptions>>,
           TError,
@@ -901,7 +910,7 @@ export function useListEventSubscriptions<TData = Awaited<ReturnType<typeof list
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 export function useListEventSubscriptions<TData = Awaited<ReturnType<typeof listEventSubscriptions>>, TError = ErrorType<InternalServerErrorResponse>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listEventSubscriptions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ params?: ListEventSubscriptionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listEventSubscriptions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
@@ -909,11 +918,11 @@ export function useListEventSubscriptions<TData = Awaited<ReturnType<typeof list
  */
 
 export function useListEventSubscriptions<TData = Awaited<ReturnType<typeof listEventSubscriptions>>, TError = ErrorType<InternalServerErrorResponse>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listEventSubscriptions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ params?: ListEventSubscriptionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listEventSubscriptions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
 
-  const queryOptions = getListEventSubscriptionsQueryOptions(options)
+  const queryOptions = getListEventSubscriptionsQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
 

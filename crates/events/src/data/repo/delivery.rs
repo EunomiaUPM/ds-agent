@@ -58,7 +58,7 @@ pub trait EventDeliveryRepo: Send + Sync + 'static {
     async fn mark_dead_letter(&self, id: &str) -> Outcome<()>;
     async fn list_by_event(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         event_id: &str,
     ) -> Outcome<Vec<EventDeliveryRecord>>;
 }

@@ -15,8 +15,6 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use common::config::services::SsiAuthConfig;
-use std::sync::Arc;
 use ymir::modules::WalletModuleTrait;
 
 use crate::modules::{
@@ -36,5 +34,4 @@ pub trait AuthOrchestratorTrait:
     + Sync
     + 'static
 {
-    fn config(&self) -> Arc<SsiAuthConfig>;
 }

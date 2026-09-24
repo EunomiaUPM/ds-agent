@@ -19,7 +19,6 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use crate::core::AuthCore;
-use crate::data::factory::AuthRepoTrait;
 use crate::data::sea_orm::factory::AuthRepoForSql;
 use crate::http::AuthRouter;
 use crate::services::callback::BasicCallbackService;
@@ -32,6 +31,7 @@ use crate::services::vc_requester::basic::VCReqService;
 use crate::services::vc_requester::basic::VCRequesterConfig;
 use axum::{serve, Router};
 use axum_server::tls_rustls::RustlsConfig;
+use common::auth::OauthTokenValidator;
 use common::config::services::SsiAuthConfig;
 use common::config::types::traits::{CommonConfigTrait, GaiaConfigTrait};
 use tokio::net::TcpListener;
@@ -40,7 +40,6 @@ use ymir::config::traits::{
     ApiConfigTrait, ConnectionConfigTrait, HostsConfigTrait, WalletConfigTrait,
 };
 use ymir::config::types::HostType;
-use ymir::data::entities::shared::participant;
 use ymir::errors::{Errors, Outcome};
 use ymir::services::issuer::{oid4vci_1_0, IssuerTrait};
 use ymir::services::vault::global::VaultService;
@@ -50,7 +49,6 @@ use ymir::services::wallet::fafnir::FafnirConfig;
 use ymir::services::wallet::fafnir::FafnirService;
 use ymir::services::wallet::WalletTrait;
 use ymir::types::dids::{DidService, DidServiceType};
-use ymir::types::participants::ParticipantType;
 use ymir::types::secrets::StringHelper;
 use ymir::types::wallet::WalletInstance;
 use ymir::utils::expect_from_env;
@@ -64,6 +62,8 @@ impl AuthApplication {
     ) -> Outcome<Router> {
         // ======================================== CONFIGS ========================================
         let db_connection = vault.get_db_connection(config.common()).await?;
+        let validator: Arc<dyn OauthTokenValidator> = oauth::setup::composition::OAuthSetup::new()
+            .build_token_service(config.common().clone().into(), db_connection.clone());
         let vc_req_config = VCRequesterConfig::from(config);
         let peer_connector_config = GnapPeerConnectorConfig::from(config);
         let gatekeeper_config = GnapGateKeeperConfig::from(config);
@@ -73,8 +73,6 @@ impl AuthApplication {
         // ======================================== WALLET =========================================
         let wallet = Self::wallet(&config, vault.clone()).await?;
         let arc_identity = wallet.get_identity();
-
-        let identity = arc_identity.read().await;
 
         // ======================================= SERVICES ========================================
         let vc_requester = Arc::new(VCReqService::new(vault.clone(), vc_req_config));
@@ -107,20 +105,6 @@ impl AuthApplication {
             None => (None, None),
         };
 
-        let participant_id = identity.did().id().to_string();
-
-        let myself = participant::Plan {
-            participant_id,
-            tenant_id: "system".to_string(),
-            participant_nick: "Myself".to_string(),
-            participant_type: ParticipantType::Agent,
-            base_url: config.common().get_host(HostType::Http),
-            token: None,
-            extra_fields: None,
-            is_me: true,
-        };
-        repo.participant().force_update(myself).await?;
-
         // CORE
         let core = Arc::new(AuthCore::new(
             vc_requester,
@@ -135,17 +119,18 @@ impl AuthApplication {
             core_config,
         ));
 
-        Ok(AuthRouter::new(core).router())
+        Ok(AuthRouter::new(core, validator).router())
     }
 
     async fn wallet(
         config: &SsiAuthConfig,
         vault: Arc<VaultService>,
     ) -> Outcome<Arc<dyn WalletTrait>> {
+        // Tenants share this DID, so peers append `/{tenant}/access` to the advertised gate.
         let services = vec![DidService::basic(
             DidServiceType::AuthorizationServer,
             format!(
-                "{}{}/gate/access",
+                "{}{}/gate",
                 config.common().get_host(HostType::Http),
                 config.common().get_api_version()
             ),

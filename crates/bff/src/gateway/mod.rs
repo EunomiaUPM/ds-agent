@@ -15,8 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod dataset_offering;
+//! Admin gateway: the embedded SPA, a few browser helpers and the reverse proxy to the agents.
+
+mod discovery;
+mod frontend;
 pub mod router;
-pub mod service;
 
 pub use router::GatewayHttpRouter;

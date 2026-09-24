@@ -15,11 +15,9 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod events;
 pub(crate) mod gateway;
 pub mod proxy;
 pub mod setup;
-pub(crate) mod subscriptions;
 
 pub use gateway::GatewayHttpRouter;
 pub use proxy::HttpProxyDispatcher;

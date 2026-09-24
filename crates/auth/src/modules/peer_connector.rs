@@ -19,16 +19,17 @@ use crate::entities::filters::SentGrantFilter;
 use crate::services::{HasCallback, HasPeerConnector, HasRepo};
 use crate::types::entities::ReachProvider;
 use crate::types::response::TokenWhatResponse;
-use crate::utils::pagination::AuthPagination;
 use async_trait::async_trait;
 use chrono::Utc;
-use common::paginated_spec::{Page, Paginated, Sort};
+use common::auth::AccessScope;
+use common::paginated_spec::{Cursor, Page, Paginated, Sort};
 use serde_json::{json, Value};
 use ymir::data::entities::sent::{grant, verification};
 use ymir::errors::Outcome;
 use ymir::services::HasWallet;
 use ymir::types::gnap::grant_request::GrantKind;
 use ymir::types::gnap::{ApprovedCallbackBody, CallbackBody, GrantStatus};
+use ymir::types::listing::{GrantSort, SentGrantListFilter};
 use ymir::types::verification::VerificationStatus;
 use ymir::types::wallet::OidcUri;
 
@@ -36,13 +37,21 @@ use ymir::types::wallet::OidcUri;
 pub trait PeerConnectorModule:
     HasPeerConnector + HasRepo + HasCallback + HasWallet + Send + Sync + 'static
 {
-    async fn req_peer_connection(&self, payload: ReachProvider) -> Outcome<()> {
+    async fn req_peer_connection(
+        &self,
+        scope: &AccessScope,
+        payload: ReachProvider,
+    ) -> Outcome<()> {
+        scope.require_write()?;
+        let tenant_id = scope.acting_tenant();
         let actions = payload.actions.clone();
-        let grant = self.peer_connector().build_grant_plan(payload);
-        let interaction = self.peer_connector().build_interaction_plan(&grant.id);
+        let grant = self.peer_connector().build_grant_plan(tenant_id, payload);
+        let interaction = self
+            .peer_connector()
+            .build_interaction_plan(tenant_id, &grant.id);
         let resource_req = self
             .peer_connector()
-            .build_resource_req_plan(&grant.id, actions);
+            .build_resource_req_plan(tenant_id, &grant.id, actions);
 
         let mut grant = self.repo().sent_grant().create(grant).await?;
         let mut interaction = self.repo().sent_interaction().create(interaction).await?;
@@ -73,94 +82,49 @@ pub trait PeerConnectorModule:
     // =================================== GETTERS FOR FRONTEND ====================================
     async fn get_all(
         &self,
+        scope: &AccessScope,
         filter: &SentGrantFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<grant::Model>> {
-        let kind = filter.kind.clone().unwrap_or(GrantKind::AccessToken);
-        let grants = self.repo().sent_grant().filter_by_type(kind).await?;
-
-        let mut filtered: Vec<grant::Model> = grants
-            .into_iter()
-            .filter(|g| {
-                if let Some(id) = &filter.participant_id {
-                    if !g.participant_id.contains(id) {
-                        return false;
-                    }
-                }
-                if let Some(nick) = &filter.participant_nick {
-                    if !g
-                        .participant_nick
-                        .to_lowercase()
-                        .contains(&nick.to_lowercase())
-                    {
-                        return false;
-                    }
-                }
-                if let Some(status) = &filter.status {
-                    if &g.status != status {
-                        return false;
-                    }
-                }
-                if let Some(after) = filter.created_after {
-                    if g.created_at < after {
-                        return false;
-                    }
-                }
-                if let Some(before) = filter.created_before {
-                    if g.created_at > before {
-                        return false;
-                    }
-                }
-                true
-            })
-            .collect();
-
-        match sort {
-            Sort::CreatedAtAsc => {
-                filtered.sort_by(|a, b| {
-                    a.created_at
-                        .cmp(&b.created_at)
-                        .then_with(|| a.id.cmp(&b.id))
-                });
-            }
-            Sort::UpdatedAtAsc => {
-                filtered.sort_by(|a, b| a.ended_at.cmp(&b.ended_at).then_with(|| a.id.cmp(&b.id)));
-            }
-            Sort::UpdatedAtDesc => {
-                filtered.sort_by(|a, b| b.ended_at.cmp(&a.ended_at).then_with(|| a.id.cmp(&b.id)));
-            }
-            _ => {
-                filtered.sort_by(|a, b| {
-                    b.created_at
-                        .cmp(&a.created_at)
-                        .then_with(|| a.id.cmp(&b.id))
-                });
-            }
-        }
-
-        Ok(AuthPagination::paginate(
-            &filtered,
-            page,
-            sort,
-            |item, s| {
-                let ts = match s {
-                    Sort::UpdatedAtAsc | Sort::UpdatedAtDesc => {
-                        item.ended_at.unwrap_or(item.created_at)
-                    }
-                    _ => item.created_at,
+        let list_page = page.list_page(sort, GrantSort::Created, GrantSort::Updated)?;
+        let list_filter = SentGrantListFilter {
+            tenant_id: scope.tenant_filter().map(str::to_string),
+            kind: filter.kind.clone().unwrap_or(GrantKind::AccessToken),
+            participant_id_contains: filter.participant_id.clone(),
+            nick_contains: filter.participant_nick.clone(),
+            status: filter.status.clone(),
+            created_after: filter.created_after,
+            created_before: filter.created_before,
+        };
+        let listed = self
+            .repo()
+            .sent_grant()
+            .find_page(&list_filter, &list_page)
+            .await?;
+        let sort_field = list_page.sort;
+        Ok(Paginated::from_page(
+            listed.items,
+            &page.clamped(),
+            Some(listed.total),
+            |last| {
+                let ts = match sort_field {
+                    GrantSort::Created => last.created_at,
+                    GrantSort::Updated => last.ended_at.unwrap_or(last.created_at),
                 };
-                (ts, item.id.clone())
+                Cursor::encode_composite(&ts, &last.id)
             },
         ))
     }
 
-    async fn get_by_id(&self, id: String) -> Outcome<grant::Model> {
-        self.repo().sent_grant().get_by_id(&id).await
+    async fn get_by_id(&self, scope: &AccessScope, id: String) -> Outcome<grant::Model> {
+        let grant = self.repo().sent_grant().get_by_id(&id).await?;
+        scope.ensure_visible(&grant.tenant_id, &id)?;
+        Ok(grant)
     }
 
-    async fn get_by_id_with_details(&self, id: String) -> Outcome<Value> {
-        let grant = self.repo().sent_grant().get_by_id(&id).await?;
+    async fn get_by_id_with_details(&self, scope: &AccessScope, id: String) -> Outcome<Value> {
+        let grant = self.get_by_id(scope, id.clone()).await?;
         let resource_req = self.repo().resource_req().get_by_id(&id).await?;
         let interaction = self.repo().sent_interaction().get_by_id(&id).await.ok();
         let verification = self.repo().sent_verification().get_by_id(&id).await.ok();
@@ -172,8 +136,15 @@ pub trait PeerConnectorModule:
         }))
     }
 
-    async fn process_oid4vp(&self, id: String, payload: OidcUri) -> Outcome<()> {
+    async fn process_oid4vp(
+        &self,
+        scope: &AccessScope,
+        id: String,
+        payload: OidcUri,
+    ) -> Outcome<()> {
+        scope.require_write()?;
         let mut verification = self.repo().sent_verification().get_by_id(&id).await?;
+        scope.ensure_visible(&verification.tenant_id, &id)?;
         match self.wallet().process_oid4vp(&payload.uri).await {
             Ok(_) => verification.status = VerificationStatus::Verified,
             Err(_) => {
@@ -193,13 +164,11 @@ pub trait PeerConnectorModule:
     ) -> Outcome<()> {
         match vc_what_response? {
             TokenWhatResponse::Completed => {
-                let mate = self.peer_connector().build_mate_plan("system", &grant);
+                let mate = self.peer_connector().build_mate_plan(&grant);
                 self.repo().participant().force_update(mate).await?;
                 Ok(())
             }
-            TokenWhatResponse::Presentation(uri) => {
-                self.manage_auto_oid4vp(&grant.id, grant.auto, &uri).await
-            }
+            TokenWhatResponse::Presentation(uri) => self.manage_auto_oid4vp(&grant, &uri).await,
             TokenWhatResponse::Wait => Ok(()),
         }
     }
@@ -216,11 +185,13 @@ pub trait PeerConnectorModule:
         Ok(())
     }
 
-    async fn manage_auto_oid4vp(&self, id: &str, auto: bool, uri: &str) -> Outcome<()> {
-        let verification = self.peer_connector().build_verification_plan(&uri, id)?;
+    async fn manage_auto_oid4vp(&self, grant: &grant::Model, uri: &str) -> Outcome<()> {
+        let verification =
+            self.peer_connector()
+                .build_verification_plan(&grant.tenant_id, uri, &grant.id)?;
         let verification = self.repo().sent_verification().create(verification).await?;
 
-        if auto {
+        if grant.auto {
             self.manage_oid4vp(verification, uri).await
         } else {
             Ok(())

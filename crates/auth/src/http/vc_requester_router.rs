@@ -31,10 +31,10 @@ use ymir::utils::extract_payload;
 use crate::entities::filters::SentGrantFilter;
 use crate::modules::VcRequesterModule;
 use crate::types::entities::ReachAuthority;
+use common::auth::AccessScope;
 use common::paginated_spec::Paginated;
 use common::query::{QueryFilter, QuerySpec};
 
-pub use common::paginated_spec::PaginationParams;
 pub type VcRequesterQuery = QuerySpec<SentGrantFilter>;
 
 pub struct VcRequesterRouter {
@@ -46,53 +46,63 @@ impl VcRequesterRouter {
         VcRequesterRouter { requester }
     }
 
-    pub fn router(self) -> Router {
+    /// GNAP interaction callbacks pushed by the authority.
+    pub fn protocol_router(&self) -> Router {
+        Router::new()
+            .route(
+                "/callback/{id}",
+                get(Self::get_callback).post(Self::post_callback),
+            )
+            .with_state(self.requester.clone())
+    }
+
+    pub fn router(&self) -> Router {
         Router::new()
             .route("/beg", post(Self::beg))
             .route("/all", get(Self::get_all))
             .route("/{id}", get(Self::get_one))
             .route("/{id}/details", get(Self::get_one_with_details))
-            .route(
-                "/callback/{id}",
-                get(Self::get_callback).post(Self::post_callback),
-            )
             .route("/oid4vci/{id}", post(Self::manage_oid4vci))
             .route("/oid4vp/{id}", post(Self::manage_oid4vp))
-            .with_state(self.requester)
+            .with_state(self.requester.clone())
     }
 
     async fn beg(
         State(requester): State<Arc<dyn VcRequesterModule>>,
+        scope: AccessScope,
         payload: Result<Json<ReachAuthority>, JsonRejection>,
     ) -> AppResult<()> {
         let payload = extract_payload(payload)?;
-        requester.beg_vc(payload).await
+        requester.beg_vc(&scope, payload).await
     }
 
     async fn get_all(
         State(requester): State<Arc<dyn VcRequesterModule>>,
+        scope: AccessScope,
         Query(query): Query<VcRequesterQuery>,
     ) -> AppResult<Json<Paginated<Model>>> {
         query.filter.validate()?;
         Ok(Json(
             requester
-                .get_all(&query.filter, &query.page, &query.sort)
+                .get_all(&scope, &query.filter, &query.page, &query.sort)
                 .await?,
         ))
     }
 
     async fn get_one(
         State(requester): State<Arc<dyn VcRequesterModule>>,
+        scope: AccessScope,
         Path(id): Path<String>,
     ) -> AppResult<Json<Model>> {
-        Ok(Json(requester.get_by_id(id).await?))
+        Ok(Json(requester.get_by_id(&scope, id).await?))
     }
 
     async fn get_one_with_details(
         State(requester): State<Arc<dyn VcRequesterModule>>,
+        scope: AccessScope,
         Path(id): Path<String>,
     ) -> AppResult<Json<Value>> {
-        Ok(Json(requester.get_by_id_with_details(id).await?))
+        Ok(Json(requester.get_by_id_with_details(&scope, id).await?))
     }
 
     async fn get_callback(
@@ -114,19 +124,21 @@ impl VcRequesterRouter {
 
     async fn manage_oid4vci(
         State(requester): State<Arc<dyn VcRequesterModule>>,
+        scope: AccessScope,
         Path(id): Path<String>,
         payload: Result<Json<OidcUri>, JsonRejection>,
     ) -> AppResult<()> {
         let payload = extract_payload(payload)?;
-        requester.process_oid4vci(id, payload).await
+        requester.process_oid4vci(&scope, id, payload).await
     }
 
     async fn manage_oid4vp(
         State(requester): State<Arc<dyn VcRequesterModule>>,
+        scope: AccessScope,
         Path(id): Path<String>,
         payload: Result<Json<OidcUri>, JsonRejection>,
     ) -> AppResult<()> {
         let payload = extract_payload(payload)?;
-        requester.process_oid4vp(id, payload).await
+        requester.process_oid4vp(&scope, id, payload).await
     }
 }

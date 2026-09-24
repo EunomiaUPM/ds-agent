@@ -17,24 +17,30 @@
 
 use crate::entities::filters::RecvGrantFilter;
 use crate::services::{HasGateKeeper, HasRepo};
-use crate::utils::pagination::AuthPagination;
 use async_trait::async_trait;
 use axum::body::Bytes;
 use axum::http::HeaderMap;
-use common::paginated_spec::{Page, Paginated, Sort};
+use common::auth::AccessScope;
+use common::paginated_spec::{Cursor, Page, Paginated, Sort};
 use serde_json::{json, Value};
 use ymir::data::entities::received::grant;
-use ymir::errors::Outcome;
+use ymir::errors::{Errors, Outcome};
 use ymir::services::HasVerifier;
 use ymir::types::gnap::grant_request::GrantKind;
 use ymir::types::gnap::grant_response::{ErrorResponse, GrantResponse};
 use ymir::types::gnap::GrantStatus;
+use ymir::types::listing::{GrantSort, RecvGrantListFilter};
 use ymir::utils::{create_opaque_token, errors_to_error_code, require_field};
 
 #[async_trait]
 pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync + 'static {
-    async fn manage_grant_req(&self, payload: Bytes, headers: HeaderMap) -> GrantResponse {
-        self.inner_manage_grant_req(payload, headers)
+    async fn manage_grant_req(
+        &self,
+        tenant_id: String,
+        payload: Bytes,
+        headers: HeaderMap,
+    ) -> GrantResponse {
+        self.inner_manage_grant_req(tenant_id, payload, headers)
             .await
             .unwrap_or_else(|e| {
                 e.log();
@@ -45,11 +51,12 @@ pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync 
 
     async fn manage_continue_req(
         &self,
+        tenant_id: String,
         id: String,
         payload: Bytes,
         headers: HeaderMap,
     ) -> GrantResponse {
-        self.inner_manage_continue_req(id, payload, headers)
+        self.inner_manage_continue_req(tenant_id, id, payload, headers)
             .await
             .unwrap_or_else(|e| {
                 e.log();
@@ -61,89 +68,48 @@ pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync 
     // =================================== GETTERS FOR FRONTEND ====================================
     async fn get_all(
         &self,
+        scope: &AccessScope,
         filter: &RecvGrantFilter,
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<grant::Model>> {
-        let kind = filter.kind.clone().unwrap_or(GrantKind::AccessToken);
-        let grants = self.repo().recv_grant().filter_by_type(kind).await?;
-
-        let mut filtered: Vec<grant::Model> = grants
-            .into_iter()
-            .filter(|g| {
-                if let Some(nick) = &filter.participant_nick {
-                    if !g
-                        .participant_nick
-                        .to_lowercase()
-                        .contains(&nick.to_lowercase())
-                    {
-                        return false;
-                    }
-                }
-                if let Some(status) = &filter.status {
-                    if &g.status != status {
-                        return false;
-                    }
-                }
-                if let Some(after) = filter.created_after {
-                    if g.created_at < after {
-                        return false;
-                    }
-                }
-                if let Some(before) = filter.created_before {
-                    if g.created_at > before {
-                        return false;
-                    }
-                }
-                true
-            })
-            .collect();
-
-        match sort {
-            Sort::CreatedAtAsc => {
-                filtered.sort_by(|a, b| {
-                    a.created_at
-                        .cmp(&b.created_at)
-                        .then_with(|| a.id.cmp(&b.id))
-                });
-            }
-            Sort::UpdatedAtAsc => {
-                filtered.sort_by(|a, b| a.ended_at.cmp(&b.ended_at).then_with(|| a.id.cmp(&b.id)));
-            }
-            Sort::UpdatedAtDesc => {
-                filtered.sort_by(|a, b| b.ended_at.cmp(&a.ended_at).then_with(|| a.id.cmp(&b.id)));
-            }
-            _ => {
-                filtered.sort_by(|a, b| {
-                    b.created_at
-                        .cmp(&a.created_at)
-                        .then_with(|| a.id.cmp(&b.id))
-                });
-            }
-        }
-
-        Ok(AuthPagination::paginate(
-            &filtered,
-            page,
-            sort,
-            |item, s| {
-                let ts = match s {
-                    Sort::UpdatedAtAsc | Sort::UpdatedAtDesc => {
-                        item.ended_at.unwrap_or(item.created_at)
-                    }
-                    _ => item.created_at,
+        let list_page = page.list_page(sort, GrantSort::Created, GrantSort::Updated)?;
+        let list_filter = RecvGrantListFilter {
+            tenant_id: scope.tenant_filter().map(str::to_string),
+            kind: filter.kind.clone().unwrap_or(GrantKind::AccessToken),
+            nick_contains: filter.participant_nick.clone(),
+            status: filter.status.clone(),
+            created_after: filter.created_after,
+            created_before: filter.created_before,
+        };
+        let listed = self
+            .repo()
+            .recv_grant()
+            .find_page(&list_filter, &list_page)
+            .await?;
+        let sort_field = list_page.sort;
+        Ok(Paginated::from_page(
+            listed.items,
+            &page.clamped(),
+            Some(listed.total),
+            |last| {
+                let ts = match sort_field {
+                    GrantSort::Created => last.created_at,
+                    GrantSort::Updated => last.ended_at.unwrap_or(last.created_at),
                 };
-                (ts, item.id.clone())
+                Cursor::encode_composite(&ts, &last.id)
             },
         ))
     }
 
-    async fn get_by_id(&self, id: String) -> Outcome<grant::Model> {
-        self.repo().recv_grant().get_by_id(&id).await
+    async fn get_by_id(&self, scope: &AccessScope, id: String) -> Outcome<grant::Model> {
+        let grant = self.repo().recv_grant().get_by_id(&id).await?;
+        scope.ensure_visible(&grant.tenant_id, &id)?;
+        Ok(grant)
     }
 
-    async fn get_by_id_with_details(&self, id: String) -> Outcome<Value> {
-        let grant = self.repo().recv_grant().get_by_id(&id).await?;
+    async fn get_by_id_with_details(&self, scope: &AccessScope, id: String) -> Outcome<Value> {
+        let grant = self.get_by_id(scope, id.clone()).await?;
         let resource_req = self.repo().resource_req().get_by_id(&id).await?;
         let interaction = self.repo().recv_interaction().get_by_id(&id).await.ok();
         let verification = self.repo().recv_verification().get_by_id(&id).await.ok();
@@ -159,28 +125,32 @@ pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync 
 
     async fn inner_manage_grant_req(
         &self,
+        tenant_id: String,
         payload: Bytes,
         headers: HeaderMap,
     ) -> Outcome<GrantResponse> {
-        let grant_request = self.gatekeeper().validate_grant_req(&payload, &headers)?;
+        let grant_request = self
+            .gatekeeper()
+            .validate_grant_req(&tenant_id, &payload, &headers)?;
 
         let grant = self
             .gatekeeper()
-            .build_grant_plan(grant_request.client.class_id.clone())?;
+            .build_grant_plan(&tenant_id, grant_request.client.class_id.clone())?;
         let interaction = self.gatekeeper().build_interaction_plan(
+            &tenant_id,
             &grant.id,
             grant_request.client,
             grant_request.interact,
         )?;
-        let resource_req = self
-            .gatekeeper()
-            .build_resource_req_plan(&grant.id, grant_request.kind)?;
+        let resource_req =
+            self.gatekeeper()
+                .build_resource_req_plan(&tenant_id, &grant.id, grant_request.kind)?;
 
         let grant = self.repo().recv_grant().create(grant).await?;
         let interaction = self.repo().recv_interaction().create(interaction).await?;
         let _resource_req = self.repo().resource_req().create(resource_req).await?;
 
-        let verification = self.verifier().build_vp_plan(&grant.id)?;
+        let verification = self.verifier().build_vp_plan(&grant.tenant_id, &grant.id)?;
         let ver_model = self.repo().recv_verification().create(verification).await?;
         let uri = self.verifier().generate_verification_uri(&ver_model);
         Ok(GrantResponse::pending(uri, &interaction))
@@ -188,11 +158,15 @@ pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync 
 
     async fn inner_manage_continue_req(
         &self,
+        tenant_id: String,
         id: String,
         payload: Bytes,
         headers: HeaderMap,
     ) -> Outcome<GrantResponse> {
         let interaction = self.repo().recv_interaction().get_by_cont_id(&id).await?;
+        if interaction.tenant_id != tenant_id {
+            return Err(Errors::missing_resource(id, "interaction not found", None));
+        }
         self.gatekeeper()
             .validate_cont_req(&interaction, &payload, &headers)?;
 
@@ -206,13 +180,8 @@ pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync 
         let holder = require_field(verification.holder.as_ref(), "holder")?;
         let token = create_opaque_token();
 
-        let tenant_id = headers
-            .get("x-tenant-id")
-            .and_then(|v| v.to_str().ok())
-            .unwrap_or("system");
-
         let mate = self.gatekeeper().build_mate_plan(
-            tenant_id,
+            &grant.tenant_id,
             holder,
             &grant.participant_nick,
             &interaction.callback_uri,

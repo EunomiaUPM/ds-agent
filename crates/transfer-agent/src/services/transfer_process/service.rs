@@ -224,6 +224,7 @@ impl TransferProcessServiceTrait for TransferProcessService {
         let view = TransferProcessView::assemble(process, extra);
         events::emit_action!(
             self.event_bus,
+            &view.tenant_id,
             crate::EVENT_PREFIX,
             "process",
             "create",
@@ -274,6 +275,7 @@ impl TransferProcessServiceTrait for TransferProcessService {
         let view = TransferProcessView::assemble(process, extra);
         events::emit_action!(
             self.event_bus,
+            &view.tenant_id,
             crate::EVENT_PREFIX,
             "process",
             "edit",
@@ -287,11 +289,13 @@ impl TransferProcessServiceTrait for TransferProcessService {
     async fn delete(&self, scope: &AccessScope, id: &Urn) -> Outcome<()> {
         scope.require_write()?;
         // Hit db
-        self.process_repo
+        let owner = self
+            .process_repo
             .delete_transfer_process(scope.tenant_filter().map(str::to_string), id)
             .await?;
         events::emit_action!(
             self.event_bus,
+            &owner,
             crate::EVENT_PREFIX,
             "process",
             "delete",

@@ -66,7 +66,12 @@ pub trait NegotiationProcessRepoTrait: Send + Sync {
         id: &Urn,
         edit_model: &EditNegotiationProcessModel,
     ) -> Outcome<negotiation_process::Model>;
-    async fn delete_negotiation_process(&self, tenant_id: Option<String>, id: &Urn) -> Outcome<()>;
+    /// Returns the tenant of the removed record.
+    async fn delete_negotiation_process(
+        &self,
+        tenant_id: Option<String>,
+        id: &Urn,
+    ) -> Outcome<String>;
 }
 
 #[derive(Debug, Error)]

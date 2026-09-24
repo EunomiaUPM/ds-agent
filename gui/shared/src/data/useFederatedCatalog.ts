@@ -1,13 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { useGetAllParticipants } from "shared/src/data/orval/participants/participants";
 import { customInstance } from "shared/src/data/orval-mutator";
+import { useMyself } from "shared/src/data/useMyself";
 
 export interface FederatedParticipant {
   participant_id: string;
   participant_nick: string;
   participant_type: string;
   base_url: string;
-  is_me?: boolean;
   vc_uri?: string | null;
   is_vc_issued?: boolean;
   saved_at?: string;
@@ -38,7 +38,7 @@ export const useFederatedCatalog = (): FederatedCatalogResult => {
   const localParticipants = participantsResponse?.status === 200 ? participantsResponse.data : [];
 
   const authority = localParticipants.find((p) => p.participant_type === "Authority");
-  const myParticipantId = localParticipants.find((p) => p.is_me)?.participant_id;
+  const myParticipantId = useMyself()?.participant_id;
 
   const {
     data: federated,

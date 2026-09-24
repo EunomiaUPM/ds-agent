@@ -22,7 +22,7 @@ pub mod sea_orm;
 
 pub use factory::DataFactory;
 pub use migrations::get_events_migrations;
-pub use sea_orm::{SeaOrmDataFactory, SeaOrmEventBusRepo};
+pub use sea_orm::SeaOrmDataFactory;
 
 // Backward-compatible module alias for legacy entity references
 pub mod entities {

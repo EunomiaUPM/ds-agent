@@ -15,55 +15,73 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use std::convert::Infallible;
 use std::str::FromStr;
 use std::sync::Arc;
+use std::time::Duration;
 
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
-use axum::routing::{get, post};
+use axum::response::sse::{Event, KeepAlive, Sse};
+use axum::routing::get;
 use axum::{Json, Router};
+use common::auth::http::AuthClaims;
+use common::auth::AccessScope;
+use common::paginated_spec::{Cursor, Paginated};
+use common::query::{QueryFilter, QuerySpec};
+use futures_util::stream::{self, Stream};
+use serde::Deserialize;
+use tokio::sync::broadcast::error::RecvError;
 use urn::Urn;
 use uuid::Uuid;
-
-use common::auth::AccessScope;
+use ymir::errors::{AppResult, Errors};
 
 use crate::entities::commands::PublishEventRequest;
 use crate::entities::delivery::EventDeliveryRecord;
 use crate::entities::envelope::EventEnvelope;
-use crate::entities::queries::ListEventsQuery;
+use crate::entities::queries::EventFilter;
 use crate::entities::topic::Topic;
+use crate::entities::topic_pattern::TopicPattern;
 use crate::services::event_bus::EventBus;
-use ymir::errors::{AppResult, Errors};
 
-// Axum HTTP router handling event publishing, listing, and delivery tracking.
+pub type EventsQuery = QuerySpec<EventFilter>;
+
+#[derive(Debug, Deserialize)]
+pub struct StreamQuery {
+    #[serde(flatten)]
+    pub filter: EventFilter,
+    pub tenant: Option<String>,
+}
+
+// Axum HTTP router handling event publishing, listing, live streaming and delivery tracking.
 #[derive(Clone)]
 pub struct EventsRouter {
     bus: Arc<EventBus>,
 }
 
 impl EventsRouter {
-    // Create router with shared EventBus reference.
     pub fn new(bus: Arc<EventBus>) -> Self {
         Self { bus }
     }
 
-    // Build Axum router mounting all event operations.
     pub fn router(self) -> Router {
         Router::new()
-            .route("/publish", post(Self::handle_publish))
-            .route("/", get(Self::handle_list_events))
+            .route(
+                "/",
+                get(Self::handle_list_events).post(Self::handle_publish),
+            )
+            .route("/stream", get(Self::handle_stream))
             .route("/{id}", get(Self::handle_get_event))
             .route("/{id}/deliveries", get(Self::handle_get_deliveries))
             .with_state(self.bus)
     }
 
-    // Handler to publish a domain event via HTTP.
     async fn handle_publish(
         State(bus): State<Arc<EventBus>>,
         scope: AccessScope,
         Json(req): Json<PublishEventRequest>,
     ) -> AppResult<(StatusCode, Json<EventEnvelope>)> {
-        let tenant_id = scope.acting_tenant();
+        let tenant_id = scope.resolve_create_tenant(None)?;
         let topic = Topic::new(req.topic).map_err(|e| Errors::validation(e, None))?;
         let correlation_id = match req.correlation_id {
             Some(ref s) => {
@@ -85,39 +103,92 @@ impl EventsRouter {
         Ok((StatusCode::CREATED, Json(published)))
     }
 
-    // Handler to query and list stored event envelopes with optional topic filtering.
     async fn handle_list_events(
         State(bus): State<Arc<EventBus>>,
         scope: AccessScope,
-        Query(query): Query<ListEventsQuery>,
-    ) -> AppResult<Json<Vec<EventEnvelope>>> {
-        let tenant_id = scope.acting_tenant();
-        let limit = query.limit.unwrap_or(50).min(100);
-        let offset = query.offset.unwrap_or(0);
-        let events = bus
+        Query(query): Query<EventsQuery>,
+    ) -> AppResult<Json<Paginated<EventEnvelope>>> {
+        query.filter.validate()?;
+        let page = query.page.clamped();
+        let (events, total) = bus
             .event_repo()
-            .list_events(tenant_id, query.topic.as_deref(), limit, offset)
+            .list_events(
+                scope.tenant_filter().map(str::to_string),
+                &query.filter,
+                &page,
+                &query.sort,
+            )
             .await?;
-
-        Ok(Json(events))
+        Ok(Json(Paginated::from_page(
+            events,
+            &page,
+            Some(total),
+            |last| Cursor::encode_composite(&last.timestamp, &last.id.to_string()),
+        )))
     }
 
-    // Handler to fetch a single event by its URN or raw UUID.
+    /// Server-sent events of the tenants visible to the caller, optionally narrowed by `topic`.
+    /// Browsers cannot set headers on `EventSource`, so `tenant` stands in for `x-tenant-id`.
+    async fn handle_stream(
+        State(bus): State<Arc<EventBus>>,
+        AuthClaims(claims): AuthClaims,
+        Query(query): Query<StreamQuery>,
+    ) -> AppResult<Sse<impl Stream<Item = Result<Event, Infallible>>>> {
+        let scope = AccessScope::from_tenant_header(&claims, query.tenant.as_deref())?;
+        let pattern = query
+            .filter
+            .topic_pattern()?
+            .unwrap_or_else(TopicPattern::match_all);
+        let receiver = bus.subscribe();
+        let events = stream::unfold(
+            (receiver, pattern, scope),
+            |(mut receiver, pattern, scope)| async move {
+                loop {
+                    match receiver.recv().await {
+                        Ok(envelope)
+                            if scope.permits(&envelope.tenant_id)
+                                && pattern.matches(&envelope.topic) =>
+                        {
+                            let Ok(data) = serde_json::to_string(&envelope) else {
+                                continue;
+                            };
+                            // Unnamed events, so browsers receive them through `onmessage`.
+                            let event = Event::default().data(data);
+                            return Some((Ok(event), (receiver, pattern, scope)));
+                        }
+                        Ok(_) | Err(RecvError::Lagged(_)) => continue,
+                        Err(RecvError::Closed) => return None,
+                    }
+                }
+            },
+        );
+        Ok(Sse::new(events).keep_alive(KeepAlive::new().interval(Duration::from_secs(15))))
+    }
+
     async fn handle_get_event(
         State(bus): State<Arc<EventBus>>,
         scope: AccessScope,
         Path(id): Path<String>,
     ) -> AppResult<Json<EventEnvelope>> {
-        let tenant_id = scope.acting_tenant();
         let (urn, uuid) = Self::parse_id(&id)?;
-
         let event = bus
             .event_repo()
-            .get_event_by_id(tenant_id, &urn)
+            .get_event_by_id(scope.tenant_filter().map(str::to_string), &urn)
             .await?
             .ok_or_else(|| Errors::missing_resource(uuid.to_string(), "event not found", None))?;
-
         Ok(Json(event))
+    }
+
+    async fn handle_get_deliveries(
+        State(bus): State<Arc<EventBus>>,
+        scope: AccessScope,
+        Path(id): Path<String>,
+    ) -> AppResult<Json<Vec<EventDeliveryRecord>>> {
+        let deliveries = bus
+            .delivery_repo()
+            .list_by_event(scope.tenant_filter().map(str::to_string), &id)
+            .await?;
+        Ok(Json(deliveries))
     }
 
     // Validate and parse an ID string into a canonical URN and UUID.
@@ -137,17 +208,5 @@ impl EventsRouter {
                 None,
             ))
         }
-    }
-
-    // Handler to list delivery history records for an event.
-    async fn handle_get_deliveries(
-        State(bus): State<Arc<EventBus>>,
-        scope: AccessScope,
-        Path(id): Path<String>,
-    ) -> AppResult<Json<Vec<EventDeliveryRecord>>> {
-        let tenant_id = scope.acting_tenant();
-        let deliveries = bus.delivery_repo().list_by_event(tenant_id, &id).await?;
-
-        Ok(Json(deliveries))
     }
 }

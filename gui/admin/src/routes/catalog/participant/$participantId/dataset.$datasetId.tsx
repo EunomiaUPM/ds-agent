@@ -34,7 +34,7 @@ function RouteComponent() {
   }, [data]);
 
   const otherParticipant = Array.isArray(participants?.data)
-    ? participants.data.find((p) => !p.is_me && p.participant_type === "Agent")
+    ? participants.data.find((p) => p.participant_type === "Agent")
     : undefined;
   const otherParticipantSlug =
     otherParticipant?.participant_nick?.toString() || "Unknown Participant";

@@ -22,11 +22,11 @@ use crate::data::sea_orm::factory::SeaOrmDataFactory;
 use crate::services::transfer_message::service::TransferMessageService;
 use crate::services::transfer_process::service::TransferProcessService;
 use common::auth::OauthTokenValidator;
+use common::auth::ServiceHttpClient;
 use common::config::services::TransferConfig;
 use common::config::services::traits::TransferConfigTrait;
 use common::config::types::traits::CommonConfigTrait;
 use common::facades::ssi_auth_facade::ssi_auth_facade::SSIAuthFacadeService;
-use common::http_client::HttpClient;
 use oauth::setup::composition::OAuthSetup;
 use sea_orm::DatabaseConnection;
 use ymir::errors::Outcome;
@@ -58,7 +58,7 @@ impl AppContext {
         // Shared infrastructure
         let db = vault.get_db_connection(config.common()).await?;
         let db_factory = SeaOrmDataFactory::new(db.clone());
-        let http_client = Arc::new(HttpClient::new(10, 10));
+        let service_client = Arc::new(ServiceHttpClient::from_common(config.common(), 10));
 
         // Oauth module validator
         let oauth_validator: Arc<dyn OauthTokenValidator> =
@@ -78,7 +78,7 @@ impl AppContext {
         );
         let ssi_auth_facade = Arc::new(SSIAuthFacadeService::new(
             Arc::new(config.ssi_auth().clone()),
-            http_client,
+            service_client,
         ));
 
         Ok(Self {

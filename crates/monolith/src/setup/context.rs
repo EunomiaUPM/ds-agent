@@ -41,7 +41,10 @@ impl CoreContext {
 
         // Build events context and event bus
         let events_db = vault.get_db_connection(config.gateway().common()).await?;
-        let events_ctx = Arc::new(events::setup::context::AppContext::build(events_db, None));
+        let events_ctx = Arc::new(events::setup::context::AppContext::build(
+            events_db.clone(),
+            None,
+        ));
 
         // Spawn background retry worker
         events::setup::workers::RetryWorkerHandle::spawn(
@@ -49,11 +52,12 @@ impl CoreContext {
             events_ctx.cancel_token.clone(),
         );
 
-        // Build gateway context with live event bus
+        // Gateway context; its validator guards the discovery helpers
+        let gateway_validator = oauth::setup::composition::OAuthSetup::new()
+            .build_token_service(config.gateway().common().clone().into(), events_db.clone());
         let gateway_ctx = Arc::new(bff::AppContext::new(
             config.gateway().clone(),
-            Some(events_ctx.event_bus.clone()),
-            None,
+            Some(gateway_validator),
         ));
 
         // Build every free-function agent's HTTP surface once.

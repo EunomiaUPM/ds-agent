@@ -52,8 +52,8 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 /**
- * Orchestrates the creation of a dataset, its distribution, connector instance, and ODRL policy in the main catalog, and emits an event to the EventBus.
- * @summary Create an atomic dataset offering with distribution, connector and policy
+ * Creates the dataset (in the main catalog unless catalogId is given), its distribution (served by the main data service unless accessServiceId is given) and an ODRL offer. A failure after the dataset removes it again.
+ * @summary Publish a dataset with its distribution and, optionally, its policy
  */
 export type createDatasetOfferingResponse201 = {
   data: DatasetOfferingResultDto
@@ -94,7 +94,7 @@ export const getCreateDatasetOfferingUrl = () => {
 
   
 
-  return `/catalog-offerings`
+  return `/dataset-offerings`
 }
 
 export const createDatasetOffering = async (createDatasetOfferingRequest: CreateDatasetOfferingRequest, options?: RequestInit): Promise<createDatasetOfferingResponse> => {
@@ -144,7 +144,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreateDatasetOfferingMutationError = ErrorType<ErrorInfo>
 
     /**
- * @summary Create an atomic dataset offering with distribution, connector and policy
+ * @summary Publish a dataset with its distribution and, optionally, its policy
  */
 export const useCreateDatasetOffering = <TError = ErrorType<ErrorInfo>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDatasetOffering>>, TError,{data: BodyType<CreateDatasetOfferingRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}

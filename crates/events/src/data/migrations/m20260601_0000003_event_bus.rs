@@ -42,14 +42,6 @@ pub enum Events {
 }
 
 #[derive(DeriveIden)]
-pub enum SubscriptionsExt {
-    TopicPattern,
-    Secret,
-    Headers,
-    RetryLimit,
-}
-
-#[derive(DeriveIden)]
 pub enum EventDeliveries {
     Table,
     Id,
@@ -131,20 +123,7 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        // 2. Extend subscriptions table
-        manager
-            .alter_table(
-                Table::alter()
-                    .table(Subscriptions::Table)
-                    .add_column(ColumnDef::new(SubscriptionsExt::TopicPattern).string())
-                    .add_column(ColumnDef::new(SubscriptionsExt::Secret).string())
-                    .add_column(ColumnDef::new(SubscriptionsExt::Headers).json())
-                    .add_column(ColumnDef::new(SubscriptionsExt::RetryLimit).integer())
-                    .to_owned(),
-            )
-            .await?;
-
-        // 3. Create event_deliveries table
+        // 2. Create event_deliveries table
         manager
             .create_table(
                 Table::create()
@@ -213,7 +192,7 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        // 4. Create dead_letter_queue table
+        // 3. Create dead_letter_queue table
         manager
             .create_table(
                 Table::create()

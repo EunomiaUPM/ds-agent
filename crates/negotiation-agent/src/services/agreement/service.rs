@@ -205,6 +205,7 @@ impl AgreementServiceTrait for AgreementService {
         let view = AgreementView::assemble(created);
         events::emit_action!(
             self.event_bus,
+            &view.inner.tenant_id,
             crate::EVENT_PREFIX,
             "agreement",
             "create",
@@ -231,6 +232,7 @@ impl AgreementServiceTrait for AgreementService {
         let view = AgreementView::assemble(updated);
         events::emit_action!(
             self.event_bus,
+            &view.inner.tenant_id,
             crate::EVENT_PREFIX,
             "agreement",
             "edit",
@@ -242,11 +244,13 @@ impl AgreementServiceTrait for AgreementService {
     #[tracing::instrument(level = "info", skip(self, scope), fields(id = %id), err)]
     async fn delete(&self, scope: &AccessScope, id: &Urn) -> Outcome<()> {
         scope.require_write()?;
-        self.agreement_repo
+        let owner = self
+            .agreement_repo
             .delete_agreement(scope.tenant_filter().map(str::to_string), id)
             .await?;
         events::emit_action!(
             self.event_bus,
+            &owner,
             crate::EVENT_PREFIX,
             "agreement",
             "delete",

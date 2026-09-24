@@ -48,7 +48,6 @@ fn mate() -> Mates {
         saved_at: t.into(),
         last_interaction: t.into(),
         extra_fields: serde_json::Value::Null,
-        is_me: false,
     }
 }
 

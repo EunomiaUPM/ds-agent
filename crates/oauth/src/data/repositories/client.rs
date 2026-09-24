@@ -39,7 +39,8 @@ pub trait ClientRepository: Send + Sync {
     async fn get_batch(&self, tenant_id: &str, client_ids: &[String]) -> Outcome<Vec<Client>>;
     async fn get_by_client_id(&self, client_id: &str) -> Outcome<Option<Client>>;
     async fn create(&self, client: &Client) -> Outcome<Client>;
-    async fn delete(&self, tenant_id: Option<String>, client_id: &str) -> Outcome<()>;
+    /// Returns the tenant of the removed client.
+    async fn delete(&self, tenant_id: Option<String>, client_id: &str) -> Outcome<String>;
 }
 
 #[derive(Debug, Error)]

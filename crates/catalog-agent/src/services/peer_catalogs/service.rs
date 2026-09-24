@@ -18,6 +18,7 @@
 use crate::cache::factory_trait::CatalogAgentCacheTrait;
 use crate::protocols::dsp::types::catalog_definition::Catalog;
 use crate::services::peer_catalogs::PeerCatalogServiceTrait;
+use common::auth::AccessScope;
 use common::facades::ssi_auth_facade::MatesFacadeTrait;
 use std::sync::Arc;
 use tracing::warn;
@@ -43,13 +44,17 @@ impl PeerCatalogService {
 
 #[async_trait::async_trait]
 impl PeerCatalogServiceTrait for PeerCatalogService {
-    async fn get_all_peer_catalogs(&self) -> Outcome<Vec<(Mates, Catalog)>> {
-        let mates = self.mates_facade.get_all_mates().await?;
+    async fn get_all_peer_catalogs(&self, scope: &AccessScope) -> Outcome<Vec<(Mates, Catalog)>> {
+        let tenant_id = scope.acting_tenant();
+        let mates = self.mates_facade.get_all_mates(tenant_id.clone()).await?;
         let peer_catalog_cache = self.cache.get_peer_catalog_cache();
 
         let mut result = Vec::new();
         for mate in mates {
-            match peer_catalog_cache.get_catalog(&mate.participant_id).await {
+            match peer_catalog_cache
+                .get_catalog(tenant_id, &mate.participant_id)
+                .await
+            {
                 Ok(Some(catalog)) => {
                     result.push((mate, catalog));
                 }
@@ -69,17 +74,26 @@ impl PeerCatalogServiceTrait for PeerCatalogService {
         Ok(result)
     }
 
-    async fn get_peer_catalog(&self, peer_id: &String) -> Outcome<Option<Catalog>> {
+    async fn get_peer_catalog(
+        &self,
+        scope: &AccessScope,
+        peer_id: &str,
+    ) -> Outcome<Option<Catalog>> {
         self.cache
             .get_peer_catalog_cache()
-            .get_catalog(peer_id)
+            .get_catalog(scope.acting_tenant(), peer_id)
             .await
     }
 
-    async fn set_peer_catalog(&self, peer_id: &String, catalog: &Catalog) -> Outcome<()> {
+    async fn set_peer_catalog(
+        &self,
+        scope: &AccessScope,
+        peer_id: &str,
+        catalog: &Catalog,
+    ) -> Outcome<()> {
         self.cache
             .get_peer_catalog_cache()
-            .set_catalog(peer_id, catalog)
+            .set_catalog(scope.acting_tenant(), peer_id, catalog)
             .await
     }
 }

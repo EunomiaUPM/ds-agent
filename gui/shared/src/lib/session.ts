@@ -150,6 +150,7 @@ export const clearSession = (): void => {
   localStorage.removeItem(ID_TOKEN_KEY);
   localStorage.removeItem(USER_INFO_KEY);
   localStorage.removeItem("auth_data");
+  localStorage.removeItem("eunomia_acting_tenant");
 };
 
 // Helper to try OAuth endpoint across common mounting prefixes (/admin/api, /api, /oauth).

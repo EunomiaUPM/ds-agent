@@ -20,6 +20,8 @@ use thiserror::Error;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
 use crate::entities::dead_letter::DeadLetterRecord;
+use crate::entities::queries::DeadLetterFilter;
+use common::paginated_spec::{Page, Sort};
 
 // Repository errors encountered during Dead Letter Queue operations.
 #[derive(Debug, Error)]
@@ -37,15 +39,19 @@ impl RepoIntoErrors for DlqRepoError {}
 #[async_trait]
 pub trait EventDeadLetterRepo: Send + Sync + 'static {
     async fn create_dead_letter(&self, record: &DeadLetterRecord) -> Outcome<DeadLetterRecord>;
-    async fn get_dead_letter(&self, tenant_id: &str, id: &str)
-        -> Outcome<Option<DeadLetterRecord>>;
+    /// `tenant_id: None` acts across tenants (admin).
+    async fn get_dead_letter(
+        &self,
+        tenant_id: Option<String>,
+        id: &str,
+    ) -> Outcome<Option<DeadLetterRecord>>;
     async fn list_dead_letters(
         &self,
-        tenant_id: &str,
-        status: Option<&str>,
-        limit: u64,
-        offset: u64,
-    ) -> Outcome<Vec<DeadLetterRecord>>;
+        tenant_id: Option<String>,
+        filter: &DeadLetterFilter,
+        page: &Page,
+        sort: &Sort,
+    ) -> Outcome<(Vec<DeadLetterRecord>, u64)>;
     async fn mark_replayed(&self, tenant_id: &str, id: &str) -> Outcome<()>;
-    async fn delete_dead_letter(&self, tenant_id: &str, id: &str) -> Outcome<()>;
+    async fn delete_dead_letter(&self, tenant_id: Option<String>, id: &str) -> Outcome<()>;
 }

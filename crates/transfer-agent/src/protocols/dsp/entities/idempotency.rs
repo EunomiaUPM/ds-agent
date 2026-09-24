@@ -297,7 +297,6 @@ mod tests {
             saved_at: t.into(),
             last_interaction: t.into(),
             extra_fields: Value::Null,
-            is_me: false,
         }
     }
 

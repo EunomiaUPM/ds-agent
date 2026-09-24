@@ -193,7 +193,14 @@ impl OdrlPolicyServiceTrait for OdrlPolicyService {
                 .await;
         }
 
-        events::emit_action!(self.event_bus, crate::EVENT_PREFIX, "offer", "create", &dto);
+        events::emit_action!(
+            self.event_bus,
+            &dto.inner.tenant_id,
+            crate::EVENT_PREFIX,
+            "offer",
+            "create",
+            &dto
+        );
         Ok(dto)
     }
 
@@ -220,6 +227,7 @@ impl OdrlPolicyServiceTrait for OdrlPolicyService {
 
         events::emit_action!(
             self.event_bus,
+            &deleted.tenant_id,
             crate::EVENT_PREFIX,
             "offer",
             "delete",
@@ -248,6 +256,7 @@ impl OdrlPolicyServiceTrait for OdrlPolicyService {
                 let _ = cache.remove_from_relation("target", entity_id, &id).await;
                 events::emit_action!(
                     self.event_bus,
+                    &policy.tenant_id,
                     crate::EVENT_PREFIX,
                     "offer",
                     "delete",

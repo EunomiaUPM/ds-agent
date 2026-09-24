@@ -16,29 +16,21 @@
  */
 
 use std::sync::Arc;
-use std::time::Duration;
 
 use axum::body::Body;
 use axum::extract::Request;
 use axum::http::{HeaderMap, StatusCode};
-use axum::response::IntoResponse;
-use axum::routing::{get, post};
+use axum::routing::get;
 use axum::{Json, Router};
 use bff::create_gateway_http_router;
-use bff::events::feed_router::ListEventsQuery;
-use bff::events::sse_handler::SseQuery;
-use bff::events::{BffEventFeedRouter, SseStreamHandler};
 use bff::proxy::HttpProxyDispatcher;
 use bff::setup::context::AppContext;
 use bff::setup::BffModule;
-use bff::GatewayHttpRouter;
 use common::auth::claims::{Claims, RbacRole};
 use common::auth::http::AuthHttpMiddleware;
 use common::auth::OauthTokenValidator;
 use common::config::services::GatewayConfig;
 use common::module_loader::service_module::ServiceModuleTrait;
-use events::{EventBus, EventBusTrait, EventEnvelope, Topic};
-use futures_util::StreamExt;
 use serde_json::json;
 use tokio::net::TcpListener;
 use ymir::errors::{Errors, Outcome};
@@ -224,7 +216,7 @@ async fn test_bff_reverse_proxy_dispatch() {
 #[tokio::test]
 async fn test_bff_module_service_trait_and_backward_compatibility() {
     let config = dummy_gateway_config(8080);
-    let app_ctx = Arc::new(AppContext::new(config.clone(), None, None));
+    let app_ctx = Arc::new(AppContext::new(config.clone(), None));
     let module = BffModule::new(app_ctx);
 
     assert_eq!(module.name(), "gateway");

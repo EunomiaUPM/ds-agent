@@ -22,12 +22,14 @@ pub mod claims;
 pub mod grpc;
 pub mod http;
 pub mod rules;
+pub mod service_client;
 pub mod token;
 pub mod validators;
 
 pub use access::{AccessScope, Rbac};
 pub use claims::{Claims, RbacRole};
 pub use rules::AuthRules;
+pub use service_client::ServiceHttpClient;
 pub use token::{OauthTokenValidator, TokenVerifier};
 pub use validators::AuthValidators;
 

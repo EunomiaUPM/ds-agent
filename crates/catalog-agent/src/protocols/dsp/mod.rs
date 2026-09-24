@@ -36,6 +36,8 @@ use crate::services::distributions::DistributionServiceTrait;
 use crate::services::odrl_policies::OdrlPolicyServiceTrait;
 use crate::services::peer_catalogs::PeerCatalogServiceTrait;
 use axum::Router;
+use common::auth::http::AuthHttpMiddleware;
+use common::auth::{OauthTokenValidator, ServiceHttpClient};
 use common::config::services::traits::CatalogConfigTrait;
 use common::config::services::CatalogConfig;
 use common::facades::ssi_auth_facade::ssi_auth_facade::SSIAuthFacadeService;
@@ -61,6 +63,8 @@ pub struct CatalogDSP {
     pub peer_catalog_entity_service: Arc<dyn PeerCatalogServiceTrait>,
     pub mates_facade: Arc<dyn MatesFacadeTrait>,
     config: Arc<CatalogConfig>,
+    service_client: Arc<ServiceHttpClient>,
+    validator: Arc<dyn OauthTokenValidator>,
 }
 
 impl CatalogDSP {
@@ -73,6 +77,8 @@ impl CatalogDSP {
         peer_catalog_entity_service: Arc<dyn PeerCatalogServiceTrait>,
         mates_facade: Arc<dyn MatesFacadeTrait>,
         config: Arc<CatalogConfig>,
+        service_client: Arc<ServiceHttpClient>,
+        validator: Arc<dyn OauthTokenValidator>,
     ) -> Self {
         Self {
             catalog_entities_service,
@@ -83,6 +89,8 @@ impl CatalogDSP {
             peer_catalog_entity_service,
             mates_facade,
             config,
+            service_client,
+            validator,
         }
     }
 }
@@ -157,15 +165,18 @@ impl ProtocolPluginTrait for CatalogDSP {
         // router
         let ssi_auth = Arc::new(SSIAuthFacadeService::new(
             Arc::new(self.config.ssi_auth().clone()),
-            http_client.clone(),
+            self.service_client.clone(),
         ));
         let dsp_router =
             DspRouter::new(orchestrator_service.clone(), self.config.clone(), ssi_auth);
-        let rpc_router = RpcRouter::new(orchestrator_service.clone());
+        let rpc_router = RpcRouter::new(orchestrator_service.clone())
+            .router()
+            .route_layer(axum::middleware::from_fn_with_state(
+                self.validator.clone(),
+                AuthHttpMiddleware::run,
+            ));
 
-        Ok(Router::new()
-            .merge(dsp_router.router())
-            .merge(rpc_router.router()))
+        Ok(Router::new().merge(dsp_router.router()).merge(rpc_router))
     }
 
     fn build_grpc_router(&self) -> Outcome<Option<Router>> {

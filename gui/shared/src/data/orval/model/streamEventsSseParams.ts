@@ -12,4 +12,6 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
 export type StreamEventsSseParams = {
 topic?: string;
+token: string;
+tenant?: string;
 };

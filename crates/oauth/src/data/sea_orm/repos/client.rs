@@ -156,16 +156,17 @@ impl ClientRepository for SeaOrmClientRepository {
             .and_then(orm::Model::into_domain)
     }
 
-    async fn delete(&self, tenant_id: Option<String>, client_id: &str) -> Outcome<()> {
-        let res = orm::Entity::delete_many()
+    async fn delete(&self, tenant_id: Option<String>, client_id: &str) -> Outcome<String> {
+        let deleted = orm::Entity::delete_many()
             .filter(orm::Column::ClientId.eq(client_id))
             .apply_if(tenant_id, |q, t| q.filter(orm::Column::TenantId.eq(t)))
-            .exec(self.db.as_ref())
+            .exec_with_returning(self.db.as_ref())
             .await
             .map_err(|e| ClientRepositoryError::Db(Box::new(e)).into_errors())?;
-        if res.rows_affected == 0 {
-            return Err(ClientRepositoryError::NotFound.into_errors());
-        }
-        Ok(())
+        deleted
+            .into_iter()
+            .next()
+            .map(|client| client.tenant_id)
+            .ok_or_else(|| ClientRepositoryError::NotFound.into_errors())
     }
 }

@@ -18,6 +18,7 @@ thiserror = { workspace = true }
 chrono = { workspace = true }
 uuid = { workspace = true }
 urn = { workspace = true }
+url = { workspace = true }
 mockall = { workspace = true }
 json_to_table = { workspace = true }
 async-trait = { workspace = true }

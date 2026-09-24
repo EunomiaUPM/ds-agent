@@ -187,6 +187,7 @@ impl OfferServiceTrait for OfferService {
         let view = OfferView::assemble(created);
         events::emit_action!(
             self.event_bus,
+            &view.inner.tenant_id,
             crate::EVENT_PREFIX,
             "offer",
             "create",
@@ -198,11 +199,13 @@ impl OfferServiceTrait for OfferService {
     #[tracing::instrument(level = "info", skip(self, scope), fields(id = %id), err)]
     async fn delete(&self, scope: &AccessScope, id: &Urn) -> Outcome<()> {
         scope.require_write()?;
-        self.offer_repo
+        let owner = self
+            .offer_repo
             .delete_offer(scope.tenant_filter().map(str::to_string), id)
             .await?;
         events::emit_action!(
             self.event_bus,
+            &owner,
             crate::EVENT_PREFIX,
             "offer",
             "delete",

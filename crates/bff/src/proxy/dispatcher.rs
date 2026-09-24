@@ -22,18 +22,20 @@ use axum::extract::Request;
 use axum::http::header::HeaderName;
 use axum::http::{HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
-use common::auth::claims::Claims;
 use common::config::services::traits::GatewayConfigTrait;
 use common::config::services::GatewayConfig;
 use common::config::types::traits::{CommonConfigTrait, MinKnownConfigTrait};
 use futures_util::TryStreamExt;
 use reqwest::Client;
-use tracing::{debug, error, info};
+use tracing::error;
 use uuid::Uuid;
 use ymir::config::traits::SingleHostTrait;
 use ymir::config::types::HostType;
 
-/// Reverse proxy dispatcher with connection pooling, tracing headers, and user propagation.
+/// Upstream calls other than event streams must answer within this time.
+const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
+
+/// Reverse proxy dispatcher with connection pooling and tracing headers.
 #[derive(Clone)]
 pub struct HttpProxyDispatcher {
     config: GatewayConfig,
@@ -44,7 +46,6 @@ impl HttpProxyDispatcher {
     /// Initialize dispatcher with tuned connection pooling and timeouts.
     pub fn new(config: GatewayConfig) -> Self {
         let client = Client::builder()
-            .timeout(Duration::from_secs(30))
             .connect_timeout(Duration::from_secs(10))
             .pool_idle_timeout(Duration::from_secs(90))
             .pool_max_idle_per_host(32)
@@ -175,13 +176,13 @@ impl HttpProxyDispatcher {
                 self.config.ssi_auth().get_host(HostType::Http),
                 "api/v1/gaia".to_string(),
             )),
-            "subscriptions" => Some((
-                self.config.transfer().get_host(HostType::Http),
-                "api/v1/contract-negotiation/subscriptions".to_string(),
+            "dataset-offerings" => Some((
+                self.config.catalog().get_host(HostType::Http),
+                "api/v1/catalog-agent/dataset-offerings".to_string(),
             )),
-            "notifications" => Some((
-                self.config.transfer().get_host(HostType::Http),
-                "api/v1/contract-negotiation/notifications".to_string(),
+            "events" => Some((
+                self.config.common().hosts.http.get_host(),
+                "api/v1/events".to_string(),
             )),
             "oauth" | "auth" => Some((
                 self.config.common().hosts.http.get_host(),
@@ -226,6 +227,10 @@ impl HttpProxyDispatcher {
 
         let method = req.method().clone();
         let mut headers = req.headers().clone();
+        let is_event_stream = headers
+            .get(axum::http::header::ACCEPT)
+            .and_then(|v| v.to_str().ok())
+            .is_some_and(|v| v.contains("text/event-stream"));
 
         let correlation_id = headers
             .get("x-correlation-id")
@@ -257,24 +262,17 @@ impl HttpProxyDispatcher {
             headers.insert(HeaderName::from_static("x-request-id"), v);
         }
 
-        if let Some(claims) = req.extensions().get::<Claims>() {
-            if let Ok(v) = HeaderValue::from_str(&claims.sub) {
-                headers.insert(HeaderName::from_static("x-user-id"), v);
-            }
-            if let Ok(v) = HeaderValue::from_str(&claims.role.to_string()) {
-                headers.insert(HeaderName::from_static("x-user-role"), v);
-            }
-        }
-
         let body_stream = http_body_util::BodyStream::new(req.into_body())
             .try_filter_map(|frame| futures_util::future::ready(Ok(frame.into_data().ok())))
             .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync + 'static>);
 
         let reqwest_body = reqwest::Body::wrap_stream(body_stream);
 
-        match self
-            .client
-            .request(method, &target_url)
+        let mut upstream_req = self.client.request(method, &target_url);
+        if !is_event_stream {
+            upstream_req = upstream_req.timeout(REQUEST_TIMEOUT);
+        }
+        match upstream_req
             .headers(headers)
             .body(reqwest_body)
             .send()

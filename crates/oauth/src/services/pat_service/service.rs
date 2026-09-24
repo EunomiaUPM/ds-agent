@@ -76,7 +76,14 @@ impl PatServiceTrait for PatService {
             expires_at: created.expires_at,
             created_at: created.created_at,
         };
-        events::emit_action!(self.event_bus, crate::EVENT_PREFIX, "pat", "create", &res);
+        events::emit_action!(
+            self.event_bus,
+            &target_tenant,
+            crate::EVENT_PREFIX,
+            "pat",
+            "create",
+            &res
+        );
         Ok(res)
     }
 
@@ -104,11 +111,13 @@ impl PatServiceTrait for PatService {
 
     async fn revoke_pat(&self, scope: &AccessScope, id: Uuid) -> Outcome<()> {
         scope.require_write()?;
-        self.pat_repo
+        let owner = self
+            .pat_repo
             .revoke(scope.tenant_filter().map(str::to_string), id)
             .await?;
         events::emit_action!(
             self.event_bus,
+            &owner,
             crate::EVENT_PREFIX,
             "pat",
             "delete",

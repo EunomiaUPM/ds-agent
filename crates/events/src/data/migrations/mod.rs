@@ -18,13 +18,11 @@
 use sea_orm_migration::prelude::*;
 
 pub mod m20241123_0000001_subscriptions;
-pub mod m20241123_0000002_notifications;
 pub mod m20260601_0000003_event_bus;
 
 pub fn get_events_migrations() -> Vec<Box<dyn MigrationTrait>> {
     vec![
         Box::new(m20241123_0000001_subscriptions::Migration),
-        Box::new(m20241123_0000002_notifications::Migration),
         Box::new(m20260601_0000003_event_bus::Migration),
     ]
 }

@@ -829,7 +829,7 @@ async fn delete_happy_path() {
     let mut repo = MockTransferMessageRepoTrait::new();
     repo.expect_delete_transfer_message()
         .times(1)
-        .returning(|_, _| Ok(()));
+        .returning(|_, _| Ok("tenant-1".to_string()));
 
     let svc = make_svc(repo);
     assert!(svc.delete(&admin_scope(), &p_urn(1)).await.is_ok());

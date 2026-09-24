@@ -26,6 +26,7 @@ use crate::entities::role::RbacRole;
 #[serde(rename_all = "camelCase")]
 pub struct ClientView {
     pub client_id: String,
+    pub tenant_id: String,
     pub client_name: String,
     pub role: RbacRole,
     pub scopes: Vec<String>,
@@ -37,6 +38,7 @@ impl ClientView {
     pub fn assemble(client: Client) -> Self {
         Self {
             client_id: client.client_id,
+            tenant_id: client.tenant_id,
             client_name: client.client_name,
             role: client.role,
             scopes: client.scopes,

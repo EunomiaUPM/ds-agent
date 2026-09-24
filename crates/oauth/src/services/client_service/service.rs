@@ -121,6 +121,7 @@ impl ClientServiceTrait for ClientService {
         let view = ClientView::assemble(self.client_repo.create(&client).await?);
         events::emit_action!(
             self.event_bus,
+            &view.tenant_id,
             crate::EVENT_PREFIX,
             "client",
             "create",
@@ -131,11 +132,13 @@ impl ClientServiceTrait for ClientService {
 
     async fn delete_client(&self, scope: &AccessScope, client_id: &str) -> Outcome<()> {
         scope.require_write()?;
-        self.client_repo
+        let owner = self
+            .client_repo
             .delete(scope.tenant_filter().map(str::to_string), client_id)
             .await?;
         events::emit_action!(
             self.event_bus,
+            &owner,
             crate::EVENT_PREFIX,
             "client",
             "delete",

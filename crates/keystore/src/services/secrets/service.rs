@@ -60,6 +60,7 @@ impl SecretStore for SecretStoreImpl {
         let entry = self.repo.create_secret(&target_tenant, &cmd).await?;
         events::emit_action!(
             self.event_bus,
+            &target_tenant,
             crate::EVENT_PREFIX,
             "secret",
             "create",
@@ -91,6 +92,7 @@ impl SecretStore for SecretStoreImpl {
             .await?;
         events::emit_action!(
             self.event_bus,
+            scope.acting_tenant(),
             crate::EVENT_PREFIX,
             "secret",
             "edit",
@@ -105,6 +107,7 @@ impl SecretStore for SecretStoreImpl {
         self.repo.delete_secret(scope.acting_tenant(), key).await?;
         events::emit_action!(
             self.event_bus,
+            scope.acting_tenant(),
             crate::EVENT_PREFIX,
             "secret",
             "delete",

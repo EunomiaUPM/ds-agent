@@ -1,4 +1,7 @@
 #!/bin/bash
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/auth.sh
+source "$SCRIPT_DIR/lib/auth.sh"
 
 # ==========================================
 # CONFIGURATION
@@ -21,9 +24,9 @@ invoke_curl() {
     echo "Request: $method $url" >&2
 
     if [[ -n "$body" ]]; then
-        response=$(curl -s -X "$method" -H "Content-Type: application/json" -d "$body" "$url")
+        response=$(eunomia_curl "$method" "$url" "$body")
     else
-        response=$(curl -s -X "$method" "$url")
+        response=$(eunomia_curl "$method" "$url")
     fi
 
     # Log preview to STDERR

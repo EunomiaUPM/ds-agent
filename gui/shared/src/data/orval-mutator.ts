@@ -1,4 +1,5 @@
 import { refreshOAuthToken, clearSession } from "../lib/session";
+import { getActingTenant } from "../lib/tenant";
 
 // Custom mutator for Orval that uses a global API gateway configuration
 let API_GATEWAY_BASE: string = "";
@@ -22,9 +23,11 @@ export const customInstance = async <T>(
     params?: any;
     data?: any;
     _isRetry?: boolean;
+    // Skips the acting tenant, for admin views that span every tenant.
+    _allTenants?: boolean;
   } & Partial<RequestConfig>,
 ): Promise<T> => {
-  const { method, headers, params, data, _isRetry, ...rest } = options || {};
+  const { method, headers, params, data, _isRetry, _allTenants, ...rest } = options || {};
 
   const token =
     (headers as any)?.Authorization?.replace("Bearer ", "") ||
@@ -35,12 +38,15 @@ export const customInstance = async <T>(
       : null);
 
   const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
+  const actingTenant = _allTenants ? null : getActingTenant();
+  const tenantHeader = actingTenant ? { "x-tenant-id": actingTenant } : {};
 
   const config: RequestConfig = {
     ...rest,
     headers: {
       "Content-Type": "application/json",
       ...authHeader,
+      ...tenantHeader,
       ...headers,
       ...(rest as any)?.headers,
     },

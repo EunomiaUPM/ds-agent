@@ -159,7 +159,11 @@ impl DataServiceServiceTrait for DataServiceService {
 
         if let Some(dto) = &dto {
             if let Ok(id) = Urn::from_str(dto.inner.id.as_str()) {
-                let _ = self.cache.get_dataservice_cache().set_main(&id, dto).await;
+                let _ = self
+                    .cache
+                    .get_dataservice_cache()
+                    .set_main(&dto.inner.tenant_id, &id, dto)
+                    .await;
             }
         }
         Ok(dto)
@@ -217,6 +221,7 @@ impl DataServiceServiceTrait for DataServiceService {
 
         events::emit_action!(
             self.event_bus,
+            &dto.inner.tenant_id,
             crate::EVENT_PREFIX,
             "dataservice",
             "edit",
@@ -256,6 +261,7 @@ impl DataServiceServiceTrait for DataServiceService {
 
         events::emit_action!(
             self.event_bus,
+            &dto.inner.tenant_id,
             crate::EVENT_PREFIX,
             "dataservice",
             "create",
@@ -281,11 +287,16 @@ impl DataServiceServiceTrait for DataServiceService {
         let dto: DataServiceDto = data_service.into();
 
         if let Ok(id) = Urn::from_str(dto.inner.id.as_str()) {
-            let _ = self.cache.get_dataservice_cache().set_main(&id, &dto).await;
+            let _ = self
+                .cache
+                .get_dataservice_cache()
+                .set_main(&dto.inner.tenant_id, &id, &dto)
+                .await;
         }
 
         events::emit_action!(
             self.event_bus,
+            &dto.inner.tenant_id,
             crate::EVENT_PREFIX,
             "dataservice",
             "create",
@@ -317,6 +328,7 @@ impl DataServiceServiceTrait for DataServiceService {
 
         events::emit_action!(
             self.event_bus,
+            &deleted.tenant_id,
             crate::EVENT_PREFIX,
             "dataservice",
             "delete",

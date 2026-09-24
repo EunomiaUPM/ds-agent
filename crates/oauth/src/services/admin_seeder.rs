@@ -21,6 +21,7 @@ use crate::entities::user::User;
 use crate::services::password;
 use chrono::Utc;
 use common::auth::RbacRole;
+use common::config::types::ServiceClientConfig;
 
 /// Admin user seeder.
 /// On boot procedures, an admin taken by config info is seeded into the database.
@@ -77,4 +78,42 @@ pub async fn seed_admin_user(
     }
 
     Ok(())
+}
+
+/// Seeds the OAuth client agents authenticate with on service-to-service calls.
+pub struct ServiceClientSeeder;
+
+impl ServiceClientSeeder {
+    /// Admin client of `tenant_id`, so facades may read participants of any tenant.
+    pub async fn seed(
+        db: sea_orm::DatabaseConnection,
+        tenant_id: &str,
+        config: &ServiceClientConfig,
+    ) -> ymir::errors::Outcome<()> {
+        let client_repo = SeaOrmDataFactory::new(db).client_repository();
+        if client_repo
+            .get_by_client_id(&config.client_id)
+            .await?
+            .is_some()
+        {
+            tracing::info!(
+                "Service client '{}' already exists — skipping seed.",
+                config.client_id
+            );
+            return Ok(());
+        }
+        let (client_secret_hash, _) = password::hash_password(&config.client_secret)?;
+        let client = crate::entities::client::Client {
+            client_id: config.client_id.clone(),
+            tenant_id: tenant_id.to_string(),
+            client_secret_hash,
+            client_name: "Eunomia services".to_string(),
+            role: RbacRole::Admin,
+            scopes: vec![],
+            created_at: Utc::now(),
+        };
+        client_repo.create(&client).await?;
+        tracing::info!("Service client '{}' seeded successfully.", config.client_id);
+        Ok(())
+    }
 }

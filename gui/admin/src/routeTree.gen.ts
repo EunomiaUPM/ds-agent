@@ -13,7 +13,6 @@
 import { Route as rootRoute } from './routes/__root'
 import { Route as WalletRouteImport } from './routes/wallet/route'
 import { Route as TransferProcessRouteImport } from './routes/transfer-process/route'
-import { Route as SubscriptionsRouteImport } from './routes/subscriptions/route'
 import { Route as ParticipantsRouteImport } from './routes/participants/route'
 import { Route as OauthRouteImport } from './routes/oauth/route'
 import { Route as MyCatalogRouteImport } from './routes/my-catalog/route'
@@ -27,7 +26,6 @@ import { Route as AgreementsRouteImport } from './routes/agreements/route'
 import { Route as IndexImport } from './routes/index'
 import { Route as WalletIndexImport } from './routes/wallet/index'
 import { Route as TransferProcessIndexImport } from './routes/transfer-process/index'
-import { Route as SubscriptionsIndexImport } from './routes/subscriptions/index'
 import { Route as ParticipantsIndexImport } from './routes/participants/index'
 import { Route as OauthIndexImport } from './routes/oauth/index'
 import { Route as MyCatalogIndexImport } from './routes/my-catalog/index'
@@ -91,12 +89,6 @@ const WalletRouteRoute = WalletRouteImport.update({
 const TransferProcessRouteRoute = TransferProcessRouteImport.update({
   id: '/transfer-process',
   path: '/transfer-process',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const SubscriptionsRouteRoute = SubscriptionsRouteImport.update({
-  id: '/subscriptions',
-  path: '/subscriptions',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -176,12 +168,6 @@ const TransferProcessIndexRoute = TransferProcessIndexImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => TransferProcessRouteRoute,
-} as any)
-
-const SubscriptionsIndexRoute = SubscriptionsIndexImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => SubscriptionsRouteRoute,
 } as any)
 
 const ParticipantsIndexRoute = ParticipantsIndexImport.update({
@@ -587,13 +573,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ParticipantsRouteImport
       parentRoute: typeof rootRoute
     }
-    '/subscriptions': {
-      id: '/subscriptions'
-      path: '/subscriptions'
-      fullPath: '/subscriptions'
-      preLoaderRoute: typeof SubscriptionsRouteImport
-      parentRoute: typeof rootRoute
-    }
     '/transfer-process': {
       id: '/transfer-process'
       path: '/transfer-process'
@@ -859,13 +838,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/participants/'
       preLoaderRoute: typeof ParticipantsIndexImport
       parentRoute: typeof ParticipantsRouteImport
-    }
-    '/subscriptions/': {
-      id: '/subscriptions/'
-      path: '/'
-      fullPath: '/subscriptions/'
-      preLoaderRoute: typeof SubscriptionsIndexImport
-      parentRoute: typeof SubscriptionsRouteImport
     }
     '/transfer-process/': {
       id: '/transfer-process/'
@@ -1249,17 +1221,6 @@ const ParticipantsRouteRouteChildren: ParticipantsRouteRouteChildren = {
 const ParticipantsRouteRouteWithChildren =
   ParticipantsRouteRoute._addFileChildren(ParticipantsRouteRouteChildren)
 
-interface SubscriptionsRouteRouteChildren {
-  SubscriptionsIndexRoute: typeof SubscriptionsIndexRoute
-}
-
-const SubscriptionsRouteRouteChildren: SubscriptionsRouteRouteChildren = {
-  SubscriptionsIndexRoute: SubscriptionsIndexRoute,
-}
-
-const SubscriptionsRouteRouteWithChildren =
-  SubscriptionsRouteRoute._addFileChildren(SubscriptionsRouteRouteChildren)
-
 interface TransferProcessTransferProcessIdRouteRouteChildren {
   TransferProcessTransferProcessIdIndexRoute: typeof TransferProcessTransferProcessIdIndexRoute
   TransferProcessTransferProcessIdTransferMessageTransferMessageIdRoute: typeof TransferProcessTransferProcessIdTransferMessageTransferMessageIdRoute
@@ -1328,7 +1289,6 @@ export interface FileRoutesByFullPath {
   '/my-catalog': typeof MyCatalogRouteRouteWithChildren
   '/oauth': typeof OauthRouteRouteWithChildren
   '/participants': typeof ParticipantsRouteRouteWithChildren
-  '/subscriptions': typeof SubscriptionsRouteRouteWithChildren
   '/transfer-process': typeof TransferProcessRouteRouteWithChildren
   '/wallet': typeof WalletRouteRouteWithChildren
   '/catalog/$catalogId': typeof CatalogCatalogIdRouteRouteWithChildren
@@ -1367,7 +1327,6 @@ export interface FileRoutesByFullPath {
   '/my-catalog/': typeof MyCatalogIndexRoute
   '/oauth/': typeof OauthIndexRoute
   '/participants/': typeof ParticipantsIndexRoute
-  '/subscriptions/': typeof SubscriptionsIndexRoute
   '/transfer-process/': typeof TransferProcessIndexRoute
   '/wallet/': typeof WalletIndexRoute
   '/connections/received/request-details': typeof ConnectionsReceivedRequestDetailsRoute
@@ -1419,7 +1378,6 @@ export interface FileRoutesByTo {
   '/my-catalog': typeof MyCatalogIndexRoute
   '/oauth': typeof OauthIndexRoute
   '/participants': typeof ParticipantsIndexRoute
-  '/subscriptions': typeof SubscriptionsIndexRoute
   '/transfer-process': typeof TransferProcessIndexRoute
   '/wallet': typeof WalletIndexRoute
   '/connections/received/request-details': typeof ConnectionsReceivedRequestDetailsRoute
@@ -1452,7 +1410,6 @@ export interface FileRoutesById {
   '/my-catalog': typeof MyCatalogRouteRouteWithChildren
   '/oauth': typeof OauthRouteRouteWithChildren
   '/participants': typeof ParticipantsRouteRouteWithChildren
-  '/subscriptions': typeof SubscriptionsRouteRouteWithChildren
   '/transfer-process': typeof TransferProcessRouteRouteWithChildren
   '/wallet': typeof WalletRouteRouteWithChildren
   '/catalog/$catalogId': typeof CatalogCatalogIdRouteRouteWithChildren
@@ -1491,7 +1448,6 @@ export interface FileRoutesById {
   '/my-catalog/': typeof MyCatalogIndexRoute
   '/oauth/': typeof OauthIndexRoute
   '/participants/': typeof ParticipantsIndexRoute
-  '/subscriptions/': typeof SubscriptionsIndexRoute
   '/transfer-process/': typeof TransferProcessIndexRoute
   '/wallet/': typeof WalletIndexRoute
   '/connections/received/request-details': typeof ConnectionsReceivedRequestDetailsRoute
@@ -1525,7 +1481,6 @@ export interface FileRouteTypes {
     | '/my-catalog'
     | '/oauth'
     | '/participants'
-    | '/subscriptions'
     | '/transfer-process'
     | '/wallet'
     | '/catalog/$catalogId'
@@ -1564,7 +1519,6 @@ export interface FileRouteTypes {
     | '/my-catalog/'
     | '/oauth/'
     | '/participants/'
-    | '/subscriptions/'
     | '/transfer-process/'
     | '/wallet/'
     | '/connections/received/request-details'
@@ -1615,7 +1569,6 @@ export interface FileRouteTypes {
     | '/my-catalog'
     | '/oauth'
     | '/participants'
-    | '/subscriptions'
     | '/transfer-process'
     | '/wallet'
     | '/connections/received/request-details'
@@ -1646,7 +1599,6 @@ export interface FileRouteTypes {
     | '/my-catalog'
     | '/oauth'
     | '/participants'
-    | '/subscriptions'
     | '/transfer-process'
     | '/wallet'
     | '/catalog/$catalogId'
@@ -1685,7 +1637,6 @@ export interface FileRouteTypes {
     | '/my-catalog/'
     | '/oauth/'
     | '/participants/'
-    | '/subscriptions/'
     | '/transfer-process/'
     | '/wallet/'
     | '/connections/received/request-details'
@@ -1718,7 +1669,6 @@ export interface RootRouteChildren {
   MyCatalogRouteRoute: typeof MyCatalogRouteRouteWithChildren
   OauthRouteRoute: typeof OauthRouteRouteWithChildren
   ParticipantsRouteRoute: typeof ParticipantsRouteRouteWithChildren
-  SubscriptionsRouteRoute: typeof SubscriptionsRouteRouteWithChildren
   TransferProcessRouteRoute: typeof TransferProcessRouteRouteWithChildren
   WalletRouteRoute: typeof WalletRouteRouteWithChildren
   LoginIndexRoute: typeof LoginIndexRoute
@@ -1736,7 +1686,6 @@ const rootRouteChildren: RootRouteChildren = {
   MyCatalogRouteRoute: MyCatalogRouteRouteWithChildren,
   OauthRouteRoute: OauthRouteRouteWithChildren,
   ParticipantsRouteRoute: ParticipantsRouteRouteWithChildren,
-  SubscriptionsRouteRoute: SubscriptionsRouteRouteWithChildren,
   TransferProcessRouteRoute: TransferProcessRouteRouteWithChildren,
   WalletRouteRoute: WalletRouteRouteWithChildren,
   LoginIndexRoute: LoginIndexRoute,
@@ -1763,7 +1712,6 @@ export const routeTree = rootRoute
         "/my-catalog",
         "/oauth",
         "/participants",
-        "/subscriptions",
         "/transfer-process",
         "/wallet",
         "/login/"
@@ -1848,12 +1796,6 @@ export const routeTree = rootRoute
       "children": [
         "/participants/$participantId",
         "/participants/"
-      ]
-    },
-    "/subscriptions": {
-      "filePath": "subscriptions/route.tsx",
-      "children": [
-        "/subscriptions/"
       ]
     },
     "/transfer-process": {
@@ -2046,10 +1988,6 @@ export const routeTree = rootRoute
     "/participants/": {
       "filePath": "participants/index.tsx",
       "parent": "/participants"
-    },
-    "/subscriptions/": {
-      "filePath": "subscriptions/index.tsx",
-      "parent": "/subscriptions"
     },
     "/transfer-process/": {
       "filePath": "transfer-process/index.tsx",

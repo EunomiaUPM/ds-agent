@@ -50,8 +50,8 @@ pub(super) struct NegotiationRpcInitialContext {
 }
 
 impl NegotiationRpcInitialContext {
-    /// Checks that the user may negotiate with `associated_peer`, which must belong to one of
-    /// the user's tenants; an out-of-reach peer answers as not found.
+    /// Checks that the user may negotiate with `associated_peer`, which must be registered in the
+    /// user's acting tenant; any other peer answers as not found.
     pub(super) async fn resolve(
         scope: &AccessScope,
         provider_address: String,
@@ -60,15 +60,8 @@ impl NegotiationRpcInitialContext {
     ) -> Outcome<Self> {
         scope.require_write()?;
         let peer = mates_service
-            .get_mate_by_id(associated_peer.clone())
+            .get_mate_by_id(scope.acting_tenant().clone(), associated_peer.clone())
             .await?;
-        if !scope.permits(&peer.tenant_id) {
-            return Err(Errors::missing_resource(
-                associated_peer,
-                "peer not found",
-                None,
-            ));
-        }
         Ok(Self {
             provider_address,
             associated_peer,
@@ -162,8 +155,8 @@ pub(super) trait NegotiationRpcStep: Send + Sync + 'static {
         mates_service: &Arc<dyn MatesFacadeTrait>,
     ) -> Outcome<Self::Context>;
 
-    /// Return the peer identifier string used for auth-token lookup.
-    fn auth_peer(ctx: &Self::Context) -> &str;
+    /// Return the tenant and peer identifier used for auth-token lookup.
+    fn auth_peer(ctx: &Self::Context) -> (&str, &str);
 
     /// Build the DSP message, POST it to the peer, and persist the resulting
     /// state transition.
@@ -190,9 +183,12 @@ pub(super) trait NegotiationRpcStep: Send + Sync + 'static {
     async fn apply_auth_token(
         mates_service: &Arc<dyn MatesFacadeTrait>,
         http_client: &HttpClient,
-        peer: &str,
+        (tenant_id, peer): (&str, &str),
     ) {
-        if let Ok(mate) = mates_service.get_mate_by_id(peer.to_string()).await {
+        if let Ok(mate) = mates_service
+            .get_mate_by_id(tenant_id.to_string(), peer.to_string())
+            .await
+        {
             if let Some(token) = mate.token {
                 http_client.set_auth_token(token).await;
             }

@@ -24,7 +24,7 @@ import {
   useDeleteEventSubscription,
   getListEventSubscriptionsQueryKey,
 } from "shared/src/data/orval/events/events";
-import { EventSubscription } from "shared/src/data/orval/model";
+import { EventSubscription, ListEventSubscriptionsParams } from "shared/src/data/orval/model";
 import { useTableQueryParams } from "shared/src/hooks/useTableQueryParams";
 import { PageSection } from "shared/src/components/layout/PageSection";
 import { DataTable } from "shared/src/components/DataTable";
@@ -192,43 +192,20 @@ const SubscriptionsComponent = () => {
   const { params: queryParams, onQueryChange } = useTableQueryParams({
     defaultLimit: 10,
     defaultSort: "created_at_desc",
-    defaultFilters: { pattern: "all", status: "all" },
+    defaultFilters: { status: "all" },
   });
 
-  const offset = (queryParams.page - 1) * queryParams.limit;
-  const patternParam =
-    queryParams.filters.pattern && queryParams.filters.pattern !== "all"
-      ? queryParams.filters.pattern
-      : undefined;
-  const statusParam =
-    queryParams.filters.status && queryParams.filters.status !== "all"
-      ? queryParams.filters.status
-      : undefined;
-
-  const { data, isLoading, isError, isFetching } = useListEventSubscriptions({
-    query: {
-      queryKey: [
-        "/events/subscriptions",
-        {
-          limit: queryParams.limit,
-          offset,
-          pattern: patternParam,
-          status: statusParam,
-          sort: queryParams.sort,
-        },
-      ],
-      placeholderData: keepPreviousData,
+  const status = queryParams.filters.status;
+  const { data, isLoading, isError, isFetching } = useListEventSubscriptions(
+    {
+      active: status === "active" ? true : status === "inactive" ? false : undefined,
+      limit: queryParams.limit,
+      page: queryParams.cursor ? undefined : queryParams.page,
+      cursor: queryParams.cursor,
+      sort: queryParams.sort as ListEventSubscriptionsParams["sort"],
     },
-    request: {
-      params: {
-        limit: queryParams.limit,
-        offset,
-        pattern: patternParam,
-        status: statusParam,
-        sort: queryParams.sort,
-      },
-    },
-  });
+    { query: { placeholderData: keepPreviousData } },
+  );
   const subscriptions: EventSubscription[] = Array.isArray(data?.data)
     ? (data.data as EventSubscription[])
     : [];
@@ -341,11 +318,13 @@ const SubscriptionsComponent = () => {
               {
                 header: "Topic pattern",
                 accessorKey: "topic_pattern",
+                sortable: false,
                 cell: (sub) => <Badge variant="code">{sub.topic_pattern}</Badge>,
               },
               {
                 header: "Status",
                 accessorKey: "active",
+                sortable: false,
                 cell: (sub) => (
                   <Badge variant="status" state={sub.active ? "ACTIVE" : "PAUSE"}>
                     {sub.active ? "Active" : "Inactive"}
@@ -355,6 +334,7 @@ const SubscriptionsComponent = () => {
               {
                 header: "Callback",
                 accessorKey: "callback_address",
+                sortable: false,
                 cell: (sub) => (
                   <span className="font-mono text-xs block max-w-[280px] truncate">
                     {sub.callback_address}
@@ -363,7 +343,7 @@ const SubscriptionsComponent = () => {
               },
               {
                 header: "Signature",
-                sortValue: (sub) => Boolean(sub.secret),
+                sortable: false,
                 searchable: false,
                 cell: (sub) =>
                   sub.secret ? (
@@ -377,12 +357,12 @@ const SubscriptionsComponent = () => {
               {
                 header: "Retries",
                 accessorKey: "retry_limit",
+                sortable: false,
                 cell: (sub) => <Badge variant="infoLighter">{sub.retry_limit ?? 5}</Badge>,
               },
               {
                 header: "Created at",
                 accessorKey: "created_at",
-                sortValue: (sub) => new Date(sub.created_at).getTime(),
                 cell: (sub) => <FormatDate date={sub.created_at} />,
               },
               {

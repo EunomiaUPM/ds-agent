@@ -100,12 +100,15 @@ impl NegotiationRpcStep for RpcAgreementStep {
 
         // Resolve participant IDs from the mates directory.
         let assigner = mates_service
-            .get_me_mate()
+            .get_me_mate(base.process.inner.tenant_id.clone())
             .await
             .map(|m| m.participant_id)
             .unwrap_or_default();
         let assignee = mates_service
-            .get_mate_by_id(base.process.inner.associated_agent_peer.clone())
+            .get_mate_by_id(
+                base.process.inner.tenant_id.clone(),
+                base.process.inner.associated_agent_peer.clone(),
+            )
             .await
             .map(|m| m.participant_id)
             .unwrap_or_default();
@@ -120,8 +123,11 @@ impl NegotiationRpcStep for RpcAgreementStep {
         })
     }
 
-    fn auth_peer(ctx: &NegotiationRpcAgreementContext) -> &str {
-        &ctx.process.inner.associated_agent_peer
+    fn auth_peer(ctx: &NegotiationRpcAgreementContext) -> (&str, &str) {
+        (
+            &ctx.process.inner.tenant_id,
+            &ctx.process.inner.associated_agent_peer,
+        )
     }
 
     /// Builds the enriched agreement message, POSTs it, and persists the result.

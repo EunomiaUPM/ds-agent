@@ -130,7 +130,14 @@ impl UserServiceTrait for UserService {
             extra_fields: cmd.extra_fields.clone(),
         };
         let view = UserView::assemble(self.user_repo.create(&user).await?);
-        events::emit_action!(self.event_bus, crate::EVENT_PREFIX, "user", "create", &view);
+        events::emit_action!(
+            self.event_bus,
+            &view.tenant_id,
+            crate::EVENT_PREFIX,
+            "user",
+            "create",
+            &view
+        );
         Ok(view)
     }
 
@@ -158,7 +165,14 @@ impl UserServiceTrait for UserService {
                 )
                 .await?,
         );
-        events::emit_action!(self.event_bus, crate::EVENT_PREFIX, "user", "edit", &view);
+        events::emit_action!(
+            self.event_bus,
+            &view.tenant_id,
+            crate::EVENT_PREFIX,
+            "user",
+            "edit",
+            &view
+        );
         Ok(view)
     }
 
@@ -167,6 +181,7 @@ impl UserServiceTrait for UserService {
         self.user_repo.delete(tenant_id).await?;
         events::emit_action!(
             self.event_bus,
+            tenant_id,
             crate::EVENT_PREFIX,
             "user",
             "delete",

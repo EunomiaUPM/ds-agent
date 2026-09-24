@@ -17,9 +17,11 @@
 
 pub mod catalogs;
 pub mod data_services;
+pub mod dataset_offerings;
 pub mod datasets;
 pub mod distributions;
 pub mod odrl_policies;
 pub mod peer_catalogs;
 pub mod policy_instantiation;
 pub mod policy_templates;
+pub mod tenant_provisioning;

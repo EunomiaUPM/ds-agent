@@ -85,7 +85,6 @@ function RouteComponent() {
             <Badge variant="role" dsrole={p.participant_type as BadgeRole}>
               {p.participant_type}
             </Badge>
-            {p.is_me && <Badge variant="info">Local Agent</Badge>}
           </div>
         }
       />

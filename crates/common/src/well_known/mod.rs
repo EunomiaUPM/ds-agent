@@ -19,12 +19,15 @@ use std::sync::Arc;
 
 use ymir::errors::Outcome;
 
+use crate::auth::ServiceHttpClient;
 use crate::config::types::min_known_config::MinKnownConfig;
+use crate::config::types::traits::MinKnownConfigTrait;
 use crate::facades::ssi_auth_facade::mates_facade::MatesFacadeService;
 use crate::http_client::HttpClient;
 use crate::well_known::dspace_version::dspace_version::WellKnownDSpaceVersionService;
 use crate::well_known::router::WellKnownRouter;
 use crate::well_known::rpc::rpc::WellKnownRPCService;
+use ymir::config::types::HostType;
 
 pub mod dspace_version;
 pub mod router;
@@ -35,7 +38,12 @@ impl WellKnownRoot {
     pub fn get_well_known_router(config: &MinKnownConfig) -> Outcome<axum::Router> {
         let config = Arc::new(config.clone());
         let http_client = Arc::new(HttpClient::new(2, 3));
-        let mates_facade = Arc::new(MatesFacadeService::new(config.clone(), http_client.clone()));
+        let service_client = Arc::new(ServiceHttpClient::new(
+            &config.service_client,
+            &config.get_host(HostType::Http),
+            3,
+        ));
+        let mates_facade = Arc::new(MatesFacadeService::new(config.clone(), service_client));
 
         let dspace_version_service = WellKnownDSpaceVersionService::new();
         let dspace_version_rpc = Arc::new(WellKnownRPCService::new(

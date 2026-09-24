@@ -19,7 +19,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
-    QuerySelect,
+    QuerySelect, QueryTrait,
 };
 use ymir::errors::{Errors, Outcome};
 
@@ -158,12 +158,12 @@ impl EventDeliveryRepo for SeaOrmDeliveryRepo {
 
     async fn list_by_event(
         &self,
-        tenant_id: &str,
+        tenant_id: Option<String>,
         event_id: &str,
     ) -> Outcome<Vec<EventDeliveryRecord>> {
         let models = delivery::Entity::find()
             .filter(delivery::Column::EventId.eq(event_id))
-            .filter(delivery::Column::TenantId.eq(tenant_id))
+            .apply_if(tenant_id, |q, t| q.filter(delivery::Column::TenantId.eq(t)))
             .all(&self.db)
             .await
             .map_err(|e| Errors::db("failed to list deliveries", Some(Box::new(e))))?;

@@ -241,18 +241,24 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
             .and_then(orm::Model::into_domain)
     }
 
-    async fn delete_transfer_process(&self, tenant_id: Option<String>, id: &Urn) -> Outcome<()> {
+    async fn delete_transfer_process(
+        &self,
+        tenant_id: Option<String>,
+        id: &Urn,
+    ) -> Outcome<String> {
         let q = orm::Entity::delete_many()
             .filter(orm::Column::Id.eq(id.to_string()))
             .apply_if(tenant_id.clone(), |q, t| {
                 q.filter(orm::Column::TenantId.eq(t))
             });
-        let res = q.exec(self.db.as_ref()).await.map_err(|e| {
+        let rows = q.exec_with_returning(self.db.as_ref()).await.map_err(|e| {
             TransferProcessRepoErrors::ErrorDeletingTransferProcess(Box::new(e)).into_errors()
         })?;
-        if res.rows_affected == 0 {
-            return Err(TransferProcessRepoErrors::TransferProcessNotFound.into_errors());
-        }
+        let owner = rows
+            .into_iter()
+            .next()
+            .map(|row| row.tenant_id)
+            .ok_or_else(|| TransferProcessRepoErrors::TransferProcessNotFound.into_errors())?;
 
         use crate::data::sea_orm::orm::transfer_identifier as ident_orm;
         ident_orm::Entity::delete_many()
@@ -264,6 +270,6 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
             .await
             .map_err(Self::fetch_err)?;
 
-        Ok(())
+        Ok(owner)
     }
 }

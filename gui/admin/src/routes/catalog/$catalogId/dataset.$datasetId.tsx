@@ -30,7 +30,6 @@ import {
   useGetPoliciesByEntityId,
 } from "shared/src/data/orval/odrl-policies/odrl-policies";
 import { useGetCatalogById } from "shared/src/data/orval/catalogs/catalogs";
-import { useGetAllParticipants } from "shared/data/orval/participants/participants";
 import { OdrlPolicyInfo } from "shared/src/data/orval/model/odrlPolicyInfo";
 import { DistributionDto } from "shared/src/data/orval/model";
 import { PageLayout } from "shared/src/components/layout/PageLayout";
@@ -86,6 +85,7 @@ import {
   Table as TableIcon,
   User,
 } from "lucide-react";
+import { useMyself } from "shared/src/data/useMyself";
 
 type DatasetTab = "distributions" | "policies" | "metadata";
 
@@ -102,7 +102,6 @@ function RouteComponent() {
   const { data: distributionsData, refetch: refetchDistributions } =
     useGetDistributionsByDatasetId(datasetId);
   const { data: policiesData, refetch: refetchPolicies } = useGetPoliciesByEntityId(datasetId);
-  const { data: participants } = useGetAllParticipants();
   const { mutateAsync: createPolicyAsync } = useCreateOdrlPolicy();
 
   const dataset = datasetData?.status === 200 ? datasetData.data : undefined;
@@ -110,9 +109,7 @@ function RouteComponent() {
   const policies = policiesData?.status === 200 ? policiesData.data : [];
   const catalog = catalogData?.status === 200 ? catalogData.data : undefined;
 
-  const myAgent = Array.isArray(participants?.data)
-    ? participants.data.find((p) => p.is_me && p.participant_type === "Agent")
-    : undefined;
+  const myAgent = useMyself();
   const myAgentSlug = myAgent?.participant_nick || "Local Agent";
 
   const handleCopyId = () => {

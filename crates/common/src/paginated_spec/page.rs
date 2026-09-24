@@ -19,6 +19,9 @@
 
 use serde::{Deserialize, Serialize};
 use ymir::errors::{BadFormat, Errors, Outcome};
+use ymir::types::listing::{Keyset, ListPage, SortDirection};
+
+use super::{Cursor, Sort};
 
 /// Default page size when the client does not specify limit.
 pub const DEFAULT_PAGE_LIMIT: u32 = 20;
@@ -93,6 +96,33 @@ impl Page {
             cursor: self.cursor.clone(),
             page: self.page,
         }
+    }
+
+    /// Translates this API page into a database listing ordered by `created` or `updated`,
+    /// resuming after the decoded cursor.
+    pub fn list_page<S>(&self, sort: &Sort, created: S, updated: S) -> Outcome<ListPage<S>> {
+        let (field, direction) = match sort {
+            Sort::CreatedAtAsc => (created, SortDirection::Asc),
+            Sort::UpdatedAtAsc => (updated, SortDirection::Asc),
+            Sort::UpdatedAtDesc => (updated, SortDirection::Desc),
+            Sort::CreatedAtDesc | Sort::Other => (created, SortDirection::Desc),
+        };
+        let after = match &self.cursor {
+            Some(cursor) => {
+                let decoded = Cursor::decode(cursor)?;
+                Some(Keyset {
+                    timestamp: decoded.timestamp_utc(),
+                    id: decoded.id,
+                })
+            }
+            None => None,
+        };
+        Ok(ListPage {
+            sort: field,
+            direction,
+            after,
+            limit: u64::from(Self::clamp_limit(self.limit)),
+        })
     }
 
     /// Validates pagination bounds.

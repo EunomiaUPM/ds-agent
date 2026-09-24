@@ -175,16 +175,20 @@ impl TransferMessageRepoTrait for SeaOrmTransferMessageRepo {
             .and_then(orm::Model::into_domain)
     }
 
-    async fn delete_transfer_message(&self, tenant_id: Option<String>, id: &Urn) -> Outcome<()> {
+    async fn delete_transfer_message(
+        &self,
+        tenant_id: Option<String>,
+        id: &Urn,
+    ) -> Outcome<String> {
         let q = orm::Entity::delete_many()
             .filter(orm::Column::Id.eq(id.to_string()))
             .apply_if(tenant_id, |q, t| q.filter(orm::Column::TenantId.eq(t)));
-        let res = q.exec(self.db.as_ref()).await.map_err(|e| {
+        let rows = q.exec_with_returning(self.db.as_ref()).await.map_err(|e| {
             TransferMessageRepoErrors::ErrorDeletingTransferMessage(Box::new(e)).into_errors()
         })?;
-        if res.rows_affected == 0 {
-            return Err(TransferMessageRepoErrors::TransferMessageNotFound.into_errors());
-        }
-        Ok(())
+        rows.into_iter()
+            .next()
+            .map(|row| row.tenant_id)
+            .ok_or_else(|| TransferMessageRepoErrors::TransferMessageNotFound.into_errors())
     }
 }

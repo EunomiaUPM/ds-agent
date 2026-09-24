@@ -18,5 +18,4 @@
 pub mod dead_letter;
 pub mod delivery;
 pub mod event;
-pub mod notification;
 pub mod subscription;

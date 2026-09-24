@@ -10,10 +10,4 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
  * OpenAPI spec version: 1.0.0
  */
 
-export interface Subscription {
-  id?: string;
-  target?: string;
-  subscriber?: string;
-  callbackAddress?: string;
-  createdAt?: string;
-}
+export type PageNumberParameter = number;

@@ -9,7 +9,6 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { DatasetOfferingResultDtoConnector } from './datasetOfferingResultDtoConnector';
 import type { DatasetOfferingResultDtoDataset } from './datasetOfferingResultDtoDataset';
 import type { DatasetOfferingResultDtoDistribution } from './datasetOfferingResultDtoDistribution';
 import type { DatasetOfferingResultDtoPolicy } from './datasetOfferingResultDtoPolicy';
@@ -17,6 +16,5 @@ import type { DatasetOfferingResultDtoPolicy } from './datasetOfferingResultDtoP
 export interface DatasetOfferingResultDto {
   dataset?: DatasetOfferingResultDtoDataset;
   distribution?: DatasetOfferingResultDtoDistribution;
-  connector?: DatasetOfferingResultDtoConnector;
   policy?: DatasetOfferingResultDtoPolicy;
 }

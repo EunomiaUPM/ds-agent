@@ -188,7 +188,14 @@ impl DatasetServiceTrait for DatasetService {
             .add_to_collection(&ds_urn, dto.inner.dct_issued.timestamp() as f64)
             .await;
 
-        events::emit_action!(self.event_bus, crate::EVENT_PREFIX, "dataset", "edit", &dto);
+        events::emit_action!(
+            self.event_bus,
+            &dto.inner.tenant_id,
+            crate::EVENT_PREFIX,
+            "dataset",
+            "edit",
+            &dto
+        );
         Ok(dto)
     }
 
@@ -223,6 +230,7 @@ impl DatasetServiceTrait for DatasetService {
 
         events::emit_action!(
             self.event_bus,
+            &dto.inner.tenant_id,
             crate::EVENT_PREFIX,
             "dataset",
             "create",
@@ -250,6 +258,7 @@ impl DatasetServiceTrait for DatasetService {
 
         events::emit_action!(
             self.event_bus,
+            &deleted.tenant_id,
             crate::EVENT_PREFIX,
             "dataset",
             "delete",

@@ -9,7 +9,6 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { ConnectorOfferingInput } from './connectorOfferingInput';
 import type { DatasetOfferingInput } from './datasetOfferingInput';
 import type { DistributionOfferingInput } from './distributionOfferingInput';
 import type { PolicyOfferingInput } from './policyOfferingInput';
@@ -17,6 +16,5 @@ import type { PolicyOfferingInput } from './policyOfferingInput';
 export interface CreateDatasetOfferingRequest {
   dataset: DatasetOfferingInput;
   distribution: DistributionOfferingInput;
-  connector?: ConnectorOfferingInput;
   policy?: PolicyOfferingInput;
 }

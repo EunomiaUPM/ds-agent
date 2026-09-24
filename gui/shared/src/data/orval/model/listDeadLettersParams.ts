@@ -9,10 +9,25 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
+import type { CursorParameter } from './cursorParameter';
+import type { LimitParameter } from './limitParameter';
 import type { ListDeadLettersStatus } from './listDeadLettersStatus';
+import type { PageNumberParameter } from './pageNumberParameter';
+import type { SortParameter } from './sortParameter';
 
 export type ListDeadLettersParams = {
 status?: ListDeadLettersStatus;
-limit?: number;
-offset?: number;
+/**
+ * @maximum 100
+ */
+limit?: LimitParameter;
+/**
+ * @minimum 1
+ */
+page?: PageNumberParameter;
+/**
+ * Opaque cursor from `nextCursor` of the previous page; takes precedence over `page`.
+ */
+cursor?: CursorParameter;
+sort?: SortParameter;
 };

@@ -19,6 +19,7 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::str::FromStr;
 use tracing::info;
+use url::Url;
 use urn::Urn;
 use uuid::Uuid;
 use ymir::errors::{Errors, Outcome};
@@ -44,6 +45,12 @@ pub fn generate_uuid_urn(prefix: &str) -> Urn {
 pub fn parse_urn(s: &str) -> Outcome<Urn> {
     s.parse::<Urn>()
         .map_err(|e| Errors::crazy("invalid URN in database", Some(Box::new(e))))
+}
+
+/// Parses a string slice into a `Url`.
+#[allow(clippy::result_large_err)]
+pub fn parse_url(s: &str) -> Outcome<Url> {
+    Url::parse(s).map_err(|e| Errors::parse("Error parsing url", Some(Box::new(e))))
 }
 
 /// Parses a string slice into a `Urn` (backwards-compatible alias).

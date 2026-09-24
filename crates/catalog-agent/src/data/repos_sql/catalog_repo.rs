@@ -261,25 +261,21 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
         &self,
         tenant_id: Option<String>,
         catalog_id: &Urn,
-    ) -> Outcome<()> {
-        let catalog_id = catalog_id.to_string();
-        let catalog = catalog::Entity::delete_many()
-            .filter(catalog::Column::Id.eq(catalog_id))
+    ) -> Outcome<catalog::Model> {
+        let deleted = catalog::Entity::delete_many()
+            .filter(catalog::Column::Id.eq(catalog_id.to_string()))
             .apply_if(tenant_id, |q, t| q.filter(catalog::Column::TenantId.eq(t)))
-            .exec(&self.db_connection)
-            .await;
-        match catalog {
-            Ok(delete_result) => match delete_result.rows_affected {
-                0 => Err(CatalogAgentRepoErrors::CatalogRepoErrors(
-                    CatalogRepoErrors::CatalogNotFound,
-                )
-                .into_errors()),
-                _ => Ok(()),
-            },
-            Err(err) => Err(CatalogAgentRepoErrors::CatalogRepoErrors(
-                CatalogRepoErrors::ErrorDeletingCatalog(err.into()),
-            )
-            .into_errors()),
-        }
+            .exec_with_returning(&self.db_connection)
+            .await
+            .map_err(|err| {
+                CatalogAgentRepoErrors::CatalogRepoErrors(CatalogRepoErrors::ErrorDeletingCatalog(
+                    err.into(),
+                ))
+                .into_errors()
+            })?;
+        deleted.into_iter().next().ok_or_else(|| {
+            CatalogAgentRepoErrors::CatalogRepoErrors(CatalogRepoErrors::CatalogNotFound)
+                .into_errors()
+        })
     }
 }

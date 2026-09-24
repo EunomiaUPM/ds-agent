@@ -9,13 +9,13 @@ corresponding microservice (catalog-agent, negotiation-agent, transfer-agent, au
 
  * OpenAPI spec version: 1.0.0
  */
-import type { ConnectorOfferingInputAuth } from './connectorOfferingInputAuth';
 
-export interface ConnectorOfferingInput {
-  name?: string;
-  description?: string;
-  endpoint: string;
-  protocol?: string;
-  method?: string;
-  auth?: ConnectorOfferingInputAuth;
-}
+export type SortParameter = typeof SortParameter[keyof typeof SortParameter];
+
+
+export const SortParameter = {
+  created_at_desc: 'created_at_desc',
+  created_at_asc: 'created_at_asc',
+  updated_at_desc: 'updated_at_desc',
+  updated_at_asc: 'updated_at_asc',
+} as const;

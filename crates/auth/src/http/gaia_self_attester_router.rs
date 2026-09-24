@@ -21,6 +21,7 @@ use crate::modules::GaiaSelfAttesterModule;
 use axum::extract::State;
 use axum::routing::post;
 use axum::Router;
+use common::auth::AccessScope;
 use ymir::errors::AppResult;
 
 pub struct GaiaSelfAttesterRouter {
@@ -38,7 +39,10 @@ impl GaiaSelfAttesterRouter {
             .with_state(self.gaia)
     }
 
-    async fn generate(State(gaia): State<Arc<dyn GaiaSelfAttesterModule>>) -> AppResult<()> {
-        gaia.generate_gaia_vcs().await
+    async fn generate(
+        State(gaia): State<Arc<dyn GaiaSelfAttesterModule>>,
+        scope: AccessScope,
+    ) -> AppResult<()> {
+        gaia.generate_gaia_vcs(&scope).await
     }
 }

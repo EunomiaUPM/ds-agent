@@ -18,23 +18,20 @@
 use crate::setup::grpc_worker::CatalogGrpcWorker;
 use crate::setup::http_worker::CatalogHttpWorker;
 use crate::setup::CatalogAgentModule;
-use crate::{CatalogDto, DataServiceDto, NewCatalogDto, NewDataServiceDto};
+use common::auth::ServiceHttpClient;
 use common::boot::shutdown::shutdown_signal;
 use common::boot::BootstrapServiceTrait;
 use common::config::services::traits::CatalogConfigTrait;
 use common::config::services::{CatalogConfig, ContractsConfig, TransferConfig};
 use common::config::types::roles::RoleConfig;
 use common::config::types::traits::{CommonConfigTrait, ConfigLoader, MinKnownConfigTrait};
-use common::http_client::{HttpClient, HttpClientError};
 use common::module_loader::service_composer::ServiceComposer;
 use common::worker_utils::GrpcServer;
-use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::broadcast;
 use tokio::{fs, signal};
 use tokio_util::sync::CancellationToken;
 use tracing::error;
-use urn::Urn;
 use ymir::config::traits::{ApiConfigTrait, HostsConfigTrait};
 use ymir::config::types::HostType;
 use ymir::data::entities::shared::participant;
@@ -42,6 +39,31 @@ use ymir::errors::{Errors, Outcome};
 use ymir::services::vault::global::VaultService;
 
 pub struct CatalogAgentBoot;
+
+impl CatalogAgentBoot {
+    /// Boot goes through the same idempotent provisioning as any new tenant.
+    async fn provision_admin_tenant(config: &CatalogConfig) -> Outcome<serde_json::Value> {
+        let client = ServiceHttpClient::from_common(config.common(), 30);
+        let tenant = &config.common().admin_seed.tenant_id;
+        let url = format!(
+            "{}{}/catalog-agent/tenants/{}/provision",
+            config.common().get_host(HostType::Http),
+            config.common().get_api_version(),
+            tenant
+        );
+        client
+            .post_json(&url, Some(tenant), &serde_json::json!({}))
+            .await
+    }
+
+    fn string_at(value: &serde_json::Value, pointer: &str) -> Outcome<String> {
+        value
+            .pointer(pointer)
+            .and_then(|v| v.as_str())
+            .map(str::to_string)
+            .ok_or_else(|| Errors::parse(format!("provisioning response lacks {pointer}"), None))
+    }
+}
 
 #[async_trait::async_trait]
 impl BootstrapServiceTrait for CatalogAgentBoot {
@@ -55,83 +77,34 @@ impl BootstrapServiceTrait for CatalogAgentBoot {
         Ok(config)
     }
     async fn create_participant(config: &Self::Config) -> Outcome<String> {
-        let client = HttpClient::new(1, 30);
+        let client = ServiceHttpClient::from_common(config.common(), 30);
         let base_url = config.ssi_auth().get_host(HostType::Http);
         let api = config.ssi_auth().get_api_version();
-
-        // attempt first
         let url = format!("{}{}/mates/myself", base_url, api);
-        let participant = client.get_json::<participant::Model>(url.as_str()).await;
-
-        // catch error
-        if let Err(err) = participant {
-            match err {
-                // if mate not found
-                HttpClientError::HttpError { status, .. } if status.as_u16() == 404 => {
-                    // onboard mate with wallet
-                    let url = format!("{}{}/wallet/onboard", base_url, api);
-                    client.post_void::<()>(url.as_str()).await?;
-                }
-                _ => return Err(Errors::from(err)),
-            }
-            // attempt again
-            let url = format!("{}{}/mates/myself", base_url, api);
-            let participant = client.get_json::<participant::Model>(url.as_str()).await?;
-            // and return id
-            Ok(participant.participant_id)
-        } else {
-            // if mate exists, just return id
-            let participant = participant?;
-            Ok(participant.participant_id)
-        }
+        let tenant = &config.common().admin_seed.tenant_id;
+        let participant: participant::Model = client.get_json(&url, Some(tenant)).await?;
+        Ok(participant.participant_id)
     }
 
     async fn load_catalog(
-        participant_id: &Option<String>,
+        _participant_id: &Option<String>,
         config: &Self::Config,
     ) -> Outcome<String> {
-        let participant_id = participant_id.clone().unwrap_or_default();
-        let client = HttpClient::new(1, 3);
-        let base_url = config.common().get_host(HostType::Http);
-        let api = config.common().get_api_version();
-        let url = format!("{}{}/catalog-agent/catalogs/main", base_url, api);
-        let catalog = client
-            .post_json::<NewCatalogDto, CatalogDto>(
-                url.as_str(),
-                &NewCatalogDto {
-                    dspace_participant_id: Some(participant_id),
-                    ..NewCatalogDto::default()
-                },
-            )
-            .await?;
-        Ok(catalog.inner.id)
+        let provisioned = Self::provision_admin_tenant(config).await?;
+        Self::string_at(&provisioned, "/catalog/id")
     }
 
     async fn load_dataservice(
-        catalog_id: &Option<String>,
+        _catalog_id: &Option<String>,
         config: &Self::Config,
     ) -> Outcome<String> {
-        let catalog_id = catalog_id.clone().unwrap_or_default();
-        let client = HttpClient::new(1, 3);
-        let base_url = config.common().get_host(HostType::Http);
-        let negotiation_url = config.contracts().get_host(HostType::Http);
-        let api = config.common().get_api_version();
-        let url = format!("{}{}/catalog-agent/data-services/main", base_url, api);
-        let catalog = client
-            .post_json::<NewDataServiceDto, DataServiceDto>(
-                url.as_str(),
-                &NewDataServiceDto {
-                    dcat_endpoint_url: format!("{}/dsp/current", negotiation_url),
-                    catalog_id: Urn::from_str(catalog_id.as_str())?,
-                    ..Default::default()
-                },
-            )
-            .await?;
-        Ok(catalog.inner.id)
+        let provisioned = Self::provision_admin_tenant(config).await?;
+        Self::string_at(&provisioned, "/dataService/id")
     }
 
     async fn load_policy_templates(config: &Self::Config) -> Outcome<()> {
-        let client = HttpClient::new(1, 3);
+        let client = ServiceHttpClient::from_common(config.common(), 3);
+        let tenant = &config.common().admin_seed.tenant_id;
         let base_url = config.common().get_host(HostType::Http);
         let api = config.common().get_api_version();
         let url = format!("{}{}/catalog-agent/policy-templates", base_url, api);
@@ -162,7 +135,11 @@ impl BootstrapServiceTrait for CatalogAgentBoot {
                     }
                 };
                 let _ = match client
-                    .post_json::<serde_json::Value, serde_json::Value>(url.as_str(), &json_payload)
+                    .post_json::<serde_json::Value, serde_json::Value>(
+                        url.as_str(),
+                        Some(tenant),
+                        &json_payload,
+                    )
                     .await
                 {
                     Ok(_) => {}

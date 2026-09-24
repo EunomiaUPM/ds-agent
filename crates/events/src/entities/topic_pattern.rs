@@ -68,6 +68,40 @@ impl TopicPattern {
     }
 
     // Recursive segment matcher handling single- and multi-level wildcards.
+    /// POSIX regex with the same semantics as `matches`, so topic filters run in the database.
+    pub fn to_sql_regex(&self) -> String {
+        let segments: Vec<&str> = self.0.split(['.', ':']).collect();
+        if segments.iter().all(|s| *s == "**") {
+            return ".*".to_string();
+        }
+        let mut regex = String::from("^");
+        let mut needs_separator = false;
+        for (i, segment) in segments.iter().enumerate() {
+            match *segment {
+                "**" if i == 0 => regex.push_str("([^.:]+[.:])*"),
+                "**" => regex.push_str("([.:][^.:]+)*"),
+                other => {
+                    if needs_separator {
+                        regex.push_str("[.:]");
+                    }
+                    if other == "*" {
+                        regex.push_str("[^.:]+");
+                    } else {
+                        for c in other.chars() {
+                            if !c.is_ascii_alphanumeric() && c != '_' && c != '-' {
+                                regex.push('\\');
+                            }
+                            regex.push(c);
+                        }
+                    }
+                }
+            }
+            needs_separator = *segment != "**" || i > 0;
+        }
+        regex.push('$');
+        regex
+    }
+
     fn match_segments(pat: &[&str], topic: &[&str]) -> bool {
         if pat.is_empty() {
             return topic.is_empty();

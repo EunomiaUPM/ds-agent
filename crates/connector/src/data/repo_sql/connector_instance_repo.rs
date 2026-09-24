@@ -178,27 +178,29 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
         &self,
         tenant_id: Option<String>,
         instance_id: &str,
-    ) -> Outcome<()> {
-        let result = connector_instances::Entity::delete_many()
+    ) -> Outcome<String> {
+        let deleted = connector_instances::Entity::delete_many()
             .filter(connector_instances::Column::Id.eq(instance_id))
             .apply_if(tenant_id, |q, t| {
                 q.filter(connector_instances::Column::TenantId.eq(t))
             })
-            .exec(&self.db_connection)
-            .await;
-
-        match result {
-            Ok(delete_result) => match delete_result.rows_affected {
-                0 => Err(ConnectorAgentRepoErrors::ConnectorInstanceRepoErrors(
+            .exec_with_returning(&self.db_connection)
+            .await
+            .map_err(|err| {
+                ConnectorAgentRepoErrors::ConnectorInstanceRepoErrors(
+                    ConnectorInstanceRepoErrors::ErrorDeletingInstance(err.to_string()),
+                )
+                .into_errors()
+            })?;
+        deleted
+            .into_iter()
+            .next()
+            .map(|instance| instance.tenant_id)
+            .ok_or_else(|| {
+                ConnectorAgentRepoErrors::ConnectorInstanceRepoErrors(
                     ConnectorInstanceRepoErrors::InstanceNotFound,
                 )
-                .into_errors()),
-                _ => Ok(()),
-            },
-            Err(err) => Err(ConnectorAgentRepoErrors::ConnectorInstanceRepoErrors(
-                ConnectorInstanceRepoErrors::ErrorDeletingInstance(err.to_string()),
-            )
-            .into_errors()),
-        }
+                .into_errors()
+            })
     }
 }

@@ -21,6 +21,7 @@ use std::sync::Arc;
 
 use crate::data::factory_sql::NegotiationAgentRepoForSql;
 use crate::data::factory_trait::NegotiationAgentRepoTrait;
+use crate::data::repo_traits::negotiation_process_repo::NegotiationProcessRepoTrait;
 use crate::services::agreement::AgreementServiceTrait;
 use crate::services::agreement::service::AgreementService;
 use crate::services::negotiation_message::NegotiationMessageServiceTrait;
@@ -30,19 +31,32 @@ use crate::services::negotiation_process::service::NegotiationProcessService;
 use crate::services::offer::OfferServiceTrait;
 use crate::services::offer::service::OfferService;
 use common::auth::OauthTokenValidator;
+use common::config::services::ContractsConfig;
+use common::config::services::traits::ContractsConfigTrait;
+use common::facades::ssi_auth_facade::mates_facade::MatesFacadeService;
+use common::facades::ssi_auth_facade::ssi_auth_facade::SSIAuthFacadeService;
+use common::facades::ssi_auth_facade::{MatesFacadeTrait, SSIAuthFacadeTrait};
 use common::module_loader::root_context::RootContext;
 
 #[derive(Clone)]
 pub struct AppContext {
+    pub config: Arc<ContractsConfig>,
+    pub process_repo: Arc<dyn NegotiationProcessRepoTrait>,
     pub process_svc: Arc<dyn NegotiationProcessServiceTrait>,
     pub message_svc: Arc<dyn NegotiationMessageServiceTrait>,
     pub offer_svc: Arc<dyn OfferServiceTrait>,
     pub agreement_svc: Arc<dyn AgreementServiceTrait>,
+    pub ssi_auth_facade: Arc<dyn SSIAuthFacadeTrait>,
+    pub mates_facade: Arc<dyn MatesFacadeTrait>,
     pub oauth_validator: Arc<dyn OauthTokenValidator>,
 }
 
 impl AppContext {
-    pub fn build(root: &RootContext, event_bus: Option<events::EventBus>) -> Self {
+    pub fn build(
+        config: &ContractsConfig,
+        root: &RootContext,
+        event_bus: Option<events::EventBus>,
+    ) -> Self {
         let repo = Arc::new(NegotiationAgentRepoForSql::create_repo(root.db.clone()));
 
         // Domain services
@@ -69,11 +83,25 @@ impl AppContext {
         let agreement_svc =
             Arc::new(AgreementService::new(repo.get_agreement_repo()).with_event_bus(event_bus));
 
+        let ssi_auth_config = Arc::new(config.ssi_auth().clone());
+        let ssi_auth_facade = Arc::new(SSIAuthFacadeService::new(
+            ssi_auth_config.clone(),
+            root.service_client.clone(),
+        ));
+        let mates_facade = Arc::new(MatesFacadeService::new(
+            ssi_auth_config,
+            root.service_client.clone(),
+        ));
+
         Self {
+            config: Arc::new(config.clone()),
+            process_repo: repo.get_negotiation_process_repo(),
             process_svc,
             message_svc,
             offer_svc,
             agreement_svc,
+            ssi_auth_facade,
+            mates_facade,
             oauth_validator: root.validator.clone(),
         }
     }

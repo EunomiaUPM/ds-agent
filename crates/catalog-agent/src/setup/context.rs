@@ -25,35 +25,48 @@ use crate::services::catalogs::service::CatalogService;
 use crate::services::catalogs::CatalogServiceTrait;
 use crate::services::data_services::service::DataServiceService;
 use crate::services::data_services::DataServiceServiceTrait;
+use crate::services::dataset_offerings::service::DatasetOfferingService;
+use crate::services::dataset_offerings::DatasetOfferingServiceTrait;
 use crate::services::datasets::service::DatasetService;
 use crate::services::datasets::DatasetServiceTrait;
 use crate::services::distributions::service::DistributionService;
 use crate::services::distributions::DistributionServiceTrait;
 use crate::services::odrl_policies::service::OdrlPolicyService;
 use crate::services::odrl_policies::OdrlPolicyServiceTrait;
+use crate::services::peer_catalogs::service::PeerCatalogService;
+use crate::services::peer_catalogs::PeerCatalogServiceTrait;
+use crate::services::policy_instantiation::service::PolicyInstantiationService;
+use crate::services::policy_instantiation::PolicyInstantiationServiceTrait;
 use crate::services::policy_templates::service::PolicyTemplateService;
 use crate::services::policy_templates::PolicyTemplateServiceTrait;
 use crate::services::tenant_provisioning::service::TenantProvisioningService;
 use crate::services::tenant_provisioning::TenantProvisioningServiceTrait;
-use common::auth::OauthTokenValidator;
+use common::auth::{OauthTokenValidator, ServiceHttpClient};
 use common::config::services::traits::CatalogConfigTrait;
 use common::config::services::CatalogConfig;
 use common::config::types::traits::CacheConfigTrait;
 use common::config::types::traits::MinKnownConfigTrait;
 use common::facades::ssi_auth_facade::mates_facade::MatesFacadeService;
+use common::facades::ssi_auth_facade::MatesFacadeTrait;
 use common::module_loader::root_context::RootContext;
 use ymir::config::types::HostType;
 use ymir::errors::{Errors, Outcome};
 
 #[derive(Clone)]
 pub struct AppContext {
+    pub config: Arc<CatalogConfig>,
     pub catalog_svc: Arc<dyn CatalogServiceTrait>,
     pub data_service_svc: Arc<dyn DataServiceServiceTrait>,
     pub dataset_svc: Arc<dyn DatasetServiceTrait>,
     pub distribution_svc: Arc<dyn DistributionServiceTrait>,
     pub odrl_policy_svc: Arc<dyn OdrlPolicyServiceTrait>,
     pub policy_template_svc: Arc<dyn PolicyTemplateServiceTrait>,
+    pub policy_instantiation_svc: Arc<dyn PolicyInstantiationServiceTrait>,
+    pub dataset_offering_svc: Arc<dyn DatasetOfferingServiceTrait>,
+    pub peer_catalog_svc: Arc<dyn PeerCatalogServiceTrait>,
     pub tenant_provisioning_svc: Arc<dyn TenantProvisioningServiceTrait>,
+    pub mates_facade: Arc<dyn MatesFacadeTrait>,
+    pub service_client: Arc<ServiceHttpClient>,
     pub oauth_validator: Arc<dyn OauthTokenValidator>,
     pub event_bus: Option<events::EventBus>,
 }
@@ -90,14 +103,26 @@ impl AppContext {
         );
         let policy_template_svc =
             Arc::new(PolicyTemplateService::new(repo).with_event_bus(event_bus.clone()));
-        let mates = Arc::new(MatesFacadeService::new(
+        let policy_instantiation_svc = Arc::new(PolicyInstantiationService::new(
+            odrl_policy_svc.clone(),
+            policy_template_svc.clone(),
+        ));
+        let dataset_offering_svc = Arc::new(DatasetOfferingService::new(
+            catalog_svc.clone(),
+            data_service_svc.clone(),
+            dataset_svc.clone(),
+            distribution_svc.clone(),
+            odrl_policy_svc.clone(),
+        ));
+        let mates_facade = Arc::new(MatesFacadeService::new(
             Arc::new(config.ssi_auth().clone()),
             root.service_client.clone(),
         ));
+        let peer_catalog_svc = Arc::new(PeerCatalogService::new(cache, mates_facade.clone()));
         let tenant_provisioning_svc = Arc::new(TenantProvisioningService::new(
             catalog_svc.clone(),
             data_service_svc.clone(),
-            mates,
+            mates_facade.clone(),
             format!(
                 "{}/dsp/current",
                 config.contracts().get_host(HostType::Http)
@@ -105,13 +130,19 @@ impl AppContext {
         ));
 
         Ok(Self {
+            config: Arc::new(config.clone()),
             catalog_svc,
             data_service_svc,
             dataset_svc,
             distribution_svc,
             odrl_policy_svc,
             policy_template_svc,
+            policy_instantiation_svc,
+            dataset_offering_svc,
+            peer_catalog_svc,
             tenant_provisioning_svc,
+            mates_facade,
+            service_client: root.service_client.clone(),
             oauth_validator: root.validator.clone(),
             event_bus,
         })

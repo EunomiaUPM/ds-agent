@@ -21,9 +21,7 @@ pub mod setup;
 
 pub use gateway::GatewayHttpRouter;
 pub use proxy::HttpProxyDispatcher;
-pub use setup::composition::BffModule;
-pub use setup::context::AppContext;
-pub use setup::GatewayBoot;
+pub use setup::{AppContext, BffModule, GatewayBoot};
 
 pub const SERVICE_NAME: &str = "gateway-agent";
 pub const SERVICE_BIG_NAME: &str = "Gateway Agent";

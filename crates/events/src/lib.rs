@@ -23,6 +23,8 @@ pub mod http;
 pub mod services;
 pub mod setup;
 
+pub const SERVICE_NAME: &str = "events";
+
 pub use entities::dto::EntityDeletedDto;
 pub use entities::envelope::EventEnvelope;
 pub use entities::event::{Event, IntoEvent};

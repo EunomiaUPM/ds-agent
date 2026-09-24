@@ -18,12 +18,12 @@
 use std::sync::Arc;
 
 use axum::Router;
+use common::config::services::GatewayConfig;
+use common::module_loader::root_context::RootContext;
 use common::module_loader::service_module::ServiceModuleTrait;
 
 use crate::gateway::GatewayHttpRouter;
 use crate::setup::context::AppContext;
-
-pub const SERVICE_NAME: &str = "gateway";
 
 /// Composable service module integrating the BFF gateway and admin frontend.
 pub struct BffModule {
@@ -31,7 +31,10 @@ pub struct BffModule {
 }
 
 impl BffModule {
-    /// Construct a new BffModule with application context.
+    pub fn compose(config: &GatewayConfig, root: &RootContext) -> Self {
+        Self::new(Arc::new(AppContext::build(config, root)))
+    }
+
     pub fn new(ctx: Arc<AppContext>) -> Self {
         Self { ctx }
     }
@@ -39,7 +42,7 @@ impl BffModule {
 
 impl ServiceModuleTrait for BffModule {
     fn name(&self) -> &'static str {
-        SERVICE_NAME
+        "gateway"
     }
 
     fn http(&self) -> Option<(String, Router)> {

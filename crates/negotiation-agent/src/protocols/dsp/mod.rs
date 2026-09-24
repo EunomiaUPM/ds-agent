@@ -41,6 +41,7 @@ pub(crate) mod http;
 pub(crate) mod orchestrator;
 mod persistence;
 pub(crate) mod protocol_types;
+pub(crate) mod setup;
 pub(crate) mod validator;
 
 use crate::data::repo_traits::negotiation_process_repo::NegotiationProcessRepoTrait;

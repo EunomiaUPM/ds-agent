@@ -15,6 +15,9 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod composition;
-pub mod module;
-pub mod seeder;
+mod composition;
+pub(crate) mod context;
+mod seeders;
+
+pub use composition::OAuthModule;
+pub use seeders::AdminSeeder;

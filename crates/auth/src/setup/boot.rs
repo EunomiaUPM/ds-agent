@@ -22,13 +22,14 @@ use common::boot::BootstrapServiceTrait;
 use common::config::services::{CommonConfig, SsiAuthConfig};
 use common::module_loader::root_context::RootContext;
 use common::module_loader::service_composer::ServiceComposer;
-use oauth::setup::composition::OAuthSetup;
+use oauth::setup::OAuthModule;
 use sea_orm::DatabaseConnection;
 use sea_orm_migration::MigrationTrait;
 use ymir::errors::Outcome;
 
 use crate::setup::composition::AuthModule;
 
+/// Standalone SSI auth agent: wallet, GNAP gatekeeper, verifier and issuer.
 pub struct AuthBoot;
 
 #[async_trait::async_trait]
@@ -40,7 +41,7 @@ impl BootstrapServiceTrait for AuthBoot {
     }
 
     fn validator(common: &CommonConfig, db: DatabaseConnection) -> Arc<dyn OauthTokenValidator> {
-        OAuthSetup::validator(common, db)
+        OAuthModule::validator(common, db)
     }
 
     async fn compose(config: &SsiAuthConfig, root: &RootContext) -> Outcome<ServiceComposer> {

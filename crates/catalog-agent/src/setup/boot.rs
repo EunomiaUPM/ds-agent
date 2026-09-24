@@ -25,20 +25,18 @@ use common::config::services::{CatalogConfig, CommonConfig};
 use common::config::types::traits::CommonConfigTrait;
 use common::module_loader::root_context::RootContext;
 use common::module_loader::service_composer::ServiceComposer;
-use common::module_loader::to_be_deprecated::ToBeDeprecatedRouterModule;
-use connector::get_connector_migrations;
-use oauth::setup::composition::OAuthSetup;
+use oauth::setup::OAuthModule;
 use sea_orm::DatabaseConnection;
 use sea_orm_migration::MigrationTrait;
 use ymir::config::traits::{ApiConfigTrait, HostsConfigTrait};
 use ymir::config::types::HostType;
 use ymir::errors::Outcome;
 
-use crate::setup::http_router::create_root_http_router;
 use crate::setup::seeders::{AdminTenantProvisioner, PolicyTemplateLoader};
 use crate::setup::CatalogAgentModule;
 use crate::SERVICE_NAME;
 
+/// Standalone catalog agent, seeding the admin tenant and policy templates once it serves.
 pub struct CatalogAgentBoot;
 
 #[async_trait::async_trait]
@@ -46,21 +44,15 @@ impl BootstrapServiceTrait for CatalogAgentBoot {
     type Config = CatalogConfig;
 
     fn migrations() -> Vec<Box<dyn MigrationTrait>> {
-        [CatalogAgentModule::migrations(), get_connector_migrations()]
-            .into_iter()
-            .flatten()
-            .collect()
+        CatalogAgentModule::migrations()
     }
 
     fn validator(common: &CommonConfig, db: DatabaseConnection) -> Arc<dyn OauthTokenValidator> {
-        OAuthSetup::validator(common, db)
+        OAuthModule::validator(common, db)
     }
 
     async fn compose(config: &CatalogConfig, root: &RootContext) -> Outcome<ServiceComposer> {
-        let http = create_root_http_router(config, root, None).await?;
-        Ok(ServiceComposer::new()
-            .register(ToBeDeprecatedRouterModule::merged(SERVICE_NAME, http))
-            .register(CatalogAgentModule::compose(config, root, None).await?))
+        Ok(ServiceComposer::new().register(CatalogAgentModule::compose(config, root, None).await?))
     }
 
     async fn seeders(

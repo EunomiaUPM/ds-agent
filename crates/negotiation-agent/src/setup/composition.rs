@@ -15,36 +15,39 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Negotiation agent as a composable module. Today it contributes the gRPC plane and
-//! migrations; the HTTP plane still comes from `create_root_http_router_with_bus`.
+//! Negotiation agent as a composable module: management API and DSP negotiations over one
+//! `AppContext`.
+
+use std::sync::Arc;
 
 use crate::SERVICE_NAME;
-use crate::grpc::agreement::NegotiationAgentAgreementGrpc;
-use crate::grpc::api::FILE_DESCRIPTOR_SET;
-use crate::grpc::api::negotiation_agent::negotiation_agent_agreements_service_server::NegotiationAgentAgreementsServiceServer;
-use crate::grpc::api::negotiation_agent::negotiation_agent_messages_service_server::NegotiationAgentMessagesServiceServer;
-use crate::grpc::api::negotiation_agent::negotiation_agent_offers_service_server::NegotiationAgentOffersServiceServer;
-use crate::grpc::api::negotiation_agent::negotiation_agent_processes_service_server::NegotiationAgentProcessesServiceServer;
-use crate::grpc::negotiation_message::NegotiationAgentMessagesGrpc;
-use crate::grpc::negotiation_process::NegotiationAgentProcessesGrpc;
-use crate::grpc::offer::NegotiationAgentOfferGrpc;
+use crate::protocols::dsp::setup::DspModule;
+use crate::setup::admin_module::NegotiationAdminModule;
 use crate::setup::context::AppContext;
+use axum::Router;
+use common::config::services::ContractsConfig;
+use common::module_loader::module_group::ModuleGroup;
 use common::module_loader::root_context::RootContext;
 use common::module_loader::service_module::ServiceModuleTrait;
 use sea_orm_migration::MigrationTrait;
 use tonic::service::RoutesBuilder;
+use ymir::errors::Outcome;
 
 pub struct NegotiationAgentModule {
-    ctx: AppContext,
+    modules: ModuleGroup,
 }
 
 impl NegotiationAgentModule {
-    pub fn compose(root: &RootContext, event_bus: Option<events::EventBus>) -> Self {
-        Self::new(AppContext::build(root, event_bus))
-    }
-
-    pub(crate) fn new(ctx: AppContext) -> Self {
-        Self { ctx }
+    pub async fn compose(
+        config: &ContractsConfig,
+        root: &RootContext,
+        event_bus: Option<events::EventBus>,
+    ) -> Outcome<Self> {
+        let ctx = Arc::new(AppContext::build(config, root, event_bus));
+        let modules = ModuleGroup::new(SERVICE_NAME)
+            .register(DspModule::build(ctx.clone()).await?)
+            .register(NegotiationAdminModule::new(ctx));
+        Ok(Self { modules })
     }
 
     pub fn migrations() -> Vec<Box<dyn MigrationTrait>> {
@@ -61,25 +64,15 @@ impl ServiceModuleTrait for NegotiationAgentModule {
         Self::migrations()
     }
 
+    fn http(&self) -> Option<(String, Router)> {
+        self.modules.http()
+    }
+
     fn grpc(&self, routes: &mut RoutesBuilder) {
-        let ctx = &self.ctx;
-        let validator = || ctx.oauth_validator.clone();
-        routes
-            .add_service(NegotiationAgentProcessesServiceServer::new(
-                NegotiationAgentProcessesGrpc::new(ctx.process_svc.clone(), validator()),
-            ))
-            .add_service(NegotiationAgentMessagesServiceServer::new(
-                NegotiationAgentMessagesGrpc::new(ctx.message_svc.clone(), validator()),
-            ))
-            .add_service(NegotiationAgentOffersServiceServer::new(
-                NegotiationAgentOfferGrpc::new(ctx.offer_svc.clone(), validator()),
-            ))
-            .add_service(NegotiationAgentAgreementsServiceServer::new(
-                NegotiationAgentAgreementGrpc::new(ctx.agreement_svc.clone(), validator()),
-            ));
+        self.modules.grpc(routes);
     }
 
     fn grpc_descriptors(&self) -> Vec<&'static [u8]> {
-        vec![FILE_DESCRIPTOR_SET]
+        self.modules.grpc_descriptors()
     }
 }

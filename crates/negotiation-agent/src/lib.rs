@@ -31,4 +31,3 @@ pub const SERVICE_BIG_NAME: &str = "Negotiation Agent Ref";
 pub use data::migrations::get_negotiation_agent_migrations;
 pub use services::agreement::views::AgreementView;
 pub use services::offer::views::OfferView;
-pub use setup::http_router::create_root_http_router as create_negotiations_http_router;

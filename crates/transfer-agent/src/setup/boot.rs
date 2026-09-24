@@ -24,9 +24,8 @@ use common::config::services::{CommonConfig, TransferConfig};
 use common::config::types::traits::CommonConfigTrait;
 use common::module_loader::root_context::RootContext;
 use common::module_loader::service_composer::ServiceComposer;
-use oauth::setup::composition::OAuthSetup;
-use oauth::setup::module::OAuthModule;
-use oauth::setup::seeder::AdminSeeder;
+use oauth::setup::AdminSeeder;
+use oauth::setup::OAuthModule;
 use sea_orm::DatabaseConnection;
 use sea_orm_migration::MigrationTrait;
 use ymir::errors::Outcome;
@@ -41,25 +40,19 @@ impl BootstrapServiceTrait for TransferBoot {
     type Config = TransferConfig;
 
     fn migrations() -> Vec<Box<dyn MigrationTrait>> {
-        [
-            oauth::get_oauth_migrations(),
-            TransferAgentModule::migrations(),
-        ]
-        .into_iter()
-        .flatten()
-        .collect()
+        [OAuthModule::migrations(), TransferAgentModule::migrations()]
+            .into_iter()
+            .flatten()
+            .collect()
     }
 
     fn validator(common: &CommonConfig, db: DatabaseConnection) -> Arc<dyn OauthTokenValidator> {
-        OAuthSetup::validator(common, db)
+        OAuthModule::validator(common, db)
     }
 
     async fn compose(config: &TransferConfig, root: &RootContext) -> Outcome<ServiceComposer> {
         Ok(ServiceComposer::new()
-            .register(OAuthModule::new(
-                config.common().clone().into(),
-                root.db.clone(),
-            ))
+            .register(OAuthModule::compose(config.common(), root, None))
             .register(TransferAgentModule::compose(config, root, None)))
     }
 

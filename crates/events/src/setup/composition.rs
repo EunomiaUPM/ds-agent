@@ -20,13 +20,14 @@ use std::sync::Arc;
 use axum::Router;
 use common::auth::OauthTokenValidator;
 use common::boot::workers::BackgroundWorker;
+use common::module_loader::root_context::RootContext;
 use common::module_loader::service_module::ServiceModuleTrait;
 use sea_orm_migration::MigrationTrait;
 
 use crate::http::EventsHttpRouter;
+use crate::services::event_bus::EventBus;
 use crate::setup::context::AppContext;
-
-pub const SERVICE_NAME: &str = "events";
+use crate::SERVICE_NAME;
 
 /// Events service module integrating migrations and HTTP routes into the modular host.
 pub struct EventsModule {
@@ -35,8 +36,16 @@ pub struct EventsModule {
 }
 
 impl EventsModule {
-    pub fn new(ctx: Arc<AppContext>, validator: Arc<dyn OauthTokenValidator>) -> Self {
-        Self { ctx, validator }
+    pub fn compose(root: &RootContext) -> Self {
+        Self {
+            ctx: Arc::new(AppContext::build(root, None)),
+            validator: root.validator.clone(),
+        }
+    }
+
+    /// Bus every other module publishes to; hand it out before registering them.
+    pub fn event_bus(&self) -> EventBus {
+        (*self.ctx.event_bus).clone()
     }
 
     /// Return all SeaORM database migrations for the events bus and legacy tables.

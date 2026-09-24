@@ -16,8 +16,8 @@
  */
 
 mod boot;
-pub mod composition;
-pub mod context;
+mod composition;
+pub(crate) mod context;
 
 pub use boot::GatewayBoot;
 pub use composition::BffModule;

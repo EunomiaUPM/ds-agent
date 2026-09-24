@@ -15,13 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+mod admin_module;
 mod boot;
 mod composition;
 pub(crate) mod context;
-mod http_router;
 mod seeders;
 
 pub use boot::CatalogAgentBoot;
 pub use composition::CatalogAgentModule;
-pub use http_router::create_root_http_router;
 pub use seeders::{AdminTenantProvisioner, PolicyTemplateLoader};

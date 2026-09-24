@@ -17,34 +17,25 @@
 
 use std::sync::Arc;
 
-use sea_orm::DatabaseConnection;
+use common::module_loader::root_context::RootContext;
 
 use crate::data::factory::DataFactory;
-use crate::data::repo::{
-    EventDeadLetterRepo, EventDeliveryRepo, EventStoreRepo, EventSubscriptionRepo,
-};
 use crate::data::sea_orm::SeaOrmDataFactory;
 use crate::services::event_bus::policy::RetryPolicy;
 use crate::services::event_bus::worker::RetryWorker;
 use crate::services::event_bus::EventBus;
 
-// Application context bundling persistence factories, domain services and the retry worker.
+/// The event bus and the retry worker that redelivers what it failed to dispatch.
 #[derive(Clone)]
-pub struct AppContext {
-    pub db: DatabaseConnection,
+pub(crate) struct AppContext {
     pub event_bus: Arc<EventBus>,
-    pub event_repo: Arc<dyn EventStoreRepo>,
-    pub subscription_repo: Arc<dyn EventSubscriptionRepo>,
-    pub delivery_repo: Arc<dyn EventDeliveryRepo>,
-    pub dlq_repo: Arc<dyn EventDeadLetterRepo>,
     pub retry_worker: RetryWorker,
 }
 
 impl AppContext {
-    // Build context with live SeaORM database connection.
-    pub fn build(db: DatabaseConnection, policy: Option<RetryPolicy>) -> Self {
+    pub fn build(root: &RootContext, policy: Option<RetryPolicy>) -> Self {
         let policy = policy.unwrap_or_default();
-        let factory = SeaOrmDataFactory::new(db.clone());
+        let factory = SeaOrmDataFactory::new(root.db.clone());
 
         let event_repo = factory.event_repository();
         let subscription_repo = factory.subscription_repository();
@@ -70,12 +61,7 @@ impl AppContext {
         );
 
         Self {
-            db,
             event_bus,
-            event_repo,
-            subscription_repo,
-            delivery_repo,
-            dlq_repo,
             retry_worker,
         }
     }

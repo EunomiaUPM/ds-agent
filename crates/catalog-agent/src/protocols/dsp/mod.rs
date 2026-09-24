@@ -51,6 +51,7 @@ pub(crate) mod facades;
 pub(crate) mod http;
 pub(crate) mod orchestrator;
 pub(crate) mod protocol_types;
+pub(crate) mod setup;
 pub(crate) mod types;
 pub(crate) mod validator;
 

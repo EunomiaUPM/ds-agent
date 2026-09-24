@@ -19,6 +19,7 @@ use std::sync::Arc;
 
 use common::auth::OauthTokenValidator;
 use common::config::services::GatewayConfig;
+use common::module_loader::root_context::RootContext;
 
 use crate::proxy::HttpProxyDispatcher;
 
@@ -31,6 +32,11 @@ pub struct AppContext {
 }
 
 impl AppContext {
+    pub fn build(config: &GatewayConfig, root: &RootContext) -> Self {
+        Self::new(config.clone(), Some(root.validator.clone()))
+    }
+
+    /// Without a validator the discovery helpers stay unguarded; meant for tests.
     pub fn new(
         config: GatewayConfig,
         oauth_validator: Option<Arc<dyn OauthTokenValidator>>,

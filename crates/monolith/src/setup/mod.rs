@@ -17,7 +17,6 @@
 
 mod boot;
 mod composition;
-pub(crate) mod context;
 mod seeders;
 
 pub use boot::CoreBoot;

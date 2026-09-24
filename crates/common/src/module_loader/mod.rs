@@ -28,21 +28,19 @@
 //!
 //! ```ignore
 //! let composer = ServiceComposer::new()
-//!     .register(OAuthModule::new(oauth_config, db))
-//!     .register(ApiModule::new(process, message, validator))
-//!     .register(DspModule::new(ssi_auth));
+//!     .register(OAuthModule::compose(common, &root, None))
+//!     .register(TransferAgentModule::compose(config, &root, None));
 //! let http = composer.http_router();          // axum Router, all modules nested
 //! let grpc = composer.grpc_routes();          // tonic Routes, all services added
 //! let migs = composer.migrations();           // every module's migrations, in order
 //! ```
 //!
 //! `sea_orm_migration`'s `MigratorTrait::migrations()` is a static fn, so an
-//! agent's migrator concatenates each module's migration list directly
-//! (e.g. `oauth::get_oauth_migrations()`) without building any module.
+//! agent's migrator concatenates each module's static `migrations()` directly
+//! without building any module.
 
 pub mod module_group;
 pub mod root_context;
 pub mod service_composer;
 pub mod service_module;
-pub mod to_be_deprecated;
 mod utils;

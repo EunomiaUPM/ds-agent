@@ -1,30 +1,52 @@
-use crate::config::OAuthConfig;
-use crate::data::factory::OAuthDataFactory;
+/*
+ * Copyright (C) 2026 - Universidad Politécnica de Madrid - UPM
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+//! OAuth as a composable module: the `/oauth` endpoints (token, users, clients, pats).
+
+use std::sync::Arc;
+
+use axum::Router;
+use common::auth::OauthTokenValidator;
+use common::config::services::CommonConfig;
+use common::module_loader::root_context::RootContext;
+use common::module_loader::service_module::ServiceModuleTrait;
+use sea_orm::DatabaseConnection;
+use sea_orm_migration::MigrationTrait;
+
 use crate::data::sea_orm::factory::SeaOrmDataFactory;
 use crate::http::clients_router::ClientsRouter;
 use crate::http::pats_router::PatsRouter;
 use crate::http::token_router::TokenRouter;
 use crate::http::users_router::UsersRouter;
-use crate::services::client_service::ClientServiceTrait;
-use crate::services::client_service::service::ClientService;
-use crate::services::pat_service::PatServiceTrait;
-use crate::services::pat_service::service::PatService;
-use crate::services::token_service::TokenServiceTrait;
-use crate::services::token_service::service::TokenService;
-use crate::services::user_service::UserServiceTrait;
-use crate::services::user_service::service::UserService;
-use axum::Router;
-use common::auth::OauthTokenValidator;
-use common::config::services::CommonConfig;
-use sea_orm::DatabaseConnection;
-use std::sync::Arc;
+use crate::setup::context::AppContext;
 
-#[derive(Default)]
-pub struct OAuthSetup {}
+pub struct OAuthModule {
+    ctx: AppContext,
+}
 
-impl OAuthSetup {
-    pub fn new() -> Self {
-        OAuthSetup {}
+impl OAuthModule {
+    pub fn compose(
+        common: &CommonConfig,
+        root: &RootContext,
+        event_bus: Option<events::EventBus>,
+    ) -> Self {
+        Self {
+            ctx: AppContext::build(common.clone().into(), root.db.clone(), event_bus),
+        }
     }
 
     /// Process token validator; matches `common::module_loader::root_context::ValidatorFactory`.
@@ -32,71 +54,46 @@ impl OAuthSetup {
         common: &CommonConfig,
         db: DatabaseConnection,
     ) -> Arc<dyn OauthTokenValidator> {
-        Self::new().build_token_service(common.clone().into(), db)
+        AppContext::token_service(&common.clone().into(), &SeaOrmDataFactory::new(db))
     }
 
-    /// Token services for OAuth token validation
-    pub fn build_token_service(
-        &self,
-        config: OAuthConfig,
-        db: DatabaseConnection,
-    ) -> Arc<dyn TokenServiceTrait> {
-        let factory = SeaOrmDataFactory::new(db);
-        Arc::new(TokenService::new(
-            factory.user_repository(),
-            factory.token_repository(),
-            factory.client_repository(),
-            factory.auth_code_repository(),
-            factory.pat_repository(),
-            config,
-        ))
+    pub fn migrations() -> Vec<Box<dyn MigrationTrait>> {
+        crate::get_oauth_migrations()
+    }
+}
+
+impl ServiceModuleTrait for OAuthModule {
+    fn name(&self) -> &'static str {
+        "oauth"
     }
 
-    /// Builds the full OAuth router (token, users, clients, pats)
-    /// Mount this under an appropriate prefix (e.g. `/oauth`) in the host service.
-    pub fn build_router(&self, config: OAuthConfig, db: DatabaseConnection) -> Router {
-        self.build_router_with_bus(config, db, None)
+    fn migrations(&self) -> Vec<Box<dyn MigrationTrait>> {
+        Self::migrations()
     }
 
-    pub fn build_router_with_bus(
-        &self,
-        config: OAuthConfig,
-        db: DatabaseConnection,
-        event_bus: Option<events::EventBus>,
-    ) -> Router {
-        let factory = SeaOrmDataFactory::new(db.clone());
-        let token_service = Arc::new(TokenService::new(
-            factory.user_repository(),
-            factory.token_repository(),
-            factory.client_repository(),
-            factory.auth_code_repository(),
-            factory.pat_repository(),
-            config.clone(),
-        ));
-        let token_svc: Arc<dyn TokenServiceTrait> = token_service.clone();
-        let validator: Arc<dyn common::auth::OauthTokenValidator> = token_service;
-        let user_svc: Arc<dyn UserServiceTrait> =
-            Arc::new(UserService::new(factory.user_repository()).with_event_bus(event_bus.clone()));
-        let client_svc: Arc<dyn ClientServiceTrait> = Arc::new(
-            ClientService::new(factory.client_repository()).with_event_bus(event_bus.clone()),
-        );
-        let pat_svc: Arc<dyn PatServiceTrait> =
-            Arc::new(PatService::new(factory.pat_repository()).with_event_bus(event_bus));
-        let issuer = config.issuer.clone();
-        let token_router = TokenRouter::new(token_svc.clone(), user_svc.clone(), issuer).router();
-        let users_router = UsersRouter::new(user_svc).router();
-        let clients_router = ClientsRouter::new(client_svc).router();
-        let pats_router = PatsRouter::new(pat_svc).router();
-
+    fn http(&self) -> Option<(String, Router)> {
+        let ctx = &self.ctx;
+        let validator: Arc<dyn OauthTokenValidator> = ctx.token_svc.clone();
+        let token_router = TokenRouter::new(
+            ctx.token_svc.clone(),
+            ctx.user_svc.clone(),
+            ctx.config.issuer.clone(),
+        )
+        .router();
         let protected = Router::new()
-            .nest("/users", users_router)
-            .nest("/clients", clients_router)
-            .nest("/pats", pats_router)
+            .nest("/users", UsersRouter::new(ctx.user_svc.clone()).router())
+            .nest(
+                "/clients",
+                ClientsRouter::new(ctx.client_svc.clone()).router(),
+            )
+            .nest("/pats", PatsRouter::new(ctx.pat_svc.clone()).router())
             .route_layer(axum::middleware::from_fn_with_state(
                 validator,
                 common::auth::http::AuthHttpMiddleware::run,
             ));
-
-        Router::new().merge(token_router).merge(protected)
+        Some((
+            "/oauth".to_string(),
+            Router::new().merge(token_router).merge(protected),
+        ))
     }
 }

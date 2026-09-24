@@ -15,10 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+mod admin_module;
 mod boot;
 mod composition;
 pub(crate) mod context;
-pub(crate) mod http_router;
 
 pub use boot::NegotiationAgentBoot;
 pub use composition::NegotiationAgentModule;

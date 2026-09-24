@@ -33,7 +33,7 @@ pub use entities::connector_instance::{ConnectorInstanceDto, ConnectorInstantiat
 pub use entities::interaction::{InteractionConfig, PullLifecycle, PushLifecycle};
 pub use entities::parameters::TemplateVecString;
 pub use entities::resource::{HttpSpec, ProtocolSpec};
-pub use setup::ConnectorSetup;
+pub use setup::ConnectorModule;
 
 pub use entities::auth_config::{
     ApiKeyLocation, AuthenticationConfig, BasicAuthConfig, OAuthGrantType, TokenExpireAction,

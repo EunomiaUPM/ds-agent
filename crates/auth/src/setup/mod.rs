@@ -17,6 +17,7 @@
 
 mod boot;
 mod composition;
+pub(crate) mod context;
 
 pub use boot::AuthBoot;
 pub use composition::AuthModule;

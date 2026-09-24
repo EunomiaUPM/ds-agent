@@ -22,16 +22,14 @@ use common::boot::BootstrapServiceTrait;
 use common::config::services::{CommonConfig, ContractsConfig};
 use common::module_loader::root_context::RootContext;
 use common::module_loader::service_composer::ServiceComposer;
-use common::module_loader::to_be_deprecated::ToBeDeprecatedRouterModule;
-use oauth::setup::composition::OAuthSetup;
+use oauth::setup::OAuthModule;
 use sea_orm::DatabaseConnection;
 use sea_orm_migration::MigrationTrait;
 use ymir::errors::Outcome;
 
-use crate::SERVICE_NAME;
 use crate::setup::NegotiationAgentModule;
-use crate::setup::http_router::create_root_http_router;
 
+/// Standalone negotiation agent.
 pub struct NegotiationAgentBoot;
 
 #[async_trait::async_trait]
@@ -43,13 +41,11 @@ impl BootstrapServiceTrait for NegotiationAgentBoot {
     }
 
     fn validator(common: &CommonConfig, db: DatabaseConnection) -> Arc<dyn OauthTokenValidator> {
-        OAuthSetup::validator(common, db)
+        OAuthModule::validator(common, db)
     }
 
     async fn compose(config: &ContractsConfig, root: &RootContext) -> Outcome<ServiceComposer> {
-        let http = create_root_http_router(config, root, None).await;
         Ok(ServiceComposer::new()
-            .register(ToBeDeprecatedRouterModule::merged(SERVICE_NAME, http))
-            .register(NegotiationAgentModule::compose(root, None)))
+            .register(NegotiationAgentModule::compose(config, root, None).await?))
     }
 }

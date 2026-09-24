@@ -27,8 +27,8 @@ use common::config::types::traits::{CacheConfigTrait, CommonConfigTrait};
 use common::config::ApplicationConfig;
 use common::module_loader::root_context::RootContext;
 use common::module_loader::service_composer::ServiceComposer;
-use oauth::setup::composition::OAuthSetup;
-use oauth::setup::seeder::AdminSeeder;
+use oauth::setup::AdminSeeder;
+use oauth::setup::OAuthModule;
 use sea_orm::DatabaseConnection;
 use sea_orm_migration::MigrationTrait;
 use ymir::config::traits::{ApiConfigTrait, HostsConfigTrait};
@@ -52,7 +52,7 @@ impl BootstrapServiceTrait for CoreBoot {
     }
 
     fn validator(common: &CommonConfig, db: DatabaseConnection) -> Arc<dyn OauthTokenValidator> {
-        OAuthSetup::validator(common, db)
+        OAuthModule::validator(common, db)
     }
 
     async fn compose(config: &ApplicationConfig, root: &RootContext) -> Outcome<ServiceComposer> {

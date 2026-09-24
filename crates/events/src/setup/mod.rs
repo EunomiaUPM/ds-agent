@@ -15,8 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod composition;
-pub mod context;
+mod composition;
+pub(crate) mod context;
 
 pub use composition::EventsModule;
-pub use context::AppContext;

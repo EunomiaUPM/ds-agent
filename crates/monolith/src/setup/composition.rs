@@ -15,10 +15,11 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::setup::context::CoreContext;
-use auth::data::migrations::get_auth_migrations;
+//! Every agent as one module group, sharing the root context and a single event bus.
+
+use auth::setup::AuthModule;
 use axum::Router;
-use catalog_agent::get_catalog_migrations;
+use bff::BffModule;
 use catalog_agent::setup::CatalogAgentModule;
 use common::boot::workers::BackgroundWorker;
 use common::config::types::traits::CommonConfigTrait;
@@ -26,76 +27,49 @@ use common::config::ApplicationConfig;
 use common::module_loader::module_group::ModuleGroup;
 use common::module_loader::root_context::RootContext;
 use common::module_loader::service_module::ServiceModuleTrait;
-use common::module_loader::to_be_deprecated::ToBeDeprecatedRouterModule;
-use connector::get_connector_migrations;
 use dataplane::get_dataplane_migrations;
-use events::data::migrations::get_events_migrations;
+use events::setup::EventsModule;
 use keystore::KeystoreModule;
-use negotiation_agent::get_negotiation_agent_migrations;
 use negotiation_agent::setup::NegotiationAgentModule;
-use oauth::get_oauth_migrations;
-use oauth::setup::module::OAuthModule;
+use oauth::setup::OAuthModule;
 use sea_orm_migration::MigrationTrait;
-use std::sync::Arc;
 use tonic::service::RoutesBuilder;
 use transfer_agent::setup::TransferAgentModule;
 use ymir::errors::Outcome;
 
 pub struct MonolithModule {
-    group: ModuleGroup,
+    modules: ModuleGroup,
 }
 
 impl MonolithModule {
     pub async fn compose(config: &ApplicationConfig, root: &RootContext) -> Outcome<Self> {
-        let ctx = CoreContext::build(config, root).await?;
-        let bus = (*ctx.events_ctx.event_bus).clone();
-
-        let transfer = TransferAgentModule::compose(config.transfer(), root, Some(bus.clone()));
-        // Catalog and negotiation contribute their gRPC plane as modules; their HTTP plane
-        // still comes through the transitional router wrappers below.
-        let catalog_grpc =
-            CatalogAgentModule::compose(config.catalog(), root, Some(bus.clone())).await?;
-        let negotiation_grpc = NegotiationAgentModule::compose(root, Some(bus.clone()));
-        let oauth = OAuthModule::new(config.common().clone().into(), root.db.clone())
-            .with_event_bus(Some(bus.clone()));
-        let keystore =
-            KeystoreModule::build(config.monolith(), Arc::new(config.clone()), root, Some(bus));
-
-        // Preserve the previous `create_core_router` mount layout: each agent
-        // merged at the root, keystore nested under `{api}/keystore`.
-        let group = ModuleGroup::new("monolith")
-            .register(ToBeDeprecatedRouterModule::merged(
-                "catalog-agent",
-                ctx.catalog_router,
+        let events = EventsModule::compose(root);
+        let bus = Some(events.event_bus());
+        let modules = ModuleGroup::new("monolith")
+            .register(CatalogAgentModule::compose(config.catalog(), root, bus.clone()).await?)
+            .register(AuthModule::compose(config.ssi_auth(), root).await?)
+            .register(NegotiationAgentModule::compose(config.contracts(), root, bus.clone()).await?)
+            .register(OAuthModule::compose(config.common(), root, bus.clone()))
+            .register(TransferAgentModule::compose(
+                config.transfer(),
+                root,
+                bus.clone(),
             ))
-            .register(catalog_grpc)
-            .register(ctx.auth)
-            .register(ToBeDeprecatedRouterModule::merged(
-                "negotiation-agent",
-                ctx.negotiation_router,
-            ))
-            .register(negotiation_grpc)
-            .register(oauth)
-            .register(transfer)
-            .register(events::setup::composition::EventsModule::new(
-                ctx.events_ctx.clone(),
-                root.validator.clone(),
-            ))
-            .register(ctx.gateway)
-            .register(keystore);
-
-        Ok(Self { group })
+            .register(events)
+            .register(BffModule::compose(config.gateway(), root))
+            .register(KeystoreModule::compose(config, root, bus));
+        Ok(Self { modules })
     }
 
+    /// Static aggregation in cross-crate FK order; `MigratorTrait` cannot drive `compose`.
     pub fn migrations() -> Vec<Box<dyn MigrationTrait>> {
         [
-            get_catalog_migrations(),
-            get_connector_migrations(),
-            get_negotiation_agent_migrations(),
-            get_events_migrations(),
-            get_auth_migrations(),
+            CatalogAgentModule::migrations(),
+            NegotiationAgentModule::migrations(),
+            EventsModule::migrations(),
+            AuthModule::migrations(),
             get_dataplane_migrations(),
-            get_oauth_migrations(),
+            OAuthModule::migrations(),
             TransferAgentModule::migrations(),
             KeystoreModule::migrations(),
         ]
@@ -115,18 +89,18 @@ impl ServiceModuleTrait for MonolithModule {
     }
 
     fn http(&self) -> Option<(String, Router)> {
-        self.group.http()
+        self.modules.http()
     }
 
     fn grpc(&self, routes: &mut RoutesBuilder) {
-        self.group.grpc(routes);
+        self.modules.grpc(routes);
     }
 
     fn grpc_descriptors(&self) -> Vec<&'static [u8]> {
-        self.group.grpc_descriptors()
+        self.modules.grpc_descriptors()
     }
 
     fn workers(&self) -> Vec<Box<dyn BackgroundWorker>> {
-        self.group.workers()
+        self.modules.workers()
     }
 }

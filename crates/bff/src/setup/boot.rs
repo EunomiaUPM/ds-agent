@@ -22,13 +22,12 @@ use common::boot::BootstrapServiceTrait;
 use common::config::services::{CommonConfig, GatewayConfig};
 use common::module_loader::root_context::RootContext;
 use common::module_loader::service_composer::ServiceComposer;
-use oauth::setup::composition::OAuthSetup;
+use oauth::setup::OAuthModule;
 use sea_orm::DatabaseConnection;
 use sea_orm_migration::MigrationTrait;
 use ymir::errors::Outcome;
 
 use crate::setup::composition::BffModule;
-use crate::setup::context::AppContext;
 
 /// Standalone gateway: owns no migrations, but validates tokens against the shared DB.
 pub struct GatewayBoot;
@@ -42,11 +41,10 @@ impl BootstrapServiceTrait for GatewayBoot {
     }
 
     fn validator(common: &CommonConfig, db: DatabaseConnection) -> Arc<dyn OauthTokenValidator> {
-        OAuthSetup::validator(common, db)
+        OAuthModule::validator(common, db)
     }
 
     async fn compose(config: &GatewayConfig, root: &RootContext) -> Outcome<ServiceComposer> {
-        let ctx = AppContext::new(config.clone(), Some(root.validator.clone()));
-        Ok(ServiceComposer::new().register(BffModule::new(Arc::new(ctx))))
+        Ok(ServiceComposer::new().register(BffModule::compose(config, root)))
     }
 }

@@ -30,7 +30,7 @@ use crate::setup::admin_module::TransferAdminModule;
 use crate::setup::context::AppContext;
 
 pub struct TransferAgentModule {
-    ctx: AppContext,
+    modules: ModuleGroup,
 }
 
 impl TransferAgentModule {
@@ -39,17 +39,11 @@ impl TransferAgentModule {
         root: &RootContext,
         event_bus: Option<events::EventBus>,
     ) -> Self {
-        Self::new(AppContext::build(config, root, event_bus))
-    }
-
-    pub(crate) fn new(ctx: AppContext) -> Self {
-        Self { ctx }
-    }
-
-    fn modules(&self) -> ModuleGroup {
-        ModuleGroup::new(SERVICE_NAME)
-            .register(DspModule::new(Arc::new(self.ctx.clone())))
-            .register(TransferAdminModule::new(Arc::new(self.ctx.clone())))
+        let ctx = Arc::new(AppContext::build(config, root, event_bus));
+        let modules = ModuleGroup::new(SERVICE_NAME)
+            .register(DspModule::new(ctx.clone()))
+            .register(TransferAdminModule::new(ctx));
+        Self { modules }
     }
 
     pub fn migrations() -> Vec<Box<dyn MigrationTrait>> {
@@ -67,14 +61,14 @@ impl ServiceModuleTrait for TransferAgentModule {
     }
 
     fn http(&self) -> Option<(String, Router)> {
-        self.modules().http()
+        self.modules.http()
     }
 
     fn grpc(&self, routes: &mut RoutesBuilder) {
-        self.modules().grpc(routes);
+        self.modules.grpc(routes);
     }
 
     fn grpc_descriptors(&self) -> Vec<&'static [u8]> {
-        self.modules().grpc_descriptors()
+        self.modules.grpc_descriptors()
     }
 }

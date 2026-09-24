@@ -15,12 +15,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Management plane of the transfer agent: the `{api}/transfer-agent-ref` HTTP API and its
+//! gRPC mirror.
+
 use std::sync::Arc;
 
 use axum::Router;
 use common::config::types::traits::CommonConfigTrait;
 use common::module_loader::service_module::ServiceModuleTrait;
-use sea_orm_migration::MigrationTrait;
 use tonic::service::RoutesBuilder;
 use ymir::config::traits::ApiConfigTrait;
 
@@ -47,20 +49,15 @@ impl TransferAdminModule {
     /// Mount prefix of this agent's own API, e.g. `/api/v1/transfer-agent-ref`.
     fn base_path(&self) -> String {
         format!(
-            "{}/{}",
-            self.ctx.config.common().get_api_version(),
-            SERVICE_NAME
+            "{}/{SERVICE_NAME}",
+            self.ctx.config.common().get_api_version()
         )
     }
 }
 
 impl ServiceModuleTrait for TransferAdminModule {
     fn name(&self) -> &'static str {
-        "transfer-agent"
-    }
-
-    fn migrations(&self) -> Vec<Box<dyn MigrationTrait>> {
-        crate::data::sea_orm::migrations::get_migrations()
+        "transfer-admin"
     }
 
     fn http(&self) -> Option<(String, Router)> {
@@ -79,7 +76,7 @@ impl ServiceModuleTrait for TransferAdminModule {
         );
         let api_version = self.ctx.config.common().get_api_version();
         let combined = Router::new()
-            .nest(&format!("{}/transfer-agent", api_version), router.clone())
+            .nest(&format!("{api_version}/transfer-agent"), router.clone())
             .nest(&self.base_path(), router);
         Some((String::new(), combined))
     }

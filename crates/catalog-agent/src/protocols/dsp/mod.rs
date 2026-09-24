@@ -42,7 +42,6 @@ use common::config::services::traits::CatalogConfigTrait;
 use common::config::services::CatalogConfig;
 use common::facades::ssi_auth_facade::ssi_auth_facade::SSIAuthFacadeService;
 use common::facades::ssi_auth_facade::MatesFacadeTrait;
-use common::http_client::HttpClient;
 use std::sync::Arc;
 use ymir::errors::Outcome;
 
@@ -111,9 +110,6 @@ impl ProtocolPluginTrait for CatalogDSP {
     }
 
     async fn build_router(&self) -> Outcome<Router> {
-        // http
-        let http_client = Arc::new(HttpClient::new(10, 3));
-
         // Validator
         let validator_helper = Arc::new(ValidationHelperService::new());
         let validator_payload = Arc::new(ValidatePayloadService::new(validator_helper.clone()));
@@ -127,10 +123,8 @@ impl ProtocolPluginTrait for CatalogDSP {
         ));
 
         // facades
-        let catalog_well_known_rpc_facade = Arc::new(WellKnownRPCFacadeForDSProtocol::new(
-            self.config.clone(),
-            http_client.clone(),
-        ));
+        let catalog_well_known_rpc_facade =
+            Arc::new(WellKnownRPCFacadeForDSProtocol::new(self.config.clone()));
         let facades = Arc::new(FacadeService::new(catalog_well_known_rpc_facade.clone()));
 
         // persistence
@@ -153,7 +147,6 @@ impl ProtocolPluginTrait for CatalogDSP {
         ));
         let rpc_orchestrator = Arc::new(RPCOrchestratorService::new(
             rpc_validation.clone(),
-            http_client.clone(),
             facades.clone(),
             rpc_persistence.clone(),
             self.mates_facade.clone(),

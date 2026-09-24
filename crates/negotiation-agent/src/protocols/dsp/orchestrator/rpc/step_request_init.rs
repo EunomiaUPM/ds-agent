@@ -27,12 +27,14 @@ use crate::protocols::dsp::protocol_types::{
 };
 use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRpcSteps;
 use crate::services::negotiation_process::views::NegotiationProcessView;
+use axum::http::HeaderMap;
 use common::auth::AccessScope;
 use common::dsp_common::DspActor;
 use common::facades::ssi_auth_facade::MatesFacadeTrait;
-use common::http_client::HttpClient;
 use std::sync::Arc;
 use ymir::errors::Outcome;
+use ymir::services::client::ClientExt;
+use ymir::utils::http_client;
 
 // RpcRequestInitStep ───────────────────────────────────────────────────────
 
@@ -86,7 +88,7 @@ impl NegotiationRpcStep for RpcRequestInitStep {
     /// POSTs the request message to `{provider_address}/negotiations/request`
     /// and creates the local process record.
     async fn send_and_persist(
-        http_client: &HttpClient,
+        headers: Option<HeaderMap>,
         persistence: &Arc<dyn NegotiationRpcPersistenceTrait>,
         ctx: &NegotiationRpcInitialContext,
         input: &RpcNegotiationRequestInitMessageDto,
@@ -98,8 +100,8 @@ impl NegotiationRpcStep for RpcRequestInitStep {
         let request_body: NegotiationProcessMessageWrapper<NegotiationRequestInitMessageDto> =
             input.clone().into();
 
-        let response: NegotiationProcessMessageWrapper<NegotiationAckMessageDto> = http_client
-            .post_json(peer_url.as_str(), &request_body)
+        let response: NegotiationProcessMessageWrapper<NegotiationAckMessageDto> = http_client()
+            .post_json(peer_url.as_str(), headers, &request_body)
             .await?;
 
         // Provider PID is only known after the peer acknowledges.

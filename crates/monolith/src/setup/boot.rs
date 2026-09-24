@@ -64,7 +64,7 @@ impl BootstrapServiceTrait for CoreBoot {
         root: &RootContext,
     ) -> Outcome<Vec<Box<dyn BootSeeder>>> {
         let common = config.common();
-        let client = Arc::new(ServiceHttpClient::from_common(common, 30));
+        let client = Arc::new(ServiceHttpClient::from_common(common));
         let catalog_api = format!(
             "{}{}/{}",
             common.get_host(HostType::Http),

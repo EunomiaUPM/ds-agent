@@ -20,7 +20,6 @@ use catalog_agent::{DatasetDto, DistributionDto};
 use common::config::services::TransferConfig;
 use common::config::services::traits::TransferConfigTrait;
 use common::config::types::traits::MinKnownConfigTrait;
-use common::http_client::HttpClient;
 use common::utils::get_urn_from_string;
 use connector::{ConnectorInstanceDto, ConnectorInstanceServiceTrait};
 use negotiation_agent::AgreementView;
@@ -29,22 +28,21 @@ use std::sync::Arc;
 use urn::Urn;
 use ymir::config::types::HostType;
 use ymir::errors::{Errors, Outcome};
+use ymir::services::client::ClientExt;
+use ymir::utils::http_client;
 
 pub struct DataServiceFacadeServiceForDSProtocol {
     config: Arc<TransferConfig>,
-    client: Arc<HttpClient>,
     connector_entity: Arc<dyn ConnectorInstanceServiceTrait>,
 }
 
 impl DataServiceFacadeServiceForDSProtocol {
     pub fn new(
         config: Arc<TransferConfig>,
-        client: Arc<HttpClient>,
         connector_entity: Arc<dyn ConnectorInstanceServiceTrait>,
     ) -> Self {
         Self {
             config,
-            client,
             connector_entity,
         }
     }
@@ -65,9 +63,8 @@ impl DataServiceFacadeTrait for DataServiceFacadeServiceForDSProtocol {
         );
 
         // 1. resolve agreement - get target (dataset id)
-        let agreement = self
-            .client
-            .get_json::<AgreementView>(agreement_url.as_str())
+        let agreement = http_client()
+            .get_json::<AgreementView>(agreement_url.as_str(), None)
             .await?;
         let agreement_target = get_urn_from_string(&agreement.inner.target)?;
 
@@ -77,9 +74,8 @@ impl DataServiceFacadeTrait for DataServiceFacadeServiceForDSProtocol {
             catalog_url,
             agreement_target.clone()
         );
-        let dataset = self
-            .client
-            .get_json::<DatasetDto>(datasets_url.as_str())
+        let dataset = http_client()
+            .get_json::<DatasetDto>(datasets_url.as_str(), None)
             .await?;
         let dataset_id = get_urn_from_string(&dataset.inner.id)?;
 
@@ -92,9 +88,8 @@ impl DataServiceFacadeTrait for DataServiceFacadeServiceForDSProtocol {
                 .ok_or_else(|| Errors::crazy("dct_formats is required", None))?
                 .to_string()
         );
-        let distribution = self
-            .client
-            .get_json::<DistributionDto>(distribution_url.as_str())
+        let distribution = http_client()
+            .get_json::<DistributionDto>(distribution_url.as_str(), None)
             .await?;
         let distribution_id = Urn::from_str(distribution.inner.id.as_str())?;
 

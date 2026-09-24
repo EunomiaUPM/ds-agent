@@ -43,7 +43,6 @@ use common::auth::AccessScope;
 use common::config::services::ContractsConfig;
 use common::dsp_common::DspActor;
 use common::facades::ssi_auth_facade::MatesFacadeTrait;
-use common::http_client::HttpClient;
 use std::sync::Arc;
 use ymir::errors::Outcome;
 
@@ -62,7 +61,6 @@ pub struct RPCOrchestratorService {
     validator: Arc<dyn ValidationRpcSteps>,
     persistence_service: Arc<dyn NegotiationRpcPersistenceTrait>,
     _config: Arc<ContractsConfig>,
-    http_client: Arc<HttpClient>,
     mates_service: Arc<dyn MatesFacadeTrait>,
 }
 
@@ -71,14 +69,12 @@ impl RPCOrchestratorService {
         validator: Arc<dyn ValidationRpcSteps>,
         persistence_service: Arc<dyn NegotiationRpcPersistenceTrait>,
         _config: Arc<ContractsConfig>,
-        http_client: Arc<HttpClient>,
         mates_service: Arc<dyn MatesFacadeTrait>,
     ) -> RPCOrchestratorService {
         RPCOrchestratorService {
             validator,
             persistence_service,
             _config,
-            http_client,
             mates_service,
         }
     }
@@ -251,9 +247,9 @@ impl RPCOrchestratorService {
         S::validate(&self.validator, &DspActor::user(scope), input).await?;
         let ctx = S::prepare_context(scope, input, &self.persistence_service, &self.mates_service)
             .await?;
-        S::apply_auth_token(&self.mates_service, &self.http_client, S::auth_peer(&ctx)).await;
+        let headers = S::peer_headers(&self.mates_service, S::auth_peer(&ctx)).await?;
         let (response, process) =
-            S::send_and_persist(&self.http_client, &self.persistence_service, &ctx, input).await?;
+            S::send_and_persist(headers, &self.persistence_service, &ctx, input).await?;
         Ok((response, process))
     }
 }

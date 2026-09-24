@@ -164,7 +164,7 @@ impl DspTransfer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use common::dsp_common::rdf::DspCanonicalizer;
+    use common::dsp_common::rdf::DspProfile;
     use common::rdf::ExpandedDoc;
     use serde_json::json;
 
@@ -172,8 +172,8 @@ mod tests {
         message: serde_json::Value,
         kind: TransferDSPMessageType,
     ) -> TransferProtocolFields {
-        let expansion = DspCanonicalizer::new(message)
-            .expand_once()
+        let expansion = DspProfile::shared()
+            .expand(&message)
             .await
             .expect("expansion");
         let doc = ExpandedDoc::new(&expansion.expanded).expect("array");
@@ -269,14 +269,14 @@ mod tests {
 
     #[tokio::test]
     async fn a_data_address_without_an_endpoint_type_is_malformed() {
-        let expansion = DspCanonicalizer::new(json!({
-            "@context": "https://w3id.org/dspace/2025/1/context.jsonld",
-            "@type": "TransferRequestMessage",
-            "dataAddress": {"@type": "DataAddress", "endpoint": "http://example.com"}
-        }))
-        .expand_once()
-        .await
-        .unwrap();
+        let expansion = DspProfile::shared()
+            .expand(&json!({
+                "@context": "https://w3id.org/dspace/2025/1/context.jsonld",
+                "@type": "TransferRequestMessage",
+                "dataAddress": {"@type": "DataAddress", "endpoint": "http://example.com"}
+            }))
+            .await
+            .unwrap();
         let doc = ExpandedDoc::new(&expansion.expanded).unwrap();
         let kind = TransferDSPMessageType::TransferRequestMessage;
         let type_iri = DspTransfer::type_iri(&kind);

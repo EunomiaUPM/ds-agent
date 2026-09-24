@@ -18,6 +18,8 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
+use ymir::services::client::ClientTrait;
+use ymir::utils::http_client;
 
 use axum::routing::get;
 use axum::Router;
@@ -207,7 +209,8 @@ async fn http_server_serves_until_cancelled() {
     let mut workers = WorkerSet::new(token.clone());
     workers.spawn(Box::new(server));
 
-    let body = reqwest::get(format!("http://{addr}/ping"))
+    let body = http_client()
+        .get(&format!("http://{addr}/ping"), None)
         .await
         .unwrap()
         .text()

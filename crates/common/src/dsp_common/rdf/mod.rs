@@ -17,6 +17,8 @@
 
 //! Dataspace Protocol 2025-1 RDF profile, canonical contexts, and engine integration.
 
+use std::sync::LazyLock;
+
 use crate::rdf::canonical::{RdfCanonicalizer, RdfExpansion};
 use crate::rdf::engine::RdfEngine;
 use crate::rdf::loader::RdfContextLoader;
@@ -28,6 +30,9 @@ const DSP_CONTEXT_DOC: &str = include_str!("../../../assets/dspace-2025-1-contex
 pub const DSP_ODRL_PROFILE_URL: &str = "https://w3id.org/dspace/2025/1/odrl-profile.jsonld";
 const DSP_ODRL_PROFILE_DOC: &str =
     include_str!("../../../assets/dspace-2025-1-odrl-profile.jsonld");
+
+/// DSP engine shared by the process, so contexts are parsed once and remote ones fetched once.
+static DSP_ENGINE: LazyLock<RdfEngine> = LazyLock::new(DspProfile::engine);
 
 /// Dataspace Protocol 2025-1 profile implementation.
 #[derive(Clone, Copy, Debug, Default)]
@@ -51,5 +56,10 @@ impl DspProfile {
     /// Creates an RdfEngine pre-configured for Dataspace Protocol 2025-1.
     pub fn engine() -> RdfEngine {
         RdfEngine::with_profile::<Self>()
+    }
+
+    /// Process-wide DSP engine; the embedded DSP contexts never hit the network.
+    pub fn shared() -> &'static RdfEngine {
+        &DSP_ENGINE
     }
 }

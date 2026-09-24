@@ -20,16 +20,17 @@ use crate::engine::dataplane_manager::dataplane_context::DataplaneContext;
 use crate::engine::dataplane_manager::dataplane_proxy::HTTP_LISTENER_PATH;
 use crate::engine::dataplane_manager::dataplane_runtime::ResolvedAuthCredentials;
 use crate::errors::DataplaneError;
-use common::http_client::HttpClient;
+use axum::http::HeaderMap;
 use connector::{
     InteractionConfig, KeystoreLookup, ProtocolSpec, RuntimeParametersResolver, TemplateVecString,
 };
 use serde_json::{json, Value};
 use std::sync::Arc;
 use ymir::errors::Outcome;
+use ymir::services::client::ClientExt;
+use ymir::utils::{bearer_headers, http_client};
 
 pub struct HttpPubSubscriber {
-    http_client: HttpClient,
     keystore: Option<Arc<dyn KeystoreLookup>>,
 }
 
@@ -43,32 +44,20 @@ impl std::fmt::Debug for HttpPubSubscriber {
 
 impl HttpPubSubscriber {
     pub fn new(keystore: Option<Arc<dyn KeystoreLookup>>) -> Self {
-        let http_client = HttpClient::new(1, 1);
-        Self {
-            http_client,
-            keystore,
-        }
+        Self { keystore }
     }
 
-    /// Reads resolved credentials from the context runtime and configures the HTTP
-    /// client auth token for the next request.
+    /// Bearer headers from the context's resolved credentials, sent with this request only.
     ///
-    /// Only `BearerToken` and `OAuth2` are supported here — `HttpClient` sends an
-    /// `Authorization: Bearer <token>` header. Other credential types (BasicAuth,
-    /// ApiKey) cannot be injected through this client and are left as no-ops.
-    async fn apply_auth(&self, context: &DataplaneContext) {
-        let Some(runtime) = context.runtime() else {
-            return;
+    /// Only `BearerToken` and `OAuth2` are supported here; other credential types
+    /// (BasicAuth, ApiKey) send no `Authorization` header.
+    fn auth_headers(context: &DataplaneContext) -> Outcome<Option<HeaderMap>> {
+        let token = match context.runtime().map(|r| &r.auth) {
+            Some(ResolvedAuthCredentials::BearerToken { token }) => token,
+            Some(ResolvedAuthCredentials::OAuth2 { access_token, .. }) => access_token,
+            _ => return Ok(None),
         };
-        match &runtime.auth {
-            ResolvedAuthCredentials::BearerToken { token } => {
-                self.http_client.set_auth_token(token.clone()).await;
-            }
-            ResolvedAuthCredentials::OAuth2 { access_token, .. } => {
-                self.http_client.set_auth_token(access_token.clone()).await;
-            }
-            _ => {}
-        }
+        bearer_headers(token).map(Some)
     }
 }
 
@@ -117,16 +106,17 @@ impl DriverPubSubTrait for HttpPubSubscriber {
             .as_ref()
             .map(|s| serde_json::from_str(s).unwrap_or_else(|_| json!(s)));
         let url = http_spec.url_template.clone();
-        self.apply_auth(context).await;
+        let headers = Self::auth_headers(context)?;
         let response: Value = {
             let b = body.unwrap_or(json!({}));
-            self.http_client.post_json(&url, &b).await.map_err(|e| {
-                DataplaneError::PubSubRequestFailed {
+            http_client()
+                .post_json(&url, headers, &b)
+                .await
+                .map_err(|e| DataplaneError::PubSubRequestFailed {
                     method: "POST".to_string(),
                     url: url.clone(),
                     reason: e.to_string(),
-                }
-            })?
+                })?
         };
 
         // store subscription info in context
@@ -203,10 +193,10 @@ impl DriverPubSubTrait for HttpPubSubscriber {
             .map(|s| serde_json::from_str(s).unwrap_or_else(|_| json!(s)));
 
         // perform unsubscription
-        self.apply_auth(context).await;
+        let headers = Self::auth_headers(context)?;
         let response: Value = match method.as_str() {
             "DELETE" => {
-                self.http_client.delete::<()>(&url).await.map_err(|e| {
+                http_client().delete_ok(&url, headers).await.map_err(|e| {
                     DataplaneError::PubSubRequestFailed {
                         method: "DELETE".to_string(),
                         url: url.clone(),
@@ -217,25 +207,27 @@ impl DriverPubSubTrait for HttpPubSubscriber {
             }
             "POST" => {
                 let b = body.unwrap_or(json!({}));
-                self.http_client.post_json(&url, &b).await.map_err(|e| {
-                    DataplaneError::PubSubRequestFailed {
+                http_client()
+                    .post_json(&url, headers, &b)
+                    .await
+                    .map_err(|e| DataplaneError::PubSubRequestFailed {
                         method: "POST".to_string(),
                         url: url.clone(),
                         reason: e.to_string(),
-                    }
-                })?
+                    })?
             }
             "PUT" => {
                 let b = body.unwrap_or(json!({}));
-                self.http_client.put_json(&url, &b).await.map_err(|e| {
-                    DataplaneError::PubSubRequestFailed {
+                http_client()
+                    .put_json(&url, headers, &b)
+                    .await
+                    .map_err(|e| DataplaneError::PubSubRequestFailed {
                         method: "PUT".to_string(),
                         url: url.clone(),
                         reason: e.to_string(),
-                    }
-                })?
+                    })?
             }
-            "GET" => self.http_client.get_json(&url).await.map_err(|e| {
+            "GET" => http_client().get_json(&url, headers).await.map_err(|e| {
                 DataplaneError::PubSubRequestFailed {
                     method: "GET".to_string(),
                     url: url.clone(),

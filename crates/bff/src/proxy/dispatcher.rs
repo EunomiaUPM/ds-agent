@@ -26,11 +26,13 @@ use common::config::services::traits::GatewayConfigTrait;
 use common::config::services::GatewayConfig;
 use common::config::types::traits::{CommonConfigTrait, MinKnownConfigTrait};
 use futures_util::TryStreamExt;
-use reqwest::Client;
 use tracing::error;
 use uuid::Uuid;
 use ymir::config::traits::SingleHostTrait;
 use ymir::config::types::HostType;
+use ymir::services::client::ClientTrait;
+use ymir::types::http::StreamBody;
+use ymir::utils::stream_client;
 
 /// Upstream calls other than event streams must answer within this time.
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
@@ -39,21 +41,11 @@ const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
 #[derive(Clone)]
 pub struct HttpProxyDispatcher {
     config: GatewayConfig,
-    client: Client,
 }
 
 impl HttpProxyDispatcher {
-    /// Initialize dispatcher with tuned connection pooling and timeouts.
     pub fn new(config: GatewayConfig) -> Self {
-        let client = Client::builder()
-            .connect_timeout(Duration::from_secs(10))
-            .pool_idle_timeout(Duration::from_secs(90))
-            .pool_max_idle_per_host(32)
-            .tcp_keepalive(Duration::from_secs(60))
-            .build()
-            .unwrap_or_default();
-
-        Self { config, client }
+        Self { config }
     }
 
     /// Proxy generic microservice requests matching service prefix.
@@ -266,16 +258,16 @@ impl HttpProxyDispatcher {
             .try_filter_map(|frame| futures_util::future::ready(Ok(frame.into_data().ok())))
             .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync + 'static>);
 
-        let reqwest_body = reqwest::Body::wrap_stream(body_stream);
-
-        let mut upstream_req = self.client.request(method, &target_url);
-        if !is_event_stream {
-            upstream_req = upstream_req.timeout(REQUEST_TIMEOUT);
-        }
-        match upstream_req
-            .headers(headers)
-            .body(reqwest_body)
-            .send()
+        // Event streams stay open indefinitely; everything else gets a deadline.
+        let timeout = (!is_event_stream).then_some(REQUEST_TIMEOUT);
+        match stream_client()
+            .stream(
+                method,
+                &target_url,
+                Some(headers),
+                StreamBody::wrap_stream(body_stream),
+                timeout,
+            )
             .await
         {
             Ok(upstream_res) => {

@@ -28,7 +28,6 @@ use crate::services::connector_template::ConnectorTemplateServiceTrait;
 use common::auth::OauthTokenValidator;
 use common::config::services::CatalogConfig;
 use common::config::types::traits::CommonConfigTrait;
-use common::http_client::HttpClient;
 use common::module_loader::root_context::RootContext;
 use ymir::config::traits::HostsConfigTrait;
 use ymir::config::types::HostType;
@@ -48,10 +47,7 @@ impl AppContext {
         event_bus: Option<events::EventBus>,
     ) -> Self {
         let repo = Arc::new(ConnectorRepoForSql::create_repo(root.db.clone()));
-        let distribution_facade = Arc::new(DistributionFacadeServiceForConnector::new(
-            config,
-            Arc::new(HttpClient::new(3, 1)),
-        ));
+        let distribution_facade = Arc::new(DistributionFacadeServiceForConnector::new(config));
         let instance_svc = Arc::new(
             ConnectorInstanceService::new(
                 repo.clone(),

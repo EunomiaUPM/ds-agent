@@ -22,15 +22,16 @@ use crate::protocols::dsp::protocol_types::{
 };
 use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRpcSteps;
 use crate::services::negotiation_process::views::NegotiationProcessView;
+use axum::http::HeaderMap;
 use common::auth::AccessScope;
 use common::dsp_common::DspActor;
 use common::dsp_common::odrl::OdrlMessageOffer;
 use common::facades::ssi_auth_facade::MatesFacadeTrait;
-use common::http_client::HttpClient;
 use std::fmt::Debug;
 use std::sync::Arc;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
+use ymir::utils::bearer_headers;
 
 // Contexts ─────────────────────────────────────────────────────────────────
 
@@ -165,7 +166,7 @@ pub(super) trait NegotiationRpcStep: Send + Sync + 'static {
     /// and call `persistence.create_new`.  Continuation steps call the
     /// appropriate `update*` variant on [`NegotiationRpcPersistenceTrait`].
     async fn send_and_persist(
-        http_client: &HttpClient,
+        headers: Option<HeaderMap>,
         persistence: &Arc<dyn NegotiationRpcPersistenceTrait>,
         ctx: &Self::Context,
         input: &Self::Input,
@@ -176,22 +177,19 @@ pub(super) trait NegotiationRpcStep: Send + Sync + 'static {
 
     // Default helpers ──────────────────────────────────────────────────────
 
-    /// Attach the peer's stored bearer token to the HTTP client.
+    /// Bearer headers carrying the peer's stored token, sent with this request only.
     ///
-    /// Silently skips if the peer has no token; the request proceeds
-    /// unauthenticated.
-    async fn apply_auth_token(
+    /// `None` when the peer has no token; the request proceeds unauthenticated.
+    async fn peer_headers(
         mates_service: &Arc<dyn MatesFacadeTrait>,
-        http_client: &HttpClient,
         (tenant_id, peer): (&str, &str),
-    ) {
-        if let Ok(mate) = mates_service
+    ) -> Outcome<Option<HeaderMap>> {
+        match mates_service
             .get_mate_by_id(tenant_id.to_string(), peer.to_string())
             .await
         {
-            if let Some(token) = mate.token {
-                http_client.set_auth_token(token).await;
-            }
+            Ok(mate) => mate.token.as_deref().map(bearer_headers).transpose(),
+            Err(_) => Ok(None),
         }
     }
 }

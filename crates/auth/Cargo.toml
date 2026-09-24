@@ -23,7 +23,6 @@ tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "full
 base64 = { workspace = true }
 tracing = { workspace = true }
 axum = { workspace = true }
-reqwest = { workspace = true }
 chrono = { workspace = true }
 uuid = { workspace = true }
 sea-orm = { workspace = true }

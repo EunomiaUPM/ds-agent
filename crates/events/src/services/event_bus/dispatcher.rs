@@ -16,12 +16,15 @@
  */
 
 use std::collections::HashMap;
+use std::sync::Arc;
 use std::time::Duration;
 
+use axum::http::header::CONTENT_TYPE;
+use axum::http::{HeaderMap, HeaderName, HeaderValue, StatusCode};
 use hmac::{Hmac, Mac};
-use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
-use reqwest::{Client, StatusCode};
 use sha2::Sha256;
+use ymir::services::client::{ClientService, ClientTrait};
+use ymir::types::http::{Method, StreamBody};
 
 use crate::entities::envelope::EventEnvelope;
 
@@ -30,17 +33,16 @@ type HmacSha256 = Hmac<Sha256>;
 // Dispatches HTTP webhook deliveries with HMAC-SHA256 signatures and tracking headers.
 #[derive(Clone)]
 pub struct EventDispatcher {
-    client: Client,
+    client: Arc<ClientService>,
 }
 
 impl EventDispatcher {
     // Create dispatcher with specified client timeout.
     pub fn new(timeout: Duration) -> Self {
-        let client = Client::builder()
-            .timeout(timeout)
-            .build()
-            .unwrap_or_default();
-        Self { client }
+        let client = ClientService::builder().timeout(Some(timeout)).build();
+        Self {
+            client: Arc::new(client),
+        }
     }
 
     // Compute HMAC-SHA256 signature formatted as standard sha256=hex.
@@ -64,42 +66,49 @@ impl EventDispatcher {
         let payload_bytes = serde_json::to_vec(&envelope.payload)
             .map_err(|e| format!("failed to serialize payload: {e}"))?;
 
-        let mut req = self
-            .client
-            .post(callback_url)
-            .header("Content-Type", "application/json")
-            .header("X-Event-Id", envelope.id.as_str())
-            .header("X-Event-Topic", envelope.topic.as_str())
-            .header("X-Event-Timestamp", envelope.timestamp.to_rfc3339());
-
+        let mut headers = HeaderMap::new();
+        headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
+        Self::insert(&mut headers, "X-Event-Id", envelope.id.as_str());
+        Self::insert(&mut headers, "X-Event-Topic", envelope.topic.as_str());
+        Self::insert(
+            &mut headers,
+            "X-Event-Timestamp",
+            &envelope.timestamp.to_rfc3339(),
+        );
         if let Some(corr_id) = &envelope.correlation_id {
-            req = req.header("X-Correlation-Id", corr_id.as_str());
+            Self::insert(&mut headers, "X-Correlation-Id", corr_id.as_str());
         }
-
         if let Some(sec) = secret {
             let sig = Self::compute_signature(sec, &payload_bytes);
-            req = req.header("X-Hub-Signature-256", sig);
+            Self::insert(&mut headers, "X-Hub-Signature-256", &sig);
+        }
+        for (k, v) in custom_headers.into_iter().flatten() {
+            Self::insert(&mut headers, k, v);
         }
 
-        if let Some(headers) = custom_headers {
-            let mut header_map = HeaderMap::new();
-            for (k, v) in headers {
-                if let (Ok(name), Ok(val)) = (
-                    HeaderName::from_bytes(k.as_bytes()),
-                    HeaderValue::from_str(v),
-                ) {
-                    header_map.insert(name, val);
-                }
-            }
-            req = req.headers(header_map);
-        }
-
-        let resp = req
-            .body(payload_bytes)
-            .send()
+        // Sent once and any status returned: redelivery is the retry worker's job.
+        let resp = self
+            .client
+            .stream(
+                Method::POST,
+                callback_url,
+                Some(headers),
+                StreamBody::from(payload_bytes),
+                None,
+            )
             .await
             .map_err(|e| format!("HTTP request error: {e}"))?;
 
         Ok(resp.status())
+    }
+
+    /// Adds a header, skipping names or values that are not valid HTTP.
+    fn insert(headers: &mut HeaderMap, name: &str, value: &str) {
+        if let (Ok(name), Ok(val)) = (
+            HeaderName::from_bytes(name.as_bytes()),
+            HeaderValue::from_str(value),
+        ) {
+            headers.insert(name, val);
+        }
     }
 }

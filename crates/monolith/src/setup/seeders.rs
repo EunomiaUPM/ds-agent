@@ -17,13 +17,16 @@
 
 //! Monolith-only boot seeders.
 
+use axum::http::{HeaderMap, StatusCode};
 use common::boot::seeders::BootSeeder;
 use common::config::services::CommonConfig;
-use common::http_client::{HttpClient, HttpClientError};
 use ymir::config::traits::{ApiConfigTrait, HostsConfigTrait};
 use ymir::config::types::HostType;
 use ymir::data::entities::shared::participant;
-use ymir::errors::{Errors, Outcome};
+use ymir::errors::{Errors, Outcome, PetitionFailure};
+use ymir::services::client::ClientExt;
+use ymir::types::http::HttpBody;
+use ymir::utils::{bearer_headers, http_client};
 
 /// Links the agent's own wallet as a participant when the auth plane does not know it yet.
 pub struct SelfParticipantOnboarder {
@@ -35,14 +38,14 @@ impl SelfParticipantOnboarder {
         Self { common }
     }
 
-    /// HTTP client authenticated as the seeded admin (password grant).
-    async fn admin_client(&self) -> Outcome<HttpClient> {
-        let client = HttpClient::new(1, 30);
+    /// Request headers authenticated as the seeded admin (password grant).
+    async fn admin_headers(&self) -> Outcome<HeaderMap> {
         let admin = &self.common.admin_seed;
         let url = format!("{}/oauth/token", self.common.get_host(HostType::Http));
-        let token = client
+        let token = http_client()
             .post_json::<serde_json::Value, serde_json::Value>(
                 &url,
+                None,
                 &serde_json::json!({
                     "grant_type": "password",
                     "username": admin.email,
@@ -54,8 +57,7 @@ impl SelfParticipantOnboarder {
             .get("access_token")
             .and_then(|v| v.as_str())
             .ok_or_else(|| Errors::parse("Token response without access_token", None))?;
-        client.set_auth_token(access_token.to_string()).await;
-        Ok(client)
+        bearer_headers(access_token)
     }
 }
 
@@ -66,7 +68,7 @@ impl BootSeeder for SelfParticipantOnboarder {
     }
 
     async fn seed(&self) -> Outcome<()> {
-        let client = self.admin_client().await?;
+        let headers = self.admin_headers().await?;
         let base = format!(
             "{}{}",
             self.common.get_host(HostType::Http),
@@ -74,15 +76,28 @@ impl BootSeeder for SelfParticipantOnboarder {
         )
         .replace("host.docker.internal", "127.0.0.1");
         let myself = format!("{base}/mates/myself");
-        let participant = match client.get_json::<participant::Model>(&myself).await {
+        let client = http_client();
+        let participant = match client
+            .get_json::<participant::Model>(&myself, Some(headers.clone()))
+            .await
+        {
             Ok(participant) => participant,
-            Err(HttpClientError::HttpError { status, .. }) if status.as_u16() == 404 => {
+            Err(Errors::PetitionError {
+                failure: PetitionFailure::HttpStatus(StatusCode::NOT_FOUND),
+                ..
+            }) => {
                 client
-                    .post_void::<()>(&format!("{base}/wallet/link"))
+                    .post_ok(
+                        &format!("{base}/wallet/link"),
+                        Some(headers.clone()),
+                        HttpBody::None,
+                    )
                     .await?;
-                client.get_json::<participant::Model>(&myself).await?
+                client
+                    .get_json::<participant::Model>(&myself, Some(headers))
+                    .await?
             }
-            Err(e) => return Err(e.into()),
+            Err(e) => return Err(e),
         };
         tracing::info!(
             participant = participant.participant_id,

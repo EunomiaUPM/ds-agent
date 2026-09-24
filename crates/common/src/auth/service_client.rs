@@ -15,22 +15,25 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! HTTP client for service-to-service calls, authenticated with a client_credentials token.
+//! Service-to-service calls through the shared ymir client, authenticated with a cached
+//! client_credentials token.
 
 use std::time::{Duration, Instant};
 
-use reqwest::RequestBuilder;
+use axum::http::{HeaderMap, HeaderValue};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 use ymir::config::traits::HostsConfigTrait;
 use ymir::config::types::HostType;
-use ymir::errors::{Errors, Outcome};
+use ymir::errors::{Errors, Outcome, PetitionFailure};
+use ymir::services::client::ClientExt;
+use ymir::types::http::{HttpBody, StatusCode};
+use ymir::utils::{bearer_headers, http_client};
 
 use crate::auth::TENANT_HEADER;
 use crate::config::services::CommonConfig;
 use crate::config::types::ServiceClientConfig;
-use crate::http_client::HttpClientError;
 
 /// Renews the cached token this long before it expires.
 const TOKEN_RENEWAL_MARGIN: Duration = Duration::from_secs(30);
@@ -42,7 +45,6 @@ struct ClientCredentialsResponse {
 }
 
 pub struct ServiceHttpClient {
-    http: reqwest::Client,
     token_url: String,
     client_id: String,
     client_secret: String,
@@ -51,13 +53,8 @@ pub struct ServiceHttpClient {
 
 impl ServiceHttpClient {
     /// `own_host` is the caller's HTTP host, used when the config names no token endpoint.
-    pub fn new(config: &ServiceClientConfig, own_host: &str, timeout_secs: u64) -> Self {
-        let http = reqwest::Client::builder()
-            .timeout(Duration::from_secs(timeout_secs))
-            .build()
-            .expect("Failed to build reqwest client");
+    pub fn new(config: &ServiceClientConfig, own_host: &str) -> Self {
         Self {
-            http,
             token_url: config
                 .token_url
                 .clone()
@@ -69,50 +66,66 @@ impl ServiceHttpClient {
     }
 
     /// Client for an agent, with the credentials and host of its own common config.
-    pub fn from_common(common: &CommonConfig, timeout_secs: u64) -> Self {
-        Self::new(
-            &common.service_client,
-            &common.get_host(HostType::Http),
-            timeout_secs,
-        )
+    pub fn from_common(common: &CommonConfig) -> Self {
+        Self::new(&common.service_client, &common.get_host(HostType::Http))
     }
 
     /// GET acting on `tenant`; `None` leaves the tenant to the service token.
-    pub async fn get_json<R: DeserializeOwned>(
+    pub async fn get_json<R: DeserializeOwned + Send>(
         &self,
         url: &str,
         tenant: Option<&str>,
     ) -> Outcome<R> {
-        self.send(self.http.get(url), tenant).await
+        let headers = self.headers(tenant).await?;
+        self.forget_on_unauthorized(http_client().get_json(url, Some(headers)).await)
+            .await
     }
 
     pub async fn post_json<T, R>(&self, url: &str, tenant: Option<&str>, body: &T) -> Outcome<R>
     where
         T: Serialize + Sync,
-        R: DeserializeOwned,
+        R: DeserializeOwned + Send,
     {
-        self.send(self.http.post(url).json(body), tenant).await
+        let headers = self.headers(tenant).await?;
+        self.forget_on_unauthorized(http_client().post_json(url, Some(headers), body).await)
+            .await
     }
 
-    async fn send<R: DeserializeOwned>(
+    /// POST whose response body is ignored, for endpoints that may answer with an empty 2xx.
+    pub async fn post<T: Serialize + Sync>(
         &self,
-        builder: RequestBuilder,
+        url: &str,
         tenant: Option<&str>,
-    ) -> Outcome<R> {
-        let mut builder = builder.bearer_auth(self.bearer().await?);
+        body: &T,
+    ) -> Outcome<()> {
+        let headers = self.headers(tenant).await?;
+        let sent = http_client()
+            .post_ok(url, Some(headers), HttpBody::json(body)?)
+            .await;
+        self.forget_on_unauthorized(sent).await
+    }
+
+    async fn headers(&self, tenant: Option<&str>) -> Outcome<HeaderMap> {
+        let mut headers = bearer_headers(&self.bearer().await?)?;
         if let Some(tenant) = tenant {
-            builder = builder.header(TENANT_HEADER, tenant);
+            let value = HeaderValue::from_str(tenant).map_err(|e| {
+                Errors::parse("Tenant is not a valid header value", Some(Box::new(e)))
+            })?;
+            headers.insert(TENANT_HEADER, value);
         }
-        let response = builder.send().await.map_err(HttpClientError::from)?;
-        let status = response.status();
-        if !status.is_success() {
-            if status == reqwest::StatusCode::UNAUTHORIZED {
-                self.token.write().await.take();
-            }
-            let message = response.text().await.unwrap_or_default();
-            return Err(HttpClientError::HttpError { status, message }.into());
+        Ok(headers)
+    }
+
+    /// A 401 means the cached token was revoked or rotated: drop it so the next call renews.
+    async fn forget_on_unauthorized<R>(&self, outcome: Outcome<R>) -> Outcome<R> {
+        if let Err(Errors::PetitionError {
+            failure: PetitionFailure::HttpStatus(StatusCode::UNAUTHORIZED),
+            ..
+        }) = &outcome
+        {
+            self.token.write().await.take();
         }
-        Ok(response.json::<R>().await.map_err(HttpClientError::from)?)
+        outcome
     }
 
     /// Cached service token, renewed through the client_credentials grant when close to expiry.
@@ -127,23 +140,12 @@ impl ServiceHttpClient {
             "client_id": self.client_id,
             "client_secret": self.client_secret,
         });
-        let response = self
-            .http
-            .post(&self.token_url)
-            .json(&body)
-            .send()
+        let issued: ClientCredentialsResponse = http_client()
+            .post_json(&self.token_url, None, &body)
             .await
-            .map_err(HttpClientError::from)?;
-        let status = response.status();
-        if !status.is_success() {
-            let message = response.text().await.unwrap_or_default();
-            return Err(Errors::unauthorized(
-                format!("service token request failed ({status}): {message}"),
-                None,
-            ));
-        }
-        let issued: ClientCredentialsResponse =
-            response.json().await.map_err(HttpClientError::from)?;
+            .map_err(|e| {
+                Errors::unauthorized(format!("service token request failed: {e}"), None)
+            })?;
         let lifetime = Duration::from_secs(issued.expires_in).saturating_sub(TOKEN_RENEWAL_MARGIN);
         *self.token.write().await = Some((issued.access_token.clone(), Instant::now() + lifetime));
         Ok(issued.access_token)

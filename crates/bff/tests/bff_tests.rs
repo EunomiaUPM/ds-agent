@@ -32,6 +32,8 @@ use common::module_loader::service_module::ServiceModuleTrait;
 use serde_json::json;
 use tokio::net::TcpListener;
 use ymir::errors::{Errors, Outcome};
+use ymir::services::client::ClientTrait;
+use ymir::utils::http_client;
 
 struct MockTokenValidator;
 
@@ -130,13 +132,12 @@ async fn test_bff_auth_middleware_bearer_and_query() {
         axum::serve(listener, app).await.unwrap();
     });
 
-    let client = reqwest::Client::new();
+    let client = http_client();
     let base = format!("http://127.0.0.1:{port}");
 
     // 1. Missing token -> 401 Unauthorized
     let unauth_resp = client
-        .get(format!("{base}/protected"))
-        .send()
+        .get(&format!("{base}/protected"), None)
         .await
         .unwrap();
     assert_eq!(unauth_resp.status(), StatusCode::UNAUTHORIZED);
@@ -146,10 +147,10 @@ async fn test_bff_auth_middleware_bearer_and_query() {
     );
 
     // 2. Valid Bearer token in header -> 200 OK
+    let mut bearer = HeaderMap::new();
+    bearer.insert("Authorization", "Bearer valid-jwt-token".parse().unwrap());
     let bearer_resp = client
-        .get(format!("{base}/protected"))
-        .header("Authorization", "Bearer valid-jwt-token")
-        .send()
+        .get(&format!("{base}/protected"), Some(bearer))
         .await
         .unwrap();
     assert_eq!(bearer_resp.status(), StatusCode::OK);
@@ -157,8 +158,7 @@ async fn test_bff_auth_middleware_bearer_and_query() {
 
     // 3. Valid PAT in query param (used for browser WebSockets) -> 200 OK
     let query_resp = client
-        .get(format!("{base}/protected?token=pat_testsecret123"))
-        .send()
+        .get(&format!("{base}/protected?token=pat_testsecret123"), None)
         .await
         .unwrap();
     assert_eq!(query_resp.status(), StatusCode::OK);
@@ -227,10 +227,11 @@ async fn test_bff_module_service_trait_and_backward_compatibility() {
         axum::serve(listener, router).await.unwrap();
     });
 
-    let client = reqwest::Client::new();
-    let resp = client
-        .get(format!("http://127.0.0.1:{port}/admin/api/fe-config"))
-        .send()
+    let resp = http_client()
+        .get(
+            &format!("http://127.0.0.1:{port}/admin/api/fe-config"),
+            None,
+        )
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);

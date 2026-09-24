@@ -136,11 +136,7 @@ impl BootSeeder for PolicyTemplateLoader {
             let Some(template) = Self::read_template(&path).await else {
                 continue;
             };
-            if let Err(e) = self
-                .client
-                .post_json::<Value, Value>(&url, Some(&self.tenant), &template)
-                .await
-            {
+            if let Err(e) = self.client.post(&url, Some(&self.tenant), &template).await {
                 tracing::warn!("Policy template {path:?} rejected: {e}");
             }
         }

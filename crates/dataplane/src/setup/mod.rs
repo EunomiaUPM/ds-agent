@@ -31,7 +31,6 @@ use crate::testing_proxy::http::http::TestingHTTPProxy;
 use axum::Router;
 use common::config::services::TransferConfig;
 use common::config::types::traits::CacheConfigTrait;
-use common::http_client::HttpClient;
 use common::module_loader::root_context::RootContext;
 use connector::ConnectorInstanceServiceTrait;
 use keystore::KeystoreModule;
@@ -121,7 +120,6 @@ impl DataplaneSetup {
         config: Arc<TransferConfig>,
         root: &RootContext,
         connector_service: Arc<dyn ConnectorInstanceServiceTrait>,
-        _http_client: Arc<HttpClient>,
     ) -> DataplaneManager {
         let infra = self.build_infra(config.as_ref(), root).await;
         let transfer_service = self.transfers_service(&infra);

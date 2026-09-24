@@ -19,6 +19,7 @@ use crate::protocols::dsp::orchestrator::OrchestratorTrait;
 use crate::protocols::dsp::protocol_types::{
     CatalogMessageType, CatalogMessageWrapper, CatalogRequestMessageDto, DatasetRequestMessage,
 };
+use axum::http::StatusCode;
 use axum::{
     extract::{rejection::JsonRejection, FromRef, Path, Request, State},
     middleware::{self, Next},
@@ -33,7 +34,6 @@ use common::config::services::CatalogConfig;
 use common::dsp_common::context_field::ContextField;
 use common::dsp_common::normalizer::dsp_namespace_normalizer;
 use common::facades::ssi_auth_facade::SSIAuthFacadeTrait;
-use reqwest::StatusCode;
 use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;

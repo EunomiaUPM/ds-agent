@@ -71,7 +71,6 @@ use axum::Router;
 use common::auth::OauthTokenValidator;
 use common::config::services::ContractsConfig;
 use common::facades::ssi_auth_facade::{MatesFacadeTrait, SSIAuthFacadeTrait};
-use common::http_client::HttpClient;
 use std::sync::Arc;
 use ymir::errors::Outcome;
 
@@ -128,8 +127,6 @@ impl ProtocolPluginTrait for NegotiationDSP {
     }
 
     async fn build_router(&self) -> Outcome<Router> {
-        let http_client = Arc::new(HttpClient::new(10, 10));
-
         // Every pid lookup, from validators and persistence alike, goes through one resolver.
         let resolver = Arc::new(NegotiationProcessResolver::new(
             self.process_repo.clone(),
@@ -186,7 +183,6 @@ impl ProtocolPluginTrait for NegotiationDSP {
             rpc_validator.clone(),
             persistence_rpc_service,
             self.config.clone(),
-            http_client.clone(),
             self.mates_service.clone(),
         ));
         let bff_rpc_orchestator = Arc::new(BFFRPCOrchestratorService::new(rpc_orchestator.clone()));

@@ -17,9 +17,13 @@
 
 //! Context document loader supporting local assets, in-memory caching, and remote fallback.
 
+use axum::http::header::ACCEPT;
+use axum::http::{HeaderMap, HeaderValue};
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
+use ymir::services::client::ClientTrait;
+use ymir::utils::http_client;
 
 use json_syntax::{Parse, Value as JsonSyntaxValue};
 use locspan::{Location, Meta, Span};
@@ -48,7 +52,6 @@ pub enum RdfLoaderError {
 pub struct RdfContextLoader {
     assets: Arc<HashMap<String, MetaVal>>,
     cache: Arc<RwLock<HashMap<String, MetaVal>>>,
-    client: reqwest::Client,
 }
 
 impl Default for RdfContextLoader {
@@ -63,7 +66,6 @@ impl RdfContextLoader {
         Self {
             assets: Arc::new(HashMap::new()),
             cache: Arc::new(RwLock::new(HashMap::new())),
-            client: reqwest::Client::builder().build().unwrap_or_default(),
         }
     }
 
@@ -171,7 +173,6 @@ impl Loader<ArcIri, Location<ArcIri, Span>> for RdfContextLoader {
         let url_str = url.as_str().to_string();
         let assets = Arc::clone(&self.assets);
         let cache = Arc::clone(&self.cache);
-        let client = self.client.clone();
 
         async move {
             let asset_doc = assets.get(&url_str).or_else(|| {
@@ -191,13 +192,13 @@ impl Loader<ArcIri, Location<ArcIri, Span>> for RdfContextLoader {
                 }
             }
 
-            let resp = client
-                .get(&url_str)
-                .header(
-                    reqwest::header::ACCEPT,
-                    "application/ld+json, application/json",
-                )
-                .send()
+            let mut headers = HeaderMap::new();
+            headers.insert(
+                ACCEPT,
+                HeaderValue::from_static("application/ld+json, application/json"),
+            );
+            let resp = http_client()
+                .get(&url_str, Some(headers))
                 .await
                 .map_err(|e| RdfLoaderError::Network(url_str.clone(), e.to_string()))?;
 

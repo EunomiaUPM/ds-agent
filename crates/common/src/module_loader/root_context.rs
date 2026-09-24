@@ -27,9 +27,6 @@ use ymir::services::vault::VaultTrait;
 use crate::auth::{OauthTokenValidator, ServiceHttpClient};
 use crate::config::services::CommonConfig;
 
-/// Seconds the shared service client waits for a peer agent.
-const SERVICE_CLIENT_TIMEOUT: u64 = 10;
-
 /// Builds the process token validator; lives in `oauth`, which `common` cannot depend on.
 pub type ValidatorFactory = fn(&CommonConfig, DatabaseConnection) -> Arc<dyn OauthTokenValidator>;
 
@@ -51,10 +48,7 @@ impl RootContext {
         let db = vault.get_db_connection(common).await?;
         Ok(Self {
             validator: validator(common, db.clone()),
-            service_client: Arc::new(ServiceHttpClient::from_common(
-                common,
-                SERVICE_CLIENT_TIMEOUT,
-            )),
+            service_client: Arc::new(ServiceHttpClient::from_common(common)),
             vault,
             db,
         })

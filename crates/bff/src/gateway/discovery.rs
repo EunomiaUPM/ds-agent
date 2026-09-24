@@ -22,6 +22,8 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
 use serde_json::Value;
+use ymir::services::client::ClientTrait;
+use ymir::utils::http_client;
 
 pub(crate) struct DiscoveryHandlers;
 
@@ -40,7 +42,7 @@ impl DiscoveryHandlers {
     }
 
     async fn fetch_json(target: &str, what: &str) -> Response {
-        let response = match reqwest::get(target).await {
+        let response = match http_client().get(target, None).await {
             Ok(response) => response,
             Err(e) => {
                 return (

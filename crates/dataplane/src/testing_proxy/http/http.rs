@@ -30,6 +30,7 @@ use crate::services::dataplane_transfers::DataplaneTransferServiceTrait;
 use axum::body::{to_bytes, Body, Bytes};
 use axum::extract::{FromRef, Path, Request, State};
 use axum::http::HeaderMap;
+use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::routing::any;
 use axum::{Json, Router};
@@ -37,14 +38,14 @@ use common::auth::{AccessScope, RbacRole};
 use common::utils::get_urn_from_string;
 use connector::KeystoreLookup;
 use hyper::Method;
-use reqwest::Response as ReqwestResponse;
-use reqwest::{Client, StatusCode};
 use serde_json::json;
 use std::sync::Arc;
 use std::time::Duration;
 use tracing::{error, info, warn};
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
+use ymir::services::client::ClientService;
+use ymir::types::http::Response as UpstreamResponse;
 
 /// Maximum request body we buffer before forwarding upstream (2 MiB).
 const MAX_BODY_BYTES: usize = 2 * 1024 * 1024;
@@ -116,16 +117,10 @@ struct OutboundRequest {
 
 #[derive(Clone)]
 pub struct TestingHTTPProxy {
-    client: Client,
+    client: Arc<ClientService>,
     dataplane_service: Arc<dyn DataplaneTransferServiceTrait>,
     repo: Arc<dyn DataplaneRepoTrait>,
     keystore: Option<Arc<dyn KeystoreLookup>>,
-}
-
-impl FromRef<TestingHTTPProxy> for Client {
-    fn from_ref(input: &TestingHTTPProxy) -> Self {
-        input.client.clone()
-    }
 }
 
 impl FromRef<TestingHTTPProxy> for Arc<dyn DataplaneTransferServiceTrait> {
@@ -142,14 +137,13 @@ impl TestingHTTPProxy {
         // `danger_accept_invalid_certs` is intentional: this is a TESTING proxy
         // that must reach upstreams using self-signed certificates. Timeouts stop
         // a dead upstream from hanging the proxy connection indefinitely.
-        let client = Client::builder()
-            .danger_accept_invalid_certs(true)
+        let client = ClientService::builder()
+            .accept_invalid_certs(true)
             .connect_timeout(UPSTREAM_CONNECT_TIMEOUT)
-            .timeout(UPSTREAM_TIMEOUT)
-            .build()
-            .expect("failed to build reqwest HTTP client");
+            .timeout(Some(UPSTREAM_TIMEOUT))
+            .build();
         Self {
-            client,
+            client: Arc::new(client),
             dataplane_service,
             repo,
             keystore: None,
@@ -435,7 +429,7 @@ impl TestingHTTPProxy {
         egress: &DataplaneProxyEgress,
         target: &str,
         method: &Method,
-        response: &Outcome<ReqwestResponse>,
+        response: &Outcome<UpstreamResponse>,
     ) {
         let role = dataplane.inner.role.clone();
         let mode = dataplane.inner.interaction_mode.clone();
@@ -477,7 +471,7 @@ impl TestingHTTPProxy {
     /// Maps the upstream result to the client response, masking upstream error
     /// bodies (still logged server-side) so internal details are not leaked.
     async fn map_response(
-        result: Outcome<ReqwestResponse>,
+        result: Outcome<UpstreamResponse>,
         method: &Method,
         target: &str,
         auth_preview: &str,
@@ -510,7 +504,7 @@ impl TestingHTTPProxy {
 
     /// Streams the upstream response back to the client, dropping hop-by-hop
     /// headers that must not be relayed end-to-end (RFC 7230 §6.1).
-    fn relay_response(upstream: ReqwestResponse) -> Response {
+    fn relay_response(upstream: UpstreamResponse) -> Response {
         let status = upstream.status();
         let headers = upstream.headers().clone();
         let body = Body::from_stream(upstream.bytes_stream());

@@ -60,7 +60,7 @@ impl BootstrapServiceTrait for CatalogAgentBoot {
         _root: &RootContext,
     ) -> Outcome<Vec<Box<dyn BootSeeder>>> {
         let common = config.common();
-        let client = Arc::new(ServiceHttpClient::from_common(common, 30));
+        let client = Arc::new(ServiceHttpClient::from_common(common));
         let api_url = format!(
             "{}{}/{SERVICE_NAME}",
             common.get_host(HostType::Http),

@@ -18,9 +18,9 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use axum::http::header::AUTHORIZATION;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use base64::Engine;
-use reqwest::header::AUTHORIZATION;
 use sha2::{Digest, Sha256, Sha384, Sha512};
 use tracing::info;
 use ymir::capabilities::HttpSig;

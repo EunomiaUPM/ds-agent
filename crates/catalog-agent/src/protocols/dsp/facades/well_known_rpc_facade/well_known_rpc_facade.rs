@@ -19,23 +19,23 @@ use crate::protocols::dsp::facades::well_known_rpc_facade::WellKnownRPCFacadeTra
 use common::config::services::CatalogConfig;
 use common::config::types::traits::CommonConfigTrait;
 use common::dsp_common::well_known_types::{Version, VersionPath};
-use common::http_client::HttpClient;
 use common::well_known::rpc::WellKnownRPCRequest;
 use std::sync::Arc;
 use ymir::config::traits::HostsConfigTrait;
 use ymir::config::types::HostType;
 use ymir::errors::Outcome;
+use ymir::services::client::ClientExt;
+use ymir::utils::http_client;
 
 const RPC_WELL_KNOWN_PATH: &str = "/rpc/.well-known/dspace-version/path";
 
 pub struct WellKnownRPCFacadeForDSProtocol {
     config: Arc<CatalogConfig>,
-    client: Arc<HttpClient>,
 }
 
 impl WellKnownRPCFacadeForDSProtocol {
-    pub fn new(config: Arc<CatalogConfig>, client: Arc<HttpClient>) -> Self {
-        Self { config, client }
+    pub fn new(config: Arc<CatalogConfig>) -> Self {
+        Self { config }
     }
 }
 
@@ -44,9 +44,8 @@ impl WellKnownRPCFacadeTrait for WellKnownRPCFacadeForDSProtocol {
     async fn resolve_dataspace_current_path(&self, input: &WellKnownRPCRequest) -> Outcome<String> {
         let host = self.config.common().get_host(HostType::Http);
         let url = format!("{}{}", host, RPC_WELL_KNOWN_PATH);
-        let provider_address = self
-            .client
-            .post_json::<WellKnownRPCRequest, VersionPath>(&url, input)
+        let provider_address = http_client()
+            .post_json::<WellKnownRPCRequest, VersionPath>(&url, None, input)
             .await?;
         Ok(provider_address.path)
     }

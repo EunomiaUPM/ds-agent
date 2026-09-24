@@ -18,23 +18,20 @@
 use std::sync::Arc;
 
 use ymir::errors::{Errors, Outcome};
+use ymir::services::client::ClientExt;
+use ymir::utils::http_client;
 
 use crate::dsp_common::well_known_types::{VersionPath, VersionResponse};
 use crate::facades::ssi_auth_facade::MatesFacadeTrait;
-use crate::http_client::HttpClient;
 use crate::well_known::rpc::{WellKnownRPCRequest, WellKnownRPCTrait, DSP_CURRENT_VERSION};
 
 pub struct WellKnownRPCService {
-    http_client: Arc<HttpClient>,
     mates_facade: Arc<dyn MatesFacadeTrait>,
 }
 
 impl WellKnownRPCService {
-    pub fn new(http_client: Arc<HttpClient>, mates_facade: Arc<dyn MatesFacadeTrait>) -> Self {
-        Self {
-            http_client,
-            mates_facade,
-        }
+    pub fn new(mates_facade: Arc<dyn MatesFacadeTrait>) -> Self {
+        Self { mates_facade }
     }
     async fn get_base_url(&self, tenant_id: &str, mate_id: &str) -> Outcome<String> {
         let participant = self
@@ -55,9 +52,8 @@ impl WellKnownRPCTrait for WellKnownRPCService {
         let mate_id = input.participant_id.clone();
         let base_url = self.get_base_url(&input.tenant_id, &mate_id).await?;
         let url = format!("{}/.well-known/dspace-version", base_url);
-        let response = self
-            .http_client
-            .get_json::<VersionResponse>(url.as_str())
+        let response = http_client()
+            .get_json::<VersionResponse>(url.as_str(), None)
             .await?;
         Ok((response, base_url))
     }

@@ -28,15 +28,17 @@ use crate::protocols::dsp::protocol_types::{
 };
 use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRpcSteps;
 use crate::services::negotiation_process::views::NegotiationProcessView;
+use axum::http::HeaderMap;
 use common::auth::AccessScope;
 use common::dsp_common::DspActor;
 use common::dsp_common::odrl::{
     ContractRequestMessageOfferTypes, OdrlAgreement, OdrlMessageOffer, OdrlTypes,
 };
 use common::facades::ssi_auth_facade::MatesFacadeTrait;
-use common::http_client::HttpClient;
 use std::sync::Arc;
 use ymir::errors::{Errors, Outcome};
+use ymir::services::client::ClientExt;
+use ymir::utils::http_client;
 
 // AgreementEnricher (helper for build_message) ─────────────────────────────
 
@@ -135,7 +137,7 @@ impl NegotiationRpcStep for RpcAgreementStep {
     /// The agreement body is constructed from the last offer's policy fields plus
     /// the participant IDs resolved in `prepare_context`.
     async fn send_and_persist(
-        http_client: &HttpClient,
+        headers: Option<HeaderMap>,
         persistence: &Arc<dyn NegotiationRpcPersistenceTrait>,
         ctx: &NegotiationRpcAgreementContext,
         input: &RpcNegotiationAgreementMessageDto,
@@ -167,8 +169,8 @@ impl NegotiationRpcStep for RpcAgreementStep {
             description: ctx.last_offer.description.clone(),
         };
 
-        let response: NegotiationProcessMessageWrapper<NegotiationAckMessageDto> = http_client
-            .post_json(peer_url.as_str(), &request_body)
+        let response: NegotiationProcessMessageWrapper<NegotiationAckMessageDto> = http_client()
+            .post_json(peer_url.as_str(), headers, &request_body)
             .await?;
 
         let process = persistence

@@ -18,13 +18,15 @@
 use crate::engine::dataplane_manager::dataplane_runtime::ResolvedAuthCredentials;
 use crate::errors::DataplaneError;
 use axum::body::Bytes;
+use axum::http::header::AUTHORIZATION;
+use axum::http::{HeaderMap, HeaderName, HeaderValue};
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine;
 use connector::ApiKeyLocation;
-use reqwest::header::{HeaderMap, HeaderName, HeaderValue, AUTHORIZATION};
-use reqwest::{Client, Method, Response};
 use std::str::FromStr;
 use ymir::errors::Outcome;
+use ymir::services::client::{ClientService, ClientTrait};
+use ymir::types::http::{Method, Response, StreamBody};
 
 /// Builds auth headers and (for query-param API keys) extra query parameters
 /// from already-resolved credentials.
@@ -107,7 +109,7 @@ pub fn build_auth_artifacts(
 /// Incoming client headers are forwarded as-is; auth headers from `credentials`
 /// override any existing `Authorization` header from the client.
 pub async fn forward(
-    client: &Client,
+    client: &ClientService,
     method: Method,
     target_url: &str,
     extra_path: Option<&str>,
@@ -137,9 +139,9 @@ pub async fn forward(
         url.push_str(&qs);
     }
 
-    // Start building the request, copying incoming headers first.
+    // Copy incoming headers first, then let the auth headers override them.
     let method_str = method.as_str().to_string();
-    let mut builder = client.request(method, &url);
+    let mut headers = HeaderMap::new();
     for (name, value) in incoming_headers.iter() {
         // Skip hop-by-hop headers that must not be forwarded.
         let key = name.as_str().to_ascii_lowercase();
@@ -149,23 +151,23 @@ pub async fn forward(
         ) {
             continue;
         }
-        builder = builder.header(name.clone(), value.clone());
+        headers.append(name.clone(), value.clone());
     }
-
-    // Auth headers override whatever the client sent.
     for (name, value) in auth_headers.iter() {
-        builder = builder.header(name.clone(), value.clone());
+        headers.insert(name.clone(), value.clone());
     }
 
-    Ok(builder
-        .body(body)
-        .send()
+    client
+        .stream(method, &url, Some(headers), StreamBody::from(body), None)
         .await
-        .map_err(|e| DataplaneError::ProxyRequestFailed {
-            method: method_str,
-            url: url.clone(),
-            reason: e.to_string(),
-        })?)
+        .map_err(|e| {
+            DataplaneError::ProxyRequestFailed {
+                method: method_str,
+                url: url.clone(),
+                reason: e.to_string(),
+            }
+            .into()
+        })
 }
 
 #[cfg(test)]
@@ -173,7 +175,6 @@ mod tests {
     use super::*;
     use crate::engine::dataplane_manager::dataplane_runtime::ResolvedAuthCredentials;
     use connector::ApiKeyLocation;
-    use reqwest::header::AUTHORIZATION;
 
     fn auth_headers(creds: &ResolvedAuthCredentials) -> HeaderMap {
         build_auth_artifacts(creds).unwrap().0

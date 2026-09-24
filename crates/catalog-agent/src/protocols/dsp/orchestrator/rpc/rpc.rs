@@ -29,19 +29,21 @@ use crate::protocols::dsp::types::catalog_definition::Catalog;
 use crate::protocols::dsp::types::dataset_definition::Dataset;
 use crate::protocols::dsp::validator::traits::validation_dsp_steps::ValidationDspSteps;
 use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRpcSteps;
+use axum::http::HeaderMap;
 use common::auth::AccessScope;
 use common::errors::{CommonErrors, ErrorLog};
 use common::facades::ssi_auth_facade::MatesFacadeTrait;
-use common::http_client::HttpClient;
 use common::well_known::rpc::WellKnownRPCRequest;
 use std::marker::PhantomData;
 use std::sync::Arc;
 use tracing::error;
 use ymir::errors::{Errors, Outcome};
+use ymir::services::client::ClientExt;
+use ymir::types::http::{HttpBody, Method};
+use ymir::utils::{bearer_headers, http_client};
 
 pub struct RPCOrchestratorService {
     validator: Arc<dyn ValidationRpcSteps>,
-    http_client: Arc<HttpClient>,
     facades: Arc<dyn FacadeTrait>,
     persistence: Arc<OrchestrationPersistenceForProtocolForRPC>,
     mates_facade: Arc<dyn MatesFacadeTrait>,
@@ -50,17 +52,27 @@ pub struct RPCOrchestratorService {
 impl RPCOrchestratorService {
     pub fn new(
         validator: Arc<dyn ValidationRpcSteps>,
-        http_client: Arc<HttpClient>,
         facades: Arc<dyn FacadeTrait>,
         persistence: Arc<OrchestrationPersistenceForProtocolForRPC>,
         mates_facade: Arc<dyn MatesFacadeTrait>,
     ) -> RPCOrchestratorService {
         Self {
             validator,
-            http_client,
             facades,
             persistence,
             mates_facade,
+        }
+    }
+
+    /// Bearer headers for the peer's token, if the tenant holds one for that mate.
+    async fn peer_headers(&self, scope: &AccessScope, peer: String) -> Outcome<Option<HeaderMap>> {
+        match self
+            .mates_facade
+            .get_mate_by_id(scope.acting_tenant().clone(), peer)
+            .await
+        {
+            Ok(mate) => mate.token.as_deref().map(bearer_headers).transpose(),
+            Err(_) => Ok(None),
         }
     }
 }
@@ -110,19 +122,11 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         // send dsp message to peer to fetch catalog
         let peer_url = format!("{}/catalog/request", provider_address);
         let request_body: CatalogMessageWrapper<CatalogRequestMessageDto> = input.clone().into();
-        if let Ok(mate) = self
-            .mates_facade
-            .get_mate_by_id(scope.acting_tenant().clone(), agent_peer.clone())
-            .await
-        {
-            if let Some(token) = mate.token {
-                self.http_client.set_auth_token(token).await;
-            }
-        }
-        let response = self
-            .http_client
+        let headers = self.peer_headers(scope, agent_peer.clone()).await?;
+        let response = http_client()
             .post_json::<CatalogMessageWrapper<CatalogRequestMessageDto>, Catalog>(
                 peer_url.as_str(),
+                headers,
                 &request_body,
             )
             .await?;
@@ -167,18 +171,14 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         let peer_url = format!("{}/catalog/datasets/{}", provider_address, dataset);
         let request_body: CatalogMessageWrapper<DatasetRequestMessage> = input.clone().into();
         let peer_id = input.get_associated_agent_peer().unwrap_or_default();
-        if let Ok(mate) = self
-            .mates_facade
-            .get_mate_by_id(scope.acting_tenant().clone(), peer_id)
-            .await
-        {
-            if let Some(token) = mate.token {
-                self.http_client.set_auth_token(token).await;
-            }
-        }
-        let response: Dataset = self
-            .http_client
-            .get_json_with_payload(peer_url.as_str(), &request_body)
+        let headers = self.peer_headers(scope, peer_id).await?;
+        let response: Dataset = http_client()
+            .send_json(
+                Method::GET,
+                peer_url.as_str(),
+                headers,
+                HttpBody::json(&request_body)?,
+            )
             .await?;
 
         let response = RpcCatalogResponseMessageDto {

@@ -23,8 +23,12 @@ use crate::engine::dataplane_manager::dataplane_runtime::{
 use crate::errors::DataplaneError;
 use connector::{AuthenticationConfig, OAuthGrantType, TemplateVecString, TokenExpireAction};
 use serde::Deserialize;
+use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 use ymir::errors::Outcome;
+use ymir::services::client::ClientTrait;
+use ymir::types::http::HttpBody;
+use ymir::utils::http_client;
 
 /// Response body returned by an OAuth 2.0 token endpoint.
 #[derive(Debug, Deserialize)]
@@ -38,18 +42,15 @@ struct TokenResponse {
 #[derive(Debug)]
 pub struct OauthAuthenticator;
 
-fn http_client() -> &'static reqwest::Client {
-    static CLIENT: std::sync::OnceLock<reqwest::Client> = std::sync::OnceLock::new();
-    CLIENT.get_or_init(reqwest::Client::new)
-}
-
 impl OauthAuthenticator {
     /// POST to `token_url` with the given form fields and deserialize the response.
     async fn post_token(token_url: &str, params: &[(&str, &str)]) -> Outcome<TokenResponse> {
+        let form: HashMap<String, String> = params
+            .iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect();
         let resp = http_client()
-            .post(token_url)
-            .form(params)
-            .send()
+            .post(token_url, None, HttpBody::Form(form))
             .await
             .map_err(|e| DataplaneError::AuthNetworkError {
                 url: token_url.to_string(),

@@ -24,7 +24,6 @@ pub mod dsp_common;
 pub mod errors;
 pub mod facades;
 pub mod grpc;
-pub mod http_client;
 pub mod http_global_404;
 pub mod http_tracing;
 pub mod id_mac;

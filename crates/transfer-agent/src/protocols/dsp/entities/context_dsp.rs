@@ -30,7 +30,7 @@ use crate::protocols::dsp::entities::protocol_fields::TransferProtocolFields;
 use crate::protocols::dsp::entities::rdf_extractor_dsp::{DspTransfer, ExtractProtocolFields};
 use common::dsp_common::data_address::DataAddress;
 use common::dsp_common::odrl::OdrlAgreement;
-use common::dsp_common::rdf::DspCanonicalizer;
+use common::dsp_common::rdf::DspProfile;
 use common::dsp_common::well_known_types::DSPProtocolVersions;
 use common::rdf::ExpandedDoc;
 use http::request::Parts;
@@ -107,9 +107,7 @@ impl TransferDSPContextRdf {
     /// Expand once, keeping both products. `canonical_hash` is a semantic identity,
     /// not an attestation of the bytes — for that see [`TransferContextRaw::wire_hash`].
     pub async fn from_parsed(parsed: TransferDSPContextParsed) -> Outcome<Self> {
-        let expansion = DspCanonicalizer::new(parsed.json_value.clone())
-            .expand_once()
-            .await?;
+        let expansion = DspProfile::shared().expand(&parsed.json_value).await?;
         let canonical_hash = Sha256::digest(expansion.canonical_n_quads.as_bytes()).into();
         Ok(Self {
             parsed,

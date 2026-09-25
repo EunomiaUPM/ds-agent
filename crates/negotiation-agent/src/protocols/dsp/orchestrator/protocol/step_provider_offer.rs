@@ -42,6 +42,7 @@ impl NegotiationProtocolStep for ProviderOfferStep {
     type Dto = NegotiationOfferMessageDto;
     type Context = NegotiationContinuationContext;
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn validate(
         validator: &Arc<dyn ValidationDspSteps>,
         id: &str,
@@ -53,6 +54,7 @@ impl NegotiationProtocolStep for ProviderOfferStep {
             .await
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn prepare_context(
         id: &str,
         mate: &Mates,
@@ -66,6 +68,7 @@ impl NegotiationProtocolStep for ProviderOfferStep {
     }
 
     /// Advances the process state and records the provider's counter-offer.
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn persist(
         persistence: &Arc<OrchestrationPersistenceForProtocol>,
         _id: &str,

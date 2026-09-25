@@ -53,7 +53,7 @@ impl OfferService {
 
 #[async_trait::async_trait]
 impl OfferServiceTrait for OfferService {
-    #[tracing::instrument(level = "info", skip_all, err)]
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_all(
         &self,
         scope: &AccessScope,
@@ -80,7 +80,12 @@ impl OfferServiceTrait for OfferService {
         }))
     }
 
-    #[tracing::instrument(level = "info", skip(self, scope), fields(id = %id), err)]
+    #[tracing::instrument(
+        level = "info",
+        skip_all,
+        err,
+        fields(tenant = %scope.acting_tenant(), id = %id)
+    )]
     async fn get_one(&self, scope: &AccessScope, id: &Urn) -> Outcome<OfferView> {
         scope.require_read()?;
         let offer = self
@@ -92,7 +97,12 @@ impl OfferServiceTrait for OfferService {
         Ok(OfferView::assemble(offer))
     }
 
-    #[tracing::instrument(level = "info", skip(self, scope), fields(message_id = %message_id), err)]
+    #[tracing::instrument(
+        level = "info",
+        skip_all,
+        err,
+        fields(tenant = %scope.acting_tenant(), message_id = %message_id)
+    )]
     async fn get_by_negotiation_message(
         &self,
         scope: &AccessScope,
@@ -108,7 +118,12 @@ impl OfferServiceTrait for OfferService {
         Ok(OfferView::assemble(offer))
     }
 
-    #[tracing::instrument(level = "info", skip(self, scope), fields(offer_id = %offer_id), err)]
+    #[tracing::instrument(
+        level = "info",
+        skip_all,
+        err,
+        fields(tenant = %scope.acting_tenant(), offer_id = %offer_id)
+    )]
     async fn get_by_offer_id(&self, scope: &AccessScope, offer_id: &Urn) -> Outcome<OfferView> {
         scope.require_read()?;
         let offer = self
@@ -120,7 +135,12 @@ impl OfferServiceTrait for OfferService {
         Ok(OfferView::assemble(offer))
     }
 
-    #[tracing::instrument(level = "info", skip(self, scope), fields(process_id = %process_id), err)]
+    #[tracing::instrument(
+        level = "info",
+        skip_all,
+        err,
+        fields(tenant = %scope.acting_tenant(), process_id = %process_id)
+    )]
     async fn get_by_process(
         &self,
         scope: &AccessScope,
@@ -138,7 +158,12 @@ impl OfferServiceTrait for OfferService {
         Ok(offers.into_iter().map(OfferView::assemble).collect())
     }
 
-    #[tracing::instrument(level = "info", skip(self, scope), fields(process_id = %process_id), err)]
+    #[tracing::instrument(
+        level = "info",
+        skip_all,
+        err,
+        fields(tenant = %scope.acting_tenant(), process_id = %process_id)
+    )]
     async fn get_last_by_process(
         &self,
         scope: &AccessScope,
@@ -156,7 +181,7 @@ impl OfferServiceTrait for OfferService {
         Ok(OfferView::assemble(offer))
     }
 
-    #[tracing::instrument(level = "info", skip_all, err)]
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn batch(&self, scope: &AccessScope, req: &BatchRequests) -> Outcome<Vec<OfferView>> {
         scope.require_read()?;
         if req.ids.len() > MAX_BATCH_IDS {
@@ -178,7 +203,7 @@ impl OfferServiceTrait for OfferService {
         Ok(offers.into_iter().map(OfferView::assemble).collect())
     }
 
-    #[tracing::instrument(level = "info", skip_all, err)]
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn create(&self, scope: &AccessScope, cmd: &NewOfferDto) -> Outcome<OfferView> {
         let tenant_id = scope.resolve_create_tenant(cmd.tenant_id.as_deref())?;
         let new_model: NewOfferModel = cmd.clone().into_model(tenant_id);
@@ -196,7 +221,12 @@ impl OfferServiceTrait for OfferService {
         Ok(view)
     }
 
-    #[tracing::instrument(level = "info", skip(self, scope), fields(id = %id), err)]
+    #[tracing::instrument(
+        level = "info",
+        skip_all,
+        err,
+        fields(tenant = %scope.acting_tenant(), id = %id)
+    )]
     async fn delete(&self, scope: &AccessScope, id: &Urn) -> Outcome<()> {
         scope.require_write()?;
         let owner = self

@@ -71,6 +71,7 @@ impl OrchestrationPersistenceForProtocol {
         }
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     pub async fn create_new(
         &self,
         payload: &dyn NegotiationProcessMessageTrait,
@@ -90,6 +91,7 @@ impl OrchestrationPersistenceForProtocol {
         Ok(process)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     pub async fn update(
         &self,
         identifier: &str,
@@ -106,6 +108,7 @@ impl OrchestrationPersistenceForProtocol {
         Ok(new_process)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     pub async fn update_with_offer(
         &self,
         identifier: &str,
@@ -132,6 +135,7 @@ impl OrchestrationPersistenceForProtocol {
         Ok(new_process)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     pub async fn update_with_new_agreement(
         &self,
         identifier: &str,
@@ -160,6 +164,7 @@ impl OrchestrationPersistenceForProtocol {
         Ok(new_process)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     pub async fn update_with_agreement(
         &self,
         identifier: &str,
@@ -202,6 +207,7 @@ impl OrchestrationExtractors for OrchestrationPersistenceForProtocol {
 
 impl OrchestrationPersistenceForProtocol {
     /// Loads the process behind a pid, provided `mate` is its counterparty.
+    #[tracing::instrument(level = "info", skip_all, err)]
     pub async fn fetch_process(&self, id: &str, mate: &Mates) -> Outcome<NegotiationProcessView> {
         let urn = self.convert_str_to_urn(id)?;
         self.resolver.resolve(&urn, &DspActor::peer(mate)).await

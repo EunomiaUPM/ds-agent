@@ -98,6 +98,7 @@ impl DataplaneTransferService {
 
 #[async_trait::async_trait]
 impl DataplaneTransferServiceTrait for DataplaneTransferService {
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_all(
         &self,
         scope: &AccessScope,
@@ -133,6 +134,7 @@ impl DataplaneTransferServiceTrait for DataplaneTransferService {
         }))
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_one(&self, scope: &AccessScope, id: &Urn) -> Outcome<DataplaneTransferDto> {
         scope.require_read()?;
 
@@ -153,6 +155,7 @@ impl DataplaneTransferServiceTrait for DataplaneTransferService {
         Ok(enriched)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_by_process_id(
         &self,
         scope: &AccessScope,
@@ -170,6 +173,7 @@ impl DataplaneTransferServiceTrait for DataplaneTransferService {
         Ok(enriched)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn batch(
         &self,
         scope: &AccessScope,
@@ -202,6 +206,7 @@ impl DataplaneTransferServiceTrait for DataplaneTransferService {
         Ok(dtos)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn create(
         &self,
         scope: &AccessScope,
@@ -239,6 +244,7 @@ impl DataplaneTransferServiceTrait for DataplaneTransferService {
         Ok(enriched)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn edit(
         &self,
         scope: &AccessScope,
@@ -311,6 +317,7 @@ impl DataplaneTransferServiceTrait for DataplaneTransferService {
         Ok(enriched)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn delete(&self, scope: &AccessScope, id: &Urn) -> Outcome<()> {
         scope.require_write()?;
         self.repo()

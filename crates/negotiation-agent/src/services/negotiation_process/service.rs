@@ -114,7 +114,7 @@ impl NegotiationProcessService {
 
 #[async_trait::async_trait]
 impl NegotiationProcessServiceTrait for NegotiationProcessService {
-    #[tracing::instrument(level = "info", skip_all, err)]
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_all(
         &self,
         scope: &AccessScope,
@@ -171,7 +171,12 @@ impl NegotiationProcessServiceTrait for NegotiationProcessService {
         }))
     }
 
-    #[tracing::instrument(level = "info", skip(self, scope), fields(id = %id), err)]
+    #[tracing::instrument(
+        level = "info",
+        skip_all,
+        err,
+        fields(tenant = %scope.acting_tenant(), id = %id)
+    )]
     async fn get_one(&self, scope: &AccessScope, id: &Urn) -> Outcome<NegotiationProcessView> {
         scope.require_read()?;
         let process = self
@@ -183,7 +188,12 @@ impl NegotiationProcessServiceTrait for NegotiationProcessService {
         self.fetch_details(process).await
     }
 
-    #[tracing::instrument(level = "info", skip(self, scope), fields(key_id = %key_id, id = %id), err)]
+    #[tracing::instrument(
+        level = "info",
+        skip_all,
+        err,
+        fields(tenant = %scope.acting_tenant(), key_id = %key_id, id = %id)
+    )]
     async fn get_by_key_id(
         &self,
         scope: &AccessScope,
@@ -204,7 +214,12 @@ impl NegotiationProcessServiceTrait for NegotiationProcessService {
         self.fetch_details(process).await
     }
 
-    #[tracing::instrument(level = "info", skip(self, scope), fields(value = %value), err)]
+    #[tracing::instrument(
+        level = "info",
+        skip_all,
+        err,
+        fields(tenant = %scope.acting_tenant(), value = %value)
+    )]
     async fn get_by_key_value(
         &self,
         scope: &AccessScope,
@@ -220,7 +235,7 @@ impl NegotiationProcessServiceTrait for NegotiationProcessService {
         self.fetch_details(process).await
     }
 
-    #[tracing::instrument(level = "info", skip_all, err)]
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn batch(
         &self,
         scope: &AccessScope,
@@ -277,7 +292,7 @@ impl NegotiationProcessServiceTrait for NegotiationProcessService {
         Ok(views)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err)]
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn create(
         &self,
         scope: &AccessScope,
@@ -325,7 +340,7 @@ impl NegotiationProcessServiceTrait for NegotiationProcessService {
         Ok(view)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err)]
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn edit(
         &self,
         scope: &AccessScope,
@@ -387,7 +402,12 @@ impl NegotiationProcessServiceTrait for NegotiationProcessService {
         Ok(view)
     }
 
-    #[tracing::instrument(level = "info", skip(self, scope), fields(id = %id), err)]
+    #[tracing::instrument(
+        level = "info",
+        skip_all,
+        err,
+        fields(tenant = %scope.acting_tenant(), id = %id)
+    )]
     async fn delete(&self, scope: &AccessScope, id: &Urn) -> Outcome<()> {
         scope.require_write()?;
         let owner = self

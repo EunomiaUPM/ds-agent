@@ -19,10 +19,11 @@ use std::sync::Arc;
 
 use common::auth::{AccessScope, RbacRole};
 use common::boot::workers::BackgroundWorker;
+use common::telemetry::TraceParent;
 use events::{EventBus, EventBusTrait};
 use tokio::sync::broadcast::error::RecvError;
 use tokio_util::sync::CancellationToken;
-use tracing::{info, warn};
+use tracing::{info, info_span, warn, Instrument};
 use ymir::errors::Outcome;
 
 use crate::services::tenant_provisioning::TenantProvisioningServiceTrait;
@@ -69,9 +70,22 @@ impl BackgroundWorker for TenantProvisioningListener {
             if envelope.topic.as_str() != TENANT_CREATED_TOPIC {
                 continue;
             }
+            let span = info_span!(
+                "event.consume",
+                otel.name = %format!("{TENANT_CREATED_TOPIC} process"),
+                otel.kind = "consumer",
+                messaging.message.id = %envelope.id,
+                tenant = %envelope.tenant_id,
+            );
+            TraceParent::link(&span, envelope.trace_context.as_deref());
             let tenant_id = envelope.tenant_id;
             let scope = AccessScope::from_role(RbacRole::Owner, &tenant_id);
-            match self.service.provision(&scope, &tenant_id).await {
+            match self
+                .service
+                .provision(&scope, &tenant_id)
+                .instrument(span)
+                .await
+            {
                 Ok(_) => info!(tenant = %tenant_id, "Tenant provisioned"),
                 Err(e) => warn!(tenant = %tenant_id, error = %e, "Tenant provisioning failed"),
             }

@@ -24,6 +24,7 @@ pub struct NoOpProxyConfigurator;
 
 #[async_trait::async_trait]
 impl DriverProxyConfiguratorTrait for NoOpProxyConfigurator {
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "data-endpoint"))]
     async fn configure_proxy(&self, context: &DataplaneContext) -> Outcome<DataplaneContext> {
         Ok(context.clone())
     }

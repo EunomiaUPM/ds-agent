@@ -69,6 +69,7 @@ impl ConnectorTemplateRepoForSql {
 
 #[async_trait::async_trait]
 impl ConnectorTemplateRepoTrait for ConnectorTemplateRepoForSql {
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_template(
         &self,
         new_template_model: &NewConnectorTemplateModel,
@@ -87,6 +88,7 @@ impl ConnectorTemplateRepoTrait for ConnectorTemplateRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_templates_by_name(
         &self,
         tenant_id: &str,
@@ -107,6 +109,7 @@ impl ConnectorTemplateRepoTrait for ConnectorTemplateRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_template_by_name_and_version(
         &self,
         tenant_id: &str,
@@ -127,6 +130,7 @@ impl ConnectorTemplateRepoTrait for ConnectorTemplateRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_templates(
         &self,
         filters: &ConnectorTemplateFilter,
@@ -160,6 +164,7 @@ impl ConnectorTemplateRepoTrait for ConnectorTemplateRepoForSql {
         Ok((list, Some(total)))
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_template_by_name_and_version(
         &self,
         tenant_id: &str,

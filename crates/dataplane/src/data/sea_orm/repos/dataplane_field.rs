@@ -43,6 +43,7 @@ impl DataplaneFieldRepoForSql {
 
 #[async_trait::async_trait]
 impl DataplaneFieldRepoTrait for DataplaneFieldRepoForSql {
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_dataplane_fields_by_process_id(
         &self,
         tenant_id: &str,
@@ -59,6 +60,7 @@ impl DataplaneFieldRepoTrait for DataplaneFieldRepoForSql {
         Ok(result)
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_dataplane_field_by_id(
         &self,
         tenant_id: &str,
@@ -74,6 +76,7 @@ impl DataplaneFieldRepoTrait for DataplaneFieldRepoForSql {
         Ok(result)
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_dataplane_field(
         &self,
         tenant_id: &str,
@@ -95,6 +98,7 @@ impl DataplaneFieldRepoTrait for DataplaneFieldRepoForSql {
         Ok(result)
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn put_dataplane_field(
         &self,
         tenant_id: &str,
@@ -122,6 +126,7 @@ impl DataplaneFieldRepoTrait for DataplaneFieldRepoForSql {
         Ok(result)
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_dataplane_field(&self, tenant_id: &str, field_id: &Urn) -> Outcome<()> {
         let result = DataplaneFieldEntity::delete_many()
             .filter(Column::Id.eq(field_id.to_string()))
@@ -138,6 +143,7 @@ impl DataplaneFieldRepoTrait for DataplaneFieldRepoForSql {
         Ok(())
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_all_dataplane_fields_by_process_id(
         &self,
         tenant_id: &str,

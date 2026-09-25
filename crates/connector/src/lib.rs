@@ -17,7 +17,7 @@
 
 pub(crate) mod data;
 pub mod entities;
-pub(crate) mod facades;
+pub mod facades;
 pub(crate) mod http;
 pub mod services;
 pub(crate) mod setup;
@@ -33,7 +33,13 @@ pub use entities::connector_instance::{ConnectorInstanceDto, ConnectorInstantiat
 pub use entities::interaction::{InteractionConfig, PullLifecycle, PushLifecycle};
 pub use entities::parameters::TemplateVecString;
 pub use entities::resource::{HttpSpec, ProtocolSpec};
-pub use setup::ConnectorModule;
+pub use facades::catalog_facade::CatalogFacadeTrait;
+pub use facades::connector_instance_facade::local::ConnectorInstanceLocalFacade;
+pub use facades::connector_instance_facade::remote::ConnectorInstanceRemoteFacade;
+pub use facades::connector_instance_facade::{
+    ConnectorInstanceFacadeTrait, MockConnectorInstanceFacadeTrait,
+};
+pub use setup::{ConnectorModule, ConnectorPorts};
 
 pub use entities::auth_config::{
     ApiKeyLocation, AuthenticationConfig, BasicAuthConfig, OAuthGrantType, TokenExpireAction,

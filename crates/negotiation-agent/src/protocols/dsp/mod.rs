@@ -70,7 +70,8 @@ use crate::services::offer::OfferServiceTrait;
 use axum::Router;
 use common::auth::OauthTokenValidator;
 use common::config::services::ContractsConfig;
-use common::facades::ssi_auth_facade::{MatesFacadeTrait, SSIAuthFacadeTrait};
+use common::facades::mates_facade::MatesFacadeTrait;
+use common::facades::ssi_auth_facade::SSIAuthFacadeTrait;
 use std::sync::Arc;
 use ymir::errors::Outcome;
 

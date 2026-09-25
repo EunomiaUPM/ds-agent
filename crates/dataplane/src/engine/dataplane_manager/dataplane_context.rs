@@ -34,7 +34,7 @@ use crate::services::dataplane_transfers::DataplaneTransferServiceTrait;
 use crate::DataplaneAddress;
 use common::auth::{AccessScope, RbacRole};
 use common::config::services::TransferConfig;
-use connector::{ConnectorInstanceDto, ConnectorInstanceServiceTrait};
+use connector::{ConnectorInstanceDto, ConnectorInstanceFacadeTrait};
 use serde_json::json;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -55,7 +55,7 @@ pub struct DataplaneContext {
 impl DataplaneContext {
     pub async fn from_init(
         dataplane_service: Arc<dyn DataplaneTransferServiceTrait>,
-        _connector_entity: Arc<dyn ConnectorInstanceServiceTrait>,
+        _connector_entity: Arc<dyn ConnectorInstanceFacadeTrait>,
         config: Arc<TransferConfig>,
         init: DataplaneInitCommandTypes,
     ) -> Outcome<Self> {
@@ -134,7 +134,7 @@ impl DataplaneContext {
 
     pub async fn from_continuation(
         dataplane_service: Arc<dyn DataplaneTransferServiceTrait>,
-        connector_service: Arc<dyn ConnectorInstanceServiceTrait>,
+        connector_service: Arc<dyn ConnectorInstanceFacadeTrait>,
         driver_factory: Arc<dyn DataplaneDriverFactoryTrait>,
         config: Arc<TransferConfig>,
         continuation: DataplaneContinuation,
@@ -161,10 +161,8 @@ impl DataplaneContext {
         let connector = match connector_id {
             Some(connector_id) => {
                 let connector_urn = Urn::from_str(&connector_id)?;
-                let scope =
-                    AccessScope::from_role(RbacRole::Owner, &dataplane_process.inner.tenant_id);
                 connector_service
-                    .get_instance_by_id(&scope, &connector_urn)
+                    .get_instance_by_id(&dataplane_process.inner.tenant_id, &connector_urn)
                     .await?
             }
             None => None,

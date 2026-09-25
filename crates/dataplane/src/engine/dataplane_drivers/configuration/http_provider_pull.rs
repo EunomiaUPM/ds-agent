@@ -69,6 +69,7 @@ impl HttpProviderPullConfigurator {
 
 #[async_trait::async_trait]
 impl DriverProxyConfiguratorTrait for HttpProviderPullConfigurator {
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "data-endpoint"))]
     async fn configure_proxy(&self, mut context: &DataplaneContext) -> Outcome<DataplaneContext> {
         let mut proxy = DataplaneProxy::new();
         let ingress = self.configure_ingress(context)?;

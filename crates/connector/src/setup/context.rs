@@ -20,11 +20,11 @@
 use std::sync::Arc;
 
 use crate::data::factory_sql::ConnectorRepoForSql;
-use crate::facades::distribution_resolver_facade::data_service_resolver_facade::DistributionFacadeServiceForConnector;
 use crate::services::connector_instance::service::ConnectorInstanceService;
 use crate::services::connector_instance::ConnectorInstanceServiceTrait;
 use crate::services::connector_template::service::ConnectorTemplateService;
 use crate::services::connector_template::ConnectorTemplateServiceTrait;
+use crate::setup::ports::ConnectorPorts;
 use common::auth::OauthTokenValidator;
 use common::config::services::CatalogConfig;
 use common::config::types::traits::CommonConfigTrait;
@@ -45,16 +45,13 @@ impl AppContext {
         config: &CatalogConfig,
         root: &RootContext,
         event_bus: Option<events::EventBus>,
+        ports: &ConnectorPorts,
     ) -> Self {
         let repo = Arc::new(ConnectorRepoForSql::create_repo(root.db.clone()));
-        let distribution_facade = Arc::new(DistributionFacadeServiceForConnector::new(
-            config,
-            root.service_client.clone(),
-        ));
         let instance_svc = Arc::new(
             ConnectorInstanceService::new(
                 repo.clone(),
-                distribution_facade,
+                ports.catalog.clone(),
                 config.common().get_host(HostType::Http),
             )
             .with_event_bus(event_bus.clone()),

@@ -22,6 +22,8 @@ use serde::{Deserialize, Serialize};
 use urn::Urn;
 use uuid::Uuid;
 
+use common::telemetry::TraceParent;
+
 use crate::entities::topic::Topic;
 
 // Immutable envelope packaging domain events for storage and delivery.
@@ -35,6 +37,9 @@ pub struct EventEnvelope {
     pub timestamp: DateTime<Utc>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub correlation_id: Option<Urn>,
+    /// `traceparent` of the publishing span; consumers link to it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trace_context: Option<String>,
     pub payload: serde_json::Value,
 }
 
@@ -58,6 +63,7 @@ impl EventEnvelope {
             schema_version,
             timestamp: Utc::now(),
             correlation_id,
+            trace_context: TraceParent::current(),
             payload,
         }
     }
@@ -71,6 +77,7 @@ impl EventEnvelope {
         schema_version: u32,
         timestamp: DateTime<Utc>,
         correlation_id: Option<Urn>,
+        trace_context: Option<String>,
         payload: serde_json::Value,
     ) -> Self {
         Self {
@@ -81,6 +88,7 @@ impl EventEnvelope {
             schema_version,
             timestamp,
             correlation_id,
+            trace_context,
             payload,
         }
     }

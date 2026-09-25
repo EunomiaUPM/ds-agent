@@ -79,6 +79,7 @@ impl ProtocolOrchestratorService {
 
 #[async_trait::async_trait]
 impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn on_get_negotiation(
         &self,
         id: &String,
@@ -92,6 +93,7 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
         Ok(negotiation_process_dto)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn on_initial_contract_request(
         &self,
         input: &NegotiationProcessMessageWrapper<NegotiationRequestInitMessageDto>,
@@ -104,6 +106,7 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
             .await
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn on_consumer_request(
         &self,
         id: &String,
@@ -116,6 +119,7 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
         Ok(ack)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn on_agreement_verification(
         &self,
         id: &String,
@@ -128,6 +132,7 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
         Ok(ack)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn on_initial_provider_offer(
         &self,
         input: &NegotiationProcessMessageWrapper<NegotiationOfferInitMessageDto>,
@@ -140,6 +145,7 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
             .await
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn on_provider_offer(
         &self,
         id: &String,
@@ -152,6 +158,7 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
         Ok(ack)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn on_agreement_reception(
         &self,
         id: &String,
@@ -164,6 +171,7 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
         Ok(ack)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn on_negotiation_event(
         &self,
         id: &String,
@@ -176,6 +184,7 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
         Ok(ack)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn on_negotiation_termination(
         &self,
         id: &String,

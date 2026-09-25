@@ -67,6 +67,7 @@ impl PolicyTemplatesRepositoryForSql {
 
 #[async_trait::async_trait]
 impl PolicyTemplatesRepositoryTrait for PolicyTemplatesRepositoryForSql {
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_policy_templates(
         &self,
         filters: &PolicyTemplateFilter,
@@ -102,6 +103,7 @@ impl PolicyTemplatesRepositoryTrait for PolicyTemplatesRepositoryForSql {
         Ok((items, Some(total)))
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_batch_policy_templates(
         &self,
         tenant_id: &str,
@@ -122,6 +124,7 @@ impl PolicyTemplatesRepositoryTrait for PolicyTemplatesRepositoryForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_policy_templates_by_id(
         &self,
         tenant_id: &str,
@@ -141,6 +144,7 @@ impl PolicyTemplatesRepositoryTrait for PolicyTemplatesRepositoryForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_policy_template_by_id_and_version(
         &self,
         tenant_id: &str,
@@ -162,6 +166,7 @@ impl PolicyTemplatesRepositoryTrait for PolicyTemplatesRepositoryForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_policy_template(
         &self,
         new_policy_template: &NewPolicyTemplateModel,
@@ -179,6 +184,7 @@ impl PolicyTemplatesRepositoryTrait for PolicyTemplatesRepositoryForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_policy_template_by_id_and_version(
         &self,
         tenant_id: &str,

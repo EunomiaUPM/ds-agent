@@ -32,7 +32,7 @@ use crate::protocols::dsp::validator::traits::validation_rpc_steps::ValidationRp
 use axum::http::HeaderMap;
 use common::auth::AccessScope;
 use common::errors::{CommonErrors, ErrorLog};
-use common::facades::ssi_auth_facade::MatesFacadeTrait;
+use common::facades::mates_facade::MatesFacadeTrait;
 use common::well_known::rpc::WellKnownRPCRequest;
 use std::marker::PhantomData;
 use std::sync::Arc;
@@ -79,6 +79,7 @@ impl RPCOrchestratorService {
 
 #[async_trait::async_trait]
 impl RPCOrchestratorTrait for RPCOrchestratorService {
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn setup_catalog_request_rpc(
         &self,
         scope: &AccessScope,
@@ -147,6 +148,7 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
         Ok(response)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn setup_dataset_request_rpc(
         &self,
         scope: &AccessScope,

@@ -21,6 +21,7 @@ pub const SERVICE_BIG_NAME: &str = "SSI-Auth Agent";
 pub mod core;
 pub mod data;
 pub mod entities;
+pub mod facades;
 pub mod http;
 pub mod modules;
 pub mod services;

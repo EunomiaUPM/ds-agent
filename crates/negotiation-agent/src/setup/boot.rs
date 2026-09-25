@@ -27,7 +27,7 @@ use sea_orm::DatabaseConnection;
 use sea_orm_migration::MigrationTrait;
 use ymir::errors::Outcome;
 
-use crate::setup::NegotiationAgentModule;
+use crate::setup::{NegotiationAgentModule, NegotiationPorts};
 
 /// Standalone negotiation agent.
 pub struct NegotiationAgentBoot;
@@ -45,7 +45,9 @@ impl BootstrapServiceTrait for NegotiationAgentBoot {
     }
 
     async fn compose(config: &ContractsConfig, root: &RootContext) -> Outcome<ServiceComposer> {
+        let ports = NegotiationPorts::remote(config, root);
         Ok(ServiceComposer::new()
-            .register(NegotiationAgentModule::compose(config, root, None).await?))
+            .register(NegotiationAgentModule::compose(config, root, None, &ports).await?)
+            .with_auth_ports(ports.auth.clone()))
     }
 }

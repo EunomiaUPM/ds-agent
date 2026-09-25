@@ -17,6 +17,7 @@
 
 pub mod data;
 pub mod entities;
+pub(crate) mod facades;
 pub mod grpc;
 pub mod http;
 pub mod protocols;

@@ -15,7 +15,9 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::boot::seeders::BootSeeder;
 use crate::boot::workers::BackgroundWorker;
+use crate::facades::AuthPorts;
 use crate::module_loader::module_group::ModuleGroup;
 use crate::module_loader::service_module::ServiceModuleTrait;
 use crate::module_loader::utils::mount;
@@ -27,13 +29,25 @@ use tonic::service::{Routes, RoutesBuilder};
 /// exposing each composed plane.
 pub struct ServiceComposer {
     root: ModuleGroup,
+    auth_ports: Option<AuthPorts>,
 }
 
 impl ServiceComposer {
     pub fn new() -> Self {
         Self {
             root: ModuleGroup::new("root"),
+            auth_ports: None,
         }
+    }
+
+    /// Auth ports this process resolved (local or remote), reused by the process-wide surfaces.
+    pub fn with_auth_ports(mut self, ports: AuthPorts) -> Self {
+        self.auth_ports = Some(ports);
+        self
+    }
+
+    pub fn auth_ports(&self) -> Option<&AuthPorts> {
+        self.auth_ports.as_ref()
     }
 
     /// Add a module — or a whole [`ModuleGroup`]. Chainable; composition
@@ -71,6 +85,11 @@ impl ServiceComposer {
     /// Every module's background workers, in registration order.
     pub fn workers(&self) -> Vec<Box<dyn BackgroundWorker>> {
         self.root.workers()
+    }
+
+    /// Every module's boot seeders, in registration order.
+    pub fn seeders(&self) -> Vec<Box<dyn BootSeeder>> {
+        self.root.seeders()
     }
 }
 

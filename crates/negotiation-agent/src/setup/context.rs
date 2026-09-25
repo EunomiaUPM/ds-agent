@@ -32,11 +32,12 @@ use crate::services::offer::OfferServiceTrait;
 use crate::services::offer::service::OfferService;
 use common::auth::OauthTokenValidator;
 use common::config::services::ContractsConfig;
-use common::config::services::traits::ContractsConfigTrait;
-use common::facades::ssi_auth_facade::mates_facade::MatesFacadeService;
-use common::facades::ssi_auth_facade::ssi_auth_facade::SSIAuthFacadeService;
-use common::facades::ssi_auth_facade::{MatesFacadeTrait, SSIAuthFacadeTrait};
+use common::facades::mates_facade::MatesFacadeTrait;
+use common::facades::ssi_auth_facade::SSIAuthFacadeTrait;
 use common::module_loader::root_context::RootContext;
+
+use crate::facades::catalog_facade::CatalogFacadeTrait;
+use crate::setup::ports::NegotiationPorts;
 
 #[derive(Clone)]
 pub struct AppContext {
@@ -48,6 +49,8 @@ pub struct AppContext {
     pub agreement_svc: Arc<dyn AgreementServiceTrait>,
     pub ssi_auth_facade: Arc<dyn SSIAuthFacadeTrait>,
     pub mates_facade: Arc<dyn MatesFacadeTrait>,
+    /// Offer checks against the provider catalog, for contract-request validation.
+    pub catalog_facade: Arc<dyn CatalogFacadeTrait>,
     pub oauth_validator: Arc<dyn OauthTokenValidator>,
 }
 
@@ -56,6 +59,7 @@ impl AppContext {
         config: &ContractsConfig,
         root: &RootContext,
         event_bus: Option<events::EventBus>,
+        ports: &NegotiationPorts,
     ) -> Self {
         let repo = Arc::new(NegotiationAgentRepoForSql::create_repo(root.db.clone()));
 
@@ -83,16 +87,6 @@ impl AppContext {
         let agreement_svc =
             Arc::new(AgreementService::new(repo.get_agreement_repo()).with_event_bus(event_bus));
 
-        let ssi_auth_config = Arc::new(config.ssi_auth().clone());
-        let ssi_auth_facade = Arc::new(SSIAuthFacadeService::new(
-            ssi_auth_config.clone(),
-            root.service_client.clone(),
-        ));
-        let mates_facade = Arc::new(MatesFacadeService::new(
-            ssi_auth_config,
-            root.service_client.clone(),
-        ));
-
         Self {
             config: Arc::new(config.clone()),
             process_repo: repo.get_negotiation_process_repo(),
@@ -100,8 +94,9 @@ impl AppContext {
             message_svc,
             offer_svc,
             agreement_svc,
-            ssi_auth_facade,
-            mates_facade,
+            ssi_auth_facade: ports.auth.ssi_auth.clone(),
+            mates_facade: ports.auth.mates.clone(),
+            catalog_facade: ports.catalog.clone(),
             oauth_validator: root.validator.clone(),
         }
     }

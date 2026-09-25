@@ -37,6 +37,7 @@ use ymir::types::wallet::OidcUri;
 pub trait VcRequesterModule:
     HasVcRequester + HasRepo + HasCallback + HasWallet + Send + Sync + 'static
 {
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn beg_vc(&self, scope: &AccessScope, payload: ReachAuthority) -> Outcome<()> {
         scope.require_write()?;
         let tenant_id = scope.acting_tenant();
@@ -64,6 +65,7 @@ pub trait VcRequesterModule:
         self.manage_grant_resp(grant, what_response).await
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn manage_interaction_finish(&self, id: String, payload: CallbackBody) -> Outcome<()> {
         match payload {
             CallbackBody::Approved(payload) => self.req_vc_continuation(id, payload).await,
@@ -71,6 +73,7 @@ pub trait VcRequesterModule:
         }
     }
     // =================================== GETTERS FOR FRONTEND ====================================
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_all(
         &self,
         scope: &AccessScope,
@@ -108,12 +111,14 @@ pub trait VcRequesterModule:
         ))
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_by_id(&self, scope: &AccessScope, id: String) -> Outcome<grant::Model> {
         let grant = self.repo().sent_grant().get_by_id(&id).await?;
         scope.ensure_visible(&grant.tenant_id, &id)?;
         Ok(grant)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_by_id_with_details(&self, scope: &AccessScope, id: String) -> Outcome<Value> {
         let grant = self.get_by_id(scope, id.clone()).await?;
         let interaction = self.repo().sent_interaction().get_by_id(&id).await.ok();
@@ -126,6 +131,7 @@ pub trait VcRequesterModule:
     }
     // ========================================= PROCESS OID4VC
     // =========================================
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn process_oid4vci(
         &self,
         scope: &AccessScope,
@@ -143,6 +149,7 @@ pub trait VcRequesterModule:
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn process_oid4vp(
         &self,
         scope: &AccessScope,
@@ -164,6 +171,7 @@ pub trait VcRequesterModule:
     }
 
     // ========================================= INTERNALS =========================================
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn manage_grant_resp(
         &self,
         grant: grant::Model,
@@ -176,6 +184,7 @@ pub trait VcRequesterModule:
         }
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn manage_oid4vci(&self, mut grant: grant::Model, uri: &str) -> Outcome<()> {
         if grant.auto {
             self.wallet().process_oid4vci(&uri).await?;
@@ -189,6 +198,7 @@ pub trait VcRequesterModule:
 
         Ok(())
     }
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn manage_oid4vp(&self, mut verification: verification::Model, uri: &str) -> Outcome<()> {
         match self.wallet().process_oid4vp(&uri).await {
             Ok(_) => verification.status = VerificationStatus::Verified,
@@ -201,6 +211,7 @@ pub trait VcRequesterModule:
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn manage_auto_oid4vp(&self, grant: &grant::Model, uri: &str) -> Outcome<()> {
         let verification =
             self.vc_requester()
@@ -214,6 +225,7 @@ pub trait VcRequesterModule:
         }
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn req_vc_continuation(&self, id: String, payload: ApprovedCallbackBody) -> Outcome<()> {
         let mut interaction = self.repo().sent_interaction().get_by_id(&id).await?;
         let mut grant = self.repo().sent_grant().get_by_id(&id).await?;
@@ -235,6 +247,7 @@ pub trait VcRequesterModule:
         self.manage_grant_resp(grant, what_response).await
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn manage_rejection(&self, id: String) -> Outcome<()> {
         let mut grant = self.repo().sent_grant().get_by_id(&id).await?;
         grant.status = GrantStatus::Rejected;

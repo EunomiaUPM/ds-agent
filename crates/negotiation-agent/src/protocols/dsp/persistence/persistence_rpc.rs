@@ -87,11 +87,13 @@ impl NegotiationPersistenceForRpcService {
 
 #[async_trait::async_trait]
 impl NegotiationRpcPersistenceTrait for NegotiationPersistenceForRpcService {
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn fetch_process(&self, id: &str, actor: &DspActor) -> Outcome<NegotiationProcessView> {
         let urn = self.convert_str_to_urn(id)?;
         self.resolver.resolve(&urn, actor).await
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn fetch_last_offer(&self, process: &NegotiationProcessView) -> Outcome<OfferView> {
         let process_id = self.convert_string_to_urn(&process.inner.id)?;
         let scope = NegotiationProcessResolver::owner_scope(&process.inner.tenant_id);
@@ -100,6 +102,7 @@ impl NegotiationRpcPersistenceTrait for NegotiationPersistenceForRpcService {
             .await
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn create_new(
         &self,
         tenant_id: &str,
@@ -123,6 +126,7 @@ impl NegotiationRpcPersistenceTrait for NegotiationPersistenceForRpcService {
         Ok(process)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn update(
         &self,
         process: &NegotiationProcessView,
@@ -139,6 +143,7 @@ impl NegotiationRpcPersistenceTrait for NegotiationPersistenceForRpcService {
         Ok(new_process)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn update_with_offer(
         &self,
         process: &NegotiationProcessView,
@@ -160,6 +165,7 @@ impl NegotiationRpcPersistenceTrait for NegotiationPersistenceForRpcService {
         Ok(new_process)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn update_with_new_agreement(
         &self,
         process: &NegotiationProcessView,
@@ -189,6 +195,7 @@ impl NegotiationRpcPersistenceTrait for NegotiationPersistenceForRpcService {
         Ok(new_process)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn update_with_agreement(
         &self,
         process: &NegotiationProcessView,

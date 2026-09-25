@@ -326,6 +326,7 @@ impl GateKeeperTrait for GnapGateKeeperService {
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn finish_interaction(
         &self,
         interaction: &interaction::Model,

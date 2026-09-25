@@ -45,6 +45,7 @@ impl NegotiationProtocolStep for InitialProviderOfferStep {
     type Dto = NegotiationOfferInitMessageDto;
     type Context = NegotiationInitialContext;
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn validate(
         validator: &Arc<dyn ValidationDspSteps>,
         _id: &str,
@@ -55,6 +56,7 @@ impl NegotiationProtocolStep for InitialProviderOfferStep {
     }
 
     /// No existing process to look up; always proceeds to persist.
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn prepare_context(
         _id: &str,
         _mate: &Mates,
@@ -68,6 +70,7 @@ impl NegotiationProtocolStep for InitialProviderOfferStep {
     }
 
     /// Creates the new negotiation process record with the initial provider offer.
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn persist(
         persistence: &Arc<OrchestrationPersistenceForProtocol>,
         _id: &str,

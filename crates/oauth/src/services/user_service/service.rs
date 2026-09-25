@@ -53,6 +53,7 @@ impl UserService {
 
 #[async_trait::async_trait]
 impl UserServiceTrait for UserService {
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn list_users(
         &self,
         scope: &AccessScope,
@@ -76,6 +77,7 @@ impl UserServiceTrait for UserService {
         }))
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_user(&self, scope: &AccessScope, tenant_id: &str) -> Outcome<UserView> {
         scope.require_read_tenant(tenant_id)?;
         let user = self
@@ -88,6 +90,7 @@ impl UserServiceTrait for UserService {
 
     /// A convenience method for token service management
     /// Only difference to `get_user` is the [`UserInfo`] struct
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn user_info(&self, scope: &AccessScope, tenant_id: &str) -> Outcome<UserInfo> {
         scope.require_read_tenant(tenant_id)?;
         let user = self
@@ -98,6 +101,7 @@ impl UserServiceTrait for UserService {
         Ok(UserInfo::assemble(user))
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn create_user(&self, scope: &AccessScope, cmd: &CreateUserCommand) -> Outcome<UserView> {
         scope.require_admin()?;
         if self
@@ -141,6 +145,7 @@ impl UserServiceTrait for UserService {
         Ok(view)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn patch_user(
         &self,
         scope: &AccessScope,
@@ -176,6 +181,7 @@ impl UserServiceTrait for UserService {
         Ok(view)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn delete_user(&self, scope: &AccessScope, tenant_id: &str) -> Outcome<()> {
         scope.require_admin()?;
         self.user_repo.delete(tenant_id).await?;

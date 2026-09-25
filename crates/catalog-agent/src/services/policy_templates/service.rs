@@ -48,6 +48,7 @@ impl PolicyTemplateService {
 
 #[async_trait::async_trait]
 impl PolicyTemplateServiceTrait for PolicyTemplateService {
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_all_policy_templates(
         &self,
         scope: &AccessScope,
@@ -77,6 +78,7 @@ impl PolicyTemplateServiceTrait for PolicyTemplateService {
         }))
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_batch_policy_templates(
         &self,
         scope: &AccessScope,
@@ -94,6 +96,7 @@ impl PolicyTemplateServiceTrait for PolicyTemplateService {
             .collect()
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_policies_template_by_id(
         &self,
         scope: &AccessScope,
@@ -111,6 +114,7 @@ impl PolicyTemplateServiceTrait for PolicyTemplateService {
             .collect()
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_policies_template_by_version_and_id(
         &self,
         scope: &AccessScope,
@@ -127,6 +131,7 @@ impl PolicyTemplateServiceTrait for PolicyTemplateService {
         PolicyTemplateDto::try_from(policy_template)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn create_policy_template(
         &self,
         scope: &AccessScope,
@@ -154,6 +159,7 @@ impl PolicyTemplateServiceTrait for PolicyTemplateService {
         Ok(dto)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn delete_policy_template_by_version_and_id(
         &self,
         scope: &AccessScope,

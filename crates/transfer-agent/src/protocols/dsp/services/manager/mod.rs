@@ -44,19 +44,24 @@ pub enum TransferResponse {
 /// template; a strategy only overrides the phases it cares about (defaults noop).
 #[async_trait::async_trait]
 pub trait TransferLifecycleStrategy: Send + Sync {
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn validations(&self, _cmd: &mut TransferManagerCommand) -> Outcome<()> {
         Ok(())
     }
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn pre_hook(&self, _cmd: &mut TransferManagerCommand) -> Outcome<()> {
         Ok(())
     }
     async fn persist(&self, cmd: &mut TransferManagerCommand) -> Outcome<()>;
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn send_to_peer(&self, _cmd: &TransferManagerCommand) -> Outcome<()> {
         Ok(())
     }
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn fire_events(&self, _cmd: &TransferManagerCommand) -> Outcome<()> {
         Ok(())
     }
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn post_hook(&self, _cmd: &mut TransferManagerCommand) -> Outcome<()> {
         Ok(())
     }

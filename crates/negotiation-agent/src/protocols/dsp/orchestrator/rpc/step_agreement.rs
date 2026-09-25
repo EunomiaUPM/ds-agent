@@ -34,7 +34,7 @@ use common::dsp_common::DspActor;
 use common::dsp_common::odrl::{
     ContractRequestMessageOfferTypes, OdrlAgreement, OdrlMessageOffer, OdrlTypes,
 };
-use common::facades::ssi_auth_facade::MatesFacadeTrait;
+use common::facades::mates_facade::MatesFacadeTrait;
 use std::sync::Arc;
 use ymir::errors::{Errors, Outcome};
 use ymir::services::client::ClientExt;
@@ -65,6 +65,7 @@ impl NegotiationRpcStep for RpcAgreementStep {
     type Input = RpcNegotiationAgreementMessageDto;
     type Context = NegotiationRpcAgreementContext;
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn validate(
         validator: &Arc<dyn ValidationRpcSteps>,
         actor: &DspActor,
@@ -75,6 +76,7 @@ impl NegotiationRpcStep for RpcAgreementStep {
 
     /// Resolves the continuation context and pre-fetches the enrichment data:
     /// the last offer (for agreement policy) and the participant IDs (from mates).
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn prepare_context(
         scope: &AccessScope,
         input: &RpcNegotiationAgreementMessageDto,
@@ -136,6 +138,7 @@ impl NegotiationRpcStep for RpcAgreementStep {
     ///
     /// The agreement body is constructed from the last offer's policy fields plus
     /// the participant IDs resolved in `prepare_context`.
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn send_and_persist(
         headers: Option<HeaderMap>,
         persistence: &Arc<dyn NegotiationRpcPersistenceTrait>,

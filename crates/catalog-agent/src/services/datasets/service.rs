@@ -56,6 +56,7 @@ impl DatasetService {
 
 #[async_trait::async_trait]
 impl DatasetServiceTrait for DatasetService {
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_all_datasets(
         &self,
         scope: &AccessScope,
@@ -82,6 +83,7 @@ impl DatasetServiceTrait for DatasetService {
         }))
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_batch_datasets(
         &self,
         scope: &AccessScope,
@@ -109,6 +111,7 @@ impl DatasetServiceTrait for DatasetService {
         Ok(dtos)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_datasets_by_catalog_id(
         &self,
         scope: &AccessScope,
@@ -138,6 +141,7 @@ impl DatasetServiceTrait for DatasetService {
         Ok(dtos)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_dataset_by_id(
         &self,
         scope: &AccessScope,
@@ -161,6 +165,7 @@ impl DatasetServiceTrait for DatasetService {
         Ok(dto)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn put_dataset_by_id(
         &self,
         scope: &AccessScope,
@@ -199,6 +204,7 @@ impl DatasetServiceTrait for DatasetService {
         Ok(dto)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn create_dataset(
         &self,
         scope: &AccessScope,
@@ -239,6 +245,7 @@ impl DatasetServiceTrait for DatasetService {
         Ok(dto)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn delete_dataset_by_id(&self, scope: &AccessScope, dataset_id: &Urn) -> Outcome<()> {
         scope.require_write()?;
         let deleted = self

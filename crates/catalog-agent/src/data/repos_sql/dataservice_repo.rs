@@ -74,6 +74,7 @@ impl DataServiceRepositoryForSql {
 
 #[async_trait::async_trait]
 impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_data_services(
         &self,
         filters: &DataServiceFilter,
@@ -109,6 +110,7 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
         Ok((items, Some(total)))
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_batch_data_services(
         &self,
         tenant_id: Option<String>,
@@ -131,6 +133,7 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_data_services_by_catalog_id(
         &self,
         tenant_id: Option<String>,
@@ -153,6 +156,7 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_main_data_service(&self, tenant_id: &str) -> Outcome<Option<dataservice::Model>> {
         let data_service = dataservice::Entity::find()
             .filter(dataservice::Column::TenantId.eq(tenant_id))
@@ -168,6 +172,7 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
         Ok(data_service)
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_data_service_by_id(
         &self,
         tenant_id: Option<String>,
@@ -189,6 +194,7 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn put_data_service_by_id(
         &self,
         tenant_id: Option<String>,
@@ -252,6 +258,7 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_data_service(
         &self,
         new_data_service_model: &NewDataServiceModel,
@@ -286,6 +293,7 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_main_data_service(
         &self,
         new_data_service_model: &NewDataServiceModel,
@@ -329,6 +337,7 @@ impl DataServiceRepositoryTrait for DataServiceRepositoryForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_data_service_by_id(
         &self,
         tenant_id: Option<String>,

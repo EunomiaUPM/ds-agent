@@ -48,6 +48,7 @@ impl TransferEventsService {
 
 #[async_trait::async_trait]
 impl TransferEventServiceTrait for TransferEventsService {
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_all(
         &self,
         scope: &AccessScope,
@@ -79,6 +80,7 @@ impl TransferEventServiceTrait for TransferEventsService {
         }))
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_one(&self, scope: &AccessScope, id: &Urn) -> Outcome<TransferEventDto> {
         scope.require_read()?;
 
@@ -91,6 +93,7 @@ impl TransferEventServiceTrait for TransferEventsService {
         Ok(TransferEventDto { inner: event })
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_by_process_id(
         &self,
         scope: &AccessScope,
@@ -112,6 +115,7 @@ impl TransferEventServiceTrait for TransferEventsService {
             .collect())
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn batch(
         &self,
         scope: &AccessScope,
@@ -142,6 +146,7 @@ impl TransferEventServiceTrait for TransferEventsService {
             .collect())
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn create(
         &self,
         scope: &AccessScope,

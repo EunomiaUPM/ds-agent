@@ -161,6 +161,7 @@ impl TokenService {
 
 #[async_trait::async_trait]
 impl OauthTokenValidator for TokenService {
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn validate_token(&self, access_token: &str) -> Outcome<Claims> {
         if access_token.starts_with("pat_") {
             let hash = PersonalAccessToken::hash_token(access_token);
@@ -200,10 +201,12 @@ impl OauthTokenValidator for TokenService {
 
 #[async_trait::async_trait]
 impl TokenServiceTrait for TokenService {
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn issue_token(&self, email: &str, password: &str) -> Outcome<TokenResponse> {
         self.issue_token_with_scope(email, password, None).await
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn issue_token_with_scope(
         &self,
         email: &str,
@@ -236,6 +239,7 @@ impl TokenServiceTrait for TokenService {
         })
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn issue_client_credentials_token(
         &self,
         client_id: &str,
@@ -294,6 +298,7 @@ impl TokenServiceTrait for TokenService {
         })
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn issue_authorization_code(
         &self,
         client_id: &str,
@@ -363,6 +368,7 @@ impl TokenServiceTrait for TokenService {
         Ok(code)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn exchange_authorization_code(
         &self,
         code: &str,
@@ -448,6 +454,7 @@ impl TokenServiceTrait for TokenService {
         })
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn issue_jwt_bearer_token(
         &self,
         assertion: &str,
@@ -518,10 +525,12 @@ impl TokenServiceTrait for TokenService {
         })
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn refresh_token(&self, refresh_jwt: &str) -> Outcome<TokenResponse> {
         self.refresh_token_with_scope(refresh_jwt, None).await
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn refresh_token_with_scope(
         &self,
         refresh_jwt: &str,
@@ -565,6 +574,7 @@ impl TokenServiceTrait for TokenService {
         })
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn revoke_refresh_token(&self, refresh_jwt: &str) -> Outcome<()> {
         let rc: RefreshClaims = self.verify(refresh_jwt)?;
         let record = self
@@ -575,6 +585,7 @@ impl TokenServiceTrait for TokenService {
         self.refresh_repo.revoke(record.id).await
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn revoke_token(&self, token: &str, hint: Option<&str>) -> Outcome<()> {
         if token.starts_with("pat_") {
             let hash = PersonalAccessToken::hash_token(token);
@@ -597,6 +608,7 @@ impl TokenServiceTrait for TokenService {
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn introspect_token(
         &self,
         token: &str,

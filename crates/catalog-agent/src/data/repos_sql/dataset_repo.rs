@@ -74,6 +74,7 @@ impl DatasetRepositoryForSql {
 
 #[async_trait::async_trait]
 impl DatasetRepositoryTrait for DatasetRepositoryForSql {
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_datasets(
         &self,
         filters: &DatasetFilter,
@@ -107,6 +108,7 @@ impl DatasetRepositoryTrait for DatasetRepositoryForSql {
         Ok((datasets, Some(total)))
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_batch_datasets(
         &self,
         tenant_id: Option<String>,
@@ -127,6 +129,7 @@ impl DatasetRepositoryTrait for DatasetRepositoryForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_datasets_by_catalog_id(
         &self,
         tenant_id: Option<String>,
@@ -147,6 +150,7 @@ impl DatasetRepositoryTrait for DatasetRepositoryForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_dataset_by_id(
         &self,
         tenant_id: Option<String>,
@@ -166,6 +170,7 @@ impl DatasetRepositoryTrait for DatasetRepositoryForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn put_dataset_by_id(
         &self,
         tenant_id: Option<String>,
@@ -221,6 +226,7 @@ impl DatasetRepositoryTrait for DatasetRepositoryForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_dataset(&self, new_dataset_model: &NewDatasetModel) -> Outcome<dataset::Model> {
         let catalog = catalog::Entity::find_by_id(new_dataset_model.catalog_id.clone().to_string())
             .filter(catalog::Column::TenantId.eq(&new_dataset_model.tenant_id))
@@ -252,6 +258,7 @@ impl DatasetRepositoryTrait for DatasetRepositoryForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_dataset_by_id(
         &self,
         tenant_id: Option<String>,

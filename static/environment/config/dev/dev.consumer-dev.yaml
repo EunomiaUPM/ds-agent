@@ -132,6 +132,7 @@ ssi_auth:
 contracts:
   common: *common_config
   ssi_auth: *min_known_config
+  catalog: *min_known_config
   is_catalog_datahub: *is_catalog_datahub
 
 # ==========================

@@ -55,7 +55,7 @@ impl AgreementService {
 
 #[async_trait::async_trait]
 impl AgreementServiceTrait for AgreementService {
-    #[tracing::instrument(level = "info", skip_all, err)]
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_all(
         &self,
         scope: &AccessScope,
@@ -85,7 +85,12 @@ impl AgreementServiceTrait for AgreementService {
         }))
     }
 
-    #[tracing::instrument(level = "info", skip(self, scope), fields(id = %id), err)]
+    #[tracing::instrument(
+        level = "info",
+        skip_all,
+        err,
+        fields(tenant = %scope.acting_tenant(), id = %id)
+    )]
     async fn get_one(&self, scope: &AccessScope, id: &Urn) -> Outcome<AgreementView> {
         scope.require_read()?;
         let agreement = self
@@ -97,7 +102,12 @@ impl AgreementServiceTrait for AgreementService {
         Ok(AgreementView::assemble(agreement))
     }
 
-    #[tracing::instrument(level = "info", skip(self, scope), fields(process_id = %process_id), err)]
+    #[tracing::instrument(
+        level = "info",
+        skip_all,
+        err,
+        fields(tenant = %scope.acting_tenant(), process_id = %process_id)
+    )]
     async fn get_by_process(
         &self,
         scope: &AccessScope,
@@ -116,7 +126,12 @@ impl AgreementServiceTrait for AgreementService {
         Ok(AgreementView::assemble(agreement))
     }
 
-    #[tracing::instrument(level = "info", skip(self, scope), fields(message_id = %message_id), err)]
+    #[tracing::instrument(
+        level = "info",
+        skip_all,
+        err,
+        fields(tenant = %scope.acting_tenant(), message_id = %message_id)
+    )]
     async fn get_by_message(
         &self,
         scope: &AccessScope,
@@ -135,7 +150,12 @@ impl AgreementServiceTrait for AgreementService {
         Ok(AgreementView::assemble(agreement))
     }
 
-    #[tracing::instrument(level = "info", skip(self, scope), fields(assignee = %assignee), err)]
+    #[tracing::instrument(
+        level = "info",
+        skip_all,
+        err,
+        fields(tenant = %scope.acting_tenant(), assignee = %assignee)
+    )]
     async fn get_by_assignee(
         &self,
         scope: &AccessScope,
@@ -153,7 +173,12 @@ impl AgreementServiceTrait for AgreementService {
             .collect())
     }
 
-    #[tracing::instrument(level = "info", skip(self, scope), fields(assigner = %assigner), err)]
+    #[tracing::instrument(
+        level = "info",
+        skip_all,
+        err,
+        fields(tenant = %scope.acting_tenant(), assigner = %assigner)
+    )]
     async fn get_by_assigner(
         &self,
         scope: &AccessScope,
@@ -171,7 +196,7 @@ impl AgreementServiceTrait for AgreementService {
             .collect())
     }
 
-    #[tracing::instrument(level = "info", skip_all, err)]
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn batch(&self, scope: &AccessScope, req: &BatchRequests) -> Outcome<Vec<AgreementView>> {
         scope.require_read()?;
         if req.ids.len() > MAX_BATCH_IDS {
@@ -196,7 +221,7 @@ impl AgreementServiceTrait for AgreementService {
             .collect())
     }
 
-    #[tracing::instrument(level = "info", skip_all, err)]
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn create(&self, scope: &AccessScope, cmd: &NewAgreementDto) -> Outcome<AgreementView> {
         let tenant_id = scope.resolve_create_tenant(cmd.tenant_id.as_deref())?;
         let new_model: NewAgreementModel = cmd.clone().into_model(tenant_id);
@@ -214,7 +239,7 @@ impl AgreementServiceTrait for AgreementService {
         Ok(view)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err)]
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn edit(
         &self,
         scope: &AccessScope,
@@ -241,7 +266,12 @@ impl AgreementServiceTrait for AgreementService {
         Ok(view)
     }
 
-    #[tracing::instrument(level = "info", skip(self, scope), fields(id = %id), err)]
+    #[tracing::instrument(
+        level = "info",
+        skip_all,
+        err,
+        fields(tenant = %scope.acting_tenant(), id = %id)
+    )]
     async fn delete(&self, scope: &AccessScope, id: &Urn) -> Outcome<()> {
         scope.require_write()?;
         let owner = self

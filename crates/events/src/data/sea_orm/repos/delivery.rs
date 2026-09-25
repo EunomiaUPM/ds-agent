@@ -42,6 +42,7 @@ impl SeaOrmDeliveryRepo {
 
 #[async_trait]
 impl EventDeliveryRepo for SeaOrmDeliveryRepo {
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_delivery(&self, d: &EventDeliveryRecord) -> Outcome<EventDeliveryRecord> {
         let active = delivery::ActiveModel::from_domain(d);
         active
@@ -51,6 +52,7 @@ impl EventDeliveryRepo for SeaOrmDeliveryRepo {
         Ok(d.clone())
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_delivery(
         &self,
         tenant_id: &str,
@@ -69,6 +71,7 @@ impl EventDeliveryRepo for SeaOrmDeliveryRepo {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_due_retries(
         &self,
         now: DateTime<Utc>,
@@ -89,6 +92,7 @@ impl EventDeliveryRepo for SeaOrmDeliveryRepo {
         Ok(list)
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn mark_delivered(&self, id: &str, attempts: u32, status_code: u16) -> Outcome<()> {
         if let Some(model) = delivery::Entity::find_by_id(id.to_string())
             .one(&self.db)
@@ -111,6 +115,7 @@ impl EventDeliveryRepo for SeaOrmDeliveryRepo {
         Ok(())
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn record_failed_attempt(
         &self,
         id: &str,
@@ -139,6 +144,7 @@ impl EventDeliveryRepo for SeaOrmDeliveryRepo {
         Ok(())
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn mark_dead_letter(&self, id: &str) -> Outcome<()> {
         if let Some(model) = delivery::Entity::find_by_id(id.to_string())
             .one(&self.db)
@@ -156,6 +162,7 @@ impl EventDeliveryRepo for SeaOrmDeliveryRepo {
         Ok(())
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn list_by_event(
         &self,
         tenant_id: Option<String>,

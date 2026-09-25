@@ -46,6 +46,7 @@ impl KeystoreClientImpl {
 
 #[async_trait::async_trait]
 impl KeystoreLookup for KeystoreClientImpl {
+    #[tracing::instrument(level = "info", skip_all, fields(peer.service = "keystore"))]
     async fn get_parameter(&self, tenant_id: &str, key: &str) -> Option<serde_json::Value> {
         let k = Key::new(key).ok()?;
         let scope = Self::reader_scope(tenant_id);
@@ -56,6 +57,7 @@ impl KeystoreLookup for KeystoreClientImpl {
             .map(|e| e.value)
     }
 
+    #[tracing::instrument(level = "info", skip_all, fields(peer.service = "keystore"))]
     async fn get_secret(&self, tenant_id: &str, key: &str) -> Option<serde_json::Value> {
         let k = Key::new(key).ok()?;
         let scope = Self::reader_scope(tenant_id);

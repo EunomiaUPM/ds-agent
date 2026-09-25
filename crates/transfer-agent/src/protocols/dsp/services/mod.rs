@@ -18,6 +18,7 @@
 //! What runs between the HTTP edge and the domain: the inbound pipeline, the
 //! domain loader, the validators and the lifecycle manager.
 
+pub mod connector_resolver;
 pub mod dsp_domain_loader;
 pub mod dsp_handler_pipeline;
 mod manager;

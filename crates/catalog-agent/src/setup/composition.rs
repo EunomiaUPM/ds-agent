@@ -20,18 +20,27 @@
 
 use std::sync::Arc;
 
+use crate::facades::CatalogLocalFacade;
 use crate::protocols::dsp::setup::DspModule;
+use crate::services::datasets::DatasetServiceTrait;
+use crate::services::distributions::DistributionServiceTrait;
+use crate::services::odrl_policies::OdrlPolicyServiceTrait;
 use crate::services::tenant_provisioning::listener::TenantProvisioningListener;
 use crate::setup::admin_module::CatalogAdminModule;
 use crate::setup::context::AppContext;
+use crate::setup::ports::CatalogPorts;
+use crate::setup::seeders::{AdminTenantProvisioner, PolicyTemplateLoader};
 use crate::SERVICE_NAME;
 use axum::Router;
+use common::boot::seeders::BootSeeder;
 use common::boot::workers::BackgroundWorker;
+use common::config::services::traits::CatalogConfigTrait;
 use common::config::services::CatalogConfig;
+use common::config::types::traits::CommonConfigTrait;
 use common::module_loader::module_group::ModuleGroup;
 use common::module_loader::root_context::RootContext;
 use common::module_loader::service_module::ServiceModuleTrait;
-use connector::ConnectorModule;
+use connector::{ConnectorInstanceFacadeTrait, ConnectorModule, ConnectorPorts};
 use sea_orm_migration::MigrationTrait;
 use tonic::service::RoutesBuilder;
 use ymir::errors::Outcome;
@@ -39,6 +48,7 @@ use ymir::errors::Outcome;
 pub struct CatalogAgentModule {
     ctx: Arc<AppContext>,
     modules: ModuleGroup,
+    connector_instances: Arc<dyn ConnectorInstanceFacadeTrait>,
 }
 
 impl CatalogAgentModule {
@@ -46,13 +56,40 @@ impl CatalogAgentModule {
         config: &CatalogConfig,
         root: &RootContext,
         event_bus: Option<events::EventBus>,
+        ports: &CatalogPorts,
     ) -> Outcome<Self> {
-        let ctx = Arc::new(AppContext::build(config, root, event_bus.clone()).await?);
+        let ctx = Arc::new(AppContext::build(config, root, event_bus.clone(), ports).await?);
+        let connector_ports = ConnectorPorts::local(Arc::new(CatalogLocalFacade::new(
+            ctx.distribution_svc.clone(),
+        )));
+        let connector = ConnectorModule::compose(config, root, event_bus, &connector_ports);
+        let connector_instances = connector.local_connector_instances();
         let modules = ModuleGroup::new(SERVICE_NAME)
             .register(DspModule::build(ctx.clone()).await?)
             .register(CatalogAdminModule::new(ctx.clone()))
-            .register(ConnectorModule::compose(config, root, event_bus));
-        Ok(Self { ctx, modules })
+            .register(connector);
+        Ok(Self {
+            ctx,
+            modules,
+            connector_instances,
+        })
+    }
+
+    /// Connector instances served in-process, for agents sharing this process.
+    pub fn local_connector_instances(&self) -> Arc<dyn ConnectorInstanceFacadeTrait> {
+        self.connector_instances.clone()
+    }
+
+    pub fn dataset_service(&self) -> Arc<dyn DatasetServiceTrait> {
+        self.ctx.dataset_svc.clone()
+    }
+
+    pub fn distribution_service(&self) -> Arc<dyn DistributionServiceTrait> {
+        self.ctx.distribution_svc.clone()
+    }
+
+    pub fn odrl_policy_service(&self) -> Arc<dyn OdrlPolicyServiceTrait> {
+        self.ctx.odrl_policy_svc.clone()
     }
 
     /// Catalog then connector, the FK order the monolith relies on.
@@ -96,5 +133,22 @@ impl ServiceModuleTrait for CatalogAgentModule {
         let listener =
             TenantProvisioningListener::new(bus, self.ctx.tenant_provisioning_svc.clone());
         vec![Box::new(listener)]
+    }
+
+    /// The admin tenant's catalog and the policy template library, on the services in-process.
+    fn seeders(&self) -> Vec<Box<dyn BootSeeder>> {
+        let config = &self.ctx.config;
+        let tenant = config.admin_seed().tenant_id.clone();
+        vec![
+            Box::new(AdminTenantProvisioner::new(
+                self.ctx.tenant_provisioning_svc.clone(),
+                tenant.clone(),
+            )),
+            Box::new(PolicyTemplateLoader::new(
+                self.ctx.policy_template_svc.clone(),
+                tenant,
+                config.get_policy_templates_folder().to_string(),
+            )),
+        ]
     }
 }

@@ -34,6 +34,7 @@ use ymir::types::secrets::StringHelper;
 use ymir::utils::expect_from_env;
 
 use crate::boot::workers::BackgroundWorker;
+use crate::http_tracing::HttpTracing;
 
 /// Time in-flight TLS connections get to finish once shutdown starts.
 const TLS_DRAIN: Duration = Duration::from_secs(10);
@@ -166,6 +167,7 @@ impl BackgroundWorker for GrpcServer {
             .build_v1()
             .map_err(|e| Errors::crazy("Error building gRPC reflection", Some(Box::new(e))))?;
         Server::builder()
+            .layer(HttpTracing::grpc_layer())
             .add_routes(self.routes)
             .add_service(reflection)
             .serve_with_incoming_shutdown(

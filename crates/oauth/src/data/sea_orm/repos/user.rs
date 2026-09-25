@@ -69,6 +69,7 @@ impl SeaOrmUserRepository {
 
 #[async_trait::async_trait]
 impl UserRepository for SeaOrmUserRepository {
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all(&self, filter: &UserFilter, page: &Page, sort: &Sort) -> Outcome<Vec<User>> {
         let mut q = Self::apply_base_filters(orm::Entity::find(), filter);
 
@@ -95,6 +96,7 @@ impl UserRepository for SeaOrmUserRepository {
             .collect()
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn count(&self, filter: &UserFilter) -> Outcome<u64> {
         Self::apply_base_filters(orm::Entity::find(), filter)
             .count(self.db.as_ref())
@@ -102,6 +104,7 @@ impl UserRepository for SeaOrmUserRepository {
             .map_err(|e| UserRepositoryError::Db(Box::new(e)).into_errors())
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_by_tenant_id(&self, tenant_id: &str) -> Outcome<Option<User>> {
         orm::Entity::find_by_id(tenant_id)
             .one(self.db.as_ref())
@@ -111,6 +114,7 @@ impl UserRepository for SeaOrmUserRepository {
             .transpose()
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_by_email(&self, email: &str) -> Outcome<Option<User>> {
         orm::Entity::find()
             .filter(orm::Column::Email.eq(email))
@@ -121,6 +125,7 @@ impl UserRepository for SeaOrmUserRepository {
             .transpose()
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create(&self, user: &User) -> Outcome<User> {
         orm::ActiveModel::from_domain(user)
             .insert(self.db.as_ref())
@@ -129,6 +134,7 @@ impl UserRepository for SeaOrmUserRepository {
             .and_then(orm::Model::into_domain)
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn patch(
         &self,
         tenant_id: &str,
@@ -160,6 +166,7 @@ impl UserRepository for SeaOrmUserRepository {
             .and_then(orm::Model::into_domain)
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete(&self, tenant_id: &str) -> Outcome<()> {
         let res = orm::Entity::delete_by_id(tenant_id)
             .exec(self.db.as_ref())

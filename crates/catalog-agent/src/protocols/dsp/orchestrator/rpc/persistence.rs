@@ -34,6 +34,7 @@ impl OrchestrationPersistenceForProtocolForRPC {
         }
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     pub async fn get_catalog(
         &self,
         scope: &AccessScope,
@@ -46,6 +47,7 @@ impl OrchestrationPersistenceForProtocolForRPC {
         Ok(catalog)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     pub async fn set_catalog(
         &self,
         scope: &AccessScope,

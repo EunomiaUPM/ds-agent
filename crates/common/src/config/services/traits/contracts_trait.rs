@@ -20,5 +20,6 @@ use crate::config::types::traits::{CommonConfigTrait, ConfigLoader};
 
 pub trait ContractsConfigTrait: ConfigLoader + CommonConfigTrait {
     fn ssi_auth(&self) -> &MinKnownConfig;
+    fn catalog(&self) -> &MinKnownConfig;
     fn is_catalog_datahub(&self) -> bool;
 }

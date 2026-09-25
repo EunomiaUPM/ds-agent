@@ -28,28 +28,29 @@ use crate::protocols::dsp::entities::context_common::{
 use crate::protocols::dsp::entities::context_dsp::{
     TransferDSPContextDomain, TransferDSPContextTyped,
 };
-use crate::protocols::dsp::facades::FacadeTrait;
+use crate::protocols::dsp::services::connector_resolver::ConnectorResolverTrait;
 use crate::protocols::dsp::services::dsp_domain_loader::DspDomainLoaderTrait;
 
 pub struct DspDomainLoader {
     process_repo: Arc<dyn TransferProcessRepoTrait>,
-    facades: Arc<dyn FacadeTrait>,
+    connectors: Arc<dyn ConnectorResolverTrait>,
     resolver: Arc<dyn DspDomainLoaderTrait>,
 }
 
 impl DspDomainLoader {
     pub fn new(
         process_repo: Arc<dyn TransferProcessRepoTrait>,
-        facades: Arc<dyn FacadeTrait>,
+        connectors: Arc<dyn ConnectorResolverTrait>,
         resolver: Arc<dyn DspDomainLoaderTrait>,
     ) -> Self {
         Self {
             process_repo,
-            facades,
+            connectors,
             resolver,
         }
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     pub async fn load(&self, typed: TransferDSPContextTyped) -> Outcome<TransferDSPContextDomain> {
         let process = self.process_slot(&typed).await?;
         let role = self.role(&process, &typed).await?;
@@ -138,9 +139,7 @@ impl DspDomainLoader {
             .parse()
             .map_err(|_| Errors::format(BadFormat::Received, "agreementId is not a URN", None))?;
         let connector = self
-            .facades
-            .get_data_service_facade()
-            .await
+            .connectors
             .resolve_connector_by_agreement_id(&agreement_id, None)
             .await?;
         Ok(TransferContextConnectorRole::ProviderHavingConnector(

@@ -45,6 +45,8 @@ impl BootstrapServiceTrait for AuthBoot {
     }
 
     async fn compose(config: &SsiAuthConfig, root: &RootContext) -> Outcome<ServiceComposer> {
-        Ok(ServiceComposer::new().register(AuthModule::compose(config, root).await?))
+        let auth = AuthModule::compose(config, root).await?;
+        let ports = auth.local_ports();
+        Ok(ServiceComposer::new().register(auth).with_auth_ports(ports))
     }
 }

@@ -36,6 +36,7 @@ pub enum Events {
     SourceCrate,
     SchemaVersion,
     CorrelationId,
+    TraceContext,
     Payload,
     Timestamp,
     CreatedAt,
@@ -96,6 +97,7 @@ impl MigrationTrait for Migration {
                             .default(1),
                     )
                     .col(ColumnDef::new(Events::CorrelationId).string())
+                    .col(ColumnDef::new(Events::TraceContext).string())
                     .col(ColumnDef::new(Events::Payload).json().not_null())
                     .col(ColumnDef::new(Events::Timestamp).date_time().not_null())
                     .col(ColumnDef::new(Events::CreatedAt).date_time().not_null())

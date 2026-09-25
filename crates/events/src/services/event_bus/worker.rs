@@ -16,10 +16,12 @@
  */
 
 use std::str::FromStr;
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 
 use chrono::Utc;
 use common::boot::workers::BackgroundWorker;
+use opentelemetry::global;
+use opentelemetry::metrics::Counter;
 use tokio::sync::Semaphore;
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, info, warn};
@@ -35,6 +37,13 @@ use crate::entities::dead_letter::DeadLetterStatus;
 use crate::entities::delivery::EventDeliveryRecord;
 use crate::services::event_bus::dispatcher::EventDispatcher;
 use crate::services::event_bus::policy::RetryPolicy;
+
+/// Webhook deliveries picked up for another attempt; resolved after telemetry set-up.
+static REDELIVERIES: LazyLock<Counter<u64>> = LazyLock::new(|| {
+    global::meter("events")
+        .u64_counter("events.redeliveries")
+        .build()
+});
 
 // Background worker that periodically inspects and executes due webhook retries.
 #[derive(Clone)]
@@ -76,6 +85,7 @@ impl RetryWorker {
     }
 
     // Fetch and process one batch of due retries.
+    #[tracing::instrument(level = "info", skip_all, err)]
     pub async fn process_batch(&self) -> Result<usize, String> {
         let now = Utc::now();
         let due_deliveries = self
@@ -90,6 +100,7 @@ impl RetryWorker {
 
         let count = due_deliveries.len();
         debug!(count, "Found due deliveries for retry processing");
+        REDELIVERIES.add(count as u64, &[]);
 
         let semaphore = Arc::new(Semaphore::new(self.concurrency_limit));
         let mut handles = Vec::with_capacity(count);

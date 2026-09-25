@@ -15,6 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::boot::seeders::BootSeeder;
 use crate::boot::workers::BackgroundWorker;
 use crate::module_loader::service_module::ServiceModuleTrait;
 use crate::module_loader::utils::mount;
@@ -95,5 +96,9 @@ impl ServiceModuleTrait for ModuleGroup {
 
     fn workers(&self) -> Vec<Box<dyn BackgroundWorker>> {
         self.modules.iter().flat_map(|m| m.workers()).collect()
+    }
+
+    fn seeders(&self) -> Vec<Box<dyn BootSeeder>> {
+        self.modules.iter().flat_map(|m| m.seeders()).collect()
     }
 }

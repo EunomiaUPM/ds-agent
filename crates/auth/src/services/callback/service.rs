@@ -108,6 +108,7 @@ impl CallbackTrait for BasicCallbackService {
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn send_continue_req(&self, interaction: &interaction::Model) -> Outcome<GrantResponse> {
         info!("Continuing grant request");
 

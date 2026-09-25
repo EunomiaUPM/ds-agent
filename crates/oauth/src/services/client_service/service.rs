@@ -53,6 +53,7 @@ impl ClientService {
 
 #[async_trait::async_trait]
 impl ClientServiceTrait for ClientService {
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn list_clients(
         &self,
         scope: &AccessScope,
@@ -75,6 +76,7 @@ impl ClientServiceTrait for ClientService {
         }))
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_client(&self, scope: &AccessScope, client_id: &str) -> Outcome<ClientView> {
         scope.require_read()?;
         let client = self
@@ -85,6 +87,7 @@ impl ClientServiceTrait for ClientService {
         Ok(ClientView::assemble(client))
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn create_client(
         &self,
         scope: &AccessScope,
@@ -130,6 +133,7 @@ impl ClientServiceTrait for ClientService {
         Ok(view)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn delete_client(&self, scope: &AccessScope, client_id: &str) -> Outcome<()> {
         scope.require_write()?;
         let owner = self

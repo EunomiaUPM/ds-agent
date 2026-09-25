@@ -32,10 +32,14 @@ use axum::Router;
 use common::config::services::TransferConfig;
 use common::config::types::traits::CacheConfigTrait;
 use common::module_loader::root_context::RootContext;
-use connector::ConnectorInstanceServiceTrait;
 use keystore::KeystoreModule;
 use keystore::SecretStore;
 use std::sync::Arc;
+use ymir::errors::{Errors, Outcome};
+
+mod ports;
+
+pub use ports::DataplanePorts;
 
 /// Infrastructure shared by every entry point of the dataplane: the
 /// Redis-backed cache and the SQL repository. Wiring it once here is what
@@ -64,9 +68,13 @@ impl DataplaneSetup {
     // --- Shared building blocks ------------------------------------------
 
     /// Opens the Redis client from the cache URL declared in config.
-    fn redis_client(&self, config: &TransferConfig) -> redis::Client {
-        redis::Client::open(config.get_full_cache_url())
-            .expect("dataplane setup: failed to open redis client")
+    fn redis_client(&self, config: &TransferConfig) -> Outcome<redis::Client> {
+        redis::Client::open(config.get_full_cache_url()).map_err(|e| {
+            Errors::crazy(
+                "dataplane setup: failed to open redis client",
+                Some(Box::new(e)),
+            )
+        })
     }
 
     /// Builds the SQL repository on top of the shared DB pool.
@@ -76,16 +84,25 @@ impl DataplaneSetup {
 
     /// Wires the cache + repository every builder needs. Single source of
     /// truth for the dataplane's infrastructure dependencies.
-    async fn build_infra(&self, config: &TransferConfig, root: &RootContext) -> DataplaneInfra {
+    async fn build_infra(
+        &self,
+        config: &TransferConfig,
+        root: &RootContext,
+    ) -> Outcome<DataplaneInfra> {
         let redis_conn = self
-            .redis_client(config)
+            .redis_client(config)?
             .get_multiplexed_async_connection()
             .await
-            .expect("dataplane setup: failed to get redis connection");
-        DataplaneInfra {
+            .map_err(|e| {
+                Errors::crazy(
+                    "dataplane setup: failed to get redis connection",
+                    Some(Box::new(e)),
+                )
+            })?;
+        Ok(DataplaneInfra {
             cache: Arc::new(DataplaneTransferCacheForRedis::new(redis_conn)),
             repo: self.build_repo(root),
-        }
+        })
     }
 
     /// Builds the transfers service from the shared infrastructure.
@@ -119,17 +136,19 @@ impl DataplaneSetup {
         &self,
         config: Arc<TransferConfig>,
         root: &RootContext,
-        connector_service: Arc<dyn ConnectorInstanceServiceTrait>,
-    ) -> DataplaneManager {
-        let infra = self.build_infra(config.as_ref(), root).await;
+        ports: &DataplanePorts,
+    ) -> Outcome<DataplaneManager> {
+        let infra = self.build_infra(config.as_ref(), root).await?;
         let transfer_service = self.transfers_service(&infra);
         let (keystore_lookup, secret_store) = self.build_keystore(root);
 
-        DataplaneManager::new(transfer_service, connector_service, config.clone())
-            .with_driver_factory(Arc::new(
-                DataplaneDriverFactory::new().with_keystore(keystore_lookup),
-            ))
-            .with_secret_store(secret_store)
+        Ok(
+            DataplaneManager::new(transfer_service, ports.connector.clone(), config.clone())
+                .with_driver_factory(Arc::new(
+                    DataplaneDriverFactory::new().with_keystore(keystore_lookup),
+                ))
+                .with_secret_store(secret_store),
+        )
     }
 
     /// Builds the control-plane router exposing transfer processes, logs and
@@ -138,8 +157,8 @@ impl DataplaneSetup {
         &self,
         config: &TransferConfig,
         root: &RootContext,
-    ) -> Router {
-        let infra = self.build_infra(config, root).await;
+    ) -> Outcome<Router> {
+        let infra = self.build_infra(config, root).await?;
         let validator = root.validator.clone();
 
         // Events: service feeding both the per-process feed and the global lookup.
@@ -168,23 +187,27 @@ impl DataplaneSetup {
             .merge(logs_router)
             .merge(dataplane_processes_events_router);
 
-        Router::new()
+        Ok(Router::new()
             .nest("/dataplane-processes", dataplane_processes_router)
             .nest("/transfer-events", events_lookup_router)
             .route_layer(axum::middleware::from_fn_with_state(
                 validator,
                 common::auth::http::AuthHttpMiddleware::run,
-            ))
+            )))
     }
 
     /// Builds the standalone testing HTTP proxy with keystore-backed lookup.
-    pub async fn build_testing_proxy(&self, config: &TransferConfig, root: &RootContext) -> Router {
-        let infra = self.build_infra(config, root).await;
+    pub async fn build_testing_proxy(
+        &self,
+        config: &TransferConfig,
+        root: &RootContext,
+    ) -> Outcome<Router> {
+        let infra = self.build_infra(config, root).await?;
         let transfer_service = self.transfers_service(&infra);
         let (keystore_lookup, _secret_store) = self.build_keystore(root);
 
-        TestingHTTPProxy::new(transfer_service, infra.repo)
+        Ok(TestingHTTPProxy::new(transfer_service, infra.repo)
             .with_keystore(keystore_lookup)
-            .router()
+            .router())
     }
 }

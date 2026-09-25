@@ -34,7 +34,7 @@ impl ConfigStoreImpl {
 
 #[async_trait::async_trait]
 impl ConfigStore for ConfigStoreImpl {
-    #[tracing::instrument(level = "info", skip_all, err)]
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_application_config(&self, scope: &AccessScope) -> Outcome<ApplicationConfig> {
         scope.require_admin()?;
         self.repo.get_config().await

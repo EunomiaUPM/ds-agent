@@ -36,25 +36,31 @@ impl ConfigPassthroughRepo {
 
 #[async_trait::async_trait]
 impl KeystoreConfigRepo for ConfigPassthroughRepo {
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_transfer_config(&self) -> Outcome<TransferConfig> {
         Ok(self.config.transfer().clone())
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_contracts_config(&self) -> Outcome<ContractsConfig> {
         Ok(self.config.contracts().clone())
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_catalog_config(&self) -> Outcome<CatalogConfig> {
         Ok(self.config.catalog().clone())
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_mono_config(&self) -> Outcome<MonolithConfig> {
         Ok(self.config.monolith().clone())
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_gateway_config(&self) -> Outcome<GatewayConfig> {
         Ok(self.config.gateway().clone())
     }
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_config(&self) -> Outcome<ApplicationConfig> {
         Ok(self.config.deref().clone())
     }

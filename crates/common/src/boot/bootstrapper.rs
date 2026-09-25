@@ -38,7 +38,7 @@ use crate::boot::BootstrapServiceTrait;
 use crate::config::types::min_known_config::MinKnownConfig;
 use crate::config::types::traits::{CommonConfigTrait, ConfigLoader};
 use crate::http_global_404::global_handler_404;
-use crate::http_tracing::trace_layer;
+use crate::http_tracing::HttpTracing;
 use crate::module_loader::root_context::RootContext;
 use crate::module_loader::service_composer::ServiceComposer;
 use crate::utils::show_table;
@@ -55,7 +55,9 @@ impl<S: BootstrapServiceTrait> Bootstrapper<S> {
     pub async fn start(env_file: &str) -> Outcome<()> {
         let (config, vault) = Self::load(env_file)?;
         let root = RootContext::connect(config.common(), vault, S::validator).await?;
-        let (before, after): (Vec<_>, Vec<_>) = S::seeders(&config, &root)
+        // Infrastructure seeders (straight to the DB) run before the graph exists; module
+        // seeders are built on composed services, so they run right after composing.
+        let (before, mut after): (Vec<_>, Vec<_>) = S::seeders(&config, &root)
             .await?
             .into_iter()
             .partition(|s| s.phase() == BootPhase::BeforeServe);
@@ -63,6 +65,12 @@ impl<S: BootstrapServiceTrait> Bootstrapper<S> {
 
         tracing::info!("Composing service graph...");
         let composer = S::compose(&config, &root).await?;
+        let (module_before, module_after): (Vec<_>, Vec<_>) = composer
+            .seeders()
+            .into_iter()
+            .partition(|s| s.phase() == BootPhase::BeforeServe);
+        Self::seed(&module_before).await?;
+        after.extend(module_after);
         let mut workers = WorkerSet::new(CancellationToken::new());
         workers.spawn(Box::new(
             Self::http_server(&config, &root.vault, &composer).await?,
@@ -129,10 +137,12 @@ impl<S: BootstrapServiceTrait> Bootstrapper<S> {
             .http_router()
             .merge(WellKnownRoot::get_well_known_router(
                 &MinKnownConfig::from(common),
+                composer.auth_ports().map(|p| p.mates.clone()),
             )?)
             .merge(HealthRouter::new().router())
             .fallback(global_handler_404)
-            .layer(trace_layer());
+            .layer(axum::middleware::from_fn(HttpTracing::record_http_duration))
+            .layer(HttpTracing::http_layer());
         let tls = match common.is_prod() && !common.has_tls_proxy() {
             true => Some(HttpServer::tls_from_vault(vault).await?),
             false => None,

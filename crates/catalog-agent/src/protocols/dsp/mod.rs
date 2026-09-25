@@ -37,11 +37,11 @@ use crate::services::odrl_policies::OdrlPolicyServiceTrait;
 use crate::services::peer_catalogs::PeerCatalogServiceTrait;
 use axum::Router;
 use common::auth::http::AuthHttpMiddleware;
-use common::auth::{OauthTokenValidator, ServiceHttpClient};
-use common::config::services::traits::CatalogConfigTrait;
+use common::auth::OauthTokenValidator;
 use common::config::services::CatalogConfig;
-use common::facades::ssi_auth_facade::ssi_auth_facade::SSIAuthFacadeService;
-use common::facades::ssi_auth_facade::MatesFacadeTrait;
+use common::facades::mates_facade::MatesFacadeTrait;
+use common::facades::ssi_auth_facade::SSIAuthFacadeTrait;
+use common::well_known::rpc::rpc::WellKnownRPCService;
 use std::sync::Arc;
 use ymir::errors::Outcome;
 
@@ -62,8 +62,8 @@ pub struct CatalogDSP {
     pub distributions_entity_service: Arc<dyn DistributionServiceTrait>,
     pub peer_catalog_entity_service: Arc<dyn PeerCatalogServiceTrait>,
     pub mates_facade: Arc<dyn MatesFacadeTrait>,
+    ssi_auth_facade: Arc<dyn SSIAuthFacadeTrait>,
     config: Arc<CatalogConfig>,
-    service_client: Arc<ServiceHttpClient>,
     validator: Arc<dyn OauthTokenValidator>,
 }
 
@@ -76,8 +76,8 @@ impl CatalogDSP {
         distributions_entity_service: Arc<dyn DistributionServiceTrait>,
         peer_catalog_entity_service: Arc<dyn PeerCatalogServiceTrait>,
         mates_facade: Arc<dyn MatesFacadeTrait>,
+        ssi_auth_facade: Arc<dyn SSIAuthFacadeTrait>,
         config: Arc<CatalogConfig>,
-        service_client: Arc<ServiceHttpClient>,
         validator: Arc<dyn OauthTokenValidator>,
     ) -> Self {
         Self {
@@ -88,8 +88,8 @@ impl CatalogDSP {
             distributions_entity_service,
             peer_catalog_entity_service,
             mates_facade,
+            ssi_auth_facade,
             config,
-            service_client,
             validator,
         }
     }
@@ -123,8 +123,9 @@ impl ProtocolPluginTrait for CatalogDSP {
         ));
 
         // facades
-        let catalog_well_known_rpc_facade =
-            Arc::new(WellKnownRPCFacadeForDSProtocol::new(self.config.clone()));
+        let catalog_well_known_rpc_facade = Arc::new(WellKnownRPCFacadeForDSProtocol::new(
+            Arc::new(WellKnownRPCService::new(self.mates_facade.clone())),
+        ));
         let facades = Arc::new(FacadeService::new(catalog_well_known_rpc_facade.clone()));
 
         // persistence
@@ -157,12 +158,11 @@ impl ProtocolPluginTrait for CatalogDSP {
         ));
 
         // router
-        let ssi_auth = Arc::new(SSIAuthFacadeService::new(
-            Arc::new(self.config.ssi_auth().clone()),
-            self.service_client.clone(),
-        ));
-        let dsp_router =
-            DspRouter::new(orchestrator_service.clone(), self.config.clone(), ssi_auth);
+        let dsp_router = DspRouter::new(
+            orchestrator_service.clone(),
+            self.config.clone(),
+            self.ssi_auth_facade.clone(),
+        );
         let rpc_router = RpcRouter::new(orchestrator_service.clone())
             .router()
             .route_layer(axum::middleware::from_fn_with_state(

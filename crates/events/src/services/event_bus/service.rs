@@ -21,6 +21,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use chrono::Utc;
 use tokio::sync::broadcast;
+use tracing::Instrument;
 use tracing::{error, info, warn};
 use urn::Urn;
 use uuid::Uuid;
@@ -156,6 +157,7 @@ impl EventBus {
     }
 
     // Replay a single dead letter record by ID; `tenant_id: None` reaches any tenant (admin).
+    #[tracing::instrument(level = "info", skip_all, err)]
     pub async fn replay_dead_letter(
         &self,
         tenant_id: Option<String>,
@@ -235,6 +237,7 @@ impl EventBus {
     }
 
     // Replay all unresolved dead letter records in batches, oldest first.
+    #[tracing::instrument(level = "info", skip_all, err)]
     pub async fn replay_all_dead_letters(&self, tenant_id: Option<String>) -> Outcome<usize> {
         let filter = DeadLetterFilter {
             status: Some(DeadLetterStatus::Unresolved.as_str().to_string()),
@@ -288,7 +291,9 @@ impl EventBus {
         let dlq_repo = self.dlq_repo.clone();
         let policy = self.policy.clone();
 
-        tokio::spawn(async move {
+        // Stays under the publisher's span, so the first attempt joins its trace.
+        tokio::spawn(
+            async move {
             match dispatcher
                 .dispatch(
                     &callback_address,
@@ -397,12 +402,15 @@ impl EventBus {
                     }
                 }
             }
-        });
+            }
+            .in_current_span(),
+        );
     }
 }
 
 #[async_trait]
 impl EventBusTrait for EventBus {
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn publish(&self, envelope: EventEnvelope) -> Outcome<EventEnvelope> {
         self.event_repo.insert_event(&envelope).await?;
 
@@ -457,10 +465,12 @@ impl EventBusTrait for EventBus {
 
 #[async_trait]
 impl EventPublisherTrait for EventBus {
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn publish_event<E: Event>(&self, event: E) -> Outcome<EventEnvelope> {
         self.publish(event.into_envelope()).await
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn emit_payload(
         &self,
         tenant_id: &str,

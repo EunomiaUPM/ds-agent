@@ -39,6 +39,7 @@ impl SeaOrmParameterRepo {
 impl ParameterRepoTrait for SeaOrmParameterRepo {
     type Value = serde_json::Value;
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_parameters(&self, filter: &PrefixFilter) -> Outcome<Vec<Entry<Self::Value>>> {
         let mut query = parameter::Entity::find().filter(parameter::Column::DeletedAt.is_null());
         if let Some(tenant_id) = &filter.tenant_id {
@@ -63,6 +64,7 @@ impl ParameterRepoTrait for SeaOrmParameterRepo {
             .collect()
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn count_parameters(&self, filter: &PrefixFilter) -> Outcome<u64> {
         use sea_orm::PaginatorTrait;
         let mut query = parameter::Entity::find().filter(parameter::Column::DeletedAt.is_null());
@@ -80,6 +82,7 @@ impl ParameterRepoTrait for SeaOrmParameterRepo {
             .map_err(|e| ParameterRepoErrors::ErrorFetchingParameter(e.into()).into_errors())
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_batch_parameters(
         &self,
         tenant_id: &str,
@@ -103,6 +106,7 @@ impl ParameterRepoTrait for SeaOrmParameterRepo {
             .collect()
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_parameter_by_key(
         &self,
         tenant_id: &str,
@@ -121,6 +125,7 @@ impl ParameterRepoTrait for SeaOrmParameterRepo {
         .transpose()
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_parameter(
         &self,
         tenant_id: &str,
@@ -150,6 +155,7 @@ impl ParameterRepoTrait for SeaOrmParameterRepo {
             .map_err(|e| ParameterRepoErrors::ErrorCreatingParameter(e.into()).into_errors())
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn put_parameter(
         &self,
         tenant_id: &str,
@@ -187,6 +193,7 @@ impl ParameterRepoTrait for SeaOrmParameterRepo {
             .map_err(|e| ParameterRepoErrors::ErrorUpdatingParameter(e.into()).into_errors())
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_parameter(&self, tenant_id: &str, key: &Key) -> Outcome<()> {
         let result =
             parameter::Entity::delete_by_id((tenant_id.to_string(), key.as_str().to_string()))

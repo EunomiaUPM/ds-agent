@@ -17,29 +17,59 @@
 
 //! SSI auth agent as a composable module: wallet, GNAP gatekeeper, verifier and issuer.
 
+use std::sync::Arc;
+
 use axum::Router;
 use common::config::services::SsiAuthConfig;
+use common::config::types::traits::CommonConfigTrait;
+use common::facades::AuthPorts;
 use common::module_loader::root_context::RootContext;
 use common::module_loader::service_module::ServiceModuleTrait;
 use sea_orm_migration::MigrationTrait;
 use ymir::errors::Outcome;
 
 use crate::data::migrations::get_auth_migrations;
+use crate::facades::{MatesLocalFacade, SSIAuthLocalFacade};
 use crate::http::AuthRouter;
 use crate::setup::context::AppContext;
+use crate::setup::seeders::SelfParticipantOnboarder;
 use crate::SERVICE_NAME;
 
 pub struct AuthModule {
     ctx: AppContext,
+    /// Tenant of the service client, whose token the local facades impersonate.
+    service_tenant: String,
 }
 
 impl AuthModule {
     pub async fn compose(config: &SsiAuthConfig, root: &RootContext) -> Outcome<Self> {
-        Ok(Self::new(AppContext::build(config, root).await?))
+        Ok(Self::new(
+            AppContext::build(config, root).await?,
+            config.common().admin_seed.tenant_id.clone(),
+        ))
     }
 
-    pub(crate) fn new(ctx: AppContext) -> Self {
-        Self { ctx }
+    pub(crate) fn new(ctx: AppContext, service_tenant: String) -> Self {
+        Self {
+            ctx,
+            service_tenant,
+        }
+    }
+
+    /// Onboards this agent's own wallet as a participant; registered by the monolith only.
+    pub fn self_participant_onboarder(&self) -> SelfParticipantOnboarder {
+        SelfParticipantOnboarder::new(self.ctx.core.clone(), self.service_tenant.clone())
+    }
+
+    /// Auth ports served in-process, for every agent sharing this process.
+    pub fn local_ports(&self) -> AuthPorts {
+        AuthPorts {
+            mates: Arc::new(MatesLocalFacade::new(self.ctx.core.clone())),
+            ssi_auth: Arc::new(SSIAuthLocalFacade::new(
+                self.ctx.core.clone(),
+                self.service_tenant.clone(),
+            )),
+        }
     }
 
     pub fn migrations() -> Vec<Box<dyn MigrationTrait>> {

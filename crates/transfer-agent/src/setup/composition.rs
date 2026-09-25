@@ -28,6 +28,7 @@ use crate::SERVICE_NAME;
 use crate::protocols::dsp::setup::DspModule;
 use crate::setup::admin_module::TransferAdminModule;
 use crate::setup::context::AppContext;
+use crate::setup::ports::TransferPorts;
 
 pub struct TransferAgentModule {
     modules: ModuleGroup,
@@ -38,8 +39,9 @@ impl TransferAgentModule {
         config: &TransferConfig,
         root: &RootContext,
         event_bus: Option<events::EventBus>,
+        ports: &TransferPorts,
     ) -> Self {
-        let ctx = Arc::new(AppContext::build(config, root, event_bus));
+        let ctx = Arc::new(AppContext::build(config, root, event_bus, ports));
         let modules = ModuleGroup::new(SERVICE_NAME)
             .register(DspModule::new(ctx.clone()))
             .register(TransferAdminModule::new(ctx));

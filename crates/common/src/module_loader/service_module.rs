@@ -19,6 +19,7 @@ use axum::Router;
 use sea_orm_migration::MigrationTrait;
 use tonic::service::RoutesBuilder;
 
+use crate::boot::seeders::BootSeeder;
 use crate::boot::workers::BackgroundWorker;
 
 /// One composable slice of an agent. A module owns its dependencies
@@ -51,6 +52,11 @@ pub trait ServiceModuleTrait: Send + Sync {
 
     /// Background workers the module needs running while the process serves.
     fn workers(&self) -> Vec<Box<dyn BackgroundWorker>> {
+        vec![]
+    }
+
+    /// Boot seeders built on the module's own services, so they never call its API.
+    fn seeders(&self) -> Vec<Box<dyn BootSeeder>> {
         vec![]
     }
 }

@@ -16,38 +16,29 @@
  */
 
 //! Boot seeders of the catalog: the admin tenant's catalog and the policy template library.
+//! Both act on the catalog services in-process, as the service token would through the API.
 
 use std::sync::Arc;
 
-use common::auth::ServiceHttpClient;
-use common::boot::seeders::BootSeeder;
+use common::auth::AccessScope;
+use common::boot::seeders::{BootPhase, BootSeeder};
 use serde_json::Value;
 use tokio::fs;
 use ymir::errors::{Errors, Outcome};
 
-/// Provisions the admin tenant through the same idempotent endpoint as any new tenant.
+use crate::entities::policy_templates::NewPolicyTemplateDto;
+use crate::services::policy_templates::PolicyTemplateServiceTrait;
+use crate::services::tenant_provisioning::TenantProvisioningServiceTrait;
+
+/// Provisions the admin tenant with the same idempotent use case as any new tenant.
 pub struct AdminTenantProvisioner {
-    client: Arc<ServiceHttpClient>,
-    api_url: String,
+    service: Arc<dyn TenantProvisioningServiceTrait>,
     tenant: String,
 }
 
 impl AdminTenantProvisioner {
-    /// `api_url` is the catalog management base, e.g. `http://host/api/v1/catalog-agent`.
-    pub fn new(client: Arc<ServiceHttpClient>, api_url: String, tenant: String) -> Self {
-        Self {
-            client,
-            api_url,
-            tenant,
-        }
-    }
-
-    fn string_at(value: &Value, pointer: &str) -> Outcome<String> {
-        value
-            .pointer(pointer)
-            .and_then(Value::as_str)
-            .map(str::to_string)
-            .ok_or_else(|| Errors::parse(format!("provisioning response lacks {pointer}"), None))
+    pub fn new(service: Arc<dyn TenantProvisioningServiceTrait>, tenant: String) -> Self {
+        Self { service, tenant }
     }
 }
 
@@ -57,17 +48,19 @@ impl BootSeeder for AdminTenantProvisioner {
         "admin-tenant-provisioning"
     }
 
+    /// In-process, so the tenant is ready before the first request is served.
+    fn phase(&self) -> BootPhase {
+        BootPhase::BeforeServe
+    }
+
     async fn seed(&self) -> Outcome<()> {
-        let url = format!("{}/tenants/{}/provision", self.api_url, self.tenant);
-        let provisioned: Value = self
-            .client
-            .post_json(&url, Some(&self.tenant), &serde_json::json!({}))
+        let provisioned = self
+            .service
+            .provision(&AccessScope::service(&self.tenant), &self.tenant)
             .await?;
-        let catalog = Self::string_at(&provisioned, "/catalog/id")?;
-        let data_service = Self::string_at(&provisioned, "/dataService/id")?;
         tracing::info!(
-            catalog,
-            data_service,
+            catalog = provisioned.catalog.inner.id,
+            data_service = provisioned.data_service.inner.id,
             tenant = self.tenant,
             "Admin tenant provisioned"
         );
@@ -75,37 +68,43 @@ impl BootSeeder for AdminTenantProvisioner {
     }
 }
 
-/// Registers every `*.json` template of a folder; unreadable or rejected files are skipped.
+/// Registers every `*.json` template of a folder; unreadable, invalid or already
+/// registered templates are skipped, keeping boot idempotent.
 pub struct PolicyTemplateLoader {
-    client: Arc<ServiceHttpClient>,
-    api_url: String,
+    service: Arc<dyn PolicyTemplateServiceTrait>,
     tenant: String,
     folder: String,
 }
 
 impl PolicyTemplateLoader {
     pub fn new(
-        client: Arc<ServiceHttpClient>,
-        api_url: String,
+        service: Arc<dyn PolicyTemplateServiceTrait>,
         tenant: String,
         folder: String,
     ) -> Self {
         Self {
-            client,
-            api_url,
+            service,
             tenant,
             folder,
         }
     }
 
-    async fn read_template(path: &std::path::Path) -> Option<Value> {
+    async fn read_template(path: &std::path::Path) -> Option<NewPolicyTemplateDto> {
         let content = fs::read_to_string(path)
             .await
             .inspect_err(|e| tracing::error!("Failed to read file {path:?}: {e}"))
             .ok()?;
-        serde_json::from_str(&content)
+        let value: Value = serde_json::from_str(&content)
             .inspect_err(|e| tracing::error!("Invalid JSON format in file {path:?}: {e}"))
+            .ok()?;
+        serde_json::from_value(value)
+            .inspect_err(|e| tracing::warn!("Policy template {path:?} rejected: {e}"))
             .ok()
+    }
+
+    /// A duplicate key means the template is already registered.
+    fn is_duplicate(err: &Errors) -> bool {
+        matches!(err, Errors::DatabaseError { reason, .. } if reason.contains("duplicate key"))
     }
 }
 
@@ -115,9 +114,11 @@ impl BootSeeder for PolicyTemplateLoader {
         "policy-templates"
     }
 
+    fn phase(&self) -> BootPhase {
+        BootPhase::BeforeServe
+    }
+
     async fn seed(&self) -> Outcome<()> {
-        // Silent mode turns already-registered templates into no-ops, keeping boot idempotent.
-        let url = format!("{}/policy-templates?silent=true", self.api_url);
         let mut entries = match fs::read_dir(&self.folder).await {
             Ok(entries) => entries,
             Err(e) => {
@@ -128,6 +129,7 @@ impl BootSeeder for PolicyTemplateLoader {
                 return Ok(());
             }
         };
+        let scope = AccessScope::service(&self.tenant);
         while let Ok(Some(entry)) = entries.next_entry().await {
             let path = entry.path();
             if !path.is_file() || path.extension().is_none_or(|ext| ext != "json") {
@@ -136,8 +138,14 @@ impl BootSeeder for PolicyTemplateLoader {
             let Some(template) = Self::read_template(&path).await else {
                 continue;
             };
-            if let Err(e) = self.client.post(&url, Some(&self.tenant), &template).await {
-                tracing::warn!("Policy template {path:?} rejected: {e}");
+            match self.service.create_policy_template(&scope, &template).await {
+                Ok(_) => {}
+                Err(e) if Self::is_duplicate(&e) => tracing::info!(
+                    "Policy template '{}' v{} already exists, skipping",
+                    template.id.as_deref().unwrap_or("unknown"),
+                    template.version.as_deref().unwrap_or("unknown")
+                ),
+                Err(e) => tracing::warn!("Policy template {path:?} rejected: {e}"),
             }
         }
         Ok(())

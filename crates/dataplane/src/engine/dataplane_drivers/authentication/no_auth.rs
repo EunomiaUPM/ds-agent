@@ -24,6 +24,7 @@ pub struct NoAuthAuthenticator;
 
 #[async_trait::async_trait]
 impl DriverAuthenticatorTrait for NoAuthAuthenticator {
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "data-endpoint"))]
     async fn authenticate(&self, context: &DataplaneContext) -> Outcome<DataplaneContext> {
         Ok(context.clone())
     }

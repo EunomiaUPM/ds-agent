@@ -56,6 +56,7 @@ impl CatalogService {
 
 #[async_trait::async_trait]
 impl CatalogServiceTrait for CatalogService {
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_all_catalogs(
         &self,
         scope: &AccessScope,
@@ -92,6 +93,7 @@ impl CatalogServiceTrait for CatalogService {
         }))
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_batch_catalogs(
         &self,
         scope: &AccessScope,
@@ -120,6 +122,7 @@ impl CatalogServiceTrait for CatalogService {
         Ok(dtos)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_catalog_by_id(
         &self,
         scope: &AccessScope,
@@ -144,6 +147,7 @@ impl CatalogServiceTrait for CatalogService {
         Ok(dto)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_main_catalog(&self, scope: &AccessScope) -> Outcome<Option<CatalogDto>> {
         scope.require_read()?;
         let catalog = self
@@ -165,6 +169,7 @@ impl CatalogServiceTrait for CatalogService {
         Ok(dto)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn put_catalog_by_id(
         &self,
         scope: &AccessScope,
@@ -203,6 +208,7 @@ impl CatalogServiceTrait for CatalogService {
         Ok(dto)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn create_catalog(
         &self,
         scope: &AccessScope,
@@ -238,6 +244,7 @@ impl CatalogServiceTrait for CatalogService {
         Ok(dto)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn create_main_catalog(
         &self,
         scope: &AccessScope,
@@ -272,6 +279,7 @@ impl CatalogServiceTrait for CatalogService {
         Ok(dto)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn delete_catalog_by_id(&self, scope: &AccessScope, catalog_id: &Urn) -> Outcome<()> {
         scope.require_write()?;
         let deleted = self

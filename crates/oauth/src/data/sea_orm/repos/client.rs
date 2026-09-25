@@ -72,6 +72,7 @@ impl SeaOrmClientRepository {
 
 #[async_trait::async_trait]
 impl ClientRepository for SeaOrmClientRepository {
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all(
         &self,
         filter: &ClientFilter,
@@ -103,6 +104,7 @@ impl ClientRepository for SeaOrmClientRepository {
             .collect()
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn count(&self, filter: &ClientFilter) -> Outcome<u64> {
         Self::apply_base_filters(orm::Entity::find(), filter)
             .count(self.db.as_ref())
@@ -110,6 +112,7 @@ impl ClientRepository for SeaOrmClientRepository {
             .map_err(|e| ClientRepositoryError::Db(Box::new(e)).into_errors())
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_by_id(
         &self,
         tenant_id: Option<String>,
@@ -124,6 +127,7 @@ impl ClientRepository for SeaOrmClientRepository {
             .transpose()
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_batch(&self, tenant_id: &str, client_ids: &[String]) -> Outcome<Vec<Client>> {
         if client_ids.is_empty() {
             return Ok(vec![]);
@@ -139,6 +143,7 @@ impl ClientRepository for SeaOrmClientRepository {
             .collect()
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_by_client_id(&self, client_id: &str) -> Outcome<Option<Client>> {
         orm::Entity::find_by_id(client_id)
             .one(self.db.as_ref())
@@ -148,6 +153,7 @@ impl ClientRepository for SeaOrmClientRepository {
             .transpose()
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create(&self, client: &Client) -> Outcome<Client> {
         orm::ActiveModel::from_domain(client)
             .insert(self.db.as_ref())
@@ -156,6 +162,7 @@ impl ClientRepository for SeaOrmClientRepository {
             .and_then(orm::Model::into_domain)
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete(&self, tenant_id: Option<String>, client_id: &str) -> Outcome<String> {
         let deleted = orm::Entity::delete_many()
             .filter(orm::Column::ClientId.eq(client_id))

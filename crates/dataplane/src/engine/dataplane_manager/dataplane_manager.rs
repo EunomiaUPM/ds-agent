@@ -26,14 +26,14 @@ use crate::engine::dataplane_manager::dataplane_handlers_strategy::DataplaneStra
 use crate::errors::DataplaneError;
 use crate::services::dataplane_transfers::DataplaneTransferServiceTrait;
 use common::config::services::TransferConfig;
-use connector::ConnectorInstanceServiceTrait;
+use connector::ConnectorInstanceFacadeTrait;
 use keystore::SecretStore;
 use std::sync::Arc;
 use ymir::errors::Outcome;
 
 pub struct DataplaneManager {
     dataplane_service: Arc<dyn DataplaneTransferServiceTrait>,
-    connector_service: Arc<dyn ConnectorInstanceServiceTrait>,
+    connector_service: Arc<dyn ConnectorInstanceFacadeTrait>,
     config: Arc<TransferConfig>,
     driver_factory: Arc<dyn DataplaneDriverFactoryTrait>,
     secret_store: Option<Arc<dyn SecretStore>>,
@@ -45,7 +45,7 @@ impl DataplaneManager {
     /// with the `with_*` methods below.
     pub fn new(
         dataplane_service: Arc<dyn DataplaneTransferServiceTrait>,
-        connector_service: Arc<dyn ConnectorInstanceServiceTrait>,
+        connector_service: Arc<dyn ConnectorInstanceFacadeTrait>,
         config: Arc<TransferConfig>,
     ) -> Self {
         Self {
@@ -72,6 +72,7 @@ impl DataplaneManager {
         self
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(command = %command))]
     pub async fn execute_command(
         &self,
         command: DataplaneCommand,
@@ -191,27 +192,15 @@ mod tests {
     use crate::DataplaneAddress;
     use common::test_utils::config_fixtures::transfer_config_fixture;
     use connector::{
-        AuthenticationConfig, ConnectorInstanceDto, ConnectorInstanceServiceTrait,
-        ConnectorInstantiationDto, ConnectorMetadata, HttpSpec, InteractionConfig, ProtocolSpec,
-        PullLifecycle, PushLifecycle, TemplateVecString,
+        AuthenticationConfig, ConnectorInstanceDto, ConnectorMetadata, HttpSpec, InteractionConfig,
+        ProtocolSpec, PullLifecycle, PushLifecycle, TemplateVecString,
     };
-    use mockall::mock;
     use std::str::FromStr;
     use std::sync::Arc;
     use urn::Urn;
     use ymir::errors::Outcome as MockOutcome;
-    use ymir::errors::Outcome;
 
-    mock! {
-        pub ConnectorMock {}
-        #[async_trait::async_trait]
-        impl ConnectorInstanceServiceTrait for ConnectorMock {
-            async fn get_instance_by_id(&self, scope: &common::auth::AccessScope, id: &Urn) -> Outcome<Option<ConnectorInstanceDto>>;
-            async fn get_instance_by_distribution(&self, scope: &common::auth::AccessScope, distribution_id: &Urn) -> Outcome<Option<ConnectorInstanceDto>>;
-            async fn upsert_instance(&self, scope: &common::auth::AccessScope, dto: &mut ConnectorInstantiationDto) -> Outcome<ConnectorInstanceDto>;
-            async fn delete_instance_by_id(&self, scope: &common::auth::AccessScope, id: &Urn) -> Outcome<()>;
-        }
-    }
+    use connector::MockConnectorInstanceFacadeTrait as MockConnectorMock;
 
     fn dummy_driver() -> DataplaneDriver {
         DataplaneDriver {

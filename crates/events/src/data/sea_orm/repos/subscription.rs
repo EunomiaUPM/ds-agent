@@ -48,6 +48,7 @@ impl SeaOrmSubscriptionRepo {
 
 #[async_trait]
 impl EventSubscriptionRepo for SeaOrmSubscriptionRepo {
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_subscription(
         &self,
         tenant_id: &str,
@@ -96,6 +97,7 @@ impl EventSubscriptionRepo for SeaOrmSubscriptionRepo {
         })
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_subscription(
         &self,
         tenant_id: Option<String>,
@@ -116,6 +118,7 @@ impl EventSubscriptionRepo for SeaOrmSubscriptionRepo {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn list_subscriptions(
         &self,
         tenant_id: Option<String>,
@@ -154,6 +157,7 @@ impl EventSubscriptionRepo for SeaOrmSubscriptionRepo {
         Ok((results, total))
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn update_subscription(
         &self,
         tenant_id: Option<String>,
@@ -204,6 +208,7 @@ impl EventSubscriptionRepo for SeaOrmSubscriptionRepo {
         updated.into_domain()
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_subscription(&self, tenant_id: Option<String>, id: &str) -> Outcome<()> {
         subscription::Entity::delete_many()
             .filter(subscription::Column::Id.eq(id))
@@ -216,6 +221,7 @@ impl EventSubscriptionRepo for SeaOrmSubscriptionRepo {
         Ok(())
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_matching_subscriptions(
         &self,
         tenant_id: &str,

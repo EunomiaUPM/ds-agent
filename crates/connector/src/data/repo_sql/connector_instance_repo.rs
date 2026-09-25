@@ -39,6 +39,7 @@ impl ConnectorInstanceRepoForSql {
 
 #[async_trait::async_trait]
 impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_instance(
         &self,
         new_instance_model: &NewConnectorInstanceModel,
@@ -86,6 +87,7 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_instance_by_id(
         &self,
         tenant_id: Option<String>,
@@ -106,6 +108,7 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_instance_by_name_and_version(
         &self,
         tenant_id: &str,
@@ -127,6 +130,7 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_instances_by_distribution(
         &self,
         tenant_id: &str,
@@ -146,6 +150,7 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_instance_by_name_and_version(
         &self,
         tenant_id: &str,
@@ -174,6 +179,7 @@ impl ConnectorInstanceRepoTrait for ConnectorInstanceRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_instance_by_id(
         &self,
         tenant_id: Option<String>,

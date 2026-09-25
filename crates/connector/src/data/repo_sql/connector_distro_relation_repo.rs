@@ -39,6 +39,7 @@ impl ConnectorDistroRelationRepoForSql {
 
 #[async_trait::async_trait]
 impl ConnectorDistroRelationRepoTrait for ConnectorDistroRelationRepoForSql {
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_relation(
         &self,
         tenant_id: &str,
@@ -62,6 +63,7 @@ impl ConnectorDistroRelationRepoTrait for ConnectorDistroRelationRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn update_relation(
         &self,
         tenant_id: &str,
@@ -95,6 +97,7 @@ impl ConnectorDistroRelationRepoTrait for ConnectorDistroRelationRepoForSql {
         })
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_relation_by_distribution(
         &self,
         tenant_id: Option<String>,
@@ -116,6 +119,7 @@ impl ConnectorDistroRelationRepoTrait for ConnectorDistroRelationRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_relation_by_instance(
         &self,
         tenant_id: &str,
@@ -135,6 +139,7 @@ impl ConnectorDistroRelationRepoTrait for ConnectorDistroRelationRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_relation_by_distribution(&self, tenant_id: &str, distro: &str) -> Outcome<()> {
         let result = connector_distro_relation::Entity::delete_many()
             .filter(connector_distro_relation::Column::DistributionId.eq(distro))
@@ -156,6 +161,7 @@ impl ConnectorDistroRelationRepoTrait for ConnectorDistroRelationRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_relation_by_instance(
         &self,
         tenant_id: Option<String>,

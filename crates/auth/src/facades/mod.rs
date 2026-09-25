@@ -15,25 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use async_trait::async_trait;
-use ymir::errors::Outcome;
+//! In-process adapters of the auth ports in `common::facades`, used when auth shares the process.
 
-use crate::facades::inner_auth_facade::InnerAuthFacadeTrait;
+pub mod mates_facade;
+pub mod ssi_auth_facade;
 
-pub struct InnerAuthFacadeService {}
-impl InnerAuthFacadeService {
-    pub fn new() -> Self {
-        Self {}
-    }
-}
-
-#[async_trait]
-impl InnerAuthFacadeTrait for InnerAuthFacadeService {
-    async fn authenticate(&self) -> Outcome<()> {
-        Ok(())
-    }
-
-    async fn authorize(&self) -> Outcome<()> {
-        Ok(())
-    }
-}
+pub use mates_facade::local::MatesLocalFacade;
+pub use ssi_auth_facade::local::SSIAuthLocalFacade;

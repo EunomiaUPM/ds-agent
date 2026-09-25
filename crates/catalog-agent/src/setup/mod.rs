@@ -19,8 +19,10 @@ mod admin_module;
 mod boot;
 mod composition;
 pub(crate) mod context;
+mod ports;
 mod seeders;
 
 pub use boot::CatalogAgentBoot;
 pub use composition::CatalogAgentModule;
+pub use ports::CatalogPorts;
 pub use seeders::{AdminTenantProvisioner, PolicyTemplateLoader};

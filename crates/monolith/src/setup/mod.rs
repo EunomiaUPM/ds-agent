@@ -17,7 +17,6 @@
 
 mod boot;
 mod composition;
-mod seeders;
 
 pub use boot::CoreBoot;
 pub use composition::MonolithModule;

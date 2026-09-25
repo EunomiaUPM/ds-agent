@@ -25,10 +25,12 @@ use ymir::types::verification::VerifyPayload;
 
 #[async_trait]
 pub trait VerifierModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync + 'static {
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn get_vpd(&self, state: String) -> Outcome<VPDef> {
         let verification = self.repo().recv_verification().get_by_state(&state).await?;
         self.verifier().generate_vpd(&verification)
     }
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn verify(
         &self,
         state: String,

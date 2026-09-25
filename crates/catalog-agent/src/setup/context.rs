@@ -41,13 +41,14 @@ use crate::services::policy_templates::service::PolicyTemplateService;
 use crate::services::policy_templates::PolicyTemplateServiceTrait;
 use crate::services::tenant_provisioning::service::TenantProvisioningService;
 use crate::services::tenant_provisioning::TenantProvisioningServiceTrait;
-use common::auth::{OauthTokenValidator, ServiceHttpClient};
+use crate::setup::ports::CatalogPorts;
+use common::auth::OauthTokenValidator;
 use common::config::services::traits::CatalogConfigTrait;
 use common::config::services::CatalogConfig;
 use common::config::types::traits::CacheConfigTrait;
 use common::config::types::traits::MinKnownConfigTrait;
-use common::facades::ssi_auth_facade::mates_facade::MatesFacadeService;
-use common::facades::ssi_auth_facade::MatesFacadeTrait;
+use common::facades::mates_facade::MatesFacadeTrait;
+use common::facades::ssi_auth_facade::SSIAuthFacadeTrait;
 use common::module_loader::root_context::RootContext;
 use ymir::config::types::HostType;
 use ymir::errors::{Errors, Outcome};
@@ -66,7 +67,7 @@ pub struct AppContext {
     pub peer_catalog_svc: Arc<dyn PeerCatalogServiceTrait>,
     pub tenant_provisioning_svc: Arc<dyn TenantProvisioningServiceTrait>,
     pub mates_facade: Arc<dyn MatesFacadeTrait>,
-    pub service_client: Arc<ServiceHttpClient>,
+    pub ssi_auth_facade: Arc<dyn SSIAuthFacadeTrait>,
     pub oauth_validator: Arc<dyn OauthTokenValidator>,
     pub event_bus: Option<events::EventBus>,
 }
@@ -76,6 +77,7 @@ impl AppContext {
         config: &CatalogConfig,
         root: &RootContext,
         event_bus: Option<events::EventBus>,
+        ports: &CatalogPorts,
     ) -> Outcome<Self> {
         let redis = redis::Client::open(config.get_full_cache_url())
             .map_err(|e| Errors::crazy("Error creating Redis client", Some(Box::new(e))))?
@@ -114,10 +116,7 @@ impl AppContext {
             distribution_svc.clone(),
             odrl_policy_svc.clone(),
         ));
-        let mates_facade = Arc::new(MatesFacadeService::new(
-            Arc::new(config.ssi_auth().clone()),
-            root.service_client.clone(),
-        ));
+        let mates_facade = ports.auth.mates.clone();
         let peer_catalog_svc = Arc::new(PeerCatalogService::new(cache, mates_facade.clone()));
         let tenant_provisioning_svc = Arc::new(TenantProvisioningService::new(
             catalog_svc.clone(),
@@ -142,7 +141,7 @@ impl AppContext {
             peer_catalog_svc,
             tenant_provisioning_svc,
             mates_facade,
-            service_client: root.service_client.clone(),
+            ssi_auth_facade: ports.auth.ssi_auth.clone(),
             oauth_validator: root.validator.clone(),
             event_bus,
         })

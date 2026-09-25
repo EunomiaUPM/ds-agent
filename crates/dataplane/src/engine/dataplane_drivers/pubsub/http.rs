@@ -63,6 +63,7 @@ impl HttpPubSubscriber {
 
 #[async_trait::async_trait]
 impl DriverPubSubTrait for HttpPubSubscriber {
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "data-endpoint"))]
     async fn subscribe(&self, context: &DataplaneContext) -> Outcome<DataplaneContext> {
         // extract subscribe spec
         let connector = context.connector_instance().ok_or_else(|| {
@@ -127,6 +128,7 @@ impl DriverPubSubTrait for HttpPubSubscriber {
         Ok(ctx)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "data-endpoint"))]
     async fn unsubscribe(&self, context: &DataplaneContext) -> Outcome<DataplaneContext> {
         // extract unsubscribe spec
         let connector = context.connector_instance().ok_or_else(|| {

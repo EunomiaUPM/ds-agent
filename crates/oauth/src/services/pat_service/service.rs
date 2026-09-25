@@ -53,6 +53,7 @@ impl PatService {
 
 #[async_trait::async_trait]
 impl PatServiceTrait for PatService {
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn create_pat(
         &self,
         scope: &AccessScope,
@@ -87,6 +88,7 @@ impl PatServiceTrait for PatService {
         Ok(res)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn list_pats(
         &self,
         scope: &AccessScope,
@@ -109,6 +111,7 @@ impl PatServiceTrait for PatService {
         }))
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn revoke_pat(&self, scope: &AccessScope, id: Uuid) -> Outcome<()> {
         scope.require_write()?;
         let owner = self
@@ -126,6 +129,7 @@ impl PatServiceTrait for PatService {
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn validate_pat(&self, raw_token: &str) -> Outcome<Claims> {
         let hash = PersonalAccessToken::hash_token(raw_token);
         let pat = self

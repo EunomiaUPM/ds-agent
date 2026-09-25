@@ -21,7 +21,7 @@ use crate::engine::dataplane_manager::dataplane_commands::{
 use crate::engine::dataplane_manager::dataplane_context::DataplaneContext;
 use crate::services::dataplane_transfers::DataplaneTransferServiceTrait;
 use common::config::services::TransferConfig;
-use connector::ConnectorInstanceServiceTrait;
+use connector::ConnectorInstanceFacadeTrait;
 use keystore::SecretStore;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -30,7 +30,7 @@ use ymir::errors::{Errors, Outcome};
 
 pub struct DataplaneHandlerProviderPull {
     dataplane_service: Arc<dyn DataplaneTransferServiceTrait>,
-    connector_service: Arc<dyn ConnectorInstanceServiceTrait>,
+    connector_service: Arc<dyn ConnectorInstanceFacadeTrait>,
     config: Arc<TransferConfig>,
     secret_store: Option<Arc<dyn SecretStore>>,
 }
@@ -38,7 +38,7 @@ pub struct DataplaneHandlerProviderPull {
 impl DataplaneHandlerProviderPull {
     pub fn new(
         dataplane_service: Arc<dyn DataplaneTransferServiceTrait>,
-        connector_service: Arc<dyn ConnectorInstanceServiceTrait>,
+        connector_service: Arc<dyn ConnectorInstanceFacadeTrait>,
         config: Arc<TransferConfig>,
         secret_store: Option<Arc<dyn SecretStore>>,
     ) -> Self {
@@ -59,7 +59,7 @@ impl DataplaneCommandStateMachine for DataplaneHandlerProviderPull {
     fn dataplane_service(&self) -> Arc<dyn DataplaneTransferServiceTrait> {
         self.dataplane_service.clone()
     }
-    fn connector_service(&self) -> Arc<dyn ConnectorInstanceServiceTrait> {
+    fn connector_service(&self) -> Arc<dyn ConnectorInstanceFacadeTrait> {
         self.connector_service.clone()
     }
     fn transfer_config(&self) -> Arc<TransferConfig> {
@@ -69,6 +69,7 @@ impl DataplaneCommandStateMachine for DataplaneHandlerProviderPull {
         self.secret_store.clone()
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(handler = self.handler_name()))]
     async fn set_init(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
         let ctx = set_configuring_helper(
             self.dataplane_service(),
@@ -80,6 +81,7 @@ impl DataplaneCommandStateMachine for DataplaneHandlerProviderPull {
         let ctx = self.set_ready(ctx).await?;
         Ok(ctx)
     }
+    #[tracing::instrument(level = "info", skip_all, err, fields(handler = self.handler_name()))]
     async fn set_configuring(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
         let ctx = set_configuring_helper(
             self.dataplane_service(),
@@ -109,26 +111,14 @@ mod tests {
     use crate::DataplaneAddress;
     use common::test_utils::config_fixtures::transfer_config_fixture;
     use connector::{
-        AuthenticationConfig, ConnectorInstanceDto, ConnectorInstanceServiceTrait,
-        ConnectorInstantiationDto, ConnectorMetadata, HttpSpec, InteractionConfig, ProtocolSpec,
-        PullLifecycle, TemplateVecString,
+        AuthenticationConfig, ConnectorInstanceDto, ConnectorMetadata, HttpSpec, InteractionConfig,
+        ProtocolSpec, PullLifecycle, TemplateVecString,
     };
-    use mockall::mock;
     use std::str::FromStr;
     use std::sync::Arc;
     use urn::Urn;
-    use ymir::errors::Outcome;
 
-    mock! {
-        pub ConnectorMock {}
-        #[async_trait::async_trait]
-        impl ConnectorInstanceServiceTrait for ConnectorMock {
-            async fn get_instance_by_id(&self, scope: &common::auth::AccessScope, id: &Urn) -> Outcome<Option<ConnectorInstanceDto>>;
-            async fn get_instance_by_distribution(&self, scope: &common::auth::AccessScope, distribution_id: &Urn) -> Outcome<Option<ConnectorInstanceDto>>;
-            async fn upsert_instance(&self, scope: &common::auth::AccessScope, dto: &mut ConnectorInstantiationDto) -> Outcome<ConnectorInstanceDto>;
-            async fn delete_instance_by_id(&self, scope: &common::auth::AccessScope, id: &Urn) -> Outcome<()>;
-        }
-    }
+    use connector::MockConnectorInstanceFacadeTrait as MockConnectorMock;
 
     const DP_URN: &str = "urn:dataplane-transfer:1";
     const TP_URN: &str = "urn:transfer-process:1";

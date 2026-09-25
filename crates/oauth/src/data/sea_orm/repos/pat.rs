@@ -87,6 +87,7 @@ impl SeaOrmPatRepository {
 
 #[async_trait::async_trait]
 impl PatRepository for SeaOrmPatRepository {
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all(
         &self,
         filter: &PatFilter,
@@ -118,12 +119,14 @@ impl PatRepository for SeaOrmPatRepository {
             .collect()
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn count(&self, filter: &PatFilter) -> Outcome<u64> {
         Self::apply_base_filters(orm::Entity::find(), filter)
             .count(self.db.as_ref())
             .await
             .map_err(|e| PatRepositoryError::Db(Box::new(e)).into_errors())
     }
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create(&self, pat: &PersonalAccessToken) -> Outcome<PersonalAccessToken> {
         orm::ActiveModel::from_domain(pat)
             .insert(self.db.as_ref())
@@ -132,6 +135,7 @@ impl PatRepository for SeaOrmPatRepository {
             .and_then(orm::Model::into_domain)
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_by_id(&self, tenant_id: &str, id: Uuid) -> Outcome<Option<PersonalAccessToken>> {
         orm::Entity::find_by_id(id)
             .filter(orm::Column::TenantId.eq(tenant_id))
@@ -142,6 +146,7 @@ impl PatRepository for SeaOrmPatRepository {
             .transpose()
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_batch(&self, tenant_id: &str, ids: &[Uuid]) -> Outcome<Vec<PersonalAccessToken>> {
         if ids.is_empty() {
             return Ok(vec![]);
@@ -157,6 +162,7 @@ impl PatRepository for SeaOrmPatRepository {
             .collect()
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_by_hash(&self, token_hash: &str) -> Outcome<Option<PersonalAccessToken>> {
         orm::Entity::find()
             .filter(orm::Column::TokenHash.eq(token_hash))
@@ -167,6 +173,7 @@ impl PatRepository for SeaOrmPatRepository {
             .transpose()
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn list_by_tenant(&self, tenant_id: &str) -> Outcome<Vec<PersonalAccessToken>> {
         let models = orm::Entity::find()
             .filter(orm::Column::TenantId.eq(tenant_id))
@@ -177,6 +184,7 @@ impl PatRepository for SeaOrmPatRepository {
         models.into_iter().map(orm::Model::into_domain).collect()
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn revoke(&self, tenant_id: Option<String>, id: Uuid) -> Outcome<String> {
         use sea_orm::sea_query::Expr;
         let revoked = orm::Entity::update_many()
@@ -193,6 +201,7 @@ impl PatRepository for SeaOrmPatRepository {
             .ok_or_else(|| PatRepositoryError::NotFound.into_errors())
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn update_last_used(&self, id: Uuid) -> Outcome<()> {
         let existing = orm::Entity::find_by_id(id)
             .one(self.db.as_ref())

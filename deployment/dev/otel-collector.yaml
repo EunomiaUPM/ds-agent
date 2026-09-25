@@ -1,0 +1,39 @@
+# Receives OTLP from the agents: traces go to Jaeger; metrics (agent-emitted plus RED
+# metrics derived from spans, e.g. per DSP orchestrator step) are exposed for Prometheus.
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch: {}
+
+connectors:
+  spanmetrics:
+    namespace: span
+    dimensions:
+      - name: tenant
+      - name: http.route
+      - name: rpc.method
+
+exporters:
+  otlp/jaeger:
+    endpoint: jaeger:4317
+    tls:
+      insecure: true
+  prometheus:
+    endpoint: 0.0.0.0:8889
+
+service:
+  pipelines:
+    traces:
+      receivers: [ otlp ]
+      processors: [ batch ]
+      exporters: [ otlp/jaeger, spanmetrics ]
+    metrics:
+      receivers: [ otlp, spanmetrics ]
+      processors: [ batch ]
+      exporters: [ prometheus ]

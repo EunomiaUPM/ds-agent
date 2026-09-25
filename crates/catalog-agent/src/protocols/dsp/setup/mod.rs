@@ -40,8 +40,8 @@ impl DspModule {
             ctx.distribution_svc.clone(),
             ctx.peer_catalog_svc.clone(),
             ctx.mates_facade.clone(),
+            ctx.ssi_auth_facade.clone(),
             ctx.config.clone(),
-            ctx.service_client.clone(),
             ctx.oauth_validator.clone(),
         )
         .build_router()

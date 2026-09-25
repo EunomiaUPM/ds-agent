@@ -104,6 +104,7 @@ impl SeaOrmTransferMessageRepo {
 
 #[async_trait::async_trait]
 impl TransferMessageRepoTrait for SeaOrmTransferMessageRepo {
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_transfer_messages(
         &self,
         filters: &TransferMessageFilter,
@@ -121,6 +122,7 @@ impl TransferMessageRepoTrait for SeaOrmTransferMessageRepo {
             .collect()
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn count_transfer_messages(&self, filters: &TransferMessageFilter) -> Outcome<u64> {
         Self::apply_base_filters(orm::Entity::find(), filters)
             .count(self.db.as_ref())
@@ -128,6 +130,7 @@ impl TransferMessageRepoTrait for SeaOrmTransferMessageRepo {
             .map_err(Self::fetch_err)
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_messages_by_process_id(
         &self,
         process_id: &Urn,
@@ -148,6 +151,7 @@ impl TransferMessageRepoTrait for SeaOrmTransferMessageRepo {
             .collect()
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_transfer_message_by_id(
         &self,
         tenant_id: Option<String>,
@@ -162,6 +166,7 @@ impl TransferMessageRepoTrait for SeaOrmTransferMessageRepo {
             .transpose()
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_transfer_message(
         &self,
         cmd: &NewTransferMessageCommand,
@@ -175,6 +180,7 @@ impl TransferMessageRepoTrait for SeaOrmTransferMessageRepo {
             .and_then(orm::Model::into_domain)
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_transfer_message(
         &self,
         tenant_id: Option<String>,

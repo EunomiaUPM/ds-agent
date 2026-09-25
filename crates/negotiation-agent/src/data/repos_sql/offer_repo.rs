@@ -64,6 +64,7 @@ impl OfferRepoForSql {
 
 #[async_trait::async_trait]
 impl OfferRepoTrait for OfferRepoForSql {
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_offers(
         &self,
         filters: &OfferFilter,
@@ -92,6 +93,7 @@ impl OfferRepoTrait for OfferRepoForSql {
         Ok((items, Some(total)))
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_batch_offers(
         &self,
         tenant_id: Option<String>,
@@ -110,6 +112,7 @@ impl OfferRepoTrait for OfferRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_offers_by_negotiation_process(
         &self,
         tenant_id: Option<String>,
@@ -129,6 +132,7 @@ impl OfferRepoTrait for OfferRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_last_offer_by_negotiation_process(
         &self,
         tenant_id: Option<String>,
@@ -148,6 +152,7 @@ impl OfferRepoTrait for OfferRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_offer_by_id(&self, tenant_id: Option<String>, id: &Urn) -> Outcome<Option<Model>> {
         let oid = id.to_string();
         let offer = offer::Entity::find_by_id(oid)
@@ -161,6 +166,7 @@ impl OfferRepoTrait for OfferRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_offer_by_negotiation_message(
         &self,
         tenant_id: Option<String>,
@@ -179,6 +185,7 @@ impl OfferRepoTrait for OfferRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_offer_by_offer_id(
         &self,
         tenant_id: Option<String>,
@@ -197,6 +204,7 @@ impl OfferRepoTrait for OfferRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_offer(&self, new_model: &NewOfferModel) -> Outcome<Model> {
         let model: offer::ActiveModel = new_model.clone().into();
         let result = offer::Entity::insert(model)
@@ -209,6 +217,7 @@ impl OfferRepoTrait for OfferRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_offer(&self, tenant_id: Option<String>, id: &Urn) -> Outcome<String> {
         let oid = id.to_string();
         let result = offer::Entity::delete_many()

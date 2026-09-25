@@ -17,11 +17,9 @@
 
 use std::sync::Arc;
 
-use catalog_agent::setup::{AdminTenantProvisioner, PolicyTemplateLoader};
-use common::auth::{OauthTokenValidator, ServiceHttpClient};
+use common::auth::OauthTokenValidator;
 use common::boot::seeders::{BootSeeder, RedisCacheFlush};
 use common::boot::BootstrapServiceTrait;
-use common::config::services::traits::CatalogConfigTrait;
 use common::config::services::CommonConfig;
 use common::config::types::traits::{CacheConfigTrait, CommonConfigTrait};
 use common::config::ApplicationConfig;
@@ -31,12 +29,9 @@ use oauth::setup::AdminSeeder;
 use oauth::setup::OAuthModule;
 use sea_orm::DatabaseConnection;
 use sea_orm_migration::MigrationTrait;
-use ymir::config::traits::{ApiConfigTrait, HostsConfigTrait};
-use ymir::config::types::HostType;
 use ymir::errors::Outcome;
 
 use crate::setup::composition::MonolithModule;
-use crate::setup::seeders::SelfParticipantOnboarder;
 
 /// Every agent in one process, behind one composer and one database.
 pub struct CoreBoot;
@@ -56,38 +51,21 @@ impl BootstrapServiceTrait for CoreBoot {
     }
 
     async fn compose(config: &ApplicationConfig, root: &RootContext) -> Outcome<ServiceComposer> {
-        Ok(ServiceComposer::new().register(MonolithModule::compose(config, root).await?))
+        let monolith = MonolithModule::compose(config, root).await?;
+        let ports = monolith.auth_ports();
+        Ok(ServiceComposer::new()
+            .register(monolith)
+            .with_auth_ports(ports))
     }
 
+    /// Infrastructure only, straight to the DB; module seeders come from the composed graph.
     async fn seeders(
         config: &ApplicationConfig,
         root: &RootContext,
     ) -> Outcome<Vec<Box<dyn BootSeeder>>> {
-        let common = config.common();
-        let client = Arc::new(ServiceHttpClient::from_common(common));
-        let catalog_api = format!(
-            "{}{}/{}",
-            common.get_host(HostType::Http),
-            common.get_api_version(),
-            catalog_agent::SERVICE_NAME
-        );
-        let tenant = common.admin_seed.tenant_id.clone();
-        let templates = config.catalog().get_policy_templates_folder().to_string();
         Ok(vec![
             Box::new(RedisCacheFlush::new(config.monolith().get_full_cache_url())),
-            Box::new(AdminSeeder::new(root.db.clone(), common)),
-            Box::new(SelfParticipantOnboarder::new(common.clone())),
-            Box::new(AdminTenantProvisioner::new(
-                client.clone(),
-                catalog_api.clone(),
-                tenant.clone(),
-            )),
-            Box::new(PolicyTemplateLoader::new(
-                client,
-                catalog_api,
-                tenant,
-                templates,
-            )),
+            Box::new(AdminSeeder::new(root.db.clone(), config.common())),
         ])
     }
 }

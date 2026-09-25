@@ -184,6 +184,7 @@ impl DatasetOfferingService {
 
 #[async_trait::async_trait]
 impl DatasetOfferingServiceTrait for DatasetOfferingService {
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn create_offering(
         &self,
         scope: &AccessScope,

@@ -19,7 +19,7 @@ use crate::protocols::dsp::entities::context_dsp::TransferDSPContextDomain;
 
 mod consumer_pull;
 mod consumer_push;
-pub(crate) mod dataplane_facade;
+pub(crate) mod local;
 mod provider_pull;
 mod provider_push;
 mod strategy;

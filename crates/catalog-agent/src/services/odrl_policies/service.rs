@@ -56,6 +56,7 @@ impl OdrlPolicyService {
 
 #[async_trait::async_trait]
 impl OdrlPolicyServiceTrait for OdrlPolicyService {
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_all_odrl_offers(
         &self,
         scope: &AccessScope,
@@ -92,6 +93,7 @@ impl OdrlPolicyServiceTrait for OdrlPolicyService {
         }))
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_batch_odrl_offers(
         &self,
         scope: &AccessScope,
@@ -116,6 +118,7 @@ impl OdrlPolicyServiceTrait for OdrlPolicyService {
         Ok(dtos)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_all_odrl_offers_by_entity(
         &self,
         scope: &AccessScope,
@@ -141,6 +144,7 @@ impl OdrlPolicyServiceTrait for OdrlPolicyService {
         Ok(dtos)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_odrl_offer_by_id(
         &self,
         scope: &AccessScope,
@@ -163,6 +167,7 @@ impl OdrlPolicyServiceTrait for OdrlPolicyService {
         Ok(dto)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn create_odrl_offer(
         &self,
         scope: &AccessScope,
@@ -204,6 +209,7 @@ impl OdrlPolicyServiceTrait for OdrlPolicyService {
         Ok(dto)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn delete_odrl_offer_by_id(
         &self,
         scope: &AccessScope,
@@ -236,6 +242,7 @@ impl OdrlPolicyServiceTrait for OdrlPolicyService {
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn delete_odrl_offers_by_entity(
         &self,
         scope: &AccessScope,

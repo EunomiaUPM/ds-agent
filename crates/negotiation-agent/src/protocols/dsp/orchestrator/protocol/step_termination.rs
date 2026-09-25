@@ -41,6 +41,7 @@ impl NegotiationProtocolStep for NegotiationTerminationStep {
     type Dto = NegotiationTerminationMessageDto;
     type Context = NegotiationContinuationContext;
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn validate(
         validator: &Arc<dyn ValidationDspSteps>,
         id: &str,
@@ -52,6 +53,7 @@ impl NegotiationProtocolStep for NegotiationTerminationStep {
             .await
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn prepare_context(
         id: &str,
         mate: &Mates,
@@ -65,6 +67,7 @@ impl NegotiationProtocolStep for NegotiationTerminationStep {
     }
 
     /// Advances the process state to `Terminated`; no offer or agreement changes.
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn persist(
         persistence: &Arc<OrchestrationPersistenceForProtocol>,
         _id: &str,

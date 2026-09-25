@@ -45,6 +45,7 @@ impl DspManager {
 
     /// Same phase order for every message; the strategy fills each phase. Takes
     /// `Arc<Self>` so a strategy can `run` a follow-up command re-entrantly.
+    #[tracing::instrument(level = "info", skip_all, err)]
     pub async fn run(
         self: Arc<Self>,
         mut command: TransferManagerCommand,

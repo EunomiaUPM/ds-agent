@@ -38,6 +38,7 @@ use crate::protocols::dsp::http::dsp::DspRouter;
 pub trait DSPHandlerPipeline: Send + Sync + 'static {
     /// Read body and headers, and pick up the participant the auth middleware
     /// resolved. Consumes the request: a body can only be read once.
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn extract_wire(request: Request) -> Outcome<TransferContextRaw<TransferDSPAuthn>> {
         TransferContextRaw::<TransferDSPAuthn>::from_request(request).await
     }
@@ -57,6 +58,7 @@ pub trait DSPHandlerPipeline: Send + Sync + 'static {
 
     /// Expand to RDF once, keeping both products: the expanded document to read
     /// fields from, and the canonical n-quads the content hash is taken over.
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn extract_rdf(parsed: TransferDSPContextParsed) -> Outcome<TransferDSPContextRdf> {
         TransferDSPContextRdf::from_parsed(parsed).await
     }
@@ -70,6 +72,7 @@ pub trait DSPHandlerPipeline: Send + Sync + 'static {
 
     /// Resolve the process, agreement, connector and role. The only required
     /// stage, because it is the one that varies; `path_id` is `None` on `/request`.
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn to_domain(
         _typed: &TransferDSPContextTyped,
         _path_id: Option<String>,
@@ -78,6 +81,7 @@ pub trait DSPHandlerPipeline: Send + Sync + 'static {
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn run(
         request: Request,
         message_route: &TransferDSPMessageType,
@@ -129,6 +133,7 @@ pub trait DSPHandlerPipeline: Send + Sync + 'static {
 /// from the default bodies above.
 #[async_trait::async_trait]
 impl DSPHandlerPipeline for DspRouter {
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn to_domain(_typed: &TransferDSPContextTyped, _path_id: Option<String>) -> Outcome<()> {
         // TODO(loader): resolve process, agreement, connector and role. Needs the
         // repositories, so this signature grows a deps parameter when it lands.

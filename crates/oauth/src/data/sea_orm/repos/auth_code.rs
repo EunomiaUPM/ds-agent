@@ -37,6 +37,7 @@ impl SeaOrmAuthCodeRepository {
 
 #[async_trait::async_trait]
 impl AuthCodeRepository for SeaOrmAuthCodeRepository {
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn save(&self, auth_code: &AuthCode) -> Outcome<AuthCode> {
         orm::ActiveModel::from_domain(auth_code)
             .insert(self.db.as_ref())
@@ -45,6 +46,7 @@ impl AuthCodeRepository for SeaOrmAuthCodeRepository {
             .and_then(orm::Model::into_domain)
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_by_code(&self, code: &str) -> Outcome<Option<AuthCode>> {
         orm::Entity::find_by_id(code)
             .one(self.db.as_ref())
@@ -54,6 +56,7 @@ impl AuthCodeRepository for SeaOrmAuthCodeRepository {
             .transpose()
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn mark_used(&self, code: &str) -> Outcome<()> {
         let existing = orm::Entity::find_by_id(code)
             .one(self.db.as_ref())

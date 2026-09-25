@@ -19,7 +19,7 @@ use crate::cache::factory_trait::CatalogAgentCacheTrait;
 use crate::protocols::dsp::types::catalog_definition::Catalog;
 use crate::services::peer_catalogs::PeerCatalogServiceTrait;
 use common::auth::AccessScope;
-use common::facades::ssi_auth_facade::MatesFacadeTrait;
+use common::facades::mates_facade::MatesFacadeTrait;
 use std::sync::Arc;
 use tracing::warn;
 use ymir::data::entities::shared::participant::Model as Mates;
@@ -44,6 +44,7 @@ impl PeerCatalogService {
 
 #[async_trait::async_trait]
 impl PeerCatalogServiceTrait for PeerCatalogService {
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_all_peer_catalogs(&self, scope: &AccessScope) -> Outcome<Vec<(Mates, Catalog)>> {
         let tenant_id = scope.acting_tenant();
         let mates = self.mates_facade.get_all_mates(tenant_id.clone()).await?;
@@ -74,6 +75,7 @@ impl PeerCatalogServiceTrait for PeerCatalogService {
         Ok(result)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_peer_catalog(
         &self,
         scope: &AccessScope,
@@ -85,6 +87,7 @@ impl PeerCatalogServiceTrait for PeerCatalogService {
             .await
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn set_peer_catalog(
         &self,
         scope: &AccessScope,

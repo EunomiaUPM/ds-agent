@@ -30,7 +30,7 @@ use crate::services::negotiation_process::views::NegotiationProcessView;
 use axum::http::HeaderMap;
 use common::auth::AccessScope;
 use common::dsp_common::DspActor;
-use common::facades::ssi_auth_facade::MatesFacadeTrait;
+use common::facades::mates_facade::MatesFacadeTrait;
 use std::sync::Arc;
 use ymir::errors::Outcome;
 use ymir::services::client::ClientExt;
@@ -55,6 +55,7 @@ impl NegotiationRpcStep for RpcOfferInitStep {
     type Input = RpcNegotiationOfferInitMessageDto;
     type Context = NegotiationRpcInitialContext;
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn validate(
         validator: &Arc<dyn ValidationRpcSteps>,
         _actor: &DspActor,
@@ -63,6 +64,7 @@ impl NegotiationRpcStep for RpcOfferInitStep {
         validator.negotiation_offer_init_rpc(input).await
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn prepare_context(
         scope: &AccessScope,
         input: &RpcNegotiationOfferInitMessageDto,
@@ -86,6 +88,7 @@ impl NegotiationRpcStep for RpcOfferInitStep {
 
     /// POSTs the offer message to `{provider_address}/negotiations/offers`
     /// and creates the local process record.
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn send_and_persist(
         headers: Option<HeaderMap>,
         persistence: &Arc<dyn NegotiationRpcPersistenceTrait>,

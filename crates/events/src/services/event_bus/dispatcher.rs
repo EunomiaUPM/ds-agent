@@ -21,8 +21,10 @@ use std::time::Duration;
 
 use axum::http::header::CONTENT_TYPE;
 use axum::http::{HeaderMap, HeaderName, HeaderValue, StatusCode};
+use common::telemetry::TraceParent;
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
+use tracing::Instrument;
 use ymir::services::client::{ClientService, ClientTrait};
 use ymir::types::http::{Method, StreamBody};
 
@@ -96,10 +98,26 @@ impl EventDispatcher {
                 StreamBody::from(payload_bytes),
                 None,
             )
+            .instrument(Self::delivery_span(envelope))
             .await
             .map_err(|e| format!("HTTP request error: {e}"))?;
 
         Ok(resp.status())
+    }
+
+    /// Producer span of one webhook attempt, linked to the trace that published the event;
+    /// its context is what the subscriber receives as `traceparent`.
+    fn delivery_span(envelope: &EventEnvelope) -> tracing::Span {
+        let span = tracing::info_span!(
+            "event.deliver",
+            otel.name = %format!("{} publish", envelope.topic.as_str()),
+            otel.kind = "producer",
+            messaging.system = "webhook",
+            messaging.message.id = %envelope.id,
+            messaging.destination.name = %envelope.topic.as_str(),
+        );
+        TraceParent::link(&span, envelope.trace_context.as_deref());
+        span
     }
 
     /// Adds a header, skipping names or values that are not valid HTTP.

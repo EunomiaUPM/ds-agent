@@ -15,17 +15,26 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use connector::ConnectorInstanceDto;
+use crate::entities::connector_instance::ConnectorInstanceDto;
 use urn::Urn;
 use ymir::errors::Outcome;
 
-pub mod data_service_resolver_facade;
+pub mod local;
+pub mod remote;
 
+/// Connector instances as seen by agents outside the catalog (dataplane, transfer).
+#[mockall::automock]
 #[async_trait::async_trait]
-pub trait DataServiceFacadeTrait: Send + Sync {
-    async fn resolve_connector_by_agreement_id(
+pub trait ConnectorInstanceFacadeTrait: Send + Sync {
+    async fn get_instance_by_id(
         &self,
-        agreement_id: &Urn,
-        formats: Option<&String>,
-    ) -> Outcome<ConnectorInstanceDto>;
+        tenant_id: &str,
+        id: &Urn,
+    ) -> Outcome<Option<ConnectorInstanceDto>>;
+
+    async fn get_instance_by_distribution(
+        &self,
+        tenant_id: &str,
+        distribution_id: &Urn,
+    ) -> Outcome<Option<ConnectorInstanceDto>>;
 }

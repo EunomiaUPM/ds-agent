@@ -131,6 +131,26 @@ impl AccessScope {
         }
     }
 
+    /// Scope of an in-process facade call: the service token (Admin) pinned to `tenant`,
+    /// exactly what the HTTP extractor builds from the service token plus `x-tenant-id`.
+    pub fn service(tenant: &str) -> Self {
+        Self {
+            acting_tenant: tenant.to_string(),
+            role: RbacRole::Admin,
+            pinned: true,
+        }
+    }
+
+    /// Scope of an in-process facade call that sends no `x-tenant-id`: the service token
+    /// (Admin of `home_tenant`) unpinned, so it sees every tenant.
+    pub fn service_cross_tenant(home_tenant: &str) -> Self {
+        Self {
+            acting_tenant: home_tenant.to_string(),
+            role: RbacRole::Admin,
+            pinned: false,
+        }
+    }
+
     /// Role held by the authenticated caller.
     pub fn role(&self) -> RbacRole {
         self.role

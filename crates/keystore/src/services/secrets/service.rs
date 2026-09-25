@@ -52,7 +52,7 @@ impl SecretStoreImpl {
 
 #[async_trait::async_trait]
 impl SecretStore for SecretStoreImpl {
-    #[tracing::instrument(level = "info", skip_all, err)]
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn create(&self, scope: &AccessScope, cmd: &NewSecretCommand) -> Outcome<SecretEntry> {
         let mut cmd = cmd.clone();
         let target_tenant = scope.resolve_create_tenant(cmd.tenant_id.as_deref())?;
@@ -69,7 +69,12 @@ impl SecretStore for SecretStoreImpl {
         Ok(entry)
     }
 
-    #[tracing::instrument(level = "info", skip(self, scope), fields(key = %key), err)]
+    #[tracing::instrument(
+        level = "info",
+        skip_all,
+        err,
+        fields(tenant = %scope.acting_tenant(), key = %key)
+    )]
     async fn read(&self, scope: &AccessScope, key: &Key) -> Outcome<SecretEntry> {
         scope.require_read()?;
         self.repo
@@ -78,7 +83,12 @@ impl SecretStore for SecretStoreImpl {
             .or_not_found(key, "secret")
     }
 
-    #[tracing::instrument(level = "info", skip(self, scope, cmd), fields(key = %key), err)]
+    #[tracing::instrument(
+        level = "info",
+        skip_all,
+        err,
+        fields(tenant = %scope.acting_tenant(), key = %key)
+    )]
     async fn update(
         &self,
         scope: &AccessScope,
@@ -101,7 +111,12 @@ impl SecretStore for SecretStoreImpl {
         Ok(entry.metadata.version)
     }
 
-    #[tracing::instrument(level = "info", skip(self, scope), fields(key = %key), err)]
+    #[tracing::instrument(
+        level = "info",
+        skip_all,
+        err,
+        fields(tenant = %scope.acting_tenant(), key = %key)
+    )]
     async fn delete(&self, scope: &AccessScope, key: &Key) -> Outcome<()> {
         scope.require_write()?;
         self.repo.delete_secret(scope.acting_tenant(), key).await?;
@@ -116,7 +131,7 @@ impl SecretStore for SecretStoreImpl {
         Ok(())
     }
 
-    #[tracing::instrument(level = "info", skip(self, scope), err)]
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn list(&self, scope: &AccessScope, filter: &PrefixFilter) -> Outcome<Vec<SecretEntry>> {
         scope.require_read()?;
         filter.validate()?;
@@ -125,7 +140,7 @@ impl SecretStore for SecretStoreImpl {
         self.repo.get_all_secrets(&filter).await
     }
 
-    #[tracing::instrument(level = "info", skip_all, err)]
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn batch(&self, scope: &AccessScope, keys: &[Key]) -> Outcome<Vec<SecretEntry>> {
         scope.require_read()?;
         if keys.is_empty() {
@@ -136,7 +151,12 @@ impl SecretStore for SecretStoreImpl {
             .await
     }
 
-    #[tracing::instrument(level = "info", skip(self, scope, value), fields(key = %key), err)]
+    #[tracing::instrument(
+        level = "info",
+        skip_all,
+        err,
+        fields(tenant = %scope.acting_tenant(), key = %key)
+    )]
     async fn upsert(&self, scope: &AccessScope, key: &Key, value: SecretValue) -> Outcome<()> {
         scope.require_write()?;
         match self

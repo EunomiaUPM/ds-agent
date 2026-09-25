@@ -21,14 +21,14 @@ use crate::engine::dataplane_manager::dataplane_commands::{
 use crate::engine::dataplane_manager::dataplane_context::DataplaneContext;
 use crate::services::dataplane_transfers::DataplaneTransferServiceTrait;
 use common::config::services::TransferConfig;
-use connector::ConnectorInstanceServiceTrait;
+use connector::ConnectorInstanceFacadeTrait;
 use keystore::SecretStore;
 use std::sync::Arc;
 use ymir::errors::Outcome;
 
 pub struct DataplaneHandlerConsumerPull {
     dataplane_service: Arc<dyn DataplaneTransferServiceTrait>,
-    connector_service: Arc<dyn ConnectorInstanceServiceTrait>,
+    connector_service: Arc<dyn ConnectorInstanceFacadeTrait>,
     config: Arc<TransferConfig>,
     secret_store: Option<Arc<dyn SecretStore>>,
 }
@@ -36,7 +36,7 @@ pub struct DataplaneHandlerConsumerPull {
 impl DataplaneHandlerConsumerPull {
     pub fn new(
         dataplane_service: Arc<dyn DataplaneTransferServiceTrait>,
-        connector_service: Arc<dyn ConnectorInstanceServiceTrait>,
+        connector_service: Arc<dyn ConnectorInstanceFacadeTrait>,
         config: Arc<TransferConfig>,
         secret_store: Option<Arc<dyn SecretStore>>,
     ) -> Self {
@@ -57,7 +57,7 @@ impl DataplaneCommandStateMachine for DataplaneHandlerConsumerPull {
     fn dataplane_service(&self) -> Arc<dyn DataplaneTransferServiceTrait> {
         self.dataplane_service.clone()
     }
-    fn connector_service(&self) -> Arc<dyn ConnectorInstanceServiceTrait> {
+    fn connector_service(&self) -> Arc<dyn ConnectorInstanceFacadeTrait> {
         self.connector_service.clone()
     }
     fn transfer_config(&self) -> Arc<TransferConfig> {
@@ -67,9 +67,11 @@ impl DataplaneCommandStateMachine for DataplaneHandlerConsumerPull {
         self.secret_store.clone()
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(handler = self.handler_name()))]
     async fn set_init(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
         Ok(context)
     }
+    #[tracing::instrument(level = "info", skip_all, err, fields(handler = self.handler_name()))]
     async fn set_configuring(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
         let ctx = set_configuring_helper(
             self.dataplane_service(),
@@ -101,26 +103,12 @@ mod tests {
     use crate::services::dataplane_transfers::MockDataplaneTransferServiceTrait;
     use crate::DataplaneAddress;
     use common::test_utils::config_fixtures::transfer_config_fixture;
-    use connector::{
-        ConnectorInstanceDto, ConnectorInstanceServiceTrait, ConnectorInstantiationDto,
-    };
-    use mockall::mock;
     use serde_json::json;
     use std::str::FromStr;
     use std::sync::Arc;
     use urn::Urn;
-    use ymir::errors::Outcome;
 
-    mock! {
-        pub ConnectorInstance {}
-        #[async_trait::async_trait]
-        impl ConnectorInstanceServiceTrait for ConnectorInstance {
-            async fn get_instance_by_id(&self, scope: &common::auth::AccessScope, id: &Urn) -> Outcome<Option<ConnectorInstanceDto>>;
-            async fn get_instance_by_distribution(&self, scope: &common::auth::AccessScope, distribution_id: &Urn) -> Outcome<Option<ConnectorInstanceDto>>;
-            async fn upsert_instance(&self, scope: &common::auth::AccessScope, dto: &mut ConnectorInstantiationDto) -> Outcome<ConnectorInstanceDto>;
-            async fn delete_instance_by_id(&self, scope: &common::auth::AccessScope, id: &Urn) -> Outcome<()>;
-        }
-    }
+    use connector::MockConnectorInstanceFacadeTrait as MockConnectorInstance;
 
     const DP_URN: &str = "urn:dataplane-transfer:1";
     const TP_URN: &str = "urn:transfer-process:1";

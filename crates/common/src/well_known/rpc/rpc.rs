@@ -22,7 +22,7 @@ use ymir::services::client::ClientExt;
 use ymir::utils::http_client;
 
 use crate::dsp_common::well_known_types::{VersionPath, VersionResponse};
-use crate::facades::ssi_auth_facade::MatesFacadeTrait;
+use crate::facades::mates_facade::MatesFacadeTrait;
 use crate::well_known::rpc::{WellKnownRPCRequest, WellKnownRPCTrait, DSP_CURRENT_VERSION};
 
 pub struct WellKnownRPCService {
@@ -45,6 +45,7 @@ impl WellKnownRPCService {
 
 #[async_trait::async_trait]
 impl WellKnownRPCTrait for WellKnownRPCService {
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dsp-peer"))]
     async fn fetch_dataspace_well_known(
         &self,
         input: &WellKnownRPCRequest,
@@ -58,6 +59,7 @@ impl WellKnownRPCTrait for WellKnownRPCService {
         Ok((response, base_url))
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dsp-peer"))]
     async fn fetch_dataspace_current_path(
         &self,
         input: &WellKnownRPCRequest,

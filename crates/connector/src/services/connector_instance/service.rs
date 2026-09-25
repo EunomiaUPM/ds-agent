@@ -26,7 +26,7 @@ use crate::entities::interaction::InteractionConfig;
 use crate::entities::parameters::instance_parameters_map::InstanceParametersMapBuilder;
 use crate::entities::parameters::instance_parameters_resolver::InstanceParametersResolver;
 use crate::entities::parameters::instance_parameters_validator::InstanceParametersValidator;
-use crate::facades::distribution_resolver_facade::DistributionFacadeTrait;
+use crate::facades::catalog_facade::CatalogFacadeTrait;
 use crate::services::connector_instance::ConnectorInstanceServiceTrait;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -35,7 +35,7 @@ use ymir::errors::{Errors, Outcome};
 
 pub struct ConnectorInstanceService {
     repo: Arc<dyn ConnectorRepoTrait>,
-    distribution_facade: Arc<dyn DistributionFacadeTrait>,
+    distribution_facade: Arc<dyn CatalogFacadeTrait>,
     /// The service's own base URL, used to resolve `{{__SYS_OWN_URL__}}` and
     /// `{{__SYS_OWN_URL_DOCKER__}}` placeholders during instance creation.
     own_url: String,
@@ -45,7 +45,7 @@ pub struct ConnectorInstanceService {
 impl ConnectorInstanceService {
     pub fn new(
         repo: Arc<dyn ConnectorRepoTrait>,
-        distribution_facade: Arc<dyn DistributionFacadeTrait>,
+        distribution_facade: Arc<dyn CatalogFacadeTrait>,
         own_url: String,
     ) -> Self {
         Self {
@@ -98,6 +98,7 @@ use common::auth::AccessScope;
 
 #[async_trait::async_trait]
 impl ConnectorInstanceServiceTrait for ConnectorInstanceService {
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_instance_by_id(
         &self,
         scope: &AccessScope,
@@ -114,6 +115,7 @@ impl ConnectorInstanceServiceTrait for ConnectorInstanceService {
         instance.map(Self::map_model_to_dto).transpose()
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_instance_by_distribution(
         &self,
         scope: &AccessScope,
@@ -145,6 +147,7 @@ impl ConnectorInstanceServiceTrait for ConnectorInstanceService {
         result.map(Self::map_model_to_dto).transpose()
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn upsert_instance(
         &self,
         scope: &AccessScope,
@@ -286,6 +289,7 @@ impl ConnectorInstanceServiceTrait for ConnectorInstanceService {
         Ok(result)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn delete_instance_by_id(&self, scope: &AccessScope, id: &Urn) -> Outcome<()> {
         scope.require_write()?;
         let id_str = id.to_string();

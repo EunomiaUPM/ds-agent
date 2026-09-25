@@ -79,6 +79,7 @@ impl AgreementRepoForSql {
 
 #[async_trait::async_trait]
 impl AgreementRepoTrait for AgreementRepoForSql {
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_agreements(
         &self,
         filters: &AgreementFilter,
@@ -108,6 +109,7 @@ impl AgreementRepoTrait for AgreementRepoForSql {
         Ok((items, Some(total)))
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_batch_agreements(
         &self,
         tenant_id: Option<String>,
@@ -128,6 +130,7 @@ impl AgreementRepoTrait for AgreementRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_agreement_by_id(
         &self,
         tenant_id: Option<String>,
@@ -147,6 +150,7 @@ impl AgreementRepoTrait for AgreementRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_agreement_by_negotiation_process(
         &self,
         tenant_id: Option<String>,
@@ -167,6 +171,7 @@ impl AgreementRepoTrait for AgreementRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_agreements_by_assignee(
         &self,
         tenant_id: Option<String>,
@@ -186,6 +191,7 @@ impl AgreementRepoTrait for AgreementRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_agreements_by_assigner(
         &self,
         tenant_id: Option<String>,
@@ -205,6 +211,7 @@ impl AgreementRepoTrait for AgreementRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_agreement_by_negotiation_message(
         &self,
         tenant_id: Option<String>,
@@ -225,6 +232,7 @@ impl AgreementRepoTrait for AgreementRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_agreement(&self, new_model: &NewAgreementModel) -> Outcome<Model> {
         let model: agreement::ActiveModel = new_model.clone().into();
         let result = agreement::Entity::insert(model)
@@ -237,6 +245,7 @@ impl AgreementRepoTrait for AgreementRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn put_agreement(
         &self,
         tenant_id: Option<String>,
@@ -271,6 +280,7 @@ impl AgreementRepoTrait for AgreementRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_agreement(&self, tenant_id: Option<String>, id: &Urn) -> Outcome<String> {
         let aid = id.to_string();
         let result = agreement::Entity::delete_many()

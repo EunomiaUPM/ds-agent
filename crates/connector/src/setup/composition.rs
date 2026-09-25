@@ -25,9 +25,14 @@ use common::module_loader::service_module::ServiceModuleTrait;
 use sea_orm_migration::MigrationTrait;
 use ymir::config::traits::ApiConfigTrait;
 
+use std::sync::Arc;
+
+use crate::facades::connector_instance_facade::local::ConnectorInstanceLocalFacade;
+use crate::facades::connector_instance_facade::ConnectorInstanceFacadeTrait;
 use crate::http::connector_instance::ConnectorInstanceRouter;
 use crate::http::connector_template::ConnectorTemplateRouter;
 use crate::setup::context::AppContext;
+use crate::setup::ports::ConnectorPorts;
 
 pub struct ConnectorModule {
     prefix: String,
@@ -39,11 +44,19 @@ impl ConnectorModule {
         config: &CatalogConfig,
         root: &RootContext,
         event_bus: Option<events::EventBus>,
+        ports: &ConnectorPorts,
     ) -> Self {
         Self {
             prefix: format!("{}/connector", config.common().get_api_version()),
-            ctx: AppContext::build(config, root, event_bus),
+            ctx: AppContext::build(config, root, event_bus, ports),
         }
+    }
+
+    /// Instances served in-process, for agents sharing the catalog's process.
+    pub fn local_connector_instances(&self) -> Arc<dyn ConnectorInstanceFacadeTrait> {
+        Arc::new(ConnectorInstanceLocalFacade::new(
+            self.ctx.instance_svc.clone(),
+        ))
     }
 
     pub fn migrations() -> Vec<Box<dyn MigrationTrait>> {

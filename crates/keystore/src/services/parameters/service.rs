@@ -51,7 +51,7 @@ impl ParameterStoreImpl {
 
 #[async_trait::async_trait]
 impl ParameterStore<serde_json::Value> for ParameterStoreImpl {
-    #[tracing::instrument(level = "info", skip_all, err)]
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn create(
         &self,
         scope: &AccessScope,
@@ -72,7 +72,12 @@ impl ParameterStore<serde_json::Value> for ParameterStoreImpl {
         Ok(entry)
     }
 
-    #[tracing::instrument(level = "info", skip(self, scope), fields(key = %key), err)]
+    #[tracing::instrument(
+        level = "info",
+        skip_all,
+        err,
+        fields(tenant = %scope.acting_tenant(), key = %key)
+    )]
     async fn read(&self, scope: &AccessScope, key: &Key) -> Outcome<Entry<serde_json::Value>> {
         scope.require_read()?;
         self.repo
@@ -81,7 +86,12 @@ impl ParameterStore<serde_json::Value> for ParameterStoreImpl {
             .or_not_found(key, "parameter")
     }
 
-    #[tracing::instrument(level = "info", skip(self, scope, cmd, actor), fields(key = %key), err)]
+    #[tracing::instrument(
+        level = "info",
+        skip_all,
+        err,
+        fields(tenant = %scope.acting_tenant(), key = %key)
+    )]
     async fn update(
         &self,
         scope: &AccessScope,
@@ -106,7 +116,12 @@ impl ParameterStore<serde_json::Value> for ParameterStoreImpl {
         Ok(entry.metadata.version)
     }
 
-    #[tracing::instrument(level = "info", skip(self, scope), fields(key = %key), err)]
+    #[tracing::instrument(
+        level = "info",
+        skip_all,
+        err,
+        fields(tenant = %scope.acting_tenant(), key = %key)
+    )]
     async fn delete(&self, scope: &AccessScope, key: &Key) -> Outcome<()> {
         scope.require_write()?;
         self.repo
@@ -123,7 +138,7 @@ impl ParameterStore<serde_json::Value> for ParameterStoreImpl {
         Ok(())
     }
 
-    #[tracing::instrument(level = "info", skip(self, scope), err)]
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn list(
         &self,
         scope: &AccessScope,
@@ -136,7 +151,7 @@ impl ParameterStore<serde_json::Value> for ParameterStoreImpl {
         self.repo.get_all_parameters(&filter).await
     }
 
-    #[tracing::instrument(level = "info", skip_all, err)]
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn batch(
         &self,
         scope: &AccessScope,

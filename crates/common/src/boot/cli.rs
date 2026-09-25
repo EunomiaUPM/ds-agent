@@ -25,7 +25,7 @@ use ymir::errors::Outcome;
 use crate::boot::bootstrapper::Bootstrapper;
 use crate::boot::BootstrapServiceTrait;
 use crate::info_banner::banner;
-use crate::telemetry;
+use crate::telemetry::Telemetry;
 
 #[derive(Parser, Debug)]
 struct CliArgs {
@@ -61,18 +61,20 @@ pub struct AgentCli<S>(PhantomData<S>);
 impl<S: BootstrapServiceTrait> AgentCli<S> {
     /// Whole body of an agent's `main`: telemetry, banner, then the requested subcommand.
     pub async fn run(service_name: &'static str, big_name: &'static str) -> Outcome<()> {
-        telemetry::init(service_name);
+        let telemetry = Telemetry::init(service_name);
         tracing::info!("{}", banner(big_name));
         let matches = CliArgs::command()
             .name(big_name)
             .version(env!("CARGO_PKG_VERSION"))
             .get_matches();
         let args = CliArgs::from_arg_matches(&matches).unwrap_or_else(|e| e.exit());
-        match args.command {
+        let outcome = match args.command {
             CliCommand::Start(env) => Bootstrapper::<S>::start(&env.env_file).await,
             CliCommand::Setup(setup) => {
                 Bootstrapper::<S>::setup(&setup.env.env_file, setup.reset).await
             }
-        }
+        };
+        telemetry.shutdown();
+        outcome
     }
 }

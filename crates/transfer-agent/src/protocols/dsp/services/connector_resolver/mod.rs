@@ -15,17 +15,20 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Provider side of a transfer request: which connector instance serves the data an
+//! agreement grants (agreement → dataset → distribution → connector instance).
+
+use connector::ConnectorInstanceDto;
+use urn::Urn;
 use ymir::errors::Outcome;
 
-pub mod data_service_resolver_facade;
+pub mod connector_resolver;
 
-#[cfg_attr(test, mockall::automock)]
 #[async_trait::async_trait]
-pub trait DistributionFacadeTrait: Send + Sync {
-    /// Fails unless the catalog holds the distribution within `tenant_id`.
-    async fn resolve_distribution_by_id(
+pub trait ConnectorResolverTrait: Send + Sync {
+    async fn resolve_connector_by_agreement_id(
         &self,
-        tenant_id: &str,
-        distribution_id: &str,
-    ) -> Outcome<()>;
+        agreement_id: &Urn,
+        formats: Option<&String>,
+    ) -> Outcome<ConnectorInstanceDto>;
 }

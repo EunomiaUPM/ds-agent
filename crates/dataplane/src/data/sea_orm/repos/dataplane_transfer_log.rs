@@ -44,6 +44,7 @@ impl DataplaneTransferLogsRepoForSql {
 
 #[async_trait::async_trait]
 impl DataplaneTransferLogsRepo for DataplaneTransferLogsRepoForSql {
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_log(&self, new_log: NewTransferLog) -> Outcome<dataplane_transfer_logs::Model> {
         let active_model: dataplane_transfer_logs::ActiveModel = new_log.into();
         let result = active_model.insert(self.db.as_ref()).await;
@@ -56,6 +57,7 @@ impl DataplaneTransferLogsRepo for DataplaneTransferLogsRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_transfer_logs_by_dataplane_process_id(
         &self,
         tenant_id: Option<String>,
@@ -74,6 +76,7 @@ impl DataplaneTransferLogsRepo for DataplaneTransferLogsRepoForSql {
         Ok(logs)
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_transfer_log_by_id(
         &self,
         tenant_id: &str,

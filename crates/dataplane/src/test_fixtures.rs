@@ -32,46 +32,19 @@ use crate::services::dataplane_transfers::MockDataplaneTransferServiceTrait;
 use crate::DataplaneAddress;
 use common::test_utils::config_fixtures::transfer_config_fixture;
 use connector::{
-    ApiKeyLocation, AuthenticationConfig, BasicAuthConfig, ConnectorInstanceDto,
-    ConnectorInstanceServiceTrait, ConnectorInstantiationDto, ConnectorMetadata, HttpSpec,
-    InteractionConfig, OAuthGrantType, ProtocolSpec, PullLifecycle, SecretSource, SecretString,
-    TemplateVecString,
+    ApiKeyLocation, AuthenticationConfig, BasicAuthConfig, ConnectorInstanceDto, ConnectorMetadata,
+    HttpSpec, InteractionConfig, OAuthGrantType, ProtocolSpec, PullLifecycle, SecretSource,
+    SecretString, TemplateVecString,
 };
-use mockall::mock;
 use serde_json::json;
 use std::str::FromStr;
 use std::sync::Arc;
 use urn::Urn;
 use ymir::errors::Outcome;
 
-// local mock for ConnectorInstanceServiceTrait ────────────────────────────────────
+// local mock for ConnectorInstanceFacadeTrait ────────────────────────────────────
 
-mock! {
-    pub ConnectorInstance {}
-    #[async_trait::async_trait]
-    impl ConnectorInstanceServiceTrait for ConnectorInstance {
-        async fn get_instance_by_id(
-            &self,
-            scope: &common::auth::AccessScope,
-            id: &Urn,
-        ) -> Outcome<Option<ConnectorInstanceDto>>;
-        async fn get_instance_by_distribution(
-            &self,
-            scope: &common::auth::AccessScope,
-            distribution_id: &Urn,
-        ) -> Outcome<Option<ConnectorInstanceDto>>;
-        async fn upsert_instance(
-            &self,
-            scope: &common::auth::AccessScope,
-            dto: &mut ConnectorInstantiationDto,
-        ) -> Outcome<ConnectorInstanceDto>;
-        async fn delete_instance_by_id(
-            &self,
-            scope: &common::auth::AccessScope,
-            id: &Urn,
-        ) -> Outcome<()>;
-    }
-}
+use connector::MockConnectorInstanceFacadeTrait as MockConnectorInstance;
 
 // internal helpers ──────────────────────────────────────────────────────────
 

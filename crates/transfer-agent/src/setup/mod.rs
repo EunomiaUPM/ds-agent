@@ -19,6 +19,8 @@ mod admin_module;
 mod boot;
 mod composition;
 pub(crate) mod context;
+mod ports;
 
 pub use boot::TransferBoot;
 pub use composition::TransferAgentModule;
+pub use ports::TransferPorts;

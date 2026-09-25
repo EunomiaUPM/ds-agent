@@ -35,6 +35,7 @@ use ymir::types::participants::ParticipantType;
 
 #[async_trait]
 pub trait ParticipantModule: HasWallet + HasRepo + HasConfig + Send + Sync + 'static {
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_all(
         &self,
         scope: &AccessScope,
@@ -75,6 +76,7 @@ pub trait ParticipantModule: HasWallet + HasRepo + HasConfig + Send + Sync + 'st
         ))
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_by_id(&self, scope: &AccessScope, id: String) -> Outcome<Model> {
         self.repo()
             .participant()
@@ -83,6 +85,7 @@ pub trait ParticipantModule: HasWallet + HasRepo + HasConfig + Send + Sync + 'st
     }
 
     /// This connector as seen by `scope`'s tenant; derived from the wallet, never stored.
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_me(&self, scope: &AccessScope) -> Outcome<Model> {
         let lock = self.wallet().get_identity();
         let identity = lock.read().await;
@@ -100,6 +103,7 @@ pub trait ParticipantModule: HasWallet + HasRepo + HasConfig + Send + Sync + 'st
         })
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_participant_batch(
         &self,
         scope: &AccessScope,
@@ -111,6 +115,7 @@ pub trait ParticipantModule: HasWallet + HasRepo + HasConfig + Send + Sync + 'st
             .await
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_by_token(
         &self,
         scope: &AccessScope,
@@ -125,6 +130,7 @@ pub trait ParticipantModule: HasWallet + HasRepo + HasConfig + Send + Sync + 'st
         Ok(mate)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn update_extra_fields_by_id(
         &self,
         scope: &AccessScope,
@@ -139,6 +145,7 @@ pub trait ParticipantModule: HasWallet + HasRepo + HasConfig + Send + Sync + 'st
         self.repo().participant().update(mate).await
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn create_participant(&self, scope: &AccessScope, mut payload: Plan) -> Outcome<Model> {
         payload.tenant_id = scope.resolve_create_tenant(Some(&payload.tenant_id))?;
         self.repo().participant().create(payload).await

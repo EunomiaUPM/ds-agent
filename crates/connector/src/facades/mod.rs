@@ -15,4 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod distribution_resolver_facade;
+//! Ports the connector consumes (distributions) and offers (instances) across agent boundaries.
+
+pub mod catalog_facade;
+pub mod connector_instance_facade;

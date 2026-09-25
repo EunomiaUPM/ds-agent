@@ -44,7 +44,7 @@ use common::auth::AccessScope;
 use common::dsp_common::context_field::ContextField;
 use common::dsp_common::odrl::{OdrlOffer, OdrlPolicyInfo, OdrlTypes};
 use common::errors::ErrorLog;
-use common::facades::ssi_auth_facade::MatesFacadeTrait;
+use common::facades::mates_facade::MatesFacadeTrait;
 use common::paginated_spec::Page;
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -82,6 +82,7 @@ impl OrchestrationPersistenceForProtocol {
     // Public API
     // =========================================================================
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     pub async fn get_catalog(&self, scope: &AccessScope) -> Outcome<Catalog> {
         // 1. Main catalog
         let main_catalog_dto = self.fetch_main_catalog_dto(scope).await?;
@@ -102,6 +103,7 @@ impl OrchestrationPersistenceForProtocol {
         Ok(catalog)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     pub async fn get_dataset(&self, scope: &AccessScope, dataset_id: &Urn) -> Outcome<Dataset> {
         // 1. fetch dataset
         let dataset_dto = self.fetch_dataset_dto(scope, dataset_id).await?;

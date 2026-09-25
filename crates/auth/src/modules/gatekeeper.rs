@@ -34,6 +34,7 @@ use ymir::utils::{create_opaque_token, errors_to_error_code, require_field};
 
 #[async_trait]
 pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync + 'static {
+    #[tracing::instrument(level = "info", skip_all)]
     async fn manage_grant_req(
         &self,
         tenant_id: String,
@@ -49,6 +50,7 @@ pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync 
             })
     }
 
+    #[tracing::instrument(level = "info", skip_all)]
     async fn manage_continue_req(
         &self,
         tenant_id: String,
@@ -66,6 +68,7 @@ pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync 
     }
 
     // =================================== GETTERS FOR FRONTEND ====================================
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_all(
         &self,
         scope: &AccessScope,
@@ -102,12 +105,14 @@ pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync 
         ))
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_by_id(&self, scope: &AccessScope, id: String) -> Outcome<grant::Model> {
         let grant = self.repo().recv_grant().get_by_id(&id).await?;
         scope.ensure_visible(&grant.tenant_id, &id)?;
         Ok(grant)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_by_id_with_details(&self, scope: &AccessScope, id: String) -> Outcome<Value> {
         let grant = self.get_by_id(scope, id.clone()).await?;
         let resource_req = self.repo().resource_req().get_by_id(&id).await?;
@@ -123,6 +128,7 @@ pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync 
 
     // ========================================= INTERNALS =========================================
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn inner_manage_grant_req(
         &self,
         tenant_id: String,
@@ -156,6 +162,7 @@ pub trait GateKeeperModule: HasGateKeeper + HasVerifier + HasRepo + Send + Sync 
         Ok(GrantResponse::pending(uri, &interaction))
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn inner_manage_continue_req(
         &self,
         tenant_id: String,

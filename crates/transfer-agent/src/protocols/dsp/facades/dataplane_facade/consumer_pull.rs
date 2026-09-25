@@ -30,6 +30,7 @@ pub(super) struct ConsumerPullStrategy;
 
 #[async_trait::async_trait]
 impl DataPlaneStrategy for ConsumerPullStrategy {
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dataplane"))]
     async fn on_request_pre(
         &self,
         ctx: &DspTransferContext,
@@ -45,6 +46,7 @@ impl DataPlaneStrategy for ConsumerPullStrategy {
         Ok(None)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dataplane"))]
     async fn on_request_post(
         &self,
         ctx: &DspTransferContext,
@@ -54,6 +56,7 @@ impl DataPlaneStrategy for ConsumerPullStrategy {
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dataplane"))]
     async fn on_start_pre(
         &self,
         _ctx: &DspTransferContext,
@@ -62,6 +65,7 @@ impl DataPlaneStrategy for ConsumerPullStrategy {
         Ok(None)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dataplane"))]
     async fn on_start_post(
         &self,
         ctx: &DspTransferContext,
@@ -97,6 +101,7 @@ impl DataPlaneStrategy for ConsumerPullStrategy {
         Ok(None)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dataplane"))]
     async fn on_suspend_pre(
         &self,
         ctx: &DspTransferContext,
@@ -105,6 +110,7 @@ impl DataPlaneStrategy for ConsumerPullStrategy {
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dataplane"))]
     async fn on_suspend_post(
         &self,
         ctx: &DspTransferContext,
@@ -118,6 +124,7 @@ impl DataPlaneStrategy for ConsumerPullStrategy {
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dataplane"))]
     async fn on_complete_pre(
         &self,
         ctx: &DspTransferContext,
@@ -126,6 +133,7 @@ impl DataPlaneStrategy for ConsumerPullStrategy {
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dataplane"))]
     async fn on_complete_post(
         &self,
         ctx: &DspTransferContext,
@@ -139,6 +147,7 @@ impl DataPlaneStrategy for ConsumerPullStrategy {
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dataplane"))]
     async fn on_terminate_pre(
         &self,
         ctx: &DspTransferContext,
@@ -147,6 +156,7 @@ impl DataPlaneStrategy for ConsumerPullStrategy {
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dataplane"))]
     async fn on_terminate_post(
         &self,
         ctx: &DspTransferContext,

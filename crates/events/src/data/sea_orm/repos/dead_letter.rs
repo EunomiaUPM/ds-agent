@@ -45,6 +45,7 @@ impl SeaOrmDeadLetterRepo {
 
 #[async_trait]
 impl EventDeadLetterRepo for SeaOrmDeadLetterRepo {
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_dead_letter(&self, record: &DeadLetterRecord) -> Outcome<DeadLetterRecord> {
         let active = dead_letter::ActiveModel::from_domain(record);
         active
@@ -54,6 +55,7 @@ impl EventDeadLetterRepo for SeaOrmDeadLetterRepo {
         Ok(record.clone())
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_dead_letter(
         &self,
         tenant_id: Option<String>,
@@ -74,6 +76,7 @@ impl EventDeadLetterRepo for SeaOrmDeadLetterRepo {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn list_dead_letters(
         &self,
         tenant_id: Option<String>,
@@ -112,6 +115,7 @@ impl EventDeadLetterRepo for SeaOrmDeadLetterRepo {
         Ok((list, total))
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn mark_replayed(&self, tenant_id: &str, id: &str) -> Outcome<()> {
         if let Some(model) = dead_letter::Entity::find()
             .filter(dead_letter::Column::Id.eq(id))
@@ -131,6 +135,7 @@ impl EventDeadLetterRepo for SeaOrmDeadLetterRepo {
         Ok(())
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_dead_letter(&self, tenant_id: Option<String>, id: &str) -> Outcome<()> {
         dead_letter::Entity::delete_many()
             .filter(dead_letter::Column::Id.eq(id))

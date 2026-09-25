@@ -50,6 +50,7 @@ impl HttpConsumerPullConfigurator {
 
 #[async_trait::async_trait]
 impl DriverProxyConfiguratorTrait for HttpConsumerPullConfigurator {
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "data-endpoint"))]
     async fn configure_proxy(&self, context: &DataplaneContext) -> Outcome<DataplaneContext> {
         let mut context = context.clone();
         let mut proxy = DataplaneProxy::new();

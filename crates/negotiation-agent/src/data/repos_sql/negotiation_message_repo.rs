@@ -75,6 +75,7 @@ impl NegotiationMessageRepoForSql {
 
 #[async_trait::async_trait]
 impl NegotiationMessageRepoTrait for NegotiationMessageRepoForSql {
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_negotiation_messages(
         &self,
         filters: &NegotiationMessageFilter,
@@ -105,6 +106,7 @@ impl NegotiationMessageRepoTrait for NegotiationMessageRepoForSql {
         Ok((items, Some(total)))
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_batch_negotiation_messages(
         &self,
         tenant_id: Option<String>,
@@ -128,6 +130,7 @@ impl NegotiationMessageRepoTrait for NegotiationMessageRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_messages_by_process_id(
         &self,
         tenant_id: Option<String>,
@@ -152,6 +155,7 @@ impl NegotiationMessageRepoTrait for NegotiationMessageRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_negotiation_message_by_id(
         &self,
         tenant_id: Option<String>,
@@ -173,6 +177,7 @@ impl NegotiationMessageRepoTrait for NegotiationMessageRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_negotiation_message(
         &self,
         new_model: &NewNegotiationMessageModel,
@@ -190,6 +195,7 @@ impl NegotiationMessageRepoTrait for NegotiationMessageRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_negotiation_message(
         &self,
         tenant_id: Option<String>,

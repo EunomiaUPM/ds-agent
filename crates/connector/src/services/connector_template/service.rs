@@ -103,6 +103,7 @@ use common::query::QueryFilter;
 
 #[async_trait::async_trait]
 impl ConnectorTemplateServiceTrait for ConnectorTemplateService {
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_all_templates(
         &self,
         scope: &AccessScope,
@@ -141,6 +142,7 @@ impl ConnectorTemplateServiceTrait for ConnectorTemplateService {
         }))
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_templates_by_id(
         &self,
         scope: &AccessScope,
@@ -160,6 +162,7 @@ impl ConnectorTemplateServiceTrait for ConnectorTemplateService {
         models.into_iter().map(Self::map_model_to_dto).collect()
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_template_by_name_and_version(
         &self,
         scope: &AccessScope,
@@ -180,6 +183,7 @@ impl ConnectorTemplateServiceTrait for ConnectorTemplateService {
         result.map(Self::map_model_to_dto).transpose()
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn create_template(
         &self,
         scope: &AccessScope,
@@ -228,6 +232,7 @@ impl ConnectorTemplateServiceTrait for ConnectorTemplateService {
         Ok(result)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn delete_template_by_name_and_version(
         &self,
         scope: &AccessScope,

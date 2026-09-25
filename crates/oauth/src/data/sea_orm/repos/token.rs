@@ -38,6 +38,7 @@ impl SeaOrmTokenRepository {
 
 #[async_trait::async_trait]
 impl TokenRepository for SeaOrmTokenRepository {
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create(&self, token: &RefreshToken) -> Outcome<RefreshToken> {
         orm::ActiveModel::from_domain(token)
             .insert(self.db.as_ref())
@@ -46,6 +47,7 @@ impl TokenRepository for SeaOrmTokenRepository {
             .and_then(orm::Model::into_domain)
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_by_jti(&self, jti: &str) -> Outcome<Option<RefreshToken>> {
         orm::Entity::find()
             .filter(orm::Column::Jti.eq(jti))
@@ -56,6 +58,7 @@ impl TokenRepository for SeaOrmTokenRepository {
             .transpose()
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn revoke(&self, id: Uuid) -> Outcome<()> {
         let token = orm::Entity::find_by_id(id)
             .one(self.db.as_ref())
@@ -72,6 +75,7 @@ impl TokenRepository for SeaOrmTokenRepository {
         Ok(())
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn revoke_all_for_tenant(&self, tenant_id: &str) -> Outcome<()> {
         use sea_orm::sea_query::Expr;
         orm::Entity::update_many()

@@ -26,7 +26,7 @@ use crate::errors::DataplaneError;
 use crate::services::dataplane_transfers::DataplaneTransferServiceTrait;
 use crate::DataplaneAddress;
 use common::config::services::TransferConfig;
-use connector::{ConnectorInstanceDto, ConnectorInstanceServiceTrait};
+use connector::{ConnectorInstanceDto, ConnectorInstanceFacadeTrait};
 use keystore::SecretStore;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -115,7 +115,7 @@ impl std::fmt::Display for DataplaneCommand {
 pub trait DataplaneCommandStateMachine: Send + Sync {
     fn handler_name(&self) -> &'static str;
     fn dataplane_service(&self) -> Arc<dyn DataplaneTransferServiceTrait>;
-    fn connector_service(&self) -> Arc<dyn ConnectorInstanceServiceTrait>;
+    fn connector_service(&self) -> Arc<dyn ConnectorInstanceFacadeTrait>;
     fn transfer_config(&self) -> Arc<TransferConfig>;
     fn secret_store(&self) -> Option<Arc<dyn SecretStore>>;
 
@@ -123,17 +123,20 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
         Arc::new(DataplaneDriverFactory::new())
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(handler = self.handler_name()))]
     async fn get_associated(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
         context.set_forward_dataplane_address_from_ingress();
         Ok(context)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(handler = self.handler_name()))]
     async fn set_init(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
         let ctx = self.set_configuring(context).await?;
         let ctx = self.set_auth(ctx).await?;
         let ctx = self.set_ready(ctx).await?;
         Ok(ctx)
     }
+    #[tracing::instrument(level = "info", skip_all, err, fields(handler = self.handler_name()))]
     async fn set_configuring(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
         set_configuring_helper(
             self.dataplane_service(),
@@ -142,6 +145,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
         )
         .await
     }
+    #[tracing::instrument(level = "info", skip_all, err, fields(handler = self.handler_name()))]
     async fn set_auth(&self, context: DataplaneContext) -> Outcome<DataplaneContext> {
         // Reuse the driver from context when set_configuring already ran; create from factory
         // otherwise (e.g. when set_auth is called directly in tests or retry scenarios).
@@ -205,6 +209,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
             }
         }
     }
+    #[tracing::instrument(level = "info", skip_all, err, fields(handler = self.handler_name()))]
     async fn set_ready(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
         let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
         // state
@@ -225,6 +230,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
         context.set_forward_dataplane_address_from_ingress();
         Ok(context)
     }
+    #[tracing::instrument(level = "info", skip_all, err, fields(handler = self.handler_name()))]
     async fn set_started(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
         let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
         let new_state = TransferState::Started;
@@ -243,6 +249,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
         context.set_forward_dataplane_address_from_ingress();
         Ok(context)
     }
+    #[tracing::instrument(level = "info", skip_all, err, fields(handler = self.handler_name()))]
     async fn set_subscribing(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
         if context.dataplane_process().inner.state == TransferState::Started {
             return Ok(context);
@@ -275,6 +282,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
             }
         }
     }
+    #[tracing::instrument(level = "info", skip_all, err, fields(handler = self.handler_name()))]
     async fn set_unsubscribing(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
         if context.dataplane_process().inner.state == TransferState::Stopped {
             return Ok(context);
@@ -307,6 +315,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
             }
         }
     }
+    #[tracing::instrument(level = "info", skip_all, err, fields(handler = self.handler_name()))]
     async fn set_stopped(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
         let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
         // state
@@ -327,6 +336,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
         Ok(context)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(handler = self.handler_name()))]
     async fn set_terminating(&self, mut context: DataplaneContext) -> Outcome<DataplaneContext> {
         let dataplane_urn = Urn::from_str(&*context.dataplane_process().inner.id)?;
         let new_state = TransferState::Terminated;

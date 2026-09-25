@@ -47,6 +47,7 @@ impl GaiaSelfAttester {
 
 #[async_trait]
 impl GaiaSelfAttesterTrait for GaiaSelfAttester {
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn generate_terms_cons_vc(&self) -> Outcome<VCJwtClaims> {
         let identity = self.identity.read().await;
         let holder_did = identity.did().id().to_string();
@@ -59,6 +60,7 @@ impl GaiaSelfAttesterTrait for GaiaSelfAttester {
         Ok(self.build(value, VcType::TermsAndConditions).await)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn generate_legal_person(&self) -> Outcome<VCJwtClaims> {
         let identity = self.identity.read().await;
         let holder_did = identity.did().id().to_string();

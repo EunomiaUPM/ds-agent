@@ -51,6 +51,7 @@ impl NegotiationProcessResolver {
 
     /// Finds a process by one of its pids across tenants, since pids are global and the tenant is
     /// unknown until found, then checks that `actor` may act on it.
+    #[tracing::instrument(level = "info", skip_all, err, fields(pid = %pid))]
     pub async fn resolve(&self, pid: &Urn, actor: &DspActor) -> Outcome<NegotiationProcessView> {
         let process = self
             .process_repo

@@ -26,7 +26,7 @@ use axum::http::HeaderMap;
 use common::auth::AccessScope;
 use common::dsp_common::DspActor;
 use common::dsp_common::odrl::OdrlMessageOffer;
-use common::facades::ssi_auth_facade::MatesFacadeTrait;
+use common::facades::mates_facade::MatesFacadeTrait;
 use std::fmt::Debug;
 use std::sync::Arc;
 use urn::Urn;

@@ -22,8 +22,10 @@ use std::sync::Arc;
 
 use crate::SERVICE_NAME;
 use crate::protocols::dsp::setup::DspModule;
+use crate::services::agreement::AgreementServiceTrait;
 use crate::setup::admin_module::NegotiationAdminModule;
 use crate::setup::context::AppContext;
+use crate::setup::ports::NegotiationPorts;
 use axum::Router;
 use common::config::services::ContractsConfig;
 use common::module_loader::module_group::ModuleGroup;
@@ -34,6 +36,7 @@ use tonic::service::RoutesBuilder;
 use ymir::errors::Outcome;
 
 pub struct NegotiationAgentModule {
+    ctx: Arc<AppContext>,
     modules: ModuleGroup,
 }
 
@@ -42,12 +45,17 @@ impl NegotiationAgentModule {
         config: &ContractsConfig,
         root: &RootContext,
         event_bus: Option<events::EventBus>,
+        ports: &NegotiationPorts,
     ) -> Outcome<Self> {
-        let ctx = Arc::new(AppContext::build(config, root, event_bus));
+        let ctx = Arc::new(AppContext::build(config, root, event_bus, ports));
         let modules = ModuleGroup::new(SERVICE_NAME)
             .register(DspModule::build(ctx.clone()).await?)
-            .register(NegotiationAdminModule::new(ctx));
-        Ok(Self { modules })
+            .register(NegotiationAdminModule::new(ctx.clone()));
+        Ok(Self { ctx, modules })
+    }
+
+    pub fn agreement_service(&self) -> Arc<dyn AgreementServiceTrait> {
+        self.ctx.agreement_svc.clone()
     }
 
     pub fn migrations() -> Vec<Box<dyn MigrationTrait>> {

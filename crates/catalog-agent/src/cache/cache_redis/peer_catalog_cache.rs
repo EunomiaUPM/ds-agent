@@ -46,12 +46,14 @@ impl DcatCatalogCacheForRedis {
 
 #[async_trait::async_trait]
 impl PeerCatalogCacheTrait for DcatCatalogCacheForRedis {
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_catalog(&self, tenant_id: &str, participant_id: &str) -> Outcome<Option<Catalog>> {
         tracing::debug!(participant_id = %participant_id, "cache: get peer catalog");
         let key = self.peer_key(tenant_id, participant_id);
         Self::hydrate_from_single_key(self.get_conn(), key).await
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn set_catalog(
         &self,
         tenant_id: &str,

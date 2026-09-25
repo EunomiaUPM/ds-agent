@@ -62,7 +62,7 @@ impl TransferProcessService {
 impl TransferProcessServiceTrait for TransferProcessService {
     /// Get all TransferProcess services
     /// Validate filtering based in tenant-id
-    #[tracing::instrument(level = "info", skip_all, err)]
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_all(
         &self,
         scope: &AccessScope,
@@ -116,7 +116,12 @@ impl TransferProcessServiceTrait for TransferProcessService {
 
     /// Get single transfer process entity
     /// If tenant-id is coincident ok, otherwise not_found
-    #[tracing::instrument(level = "info", skip(self, scope), fields(id = %id), err)]
+    #[tracing::instrument(
+        level = "info",
+        skip_all,
+        err,
+        fields(tenant = %scope.acting_tenant(), id = %id)
+    )]
     async fn get_one(&self, scope: &AccessScope, id: &Urn) -> Outcome<TransferProcessView> {
         scope.require_read()?;
         let process = self
@@ -139,7 +144,7 @@ impl TransferProcessServiceTrait for TransferProcessService {
     }
 
     /// Batch transfer processes
-    #[tracing::instrument(level = "info", skip_all, err)]
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn batch(
         &self,
         scope: &AccessScope,
@@ -194,7 +199,7 @@ impl TransferProcessServiceTrait for TransferProcessService {
     }
 
     /// Create a new transfer process entity
-    #[tracing::instrument(level = "info", skip_all, err)]
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn create(
         &self,
         scope: &AccessScope,
@@ -234,7 +239,7 @@ impl TransferProcessServiceTrait for TransferProcessService {
     }
 
     /// Edit a transfer process
-    #[tracing::instrument(level = "info", skip_all, err)]
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn edit(
         &self,
         scope: &AccessScope,
@@ -285,7 +290,12 @@ impl TransferProcessServiceTrait for TransferProcessService {
     }
 
     /// Delete a transfer process
-    #[tracing::instrument(level = "info", skip(self, scope), fields(id = %id), err)]
+    #[tracing::instrument(
+        level = "info",
+        skip_all,
+        err,
+        fields(tenant = %scope.acting_tenant(), id = %id)
+    )]
     async fn delete(&self, scope: &AccessScope, id: &Urn) -> Outcome<()> {
         scope.require_write()?;
         // Hit db

@@ -19,12 +19,15 @@ use std::sync::Arc;
 
 use crate::data::factory::DataFactory;
 use crate::data::sea_orm::factory::SeaOrmDataFactory;
+use crate::protocols::dsp::facades::{FacadeService, FacadeTrait};
+use crate::protocols::dsp::services::connector_resolver::ConnectorResolverTrait;
+use crate::protocols::dsp::services::connector_resolver::connector_resolver::ConnectorResolver;
 use crate::services::transfer_message::service::TransferMessageService;
 use crate::services::transfer_process::service::TransferProcessService;
+use crate::setup::ports::TransferPorts;
 use common::auth::OauthTokenValidator;
 use common::config::services::TransferConfig;
-use common::config::services::traits::TransferConfigTrait;
-use common::facades::ssi_auth_facade::ssi_auth_facade::SSIAuthFacadeService;
+use common::facades::ssi_auth_facade::SSIAuthFacadeTrait;
 use common::module_loader::root_context::RootContext;
 
 #[derive(Clone)]
@@ -33,7 +36,10 @@ pub struct AppContext {
     pub transfer_process_svc: Arc<TransferProcessService>,
     pub transfer_message_svc: Arc<TransferMessageService>,
     pub oauth_validator: Arc<dyn OauthTokenValidator>,
-    pub ssi_auth_facade: Arc<SSIAuthFacadeService>,
+    pub ssi_auth_facade: Arc<dyn SSIAuthFacadeTrait>,
+    /// DSP collaborators, consumed once the domain loader and manager are wired.
+    pub connector_resolver: Arc<dyn ConnectorResolverTrait>,
+    pub dsp_facades: Arc<dyn FacadeTrait>,
 }
 
 impl AppContext {
@@ -41,6 +47,7 @@ impl AppContext {
         config: &TransferConfig,
         root: &RootContext,
         event_bus: Option<events::EventBus>,
+        ports: &TransferPorts,
     ) -> Self {
         let config = Arc::new(config.clone());
         let db_factory = SeaOrmDataFactory::new(root.db.clone());
@@ -57,17 +64,18 @@ impl AppContext {
             TransferMessageService::new(db_factory.transfer_message_repo())
                 .with_event_bus(event_bus),
         );
-        let ssi_auth_facade = Arc::new(SSIAuthFacadeService::new(
-            Arc::new(config.ssi_auth().clone()),
-            root.service_client.clone(),
-        ));
 
         Self {
             config,
             transfer_process_svc,
             transfer_message_svc,
             oauth_validator: root.validator.clone(),
-            ssi_auth_facade,
+            ssi_auth_facade: ports.auth.ssi_auth.clone(),
+            connector_resolver: Arc::new(ConnectorResolver::new(
+                ports.negotiation.clone(),
+                ports.catalog.clone(),
+            )),
+            dsp_facades: Arc::new(FacadeService::new(ports.dataplane.clone())),
         }
     }
 }

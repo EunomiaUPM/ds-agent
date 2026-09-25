@@ -93,6 +93,7 @@ impl SeaOrmTransferProcessRepo {
 
 #[async_trait::async_trait]
 impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_transfer_processes(
         &self,
         filters: &TransferProcessFilter,
@@ -135,6 +136,7 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
             .collect()
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn count_transfer_processes(&self, filters: &TransferProcessFilter) -> Outcome<u64> {
         Self::apply_base_filters(orm::Entity::find(), filters)
             .count(self.db.as_ref())
@@ -142,6 +144,7 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
             .map_err(Self::fetch_err)
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_batch_transfer_processes(
         &self,
         tenant_id: Option<String>,
@@ -162,6 +165,7 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
             .collect()
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_transfer_process_by_id(
         &self,
         tenant_id: Option<String>,
@@ -176,6 +180,7 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
             .transpose()
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_transfer_process_by_key_value(
         &self,
         tenant_id: Option<String>,
@@ -202,6 +207,7 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_transfer_process(
         &self,
         cmd: &NewTransferProcessCommand,
@@ -215,6 +221,7 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
             .and_then(orm::Model::into_domain)
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn put_transfer_process(
         &self,
         tenant_id: Option<String>,
@@ -241,6 +248,7 @@ impl TransferProcessRepoTrait for SeaOrmTransferProcessRepo {
             .and_then(orm::Model::into_domain)
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_transfer_process(
         &self,
         tenant_id: Option<String>,

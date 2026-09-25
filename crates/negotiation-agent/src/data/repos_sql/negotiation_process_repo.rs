@@ -91,6 +91,7 @@ impl NegotiationProcessRepoForSql {
 
 #[async_trait::async_trait]
 impl NegotiationProcessRepoTrait for NegotiationProcessRepoForSql {
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_negotiation_processes(
         &self,
         filters: &NegotiationProcessFilter,
@@ -121,6 +122,7 @@ impl NegotiationProcessRepoTrait for NegotiationProcessRepoForSql {
         Ok((items, Some(total)))
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_batch_negotiation_processes(
         &self,
         tenant_id: Option<String>,
@@ -143,6 +145,7 @@ impl NegotiationProcessRepoTrait for NegotiationProcessRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_negotiation_process_by_id(
         &self,
         tenant_id: Option<String>,
@@ -164,6 +167,7 @@ impl NegotiationProcessRepoTrait for NegotiationProcessRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_negotiation_process_by_key_id(
         &self,
         tenant_id: Option<String>,
@@ -191,6 +195,7 @@ impl NegotiationProcessRepoTrait for NegotiationProcessRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_negotiation_process_by_key_value(
         &self,
         tenant_id: Option<String>,
@@ -220,6 +225,7 @@ impl NegotiationProcessRepoTrait for NegotiationProcessRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_negotiation_process(
         &self,
         new_model: &NewNegotiationProcessModel,
@@ -237,6 +243,7 @@ impl NegotiationProcessRepoTrait for NegotiationProcessRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn put_negotiation_process(
         &self,
         tenant_id: Option<String>,
@@ -286,6 +293,7 @@ impl NegotiationProcessRepoTrait for NegotiationProcessRepoForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_negotiation_process(
         &self,
         tenant_id: Option<String>,

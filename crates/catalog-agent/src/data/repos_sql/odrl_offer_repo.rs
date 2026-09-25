@@ -73,6 +73,7 @@ impl OdrlOfferRepositoryForSql {
 
 #[async_trait::async_trait]
 impl OdrlOfferRepositoryTrait for OdrlOfferRepositoryForSql {
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_odrl_offers(
         &self,
         filters: &OdrlPolicyFilter,
@@ -108,6 +109,7 @@ impl OdrlOfferRepositoryTrait for OdrlOfferRepositoryForSql {
         Ok((items, Some(total)))
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_batch_odrl_offers(
         &self,
         tenant_id: Option<String>,
@@ -130,6 +132,7 @@ impl OdrlOfferRepositoryTrait for OdrlOfferRepositoryForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_odrl_offers_by_entity(
         &self,
         tenant_id: Option<String>,
@@ -152,6 +155,7 @@ impl OdrlOfferRepositoryTrait for OdrlOfferRepositoryForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_odrl_offer_by_id(
         &self,
         tenant_id: Option<String>,
@@ -173,6 +177,7 @@ impl OdrlOfferRepositoryTrait for OdrlOfferRepositoryForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_odrl_offer(
         &self,
         new_odrl_offer_model: &NewOdrlOfferModel,
@@ -279,6 +284,7 @@ impl OdrlOfferRepositoryTrait for OdrlOfferRepositoryForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_odrl_offer_by_id(
         &self,
         tenant_id: Option<String>,
@@ -304,6 +310,7 @@ impl OdrlOfferRepositoryTrait for OdrlOfferRepositoryForSql {
         })
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_odrl_offers_by_entity(
         &self,
         tenant_id: Option<String>,

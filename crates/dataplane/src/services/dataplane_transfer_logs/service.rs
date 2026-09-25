@@ -37,6 +37,7 @@ impl DataplaneTransferLogsService {
 
 #[async_trait::async_trait]
 impl DataplaneTransferLogServiceTrait for DataplaneTransferLogsService {
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_transfer_logs_by_dataplane_process_id(
         &self,
         scope: &AccessScope,

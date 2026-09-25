@@ -82,6 +82,7 @@ impl TransferEventRepoForSql {
 
 #[async_trait::async_trait]
 impl TransferEventRepo for TransferEventRepoForSql {
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_transfer_events(
         &self,
         filters: &TransferEventFilter,
@@ -112,6 +113,7 @@ impl TransferEventRepo for TransferEventRepoForSql {
         Ok(events)
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn count_transfer_events(&self, filters: &TransferEventFilter) -> Outcome<u64> {
         Self::apply_base_filters(TransferEventEntity::find(), filters)
             .count(self.db.as_ref())
@@ -119,6 +121,7 @@ impl TransferEventRepo for TransferEventRepoForSql {
             .map_err(Self::fetch_err)
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_batch_transfer_events(
         &self,
         tenant_id: Option<String>,
@@ -138,6 +141,7 @@ impl TransferEventRepo for TransferEventRepoForSql {
         Ok(events)
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_transfer_events_by_process_id(
         &self,
         tenant_id: Option<String>,
@@ -153,6 +157,7 @@ impl TransferEventRepo for TransferEventRepoForSql {
         Ok(events)
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_transfer_event_by_id(
         &self,
         tenant_id: Option<String>,
@@ -167,6 +172,7 @@ impl TransferEventRepo for TransferEventRepoForSql {
         Ok(event)
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_transfer_event(
         &self,
         new_transfer_event: &NewTransferEvent,

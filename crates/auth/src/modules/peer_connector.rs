@@ -37,6 +37,7 @@ use ymir::types::wallet::OidcUri;
 pub trait PeerConnectorModule:
     HasPeerConnector + HasRepo + HasCallback + HasWallet + Send + Sync + 'static
 {
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn req_peer_connection(
         &self,
         scope: &AccessScope,
@@ -72,6 +73,7 @@ pub trait PeerConnectorModule:
         self.manage_what_resp(grant, what_response).await
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn manage_interaction_finish(&self, id: String, payload: CallbackBody) -> Outcome<()> {
         match payload {
             CallbackBody::Approved(payload) => self.req_peer_continuation(id, payload).await,
@@ -80,6 +82,7 @@ pub trait PeerConnectorModule:
     }
 
     // =================================== GETTERS FOR FRONTEND ====================================
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_all(
         &self,
         scope: &AccessScope,
@@ -117,12 +120,14 @@ pub trait PeerConnectorModule:
         ))
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_by_id(&self, scope: &AccessScope, id: String) -> Outcome<grant::Model> {
         let grant = self.repo().sent_grant().get_by_id(&id).await?;
         scope.ensure_visible(&grant.tenant_id, &id)?;
         Ok(grant)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_by_id_with_details(&self, scope: &AccessScope, id: String) -> Outcome<Value> {
         let grant = self.get_by_id(scope, id.clone()).await?;
         let resource_req = self.repo().resource_req().get_by_id(&id).await?;
@@ -136,6 +141,7 @@ pub trait PeerConnectorModule:
         }))
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn process_oid4vp(
         &self,
         scope: &AccessScope,
@@ -157,6 +163,7 @@ pub trait PeerConnectorModule:
     }
 
     // ========================================= INTERNALS =========================================
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn manage_what_resp(
         &self,
         grant: grant::Model,
@@ -173,6 +180,7 @@ pub trait PeerConnectorModule:
         }
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn manage_oid4vp(&self, mut verification: verification::Model, uri: &str) -> Outcome<()> {
         match self.wallet().process_oid4vp(&uri).await {
             Ok(_) => verification.status = VerificationStatus::Verified,
@@ -185,6 +193,7 @@ pub trait PeerConnectorModule:
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn manage_auto_oid4vp(&self, grant: &grant::Model, uri: &str) -> Outcome<()> {
         let verification =
             self.peer_connector()
@@ -198,6 +207,7 @@ pub trait PeerConnectorModule:
         }
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn req_peer_continuation(
         &self,
         id: String,
@@ -223,6 +233,7 @@ pub trait PeerConnectorModule:
         self.manage_what_resp(grant, what_response).await
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn manage_rejection(&self, id: String) -> Outcome<()> {
         let mut grant = self.repo().sent_grant().get_by_id(&id).await?;
         grant.status = GrantStatus::Rejected;

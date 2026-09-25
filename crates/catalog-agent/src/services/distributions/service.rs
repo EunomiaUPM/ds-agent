@@ -56,6 +56,7 @@ impl DistributionService {
 
 #[async_trait::async_trait]
 impl DistributionServiceTrait for DistributionService {
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_all_distributions(
         &self,
         scope: &AccessScope,
@@ -82,6 +83,7 @@ impl DistributionServiceTrait for DistributionService {
         }))
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_batch_distributions(
         &self,
         scope: &AccessScope,
@@ -109,6 +111,7 @@ impl DistributionServiceTrait for DistributionService {
         Ok(dtos)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_distributions_by_dataset_id(
         &self,
         scope: &AccessScope,
@@ -138,6 +141,7 @@ impl DistributionServiceTrait for DistributionService {
         Ok(dtos)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_distribution_by_dataset_id_and_dct_format(
         &self,
         scope: &AccessScope,
@@ -169,6 +173,7 @@ impl DistributionServiceTrait for DistributionService {
         Ok(dto)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_distribution_by_id(
         &self,
         scope: &AccessScope,
@@ -192,6 +197,7 @@ impl DistributionServiceTrait for DistributionService {
         Ok(dto)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn put_distribution_by_id(
         &self,
         scope: &AccessScope,
@@ -230,6 +236,7 @@ impl DistributionServiceTrait for DistributionService {
         Ok(dto)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn create_distribution(
         &self,
         scope: &AccessScope,
@@ -270,6 +277,7 @@ impl DistributionServiceTrait for DistributionService {
         Ok(dto)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn delete_distribution_by_id(
         &self,
         scope: &AccessScope,

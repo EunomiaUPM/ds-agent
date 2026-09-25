@@ -69,7 +69,7 @@ impl TransferMessageService {
 impl TransferMessageServiceTrait for TransferMessageService {
     /// Get all TransferMessage entities
     /// Validate filtering based in tenant-id
-    #[tracing::instrument(level = "info", skip_all, err)]
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_all(
         &self,
         scope: &AccessScope,
@@ -98,7 +98,12 @@ impl TransferMessageServiceTrait for TransferMessageService {
 
     /// Get single transfer message entity
     /// If tenant-id is coincident ok, otherwise not_found
-    #[tracing::instrument(level = "info", skip(self, scope, filters, page, sort), fields(process_id = %process_id), err)]
+    #[tracing::instrument(
+        level = "info",
+        skip_all,
+        err,
+        fields(tenant = %scope.acting_tenant(), process_id = %process_id)
+    )]
     async fn get_all_by_process(
         &self,
         scope: &AccessScope,
@@ -127,7 +132,12 @@ impl TransferMessageServiceTrait for TransferMessageService {
     }
 
     /// Create a new transfer message entity
-    #[tracing::instrument(level = "info", skip(self, scope), fields(id = %id), err)]
+    #[tracing::instrument(
+        level = "info",
+        skip_all,
+        err,
+        fields(tenant = %scope.acting_tenant(), id = %id)
+    )]
     async fn get_one(&self, scope: &AccessScope, id: &Urn) -> Outcome<TransferMessageView> {
         scope.require_read()?;
         let message = self
@@ -140,7 +150,7 @@ impl TransferMessageServiceTrait for TransferMessageService {
     }
 
     /// Edit a transfer message
-    #[tracing::instrument(level = "info", skip_all, err)]
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn create(
         &self,
         scope: &AccessScope,
@@ -164,7 +174,12 @@ impl TransferMessageServiceTrait for TransferMessageService {
     }
 
     /// Delete a transfer message
-    #[tracing::instrument(level = "info", skip(self, scope), fields(id = %id), err)]
+    #[tracing::instrument(
+        level = "info",
+        skip_all,
+        err,
+        fields(tenant = %scope.acting_tenant(), id = %id)
+    )]
     async fn delete(&self, scope: &AccessScope, id: &Urn) -> Outcome<()> {
         scope.require_write()?;
         // Hit db

@@ -30,7 +30,7 @@ use sea_orm::DatabaseConnection;
 use sea_orm_migration::MigrationTrait;
 use ymir::errors::Outcome;
 
-use crate::setup::TransferAgentModule;
+use crate::setup::{TransferAgentModule, TransferPorts};
 
 /// Standalone transfer agent: its own module plus the OAuth root it authenticates against.
 pub struct TransferBoot;
@@ -51,9 +51,11 @@ impl BootstrapServiceTrait for TransferBoot {
     }
 
     async fn compose(config: &TransferConfig, root: &RootContext) -> Outcome<ServiceComposer> {
+        let ports = TransferPorts::remote(config, root).await?;
         Ok(ServiceComposer::new()
             .register(OAuthModule::compose(config.common(), root, None))
-            .register(TransferAgentModule::compose(config, root, None)))
+            .register(TransferAgentModule::compose(config, root, None, &ports))
+            .with_auth_ports(ports.auth.clone()))
     }
 
     async fn seeders(

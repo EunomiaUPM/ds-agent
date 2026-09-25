@@ -42,6 +42,7 @@ impl NegotiationProtocolStep for AgreementVerificationStep {
     type Dto = NegotiationVerificationMessageDto;
     type Context = NegotiationContinuationContext;
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn validate(
         validator: &Arc<dyn ValidationDspSteps>,
         id: &str,
@@ -53,6 +54,7 @@ impl NegotiationProtocolStep for AgreementVerificationStep {
             .await
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn prepare_context(
         id: &str,
         mate: &Mates,
@@ -66,6 +68,7 @@ impl NegotiationProtocolStep for AgreementVerificationStep {
     }
 
     /// Advances the process state only; no offer or agreement records are added.
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn persist(
         persistence: &Arc<OrchestrationPersistenceForProtocol>,
         _id: &str,

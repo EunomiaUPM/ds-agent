@@ -30,19 +30,20 @@ use ymir::data::entities::shared::participant::Model as Mates;
 
 const SSI_AUTH_FACADE_VERIFICATION_URL: &str = "/api/v1/mates/token";
 
-pub struct SSIAuthFacadeService {
+pub struct SSIAuthRemoteFacade {
     config: Arc<MinKnownConfig>,
     client: Arc<ServiceHttpClient>,
 }
 
-impl SSIAuthFacadeService {
+impl SSIAuthRemoteFacade {
     pub fn new(config: Arc<MinKnownConfig>, client: Arc<ServiceHttpClient>) -> Self {
         Self { config, client }
     }
 }
 
 #[async_trait]
-impl SSIAuthFacadeTrait for SSIAuthFacadeService {
+impl SSIAuthFacadeTrait for SSIAuthRemoteFacade {
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "auth"))]
     async fn verify_token(&self, token: String) -> Outcome<Mates> {
         let base_url = self.config.get_host(HostType::Http);
         let url = format!("{}{}", base_url, SSI_AUTH_FACADE_VERIFICATION_URL);

@@ -77,6 +77,7 @@ use common::auth::AccessScope;
 
 #[async_trait::async_trait]
 impl PolicyInstantiationServiceTrait for PolicyInstantiationService {
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn instantiate_policy(
         &self,
         scope: &AccessScope,

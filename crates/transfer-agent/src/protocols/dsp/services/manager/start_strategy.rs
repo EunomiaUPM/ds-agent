@@ -22,10 +22,12 @@ use ymir::errors::Outcome;
 
 #[async_trait::async_trait]
 impl TransferLifecycleStrategy for StartStrategy {
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn persist(&self, cmd: &mut TransferManagerCommand) -> Outcome<()> {
         todo!()
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn build_response(&self, cmd: &TransferManagerCommand) -> Outcome<TransferResponse> {
         todo!()
     }

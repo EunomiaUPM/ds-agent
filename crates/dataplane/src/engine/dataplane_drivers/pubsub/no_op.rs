@@ -26,10 +26,12 @@ pub struct NoOpPubSubscriber;
 
 #[async_trait::async_trait]
 impl DriverPubSubTrait for NoOpPubSubscriber {
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "data-endpoint"))]
     async fn subscribe(&self, context: &DataplaneContext) -> Outcome<DataplaneContext> {
         Ok(context.clone())
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "data-endpoint"))]
     async fn unsubscribe(&self, context: &DataplaneContext) -> Outcome<DataplaneContext> {
         Ok(context.clone())
     }

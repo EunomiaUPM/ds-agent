@@ -170,6 +170,7 @@ impl PeerConnectorTrait for GnapPeerConnectorService {
         }
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn send_grant_req(
         &self,
         grant: &grant::Model,

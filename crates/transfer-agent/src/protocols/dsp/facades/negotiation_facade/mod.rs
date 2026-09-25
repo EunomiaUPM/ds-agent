@@ -15,14 +15,17 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use async_trait::async_trait;
+use negotiation_agent::AgreementView;
+use urn::Urn;
 use ymir::errors::Outcome;
 
-pub mod inner_auth_facade;
+pub mod local;
+pub mod remote;
 
+/// The negotiation agent, as transfer needs it: the agreements a transfer runs under.
 #[mockall::automock]
-#[async_trait]
-pub trait InnerAuthFacadeTrait: Send + Sync {
-    async fn authenticate(&self) -> Outcome<()>;
-    async fn authorize(&self) -> Outcome<()>;
+#[async_trait::async_trait]
+pub trait NegotiationFacadeTrait: Send + Sync {
+    /// Across tenants: the agreement itself says which tenant owns the transfer.
+    async fn get_agreement(&self, agreement_id: &Urn) -> Outcome<AgreementView>;
 }

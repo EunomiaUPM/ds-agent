@@ -43,6 +43,7 @@ impl SeaOrmTransferIdentifierRepo {
 
 #[async_trait::async_trait]
 impl TransferIdentifierRepoTrait for SeaOrmTransferIdentifierRepo {
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_identifiers_by_process_id(
         &self,
         process_id: &Urn,
@@ -57,6 +58,7 @@ impl TransferIdentifierRepoTrait for SeaOrmTransferIdentifierRepo {
             .collect()
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_identifiers_by_batch_process_id(
         &self,
         process_id_batch: &[Urn],
@@ -75,6 +77,7 @@ impl TransferIdentifierRepoTrait for SeaOrmTransferIdentifierRepo {
             .collect()
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_identifier_by_key(
         &self,
         process_id: &Urn,
@@ -90,6 +93,7 @@ impl TransferIdentifierRepoTrait for SeaOrmTransferIdentifierRepo {
             .transpose()
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn upsert_identifier(
         &self,
         process_id: &Urn,
@@ -120,6 +124,7 @@ impl TransferIdentifierRepoTrait for SeaOrmTransferIdentifierRepo {
             .ok_or_else(|| TransferIdentifierRepoErrors::TransferIdentifierNotFound.into_errors())
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_identifier(&self, process_id: &Urn, key: &str) -> Outcome<()> {
         orm::Entity::delete_many()
             .filter(orm::Column::TransferProcessId.eq(process_id.to_string()))

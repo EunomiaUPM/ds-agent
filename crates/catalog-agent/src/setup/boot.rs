@@ -17,26 +17,19 @@
 
 use std::sync::Arc;
 
-use common::auth::{OauthTokenValidator, ServiceHttpClient};
-use common::boot::seeders::BootSeeder;
+use common::auth::OauthTokenValidator;
 use common::boot::BootstrapServiceTrait;
-use common::config::services::traits::CatalogConfigTrait;
 use common::config::services::{CatalogConfig, CommonConfig};
-use common::config::types::traits::CommonConfigTrait;
 use common::module_loader::root_context::RootContext;
 use common::module_loader::service_composer::ServiceComposer;
 use oauth::setup::OAuthModule;
 use sea_orm::DatabaseConnection;
 use sea_orm_migration::MigrationTrait;
-use ymir::config::traits::{ApiConfigTrait, HostsConfigTrait};
-use ymir::config::types::HostType;
 use ymir::errors::Outcome;
 
-use crate::setup::seeders::{AdminTenantProvisioner, PolicyTemplateLoader};
-use crate::setup::CatalogAgentModule;
-use crate::SERVICE_NAME;
+use crate::setup::{CatalogAgentModule, CatalogPorts};
 
-/// Standalone catalog agent, seeding the admin tenant and policy templates once it serves.
+/// Standalone catalog agent; its module seeds the admin tenant and policy templates.
 pub struct CatalogAgentBoot;
 
 #[async_trait::async_trait]
@@ -52,29 +45,9 @@ impl BootstrapServiceTrait for CatalogAgentBoot {
     }
 
     async fn compose(config: &CatalogConfig, root: &RootContext) -> Outcome<ServiceComposer> {
-        Ok(ServiceComposer::new().register(CatalogAgentModule::compose(config, root, None).await?))
-    }
-
-    async fn seeders(
-        config: &CatalogConfig,
-        _root: &RootContext,
-    ) -> Outcome<Vec<Box<dyn BootSeeder>>> {
-        let common = config.common();
-        let client = Arc::new(ServiceHttpClient::from_common(common));
-        let api_url = format!(
-            "{}{}/{SERVICE_NAME}",
-            common.get_host(HostType::Http),
-            common.get_api_version()
-        );
-        let tenant = config.admin_seed().tenant_id.clone();
-        let folder = config.get_policy_templates_folder().to_string();
-        Ok(vec![
-            Box::new(AdminTenantProvisioner::new(
-                client.clone(),
-                api_url.clone(),
-                tenant.clone(),
-            )),
-            Box::new(PolicyTemplateLoader::new(client, api_url, tenant, folder)),
-        ])
+        let ports = CatalogPorts::remote(config, root);
+        Ok(ServiceComposer::new()
+            .register(CatalogAgentModule::compose(config, root, None, &ports).await?)
+            .with_auth_ports(ports.auth.clone()))
     }
 }

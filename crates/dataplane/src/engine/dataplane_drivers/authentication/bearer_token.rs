@@ -29,6 +29,7 @@ pub struct BearerTokenAuthenticator;
 
 #[async_trait::async_trait]
 impl DriverAuthenticatorTrait for BearerTokenAuthenticator {
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "data-endpoint"))]
     async fn authenticate(&self, context: &DataplaneContext) -> Outcome<DataplaneContext> {
         let connector = context
             .connector_instance()

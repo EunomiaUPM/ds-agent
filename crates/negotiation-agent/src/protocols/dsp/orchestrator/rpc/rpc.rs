@@ -42,7 +42,7 @@ use crate::services::negotiation_process::views::NegotiationProcessView;
 use common::auth::AccessScope;
 use common::config::services::ContractsConfig;
 use common::dsp_common::DspActor;
-use common::facades::ssi_auth_facade::MatesFacadeTrait;
+use common::facades::mates_facade::MatesFacadeTrait;
 use std::sync::Arc;
 use ymir::errors::Outcome;
 
@@ -85,6 +85,7 @@ impl RPCOrchestratorService {
 #[async_trait::async_trait]
 impl RPCOrchestratorTrait for RPCOrchestratorService {
     /// Sends an initial `ContractRequestMessage` to the Provider (Consumer-initiated flow).
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn setup_negotiation_request_init_rpc(
         &self,
         scope: &AccessScope,
@@ -101,6 +102,7 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
     }
 
     /// Sends a continuation `ContractRequestMessage` (Consumer counter-offer).
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn setup_negotiation_request_rpc(
         &self,
         scope: &AccessScope,
@@ -115,6 +117,7 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
     }
 
     /// Sends an initial `ContractOfferMessage` to the Consumer (Provider-initiated flow).
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn setup_negotiation_offer_init_rpc(
         &self,
         scope: &AccessScope,
@@ -129,6 +132,7 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
     }
 
     /// Sends a continuation `ContractOfferMessage` (Provider counter-offer).
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn setup_negotiation_offer_rpc(
         &self,
         scope: &AccessScope,
@@ -146,6 +150,7 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
     ///
     /// The agreement body is enriched with offer policy fields and participant
     /// IDs in [`RpcAgreementStep::prepare_context`].
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn setup_negotiation_agreement_rpc(
         &self,
         scope: &AccessScope,
@@ -161,6 +166,7 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
     }
 
     /// Sends a `ContractAgreementVerificationMessage` to the Provider.
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn setup_negotiation_agreement_verification_rpc(
         &self,
         scope: &AccessScope,
@@ -177,6 +183,7 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
     }
 
     /// Sends a `ContractNegotiationEventMessage` with event type `ACCEPTED`.
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn setup_negotiation_event_accepted_rpc(
         &self,
         scope: &AccessScope,
@@ -193,6 +200,7 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
     }
 
     /// Sends a `ContractNegotiationEventMessage` with event type `FINALIZED`.
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn setup_negotiation_event_finalized_rpc(
         &self,
         scope: &AccessScope,
@@ -209,6 +217,7 @@ impl RPCOrchestratorTrait for RPCOrchestratorService {
     }
 
     /// Sends a `ContractNegotiationTerminationMessage` to the peer.
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn setup_negotiation_termination_rpc(
         &self,
         scope: &AccessScope,

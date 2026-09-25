@@ -36,6 +36,7 @@ pub struct Model {
     pub source_crate: String,
     pub schema_version: i32,
     pub correlation_id: Option<String>,
+    pub trace_context: Option<String>,
     pub payload: serde_json::Value,
     pub timestamp: chrono::NaiveDateTime,
     pub created_at: chrono::NaiveDateTime,
@@ -72,6 +73,7 @@ impl Model {
             schema_version: self.schema_version as u32,
             timestamp: DateTime::from_naive_utc_and_offset(self.timestamp, Utc),
             correlation_id,
+            trace_context: self.trace_context,
             payload: self.payload,
         })
     }
@@ -89,6 +91,7 @@ impl ActiveModel {
             correlation_id: ActiveValue::Set(
                 entity.correlation_id.as_ref().map(ToString::to_string),
             ),
+            trace_context: ActiveValue::Set(entity.trace_context.clone()),
             payload: ActiveValue::Set(entity.payload.clone()),
             timestamp: ActiveValue::Set(entity.timestamp.naive_utc()),
             created_at: ActiveValue::Set(Utc::now().naive_utc()),

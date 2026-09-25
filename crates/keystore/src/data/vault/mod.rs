@@ -79,20 +79,24 @@ impl VaultSecretRepo {
 
 #[async_trait::async_trait]
 impl SecretRepoTrait for VaultSecretRepo {
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_secrets(&self, filter: &PrefixFilter) -> Outcome<Vec<SecretEntry>> {
         let entries = self.repo.get_all_secrets(filter).await?;
         self.hydrate(entries).await
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn count_secrets(&self, filter: &PrefixFilter) -> Outcome<u64> {
         self.repo.count_secrets(filter).await
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_batch_secrets(&self, tenant_id: &str, keys: &[Key]) -> Outcome<Vec<SecretEntry>> {
         let entries = self.repo.get_batch_secrets(tenant_id, keys).await?;
         self.hydrate(entries).await
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_secret_by_key(&self, tenant_id: &str, key: &Key) -> Outcome<Option<SecretEntry>> {
         let Some(entry) = self.repo.get_secret_by_key(tenant_id, key).await? else {
             return Ok(None);
@@ -104,6 +108,7 @@ impl SecretRepoTrait for VaultSecretRepo {
         }))
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_secret(
         &self,
         tenant_id: &str,
@@ -116,6 +121,7 @@ impl SecretRepoTrait for VaultSecretRepo {
         self.repo.create_secret(tenant_id, &entry_model).await
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn put_secret(
         &self,
         tenant_id: &str,
@@ -133,6 +139,7 @@ impl SecretRepoTrait for VaultSecretRepo {
         })
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_secret(&self, tenant_id: &str, key: &Key) -> Outcome<()> {
         self.repo.delete_secret(tenant_id, key).await
     }

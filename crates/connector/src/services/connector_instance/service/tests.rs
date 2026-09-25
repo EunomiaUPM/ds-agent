@@ -26,7 +26,7 @@ use crate::data::repo_traits::connector_template_repo::{
     ConnectorTemplateRepoTrait, MockConnectorTemplateRepoTrait,
 };
 use crate::entities::connector_template::ConnectorTemplateDto;
-use crate::facades::distribution_resolver_facade::MockDistributionFacadeTrait;
+use crate::facades::catalog_facade::MockCatalogFacadeTrait;
 use crate::services::connector_instance::service::ConnectorInstanceService;
 use crate::{ConnectorInstanceRepoTrait, ConnectorInstanceServiceTrait, ConnectorInstantiationDto};
 use common::auth::access::AccessScope;
@@ -145,7 +145,7 @@ fn mock_service() -> ConnectorInstanceService {
         .return_const(connector_distro_repo);
     let connector_repo = Arc::new(connector_repo);
 
-    let mut distribution_facade = MockDistributionFacadeTrait::new();
+    let mut distribution_facade = MockCatalogFacadeTrait::new();
     distribution_facade
         .expect_resolve_distribution_by_id()
         .once()
@@ -204,7 +204,7 @@ fn build_service(
     template_repo: MockConnectorTemplateRepoTrait,
     instance_repo: MockConnectorInstanceRepoTrait,
     distro_repo: MockConnectorDistroRelationRepoTrait,
-    distro_facade: MockDistributionFacadeTrait,
+    distro_facade: MockCatalogFacadeTrait,
 ) -> ConnectorInstanceService {
     let mut connector_repo = MockConnectorRepoTrait::new();
     connector_repo
@@ -229,7 +229,7 @@ async fn get_instance_foreign_tenant_returns_none() {
     let template_repo = MockConnectorTemplateRepoTrait::new();
     let mut instance_repo = MockConnectorInstanceRepoTrait::new();
     let distro_repo = MockConnectorDistroRelationRepoTrait::new();
-    let distro_facade = MockDistributionFacadeTrait::new();
+    let distro_facade = MockCatalogFacadeTrait::new();
 
     let urn = Urn::from_str("urn:uuid:f47ac10b-58cc-4372-a567-0e02b2c3d479").unwrap();
     let urn_str = urn.to_string();
@@ -253,7 +253,7 @@ async fn get_instance_by_distribution_foreign_tenant_returns_none() {
     let template_repo = MockConnectorTemplateRepoTrait::new();
     let instance_repo = MockConnectorInstanceRepoTrait::new();
     let mut distro_repo = MockConnectorDistroRelationRepoTrait::new();
-    let distro_facade = MockDistributionFacadeTrait::new();
+    let distro_facade = MockCatalogFacadeTrait::new();
 
     let distro_urn = Urn::from_str("urn:uuid:f47ac10b-58cc-4372-a567-0e02b2c3d479").unwrap();
     let distro_str = distro_urn.to_string();
@@ -277,7 +277,7 @@ async fn delete_instance_foreign_tenant_returns_not_found() {
     let template_repo = MockConnectorTemplateRepoTrait::new();
     let mut instance_repo = MockConnectorInstanceRepoTrait::new();
     let mut distro_repo = MockConnectorDistroRelationRepoTrait::new();
-    let distro_facade = MockDistributionFacadeTrait::new();
+    let distro_facade = MockCatalogFacadeTrait::new();
 
     let urn = Urn::from_str("urn:uuid:f47ac10b-58cc-4372-a567-0e02b2c3d479").unwrap();
     let urn_str = urn.to_string();
@@ -346,7 +346,7 @@ async fn upsert_forces_caller_tenant_for_non_admin() {
             })
         });
 
-    let mut distro_facade = MockDistributionFacadeTrait::new();
+    let mut distro_facade = MockCatalogFacadeTrait::new();
     distro_facade
         .expect_resolve_distribution_by_id()
         .withf(|tenant, _| tenant == "tenant-2")
@@ -381,7 +381,7 @@ async fn reader_cannot_upsert_or_delete() {
     let template_repo = MockConnectorTemplateRepoTrait::new();
     let instance_repo = MockConnectorInstanceRepoTrait::new();
     let distro_repo = MockConnectorDistroRelationRepoTrait::new();
-    let distro_facade = MockDistributionFacadeTrait::new();
+    let distro_facade = MockCatalogFacadeTrait::new();
 
     let svc = build_service(template_repo, instance_repo, distro_repo, distro_facade);
     let reader = reader_scope("tenant-1");

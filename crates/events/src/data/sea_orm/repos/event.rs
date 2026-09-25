@@ -45,6 +45,7 @@ impl SeaOrmEventRepo {
 
 #[async_trait]
 impl EventStoreRepo for SeaOrmEventRepo {
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn insert_event(&self, ev: &EventEnvelope) -> Outcome<()> {
         let active = event::ActiveModel::from_domain(ev);
         active
@@ -54,6 +55,7 @@ impl EventStoreRepo for SeaOrmEventRepo {
         Ok(())
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_event_by_id(
         &self,
         tenant_id: Option<String>,
@@ -72,6 +74,7 @@ impl EventStoreRepo for SeaOrmEventRepo {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn list_events(
         &self,
         tenant_id: Option<String>,

@@ -60,6 +60,7 @@ impl BFFRPCOrchestratorService {
 
 #[async_trait::async_trait]
 impl BFFRPCOrchestratorTrait for BFFRPCOrchestratorService {
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn setup_negotiation_request_init_bff_rpc(
         &self,
         scope: &AccessScope,
@@ -70,6 +71,7 @@ impl BFFRPCOrchestratorTrait for BFFRPCOrchestratorService {
             .await
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn setup_negotiation_offer_init_bff_rpc(
         &self,
         scope: &AccessScope,
@@ -81,6 +83,7 @@ impl BFFRPCOrchestratorTrait for BFFRPCOrchestratorService {
     }
 
     // ACCEPTED -> AGREED -> VERIFIED -> FINALIZED (Provider triggers the tail in one call)
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn setup_negotiation_agreement_bff_rpc(
         &self,
         scope: &AccessScope,
@@ -107,6 +110,7 @@ impl BFFRPCOrchestratorTrait for BFFRPCOrchestratorService {
     }
 
     // OFFERED -> ACCEPTED
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn setup_negotiation_event_accepted_bff_rpc(
         &self,
         scope: &AccessScope,
@@ -117,6 +121,7 @@ impl BFFRPCOrchestratorTrait for BFFRPCOrchestratorService {
             .await
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn setup_negotiation_termination_bff_rpc(
         &self,
         scope: &AccessScope,

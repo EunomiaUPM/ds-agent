@@ -163,6 +163,7 @@ impl OauthAuthenticator {
 
 #[async_trait::async_trait]
 impl DriverAuthenticatorTrait for OauthAuthenticator {
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "data-endpoint"))]
     async fn authenticate(&self, context: &DataplaneContext) -> Outcome<DataplaneContext> {
         // Skip re-auth when the current token is still valid within a 30-second buffer.
         if let Some(runtime) = context.runtime() {

@@ -26,17 +26,18 @@ use dataplane::DataplaneManager;
 use std::sync::Arc;
 use ymir::errors::Outcome;
 
-pub struct DspDataPlaneFacade {
+/// Drives the dataplane manager in-process; the dataplane always runs inside transfer.
+pub struct DataPlaneLocalFacade {
     dataplane_manager: Arc<DataplaneManager>,
     proxy_base_url: String,
 }
 
-impl DspDataPlaneFacade {
+impl DataPlaneLocalFacade {
     pub fn new(
         dataplane_manager: Arc<DataplaneManager>,
         proxy_base_url: String,
-    ) -> DspDataPlaneFacade {
-        DspDataPlaneFacade {
+    ) -> DataPlaneLocalFacade {
+        DataPlaneLocalFacade {
             dataplane_manager,
             proxy_base_url,
         }
@@ -44,7 +45,8 @@ impl DspDataPlaneFacade {
 }
 
 #[async_trait::async_trait]
-impl DataPlaneFacadeTrait for DspDataPlaneFacade {
+impl DataPlaneFacadeTrait for DataPlaneLocalFacade {
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dataplane"))]
     async fn on_transfer_request_pre(
         &self,
         ctx: &TransferDSPContextDomain,
@@ -54,6 +56,7 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
             .await
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dataplane"))]
     async fn on_transfer_request_post(
         &self,
         ctx: &TransferDSPContextDomain,
@@ -64,6 +67,7 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
         Ok(None)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dataplane"))]
     async fn on_transfer_start_pre(
         &self,
         ctx: &TransferDSPContextDomain,
@@ -73,6 +77,7 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
             .await
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dataplane"))]
     async fn on_transfer_start_post(
         &self,
         ctx: &TransferDSPContextDomain,
@@ -82,6 +87,7 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
             .await
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dataplane"))]
     async fn on_transfer_suspension_pre(
         &self,
         ctx: &TransferDSPContextDomain,
@@ -92,6 +98,7 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
         Ok(None)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dataplane"))]
     async fn on_transfer_suspension_post(
         &self,
         ctx: &TransferDSPContextDomain,
@@ -102,6 +109,7 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
         Ok(None)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dataplane"))]
     async fn on_transfer_completion_pre(
         &self,
         ctx: &TransferDSPContextDomain,
@@ -112,6 +120,7 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
         Ok(None)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dataplane"))]
     async fn on_transfer_completion_post(
         &self,
         ctx: &TransferDSPContextDomain,
@@ -122,6 +131,7 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
         Ok(None)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dataplane"))]
     async fn on_transfer_termination_pre(
         &self,
         ctx: &TransferDSPContextDomain,
@@ -132,6 +142,7 @@ impl DataPlaneFacadeTrait for DspDataPlaneFacade {
         Ok(None)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dataplane"))]
     async fn on_transfer_termination_post(
         &self,
         ctx: &TransferDSPContextDomain,

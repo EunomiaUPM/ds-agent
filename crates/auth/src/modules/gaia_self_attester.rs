@@ -28,6 +28,7 @@ pub trait GaiaSelfAttesterModule:
     HasGaiaSelfAttester + HasIssuer + HasWallet + Send + Sync + 'static
 {
     /// Attests the connector's shared identity, hence admin only.
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn generate_gaia_vcs(&self, scope: &AccessScope) -> Outcome<()> {
         scope.require_admin()?;
         let legal_p = self.gaia().generate_legal_person().await?;

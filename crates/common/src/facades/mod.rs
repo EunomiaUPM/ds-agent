@@ -17,8 +17,11 @@
 
 use serde::{Deserialize, Serialize};
 
-pub mod inner_auth_facade;
+pub mod mates_facade;
+pub mod ports;
 pub mod ssi_auth_facade;
+
+pub use ports::AuthPorts;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct VerifyTokenRequest {

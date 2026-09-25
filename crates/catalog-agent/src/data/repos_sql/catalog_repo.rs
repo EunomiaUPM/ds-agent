@@ -69,6 +69,7 @@ impl CatalogRepositoryForSql {
 
 #[async_trait::async_trait]
 impl CatalogRepositoryTrait for CatalogRepositoryForSql {
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_catalogs(
         &self,
         filters: &CatalogFilter,
@@ -103,6 +104,7 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
         Ok((items, Some(total)))
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_batch_catalogs(
         &self,
         tenant_id: Option<String>,
@@ -123,6 +125,7 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_catalog_by_id(
         &self,
         tenant_id: Option<String>,
@@ -142,6 +145,7 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_main_catalog(&self, tenant_id: &str) -> Outcome<Option<catalog::Model>> {
         let catalog = catalog::Entity::find()
             .filter(catalog::Column::TenantId.eq(tenant_id))
@@ -157,6 +161,7 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
         Ok(catalog)
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn put_catalog_by_id(
         &self,
         tenant_id: Option<String>,
@@ -211,6 +216,7 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_catalog(&self, new_catalog_model: &NewCatalogModel) -> Outcome<catalog::Model> {
         let main_catalog = self.get_main_catalog(&new_catalog_model.tenant_id).await?;
         if main_catalog.is_none() {
@@ -234,6 +240,7 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_main_catalog(
         &self,
         new_catalog_model: &NewCatalogModel,
@@ -257,6 +264,7 @@ impl CatalogRepositoryTrait for CatalogRepositoryForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_catalog_by_id(
         &self,
         tenant_id: Option<String>,

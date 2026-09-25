@@ -19,7 +19,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use common::auth::{AccessScope, RbacRole};
-use common::facades::ssi_auth_facade::MatesFacadeTrait;
+use common::facades::mates_facade::MatesFacadeTrait;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 
@@ -55,6 +55,7 @@ impl TenantProvisioningService {
 
 #[async_trait::async_trait]
 impl TenantProvisioningServiceTrait for TenantProvisioningService {
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn provision(
         &self,
         scope: &AccessScope,

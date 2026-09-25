@@ -86,6 +86,7 @@ impl DataplaneTransfersRepoForSql {
 
 #[async_trait::async_trait]
 impl DataplaneTransfersRepo for DataplaneTransfersRepoForSql {
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_dataplane_transfers(
         &self,
         filters: &DataplaneTransferFilter,
@@ -120,6 +121,7 @@ impl DataplaneTransfersRepo for DataplaneTransfersRepoForSql {
         Ok(transfers)
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn count_dataplane_transfers(&self, filters: &DataplaneTransferFilter) -> Outcome<u64> {
         Self::apply_base_filters(DataplaneTransferEntity::find(), filters)
             .count(self.db.as_ref())
@@ -127,6 +129,7 @@ impl DataplaneTransfersRepo for DataplaneTransfersRepoForSql {
             .map_err(Self::fetch_err)
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_batch_dataplane_transfers(
         &self,
         tenant_id: Option<String>,
@@ -146,6 +149,7 @@ impl DataplaneTransfersRepo for DataplaneTransfersRepoForSql {
         Ok(transfers)
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_dataplane_transfers_by_id(
         &self,
         tenant_id: Option<String>,
@@ -160,6 +164,7 @@ impl DataplaneTransfersRepo for DataplaneTransfersRepoForSql {
         Ok(transfer)
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn find_dataplane_transfer_by_id(
         &self,
         id: &Urn,
@@ -170,6 +175,7 @@ impl DataplaneTransfersRepo for DataplaneTransfersRepoForSql {
             .map_err(Self::fetch_err)
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_by_transfer_process_id(
         &self,
         tenant_id: Option<String>,
@@ -185,6 +191,7 @@ impl DataplaneTransfersRepo for DataplaneTransfersRepoForSql {
         Ok(transfer)
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_dataplane_transfers(
         &self,
         new_dataplane_transfer: &NewDataplaneTransferModel,
@@ -195,6 +202,7 @@ impl DataplaneTransfersRepo for DataplaneTransfersRepoForSql {
         })
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn put_dataplane_transfers(
         &self,
         tenant_id: Option<String>,
@@ -235,6 +243,7 @@ impl DataplaneTransfersRepo for DataplaneTransfersRepoForSql {
         })
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_dataplane_transfers(
         &self,
         tenant_id: Option<String>,

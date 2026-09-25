@@ -56,6 +56,7 @@ impl DataServiceService {
 
 #[async_trait::async_trait]
 impl DataServiceServiceTrait for DataServiceService {
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_all_data_services(
         &self,
         scope: &AccessScope,
@@ -92,6 +93,7 @@ impl DataServiceServiceTrait for DataServiceService {
         }))
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_batch_data_services(
         &self,
         scope: &AccessScope,
@@ -119,6 +121,7 @@ impl DataServiceServiceTrait for DataServiceService {
         Ok(dtos)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_data_services_by_catalog_id(
         &self,
         scope: &AccessScope,
@@ -148,6 +151,7 @@ impl DataServiceServiceTrait for DataServiceService {
         Ok(dtos)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_main_data_service(&self, scope: &AccessScope) -> Outcome<Option<DataServiceDto>> {
         scope.require_read()?;
         let data_service = self
@@ -169,6 +173,7 @@ impl DataServiceServiceTrait for DataServiceService {
         Ok(dto)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_data_service_by_id(
         &self,
         scope: &AccessScope,
@@ -192,6 +197,7 @@ impl DataServiceServiceTrait for DataServiceService {
         Ok(dto)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn put_data_service_by_id(
         &self,
         scope: &AccessScope,
@@ -230,6 +236,7 @@ impl DataServiceServiceTrait for DataServiceService {
         Ok(dto)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn create_data_service(
         &self,
         scope: &AccessScope,
@@ -270,6 +277,7 @@ impl DataServiceServiceTrait for DataServiceService {
         Ok(dto)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn create_main_data_service(
         &self,
         scope: &AccessScope,
@@ -305,6 +313,7 @@ impl DataServiceServiceTrait for DataServiceService {
         Ok(dto)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn delete_data_service_by_id(
         &self,
         scope: &AccessScope,

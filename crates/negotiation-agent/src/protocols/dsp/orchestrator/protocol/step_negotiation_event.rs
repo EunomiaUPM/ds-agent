@@ -45,6 +45,7 @@ impl NegotiationProtocolStep for NegotiationEventStep {
     type Dto = NegotiationEventMessageDto;
     type Context = NegotiationContinuationContext;
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn validate(
         validator: &Arc<dyn ValidationDspSteps>,
         id: &str,
@@ -56,6 +57,7 @@ impl NegotiationProtocolStep for NegotiationEventStep {
             .await
     }
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn prepare_context(
         id: &str,
         mate: &Mates,
@@ -72,6 +74,7 @@ impl NegotiationProtocolStep for NegotiationEventStep {
     ///
     /// - `ACCEPTED` - `update` (state advancement only)
     /// - `FINALIZED` - `update_with_agreement` (activates the existing agreement)
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn persist(
         persistence: &Arc<OrchestrationPersistenceForProtocol>,
         _id: &str,

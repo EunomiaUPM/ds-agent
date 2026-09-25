@@ -74,6 +74,7 @@ impl DistributionRepositoryForSql {
 
 #[async_trait::async_trait]
 impl DistributionRepositoryTrait for DistributionRepositoryForSql {
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_all_distributions(
         &self,
         filters: &DistributionFilter,
@@ -107,6 +108,7 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
         Ok((distributions, Some(total)))
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_batch_distributions(
         &self,
         tenant_id: Option<String>,
@@ -129,6 +131,7 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_distributions_by_dataset_id(
         &self,
         tenant_id: Option<String>,
@@ -151,6 +154,7 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_distribution_by_dataset_id_and_dct_format(
         &self,
         tenant_id: Option<String>,
@@ -175,6 +179,7 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
         Ok(distribution)
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn get_distribution_by_id(
         &self,
         tenant_id: Option<String>,
@@ -196,6 +201,7 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn put_distribution_by_id(
         &self,
         tenant_id: Option<String>,
@@ -269,6 +275,7 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn create_distribution(
         &self,
         new_distribution_model: &NewDistributionModel,
@@ -322,6 +329,7 @@ impl DistributionRepositoryTrait for DistributionRepositoryForSql {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all, err)]
     async fn delete_distribution_by_id(
         &self,
         tenant_id: Option<String>,

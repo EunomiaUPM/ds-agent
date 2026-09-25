@@ -50,6 +50,7 @@ impl ProtocolOrchestratorService {
 
 #[async_trait::async_trait]
 impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn on_catalog_request(
         &self,
         scope: &AccessScope,
@@ -59,6 +60,7 @@ impl ProtocolOrchestratorTrait for ProtocolOrchestratorService {
         Ok(catalog)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn on_dataset_request(
         &self,
         scope: &AccessScope,

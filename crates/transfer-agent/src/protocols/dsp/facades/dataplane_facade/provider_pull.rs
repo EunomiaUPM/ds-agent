@@ -31,6 +31,7 @@ pub(super) struct ProviderPullStrategy;
 
 #[async_trait::async_trait]
 impl DataPlaneStrategy for ProviderPullStrategy {
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dataplane"))]
     async fn on_request_pre(
         &self,
         _ctx: &TransferDSPContextDomain,
@@ -40,6 +41,7 @@ impl DataPlaneStrategy for ProviderPullStrategy {
         Ok(None)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dataplane"))]
     async fn on_request_post(
         &self,
         ctx: &TransferDSPContextDomain,
@@ -62,6 +64,7 @@ impl DataPlaneStrategy for ProviderPullStrategy {
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dataplane"))]
     async fn on_start_pre(
         &self,
         ctx: &TransferDSPContextDomain,
@@ -91,6 +94,7 @@ impl DataPlaneStrategy for ProviderPullStrategy {
         Ok(None)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dataplane"))]
     async fn on_start_post(
         &self,
         ctx: &TransferDSPContextDomain,
@@ -127,6 +131,7 @@ impl DataPlaneStrategy for ProviderPullStrategy {
         Ok(None)
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dataplane"))]
     async fn on_suspend_pre(
         &self,
         ctx: &TransferDSPContextDomain,
@@ -135,6 +140,7 @@ impl DataPlaneStrategy for ProviderPullStrategy {
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dataplane"))]
     async fn on_suspend_post(
         &self,
         ctx: &TransferDSPContextDomain,
@@ -148,6 +154,7 @@ impl DataPlaneStrategy for ProviderPullStrategy {
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dataplane"))]
     async fn on_complete_pre(
         &self,
         ctx: &TransferDSPContextDomain,
@@ -156,6 +163,7 @@ impl DataPlaneStrategy for ProviderPullStrategy {
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dataplane"))]
     async fn on_complete_post(
         &self,
         ctx: &TransferDSPContextDomain,
@@ -169,6 +177,7 @@ impl DataPlaneStrategy for ProviderPullStrategy {
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dataplane"))]
     async fn on_terminate_pre(
         &self,
         ctx: &TransferDSPContextDomain,
@@ -177,6 +186,7 @@ impl DataPlaneStrategy for ProviderPullStrategy {
         Ok(())
     }
 
+    #[tracing::instrument(level = "info", skip_all, err, fields(peer.service = "dataplane"))]
     async fn on_terminate_post(
         &self,
         ctx: &TransferDSPContextDomain,

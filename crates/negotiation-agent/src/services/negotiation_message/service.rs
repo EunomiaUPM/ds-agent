@@ -65,7 +65,7 @@ impl NegotiationMessageService {
 
 #[async_trait::async_trait]
 impl NegotiationMessageServiceTrait for NegotiationMessageService {
-    #[tracing::instrument(level = "info", skip_all, err)]
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_all(
         &self,
         scope: &AccessScope,
@@ -95,7 +95,12 @@ impl NegotiationMessageServiceTrait for NegotiationMessageService {
         }))
     }
 
-    #[tracing::instrument(level = "info", skip(self, scope), fields(id = %id), err)]
+    #[tracing::instrument(
+        level = "info",
+        skip_all,
+        err,
+        fields(tenant = %scope.acting_tenant(), id = %id)
+    )]
     async fn get_one(&self, scope: &AccessScope, id: &Urn) -> Outcome<NegotiationMessageView> {
         scope.require_read()?;
         let message = self
@@ -117,7 +122,7 @@ impl NegotiationMessageServiceTrait for NegotiationMessageService {
         Ok(NegotiationMessageView::assemble(message, offer, agreement))
     }
 
-    #[tracing::instrument(level = "info", skip_all, err)]
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn batch(
         &self,
         scope: &AccessScope,
@@ -148,7 +153,7 @@ impl NegotiationMessageServiceTrait for NegotiationMessageService {
         Ok(views)
     }
 
-    #[tracing::instrument(level = "info", skip_all, err)]
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn create(
         &self,
         scope: &AccessScope,
@@ -173,7 +178,12 @@ impl NegotiationMessageServiceTrait for NegotiationMessageService {
         Ok(view)
     }
 
-    #[tracing::instrument(level = "info", skip(self, scope), fields(id = %id), err)]
+    #[tracing::instrument(
+        level = "info",
+        skip_all,
+        err,
+        fields(tenant = %scope.acting_tenant(), id = %id)
+    )]
     async fn delete(&self, scope: &AccessScope, id: &Urn) -> Outcome<()> {
         scope.require_write()?;
         let owner = self

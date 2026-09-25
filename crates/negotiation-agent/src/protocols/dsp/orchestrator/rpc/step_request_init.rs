@@ -30,7 +30,7 @@ use crate::services::negotiation_process::views::NegotiationProcessView;
 use axum::http::HeaderMap;
 use common::auth::AccessScope;
 use common::dsp_common::DspActor;
-use common::facades::ssi_auth_facade::MatesFacadeTrait;
+use common::facades::mates_facade::MatesFacadeTrait;
 use std::sync::Arc;
 use ymir::errors::Outcome;
 use ymir::services::client::ClientExt;
@@ -54,6 +54,7 @@ impl NegotiationRpcStep for RpcRequestInitStep {
     type Input = RpcNegotiationRequestInitMessageDto;
     type Context = NegotiationRpcInitialContext;
 
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn validate(
         validator: &Arc<dyn ValidationRpcSteps>,
         _actor: &DspActor,
@@ -64,6 +65,7 @@ impl NegotiationRpcStep for RpcRequestInitStep {
 
     /// Reads the provider address and associated peer from the input.
     /// No database lookup is performed; the record is created in `send_and_persist`.
+    #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn prepare_context(
         scope: &AccessScope,
         input: &RpcNegotiationRequestInitMessageDto,
@@ -87,6 +89,7 @@ impl NegotiationRpcStep for RpcRequestInitStep {
 
     /// POSTs the request message to `{provider_address}/negotiations/request`
     /// and creates the local process record.
+    #[tracing::instrument(level = "info", skip_all, err)]
     async fn send_and_persist(
         headers: Option<HeaderMap>,
         persistence: &Arc<dyn NegotiationRpcPersistenceTrait>,

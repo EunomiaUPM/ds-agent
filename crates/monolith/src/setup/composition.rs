@@ -29,7 +29,6 @@ use common::facades::AuthPorts;
 use common::module_loader::module_group::ModuleGroup;
 use common::module_loader::root_context::RootContext;
 use common::module_loader::service_module::ServiceModuleTrait;
-use dataplane::get_dataplane_migrations;
 use events::setup::EventsModule;
 use keystore::KeystoreModule;
 use negotiation_agent::setup::{NegotiationAgentModule, NegotiationPorts};
@@ -111,7 +110,6 @@ impl MonolithModule {
             NegotiationAgentModule::migrations(),
             EventsModule::migrations(),
             AuthModule::migrations(),
-            get_dataplane_migrations(),
             OAuthModule::migrations(),
             TransferAgentModule::migrations(),
             KeystoreModule::migrations(),

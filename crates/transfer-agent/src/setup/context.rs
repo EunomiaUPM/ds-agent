@@ -75,7 +75,7 @@ impl AppContext {
                 ports.negotiation.clone(),
                 ports.catalog.clone(),
             )),
-            dsp_facades: Arc::new(FacadeService::new(ports.dataplane.clone())),
+            dsp_facades: Arc::new(FacadeService::new(ports.dataplane.facade.clone())),
         }
     }
 }

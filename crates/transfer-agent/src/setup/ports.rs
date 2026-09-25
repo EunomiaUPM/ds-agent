@@ -27,7 +27,7 @@ use common::config::types::traits::CommonConfigTrait;
 use common::facades::AuthPorts;
 use common::module_loader::root_context::RootContext;
 use connector::ConnectorInstanceFacadeTrait;
-use dataplane::setup::{DataplanePorts, DataplaneSetup};
+use dataplane::setup::{DataplaneModule, DataplanePorts};
 use negotiation_agent::services::agreement::AgreementServiceTrait;
 use ymir::config::traits::HostsConfigTrait;
 use ymir::config::types::HostType;
@@ -47,7 +47,15 @@ pub struct TransferPorts {
     pub(crate) auth: AuthPorts,
     pub(crate) negotiation: Arc<dyn NegotiationFacadeTrait>,
     pub(crate) catalog: Arc<dyn CatalogFacadeTrait>,
-    pub(crate) dataplane: Arc<dyn DataPlaneFacadeTrait>,
+    pub(crate) dataplane: DataplanePort,
+}
+
+/// The composed dataplane: the facade the DSP pipeline drives over its manager, and the
+/// module transfer registers to serve its routes.
+#[derive(Clone)]
+pub(crate) struct DataplanePort {
+    pub(crate) facade: Arc<dyn DataPlaneFacadeTrait>,
+    pub(crate) module: DataplaneModule,
 }
 
 impl TransferPorts {
@@ -97,13 +105,14 @@ impl TransferPorts {
         config: &TransferConfig,
         root: &RootContext,
         ports: &DataplanePorts,
-    ) -> Outcome<Arc<dyn DataPlaneFacadeTrait>> {
-        let manager = DataplaneSetup::new()
-            .get_data_plane_manager(Arc::new(config.clone()), root, ports)
-            .await?;
-        Ok(Arc::new(DataPlaneLocalFacade::new(
-            Arc::new(manager),
-            config.common().get_host(HostType::Http),
-        )))
+    ) -> Outcome<DataplanePort> {
+        let module = DataplaneModule::compose(config, root, ports).await?;
+        Ok(DataplanePort {
+            facade: Arc::new(DataPlaneLocalFacade::new(
+                module.local_manager(),
+                config.common().get_host(HostType::Http),
+            )),
+            module,
+        })
     }
 }

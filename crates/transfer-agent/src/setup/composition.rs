@@ -20,6 +20,7 @@ use common::config::services::TransferConfig;
 use common::module_loader::module_group::ModuleGroup;
 use common::module_loader::root_context::RootContext;
 use common::module_loader::service_module::ServiceModuleTrait;
+use dataplane::setup::DataplaneModule;
 use sea_orm_migration::MigrationTrait;
 use std::sync::Arc;
 use tonic::service::RoutesBuilder;
@@ -44,12 +45,20 @@ impl TransferAgentModule {
         let ctx = Arc::new(AppContext::build(config, root, event_bus, ports));
         let modules = ModuleGroup::new(SERVICE_NAME)
             .register(DspModule::new(ctx.clone()))
-            .register(TransferAdminModule::new(ctx));
+            .register(TransferAdminModule::new(ctx))
+            .register(ports.dataplane.module.clone());
         Self { modules }
     }
 
+    /// Transfer then its dataplane.
     pub fn migrations() -> Vec<Box<dyn MigrationTrait>> {
-        crate::data::sea_orm::migrations::get_migrations()
+        [
+            crate::data::sea_orm::migrations::get_migrations(),
+            DataplaneModule::migrations(),
+        ]
+        .into_iter()
+        .flatten()
+        .collect()
     }
 }
 

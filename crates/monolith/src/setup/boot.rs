@@ -33,7 +33,7 @@ use tokio::sync::broadcast::Sender;
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info, warn};
 use urn::Urn;
-use ymir::config::traits::{ApiConfigTrait, HostsConfigTrait};
+use ymir::config::traits::HostsConfigTrait;
 use ymir::config::types::HostType;
 use ymir::data::entities::shared::participant;
 use ymir::errors::{Errors, Outcome, PetitionFailure};
@@ -152,7 +152,6 @@ impl BootstrapServiceTrait for CoreBoot {
                 None,
             ))
         }
-
     }
 
     async fn load_policy_templates(config: &Self::Config) -> Outcome<()> {

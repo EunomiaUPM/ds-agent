@@ -138,6 +138,7 @@ impl CallbackTrait for BasicCallbackService {
             "POST",
             &url,
             &body_bytes,
+            "application/json",
             Some(&authorization),
         )?;
 

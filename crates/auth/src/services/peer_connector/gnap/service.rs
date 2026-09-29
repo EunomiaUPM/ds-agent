@@ -192,6 +192,7 @@ impl PeerConnectorTrait for GnapPeerConnectorService {
             "POST",
             &grant.grant_endpoint,
             &body_bytes,
+            "application/json",
             None,
         )?;
 

@@ -167,6 +167,7 @@ impl VcRequesterTrait for VCReqService {
             "POST",
             &grant.grant_endpoint,
             &body_bytes,
+            "application/json",
             None,
         )?;
 

@@ -1,0 +1,23 @@
+# Prometheus for agent/span metrics and Jaeger for traces, linked both ways.
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+
+  - name: Jaeger
+    uid: jaeger
+    type: jaeger
+    access: proxy
+    url: http://jaeger:16686
+    jsonData:
+      tracesToMetrics:
+        datasourceUid: prometheus
+        tags: [ { key: "service.name", value: "service_name" } ]
+        queries:
+          - name: Span rate
+            query: 'sum(rate(span_calls_total{$$__tags}[5m]))'

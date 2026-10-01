@@ -15,6 +15,16 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Keystore: versioned parameters and secrets used by connectors and services.
+//!
+//! Secrets live in the database, or in Vault when a real Vault is configured. Other crates read
+//! them in-process through [`SecretStore`] and [`ParameterStore`]; [`KeystoreModule`] also serves
+//! them, together with the application config, under `{api}/keystore`. Its events use the
+//! `keystore:` prefix.
+//!
+//! Modules: [`entities`] (keys, entries, versions, secret values), [`services`], [`data`],
+//! `http`, [`setup`].
+
 pub mod data;
 pub mod entities;
 pub(crate) mod http;

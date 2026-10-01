@@ -15,6 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Monolith: every agent in one process, sharing a root context and a single event bus.
+//!
+//! [`setup::MonolithModule`] builds the modules in dependency order so each facade resolves
+//! in-process, and gathers their migrations in foreign-key order. [`setup::CoreBoot`] is the
+//! boot behind the `monolith` binary and the published Docker image.
+
 pub const SERVICE_NAME: &str = "agent";
 pub const SERVICE_BIG_NAME: &str = "Agent";
 pub mod setup;

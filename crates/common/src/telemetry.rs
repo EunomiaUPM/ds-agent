@@ -17,6 +17,29 @@
 
 //! Process telemetry: logs always; OTLP traces and metrics when `OTEL_EXPORTER_OTLP_ENDPOINT`
 //! is set. Every other knob comes from the standard `OTEL_*` variables.
+//!
+//! `AgentCli::run` calls [`Telemetry::init`] first and [`Telemetry::shutdown`] last, so agents
+//! only touch this module through [`TraceParent`], to keep a trace across work that leaves the
+//! request, such as an event handled later by a bus listener.
+//!
+//! | Variable | Effect |
+//! |---|---|
+//! | `RUST_LOG` | log filter, `info` by default |
+//! | `LOG_FORMAT=json` | JSON logs with the current span |
+//! | `OTEL_EXPORTER_OTLP_ENDPOINT` | turns on OTLP export over gRPC |
+//! | `OTEL_TRACES_EXPORTER=none`, `OTEL_METRICS_EXPORTER=none` | switch one signal off |
+//! | `OTEL_SERVICE_NAME`, `OTEL_RESOURCE_ATTRIBUTES` | override the resource |
+//!
+//! ```rust,ignore
+//! use common::telemetry::TraceParent;
+//!
+//! // When the work is queued, inside the request span:
+//! let envelope = EventEnvelope { trace_context: TraceParent::current(), /* ... */ };
+//!
+//! // When it is picked up, in a new span:
+//! let span = tracing::info_span!("event.consume");
+//! TraceParent::link(&span, envelope.trace_context.as_deref());
+//! ```
 
 use std::collections::HashMap;
 

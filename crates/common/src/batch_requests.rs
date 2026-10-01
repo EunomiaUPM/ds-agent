@@ -15,6 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Request body for batch lookups by id: `{"ids": [...]}`, as URNs or as plain strings.
+//!
+//! Services should reject lists longer than `crate::paginated_spec::MAX_BATCH_IDS`.
+
 use serde::{Deserialize, Serialize};
 use urn::Urn;
 

@@ -15,6 +15,17 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! SSI authentication agent: the participant's wallet, its onboarding with peers and the
+//! checks on the credentials they present.
+//!
+//! It requests verifiable credentials from an authority, connects to peer agents and guards
+//! access with a GNAP gatekeeper backed by a verifier; issuing credentials and Gaia-X
+//! self-attestation are optional. [`setup::AuthModule`] composes it into a larger process,
+//! [`setup::AuthBoot`] runs it as its own service and [`facades`] serves its ports in-process.
+//!
+//! Modules: [`core`] (wires every service into `AuthCore`), [`modules`] (one trait per
+//! capability), [`services`], [`entities`], [`types`], [`data`], [`http`], [`setup`].
+
 pub const SERVICE_NAME: &str = "ssi-auth-agent";
 pub const SERVICE_BIG_NAME: &str = "SSI-Auth Agent";
 

@@ -15,6 +15,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Picks the vault backend from the config: the real Vault client or the in-memory fake.
+//!
+//! The boot calls it once and keeps the result in the root context.
+
 use ymir::config::traits::ConnectionConfigTrait;
 use ymir::errors::Outcome;
 use ymir::services::vault::fake_vault::FakeVaultService;

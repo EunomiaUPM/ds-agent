@@ -15,6 +15,16 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! OAuth authorization server for the agents: users, clients, personal access tokens and the
+//! token endpoint, all under `/oauth`.
+//!
+//! The tokens it issues are the ones every agent's auth middleware accepts, and calls between
+//! services use the client credentials grant. [`setup::OAuthModule`] composes it into a process;
+//! [`config::OAuthConfig`] holds its signing and token settings. Its events use the `oauth:`
+//! prefix.
+//!
+//! Modules: [`entities`], [`services`], [`data`], [`http`], [`config`], [`setup`].
+
 pub mod config;
 pub mod data;
 pub mod entities;

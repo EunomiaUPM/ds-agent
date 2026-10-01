@@ -15,6 +15,15 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Debugging middlewares that log the raw request body and pass it on untouched.
+//!
+//! `log_raw_body` prints to stdout and `log_body_middleware` goes through `tracing`. Bodies can
+//! carry tokens, so neither belongs on a production router.
+//!
+//! ```rust,ignore
+//! let router = router.layer(axum::middleware::from_fn(common::middleware::log_body_middleware));
+//! ```
+
 use axum::{
     body::{to_bytes, Body},
     extract::Request as ExtractRequest,

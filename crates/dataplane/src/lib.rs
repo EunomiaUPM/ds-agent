@@ -15,6 +15,16 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Dataplane: carries out transfers for the transfer agent, which registers it and drives it
+//! in-process through [`DataplaneManager`].
+//!
+//! The engine keeps a state machine per role and runs pluggable drivers (HTTP proxy, pub/sub)
+//! with credentials looked up in the keystore. It serves a control API under
+//! `{api}/transfer-agent/dataplane` and the data proxy on the path advertised in each data address.
+//!
+//! Modules: [`entities`], [`services`], [`data`], [`cache`], [`http`], `engine`,
+//! [`testing_proxy`] (the HTTP data proxy), [`setup`].
+
 pub mod cache;
 pub mod data;
 pub(crate) mod engine;

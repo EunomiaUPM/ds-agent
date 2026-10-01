@@ -15,6 +15,19 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Small helpers: URN creation and parsing, URL parsing, YAML and JSON utilities.
+//!
+//! ```rust,ignore
+//! use common::utils::{generate_uuid_urn, get_urn, ParseUrnExt};
+//!
+//! let id = get_urn(None);                          // urn:uuid:<v4>
+//! let pid = generate_uuid_urn("transfer-process"); // urn:transfer-process:<v4>
+//! let urn = "urn:uuid:1234".parse_urn()?;          // Outcome<Urn>
+//! ```
+//!
+//! `show_table` logs a config as a table at boot, `parse_yaml` reads a config section and
+//! `json_merge` overwrites the top-level keys of one JSON object with another's.
+
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::str::FromStr;

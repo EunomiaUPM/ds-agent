@@ -17,6 +17,10 @@
 
 //! Server spans for the HTTP and gRPC planes: W3C trace context in, OTel semantic
 //! attributes on the span, and one request-duration histogram per plane.
+//!
+//! The boot installs [`HttpTracing::http_layer`], [`HttpTracing::record_http_duration`] and
+//! [`HttpTracing::grpc_layer`] on the composed planes, so modules get spans for free. The
+//! histograms are `http.server.request.duration` and `rpc.server.call.duration`, in seconds.
 
 use std::sync::LazyLock;
 use std::time::{Duration, Instant};

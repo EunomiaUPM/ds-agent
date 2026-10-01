@@ -15,6 +15,17 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Connector service: templates that describe how to reach an external system, and the
+//! instances that bind a template to concrete parameters and secrets.
+//!
+//! Templates carry `{{__PARAM__}}` placeholders that each instance fills in; secrets can be
+//! resolved from the keystore at runtime. There is no binary: the catalog agent mounts
+//! [`ConnectorModule`] under `{api}/connector`, and other agents reach the instances through
+//! [`ConnectorInstanceFacadeTrait`], in-process or over HTTP. The DSL is described in `DESIGN.md`.
+//!
+//! Modules: [`entities`] (templates, instances, auth and interaction config), [`services`],
+//! [`facades`], `data`, `http`, `setup`.
+
 pub(crate) mod data;
 pub mod entities;
 pub mod facades;

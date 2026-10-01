@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! ASCII banner logged by `AgentCli::run` when an agent starts.
+
 const INFO: &str = r"
 ----------
 :::::::::: :::    ::: ::::    :::  ::::::::  ::::    ::::  :::::::::::     :::

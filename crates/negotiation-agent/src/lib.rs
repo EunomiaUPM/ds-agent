@@ -15,6 +15,17 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Negotiation agent: the DSP contract negotiation state machine, with its offers and agreements.
+//!
+//! Peers drive it through the DSP negotiation endpoints and the owner through a management API
+//! over HTTP and gRPC. Policies come from the catalog through a facade.
+//! [`setup::NegotiationAgentModule`] composes it into a larger process and
+//! [`setup::NegotiationAgentBoot`] runs it as its own service. Other crates get its migrations,
+//! [`AgreementView`] and [`OfferView`] from the root; its events use the `negotiations:` prefix.
+//!
+//! Modules: [`entities`], [`services`], [`data`], [`protocols`] (DSP), [`http`], [`grpc`],
+//! `facades`, [`setup`].
+
 pub mod data;
 pub mod entities;
 pub(crate) mod facades;

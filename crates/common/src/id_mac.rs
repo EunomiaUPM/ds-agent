@@ -21,6 +21,16 @@
 //! independent of the caller's imports. Consuming crates must depend on
 //! `urn`, `serde`, and `uuid`. The generated types are `pub(crate)` to the
 //! **caller's** crate.
+//!
+//! ```rust,ignore
+//! use common::{str_id, urn_id};
+//!
+//! urn_id!(TransferProcessId, gen = "transfer-process");
+//! str_id!(RequestId, CompactString, gen);
+//!
+//! let pid = TransferProcessId::generate(); // urn:transfer-process:<uuid>
+//! let request = RequestId::new("abc");
+//! ```
 
 /// Newtype wrapper around a `Urn` with `new`, `as_urn`, and `Display`.
 /// The `gen = "prefix"` form also adds `generate()`, minting `urn:prefix:<uuid>`.

@@ -34,6 +34,82 @@
  *
  */
 
+//! Error helpers on top of `ymir::errors`, plus the older `CommonErrors` enum.
+//!
+//! Agents return `ymir::errors::Outcome<T>`, a `Result` over `ymir::errors::Errors`, which
+//! already maps to an HTTP status and a JSON body. This module adds what ymir does not have:
+//! [`NotFoundExt`] and [`ResourceError`] for the usual 404, and [`ErrorLog`] to render an error
+//! as a multi-line log entry. [`CommonErrors`] is the error enum from before ymir, with its own
+//! numeric codes; it is still used by a few handlers and the global 404, and new code should
+//! use `Errors` instead.
+//!
+//! ## 1. Turning a missing row into a 404
+//!
+//! `or_not_found` maps `None` to a missing resource error naming the entity and its id.
+//!
+//! ```rust,ignore
+//! use common::errors::NotFoundExt;
+//!
+//! async fn get_client(&self, scope: &AccessScope, client_id: &str) -> Outcome<ClientView> {
+//!     scope.require_read()?;
+//!     let client = self
+//!         .client_repo
+//!         .get_by_id(scope.tenant_filter().map(str::to_string), client_id)
+//!         .await?
+//!         .or_not_found(client_id, "client")?;
+//!     Ok(ClientView::assemble(client))
+//! }
+//! ```
+//!
+//! `ResourceError::not_found` builds the same error directly, which is handy in mocks:
+//!
+//! ```rust,ignore
+//! use common::errors::ResourceError;
+//!
+//! repo.expect_get_by_id()
+//!     .returning(|_, id| Err(ResourceError::not_found(id, "catalog")));
+//! ```
+//!
+//! ## 2. Logging an error in full
+//!
+//! [`ErrorLog::log`] returns the code, message, details and cause on separate lines, plus the
+//! URL and method for errors that came from a peer.
+//!
+//! ```rust,ignore
+//! use common::errors::ErrorLog;
+//!
+//! let err = CommonErrors::parse_new("unsupported message type for this role");
+//! tracing::error!("{}", err.log());
+//! ```
+//!
+//! ## 3. `CommonErrors`
+//!
+//! Each variant has a `*_new` constructor that fills in its message, numeric code and HTTP
+//! status. A reference to it is an axum response: the status plus the `ErrorInfo` as JSON.
+//!
+//! ```rust,ignore
+//! use common::errors::CommonErrors;
+//!
+//! match service.get_main_catalog(&scope).await {
+//!     Ok(Some(catalog)) => (StatusCode::OK, Json(catalog)).into_response(),
+//!     Ok(None) => {
+//!         CommonErrors::missing_resource_new("main", "Main Catalog not found").into_response()
+//!     }
+//!     Err(err) => err.into_response(),
+//! }
+//! ```
+//!
+//! | Constructor | Status | Code |
+//! |---|---|---|
+//! | `petition_new`, `provider_new`, `consumer_new`, `authority_new` | 502 | 1000 to 2400 |
+//! | `missing_action_new` | 412 | 31xx by [`MissingAction`] |
+//! | `missing_resource_new` | 404 | 3200 |
+//! | `format_new` | 400, or 502 for [`BadFormat::Sent`] | 31xx |
+//! | `unauthorized_new`, `forbidden_new` | 401, 403 | 4200, 4300 |
+//! | `database_new`, `not_impl_new`, `module_new` | 500, 501, 500 | 5100, 5200, 5500 |
+//! | `read_new`, `write_new`, `parse_new` | 500, 500, 400 | 6010, 6020, 6030 |
+//! | `env_new`, `vault_new` | 500 | 800 |
+
 mod error_log_trait;
 pub mod helpers;
 pub mod outcome_adapter;

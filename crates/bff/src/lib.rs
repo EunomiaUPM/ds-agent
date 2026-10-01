@@ -15,6 +15,15 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Gateway for the admin UI: serves the embedded single-page app and forwards its API calls
+//! to the agents.
+//!
+//! [`GatewayHttpRouter`] mounts the app under `/admin` and [`HttpProxyDispatcher`] sends each
+//! path prefix to the agent that owns it. [`BffModule`] composes the gateway into a larger
+//! process and [`GatewayBoot`] runs it as its own service.
+//!
+//! Modules: `gateway` (app, discovery and router), [`proxy`], [`setup`].
+
 pub(crate) mod gateway;
 pub mod proxy;
 pub mod setup;

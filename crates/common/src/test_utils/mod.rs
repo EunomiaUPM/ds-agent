@@ -15,4 +15,6 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Fixtures for tests in other crates, such as a ready-made `TransferConfig`.
+
 pub mod config_fixtures;

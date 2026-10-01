@@ -103,3 +103,6 @@ pub use crate::paginated_spec::{
     clamp_page_limit, default_limit, Cursor, Page, Paginated, PaginationParams, Sort,
     DEFAULT_PAGE_LIMIT, MAX_BATCH_IDS, MAX_PAGE_LIMIT,
 };
+
+#[cfg(test)]
+mod tests;

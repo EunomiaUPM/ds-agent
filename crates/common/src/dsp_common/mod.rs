@@ -142,3 +142,6 @@ pub use rules::DspRules;
 pub fn schema_compiler_util(schema_content: &str) -> Value {
     serde_json::from_str::<Value>(schema_content).unwrap()
 }
+
+#[cfg(test)]
+mod tests;

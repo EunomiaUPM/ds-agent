@@ -126,3 +126,6 @@ pub use field::{InvalidField, ProtoEnum, ProtoField, ProtoFieldList};
 pub use json::{JsonStruct, JsonStructExt, JsonValueExt};
 pub use page::{ListParams, PageMeta, PageParams};
 pub use status::IntoStatus;
+
+#[cfg(test)]
+mod tests;

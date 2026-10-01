@@ -136,3 +136,6 @@ pub fn json_merge(base: &mut serde_json::Value, patch: serde_json::Value) {
         }
     }
 }
+
+#[cfg(test)]
+mod tests;

@@ -133,3 +133,6 @@ pub use page::{
 pub use paginated::Paginated;
 pub use sea_orm_ext::SelectCursorExt;
 pub use sort::Sort;
+
+#[cfg(test)]
+mod tests;

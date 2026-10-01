@@ -15,21 +15,25 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! WorkerSet, the workers a ServiceComposer collects and HttpServer as a worker, with stub
+//! workers that stop, fail, panic or ignore cancellation.
+
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
-use ymir::services::client::ClientTrait;
-use ymir::utils::http_client;
 
 use axum::routing::get;
 use axum::Router;
-use common::boot::servers::HttpServer;
-use common::boot::workers::{BackgroundWorker, WorkerSet};
-use common::module_loader::module_group::ModuleGroup;
-use common::module_loader::service_composer::ServiceComposer;
-use common::module_loader::service_module::ServiceModuleTrait;
 use tokio_util::sync::CancellationToken;
 use ymir::errors::{Errors, Outcome};
+use ymir::services::client::ClientTrait;
+use ymir::utils::http_client;
+
+use crate::boot::servers::HttpServer;
+use crate::boot::workers::{BackgroundWorker, WorkerSet};
+use crate::module_loader::module_group::ModuleGroup;
+use crate::module_loader::service_composer::ServiceComposer;
+use crate::module_loader::service_module::ServiceModuleTrait;
 
 /// Runs until cancelled, recording that it saw the cancellation.
 struct UntilCancelled {
@@ -63,6 +67,7 @@ impl BackgroundWorker for Finishes {
     }
 }
 
+/// Panics as soon as it runs.
 struct Panics;
 
 #[async_trait::async_trait]
@@ -113,6 +118,7 @@ fn until_cancelled() -> (Box<UntilCancelled>, Arc<AtomicBool>) {
     )
 }
 
+/// The first worker to stop on its own is reported and the rest keep running.
 #[tokio::test]
 async fn wait_any_reports_worker_that_stops_on_its_own() {
     let mut workers = WorkerSet::new(CancellationToken::new());
@@ -127,6 +133,7 @@ async fn wait_any_reports_worker_that_stops_on_its_own() {
     assert_eq!(workers.len(), 1);
 }
 
+/// A worker that fails is reported with its error.
 #[tokio::test]
 async fn wait_any_reports_worker_failure() {
     let mut workers = WorkerSet::new(CancellationToken::new());
@@ -138,6 +145,7 @@ async fn wait_any_reports_worker_failure() {
     assert!(exit.result.is_err());
 }
 
+/// A panicking worker is reported as an error under its own name.
 #[tokio::test]
 async fn wait_any_reports_panic_with_worker_name() {
     let mut workers = WorkerSet::new(CancellationToken::new());
@@ -149,6 +157,7 @@ async fn wait_any_reports_panic_with_worker_name() {
     assert!(exit.result.is_err());
 }
 
+/// An empty set never resolves, so an agent without workers keeps serving.
 #[tokio::test]
 async fn wait_any_pends_while_set_is_empty() {
     let mut workers = WorkerSet::new(CancellationToken::new());
@@ -158,6 +167,7 @@ async fn wait_any_pends_while_set_is_empty() {
     assert!(waited.is_err());
 }
 
+/// Shutdown cancels the token and waits for every worker to stop.
 #[tokio::test]
 async fn shutdown_cancels_and_awaits_every_worker() {
     let token = CancellationToken::new();
@@ -173,6 +183,7 @@ async fn shutdown_cancels_and_awaits_every_worker() {
     assert!(second_stopped.load(Ordering::SeqCst));
 }
 
+/// A worker that ignores cancellation is aborted once the grace period ends.
 #[tokio::test]
 async fn shutdown_aborts_workers_past_grace() {
     let mut workers = WorkerSet::new(CancellationToken::new());
@@ -187,6 +198,7 @@ async fn shutdown_aborts_workers_past_grace() {
     assert!(finished.is_ok());
 }
 
+/// The composer collects workers from modules nested in groups.
 #[test]
 fn composer_collects_workers_from_nested_groups() {
     let composer = ServiceComposer::new().register(WorkerModule("a")).register(
@@ -198,6 +210,7 @@ fn composer_collects_workers_from_nested_groups() {
     assert_eq!(composer.workers().len(), 3);
 }
 
+/// HttpServer serves requests as a worker and stops cleanly when cancelled.
 #[tokio::test]
 async fn http_server_serves_until_cancelled() {
     let router = Router::new().route("/ping", get(|| async { "pong" }));

@@ -656,3 +656,6 @@ impl CommonErrors {
         }
     }
 }
+
+#[cfg(test)]
+mod tests;

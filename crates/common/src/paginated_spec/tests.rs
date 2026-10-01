@@ -15,11 +15,15 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-use chrono::Utc;
-use common::paginated_spec::{Cursor, Page, Paginated, Sort, DEFAULT_PAGE_LIMIT, MAX_PAGE_LIMIT};
+//! Page limits, cursor encoding and the Paginated window, without a database.
 
+use chrono::Utc;
+
+use crate::paginated_spec::{Cursor, Page, Paginated, Sort, DEFAULT_PAGE_LIMIT, MAX_PAGE_LIMIT};
+
+/// A page defaults to the default limit; clamping caps it at the max and lifts zero to one.
 #[test]
-fn test_page_defaults_and_clamping() {
+fn page_defaults_and_clamps_its_limit() {
     let default_page = Page::default();
     assert_eq!(default_page.limit, DEFAULT_PAGE_LIMIT);
     assert_eq!(default_page.cursor, None);
@@ -32,8 +36,9 @@ fn test_page_defaults_and_clamping() {
     assert_eq!(zero_page.clamped().limit, 1);
 }
 
+/// A timestamp cursor decodes to the same second.
 #[test]
-fn test_cursor_timestamp_roundtrip() {
+fn timestamp_cursor_round_trips() {
     let now = Utc::now();
     let cursor_str = Cursor::encode_timestamp(&now);
     assert!(!cursor_str.is_empty());
@@ -42,14 +47,16 @@ fn test_cursor_timestamp_roundtrip() {
     assert_eq!(now.timestamp(), decoded.timestamp());
 }
 
+/// Bad base64, or base64 that is not a date, is rejected.
 #[test]
-fn test_cursor_invalid_decoding() {
+fn malformed_cursor_is_rejected() {
     assert!(Cursor::decode_timestamp("not-base64!").is_err());
     assert!(Cursor::decode_timestamp("bm90LWEtZGF0ZQ==").is_err());
 }
 
+/// A window with more items than the limit is cut and points at the last item kept.
 #[test]
-fn test_paginated_windowing() {
+fn window_over_limit_yields_next_cursor() {
     let items = vec![1, 2, 3, 4, 5];
     let paginated = Paginated::from_window(items, 4, |x| format!("cursor_{x}"));
 
@@ -62,16 +69,18 @@ fn test_paginated_windowing() {
     assert_eq!(short_paginated.next_cursor, None);
 }
 
+/// The default sort is newest first.
 #[test]
-fn test_sort_defaults() {
+fn default_sort_is_created_at_desc() {
     let sort = Sort::default();
     assert_eq!(sort, Sort::CreatedAtDesc);
     assert!(!sort.is_ascending());
     assert!(Sort::CreatedAtAsc.is_ascending());
 }
 
+/// A composite cursor decodes to the same timestamp and id.
 #[test]
-fn test_cursor_composite_roundtrip() {
+fn composite_cursor_round_trips_with_id() {
     let now = Utc::now();
     let id = "urn:item:uuid-456";
     let cursor_str = Cursor::encode_composite(&now, id);
@@ -82,8 +91,9 @@ fn test_cursor_composite_roundtrip() {
     assert_eq!(decoded.id.as_deref(), Some(id));
 }
 
+/// A cursor built from a non-UTC time decodes to the same instant.
 #[test]
-fn test_cursor_generic_timezone() {
+fn cursor_keeps_the_original_offset() {
     let fixed = chrono::DateTime::parse_from_rfc3339("2026-09-13T23:30:00+02:00").unwrap();
     let cursor_str = Cursor::encode_timestamp(&fixed);
     assert!(!cursor_str.is_empty());
@@ -93,8 +103,9 @@ fn test_cursor_generic_timezone() {
     assert_eq!(decoded.id, None);
 }
 
+/// `from_page` sets a next cursor only when the page came back full, and keeps the total.
 #[test]
-fn test_paginated_from_page() {
+fn from_page_sets_cursor_only_on_full_pages() {
     let page = Page::new(3, None);
     let items = vec!["a".to_string(), "b".to_string(), "c".to_string()];
     let paginated = Paginated::from_page(items.clone(), &page, Some(10), |s| format!("cursor_{s}"));
@@ -111,8 +122,9 @@ fn test_paginated_from_page() {
     assert_eq!(short_paginated.total, Some(1));
 }
 
+/// A sorted cursor encodes the column the list is sorted by, plus the id when given.
 #[test]
-fn test_cursor_encode_sorted() {
+fn sorted_cursor_encodes_the_sort_column() {
     let created = chrono::DateTime::parse_from_rfc3339("2026-01-01T00:00:00Z").unwrap();
     let updated = chrono::DateTime::parse_from_rfc3339("2026-02-01T00:00:00Z").unwrap();
 

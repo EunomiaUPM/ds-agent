@@ -240,3 +240,6 @@ impl HttpTracing {
             .build()
     }
 }
+
+#[cfg(test)]
+mod tests;

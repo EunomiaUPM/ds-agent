@@ -215,3 +215,6 @@ pub trait BootstrapServiceTrait: Send + Sync + 'static {
         Ok(vec![])
     }
 }
+
+#[cfg(test)]
+mod tests;

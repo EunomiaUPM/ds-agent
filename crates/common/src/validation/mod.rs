@@ -116,3 +116,6 @@ pub mod violation;
 pub use rule::Rule;
 pub use validator::{Validator, ValidatorRegistry};
 pub use violation::{codes, violation, Path, Violation, ViolationCode, Violations};
+
+#[cfg(test)]
+mod tests;

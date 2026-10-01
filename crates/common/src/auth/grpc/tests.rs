@@ -15,18 +15,22 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! GrpcAuth: bearer extraction and the AccessScope built from metadata, with a stub validator.
+
 use std::sync::Arc;
 
-use common::auth::grpc::GrpcAuth;
-use common::auth::{AccessScope, Claims, OauthTokenValidator, RbacRole};
 use tonic::metadata::MetadataMap;
 use tonic::Code;
 use ymir::errors::{Errors, Outcome};
 
-struct MockValidator;
+use crate::auth::grpc::GrpcAuth;
+use crate::auth::{Claims, OauthTokenValidator, RbacRole};
+
+/// Accepts an admin, an owner and an expired owner token; anything else is unauthorized.
+struct StubValidator;
 
 #[async_trait::async_trait]
-impl OauthTokenValidator for MockValidator {
+impl OauthTokenValidator for StubValidator {
     async fn validate_token(&self, token: &str) -> Outcome<Claims> {
         match token {
             "admin" => Ok(claims("admin-tenant", RbacRole::Admin)),
@@ -50,7 +54,7 @@ fn claims(sub: &str, role: RbacRole) -> Claims {
 }
 
 fn auth() -> GrpcAuth {
-    GrpcAuth::new(Arc::new(MockValidator))
+    GrpcAuth::new(Arc::new(StubValidator))
 }
 
 fn meta(token: Option<&str>, tenant: Option<&str>) -> MetadataMap {
@@ -64,6 +68,7 @@ fn meta(token: Option<&str>, tenant: Option<&str>) -> MetadataMap {
     m
 }
 
+/// The bearer is trimmed; a non-bearer, blank or missing one is Unauthenticated.
 #[test]
 fn bearer_extraction_trims_and_rejects_malformed() {
     let mut m = MetadataMap::new();
@@ -90,6 +95,7 @@ fn bearer_extraction_trims_and_rejects_malformed() {
     );
 }
 
+/// A call without token is Unauthenticated.
 #[tokio::test]
 async fn missing_token_is_unauthenticated() {
     let err = auth()
@@ -99,6 +105,7 @@ async fn missing_token_is_unauthenticated() {
     assert_eq!(err.code(), Code::Unauthenticated);
 }
 
+/// A token the validator rejects is Unauthenticated and keeps its message.
 #[tokio::test]
 async fn invalid_token_is_unauthenticated() {
     let err = auth().scope(&meta(Some("nope"), None)).await.unwrap_err();
@@ -106,6 +113,7 @@ async fn invalid_token_is_unauthenticated() {
     assert_eq!(err.message(), "invalid token");
 }
 
+/// Valid but expired claims are Unauthenticated.
 #[tokio::test]
 async fn expired_claims_are_unauthenticated() {
     let err = auth()
@@ -115,6 +123,7 @@ async fn expired_claims_are_unauthenticated() {
     assert_eq!(err.code(), Code::Unauthenticated);
 }
 
+/// Without tenant metadata the caller acts on the tenant of its claims.
 #[tokio::test]
 async fn missing_tenant_falls_back_to_claims_tenant() {
     let scope = auth().scope(&meta(Some("owner"), None)).await.unwrap();
@@ -122,6 +131,7 @@ async fn missing_tenant_falls_back_to_claims_tenant() {
     assert_eq!(scope.role(), RbacRole::Owner);
 }
 
+/// A non-admin may name its own tenant.
 #[tokio::test]
 async fn own_tenant_is_accepted() {
     let scope = auth()
@@ -131,6 +141,7 @@ async fn own_tenant_is_accepted() {
     assert_eq!(scope.acting_tenant(), "tenant-42");
 }
 
+/// A non-admin naming another tenant is PermissionDenied.
 #[tokio::test]
 async fn foreign_tenant_is_permission_denied_for_non_admin() {
     let err = auth()
@@ -140,6 +151,7 @@ async fn foreign_tenant_is_permission_denied_for_non_admin() {
     assert_eq!(err.code(), Code::PermissionDenied);
 }
 
+/// An Admin may act on any tenant.
 #[tokio::test]
 async fn admin_may_act_on_any_tenant() {
     let scope = auth()
@@ -150,6 +162,7 @@ async fn admin_may_act_on_any_tenant() {
     assert!(scope.is_admin());
 }
 
+/// A malformed tenant id is InvalidArgument, even for an Admin.
 #[tokio::test]
 async fn malformed_tenant_is_invalid_argument() {
     let err = auth()
@@ -157,26 +170,4 @@ async fn malformed_tenant_is_invalid_argument() {
         .await
         .unwrap_err();
     assert_eq!(err.code(), Code::InvalidArgument);
-}
-
-#[test]
-fn from_tenant_header_is_shared_core_rule() {
-    let owner = claims("tenant-42", RbacRole::Owner);
-    assert_eq!(
-        AccessScope::from_tenant_header(&owner, None)
-            .unwrap()
-            .acting_tenant(),
-        "tenant-42"
-    );
-    assert!(AccessScope::from_tenant_header(&owner, Some("tenant-42")).is_ok());
-    assert!(AccessScope::from_tenant_header(&owner, Some("other")).is_err());
-
-    let admin = claims("admin-tenant", RbacRole::Admin);
-    assert_eq!(
-        AccessScope::from_tenant_header(&admin, Some("other"))
-            .unwrap()
-            .acting_tenant(),
-        "other"
-    );
-    assert!(AccessScope::from_tenant_header(&admin, Some("bad!tenant@id")).is_err());
 }

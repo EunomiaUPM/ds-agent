@@ -15,6 +15,9 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! AuthHttpMiddleware and the AuthClaims and AccessScope extractors on an axum router, with a
+//! stub token validator.
+
 use std::sync::Arc;
 
 use axum::body::Body;
@@ -24,15 +27,17 @@ use axum::http::{HeaderMap, HeaderValue, StatusCode};
 use axum::response::IntoResponse;
 use axum::routing::get;
 use axum::{middleware, Json, Router};
-use common::auth::http::{AuthClaims, AuthHttpMiddleware};
-use common::auth::{AccessScope, Claims, OauthTokenValidator, Rbac, RbacRole};
 use tower::ServiceExt;
 use ymir::errors::{Errors, Outcome};
 
-struct MockValidator;
+use crate::auth::http::{AuthClaims, AuthHttpMiddleware};
+use crate::auth::{AccessScope, Claims, OauthTokenValidator, RbacRole};
+
+/// Accepts one admin and one owner token; anything else is unauthorized.
+struct StubValidator;
 
 #[async_trait::async_trait]
-impl OauthTokenValidator for MockValidator {
+impl OauthTokenValidator for StubValidator {
     async fn validate_token(&self, token: &str) -> Outcome<Claims> {
         match token {
             "valid_admin_token" => Ok(Claims {
@@ -52,8 +57,9 @@ impl OauthTokenValidator for MockValidator {
     }
 }
 
+/// The bearer is trimmed; a missing, non-bearer or blank header is rejected.
 #[tokio::test]
-async fn test_bearer_token_extraction() {
+async fn bearer_is_trimmed_and_non_bearer_rejected() {
     let mut headers = HeaderMap::new();
     headers.insert(
         AUTHORIZATION,
@@ -64,7 +70,6 @@ async fn test_bearer_token_extraction() {
         "secret_jwt_token"
     );
 
-    // Whitespace trimming
     let mut headers_ws = HeaderMap::new();
     headers_ws.insert(
         AUTHORIZATION,
@@ -75,11 +80,9 @@ async fn test_bearer_token_extraction() {
         "spaced_jwt"
     );
 
-    // Missing header
     let empty_headers = HeaderMap::new();
     assert!(AuthHttpMiddleware::bearer(&empty_headers).is_err());
 
-    // Non-bearer header
     let mut basic_headers = HeaderMap::new();
     basic_headers.insert(
         AUTHORIZATION,
@@ -87,15 +90,15 @@ async fn test_bearer_token_extraction() {
     );
     assert!(AuthHttpMiddleware::bearer(&basic_headers).is_err());
 
-    // Empty bearer token
     let mut blank_bearer = HeaderMap::new();
     blank_bearer.insert(AUTHORIZATION, HeaderValue::from_static("Bearer   "));
     assert!(AuthHttpMiddleware::bearer(&blank_bearer).is_err());
 }
 
+/// A valid token reaches the handler as AuthClaims; a bad or missing one is a 401.
 #[tokio::test]
-async fn test_auth_http_middleware_and_extractor_integration() {
-    let validator: Arc<dyn OauthTokenValidator> = Arc::new(MockValidator);
+async fn middleware_puts_claims_in_reach_of_handlers() {
+    let validator: Arc<dyn OauthTokenValidator> = Arc::new(StubValidator);
 
     async fn protected_handler(AuthClaims(claims): AuthClaims) -> impl IntoResponse {
         Json(serde_json::json!({
@@ -112,7 +115,6 @@ async fn test_auth_http_middleware_and_extractor_integration() {
             AuthHttpMiddleware::run,
         ));
 
-    // 1. Successful request with admin token
     let req = Request::builder()
         .uri("/protected")
         .header(AUTHORIZATION, "Bearer valid_admin_token")
@@ -129,7 +131,6 @@ async fn test_auth_http_middleware_and_extractor_integration() {
     assert_eq!(body["role"], "admin");
     assert_eq!(body["is_admin"], true);
 
-    // 2. Rejected request with invalid token
     let req_bad = Request::builder()
         .uri("/protected")
         .header(AUTHORIZATION, "Bearer invalid_token")
@@ -138,7 +139,6 @@ async fn test_auth_http_middleware_and_extractor_integration() {
     let resp_bad = app.clone().oneshot(req_bad).await.unwrap();
     assert_eq!(resp_bad.status(), StatusCode::UNAUTHORIZED);
 
-    // 3. Rejected request without authorization header
     let req_missing = Request::builder()
         .uri("/protected")
         .body(Body::empty())
@@ -147,178 +147,11 @@ async fn test_auth_http_middleware_and_extractor_integration() {
     assert_eq!(resp_missing.status(), StatusCode::UNAUTHORIZED);
 }
 
-#[test]
-fn test_access_scope_and_rbac_guards() {
-    let admin_claims = Claims {
-        sub: "admin-system".to_string(),
-        role: RbacRole::Admin,
-        iat: 100,
-        exp: 200,
-    };
-    let user_claims = Claims {
-        sub: "tenant-alpha".to_string(),
-        role: RbacRole::Owner,
-        iat: 100,
-        exp: 200,
-    };
-    let reader_claims = Claims {
-        sub: "tenant-alpha".to_string(),
-        role: RbacRole::Reader,
-        iat: 100,
-        exp: 200,
-    };
-
-    // Rbac checks
-    assert!(Rbac::require_admin(&admin_claims).is_ok());
-    assert!(Rbac::require_admin(&user_claims).is_err());
-
-    assert!(Rbac::require_read(&admin_claims, "any-tenant").is_ok());
-    assert!(Rbac::require_read(&user_claims, "tenant-alpha").is_ok());
-    assert!(Rbac::require_read(&user_claims, "tenant-beta").is_err());
-
-    assert!(Rbac::require_write(&admin_claims, "any-tenant").is_ok());
-    assert!(Rbac::require_write(&user_claims, "tenant-alpha").is_ok());
-    assert!(Rbac::require_write(&user_claims, "tenant-beta").is_err());
-    assert!(Rbac::require_write(&reader_claims, "tenant-alpha").is_err());
-
-    // AccessScope with &str
-    let admin_scope = AccessScope::for_read(&admin_claims, "foreign-tenant").unwrap();
-    assert_eq!(admin_scope.tenant_filter(), None);
-    assert!(admin_scope.permits("any-other-tenant"));
-
-    let user_scope = AccessScope::for_write(&user_claims, "tenant-alpha").unwrap();
-    assert_eq!(user_scope.tenant_filter(), Some("tenant-alpha"));
-    assert!(user_scope.permits("tenant-alpha"));
-    assert!(!user_scope.permits("tenant-beta"));
-}
-
-#[test]
-fn test_claims_and_roles_helpers() {
-    let role = RbacRole::Owner;
-    assert_eq!(role.as_str(), "owner");
-    assert!(!role.is_admin());
-    assert!(role.can_write());
-
-    let claims = Claims {
-        sub: "tenant-123".to_string(),
-        role: RbacRole::Admin,
-        iat: 1000,
-        exp: 2000,
-    };
-    assert_eq!(claims.tenant_id(), "tenant-123");
-    assert!(claims.is_admin());
-    assert!(!claims.is_expired(1500));
-    assert!(claims.is_expired(2500));
-}
-
-#[test]
-fn test_auth_validators_level1() {
-    let now = 1000;
-    let claims_val = common::auth::validators::AuthValidators::claims_validator_at(now);
-
-    let valid_claims = Claims {
-        sub: "tenant-42".to_string(),
-        role: RbacRole::Owner,
-        iat: 500,
-        exp: 1500,
-    };
-    assert!(claims_val.validate(&valid_claims).is_ok());
-
-    let empty_sub = Claims {
-        sub: "  ".to_string(),
-        role: RbacRole::Owner,
-        iat: 500,
-        exp: 1500,
-    };
-    let vs = claims_val.validate(&empty_sub).unwrap_err();
-    assert_eq!(vs.code(), Some(common::validation::codes::MISSING));
-
-    let expired = Claims {
-        sub: "tenant-42".to_string(),
-        role: RbacRole::Owner,
-        iat: 100,
-        exp: 900,
-    };
-    let vs = claims_val.validate(&expired).unwrap_err();
-    assert_eq!(vs.code(), Some(common::validation::codes::NOT_ALLOWED));
-
-    let tenant_val = common::auth::validators::AuthValidators::tenant_id_validator();
-    assert!(tenant_val.validate(&"valid-tenant.1".to_string()).is_ok());
-    assert!(tenant_val.validate(&"".to_string()).is_err());
-    assert!(tenant_val.validate(&"invalid/tenant#".to_string()).is_err());
-}
-
-#[test]
-fn test_service_level_authorization() {
-    let admin_scope = AccessScope::from_role(RbacRole::Admin, "system");
-    let owner_scope = AccessScope::from_role(RbacRole::Owner, "tenant-a");
-    let reader_scope = AccessScope::from_role(RbacRole::Reader, "tenant-a");
-
-    // Reads permitted for all valid authenticated scopes
-    assert!(admin_scope.require_read().is_ok());
-    assert!(owner_scope.require_read().is_ok());
-    assert!(reader_scope.require_read().is_ok());
-
-    // Writes rejected for reader role at the service layer
-    assert!(admin_scope.require_write().is_ok());
-    assert!(owner_scope.require_write().is_ok());
-    assert!(reader_scope.require_write().is_err());
-
-    // Tenant access boundary check
-    assert!(admin_scope.ensure_tenant_access("tenant-b").is_ok());
-    assert!(owner_scope.ensure_tenant_access("tenant-a").is_ok());
-    assert!(owner_scope.ensure_tenant_access("tenant-b").is_err());
-
-    // Composite tenant action checks
-    assert!(admin_scope.require_read_tenant("tenant-b").is_ok());
-    assert!(owner_scope.require_read_tenant("tenant-a").is_ok());
-    assert!(owner_scope.require_read_tenant("tenant-b").is_err());
-    assert!(admin_scope.require_write_tenant("tenant-b").is_ok());
-    assert!(owner_scope.require_write_tenant("tenant-a").is_ok());
-    assert!(owner_scope.require_write_tenant("tenant-b").is_err());
-    assert!(reader_scope.require_write_tenant("tenant-a").is_err());
-
-    // Creation tenant resolution
-    assert_eq!(
-        admin_scope.resolve_create_tenant(Some("tenant-b")).unwrap(),
-        "tenant-b"
-    );
-    assert_eq!(admin_scope.resolve_create_tenant(None).unwrap(), "system");
-    assert_eq!(
-        owner_scope.resolve_create_tenant(Some("tenant-b")).unwrap(),
-        "tenant-a"
-    );
-    assert_eq!(owner_scope.resolve_create_tenant(None).unwrap(), "tenant-a");
-    assert!(reader_scope.resolve_create_tenant(None).is_err());
-    assert!(reader_scope
-        .resolve_create_tenant(Some("tenant-a"))
-        .is_err());
-
-    // Query tenant resolution
-    assert_eq!(
-        admin_scope.resolve_query_tenant(Some("tenant-b")).unwrap(),
-        Some("tenant-b".to_string())
-    );
-    assert_eq!(admin_scope.resolve_query_tenant(None).unwrap(), None);
-    assert_eq!(
-        owner_scope.resolve_query_tenant(None).unwrap(),
-        Some("tenant-a".to_string())
-    );
-    assert_eq!(
-        owner_scope.resolve_query_tenant(Some("tenant-a")).unwrap(),
-        Some("tenant-a".to_string())
-    );
-    assert!(owner_scope.resolve_query_tenant(Some("tenant-b")).is_err());
-    assert_eq!(
-        reader_scope.resolve_query_tenant(None).unwrap(),
-        Some("tenant-a".to_string())
-    );
-    assert!(reader_scope.resolve_query_tenant(Some("tenant-b")).is_err());
-}
-
+/// The AccessScope extractor gives 403 for a foreign tenant unless Admin, and 400 for a
+/// malformed one.
 #[tokio::test]
-async fn test_access_scope_extractor_with_validator() {
-    let validator: Arc<dyn OauthTokenValidator> = Arc::new(MockValidator);
+async fn scope_extractor_enforces_the_tenant_header() {
+    let validator: Arc<dyn OauthTokenValidator> = Arc::new(StubValidator);
 
     async fn scope_handler(scope: AccessScope) -> impl IntoResponse {
         Json(serde_json::json!({
@@ -334,7 +167,6 @@ async fn test_access_scope_extractor_with_validator() {
             AuthHttpMiddleware::run,
         ));
 
-    // 1. User token with matching tenant header succeeds
     let req = Request::builder()
         .uri("/tenant-data")
         .header(AUTHORIZATION, "Bearer valid_user_token")
@@ -344,7 +176,6 @@ async fn test_access_scope_extractor_with_validator() {
     let resp = app.clone().oneshot(req).await.unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
 
-    // 2. User token with mismatching tenant header fails (403 Forbidden)
     let req_mismatch = Request::builder()
         .uri("/tenant-data")
         .header(AUTHORIZATION, "Bearer valid_user_token")
@@ -354,7 +185,6 @@ async fn test_access_scope_extractor_with_validator() {
     let resp_mismatch = app.clone().oneshot(req_mismatch).await.unwrap();
     assert_eq!(resp_mismatch.status(), StatusCode::FORBIDDEN);
 
-    // 3. Admin token can access foreign tenant
     let req_admin = Request::builder()
         .uri("/tenant-data")
         .header(AUTHORIZATION, "Bearer valid_admin_token")
@@ -364,7 +194,6 @@ async fn test_access_scope_extractor_with_validator() {
     let resp_admin = app.clone().oneshot(req_admin).await.unwrap();
     assert_eq!(resp_admin.status(), StatusCode::OK);
 
-    // 4. Invalid tenant format fails validation (400 Bad Request)
     let req_bad_tenant = Request::builder()
         .uri("/tenant-data")
         .header(AUTHORIZATION, "Bearer valid_admin_token")
@@ -375,11 +204,12 @@ async fn test_access_scope_extractor_with_validator() {
     assert_eq!(resp_bad_tenant.status(), StatusCode::BAD_REQUEST);
 }
 
+/// Tokens are also read from `token` and `access_token` query params, and permissive mode
+/// lets anonymous requests through.
 #[tokio::test]
-async fn test_auth_http_middleware_dual_token_and_modes() {
-    let validator: Arc<dyn OauthTokenValidator> = Arc::new(MockValidator);
+async fn query_tokens_and_permissive_mode_are_accepted() {
+    let validator: Arc<dyn OauthTokenValidator> = Arc::new(StubValidator);
 
-    // 1. Dual extraction: query param token
     let req_query = Request::builder()
         .uri("/data?token=valid_user_token")
         .body(Body::empty())
@@ -398,7 +228,6 @@ async fn test_auth_http_middleware_dual_token_and_modes() {
         Some("my_custom_token".to_string())
     );
 
-    // 2. Permissive mode: unauthenticated request proceeds without claims
     let permissive = AuthHttpMiddleware::permissive(Some(validator.clone()));
     let app_permissive = Router::new()
         .route(

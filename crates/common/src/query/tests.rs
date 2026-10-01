@@ -15,10 +15,13 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! QuerySpec deserialization and the DateRange invariant, with a sample filter.
+
 use chrono::{Duration, Utc};
-use common::query::{validate_date_range, DateRange, Page, QueryFilter, QuerySpec, Sort};
 use serde::{Deserialize, Serialize};
 use ymir::errors::Outcome;
+
+use crate::query::{validate_date_range, DateRange, Page, QueryFilter, QuerySpec, Sort};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 struct DummyFilter {
@@ -34,8 +37,9 @@ impl QueryFilter for DummyFilter {
     }
 }
 
+/// Filter, page and sort are read from one flat JSON object.
 #[test]
-fn test_query_spec_serde_json_flat() {
+fn query_spec_reads_flat_json() {
     let json = r#"{
         "tenant_id": "tenant-1",
         "status": "ACTIVE",
@@ -53,8 +57,9 @@ fn test_query_spec_serde_json_flat() {
     assert_eq!(spec.sort, Sort::CreatedAtAsc);
 }
 
+/// Query strings deserialize too, and an unknown sort falls back to `Sort::Other`.
 #[test]
-fn test_query_spec_serde_urlencoded() {
+fn query_spec_reads_query_strings() {
     let qs = "limit=10&sort=created_at_desc";
     let spec: QuerySpec<DummyFilter, Sort> =
         serde_urlencoded::from_str(qs).expect("should deserialize urlencoded query string");
@@ -77,8 +82,9 @@ fn test_query_spec_serde_urlencoded() {
     assert_eq!(spec3.sort, Sort::Other);
 }
 
+/// `into_parts` hands back the filter, page and sort it was built with.
 #[test]
-fn test_query_spec_into_parts() {
+fn into_parts_returns_filter_page_and_sort() {
     let spec = QuerySpec::new(
         DummyFilter {
             tenant_id: Some("t1".into()),
@@ -95,15 +101,13 @@ fn test_query_spec_into_parts() {
     assert_eq!(sort, Sort::CreatedAtDesc);
 }
 
+/// `after` must be strictly earlier than `before`, alone and inside a QuerySpec.
 #[test]
-fn test_date_range_invariants() {
+fn date_range_requires_after_before_before() {
     let now = Utc::now();
     let past = now - Duration::hours(1);
 
-    // Valid: after is before before
     assert!(validate_date_range(Some(past), Some(now)).is_ok());
-
-    // Invalid: after is equal to or later than before
     assert!(validate_date_range(Some(now), Some(past)).is_err());
     assert!(validate_date_range(Some(now), Some(now)).is_err());
 

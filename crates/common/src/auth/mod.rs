@@ -173,3 +173,6 @@ pub use validators::AuthValidators;
 pub const AUTHORIZATION_HEADER: &str = "authorization";
 /// Header / metadata key selecting the tenant the caller acts on.
 pub const TENANT_HEADER: &str = "x-tenant-id";
+
+#[cfg(test)]
+mod tests;

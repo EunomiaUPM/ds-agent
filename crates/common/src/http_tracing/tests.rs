@@ -15,13 +15,13 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! The HTTP server span continues the caller's W3C trace and names itself by route.
+//! The HTTP tracing layer with an in-memory span exporter. It sets the global W3C propagator,
+//! the same one production installs, and keeps its subscriber thread-local.
 
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
 use axum::routing::get;
 use axum::Router;
-use common::http_tracing::HttpTracing;
 use opentelemetry::global;
 use opentelemetry::trace::{SpanKind, TracerProvider as _};
 use opentelemetry_sdk::propagation::TraceContextPropagator;
@@ -29,9 +29,12 @@ use opentelemetry_sdk::trace::{InMemorySpanExporter, SdkTracerProvider};
 use tower::ServiceExt;
 use tracing_subscriber::layer::SubscriberExt;
 
+use crate::http_tracing::HttpTracing;
+
 const TRACE_ID: &str = "4bf92f3577b34da6a3ce929d0e0e4736";
 const PARENT_ID: &str = "00f067aa0ba902b7";
 
+/// The server span continues the caller's W3C trace and is named after the route.
 #[tokio::test]
 async fn server_span_joins_incoming_traceparent() {
     global::set_text_map_propagator(TraceContextPropagator::new());

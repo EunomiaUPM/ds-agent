@@ -33,7 +33,7 @@ use ymir::config::traits::HostsConfigTrait;
 use ymir::config::types::HostType;
 
 #[derive(Clone)]
-pub(crate) struct AppContext {
+pub struct AppContext {
     pub config: Arc<CatalogConfig>,
     pub template_svc: Arc<dyn ConnectorTemplateServiceTrait>,
     pub instance_svc: Arc<dyn ConnectorInstanceServiceTrait>,

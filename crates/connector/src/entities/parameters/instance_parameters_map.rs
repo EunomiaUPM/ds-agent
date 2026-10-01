@@ -24,7 +24,7 @@ use serde_json::json;
 use std::collections::HashMap;
 use ymir::errors::{Errors, Outcome};
 
-pub(crate) struct InstanceParametersMap {
+pub struct InstanceParametersMap {
     inner: HashMap<String, serde_json::Value>,
 }
 

@@ -20,7 +20,7 @@ use crate::data::entities::connector_instances::NewConnectorInstanceModel;
 use ymir::errors::Outcome;
 
 /// Persistence of connector instances.
-#[cfg_attr(test, mockall::automock)]
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait ConnectorInstanceRepoTrait: Send + Sync {
     async fn create_instance(

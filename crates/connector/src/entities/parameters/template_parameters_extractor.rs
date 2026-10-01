@@ -28,6 +28,12 @@ pub struct TemplateParametersExtractor {
     regex_fn: fn() -> &'static regex::Regex,
 }
 
+impl Default for TemplateParametersExtractor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TemplateParametersExtractor {
     pub fn new() -> Self {
         Self {

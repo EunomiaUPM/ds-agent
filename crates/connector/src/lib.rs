@@ -24,14 +24,14 @@
 //! [`ConnectorInstanceFacadeTrait`], in-process or over HTTP. The DSL is described in `DESIGN.md`.
 //!
 //! Modules: [`entities`] (templates, instances, auth and interaction config), [`services`],
-//! [`facades`], `data`, `http`, `setup`.
+//! [`facades`], [`data`], [`http`], [`setup`].
 
-pub(crate) mod data;
+pub mod data;
 pub mod entities;
 pub mod facades;
-pub(crate) mod http;
+pub mod http;
 pub mod services;
-pub(crate) mod setup;
+pub mod setup;
 
 /// Domain name of the connector's events.
 pub const EVENT_DOMAIN: &str = "connector";

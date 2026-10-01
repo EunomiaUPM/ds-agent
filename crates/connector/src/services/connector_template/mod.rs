@@ -17,7 +17,7 @@
 
 //! Connector template use cases: CRUD over reusable, parameterised blueprints.
 
-pub(crate) mod service;
+pub mod service;
 
 use crate::entities::connector_template::ConnectorTemplateDto;
 use crate::entities::filters::ConnectorTemplateFilter;
@@ -26,7 +26,7 @@ use common::paginated_spec::{Page, Paginated, Sort};
 use ymir::errors::Outcome;
 
 /// Service interface for connector template CRUD operations.
-#[cfg_attr(test, mockall::automock)]
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait ConnectorTemplateServiceTrait: Send + Sync {
     /// Page of templates matching the filters.

@@ -20,7 +20,7 @@
 use ymir::errors::Outcome;
 
 /// Served in-process by the catalog agent, which always hosts the connector.
-#[cfg_attr(test, mockall::automock)]
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait CatalogFacadeTrait: Send + Sync {
     /// Fails unless the catalog holds the distribution within `tenant_id`.

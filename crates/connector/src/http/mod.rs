@@ -15,5 +15,5 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod connector_instance;
-pub(crate) mod connector_template;
+pub mod connector_instance;
+pub mod connector_template;

@@ -17,7 +17,7 @@
 
 //! Connector instance use cases: resolve templates against parameters and persist.
 
-pub(crate) mod service;
+pub mod service;
 
 use crate::entities::connector_instance::{ConnectorInstanceDto, ConnectorInstantiationDto};
 use common::auth::AccessScope;
@@ -25,7 +25,7 @@ use urn::Urn;
 use ymir::errors::Outcome;
 
 /// Service interface for connector instance operations.
-#[cfg_attr(test, mockall::automock)]
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait ConnectorInstanceServiceTrait: Send + Sync {
     /// Instance `id` visible to the caller, or `None`.

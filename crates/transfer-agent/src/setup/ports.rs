@@ -45,18 +45,18 @@ use crate::protocols::dsp::facades::negotiation_facade::remote::NegotiationRemot
 /// Ports the transfer agent consumes: auth, negotiation, catalog and its dataplane.
 #[derive(Clone)]
 pub struct TransferPorts {
-    pub(crate) auth: AuthPorts,
-    pub(crate) negotiation: Arc<dyn NegotiationFacadeTrait>,
-    pub(crate) catalog: Arc<dyn CatalogFacadeTrait>,
-    pub(crate) dataplane: DataplanePort,
+    pub auth: AuthPorts,
+    pub negotiation: Arc<dyn NegotiationFacadeTrait>,
+    pub catalog: Arc<dyn CatalogFacadeTrait>,
+    pub dataplane: DataplanePort,
 }
 
 /// The composed dataplane: the facade the DSP pipeline drives over its manager, and the
 /// module transfer registers to serve its routes.
 #[derive(Clone)]
-pub(crate) struct DataplanePort {
-    pub(crate) facade: Arc<dyn DataPlaneFacadeTrait>,
-    pub(crate) module: DataplaneModule,
+pub struct DataplanePort {
+    pub facade: Arc<dyn DataPlaneFacadeTrait>,
+    pub module: DataplaneModule,
 }
 
 impl TransferPorts {

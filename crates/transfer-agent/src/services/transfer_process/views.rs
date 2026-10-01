@@ -28,7 +28,7 @@ use std::collections::HashMap;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct TransferProcessView {
+pub struct TransferProcessView {
     pub id: TransferProcessId,
     pub tenant_id: String,
     pub role: TransferRole,
@@ -44,7 +44,7 @@ pub(crate) struct TransferProcessView {
 }
 
 impl TransferProcessView {
-    pub(crate) fn assemble(
+    pub fn assemble(
         process: TransferProcess,
         extra_identifiers: HashMap<String, String>,
     ) -> Self {

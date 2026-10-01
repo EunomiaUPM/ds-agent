@@ -37,7 +37,7 @@ pub struct Model {
 
 #[allow(clippy::result_large_err)]
 impl Model {
-    pub(crate) fn into_domain(self) -> Outcome<TransferProcessIdentifier> {
+    pub fn into_domain(self) -> Outcome<TransferProcessIdentifier> {
         let process_id = parse_urn(&self.transfer_process_id)?;
         Ok(TransferProcessIdentifier {
             tenant_id: self.tenant_id,
@@ -49,7 +49,7 @@ impl Model {
 }
 
 impl ActiveModel {
-    pub(crate) fn from_domain(process_id: &Urn, ident: &TransferProcessIdentifier) -> Self {
+    pub fn from_domain(process_id: &Urn, ident: &TransferProcessIdentifier) -> Self {
         Self {
             tenant_id: Set(ident.tenant_id.clone()),
             transfer_process_id: Set(process_id.to_string()),

@@ -24,7 +24,7 @@ use common::module_loader::service_module::ServiceModuleTrait;
 
 const DSP_BASE_PATH: &str = "/dsp/current/transfers";
 
-pub(crate) struct DspModule {
+pub struct DspModule {
     ctx: Arc<AppContext>,
 }
 

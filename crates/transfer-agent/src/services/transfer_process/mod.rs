@@ -24,14 +24,14 @@ use common::query::{Page, Paginated, Sort};
 use urn::Urn;
 use ymir::errors::Outcome;
 
-pub(crate) mod service;
+pub mod service;
 #[cfg(test)]
 mod tests;
-pub(crate) mod views;
+pub mod views;
 
-#[cfg_attr(test, mockall::automock)]
+#[mockall::automock]
 #[async_trait::async_trait]
-pub(crate) trait TransferProcessServiceTrait: Send + Sync + 'static {
+pub trait TransferProcessServiceTrait: Send + Sync + 'static {
     async fn get_all(
         &self,
         scope: &AccessScope,

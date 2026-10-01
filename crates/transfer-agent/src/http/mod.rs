@@ -19,13 +19,13 @@ use axum::Router;
 use common::auth::OauthTokenValidator;
 use std::sync::Arc;
 
-pub(crate) mod transfer_message_router;
-pub(crate) mod transfer_process_router;
+pub mod transfer_message_router;
+pub mod transfer_process_router;
 
-pub(crate) struct TransferHttpRouter;
+pub struct TransferHttpRouter;
 
 impl TransferHttpRouter {
-    pub(crate) fn build(
+    pub fn build(
         process_router: Router,
         message_router: Router,
         validator: Arc<dyn OauthTokenValidator>,

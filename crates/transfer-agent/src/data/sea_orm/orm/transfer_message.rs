@@ -46,7 +46,7 @@ pub struct Model {
 
 #[allow(clippy::result_large_err)]
 impl Model {
-    pub(crate) fn into_domain(self) -> Outcome<TransferMessage> {
+    pub fn into_domain(self) -> Outcome<TransferMessage> {
         use crate::entities::ids::TransferProcessId;
 
         let id = MessageId::new(parse_urn(&self.id)?);
@@ -74,7 +74,7 @@ impl Model {
 }
 
 impl ActiveModel {
-    pub(crate) fn from_domain(msg: &TransferMessage) -> Self {
+    pub fn from_domain(msg: &TransferMessage) -> Self {
         Self {
             id: Set(msg.id().to_string()),
             transfer_process_id: Set(msg.transfer_process_id().to_string()),

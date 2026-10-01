@@ -27,7 +27,7 @@ use crate::data::repo::transfer_process_identifier::{
 use crate::data::sea_orm::orm::transfer_identifier as orm;
 use crate::entities::transfer_process_identifier::TransferProcessIdentifier;
 
-pub(crate) struct SeaOrmTransferIdentifierRepo {
+pub struct SeaOrmTransferIdentifierRepo {
     db: Arc<DatabaseConnection>,
 }
 

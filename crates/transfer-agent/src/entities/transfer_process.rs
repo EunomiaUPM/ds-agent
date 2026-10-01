@@ -25,7 +25,7 @@ use common::utils::json_merge;
 
 /// TransferProcess domain entity
 #[derive(Debug, Clone)]
-pub(crate) struct TransferProcess {
+pub struct TransferProcess {
     // Common
     transfer_id: TransferProcessId,
     tenant_id: String,
@@ -73,10 +73,10 @@ impl TransferProcess {
     }
 
     /// TransferProcess entity constructor from arguments
-    /// Is same as having all pub(crate) in struct definition
+    /// Is same as having all pub in struct definition
     /// But protecting version
     #[allow(clippy::too_many_arguments)]
-    pub(crate) fn rehydrate(
+    pub fn rehydrate(
         transfer_id: TransferProcessId,
         tenant_id: String,
         role: TransferRole,

@@ -23,8 +23,8 @@
 //! [`setup::TransferAgentModule`] composes it into a larger process and [`setup::TransferBoot`]
 //! runs it as its own service. Its events use the `transfers:` prefix.
 //!
-//! Modules: [`entities`], [`protocols`] (DSP), [`setup`], and the internal `services`, `data`,
-//! `http` and `grpc`.
+//! Modules: [`entities`], [`protocols`] (DSP), [`services`], [`data`], [`http`], [`grpc`],
+//! [`setup`].
 
 /// Service id used in logs and telemetry.
 pub const SERVICE_NAME: &str = "transfer-agent-ref";
@@ -35,10 +35,10 @@ pub const EVENT_DOMAIN: &str = "transfers";
 /// Topic prefix of the transfer events.
 pub const EVENT_PREFIX: &str = "transfers:";
 
-mod data;
+pub mod data;
 pub mod entities;
-mod grpc;
-mod http;
+pub mod grpc;
+pub mod http;
 pub mod protocols;
-mod services;
+pub mod services;
 pub mod setup;

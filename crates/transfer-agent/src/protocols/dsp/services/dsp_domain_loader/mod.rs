@@ -26,7 +26,7 @@ use ymir::errors::Outcome;
 pub mod dsp_domain_loader;
 
 /// Facts the domain loader needs from other agents.
-#[cfg_attr(test, mockall::automock)]
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait DspDomainLoaderTrait: Send + Sync {
     /// Agreement named by the message.

@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod factory;
-pub(crate) mod migrations;
-pub(crate) mod orm;
-pub(crate) mod repos;
+pub mod factory;
+pub mod migrations;
+pub mod orm;
+pub mod repos;

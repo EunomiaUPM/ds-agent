@@ -30,7 +30,7 @@ use urn::Urn;
 /// CommandType for creating a new `TransferProcess`
 #[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct NewTransferProcessCommand {
+pub struct NewTransferProcessCommand {
     pub id: Option<TransferProcessId>,
     pub tenant_id: Option<String>,
     pub role: TransferRole,
@@ -49,7 +49,7 @@ pub(crate) struct NewTransferProcessCommand {
 /// CommandType for editing a new `TransferProcess`
 #[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct EditTransferProcessCommand {
+pub struct EditTransferProcessCommand {
     pub state: Option<ProtocolState>,
     pub state_metadata: Option<StateMetadata>,
     pub identifiers: Option<HashMap<String, String>>,
@@ -60,7 +60,7 @@ pub(crate) struct EditTransferProcessCommand {
 /// CommandType for creating a new `TransferMessage`
 #[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct NewTransferMessageCommand {
+pub struct NewTransferMessageCommand {
     pub id: Option<MessageId>,
     pub transfer_process_id: TransferProcessId,
     pub tenant_id: Option<String>,

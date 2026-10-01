@@ -29,7 +29,7 @@ use crate::entities::filters::TransferMessageFilter;
 use crate::services::transfer_message::TransferMessageServiceTrait;
 use crate::services::transfer_message::views::TransferMessageView;
 
-pub(crate) struct TransferMessageService {
+pub struct TransferMessageService {
     message_repo: Arc<dyn TransferMessageRepoTrait>,
     event_bus: Option<events::EventBus>,
 }

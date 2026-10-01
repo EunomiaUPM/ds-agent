@@ -42,7 +42,7 @@ pub struct TransferAdminModule {
 }
 
 impl TransferAdminModule {
-    pub(crate) fn new(ctx: Arc<AppContext>) -> Self {
+    pub fn new(ctx: Arc<AppContext>) -> Self {
         Self { ctx }
     }
 

@@ -97,7 +97,7 @@ pub enum IdempotencyVerdict {
 
 /// Storage of idempotency records.
 #[allow(dead_code)]
-#[cfg_attr(test, mockall::automock)]
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait IdempotencyStoreTrait: Send + Sync {
     async fn get_idempotency_record(

@@ -26,7 +26,7 @@ use sha2::{Digest, Sha256};
 /// of the inbound or outbound messages, its URDNA2015 graph representation and a sha digest
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase", try_from = "MessageEnvelopeInput")]
-pub(crate) struct MessageEnvelope {
+pub struct MessageEnvelope {
     /// URDNA2015 canonical form (N-Quads text) for DSP JSON-LD messages; None for non-RDF
     /// protocols.
     pub canonical_form: Option<String>,
@@ -39,7 +39,7 @@ pub(crate) struct MessageEnvelope {
 impl MessageEnvelope {
     /// The canonical pair is present only for RDF protocols; plain-JSON ones
     /// have no canonical form to record.
-    pub(crate) fn new(payload: Json, canonical: Option<(String, [u8; 32])>) -> Self {
+    pub fn new(payload: Json, canonical: Option<(String, [u8; 32])>) -> Self {
         let (canonical_form, canonical_hash) = match canonical {
             Some((form, hash)) => (Some(form), Some(hash)),
             None => (None, None),
@@ -52,7 +52,7 @@ impl MessageEnvelope {
     }
 
     /// Builds an envelope hashing the canonical form (SHA-256) when one is given.
-    pub(crate) fn from_canonical(payload: Json, canonical_form: Option<String>) -> Self {
+    pub fn from_canonical(payload: Json, canonical_form: Option<String>) -> Self {
         let canonical = canonical_form.map(|form| {
             let hash: [u8; 32] = Sha256::digest(form.as_bytes()).into();
             (form, hash)
@@ -65,7 +65,7 @@ impl MessageEnvelope {
 /// Matches the serialized form produced by the `serialize_with` helpers.
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct MessageEnvelopeInput {
+pub struct MessageEnvelopeInput {
     #[serde(default)]
     canonical_form: Option<String>,
     #[serde(default)]

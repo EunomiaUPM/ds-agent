@@ -17,8 +17,8 @@
 
 //! gRPC driving adapter: generated API plus one handler module per resource.
 
-pub(crate) mod transfer_messages;
-pub(crate) mod transfer_process;
+pub mod transfer_messages;
+pub mod transfer_process;
 
 /// Generated protobuf/tonic code and the reflection descriptor set.
 pub mod api {

@@ -27,7 +27,7 @@ use crate::data::sea_orm::repos::transfer_identifier::SeaOrmTransferIdentifierRe
 use crate::data::sea_orm::repos::transfer_message::SeaOrmTransferMessageRepo;
 use crate::data::sea_orm::repos::transfer_process::SeaOrmTransferProcessRepo;
 
-pub(crate) struct SeaOrmDataFactory {
+pub struct SeaOrmDataFactory {
     db: Arc<DatabaseConnection>,
 }
 

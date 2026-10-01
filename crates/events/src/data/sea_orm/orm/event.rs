@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! `events` table.
+
 use std::str::FromStr;
 
 use chrono::{DateTime, Utc};
@@ -26,6 +28,7 @@ use ymir::errors::{Errors, Outcome};
 use crate::entities::envelope::EventEnvelope;
 use crate::entities::topic::Topic;
 
+/// `events` row.
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
 #[sea_orm(table_name = "events")]
 pub struct Model {
@@ -57,7 +60,6 @@ impl Related<super::delivery::Entity> for Entity {
 impl ActiveModelBehavior for ActiveModel {}
 
 impl Model {
-    // Map SeaORM model to pure domain EventEnvelope entity.
     pub fn into_domain(self) -> Outcome<EventEnvelope> {
         let topic = Topic::new(self.topic)
             .map_err(|e| Errors::db(format!("invalid event topic: {e}"), None))?;
@@ -80,7 +82,6 @@ impl Model {
 }
 
 impl ActiveModel {
-    // Construct SeaORM ActiveModel from domain EventEnvelope entity.
     pub fn from_domain(entity: &EventEnvelope) -> Self {
         Self {
             id: ActiveValue::Set(entity.id.to_string()),

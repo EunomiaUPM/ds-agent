@@ -31,6 +31,7 @@ pub struct BffModule {
 }
 
 impl BffModule {
+    /// Builds the gateway on the shared root context.
     pub fn compose(config: &GatewayConfig, root: &RootContext) -> Self {
         Self::new(Arc::new(AppContext::build(config, root)))
     }

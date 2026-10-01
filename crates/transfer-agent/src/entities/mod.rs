@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Protocol-neutral process fields.
+
 pub(crate) mod commands;
 pub(crate) mod filters;
 pub(crate) mod ids;

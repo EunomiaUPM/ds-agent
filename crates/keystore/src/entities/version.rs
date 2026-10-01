@@ -15,8 +15,11 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Entry versions for optimistic concurrency.
+
 use serde::{Deserialize, Serialize};
 
+/// Version of an entry, starting at 1 and bumped on every update.
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 pub struct Version(u64);
 
@@ -28,6 +31,7 @@ impl Version {
     pub fn value(self) -> u64 {
         self.0
     }
+    /// The version an update produces.
     pub fn next(self) -> Self {
         Version(self.0 + 1)
     }

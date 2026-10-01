@@ -20,14 +20,14 @@
 
 use crate::validation::violation::Violations;
 
+/// One pure check over a subject.
 pub trait Rule<S>: Send + Sync {
+    /// `Ok` or every violation found.
     fn check(&self, subject: &S) -> Result<(), Violations>;
 }
 
-/// Any function of the right shape is a rule, with no wrapper.
-///
-/// There is deliberately only one such impl: a second one over a different `Fn`
-/// signature cannot be proven disjoint and the compiler rejects it.
+/// Any function of the right shape is a rule. Only one such impl is possible: a second `Fn`
+/// signature cannot be proven disjoint.
 impl<S, F> Rule<S> for F
 where
     F: Fn(&S) -> Result<(), Violations> + Send + Sync,

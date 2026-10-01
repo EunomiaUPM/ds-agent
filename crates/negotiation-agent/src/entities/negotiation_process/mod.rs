@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Negotiation processes.
+
 use crate::data::entities::negotiation_process::{
     EditNegotiationProcessModel, NewNegotiationProcessModel,
 };
@@ -22,6 +24,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use urn::Urn;
 
+/// New negotiation process with its identifiers.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
@@ -39,6 +42,7 @@ pub struct NewNegotiationProcessDto {
     pub identifiers: Option<HashMap<String, String>>,
 }
 
+/// Partial process update.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
@@ -51,6 +55,7 @@ pub struct EditNegotiationProcessDto {
 }
 
 impl NewNegotiationProcessDto {
+    /// Row for `tenant_id`.
     pub fn into_model(self, tenant_id: String) -> NewNegotiationProcessModel {
         NewNegotiationProcessModel {
             id: self.id,

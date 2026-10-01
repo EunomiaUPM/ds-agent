@@ -37,9 +37,13 @@ pub(crate) mod protocols;
 pub mod services;
 pub mod setup;
 
+/// Service id used in logs and telemetry.
 pub const SERVICE_NAME: &str = "catalog-agent";
+/// Name shown in the boot banner.
 pub const SERVICE_BIG_NAME: &str = "Catalog Agent";
+/// Domain name of the catalog events.
 pub const EVENT_DOMAIN: &str = "catalog";
+/// Topic prefix of the catalog events.
 pub const EVENT_PREFIX: &str = "catalog:";
 
 pub use data::migrations::get_catalog_migrations;

@@ -201,10 +201,6 @@ impl<'a> ConnectorTemplateWalker for InstanceParametersResolver<'a> {
     }
 }
 
-// =============================================================================
-// Tests
-// =============================================================================
-
 #[cfg(test)]
 mod tests {
     use super::super::TemplateMapString;
@@ -218,10 +214,6 @@ mod tests {
     use crate::{AuthenticationConfig, ProtocolSpec};
     use serde_json::json;
     use std::collections::HashMap;
-
-    // =========================================================================
-    // Helpers
-    // =========================================================================
 
     fn pull_http(url: &str) -> ConnectorTemplateDto {
         ConnectorTemplateDto {
@@ -263,10 +255,6 @@ mod tests {
             _ => panic!("expected Pull"),
         }
     }
-
-    // =========================================================================
-    // HTTP interaction
-    // =========================================================================
 
     #[test]
     fn resolves_url_template() {
@@ -344,10 +332,6 @@ mod tests {
         }
     }
 
-    // =========================================================================
-    // Kafka interaction
-    // =========================================================================
-
     #[test]
     fn resolves_kafka_topic() {
         let template = ConnectorTemplateDto {
@@ -370,10 +354,6 @@ mod tests {
             _ => panic!(),
         }
     }
-
-    // =========================================================================
-    // Authentication
-    // =========================================================================
 
     #[test]
     fn resolves_basic_auth_username() {
@@ -450,10 +430,6 @@ mod tests {
         }
     }
 
-    // =========================================================================
-    // No-op cases
-    // =========================================================================
-
     #[test]
     fn leaves_literal_fields_unchanged() {
         let url = "https://api.example.com/data";
@@ -471,10 +447,6 @@ mod tests {
             "https://api.example.com/{{__MISSING__}}"
         );
     }
-
-    // =========================================================================
-    // Push lifecycle
-    // =========================================================================
 
     #[test]
     fn resolves_push_subscribe_and_unsubscribe() {

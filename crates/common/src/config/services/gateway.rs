@@ -25,6 +25,7 @@ use crate::config::services::CommonConfig;
 use crate::config::types::min_known_config::MinKnownConfig;
 use crate::config::types::traits::{CommonConfigTrait, ConfigLoader};
 
+/// `gateway` section: BFF gateway config.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct GatewayConfig {
     common: CommonConfig,

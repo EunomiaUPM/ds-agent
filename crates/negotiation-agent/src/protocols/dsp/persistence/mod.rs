@@ -25,7 +25,6 @@ use crate::services::offer::views::OfferView;
 use common::dsp_common::DspActor;
 use ymir::errors::Outcome;
 
-// Design notes ─────────────────────────────────────────────────────────────
 //
 // This module provides the persistence abstraction for the **RPC orchestrator**
 // (outbound, Consumer- or Provider-initiated messages).
@@ -44,8 +43,6 @@ use ymir::errors::Outcome;
 // Direction symmetry mirrors the transfer agent:
 //   INBOUND  (protocol) - peer sent the message; local agent responds
 //   OUTBOUND (RPC)      - local agent initiates; peer acknowledges
-
-// Trait ────────────────────────────────────────────────────────────────────
 
 /// Persistence contract for the outbound DSP negotiation RPC path.
 ///

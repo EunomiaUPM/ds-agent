@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Dead letter queue repository.
+
 use async_trait::async_trait;
 use thiserror::Error;
 use ymir::errors::{Outcome, RepoIntoErrors};
@@ -23,7 +25,7 @@ use crate::entities::dead_letter::DeadLetterRecord;
 use crate::entities::queries::DeadLetterFilter;
 use common::paginated_spec::{Page, Sort};
 
-// Repository errors encountered during Dead Letter Queue operations.
+/// Failures of the dead letter repository, mapped onto `Errors`.
 #[derive(Debug, Error)]
 pub enum DlqRepoError {
     #[error("Database error: {0}")]
@@ -35,7 +37,7 @@ pub enum DlqRepoError {
 
 impl RepoIntoErrors for DlqRepoError {}
 
-// Repository interface for Dead Letter Queue persistence and re-drive.
+/// Persistence of deliveries that gave up, until they are replayed or purged.
 #[async_trait]
 pub trait EventDeadLetterRepo: Send + Sync + 'static {
     async fn create_dead_letter(&self, record: &DeadLetterRecord) -> Outcome<DeadLetterRecord>;
@@ -45,6 +47,7 @@ pub trait EventDeadLetterRepo: Send + Sync + 'static {
         tenant_id: Option<String>,
         id: &str,
     ) -> Outcome<Option<DeadLetterRecord>>;
+    /// Page of dead letters; `tenant_id` of `None` lists every tenant.
     async fn list_dead_letters(
         &self,
         tenant_id: Option<String>,
@@ -52,6 +55,7 @@ pub trait EventDeadLetterRepo: Send + Sync + 'static {
         page: &Page,
         sort: &Sort,
     ) -> Outcome<(Vec<DeadLetterRecord>, u64)>;
+    /// Marks the dead letter as replayed once a new delivery is queued.
     async fn mark_replayed(&self, tenant_id: &str, id: &str) -> Outcome<()>;
     async fn delete_dead_letter(&self, tenant_id: Option<String>, id: &str) -> Outcome<()>;
 }

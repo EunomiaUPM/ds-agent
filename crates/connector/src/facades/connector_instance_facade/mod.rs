@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Connector instances offered to other agents.
+
 use crate::entities::connector_instance::ConnectorInstanceDto;
 use urn::Urn;
 use ymir::errors::Outcome;
@@ -26,12 +28,14 @@ pub mod remote;
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait ConnectorInstanceFacadeTrait: Send + Sync {
+    /// Instance `id` of the tenant, or `None`.
     async fn get_instance_by_id(
         &self,
         tenant_id: &str,
         id: &Urn,
     ) -> Outcome<Option<ConnectorInstanceDto>>;
 
+    /// Instance linked to the distribution, or `None`.
     async fn get_instance_by_distribution(
         &self,
         tenant_id: &str,

@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! PAT service over the repository.
+
 use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
@@ -32,6 +34,7 @@ use crate::entities::role::RbacRole;
 use crate::services::pat_service::PatServiceTrait;
 use crate::services::pat_service::views::{CreatePatResponse, PatView};
 
+/// PAT service over a repository, emitting `oauth:` events when a bus is set.
 pub struct PatService {
     pat_repo: Arc<dyn PatRepository>,
     event_bus: Option<events::EventBus>,
@@ -45,6 +48,7 @@ impl PatService {
         }
     }
 
+    /// Publishes create and delete events on `event_bus`.
     pub fn with_event_bus(mut self, event_bus: Option<events::EventBus>) -> Self {
         self.event_bus = event_bus;
         self

@@ -26,9 +26,13 @@
 //! Modules: [`entities`], [`protocols`] (DSP), [`setup`], and the internal `services`, `data`,
 //! `http` and `grpc`.
 
+/// Service id used in logs and telemetry.
 pub const SERVICE_NAME: &str = "transfer-agent-ref";
+/// Name shown in the boot banner.
 pub const SERVICE_BIG_NAME: &str = "Transfer Agent Ref";
+/// Domain name of the transfer events.
 pub const EVENT_DOMAIN: &str = "transfers";
+/// Topic prefix of the transfer events.
 pub const EVENT_PREFIX: &str = "transfers:";
 
 mod data;

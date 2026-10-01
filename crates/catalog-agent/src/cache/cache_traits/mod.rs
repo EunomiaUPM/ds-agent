@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Cache traits beyond the shared entity cache.
+
 use crate::CatalogDto;
 use urn::Urn;
 

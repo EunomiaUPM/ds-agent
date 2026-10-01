@@ -15,4 +15,6 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! DSP transfer process: messages, contexts, validation and its pipeline.
+
 pub mod dsp;

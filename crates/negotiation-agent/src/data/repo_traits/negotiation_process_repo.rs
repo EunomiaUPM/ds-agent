@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Process repository.
+
 use crate::data::entities::negotiation_process;
 use crate::data::entities::negotiation_process::{
     EditNegotiationProcessModel, NewNegotiationProcessModel,
@@ -26,9 +28,11 @@ use urn::Urn;
 use ymir::errors::Outcome;
 use ymir::errors::RepoIntoErrors;
 
+/// Persistence of negotiation processes; `tenant_id` of `None` reaches every tenant.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait NegotiationProcessRepoTrait: Send + Sync {
+    /// Page of processes matching the filters.
     async fn get_all_negotiation_processes(
         &self,
         filters: &NegotiationProcessFilter,
@@ -45,12 +49,14 @@ pub trait NegotiationProcessRepoTrait: Send + Sync {
         tenant_id: Option<String>,
         id: &Urn,
     ) -> Outcome<Option<negotiation_process::Model>>;
+    /// Process whose identifier under `key_id` equals `id`.
     async fn get_negotiation_process_by_key_id(
         &self,
         tenant_id: Option<String>,
         key_id: &str,
         id: &Urn,
     ) -> Outcome<Option<negotiation_process::Model>>;
+    /// Process whose own id or any identifier equals `id`.
     async fn get_negotiation_process_by_key_value(
         &self,
         tenant_id: Option<String>,
@@ -74,6 +80,7 @@ pub trait NegotiationProcessRepoTrait: Send + Sync {
     ) -> Outcome<String>;
 }
 
+/// Failures of the process repository, mapped onto `Errors`.
 #[derive(Debug, Error)]
 pub enum NegotiationProcessRepoErrors {
     #[error("Negotiation Process not found")]

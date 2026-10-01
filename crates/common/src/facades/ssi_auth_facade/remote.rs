@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Adapter that verifies tokens through the auth agent over HTTP.
+
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -30,6 +32,7 @@ use ymir::data::entities::shared::participant::Model as Mates;
 
 const SSI_AUTH_FACADE_VERIFICATION_URL: &str = "/api/v1/mates/token";
 
+/// Token verification through the auth agent's API.
 pub struct SSIAuthRemoteFacade {
     config: Arc<MinKnownConfig>,
     client: Arc<ServiceHttpClient>,

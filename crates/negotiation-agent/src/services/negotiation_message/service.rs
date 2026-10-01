@@ -36,6 +36,7 @@ use crate::entities::negotiation_message::NewNegotiationMessageDto;
 use crate::services::negotiation_message::NegotiationMessageServiceTrait;
 use crate::services::negotiation_message::views::NegotiationMessageView;
 
+/// Message service, emitting `negotiations:` events when a bus is set.
 pub struct NegotiationMessageService {
     message_repo: Arc<dyn NegotiationMessageRepoTrait>,
     offer_repo: Arc<dyn OfferRepoTrait>,
@@ -57,6 +58,7 @@ impl NegotiationMessageService {
         }
     }
 
+    /// Publishes create and delete events on `event_bus`.
     pub fn with_event_bus(mut self, event_bus: Option<events::EventBus>) -> Self {
         self.event_bus = event_bus;
         self

@@ -22,6 +22,7 @@ use ymir::config::traits::{
 };
 use ymir::config::types::{ApiConfig, CommonHostsConfig, ConnectionConfig, DatabaseConfig};
 
+/// Hosts, database, API, connection flags and auth settings every agent section embeds.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CommonConfig {
     pub hosts: CommonHostsConfig,

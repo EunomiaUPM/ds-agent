@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! OAuth error responses (RFC 6749 §5.2).
+
 use serde::{Deserialize, Serialize};
 
 /// RFC 6749 §5.2 standard OAuth 2.0 error codes.
@@ -50,6 +52,7 @@ impl OAuthError {
         Self::new(OAuthErrorCode::InvalidRequest, desc)
     }
 
+    /// Answered with 401; every other code is a 400 except `server_error`.
     pub fn invalid_client(desc: impl Into<String>) -> Self {
         Self::new(OAuthErrorCode::InvalidClient, desc)
     }
@@ -70,6 +73,7 @@ impl OAuthError {
         Self::new(OAuthErrorCode::InvalidScope, desc)
     }
 
+    /// Answered with 500.
     pub fn server_error(desc: impl Into<String>) -> Self {
         Self::new(OAuthErrorCode::ServerError, desc)
     }

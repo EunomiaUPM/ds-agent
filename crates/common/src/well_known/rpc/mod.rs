@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Discovery of a peer's DSP endpoint.
+
 pub mod rpc;
 
 use serde::{Deserialize, Serialize};
@@ -22,20 +24,25 @@ use ymir::errors::Outcome;
 
 use crate::dsp_common::well_known_types::{DSPProtocolVersions, VersionPath, VersionResponse};
 
+/// Version used to pick a peer's endpoint.
 pub const DSP_CURRENT_VERSION: DSPProtocolVersions = DSPProtocolVersions::V2025_1;
 
+/// Peer to look up, named by its participant id in a tenant.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WellKnownRPCRequest {
     /// Tenant whose participant registry holds `participant_id`.
     pub tenant_id: String,
     pub participant_id: String,
 }
+/// Reading a peer's version document.
 #[async_trait::async_trait]
 pub trait WellKnownRPCTrait: Send + Sync {
+    /// The peer's version document and its base URL.
     async fn fetch_dataspace_well_known(
         &self,
         input: &WellKnownRPCRequest,
     ) -> Outcome<(VersionResponse, String)>;
+    /// The peer's base URL for the current DSP version.
     async fn fetch_dataspace_current_path(
         &self,
         input: &WellKnownRPCRequest,

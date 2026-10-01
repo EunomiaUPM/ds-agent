@@ -20,6 +20,7 @@ use common::config::types::traits::CommonConfigTrait;
 use ymir::config::traits::{ApiConfigTrait, HostsConfigTrait};
 use ymir::config::types::CommonHostsConfig;
 
+/// Hosts and API prefix the gatekeeper advertises.
 pub struct GnapGateKeeperConfig {
     hosts: CommonHostsConfig,
     api_path: String,

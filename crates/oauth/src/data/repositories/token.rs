@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Refresh tokens and their revocation.
+
 use thiserror::Error;
 use uuid::Uuid;
 use ymir::errors::{Outcome, RepoIntoErrors};

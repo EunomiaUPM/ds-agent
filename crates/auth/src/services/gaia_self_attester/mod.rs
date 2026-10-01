@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Gaia-X self-attestation.
+
 mod gaia_self_attester_trait;
 mod service;
 

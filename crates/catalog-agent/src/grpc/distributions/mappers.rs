@@ -27,8 +27,6 @@ use common::grpc::{ListParams, PageMeta, ProtoField};
 use common::paginated_spec::Paginated;
 use tonic::Status;
 
-// Request to Domain ───────────────────────────────────────────────────────
-
 impl TryFrom<ListDistributionsRequest> for ListParams<DistributionFilter> {
     type Error = Status;
 
@@ -71,8 +69,6 @@ impl From<PutDistributionRequest> for EditDistributionDto {
         }
     }
 }
-
-// Domain to Response ──────────────────────────────────────────────────────
 
 impl From<DistributionDto> for Distribution {
     fn from(dto: DistributionDto) -> Self {

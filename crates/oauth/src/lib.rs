@@ -32,7 +32,9 @@ pub mod http;
 pub mod services;
 pub mod setup;
 
+/// Domain name of the OAuth events.
 pub const EVENT_DOMAIN: &str = "oauth";
+/// Topic prefix of the OAuth events.
 pub const EVENT_PREFIX: &str = "oauth:";
 
 pub use data::sea_orm::migrations::get_oauth_migrations;

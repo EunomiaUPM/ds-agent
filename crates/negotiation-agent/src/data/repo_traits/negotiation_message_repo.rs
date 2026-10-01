@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Message repository.
+
 use crate::data::entities::negotiation_message;
 use crate::data::entities::negotiation_message::NewNegotiationMessageModel;
 use crate::entities::filters::NegotiationMessageFilter;
@@ -24,9 +26,11 @@ use urn::Urn;
 use ymir::errors::Outcome;
 use ymir::errors::RepoIntoErrors;
 
+/// Persistence of negotiation messages; `tenant_id` of `None` reaches every tenant.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait NegotiationMessageRepoTrait: Send + Sync {
+    /// Page of messages matching the filters.
     async fn get_all_negotiation_messages(
         &self,
         filters: &NegotiationMessageFilter,
@@ -40,6 +44,7 @@ pub trait NegotiationMessageRepoTrait: Send + Sync {
         ids: &[Urn],
     ) -> Outcome<Vec<negotiation_message::Model>>;
 
+    /// Every message of the process.
     async fn get_messages_by_process_id(
         &self,
         tenant_id: Option<String>,
@@ -65,6 +70,7 @@ pub trait NegotiationMessageRepoTrait: Send + Sync {
     ) -> Outcome<String>;
 }
 
+/// Failures of the message repository, mapped onto `Errors`.
 #[derive(Debug, Error)]
 pub enum NegotiationMessageRepoErrors {
     #[error("Negotiation Message not found")]

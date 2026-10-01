@@ -29,6 +29,7 @@ use ymir::errors::Outcome;
 #[cfg_attr(test, mockall::automock)]
 #[async_trait::async_trait]
 pub trait ConnectorTemplateServiceTrait: Send + Sync {
+    /// Page of templates matching the filters.
     async fn get_all_templates(
         &self,
         scope: &AccessScope,
@@ -36,6 +37,7 @@ pub trait ConnectorTemplateServiceTrait: Send + Sync {
         page: &Page,
         sort: Sort,
     ) -> Outcome<Paginated<ConnectorTemplateDto>>;
+    /// Every version of the template named `template_id`.
     async fn get_templates_by_id(
         &self,
         scope: &AccessScope,
@@ -47,6 +49,7 @@ pub trait ConnectorTemplateServiceTrait: Send + Sync {
         name: &str,
         version: &str,
     ) -> Outcome<Option<ConnectorTemplateDto>>;
+    /// Checks that every placeholder is declared, then stores the template in the caller's tenant.
     async fn create_template(
         &self,
         scope: &AccessScope,

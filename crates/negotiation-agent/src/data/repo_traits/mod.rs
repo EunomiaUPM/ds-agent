@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Repository ports and their errors.
+
 pub mod agreement_repo;
 pub mod negotiation_message_repo;
 pub mod negotiation_process_identifiers_repo;

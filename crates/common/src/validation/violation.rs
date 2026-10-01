@@ -24,15 +24,13 @@
 use std::borrow::Cow;
 use std::fmt::{self, Display, Formatter};
 
-/// Where in the subject the problem is: `consumerPid`,
-/// `dataAddress.endpointProperties[0].name`.
-///
-/// Almost every path is a literal known at compile time, so the common case
-/// allocates nothing; only the nested-with-index forms build a string.
+/// Where in the subject the problem is, e.g. `dataAddress.endpointProperties[0].name`.
+/// Literal paths allocate nothing; only nested and indexed ones build a string.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Path(Cow<'static, str>);
 
 impl Path {
+    /// Path made of one field name.
     pub const fn field(name: &'static str) -> Self {
         Self(Cow::Borrowed(name))
     }
@@ -73,12 +71,8 @@ impl From<&'static str> for Path {
     }
 }
 
-/// A stable, machine-readable classification of the failure.
-///
-/// Transparent on purpose: this crate owns only the codes that recur in every
-/// protocol (see [`codes`]); each agent defines its own vocabulary in its own
-/// numbering space. Peers program against these, so a code must never be
-/// reassigned once published.
+/// Stable, machine-readable kind of failure. `common` owns only the shared [`codes`]; agents
+/// number their own, and a published code is never reassigned because peers rely on it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ViolationCode(pub u32);
 
@@ -108,16 +102,13 @@ pub struct Violation {
     pub path: Path,
     pub code: ViolationCode,
     pub message: Cow<'static, str>,
-    /// The offending value, when echoing it helps the sender and is safe.
-    ///
-    /// Never populate this automatically from whatever field failed. Messages
-    /// carry bearer tokens (`endpointProperties[].value` routinely does), and
-    /// this field travels back to the peer inside the error body. Set it only
-    /// where the value is known not to be a credential.
+    /// Offending value echoed back to the peer. Set it only where it cannot be a credential:
+    /// fields like `endpointProperties[].value` routinely carry bearer tokens.
     pub value: Option<String>,
 }
 
 impl Violation {
+    /// Violation without an echoed value.
     pub fn new(
         path: impl Into<Path>,
         code: ViolationCode,
@@ -149,11 +140,8 @@ impl Violation {
     }
 }
 
-/// One or more failures, in the order the rules ran.
-///
-/// Order is meaningful: rules run in registration order within a stage, and
-/// stages run in dependency order, so the first entry is the most fundamental
-/// failure. That is what [`Violations::code`] reports.
+/// One or more failures, in the order the rules ran. Stages run in dependency order, so the
+/// first entry is the most fundamental one, which is what [`Violations::code`] reports.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Violations(Vec<Violation>);
 

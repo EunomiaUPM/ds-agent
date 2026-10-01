@@ -19,6 +19,8 @@
 /// Implemented by the dataplane crate so the connector crate stays free of keystore dependencies.
 #[async_trait::async_trait]
 pub trait KeystoreLookup: Send + Sync {
+    /// Parameter `key` of the tenant, or `None` when it does not exist.
     async fn get_parameter(&self, tenant_id: &str, key: &str) -> Option<serde_json::Value>;
+    /// Secret `key` of the tenant, or `None` when it does not exist.
     async fn get_secret(&self, tenant_id: &str, key: &str) -> Option<serde_json::Value>;
 }

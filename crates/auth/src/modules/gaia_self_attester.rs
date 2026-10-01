@@ -23,6 +23,7 @@ use ymir::errors::Outcome;
 use ymir::services::{HasIssuer, HasWallet};
 use ymir::types::issuance::VcBody;
 
+/// Issuing this participant's own Gaia-X credentials.
 #[async_trait]
 pub trait GaiaSelfAttesterModule:
     HasGaiaSelfAttester + HasIssuer + HasWallet + Send + Sync + 'static

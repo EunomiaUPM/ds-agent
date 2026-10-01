@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Process, message, offer and agreement use cases.
+
 pub mod agreement;
 pub mod negotiation_message;
 pub mod negotiation_process;

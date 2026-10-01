@@ -74,8 +74,6 @@ fn by_id(id: &str) -> GetNegotiationProcessByIdRequest {
     GetNegotiationProcessByIdRequest { id: id.to_string() }
 }
 
-// Auth ─────────────────────────────────────────────────────────────────────
-
 #[tokio::test]
 async fn get_without_token_is_unauthenticated() {
     let g = grpc(MockNegotiationProcessServiceTrait::new());
@@ -117,8 +115,6 @@ async fn admin_may_act_on_foreign_tenant_and_missing_header_falls_back() {
             .is_ok()
     );
 }
-
-// Field parsing ────────────────────────────────────────────────────────────
 
 #[tokio::test]
 async fn invalid_urns_name_their_field() {
@@ -221,8 +217,6 @@ async fn put_treats_absent_fields_as_no_change() {
     assert!(g.put_negotiation_process(owner(req)).await.is_ok());
 }
 
-// Error mapping ────────────────────────────────────────────────────────────
-
 #[tokio::test]
 async fn domain_errors_map_to_grpc_codes() {
     let mut svc = MockNegotiationProcessServiceTrait::new();
@@ -244,8 +238,6 @@ async fn domain_errors_map_to_grpc_codes() {
         .unwrap_err();
     assert_eq!(err.code(), Code::PermissionDenied);
 }
-
-// Response shaping ─────────────────────────────────────────────────────────
 
 #[tokio::test]
 async fn get_nests_messages_offers_and_agreement_from_the_view() {

@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Distributions read from the catalog that hosts the connector.
+
 use ymir::errors::Outcome;
 
 /// Served in-process by the catalog agent, which always hosts the connector.

@@ -31,7 +31,9 @@ pub(crate) mod http;
 pub mod services;
 pub mod setup;
 
+/// Domain name of the keystore's events.
 pub const EVENT_DOMAIN: &str = "keystore";
+/// Topic prefix of the keystore's events.
 pub const EVENT_PREFIX: &str = "keystore:";
 
 pub use data::sea_orm::migrations::get_keystore_migrations;

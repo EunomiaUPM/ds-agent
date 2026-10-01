@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! One trait per capability, with the use case logic as default methods.
+
 mod gaia_self_attester;
 mod gatekeeper;
 mod participant;

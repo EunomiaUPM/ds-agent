@@ -178,8 +178,6 @@ mod tests {
             .returning(move |_, _, _| Ok(dto(expected.clone())));
     }
 
-    // set_configuring ───────────────────────────────────────────────────────
-
     // set_configuring is atomic: configure proxy (NoOp) - put(Configuring).
     // Does NOT proceed to auth or ready.
     #[tokio::test]
@@ -208,8 +206,6 @@ mod tests {
         assert_eq!(addr.endpoint, "http://consumer-endpoint.com/receive");
     }
 
-    // set_auth ──────────────────────────────────────────────────────────────
-
     // set_auth is atomic: NoOp authentication - put(Auth). Does NOT proceed to ready.
     #[tokio::test]
     async fn test_set_auth_persists_auth_state() {
@@ -230,8 +226,6 @@ mod tests {
         );
     }
 
-    // set_ready ─────────────────────────────────────────────────────────────
-
     #[tokio::test]
     async fn test_set_ready_persists_state() {
         let mut mock = MockDataplaneTransferServiceTrait::new();
@@ -250,8 +244,6 @@ mod tests {
             TransferState::Ready
         );
     }
-
-    // set_started ───────────────────────────────────────────────────────────
 
     #[tokio::test]
     async fn test_set_started_persists_state() {
@@ -272,8 +264,6 @@ mod tests {
         );
     }
 
-    // set_stopped ───────────────────────────────────────────────────────────
-
     #[tokio::test]
     async fn test_set_stopped_persists_state() {
         let mut mock = MockDataplaneTransferServiceTrait::new();
@@ -293,8 +283,6 @@ mod tests {
         );
     }
 
-    // set_terminating ───────────────────────────────────────────────────────
-
     #[tokio::test]
     async fn test_set_terminating_persists_state() {
         let mut mock = MockDataplaneTransferServiceTrait::new();
@@ -313,8 +301,6 @@ mod tests {
             TransferState::Terminated
         );
     }
-
-    // set_subscribing ───────────────────────────────────────────────────────
 
     // With a driver carrying a subscriber: put(Subscribing) - subscribe - set_started -
     // put(Started).
@@ -358,8 +344,6 @@ mod tests {
             TransferState::Init
         );
     }
-
-    // set_unsubscribing ─────────────────────────────────────────────────────
 
     // With a driver carrying a subscriber: put(Unsubscribing) - unsubscribe - set_stopped -
     // put(Stopped).

@@ -38,6 +38,7 @@ use tonic::service::RoutesBuilder;
 use transfer_agent::setup::{TransferAgentModule, TransferPorts};
 use ymir::errors::Outcome;
 
+/// Every agent module of the process, plus the auth ports and the own-wallet onboarding.
 pub struct MonolithModule {
     modules: ModuleGroup,
     auth_ports: AuthPorts,

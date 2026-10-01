@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Process service over the repository and the cache.
+
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -42,6 +44,7 @@ use crate::entities::filters::DataplaneTransferFilter;
 use crate::services::dataplane_transfers::DataplaneTransferServiceTrait;
 use common::cache::EntityCacheTrait;
 
+/// Process service that writes through to the cache.
 pub struct DataplaneTransferService {
     data_plane_repo: Arc<dyn DataplaneRepoTrait>,
     cache: Arc<dyn EntityCacheTrait<DataplaneTransferDto>>,

@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! HTTP resource spec.
+
 use crate::entities::parameters::{TemplateMapString, TemplateString};
 use crate::TemplateVecString;
 use serde::{Deserialize, Serialize};

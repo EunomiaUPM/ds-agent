@@ -15,11 +15,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Response views of users.
+
 use serde::Serialize;
 
 use crate::entities::role::RbacRole;
 use crate::entities::user::User;
 
+/// User as returned by the API, without its password hash.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UserView {
@@ -42,6 +45,7 @@ impl UserView {
     }
 }
 
+/// OIDC user info: `sub`, email, role and the extra fields at the top level.
 #[derive(Debug, Clone, Serialize)]
 pub struct UserInfo {
     pub sub: String,

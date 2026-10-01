@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Parameter store.
+
 pub mod service;
 pub mod views;
 
@@ -28,15 +30,19 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use ymir::errors::Outcome;
 
+/// Tenant-scoped parameters, the non-secret settings connectors and services read.
 #[async_trait::async_trait]
 pub trait ParameterStore<T>: Send + Sync
 where
     T: Serialize + DeserializeOwned + Send + Sync + 'static,
 {
+    /// Stores a new parameter in the tenant resolved from the scope.
     async fn create(&self, scope: &AccessScope, cmd: &NewParameterCommand<T>) -> Outcome<Entry<T>>;
 
+    /// 404 when the key does not exist for the caller.
     async fn read(&self, scope: &AccessScope, key: &Key) -> Outcome<Entry<T>>;
 
+    /// Replaces the value; fails when `expected_version` is stale.
     async fn update(
         &self,
         scope: &AccessScope,
@@ -47,8 +53,10 @@ where
 
     async fn delete(&self, scope: &AccessScope, key: &Key) -> Outcome<()>;
 
+    /// Parameters under the filter's prefix.
     async fn list(&self, scope: &AccessScope, filter: &PrefixFilter) -> Outcome<Vec<Entry<T>>>;
 
+    /// Parameters found among `keys`; missing ones are left out.
     async fn batch(&self, scope: &AccessScope, keys: &[Key]) -> Outcome<Vec<Entry<T>>>;
 
     async fn list_by_prefix(

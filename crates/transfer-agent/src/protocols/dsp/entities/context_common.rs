@@ -72,6 +72,7 @@ pub trait BuildAuthn: TransferAuthn + Sized {
 }
 
 impl<T: BuildAuthn> TransferContextRaw<T> {
+    /// Reads the body, the tracing and idempotency headers, the path id and the auth.
     pub async fn from_request(request: Request) -> Outcome<Self> {
         let incoming_at = Utc::now();
         let (mut parts, body) = request.into_parts();

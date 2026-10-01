@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! OAuth clients.
+
 use common::auth::AccessScope;
 use ymir::errors::Outcome;
 
@@ -25,9 +27,11 @@ use crate::services::client_service::views::ClientView;
 pub mod service;
 pub mod views;
 
+/// Management of OAuth clients.
 #[cfg_attr(test, mockall::automock)]
 #[async_trait::async_trait]
 pub trait ClientServiceTrait: Send + Sync + 'static {
+    /// Page of clients visible to the caller.
     async fn list_clients(
         &self,
         scope: &AccessScope,
@@ -35,7 +39,9 @@ pub trait ClientServiceTrait: Send + Sync + 'static {
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<ClientView>>;
+    /// 404 when the client is not visible to the caller.
     async fn get_client(&self, scope: &AccessScope, client_id: &str) -> Outcome<ClientView>;
+    /// Stores the client in the tenant resolved from the scope; the secret is hashed.
     async fn create_client(
         &self,
         scope: &AccessScope,

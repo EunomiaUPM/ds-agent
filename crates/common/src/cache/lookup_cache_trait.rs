@@ -23,8 +23,10 @@ use serde::de::DeserializeOwned;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 
+/// Index from a parent entity to its children, kept as one sorted set per parent.
 #[async_trait::async_trait]
 pub trait LookupCacheTrait<D>: Send + Sync {
+    /// Children of the parent, highest score first.
     async fn get_by_relation(
         &self,
         parent_name: &str,
@@ -32,6 +34,7 @@ pub trait LookupCacheTrait<D>: Send + Sync {
         limit: Option<u64>,
         page: Option<u64>,
     ) -> Outcome<Vec<D>>;
+    /// Links the child to the parent; `score` sets its order.
     async fn add_to_relation(
         &self,
         parent_name: &str,

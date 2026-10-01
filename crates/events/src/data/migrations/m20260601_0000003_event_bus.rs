@@ -15,10 +15,13 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Event store, deliveries and dead letter tables.
+
 use sea_orm_migration::prelude::*;
 
 use crate::data::migrations::m20241123_0000001_subscriptions::Subscriptions;
 
+/// Creates the event store, deliveries and dead letter tables.
 pub struct Migration;
 
 impl MigrationName for Migration {
@@ -27,6 +30,7 @@ impl MigrationName for Migration {
     }
 }
 
+/// Column names of `events`.
 #[derive(DeriveIden)]
 pub enum Events {
     Table,
@@ -42,6 +46,7 @@ pub enum Events {
     CreatedAt,
 }
 
+/// Column names of `event_deliveries`.
 #[derive(DeriveIden)]
 pub enum EventDeliveries {
     Table,
@@ -59,6 +64,7 @@ pub enum EventDeliveries {
     CreatedAt,
 }
 
+/// Column names of `dead_letter_queue`.
 #[derive(DeriveIden)]
 pub enum DeadLetterQueue {
     Table,

@@ -21,6 +21,9 @@ pub use crate::entities::filters::{ClientFilter, PatFilter, UserFilter};
 pub use common::paginated_spec::{Page, Paginated, Sort};
 use common::query::QuerySpec;
 
+/// Query string of the client listing.
 pub type ClientQuery = QuerySpec<ClientFilter, Sort>;
+/// Query string of the PAT listing.
 pub type PatQuery = QuerySpec<PatFilter, Sort>;
+/// Query string of the user listing.
 pub type UserQuery = QuerySpec<UserFilter, Sort>;

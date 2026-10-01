@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! HTTP adapter for agents in another process.
+
 use std::sync::Arc;
 
 use axum::http::StatusCode;

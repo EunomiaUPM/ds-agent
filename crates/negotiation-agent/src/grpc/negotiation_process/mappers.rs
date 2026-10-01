@@ -34,8 +34,6 @@ use common::paginated_spec::Paginated;
 use std::collections::HashMap;
 use tonic::Status;
 
-// Request to Domain ───────────────────────────────────────────────────────
-
 impl TryFrom<ListNegotiationProcessesRequest> for ListParams<NegotiationProcessFilter> {
     type Error = Status;
 
@@ -101,8 +99,6 @@ impl From<PutNegotiationProcessRequest> for EditNegotiationProcessDto {
         }
     }
 }
-
-// Domain to Response ──────────────────────────────────────────────────────
 
 /// Sub-entities travel as bare rows in the view; they are lifted to their own views first.
 impl From<NegotiationProcessView> for ProtoProcess {

@@ -15,10 +15,13 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Offers.
+
 use crate::data::entities::offer::NewOfferModel;
 use serde::{Deserialize, Serialize};
 use urn::Urn;
 
+/// New offer.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
@@ -33,6 +36,7 @@ pub struct NewOfferDto {
 }
 
 impl NewOfferDto {
+    /// Row for `tenant_id`.
     pub fn into_model(self, tenant_id: String) -> NewOfferModel {
         NewOfferModel {
             id: self.id,

@@ -201,9 +201,6 @@ mod tests {
     use super::super::{ParameterDefinition, ParameterType};
     use crate::entities::parameters::template_parameters_validator::TemplateParametersValidator;
     use ymir::errors::Outcome;
-    // =========================================================================
-    // Helpers
-    // =========================================================================
 
     fn validate(
         found: &[FoundParameter],
@@ -238,10 +235,6 @@ mod tests {
             content_type,
         }
     }
-
-    // =========================================================================
-    // Name matching
-    // =========================================================================
 
     #[test]
     fn ok_when_found_and_defined_match_exactly() {
@@ -329,10 +322,6 @@ mod tests {
         assert!(msg.find("ALPHA").unwrap() < msg.find("ZEBRA").unwrap());
     }
 
-    // =========================================================================
-    // exclude_runtime = true
-    // =========================================================================
-
     #[test]
     fn ok_when_runtime_parameter_is_excluded() {
         let defs = vec![make_def("HOST", ParameterType::String)];
@@ -376,10 +365,6 @@ mod tests {
         let msg = format!("{:?}", validate(&found, &defs, false, false).unwrap_err());
         assert!(msg.contains("RUNTIME_TIMESTAMP"));
     }
-
-    // =========================================================================
-    // Type compatibility
-    // =========================================================================
 
     #[test]
     fn ok_when_int_parameter_used_as_complete_int_template() {
@@ -470,10 +455,6 @@ mod tests {
             "duplicate type error should be deduplicated"
         );
     }
-
-    // =========================================================================
-    // Duplicate definitions
-    // =========================================================================
 
     #[test]
     fn err_when_two_definitions_share_the_same_name() {

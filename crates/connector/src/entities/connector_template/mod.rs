@@ -67,6 +67,7 @@ pub struct ConnectorTemplateDto {
 }
 
 impl ConnectorTemplateDto {
+    /// Serializes the auth, interaction and parameter sections into a row for `tenant_id`.
     pub fn into_model(self, tenant_id: String) -> Outcome<NewConnectorTemplateModel> {
         let authentication = serde_json::to_value(self.authentication)?;
         let interaction = serde_json::to_value(self.interaction)?;

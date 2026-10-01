@@ -47,7 +47,6 @@ pub(crate) struct TransferProcess {
 
 #[allow(dead_code)]
 impl TransferProcess {
-    // Constructors  ─────────────────────────────────────────────────────────────
     /// TransferProcess entity constructor
     pub fn new(
         tenant_id: String,
@@ -107,8 +106,6 @@ impl TransferProcess {
         }
     }
 
-    // Mutators ──────────────────────────────────────────────────────────────
-
     /// Mutates TransferProcess entity with a `EditTransferProcessCommand`
     /// Useful when comes to mutate process to be persisted
     pub fn apply_edit(&mut self, cmd: EditTransferProcessCommand) {
@@ -133,8 +130,6 @@ impl TransferProcess {
         self.version = self.version.saturating_add(1);
         self.updated_at = Utc::now();
     }
-
-    // Accessors ─────────────────────────────────────────────────────────────
 
     pub fn id(&self) -> &TransferProcessId {
         &self.transfer_id
@@ -172,8 +167,6 @@ impl TransferProcess {
     pub fn updated_at(&self) -> DateTime<Utc> {
         self.updated_at
     }
-
-    // Predicates ────────────────────────────────────────────────────────────
 
     pub fn belongs_to(&self, tenant: &String) -> bool {
         &self.tenant_id == tenant

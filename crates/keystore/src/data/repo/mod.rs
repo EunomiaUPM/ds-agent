@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Repository ports and their errors.
+
 pub(crate) mod config;
 pub mod parameters;
 pub mod secrets;

@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Resolver over the negotiation and catalog facades.
+
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -27,6 +29,7 @@ use crate::protocols::dsp::facades::catalog_facade::CatalogFacadeTrait;
 use crate::protocols::dsp::facades::negotiation_facade::NegotiationFacadeTrait;
 use crate::protocols::dsp::services::connector_resolver::ConnectorResolverTrait;
 
+/// Finds the connector instance behind an agreement through the negotiation and catalog agents.
 pub struct ConnectorResolver {
     negotiation: Arc<dyn NegotiationFacadeTrait>,
     catalog: Arc<dyn CatalogFacadeTrait>,

@@ -42,6 +42,7 @@ use crate::protocols::dsp::facades::negotiation_facade::NegotiationFacadeTrait;
 use crate::protocols::dsp::facades::negotiation_facade::local::NegotiationLocalFacade;
 use crate::protocols::dsp::facades::negotiation_facade::remote::NegotiationRemoteFacade;
 
+/// Ports the transfer agent consumes: auth, negotiation, catalog and its dataplane.
 #[derive(Clone)]
 pub struct TransferPorts {
     pub(crate) auth: AuthPorts,

@@ -36,8 +36,6 @@ use ymir::errors::{Errors, Outcome};
 use ymir::services::client::ClientExt;
 use ymir::utils::http_client;
 
-// RpcRequestStep ───────────────────────────────────────────────────────────
-
 /// Sends a continuation `ContractRequestMessage` on an existing negotiation
 /// (Consumer counter-offer).
 ///

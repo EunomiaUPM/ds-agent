@@ -31,6 +31,7 @@ pub struct AdminSeeder {
 }
 
 impl AdminSeeder {
+    /// Reads the admin and service client settings from `common`.
     pub fn new(db: DatabaseConnection, common: &CommonConfig) -> Self {
         Self {
             db,

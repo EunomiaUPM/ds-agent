@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! In-process adapter over the participant module.
+
 use std::sync::Arc;
 
 use async_trait::async_trait;

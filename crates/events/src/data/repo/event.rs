@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Event store repository.
+
 use async_trait::async_trait;
 use thiserror::Error;
 use urn::Urn;
@@ -24,7 +26,7 @@ use crate::entities::envelope::EventEnvelope;
 use crate::entities::queries::EventFilter;
 use common::paginated_spec::{Page, Sort};
 
-// Repository errors encountered during event store persistence.
+/// Failures of the event store, mapped onto `Errors`.
 #[derive(Debug, Error)]
 pub enum EventRepoError {
     #[error("Database error: {0}")]
@@ -36,7 +38,7 @@ pub enum EventRepoError {
 
 impl RepoIntoErrors for EventRepoError {}
 
-// Repository interface for immutable event storage.
+/// Append-only store of published events.
 #[async_trait]
 pub trait EventStoreRepo: Send + Sync + 'static {
     async fn insert_event(&self, event: &EventEnvelope) -> Outcome<()>;

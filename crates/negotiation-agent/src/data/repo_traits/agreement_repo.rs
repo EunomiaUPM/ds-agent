@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Agreement repository.
+
 use crate::data::entities::agreement;
 use crate::data::entities::agreement::{EditAgreementModel, NewAgreementModel};
 use crate::entities::filters::AgreementFilter;
@@ -24,9 +26,11 @@ use urn::Urn;
 use ymir::errors::Outcome;
 use ymir::errors::RepoIntoErrors;
 
+/// Persistence of agreements; `tenant_id` of `None` reaches every tenant.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait AgreementRepoTrait: Send + Sync {
+    /// Page of agreements matching the filters.
     async fn get_all_agreements(
         &self,
         filters: &AgreementFilter,
@@ -43,23 +47,27 @@ pub trait AgreementRepoTrait: Send + Sync {
         tenant_id: Option<String>,
         id: &Urn,
     ) -> Outcome<Option<agreement::Model>>;
+    /// Agreement reached in the process.
     async fn get_agreement_by_negotiation_process(
         &self,
         tenant_id: Option<String>,
         id: &Urn,
     ) -> Outcome<Option<agreement::Model>>;
+    /// Agreements where `id` is the consumer.
     async fn get_agreements_by_assignee(
         &self,
         tenant_id: Option<String>,
         id: &str,
     ) -> Outcome<Vec<agreement::Model>>;
 
+    /// Agreements where `id` is the provider.
     async fn get_agreements_by_assigner(
         &self,
         tenant_id: Option<String>,
         id: &str,
     ) -> Outcome<Vec<agreement::Model>>;
 
+    /// Agreement carried by the message.
     async fn get_agreement_by_negotiation_message(
         &self,
         tenant_id: Option<String>,
@@ -76,6 +84,7 @@ pub trait AgreementRepoTrait: Send + Sync {
     async fn delete_agreement(&self, tenant_id: Option<String>, id: &Urn) -> Outcome<String>;
 }
 
+/// Failures of the agreement repository, mapped onto `Errors`.
 #[derive(Debug, Error)]
 pub enum AgreementRepoErrors {
     #[error("Agreement not found")]

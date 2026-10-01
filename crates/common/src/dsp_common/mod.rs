@@ -138,6 +138,7 @@ pub mod well_known_types;
 pub use actor::DspActor;
 pub use rules::DspRules;
 
+/// Parses an embedded JSON schema; panics on invalid JSON, so only use it on compiled-in assets.
 pub fn schema_compiler_util(schema_content: &str) -> Value {
     serde_json::from_str::<Value>(schema_content).unwrap()
 }

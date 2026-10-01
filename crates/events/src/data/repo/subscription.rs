@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Webhook subscription repository.
+
 use async_trait::async_trait;
 use thiserror::Error;
 use ymir::errors::{Outcome, RepoIntoErrors};
@@ -25,7 +27,7 @@ use crate::entities::subscription::SubscriptionRecord;
 use crate::entities::topic::Topic;
 use common::paginated_spec::{Page, Sort};
 
-// Repository errors encountered during webhook subscription management.
+/// Failures of the subscription repository, mapped onto `Errors`.
 #[derive(Debug, Error)]
 pub enum SubscriptionRepoError {
     #[error("Database error: {0}")]
@@ -37,7 +39,7 @@ pub enum SubscriptionRepoError {
 
 impl RepoIntoErrors for SubscriptionRepoError {}
 
-// Repository interface for webhook subscription CRUD and matching.
+/// Persistence of webhook subscriptions and topic matching.
 #[async_trait]
 pub trait EventSubscriptionRepo: Send + Sync + 'static {
     async fn create_subscription(
@@ -51,6 +53,7 @@ pub trait EventSubscriptionRepo: Send + Sync + 'static {
         tenant_id: Option<String>,
         id: &str,
     ) -> Outcome<Option<SubscriptionRecord>>;
+    /// Page of subscriptions; `tenant_id` of `None` lists every tenant.
     async fn list_subscriptions(
         &self,
         tenant_id: Option<String>,
@@ -58,6 +61,7 @@ pub trait EventSubscriptionRepo: Send + Sync + 'static {
         page: &Page,
         sort: &Sort,
     ) -> Outcome<(Vec<SubscriptionRecord>, u64)>;
+    /// Changes the fields set in `dto`.
     async fn update_subscription(
         &self,
         tenant_id: Option<String>,
@@ -65,6 +69,7 @@ pub trait EventSubscriptionRepo: Send + Sync + 'static {
         dto: UpdateSubscriptionDto,
     ) -> Outcome<SubscriptionRecord>;
     async fn delete_subscription(&self, tenant_id: Option<String>, id: &str) -> Outcome<()>;
+    /// Active subscriptions of the tenant whose pattern matches `topic`.
     async fn get_matching_subscriptions(
         &self,
         tenant_id: &str,

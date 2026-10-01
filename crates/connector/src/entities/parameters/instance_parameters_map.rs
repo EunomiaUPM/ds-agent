@@ -95,10 +95,6 @@ impl InstanceParametersMapBuilder {
         InstanceParametersMap { inner: self.params }
     }
 
-    // =========================================================================
-    // Helpers
-    // =========================================================================
-
     fn cast_default_value(
         param_name: &str,
         param_type: &ParameterType,
@@ -180,10 +176,6 @@ impl InstanceParametersMapBuilder {
     }
 }
 
-// =============================================================================
-// Tests
-// =============================================================================
-
 #[cfg(test)]
 mod tests {
     use super::super::TemplateVecString;
@@ -196,10 +188,6 @@ mod tests {
 
     const OWN_URL: &str = "http://localhost:8080";
     const OWN_URL_DOCKER: &str = "http://host.docker.internal:8080";
-
-    // =========================================================================
-    // Helpers
-    // =========================================================================
 
     fn def(name: &str, param_type: ParameterType, default: Option<&str>) -> ParameterDefinition {
         ParameterDefinition {
@@ -263,10 +251,6 @@ mod tests {
             .build()
             .inner
     }
-
-    // =========================================================================
-    // with_default_parameters
-    // =========================================================================
 
     #[test]
     fn defaults_inserts_string_default() {
@@ -382,10 +366,6 @@ mod tests {
             .is_err());
     }
 
-    // =========================================================================
-    // with_system_parameters
-    // =========================================================================
-
     #[test]
     fn sys_injects_urn_as_urn_string() {
         let inner = build_with_sys(template_with_url("https://api.example.com/{{__SYS_URN__}}"));
@@ -497,10 +477,6 @@ mod tests {
         assert!(inner.contains_key("SYS_URN"));
         assert!(inner.contains_key("SYS_TIMESTAMP"));
     }
-
-    // =========================================================================
-    // Pipeline — instance - default - sys priority
-    // =========================================================================
 
     #[test]
     fn pipeline_instance_wins_over_default() {

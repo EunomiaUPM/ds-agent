@@ -44,6 +44,7 @@ struct ClientCredentialsResponse {
     expires_in: u64,
 }
 
+/// HTTP client for calls between agents, authenticated with a cached service token.
 pub struct ServiceHttpClient {
     token_url: String,
     client_id: String,
@@ -81,6 +82,7 @@ impl ServiceHttpClient {
             .await
     }
 
+    /// POST acting on `tenant`, decoding the JSON response.
     pub async fn post_json<T, R>(&self, url: &str, tenant: Option<&str>, body: &T) -> Outcome<R>
     where
         T: Serialize + Sync,

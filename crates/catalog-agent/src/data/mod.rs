@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Tables, repositories and migrations.
+
 pub mod entities;
 pub(crate) mod factory_sql;
 pub mod factory_trait;

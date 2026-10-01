@@ -42,6 +42,7 @@ pub mod m20251128_0000002_dataplane_fields;
 pub mod m20251128_0000003_transfer_events;
 pub mod m20251128_000004_dataplane_transfer_logs;
 
+/// Dataplane tables, in creation order.
 pub fn get_dataplane_migrations() -> Vec<Box<dyn MigrationTrait>> {
     vec![
         Box::new(m20251128_0000001_dataplane_transfers::Migration),

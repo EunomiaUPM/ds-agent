@@ -33,6 +33,7 @@ pub mod http;
 pub mod services;
 pub mod setup;
 
+/// Service id, also the mount path segment of the API.
 pub const SERVICE_NAME: &str = "events";
 
 pub use entities::dto::EntityDeletedDto;

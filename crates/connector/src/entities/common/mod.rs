@@ -26,6 +26,7 @@
 
 pub(crate) mod secret_management;
 
+/// Empty; superseded by the parameter resolver and kept so old paths still resolve.
 pub mod parameter_mutator {
     // Deprecated or removed. Use ParameterResolverBehavior instead.
 }

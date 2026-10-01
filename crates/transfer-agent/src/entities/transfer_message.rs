@@ -50,7 +50,6 @@ pub(crate) struct TransferMessage {
 
 #[allow(dead_code, clippy::result_large_err)]
 impl TransferMessage {
-    // Constructors ─────────────────────────────────────────────────────────────
     pub(crate) fn from_cmd(cmd: &NewTransferMessageCommand) -> Outcome<Self> {
         let id = cmd.id.clone().unwrap_or_else(MessageId::generate);
         let tenant_id = cmd.tenant_id.clone().ok_or_else(|| {
@@ -72,8 +71,6 @@ impl TransferMessage {
             occurred_at: Utc::now(),
         })
     }
-
-    // Accessors ─────────────────────────────────────────────────────────────
 
     pub fn id(&self) -> &MessageId {
         &self.id

@@ -25,17 +25,25 @@ use serde::Serialize;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 
+/// Cache of one entity type: single entries, a per-tenant main entry and a sorted collection.
 #[async_trait::async_trait]
 pub trait EntityCacheTrait<D>: LookupCacheTrait<D> + Send + Sync {
+    /// `None` when the entity is not cached.
     async fn get_single(&self, id: &Urn) -> Outcome<Option<D>>;
+    /// Stores the entity with the cache TTL.
     async fn set_single(&self, id: &Urn, model: &D) -> Outcome<()>;
+    /// Removes the entity; the collection and relations are left untouched.
     async fn delete_single(&self, id: &Urn) -> Outcome<()>;
     /// Each tenant has its own main entity.
     async fn get_main(&self, tenant_id: &str) -> Outcome<Option<D>>;
+    /// Stores the entity and points the tenant's main key at it.
     async fn set_main(&self, tenant_id: &str, id: &Urn, model: &D) -> Outcome<()>;
+    /// Page of the collection, highest score first; no limit and no page return everything.
     async fn get_collection(&self, limit: Option<u64>, page: Option<u64>) -> Outcome<Vec<D>>;
+    /// Adds the entity to the collection; `score` sets its order.
     async fn add_to_collection(&self, id: &Urn, score: f64) -> Outcome<()>;
     async fn remove_from_collection(&self, id: &Urn) -> Outcome<()>;
+    /// Entities found for `ids`; missing ones are left out.
     async fn get_batch(&self, ids: &Vec<Urn>) -> Outcome<Vec<D>>;
 }
 
@@ -178,6 +186,7 @@ where
     }
 }
 
+/// Cache that stores nothing and always misses, for agents running without Redis.
 #[derive(Default, Clone)]
 pub struct NoopCache<D> {
     _phantom: std::marker::PhantomData<D>,

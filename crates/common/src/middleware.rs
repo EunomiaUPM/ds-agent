@@ -34,6 +34,7 @@ use axum::{
 use http::StatusCode;
 use tracing;
 
+/// Prints the raw body to stdout; for local debugging only.
 pub async fn log_raw_body(req: ExtractRequest, next: Next) -> Response {
     // Split the request into its parts (headers, uri, etc.) and the body.
     let (parts, body) = req.into_parts();
@@ -59,6 +60,7 @@ pub async fn log_raw_body(req: ExtractRequest, next: Next) -> Response {
     next.run(req).await
 }
 
+/// Logs the body through `tracing`; rejects bodies over 2 MiB with a 413.
 pub async fn log_body_middleware(req: Request<Body>, next: Next) -> Response {
     let (parts, body) = req.into_parts();
 

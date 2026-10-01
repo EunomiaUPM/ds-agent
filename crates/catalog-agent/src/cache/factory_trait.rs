@@ -15,11 +15,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Cache factory port.
+
 use crate::cache::cache_traits::peer_catalog_cache_trait::PeerCatalogCacheTrait;
 use crate::{CatalogDto, DataServiceDto, DatasetDto, DistributionDto, OdrlPolicyDto};
 use common::cache::EntityCacheTrait;
 use std::sync::Arc;
 
+/// Hands out the Redis caches of each catalog entity.
 #[mockall::automock]
 pub trait CatalogAgentCacheTrait: Send + Sync + 'static {
     fn get_catalog_cache(&self) -> Arc<dyn EntityCacheTrait<CatalogDto>>;
@@ -27,5 +30,6 @@ pub trait CatalogAgentCacheTrait: Send + Sync + 'static {
     fn get_dataset_cache(&self) -> Arc<dyn EntityCacheTrait<DatasetDto>>;
     fn get_distribution_cache(&self) -> Arc<dyn EntityCacheTrait<DistributionDto>>;
     fn get_odrl_offer_cache(&self) -> Arc<dyn EntityCacheTrait<OdrlPolicyDto>>;
+    /// Cache of the catalogs fetched from peers.
     fn get_peer_catalog_cache(&self) -> Arc<dyn PeerCatalogCacheTrait>;
 }

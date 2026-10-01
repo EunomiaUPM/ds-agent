@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Process routes.
+
 use std::sync::Arc;
 
 use crate::entities::dataplane_transfers::{
@@ -34,8 +36,10 @@ use common::query::{Paginated, QuerySpec, Sort};
 use ymir::errors::AppResult;
 use ymir::utils::{extract_path_urn, extract_payload};
 
+/// Query string of the process listing.
 pub type DataplaneTransferQuery = QuerySpec<DataplaneTransferFilter, Sort>;
 
+/// Routes of dataplane processes: CRUD, batch, info and lookup by transfer process.
 #[derive(Clone)]
 pub struct DataPlaneProcessesRouter {
     service: Arc<dyn DataplaneTransferServiceTrait>,
@@ -194,6 +198,7 @@ impl DataPlaneProcessesRouter {
     }
 }
 
+/// Interaction mode and ingress URL of a process.
 #[derive(serde::Serialize)]
 pub struct DataplaneInfoResponse {
     pub id: String,

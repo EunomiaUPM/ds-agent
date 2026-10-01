@@ -39,6 +39,7 @@ use ymir::errors::{Errors, Outcome};
 
 static UUID_PREFIX: &str = "urn:uuid:";
 
+/// Returns the given URN, or a new `urn:uuid:<v4>`.
 pub fn get_urn(optional_urn: Option<Urn>) -> Urn {
     optional_urn.unwrap_or_else(|| {
         let uuid = Uuid::new_v4();
@@ -48,6 +49,7 @@ pub fn get_urn(optional_urn: Option<Urn>) -> Urn {
     })
 }
 
+/// New `urn:<prefix>:<v4>`.
 pub fn generate_uuid_urn(prefix: &str) -> Urn {
     Urn::from_str(&format!("urn:{}:{}", prefix, uuid::Uuid::new_v4()))
         .expect("UUID URN is always valid")
@@ -86,6 +88,7 @@ impl ParseUrnExt for str {
     }
 }
 
+/// Runs `FLUSHALL` on the Redis at `url`.
 pub async fn flush_redis_cache(url: &str) -> Outcome<()> {
     info!("Connecting to Redis at {}...", url);
     // NEW REDS IS ERROR?
@@ -105,6 +108,7 @@ pub async fn flush_redis_cache(url: &str) -> Outcome<()> {
     Ok(())
 }
 
+/// Logs the config as a table.
 pub fn show_table(config: &impl Serialize) -> Outcome<()> {
     let table = json_to_table::json_to_table(
         &serde_json::to_value(config)
@@ -116,11 +120,13 @@ pub fn show_table(config: &impl Serialize) -> Outcome<()> {
     Ok(())
 }
 
+/// Parses YAML text (not a path, despite the name).
 pub fn parse_yaml<T: DeserializeOwned>(path: &str) -> Outcome<T> {
     serde_norway::from_str(path)
         .map_err(|e| Errors::parse("Unable to parse config file", Some(Box::new(e))))
 }
 
+/// Overwrites the top-level keys of `base` with those of `patch`; non-objects are ignored.
 pub fn json_merge(base: &mut serde_json::Value, patch: serde_json::Value) {
     if let (serde_json::Value::Object(base_map), serde_json::Value::Object(patch_map)) =
         (base, patch)

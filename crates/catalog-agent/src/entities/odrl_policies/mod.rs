@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! ODRL offers attached to catalog entities.
+
 use crate::data::entities::odrl_offer;
 use crate::data::entities::odrl_offer::NewOdrlOfferModel;
 use common::dsp_common::odrl::OdrlPolicyInfo;
@@ -22,6 +24,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use urn::Urn;
 
+/// ODRL offer as returned by the API.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct OdrlPolicyDto {
@@ -29,6 +32,7 @@ pub struct OdrlPolicyDto {
     pub inner: odrl_offer::Model,
 }
 
+/// Kind of catalog entity an offer is attached to.
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
 pub enum CatalogEntityTypes {
     Distribution,
@@ -37,6 +41,7 @@ pub enum CatalogEntityTypes {
     Dataset,
 }
 
+/// New ODRL offer on a catalog entity.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
@@ -85,6 +90,7 @@ impl Display for CatalogEntityTypes {
 }
 
 impl NewOdrlPolicyDto {
+    /// Row for `tenant_id`.
     pub fn into_model(self, tenant_id: String) -> NewOdrlOfferModel {
         NewOdrlOfferModel {
             id: self.id,

@@ -17,4 +17,5 @@
 
 use crate::config::types::traits::{CommonConfigTrait, ConfigLoader};
 
+/// Marker for the monolith config; it needs nothing beyond the common section.
 pub trait MonolithConfigTrait: ConfigLoader + CommonConfigTrait {}

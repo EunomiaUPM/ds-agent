@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Client service over the repository.
+
 use std::sync::Arc;
 
 use chrono::Utc;
@@ -32,6 +34,7 @@ use crate::services::client_service::ClientServiceTrait;
 use crate::services::client_service::views::ClientView;
 use crate::services::password;
 
+/// Client service over a repository, emitting `oauth:` events when a bus is set.
 pub struct ClientService {
     client_repo: Arc<dyn ClientRepository>,
     event_bus: Option<events::EventBus>,
@@ -45,6 +48,7 @@ impl ClientService {
         }
     }
 
+    /// Publishes create and delete events on `event_bus`.
     pub fn with_event_bus(mut self, event_bus: Option<events::EventBus>) -> Self {
         self.event_bus = event_bus;
         self

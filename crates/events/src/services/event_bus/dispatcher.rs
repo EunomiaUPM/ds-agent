@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Webhook delivery over HTTP.
+
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
@@ -32,14 +34,13 @@ use crate::entities::envelope::EventEnvelope;
 
 type HmacSha256 = Hmac<Sha256>;
 
-// Dispatches HTTP webhook deliveries with HMAC-SHA256 signatures and tracking headers.
+/// Sends events to webhooks, signed with HMAC-SHA256 when the subscription has a secret.
 #[derive(Clone)]
 pub struct EventDispatcher {
     client: Arc<ClientService>,
 }
 
 impl EventDispatcher {
-    // Create dispatcher with specified client timeout.
     pub fn new(timeout: Duration) -> Self {
         let client = ClientService::builder().timeout(Some(timeout)).build();
         Self {
@@ -47,7 +48,7 @@ impl EventDispatcher {
         }
     }
 
-    // Compute HMAC-SHA256 signature formatted as standard sha256=hex.
+    /// `sha256=<hex>` signature of `payload`, as sent in the signature header.
     pub fn compute_signature(secret: &str, payload: &[u8]) -> String {
         let mut mac = HmacSha256::new_from_slice(secret.as_bytes())
             .expect("HMAC-SHA256 accepts any key size");
@@ -57,7 +58,7 @@ impl EventDispatcher {
         format!("sha256={hex}")
     }
 
-    // Dispatch envelope to callback URL with optional HMAC secret and custom headers.
+    /// POSTs the envelope to `callback_url` with the subscription's headers and signature.
     pub async fn dispatch(
         &self,
         callback_url: &str,

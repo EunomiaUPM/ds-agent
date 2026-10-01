@@ -15,5 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Request and response types shared by the modules.
+
 pub mod entities;
 pub mod response;

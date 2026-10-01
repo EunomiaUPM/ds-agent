@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! DSP contract negotiation: endpoints, orchestration and validation.
+
 pub(crate) mod deasy;
 pub(crate) mod dsp;
 pub(crate) mod protocol;

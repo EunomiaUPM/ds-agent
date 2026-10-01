@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Client side of GNAP towards peers.
+
 pub mod gnap;
 mod peer_connector_trait;
 

@@ -15,18 +15,20 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Validated topic names.
+
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
 
-// Validated topic path identifying an event category (supports . and : delimiters).
+/// Topic name made of segments separated by `.` or `:`, such as `transfers:started`.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct Topic(String);
 
 impl Topic {
-    // Validate and create a topic supporting dot and colon delimiters.
+    /// Fails on an empty topic, wildcards or empty segments.
     pub fn new(topic: impl Into<String>) -> Result<Self, String> {
         let s = topic.into();
         let trimmed = s.trim();
@@ -43,12 +45,11 @@ impl Topic {
         Ok(Self(trimmed.to_string()))
     }
 
-    // Access underlying raw topic string.
     pub fn as_str(&self) -> &str {
         &self.0
     }
 
-    // Return individual segments split by dot or colon.
+    /// Return individual segments split by dot or colon.
     pub fn segments(&self) -> Vec<&str> {
         self.0.split(['.', ':']).collect()
     }

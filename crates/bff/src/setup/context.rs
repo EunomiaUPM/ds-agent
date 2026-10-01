@@ -32,6 +32,7 @@ pub struct AppContext {
 }
 
 impl AppContext {
+    /// Wires the proxy dispatcher and the frontend settings from `config`.
     pub fn build(config: &GatewayConfig, root: &RootContext) -> Self {
         Self::new(config.clone(), Some(root.validator.clone()))
     }

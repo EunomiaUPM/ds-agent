@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Protocol services: GNAP gatekeeper and peer connector, VC requester, callbacks, Gaia-X.
+
 pub mod callback;
 pub mod gaia_self_attester;
 pub mod gatekeeper;

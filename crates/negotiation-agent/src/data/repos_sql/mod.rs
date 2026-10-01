@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Repository implementations.
+
 pub(crate) mod agreement_repo;
 pub(crate) mod negotiation_message_repo;
 pub(crate) mod negotiation_process_identifiers_repo;

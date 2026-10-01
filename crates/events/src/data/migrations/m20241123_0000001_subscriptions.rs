@@ -15,8 +15,11 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Webhook subscriptions table.
+
 use sea_orm_migration::prelude::*;
 
+/// Creates the webhook subscriptions table.
 pub struct Migration;
 impl MigrationName for Migration {
     fn name(&self) -> &str {
@@ -75,6 +78,7 @@ impl MigrationTrait for Migration {
     }
 }
 
+/// Column names of `subscriptions`.
 #[derive(Iden)]
 pub enum Subscriptions {
     Table,

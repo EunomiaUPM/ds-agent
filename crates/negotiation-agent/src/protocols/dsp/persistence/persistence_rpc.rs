@@ -46,8 +46,6 @@ use tracing::error;
 use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 
-// Service ─────────────────────────────────────────────────────────────────
-
 /// Persistence service for the outbound RPC negotiation path.
 ///
 /// Used when the local agent initiates DSP negotiation messages via the
@@ -82,8 +80,6 @@ impl NegotiationPersistenceForRpcService {
         }
     }
 }
-
-// Trait implementation ─────────────────────────────────────────────────────
 
 #[async_trait::async_trait]
 impl NegotiationRpcPersistenceTrait for NegotiationPersistenceForRpcService {
@@ -217,8 +213,6 @@ impl NegotiationRpcPersistenceTrait for NegotiationPersistenceForRpcService {
         Ok(new_process)
     }
 }
-
-// Private helpers ──────────────────────────────────────────────────────────
 
 impl NegotiationPersistenceForRpcService {
     async fn create_process(
@@ -435,8 +429,6 @@ impl NegotiationPersistenceForRpcService {
         Ok(process)
     }
 }
-
-// Blanket trait impls ──────────────────────────────────────────────────────
 
 impl OrchestrationHelpers for NegotiationPersistenceForRpcService {}
 

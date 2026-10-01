@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Policy template RPCs.
+
 mod mappers;
 
 use std::sync::Arc;
@@ -32,6 +34,7 @@ use common::grpc::{IntoStatus, ListParams};
 use tonic::{Request, Response, Status};
 use ymir::errors::Errors;
 
+/// gRPC adapter of the policy template service.
 pub struct PolicyTemplateEntityGrpc {
     service: Arc<dyn PolicyTemplateServiceTrait>,
     auth: GrpcAuth,

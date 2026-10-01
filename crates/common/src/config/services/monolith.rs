@@ -23,6 +23,7 @@ use crate::config::services::CommonConfig;
 use crate::config::types::cache::CacheConfig;
 use crate::config::types::traits::{CacheConfigTrait, CommonConfigTrait, ConfigLoader};
 
+/// `monolith` section: drives the process when every agent runs together.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct MonolithConfig {
     common: CommonConfig,
@@ -31,6 +32,7 @@ pub struct MonolithConfig {
 }
 
 impl MonolithConfig {
+    /// Monolith config with the given common section and no cache.
     pub fn new(common_config: CommonConfig) -> Self {
         Self {
             common: common_config,

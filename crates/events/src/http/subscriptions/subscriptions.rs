@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Subscription routes.
+
 use std::sync::Arc;
 
 use axum::extract::{Path, Query, State};
@@ -31,9 +33,10 @@ use crate::entities::commands::{CreateSubscriptionDto, UpdateSubscriptionDto};
 use crate::entities::queries::SubscriptionFilter;
 use crate::entities::subscription::SubscriptionRecord;
 
+/// Query string of the subscription listing.
 pub type SubscriptionsQuery = QuerySpec<SubscriptionFilter>;
 
-// Axum HTTP router for webhook subscription management.
+/// Webhook subscription routes.
 #[derive(Clone)]
 pub struct SubscriptionsRouter {
     repo: Arc<dyn EventSubscriptionRepo>,

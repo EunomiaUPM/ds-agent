@@ -105,10 +105,6 @@ mod tests {
     };
     use std::collections::HashMap;
 
-    // =========================================================================
-    // Helpers
-    // =========================================================================
-
     fn run(mut dto: ConnectorTemplateDto) -> Vec<String> {
         let mut extractor = TemplateParametersExtractor::new();
         extractor.walk(&mut dto).expect("TODO: panic message");
@@ -118,10 +114,6 @@ mod tests {
             .map(|fp| fp.name.clone())
             .collect()
     }
-
-    // =========================================================================
-    // Extract only fields
-    // =========================================================================
 
     #[test]
     fn complete_value_extractor_on_string() {
@@ -224,10 +216,6 @@ mod tests {
         let found_parameters = extractor.found_parameters();
         assert_eq!(found_parameters.len(), 0);
     }
-
-    // =========================================================================
-    // Extract ConnectorTemplateDtos
-    // =========================================================================
 
     #[test]
     fn no_auth_extracts_no_parameters() {
@@ -482,10 +470,6 @@ mod tests {
         assert!(found.contains(&"SCOPES".to_string()));
     }
 
-    // =========================================================================
-    // Pull + HTTP
-    // =========================================================================
-
     #[test]
     fn pull_http_url_template_extracts_parameter() {
         // A template placeholder in url_template should be found.
@@ -735,10 +719,6 @@ mod tests {
         assert!(run(dto).is_empty());
     }
 
-    // =========================================================================
-    // Pull + Kafka
-    // =========================================================================
-
     #[test]
     fn pull_kafka_topic_template_extracts_parameter() {
         // A placeholder in the topic field should be extracted.
@@ -870,10 +850,6 @@ mod tests {
         assert!(run(dto).is_empty());
     }
 
-    // =========================================================================
-    // Push lifecycle
-    // =========================================================================
-
     #[test]
     fn push_http_subscribe_only_extracts_parameters() {
         // With no unsubscribe, only the subscribe spec is scanned.
@@ -965,10 +941,6 @@ mod tests {
         assert_eq!(1, found.len());
         assert_eq!("TOPIC", found[0]);
     }
-
-    // =========================================================================
-    // combined auth + interaction
-    // =========================================================================
 
     #[test]
     fn basic_auth_and_http_url_extracts_all_parameters() {

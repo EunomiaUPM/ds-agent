@@ -34,6 +34,7 @@ pub(crate) mod dataplane_manager;
 pub(crate) mod dataplane_proxy;
 pub(crate) mod dataplane_runtime;
 
+/// Where and how to reach the data: endpoint, its type and optional authorization.
 #[derive(Debug, Clone)]
 pub struct DataplaneAddress {
     pub endpoint_type: String,

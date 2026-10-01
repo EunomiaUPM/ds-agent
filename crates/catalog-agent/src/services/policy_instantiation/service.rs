@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Instantiation service over the template and offer services.
+
 use crate::entities::odrl_policies::NewOdrlPolicyDto;
 use crate::entities::policy_instantiation::NewPolicyInstantiationDto;
 use crate::entities::policy_templates::PolicyTemplateDto;

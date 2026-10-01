@@ -87,10 +87,6 @@ fn make_events_svc(repo: MockTransferEventRepo) -> TransferEventsService {
     TransferEventsService::new(Arc::new(factory))
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Isolation and Authorization Tests
-// ─────────────────────────────────────────────────────────────────────────────
-
 #[tokio::test]
 async fn get_one_foreign_tenant_returns_not_found() {
     let mut repo = MockTransferEventRepo::new();

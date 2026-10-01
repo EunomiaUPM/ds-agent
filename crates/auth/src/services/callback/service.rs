@@ -40,6 +40,7 @@ use ymir::utils::{
 
 use crate::services::callback::CallbackTrait;
 
+/// Default callback handling.
 pub struct BasicCallbackService {
     vault: Arc<VaultService>,
 }

@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Topics, envelopes, subscriptions, deliveries and the `event!` macro.
+
 pub mod commands;
 pub mod dead_letter;
 pub mod delivery;

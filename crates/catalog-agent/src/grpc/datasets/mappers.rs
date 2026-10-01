@@ -27,8 +27,6 @@ use common::grpc::{ListParams, PageMeta, ProtoField};
 use common::paginated_spec::Paginated;
 use tonic::Status;
 
-// Request to Domain ───────────────────────────────────────────────────────
-
 impl TryFrom<ListDatasetsRequest> for ListParams<DatasetFilter> {
     type Error = Status;
 
@@ -72,8 +70,6 @@ impl From<PutDatasetRequest> for EditDatasetDto {
         }
     }
 }
-
-// Domain to Response ──────────────────────────────────────────────────────
 
 impl From<DatasetDto> for Dataset {
     fn from(dto: DatasetDto) -> Self {

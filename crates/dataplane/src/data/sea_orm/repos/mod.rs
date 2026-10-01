@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Repository implementations.
+
 pub mod dataplane_field;
 pub mod dataplane_transfer;
 pub mod dataplane_transfer_log;

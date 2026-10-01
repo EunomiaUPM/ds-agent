@@ -36,8 +36,6 @@ use ymir::errors::{Errors, Outcome};
 use ymir::services::client::ClientExt;
 use ymir::utils::http_client;
 
-// RpcTerminationStep ───────────────────────────────────────────────────────
-
 /// Sends a `ContractNegotiationTerminationMessage` to the peer.
 ///
 /// Can be sent by either party at any point before the negotiation is

@@ -172,10 +172,6 @@ mod test {
         format!("{:#}", result.unwrap_err())
     }
 
-    // =========================================================================
-    // Base
-    // =========================================================================
-
     #[test]
     fn ok_when_all_params_match_definitions() {
         let defs = vec![
@@ -191,10 +187,6 @@ mod test {
         )
         .is_ok());
     }
-
-    // =========================================================================
-    // Rule A: SYS_ and RUNTIME_ definitions are silently skipped
-    // =========================================================================
 
     #[test]
     fn ok_when_sys_param_is_absent_from_instance() {
@@ -235,10 +227,6 @@ mod test {
         assert!(msg.contains("GHOST"), "got: {msg}");
     }
 
-    // =========================================================================
-    // Rule B: Required vs Optional
-    // =========================================================================
-
     #[test]
     fn err_when_required_param_is_missing() {
         let defs = vec![make_def("HOST", ParameterType::String)];
@@ -252,10 +240,6 @@ mod test {
         let defs = vec![make_optional("TIMEOUT", ParameterType::Int)];
         assert!(validate(HashMap::new(), &defs).is_ok());
     }
-
-    // =========================================================================
-    // Rule C: Type validation
-    // =========================================================================
 
     #[test]
     fn ok_when_string_param_receives_string_value() {
@@ -354,10 +338,6 @@ mod test {
         assert!(msg.contains("ENV"), "got: {msg}");
     }
 
-    // =========================================================================
-    // Unknown parameters
-    // =========================================================================
-
     #[test]
     fn err_when_instance_provides_unknown_key() {
         let defs = vec![make_def("HOST", ParameterType::String)];
@@ -386,10 +366,6 @@ mod test {
         // Two unknown keys - two "Unknown parameter" messages separated by "; "
         assert_eq!(msg.matches("Unknown parameter").count(), 2, "got: {msg}");
     }
-
-    // =========================================================================
-    // Error accumulation
-    // =========================================================================
 
     #[test]
     fn ok_when_all_optional_params_are_absent() {

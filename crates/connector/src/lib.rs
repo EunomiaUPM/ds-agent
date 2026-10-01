@@ -33,7 +33,9 @@ pub(crate) mod http;
 pub mod services;
 pub(crate) mod setup;
 
+/// Domain name of the connector's events.
 pub const EVENT_DOMAIN: &str = "connector";
+/// Topic prefix of the connector's events.
 pub const EVENT_PREFIX: &str = "connector:";
 
 pub use data::entities::connector_instances::Model as ConnectorInstanceModel;

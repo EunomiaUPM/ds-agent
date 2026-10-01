@@ -31,8 +31,6 @@ use common::paginated_spec::Paginated;
 use serde_json::Value as Json;
 use tonic::Status;
 
-// Request to Domain ───────────────────────────────────────────────────────
-
 impl TryFrom<ListNegotiationMessagesRequest> for ListParams<NegotiationMessageFilter> {
     type Error = Status;
 
@@ -86,8 +84,6 @@ impl TryFrom<CreateNegotiationMessageRequest> for NewNegotiationMessageDto {
         })
     }
 }
-
-// Domain to Response ──────────────────────────────────────────────────────
 
 impl From<NegotiationMessageView> for ProtoMessage {
     fn from(view: NegotiationMessageView) -> Self {

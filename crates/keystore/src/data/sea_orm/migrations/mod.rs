@@ -15,11 +15,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Keystore table migrations.
+
 pub(crate) mod m20260519_000001_parameters;
 pub(crate) mod m20260519_000002_secrets;
 
 use sea_orm_migration::{MigrationTrait, MigratorTrait};
 
+/// Migrator over the keystore tables alone.
 #[allow(dead_code)]
 pub struct Migrator;
 
@@ -30,6 +33,7 @@ impl MigratorTrait for Migrator {
     }
 }
 
+/// Keystore tables, in creation order.
 pub fn get_keystore_migrations() -> Vec<Box<dyn MigrationTrait>> {
     vec![
         Box::new(m20260519_000001_parameters::Migration),

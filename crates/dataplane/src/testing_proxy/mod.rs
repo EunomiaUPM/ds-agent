@@ -15,4 +15,6 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! HTTP data proxy between consumers and the back end.
+
 pub mod http;

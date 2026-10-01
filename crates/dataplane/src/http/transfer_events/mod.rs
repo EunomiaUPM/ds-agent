@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Diagnostic event routes.
+
 use std::sync::Arc;
 
 use crate::entities::transfer_events::TransferEventDto;
@@ -28,6 +30,7 @@ use common::auth::http::ExtractedHeaders;
 use ymir::errors::AppResult;
 use ymir::utils::extract_path_urn;
 
+/// Routes of diagnostic events, by process and by id.
 #[derive(Clone)]
 pub struct TransferEventsRouter {
     service: Arc<dyn TransferEventServiceTrait>,
@@ -44,6 +47,7 @@ impl TransferEventsRouter {
         Self { service }
     }
 
+    /// `/{dataplane_process_id}/events`, mounted under the process routes.
     pub fn dataplane_processes_sub_router(self) -> Router {
         Router::new()
             .route(
@@ -53,6 +57,7 @@ impl TransferEventsRouter {
             .with_state(self)
     }
 
+    /// `/{event_id}`, mounted under the global events route.
     pub fn events_sub_router(self) -> Router {
         Router::new()
             .route("/{event_id}", get(Self::handle_get_event_by_id))

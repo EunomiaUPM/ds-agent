@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Response views.
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
@@ -23,7 +25,7 @@ use crate::entities::delivery::EventDeliveryRecord;
 use crate::entities::envelope::EventEnvelope;
 use crate::entities::subscription::SubscriptionRecord;
 
-// View DTO representing a published domain event.
+/// Event as returned by the API.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EventView {
     pub id: String,
@@ -36,7 +38,6 @@ pub struct EventView {
 }
 
 impl EventView {
-    // Assemble EventView from pure domain EventEnvelope.
     pub fn assemble(envelope: EventEnvelope) -> Self {
         Self {
             id: envelope.id.to_string(),
@@ -50,7 +51,7 @@ impl EventView {
     }
 }
 
-// View DTO representing a webhook subscription.
+/// Subscription as returned by the API, without its secret.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubscriptionView {
     pub id: String,
@@ -64,7 +65,6 @@ pub struct SubscriptionView {
 }
 
 impl SubscriptionView {
-    // Assemble SubscriptionView from domain SubscriptionRecord.
     pub fn assemble(record: SubscriptionRecord) -> Self {
         Self {
             id: record.id,
@@ -79,7 +79,7 @@ impl SubscriptionView {
     }
 }
 
-// View DTO representing a delivery attempt.
+/// Delivery attempt as returned by the API.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DeliveryView {
     pub id: String,
@@ -96,7 +96,6 @@ pub struct DeliveryView {
 }
 
 impl DeliveryView {
-    // Assemble DeliveryView from domain EventDeliveryRecord.
     pub fn assemble(delivery: EventDeliveryRecord) -> Self {
         Self {
             id: delivery.id,
@@ -114,7 +113,7 @@ impl DeliveryView {
     }
 }
 
-// View DTO representing an entry in the Dead Letter Queue.
+/// Dead letter as returned by the API.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DeadLetterView {
     pub id: String,
@@ -132,7 +131,6 @@ pub struct DeadLetterView {
 }
 
 impl DeadLetterView {
-    // Assemble DeadLetterView from domain DeadLetterRecord.
     pub fn assemble(dlq: DeadLetterRecord) -> Self {
         Self {
             id: dlq.id,

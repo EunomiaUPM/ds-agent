@@ -15,11 +15,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Auth migrations.
+
 use sea_orm_migration::MigrationTrait;
 use ymir::data::migrations::received;
 use ymir::data::migrations::sent;
 use ymir::data::migrations::shared;
 
+/// Auth tables, in creation order.
 pub fn get_auth_migrations() -> Vec<Box<dyn MigrationTrait>> {
     let mut m = vec![
         // Shared: picks individuales

@@ -15,14 +15,18 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! State transition log.
+
 use crate::data::sea_orm::orm::dataplane_transfer_logs;
 use thiserror::Error;
 use urn::Urn;
 use ymir::errors::{Outcome, RepoIntoErrors};
 
+/// Persistence of the state transitions of each dataplane process.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait DataplaneTransferLogsRepo: Send + Sync + 'static {
+    /// Every transition of the process.
     async fn get_transfer_logs_by_dataplane_process_id(
         &self,
         tenant_id: Option<String>,
@@ -41,6 +45,7 @@ pub trait DataplaneTransferLogsRepo: Send + Sync + 'static {
     ) -> Outcome<dataplane_transfer_logs::Model>;
 }
 
+/// Failures of the transition log repository, mapped onto `Errors`.
 #[derive(Debug, Error)]
 pub enum DataplaneTransferLogsRepoErrors {
     #[error("Dataplane transfer log not found")]

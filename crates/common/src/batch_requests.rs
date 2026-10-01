@@ -22,11 +22,13 @@
 use serde::{Deserialize, Serialize};
 use urn::Urn;
 
+/// Ids to look up, parsed as URNs.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct BatchRequests {
     pub ids: Vec<Urn>,
 }
 
+/// Ids to look up, kept as plain strings.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct BatchRequestsAsString {
     pub ids: Vec<String>,

@@ -18,12 +18,10 @@
 use common::{str_id, urn_id};
 use compact_str::CompactString;
 
-// URN-based identifiers ─────────────────────────────────────────────────────
 urn_id!(TransferProcessId, gen = "transfer-process");
 urn_id!(MessageId, gen = "transfer-message");
 urn_id!(ParticipantId);
 
-// String-based identifiers ──────────────────────────────────────────────────
 str_id!(CorrelationId, CompactString);
 str_id!(RequestId, CompactString, gen);
 str_id!(IdempotencyKey, CompactString, gen);

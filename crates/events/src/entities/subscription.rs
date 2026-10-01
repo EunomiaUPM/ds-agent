@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Webhook subscriptions.
+
 use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
@@ -23,7 +25,7 @@ use serde::{Deserialize, Serialize};
 use crate::entities::topic::Topic;
 use crate::entities::topic_pattern::TopicPattern;
 
-// Domain representation of an external webhook subscription.
+/// Webhook subscription: where to deliver, which topics, how to sign and how often to retry.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubscriptionRecord {
     pub id: String,
@@ -40,7 +42,7 @@ pub struct SubscriptionRecord {
 }
 
 impl SubscriptionRecord {
-    // Check if this subscription is active and has not expired.
+    /// Active and not past its expiration time.
     pub fn is_active(&self) -> bool {
         if !self.active {
             return false;
@@ -53,7 +55,7 @@ impl SubscriptionRecord {
         true
     }
 
-    // Verify if a topic matches this subscription pattern.
+    /// Active and its pattern matches `topic`.
     pub fn matches(&self, topic: &Topic) -> bool {
         self.is_active() && self.topic_pattern.matches(topic)
     }

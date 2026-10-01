@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! User service over the repository.
+
 use std::sync::Arc;
 
 use chrono::Utc;
@@ -32,6 +34,7 @@ use crate::services::password;
 use crate::services::user_service::UserServiceTrait;
 use crate::services::user_service::views::{UserInfo, UserView};
 
+/// User service over a repository, emitting `oauth:` events when a bus is set.
 pub struct UserService {
     user_repo: Arc<dyn UserRepository>,
     event_bus: Option<events::EventBus>,
@@ -45,6 +48,7 @@ impl UserService {
         }
     }
 
+    /// Publishes create, edit and delete events on `event_bus`.
     pub fn with_event_bus(mut self, event_bus: Option<events::EventBus>) -> Self {
         self.event_bus = event_bus;
         self

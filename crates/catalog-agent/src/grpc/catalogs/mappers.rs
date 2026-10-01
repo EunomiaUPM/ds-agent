@@ -27,8 +27,6 @@ use common::grpc::{ListParams, PageMeta, ProtoField};
 use common::paginated_spec::Paginated;
 use tonic::Status;
 
-// Request to Domain ───────────────────────────────────────────────────────
-
 impl TryFrom<ListCatalogsRequest> for ListParams<CatalogFilter> {
     type Error = Status;
 
@@ -72,8 +70,6 @@ impl From<PutCatalogRequest> for EditCatalogDto {
         }
     }
 }
-
-// Domain to Response ──────────────────────────────────────────────────────
 
 impl From<CatalogDto> for Catalog {
     fn from(dto: CatalogDto) -> Self {

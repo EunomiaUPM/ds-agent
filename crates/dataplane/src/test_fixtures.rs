@@ -42,11 +42,7 @@ use std::sync::Arc;
 use urn::Urn;
 use ymir::errors::Outcome;
 
-// local mock for ConnectorInstanceFacadeTrait ────────────────────────────────────
-
 use connector::MockConnectorInstanceFacadeTrait as MockConnectorInstance;
-
-// internal helpers ──────────────────────────────────────────────────────────
 
 fn tp_urn() -> Urn {
     Urn::from_str("urn:transfer-process:test-1").unwrap()
@@ -143,8 +139,6 @@ async fn provider_context(auth: AuthenticationConfig) -> DataplaneContext {
     .await
     .unwrap()
 }
-
-// public fixtures ───────────────────────────────────────────────────────────
 
 /// Provider context with `NoAuth` — useful to confirm wrong-type rejections.
 pub async fn no_auth_context() -> DataplaneContext {

@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Push lifecycle: the provider sends the data.
+
 use crate::entities::resource::ProtocolSpec;
 use serde::{Deserialize, Serialize};
 

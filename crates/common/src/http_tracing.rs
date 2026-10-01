@@ -182,6 +182,7 @@ impl<B> OnResponse<B> for ServerOutcome {
 static HTTP_DURATION: LazyLock<Histogram<f64>> =
     LazyLock::new(|| HttpTracing::histogram("http.server.request.duration"));
 
+/// Tracing layers and metrics for the HTTP and gRPC servers.
 pub struct HttpTracing;
 
 impl HttpTracing {
@@ -219,6 +220,7 @@ impl HttpTracing {
         res
     }
 
+    /// Layer for the gRPC server; also records `rpc.server.call.duration`.
     pub fn grpc_layer() -> TraceLayer<GrpcMakeClassifier, ServerSpan, ServerSpan, ServerOutcome> {
         let plane = Plane::Grpc;
         TraceLayer::new_for_grpc()

@@ -27,6 +27,7 @@ use std::hash::Hash;
 use crate::validation::rule::Rule;
 use crate::validation::violation::{codes, violation, Path, Violations};
 
+/// Rules over one subject, run in stages.
 pub struct Validator<S> {
     stages: Vec<Vec<Box<dyn Rule<S> + Send + Sync>>>,
 }
@@ -46,6 +47,7 @@ impl<S> Rule<S> for Validator<S> {
 }
 
 impl<S> Validator<S> {
+    /// Validator with one empty stage.
     pub fn new() -> Self {
         Self::default()
     }
@@ -189,6 +191,7 @@ impl<S> Validator<S> {
         self
     }
 
+    /// Runs every stage in order and stops at the first one that fails.
     pub fn validate(&self, subject: &S) -> Result<(), Violations> {
         for stage in &self.stages {
             let mut found = Violations::new();
@@ -205,9 +208,8 @@ impl<S> Validator<S> {
     }
 }
 
-/// Validators by message type. Registering twice for the same key composes:
-/// both run and their failures merge, so a profile can add rules without
-/// touching the core's.
+/// Validators by message type. Registering a key twice runs both, so a profile can add rules
+/// without touching the core's.
 pub struct ValidatorRegistry<K, S> {
     by_key: HashMap<K, Vec<Validator<S>>>,
 }
@@ -225,6 +227,7 @@ impl<K: Eq + Hash, S> ValidatorRegistry<K, S> {
         Self::default()
     }
 
+    /// Adds a validator for `key`; earlier ones for the same key keep running.
     pub fn register(&mut self, key: K, validator: Validator<S>) {
         self.by_key.entry(key).or_default().push(validator);
     }

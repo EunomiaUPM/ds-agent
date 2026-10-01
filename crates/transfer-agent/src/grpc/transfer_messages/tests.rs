@@ -121,8 +121,6 @@ fn valid_create() -> CreateTransferMessageRequest {
     }
 }
 
-// Auth ─────────────────────────────────────────────────────────────────────
-
 #[tokio::test]
 async fn get_without_token_is_unauthenticated() {
     let g = grpc(MockTransferMessageServiceTrait::new());
@@ -156,8 +154,6 @@ async fn missing_tenant_header_falls_back_to_token_tenant() {
             .is_ok()
     );
 }
-
-// Field parsing ────────────────────────────────────────────────────────────
 
 #[tokio::test]
 async fn get_invalid_urn_is_invalid_argument_naming_field() {
@@ -265,8 +261,6 @@ async fn create_without_payload_or_canonical_form_yields_bare_envelope() {
     assert!(g.create_transfer_message(owner(req)).await.is_ok());
 }
 
-// Error mapping ────────────────────────────────────────────────────────────
-
 #[tokio::test]
 async fn domain_not_found_maps_to_not_found() {
     let mut svc = MockTransferMessageServiceTrait::new();
@@ -280,8 +274,6 @@ async fn domain_not_found_maps_to_not_found() {
     assert_eq!(err.code(), Code::NotFound);
     assert_eq!(err.message(), "transfer message not found");
 }
-
-// Response shaping ─────────────────────────────────────────────────────────
 
 #[tokio::test]
 async fn list_propagates_cursor_total_and_parsed_filters() {

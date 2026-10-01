@@ -15,11 +15,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Audit and version data of an entry.
+
 use crate::entities::key::Key;
 use crate::entities::version::Version;
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 
+/// Who created and changed an entry, when, and its current version.
 #[derive(Clone, Debug, Serialize)]
 pub struct Metadata {
     pub tenant_id: String,

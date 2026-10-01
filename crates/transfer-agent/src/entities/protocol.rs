@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Fields every transfer process carries, whatever the protocol.
+
 use crate::entities::ids::ParticipantId;
 use compact_str::CompactString;
 use serde::{Deserialize, Serialize};
@@ -26,6 +28,7 @@ use urn::Urn;
 // Such as direction, role, protocolId, loose protocolState, loose protocolMessageType
 // And Protocol correlation which is a identifiers DSP-loosely-related correlation for convenience
 
+/// Who moves the data: the provider pushes or the consumer pulls.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum TransferDirection {
@@ -33,6 +36,7 @@ pub enum TransferDirection {
     Pull,
 }
 
+/// Side this agent plays in a process.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum TransferRole {
@@ -104,6 +108,7 @@ pub(crate) struct ProtocolState(pub CompactString);
 #[serde(transparent)]
 pub(crate) struct ProtocolMessageType(pub CompactString);
 
+/// Attribute, reasons and code attached to the current state, such as a termination cause.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[non_exhaustive]
@@ -126,6 +131,7 @@ impl StateMetadata {
 pub(crate) const CONSUMER_PID_KEY: &str = "consumerPid";
 pub(crate) const PROVIDER_PID_KEY: &str = "providerPid";
 
+/// Identifiers that tie a process to its peer: pids, agreement, callback and participant.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[non_exhaustive]

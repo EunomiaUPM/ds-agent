@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! In-process adapter over the connector service.
+
 use std::sync::Arc;
 
 use common::auth::AccessScope;

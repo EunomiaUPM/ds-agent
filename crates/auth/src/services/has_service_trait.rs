@@ -24,30 +24,37 @@ use crate::services::vc_requester::VcRequesterTrait;
 use common::config::services::SsiAuthConfig;
 use std::sync::Arc;
 
+/// Access to the auth config, for the default methods of the modules.
 pub trait HasConfig {
     fn config(&self) -> Arc<SsiAuthConfig>;
 }
 
+/// Access to the repositories.
 pub trait HasRepo {
     fn repo(&self) -> Arc<dyn AuthRepoTrait>;
 }
 
+/// Access to the peer connector.
 pub trait HasPeerConnector {
     fn peer_connector(&self) -> Arc<dyn PeerConnectorTrait>;
 }
 
+/// Access to the callback service.
 pub trait HasCallback {
     fn callback(&self) -> Arc<dyn CallbackTrait>;
 }
 
+/// Access to the gatekeeper.
 pub trait HasGateKeeper {
     fn gatekeeper(&self) -> Arc<dyn GateKeeperTrait>;
 }
 
+/// Access to the VC requester.
 pub trait HasVcRequester {
     fn vc_requester(&self) -> Arc<dyn VcRequesterTrait>;
 }
 
+/// Access to the Gaia-X self-attester.
 pub trait HasGaiaSelfAttester {
     fn gaia(&self) -> Arc<dyn GaiaSelfAttesterTrait>;
 }

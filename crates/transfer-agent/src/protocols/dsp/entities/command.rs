@@ -53,6 +53,7 @@ pub struct TransferManagerCommand {
     pub agreement_id: Option<Urn>,
 }
 
+/// Where a command comes from: a peer, a local user, or the agent itself.
 #[derive(Debug)]
 pub enum TransferCommandDirection {
     Inbound,
@@ -60,6 +61,7 @@ pub enum TransferCommandDirection {
     Inner,
 }
 
+/// What triggers a transition: a DSP message or a dataplane signal.
 #[derive(Debug)]
 pub enum TransferTransitionTrigger {
     Dsp(TransferDSPMessageType),

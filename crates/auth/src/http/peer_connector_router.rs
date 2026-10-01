@@ -37,6 +37,7 @@ use common::query::{QueryFilter, QuerySpec};
 
 pub type PeerConnectorQuery = QuerySpec<SentGrantFilter>;
 
+/// Routes to start and follow onboarding with a peer.
 pub struct OnboarderRouter {
     peer_connector: Arc<dyn PeerConnectorModule>,
 }

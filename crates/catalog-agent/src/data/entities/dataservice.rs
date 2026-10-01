@@ -15,11 +15,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Data services table.
+
 use sea_orm::entity::prelude::*;
 use sea_orm::ActiveValue;
 use serde::{Deserialize, Serialize};
 use urn::{Urn, UrnBuilder};
 
+/// `catalog_data_services` row: a DCAT data service, the endpoint distributions are served from.
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize)]
 #[sea_orm(table_name = "catalog_data_services")]
 #[serde(rename_all = "camelCase")]
@@ -111,6 +114,7 @@ impl From<&NewDataServiceModel> for ActiveModel {
     }
 }
 
+/// Partial data service update; absent fields stay as they are.
 pub struct EditDataServiceModel {
     pub dcat_endpoint_description: Option<String>,
     pub dcat_endpoint_url: Option<String>,

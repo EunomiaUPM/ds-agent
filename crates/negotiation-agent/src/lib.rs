@@ -35,9 +35,13 @@ pub mod protocols;
 pub mod services;
 pub mod setup;
 
+/// Domain name of the negotiation events.
 pub const EVENT_DOMAIN: &str = "negotiations";
+/// Topic prefix of the negotiation events.
 pub const EVENT_PREFIX: &str = "negotiations:";
+/// Service id used in logs and telemetry.
 pub const SERVICE_NAME: &str = "negotiation-agent";
+/// Name shown in the boot banner.
 pub const SERVICE_BIG_NAME: &str = "Negotiation Agent Ref";
 
 pub use data::migrations::get_negotiation_agent_migrations;

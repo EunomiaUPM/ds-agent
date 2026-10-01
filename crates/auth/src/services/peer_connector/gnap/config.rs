@@ -21,6 +21,7 @@ use common::config::types::EntityClientConfig;
 use ymir::config::traits::{ApiConfigTrait, HostsConfigTrait};
 use ymir::config::types::CommonHostsConfig;
 
+/// Hosts and API prefix the peer connector uses in its requests.
 pub struct GnapPeerConnectorConfig {
     hosts: CommonHostsConfig,
     client: EntityClientConfig,

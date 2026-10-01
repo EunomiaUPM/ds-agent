@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Data address DTOs of RPC calls.
+
 use common::dsp_common::data_address::{DataAddress, EndpointProperty};
 use serde::{Deserialize, Serialize};
 
@@ -28,6 +30,7 @@ pub struct DataAddressDto {
     pub endpoint_properties: Option<Vec<EndpointPropertyDto>>,
 }
 
+/// Name and value pair inside a data address.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct EndpointPropertyDto {

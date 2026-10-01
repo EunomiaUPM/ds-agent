@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Personal access tokens.
+
 use chrono::{DateTime, Utc};
 use common::auth::AccessScope;
 use common::auth::claims::Claims;
@@ -28,9 +30,11 @@ use crate::services::pat_service::views::{CreatePatResponse, PatView};
 pub mod service;
 pub mod views;
 
+/// Personal access tokens: long-lived bearer tokens of a tenant.
 #[cfg_attr(test, mockall::automock)]
 #[async_trait::async_trait]
 pub trait PatServiceTrait: Send + Sync + 'static {
+    /// Creates a token; the raw value is only returned here.
     async fn create_pat(
         &self,
         scope: &AccessScope,
@@ -40,6 +44,7 @@ pub trait PatServiceTrait: Send + Sync + 'static {
         expires_at: Option<DateTime<Utc>>,
     ) -> Outcome<CreatePatResponse>;
 
+    /// Page of tokens visible to the caller.
     async fn list_pats(
         &self,
         scope: &AccessScope,
@@ -48,7 +53,9 @@ pub trait PatServiceTrait: Send + Sync + 'static {
         sort: &Sort,
     ) -> Outcome<Paginated<PatView>>;
 
+    /// Marks the token revoked; it stops authenticating at once.
     async fn revoke_pat(&self, scope: &AccessScope, id: Uuid) -> Outcome<()>;
 
+    /// Claims of a raw token; fails when it is unknown, expired or revoked.
     async fn validate_pat(&self, raw_token: &str) -> Outcome<Claims>;
 }

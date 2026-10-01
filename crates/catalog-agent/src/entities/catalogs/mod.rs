@@ -15,11 +15,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Catalogs.
+
 use crate::data::entities::catalog;
 use crate::data::entities::catalog::{EditCatalogModel, Model, NewCatalogModel};
 use serde::{Deserialize, Serialize};
 use urn::Urn;
 
+/// Catalog as returned by the API.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CatalogDto {
@@ -27,6 +30,7 @@ pub struct CatalogDto {
     pub inner: catalog::Model,
 }
 
+/// New catalog.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
@@ -55,6 +59,7 @@ impl Default for NewCatalogDto {
     }
 }
 
+/// Partial catalog update.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
@@ -66,6 +71,7 @@ pub struct EditCatalogDto {
 }
 
 impl NewCatalogDto {
+    /// Row for `tenant_id`.
     pub fn into_model(self, tenant_id: String) -> NewCatalogModel {
         NewCatalogModel {
             id: self.id,

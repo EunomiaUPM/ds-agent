@@ -80,6 +80,7 @@ pub mod ssi_auth_facade;
 
 pub use ports::AuthPorts;
 
+/// Body of the auth agent's token verification call.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct VerifyTokenRequest {
     pub token: String,

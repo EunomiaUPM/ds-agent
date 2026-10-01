@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Data service repository.
+
 use crate::data::entities::dataservice;
 use crate::data::entities::dataservice::{EditDataServiceModel, NewDataServiceModel};
 use crate::data::repo_traits::catalog_db_errors::CatalogAgentRepoErrors;
@@ -23,9 +25,11 @@ use common::paginated_spec::{Page, Sort};
 use urn::Urn;
 use ymir::errors::Outcome;
 
+/// Persistence of data services; `tenant_id` of `None` reaches every tenant.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait DataServiceRepositoryTrait: Send + Sync {
+    /// Page of data services matching the filters, with the total.
     async fn get_all_data_services(
         &self,
         filters: &DataServiceFilter,
@@ -38,11 +42,13 @@ pub trait DataServiceRepositoryTrait: Send + Sync {
         ids: &[Urn],
     ) -> Outcome<Vec<dataservice::Model>>;
 
+    /// Data services of the catalog.
     async fn get_data_services_by_catalog_id(
         &self,
         tenant_id: Option<String>,
         catalog_id: &Urn,
     ) -> Outcome<Vec<dataservice::Model>>;
+    /// The tenant's main data service.
     async fn get_main_data_service(&self, tenant_id: &str) -> Outcome<Option<dataservice::Model>>;
 
     async fn get_data_service_by_id(
@@ -61,6 +67,7 @@ pub trait DataServiceRepositoryTrait: Send + Sync {
         new_data_service_model: &NewDataServiceModel,
     ) -> Outcome<dataservice::Model>;
 
+    /// Stores the data service as the tenant's main one.
     async fn create_main_data_service(
         &self,
         new_data_service_model: &NewDataServiceModel,

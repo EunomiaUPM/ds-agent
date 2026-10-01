@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Repository factory port.
+
 use crate::data::repo_traits::agreement_repo::AgreementRepoTrait;
 use crate::data::repo_traits::negotiation_message_repo::NegotiationMessageRepoTrait;
 use crate::data::repo_traits::negotiation_process_identifiers_repo::NegotiationIdentifierRepoTrait;
@@ -22,6 +24,7 @@ use crate::data::repo_traits::negotiation_process_repo::NegotiationProcessRepoTr
 use crate::data::repo_traits::offer_repo::OfferRepoTrait;
 use std::sync::Arc;
 
+/// Hands out the negotiation repositories.
 #[mockall::automock]
 pub trait NegotiationAgentRepoTrait: Send + Sync + 'static {
     fn get_negotiation_process_repo(&self) -> Arc<dyn NegotiationProcessRepoTrait>;

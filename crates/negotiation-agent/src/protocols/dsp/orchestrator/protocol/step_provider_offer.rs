@@ -28,7 +28,6 @@ use common::dsp_common::DspActor;
 use std::sync::Arc;
 use ymir::data::entities::shared::participant::Model as Mates;
 use ymir::errors::Outcome;
-// ProviderOfferStep ────────────────────────────────────────────────────────
 
 /// Handles a subsequent `ContractOfferMessage` from the Provider (counter-offer
 /// on an already-open negotiation process).

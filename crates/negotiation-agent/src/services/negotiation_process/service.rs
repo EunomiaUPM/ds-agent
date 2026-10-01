@@ -45,6 +45,7 @@ use crate::entities::negotiation_process::{EditNegotiationProcessDto, NewNegotia
 use crate::services::negotiation_process::NegotiationProcessServiceTrait;
 use crate::services::negotiation_process::views::NegotiationProcessView;
 
+/// Process service over the process and identifier repositories, emitting `negotiations:` events.
 pub struct NegotiationProcessService {
     process_repo: Arc<dyn NegotiationProcessRepoTrait>,
     identifiers_repo: Arc<dyn NegotiationIdentifierRepoTrait>,
@@ -72,6 +73,7 @@ impl NegotiationProcessService {
         }
     }
 
+    /// Publishes create, edit and delete events on `event_bus`.
     pub fn with_event_bus(mut self, event_bus: Option<events::EventBus>) -> Self {
         self.event_bus = event_bus;
         self

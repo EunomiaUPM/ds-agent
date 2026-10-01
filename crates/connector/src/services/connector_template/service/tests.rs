@@ -418,8 +418,6 @@ async fn test_create_instance_type_error() {
     );
 }
 
-// Multi-tenancy isolation tests ──────────────────────────────────────────────
-
 fn tenant_scope(tenant: &str) -> AccessScope {
     AccessScope::from_role(RbacRole::Owner, &tenant.to_string())
 }

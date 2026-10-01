@@ -15,10 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Delivery attempts.
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-// Record representing an individual webhook delivery attempt.
+/// One delivery of an event to a subscription, with its attempts and retry schedule.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EventDeliveryRecord {
     pub id: String,
@@ -35,7 +37,7 @@ pub struct EventDeliveryRecord {
     pub created_at: DateTime<Utc>,
 }
 
-// Delivery attempt lifecycle status.
+/// Delivery attempt lifecycle status.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DeliveryStatus {
     Pending,
@@ -45,7 +47,6 @@ pub enum DeliveryStatus {
 }
 
 impl DeliveryStatus {
-    // Static string representation.
     pub fn as_str(&self) -> &'static str {
         match self {
             DeliveryStatus::Pending => "Pending",

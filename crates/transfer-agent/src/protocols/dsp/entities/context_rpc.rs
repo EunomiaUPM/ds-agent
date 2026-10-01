@@ -32,8 +32,6 @@ use serde::Deserialize;
 use ymir::data::entities::shared::participant::Model as Mates;
 use ymir::errors::{BadFormat, Errors, Outcome};
 
-// TransferContextRaw --
-
 impl BuildAuthn for TransferRPCAuthn {
     fn from_request_parts(parts: &Parts) -> Outcome<Self> {
         let me_participant = parts.extensions.get::<Mates>().cloned().ok_or_else(|| {
@@ -60,8 +58,7 @@ impl BuildAuthn for TransferRPCAuthn {
     }
 }
 
-// TransferRPCContextParsed --
-
+/// Outbound RPC call read as JSON.
 #[derive(Debug)]
 pub struct TransferRPCContextParsed {
     pub raw: TransferContextRaw<TransferRPCAuthn>,
@@ -77,8 +74,6 @@ impl TransferRPCContextParsed {
     }
 }
 
-// TransferRPCContextTyped --
-
 #[derive(Debug, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 struct RpcMessageFields {
@@ -93,6 +88,7 @@ struct RpcMessageFields {
     associated_agent_peer: Option<String>,
 }
 
+/// Outbound RPC call with its fields deserialized.
 #[derive(Debug)]
 pub struct TransferRPCContextTyped {
     pub parsed: TransferRPCContextParsed,
@@ -133,8 +129,7 @@ impl TransferRPCContextTyped {
     }
 }
 
-// TransferRPCContextDomain --
-
+/// Outbound RPC call with the process, role and direction it acts on.
 #[derive(Debug)]
 pub struct TransferRPCContextDomain {
     pub typed: TransferRPCContextTyped,

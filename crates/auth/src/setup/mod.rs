@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! The agent as a module and as a standalone binary, plus its self-onboarding seeder.
+
 mod boot;
 mod composition;
 pub(crate) mod context;

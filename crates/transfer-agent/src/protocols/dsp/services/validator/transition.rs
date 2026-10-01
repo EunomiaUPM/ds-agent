@@ -28,6 +28,7 @@ use crate::protocols::dsp::entities::message_types::TransferDSPMessageType;
 use crate::protocols::dsp::entities::state::TransferDSPState;
 use crate::protocols::dsp::entities::state_metadata::TransferDSPStateAttribute;
 
+/// Checks that a message is allowed in the current state and for this role.
 pub struct TransitionValidator;
 
 impl TransitionValidator {

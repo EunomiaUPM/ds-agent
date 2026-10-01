@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! ODRL offers table.
+
 use crate::entities::odrl_policies::CatalogEntityTypes;
 use common::dsp_common::odrl::OdrlPolicyInfo;
 use sea_orm::entity::prelude::*;
@@ -22,6 +24,7 @@ use sea_orm::ActiveValue;
 use serde::{Deserialize, Serialize};
 use urn::{Urn, UrnBuilder};
 
+/// `catalog_odrl_offers` row: an ODRL offer attached to a catalog entity.
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "catalog_odrl_offers")]
 pub struct Model {

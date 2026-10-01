@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Gatekeeper side of GNAP.
+
 mod gatekeeper_trait;
 pub mod gnap;
 pub use gatekeeper_trait::GateKeeperTrait;

@@ -190,8 +190,6 @@ async fn test_upsert_instance() {
     assert!(result.is_ok());
 }
 
-// Multi-tenancy isolation tests ──────────────────────────────────────────────
-
 fn tenant_scope(tenant: &str) -> AccessScope {
     AccessScope::from_role(RbacRole::Owner, &tenant.to_string())
 }

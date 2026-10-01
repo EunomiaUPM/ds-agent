@@ -29,9 +29,11 @@ use common::paginated_spec::{Page, Paginated, Sort};
 use urn::Urn;
 use ymir::errors::Outcome;
 
+/// Management of agreements.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait AgreementServiceTrait: Send + Sync + 'static {
+    /// Page of agreements visible to the caller.
     async fn get_all(
         &self,
         scope: &AccessScope,
@@ -40,26 +42,32 @@ pub trait AgreementServiceTrait: Send + Sync + 'static {
         sort: &Sort,
     ) -> Outcome<Paginated<AgreementView>>;
 
+    /// 404 when the agreement is not visible to the caller.
     async fn get_one(&self, scope: &AccessScope, id: &Urn) -> Outcome<AgreementView>;
 
+    /// Agreement reached in the process.
     async fn get_by_process(&self, scope: &AccessScope, process_id: &Urn)
     -> Outcome<AgreementView>;
 
+    /// Agreement carried by the message.
     async fn get_by_message(&self, scope: &AccessScope, message_id: &Urn)
     -> Outcome<AgreementView>;
 
+    /// Agreements where `assignee` is the consumer.
     async fn get_by_assignee(
         &self,
         scope: &AccessScope,
         assignee: &str,
     ) -> Outcome<Vec<AgreementView>>;
 
+    /// Agreements where `assigner` is the provider.
     async fn get_by_assigner(
         &self,
         scope: &AccessScope,
         assigner: &str,
     ) -> Outcome<Vec<AgreementView>>;
 
+    /// Agreements found among the requested ids.
     async fn batch(&self, scope: &AccessScope, req: &BatchRequests) -> Outcome<Vec<AgreementView>>;
 
     async fn create(&self, scope: &AccessScope, cmd: &NewAgreementDto) -> Outcome<AgreementView>;

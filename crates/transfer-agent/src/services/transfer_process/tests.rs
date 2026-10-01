@@ -61,8 +61,6 @@ fn tenant_scope(tenant: &str) -> AccessScope {
 // (TransferProcessRepoTrait and TransferIdentifierRepoTrait) are replaced
 // with mockall mocks so no database is required.
 
-// Fixtures ────────────────────────────────────────────────────────────────
-
 fn p_urn(n: u32) -> Urn {
     Urn::from_str(&format!("urn:uuid:{:08x}-0000-0000-0000-000000000000", n)).expect("static URN")
 }
@@ -160,7 +158,6 @@ fn io_err() -> Box<dyn std::error::Error + Send + Sync> {
     Box::new(std::io::Error::from(std::io::ErrorKind::Other))
 }
 
-// get_all ─────────────────────────────────────────────────────────────────
 // get_all fires two repo calls concurrently via tokio::try_join!:
 // get_all_transfer_processes (items) and count_transfer_processes (total).
 // Identifiers are fetched in a third sequential call and merged into each view.
@@ -697,8 +694,6 @@ async fn get_all_propagates_identifier_repo_error() {
     );
 }
 
-// get_one ─────────────────────────────────────────────────────────────────
-
 #[tokio::test]
 async fn get_one_returns_view_with_identifiers() {
     let p = make_process(1);
@@ -816,7 +811,6 @@ async fn get_one_propagates_identifier_repo_error() {
     assert!(svc.get_one(&admin_scope(), p.id().as_urn()).await.is_err());
 }
 
-// tenant isolation (AccessScope) ───────────────────────────────────────────
 // These exercise the rules the service now owns on behalf of both transports.
 
 #[tokio::test]
@@ -946,7 +940,6 @@ async fn batch_filters_out_foreign_tenant_records() {
     assert!(views.is_empty());
 }
 
-// batch ────────────────────────────────────────────────────────────────────
 // batch fetches all processes in a single repo call, then groups the flat
 // identifier list by transfer_process_id before assembling each view.
 
@@ -1099,7 +1092,6 @@ async fn batch_propagates_identifier_repo_error() {
     );
 }
 
-// create ──────────────────────────────────────────────────────────────────
 // After persisting the process, create upserts each identifier individually.
 // The returned view is assembled directly from cmd.identifiers — it does NOT
 // re-fetch from the repo, unlike edit.
@@ -1240,7 +1232,6 @@ async fn create_propagates_identifier_upsert_error() {
     );
 }
 
-// edit ─────────────────────────────────────────────────────────────────────
 // edit: put the process → (optionally) upsert each identifier → re-fetch ALL
 // identifiers from the repo to build the view. This differs from create, where
 // the view is built from the command without a subsequent fetch.
@@ -1447,8 +1438,6 @@ async fn edit_propagates_identifier_fetch_error() {
             .is_err()
     );
 }
-
-// delete ──────────────────────────────────────────────────────────────────
 
 #[tokio::test]
 async fn delete_happy_path() {

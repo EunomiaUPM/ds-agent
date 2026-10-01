@@ -18,8 +18,12 @@
 use crate::config::types::min_known_config::MinKnownConfig;
 use crate::config::types::traits::{CommonConfigTrait, ConfigLoader};
 
+/// What the negotiation agent reads from its config.
 pub trait ContractsConfigTrait: ConfigLoader + CommonConfigTrait {
+    /// Address of the auth agent.
     fn ssi_auth(&self) -> &MinKnownConfig;
+    /// Address of the catalog agent.
     fn catalog(&self) -> &MinKnownConfig;
+    /// Whether the catalog is backed by a datahub.
     fn is_catalog_datahub(&self) -> bool;
 }

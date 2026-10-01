@@ -192,6 +192,7 @@ use crate::module_loader::service_composer::ServiceComposer;
 /// What makes a binary an agent: its config, schema, module graph and boot tasks.
 #[async_trait::async_trait]
 pub trait BootstrapServiceTrait: Send + Sync + 'static {
+    /// Config type the binary loads from its YAML file.
     type Config: ConfigLoader + CommonConfigTrait + Serialize + Clone + Send + Sync + 'static;
 
     /// Table recording applied migrations.

@@ -15,9 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Keys and key prefixes.
+
 use serde::{Deserialize, Serialize};
 use ymir::errors::{Errors, Outcome};
 
+/// Path-like key such as `/connectors/http/token`, validated on creation.
 #[derive(Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct Key(String);
 impl std::fmt::Display for Key {
@@ -27,6 +30,7 @@ impl std::fmt::Display for Key {
 }
 
 impl Key {
+    /// Fails unless the key passes `validate`.
     pub fn new(s: impl Into<String>) -> Outcome<Self> {
         let s = s.into();
         Self::validate(&s)?;
@@ -37,6 +41,7 @@ impl Key {
         &self.0
     }
 
+    /// Starts with `/`, has no empty segments, no trailing `/`, and only `a-z A-Z 0-9 _ - .`.
     pub fn validate(key: &str) -> Outcome<()> {
         if !key.starts_with('/') {
             return Err(Errors::validation(
@@ -79,6 +84,7 @@ impl Key {
     }
 }
 
+/// Key prefix used to list a subtree; not validated.
 #[derive(Clone, Debug, Default)]
 pub struct KeyPrefix(String);
 

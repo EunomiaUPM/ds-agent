@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! `dead_letter_queue` table.
+
 use std::str::FromStr;
 
 use chrono::{DateTime, Utc};
@@ -25,6 +27,7 @@ use ymir::errors::{Errors, Outcome};
 use crate::entities::dead_letter::DeadLetterRecord;
 use crate::entities::dead_letter::DeadLetterStatus;
 
+/// `dead_letter_queue` row.
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
 #[sea_orm(table_name = "dead_letter_queue")]
 pub struct Model {
@@ -50,7 +53,6 @@ pub enum Relation {}
 impl ActiveModelBehavior for ActiveModel {}
 
 impl Model {
-    // Map SeaORM model to pure domain DeadLetterRecord entity.
     pub fn into_domain(self) -> Outcome<DeadLetterRecord> {
         let status = DeadLetterStatus::from_str(&self.status)
             .map_err(|e| Errors::db(format!("invalid dead letter status: {e}"), None))?;
@@ -76,7 +78,6 @@ impl Model {
 }
 
 impl ActiveModel {
-    // Construct SeaORM ActiveModel from domain DeadLetterRecord entity.
     pub fn from_domain(entity: &DeadLetterRecord) -> Self {
         Self {
             id: ActiveValue::Set(entity.id.clone()),

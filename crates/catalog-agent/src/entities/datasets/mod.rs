@@ -15,11 +15,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Datasets.
+
 use crate::data::entities::dataset;
 use crate::data::entities::dataset::{EditDatasetModel, Model, NewDatasetModel};
 use serde::{Deserialize, Serialize};
 use urn::Urn;
 
+/// Dataset as returned by the API.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct DatasetDto {
@@ -27,6 +30,7 @@ pub struct DatasetDto {
     pub inner: dataset::Model,
 }
 
+/// New dataset.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
@@ -41,6 +45,7 @@ pub struct NewDatasetDto {
     pub catalog_id: Urn,
 }
 
+/// Partial dataset update.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
@@ -52,6 +57,7 @@ pub struct EditDatasetDto {
 }
 
 impl NewDatasetDto {
+    /// Row for `tenant_id`.
     pub fn into_model(self, tenant_id: String) -> NewDatasetModel {
         NewDatasetModel {
             id: self.id,

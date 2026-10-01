@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Commands of processes, messages, offers and agreements.
+
 pub mod agreement;
 pub mod filters;
 pub mod negotiation_message;

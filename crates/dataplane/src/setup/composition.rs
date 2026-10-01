@@ -38,6 +38,7 @@ use crate::setup::context::AppContext;
 use crate::setup::ports::DataplanePorts;
 use crate::testing_proxy::http::http::TestingHTTPProxy;
 
+/// Dataplane as a module: control API under its prefix and the data proxy.
 #[derive(Clone)]
 pub struct DataplaneModule {
     prefix: String,
@@ -45,6 +46,7 @@ pub struct DataplaneModule {
 }
 
 impl DataplaneModule {
+    /// Builds the services and the manager on the transfer agent's config.
     pub async fn compose(
         config: &TransferConfig,
         root: &RootContext,
@@ -64,6 +66,7 @@ impl DataplaneModule {
         self.ctx.manager.clone()
     }
 
+    /// Static, so the hosting agent's migrator can list them.
     pub fn migrations() -> Vec<Box<dyn MigrationTrait>> {
         crate::get_dataplane_migrations()
     }

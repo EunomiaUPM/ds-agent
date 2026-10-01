@@ -15,10 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Dead letters.
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-// Record representing an exhausted or permanent failure stored in the Dead Letter Queue.
+/// Delivery that failed for good, kept until replayed or purged.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DeadLetterRecord {
     pub id: String,
@@ -36,7 +38,7 @@ pub struct DeadLetterRecord {
     pub replayed_at: Option<DateTime<Utc>>,
 }
 
-// Dead letter resolution status.
+/// Dead letter resolution status.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DeadLetterStatus {
     Unresolved,
@@ -45,7 +47,6 @@ pub enum DeadLetterStatus {
 }
 
 impl DeadLetterStatus {
-    // Static string representation.
     pub fn as_str(&self) -> &'static str {
         match self {
             DeadLetterStatus::Unresolved => "Unresolved",

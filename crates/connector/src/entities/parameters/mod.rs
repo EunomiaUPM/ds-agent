@@ -106,6 +106,7 @@ pub enum TemplateBoolean {
     Template(String),
 }
 
+/// List of strings, given literally or as one placeholder.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum TemplateVecString {

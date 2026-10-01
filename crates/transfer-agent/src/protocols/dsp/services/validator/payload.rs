@@ -26,6 +26,7 @@ use ymir::errors::{Errors, Outcome};
 use crate::entities::protocol::TransferRole;
 use crate::protocols::dsp::entities::state_metadata::TransferDSPStateAttribute;
 
+/// Format checks on single payload values.
 pub struct PayloadValidator;
 
 impl PayloadValidator {

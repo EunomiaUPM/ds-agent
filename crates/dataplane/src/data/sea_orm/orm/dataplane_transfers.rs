@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Dataplane processes table.
+
 use common::config::types::roles::RoleConfig;
 use sea_orm::entity::prelude::*;
 use sea_orm::prelude::StringLen::N;
@@ -27,6 +29,7 @@ use crate::errors::DataplaneError;
 use strum::Display;
 use ymir::errors::Errors;
 
+/// Side of the transfer this dataplane serves.
 #[derive(
     Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, Display,
 )]
@@ -82,6 +85,7 @@ impl TryFrom<&DataplaneInitCommandTypes> for TransferRole {
     }
 }
 
+/// Whether the consumer pulls the data or the provider pushes it.
 #[derive(
     Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize, Display,
 )]
@@ -93,6 +97,7 @@ pub enum InteractionMode {
     Push,
 }
 
+/// States of the dataplane state machine.
 #[derive(Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[sea_orm(rs_type = "String", db_type = "Text")]
 pub enum TransferState {
@@ -118,6 +123,7 @@ pub enum TransferState {
     Error,
 }
 
+/// Dataplane process of one transfer: role, mode, state, connector and ingress and egress config.
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "dataplane_transfers")]
 #[serde(rename_all = "camelCase")]
@@ -152,6 +158,7 @@ impl Related<super::dataplane_transfer_logs::Entity> for Entity {
 
 impl ActiveModelBehavior for ActiveModel {}
 
+/// New process; without `id` a `urn:dataplane-process:<uuid>` is minted.
 #[derive(Clone)]
 pub struct NewDataplaneTransfer {
     pub id: Option<Urn>,
@@ -194,6 +201,7 @@ impl From<NewDataplaneTransfer> for ActiveModel {
 
 pub type NewDataplaneTransferModel = NewDataplaneTransfer;
 
+/// Partial process update; absent fields stay as they are.
 #[derive(Clone, Debug)]
 pub struct EditDataplaneTransferModel {
     pub state: Option<TransferState>,

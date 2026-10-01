@@ -28,11 +28,13 @@ use ymir::errors::Outcome;
 #[cfg_attr(test, mockall::automock)]
 #[async_trait::async_trait]
 pub trait ConnectorInstanceServiceTrait: Send + Sync {
+    /// Instance `id` visible to the caller, or `None`.
     async fn get_instance_by_id(
         &self,
         scope: &AccessScope,
         id: &Urn,
     ) -> Outcome<Option<ConnectorInstanceDto>>;
+    /// Instance linked to the distribution, or `None`.
     async fn get_instance_by_distribution(
         &self,
         scope: &AccessScope,
@@ -47,5 +49,6 @@ pub trait ConnectorInstanceServiceTrait: Send + Sync {
         scope: &AccessScope,
         instance_dto: &mut ConnectorInstantiationDto,
     ) -> Outcome<ConnectorInstanceDto>;
+    /// Deletes the instance and its distribution links.
     async fn delete_instance_by_id(&self, scope: &AccessScope, id: &Urn) -> Outcome<()>;
 }

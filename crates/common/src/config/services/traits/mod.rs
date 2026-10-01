@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Accessor traits, one per agent config.
+
 mod catalog_trait;
 mod contracts_trait;
 mod gateway_trait;

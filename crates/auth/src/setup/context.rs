@@ -53,7 +53,6 @@ pub(crate) struct AppContext {
 
 impl AppContext {
     pub async fn build(config: &SsiAuthConfig, root: &RootContext) -> Outcome<Self> {
-        // ======================================== CONFIGS ========================================
         let vault = root.vault.clone();
         let db_connection = root.db.clone();
         let validator = root.validator.clone();
@@ -63,11 +62,9 @@ impl AppContext {
         let verifier_config = oid4vp_draft20::VerifierConfig::from(config);
         let core_config = Arc::new(config.clone());
 
-        // ======================================== WALLET =========================================
         let wallet = Self::wallet(config, vault.clone()).await?;
         let arc_identity = wallet.get_identity();
 
-        // ======================================= SERVICES ========================================
         let vc_requester = Arc::new(VCReqService::new(vault.clone(), vc_req_config));
         let peer_connector = Arc::new(GnapPeerConnectorService::new(
             vault.clone(),

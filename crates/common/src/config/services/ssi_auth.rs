@@ -27,6 +27,7 @@ use crate::config::types::traits::{
 };
 use crate::config::types::{EntityClientConfig, GaiaConfig};
 
+/// `ssi_auth` section: wallet, DID, verification and client settings of the auth agent.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct SsiAuthConfig {
     common_config: CommonConfig,

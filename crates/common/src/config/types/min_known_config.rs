@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Address of another agent.
+
 use serde::{Deserialize, Serialize};
 use ymir::config::traits::{ApiConfigTrait, HostsConfigTrait};
 use ymir::config::types::{CommonHostsConfig, HostType};
@@ -26,6 +28,7 @@ use crate::config::types::traits::{CommonConfigTrait, MinKnownConfigTrait};
 use crate::config::types::ServiceClientConfig;
 use crate::config::ApplicationConfig;
 
+/// What an agent needs to reach another one: its hosts, API version and service client.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct MinKnownConfig {
     pub hosts: CommonHostsConfig,

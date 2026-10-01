@@ -80,8 +80,6 @@ impl ActiveModel {
     }
 }
 
-// Model -> domain ───────────────────────────────────────────────────────────
-
 impl Model {
     pub fn into_entry(self) -> Result<SecretEntry, String> {
         let key = Key::new(self.key).map_err(|e| e.to_string())?;

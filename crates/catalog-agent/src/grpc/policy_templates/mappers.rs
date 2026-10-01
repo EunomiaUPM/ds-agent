@@ -29,8 +29,6 @@ use common::grpc::{InvalidField, JsonStruct, JsonStructExt, ListParams, PageMeta
 use common::paginated_spec::Paginated;
 use tonic::Status;
 
-// Request to Domain ───────────────────────────────────────────────────────
-
 impl TryFrom<ListPolicyTemplatesRequest> for ListParams<PolicyTemplateFilter> {
     type Error = Status;
 
@@ -83,8 +81,6 @@ impl TryFrom<CreatePolicyTemplateRequest> for NewPolicyTemplateDto {
         })
     }
 }
-
-// Domain to Response ──────────────────────────────────────────────────────
 
 /// Fallible because ODRL content and parameters are re-serialized into `Struct`.
 impl TryFrom<PolicyTemplateDto> for PolicyTemplate {

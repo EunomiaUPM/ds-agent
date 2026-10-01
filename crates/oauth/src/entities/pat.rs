@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Personal access tokens.
+
 use base64::Engine;
 use chrono::{DateTime, Utc};
 use rand::RngExt;

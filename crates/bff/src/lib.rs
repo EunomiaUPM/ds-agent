@@ -32,5 +32,7 @@ pub use gateway::GatewayHttpRouter;
 pub use proxy::HttpProxyDispatcher;
 pub use setup::{AppContext, BffModule, GatewayBoot};
 
+/// Service id used in logs and telemetry.
 pub const SERVICE_NAME: &str = "gateway-agent";
+/// Name shown in the boot banner.
 pub const SERVICE_BIG_NAME: &str = "Gateway Agent";

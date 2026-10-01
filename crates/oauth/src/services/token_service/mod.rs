@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Token issuing, refresh, revocation and introspection.
+
 pub(crate) mod jwt;
 pub(crate) mod service;
 pub(crate) mod views;
@@ -24,21 +26,26 @@ pub use common::auth::OauthTokenValidator;
 pub use common::auth::claims::Claims;
 use ymir::errors::Outcome;
 
+/// The token endpoint's grants, plus revocation and introspection.
 #[async_trait::async_trait]
 pub trait TokenServiceTrait: OauthTokenValidator + Send + Sync + 'static {
+    /// Password grant without a requested scope.
     async fn issue_token(&self, email: &str, password: &str) -> Outcome<TokenResponse>;
+    /// Password grant.
     async fn issue_token_with_scope(
         &self,
         email: &str,
         password: &str,
         scope: Option<&str>,
     ) -> Outcome<TokenResponse>;
+    /// Client credentials grant.
     async fn issue_client_credentials_token(
         &self,
         client_id: &str,
         client_secret: &str,
         scope: Option<&str>,
     ) -> Outcome<TokenResponse>;
+    /// Authorization code for the PKCE flow, bound to the code challenge.
     async fn issue_authorization_code(
         &self,
         client_id: &str,
@@ -48,6 +55,7 @@ pub trait TokenServiceTrait: OauthTokenValidator + Send + Sync + 'static {
         code_challenge_method: Option<&str>,
         user_id: Option<&str>,
     ) -> Outcome<String>;
+    /// Exchanges a PKCE code for tokens once the verifier matches the challenge.
     async fn exchange_authorization_code(
         &self,
         code: &str,
@@ -55,19 +63,24 @@ pub trait TokenServiceTrait: OauthTokenValidator + Send + Sync + 'static {
         redirect_uri: Option<&str>,
         client_id: Option<&str>,
     ) -> Outcome<TokenResponse>;
+    /// JWT bearer grant (RFC 7523): a client's signed assertion instead of its secret.
     async fn issue_jwt_bearer_token(
         &self,
         assertion: &str,
         scope: Option<&str>,
     ) -> Outcome<TokenResponse>;
+    /// Refresh grant without a requested scope.
     async fn refresh_token(&self, refresh_jwt: &str) -> Outcome<TokenResponse>;
+    /// Refresh grant; the old refresh token is revoked and a new one issued.
     async fn refresh_token_with_scope(
         &self,
         refresh_jwt: &str,
         scope: Option<&str>,
     ) -> Outcome<TokenResponse>;
     async fn revoke_refresh_token(&self, refresh_jwt: &str) -> Outcome<()>;
+    /// Revokes a refresh token or a PAT (RFC 7009); unknown tokens are not an error.
     async fn revoke_token(&self, token: &str, hint: Option<&str>) -> Outcome<()>;
+    /// Token state for RFC 7662 introspection, for JWTs and PATs alike.
     async fn introspect_token(
         &self,
         token: &str,

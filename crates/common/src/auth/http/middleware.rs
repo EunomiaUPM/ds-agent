@@ -38,7 +38,7 @@ pub struct AuthHttpMiddleware {
 }
 
 impl AuthHttpMiddleware {
-    /// Creates a new auth middleware with optional token validator and strict flag.
+    /// `strict` rejects requests without a valid token; otherwise they pass unauthenticated.
     pub fn new(validator: Option<Arc<dyn OauthTokenValidator>>, strict: bool) -> Self {
         Self { validator, strict }
     }

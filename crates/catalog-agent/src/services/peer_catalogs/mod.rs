@@ -24,14 +24,18 @@ use common::auth::AccessScope;
 use ymir::data::entities::shared::participant::Model as Mates;
 use ymir::errors::Outcome;
 
+/// Catalogs fetched from peers, kept in the cache.
 #[async_trait::async_trait]
 pub trait PeerCatalogServiceTrait: Send + Sync {
+    /// Every cached peer catalog, with the peer it came from.
     async fn get_all_peer_catalogs(&self, scope: &AccessScope) -> Outcome<Vec<(Mates, Catalog)>>;
+    /// Cached catalog of the peer, if any.
     async fn get_peer_catalog(
         &self,
         scope: &AccessScope,
         peer_id: &str,
     ) -> Outcome<Option<Catalog>>;
+    /// Caches the catalog fetched from the peer.
     async fn set_peer_catalog(
         &self,
         scope: &AccessScope,

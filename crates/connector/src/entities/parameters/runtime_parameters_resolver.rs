@@ -27,6 +27,7 @@ use crate::ConnectorInstanceDto;
 use regex::Regex;
 use ymir::errors::{Errors, Outcome};
 
+/// Fills an instance's runtime placeholders from the request, the keystore and the ingress URL.
 pub struct RuntimeParametersResolver<'a> {
     connector_instance: &'a ConnectorInstanceDto,
     runtime_params: &'a serde_json::Value,
@@ -37,6 +38,7 @@ pub struct RuntimeParametersResolver<'a> {
 }
 
 impl<'a> RuntimeParametersResolver<'a> {
+    /// `runtime_params` holds the values sent with the transfer.
     pub fn new(
         connector_instance: &'a ConnectorInstanceDto,
         runtime_params: &'a serde_json::Value,
@@ -50,17 +52,20 @@ impl<'a> RuntimeParametersResolver<'a> {
         }
     }
 
+    /// Value for `{{__RUNTIME_INGRESS__}}`; empty when unset.
     pub fn with_ingress(mut self, url: Option<impl Into<String>>) -> Self {
         self.ingress_url = url.map(Into::into);
         self
     }
 
+    /// Resolves keystore placeholders against `tenant_id`'s parameters and secrets.
     pub fn with_keystore(mut self, lookup: Arc<dyn KeystoreLookup>, tenant_id: &str) -> Self {
         self.keystore = Some(lookup);
         self.keystore_tenant = tenant_id.to_string();
         self
     }
 
+    /// Copy of the instance with every placeholder it can resolve filled in.
     pub async fn resolve(&self) -> Outcome<ConnectorInstanceDto> {
         // Serialize once; reuse for keystore regex scan and for in-place mutation.
         let mut value = serde_json::to_value(self.connector_instance).map_err(|e| {

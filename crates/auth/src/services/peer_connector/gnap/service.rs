@@ -47,6 +47,7 @@ use ymir::utils::{
     expect_from_env, get_query_param, http_client, json_headers, trim_4_base, ResponseExt,
 };
 
+/// GNAP client towards peers; reads the agent's certificate from the vault.
 pub struct GnapPeerConnectorService {
     vault: Arc<VaultService>,
     config: GnapPeerConnectorConfig,

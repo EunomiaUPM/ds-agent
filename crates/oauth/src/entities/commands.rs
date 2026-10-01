@@ -15,9 +15,12 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Create and update commands.
+
 use crate::entities::role::RbacRole;
 use serde::{Deserialize, Serialize};
 
+/// New user; `tenant_id` is also its identifier.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateUserCommand {
@@ -29,6 +32,7 @@ pub struct CreateUserCommand {
     pub extra_fields: serde_json::Value,
 }
 
+/// Partial user update; absent fields stay as they are.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PatchUserCommand {
@@ -37,6 +41,7 @@ pub struct PatchUserCommand {
     pub extra_fields: Option<serde_json::Value>,
 }
 
+/// New OAuth client; `tenant_id` is only honoured for admins.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateClientCommand {
@@ -49,6 +54,7 @@ pub struct CreateClientCommand {
     pub scopes: Vec<String>,
 }
 
+/// New personal access token; without `expires_at` it never expires.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CreatePatCommand {

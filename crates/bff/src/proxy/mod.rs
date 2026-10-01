@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Reverse proxy that forwards admin API calls to the agent owning each path.
+
 pub mod dispatcher;
 
 pub use dispatcher::HttpProxyDispatcher;

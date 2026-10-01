@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! HTTP rendering of OAuth errors.
+
 pub(crate) use crate::entities::errors::{OAuthError, OAuthErrorCode};
 use axum::Json;
 use axum::http::{HeaderValue, StatusCode, header};

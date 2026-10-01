@@ -26,6 +26,7 @@ use common::auth::AccessScope;
 use serde::Serialize;
 use ymir::errors::Outcome;
 
+/// Main catalog and data service of a provisioned tenant.
 #[derive(Debug, Clone, Serialize)]
 pub struct ProvisionedTenantDto {
     pub tenant_id: String,
@@ -33,6 +34,7 @@ pub struct ProvisionedTenantDto {
     pub data_service: DataServiceDto,
 }
 
+/// Giving a tenant its main catalog and data service.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait TenantProvisioningServiceTrait: Send + Sync {

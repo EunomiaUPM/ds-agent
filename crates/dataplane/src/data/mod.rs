@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Repositories, migrations and their SeaORM adapter.
+
 pub mod factory_trait;
 pub(crate) mod migrations;
 pub mod repo;

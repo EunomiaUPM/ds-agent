@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! OAuth 2.0 grants a connector can use against its back end.
+
 use crate::entities::common::secret_management::SecretString;
 use crate::entities::parameters::TemplateString;
 use serde::{Deserialize, Serialize};

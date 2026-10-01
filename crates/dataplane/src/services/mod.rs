@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Process, log and event use cases.
+
 pub mod dataplane_transfer_logs;
 pub mod dataplane_transfers;
 pub mod transfer_events;

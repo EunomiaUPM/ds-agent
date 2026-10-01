@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Client side of GNAP towards authorities.
+
 pub(crate) mod basic;
 mod vc_requester_trait;
 pub use vc_requester_trait::VcRequesterTrait;

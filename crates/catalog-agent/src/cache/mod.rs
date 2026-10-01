@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Redis caches of catalog entities and peer catalogs.
+
 pub(crate) mod cache_redis;
 pub mod cache_traits;
 pub(crate) mod factory_redis;

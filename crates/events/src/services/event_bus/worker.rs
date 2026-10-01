@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Background retry of failed deliveries.
+
 use std::str::FromStr;
 use std::sync::{Arc, LazyLock};
 
@@ -45,7 +47,7 @@ static REDELIVERIES: LazyLock<Counter<u64>> = LazyLock::new(|| {
         .build()
 });
 
-// Background worker that periodically inspects and executes due webhook retries.
+/// Background worker that retries due deliveries and moves exhausted ones to the dead letter queue.
 #[derive(Clone)]
 pub struct RetryWorker {
     event_repo: Arc<dyn EventStoreRepo>,
@@ -58,7 +60,6 @@ pub struct RetryWorker {
 }
 
 impl RetryWorker {
-    // Create a new RetryWorker with dependencies and retry policy.
     pub fn new(
         event_repo: Arc<dyn EventStoreRepo>,
         subscription_repo: Arc<dyn EventSubscriptionRepo>,
@@ -78,13 +79,13 @@ impl RetryWorker {
         }
     }
 
-    // Set maximum concurrent HTTP delivery tasks.
+    /// Set maximum concurrent HTTP delivery tasks.
     pub fn with_concurrency_limit(mut self, limit: usize) -> Self {
         self.concurrency_limit = limit.max(1);
         self
     }
 
-    // Fetch and process one batch of due retries.
+    /// Retries up to 50 due deliveries and returns how many it processed.
     #[tracing::instrument(level = "info", skip_all, err)]
     pub async fn process_batch(&self) -> Result<usize, String> {
         let now = Utc::now();

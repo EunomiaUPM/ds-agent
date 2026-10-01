@@ -24,9 +24,13 @@ use ymir::data::entities::shared::participant::Model as Mates;
 /// The auth on any transfer context, whatever the source. Lets shared code read
 /// identity and token without knowing which side authenticated.
 pub trait TransferAuthn {
+    /// Full `Authorization` header as received.
     fn raw(&self) -> &str;
+    /// Scheme part of the header, such as `Bearer`.
     fn token_type(&self) -> &str;
+    /// Token part of the header.
     fn token_content(&self) -> &str;
+    /// Participant behind the token.
     fn participant(&self) -> &Mates;
 }
 

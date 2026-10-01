@@ -15,4 +15,6 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Redis cache of dataplane transfers.
+
 pub(crate) mod dataplane_transfer_cache;

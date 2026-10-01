@@ -15,12 +15,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Create and update commands.
+
 use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-// Command payload to register a new webhook subscription.
+/// New webhook subscription; `tenant_id` is only honoured for admins.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateSubscriptionDto {
     pub tenant_id: Option<String>,
@@ -32,7 +34,7 @@ pub struct CreateSubscriptionDto {
     pub expiration_time: Option<DateTime<Utc>>,
 }
 
-// Command payload to update an existing subscription.
+/// Partial subscription update; absent fields stay as they are.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct UpdateSubscriptionDto {
     pub callback_address: Option<String>,
@@ -44,7 +46,7 @@ pub struct UpdateSubscriptionDto {
     pub expiration_time: Option<DateTime<Utc>>,
 }
 
-// Command payload to publish a generic event via HTTP.
+/// Event published through the HTTP API; the source defaults to `events`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PublishEventRequest {
     pub tenant_id: Option<String>,

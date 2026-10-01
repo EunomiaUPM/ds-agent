@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Transition log routes.
+
 use std::sync::Arc;
 
 use crate::entities::dataplane_transfer_logs::DataplaneTransferLogDto;
@@ -28,6 +30,7 @@ use common::auth::http::ExtractedHeaders;
 use ymir::errors::AppResult;
 use ymir::utils::extract_path_urn;
 
+/// Route of the state transitions of a process.
 #[derive(Clone)]
 pub struct DataplaneTransferLogsRouter {
     service: Arc<dyn DataplaneTransferLogServiceTrait>,

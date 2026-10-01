@@ -15,10 +15,13 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Stored value with its metadata.
+
 use crate::entities::metadata::Metadata;
 use crate::entities::secret_value::SecretValue;
 use serde::Serialize;
 
+/// A stored value with its metadata.
 #[derive(Clone, Debug, Serialize)]
 pub struct Entry<T> {
     pub metadata: Metadata,

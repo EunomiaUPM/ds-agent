@@ -26,8 +26,10 @@ use ymir::types::gnap::grant_request::interact::InteractRequest;
 use ymir::types::gnap::grant_request::{GrantRequest, GrantRequestKind};
 use ymir::types::gnap::InteractionFinishResponse;
 
+/// Gatekeeper side of GNAP: building and checking what peers send.
 #[async_trait]
 pub trait GateKeeperTrait: Send + Sync + 'static {
+    /// New received grant; `class_id` is the class the peer claims.
     fn build_grant_plan(&self, tenant_id: &str, class_id: Option<String>) -> Outcome<grant::Plan>;
     fn build_resource_req_plan(
         &self,
@@ -42,6 +44,7 @@ pub trait GateKeeperTrait: Send + Sync + 'static {
         client: Client,
         interact: Option<InteractRequest>,
     ) -> Outcome<interaction::Plan>;
+    /// Participant record of the peer once verified, with its access token.
     fn build_mate_plan(
         &self,
         tenant_id: &str,
@@ -50,6 +53,7 @@ pub trait GateKeeperTrait: Send + Sync + 'static {
         base_url: &str,
         token: &str,
     ) -> participant::Plan;
+    /// Parses a grant request; only HTTP signature key proofs are accepted.
     fn validate_grant_req(
         &self,
         tenant_id: &str,
@@ -57,12 +61,14 @@ pub trait GateKeeperTrait: Send + Sync + 'static {
         headers: &HeaderMap,
     ) -> Outcome<GrantRequest>;
 
+    /// Checks a continuation request against its interaction.
     fn validate_cont_req(
         &self,
         model: &interaction::Model,
         payload: &Bytes,
         headers: &HeaderMap,
     ) -> Outcome<()>;
+    /// Answer that closes the interaction, sent to the peer's callback.
     async fn finish_interaction(
         &self,
         model: &interaction::Model,

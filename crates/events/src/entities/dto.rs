@@ -15,16 +15,17 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Shared event payloads.
+
 use serde::{Deserialize, Serialize};
 
-// Standard DTO payload for entity deletion events across services.
+/// Payload of every `delete` event: the id of the removed record.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EntityDeletedDto {
     pub id: String,
 }
 
 impl EntityDeletedDto {
-    // Create new EntityDeletedDto instance from any stringable identifier.
     pub fn new(id: impl ToString) -> Self {
         Self { id: id.to_string() }
     }

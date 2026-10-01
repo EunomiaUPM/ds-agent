@@ -93,6 +93,7 @@ pub mod dspace_version;
 pub mod router;
 pub mod rpc;
 
+/// Entry point the boot uses to build the well-known router.
 pub struct WellKnownRoot;
 impl WellKnownRoot {
     /// `mates` is the process's resolved port; without one, participants are read over HTTP.

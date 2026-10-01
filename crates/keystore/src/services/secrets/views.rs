@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Response views of secrets.
+
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 
@@ -23,6 +25,7 @@ use crate::entities::metadata::Metadata;
 use crate::entities::secret_value::SecretValue;
 use crate::entities::version::Version;
 
+/// Secret as returned by the API; the value serializes as `*****`.
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SecretView {
@@ -78,6 +81,7 @@ impl From<Metadata> for SecretMetadataView {
     }
 }
 
+/// Version left by a write.
 #[derive(Serialize)]
 pub struct VersionResponse {
     pub version: u64,

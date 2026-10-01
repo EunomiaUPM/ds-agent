@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! API key sent in a header or a query parameter.
+
 use serde::{Deserialize, Serialize};
 
 /// Where an API key is attached to the request.

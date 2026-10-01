@@ -25,6 +25,7 @@ mod m20241111_000005_policy_templates;
 mod m20241111_000006_policies;
 mod m20250222_000007_odrl_offer_description;
 
+/// Catalog tables, in creation order.
 pub fn get_catalog_migrations() -> Vec<Box<dyn MigrationTrait>> {
     vec![
         Box::new(m20241111_000001_catalog::Migration),

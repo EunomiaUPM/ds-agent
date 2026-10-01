@@ -21,6 +21,8 @@
 //! in-process, and gathers their migrations in foreign-key order. [`setup::CoreBoot`] is the
 //! boot behind the `monolith` binary and the published Docker image.
 
+/// Service id used in logs and telemetry.
 pub const SERVICE_NAME: &str = "agent";
+/// Name shown in the boot banner.
 pub const SERVICE_BIG_NAME: &str = "Agent";
 pub mod setup;

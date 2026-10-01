@@ -15,4 +15,6 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! SeaORM adapter over ymir's repositories.
+
 pub mod factory;

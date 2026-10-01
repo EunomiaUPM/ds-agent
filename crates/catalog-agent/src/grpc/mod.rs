@@ -26,10 +26,12 @@ pub mod policy_templates;
 
 /// Generated protobuf/tonic code and the reflection descriptor set.
 pub mod api {
+    /// Generated `catalog.v1` messages and services.
     pub mod catalog_agent {
         tonic::include_proto!("catalog.v1");
     }
 
+    /// Encoded descriptors for the reflection service.
     pub const FILE_DESCRIPTOR_SET: &[u8] =
         tonic::include_file_descriptor_set!("catalog_descriptor");
 }

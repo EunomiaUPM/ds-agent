@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Verification of peer tokens on DSP endpoints.
+
 use async_trait::async_trait;
 use ymir::data::entities::shared::participant::Model as Mates;
 use ymir::errors::Outcome;
@@ -25,5 +27,6 @@ pub mod remote;
 #[async_trait]
 /// Resolves a peer's GNAP token to its participant record in whichever tenant holds it.
 pub trait SSIAuthFacadeTrait: Send + Sync {
+    /// Participant that owns `token`; fails when the auth agent does not accept it.
     async fn verify_token(&self, token: String) -> Outcome<Mates>;
 }

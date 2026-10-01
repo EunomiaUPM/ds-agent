@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! DSP 2025-1 transfer process.
+
 pub mod entities;
 pub(crate) mod facades;
 pub(crate) mod http;

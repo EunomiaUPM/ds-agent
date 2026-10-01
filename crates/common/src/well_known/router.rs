@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Routes of the well-known surface and its RPC.
+
 use std::sync::Arc;
 
 use axum::extract::rejection::JsonRejection;
@@ -29,6 +31,7 @@ use crate::well_known::dspace_version::dspace_version::WellKnownDSpaceVersionSer
 use crate::well_known::dspace_version::WellKnownDSpaceVersionTrait;
 use crate::well_known::rpc::{WellKnownRPCRequest, WellKnownRPCTrait};
 
+/// Routes `/.well-known/dspace-version` and the RPC lookups of a peer's version.
 #[derive(Clone)]
 pub struct WellKnownRouter {
     pub dspace_version_service: WellKnownDSpaceVersionService,

@@ -30,8 +30,6 @@ use common::grpc::{
 use common::paginated_spec::Paginated;
 use tonic::Status;
 
-// Request to Domain ───────────────────────────────────────────────────────
-
 impl TryFrom<ListOdrlPoliciesRequest> for ListParams<OdrlPolicyFilter> {
     type Error = Status;
 
@@ -82,8 +80,6 @@ impl TryFrom<CreateOdrlPolicyRequest> for NewOdrlPolicyDto {
         })
     }
 }
-
-// Domain to Response ──────────────────────────────────────────────────────
 
 /// An entity type stored with an unknown label is reported as `UNSPECIFIED`.
 impl From<OdrlPolicyDto> for OdrlPolicy {
@@ -139,8 +135,6 @@ impl From<Vec<OdrlPolicyDto>> for OdrlPolicyListResponse {
         }
     }
 }
-
-// Proto enums ⇄ domain enums ──────────────────────────────────────────────
 
 impl TryFrom<CatalogEntityType> for CatalogEntityTypes {
     type Error = Status;

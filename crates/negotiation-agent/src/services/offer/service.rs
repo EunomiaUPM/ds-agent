@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Offer service over the repository.
+
 use std::sync::Arc;
 
 use common::auth::access::AccessScope;
@@ -32,6 +34,7 @@ use crate::entities::offer::NewOfferDto;
 use crate::services::offer::OfferServiceTrait;
 use crate::services::offer::views::OfferView;
 
+/// Offer service over a repository, emitting `negotiations:` events when a bus is set.
 pub struct OfferService {
     offer_repo: Arc<dyn OfferRepoTrait>,
     event_bus: Option<events::EventBus>,
@@ -45,6 +48,7 @@ impl OfferService {
         }
     }
 
+    /// Publishes create and delete events on `event_bus`.
     pub fn with_event_bus(mut self, event_bus: Option<events::EventBus>) -> Self {
         self.event_bus = event_bus;
         self

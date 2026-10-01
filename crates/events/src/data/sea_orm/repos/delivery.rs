@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Delivery repository.
+
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sea_orm::{
@@ -28,7 +30,6 @@ use crate::data::sea_orm::orm::delivery;
 use crate::entities::delivery::DeliveryStatus;
 use crate::entities::delivery::EventDeliveryRecord;
 
-// SeaORM-backed implementation of EventDeliveryRepo.
 #[derive(Clone)]
 pub struct SeaOrmDeliveryRepo {
     db: DatabaseConnection,

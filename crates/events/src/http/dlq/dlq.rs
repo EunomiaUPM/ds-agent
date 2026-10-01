@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Dead letter routes.
+
 use std::sync::Arc;
 
 use axum::extract::{Path, Query, State};
@@ -32,9 +34,10 @@ use crate::entities::delivery::EventDeliveryRecord;
 use crate::entities::queries::DeadLetterFilter;
 use crate::services::event_bus::EventBus;
 
+/// Query string of the dead letter listing.
 pub type DeadLettersQuery = QuerySpec<DeadLetterFilter>;
 
-// Axum HTTP router handling Dead Letter Queue inspection and redrive endpoints.
+/// Dead letter routes: listing, detail, replay and purge.
 #[derive(Clone)]
 pub struct DeadLetterRouter {
     bus: Arc<EventBus>,

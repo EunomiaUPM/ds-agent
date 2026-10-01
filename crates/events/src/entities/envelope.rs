@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Event envelope.
+
 use std::str::FromStr;
 
 use chrono::{DateTime, Utc};
@@ -26,7 +28,7 @@ use common::telemetry::TraceParent;
 
 use crate::entities::topic::Topic;
 
-// Immutable envelope packaging domain events for storage and delivery.
+/// Published event: metadata plus the JSON payload, stored and delivered as is.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EventEnvelope {
     pub id: Urn,
@@ -44,7 +46,7 @@ pub struct EventEnvelope {
 }
 
 impl EventEnvelope {
-    // Construct a new event envelope with generated URN id and current timestamp.
+    /// New envelope with a fresh `urn:uuid` id, the current time and the current trace parent.
     pub fn new(
         tenant_id: impl Into<String>,
         topic: Topic,
@@ -68,7 +70,7 @@ impl EventEnvelope {
         }
     }
 
-    // Construct an envelope with explicit metadata for persistence rehydration.
+    /// Envelope rebuilt from storage, keeping its original id and timestamp.
     pub fn with_metadata(
         id: Urn,
         tenant_id: impl Into<String>,

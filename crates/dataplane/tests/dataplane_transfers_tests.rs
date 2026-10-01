@@ -144,10 +144,6 @@ fn make_test_svc(transfer_repo: MockDataplaneTransfersRepo) -> DataplaneTransfer
     DataplaneTransferService::new(Arc::new(factory), Arc::new(NoopCache::new()))
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 6 Mandatory Multi-Tenancy Isolation Tests
-// ─────────────────────────────────────────────────────────────────────────────
-
 #[tokio::test]
 async fn get_one_foreign_tenant_returns_not_found() {
     let mut transfer_repo = MockDataplaneTransfersRepo::new();
@@ -266,10 +262,6 @@ async fn create_forces_caller_tenant_for_non_admin() {
     let created = svc.create(&tenant_scope("tenant-2"), &cmd).await.unwrap();
     assert_eq!(created.inner.tenant_id, "tenant-2");
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Additional Query and Role Tests
-// ─────────────────────────────────────────────────────────────────────────────
 
 #[tokio::test]
 async fn get_by_process_id_foreign_tenant_returns_not_found() {

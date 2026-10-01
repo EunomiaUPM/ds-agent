@@ -26,9 +26,11 @@ use common::paginated_spec::{Page, Paginated, Sort};
 use urn::Urn;
 use ymir::errors::Outcome;
 
+/// Management of catalogs.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait CatalogServiceTrait: Send + Sync {
+    /// Page of catalogs visible to the caller.
     async fn get_all_catalogs(
         &self,
         scope: &AccessScope,
@@ -36,13 +38,16 @@ pub trait CatalogServiceTrait: Send + Sync {
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<CatalogDto>>;
+    /// Catalogs found among `ids`.
     async fn get_batch_catalogs(
         &self,
         scope: &AccessScope,
         ids: &[Urn],
     ) -> Outcome<Vec<CatalogDto>>;
+    /// 404 when the catalog is not visible to the caller.
     async fn get_catalog_by_id(&self, scope: &AccessScope, catalog_id: &Urn)
         -> Outcome<CatalogDto>;
+    /// The acting tenant's main catalog, if it has one.
     async fn get_main_catalog(&self, scope: &AccessScope) -> Outcome<Option<CatalogDto>>;
 
     async fn put_catalog_by_id(
@@ -57,6 +62,7 @@ pub trait CatalogServiceTrait: Send + Sync {
         new_catalog_model: &NewCatalogDto,
     ) -> Outcome<CatalogDto>;
 
+    /// Creates the acting tenant's main catalog.
     async fn create_main_catalog(
         &self,
         scope: &AccessScope,

@@ -22,6 +22,7 @@ use std::fmt::Display;
 use std::str::FromStr;
 use ymir::errors::{BadFormat, Errors, Outcome};
 
+/// DSP transfer messages this agent sends and receives.
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 pub enum TransferDSPMessageType {
     TransferRequestMessage,
@@ -79,6 +80,7 @@ impl std::str::FromStr for TransferDSPMessageType {
 }
 
 impl TransferDSPMessageType {
+    /// Message type named by the payload's `@type`, prefixed or not.
     pub fn from_json_payload(payload: &serde_json::Value) -> Outcome<Self> {
         if let Some(t) = payload.get("@type").and_then(Self::type_term) {
             return Self::from_str(&t);

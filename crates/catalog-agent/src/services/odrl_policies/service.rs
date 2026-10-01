@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! ODRL offer service over the repository and the cache.
+
 use crate::cache::factory_trait::CatalogAgentCacheTrait;
 use crate::data::entities::odrl_offer::NewOdrlOfferModel;
 use crate::data::factory_trait::CatalogAgentRepoTrait;
@@ -30,6 +32,7 @@ use std::sync::Arc;
 use urn::Urn;
 use ymir::errors::Outcome;
 
+/// ODRL offer service that writes through to the cache and emits `catalog:` events.
 pub struct OdrlPolicyService {
     repo: Arc<dyn CatalogAgentRepoTrait>,
     cache: Arc<dyn CatalogAgentCacheTrait>,
@@ -48,6 +51,7 @@ impl OdrlPolicyService {
         }
     }
 
+    /// Publishes create and delete events on `event_bus`.
     pub fn with_event_bus(mut self, event_bus: Option<events::EventBus>) -> Self {
         self.event_bus = event_bus;
         self

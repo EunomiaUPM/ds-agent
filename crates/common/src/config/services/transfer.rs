@@ -26,6 +26,7 @@ use crate::config::types::cache::CacheConfig;
 use crate::config::types::min_known_config::MinKnownConfig;
 use crate::config::types::traits::{CacheConfigTrait, CommonConfigTrait, ConfigLoader};
 
+/// `transfer` section: transfer agent config.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct TransferConfig {
     common: CommonConfig,

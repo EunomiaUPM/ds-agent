@@ -206,8 +206,6 @@ mod tests {
         assert!(ctx.connector_instance().is_none());
     }
 
-    // set_configuring ───────────────────────────────────────────────────────
-
     // set_configuring drives the full consumer-pull flow atomically:
     // configure proxy → auth → ready → started.
     #[tokio::test]
@@ -247,8 +245,6 @@ mod tests {
         );
     }
 
-    // set_auth ──────────────────────────────────────────────────────────────
-
     // set_auth in isolation: no-op authentication → put(Auth).
     #[tokio::test]
     async fn test_set_auth_persists_auth_state() {
@@ -266,8 +262,6 @@ mod tests {
         assert_eq!(ctx.dataplane_process().inner.state, TransferState::Auth);
         assert!(ctx.connector_instance().is_none());
     }
-
-    // set_ready ─────────────────────────────────────────────────────────────
 
     // set_ready in isolation: put(Ready) exactly once.
     #[tokio::test]
@@ -287,8 +281,6 @@ mod tests {
             TransferState::Ready
         );
     }
-
-    // set_started ───────────────────────────────────────────────────────────
 
     // set_started must call put exactly once with state=Started and return the updated context.
     #[tokio::test]
@@ -310,8 +302,6 @@ mod tests {
         );
     }
 
-    // set_stopped ───────────────────────────────────────────────────────────
-
     // set_stopped must call put exactly once with state=Stopped and return the updated context.
     #[tokio::test]
     async fn test_set_stopped_persists_state() {
@@ -331,8 +321,6 @@ mod tests {
             TransferState::Stopped
         );
     }
-
-    // set_terminating ───────────────────────────────────────────────────────
 
     // set_terminating must call put exactly once with state=Terminated and return the updated
     // context.
@@ -354,8 +342,6 @@ mod tests {
             TransferState::Terminated
         );
     }
-
-    // set_subscribing / set_unsubscribing ───────────────────────────────────
 
     // Pull mode has no subscriber: set_subscribing must be a no-op — no put is called
     // and the context is returned unchanged.

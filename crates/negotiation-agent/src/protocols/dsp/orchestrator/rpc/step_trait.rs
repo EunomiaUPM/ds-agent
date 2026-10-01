@@ -33,8 +33,6 @@ use urn::Urn;
 use ymir::errors::{Errors, Outcome};
 use ymir::utils::bearer_headers;
 
-// Contexts ─────────────────────────────────────────────────────────────────
-
 /// Routing context for steps that create a brand-new negotiation process
 /// (initial request and initial offer).
 ///
@@ -109,8 +107,6 @@ pub(super) struct NegotiationRpcAgreementContext {
     pub last_offer: OdrlMessageOffer,
 }
 
-// Lifecycle step template ──────────────────────────────────────────────────
-
 /// Template trait for a single RPC-initiated negotiation lifecycle step.
 ///
 /// Nine concrete steps implement this trait: two initial steps that create a new
@@ -175,8 +171,6 @@ pub(super) trait NegotiationRpcStep: Send + Sync + 'static {
         NegotiationProcessView,
     )>;
 
-    // Default helpers ──────────────────────────────────────────────────────
-
     /// Bearer headers carrying the peer's stored token, sent with this request only.
     ///
     /// `None` when the peer has no token; the request proceeds unauthenticated.
@@ -193,8 +187,6 @@ pub(super) trait NegotiationRpcStep: Send + Sync + 'static {
         }
     }
 }
-
-// Shared helpers for continuation steps ────────────────────────────────────
 
 impl NegotiationRpcContinuationContext {
     /// Fetch the process on behalf of the user and derive the peer routing fields.

@@ -26,9 +26,11 @@ use common::paginated_spec::{Page, Paginated, Sort};
 use urn::Urn;
 use ymir::errors::Outcome;
 
+/// Management of datasets.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait DatasetServiceTrait: Send + Sync {
+    /// Page of datasets visible to the caller.
     async fn get_all_datasets(
         &self,
         scope: &AccessScope,
@@ -36,16 +38,19 @@ pub trait DatasetServiceTrait: Send + Sync {
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<DatasetDto>>;
+    /// Datasets found among `ids`.
     async fn get_batch_datasets(
         &self,
         scope: &AccessScope,
         ids: &[Urn],
     ) -> Outcome<Vec<DatasetDto>>;
+    /// Datasets of the catalog.
     async fn get_datasets_by_catalog_id(
         &self,
         scope: &AccessScope,
         catalog_id: &Urn,
     ) -> Outcome<Vec<DatasetDto>>;
+    /// 404 when the dataset is not visible to the caller.
     async fn get_dataset_by_id(&self, scope: &AccessScope, dataset_id: &Urn)
         -> Outcome<DatasetDto>;
 

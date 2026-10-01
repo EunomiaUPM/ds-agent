@@ -41,8 +41,6 @@ use common::query::Paginated;
 use tonic::Status;
 use url::Url;
 
-// Request to Domain ───────────────────────────────────────────────────────
-
 impl TryFrom<ListTransferProcessesRequest> for ListParams<TransferProcessFilter> {
     type Error = Status;
 
@@ -138,8 +136,6 @@ impl TryFrom<EditTransferProcessRequest> for EditTransferProcessCommand {
     }
 }
 
-// Domain to Response ──────────────────────────────────────────────────────
-
 impl From<TransferProcessView> for TransferProcessResponse {
     fn from(view: TransferProcessView) -> Self {
         Self {
@@ -181,8 +177,6 @@ impl From<Vec<TransferProcessView>> for TransferProcessListResponse {
     }
 }
 
-// Nested types ────────────────────────────────────────────────────────────
-
 impl From<ProtoStateMetadata> for StateMetadata {
     fn from(meta: ProtoStateMetadata) -> Self {
         Self {
@@ -221,8 +215,6 @@ impl From<TransferCorrelation> for ProtoCorrelation {
         }
     }
 }
-
-// Proto enums ⇄ domain enums ──────────────────────────────────────────────
 
 impl From<ProtoTransferRole> for TransferRole {
     fn from(role: ProtoTransferRole) -> Self {

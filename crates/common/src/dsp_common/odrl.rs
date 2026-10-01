@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! ODRL offers, agreements, rules and constraints as they travel in DSP messages.
+
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use urn::Urn;
@@ -23,6 +25,7 @@ use ymir::errors::{BadFormat, Errors, Outcome};
 use crate::utils::get_urn;
 // use sea_orm_migration::prelude::ValueType;
 
+/// Policy type of an ODRL document.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum OdrlTypes {
     #[serde(rename = "Offer")]
@@ -31,6 +34,7 @@ pub enum OdrlTypes {
     Agreement,
 }
 
+/// Offer in a contract request: the full offer or just its id.
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(untagged)]
 pub enum ContractRequestMessageOfferTypes {
@@ -38,15 +42,15 @@ pub enum ContractRequestMessageOfferTypes {
     OfferId(ContractRequestMessageOfferOfferId),
 }
 
+/// Offer referenced by id only.
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-
 pub struct ContractRequestMessageOfferOfferId {
     #[serde(rename = "@id")]
     pub id: Urn,
 }
 
+/// Offer sent inside a DSP message, where `target` is required.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-
 pub struct OdrlMessageOffer {
     // PolicyClass
     #[serde(rename = "@id")]
@@ -89,9 +93,8 @@ impl Default for OdrlMessageOffer {
     }
 }
 
-/// Offer is PolicyClass + MessageOffer - Offer
+/// Offer as the catalog stores it, where `target` is optional.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-
 pub struct OdrlOffer {
     // PolicyClass
     #[serde(rename = "@id")]
@@ -135,8 +138,8 @@ impl Default for OdrlOffer {
     }
 }
 
+/// Agreement reached at the end of a negotiation, with both parties and its target.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-
 pub struct OdrlAgreement {
     // PolicyClass
     #[serde(rename = "@id")]
@@ -187,7 +190,7 @@ impl Default for OdrlAgreement {
     }
 }
 
-// ODRL Profile type
+/// ODRL profile, as one IRI or a list.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(untagged)]
 pub enum OdrlProfile {
@@ -195,9 +198,8 @@ pub enum OdrlProfile {
     Multiple(Vec<String>),
 }
 
-/// OdrlPermission
+/// Permission rule: an action, its constraints and an optional duty.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-
 pub struct OdrlPermission {
     #[serde(rename = "action")]
     pub action: OdrlAction,
@@ -209,9 +211,8 @@ pub struct OdrlPermission {
     pub duty: Option<OdrlDuty>,
 }
 
-/// OdrlDuty
+/// Duty rule: an action the assignee must perform, with optional constraints.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-
 pub struct OdrlDuty {
     #[serde(rename = "action")]
     pub action: OdrlAction,
@@ -219,13 +220,13 @@ pub struct OdrlDuty {
     pub constraint: Option<Vec<OdrlConstraint>>,
 }
 
-/// OdrlObligation
+/// Obligations and prohibitions share the duty shape.
 pub type OdrlObligation = OdrlDuty;
 
-/// OdrlAction
+/// ODRL action name, such as `use`.
 pub type OdrlAction = String;
 
-/// OdrlConstraint
+/// Constraint on a rule: a single comparison or a logical combination.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(untagged)]
 pub enum OdrlConstraint {
@@ -233,10 +234,8 @@ pub enum OdrlConstraint {
     Logical(OdrlLogicalConstraint),
 }
 
-/// LogicalConstraint permite una de las siguientes propiedades: "and", "andSequence", "or" o
-/// "xone". Se usan Option para cada una;
+/// Logical combination of constraints; exactly one operator must be set.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-
 pub struct OdrlLogicalConstraint {
     #[serde(rename = "and")]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -251,10 +250,8 @@ pub struct OdrlLogicalConstraint {
     pub xone: Option<Vec<OdrlConstraint>>,
 }
 
-/// the rule that exactly one must be present is validated externally.
-/// let constraint: LogicalConstraint = serde_json::from_str(json_data)?;
-/// constraint.validate()?; // if it fails, an error is returned.
 impl OdrlLogicalConstraint {
+    /// Fails unless exactly one of `and`, `andSequence`, `or` or `xone` is set.
     pub fn validate(&self) -> Outcome<()> {
         let count = self.and.is_some() as usize
             + self.and_sequence.is_some() as usize
@@ -275,9 +272,8 @@ impl OdrlLogicalConstraint {
     }
 }
 
-// AtomicConstraint defines the three required fields: rightOperand, leftOperand and operator.
+/// Single comparison: left operand, operator and right operand.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-
 pub struct OdrlAtomicConstraint {
     #[serde(rename = "rightOperand")]
     pub right_operand: OdrlRightOperand,
@@ -287,9 +283,8 @@ pub struct OdrlAtomicConstraint {
     pub operator: Operator,
 }
 
-// Operator is defined as an enum with allowed values.
+/// ODRL comparison operators.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-
 pub enum Operator {
     #[serde(rename = "eq")]
     Eq,
@@ -319,8 +314,7 @@ pub enum Operator {
     Neq,
 }
 
-// RightOperand is defined to accept string, object or array.
-// serde_json::Value is used to allow this variability.
+/// Right operand of a constraint: a string, an object or a list.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(untagged)]
 pub enum OdrlRightOperand {
@@ -329,11 +323,11 @@ pub enum OdrlRightOperand {
     Array(Vec<Value>),
 }
 
-// LeftOperand es un string.
+/// Left operand of a constraint, such as `dateTime`.
 pub type OdrlLeftOperand = String;
 
+/// Rules of a policy without its identity or target, as stored in templates and offers.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-
 pub struct OdrlPolicyInfo {
     #[serde(rename = "profile")]
     #[serde(skip_serializing_if = "Option::is_none")]

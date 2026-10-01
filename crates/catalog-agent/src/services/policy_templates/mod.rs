@@ -25,9 +25,11 @@ use common::auth::AccessScope;
 use common::paginated_spec::{Page, Paginated, Sort};
 use ymir::errors::Outcome;
 
+/// Management of policy templates and their versions.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait PolicyTemplateServiceTrait: Sync + Send {
+    /// Page of templates visible to the caller.
     async fn get_all_policy_templates(
         &self,
         scope: &AccessScope,
@@ -35,11 +37,13 @@ pub trait PolicyTemplateServiceTrait: Sync + Send {
         page: &Page,
         sort: &Sort,
     ) -> Outcome<Paginated<PolicyTemplateDto>>;
+    /// Templates found among `ids`.
     async fn get_batch_policy_templates(
         &self,
         scope: &AccessScope,
         ids: &[String],
     ) -> Outcome<Vec<PolicyTemplateDto>>;
+    /// Every version of the template.
     async fn get_policies_template_by_id(
         &self,
         scope: &AccessScope,
@@ -51,6 +55,7 @@ pub trait PolicyTemplateServiceTrait: Sync + Send {
         template_id: &str,
         version_id: &str,
     ) -> Outcome<PolicyTemplateDto>;
+    /// Validates the template and stores it.
     async fn create_policy_template(
         &self,
         scope: &AccessScope,

@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Distribution repository.
+
 use crate::data::entities::distribution;
 use crate::data::entities::distribution::{EditDistributionModel, NewDistributionModel};
 use crate::data::repo_traits::catalog_db_errors::CatalogAgentRepoErrors;
@@ -24,9 +26,11 @@ use ymir::errors::Outcome;
 use crate::entities::filters::DistributionFilter;
 use common::paginated_spec::{Page, Sort};
 
+/// Persistence of distributions; `tenant_id` of `None` reaches every tenant.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait DistributionRepositoryTrait: Send + Sync {
+    /// Page of distributions matching the filters, with the total.
     async fn get_all_distributions(
         &self,
         filters: &DistributionFilter,
@@ -39,11 +43,13 @@ pub trait DistributionRepositoryTrait: Send + Sync {
         ids: &[Urn],
     ) -> Outcome<Vec<distribution::Model>>;
 
+    /// Distributions of the dataset.
     async fn get_distributions_by_dataset_id(
         &self,
         tenant_id: Option<String>,
         dataset_id: &Urn,
     ) -> Outcome<Vec<distribution::Model>>;
+    /// Distribution of the dataset in the given `dct:format`.
     async fn get_distribution_by_dataset_id_and_dct_format(
         &self,
         tenant_id: Option<String>,

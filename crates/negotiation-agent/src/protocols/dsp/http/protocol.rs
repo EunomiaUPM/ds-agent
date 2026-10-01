@@ -74,9 +74,6 @@ impl DspRouter {
 
     pub fn router(self) -> Router {
         Router::new()
-            // =========================================================
-            //  COMMON & PROVIDER ROUTES (DSP 8.2)
-            // =========================================================
             // 8.2.1 & 8.3.2: Get Negotiation (Unified)
             .route("/{id}", get(Self::handle_get_negotiation))
             // 8.2.2: Contract Request Endpoint (Consumer initiates) -> ROLE: PROVIDER
@@ -88,18 +85,12 @@ impl DspRouter {
                 "/{id}/agreement/verification",
                 post(Self::handle_agreement_verification),
             )
-            // =========================================================
-            //  CONSUMER CALLBACK ROUTES (DSP 8.3)
-            // =========================================================
             // 8.3.3: Contract Offer Endpoint (Provider initiates) -> ROLE: CONSUMER
             .route("/offers", post(Self::handle_initial_offer))
             // 8.3.4: Contract Offer Endpoint (Provider counters) -> ROLE: CONSUMER
             .route("/{id}/offers", post(Self::handle_provider_offer))
             // 8.3.5: Contract Agreement Endpoint (Provider sends Agreement) -> ROLE: CONSUMER
             .route("/{id}/agreement", post(Self::handle_agreement_reception))
-            // =========================================================
-            //  SHARED / AMBIGUOUS ROUTES
-            // =========================================================
             // 8.2.4 (Provider Endpoint) & 8.3.6 (Consumer Endpoint) -> Events
             // Both allow POST /events. The logic inside must discriminate based on state/role.
             .route("/{id}/events", post(Self::handle_negotiation_events))

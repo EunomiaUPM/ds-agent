@@ -15,10 +15,13 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Negotiation messages.
+
 use crate::data::entities::negotiation_message::NewNegotiationMessageModel;
 use serde::{Deserialize, Serialize};
 use urn::Urn;
 
+/// New negotiation message.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
@@ -36,6 +39,7 @@ pub struct NewNegotiationMessageDto {
 }
 
 impl NewNegotiationMessageDto {
+    /// Row for `tenant_id`.
     pub fn into_model(self, tenant_id: String) -> NewNegotiationMessageModel {
         NewNegotiationMessageModel {
             id: self.id,

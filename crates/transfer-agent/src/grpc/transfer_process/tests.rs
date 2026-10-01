@@ -125,8 +125,6 @@ fn valid_create() -> CreateTransferProcessRequest {
     }
 }
 
-// Auth ─────────────────────────────────────────────────────────────────────
-
 #[tokio::test]
 async fn get_without_token_is_unauthenticated() {
     let g = grpc(MockTransferProcessServiceTrait::new());
@@ -184,8 +182,6 @@ async fn missing_tenant_header_falls_back_to_token_tenant() {
             .is_ok()
     );
 }
-
-// Field parsing ────────────────────────────────────────────────────────────
 
 #[tokio::test]
 async fn get_invalid_urn_is_invalid_argument_naming_field() {
@@ -308,8 +304,6 @@ async fn edit_treats_absent_fields_as_no_change() {
     assert!(g.edit_transfer_process(owner(req)).await.is_ok());
 }
 
-// Error mapping ────────────────────────────────────────────────────────────
-
 #[tokio::test]
 async fn domain_not_found_maps_to_not_found() {
     let mut svc = MockTransferProcessServiceTrait::new();
@@ -336,8 +330,6 @@ async fn domain_forbidden_maps_to_permission_denied() {
         .unwrap_err();
     assert_eq!(err.code(), Code::PermissionDenied);
 }
-
-// Response shaping ─────────────────────────────────────────────────────────
 
 #[tokio::test]
 async fn list_propagates_cursor_total_and_parsed_filters() {

@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Offer repository.
+
 use crate::data::entities::offer;
 use crate::data::entities::offer::NewOfferModel;
 use crate::entities::filters::OfferFilter;
@@ -24,9 +26,11 @@ use urn::Urn;
 use ymir::errors::Outcome;
 use ymir::errors::RepoIntoErrors;
 
+/// Persistence of offers; `tenant_id` of `None` reaches every tenant.
 #[mockall::automock]
 #[async_trait::async_trait]
 pub trait OfferRepoTrait: Send + Sync {
+    /// Page of offers matching the filters.
     async fn get_all_offers(
         &self,
         filters: &OfferFilter,
@@ -38,11 +42,13 @@ pub trait OfferRepoTrait: Send + Sync {
         tenant_id: Option<String>,
         ids: &[Urn],
     ) -> Outcome<Vec<offer::Model>>;
+    /// Every offer made in the process.
     async fn get_offers_by_negotiation_process(
         &self,
         tenant_id: Option<String>,
         id: &Urn,
     ) -> Outcome<Vec<offer::Model>>;
+    /// Most recent offer of the process.
     async fn get_last_offer_by_negotiation_process(
         &self,
         tenant_id: Option<String>,
@@ -53,11 +59,13 @@ pub trait OfferRepoTrait: Send + Sync {
         tenant_id: Option<String>,
         id: &Urn,
     ) -> Outcome<Option<offer::Model>>;
+    /// Offer carried by the message.
     async fn get_offer_by_negotiation_message(
         &self,
         tenant_id: Option<String>,
         id: &Urn,
     ) -> Outcome<Option<offer::Model>>;
+    /// Offer by its ODRL `@id`, not the row id.
     async fn get_offer_by_offer_id(
         &self,
         tenant_id: Option<String>,
@@ -68,6 +76,7 @@ pub trait OfferRepoTrait: Send + Sync {
     async fn delete_offer(&self, tenant_id: Option<String>, id: &Urn) -> Outcome<String>;
 }
 
+/// Failures of the offer repository, mapped onto `Errors`.
 #[derive(Debug, Error)]
 pub enum OfferRepoErrors {
     #[error("Offer not found")]

@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! `event_deliveries` table.
+
 use std::str::FromStr;
 
 use chrono::{DateTime, Utc};
@@ -25,6 +27,7 @@ use ymir::errors::{Errors, Outcome};
 use crate::entities::delivery::DeliveryStatus;
 use crate::entities::delivery::EventDeliveryRecord;
 
+/// `event_deliveries` row.
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
 #[sea_orm(table_name = "event_deliveries")]
 pub struct Model {
@@ -74,7 +77,6 @@ impl Related<super::subscription::Entity> for Entity {
 impl ActiveModelBehavior for ActiveModel {}
 
 impl Model {
-    // Map SeaORM model to pure domain EventDeliveryRecord entity.
     pub fn into_domain(self) -> Outcome<EventDeliveryRecord> {
         let status = DeliveryStatus::from_str(&self.status)
             .map_err(|e| Errors::db(format!("invalid delivery status: {e}"), None))?;
@@ -103,7 +105,6 @@ impl Model {
 }
 
 impl ActiveModel {
-    // Construct SeaORM ActiveModel from domain EventDeliveryRecord entity.
     pub fn from_domain(entity: &EventDeliveryRecord) -> Self {
         Self {
             id: ActiveValue::Set(entity.id.clone()),

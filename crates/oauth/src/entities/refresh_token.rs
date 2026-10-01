@@ -15,8 +15,11 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Refresh tokens.
+
 use chrono::{DateTime, Utc};
 
+/// Issued refresh token, tracked by `jti` so it can be revoked.
 #[derive(Debug, Clone)]
 pub struct RefreshToken {
     pub id: uuid::Uuid,

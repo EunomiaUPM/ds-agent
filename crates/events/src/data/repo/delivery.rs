@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Delivery attempt repository.
+
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use thiserror::Error;
@@ -22,7 +24,7 @@ use ymir::errors::{Outcome, RepoIntoErrors};
 
 use crate::entities::delivery::EventDeliveryRecord;
 
-// Repository errors encountered during delivery tracking.
+/// Failures of the delivery repository, mapped onto `Errors`.
 #[derive(Debug, Error)]
 pub enum DeliveryRepoError {
     #[error("Database error: {0}")]
@@ -34,19 +36,21 @@ pub enum DeliveryRepoError {
 
 impl RepoIntoErrors for DeliveryRepoError {}
 
-// Repository interface for webhook delivery attempt tracking and retries.
+/// Persistence of webhook delivery attempts and their retry schedule.
 #[async_trait]
 pub trait EventDeliveryRepo: Send + Sync + 'static {
     async fn create_delivery(&self, delivery: &EventDeliveryRecord)
         -> Outcome<EventDeliveryRecord>;
     async fn get_delivery(&self, tenant_id: &str, id: &str)
         -> Outcome<Option<EventDeliveryRecord>>;
+    /// Pending deliveries whose next retry is due by `now`, at most `limit`.
     async fn get_due_retries(
         &self,
         now: DateTime<Utc>,
         limit: u64,
     ) -> Outcome<Vec<EventDeliveryRecord>>;
     async fn mark_delivered(&self, id: &str, attempts: u32, status_code: u16) -> Outcome<()>;
+    /// Records a failed attempt; `next_retry_at` of `None` stops retrying.
     async fn record_failed_attempt(
         &self,
         id: &str,
@@ -56,6 +60,7 @@ pub trait EventDeliveryRepo: Send + Sync + 'static {
         status_code: Option<u16>,
     ) -> Outcome<()>;
     async fn mark_dead_letter(&self, id: &str) -> Outcome<()>;
+    /// Every delivery of the event; `tenant_id` of `None` reaches every tenant.
     async fn list_by_event(
         &self,
         tenant_id: Option<String>,

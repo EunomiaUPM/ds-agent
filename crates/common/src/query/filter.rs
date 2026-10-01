@@ -52,7 +52,6 @@ pub struct DateRange {
 }
 
 impl DateRange {
-    /// Creates a new date range filter.
     pub fn new(after: Option<DateTime<Utc>>, before: Option<DateTime<Utc>>) -> Self {
         Self {
             created_after: after,

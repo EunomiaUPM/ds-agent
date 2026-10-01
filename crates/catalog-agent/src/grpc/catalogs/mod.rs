@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Catalog RPCs.
+
 mod mappers;
 
 use std::sync::Arc;
@@ -31,6 +33,7 @@ use common::grpc::{IntoStatus, ListParams, ProtoField, ProtoFieldList};
 use tonic::{Request, Response, Status};
 use ymir::errors::Errors;
 
+/// gRPC adapter of the catalog service.
 pub struct CatalogEntityGrpc {
     service: Arc<dyn CatalogServiceTrait>,
     auth: GrpcAuth,

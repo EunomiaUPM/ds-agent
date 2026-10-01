@@ -62,8 +62,6 @@ fn by_id(id: &str) -> GetByIdRequest {
     GetByIdRequest { id: id.to_string() }
 }
 
-// Auth ─────────────────────────────────────────────────────────────────────
-
 #[tokio::test]
 async fn get_without_token_is_unauthenticated() {
     let g = grpc(MockCatalogServiceTrait::new());
@@ -109,8 +107,6 @@ async fn missing_tenant_header_falls_back_to_token_tenant() {
         .await
         .is_ok());
 }
-
-// Field parsing ────────────────────────────────────────────────────────────
 
 #[tokio::test]
 async fn get_invalid_urn_is_invalid_argument_naming_field() {
@@ -207,8 +203,6 @@ async fn put_parses_id_and_maps_edit_dto() {
     assert!(g.put_catalog_by_id(owner(req)).await.is_ok());
 }
 
-// Error mapping ────────────────────────────────────────────────────────────
-
 #[tokio::test]
 async fn domain_not_found_maps_to_not_found() {
     let mut svc = MockCatalogServiceTrait::new();
@@ -246,8 +240,6 @@ async fn missing_main_catalog_is_not_found() {
     let err = g.get_main_catalog(owner(())).await.unwrap_err();
     assert_eq!(err.code(), Code::NotFound);
 }
-
-// Response shaping ─────────────────────────────────────────────────────────
 
 #[tokio::test]
 async fn list_propagates_cursor_total_and_parsed_filters() {

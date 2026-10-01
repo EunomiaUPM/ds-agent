@@ -122,6 +122,7 @@ pub use helpers::{BadFormat, MissingAction, NotFoundExt, ResourceError};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+/// JSON body of an error response; `status_code` only sets the HTTP status.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ErrorInfo {
     pub message: String,
@@ -133,6 +134,7 @@ pub struct ErrorInfo {
     pub cause: String,
 }
 
+/// Error enum from before ymir, each variant with its own code and status.
 #[derive(Error, Debug, Serialize, Deserialize, Clone)]
 pub enum CommonErrors {
     #[error("Petition Error")]
@@ -376,6 +378,7 @@ impl ErrorLog for CommonErrors {
 }
 
 impl CommonErrors {
+    /// A call to another service failed (502, code 1000).
     pub fn petition_new(
         url: &str,
         method: &str,
@@ -396,6 +399,7 @@ impl CommonErrors {
             cause: cause.to_string(),
         }
     }
+    /// The provider answered something unexpected (502, code 2200).
     pub fn provider_new(
         url: &str,
         method: &str,
@@ -416,6 +420,7 @@ impl CommonErrors {
             cause: cause.to_string(),
         }
     }
+    /// The consumer answered something unexpected (502, code 2300).
     pub fn consumer_new(
         url: &str,
         method: &str,
@@ -436,6 +441,7 @@ impl CommonErrors {
             cause: cause.to_string(),
         }
     }
+    /// The authority answered something unexpected (502, code 2400).
     pub fn authority_new(
         url: &str,
         method: &str,
@@ -456,6 +462,7 @@ impl CommonErrors {
             cause: cause.to_string(),
         }
     }
+    /// A required previous step is missing (412, code 31xx by action).
     pub fn missing_action_new(action: MissingAction, cause: &str) -> CommonErrors {
         let error_code = match action {
             MissingAction::Token => 3110,
@@ -480,6 +487,7 @@ impl CommonErrors {
             cause: cause.to_string(),
         }
     }
+    /// Resource not found (404, code 3200).
     pub fn missing_resource_new(resource_id: &str, cause: &str) -> CommonErrors {
         CommonErrors::MissingResourceError {
             info: ErrorInfo {
@@ -494,6 +502,7 @@ impl CommonErrors {
             cause: cause.to_string(),
         }
     }
+    /// Malformed payload (400, or 502 when we sent it).
     pub fn format_new(option: BadFormat, cause: &str) -> CommonErrors {
         let (error_code, status_code) = match option {
             BadFormat::Sent => (3110, StatusCode::BAD_GATEWAY),
@@ -511,6 +520,7 @@ impl CommonErrors {
             cause: cause.to_string(),
         }
     }
+    /// 401, code 4200.
     pub fn unauthorized_new(cause: &str) -> CommonErrors {
         CommonErrors::UnauthorizedError {
             info: ErrorInfo {
@@ -523,6 +533,7 @@ impl CommonErrors {
             cause: cause.to_string(),
         }
     }
+    /// 403, code 4300.
     pub fn forbidden_new(cause: &str) -> CommonErrors {
         CommonErrors::ForbiddenError {
             info: ErrorInfo {
@@ -535,6 +546,7 @@ impl CommonErrors {
             cause: cause.to_string(),
         }
     }
+    /// Database failure (500, code 5100).
     pub fn database_new(cause: &str) -> CommonErrors {
         CommonErrors::DatabaseError {
             info: ErrorInfo {
@@ -547,6 +559,7 @@ impl CommonErrors {
             cause: cause.to_string(),
         }
     }
+    /// Feature not implemented (501, code 5200).
     pub fn not_impl_new(feature: &str, cause: &str) -> CommonErrors {
         CommonErrors::FeatureNotImplError {
             info: ErrorInfo {
@@ -560,6 +573,7 @@ impl CommonErrors {
             cause: cause.to_string(),
         }
     }
+    /// File could not be read (500, code 6010).
     pub fn read_new(path: &str, cause: &str) -> Self {
         Self::ReadError {
             info: ErrorInfo {
@@ -574,6 +588,7 @@ impl CommonErrors {
         }
     }
 
+    /// File could not be written (500, code 6020).
     pub fn write_new(path: &str, cause: &str) -> Self {
         Self::WriteError {
             info: ErrorInfo {
@@ -588,6 +603,7 @@ impl CommonErrors {
         }
     }
 
+    /// Content could not be parsed (400, code 6030).
     pub fn parse_new(cause: &str) -> Self {
         Self::ParseError {
             info: ErrorInfo {
@@ -600,6 +616,7 @@ impl CommonErrors {
             cause: cause.to_string(),
         }
     }
+    /// The module is not active in this process (500, code 5500).
     pub fn module_new(module: &str) -> Self {
         Self::ModuleNotActiveError {
             info: ErrorInfo {
@@ -612,6 +629,7 @@ impl CommonErrors {
             cause: format!("module {} is not active", module),
         }
     }
+    /// Environment variable missing (500, code 800).
     pub fn env_new(e: String) -> Self {
         Self::EnvVarError {
             info: ErrorInfo {
@@ -624,6 +642,7 @@ impl CommonErrors {
             cause: e,
         }
     }
+    /// Vault failure (500, code 800).
     pub fn vault_new(e: String) -> Self {
         Self::VaultError {
             info: ErrorInfo {

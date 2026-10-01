@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Webhook subscription routes.
+
 pub mod subscriptions;
 
 pub use subscriptions::{SubscriptionsQuery, SubscriptionsRouter};

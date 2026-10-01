@@ -31,12 +31,14 @@ use common::module_loader::service_module::ServiceModuleTrait;
 use sea_orm_migration::MigrationTrait;
 use ymir::config::traits::ApiConfigTrait;
 
+/// Keystore as a module: parameters, secrets and the config passthrough under `{api}/keystore`.
 pub struct KeystoreModule {
     prefix: String,
     ctx: AppContext,
 }
 
 impl KeystoreModule {
+    /// Builds the stores on the shared root context.
     pub fn compose(
         config: &ApplicationConfig,
         root: &RootContext,
@@ -59,6 +61,7 @@ impl KeystoreModule {
         AppContext::build_stores(root, event_bus)
     }
 
+    /// Static, so the hosting agent's migrator can list them.
     pub fn migrations() -> Vec<Box<dyn MigrationTrait>> {
         crate::get_keystore_migrations()
     }

@@ -30,8 +30,6 @@ use common::paginated_spec::Paginated;
 use serde_json::Value as Json;
 use tonic::Status;
 
-// Request to Domain ───────────────────────────────────────────────────────
-
 impl TryFrom<ListAgreementsRequest> for ListParams<AgreementFilter> {
     type Error = Status;
 
@@ -90,8 +88,6 @@ impl From<PutAgreementRequest> for EditAgreementDto {
         Self { state: req.state }
     }
 }
-
-// Domain to Response ──────────────────────────────────────────────────────
 
 impl From<AgreementView> for ProtoAgreement {
     fn from(view: AgreementView) -> Self {

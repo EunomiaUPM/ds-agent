@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Redis cache of processes.
+
 pub mod cache_redis;
 
 pub use common::cache::{EntityCacheTrait, NoopCache};

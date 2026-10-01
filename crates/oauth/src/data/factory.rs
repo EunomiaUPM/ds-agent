@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Factory handing out the repositories.
+
 use std::sync::Arc;
 
 use crate::data::repositories::auth_code::AuthCodeRepository;

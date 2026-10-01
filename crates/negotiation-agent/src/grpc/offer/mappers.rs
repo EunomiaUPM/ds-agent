@@ -30,8 +30,6 @@ use common::paginated_spec::Paginated;
 use serde_json::Value as Json;
 use tonic::Status;
 
-// Request to Domain ───────────────────────────────────────────────────────
-
 impl TryFrom<ListOffersRequest> for ListParams<OfferFilter> {
     type Error = Status;
 
@@ -80,8 +78,6 @@ impl TryFrom<CreateOfferRequest> for NewOfferDto {
         })
     }
 }
-
-// Domain to Response ──────────────────────────────────────────────────────
 
 impl From<OfferView> for ProtoOffer {
     fn from(view: OfferView) -> Self {

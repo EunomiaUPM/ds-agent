@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Process identifiers table (pids under their keys).
+
 use sea_orm::ActiveValue;
 use sea_orm::{
     ActiveModelBehavior, DeriveEntityModel, DerivePrimaryKey, DeriveRelation, EntityTrait,
@@ -23,6 +25,7 @@ use sea_orm::{
 use serde::{Deserialize, Serialize};
 use urn::{Urn, UrnBuilder};
 
+/// One identifier of a process, such as its `consumerPid`, stored under its key.
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "negotiation_agent_identifiers")]
 #[serde(rename_all = "camelCase")]

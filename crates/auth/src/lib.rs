@@ -26,7 +26,9 @@
 //! Modules: [`core`] (wires every service into `AuthCore`), [`modules`] (one trait per
 //! capability), [`services`], [`entities`], [`types`], [`data`], [`http`], [`setup`].
 
+/// Service id used in logs and telemetry.
 pub const SERVICE_NAME: &str = "ssi-auth-agent";
+/// Name shown in the boot banner.
 pub const SERVICE_BIG_NAME: &str = "SSI-Auth Agent";
 
 pub mod core;

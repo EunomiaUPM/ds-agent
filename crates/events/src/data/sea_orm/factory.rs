@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! SeaORM data factory.
+
 use std::sync::Arc;
 
 use sea_orm::DatabaseConnection;
@@ -27,7 +29,7 @@ use crate::data::sea_orm::repos::{
     SeaOrmDeadLetterRepo, SeaOrmDeliveryRepo, SeaOrmEventRepo, SeaOrmSubscriptionRepo,
 };
 
-// Concrete SeaORM data factory constructing repository trait instances.
+/// Data factory over SeaORM repositories sharing one connection.
 #[derive(Clone)]
 pub struct SeaOrmDataFactory {
     db: DatabaseConnection,

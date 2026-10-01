@@ -26,6 +26,7 @@ use crate::facades::ssi_auth_facade::remote::SSIAuthRemoteFacade;
 use crate::facades::ssi_auth_facade::SSIAuthFacadeTrait;
 use crate::module_loader::root_context::RootContext;
 
+/// Auth agent ports an agent depends on, local or remote.
 #[derive(Clone)]
 pub struct AuthPorts {
     pub mates: Arc<dyn MatesFacadeTrait>,

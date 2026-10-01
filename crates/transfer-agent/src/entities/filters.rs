@@ -25,8 +25,6 @@ use ymir::errors::{BadFormat, Errors, Outcome};
 
 use common::query::{QueryFilter, validate_date_range};
 
-// Filters ───────────────────────────────────────────────────────────────────
-
 /// Filter for `TransferProcess` related requests
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct TransferProcessFilter {

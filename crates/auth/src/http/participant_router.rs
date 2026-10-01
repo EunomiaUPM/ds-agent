@@ -34,6 +34,7 @@ use ymir::utils::extract_payload;
 
 pub type ParticipantQuery = QuerySpec<ParticipantFilter>;
 
+/// Routes of the participant registry (`/mates`).
 pub struct ParticipantRouter {
     manager: Arc<dyn ParticipantModule>,
 }

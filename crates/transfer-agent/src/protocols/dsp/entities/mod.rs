@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Messages, states, contexts and idempotency of the DSP transfer process.
+
 pub mod ack;
 pub mod auth;
 pub mod command;

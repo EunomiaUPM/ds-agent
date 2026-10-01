@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Negotiation migrations.
+
 use sea_orm_migration::prelude::*;
 mod m20251118_000001_negotiation_process;
 mod m20251118_000002_negotiation_messages;
@@ -22,6 +24,7 @@ mod m20251118_000003_negotiation_process_identifiers;
 mod m20251118_000004_offers;
 mod m20251118_000005_agreements;
 
+/// Negotiation tables, in creation order.
 pub fn get_negotiation_agent_migrations() -> Vec<Box<dyn MigrationTrait>> {
     vec![
         Box::new(m20251118_000001_negotiation_process::Migration),

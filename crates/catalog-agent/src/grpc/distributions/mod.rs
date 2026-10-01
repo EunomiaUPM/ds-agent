@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Distribution RPCs.
+
 mod mappers;
 
 use std::sync::Arc;
@@ -32,6 +34,7 @@ use common::grpc::{IntoStatus, ListParams, ProtoField, ProtoFieldList};
 use tonic::{Request, Response, Status};
 use ymir::errors::Errors;
 
+/// gRPC adapter of the distribution service.
 pub struct DistributionEntityGrpc {
     service: Arc<dyn DistributionServiceTrait>,
     auth: GrpcAuth,

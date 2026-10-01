@@ -33,10 +33,12 @@ use ymir::types::listing::{GrantSort, SentGrantListFilter};
 use ymir::types::verification::VerificationStatus;
 use ymir::types::wallet::OidcUri;
 
+/// Requesting credentials from an authority through GNAP, then OID4VCI or OID4VP.
 #[async_trait]
 pub trait VcRequesterModule:
     HasVcRequester + HasRepo + HasCallback + HasWallet + Send + Sync + 'static
 {
+    /// Sends a grant request to the authority and follows its answer.
     #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn beg_vc(&self, scope: &AccessScope, payload: ReachAuthority) -> Outcome<()> {
         scope.require_write()?;
@@ -65,6 +67,7 @@ pub trait VcRequesterModule:
         self.manage_grant_resp(grant, what_response).await
     }
 
+    /// Handles the authority's callback: continues on approval, marks the grant rejected otherwise.
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn manage_interaction_finish(&self, id: String, payload: CallbackBody) -> Outcome<()> {
         match payload {
@@ -72,7 +75,7 @@ pub trait VcRequesterModule:
             CallbackBody::Rejected(_payload) => self.manage_rejection(id).await,
         }
     }
-    // =================================== GETTERS FOR FRONTEND ====================================
+    /// Page of credential requests, visible to the caller.
     #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_all(
         &self,
@@ -118,6 +121,7 @@ pub trait VcRequesterModule:
         Ok(grant)
     }
 
+    /// The grant with its interaction and verification.
     #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn get_by_id_with_details(&self, scope: &AccessScope, id: String) -> Outcome<Value> {
         let grant = self.get_by_id(scope, id.clone()).await?;
@@ -129,8 +133,7 @@ pub trait VcRequesterModule:
             "verification": verification,
         }))
     }
-    // ========================================= PROCESS OID4VC
-    // =========================================
+    /// Accepts the offered credential through the wallet and registers the authority.
     #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn process_oid4vci(
         &self,
@@ -149,6 +152,7 @@ pub trait VcRequesterModule:
         Ok(())
     }
 
+    /// Answers a pending presentation request through the wallet.
     #[tracing::instrument(level = "info", skip_all, err, fields(tenant = %scope.acting_tenant()))]
     async fn process_oid4vp(
         &self,
@@ -170,7 +174,7 @@ pub trait VcRequesterModule:
         Ok(())
     }
 
-    // ========================================= INTERNALS =========================================
+    /// Starts issuance or a presentation depending on what the authority answered.
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn manage_grant_resp(
         &self,
@@ -184,6 +188,7 @@ pub trait VcRequesterModule:
         }
     }
 
+    /// Accepts the credential right away when the grant is automatic.
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn manage_oid4vci(&self, mut grant: grant::Model, uri: &str) -> Outcome<()> {
         if grant.auto {
@@ -198,6 +203,7 @@ pub trait VcRequesterModule:
 
         Ok(())
     }
+    /// Presents through the wallet and records whether it was verified.
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn manage_oid4vp(&self, mut verification: verification::Model, uri: &str) -> Outcome<()> {
         match self.wallet().process_oid4vp(&uri).await {
@@ -211,6 +217,7 @@ pub trait VcRequesterModule:
         Ok(())
     }
 
+    /// Records the presentation request; presents right away when the grant is automatic.
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn manage_auto_oid4vp(&self, grant: &grant::Model, uri: &str) -> Outcome<()> {
         let verification =
@@ -225,6 +232,7 @@ pub trait VcRequesterModule:
         }
     }
 
+    /// Checks the callback, sends the GNAP continuation and follows its answer.
     #[tracing::instrument(level = "info", skip_all, err)]
     async fn req_vc_continuation(&self, id: String, payload: ApprovedCallbackBody) -> Outcome<()> {
         let mut interaction = self.repo().sent_interaction().get_by_id(&id).await?;

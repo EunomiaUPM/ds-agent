@@ -15,13 +15,15 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Repository factory port.
+
 use std::sync::Arc;
 
 use crate::data::repo::{
     EventDeadLetterRepo, EventDeliveryRepo, EventStoreRepo, EventSubscriptionRepo,
 };
 
-// Abstract factory trait providing constructor access to events repository trait objects.
+/// Hands out the repositories the bus works with.
 pub trait DataFactory: Send + Sync {
     fn event_repository(&self) -> Arc<dyn EventStoreRepo>;
     fn subscription_repository(&self) -> Arc<dyn EventSubscriptionRepo>;

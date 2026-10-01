@@ -31,6 +31,7 @@ use keystore::SecretStore;
 use std::sync::Arc;
 use ymir::errors::Outcome;
 
+/// Runs dataplane commands: moves the process state and drives the matching driver.
 pub struct DataplaneManager {
     dataplane_service: Arc<dyn DataplaneTransferServiceTrait>,
     connector_service: Arc<dyn ConnectorInstanceFacadeTrait>,
@@ -72,6 +73,7 @@ impl DataplaneManager {
         self
     }
 
+    /// Applies the command to its process and returns what the control plane needs back.
     #[tracing::instrument(level = "info", skip_all, err, fields(command = %command))]
     pub async fn execute_command(
         &self,
@@ -307,8 +309,6 @@ mod tests {
         }
     }
 
-    // SetInit ───────────────────────────────────────────────────────────────
-
     #[tokio::test]
     async fn test_set_init_consumer_pull() {
         let mut mock_entity = MockDataplaneTransferServiceTrait::new();
@@ -525,8 +525,6 @@ mod tests {
 
         assert!(result.is_ok());
     }
-
-    // Continuation commands ─────────────────────────────────────────────────
 
     #[tokio::test]
     async fn test_set_started() {
@@ -750,8 +748,6 @@ mod tests {
         assert!(result.is_ok());
     }
 
-    // Error paths ───────────────────────────────────────────────────────────
-
     #[tokio::test]
     async fn test_unexpected_command_returns_err_response() {
         // SetAuth is an internal state-machine step — never a valid external command.
@@ -798,8 +794,6 @@ mod tests {
 
         assert!(result.is_err());
     }
-
-    // Provider/Pull ────────────────────────────────────────────────────────
 
     #[tokio::test]
     async fn test_set_started_provider_pull() {
@@ -1089,8 +1083,6 @@ mod tests {
 
         assert!(result.is_ok());
     }
-
-    // Provider/Push ────────────────────────────────────────────────────────
 
     #[tokio::test]
     async fn test_set_subscribing_provider_push() {

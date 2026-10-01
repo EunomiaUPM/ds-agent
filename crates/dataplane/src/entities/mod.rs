@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Processes, transition logs and diagnostic events.
+
 pub mod dataplane_transfer_logs;
 pub mod dataplane_transfers;
 pub mod filters;

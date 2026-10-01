@@ -23,56 +23,51 @@ use urn::Urn;
 use crate::entities::envelope::EventEnvelope;
 use crate::entities::topic::Topic;
 
-// Core trait implemented by domain event payloads to be published into the bus.
+/// Typed domain event; usually implemented with the `event!` macro.
 pub trait Event: Serialize + Send + Sync + 'static {
-    // Return the unique event topic name (e.g., "transfers:bla").
+    /// Topic name, e.g. `transfers:started`.
     fn event_name() -> &'static str;
 
-    // Return the validated topic instance for this event.
     fn topic() -> Topic {
         Topic::new(Self::event_name()).expect("valid static event topic")
     }
 
-    // Originating crate identifier.
+    /// Crate that publishes the event; defaults to `events`.
     fn source_crate() -> &'static str {
         "events"
     }
 
-    // Schema version for payload evolution (defaults to 1).
+    /// Schema version for payload evolution (defaults to 1).
     fn schema_version() -> u32 {
         1
     }
 
-    // Optional correlation identifier for distributed tracing.
+    /// `None` unless the event belongs to a wider flow.
     fn correlation_id(&self) -> Option<Urn> {
         None
     }
 
-    // Tenant owning the record the event is about.
+    /// Tenant owning the record the event is about.
     fn tenant_id(&self) -> &str;
 
-    // Convert into an immutable domain envelope.
     fn into_envelope(self) -> EventEnvelope;
 }
 
-// Backward-compatible trait for existing event producers.
+/// Older form of `Event`, kept for existing producers.
 pub trait IntoEvent: Sized {
-    // Return topic identifier for this event.
     fn topic() -> Topic;
 
-    // Return schema version for payload evolution.
+    /// Defaults to 1.
     fn schema_version() -> u32 {
         1
     }
 
-    // Return optional correlation identifier.
     fn correlation_id(&self) -> Option<Urn> {
         None
     }
 
-    // Tenant owning the record the event is about.
+    /// Tenant owning the record the event is about.
     fn tenant_id(&self) -> &str;
 
-    // Convert into an event envelope.
     fn into_envelope(self) -> EventEnvelope;
 }

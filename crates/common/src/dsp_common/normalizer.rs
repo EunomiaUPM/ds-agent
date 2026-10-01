@@ -52,27 +52,17 @@ use axum::{body::Body, body::Bytes, extract::Request, middleware::Next, response
 /// Cap on the inbound body this middleware will buffer.
 const MAX_BODY_BYTES: usize = 4 * 1024 * 1024;
 
-/// The request body **exactly as it arrived**, stashed in the request extensions
-/// before [`dsp_namespace_normalizer`] rewrites it.
-///
-/// Everything downstream sees the normalised body, which is the right input for
-/// deserialization but the wrong one for anything that must speak about what the
-/// peer actually sent: signature verification and audit. Those read this.
-///
-/// It is captured here, rather than by a separate layer, so it cannot be ordered
-/// after the rewrite that would make it a lie.
+/// The body exactly as it arrived, for signature checks and audit. Captured by the normaliser
+/// itself so no layer ordering can put it after the rewrite.
 #[derive(Clone, Debug)]
 pub struct WireBody(pub Bytes);
 
-/// Prefixes stripped from object keys and `@type` values.
-///
-/// `xsd:` is deliberately **not** here: it is a datatype vocabulary, never a DSP
-/// field name, so `"@type": "xsd:dateTime"` on a literal is correct compact
-/// JSON-LD. Stripping it leaves a relative IRI that expansion resolves against
-/// the document base (`x-string:///dateTime`), silently corrupting the datatype
-/// and therefore the canonical hash.
+/// Prefixes stripped from keys and `@type` values. Not `xsd:`: stripping a datatype leaves a
+/// relative IRI (`x-string:///dateTime`) that corrupts the canonical hash.
 const DSP_PREFIXES: &[&str] = &["dspace:", "odrl:", "dct:"];
 
+/// Strips `dspace:`, `odrl:` and `dct:` prefixes from JSON bodies; the original stays as
+/// [`WireBody`].
 pub async fn dsp_namespace_normalizer(request: Request, next: Next) -> Response {
     let (mut parts, body) = request.into_parts();
 

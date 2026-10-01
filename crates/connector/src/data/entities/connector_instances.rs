@@ -21,6 +21,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value as Json;
 use urn::{Urn, UrnBuilder};
 
+/// `connector_instances` row: a template bound to concrete parameters for one tenant.
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Deserialize, Serialize)]
 #[sea_orm(table_name = "connector_instances")]
 #[serde(rename_all = "camelCase")]

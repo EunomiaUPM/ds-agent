@@ -24,6 +24,7 @@ use serde::{Deserialize, Serialize};
 use crate::protocols::dsp::entities::message_types::TransferDSPMessageType;
 use crate::protocols::dsp::entities::state::TransferDSPState;
 
+/// `TransferProcess` acknowledgement returned to the peer, with both pids and the state.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TransferProcessAck {

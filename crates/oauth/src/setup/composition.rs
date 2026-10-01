@@ -34,11 +34,13 @@ use crate::http::token_router::TokenRouter;
 use crate::http::users_router::UsersRouter;
 use crate::setup::context::AppContext;
 
+/// OAuth server as a module, mounted at `/oauth`.
 pub struct OAuthModule {
     ctx: AppContext,
 }
 
 impl OAuthModule {
+    /// Builds the services on the shared root context.
     pub fn compose(
         common: &CommonConfig,
         root: &RootContext,
@@ -57,6 +59,7 @@ impl OAuthModule {
         AppContext::token_service(&common.clone().into(), &SeaOrmDataFactory::new(db))
     }
 
+    /// Static, so the hosting agent's migrator can list them.
     pub fn migrations() -> Vec<Box<dyn MigrationTrait>> {
         crate::get_oauth_migrations()
     }

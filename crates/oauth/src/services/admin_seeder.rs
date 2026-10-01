@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Seeding of the admin user and the service client.
+
 use crate::data::factory::OAuthDataFactory;
 use crate::data::sea_orm::factory::SeaOrmDataFactory;
 use crate::entities::user::User;

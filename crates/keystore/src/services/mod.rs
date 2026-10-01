@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Parameter and secret stores.
+
 pub(crate) mod config;
 pub mod parameters;
 pub mod secrets;

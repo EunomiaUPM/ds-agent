@@ -44,6 +44,7 @@ use ymir::utils::{
     create_opaque_token, extract_gnap_token, http_client, json_headers, trim_4_base,
 };
 
+/// GNAP gatekeeper.
 pub struct GnapGateKeeperService {
     config: GnapGateKeeperConfig,
 }

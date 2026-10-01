@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Pieces shared by the agent configs and their traits.
+
 pub mod admin_seed;
 pub mod cache;
 mod datahub;

@@ -26,6 +26,7 @@ use ymir::errors::{Errors, Outcome};
 
 use crate::boot::BootstrapServiceTrait;
 
+/// `MigratorTrait` over the migrations of the agent described by `S`.
 pub struct SetupMigrator<S>(PhantomData<S>);
 
 impl<S: BootstrapServiceTrait> MigratorTrait for SetupMigrator<S> {

@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! SeaORM adapter: tables, migrations and repositories.
+
 pub(crate) mod factory;
 pub mod migrations;
 pub(crate) mod orm;

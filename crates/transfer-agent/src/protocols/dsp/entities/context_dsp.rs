@@ -40,7 +40,6 @@ use urn::Urn;
 use ymir::data::entities::shared::participant::Model as Mates;
 use ymir::errors::{BadFormat, Errors, Outcome};
 
-// TransferContextRaw --
 impl BuildAuthn for TransferDSPAuthn {
     fn from_request_parts(parts: &Parts) -> Outcome<Self> {
         let associated_participant = parts.extensions.get::<Mates>().cloned().ok_or_else(|| {
@@ -63,7 +62,7 @@ impl BuildAuthn for TransferDSPAuthn {
     }
 }
 
-// TransferDSPContextParsed --
+/// Inbound message read as JSON, with the protocol version and message type of its route.
 #[derive(Debug)]
 pub struct TransferDSPContextParsed {
     pub raw: TransferContextRaw<TransferDSPAuthn>,
@@ -90,8 +89,7 @@ impl TransferDSPContextParsed {
     }
 }
 
-// TransferDSPContextRdf --
-
+/// Inbound message expanded to RDF, with its canonical n-quads and hash.
 #[derive(Debug)]
 pub struct TransferDSPContextRdf {
     pub parsed: TransferDSPContextParsed,
@@ -118,8 +116,7 @@ impl TransferDSPContextRdf {
     }
 }
 
-// TransferDSPContextTyped --
-
+/// Inbound message with its DSP fields extracted and its idempotency key derived.
 #[derive(Debug)]
 pub struct TransferDSPContextTyped {
     pub rdf: TransferDSPContextRdf,
@@ -166,8 +163,7 @@ impl TransferDSPContextTyped {
     }
 }
 
-// TransferDSPContextDomain --
-
+/// Inbound message with the process, agreement, role and connector it refers to.
 #[derive(Debug)]
 pub struct TransferDSPContextDomain {
     pub typed: TransferDSPContextTyped,
@@ -208,7 +204,7 @@ impl TransferDSPContextDomain {
         })
     }
 
-    // getters
+    /// Tenant of the existing process, or of the peer for a new one.
     pub fn tenant_id(&self) -> &str {
         match &self.process {
             TransferContextProcessSlot::Existing(p) => p.tenant_id(),
@@ -225,6 +221,8 @@ impl TransferDSPContextDomain {
         }
     }
 
+    /// Id of the existing process, or the consumer pid of a new one; `location` names the
+    /// caller in errors.
     pub fn process_urn(&self, location: &str) -> Outcome<Urn> {
         match &self.process {
             TransferContextProcessSlot::Existing(p) => Ok(p.id().as_urn().clone()),

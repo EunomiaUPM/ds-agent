@@ -30,6 +30,7 @@ use crate::facades::catalog_facade::CatalogFacadeTrait;
 use crate::facades::catalog_facade::local::CatalogLocalFacade;
 use crate::facades::catalog_facade::remote::CatalogRemoteFacade;
 
+/// Ports the negotiation agent consumes: auth and the catalog's ODRL policies.
 #[derive(Clone)]
 pub struct NegotiationPorts {
     pub(crate) auth: AuthPorts,

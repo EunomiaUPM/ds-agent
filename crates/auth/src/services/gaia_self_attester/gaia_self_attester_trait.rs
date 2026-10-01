@@ -19,8 +19,11 @@ use async_trait::async_trait;
 use ymir::errors::Outcome;
 use ymir::types::jwt::VCJwtClaims;
 
+/// Building the Gaia-X credentials this participant attests about itself.
 #[async_trait]
 pub trait GaiaSelfAttesterTrait: Send + Sync + 'static {
+    /// Terms and conditions credential.
     async fn generate_terms_cons_vc(&self) -> Outcome<VCJwtClaims>;
+    /// Legal person credential, from the configured company data.
     async fn generate_legal_person(&self) -> Outcome<VCJwtClaims>;
 }

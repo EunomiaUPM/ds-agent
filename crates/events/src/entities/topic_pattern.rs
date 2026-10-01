@@ -24,13 +24,12 @@ use serde::{Deserialize, Serialize};
 
 use crate::entities::topic::Topic;
 
-// Pattern supporting exact match, single-segment (*), and multi-segment (**) wildcards.
+/// Pattern supporting exact match, single-segment (*), and multi-segment (**) wildcards.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct TopicPattern(String);
 
 impl TopicPattern {
-    // Validate and create a new topic pattern.
     pub fn new(pattern: impl Into<String>) -> Result<Self, String> {
         let s = pattern.into();
         let trimmed = s.trim();
@@ -40,22 +39,20 @@ impl TopicPattern {
         Ok(Self(trimmed.to_string()))
     }
 
-    // Return global wildcard matching any event topic.
+    /// Pattern `**`, matching every topic.
     pub fn match_all() -> Self {
         Self("**".to_string())
     }
 
-    // Access underlying pattern string.
     pub fn as_str(&self) -> &str {
         &self.0
     }
 
-    // Check whether this pattern contains wildcard tokens.
     pub fn has_wildcard(&self) -> bool {
         self.0.contains('*')
     }
 
-    // Evaluate whether the topic satisfies this subscription pattern.
+    /// `*` matches one segment and `**` any number of them.
     pub fn matches(&self, topic: &Topic) -> bool {
         if self.0 == "*" || self.0 == "**" || self.0 == "*.*.*" {
             return true;

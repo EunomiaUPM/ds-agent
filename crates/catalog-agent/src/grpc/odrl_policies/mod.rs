@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! ODRL offer RPCs.
+
 mod mappers;
 
 use std::sync::Arc;
@@ -32,6 +34,7 @@ use common::grpc::{IntoStatus, ListParams, ProtoField, ProtoFieldList};
 use tonic::{Request, Response, Status};
 use ymir::errors::Errors;
 
+/// gRPC adapter of the ODRL offer service.
 pub struct OdrlPolicyEntityGrpc {
     service: Arc<dyn OdrlPolicyServiceTrait>,
     auth: GrpcAuth,

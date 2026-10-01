@@ -22,6 +22,7 @@ use common::config::services::CatalogConfig;
 use common::facades::AuthPorts;
 use common::module_loader::root_context::RootContext;
 
+/// Ports the catalog agent consumes; today auth.
 #[derive(Clone)]
 pub struct CatalogPorts {
     pub(crate) auth: AuthPorts,

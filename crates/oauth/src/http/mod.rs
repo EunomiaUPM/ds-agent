@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Token, user, client and PAT routes.
+
 pub(crate) mod clients_router;
 pub mod errors;
 pub(crate) mod extractors;

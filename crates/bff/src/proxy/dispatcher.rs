@@ -15,6 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+//! Path-prefix routing and request forwarding.
+
 use std::time::Duration;
 
 use axum::body::Body;
@@ -44,6 +46,7 @@ pub struct HttpProxyDispatcher {
 }
 
 impl HttpProxyDispatcher {
+    /// Builds the routing table from the agent addresses in `config`.
     pub fn new(config: GatewayConfig) -> Self {
         Self { config }
     }

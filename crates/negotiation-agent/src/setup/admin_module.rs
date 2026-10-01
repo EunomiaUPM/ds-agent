@@ -42,12 +42,12 @@ use crate::http::negotiation_process::NegotiationAgentProcessesRouter;
 use crate::http::offer::NegotiationAgentOffersRouter;
 use crate::setup::context::AppContext;
 
-pub(crate) struct NegotiationAdminModule {
+pub struct NegotiationAdminModule {
     ctx: Arc<AppContext>,
 }
 
 impl NegotiationAdminModule {
-    pub(crate) fn new(ctx: Arc<AppContext>) -> Self {
+    pub fn new(ctx: Arc<AppContext>) -> Self {
         Self { ctx }
     }
 

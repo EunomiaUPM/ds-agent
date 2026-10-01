@@ -15,8 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod persistence_rpc;
-pub(crate) mod process_resolver;
+pub mod persistence_rpc;
+pub mod process_resolver;
 
 use crate::protocols::dsp::orchestrator::rpc::types::RpcNegotiationProcessMessageTrait;
 use crate::protocols::dsp::protocol_types::NegotiationProcessMessageTrait;

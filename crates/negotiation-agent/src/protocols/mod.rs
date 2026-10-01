@@ -17,6 +17,6 @@
 
 //! DSP contract negotiation: endpoints, orchestration and validation.
 
-pub(crate) mod deasy;
-pub(crate) mod dsp;
-pub(crate) mod protocol;
+pub mod deasy;
+pub mod dsp;
+pub mod protocol;

@@ -17,8 +17,8 @@
 
 //! Repository implementations.
 
-pub(crate) mod agreement_repo;
-pub(crate) mod negotiation_message_repo;
-pub(crate) mod negotiation_process_identifiers_repo;
-pub(crate) mod negotiation_process_repo;
-pub(crate) mod offer_repo;
+pub mod agreement_repo;
+pub mod negotiation_message_repo;
+pub mod negotiation_process_identifiers_repo;
+pub mod negotiation_process_repo;
+pub mod offer_repo;

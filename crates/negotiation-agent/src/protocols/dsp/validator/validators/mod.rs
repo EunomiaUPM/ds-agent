@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod protocol;
-pub(crate) mod rpc;
-pub(crate) mod validate_payload;
-pub(crate) mod validation_helpers;
+pub mod protocol;
+pub mod rpc;
+pub mod validate_payload;
+pub mod validation_helpers;

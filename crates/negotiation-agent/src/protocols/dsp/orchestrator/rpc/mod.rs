@@ -25,8 +25,8 @@ use crate::protocols::dsp::orchestrator::rpc::types::{
 use common::auth::AccessScope;
 use ymir::errors::Outcome;
 
-pub(crate) mod rpc;
-pub(crate) mod types;
+pub mod rpc;
+pub mod types;
 
 // Each step encodes one DSP negotiation lifecycle operation.  The orchestrator
 // in `rpc.rs` dispatches through `run_lifecycle<S: NegotiationRpcStep>` so the

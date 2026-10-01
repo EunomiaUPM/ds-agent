@@ -59,11 +59,11 @@ impl ActiveModelBehavior for ActiveModel {}
 
 #[derive(Clone)]
 pub struct NewNegotiationIdentifierModel {
-    pub(crate) id: Option<Urn>,
-    pub(crate) tenant_id: String,
-    pub(crate) negotiation_agent_process_id: Urn,
-    pub(crate) id_key: String,
-    pub(crate) id_value: Option<String>,
+    pub id: Option<Urn>,
+    pub tenant_id: String,
+    pub negotiation_agent_process_id: Urn,
+    pub id_key: String,
+    pub id_value: Option<String>,
 }
 
 impl From<NewNegotiationIdentifierModel> for ActiveModel {

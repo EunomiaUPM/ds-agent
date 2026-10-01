@@ -24,11 +24,11 @@
 //! [`AgreementView`] and [`OfferView`] from the root; its events use the `negotiations:` prefix.
 //!
 //! Modules: [`entities`], [`services`], [`data`], [`protocols`] (DSP), [`http`], [`grpc`],
-//! `facades`, [`setup`].
+//! [`facades`], [`setup`].
 
 pub mod data;
 pub mod entities;
-pub(crate) mod facades;
+pub mod facades;
 pub mod grpc;
 pub mod http;
 pub mod protocols;

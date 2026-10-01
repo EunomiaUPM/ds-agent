@@ -17,7 +17,7 @@
 
 //! Management API routes.
 
-pub(crate) mod agreement;
-pub(crate) mod negotiation_message;
-pub(crate) mod negotiation_process;
-pub(crate) mod offer;
+pub mod agreement;
+pub mod negotiation_message;
+pub mod negotiation_process;
+pub mod offer;

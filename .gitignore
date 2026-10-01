@@ -55,7 +55,7 @@ static/environment/envs/**
 *.db
 *.db-wal
 *.db-shm
-cache/
+/cache/
 *.log
 .dirty
 /crates/catalog-agent/INFORME_IMPLEMENTACION.md

@@ -51,7 +51,7 @@ impl AuthModule {
         ))
     }
 
-    pub(crate) fn new(ctx: AppContext, service_tenant: String) -> Self {
+    pub fn new(ctx: AppContext, service_tenant: String) -> Self {
         Self {
             ctx,
             service_tenant,

@@ -17,6 +17,6 @@
 
 //! Client side of GNAP towards authorities.
 
-pub(crate) mod basic;
+pub mod basic;
 mod vc_requester_trait;
 pub use vc_requester_trait::VcRequesterTrait;

@@ -46,7 +46,7 @@ use ymir::types::dids::{DidService, DidServiceType};
 use ymir::types::wallet::WalletInstance;
 
 #[derive(Clone)]
-pub(crate) struct AppContext {
+pub struct AppContext {
     pub core: Arc<AuthCore>,
     pub oauth_validator: Arc<dyn OauthTokenValidator>,
 }

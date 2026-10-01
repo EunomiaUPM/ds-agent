@@ -19,7 +19,7 @@
 
 mod boot;
 mod composition;
-pub(crate) mod context;
+pub mod context;
 mod seeders;
 
 pub use boot::AuthBoot;

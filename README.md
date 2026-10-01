@@ -1,203 +1,180 @@
-# Eunomia DS-Agent 🌈🌈<br>Dataspace Protocol Agent
+# Eunomia DS-Agent
 
-![Eunomia DS-Agent front](docs_old/static/img/agent.png)
+A Dataspace Protocol agent written in Rust. It lets an organisation join a dataspace as a
+provider, a consumer or both: publish a catalog, negotiate contracts over it and transfer data
+under the agreed policies, with identity based on verifiable credentials.
 
-## What is Eunomia DS-Agent
+The agent implements [Dataspace Protocol 2025-1](https://eclipse-dataspace-protocol-base.github.io/DataspaceProtocol/2025-1/)
+(catalog, contract negotiation and transfer process) and is checked against the Eclipse
+[DSP TCK](https://github.com/eclipse-dataspacetck/dsp-tck). It is developed by the GING research
+group (Next Generation Internet Group) at the Departamento de Ingeniería de Sistemas Telemáticos,
+Universidad Politécnica de Madrid.
 
-Eunomia DS-Agent is a **Dataspace Agent** implementation. 
+## How a dataspace looks from here
 
-This implementation has been made by the **GING** (Next Generation Internet Group) research group, part of the DIT (Department of Telematics Engineering) at the Universidad Politécnica de Madrid.
+Each participant runs its own agent. Agents talk to each other through the DSP endpoints and
+to their own wallet and back-end systems through private APIs. An authority issues the
+credentials that participants present to each other during onboarding.
 
-### Key Concepts
+```mermaid
+flowchart LR
+    subgraph Consumer["Consumer participant"]
+        CA[DS-Agent]
+        CW[(Wallet)]
+        CA --- CW
+    end
 
-Eunomia DS-Agent is designed with a **multi-protocol orientation** and a **dynamic stack architecture**, enabling flexible integration across different dataspace ecosystems. It provides a complete end-to-end solution covering:
+    subgraph Provider["Provider participant"]
+        PA[DS-Agent]
+        PW[(Wallet)]
+        PB[Back-end data source]
+        PA --- PW
+        PA --- PB
+    end
 
-- 🔐 **SSI Authentication** — Self-Sovereign Identity based authentication using verifiable credentials and decentralized identifiers
-- 📚 **Catalog Management** — DCAT3-compatible catalog system for dataset and data service discovery
-- 🔗 **Datahub Proxy** — Integration layer for external data hubs and repositories
-- 📝 **Contract Negotiation** — Full implementation of the Dataspace Protocol's contract negotiation flow
-- 🚀 **Data Transfer** — Control plane and data plane for secure, policy-compliant data transfers
+    AUTH[Authority]
 
-### What are Dataspaces?
+    CA <-- "DSP: catalog, negotiation, transfer" --> PA
+    AUTH -. "issues credentials" .-> CW
+    AUTH -. "issues credentials" .-> PW
+    CA <-- "data plane" --> PB
+```
 
-Dataspaces are services that allow the sharing of data, or the subscription to data services between entities in an interoperable way and with a decentralized identity. Data spaces need different building blocks for their development, ranging from self-sovereign identity systems, through transfer negotiation protocols, contracts, catalogs, through policy enforcement systems. All this in order to generate the digital trust and security necessary for data sharing and to generate value and a real data economy.
+Inside a participant, the agent is split into crates that can run together in one process
+(`monolith`) or as separate services. The same composition code wires both: when two modules
+live in the same process they call each other directly, otherwise through HTTP facades.
 
-For more information, we recommend reading the [Technical Convergence of Dataspaces](https://data-spaces-business-alliance.eu/wp-content/uploads/dlm_uploads/Data-Spaces-Business-Alliance-Technical-Convergence-V2.pdf).
+```mermaid
+flowchart TB
+    BFF[bff<br/>gateway + admin UI]
+    CAT[catalog-agent]
+    NEG[negotiation-agent]
+    TRA[transfer-agent]
+    DP[dataplane]
+    CON[connector]
+    AUT[auth<br/>SSI]
+    OA[oauth]
+    KS[keystore]
+    EV[events]
+    COM[common]
 
-### Feature Highlights
+    BFF --> CAT & NEG & TRA & AUT
+    NEG --> CAT
+    TRA --> NEG & CAT & DP
+    DP --> CON & KS
+    CAT --> CON
+    CAT & NEG & TRA & KS & CON --> EV
+    CAT & NEG & TRA & AUT & BFF & DP & KS & CON --> OA
+    OA & EV --> COM
+```
 
-- **Rust Native** — Written in Rust from scratch, asynchronously based on Tokio runtime
-- **HTTP APIs** — Built with Axum, SeaORM, and PostgreSQL
-- **gRPC Support** — Protocol buffer definitions for inter-service communication
-- **OpenAPI Integration** — Automatic API documentation with Utoipa-axum
-- **Elegant Error Handling** — Using thiserror and anyhow for robust error management
-- **Low Footprint** — Blazingly fast with minimal memory consumption
+## Crates
 
----
+| Crate | Kind | What it does |
+|---|---|---|
+| [`common`](crates/common) | lib | Shared foundation: boot and module composition, config, errors, auth extractors, pagination, RDF/JSON-LD, DSP types, gRPC helpers, telemetry |
+| [`catalog-agent`](crates/catalog-agent) | bin + lib | DCAT 3 catalog, datasets, distributions, data services and ODRL policies. DSP catalog protocol |
+| [`negotiation-agent`](crates/negotiation-agent) | bin + lib | Contract negotiation state machine, offers and agreements. DSP contract negotiation protocol |
+| [`transfer-agent`](crates/transfer-agent) | bin + lib | Transfer process control plane. DSP transfer process protocol |
+| [`dataplane`](crates/dataplane) | lib | Data plane that moves the data once a transfer starts |
+| [`connector`](crates/connector) | lib | Connector templates and instances that describe how to reach a back-end system. Design in [`DESIGN.md`](crates/connector/DESIGN.md) |
+| [`auth`](crates/auth) | bin + lib | SSI authentication: wallet integration, onboarding, verifiable presentations between participants |
+| [`oauth`](crates/oauth) | lib | OAuth 2.1 authorization server: clients, client credentials, PKCE, personal access tokens |
+| [`keystore`](crates/keystore) | lib | Secrets and parameters used by connectors and services |
+| [`events`](crates/events) | lib | Event bus with in-process broadcast, outbox persistence and signed webhooks |
+| [`bff`](crates/bff) | bin + lib | Gateway for the admin UI: reverse proxy to the other agents, perimeter auth, event streams over WebSocket and SSE |
+| [`monolith`](crates/monolith) | bin | Runs every module in one process. This is the `eunomia` Docker image |
 
-## Crate Organization
+Service and domain crates follow the same hexagonal layout (`entities`, `services`, `data`,
+`http`, `setup`), described in [`CLAUDE.md`](CLAUDE.md).
 
-Eunomia DS-Agent is organized as a Rust workspace with multiple specialized crates:
+## Repository layout
 
-### Core Crates
+```text
+crates/         Rust workspace
+gui/            React admin UI (served by bff in production)
+deployment/     Dockerfile and docker compose stacks (mini, dev, prod, observability)
+scripts/        Onboarding, data seeding and TCK runner; entry points are in Taskfile.yml
+static/         Runtime config, vault fixtures, JSON-LD specs, connector blueprints, TCK fixtures
+tck/            DSP TCK properties and mapping
+docs/           Documentation site (Fumadocs)
+```
 
-| Crate        | Description |
-|--------------|-------------|
-| **monolith** | Main binary that orchestrates and runs the entire agent |
-| **common**   | Shared library with common functionality, types, and utilities |
-| **events**   | Event system for inter-module communication |
-
-### Protocol Crates
-
-| Crate                      | Description |
-|----------------------------|-------------|
-| **catalog**                | DCAT3-compatible catalog system implementing the Catalog Protocol |
-| **contracts**              | Contract negotiation protocol implementation (ODRL policies) |
-| **transfer-agent**         | Agent layer for transfer orchestration with gRPC support |
-| **dataplane**              | Data plane implementations (HTTP, NGSI-LD, future: DeltaSharing, Arrow Flight) |
-
-### Gateway & Integration Crates
-
-| Crate                | Description |
-|----------------------|-------------|
-| **auth**             | SSI-based authentication layer with wallet and credential management |
-| **authority**        | Authority services for trust and credential verification |
-| **bff**              | Frontend gateway for UI integration |
-
----
-
-## Getting Started
+## Getting started
 
 ### Requirements
 
-- **Docker** and **docker-compose** (or Docker Desktop)
-- Permissions to execute scripts (`chmod +x`)
+- Rust (stable) and [Task](https://taskfile.dev)
+- Docker with compose
+- Node.js, only to work on the admin UI
+- [`ymir`](https://github.com/EunomiaUPM/ymir) checked out next to this repository (`../ymir`), since the workspace depends on it by path
 
-### External Dependencies
+### Try it with the published images
 
-This project depends on [walt.id](https://walt.id) for the SSI authentication layer. You must download and deploy the walt.id identity services:
-
-```bash
-# Clone the walt.id identity repository
-git clone https://github.com/walt-id/waltid-identity.git && cd waltid-identity
-
-# Deploy all services with docker compose
-cd docker-compose && docker compose up
-```
-
-### Quick Start
-
-1. **Grant execution permissions** to the scripts (if needed):
-   ```bash
-   chmod +x scripts/bash/*.sh
-   ```
-
-2. **Prepare the environment** (executes initial configurations):
-   ```bash
-   ./scripts/bash/auto-setup.sh
-   ```
-
-3. **Start the services**:
-   ```bash
-   ./scripts/bash/auto-start.sh
-   ```
-
-4. **Run automatic onboarding** to authenticate actors:
-   ```bash
-   ./scripts/bash/auto-onboarding.sh
-   ```
-
-5. **Stop the services** when done:
-   ```bash
-   ./scripts/bash/auto-stop.sh
-   ```
-
-### Docker (Standalone)
-
-You can also run Eunomia DS-Agent directly with Docker:
+The mini stacks start a database, Redis, a wallet and the agent for one participant:
 
 ```bash
-# Pull the image
-docker pull eunomiaupm/ds-agent
-
-# Start a provider instance
-docker run eunomiaupm/ds-agent:latest provider start
-
-# View available options
-docker run eunomiaupm/ds-agent:latest provider -h
+task deployment:mini:provider   # provider on http://localhost:1200
+task deployment:mini:consumer   # consumer on http://localhost:1100
 ```
 
-### Docker Compose
-
-For more automated deployments, see `/deployment/docker-compose.testing.yaml` for a complete example with databases and migrations.
-
----
-
-## Testing the Complete Flow
-
-A Jupyter notebook is available to test the complete dataspace workflow interactively.
-
-### Setup
+With both running and an authority listening on `:1500`, onboard the consumer into the provider:
 
 ```bash
-# Create and activate virtual environment
-python -m venv .venv
-source ./.venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
+task env:onboard:mini
 ```
 
-### Workflow Overview
+### Run from source
 
-The notebook covers the following flow:
+`deployment/dev` scripts start the infrastructure in Docker, the admin UI with Vite and the
+agent with `cargo watch`:
 
-1. **Wallet Setup** — Initialize SSI wallets for participants
-2. **Participant Onboarding** — Register provider and consumer identities
-3. **Catalog Management** — Create catalogs, datasets, data-services, and distributions
-4. **Policy Definition** — Define access policies for datasets
-5. **Contract Negotiation** — Complete negotiation flow:
-   - Request - Offer - Request - Offer - Acceptance - Agreement - Verification - Finalization
-6. **Transfer Negotiation** — Data transfer flow:
-   - Request - Start - Data access via dataplane
-   - Suspension/Resumption - Completion
+```bash
+task deployment:dev:provider
+task deployment:dev:consumer
+task env:onboard:dev
+```
 
-### API Endpoints Overview
+The agent binary has two commands, both driven by a YAML config under `static/environment/config`.
+Paths inside the dev configs are relative to `crates/monolith`, so run them from there:
 
-| Category | Endpoints |
-|----------|-----------|
-| **Mates** | `/api/v1/mates/myself`, `/api/v1/mates/all` |
-| **Catalogs** | `/api/v1/catalogs`, `/api/v1/catalogs/{id}/datasets`, `/api/v1/catalogs/{id}/data-services` |
-| **Policies** | `/api/v1/datasets/{id}/policies` |
-| **Negotiations** | `/api/v1/negotiations/rpc/setup-*` (request, offer, acceptance, agreement, verification, finalization) |
-| **Transfers** | `/api/v1/transfers/rpc/setup-*` (request, start, suspension, completion) |
-| **Dataplane** | `/api/v1/dataplane/{transfer_id}` |
+```bash
+cd crates/monolith
+cargo run setup -e ../../static/environment/config/dev/dev.provider.yaml   # migrations and seeders
+cargo run start -e ../../static/environment/config/dev/dev.provider.yaml   # serve
+```
 
----
+### Seed data
 
-## Architecture
+```bash
+task env:populate              # catalogs, contracts and transfers
+task env:populate:mates        # known agents and authorities
+```
 
-![arquitectura.png](docs_old/static/img/arquitectura.png)
+## Observability
 
-- **Client** — Any client (machine or human) connecting to a consumer to access the dataspace via the high-level Consumer API
-- **Consumer ↔ Provider** — Communication via the low-level API, an improved implementation of the Dataspace Protocol
-- **Final System** — The backend environment where the provider's data is exposed
+Agents export traces and metrics over OTLP when `OTEL_EXPORTER_OTLP_ENDPOINT` is set. A local
+stack with an OpenTelemetry collector, Jaeger (`:16686`), Prometheus (`:9090`) and Grafana
+(`:3000`) is in `deployment/dev/docker-compose.observability.yaml`.
 
----
+## Conformance
 
-## Development and Contribution
+`scripts/run-tck.sh` seeds the agents and runs the Eclipse DSP TCK (`1.0.0-RC6`) against them,
+using the fixtures in `tck/` and `static/dsp_tck`.
 
-1. Create a branch for your change:
-   ```bash
-   git checkout -b feature/my-change
-   ```
+## Tests
 
-2. Make clear and descriptive commits
+```bash
+cargo test --workspace
+```
 
-3. Open a pull request against `main`
+Each crate keeps its tests in its own `tests/` directory, named after the module under test.
 
----
+## Contributing
+
+Work on a branch and open a pull request against `main`. Code conventions (layering, no free
+functions, comments, protocol references) are in [`CLAUDE.md`](CLAUDE.md).
 
 ## License
 
-See [LICENSE.md](./LICENSE.md) for details.
+GPL-3.0. See [LICENSE.md](LICENSE.md).

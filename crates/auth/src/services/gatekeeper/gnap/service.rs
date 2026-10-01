@@ -25,7 +25,8 @@ use ymir::capabilities::HttpSig;
 use ymir::config::traits::HostsConfigTrait;
 use ymir::config::types::HostType;
 use ymir::data::entities::received::{grant, interaction};
-use ymir::data::entities::shared::{participant, resource_req};
+use ymir::data::entities::shared::participant_relation::VERIFICATION_USER_ID;
+use ymir::data::entities::shared::{participant, participant_relation, resource_req};
 use ymir::errors::{BadFormat, Errors, Outcome};
 use ymir::services::client::ClientTrait;
 use ymir::types::gnap::grant_request::client::{Client, KeyMaterial, KeyProof};
@@ -39,7 +40,8 @@ use ymir::types::gnap::{
 };
 use ymir::types::http::HttpBody;
 use ymir::types::keys::{Certificate, DbKeySource, KeySource, PublicKey};
-use ymir::types::participants::ParticipantType;
+use ymir::types::oauth::RolePath;
+use ymir::types::participants::{ParticipantType, ParticipantVisibility};
 use ymir::utils::{
     create_opaque_token, extract_gnap_token, http_client, json_headers, trim_4_base,
 };
@@ -56,7 +58,7 @@ impl GnapGateKeeperService {
 
 #[async_trait]
 impl GateKeeperTrait for GnapGateKeeperService {
-    fn build_grant_plan(&self, tenant_id: &str, class_id: Option<String>) -> Outcome<grant::Plan> {
+    fn build_grant_plan(&self, role: &RolePath, class_id: Option<String>) -> Outcome<grant::Plan> {
         let class_id = class_id.ok_or_else(|| {
             Errors::format(
                 BadFormat::Received,
@@ -69,7 +71,7 @@ impl GateKeeperTrait for GnapGateKeeperService {
 
         Ok(grant::Plan {
             id: id.clone(),
-            tenant_id: tenant_id.to_string(),
+            role: role.clone(),
             participant_nick: class_id,
             vc_type_config: None,
             kind: GrantKind::AccessToken,
@@ -77,7 +79,6 @@ impl GateKeeperTrait for GnapGateKeeperService {
     }
     fn build_resource_req_plan(
         &self,
-        tenant_id: &str,
         id: &str,
         grant_request_kind: GrantRequestKind,
     ) -> Outcome<resource_req::Model> {
@@ -106,7 +107,6 @@ impl GateKeeperTrait for GnapGateKeeperService {
 
         let resource_req = resource_req::Model {
             id: id.to_string(),
-            tenant_id: tenant_id.to_string(),
             r#type: access_req.access.r#type,
             actions,
             locations: access_req.access.locations,
@@ -122,7 +122,6 @@ impl GateKeeperTrait for GnapGateKeeperService {
 
     fn build_interaction_plan(
         &self,
-        tenant_id: &str,
         id: &str,
         client: Client,
         interact: Option<InteractRequest>,
@@ -184,10 +183,9 @@ impl GateKeeperTrait for GnapGateKeeperService {
         };
 
         let host = format!(
-            "{}{}/gate/{}",
+            "{}{}/gate",
             self.config.hosts().get_host(HostType::Http),
             self.config.get_api_path(),
-            tenant_id,
         );
         let grant_endpoint = format!("{host}/access");
         let continue_endpoint = format!("{host}/continue");
@@ -195,7 +193,6 @@ impl GateKeeperTrait for GnapGateKeeperService {
 
         let interaction = interaction::Plan {
             id: id.to_string(),
-            tenant_id: tenant_id.to_string(),
             start: interact.start,
             method,
             callback_uri,
@@ -212,32 +209,27 @@ impl GateKeeperTrait for GnapGateKeeperService {
         Ok(interaction)
     }
 
-    fn build_mate_plan(
-        &self,
-        tenant_id: &str,
-        holder: &str,
-        nick: &str,
-        base_url: &str,
-        token: &str,
-    ) -> participant::Plan {
+    fn build_mate_plan(&self, holder: &str, nick: &str, base_url: &str) -> participant::Plan {
         let base_url = trim_4_base(&base_url);
         participant::Plan {
             participant_id: holder.to_string(),
-            tenant_id: tenant_id.to_string(),
             participant_nick: nick.to_string(),
             participant_type: ParticipantType::Agent,
             base_url,
-            token: Some(token.to_string()),
             extra_fields: None,
         }
     }
 
-    fn validate_grant_req(
-        &self,
-        tenant_id: &str,
-        payload: &Bytes,
-        headers: &HeaderMap,
-    ) -> Outcome<GrantRequest> {
+    fn build_mate_rel_plan(&self, role: &RolePath, holder: &str) -> participant_relation::Model {
+        participant_relation::Model {
+            user_id: VERIFICATION_USER_ID.to_string(),
+            participant_id: holder.to_string(),
+            role: role.clone(),
+            visibility: ParticipantVisibility::Private,
+        }
+    }
+
+    fn validate_grant_req(&self, payload: &Bytes, headers: &HeaderMap) -> Outcome<GrantRequest> {
         info!("Validating grant request");
         let grant_request: GrantRequest = serde_json::from_slice(payload)?;
 
@@ -263,10 +255,9 @@ impl GateKeeperTrait for GnapGateKeeperService {
         };
 
         let grant_endpoint = format!(
-            "{}{}/gate/{}/access",
+            "{}{}/gate/access",
             self.config.get_host(HostType::Http),
             self.config.get_api_path(),
-            tenant_id,
         );
 
         HttpSig::verify(headers, &key_source, "POST", &grant_endpoint, payload)?;

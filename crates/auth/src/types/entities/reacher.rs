@@ -17,6 +17,7 @@
 
 use serde::{Deserialize, Serialize};
 use ymir::types::gnap::grant_request::interact::{InteractAction, InteractStart};
+use ymir::types::participants::ParticipantVisibility;
 use ymir::types::vcs::VcTypeConfig;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -36,6 +37,7 @@ pub struct ReachProvider {
     pub nick: String,
     pub url: String,
     pub actions: Vec<InteractAction>,
+    pub visibility: ParticipantVisibility,
     // #[serde(default)] TODO
     pub auto: Option<bool>,
 }

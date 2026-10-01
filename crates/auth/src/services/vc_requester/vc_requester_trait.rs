@@ -19,27 +19,27 @@ use crate::types::entities::ReachAuthority;
 use crate::types::response::VcWhatResponse;
 use async_trait::async_trait;
 use ymir::data::entities::sent::{grant, interaction, verification};
-use ymir::data::entities::shared::participant;
+use ymir::data::entities::shared::{participant, participant_relation};
 use ymir::errors::Outcome;
 use ymir::types::gnap::grant_request::interact::InteractStart;
 use ymir::types::gnap::grant_response::GrantResponse;
+use ymir::types::oauth::UserInfo;
 
 #[async_trait]
 pub trait VcRequesterTrait: Send + Sync + 'static {
-    fn build_grant_plan(&self, tenant_id: &str, payload: ReachAuthority) -> grant::Plan;
-    fn build_interaction_plan(
+    fn build_grant_plan(
         &self,
-        tenant_id: &str,
-        id: &str,
-        start: InteractStart,
-    ) -> interaction::Plan;
-    fn build_verification_plan(
-        &self,
-        tenant_id: &str,
-        uri: &str,
-        id: &str,
-    ) -> Outcome<verification::Plan>;
+        user_info: &UserInfo,
+        payload: ReachAuthority,
+    ) -> grant::Plan;
+    fn build_interaction_plan(&self, id: &str, start: InteractStart) -> interaction::Plan;
+    fn build_verification_plan(&self, uri: &str, id: &str) -> Outcome<verification::Plan>;
     fn build_authority_plan(&self, grant: &grant::Model) -> participant::Plan;
+    fn build_auth_relation(
+        &self,
+        user_info: &UserInfo,
+        holder: &str,
+    ) -> participant_relation::Model;
     async fn send_grant_req(
         &self,
         grant: &grant::Model,

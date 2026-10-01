@@ -19,43 +19,31 @@ use async_trait::async_trait;
 use axum::body::Bytes;
 use axum::http::HeaderMap;
 use ymir::data::entities::received::{grant, interaction};
-use ymir::data::entities::shared::{participant, resource_req};
+use ymir::data::entities::shared::{participant, participant_relation, resource_req};
 use ymir::errors::Outcome;
 use ymir::types::gnap::grant_request::client::Client;
 use ymir::types::gnap::grant_request::interact::InteractRequest;
 use ymir::types::gnap::grant_request::{GrantRequest, GrantRequestKind};
 use ymir::types::gnap::InteractionFinishResponse;
+use ymir::types::oauth::RolePath;
 
 #[async_trait]
 pub trait GateKeeperTrait: Send + Sync + 'static {
-    fn build_grant_plan(&self, tenant_id: &str, class_id: Option<String>) -> Outcome<grant::Plan>;
+    fn build_grant_plan(&self, role: &RolePath, class_id: Option<String>) -> Outcome<grant::Plan>;
     fn build_resource_req_plan(
         &self,
-        tenant_id: &str,
         id: &str,
         grant_request_kind: GrantRequestKind,
     ) -> Outcome<resource_req::Model>;
     fn build_interaction_plan(
         &self,
-        tenant_id: &str,
         id: &str,
         client: Client,
         interact: Option<InteractRequest>,
     ) -> Outcome<interaction::Plan>;
-    fn build_mate_plan(
-        &self,
-        tenant_id: &str,
-        holder: &str,
-        nick: &str,
-        base_url: &str,
-        token: &str,
-    ) -> participant::Plan;
-    fn validate_grant_req(
-        &self,
-        tenant_id: &str,
-        payload: &Bytes,
-        headers: &HeaderMap,
-    ) -> Outcome<GrantRequest>;
+    fn build_mate_plan(&self, holder: &str, nick: &str, base_url: &str) -> participant::Plan;
+    fn build_mate_rel_plan(&self, role: &RolePath, holder: &str) -> participant_relation::Model;
+    fn validate_grant_req(&self, payload: &Bytes, headers: &HeaderMap) -> Outcome<GrantRequest>;
 
     fn validate_cont_req(
         &self,

@@ -22,9 +22,9 @@
 //! path prefix to the agent that owns it. [`BffModule`] composes the gateway into a larger
 //! process and [`GatewayBoot`] runs it as its own service.
 //!
-//! Modules: `gateway` (app, discovery and router), [`proxy`], [`setup`].
+//! Modules: [`gateway`] (app, discovery and router), [`proxy`], [`setup`].
 
-pub(crate) mod gateway;
+pub mod gateway;
 pub mod proxy;
 pub mod setup;
 

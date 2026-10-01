@@ -25,15 +25,15 @@ use serde_json::Value;
 use ymir::services::client::ClientTrait;
 use ymir::utils::http_client;
 
-pub(crate) struct DiscoveryHandlers;
+pub struct DiscoveryHandlers;
 
 impl DiscoveryHandlers {
-    pub(crate) async fn did_json(Path(url): Path<String>) -> Response {
+    pub async fn did_json(Path(url): Path<String>) -> Response {
         let target = format!("{}/api/v1/wallet/did.json", url.trim_end_matches('/'));
         Self::fetch_json(&target, "DID document").await
     }
 
-    pub(crate) async fn federated_catalog(Path(url): Path<String>) -> Response {
+    pub async fn federated_catalog(Path(url): Path<String>) -> Response {
         let target = format!(
             "{}/.well-known/federated-catalog",
             url.trim_end_matches('/')

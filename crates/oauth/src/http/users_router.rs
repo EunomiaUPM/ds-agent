@@ -33,16 +33,16 @@ use crate::services::user_service::UserServiceTrait;
 use crate::services::user_service::views::UserView;
 
 #[derive(Clone)]
-pub(crate) struct UsersRouter {
+pub struct UsersRouter {
     user_svc: Arc<dyn UserServiceTrait>,
 }
 
 impl UsersRouter {
-    pub(crate) fn new(user_svc: Arc<dyn UserServiceTrait>) -> Self {
+    pub fn new(user_svc: Arc<dyn UserServiceTrait>) -> Self {
         Self { user_svc }
     }
 
-    pub(crate) fn router(self) -> Router {
+    pub fn router(self) -> Router {
         Router::new()
             .route("/", get(Self::handle_list).post(Self::handle_create))
             .route(

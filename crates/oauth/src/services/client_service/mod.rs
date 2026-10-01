@@ -28,7 +28,7 @@ pub mod service;
 pub mod views;
 
 /// Management of OAuth clients.
-#[cfg_attr(test, mockall::automock)]
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait ClientServiceTrait: Send + Sync + 'static {
     /// Page of clients visible to the caller.

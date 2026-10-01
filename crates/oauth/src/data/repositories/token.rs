@@ -25,7 +25,7 @@ use crate::entities::refresh_token::RefreshToken;
 
 #[mockall::automock]
 #[async_trait::async_trait]
-pub(crate) trait TokenRepository: Send + Sync {
+pub trait TokenRepository: Send + Sync {
     async fn create(&self, token: &RefreshToken) -> Outcome<RefreshToken>;
     async fn get_by_jti(&self, jti: &str) -> Outcome<Option<RefreshToken>>;
     async fn revoke(&self, id: Uuid) -> Outcome<()>;
@@ -33,7 +33,7 @@ pub(crate) trait TokenRepository: Send + Sync {
 }
 
 #[derive(Debug, Error)]
-pub(crate) enum TokenRepositoryError {
+pub enum TokenRepositoryError {
     #[error("token not found")]
     NotFound,
     #[error("database error: {0}")]

@@ -20,7 +20,7 @@ use serde::{Deserialize, Serialize};
 use crate::entities::role::RbacRole;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub(crate) struct AccessClaims {
+pub struct AccessClaims {
     pub sub: String,
     pub role: RbacRole,
     pub iat: i64,
@@ -32,7 +32,7 @@ pub(crate) struct AccessClaims {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub(crate) struct RefreshClaims {
+pub struct RefreshClaims {
     pub sub: String,
     pub role: RbacRole,
     pub jti: String,
@@ -41,7 +41,7 @@ pub(crate) struct RefreshClaims {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub(crate) struct IdTokenClaims {
+pub struct IdTokenClaims {
     pub iss: String,
     pub sub: String,
     pub aud: String,
@@ -54,7 +54,7 @@ pub(crate) struct IdTokenClaims {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub(crate) struct JwtAssertionClaims {
+pub struct JwtAssertionClaims {
     pub iss: String,
     pub sub: String,
     #[serde(default)]
@@ -68,7 +68,7 @@ pub(crate) struct JwtAssertionClaims {
     pub scope: Option<String>,
 }
 
-pub(crate) fn as_map(v: serde_json::Value) -> serde_json::Map<String, serde_json::Value> {
+pub fn as_map(v: serde_json::Value) -> serde_json::Map<String, serde_json::Value> {
     match v {
         serde_json::Value::Object(m) => m,
         _ => serde_json::Map::new(),

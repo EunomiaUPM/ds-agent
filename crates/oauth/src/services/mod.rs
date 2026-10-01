@@ -19,7 +19,7 @@
 
 pub mod admin_seeder;
 pub mod client_service;
-pub(crate) mod password;
+pub mod password;
 pub mod pat_service;
 pub mod token_service;
 pub mod user_service;

@@ -17,7 +17,7 @@
 
 //! SeaORM adapter: tables, migrations and repositories.
 
-pub(crate) mod factory;
-pub(crate) mod migrations;
-pub(crate) mod orm;
-pub(crate) mod repos;
+pub mod factory;
+pub mod migrations;
+pub mod orm;
+pub mod repos;

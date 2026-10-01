@@ -42,7 +42,7 @@ use crate::services::token_service::jwt::{
 use crate::services::token_service::views::{IntrospectResponse, TokenResponse};
 use crate::services::token_service::{Claims, OauthTokenValidator, TokenServiceTrait};
 
-pub(crate) struct TokenService {
+pub struct TokenService {
     user_repo: Arc<dyn UserRepository>,
     refresh_repo: Arc<dyn TokenRepository>,
     client_repo: Arc<dyn ClientRepository>,

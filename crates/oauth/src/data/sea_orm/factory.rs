@@ -31,7 +31,7 @@ use crate::data::sea_orm::repos::pat::SeaOrmPatRepository;
 use crate::data::sea_orm::repos::token::SeaOrmTokenRepository;
 use crate::data::sea_orm::repos::user::SeaOrmUserRepository;
 
-pub(crate) struct SeaOrmDataFactory {
+pub struct SeaOrmDataFactory {
     db: Arc<DatabaseConnection>,
 }
 

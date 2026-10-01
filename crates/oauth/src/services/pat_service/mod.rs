@@ -31,7 +31,7 @@ pub mod service;
 pub mod views;
 
 /// Personal access tokens: long-lived bearer tokens of a tenant.
-#[cfg_attr(test, mockall::automock)]
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait PatServiceTrait: Send + Sync + 'static {
     /// Creates a token; the raw value is only returned here.

@@ -31,7 +31,7 @@ use crate::entities::query::{Page, Sort, UserFilter};
 use crate::entities::role::RbacRole;
 use crate::entities::user::User;
 
-pub(crate) struct SeaOrmUserRepository {
+pub struct SeaOrmUserRepository {
     db: Arc<DatabaseConnection>,
 }
 

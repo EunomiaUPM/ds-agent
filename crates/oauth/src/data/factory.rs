@@ -25,7 +25,7 @@ use crate::data::repositories::pat::PatRepository;
 use crate::data::repositories::token::TokenRepository;
 use crate::data::repositories::user::UserRepository;
 
-pub(crate) trait OAuthDataFactory: Send + Sync {
+pub trait OAuthDataFactory: Send + Sync {
     fn user_repository(&self) -> Arc<dyn UserRepository>;
     fn token_repository(&self) -> Arc<dyn TokenRepository>;
     fn client_repository(&self) -> Arc<dyn ClientRepository>;

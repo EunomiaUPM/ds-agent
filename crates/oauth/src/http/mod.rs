@@ -17,10 +17,10 @@
 
 //! Token, user, client and PAT routes.
 
-pub(crate) mod clients_router;
+pub mod clients_router;
 pub mod errors;
-pub(crate) mod extractors;
-pub(crate) mod forms;
-pub(crate) mod pats_router;
-pub(crate) mod token_router;
-pub(crate) mod users_router;
+pub mod extractors;
+pub mod forms;
+pub mod pats_router;
+pub mod token_router;
+pub mod users_router;

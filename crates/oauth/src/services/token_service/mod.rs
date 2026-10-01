@@ -17,9 +17,9 @@
 
 //! Token issuing, refresh, revocation and introspection.
 
-pub(crate) mod jwt;
-pub(crate) mod service;
-pub(crate) mod views;
+pub mod jwt;
+pub mod service;
+pub mod views;
 
 use crate::services::token_service::views::{IntrospectResponse, TokenResponse};
 pub use common::auth::OauthTokenValidator;

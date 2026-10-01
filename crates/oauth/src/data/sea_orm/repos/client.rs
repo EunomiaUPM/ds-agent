@@ -30,7 +30,7 @@ use crate::data::sea_orm::orm::client as orm;
 use crate::entities::client::Client;
 use crate::entities::query::{ClientFilter, Page, Sort};
 
-pub(crate) struct SeaOrmClientRepository {
+pub struct SeaOrmClientRepository {
     db: Arc<DatabaseConnection>,
 }
 

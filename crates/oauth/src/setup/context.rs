@@ -29,7 +29,7 @@ use crate::services::user_service::service::UserService;
 use sea_orm::DatabaseConnection;
 
 #[derive(Clone)]
-pub(crate) struct AppContext {
+pub struct AppContext {
     pub config: OAuthConfig,
     pub token_svc: Arc<TokenService>,
     pub user_svc: Arc<UserService>,

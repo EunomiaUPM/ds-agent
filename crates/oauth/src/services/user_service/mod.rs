@@ -28,7 +28,7 @@ pub mod service;
 pub mod views;
 
 /// Management of users.
-#[cfg_attr(test, mockall::automock)]
+#[mockall::automock]
 #[async_trait::async_trait]
 pub trait UserServiceTrait: Send + Sync + 'static {
     /// Page of users visible to the caller.

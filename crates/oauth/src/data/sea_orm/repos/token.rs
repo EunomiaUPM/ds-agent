@@ -26,7 +26,7 @@ use crate::data::repositories::token::{TokenRepository, TokenRepositoryError};
 use crate::data::sea_orm::orm::token as orm;
 use crate::entities::refresh_token::RefreshToken;
 
-pub(crate) struct SeaOrmTokenRepository {
+pub struct SeaOrmTokenRepository {
     db: Arc<DatabaseConnection>,
 }
 

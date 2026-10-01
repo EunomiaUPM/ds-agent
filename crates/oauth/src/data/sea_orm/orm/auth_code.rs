@@ -40,7 +40,7 @@ pub struct Model {
 }
 
 impl Model {
-    pub(crate) fn into_domain(self) -> Outcome<AuthCode> {
+    pub fn into_domain(self) -> Outcome<AuthCode> {
         let role = self
             .role
             .parse::<RbacRole>()
@@ -62,7 +62,7 @@ impl Model {
 }
 
 impl ActiveModel {
-    pub(crate) fn from_domain(a: &AuthCode) -> Self {
+    pub fn from_domain(a: &AuthCode) -> Self {
         Self {
             code: Set(a.code.clone()),
             client_id: Set(a.client_id.clone()),

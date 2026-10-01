@@ -41,7 +41,7 @@ pub struct Model {
 }
 
 impl Model {
-    pub(crate) fn into_domain(self) -> Outcome<PersonalAccessToken> {
+    pub fn into_domain(self) -> Outcome<PersonalAccessToken> {
         let role = self.role.parse::<RbacRole>().map_err(|e| {
             Errors::crazy(
                 "invalid role in personal access token",
@@ -66,7 +66,7 @@ impl Model {
 }
 
 impl ActiveModel {
-    pub(crate) fn from_domain(p: &PersonalAccessToken) -> Self {
+    pub fn from_domain(p: &PersonalAccessToken) -> Self {
         Self {
             id: Set(p.id),
             tenant_id: Set(p.tenant_id.clone()),

@@ -15,5 +15,5 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod http;
-pub(crate) mod no_op;
+pub mod http;
+pub mod no_op;

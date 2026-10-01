@@ -17,4 +17,4 @@
 
 //! Redis cache of dataplane transfers.
 
-pub(crate) mod dataplane_transfer_cache;
+pub mod dataplane_transfer_cache;

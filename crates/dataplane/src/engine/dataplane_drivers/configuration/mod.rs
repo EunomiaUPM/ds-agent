@@ -15,8 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod http_consumer_pull;
-pub(crate) mod http_consumer_push;
-pub(crate) mod http_provider_pull;
-pub(crate) mod http_provider_push;
-pub(crate) mod no_op;
+pub mod http_consumer_pull;
+pub mod http_consumer_push;
+pub mod http_provider_pull;
+pub mod http_provider_push;
+pub mod no_op;

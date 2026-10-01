@@ -80,8 +80,8 @@ impl Into<DataplaneAddress> for DataplaneProxyEgress {
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct DataplaneProxy {
-    pub(crate) ingress: DataplaneProxyIngress,
-    pub(crate) egress: DataplaneProxyEgress,
+    pub ingress: DataplaneProxyIngress,
+    pub egress: DataplaneProxyEgress,
 }
 
 impl Default for DataplaneProxy {

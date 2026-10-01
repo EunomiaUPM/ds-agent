@@ -27,7 +27,7 @@ use connector::{ConnectorInstanceFacadeTrait, ConnectorInstanceRemoteFacade};
 /// Ports the dataplane consumes; today the connector instances.
 #[derive(Clone)]
 pub struct DataplanePorts {
-    pub(crate) connector: Arc<dyn ConnectorInstanceFacadeTrait>,
+    pub connector: Arc<dyn ConnectorInstanceFacadeTrait>,
 }
 
 impl DataplanePorts {

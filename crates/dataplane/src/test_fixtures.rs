@@ -48,7 +48,7 @@ fn tp_urn() -> Urn {
     Urn::from_str("urn:transfer-process:test-1").unwrap()
 }
 
-pub(crate) fn plain_secret(value: &str) -> SecretString {
+pub fn plain_secret(value: &str) -> SecretString {
     SecretString {
         source: SecretSource::Plain(value.to_string()),
     }

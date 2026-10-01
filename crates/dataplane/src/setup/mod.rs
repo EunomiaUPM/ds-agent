@@ -18,7 +18,7 @@
 //! The dataplane as a module registered by the transfer agent.
 
 mod composition;
-pub(crate) mod context;
+pub mod context;
 mod ports;
 
 pub use composition::DataplaneModule;

@@ -370,7 +370,7 @@ pub trait DataplaneCommandStateMachine: Send + Sync {
     }
 }
 
-pub(crate) async fn set_configuring_helper(
+pub async fn set_configuring_helper(
     dp_trait: Arc<dyn DataplaneTransferServiceTrait>,
     driver_factory: &dyn DataplaneDriverFactoryTrait,
     context: DataplaneContext,

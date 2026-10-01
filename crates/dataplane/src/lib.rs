@@ -22,14 +22,14 @@
 //! with credentials looked up in the keystore. It serves a control API under
 //! `{api}/transfer-agent/dataplane` and the data proxy on the path advertised in each data address.
 //!
-//! Modules: [`entities`], [`services`], [`data`], [`cache`], [`http`], `engine`,
+//! Modules: [`entities`], [`services`], [`data`], [`cache`], [`http`], [`engine`],
 //! [`testing_proxy`] (the HTTP data proxy), [`setup`].
 
 pub mod cache;
 pub mod data;
-pub(crate) mod engine;
+pub mod engine;
 pub mod entities;
-pub(crate) mod errors;
+pub mod errors;
 pub mod http;
 pub mod services;
 pub mod setup;
@@ -45,4 +45,4 @@ pub use engine::dataplane_manager::DataplaneAddress;
 pub use services::dataplane_transfers::DataplaneTransferServiceTrait;
 
 #[cfg(test)]
-pub(crate) mod test_fixtures;
+pub mod test_fixtures;

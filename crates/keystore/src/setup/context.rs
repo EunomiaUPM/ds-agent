@@ -35,7 +35,7 @@ use common::module_loader::root_context::RootContext;
 use ymir::services::vault::VaultService;
 
 #[derive(Clone)]
-pub(crate) struct AppContext {
+pub struct AppContext {
     pub parameter_svc: Arc<dyn ParameterStore<serde_json::Value>>,
     pub secret_svc: Arc<dyn SecretStore>,
     pub config_svc: Arc<ConfigStoreImpl>,

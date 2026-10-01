@@ -17,8 +17,8 @@
 
 //! Repositories and their SeaORM adapter.
 
-pub(crate) mod config;
-pub(crate) mod factory;
+pub mod config;
+pub mod factory;
 pub mod repo;
 pub mod sea_orm;
-pub(crate) mod vault;
+pub mod vault;

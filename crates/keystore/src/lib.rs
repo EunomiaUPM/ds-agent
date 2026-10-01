@@ -23,11 +23,11 @@
 //! `keystore:` prefix.
 //!
 //! Modules: [`entities`] (keys, entries, versions, secret values), [`services`], [`data`],
-//! `http`, [`setup`].
+//! [`http`], [`setup`].
 
 pub mod data;
 pub mod entities;
-pub(crate) mod http;
+pub mod http;
 pub mod services;
 pub mod setup;
 

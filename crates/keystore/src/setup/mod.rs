@@ -18,6 +18,6 @@
 //! The keystore as a module.
 
 mod composition;
-pub(crate) mod context;
+pub mod context;
 
 pub use composition::KeystoreModule;

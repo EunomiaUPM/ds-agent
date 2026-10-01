@@ -28,7 +28,7 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 #[allow(dead_code)]
-pub(crate) struct SeaOrmFactory {
+pub struct SeaOrmFactory {
     config: Arc<ApplicationConfig>,
     db: Arc<DatabaseConnection>,
 }

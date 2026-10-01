@@ -17,8 +17,8 @@
 
 //! Keystore table migrations.
 
-pub(crate) mod m20260519_000001_parameters;
-pub(crate) mod m20260519_000002_secrets;
+pub mod m20260519_000001_parameters;
+pub mod m20260519_000002_secrets;
 
 use sea_orm_migration::{MigrationTrait, MigratorTrait};
 

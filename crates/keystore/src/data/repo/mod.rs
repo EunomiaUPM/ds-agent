@@ -17,6 +17,6 @@
 
 //! Repository ports and their errors.
 
-pub(crate) mod config;
+pub mod config;
 pub mod parameters;
 pub mod secrets;

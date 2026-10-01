@@ -60,7 +60,7 @@ impl JsonStruct {
     }
 }
 
-/// `prost_types::{Struct, Value}` → `serde_json::Value`.
+/// Conversion from `prost_types::{Struct, Value}` into `serde_json::Value`.
 pub trait JsonStructExt {
     /// Converts into plain JSON; whole numbers become integers.
     fn into_json(self) -> JsonValue;
@@ -99,7 +99,7 @@ impl JsonStructExt for ProstValue {
     }
 }
 
-/// `serde_json::Value` → `prost_types::{Struct, Value}`.
+/// Conversion from `serde_json::Value` into `prost_types::{Struct, Value}`.
 pub trait JsonValueExt {
     /// Converts into a `google.protobuf.Value`; numbers become `f64`.
     fn into_prost_value(self) -> ProstValue;

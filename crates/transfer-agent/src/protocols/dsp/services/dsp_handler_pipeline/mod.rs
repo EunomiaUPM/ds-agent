@@ -16,7 +16,7 @@
  */
 
 //! The inbound DSP pipeline, as a template. Each stage consumes the previous
-//! context, so `Raw -> Parsed -> Rdf -> Typed -> Domain` is enforced by types.
+//! context, so the types enforce the order Raw, Parsed, Rdf, Typed, Domain.
 
 use axum::extract::Request;
 use common::validation::ValidatorRegistry;

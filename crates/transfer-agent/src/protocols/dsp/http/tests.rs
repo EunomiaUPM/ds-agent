@@ -81,7 +81,7 @@ async fn body_json(response: Response) -> serde_json::Value {
     serde_json::from_slice(&bytes).unwrap()
 }
 
-/// The pipeline runs green end to end: wire -> parsed -> rdf -> typed. Asserts
+/// The pipeline runs green through the wire, parsed, rdf and typed stages. Asserts
 /// only that no stage errored; the DSP response body is still to come.
 #[tokio::test]
 async fn transfer_request_runs_the_pipeline() {

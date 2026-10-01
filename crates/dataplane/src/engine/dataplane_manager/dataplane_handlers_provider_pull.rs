@@ -224,8 +224,8 @@ mod tests {
             .returning(move |_, _, _| Ok(dto(expected.clone())));
     }
 
-    // set_configuring drives the full provider-pull flow atomically:
-    // configure proxy → auth → ready → started.
+    // set_configuring runs the whole provider-pull flow in one go: it configures the proxy,
+    // authenticates, and moves through ready to started.
     #[tokio::test]
     async fn test_set_configuring_persists_configuring_state_and_preserves_connector() {
         let mut mock = MockDataplaneTransferServiceTrait::new();

@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Proto ⇄ domain mappers for the catalog RPCs.
+//! Mappers between proto and domain types for the catalog RPCs.
 
 use crate::entities::catalogs::{CatalogDto, EditCatalogDto, NewCatalogDto};
 use crate::entities::filters::CatalogFilter;

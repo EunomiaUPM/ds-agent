@@ -206,8 +206,8 @@ mod tests {
         assert!(ctx.connector_instance().is_none());
     }
 
-    // set_configuring drives the full consumer-pull flow atomically:
-    // configure proxy → auth → ready → started.
+    // set_configuring runs the whole consumer-pull flow in one go: it configures the proxy,
+    // authenticates, and moves through ready to started.
     #[tokio::test]
     async fn test_set_configuring_builds_driver_and_proxy() {
         let mut mock = MockDataplaneTransferServiceTrait::new();
@@ -245,7 +245,7 @@ mod tests {
         );
     }
 
-    // set_auth in isolation: no-op authentication → put(Auth).
+    // set_auth on its own: a no-op authentication followed by put(Auth).
     #[tokio::test]
     async fn test_set_auth_persists_auth_state() {
         let mut mock = MockDataplaneTransferServiceTrait::new();

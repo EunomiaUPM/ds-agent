@@ -536,7 +536,7 @@ mod tests {
     }
 
     /// The header's one legitimate job: telling two identical messages apart, as a
-    /// restart does. Distinct keys → distinct records, so both execute.
+    /// restart does. Distinct keys give distinct records, so both execute.
     #[tokio::test]
     async fn distinct_supplied_keys_separate_identical_messages() {
         let store = InMemoryIdempotencyStore::new();

@@ -46,8 +46,7 @@ use ymir::errors::Outcome;
 /// [`NegotiationProtocolStep`] template; `run_lifecycle` encodes the algorithm
 /// once:
 ///
-/// 1. **validate** - 2. **prepare context** (with optional early ack) →
-/// 3. **persist**
+/// The steps are validate, prepare the context (with an optional early ack) and persist.
 ///
 /// Unlike the transfer orchestrator there is no `post_hook` because negotiation
 /// does not involve a data-plane session.

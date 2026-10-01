@@ -44,7 +44,7 @@ use common::query::Paginated;
 const TENANT: &str = "tenant-1";
 const OTHER_TENANT: &str = "tenant-2";
 
-/// Token validator keyed by literal token: `owner` → tenant-1 owner, `admin` → admin.
+/// Token validator keyed by literal token: `owner` is the tenant-1 owner, `admin` an admin.
 struct StubValidator;
 
 #[async_trait::async_trait]

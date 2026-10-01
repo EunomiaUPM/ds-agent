@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! The outbound RPC context, stage by stage: raw -> parsed -> typed -> domain.
+//! The outbound RPC context, stage by stage: raw, parsed, typed and domain.
 //! Plain JSON, so the typed stage is a single serde pass.
 
 use crate::entities::protocol::{TransferDirection, TransferRole};

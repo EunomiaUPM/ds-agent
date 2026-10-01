@@ -76,25 +76,25 @@ impl DspRouter {
         Router::new()
             // 8.2.1 & 8.3.2: Get Negotiation (Unified)
             .route("/{id}", get(Self::handle_get_negotiation))
-            // 8.2.2: Contract Request Endpoint (Consumer initiates) -> ROLE: PROVIDER
+            // 8.2.2: Contract Request Endpoint, the consumer starts; we answer as provider.
             .route("/request", post(Self::handle_initial_request))
-            // 8.2.3: Contract Request Endpoint (Consumer counters) -> ROLE: PROVIDER
+            // 8.2.3: Contract Request Endpoint, the consumer counters; we answer as provider.
             .route("/{id}/request", post(Self::handle_consumer_request))
-            // 8.2.5: Agreement Verification (Consumer verifies) -> ROLE: PROVIDER
+            // 8.2.5: Agreement Verification, sent by the consumer; we answer as provider.
             .route(
                 "/{id}/agreement/verification",
                 post(Self::handle_agreement_verification),
             )
-            // 8.3.3: Contract Offer Endpoint (Provider initiates) -> ROLE: CONSUMER
+            // 8.3.3: Contract Offer Endpoint, the provider starts; we answer as consumer.
             .route("/offers", post(Self::handle_initial_offer))
-            // 8.3.4: Contract Offer Endpoint (Provider counters) -> ROLE: CONSUMER
+            // 8.3.4: Contract Offer Endpoint, the provider counters; we answer as consumer.
             .route("/{id}/offers", post(Self::handle_provider_offer))
-            // 8.3.5: Contract Agreement Endpoint (Provider sends Agreement) -> ROLE: CONSUMER
+            // 8.3.5: Contract Agreement Endpoint, the provider sends it; we answer as consumer.
             .route("/{id}/agreement", post(Self::handle_agreement_reception))
-            // 8.2.4 (Provider Endpoint) & 8.3.6 (Consumer Endpoint) -> Events
+            // Events: 8.2.4 on the provider side and 8.3.6 on the consumer side.
             // Both allow POST /events. The logic inside must discriminate based on state/role.
             .route("/{id}/events", post(Self::handle_negotiation_events))
-            // 8.2.6 (Provider Endpoint) & 8.3.7 (Consumer Endpoint) -> Termination
+            // Termination: 8.2.6 on the provider side and 8.3.7 on the consumer side.
             .route(
                 "/{id}/termination",
                 post(Self::handle_negotiation_termination),

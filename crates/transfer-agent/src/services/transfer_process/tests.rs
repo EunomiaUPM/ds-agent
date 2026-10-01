@@ -259,7 +259,7 @@ async fn get_all_partial_page_no_cursor() {
 }
 
 // encode_cursor in the service switches the timestamp field based on sort:
-// UpdatedAtDesc → updated_at; everything else → created_at. We need a process
+// UpdatedAtDesc uses updated_at and every other sort uses created_at. We need a process
 // where both fields differ to confirm the right one is picked.
 #[tokio::test]
 async fn get_all_cursor_uses_updated_at_for_sort_updated_at_desc() {
@@ -1232,7 +1232,7 @@ async fn create_propagates_identifier_upsert_error() {
     );
 }
 
-// edit: put the process → (optionally) upsert each identifier → re-fetch ALL
+// edit puts the process, optionally upserts each identifier, then re-fetches ALL
 // identifiers from the repo to build the view. This differs from create, where
 // the view is built from the command without a subsequent fetch.
 

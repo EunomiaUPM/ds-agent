@@ -114,7 +114,7 @@ mod tests {
 
     #[test]
     fn uri_pid_correlation() {
-        // provider role → matches provider pid
+        // as provider, the uri must match the provider pid
         assert!(
             V::uri_and_pid(
                 "urn:uuid:pp",
@@ -148,13 +148,13 @@ mod tests {
     #[test]
     fn data_address_rule() {
         use TransferDSPStateAttribute::*;
-        // provider first start with a data address → fine
+        // a provider may send a data address on the first start
         assert!(V::data_address_in_start(true, &TransferRole::Provider, &OnRequest).is_ok());
-        // consumer with a data address on a non-first start → rejected
+        // a consumer may not send one on a later start
         assert!(V::data_address_in_start(true, &TransferRole::Consumer, &ByProvider).is_err());
-        // consumer on the first start → fine
+        // a consumer may send one on the first start
         assert!(V::data_address_in_start(true, &TransferRole::Consumer, &OnRequest).is_ok());
-        // no data address → always fine
+        // without a data address the rule never fails
         assert!(V::data_address_in_start(false, &TransferRole::Consumer, &ByProvider).is_ok());
     }
 }

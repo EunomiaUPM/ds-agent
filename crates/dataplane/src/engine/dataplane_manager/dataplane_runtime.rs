@@ -282,7 +282,7 @@ impl<'a> RuntimeSecretVault<'a> {
         format!("{{{{__RUNTIME_SECRET_{{{path}}}__}}}}")
     }
 
-    /// `urn:dataplane-transfer:abc-123` → `/runtime/abc-123`
+    /// Runtime path of a transfer, e.g. `/runtime/abc-123` for `urn:dataplane-transfer:abc-123`.
     fn path_prefix(transfer_id: &str) -> String {
         let id_part = transfer_id.rsplit(':').next().unwrap_or(transfer_id);
         format!("/runtime/{}", id_part)

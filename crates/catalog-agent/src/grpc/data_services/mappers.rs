@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Proto ⇄ domain mappers for the data-service RPCs.
+//! Mappers between proto and domain types for the data-service RPCs.
 
 use crate::entities::data_services::{DataServiceDto, EditDataServiceDto, NewDataServiceDto};
 use crate::entities::filters::DataServiceFilter;

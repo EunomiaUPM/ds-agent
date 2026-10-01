@@ -135,7 +135,7 @@ async fn test_bff_auth_middleware_bearer_and_query() {
     let client = http_client();
     let base = format!("http://127.0.0.1:{port}");
 
-    // 1. Missing token -> 401 Unauthorized
+    // A missing token is a 401.
     let unauth_resp = client
         .get(&format!("{base}/protected"), None)
         .await
@@ -146,7 +146,7 @@ async fn test_bff_auth_middleware_bearer_and_query() {
         "nosniff"
     );
 
-    // 2. Valid Bearer token in header -> 200 OK
+    // A valid bearer token in the header passes.
     let mut bearer = HeaderMap::new();
     bearer.insert("Authorization", "Bearer valid-jwt-token".parse().unwrap());
     let bearer_resp = client
@@ -156,7 +156,7 @@ async fn test_bff_auth_middleware_bearer_and_query() {
     assert_eq!(bearer_resp.status(), StatusCode::OK);
     assert_eq!(bearer_resp.text().await.unwrap(), "user-admin-123");
 
-    // 3. Valid PAT in query param (used for browser WebSockets) -> 200 OK
+    // A valid PAT in the query string, as browser WebSockets send it, passes.
     let query_resp = client
         .get(&format!("{base}/protected?token=pat_testsecret123"), None)
         .await

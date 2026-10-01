@@ -16,7 +16,8 @@
  */
 
 //! Provider side of a transfer request: which connector instance serves the data an
-//! agreement grants (agreement → dataset → distribution → connector instance).
+//! agreement grants, following the agreement to its dataset, distribution and connector
+//! instance.
 
 use connector::ConnectorInstanceDto;
 use urn::Urn;

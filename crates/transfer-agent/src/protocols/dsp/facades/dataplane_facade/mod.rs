@@ -29,7 +29,7 @@ use common::dsp_common::data_address::DataAddress;
 use dataplane::DataplaneAddress;
 use ymir::errors::Outcome;
 
-/// The message's `DataAddress` (common wire type) → data-plane address. A free
+/// Converts the message's `DataAddress` (common wire type) into a dataplane address. A free
 /// function rather than a `From` impl: both types are foreign, so the orphan rule
 /// forbids the trait impl. Endpoint properties are flattened by name
 /// (`authType`, `authorization`), same as the DTO path.

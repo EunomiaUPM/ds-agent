@@ -15,8 +15,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! The inbound DSP context, stage by stage: raw -> parsed -> rdf -> typed ->
-//! domain. Each stage consumes the previous one, so the order cannot be skipped.
+//! The inbound DSP context, stage by stage: raw, parsed, rdf, typed and domain.
+//! Each stage consumes the previous one, so the order cannot be skipped.
 
 use crate::entities::ids::IdempotencyKey;
 use crate::entities::protocol::{ProtocolId, TransferDirection, TransferRole};
@@ -290,7 +290,7 @@ mod tests {
 
     #[tokio::test]
     async fn from_request_fails_without_auth_middleware() {
-        // No Mates in extensions → wiring error, not a silent None.
+        // Without Mates in the extensions this is a wiring error, not a silent None.
         let req = Request::builder().body(axum::body::Body::empty()).unwrap();
         assert!(
             TransferContextRaw::<TransferDSPAuthn>::from_request(req)
@@ -321,7 +321,7 @@ mod tests {
             "canonicalization must be key-order independent"
         );
 
-        // Different content (provider pid) → different canonical hash.
+        // A different provider pid must give a different canonical hash.
         let c = rdf_from(
             r#"{"@context":"https://w3id.org/dspace/2025/1/context.jsonld","@type":"TransferStartMessage","providerPid":"urn:uuid:XX","consumerPid":"urn:uuid:cc"}"#,
         )

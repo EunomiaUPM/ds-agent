@@ -15,7 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-//! Proto ⇄ domain mappers for the policy-template RPCs.
+//! Mappers between proto and domain types for the policy-template RPCs.
 
 use crate::entities::filters::PolicyTemplateFilter;
 use crate::entities::policy_templates::types::LocalizedText;
